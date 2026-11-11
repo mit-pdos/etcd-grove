@@ -106,7 +106,7 @@ theorem phaseStepR_appAcc (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ent
       (VPin C0 (toC (confAbs C0) (doneSrv a0 (logAbs C0 C0.length 1 es') (idAbs m.From')
           (min ma.commitIndex ((uint.nat m.Index' : Int) + ents.length))))
         (P0 ++ [doneResp a0 ma (uint.nat m.Index') ents.length])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by
@@ -178,6 +178,7 @@ theorem fxPresR_appAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Trac
     (hTm : ma.term = uint.Z T) (hin : plogTermAt bL l idx = some lt0)
     (hsl : ents0 <+: plogFrom bL l (idx + W64 1)) (hidx1 : uint.Z idx + 1 < 2 ^ 64)
     (hidx : ma.prevLogIndex = uint.Z idx) (hents0 : ma.entries = logAbs C0 C0.length (uint.nat idx + 1) ents0)
+    (hE0 : ents0 = ents) (hidxp : uint.nat idx = p) (hlt0 : lt0 = lt)
     (cc : Int) (hcc : cc = max c0 (min ma.commitIndex ((p : Int) + ents.length))) (hccl : cc ≤ es'.length)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 →
       cs1 = toC (confAbs C0) (doneSrv a (logAbs C0 C0.length 1 es') ma.source
@@ -212,7 +213,7 @@ theorem fxPresR_appAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Trac
         · icases simFx_appAccMid γ C σ id ma L ents es' p lt lastnewi ma.source hsrv hiC hdst
               (by rw [hσi]; exact hfol) (by rw [hσi]; exact hle) hmem (by rw [hσi]; exact hlog) hbL hwr hln
               (by rw [hσi, hcm1]; exact hcp) (by rw [hσi, hcm1]; exact hc0) hprev hents hbe hwf hp hnw happ
-              hwr' hln' src T bL l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0 L' hL'
+              hwr' hln' src T bL l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0 hE0 hidxp L' hL'
               $$ [$Htbl $Hfx $HL $HN $Hp $Hf] with ⟨Htbl, #H⟩
           iframe Htbl
           iintro %_
@@ -228,7 +229,7 @@ theorem fxPresR_appAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Trac
   icases simFx_appAccEnd γ C σ id ma L ents es' p lt lastnewi hsrv hiC hdst (by rw [hσi]; exact hfol) hty
       (by rw [hσi]; exact hle) hsub hmem (by rw [hσi]; exact hlog) hbL hwr hln (by rw [hσi, hcm1]; exact hcp)
       (by rw [hσi, hcm1]; exact hc0) hprev hents hbe hwf hp hnw happ hwr' hln' src T bL l fp ents0 idx lt0
-      hTm hin hsl hidx1 hidx hents0 cc (by rw [hσi, hcm1]; exact hcc) hccl
+      hTm hin hsl hidx1 hidx hents0 hE0 hidxp hlt0 cc (by rw [hσi, hcm1]; exact hcc) hccl
       $$ [$Htbl $Hfx $HL $HN $Hp $Hf] with ⟨Htbl, #H1⟩
   · rw [hσi, hT]; iframe Hci Hcm
   iframe Htbl
@@ -574,7 +575,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
           hcp (uint_Z_nonneg _) hmprev hments hbe hwfZ (by word) hnw happ' hwr' (by omega)
           (absMsg .app m ents ctx).src (absMsg .app m ents ctx).term bL l fpL ents m.Index' m.LogTerm' hmterm
           Hpl.1 Hpl.2
-          (by have h2 : uint.Z m.Index' + (ents.length : Int) + 1 < 2 ^ 64 := hnwE; omega) (by rw [hmprev, hpZ]) hments
+          (by have h2 : uint.Z m.Index' + (ents.length : Int) + 1 < 2 ^ 64 := hnwE; omega) (by rw [hmprev, hpZ]) hments rfl rfl rfl
           (uint.Z (accCommit (toPState s).commit m.Commit' lastnewi)) hccZ (by
             rw [hccZ]; have := hcl; omega)
         · intro a ha

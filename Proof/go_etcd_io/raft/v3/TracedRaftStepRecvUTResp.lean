@@ -73,7 +73,7 @@ theorem phaseStepR_utResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m :
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg ty m ents))
       (fun v => toC (confAbs C0) v = toC (confAbs C0) (utSrv a0 (uint.Z m.Term'))) (recvPhantoms ma)
       (IdlePin s C0 cs0 P0) (VPin C0 (toC (confAbs C0) (respSrv (utSrv a0 (uint.Z m.Term')) ma)) P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg ty m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg ty m ents).dst s c (absMsg ty m ents) e := by rw [hdst]; exact he
@@ -133,7 +133,7 @@ theorem fxPresR_utResp (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Trac
   have hσud : σu.s (idAbs id) = utSrv a T := by rw [hσu]; simp [withNode, hσa]
   have hfl : Etcdraft.follower ≠ Etcdraft.leader := by decide
   ihave #H1 := simFx_resp γ C σu (idAbs id) ma (.inr (by rw [hty]; decide))
-    (.inl (by rw [hσud]; exact hfl)) $$ Hu
+    (.inl (by rw [hσud]; exact hfl)) (by rw [hσu]; exact hmem) $$ Hu
   iframe Htbl
   isplitl
   · have hs : ∀ k, toC (withNode σu (idAbs id) (respSrv (σu.s (idAbs id)) ma) (fun b => b.without ma)

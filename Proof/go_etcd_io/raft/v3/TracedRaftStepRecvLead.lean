@@ -86,7 +86,7 @@ theorem phaseStepR_leadResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m
     (hma : TraceSim.msgAbs C0 C0.length (absMsg ty m ents) = some ma) :
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg ty m ents)) (fun _ => False) (recvPhantoms ma)
       (IdlePin s C0 cs0 P0) (IdlePin s C0 cs0 P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   have hI' := hI
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI'
   have hpre : s.role ≠ .preCandidate := by rw [hlead]; decide

@@ -289,7 +289,7 @@ theorem fxPres_timeout (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
       iapply Hmf
       ipureintro; exact hx
     isplitl
-    · iapply quorumLogF_congr γ C σ (σ.upd (idAbs id) (candOf (idAbs id))) rfl ?_ ?_ ?_ $$ Hq
+    · iapply quorumLogF_congr γ C σ (σ.upd (idAbs id) (candOf (idAbs id))) rfl ?_ ?_ ?_ (fun x hx _ => hx) ?_ $$ Hq
       · intro k; by_cases hk : k = idAbs id
         · subst hk; rw [TraceSpecInv.upd_s_self]; rfl
         · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]
@@ -299,8 +299,17 @@ theorem fxPres_timeout (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
       · intro k; by_cases hk : k = idAbs id
         · subst hk; rw [TraceSpecInv.upd_s_self]; simp only [candOf]; omega
         · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk]; exact Int.le_refl _
+      · -- (amendment A6) the candidate is no leader
+        intro k hk; by_cases hk' : k = idAbs id
+        · subst hk'; rw [TraceSpecInv.upd_s_self] at hk; simp [candOf] at hk; exact absurd hk (by decide)
+        · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk'] at hk ⊢; exact ⟨hk, rfl, fun _ _ => rfl⟩
     ipureintro
-    refine ⟨hsi', hu, hsh, ?_⟩
+    refine ⟨hsi', hu, ⟨hsh.1, ?_⟩, ?_⟩
+    · -- (amendment A6, Q23) the new candidate's tally is empty
+      intro j hj k hk
+      by_cases hjk : j = idAbs id
+      · subst hjk; rw [TraceSpecInv.upd_s_self] at hk; simp [candOf] at hk
+      · rw [TraceSpecInv.upd_s_ne _ _ _ _ hjk] at hk; exact hsh.2 j hj k hk
     · refine appSlices_mono σ (σ.upd (idAbs id) (candOf (idAbs id))) has rfl (fun m hm => hm) ?_
       intro j _ hl
       by_cases hk : j = idAbs id
@@ -329,6 +338,7 @@ before (`simFx_send`, `msgFacts_plain`; the message is pinned by its logged fiel
 theorem fxPres_plain (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (p : Etcdraft.Msg)
     (hp0 : canonMsg p = p) (hpt : p.type ≠ .appendEntriesRequest) (hpe : p.entries = [])
+    (hpa : ¬ AckMsg p) (hpE : ∀ C cs P, Φ C cs P → p.source ∈ confAbs C ∧ p.dest ∈ confAbs C)
     (hok : ∀ C cs P, Φ C cs P → ∀ σ : Etcdraft.State, toC (confAbs C) (σ.s (idAbs id)) = cs →
       σ.server = confAbs C → TraceSpecInv.MsgOk σ p)
     (hΦ' : ∀ C cs P cs' P', Φ C cs P → Φ' C cs' (P ++ P') → cs' = cs ∧ P' = [p]) :
@@ -341,7 +351,8 @@ theorem fxPres_plain (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   subst hP'
   ihave #Hpf := msgFacts_plain (GF := GF) γ C p hpt hpe
   ihave #H2 := simFx_send γ C σ p (hok C cs P hΦ σ (by rw [hσa]; exact hcs) hsrv)
-    hp0 (fun y _ => ContentLogged.pinned (fun h => absurd h hpt) y) (appSliceOf_nil σ p hpe) $$ [$Hfx $Hpf]
+    hp0 (fun y _ => ContentLogged.pinned (fun h => absurd h hpt) y) (appSliceOf_nil σ p hpe) hpa
+    (by unfold MsgEnds; rw [hsrv]; exact hpE C cs P hΦ) $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by
@@ -568,6 +579,7 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
   obtain ⟨hq, hqr, he, hsrc, hdst, hterm, hvr⟩ := campMsg_abs C0 C0.length id _ y _ cl ma0 hma
   have hyin : y ∈ elements c.incoming :=
     mem_incoming_of c y hlrn Hout ((GMap.elem_of_union _ _ _).2 (.inl hy))
+  icases trCapB_pinPerm γd γ r id c bt _ _ C0 (fun _ _ _ h => h.1) $$ Hf with ⟨%hperm0, Hf⟩
   have hnlb : (becomeCandidate id s).role ≠ .leader := by simp [becomeCandidate]
   have hS1 : (fun C => SimIdleS C ({ becomeCandidate id s with prvals := pvs } : NState)) =
       (fun C => SimIdleS C (becomeCandidate id s)) :=
@@ -590,7 +602,10 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
     (PinAtG (fun C => SimIdleS C (becomeCandidate id s)) C0 cs0 P0 o)
     (PinAtG (fun C => SimIdleS C (becomeCandidate id s)) C0 cs0 (P0 ++ [ma0])
       (o ++ [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) cl y]))
-    ma0 (msgAbs_canon C0 C0.length _ ma0 hma) hq he
+    ma0 (msgAbs_canon C0 C0.length _ ma0 hma) hq he (fun h => absurd h.1 hqr)
+    (fun C _ _ h => by
+      rw [h.1, hsrc, hdst, mem_confAbs, mem_confAbs]
+      exact ⟨HΦ0.2, hperm0.mem_iff.1 hyin⟩)
     (fun C cs P hΦ σ hσ hsrv => by
       have ht : (σ.s (idAbs id)).currentTerm = ma0.term := by
         rw [hterm, ← hcur C cs P hΦ, ← hσ]; rfl

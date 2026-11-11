@@ -77,7 +77,7 @@ theorem phaseStepR_utApp (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { utSrv a0 (uint.Z m.Term') with lead := idAbs m.From' })
         (P0 ++ [R (utSrv a0 (uint.Z m.Term'))])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by rw [hdst]; exact he
@@ -115,6 +115,9 @@ theorem fxPresR_utLeadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E :
     (hbL : BootTerms C0.length 1 L) (hwr : PlogWfR (entryID.mk (W64 0) (W64 0)) L)
     (hrq : ∀ a, (R a).type ≠ .appendEntriesRequest) (hre : ∀ a, (R a).entries = [])
     (hr0 : ∀ a, canonMsg (R a) = R a)
+    (hra : ∀ a, AckMsg (R a) → (R a).source = ma.dest ∧ (R a).term = a.currentTerm ∧
+      (R a).matchIndex = a.commitIndex)
+    (hrsd : ∀ a, (R a).source = ma.dest ∧ (R a).dest = ma.source)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 →
       toC (confAbs C0) u0 = toC (confAbs C0) (utSrv a T) ∧
       cs1 = toC (confAbs C0) { utSrv a T with lead := ma.source } ∧ r1 = R (utSrv a T) ∧ ma.term = T ∧
@@ -144,7 +147,7 @@ theorem fxPresR_utLeadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E :
   have hσud : σu.s ma.dest = utSrv a T := by rw [hσu, hdst]; simp [withNode, hσa]
   ihave #H1 := simFx_leadReply γ C σu ma (R (σu.s ma.dest)) ma.dest ma.source
     (hspec σu a (by rw [hσu]; exact hsrv) (by rw [hσu]; exact hpv) (by rw [hσu]; exact hcq)
-      (by rw [hσu]; exact hmem) hcs hσud) (hrq _) (hre _) (hr0 _) $$ Hu
+      (by rw [hσu]; exact hmem) hcs hσud) (hrq _) (hre _) (hr0 _) (by rw [hσu]; exact hsrv) (hra _) (by rw [hσu]; exact hmem) (hrsd _) $$ Hu
   iframe Htbl
   isplitl
   · have hs : ∀ k, toC (withNode σu ma.dest { σu.s ma.dest with lead := ma.source } (fun b => b.without ma)
@@ -259,6 +262,18 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
     · exact rjResp_toC _ _ _ _ _ h
   have hRsrc : ∀ u, (utAppResp b id m.From' u).source = idAbs id := by
     intro u; unfold utAppResp; split <;> rfl
+  have hRra : ∀ u, AckMsg (utAppResp b id m.From' u) → (utAppResp b id m.From' u).source = ma.dest ∧
+      (utAppResp b id m.From' u).term = u.currentTerm ∧ (utAppResp b id m.From' u).matchIndex = u.commitIndex := by
+    intro u h
+    unfold utAppResp at h ⊢
+    cases b
+    · exact absurd h.2.1 (by simp [rjResp])
+    · exact ⟨by simp [stResp, hmd], rfl, rfl⟩
+  have hRsd : ∀ u, (utAppResp b id m.From' u).source = ma.dest ∧ (utAppResp b id m.From' u).dest = ma.source := by
+    intro u; unfold utAppResp
+    cases b
+    · exact ⟨by simp [rjResp, hmd], by simp [rjResp, hms]⟩
+    · exact ⟨by simp [stResp, hmd], by simp [stResp, hms]⟩
   have hRrq : ∀ u, (utAppResp b id m.From' u).type ≠ .appendEntriesRequest := by
     intro u; unfold utAppResp; split <;> simp [stResp, rjResp]
   have hRre : ∀ u, (utAppResp b id m.From' u).entries = [] := by
@@ -346,7 +361,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
         have hW2 : W64 (uint.Z s.term) = s.term := by word
         iapply fxPresR_utLeadReply γ id ma _ s tn.voters cs0 _ P0 _ (toPState s).log (utSrv a0 (uint.Z m.Term'))
           (uint.Z s.logst.committed) (uint.Z s.term) (uint.Z m.Term') (utAppResp b id m.From') hidC hmd hT63 hbL Hwr
-          hRrq hRre hRr0
+          hRrq hRre hRr0 hRra hRsd
         · intro a ha
           have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
           have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0

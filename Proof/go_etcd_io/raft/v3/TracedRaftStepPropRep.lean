@@ -468,6 +468,12 @@ theorem simFx_replicate (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i
     · exact Int.le_refl _
   isplitl
   · iapply quorumLogF_grow γ C σ (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id) rfl hL hC hT hco
+      (fun x hx _ => hx)
+      (fun k hk => by
+        rw [hs'] at hk ⊢
+        by_cases h : k = idAbs id
+        · rw [if_pos h] at hk ⊢; subst h; rw [hσa]; exact ⟨hk, rfl, fun _ _ => rfl⟩
+        · rw [if_neg h] at hk ⊢; exact ⟨hk, rfl, fun _ _ => rfl⟩)
     iexact Hq
   ipureintro
   have hcr : σ.clientRequest (idAbs id) 0 = some (σ.replicate (idAbs id) (.val 0) .value) := by
@@ -475,7 +481,12 @@ theorem simFx_replicate (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i
   have hrep : σ.replicate (idAbs id) (.val 0) .value = withNode σ (idAbs id) (repSrv a) _root_.id _root_.id := by
     rw [Etcdraft.State.replicate, upd_eq_withNode, hσa]; rfl
   rw [hrep] at hcr
-  refine ⟨TraceSpecInv.specInv_clientRequest hsi hi h1 hcr, hu, hsh, ?_⟩
+  refine ⟨TraceSpecInv.specInv_clientRequest hsi hi h1 hcr, hu,
+    msgsShape_of (σ := σ) rfl (fun x hx => hx) (fun j => by
+      show Etcdraft.Server.votesResponded (if j = _ then _ else _) = _
+      split
+      · rename_i h; subst h; rw [hσa]; rfl
+      · rfl) hsh, ?_⟩
   exact appSlices_extend σ has (idAbs id) (repSrv a) (by rw [hσa]; rfl) (by rw [hσa]; rfl)
     (by rw [hσa]; exact List.prefix_append _ _)
 
@@ -519,7 +530,7 @@ result in place of `MsgOk`: an action whose step `specInv_*` proves, as `AppendE
 theorem simFx_sendS (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Etcdraft.Msg)
     (hsi' : TraceSpecInv.SpecInv σ → TraceSpecInv.SpecInv (σ.send x)) (hx0 : canonMsg x = x)
     (hxk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y x)
-    (hxs : AppSliceOf σ x) :
+    (hxs : AppSliceOf σ x) (hxa : ¬ AckMsg x) (hxe : MsgEnds σ x) :
     (simFx (GF := GF) γ C σ ∗ msgFacts γ C x) ⊢ simFx γ C (σ.send x) := by
   iintro ⟨Hfx, #Hx⟩
   iunfold simFx at Hfx
@@ -536,9 +547,14 @@ theorem simFx_sendS (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : E
     · iapply Hmf; ipureintro; exact hy
     · iexact Hx
   isplitl
-  · iapply quorumLogF_congr γ C σ (σ.send x) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _) $$ Hq
+  · iapply quorumLogF_congr γ C σ (σ.send x) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _)
+      (fun y hy hya => by
+        rcases TraceSpecInv.mem_msgs_send σ x y hy with hy | rfl
+        · exact hy
+        · exact absurd hya hxa)
+      (fun _ hi => ⟨hi, rfl, fun _ _ => rfl⟩) $$ Hq
   ipureintro
-  obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxk
+  obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxe hxk
   exact ⟨hsi' hsi, hu', hsh', appSlices_send σ x has hxs⟩
 
 /-- **The self-acknowledgement's facts** (`FxPres` of its `SendAppendEntriesResponse` line, at phases
@@ -573,7 +589,13 @@ theorem fxPres_selfAck (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s1 : 
   ihave #Hpf := msgFacts_plain (GF := GF) γ C ma0 (by rw [hty]; decide) hen
   ihave #H2 := simFx_sendS γ C σ ma0 (fun hsi => TraceSpecInv.specInv_appendEntriesToSelf hsi hstep)
     (msgAbs_canon C C.length _ ma0 hma) (fun _ _ h => absurd (h.symm.trans hty) (by decide))
-    (appSliceOf_nil σ ma0 hen) $$ [$Hfx $Hpf]
+    (appSliceOf_nil σ ma0 hen)
+    (fun h => h.2.2.1 (by simp only [TraceSim.msgAbs, pselfAck] at hma; cases hma; rfl))
+    (by
+      have hsd : ma0.source = idAbs id ∧ ma0.dest = idAbs id := by
+        simp only [TraceSim.msgAbs, pselfAck] at hma; cases hma; exact ⟨rfl, rfl⟩
+      have hi : idAbs id ∈ σ.server := by rw [hsrv]; exact (mem_confAbs C id).2 hidC
+      exact ⟨by rw [hsd.1]; exact hi, by rw [hsd.2]; exact hi⟩) $$ [$Hfx $Hpf]
   have hs' : ∀ j, toC (σ.send ma0).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [ma0].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send ma0).server ((σ.send ma0).s j) := by

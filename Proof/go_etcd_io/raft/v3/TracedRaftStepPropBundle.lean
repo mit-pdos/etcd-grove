@@ -453,6 +453,7 @@ theorem propGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
   icases trCapB_out γd γ r id c b _ _ $$ Hf with ⟨%Hout, Hf⟩
   icases trCapB_pinMem γd γ r id c b _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
   icases trCapB_logger γd γ r id c b _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  icases trCapB_pinPerm γd γ r id c b _ _ C0 (fun _ _ _ h => h.1) $$ Hf with ⟨%hperm0, Hf⟩
   obtain ⟨⟨⟨a0, -, -, hs0, -, -, bl0⟩, -⟩, hidC⟩ := HΦ0
   have hb0 : (toPState (proposed id s ents)).base = base0 := hs0.1
   have hrole1 : (propAppended s ents).role = .leader := hlead
@@ -501,6 +502,7 @@ theorem propGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
     (PinAt (propAppended s ents) C0 cs0 P0 o) (PinAt (propAppended s ents) C0 cs0 (P0 ++ [ma0]) (o ++ [mm]))
     ma0 (msgAbs_canon C0 C0.length mm ma0 hma) hpt hps hsrc
     (fun C cs P h => h.1 ▸ hidC)
+    (fun C _ _ h => by rw [msgAbs_dest hma, h.1]; exact (mem_confAbs C0 mm.dst).2 (hperm0.mem_iff.1 hto))
     (app_lead (propAppended s ents) C0 cs0 P0 o id mm ma0 hma hrole1 hok hcm)
     (pinAt_step (propAppended s ents) C0 cs0 P0 o mm ma0) $$ []
   · imodintro

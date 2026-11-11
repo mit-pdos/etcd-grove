@@ -94,7 +94,7 @@ theorem phaseStepR_candApp (id : w64) (c : CfgM) (s : NState) (m : MessageM) (en
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { rtfSrv a0 (idAbs m.From') with lead := idAbs m.From' })
         (P0 ++ [R (rtfSrv a0 (idAbs m.From'))])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by rw [hdst]; exact he
@@ -131,6 +131,9 @@ theorem fxPresR_candLeadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E
     (hdst : ma.dest = idAbs id)
     (hrq : ∀ a, (R a).type ≠ .appendEntriesRequest) (hre : ∀ a, (R a).entries = [])
     (hr0 : ∀ a, canonMsg (R a) = R a)
+    (hra : ∀ a, AckMsg (R a) → (R a).source = ma.dest ∧ (R a).term = a.currentTerm ∧
+      (R a).matchIndex = a.commitIndex)
+    (hrsd : ∀ a, (R a).source = ma.dest ∧ (R a).dest = ma.source)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 →
       toC (confAbs C0) u0 = toC (confAbs C0) (rtfSrv a ma.source) ∧
       cs1 = toC (confAbs C0) { rtfSrv a ma.source with lead := ma.source } ∧ r1 = R (rtfSrv a ma.source) ∧
@@ -158,7 +161,7 @@ theorem fxPresR_candLeadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E
   have hσud : σu.s ma.dest = rtfSrv a ma.source := by rw [hσu, hdst]; simp [withNode, hσa]
   ihave #H1 := simFx_leadReply γ C σu ma (R (σu.s ma.dest)) ma.dest ma.source
     (hspec σu a (by rw [hσu]; exact hsrv) (by rw [hσu]; exact hpv) (by rw [hσu]; exact hcq)
-      (by rw [hσu]; exact hmem) hcs hσud) (hrq _) (hre _) (hr0 _) $$ Hu
+      (by rw [hσu]; exact hmem) hcs hσud) (hrq _) (hre _) (hr0 _) (by rw [hσu]; exact hsrv) (hra _) (by rw [hσu]; exact hmem) (hrsd _) $$ Hu
   iframe Htbl
   isplitl
   · have hs : ∀ k, toC (withNode σu ma.dest { σu.s ma.dest with lead := ma.source } (fun b => b.without ma)
@@ -275,6 +278,18 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
     · exact rjResp_toC _ _ _ _ _ h
   have hRsrc : ∀ u, (utAppResp b id m.From' u).source = idAbs id := by
     intro u; unfold utAppResp; split <;> rfl
+  have hRra : ∀ u, AckMsg (utAppResp b id m.From' u) → (utAppResp b id m.From' u).source = ma.dest ∧
+      (utAppResp b id m.From' u).term = u.currentTerm ∧ (utAppResp b id m.From' u).matchIndex = u.commitIndex := by
+    intro u h
+    unfold utAppResp at h ⊢
+    cases b
+    · exact absurd h.2.1 (by simp [rjResp])
+    · exact ⟨by simp [stResp, hmd], rfl, rfl⟩
+  have hRsd : ∀ u, (utAppResp b id m.From' u).source = ma.dest ∧ (utAppResp b id m.From' u).dest = ma.source := by
+    intro u; unfold utAppResp
+    cases b
+    · exact ⟨by simp [rjResp, hmd], by simp [rjResp, hms]⟩
+    · exact ⟨by simp [stResp, hmd], by simp [stResp, hms]⟩
   have hRrq : ∀ u, (utAppResp b id m.From' u).type ≠ .appendEntriesRequest := by
     intro u; unfold utAppResp; split <;> simp [stResp, rjResp]
   have hRre : ∀ u, (utAppResp b id m.From' u).entries = [] := by
@@ -362,7 +377,7 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
       iframe Hc
       isplitr
       · iapply fxPresR_candLeadReply γ id ma _ s tn.voters cs0 _ P0 _ (rtfSrv a0 (idAbs m.From'))
-          (utAppResp b id m.From') hidC hmd hRrq hRre hRr0
+          (utAppResp b id m.From') hidC hmd hRrq hRre hRr0 hRra hRsd
         · intro a ha
           have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
           have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0

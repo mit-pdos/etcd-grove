@@ -56,7 +56,7 @@ theorem phaseStepR_candAppAcc (id : w64) (c : CfgM) (s : NState) (m : MessageM) 
       (VPin C0 (toC (confAbs C0) (doneSrv (rtfSrv a0 (idAbs m.From')) (logAbs C0 C0.length 1 es') (idAbs m.From')
           (min ma.commitIndex ((uint.nat m.Index' : Int) + ents.length))))
         (P0 ++ [doneResp (rtfSrv a0 (idAbs m.From')) ma (uint.nat m.Index') ents.length])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by rw [hdst]; exact he
@@ -129,6 +129,7 @@ theorem fxPresR_candAppAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : 
     (hTm : ma.term = uint.Z T) (hin : plogTermAt bL l idx = some lt0)
     (hsl : ents0 <+: plogFrom bL l (idx + W64 1)) (hidx1 : uint.Z idx + 1 < 2 ^ 64)
     (hidx : ma.prevLogIndex = uint.Z idx) (hents0 : ma.entries = logAbs C0 C0.length (uint.nat idx + 1) ents0)
+    (hE0 : ents0 = ents) (hidxp : uint.nat idx = p) (hlt0 : lt0 = lt)
     (cc : Int) (hcc : cc = max c0 (min ma.commitIndex ((p : Int) + ents.length))) (hccl : cc ≤ es'.length)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 →
       cs1 = toC (confAbs C0) (doneSrv (rtfSrv a ma.source) (logAbs C0 C0.length 1 es') ma.source
@@ -177,7 +178,7 @@ theorem fxPresR_candAppAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : 
         by_cases hL' : (∃ k, p ≤ k ∧ k < L.length ∧ ConflictBy ents L p k ∧ L' = L.take k) ∨ L' = es'
         · icases simFx_appAccMid γ C σu id ma L ents es' p lt lastnewi ma.source hsrvu hiC hdst
               hfu hleu hmemu hlogu hbL hwr hln (by rw [hcmu]; exact hcp) (by rw [hcmu]; exact hc0) hprev hents hbe
-              hwf hp hnw happ hwr' hln' src T bL l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0 L' hL'
+              hwf hp hnw happ hwr' hln' src T bL l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0 hE0 hidxp L' hL'
               $$ [$Htbl $Hfx $HL $HN $Hp $Hf] with ⟨Htbl, #H⟩
           iframe Htbl
           iintro %_
@@ -192,7 +193,7 @@ theorem fxPresR_candAppAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : 
   -- the end state's facts
   icases simFx_appAccEnd γ C σu id ma L ents es' p lt lastnewi hsrvu hiC hdst hfu hty hleu hsub hmemu hlogu hbL
       hwr hln (by rw [hcmu]; exact hcp) (by rw [hcmu]; exact hc0) hprev hents hbe hwf hp hnw happ hwr' hln' src T bL
-      l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0 cc (by rw [hcmu]; exact hcc) hccl
+      l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0 hE0 hidxp hlt0 cc (by rw [hcmu]; exact hcc) hccl
       $$ [$Htbl $Hu $HL $HN $Hp $Hf] with ⟨Htbl, #H1⟩
   · rw [hσui, show (rtfSrv a ma.source).currentTerm = T0 from hT]; iframe Hci Hcm
   iframe Htbl
@@ -398,7 +399,7 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
           hcp (uint_Z_nonneg _) hmprev hments hbe hwfZ (by word) hnw happ' hwr' (by omega)
           (absMsg .app m ents ctx).src (absMsg .app m ents ctx).term bL l fpL ents m.Index' m.LogTerm' hmterm
           Hpl.1 Hpl.2
-          (by have h2 : uint.Z m.Index' + (ents.length : Int) + 1 < 2 ^ 64 := hnwE; omega) (by rw [hmprev, hpZ]) hments
+          (by have h2 : uint.Z m.Index' + (ents.length : Int) + 1 < 2 ^ 64 := hnwE; omega) (by rw [hmprev, hpZ]) hments rfl rfl rfl
           (uint.Z (accCommit (toPState s).commit m.Commit' lastnewi)) hccZ (by
             rw [hccZ]; have := hcl; omega)
         · intro a ha
@@ -623,6 +624,18 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
     · iapply trCapB_monoΛ (some γd) γ r id c true _ _ _ (fun o h => .inr h)
       iapply trCapB_mono (some γd) γ r id c true _ _ _ hmono $$ Hc
     · ipureintro; exact hout
+
+
+/-- (Amendment A6, Q24) **`raft.Step`'s traced bundle on an accepted append request at a follower**, for
+every capability (`stepBundle_traced_folAppAcc` with the capability's bootstrap fit, `trCapB_bootFit`). -/
+theorem stepBundle_traced_folAppAcc_on : stepBundle_traced.on (GF := GF) (hG := hG) FolAppAcc :=
+  stepBundle_traced.on_of_onRB (fun tr γ r id c b s Λ => trCapB_bootFit tr γ r id c b _ Λ)
+    stepBundle_traced_folAppAcc
+
+/-- (Amendment A6, Q24) **… and at a candidate** (`stepBundle_traced_candAppAcc`, `trCapB_bootFit`). -/
+theorem stepBundle_traced_candAppAcc_on : stepBundle_traced.on (GF := GF) (hG := hG) CandAppAcc :=
+  stepBundle_traced.on_of_onRB (fun tr γ r id c b s Λ => trCapB_bootFit tr γ r id c b _ Λ)
+    stepBundle_traced_candAppAcc
 
 end paths
 

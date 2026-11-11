@@ -1423,8 +1423,9 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   configuration: a frozen-statement change; (b) a traced message's source scoped in `MsgTrOk`
   (`Protocol/Model.lean`, client-visible body, gated). **Taken by the coordinator (the freeze being
   delegated to it), pending the user's veto: (a)**, folded into amendment A6 (checked against the
-  specification first, one review round with Q22).
-
+  specification first, one review round with Q22). **Done** on branch `trace-check-a6` (`MsgEnds` and
+  `VotesIn` in `MsgsShape`; `PhaseStepR`'s source and tally premises; `wonVote_quorum`;
+  `notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").
 - **Q24 (2026-11-11, Q8 stage 1 slice 24c): an accepted `MsgApp`'s bootstrap positions.** The
   specification's log fixes its first `|C|` entries (term `1`); the accepted request's entries there must be
   of term `1`. Raft's facts put the batch past `|γ.reBoot|` (the commit index covers the bootstrap log), and
@@ -1438,7 +1439,31 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `stepBundle_traced.on_of_onRB` turns into `.on` given (a)'s law (`notes/decisions.md`, "Q8 stage 1
   (slice 24c)").
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, folded
-  into amendment A6 (one review round with Q22 and Q23).
+  into amendment A6 (one review round with Q22 and Q23). **Done** on branch `trace-check-a6` (`trCapB`'s clause;
+  `trCapB_bootFit`; `stepBundle_traced_folAppAcc_on`/`_candAppAcc_on`; `notes/decisions.md`, "Amendment A6
+  (Q22, Q23, Q24)").
+- **Q22 (2026-11-11, amendment A5's open item): what a leader's `Commit` line needs to keep
+  `QuorumLogF`.** A5's `QuorumLogF` (`KeptFrom` with `CommitCert`) is kept by every line but a leader's
+  `Commit` (the specification's `AdvanceCommitIndex`): its new committed prefix `P`, of the leader's term
+  `T`, needs the servers holding `P` at terms `≥ T` to be a quorum, and `simFx` says nothing of the
+  current logs of the match-index quorum's members (raft proves nothing about a quorum's *current* logs
+  either: a member may truncate between its acknowledgement and the `Commit` line, so a copy at
+  acknowledgement time would not do). Options: (a) a copy, in `simFx`, of raft's acknowledgement
+  history (`hist`) over each acknowledging server's *current* log; (a1) keyed on raft's acknowledgement
+  maps (`isAcked`, `histsOk`): rejected, raft mints an acknowledgement's fragment at a batch's *enter*,
+  outside any line, so the simulation's invariant could not be kept, and a receive line moves the
+  server's log before raft does (`traceReceiveMessage` at `Step`'s start); (a2) keyed on the
+  specification's own acknowledgements, the successful append responses in flight and the positive match
+  indices a leader holds (taken); (b) something weaker than `hist` (a single index, or "each acked
+  member's log at its current term extends the acked prefix"): not inductive, the prefix acknowledged at
+  `T` is overwritten by a later term's leader where uncommitted, and only `hist`'s disagreement disjunct
+  survives that, while a single index's history does not give the agreement at the commit index below it
+  (two `okL` logs may disagree between the two); (c) raft's facts passed into the `Commit` line's
+  `FxPres` (the leader's caller holds only its own ghost, not the members'): not possible; (d) a weaker
+  `QuorumLogF` (the readers need `QuorumLogInv` itself, A5's check). **Taken by the coordinator (the
+  freeze being delegated to it), pending the user's veto: (a), as (a2)**, amendment A6 (checked against
+  the specification first, a review round, then the re-freeze). **Done** on branch `trace-check-a6`
+  (`AckHists`; `quorumLogF_commit`; `notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").
 - **Q21 (2026-11-11, Q8 stage 1 slice 22b): an accepted append's truncation and the frozen
   `QuorumLogF`.** A receiver at the request's term may hold, by coincidence, a prefix a quorum
   committed at a higher term, and truncate it; `QuorumLogF` (a clause of the frozen `simFx`) stays
@@ -2577,3 +2602,41 @@ changed. Sufficiency (`TracedQuorumLog.lean`, lemma level): an accepted `MsgApp`
 prefix at its term, the holders' quorum from the acknowledgement-history copy (`histsOk`), not in
 `simFx`: a further amendment, as already planned for that line. Reviews `a5-r1.md`, `a5-r2.md`
 (`notes/decisions.md`, "Amendment A5 (Q21)").
+
+**Amendment A6 (2026-11-11, branch `trace-check-a6`; Q22 (a), as (a2), and Q23 (a), pending the user's veto).**
+`simFx`'s `QuorumLogF` is now A5's clause (renamed `QuorumKept`) with `AckHists`: every acknowledgement in
+flight from a server (`AckMsg`: a successful append response to another server, positive match index)
+and every positive match index a leader holds for another server, at the leader's term, carries raft's
+acknowledgement history `hist` over the acknowledging server's *current* log (`AckHist`, over every raft
+log its specification log abstracts). Checked first against the transcription: the `Commit` line needs
+the match-index quorum's members to hold the new prefix now, at terms `≥` the leader's; nothing weaker
+than `hist` is inductive (an uncommitted acknowledged prefix is overwritten by a later leader; only the
+disagreement disjunct survives), and raft's own acknowledgement maps cannot key the copy (minted at a
+batch's *enter*, outside any line; a receive line moves the log before raft does), so the copy keys on
+the specification's acknowledgements. Preserved, each with a lemma: lines that move no log and no
+acknowledgement (`ackHists_congr`), sends of non-acknowledgements, a stale request's reply
+(`ackHist_commit`), an accepted request's reply (`ackHist_ofAgree`, given the receiver's agreement with
+its leader's log at the match index, the receive path's), a recorded response (`ackHists_resp`), appends
+and a growing leader log (`ackHist_prefix`), a truncation round (`ackHist_conflict`, `hist_trunc`),
+`BecomeLeader` (`ackHists_becomeLeader`), the bootstrap state. Users re-proved mechanically
+(`quorumLogF_congr`'s two new premises at each site; `simFx_send`'s and `fxPres_plain`'s
+not-an-acknowledgement premise; the stale reply's history in `simFx_leadReply` and its three
+`fxPresR_*LeadReply` wrappers; `simFx_simInit`; A5's lemmas). Sufficiency (`TracedQuorumLog.lean`, lemma
+level): `quorumLogF_commit`, a leader's `Commit` line keeps `QuorumLogF` from raft's facts after
+`maybeCommit` (the leader's `srvFacts` at the new state: `commitIn` at the new commit and its term).
+Left: the `Commit` line's path, the accepted reply's agreement fact (slice 24c). Nothing else frozen
+changed for Q22. (Q23) `MsgsShape` now also says every message in flight is between servers (`MsgEnds`:
+a server sends as itself to a server; replies and phantoms reverse their request's ends; checked against
+the transcription) and every server's tally of servers (`VotesIn`, review a6-r2's F1), and the
+receive law's `PhaseStepR` may assume its message's source a voter and the share's responded voters
+configured (its premise tuple gains `m.source ∈ confAbs C ∧ ∀ k ∈ cs.votesResponded, k ∈ confAbs C`,
+which `trCap_fire_recv` supplies): sufficiency `wonVote_quorum` (`tallyGranted_quorum`'s `hc` at a won
+`MsgVoteResp`, from `votesIn_of_responded` and `votesIn_recordVote`; the won path must hand it to the
+`BecomeLeader` line's phase). No axiom, no `sorry`, no client-visible change. Concurrent slices: a new
+`PhaseStepR` proof's premise pattern gains two components, a new send its ends. (Q24) `trCapB`'s pure
+clause gains `C.length ≤ γ.reBoot.length` (fixed for the cluster; from `BootLogOk` in
+`startTrace_trCapB`), which `trCapB_bootFit` hands to a phase: slice 24c's accepted-`MsgApp` bundles
+become `stepBundle_traced.on` (`stepBundle_traced_folAppAcc_on`, `_candAppAcc_on`). Slice 24c's accepted-`MsgApp` files adapted
+(the receiver's histories across the line, `hist_cutConflict`/`hist_newLog`/`hist_appReply`). Reviews
+`a6-r1.md` … `a6-r4.md` (no first-tier finding left)
+(`notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").

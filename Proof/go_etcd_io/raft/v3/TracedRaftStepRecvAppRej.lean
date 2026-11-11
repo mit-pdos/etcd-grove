@@ -84,7 +84,7 @@ theorem phaseStepR_appRej (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ent
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { a0 with lead := idAbs m.From' })
         (P0 ++ [rjResp a0 (idAbs id) (idAbs m.From')])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by
@@ -239,6 +239,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
       isplitr
       · iapply fxPresR_leadReply γ id ma _ s tn.voters cs0 _ P0 _ (fun a => rjResp a (idAbs id) ma.source)
           hmd (fun _ => by simp [rjResp]) (fun _ => rfl) (fun _ => by simp [rjResp, canonMsg])
+          (fun _ h => absurd h.2.1 (by simp [rjResp])) (fun _ => ⟨hmd.symm, rfl⟩)
         · intro a ha
           have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
           have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0

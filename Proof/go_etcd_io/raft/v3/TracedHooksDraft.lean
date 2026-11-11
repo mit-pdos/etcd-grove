@@ -113,9 +113,9 @@ abbrev traceCommit.tracedSpec : Prop :=
 /-- **`r.maybeCommit()`, traced** (`raft.maybeCommit.spec` with the capability): at a leader whose
 share is idle-related to its state, it commits as `raft.maybeCommit.spec` says and logs `Commit`,
 the specification's `AdvanceCommitIndex` (exact: `Committed()`'s quorum index is `maxAgree`), after
-which the share is idle-related to the new state. **Blocked** (review round 2's A4, round 3's C4):
-the `Commit` line's `FxPres` needs `QuorumLogInv` at the leader's raised commit, which waits on the
-acknowledgement-history copy of the vote table (`QuorumLogF` is a `simFx` clause until then). -/
+which the share is idle-related to the new state. (Review round 2's A4, round 3's C4: the `Commit`
+line's `FxPres` needs `QuorumLogInv` at the leader's raised commit; since amendment A6, Q22, `simFx`'s
+`QuorumLogF` carries the acknowledgement histories it needs, `quorumLogF_commit`, `TracedQuorumLog.lean`.) -/
 abbrev raft.maybeCommit.tracedSpec : Prop :=
   ∀ (c : CfgM) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (b0 : Bool) (Λ Λ' : Option TraceEv → Prop),
   s.role = .leader →

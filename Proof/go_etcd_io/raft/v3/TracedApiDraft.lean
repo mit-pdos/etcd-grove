@@ -145,7 +145,7 @@ theorem startTrace_trCapB (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs :
   obtain ⟨-, hv, -, hnil⟩ := Hp
   icases Hb with ⟨⟨-, ⟨-, ⟨#Hli, -⟩, -⟩, -⟩, %Hpb, -⟩
   iapply trCapB_intro γd tn vs cv.TraceLogger' _ [] none (ApiImpl.Cluster.raft γ) r cv.ID' c Φ Λ
-    ⟨hv, hc.1, hc.2, Hpb.1⟩ hnil hΦ hΛ
+    ⟨hv, hc.1, hc.2, Hpb.1, Nat.le_of_eq Hpb.2.2.2.2.2.2.1.symm⟩ hnil hΦ hΛ
   iframe Hdir Htl Hlog Hinv Hli Hnode Hboot
 
 omit [StorageModel GF] sem package_sem in

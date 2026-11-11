@@ -135,6 +135,12 @@ theorem msgAbs_source {C : List w64} {bl : Nat} {m : Msg} {ma : Etcdraft.Msg}
   unfold TraceSim.msgAbs at h
   cases hty : m.ty <;> simp only [hty] at h <;> cases h <;> rfl
 
+/-- (Amendment A6, Q23) A traced message's destination, abstracted. -/
+theorem msgAbs_dest {C : List w64} {bl : Nat} {m : Msg} {ma : Etcdraft.Msg}
+    (h : TraceSim.msgAbs C bl m = some ma) : ma.dest = idAbs m.dst := by
+  unfold TraceSim.msgAbs at h
+  cases hty : m.ty <;> simp only [hty] at h <;> cases h <;> rfl
+
 /-- **A send line's phase step at the idle server** (`PhaseAt (SimIdleS · s)` from `o` to
 `o ++ [m]`): the line's events are the node's and not bootstrap-named (`hE`), and at every server
 the idle relation admits, the line's effect leaves the server unchanged and adds `m`'s specification
@@ -527,14 +533,15 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
 theorem fxPres_heartbeat_pin (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s : NState) (o : List Msg)
     (to cm : w64) (cl : List w8) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (ma0 : Etcdraft.Msg)
     (hma : TraceSim.msgAbs C0 C0.length (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0)
-    (hC0 : id ∈ C0) (hlead : s.role = .leader) (hcm : uint.Z cm ≤ uint.Z s.logst.committed) :
+    (hC0 : id ∈ C0) (hto : to ∈ C0) (hlead : s.role = .leader) (hcm : uint.Z cm ≤ uint.Z s.logst.committed) :
     ⊢ FxPres (GF := GF) γ id E (PinAt s C0 cs0 P0 o)
       (PinAt s C0 cs0 (P0 ++ [ma0]) (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])) := by
   have hma' := hma
   simp only [TraceSim.msgAbs] at hma'
   cases hma'
   exact fxPres_heartbeat γ id E _ _ _ (msgAbs_canon _ _ _ _ hma) rfl rfl (msgAbs_source hma)
-    (fun C _ _ h => h.1 ▸ hC0) (heartbeat_lead s C0 cs0 P0 o id to cm cl _ hma hlead hcm)
+    (fun C _ _ h => h.1 ▸ hC0) (fun C _ _ h => by rw [msgAbs_dest hma, h.1]; exact (mem_confAbs C0 to).2 hto)
+    (heartbeat_lead s C0 cs0 P0 o id to cm cl _ hma hlead hcm)
     (pinAt_step s C0 cs0 P0 o _ _)
 
 end paths

@@ -91,7 +91,9 @@ theorem msgsUniq_simInit (C : List w64) : MsgsUniq (simInit C) := by
   intro _ m1 _ h1; simp [msgs_simInit] at h1
 
 theorem msgsShape_simInit (C : List w64) : MsgsShape (simInit C) := by
-  intro x hx; simp [msgs_simInit] at hx
+  refine ⟨fun x hx => ?_, fun i _ k hk => ?_⟩
+  · simp [msgs_simInit] at hx
+  · simp [simInit] at hk
 
 theorem appSlices_simInit (C : List w64) : AppSlices (simInit C) := by
   intro m hm; simp [msgs_simInit] at hm
@@ -227,8 +229,25 @@ theorem simFx_simInit (E : CoPset) (γ : RaftNames) (C : List w64) (hE : ↑(raf
     rw [msgs_simInit] at hm
     cases hm
   isplitr
-  · -- (amendment A5) every committed prefix kept from term `0`, its certificate the bootstrap log's
+  · -- (amendment A5) every committed prefix kept from term `0`, its certificate the bootstrap log's;
+    -- (amendment A6) no acknowledgement in flight, every match index `0`
     iunfold QuorumLogF
+    isplitr
+    rotate_left
+    · iunfold AckHists
+      isplitr
+      · imodintro
+        iintro %x %hx
+        exfalso
+        have := hx.1
+        rw [msgs_simInit] at this
+        cases this
+      · imodintro
+        iintro %i %k %h
+        exfalso
+        have := h.2.2.2.2
+        simp [simInit] at this
+    iunfold QuorumKept
     imodintro
     iintro %i %_
     iexists 0
@@ -361,7 +380,8 @@ invariant, the node's share in phase `Φ` and its `booted` flag unset make the c
 theorem trCapB_intro (γd : GName) (tn : TraceNames) (C : List w64) (tl : GoInterface) (cs : ServerC)
     (P : List Etcdraft.Msg) (o : Option TraceEv) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop)
-    (hC : tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C)
+    (hC : tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C ∧
+      C.length ≤ γ.reBoot.length)
     (htl : tl ≠ interface.nil) (hΦ : Φ C cs P) (hΛ : Λ o) :
     (traceDir γd tn ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
         inv (simNS γ) (simInv C tn (simFx γ C)) ∗ raftLogInv γ ∗ simNode tn id cs P ∗

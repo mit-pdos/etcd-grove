@@ -335,11 +335,14 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
     · exact List.mem_append_right _ hx) hu
-  have hshd : MsgsShape (σ.discard ma) := fun x hx => hsh x (by
+  have hshd : MsgsShape (σ.discard ma) := msgsShape_of (σ := σ) rfl (fun x hx => by
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
-    · exact List.mem_append_right _ hx)
+    · exact List.mem_append_right _ hx) (fun _ => rfl) hsh
+  -- (amendment A6, Q23) the response's ends, the heartbeat's reversed
+  have hme := (hsh.1 ma (List.mem_append_left _ hmem)).2
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon (σ.discard ma) _ hud hshd hx0
+    ⟨by unfold hbResp; exact hme.2, by unfold hbResp; exact hme.1⟩
     (fun y _ => ContentLogged.pinned (fun h => absurd h hxq) y)
   iunfold simFx
   iframe Hal1
@@ -350,11 +353,18 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     · iapply Hmf; ipureintro; exact hx
     · iapply msgFacts_plain γ C _ hxq rfl
   isplitl
-  · iapply quorumLogF_mono γ C σ W hWsrv hPW ?_ $$ Hq
-    intro P t h
-    exact keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) h
+  · iapply quorumLogF_mono γ C σ W hWsrv hPW ?_ ?_ ?_
+      (fun k T m => ackHist_congr γ C σ W k T m (hF k).1 (by rw [(hF k).2.1]; exact Int.le_refl _)) $$ Hq
+    · intro P t h
+      exact keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) h
+    · intro x hx hxa
+      rcases hsub' x hx with hx | rfl
+      · exact hx
+      · exact absurd hxa.2.2.2 (by simp [hbResp])
+    · rw [hW]
+      exact withNode_leaders σ ma.dest _ _ _ (fun hl => absurd hl (by simp [hbSrv, hf]; decide))
   ipureintro
-  refine ⟨hsi', by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
+  refine ⟨hsi', by rw [hW]; exact hu', by rw [hW]; exact msgsShape_of (σ := (σ.discard ma).send (hbResp (σ.s ma.dest) ma.dest ma.source)) rfl (fun x hx => hx) (fun j => by show Etcdraft.Server.votesResponded (if j = _ then _ else _) = _; split <;> (try subst_vars) <;> rfl) hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he
   have hk' : k ∈ σ.server := by rw [hWsrv] at hk; exact hk
   rcases hsub' m hm with hm | rfl
@@ -377,7 +387,7 @@ theorem phaseStepR_hb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents : 
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) (hbSrv a0 (idAbs m.From') ma.commitIndex))
         (P0 ++ [hbResp a0 (idAbs id) (idAbs m.From')])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .heartbeat m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .heartbeat m ents).dst s c (absMsg .heartbeat m ents) e := by

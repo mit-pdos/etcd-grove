@@ -169,7 +169,10 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     (i j : Etcdraft.ID)
     (hsi' : TraceSpecInv.SpecInv σ → TraceSpecInv.SpecInv
       (withNode σ i { σ.s i with lead := j } (fun b => b.without ma) (fun b => b.with r)))
-    (hrq : r.type ≠ .appendEntriesRequest) (hre : r.entries = []) (hr0 : canonMsg r = r) :
+    (hrq : r.type ≠ .appendEntriesRequest) (hre : r.entries = []) (hr0 : canonMsg r = r)
+    (hsrv : σ.server = confAbs C)
+    (hra : AckMsg r → r.source = i ∧ r.term = (σ.s i).currentTerm ∧ r.matchIndex = (σ.s i).commitIndex)
+    (hmem : ma ∈ σ.messages.domain) (hrsd : r.source = ma.dest ∧ r.dest = ma.source) :
     simFx (GF := GF) γ C σ ⊢
       simFx γ C (withNode σ i { σ.s i with lead := j } (fun b => b.without ma) (fun b => b.with r)) := by
   obtain ⟨W, hW⟩ : ∃ W, W = withNode σ i { σ.s i with lead := j } (fun b => b.without ma)
@@ -203,11 +206,14 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
     · exact List.mem_append_right _ hx) hu
-  have hshd : MsgsShape (σ.discard ma) := fun x hx => hsh x (by
+  have hshd : MsgsShape (σ.discard ma) := msgsShape_of (σ := σ) rfl (fun x hx => by
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
-    · exact List.mem_append_right _ hx)
+    · exact List.mem_append_right _ hx) (fun _ => rfl) hsh
+  -- (amendment A6, Q23) the reply's ends, the request's reversed
+  have hme := (hsh.1 ma (List.mem_append_left _ hmem)).2
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon (σ.discard ma) _ hud hshd hr0
+    ⟨by rw [hrsd.1]; exact hme.2, by rw [hrsd.2]; exact hme.1⟩
     (fun y _ => ContentLogged.pinned (fun h => absurd h hrq) y)
   iunfold simFx
   isplitl
@@ -224,10 +230,24 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     · iapply Hmf; ipureintro; exact hx
     · iapply msgFacts_plain γ C _ hrq hre
   isplitl
-  · iapply quorumLogF_congr γ C σ W hWsrv (fun k => (hF k).1) (fun k => (hF k).2.2.2.2)
-      (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) $$ Hq
+  · -- (amendment A6) a stale request's response acknowledges the commit index (`ackHist_commit`)
+    iapply quorumLogF_congrW γ C σ W r hWsrv (fun k => (hF k).1) (fun k => (hF k).2.2.2.2)
+      (fun k => by rw [(hF k).2.1]; exact Int.le_refl _)
+      (fun x hx _ => hsub' x hx)
+      (by rw [hW]; exact withNode_leaders σ i _ _ _ (fun hl => ⟨hl, rfl, fun _ _ => rfl⟩))
+    iframe Hq
+    iintro !> %h
+    obtain ⟨hs, ht, hm⟩ := hra h.1
+    have hiS : i ∈ σ.server := by rw [← hs, ← hWsrv]; exact h.2
+    rw [hsrv] at hiS
+    obtain ⟨w, hw, hwi⟩ := mem_confAbs_inv C i hiS
+    rw [hs, ht, hm, hwi]
+    iapply ackHist_congr γ C σ W _ _ _ (hF _).1 (by rw [(hF _).2.1]; exact Int.le_refl _)
+    iapply ackHist_commit γ C σ w
+    iunfold allFacts at Hal
+    iapply Hal $$ %w %hw
   ipureintro
-  refine ⟨hsi' hsi, by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
+  refine ⟨hsi' hsi, by rw [hW]; exact hu', by rw [hW]; exact msgsShape_of (σ := (σ.discard ma).send r) rfl (fun x hx => hx) (fun j => by show Etcdraft.Server.votesResponded (if j = _ then _ else _) = _; split <;> (try subst_vars) <;> rfl) hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he
   have hk' : k ∈ σ.server := by rw [hWsrv] at hk; exact hk
   rcases hsub' m hm with hm | rfl
@@ -243,6 +263,9 @@ theorem fxPresR_leadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : T
     (R : Etcdraft.Server → Etcdraft.Msg) (hdst : ma.dest = idAbs id)
     (hrq : ∀ a, (R a).type ≠ .appendEntriesRequest) (hre : ∀ a, (R a).entries = [])
     (hr0 : ∀ a, canonMsg (R a) = R a)
+    (hra : ∀ a, AckMsg (R a) → (R a).source = ma.dest ∧ (R a).term = a.currentTerm ∧
+      (R a).matchIndex = a.commitIndex)
+    (hrsd : ∀ a, (R a).source = ma.dest ∧ (R a).dest = ma.source)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 →
       cs1 = toC (confAbs C0) { a with lead := ma.source } ∧ r1 = R a ∧ ¬ ma.term < a.currentTerm)
     (hspec : ∀ σ : Etcdraft.State, σ.server = confAbs C0 → σ.preVote = false → σ.checkQuorum = false →
@@ -261,7 +284,7 @@ theorem fxPresR_leadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : T
   have hph : recvPhantoms ma a = [] := recvPhantoms_nolow ma a hnl
   have hσd : σ.s ma.dest = a := by rw [hdst]; exact hσa
   ihave #H1 := simFx_leadReply γ C σ ma (R (σ.s ma.dest)) ma.dest ma.source
-    (hspec σ hsrv hpv hcq hmem (by rw [hσd]; exact hcs)) (hrq _) (hre _) (hr0 _) $$ Hfx
+    (hspec σ hsrv hpv hcq hmem (by rw [hσd]; exact hcs)) (hrq _) (hre _) (hr0 _) hsrv (hra _) hmem (hrsd _) $$ Hfx
   iframe Htbl
   isplitl
   · iapply simFx_congr γ C (withNode σ ma.dest { σ.s ma.dest with lead := ma.source } (fun b => b.without ma)
@@ -296,7 +319,7 @@ theorem phaseStepR_appStale (id : w64) (c : CfgM) (s : NState) (m : MessageM) (e
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { a0 with lead := idAbs m.From' })
         (P0 ++ [stResp a0 (idAbs id) (idAbs m.From') "app"])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by
@@ -492,6 +515,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
       isplitr
       · iapply fxPresR_leadReply γ id ma _ s tn.voters cs0 _ P0 _ (fun a => stResp a (idAbs id) ma.source "app")
           hmd (fun _ => by simp [stResp]) (fun _ => rfl) (fun _ => by simp [stResp, canonMsg])
+          (fun _ _ => ⟨hmd.symm, rfl, rfl⟩) (fun _ => ⟨hmd.symm, rfl⟩)
         · intro a ha
           have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
           have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0

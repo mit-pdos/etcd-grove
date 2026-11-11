@@ -128,12 +128,13 @@ theorem lineF_heartbeat (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (
   obtain ⟨ma0, hma⟩ : ∃ ma0, TraceSim.msgAbs C0 C0.length
       (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0 := ⟨_, rfl⟩
   have hto := mem_incoming_of c to hlrn Hout hdom
+  icases trCapB_pinPerm γd γ r id c bt _ _ C0 (fun _ _ _ h => h.1) $$ Hf with ⟨%hperm0, Hf⟩
   have hcmle : uint.Z cm ≤ uint.Z s.logst.committed := by rw [hcm]; exact Int.min_le_left _ _
   have hTn : uint.nat s.term < traceNumBound := by word
   have hcn : uint.nat cm < traceNumBound := by have := Hb.1; word
   ihave #Hfx := fxPres_heartbeat_pin (GF := GF) γ id
     (SendEvOf (W64 9) id s c (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl))
-    s o to cm cl C0 cs0 P0 ma0 hma HΦ0.2 hlead hcmle
+    s o to cm cl C0 cs0 P0 ma0 hma HΦ0.2 (hperm0.mem_iff.1 hto) hlead hcmle
   ihave Hfx := fxPres_upd γ id _ _ _ $$ Hfx
   imodintro
   iapply hookGateOpt_mono (some γd) r _
