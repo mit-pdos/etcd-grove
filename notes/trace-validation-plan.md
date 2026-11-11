@@ -1274,6 +1274,8 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (the frozen laws see only `σ`). **Taken by the coordinator (the freeze being delegated to it),
   pending the user's veto: (a)**, as amendment A5 (checked against the specification first, a review
   round, then the re-freeze `trace-check-frozen-a5`).
+  **Done** on branch `trace-check-a5` (`KeptFrom` with `CommitCert`; the `Commit` line's quorum left to the
+  acknowledgement-history amendment; `notes/decisions.md`, "Amendment A5 (Q21)").
 - **Q20 (2026-11-10, Q8 stage 1 slice 21): the frozen `StartNode.gatedSpec` does not give the
   capability.** `TracedApiDraft`'s `startTrace` hands `StartNode` the simulation's invariant as
   `inv (simN N) (simInv vs tn (fun _ => True))` and the node's share `simNode`, but `trCapB` (frozen,
@@ -2381,3 +2383,19 @@ at `simInit`); and `Cluster.traceSimInv_end`, the sealed invariant's opening for
 empty entries and a heartbeat response's non-rejection, established at raft's send sites (in slice 20b's
 path files, forced and minimal); `isRaftMsg_trRecv` now gives `TrRecvShape` in a traced cluster.
 Client-visible: `Protocol/Model`'s interface only. Reviews `a4-r1.md`, `a4-r2.md`.
+
+**Amendment A5 (2026-11-11, branch `trace-check-a5`; Q21 (a), pending the user's veto).** `simFx`'s
+`QuorumLogF` (now an `IProp`, out of the pure conjunct) is the inductive form of `QuorumLogInv`: every
+server's committed prefix `P` is kept from a term `t` (`KeptFrom`: the servers holding `P` at a term
+`≥ t` are a quorum), with raft's commit justification at `t` (`CommitCert`, `commitJ`). Checked first
+against the transcription: only `simFx_violated` reads it, needing `QuorumLogInv` itself, so no weaker
+clause (b); a truncating receiver below `t` (slice 22b's, holding `P` by coincidence) is not counted,
+one at or above `t` keeps `P` since the request it accepts, of its term, agrees with `P` (its raft facts,
+`leadPrefix`/`lpfull`, with `lc_core` from the certificate). A first form with a message and a leader
+clause was found unable to serve a `Commit` line (review a5-r1's F2) and reduced. Users re-proved
+mechanically (`quorumLogF_congr`, `quorumLogF_mono`; `simFx_simInit` at `t = 0`); nothing else frozen
+changed. Sufficiency (`TracedQuorumLog.lean`, lemma level): an accepted `MsgApp`'s truncation
+(`quorumLogF_conflict`), append and reply rounds. Left: a leader's `Commit` line needs, for its new
+prefix at its term, the holders' quorum from the acknowledgement-history copy (`histsOk`), not in
+`simFx`: a further amendment, as already planned for that line. Reviews `a5-r1.md`, `a5-r2.md`
+(`notes/decisions.md`, "Amendment A5 (Q21)").
