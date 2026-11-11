@@ -51,14 +51,14 @@ theorem isBackend_bt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
         sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗ isDB db ∗ ⌜P.Wf⌝ := by
   iintro ⟨#Hb, #Ht⟩
   unfold isBackend
-  icases Hb with ⟨%t', %rt, %tm, %db, %lg, %h, #Ht', #-, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #-,
+  icases Hb with ⟨%t', %rt, %tm, %db, %lg, %h, #Ht', #-, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #-,
     #Hhs, #Hm, #-, #-, #-, #-, #-, #-, #Hdb, %HP, -⟩
   icombine Ht Ht' gives %Heq
   subst Heq
   iexists db, lg, h
   iframe #
   ipureintro
-  exact ⟨Hlgn, HP⟩
+  exact HP
 
 /-- (2026-11-04, R2b-3c) **The backend's bbolt database and its file**: the `db` field's guard
 (`Close` reads it under `b.mu`), the database, the ghost record of it and the file it is. -/
@@ -86,12 +86,12 @@ theorem isBackend_b (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
         isDB db ∗ cacheInv γ ∗ ⌜P.Wf⌝ := by
   iintro #Hb
   unfold isBackend
-  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, #Ht, #Hrt, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #-,
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, #Ht, #Hrt, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #-,
     #Hhs, #Hm, #Hrm, #-, #-, #Hci, #Hmi, #Hmu, #Hdb, %HP, -⟩
   iexists t, rt, db, lg
   iframe #
   ipureintro
-  exact ⟨Hlgn, HP⟩
+  exact HP
 
 /-- `atomic.StoreInt64` on one of the backend's metrics fields. -/
 theorem wp_metricStore (b : Loc) (f : GoString) (v : w64)

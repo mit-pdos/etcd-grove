@@ -65,15 +65,13 @@ theorem isBackend_of_hooks (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Lo
   iintro ⟨#Hnh, #Hhs⟩
   iloeb as IH
   iunfold isBackendNH at Hnh
-  icases Hnh with ⟨%t, %rt, %tm, %db, %lg, #Ht, #Hrt, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #Htm, #Hm,
+  icases Hnh with ⟨%t, %rt, %tm, %db, %lg, #Ht, #Hrt, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #Htm, #Hm,
     #Hrm, #Htmg, #Hcm, #Hci, #Hmi, #Hmu, #Hdb, %HP, #Hdbf, #Hv⟩
   ihave #Hs := Hhs $$ IH %t Ht
   iunfold isBackend
   iintro !>
   iexists t, rt, tm, db, lg, h
   iframe #
-  isplitr
-  · ipureintro; exact Hlgn
   ipureintro; exact HP
 
 end defs
