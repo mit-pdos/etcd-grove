@@ -959,9 +959,10 @@ theorem candidateGates_false (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : M
   ifalse_gate
 
 /-- `stepLeader`'s gates at resources no path reaches (the log's `TrNoSnap` given). -/
-theorem leaderGates_false (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM) :
+theorem leaderGates_false (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+    (Tp : IProp GF) :
     TrNoSnap (GF := GF) s.gh.tr s.logst ⊢
-      leaderGates (GF := GF) c r id s m ents (fun _ => iprop(⌜False⌝)) (fun _ => iprop(⌜False⌝))
+      leaderGates (GF := GF) c r id s m ents Tp (fun _ => iprop(⌜False⌝)) (fun _ => iprop(⌜False⌝))
         iprop(⌜False⌝) (fun _ => iprop(⌜False⌝)) (fun _ _ _ => iprop(⌜False⌝)) := by
   iintro #Hns
   iunfold leaderGates
@@ -1230,7 +1231,9 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the end state is `s`
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     have hs' : s' = s := by
       have h := ((hend (by rw [htr]; rfl)) hty).1 hst
@@ -1418,7 +1421,9 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the end state is `s`
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => (by obtain ⟨ty, h1, h2, -⟩ := hp.2; rcases h2 with rfl | rfl | rfl <;> exact CloseAt.of_traced h1 rfl))
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     have hs' : s' = s := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
@@ -1616,7 +1621,9 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's vote, the specification's
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     have hve : VoteEnd id s m s' := by
       rcases ((hend (by rw [htr]; rfl)) hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩

@@ -274,7 +274,7 @@ theorem raft.appendEntry.wp_proof
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
     -- (Q8 stage 1, slice 6) the `Replicate` lines, either mode: the caller's gate, raft's state
     -- under `trOwn`
-    ihave Hg := Hgrep $$ HG
+    ihave Hg := Hgrep $$ Hrc HG
     iunfold HookGateN at Hg
     imod Hg with ⟨%tl, #Htl, Hfire⟩
     icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩

@@ -215,8 +215,8 @@ local macro "msa_send" : tactic => `(tactic| (
     exact Hpok0.1.match_le_prev Hnosnap
   ihave Hg := Hgate $$
     %(Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) %s.outbox
-    %(⟨Happ, Hlvc.1, rfl, Hmatch⟩ : AppOk id (toPState s)
-        (Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) ∧ _ ∧ _ ∧ _) HG
+    %(⟨Happ, Hlvc.1, rfl, Hmatch, rfl⟩ : AppOk id (toPState s)
+        (Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) ∧ _ ∧ _ ∧ _ ∧ _) HG
   wp_apply wp_raft_send c r id s «$a0_ptr»
       ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]

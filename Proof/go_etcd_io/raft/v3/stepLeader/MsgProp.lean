@@ -332,7 +332,7 @@ theorem wp_stepLeader_prop
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 ∗
         "HG" ∷ G s.outbox ∗
-        "Hgrep" ∷ (G s.outbox -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
+        "Hgrep" ∷ (⧖ (k0 + ents.length) -∗ G s.outbox -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
           (normalCount (leaderPropConf s ents cs c.joint).1) Gp1) ∗
         "Hgack" ∷ (Gp1 -∗ HookGateOpt s.gh.tr r
           (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgAppResp
@@ -341,7 +341,7 @@ theorem wp_stepLeader_prop
         "#Hgapp" ∷ □ (∀ (to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
             mm.commit = s.logst.committed ∧ mm.dst = to ∧
-            uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ Gp2 o -∗
+            uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ Gp2 o -∗
           HookGateOpt s.gh.tr r
             (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
         "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
@@ -694,8 +694,11 @@ theorem wp_stepLeader_prop
         iframe Hes Hents
       -- (slice 9) the gates, at the state with `pendingConfIndex` moved (which no event reads)
       isplitl [Hgrep]
-      · iintro HG
-        iapply hookGateN_congr _ _ r _ _ _ Gp1 (by rfl) (by rfl) $$ (Hgrep $$ HG)
+      · iintro #Hr HG
+        have Hl1 : (leaderPropConf s ents cs c.joint).1.length = ents.length := by
+          simp only [leaderPropConf]; rw [propConf_length, Hcslen, Nat.min_self]
+        rw [Hl1]
+        iapply hookGateN_congr _ _ r _ _ _ Gp1 (by rfl) (by rfl) $$ (Hgrep $$ Hr HG)
       iintro HG1
       iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ (Hgack $$ HG1)
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]

@@ -322,7 +322,9 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and vote decision, the specification's
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨pvs, hve⟩ : ∃ pvs : GMap w64 Progress,
         VoteEnd id { becomeFollower s m.Term' (W64 0) with prvals := pvs } m s' := by

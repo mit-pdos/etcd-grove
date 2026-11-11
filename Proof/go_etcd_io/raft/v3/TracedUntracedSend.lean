@@ -271,7 +271,7 @@ theorem raft.appendEntry.untraced (h : raft.appendEntry.spec (GF := GF) (hG := h
     isplitr
     · iempintro
     isplitr
-    · iintro -
+    · iintro - -
       rw [htr]
       iapply hookGateN_none r _ _ tl iprop(emp) Htlok
       iframe Htl

@@ -225,6 +225,11 @@ structure StepG (GF : BundledGFunctors) where
   Gp1 : IProp GF
   Gp2 : List Msg → IProp GF
   Gc : Bool → w64 → List Msg → IProp GF
+  /-- (2026-11-11, slice 23a) **What `Step` lends a proposal's `Replicate` gate** (`leaderGates`'
+  `"Hgprep"`), for the batch: set by `Step`'s side (`ghostIn`: `propLend`, the proposal's tickets and
+  entries' data and the receipt `appendEntry` raises, traced only); a caller's own resources leave it
+  `emp`, and no gate reads it but `"Hgprep"` (`notes/decisions.md`, "Q8 stage 1 (slice 23a)"). -/
+  Tp : List EntryM → IProp GF := fun _ => iprop(emp)
 
 /-- What `Step` gives back of the caller's resources, at the outbox `o` it ended with. -/
 def stepOut (R : StepG GF) (o : List Msg) : IProp GF :=
@@ -317,7 +322,7 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
         ⌜to ≠ id ∧ to ∈ domSet ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } : NState).progress⌝ -∗
         ⌜AppOk id (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }) mm ∧
           mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs }).commit ∧ mm.dst = to ∧
-          uint.Z ((prvalsMatch pvs !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗
+          uint.Z ((prvalsMatch pvs !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗
         G' o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } c MsgApp [mm])
           (G' (o ++ [mm]))) ∗
@@ -343,7 +348,7 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
 /-- `stepLeader.spec`'s gates, at `G`, `G'`, `Gp1`, `Gp2`, `Gc` (2026-11-10, slice 14: all but `Gp1` indexed
 by the outbox). -/
 def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
+    (Tp : IProp GF) (G G' : List Msg → IProp GF) (Gp1 : IProp GF) (Gp2 : List Msg → IProp GF)
     (Gc : Bool → w64 → List Msg → IProp GF) : IProp GF :=
   iprop(
       "#Hgbeat" ∷ □ (⌜m.Type' = MsgBeat⌝ -∗ ∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
@@ -366,12 +371,13 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
       "Hgtnow" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ o : List Msg, G o -∗ HookGateOpt s.gh.tr r none (G o)) ∗
       "Hgxapp" ∷ (⌜m.Type' = MsgTransferLeader⌝ -∗ ∀ (mm : Msg) (o : List Msg),
           ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = m.From' ∧
-            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
+            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst ∗
       "Hgcq" ∷ (⌜m.Type' = MsgCheckQuorum⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term (W64 0)) c) (G' s.outbox)) ∗
-      "Hgprep" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ G s.outbox -∗
+      -- (2026-11-11, slice 23a) with what `Step` lends it (`Tp`: `StepG.Tp`)
+      "Hgprep" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ Tp -∗ G s.outbox -∗
         HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
           (normalCount (leaderPropConf s ents cs c.joint).1) Gp1) ∗
       "Hgpack" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∀ cs, ccEntsOk ents cs -∗ Gp1 -∗
@@ -383,12 +389,12 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
         ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (propAppended s (leaderPropConf s ents cs c.joint).1)) mm ∧
           mm.commit = s.logst.committed ∧ mm.dst = to ∧
-          uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ Gp2 o -∗
+          uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ Gp2 o -∗
         HookGateOpt s.gh.tr r
           (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm]) (Gp2 (o ++ [mm]))) ∗
       "Hgsapp" ∷ (⌜m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true)⌝ -∗
         ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧ mm.commit = s.logst.committed ∧
-          mm.dst = m.From' ∧ uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
+          mm.dst = m.From' ∧ uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ ∀ (mm : Msg) (o : List Msg),
         ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
@@ -413,7 +419,7 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
       "#Hgaapp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
         ∀ (b : Bool) (N to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
         ⌜AppOk id (toPState (commitAt s b N)) mm ∧ mm.commit = (commitAt s b N).logst.committed ∧
-          mm.dst = to ∧ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ Gc b N o -∗
+          mm.dst = to ∧ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ Gc b N o -∗
         HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N (o ++ [mm]))) ∗
       "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64) (o : List Msg),
         Gc b N o -∗ HookGateOpt s.gh.tr r none (Gc b N o)))
@@ -435,7 +441,7 @@ def stepFnGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
     (⌜(preState s m pvs).role = .candidate ∨ (preState s m pvs).role = .preCandidate⌝ -∗
       candidateGates c r id (preState s m pvs) m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2) ∧
     (⌜(preState s m pvs).role = .leader⌝ -∗
-      leaderGates c r id (preState s m pvs) m ents R.G1 R.GE R.Gp1 R.Gp2 R.Gc))
+      leaderGates c r id (preState s m pvs) m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc))
 
 /-- **`raft.Step`'s gates** (see the header), at the caller's resources `R`. -/
 def stepGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
@@ -471,23 +477,107 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (2026-11-11, slice 23a) **What `Step` lends a traced proposal's `Replicate` gate** (`StepG.Tp`,
+`leaderGates`' `"Hgprep"`): the batch's tickets (`entTk`) and its entries' data (`propData`, from the
+proposal's `isMessage`), and the receipt `appendEntry` raises before the line (`⧖`, one step per entry
+past the log's last index's), which the propose ghost update (`ownRaftGhost_step_propose`) consumes:
+a traced caller's family moves raft's ghost state to the proposed state inside the gate, before the lines
+whose facts read the new entries' records. Nothing untraced: `Step` keeps them for its own single ghost
+step. -/
+def propLend (γ : RaftNames) (s : NState) (ents : List EntryM) : IProp GF :=
+  if s.gh.tr.isSome then
+    iprop(([∗list] e ∈ ents, propData γ e) ∗ ([∗list] e ∈ ents, entTk γ e) ∗
+      ⧖ ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + ents.length))
+  else iprop(emp)
+
+/-- (2026-11-11, slice 23a) **The end states the closing wand may give raft's ghost state back past `s`**
+(`stepClose`'s second disjunct, `CloseMid`): on a leader's `MsgProp` of no configuration change, the
+proposed state (`proposed id s ents`: the batch appended, the self-acknowledgement queued), the step's
+end state past its append (its log the proposed state's); `Step` then steps the rest (the broadcast). -/
+def CloseMid (id : w64) (m : MessageM) (ents : List EntryM) (s s1 s' : NState) : Prop :=
+  m.Type' = MsgProp ∧ s.role = .leader ∧ (∀ e ∈ ents, ¬ IsConfEnt e) ∧
+    s1 = proposed id s ents ∧ s1.logst = s'.logst
+
+theorem CloseMid.ty {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
+    (h : CloseMid id m ents s s1 s') : m.Type' = MsgProp := h.1
+
+/-- (2026-11-11, slice 23a) **The closing wand's ghost state back at `s`** (`stepClose`'s first
+disjunct, `CloseAt`): on a traced leader's `MsgProp` of no configuration change, only when the batch was
+not appended (`Step` lent the proposal's tickets to the `Replicate` gate, `propLend`, so it can step from
+`s` only by the proposal's drop). Vacuous on any other type (`CloseAt.of_ne`) or untraced
+(`CloseAt.of_none`). -/
+def CloseAt (id : w64) (m : MessageM) (ents : List EntryM) (s s' : NState) : Prop :=
+  s.gh.tr.isSome → m.Type' = MsgProp → s.role = .leader → (∀ e ∈ ents, ¬ IsConfEnt e) →
+    (proposed id s ents).logst ≠ s'.logst
+
+theorem CloseAt.of_ne {id : w64} {m : MessageM} {ents : List EntryM} {s s' : NState}
+    (h : m.Type' ≠ MsgProp) : CloseAt id m ents s s' := fun _ h' => absurd h' h
+
+theorem CloseAt.of_none {id : w64} {m : MessageM} {ents : List EntryM} {s s' : NState}
+    (h : s.gh.tr = none) : CloseAt id m ents s s' := fun h' => by rw [h] at h'; cases h'
+
+theorem CloseAt.of_notLeader {id : w64} {m : MessageM} {ents : List EntryM} {s s' : NState}
+    (h : s.role ≠ .leader) : CloseAt id m ents s s' := fun _ _ h' => absurd h' h
+
+/-- A message of a traced type is no proposal. -/
+theorem CloseAt.of_traced {id : w64} {m : MessageM} {ents : List EntryM} {s s' : NState} {ty : MsgType}
+    (h : mtypeOf m.Type' = some ty) (ht : ty.traced = true) : CloseAt id m ents s s' := by
+  intro _ hp
+  rw [hp] at h
+  have : mtypeOf MsgProp = some .propose := rfl
+  rw [this] at h
+  cases h
+  cases ht
+
 /-- The caller's resources with raft's ghost state put into the first (the receive hook's gate's
 argument): `raft.Step.spec`'s gates take the ghost state from `Step` there. -/
 def ghostIn (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (R : StepG GF) : StepG GF :=
-  { R with G := iprop(ownStepGhost γ md c id s ∗ R.G) }
+  { R with G := iprop(ownStepGhost γ md c id s ∗ R.G), Tp := propLend γ s }
 
 /-- **Raft's ghost state, given back to `Step`** by the caller from whichever resource the path ended
 in (`stepOut R`), with the caller's own `Gout` at the step's end state `s'` (2026-11-10, slice 12: the
 state `Step` returns, so that a caller's resources can follow it), and (traced) the step's new
 messages' numbers (`OutTrStep`, `NsLink`'s `OutTr`), for any end state of a step from `s` in the model
 (`StepCD`) that is (traced; 2026-11-10, slice 13) the code's end state on the message's path
-(`StepEnd`, on the types a traced node steps: what the gates' resources predicted). -/
+(`StepEnd`, on the types a traced node steps: what the gates' resources predicted). (2026-11-11, slice
+23a) Raft's ghost state comes back at `s` (`CloseAt`: on a traced leader's proposal, only if it was
+not appended), or past it (`CloseMid`: on a leader's `MsgProp`, at the proposed state, which a traced
+family reaches inside the `Replicate` gate with what `Step` lends it, `propLend`); `Step` then steps from
+there. A close site of any other type gives the first (`CloseAt.of_ne`) and `Step` refutes the second
+by the type (`CloseMid.ty`). -/
 def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
     ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
     stepOut R s'.outbox -∗
+    |={⊤}=> ((⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost γ md c id s) ∨
+        ∃ s1, ⌜CloseMid id m ents s s1 s'⌝ ∗ ownStepGhost γ md c id s1) ∗
+      Gout s' ∗ ⌜OutTrStep s s'⌝)
+
+/-- (2026-11-11, slice 23a) **A close giving raft's ghost state back at `s`** (`stepClose` before slice
+23a): what a path of another type than `MsgProp` proves; `stepClose_of_at` turns it into `stepClose`. -/
+def stepCloseAt (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM)
+    (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
+  iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
+    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
+    stepOut R s'.outbox -∗
     |={⊤}=> ownStepGhost γ md c id s ∗ Gout s' ∗ ⌜OutTrStep s s'⌝)
+
+/-- A close site of another path than a traced leader's proposal (slice 23a's mechanical change): its
+close at `s` (`h`: `CloseAt.of_ne`, `CloseAt.of_notLeader`, `CloseAt.of_traced`). -/
+theorem stepClose_of_at (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF)
+    (h : ∀ s', CloseAt id m ents s s') :
+    stepCloseAt γ md c id m ents ctx s R Gout ⊢ stepClose γ md c id m ents ctx s R Gout := by
+  iintro H
+  unfold stepClose stepCloseAt
+  iintro %s' %B %recv %h1 %h2 Hout
+  imod H $$ %s' %B %recv %h1 %h2 Hout with ⟨Hg, HG, %Hot⟩
+  imodintro
+  iframe HG
+  isplitl [Hg]
+  · ileft; iframe Hg; ipureintro; exact h s'
+  ipureintro; exact Hot
 
 end close
 

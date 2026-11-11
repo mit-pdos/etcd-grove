@@ -73,8 +73,8 @@ variable [GooseExts]
 /-- (slice 17) A `MsgApp` gate's premise (`AppOk`, the commit, the destination, the peer's `Match` at
 most the index) with its last conjunct restated: the `Match` read at another state with the same
 `Match` values. -/
-theorem and4_last {A B C D D' : Prop} (f : D → D') (h : A ∧ B ∧ C ∧ D) : A ∧ B ∧ C ∧ D' :=
-  ⟨h.1, h.2.1, h.2.2.1, f h.2.2.2⟩
+theorem and4_last {A B C D D' E : Prop} (f : D → D') (h : A ∧ B ∧ C ∧ D ∧ E) : A ∧ B ∧ C ∧ D' ∧ E :=
+  ⟨h.1, h.2.1, h.2.2.1, f h.2.2.2.1, h.2.2.2.2⟩
 
 /-- (Q8 stage 1, slice 6) What a `MsgApp`'s gate knows of the message (`raft.maybeSendAppend.spec`)
 reads only the protocol state's term, log and commit, which a send and the `Progress` values leave
@@ -83,11 +83,11 @@ theorem appGate_send_prvals (id : w64) (s : NState) (ms : List Msg) (pvs : GMap 
     (to : w64) (mm : Msg) (hpm : prvalsMatch pvs = prvalsMatch s.prvals)
     (h : AppOk id (toPState { sendMsgs s ms with prvals := pvs }) mm ∧
       mm.commit = (toPState { sendMsgs s ms with prvals := pvs }).commit ∧ mm.dst = to ∧
-      uint.Z ((prvalsMatch pvs !! to).getD (W64 0)) ≤ uint.Z mm.index) :
+      uint.Z ((prvalsMatch pvs !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0) :
     AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧ mm.dst = to ∧
-      uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index := by
-  obtain ⟨h1, h2, h3, h4⟩ := h
-  refine ⟨?_, h2, h3, by rw [← hpm]; exact h4⟩
+      uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0 := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  refine ⟨?_, h2, h3, by rw [← hpm]; exact h4, h5⟩
   unfold AppOk at h1 ⊢
   exact h1
 

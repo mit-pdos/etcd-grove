@@ -35342,3 +35342,72 @@ line (`TracedRaftStepRecvLead.lean`); the rest of their pieces (the appends' pin
 `phaseStepB_send_pin` with `lineEffect_msgApp`, their facts `fxPres_app` with `app_lead`/`pinAt_step`
 and `msgFacts` from raft's ghost: `ownRaftGhost_isLeader`, `ownRaftGhost_logFacts` with `FullOk_take`/
 `logRecs_drop` and a take at a general base) are mechanical once (a) is in.
+
+## Q8 stage 1 (slice 23a): `MsgProp`'s close relaxation, the loan to the `Replicate` gate, `Step`'s ghost step split; every append gate's `RejectHint`; the vote's win and loss not done (2026-11-11 · trace-check, Q8 stage 1 slice 23a; slice 22a's three additions and 22b's question 3 (a) taken by the coordinator, their form decided by the agent under the user's delegation · branch `trace-check-q8s23a`; DRAFT until trace-check's Freeze)
+
+All raft-internal: none of the changed modules is on `etc/api/raft.txt` (`interface/` unchanged), nothing
+frozen (`TracedCap.lean` untouched), `raft.Step.untraced`, the `RawNode`, node and tick statements
+and `Link.lean` unchanged. No axiom, no `sorry`.
+
+**The close** (`LemmasStepGates.lean`). `stepClose`'s ghost result is now
+`(⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost … s) ∨ ∃ s1, ⌜CloseMid id m ents s s1 s'⌝ ∗ ownStepGhost … s1`.
+`CloseMid`: a leader's `MsgProp` of no conf-change entry, `s1 = proposed id s ents` (the batch appended,
+the self-acknowledgement queued: the protocol's `StepC.propose` state), and the end state's log is
+`s1`'s. `CloseAt`: on a *traced* leader's such `MsgProp`, the batch was not appended (`proposed`'s log is
+not the end state's). Why a pure side condition and not "the close hands the tickets back" (the
+coordinator's wording): a family that never ran `"Hgprep"` never received the tickets, so it could not
+give them back; the condition instead tells `Step` that at `s` the proposal was dropped, whose step
+receives nothing (`stepCD_propDrop`), so no ticket is needed. Every other path proves `CloseAt` by its
+type, role or trace mode (`CloseAt.of_ne`, `.of_notLeader`, `.of_traced`, `.of_none`), and `Step`
+refutes `CloseMid` by the type (`CloseMid.ty`). **What a close site must add** (the mechanical change,
+also for 22b's later sites): replace `iunfold stepClose` by
+`iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => <CloseAt proof>)` then `iunfold stepCloseAt`
+(`stepCloseAt` is the old body; `TracedStepGates.lean`); `Step`'s own close sites (`gate_close`) take
+`m.Type' ≠ MsgProp`.
+
+**The loan** (`StepG.Tp`, `propLend`). The propose ghost update (`ownRaftGhost_step_propose`) needs the
+proposal's tickets, its entries' `propData` and a receipt covering the new indices (raised by
+`appendEntry`'s clone loop before `traceReplicate`). `raft.appendEntry.spec`'s `"Hgrep"` and
+`stepLeader.spec`'s `"Hgprep"` now take that receipt (`⧖ (k0 + |ents|)`); `leaderGates`' `"Hgprep"` takes a
+loan `Tp`, which `stepFnGates` reads from a new field `StepG.Tp : List EntryM → IProp` (default `emp`), set
+by `Step`'s side (`ghostIn` sets it to `propLend γ s`: traced, the tickets, `propData` and the receipt;
+untraced `emp`). Rejected: a new parameter of `stepGates`/`stepFnGates` (90 occurrences in 64 files, for
+the same content) and `γ` in `leaderGates` (the receipt's index needs `γ.reBoot`). `Step` converts its
+gates to `stepLeader`'s by `leaderGates_tp` (a leader's proposal: the receipt gives the loan) and
+`leaderGates_tp_rc` (no proposal: any loan; `gates_lead`, `gates_lead_ne`). Untraced, or traced at a
+non-leader, `Step` keeps the tickets for its single ghost step (a follower forwards the proposal).
+
+**`Step`'s ghost step split** (`raft__Step.lean`'s `MsgProp` arm, `raft__Step/MsgProp.lean`).
+`wp_Step_MsgProp` returns `%Hlead`: at a leader and no conf-change entry, from the proposed state the
+broadcast alone (`stepCD_sendApps`, `StepC.sendApps`/`StepR.sendApps`, with the end state's room for
+`StepR`'s `2^61` premise from `ownRaftLog_last_bound`) when appended, from `s` receiving nothing when not
+(`leaderPropConf_noConf`: no conf-change entry, the loop keeps the batch and `pendingConfIndex`).
+`Step` then takes: at `s` (traced leader: the drop, `ghost_step_md0`; otherwise as before with the
+tickets), or at the proposed state the broadcast (`ghost_step_md0` from there, `£ 1` its only use) and
+the whole step's model witness from the whole `StepCD` (`stepOut_of_stepCD_prop`, the mode unchanged by
+`stepOut_prop_md`; the dynamic invariant read off before the gates, `ghostRest_dynFacts`). The family's
+own propose update needs no `£` in either mode (`ownRaftGhost_step_propose` and `RInv_stepR` are a basic
+update and a pure fact): `ghost_stepProp` is not written yet (below).
+
+**`RejectHint`** (slice 22b's question 3, (a)). Every append gate's premise ends with
+`mm.rejecthint = W64 0` (`maybeSendAppend`, `sendAppend`, `bcastAppend`, `stepLeader`'s `"Hgxapp"`,
+`"#Hgpapp"`, `"Hgsapp"`, `"#Hgaapp"`, `stepCandidate`'s `"#Hgcast"`, `leaderGates`, `candidateGates`);
+`maybeSendAppend`'s proof gives it by `rfl` (`Msg.mk .app … (W64 0) es`); `appGate_send_prvals` and
+`and4_last` carry it. `AppOk` (client-visible) unchanged.
+
+**Not done** (the coordinator's (1) and (2), each larger than `MsgProp`'s change):
+1. *The lost vote*: `stepOut`'s `G1` guarded by `¬ Hooked` changes `stepOut`'s arity or meaning at 60+
+   files (every `raft__Step/*` branch returns `stepOut R s'.outbox`). The form that keeps them: a
+   `stepOutG c m s R o` used only by `stepClose` (its `G1` disjunct `⌜¬ CandHooked c m s⌝ ∗ R.G1 o`,
+   `CandHooked`: `MsgVoteResp` at a candidate of the message's term with `JQuorum ∨ JLost`), `gate_close`
+   converting `stepOut` to it by type off the candidate's vote response, and `MsgVoteResp`'s branch
+   (`raft__Step/MsgVoteResp.lean`, `ElectionLemmas.lean`) returning the tag `stepCandidate` already gives;
+   plus (22b's (c)) `CandVoteRespResultC`'s `lost` exact. Close sites then destruct `G1` as `⟨%_, H⟩`.
+2. *The won vote*: the family needs raft's ghost state past the win at the `BecomeLeader` gate (the term
+   log and `isLeader`). `ownRaftGhost_step_win` (`StepC.win`) needs no `£` either, but it also appends the
+   empty entry, whose receipt (`⧖ (L + 1 - boot)`) is raised only later by `becomeLeader`'s `appendEntry`;
+   so the win's ghost update splits (register and term log at `"Hgbl"`, the entry at `"Hgrep"` with the
+   receipt `becomeLeader.spec` would pass through as `appendEntry`'s now does), which is a new pair of
+   lemmas in `Protocol/Refinement.lean` (importable: an interface addition), a `CloseMid` disjunct at the
+   won state (`becomeLeaderLog` with the self-acknowledgement), and `Step`'s `MsgVoteResp` arm split like
+   `MsgProp`'s. `tallyGranted_quorum`'s `hc` not looked at.

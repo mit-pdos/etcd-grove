@@ -335,7 +335,9 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's rejection, the specification's
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨ht, hint, hhi, hht, hse⟩ : ∃ ht hint : w64, uint.Z hint ≤ uint.Z m.Index' ∧
         uint.Z ht ≤ uint.Z m.LogTerm' ∧

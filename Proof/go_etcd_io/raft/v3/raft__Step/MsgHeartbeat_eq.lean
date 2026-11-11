@@ -172,6 +172,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     simp only [stepFuncOf]
     imod (preceipt_zero (GF := GF)) with #Hrc00
     ihave Hlg := stepFnGates_leader c r id s m ents ctx R ∅ s (preState_nobf hnbf ∅) Hrole $$ Hgstep
+    ihave Hlg := leaderGates_tp_rc c r id s m ents 0 _ _ _ _ _ _ (by rw [Hty]; w32_ne) $$ Hlg
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
         Hrole (by intro Hc; exfalso; first | (rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (rcases Hc with Hc | Hc <;> simp_all [MsgBeat, MsgTransferLeader]))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

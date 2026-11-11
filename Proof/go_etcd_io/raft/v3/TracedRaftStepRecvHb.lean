@@ -749,7 +749,9 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's heartbeat handling, the specification's
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV

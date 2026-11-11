@@ -80,7 +80,7 @@ abbrev raft.maybeSendAppend.spec : Prop :=
       -- (2026-11-10, slice 17) and `Match` of `to` at most `mm.index` (`pr.Next - 1`): the trace's
       -- append line checks it (the specification's `AppendEntries` range starts past `matchIndex`)
       "Hgate" ∷ (∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧
-          mm.dst = to ∧ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
+          mm.dst = to ∧ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "HG" ∷ G s.outbox ∗
       -- (2026-11-09, Q8 stage 1 slice 6) a traced node's log is not compacted, so the snapshot

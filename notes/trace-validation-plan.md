@@ -996,6 +996,22 @@ TLC check); (3) no append gate bounds the message's `RejectHint`, which the send
 reads (recommended: `mm.rejecthint = W64 0` in every append gate's premise, raft-internal). Tasks 3 and 4
 wait on (2) and (3).
 
+**Q8 stage 1 (slice 23a), 2026-11-11 (branch `trace-check-q8s23a`): `MsgProp`'s statement changes
+done; every append gate's `RejectHint`; the vote's win and loss, and `MsgProp`'s bundle, not started.**
+Slice 22a's three additions (taken by the coordinator) and slice 22b's question 3 (a), their form decided
+by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 23a)"); all raft-internal. `stepClose` gives raft's
+ghost state back at `s` (`CloseAt`: on a traced leader's proposal only if it was not appended) or at the
+proposed state (`CloseMid`); the proposal's tickets, entries' data and `appendEntry`'s receipt are lent to
+`"Hgprep"` (`StepG.Tp`, set by `ghostIn` to `propLend`; `raft.appendEntry.spec`'s `"Hgrep"` and
+`stepLeader.spec`'s `"Hgprep"` take the receipt); `Step`'s `MsgProp` arm steps the broadcast alone from
+the proposed state (`stepCD_sendApps`, `ghost_step_md0`) with the whole step's model witness
+(`stepOut_of_stepCD_prop`). Every append gate's premise ends with `mm.rejecthint = W64 0`. Every close site
+changed mechanically (`stepClose_of_at` with a `CloseAt` proof, then `stepCloseAt`). Left: `ghost_stepProp`
+(the family's propose update, no `£`), the `Replicate` lines' phase steps and facts, the
+self-acknowledgement's facts, the appends' gates (unblocked now by the `RejectHint` premise), the bundle;
+the vote's loss (a guarded `stepOut` for the close) and win (the win's ghost update split, its receipt
+through `becomeLeader`), each recorded with its design in the decisions entry.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

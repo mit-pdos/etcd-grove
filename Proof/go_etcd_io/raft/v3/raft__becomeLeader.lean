@@ -201,7 +201,8 @@ theorem raft.becomeLeader.wp_proof
       (by simp) (by subst hs1; exact Hnz) $$ [$Hphys $Hes $Hrc0 HG1 Hgrep Hgack]
     as %accepted ⟨-, %Hacc, Hes, Hphys⟩
   · rw [Hgh, E2, E3, E4]
-    iframe HG1 Hgrep Hgack
+    iframe HG1 Hgack
+    iintro - HG; iapply Hgrep $$ HG
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
   have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)
   subst Hacc'
