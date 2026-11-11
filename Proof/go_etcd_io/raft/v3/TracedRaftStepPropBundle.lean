@@ -27,6 +27,7 @@ entries). The node API supplies them (`raft.Step`'s own premises have the first,
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedRaftStepPropRep
+public import Proof.go_etcd_io.raft.v3.TracedRaftStepRecvUTResp
 
 @[expose] public section
 
@@ -328,6 +329,166 @@ theorem propGate_ack (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
     (fun h => by cases h)
   simp only [FxPresUT]
   iframe Htl Hc Hfx
+
+/-- **A leader's append request's phase step, pinned** (`phaseStepB_msgApp` at `PinAt`, through
+`phaseStepB_send_pin`). -/
+theorem phaseStepB_msgApp_pin (id : w64) (c : CfgM) (s : NState) (o : List Msg) (mm : Msg)
+    (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (ma0 : Etcdraft.Msg)
+    (hma : TraceSim.msgAbs C0 C0.length mm = some ma0)
+    (hlead : s.role = .leader) (hto : mm.dst ∈ elements c.incoming)
+    (happ : AppOk id (toPState s) mm) (hcommit : mm.commit = (toPState s).commit)
+    (hmatch : uint.Z ((prvalsMatch s.prvals !! mm.dst).getD (W64 0)) ≤ uint.Z mm.index)
+    (blt : uint.Z mm.logterm < 2 ^ 63) :
+    PhaseStepB id c (SendEvOf (W64 9) id s c mm)
+      (PinAt s C0 cs0 P0 o) (PinAt s C0 cs0 (P0 ++ [ma0]) (o ++ [mm])) := by
+  have hsrc : mm.src = id := happ.2.1
+  apply phaseStepB_send_pin id c s _ o _ C0 cs0 P0 ma0 hma hsrc
+    (fun e he => ⟨he.2.1, sendEvOf_notBoot he (by decide) (by decide) (by decide)⟩)
+  intro C e a he hin hout hC hR hs bt bc bl
+  have hty : mm.ty = .app := happ.1
+  refine ⟨(TraceSim.msgAbs C C.length mm).get (by simp [TraceSim.msgAbs, hty]), (Option.some_get _).symm, ?_⟩
+  have hmo : matchOf (toPState s) mm.dst = (prvalsMatch s.prvals !! mm.dst).getD (W64 0) := by
+    simp [matchOf, toPState, hlead]
+  have hlen : ((toPState s).log.length : Int) < 2 ^ 63 := by
+    have := plastIndex_length _ _ hs; omega
+  obtain ⟨hpk, hents⟩ := appOk_slice id (toPState s) mm happ (by rw [hs.1]; rfl) hlen
+  exact lineEffect_msgApp C e id s c mm a _ he hin hout hC (hin.mem_iff.1 hto) hR hs hlead hty hsrc
+    happ.2.2.2.1 happ.2.2.1 hpk happ.2.2.2.2.1 hents hcommit (by rw [hmo]; exact hmatch)
+    bt bc bl (by have := hpk; have : (uint.nat mm.index : Int) = uint.Z mm.index := by word
+                 omega) blt
+
+/-- **Raft's facts of a leader's log for its append requests**: its leadership of its term, its log's
+records, its terms at most its term (uncompacted). -/
+theorem ownStepGhost_appFacts (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (hr : s.role = .leader) (hb : (toPState s).base = base0) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      (isLeader γ id s.term ∗ logRecs γ base0 (toPState s).log ∗
+        ⌜∀ j x, plogTermAt (toPState s).base (toPState s).log j = some x → uint.Z x ≤ uint.Z s.term⌝) ∗
+      ownStepGhost γ md c id s := by
+  apply persistent_entails_right
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, -⟩
+  icases ownRaftGhost_terms_le γ id (toPState s) $$ Hg with ⟨%ht, Hg⟩
+  icases ownRaftGhost_logFacts γ id (toPState s) hb $$ Hg with ⟨Hg, ⟨#Hr, -, -⟩, -⟩
+  ihave #Hl := ownRaftGhost_isLeader γ id (toPState s) (by rw [toPState_role, hr]; rfl) $$ Hg
+  rw [show (toPState s).term = s.term from rfl]
+  iframe Hl Hr
+  ipureintro; exact ht
+
+/-- **An append's gate on `PropLead`'s family** (`leaderGates`' `"#Hgpapp"`): the share pinned, the
+`SendAppendEntriesRequest` line fired (`phaseStepB_msgApp_pin`, `fxPres_app` with `app_lead` and the
+request's facts from raft's ghost state at the proposed state, `msgFacts_app_of_log`), the share
+unpinned at the outbox with the request. -/
+theorem propGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (ents : List EntryM) (Λ : Option TraceEv → Prop) (cs : List (Option ConfChangeIM)) (to : w64) (mm : Msg)
+    (o : List Msg) (htr : s.gh.tr = some γd) (hlead : s.role = .leader)
+    (hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (hlrn : c.learners = ∅)
+    (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound)
+    (hdom : to ∈ c.voters ∪ c.learners)
+    (happ : AppOk id (toPState (propAppended s ents)) mm ∧ mm.commit = s.logst.committed ∧ mm.dst = to ∧
+      uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0) :
+    (ccEntsOk ents cs ∗ (propR (GF := GF) true γ md c r id s ents Λ).Gp2 o : IProp GF) ⊢
+      HookGateOpt s.gh.tr r
+        (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm])
+        ((propR (GF := GF) true γ md c r id s ents Λ).Gp2 (o ++ [mm])) := by
+  have hnc := noConf_of_normal ents hnorm
+  obtain ⟨hok, hcm, hdst, hmatch, hrh⟩ := happ
+  iintro ⟨#Hcc, Hp2⟩
+  icases ccEntsOk_types ents cs $$ Hcc with %hct
+  have hlp : leaderPropConf s ents cs c.joint = (ents, s.pci) := propConf_noConf' _ _ _ _ ents cs hct hnc
+  rw [hlp, sendOutGate_one id _ c MsgApp mm (W64 9) rfl]
+  dsimp only [propR]
+  unfold propF trFam
+  rw [htr]
+  icases Hp2 with ⟨%Hlen, Hgh, ⟨%b, Hf⟩, %Hok⟩
+  iapply hookGateOpt_fupd
+  imod ownStepGhost_traceBound (GF := GF) γ md c id (proposed id s ents) hfit $$ Hgh with ⟨%Hb, Hgh⟩
+  icases trCapB_out γd γ r id c b _ _ $$ Hf with ⟨%Hout, Hf⟩
+  icases trCapB_pinMem γd γ r id c b _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
+  icases trCapB_logger γd γ r id c b _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  obtain ⟨⟨⟨a0, -, -, hs0, -, -, bl0⟩, -⟩, hidC⟩ := HΦ0
+  have hb0 : (toPState (proposed id s ents)).base = base0 := hs0.1
+  have hrole1 : (propAppended s ents).role = .leader := hlead
+  have hrole2 : (proposed id s ents).role = .leader := hlead
+  icases ownStepGhost_appFacts γ md c id (proposed id s ents) hrole2 hb0 $$ Hgh with ⟨⟨#Hil, #Hrc, %Htle⟩, Hgh⟩
+  have hlogeq : (toPState (proposed id s ents)).log = (toPState (propAppended s ents)).log := rfl
+  have hbeq : (toPState (proposed id s ents)).base = (toPState (propAppended s ents)).base := rfl
+  have htm : (proposed id s ents).term = s.term := rfl
+  have hb : traceNumBound = 2 ^ 61 := rfl
+  have hloglen : ((toPState (propAppended s ents)).log.length : Int) < 2 ^ 63 := by
+    have := plastIndex_length _ _ hs0; omega
+  obtain ⟨hpk, hents⟩ := appOk_slice id (toPState (propAppended s ents)) mm hok (by rw [hs0.1]; rfl) hloglen
+  have hlt := hok.2.2.2.2.1
+  have hlogterm : uint.Z mm.logterm ≤ uint.Z s.term := by
+    rw [← htm]; exact Htle _ _ (by rw [hlogeq, hbeq]; exact hlt)
+  have hpl : plastIndex (toPState (propAppended s ents)) = plastIndex (toPState (proposed id s ents)) := rfl
+  have hTn : uint.nat (propAppended s ents).term < traceNumBound := by
+    show uint.nat s.term < traceNumBound; word
+  have hcn : uint.nat (propAppended s ents).logst.committed < traceNumBound := Hb.1
+  have hln : uint.nat (plastIndex (toPState (propAppended s ents))) < traceNumBound := by rw [hpl]; exact Hb.2
+  have hbI : (traceNumBound : Int) = 2 ^ 61 := by rw [hb]; exact Int.natCast_pow 2 61
+  have hlenL : (toPState (propAppended s ents)).log.length < traceNumBound := by
+    have h2 := Hb.2
+    rw [← hpl] at h2
+    have h3 := plastIndex_length _ _ hs0
+    have : uint.Z (plastIndex (toPState (propAppended s ents))) < traceNumBound := by word
+    omega
+  have hnums : mm.NumsBelow traceNumBound := by
+    refine ⟨?_, by omega, ?_, ?_, ?_, ?_⟩
+    · rw [hok.2.2.1]; show uint.nat s.term < traceNumBound; word
+    · have : uint.Z mm.logterm < traceNumBound := by omega
+      word
+    · have : uint.nat mm.index ≤ (toPState (propAppended s ents)).log.length := by omega
+      omega
+    · rw [hcm]; exact Hb.1
+    · rw [hrh]; show 0 < traceNumBound; rw [hb]; omega
+  have htrok : mm.TrOk := Msg.trOk_of_nums (by rw [hok.1]; decide) (by rw [hok.1]; decide) (fun _ => hnums)
+  obtain ⟨ma0, hma⟩ : ∃ ma0, TraceSim.msgAbs C0 C0.length mm = some ma0 := by
+    simp [TraceSim.msgAbs, hok.1]
+  have hto : mm.dst ∈ elements c.incoming := by rw [hdst]; exact mem_incoming_of c to hlrn Hout hdom
+  have hpt : ma0.type = .appendEntriesRequest := by simp [TraceSim.msgAbs, hok.1] at hma; rw [← hma]
+  have hps : ma0.subtype = "app" := by simp [TraceSim.msgAbs, hok.1] at hma; rw [← hma]
+  have hsrc : ma0.source = idAbs id := by
+    simp [TraceSim.msgAbs, hok.1] at hma; rw [← hma]; simp [hok.2.1]
+  ihave Hfx := fxPres_app (GF := GF) γ id (SendEvOf (W64 9) id (propAppended s ents) c mm)
+    (PinAt (propAppended s ents) C0 cs0 P0 o) (PinAt (propAppended s ents) C0 cs0 (P0 ++ [ma0]) (o ++ [mm]))
+    ma0 (msgAbs_canon C0 C0.length mm ma0 hma) hpt hps hsrc
+    (fun C cs P h => h.1 ▸ hidC)
+    (app_lead (propAppended s ents) C0 cs0 P0 o id mm ma0 hma hrole1 hok hcm)
+    (pinAt_step (propAppended s ents) C0 cs0 P0 o mm ma0) $$ []
+  · imodintro
+    iintro %C %cs %P %h
+    obtain ⟨rfl, -⟩ := h
+    iapply msgFacts_app_of_log γ C id (toPState (propAppended s ents)) mm ma0 hma hok hs0.1
+      (by have := hs0.2.1; rw [hs0.1] at this; exact this) hloglen
+    rw [← hlogeq, show (toPState (propAppended s ents)).term = (proposed id s ents).term from rfl]
+    iframe Hil Hrc
+  ihave Hfx := fxPres_upd γ id _ _ _ $$ Hfx
+  imodintro
+  iapply hookGateOpt_mono (some γd) r _
+    iprop(trCapB (some γd) γ r id c true (PinAt (propAppended s ents) C0 cs0 (P0 ++ [ma0]) (o ++ [mm]))
+      (stepLastEv Λ) ∗ emp)
+  isplitl [Hgh]
+  · iintro ⟨Hc, -⟩
+    isplitr
+    · ipureintro; simp only [List.length_append, List.length_singleton]; omega
+    iframe Hgh
+    isplitl [Hc]
+    · iexists true
+      iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
+    ipureintro
+    exact outOk_snoc Hok htrok
+  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ b (PinAt (propAppended s ents) C0 cs0 P0 o) _
+    (stepLastEv Λ) (stepLastEv Λ) iprop(emp)
+    (phaseStepB_msgApp_pin id c (propAppended s ents) o mm C0 cs0 P0 ma0 hma hrole1 hto hok hcm
+      (by rw [hdst]; exact hmatch) (by omega))
+    (fun e he => sendEvOf_notBoot he (by decide) (by decide) (by decide))
+    (fun e _ => .inr rfl)
+    (fun _ e he => sendEvOf_ok (W64 9) id _ c _ e _ he (by decide) hTn hcn hln hnums (Nat.le_refl _))
+    (fun h => by cases h)
+  simp only [FxPresUT]
+  iframe Htl Hf Hfx
 
 end families
 
