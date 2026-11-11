@@ -53,8 +53,15 @@ For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coo
   unchanged. Not a frozen statement by name in r2db, but Q35 (a) restates it: list it at the STOP.
   Definitions in `InvNodeStart.lean`: `rnRestartCfg`, `RNBoot` (`a0`, `t0`, `commit0`, `snap0`, `P`,
   `P_prefix`), `rnBootPre`, `rnBootPost`.
-- Checked with `etc/lean-check.py -a` (kernel): `InvNodeStart`, both `newRaftNode` files, both
-  `bootstrappedRaft__newRaftNode` files, `NodeStart`, `NodeApiLink`. Full build: see "Build" below.
+- `b42a686306`: raft's interface regenerated (`Linked.txt`, `MemoryStorage__ApplySnapshot.txt` spec
+  and proof: the index-0 triple; nothing else moved).
+- Checks at `1a46d1b757`/`b42a686306` (items 5, 6 and step 1; items 4, 7, 8 not started): full build
+  under the lock and the 64G cap passed (14021 jobs, first try); `etc/tcb-report.py --check`: matches
+  the baseline (865 axioms, 5 sorries; no new axiom); every `etc/tcb-collections/*.txt` `--check`
+  passes; `etc/gen-interface.py --check`: backend, bbolt, etcdstart, mvcc unchanged, raft regenerated;
+  `etc/api-check.py etc/api/raft.txt --check` passes; `etc/gen-init.py --check` (225 up to date);
+  `etc/goose.py --check --project etcd --src etcd=/shared/tmp/restart-s3/etcd-src` up to date.
+  Closed statements: none changed (`Results.lean`, `NewServer.lean`, `NodeStartSpec` untouched).
 
 ## Next, in order
 
@@ -254,6 +261,8 @@ Total about 1200-1350 lines. Two targeted builds per round; one full build at th
   `iauintro` (`ihave Hrst : ▷ … $$ [Hrst]; · imodintro; iexact Hrst`), so the abort can give it back.
   A `wp_join`'s invariant cannot name a hypothesis: write a struct field cell as
   `b.[bootstrappedRaft, go!"config"] ↦{dq} bv.config'`.
+- `etc/goose.py --check` fails with "go: updates to go.mod needed" under `GOWORK=off`: run it
+  without (`PATH=/usr/local/go/bin:$HOME/go/bin:$PATH` only).
 - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
   --packages=/shared/tmp/manifest-ddc.json build <targets>`.
 
