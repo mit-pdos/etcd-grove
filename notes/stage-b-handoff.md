@@ -269,6 +269,26 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `ServeFromStart` (`watchRunSlots_of`, `etcdGrpcSlots_of_started` go), `cache/v3/Results`, etcdstart
     `ServedLease`/`Served`/`WatchSrv`, `watch/Served`+`Main`, `auth/MainServe`+`Main` (calls `grpc.start`
     directly), cache/compactwatch/k8s-compactor `Main`, `cluster3/StartMember`; then (4)-(8) below.
+  - **B3, fourth agent** (2026-11-11; the third agent's forms accepted by etcd-grove-81, in `questions.md`).
+    Done (commit `0ed49b0fac`, `lean-check -a`/targeted build 0 errors): `ServeFromStart` (deleted
+    `etcdGrpcSlots_of_started`, `watchRunSlots_of`, `grpcCfgOk_of_started_w`; `grpcCfgOk_of_startedM`
+    takes `srvWatchBuilt`, no `K`); etcdstart `Defs` (`grpcUp`/`grpcUpOn`/`grpcUpM` lose
+    `mvccReaders E.γ 64`), `Served` (`kvServeStocks s E γr := srvServeStock s E ∗ srvRunReadStock s γr`, a
+    def; `kvServeStocks_pools`; `kv_served` takes `srvLevels`, post `(∃ γ, grpcServeTok gs lis γ) ∗ …`;
+    `memberUp(On)_served` surface `srvWatchBuilt ∗ kvServeStocks`), `Serve` spec/proof (`srvWatchBuilt`
+    for `srvWatchReaders 64`; the ghost step returns `∃ γ, grpcServeTok gs lis γ`), `watch/Served`
+    (`wk_served_nd` over the pools, `hs`, `hγm`, `hnd`, `Htb`, `HL`); putget `Main` (+ spec premise
+    `srvLevels`, Adequacy `srvLevels_of_max HT`), the model for the other Mains.
+    In progress (sub-agents, not committed): client `LeaseReadServed`/`LeaseGrantServed`/`AuthnServedOn`,
+    `cache/v3/Results`; Mains putget3, txnlin, compacted, watch, k8s compactor/etcd3, restart; step (5)
+    (`srvServeBuilt` without `K`: facts, bemu, Start's two `lgMu`; `srvServeStock` without its two `lgMu`;
+    NewServer hands out `srvWatchBuilt`; `srvKeepRdN := rdStockN - 7 - srvRevokePoolN - 1 - 1`; memberUp/
+    memberUpOn/memberBuilt without the 64-stocks). Left after them: `ServedLease`, Mains cache,
+    compactwatch, lease, leaseexpiry, leasegrant, auth (`MainServe`, `Main`), `cluster3/StartMember`;
+    delete `watchRunSlot` (v3rpc `InvWatch.lean:498`); (7) Renew/leaseTimeToLive scope: plan to record it in
+    STATUS's soundness section as a known overclaim with its reach (the checkpointer path's
+    `raftRequest` needs `srvLeadTimeReader ∗ E.RD`, which only the level-2 pool lends) plus a scope
+    sentence in both docstrings; then CP3.
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
