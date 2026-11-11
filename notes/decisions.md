@@ -35111,3 +35111,82 @@ sites in 22 files. Not done in this slice: that conjunct and every traced node-A
   `startTrace` to the capability's pieces (with the next amendment). Not taken: frozen.
 
 No axiom, no `sorry`, no frozen or client-visible statement changed; untraced statements unchanged.
+
+## Q8 stage 1 (slice 20b): a candidate's heartbeat, a follower's stale and rejected `MsgApp`, the higher-term receives but an accepted `MsgApp` and the vote responses; `findConflictByTerm`'s hint term bounded (2026-11-10 · trace-check, Q8 stage 1 slice 20b; decided by the agent under the user's delegation · branch `trace-check-q8s20b`; DRAFT until trace-check's Freeze)
+
+**What** (new modules, each a path set of `stepBundle_traced.on`, none on `etc/api/raft.txt`):
+`TracedRaftStepRecvCand.lean` (`stepBundle_traced_candHb`), `TracedRaftStepRecvApp.lean`
+(`stepBundle_traced_folAppStale`), `TracedRaftStepRecvAppRej.lean` (`stepBundle_traced_folAppRej`),
+`TracedRaftStepRecvUT.lean` (the higher-term pieces), `TracedRaftStepRecvUTResp.lean`
+(`stepBundle_traced_utResp`: `MsgAppResp`/`MsgHeartbeatResp`), `TracedRaftStepRecvUTHb.lean`
+(`stepBundle_traced_utHb`), `TracedRaftStepRecvUTVote.lean` (`stepBundle_traced_utVote`),
+`TracedRaftStepRecvUTApp.lean` (`stepBundle_traced_utAppSR b`: stale `b = true`, rejected `b = false`).
+`#print axioms` of each: no `sorryAx`.
+
+**1. A skipped `BecomeFollower` line after a receive line** (a candidate's heartbeat; every higher-term
+receive). `bfCond` reads the node's last line, so the capability after the receive line keeps the
+receive event as the last event: `recvGate_tracedL` (`recvGate_traced` with `Λ' := RecvLast`), and the
+family `bfR` (`G0` with `RecvLast`, `G1` with `Λ1`: `RecvLast` when the preamble logs nothing, an event
+otherwise; `Gf`/`GE` with an event). The skip is `PhaseStepBF`'s first clause: `bfCond_rtf` (the
+`ReturnToFollower` case: a candidate's `ReceiveAppendEntriesRequest` at its term) and `bfCond_ut` (the
+`UpdateTerm` case: a receive event below the message's term; `gInt` is `uint.Z` below `2^63`);
+`bfGate_skip` wraps `trCapB_hookGate_bf` with a frame; its `FxPresBF` is vacuous at a follower's share
+(`fxPresBF_vpin`). Rejected: logging the skip in a family with the idle relation (the share is not
+idle until `Step` ends).
+
+**2. Two-round receive lines.** A candidate's heartbeat: `lineEffect_candHbRecv` (`lineEffect_recvU`
+with `firstRound_rtf` and `recvAt_heartbeat`; `rtfSrv` the step-down's server, `rtfSt_eq`); the
+intermediate state's facts `simFx_rtf` (`SpecInv` by `specInv_upd_follower`, a non-leader's
+`srvFacts` read only log, commit and term, `srvFacts_congr_nl`). A higher-term message:
+`lineEffect_ut` (`UpdateTerm`, `firstRound_ut`, then any one-round handler `RecvAt` at `utSrv`;
+`recvLine_full` the receive line's parse, name and match), whose intermediate shape (`· = utSrv a T`,
+which depends on the server the share stands for) is weakened to `toC v = toC (utSrv a0 T)` at the
+pinned server (`lineEffect_mid_mono`). `simFx_ut`: `SpecInv` by `specInv_becomeFollowerOfTerm` with
+`commitInDurable_of_complete` and `LeaderComplete` (`leaderComplete_of`: `allFacts_commitOk` and
+`allFacts_leaderCompleteness` with the vote table, kept by `persistent_entails_right`); the receiver's
+`srvFacts` at the new term from **raft's facts of its log** (`ownRaftGhost_logFacts`: records,
+committed prefix, commit certificate, `PlogWfR`), not from the old `srvFacts` (a leader's may carry
+pending entries without records), the certificate moved up by `commitIn_agree`. The second rounds'
+facts are the same-term handlers' (`simFx_hb`, `simFx_voteReq`, `simFx_resp`, `simFx_leadReply`) at
+the intermediate state, related to the line's result by `simFx_congr`.
+
+**3. Message facts the paths needed from raft's ghost state** (all derived, no premise added):
+`ownRaftGhost_appStaleMatch` (a stale append request's previous entry is in the follower's log:
+`commitIn_ackInF` gives the request's leader a full log reaching the follower's commit index, and
+`commit_in_leader` agreement below it; the vote table from raft's commit invariant, opened at the
+receive gate's update); `isMessage_app_index0` (`index = 0 → logterm = 0`: the previous entry is in the
+leader's full log from the base); `ownRaftGhost_hbHigher` (a higher-term heartbeat carries commit `0`:
+its commit is at most the receiver's acknowledgement at its term, only the trivial one since a node
+acknowledges at its own term, `AcksTerm`); `ownRaftGhost_logFacts`.
+
+**4. Raft-internal spec strengthening: a rejection's hint term** (not frozen, not client-visible:
+neither spec is on `etc/api/raft.txt`; their proof files' interfaces change). A rejected `MsgAppResp`'s
+send line needs its `LogTerm` (the hint's term, `findConflictByTerm`'s second result) below
+`traceNumBound` (`TraceEv.Ok`), and `HandleAppResult`'s reject exit left it free. Raft's loop returns
+a term it compared with `term` or `0`: `raftLog.findConflictByTerm.spec` gains `t' ≤ term`
+(re-proved), `HandleAppResult`'s third exit `hintterm ≤ m.LogTerm` (`handleAppendEntries` passes it on;
+`repl_lemmas`' destructuring and `stepLeader/Rest`'s use of the loop's spec adjusted). Rejected: a
+bundle premise (the node API cannot know the hint).
+
+**5. Not done (exact).**
+- **An accepted `MsgApp`** (at a follower of its term, at a candidate, at a higher term:
+  `lineEffect_appRecv`/`lineEffect_appRecvU` exist): `FxPresR` needs (a) the new log's records (the
+  request's `logRecs` after its previous entry, `msgFacts`/`isMessage`'s, with the kept prefix's), (b) the
+  raised commit's certificate and committed prefix (the request's `commitIn` in its leader's full log,
+  moved by `commitIn_move` as raft's `ownRaftGhost_step_app_accept` does), (c) **`QuorumLogF` after a
+  truncation or an append** (no lemma yet: no server's committed prefix the follower's log carried is cut,
+  since the truncation point is past every committed prefix it agrees with, by leader completeness and
+  `AppSlices`), and the `appMid` intermediate states' facts; the response's send line needs the new last
+  index below `traceNumBound` (the new log's last record's receipt, `lastRec_receipt`), and the close
+  the new log's `LogShapeOk`. A candidate's stale or rejected `MsgApp` at its term is this slice's
+  pieces put together (`rtfSrv`, `phaseStepBF_rtf`, `recvAt_stale`/`recvAt_reject` at `rtfSrv`).
+- **The leader's `MsgAppResp` and `MsgHeartbeatResp`** (task 4): not started. Accepted: `respSrv`'s match
+  index at the leader (`SimServerR`'s leader clause against `appRespMatch`), `maybeCommit`'s `Commit` line
+  (`FxPresU`, the commit certificate from the quorum's acknowledgements), the broadcast appends
+  (`"#Hgaapp"`: `AppSlices`, `msgFacts` with the leader's records), read-index releases (untraced
+  responses; `"#Hgrlhb"` heartbeats at the exact commit); rejected: `"Hgsapp"`'s probe;
+  `MsgHeartbeatResp`: `"Hgsapp"`'s catch-up append.
+- The vote responses (Q17, amendment A3, another branch).
+
+No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean`, `TraceSimSpecInv.lean`,
+`TracedRaftStep.lean` untouched); not client-visible.

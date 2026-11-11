@@ -941,6 +941,32 @@ the `_ccBoot` gate's consumer; `newRaft.spec` sets `s.gh.tr := none`); and Q18 (
 recommended in `Msg.TrOk`), Q19 (the bundle and ticks need the booted flag: recommended any flag), Q20
 (the frozen `startTrace` lacks the capability's invariant and flag: recommended an amendment).
 
+**Q8 stage 1 (slice 20b), 2026-11-10 (branch `trace-check-q8s20b`): a candidate's heartbeat; a
+follower's stale and rejected `MsgApp`; every higher-term receive but an accepted `MsgApp` and the vote
+responses.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 20b)"). Done (new modules
+`TracedRaftStepRecv{Cand,App,AppRej,UT,UTResp,UTHb,UTVote,UTApp}.lean`): **`stepBundle_traced_candHb`**
+(a candidate's `MsgHeartbeat` of its term: the two-round receive `ReturnToFollowerState` then the
+heartbeat, raft's `BecomeFollower` line skipped by `bfCond`, the receive event kept last:
+`recvGate_tracedL`, family `bfR`); **`stepBundle_traced_folAppStale`** (the stale exit; the log matching
+below the commit index from raft's commit invariant, `ownRaftGhost_appStaleMatch`);
+**`stepBundle_traced_folAppRej`** (the rejected exit; `index 0 → logterm 0` from the request's facts;
+the rejection's hint term bounded by a raft-internal strengthening of `findConflictByTerm`'s spec and
+`HandleAppResult`'s reject exit, `hintterm ≤ m.LogTerm`); the higher-term receives (`UpdateTerm`'s
+first round `lineEffect_ut`, its facts `simFx_ut` with leader completeness `leaderComplete_of` and the
+receiver's facts from raft's log `ownRaftGhost_logFacts`, the preamble's `BecomeFollower` skipped by
+`bfCond_ut`): **`stepBundle_traced_utResp`** (`MsgAppResp`/`MsgHeartbeatResp`),
+**`stepBundle_traced_utHb`** (a higher-term heartbeat carries commit `0`, `ownRaftGhost_hbHigher`),
+**`stepBundle_traced_utVote`**, **`stepBundle_traced_utAppSR`** (stale or rejected). **Not done**
+(exact items in the decisions entry): an accepted `MsgApp` (follower, candidate, higher term: the new
+log's records and certificate, `QuorumLogF` under a truncation or append, the new last index's bound);
+a candidate's stale/rejected `MsgApp` (pieces in place); the leader's `MsgAppResp`/`MsgHeartbeatResp`
+(not started); the vote responses (Q17, A3). Checked (branch at `trace-check` `0db85c4212` plus this
+slice): full `lake build` green (13805 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s,
+unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in
+`raftLog__findConflictByTerm.txt` only (the spec's new `t' ≤ term`; `HandleAppResult` is not in a
+listed module's interface); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py
+--raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

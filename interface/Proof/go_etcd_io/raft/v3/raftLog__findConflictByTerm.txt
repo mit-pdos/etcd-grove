@@ -13,10 +13,11 @@ theorem raftLog.findConflictByTerm.wp_proof [package_sem : Assumptions] (wp_raft
               ∀ i' t',
                 ownRaftLog l ls ∗
                     ⌜uint.Z i' ≤ uint.Z index ∧
-                        (1 ≤ uint.Z index →
-                          (∀ (t0 : w64),
-                              plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 1) = some t0 → uint.Z t0 ≤ uint.Z term) →
-                            1 ≤ uint.Z i')⌝ -∗
+                        uint.Z t' ≤ uint.Z term ∧
+                          (1 ≤ uint.Z index →
+                            (∀ (t0 : w64),
+                                plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 1) = some t0 → uint.Z t0 ≤ uint.Z term) →
+                              1 ≤ uint.Z i')⌝ -∗
                   Φ (intoVal i', intoVal t')) -∗
             WP
               (((intoVal

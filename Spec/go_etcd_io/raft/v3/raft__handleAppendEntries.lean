@@ -82,7 +82,8 @@ the second and third on whether `(m.LogTerm, m.Index)` matches the log
   `maybeAppend`'s spec says no more about the `sents`/`uents` split;
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
   (`findConflictByTerm`'s spec pins only `hint ≤ min(m.Index, lastIndex())`, and the
-  model allows any). -/
+  model allows any); (2026-11-10, trace-check slice 20b) `hintterm ≤ m.LogTerm` (the trace's
+  number bound on the rejection's `LogTerm`, from the request's). -/
 def HandleAppResult (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (s' : NState) : Prop :=
   let ls := s.logst
@@ -114,7 +115,7 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
    ¬ PlogMatches ls.prev es prev ∧
    ∃ (hint hintterm : w64),
      -- (2026-10-19, D21 M3) `findConflictByTerm`'s hint (`RejHintOk`)
-     RejHintOk ls.prev es m.Index' m.LogTerm' hint ∧
+     RejHintOk ls.prev es m.Index' m.LogTerm' hint ∧ uint.Z hintterm ≤ uint.Z m.LogTerm' ∧
      s' = sendMsgs s [appResp id s dst true m.Index' hintterm hint])
 
 end results
