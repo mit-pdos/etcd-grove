@@ -1,7 +1,12 @@
 # Restart S3 handoff (2026-11-11, branch `restart-s3`, from `lean` `47d7b2f2cd`)
 
-Phase: **probe and plan done, stopped for etcd-grove-81's decisions.** No Lean landed. Nothing in
-the trust base or any frozen statement was changed.
+Phase: **probe accepted; decisions made (2026-11-11, etcd-grove-81, recorded in `questions.md`):
+D1 deferred to rung 2's Scope (S3 graceful-only), D2 (b), D3 later (C3/rung 2), D4 accepted, D5 yes.
+The graceful Lean (the plan below) is NOT started**: the session stopped at its context budget
+right after the decisions. A fresh agent starts at "Next, in order". Nothing in the trust base or any
+frozen statement was changed.
+
+For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coordinator's decision).
 
 ## Done
 
@@ -160,9 +165,20 @@ Total about 1200-1350 lines. Two targeted builds per round; one full build at th
 - **D5**: the restart arm as a separate `NodeStartSpecR`, so that `NewServer.lean` (stage B, S6)
   is untouched in S3. Recommend yes.
 
-## Next, in order (after the decisions)
+## Next, in order (decided)
 
-Items 2 and 3, then 1/1' (Freeze package for the trusted text, then a stop), 6, 5, 7, 8. Build
+1. Item 1' first (D2 (b)): remove `bootstrappedWAL.MemoryStorage` from the names-only list in
+   `Code/go_etcd_io/etcd/server/v3/etcdserver.toml` (it sits with the `bootstrappedWAL` type, line
+   ~81), regenerate (`etc/goose.py --project etcd`, `GOTOOLCHAIN` per the script), then the spec and
+   proof of `bootstrappedWAL.MemoryStorage` whose post is `memStorRestarted` (copy the probe's body).
+2. Items 2, 3 (`srv_confAt_eq_simple`, `walSnapCS_valid`, `srvMem_restartStorage`).
+3. Item 1: `memStorRestarted` defined in `InvRestart.lean` (minimal edit; W4 rebases on S3).
+4. Items 6, 5, 7, 8 (`NodeStartSpecR` separate; `NewServer.lean` untouched).
+5. Full build under the lock and the 64G cap; `etc/tcb-report.py --check`, collections,
+   `etc/gen-interface.py` for the changed APIs, `etc/gen-init.py --check`; update STATUS; then STOP
+   before `etc/land.sh` with the changed frozen and exported statements listed.
+6. Before landing: delete the untracked `Scratch/S3Probe.lean` (this session's own probe; the copy
+   stays in `/shared/tmp/restart-s3/`). Build
 with:
 `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc.json build <targets>`.
 
