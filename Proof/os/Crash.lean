@@ -2,9 +2,9 @@
 The proofs of `Spec/os/Crash.lean`: the models' loops as in `Proof/os/OpenFile.lean`,
 `Proof/os/File__WriteAt.lean` and `Proof/syscall/Fdatasync.lean`, over the crash-aware steps of
 `Proof/os/CrashOps.lean`. The open's loop keeps what its attempts may have made of the state
-(`OpenInv`: a failed attempt may have created the file); a write's loop keeps a narrowing of the
-file it started from (`narrow_fin`), whose crashes the first attempt's cover (`fileOk_narrow`),
-and the bytes written so far (`wa_step`).
+(`OpenInv`: a failed attempt may have created the file); a write's loop keeps a state the write
+may pass through (`WIn`, `wIn_fin`), whose crashes the caller's `WriteOk` covers (`fileOk_idle`,
+`fileOk_flight`), and the bytes written so far (`fin_vals`).
 -/
 module
 
@@ -196,27 +196,24 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   have hslz : sint.Z sl.len = data.length := by
     have h1 := Hlen.1; have h2 := Hlen.2
     simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
-  -- the invariant: a narrowing of the file, `nn` of the bytes written
+  -- the invariant: a state the write may pass through, `nn ≤ w` of the bytes written
   obtain ⟨nnv, hnnv⟩ : ∃ nnv : w64, nnv = W64 0 := ⟨_, rfl⟩
   conv in (occs := 4) (#(W64 0) : val) => rw [← hnnv]
   obtain ⟨m', hm'⟩ : ∃ m', m' = m := ⟨_, rfl⟩
   obtain ⟨bs', hbs'⟩ : ∃ bs', bs' = bs := ⟨_, rfl⟩
-  have hNar : Narrow m bs off.toNat data m' bs' := by
-    subst hm' hbs'; exact narrow_refl _ _ hlen
+  have hIn : WIn m bs off.toNat data m' bs' := by
+    subst hm' hbs'; exact wIn_refl _ _ hlen
   obtain ⟨w, hw0⟩ : ∃ w : Nat, w = 0 := ⟨_, rfl⟩
   have hnn : nnv.toNat < data.length := by subst hnnv; exact hn
   have hnw : nnv.toNat ≤ w := by subst hnnv hw0; exact Nat.le_refl _
   have hw : w ≤ data.length := by subst hw0; omega
   have hS : off.toNat + w ≤ m'.size := by subst hw0 hm'; exact hgap
-  have hU : m'.size ≤ max m.size (off.toNat + w) := by subst hw0 hm'; omega
   have hpre : ∀ i < w, (bs'[off.toNat + i]?).map Prod.fst = data[i]? := by
     subst hw0; intro i hi; exact absurd hi (Nat.not_lt_zero _)
-  have hmid : ∀ i, off.toNat + w ≤ i → bs'[i]? = bs[i]? := by
-    subst hbs'; intro i _; rfl
   ihave Hown := (show cfOwn (GF := GF) p R γ (some (d.ino, m, bs, none)) V ⊢
     cfOwn p R γ (some (d.ino, m', bs', none)) V by rw [hm', hbs']) $$ Hown
   clear hm' hbs' hnnv hw0
-  iloeb as IH generalizing %m' %bs' %nnv %w %hNar %hnn %hnw %hw %hS %hU %hpre %hmid Hown Hosfd Hsl
+  iloeb as IH generalizing %m' %bs' %nnv %w %hIn %hnn %hnw %hw %hS %hpre Hown Hosfd Hsl
     Hfd HΦ
   -- one attempt, from `nn`
   have hnnz : sint.Z nnv = nnv.toNat := by
@@ -244,23 +241,32 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   have hoffv' : 0 ≤ (off + nnv).toInt := by
     rw [BitVec.toInt_eq_toNat_of_lt (by rw [hoffv]; omega)]; omega
   have hdl : (data.drop nnv.toNat).length = data.length - nnv.toNat := List.length_drop
+  have hdne : data.drop nnv.toNat ≠ [] := by
+    intro h; have := congrArg List.length h; rw [hdl] at this; simp at this; omega
   have hgap' : (off + nnv).toNat ≤ m'.size := by rw [hoffv]; omega
-  have hW1 : FileOk Good (cfWriting m' bs' (off + nnv).toNat (data.drop nnv.toNat)) := by
-    rw [hoffv]; exact (fileOk_narrow hW hlen hgap hNar nnv.toNat w hnw hw hS hU hpre hmid).2 0
+  have hend : (off + nnv).toNat + (data.drop nnv.toNat).length = off.toNat + data.length := by
+    rw [hoffv, hdl]; omega
+  have hdd : data.drop nnv.toNat = data.drop ((off + nnv).toNat - off.toNat) := by
+    rw [hoffv, show off.toNat + nnv.toNat - off.toNat = nnv.toNat by omega]
+  have hle : off.toNat ≤ (off + nnv).toNat := by rw [hoffv]; omega
+  have hW1 : ∀ t n, FileOk Good (m', bs', some (t, (off + nnv).toNat, data.drop nnv.toNat, n)) :=
+    fun t n => fileOk_flight t n hIn hW hlen hle hend hdd hdne hgap'
   wp_apply wp_osPWriteStart_cf fd (off + nnv) (data.drop nnv.toNat) dq d N p R γ Good m' bs' V
-    hN hwr hoffv' hgap' hW1 $$ Hos Hinv Hosfd Hown as %t Hosfd Hown
-  have hW2 : ∀ k ≤ (data.drop nnv.toNat).length,
-      FileOk Good (finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k,
-        finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k, none) := by
-    intro k hk
-    obtain ⟨hN1, hS1, hU1, hpre1, hmid1⟩ := wa_step hgap hNar hS hnw hw hpre hmid hoffv hk hU
-    exact (fileOk_narrow hW hlen hgap hN1 (nnv.toNat + k) (max w (nnv.toNat + k)) (by omega)
-      (by omega) hS1 hU1 hpre1 hmid1).1
-  wp_apply wp_osPWriteFinish_cf t d.ino (off + nnv).toNat (data.drop nnv.toNat) N p R γ Good m' bs'
-    V hN hW2 $$ Hos Hinv Hown as %k %e %hke Hown
-  obtain ⟨hk, hke, -⟩ := hke
-  obtain ⟨hNar', hS', hU', hpre', hmid'⟩ := wa_step hgap hNar hS hnw hw hpre hmid hoffv hk hU
+    hN hwr hoffv' hgap' hdne hW1 $$ Hos Hinv Hosfd Hown as %t %nst Hosfd Hown
+  have hW2 : ∀ k (zs : List Cands), k ≤ (data.drop nnv.toNat).length → (off + nnv).toNat ≤ m'.size →
+      FileOk Good (pwPost m' (off + nnv).toNat (data.drop nnv.toNat).length k,
+        finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs, none) :=
+    fun k zs hk _ => fileOk_idle (wIn_fin hIn hlen hle hend hdd hdne hgap' hk) hW hlen
+  wp_apply wp_osPWriteFinish_cf t d.ino (off + nnv).toNat (data.drop nnv.toNat) nst N p R γ Good m'
+    bs' V hN hW2 $$ Hos Hinv Hown as %k %e %zs %hke Hown
+  obtain ⟨hk, hke, -, -⟩ := hke
+  have hIn' := wIn_fin (k := k) (n := nst) (zs := zs) hIn hlen hle hend hdd hdne hgap' hk
   rw [hdl] at hk
+  have hv := fin_vals (n := nst) (zs := zs) hIn.len hS hnw hw hk hpre
+  rw [← hoffv] at hv
+  obtain ⟨hS', hpre'⟩ := hv
+  have hS'' : off.toNat + max w (nnv.toNat + k) ≤
+      (pwPost m' (off + nnv).toNat (data.drop nnv.toNat).length k).size := hS'
   have hsln : sl.len = W64 data.length := by
     apply BitVec.eq_of_toInt_eq
     simp only [sint.Z] at hslz
@@ -268,8 +274,8 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %_ %_ %nnv %(max w (nnv.toNat + k)) %hNar' %hnn %(by omega) %(by omega) %hS' %hU'
-      %hpre' %hmid' Hown Hosfd Hsl Hfd HΦ
+    iapply IH $$ %_ %_ %nnv %(max w (nnv.toNat + k)) %hIn' %hnn %(by omega) %(by omega) %hS''
+      %hpre' Hown Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
     have hWk : (W64 k).toNat = k := by
@@ -290,7 +296,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          refine ⟨hNar', .inl ⟨hsln, rfl, by omega, fun i hi => hpre' i (by omega)⟩⟩
+          refine ⟨hIn', .inl ⟨hsln, rfl, by omega, fun i hi => hpre' i (by omega)⟩⟩
       · rw [decide_eq_false he0]
         wp_auto
         simp only [decide_eq_false he0, Bool.not_false]
@@ -301,7 +307,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hNar', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hIn', .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
       wp_auto
       by_cases he0 : e = W64 0
@@ -312,8 +318,8 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         have hne : nnv.toNat + k ≠ data.length := by
           intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
           rw [hnk, hsln]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
-        iapply IH $$ %_ %_ %(nnv + W64 k) %(max w (nnv.toNat + k)) %hNar' %(by rw [hnk]; omega)
-          %(by rw [hnk]; omega) %(by omega) %hS' %hU' %hpre' %hmid' Hown Hosfd Hsl Hfd HΦ
+        iapply IH $$ %_ %_ %(nnv + W64 k) %(max w (nnv.toNat + k)) %hIn' %(by rw [hnk]; omega)
+          %(by rw [hnk]; omega) %(by omega) %hS'' %hpre' Hown Hosfd Hsl Hfd HΦ
       · rw [decide_eq_false he0]
         simp only [Bool.not_false]
         wp_auto
@@ -323,7 +329,7 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hNar', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hIn', .inr ⟨rfl, by intro h; cases h⟩⟩
 
 end proof
 

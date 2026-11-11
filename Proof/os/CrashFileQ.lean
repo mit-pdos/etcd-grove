@@ -25,19 +25,15 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs
 
-/-- The change in flight of the file `x` of inode `i`, as its token records it (`pwTok` with the
-whole `OsMeta`). -/
-def cToks (i : Ino) : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8) →
-    List (Nat × TokInfo)
-  | (m, bs, some (t, off, data)) =>
-      [(t, ⟨⟨i, .write off data⟩, 1, (cfRange m bs off data.length).map Prod.fst,
-        pwMeta m off data.length, (cfRange m bs off data.length).map Prod.snd⟩)]
+/-- The change in flight of the file `x` of inode `i`, as its token records it (`pwTok`). -/
+def cToks (i : Ino) : CX → List (Nat × TokInfo)
+  | (m, bs, some (t, off, data, n)) =>
+      [(t, ⟨i, .write off data, n, m, pwAnn data n (cfRange m bs off data.length)⟩)]
   | _ => []
 
 /-- Every file a crash under the premise `Q` may leave of the file `x` of inode `i` is `Good`,
 given the crash's facts. -/
-def FileOkQ (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) (i : Ino)
-    (x : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8)) : Prop :=
+def FileOkQ (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) (i : Ino) (x : CX) : Prop :=
   ∀ f, FileCrashedR (fMeta x) (fRuns x) (some f) →
     CrashSeenR Q i (fMeta x) (fRuns x) (cToks i x) (some f) → Good (some f)
 
@@ -47,38 +43,13 @@ def CrashOkQ (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) 
     (R : Roots) (s : CFile) (V : Hist) : Prop :=
   TreeOk Good p R s V ∧ ∀ i x, s = some (i, x) → FileOkQ Q Good i x
 
-/-- A write in flight starts inside the file (`pwTok`'s `off ≤ m.size`). -/
-def OffOk : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8) → Prop
-  | (m, _, some (_, off, _)) => off ≤ m.size
-  | _ => True
-
-theorem fileOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {i : Ino}
-    {x : OsMeta × List (w8 × Bool) × Option (Nat × Nat × List w8)} (hoff : OffOk x)
-    (h : FileOk Good x) : FileOkQ Q Good i x := by
-  intro f hc hs
-  rcases x with ⟨m, bs, _ | ⟨t, off, data⟩⟩
-  · exact h f hc (crashSeen_runsKept hs (fun x hx => by cases hx))
-      (fun b h1 h2 => crashSeen_tailKept hs (fun x hx => by cases hx) f rfl b h1 h2) trivial
-  · have hgap : off ≤ m.size := hoff
-    have hrk : RunsKept (fRuns (m, bs, some (t, off, data))) (some f) := by
-      refine crashSeen_runsKept hs (fun x hx => ⟨off, data, ?_, fun r hr k hk hkm => ?_⟩)
-      · rw [cToks, List.mem_singleton] at hx; rw [hx]
-      · simp only [fRuns, List.mem_cons, List.not_mem_nil, or_false] at hr
-        have hsz : (fMeta (m, bs, some (t, off, data))).size = m.size := rfl
-        rw [hsz] at hkm
-        rcases hr with rfl | rfl
-        · left; simp only [List.length_take] at hk; unfold cfLo at hk; dsimp only; omega
-        · right; dsimp only; unfold cfHi at hkm ⊢; omega
-    have htk := crashSeen_tailKept hs (fun x hx => ⟨off, data, by
-      rw [cToks, List.mem_singleton] at hx; rw [hx], hgap⟩)
-    refine h f hc hrk (fun b h1 h2 => .inl (htk f rfl b h1 h2)) (fun j x hx hj => ?_)
-    exact .inr (.inr (crashSeen_tokKept hs List.mem_cons_self rfl rfl hgap f rfl j x.1
-      (by simp [List.getElem?_map, hx]) hj))
+theorem fileOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {i : Ino} {x : CX}
+    (h : FileOk Good x) : FileOkQ Q Good i x :=
+  fun f hc _ => h f hc
 
 theorem crashOk_Q {Q : OsState → OsState → Prop} {Good : Option OsFile → Prop} {p : GoString}
-    {R : Roots} {s : CFile} {V : Hist} (hoff : ∀ i x, s = some (i, x) → OffOk x)
-    (h : CrashOk Good p R s V) : CrashOkQ Q Good p R s V :=
-  ⟨h.1, fun i x hs => fileOk_Q (hoff i x hs) (h.2 i x hs)⟩
+    {R : Roots} {s : CFile} {V : Hist} (h : CrashOk Good p R s V) : CrashOkQ Q Good p R s V :=
+  ⟨h.1, fun i x hs => fileOk_Q (h.2 i x hs)⟩
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
@@ -145,7 +116,7 @@ theorem cfInvQ_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
   iintro Hr Hs Ht
   icases osTreeCrash_take Q L L' D V' _ R V $$ Hr Ht with ⟨%htc, Ht', Hr, Ht⟩
   have hto := hok.1 V' htc
-  rcases s with _ | ⟨i, m, bs, _ | ⟨t, off, data⟩⟩
+  rcases s with _ | ⟨i, m, bs, _ | ⟨t, off, data, n⟩⟩
   · -- no file at `p`: `p` names nothing after the crash
     rcases hto with ⟨hn, hg⟩ | ⟨i, hi, -⟩
     · iexists none
@@ -181,10 +152,7 @@ theorem cfInvQ_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
-        obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
-        iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
-        iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
-            osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
+        unfold osFileStartO; iexact Hf
       iexists (i :: D); iexact Hr
   · -- a write in flight
     dsimp only [invRes]
@@ -192,11 +160,11 @@ theorem cfInvQ_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
     dsimp only [pwTok]
     icases Ht0 with ⟨Ht0, %hgap⟩
     icases osCrash_take_tok_keep Q L L' D true V' t _ (hD i rfl)
-      (fRuns (m, bs, some (t, off, data))) $$ Hr Ht0 [Hb1 Hb2] with ⟨%fo, %hfo, Hf, Hr, Ht0, Hbs⟩
-    · unfold fRuns
-      iapply BigSepL.bigSepL_cons.2; iframe Hb1
+      [(0, DFrac.own (1 : Qp).half, bs.take (cfLo m off)),
+       (cfHi m off data.length, DFrac.own (1 : Qp).half, bs.drop (cfHi m off data.length))]
+      $$ Hr Ht0 [Hb1 Hb2] with ⟨%fo, %hfo, Hf, Hr, Ht0, Hbs⟩
+    · iapply BigSepL.bigSepL_cons.2; iframe Hb1
       iapply BigSepL.bigSepL_singleton.2; iexact Hb2
-    unfold fRuns
     icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
     icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
     obtain ⟨hfc, hnm, hseen⟩ := hfo
@@ -219,10 +187,7 @@ theorem cfInvQ_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
       isplitl [Hf]
       · unfold startAt; rw [hl]; iexists f; isplitr
         · ipureintro; rfl
-        obtain ⟨vs, sz, rfl⟩ := crashSeen_ofDisk hseen
-        iapply (osFileStartG_ofDisk (L := L') _ vs sz).1
-        iapply (show osFileStartO (L := L') _ (some (OsFile.ofDisk vs sz)) ⊢
-            osFileStartG (L := L') _ (OsFile.ofDisk vs sz) from BIBase.Entails.rfl) $$ Hf
+        unfold osFileStartO; iexact Hf
       isplitl [Hr]
       · iexists _; iexact Hr
       iframe; ipureintro; exact hgap

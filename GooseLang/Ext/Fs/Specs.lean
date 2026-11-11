@@ -527,8 +527,14 @@ end of the size's last page on (`OsFile.synced`). -/
 def OsMeta.synced (m : OsMeta) : OsMeta :=
   { m with lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some (pageUp m.size) }
 
-/-- The bytes `xs` from `lo` hold every byte of `m` that may not be durable. -/
-def OsMeta.Covers (m : OsMeta) (lo n : Nat) : Prop := m.dhi ≤ m.dlo ∨ (lo ≤ m.dlo ∧ m.dhi ≤ lo + n)
+/-- The `n` bytes from `lo` hold every byte below the size that `m` says may not be durable (those
+in `[dlo, dhi)`). -/
+def OsMeta.Covers (m : OsMeta) (lo n : Nat) : Prop :=
+  ∀ b, b < m.size → m.dlo ≤ b → b < m.dhi → lo ≤ b ∧ b < lo + n
+
+/-- All the bytes below the size hold every one that may not be durable. -/
+theorem OsMeta.covers_whole (m : OsMeta) {n : Nat} (hn : n = m.size) : m.Covers 0 n :=
+  fun _ hb _ _ => ⟨Nat.zero_le _, by omega⟩
 
 /-- `fsync(fd)` (and `fdatasync`), with the whole of the file's `OsMeta` (so that no change is in
 flight on it) and its bytes from `lo`, whole, which hold every byte that may not be durable
@@ -631,9 +637,8 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (x
           apply hmo.dur b hb
           rintro ⟨h1, h2⟩
           rename_i hn
-          rcases hcov with hc | ⟨hc1, hc2⟩
-          · omega
-          · exact hn ⟨rfl, by omega, by simp; omega⟩
+          obtain ⟨hc1, hc2⟩ := hcov b (by rw [hmo.size]; exact hb) h1 h2
+          exact hn ⟨rfl, by omega, by simp; omega⟩
       · intro b hb
         rw [lookup_insertBytes]; split
         · rename_i hr; rw [List.getElem?_eq_getElem (by simp at hr ⊢; omega)]; rfl

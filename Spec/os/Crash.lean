@@ -11,11 +11,11 @@ spec: `ReadAt` reads with the caller's half of the bytes (`File.ReadAt.specRacy`
 
 * `OpenFile.specCrash`: `p = d/b`, `d` a directory; absent or idle, to `openSt` of it (created, its
   `create` logged, if absent), which the caller shows `Good` if created; on failure maybe.
-* `File.WriteAt.specCrash`: idle `m`, `bs`, the write starting inside the file, to an idle
-  narrowing (`Narrow`) of it, with the data written on success. The caller shows `FileOk` of the
-  first attempt in flight (`cfWriting`).
-* `syscall.Fdatasync.specCrash`: idle to synced (`OsMeta.synced`, `syncedBytes`), which the caller
-  shows `FileOk`; on failure `ok` is lost.
+* `File.WriteAt.specCrash`: idle `m`, `bs`, the write starting inside the file, to an idle state
+  the write may pass through (`WIn`), with the data written on success. The caller shows that
+  every file a crash may leave while the write runs is `Good` (`WriteOk`, `Proof/os/CrashWrite.lean`).
+* `syscall.Fdatasync.specCrash`: idle to synced (`OsMeta.synced`, every byte durable), which the
+  caller shows `FileOk`; on failure unchanged.
 -/
 module
 
@@ -59,10 +59,10 @@ abbrev os.OpenFile.specCrash : Prop :=
 abbrev os.File.WriteAt.specCrash : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (p : GoString) (R : Roots)
-    (γ : GName) (Good : Option OsFile → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (V : Hist),
+    (γ : GName) (Good : Option OsFile → Prop) (m : OsMeta) (bs : List ByteG) (V : Hist),
   d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
   0 < data.length → data.length ≤ 0x40000000 →
-  ↑osN ⊆ (⊤ : CoPset) \ ↑N → FileOk Good (cfWriting m bs off.toNat data) →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → WriteOk Good m bs off.toNat data →
   {{ osInv (GF := GF) ∗ cfInv (GF := GF) N p R γ Good ∗ os.ownFile (GF := GF) f fd name dqf ∗
       sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗
       cfOwn (GF := GF) p R γ (some (d.ino, m, bs, none)) V }}
@@ -70,8 +70,8 @@ abbrev os.File.WriteAt.specCrash : Prop :=
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      ∃ (m' : OsMeta) (bs' : List (w8 × Bool)),
-        ⌜Narrow m bs off.toNat data m' bs' ∧
+      ∃ (m' : OsMeta) (bs' : List ByteG),
+        ⌜WIn m bs off.toNat data m' bs' ∧
           ((n = W64 data.length ∧ err = interface.nil ∧ off.toNat + data.length ≤ m'.size ∧
               ∀ i < data.length, (bs'[off.toNat + i]?).map Prod.fst = data[i]?) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
@@ -81,14 +81,14 @@ variable [syscall.Assumptions] in
 /-- See the file header. -/
 abbrev syscall.Fdatasync.specCrash : Prop :=
   ∀ (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (p : GoString) (R : Roots) (γ : GName)
-    (Good : Option OsFile → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (V : Hist),
-  ↑osN ⊆ (⊤ : CoPset) \ ↑N → FileOk Good (m.synced 0 bs, syncedBytes m bs, none) →
+    (Good : Option OsFile → Prop) (m : OsMeta) (bs : List ByteG) (V : Hist),
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → FileOk Good (m.synced, bs.map (fun x => durB x.1), none) →
   {{ osInv (GF := GF) ∗ cfInv (GF := GF) N p R γ Good ∗ osFd (GF := GF) fd dq d ∗
       cfOwn (GF := GF) p R γ (some (d.ino, m, bs, none)) V }}
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
-      ((⌜e = 0⌝ ∗ cfOwn p R γ (some (d.ino, m.synced 0 bs, syncedBytes m bs, none)) V) ∨
-       (⌜e ≠ 0⌝ ∗ cfOwn p R γ (some (d.ino, { m with ok := false }, bs, none)) V)) }}
+      ((⌜e = 0⌝ ∗ cfOwn p R γ (some (d.ino, m.synced, bs.map (fun x => durB x.1), none)) V) ∨
+       (⌜e ≠ 0⌝ ∗ cfOwn p R γ (some (d.ino, m, bs, none)) V)) }}
 
 end spec
 
