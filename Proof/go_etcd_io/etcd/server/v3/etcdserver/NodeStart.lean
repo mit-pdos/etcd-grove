@@ -121,6 +121,8 @@ A fancy update: `tickMu`'s guard over `latestTickTs` is made here (`sync.init_RW
 theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raftNode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnLogFits γ ∗ rnReadStateBridge E γ ∗
+      -- (restart S3 item 7) the restart data
+      rnRestartOk γ ∗
       (letI : MemStorReg GF := ⟨γ.reg⟩; memStorReg γ.ms γ.γs) ∗
       isRaftNodeIfc E γ rv.raftNodeConfig'.Node' ∗
       isRNIDRemoved rv.raftNodeConfig'.isIDRemoved' ∗
@@ -137,7 +139,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
-  iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
+  iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hrok, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
     #Hfix, #transportC, latestTickTsR, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
@@ -773,6 +775,8 @@ theorem raftNode_of_StartNode
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
     $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
   · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
+    isplitr
+    · iunfold rnRestartOk; ileft; ipureintro; exact ⟨Hwa0, Hwt0, Hwc0, Hws0⟩
     simp only [Hrvcfg]
     iframe Hidri Hsti Htri Hmsi
     isplitr
