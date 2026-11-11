@@ -123,7 +123,8 @@ func newAuthStore(t *testing.T) auth.AuthStore {
 	return auth.NewAuthStore(zap.NewNop(), schema.NewAuthBackend(zap.NewNop(), be), tp, 4)
 }
 
-// The old premises admitted these contexts; the functions panic on them.
+// The old premises admitted these contexts; the functions panic on them. (FromIncomingContext's
+// and AuthInfoFromTLS's specs exclude them from premise fixes 8, S2: incomingCtxOk, peerCtxOk.)
 func TestBadContextPanics(t *testing.T) {
 	as := newAuthStore(t)
 	bad := map[string]context.Context{
@@ -166,7 +167,8 @@ func TestBadContextPanics(t *testing.T) {
 	}
 }
 
-// The old posts claimed what these contexts contradict.
+// The old posts claimed what these contexts contradict. (FromIncomingContext's is restated in
+// premise fixes 8, S2, under incomingCtxOk.)
 func TestContradictions(t *testing.T) {
 	bg := context.Background()
 	// FromIncomingContext's old post: every value list is non-empty. NewIncomingContext is

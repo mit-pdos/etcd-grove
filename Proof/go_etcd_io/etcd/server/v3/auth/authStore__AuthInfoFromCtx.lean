@@ -40,7 +40,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) := by
   intro st R M ctx
-  wp_start as ⟨#Hinv, Hen⟩
+  wp_start as ⟨#Hinv, Hen, #Hinc⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave Hai : (authInit : IProp GF) $$ []
@@ -64,7 +64,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     · iunfold authErrIs; ileft; ipureintro; rfl
     iunfold ctxBound; ileft; ipureintro; rfl
   wp_auto
-  wp_apply h_FromIncomingContext as %md %ok Hmd
+  wp_apply (h_FromIncomingContext ctx) $$ [$Hinc] as %md %ok Hmd
   icases Hmd with (⟨%Hok, %Hinc⟩ | ⟨%md0, %m, ⟨%Hok, %Hinc, %Hdom⟩, Hm, Hvals⟩)
   · subst Hok
     wp_auto
