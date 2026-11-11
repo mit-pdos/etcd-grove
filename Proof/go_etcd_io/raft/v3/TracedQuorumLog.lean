@@ -1352,6 +1352,45 @@ theorem ackHist_ofAgree (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (w
   rw [List.append_nil]
   iexact Hh
 
+/-- (Amendment A6) **`BecomeLeader` keeps `AckHists`**: the new leader's match indices for the other
+servers are `0` (the specification's `BecomeLeader`), so it holds no acknowledgement yet; nothing else
+moves. -/
+theorem ackHists_becomeLeader (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (i : Etcdraft.ID)
+    (hstep : σ.becomeLeader i = some σ') :
+    AckHists (GF := GF) γ C σ ⊢ AckHists γ C σ' := by
+  unfold Etcdraft.State.becomeLeader at hstep
+  dsimp only at hstep
+  split at hstep
+  · cases hstep
+    have hs : ∀ j, (σ.upd i (fun v => { v with state := Etcdraft.leader, lead := i, matchIndex := fun x => if x = i then (v.log.length : Int) else 0 })).s j = if j = i then { σ.s i with state := Etcdraft.leader, lead := i, matchIndex := fun x => if x = i then ((σ.s i).log.length : Int) else 0 } else σ.s j := by
+      intro j; unfold Etcdraft.State.upd; rfl
+    iintro #H
+    iunfold AckHists at H
+    icases H with ⟨#Hm, #Hl⟩
+    iunfold AckHists
+    isplitl
+    · imodintro
+      iintro %x %hx
+      obtain ⟨hx1, hx2, hx3⟩ := hx
+      iapply ackHist_congr γ C σ _ _ _ _ (by rw [hs]; split <;> simp_all)
+        (by rw [hs]; split <;> simp_all)
+      iapply Hm $$ %x
+      ipureintro; exact ⟨hx1, hx2, hx3⟩
+    · imodintro
+      iintro %j %k %h
+      obtain ⟨hj, hk, hlj, hkj, hmk⟩ := h
+      rw [hs] at hlj hmk ⊢
+      by_cases hji : j = i
+      · subst hji
+        simp only [↓reduceIte, hkj] at hmk
+        exact absurd hmk (Int.lt_irrefl 0)
+      · simp only [hji, ↓reduceIte] at hlj hmk ⊢
+        iapply ackHist_congr γ C σ _ _ _ _ (by rw [hs]; split <;> simp_all)
+          (by rw [hs]; split <;> simp_all)
+        iapply Hl $$ %j %k
+        ipureintro; exact ⟨hj, hk, hlj, hkj, hmk⟩
+  · cases hstep
+
 end ghost
 
 end EtcdGrove
