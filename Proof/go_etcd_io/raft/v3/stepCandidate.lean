@@ -200,7 +200,7 @@ theorem stepCandidate.wp_proof
               with prvals := pvs1 }) mm ∧
             mm.commit = (toPState { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
               with prvals := pvs1 }).commit ∧ mm.dst = to ∧
-            uint.Z ((prvalsMatch pvs1 !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G' o -∗
+            uint.Z ((prvalsMatch pvs1 !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G' o -∗
           HookGateOpt ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
               with prvals := pvs1 } : NState).gh.tr r
             (sendOutGate id { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }

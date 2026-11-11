@@ -788,7 +788,9 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
       simp only
       rw [lineF_permInv γ md c r id s _ _ o o' h]
   · -- the closing wand: nothing done (`G0`, `G1`) or the campaign (`GE`), by `HupGuard`
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_notLeader hp.2)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     have hok' : HupOkC c id s s' := (hend (by rw [htr]; rfl) hty).2.1 hns hp.1
     obtain ⟨-, -, ⟨-, -, -, hpv', -⟩, -, hg⟩ := hok'

@@ -585,7 +585,9 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's stale handling, the specification's
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     have hse : s' = sendMsgs { s with lead := m.From' }
         [appResp id { s with lead := m.From' } m.From' false s.logst.committed (W64 0) (W64 0)] := by

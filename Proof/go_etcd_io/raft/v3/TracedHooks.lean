@@ -914,7 +914,7 @@ theorem raft.appendEntry.traced (h : raft.appendEntry.spec (GF := GF) (hG := hG)
     · iapply to_named
       iframe Hcap HR0 Hch HfxA
     isplitr
-    · iintro ⟨Hcap, HR0, Hch, HfxA⟩
+    · iintro - ⟨Hcap, HR0, Hch, HfxA⟩
       iapply hookGateN_mono s.gh.tr r _ _
         iprop(trCapB s.gh.tr γ r id c (if normalCount ents = 0 then b else true) (Φs (normalCount ents))
           (if normalCount ents = 0 then Λ else Λ') ∗ Rs (normalCount ents))

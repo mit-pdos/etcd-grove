@@ -155,6 +155,17 @@ set_option hygiene false in
 macro "gates_lead" : tactic => `(tactic| (
   ihave Hlg := Perennial.EtcdGrove.stepFnGates_leader c r id s m _ _ R ∅ s
     (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hrole $$ Hgstep
+  -- (2026-11-11, slice 23a) no proposal: `stepLeader`'s loan (its receipt) for `Step`'s
+  ihave Hlg := Perennial.EtcdGrove.leaderGates_tp_rc c r id s m _ 0 _ _ _ _ _ _
+    (by rw [Hty]; w32_ne) $$ Hlg
+  iunfold Perennial.EtcdGrove.leaderGates at Hlg))
+
+set_option hygiene false in
+/-- `gates_lead` with the refutation of a proposal given (`hne : m.Type' ≠ MsgProp`). -/
+macro "gates_lead_ne" hne:term : tactic => `(tactic| (
+  ihave Hlg := Perennial.EtcdGrove.stepFnGates_leader c r id s m _ _ R ∅ s
+    (Perennial.EtcdGrove.preState_nobf hnbf ∅) Hrole $$ Hgstep
+  ihave Hlg := Perennial.EtcdGrove.leaderGates_tp_rc c r id s m _ 0 _ _ _ _ _ _ $hne $$ Hlg
   iunfold Perennial.EtcdGrove.leaderGates at Hlg))
 
 set_option hygiene false in

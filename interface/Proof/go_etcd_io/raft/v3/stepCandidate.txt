@@ -311,7 +311,8 @@ theorem stepCandidate.wp_proof [package_sem : Assumptions] (wp_raft_poll : raft.
                                                                                 cq := __src.cq })).commit ∧
                                                                         mm.dst = to ∧
                                                                           uint.Z ((prvalsMatch pvs !! to).getD (W64 0)) ≤
-                                                                            uint.Z mm.index⌝ -∗
+                                                                              uint.Z mm.index ∧
+                                                                            mm.rejecthint = W64 0⌝ -∗
                                                                   G' o -∗
                                                                     HookGateOpt s.gh.tr r
                                                                       (sendOutGate id

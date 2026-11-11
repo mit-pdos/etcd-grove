@@ -52,7 +52,7 @@ abbrev raft.sendAppend.spec : Prop :=
       -- `maybeSendAppend`'s gate and its no-compaction premise
       -- (2026-11-10, slice 17) with `Match ≤ mm.index`
       "Hgate" ∷ (∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧ mm.commit = (toPState s).commit ∧
-          mm.dst = to ∧ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
+          mm.dst = to ∧ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "HG" ∷ G s.outbox ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}

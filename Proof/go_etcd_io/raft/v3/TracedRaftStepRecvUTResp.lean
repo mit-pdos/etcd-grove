@@ -343,7 +343,12 @@ theorem stepBundle_traced_utResp : stepBundle_traced.on (GF := GF) (hG := hG) UT
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down, the response ignored
     iapply stepClose_anyB
-    iunfold stepClose
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => by
+      rcases hTy with h | h
+      · exact CloseAt.of_traced (ty := .appResp) (by rw [h]; rfl) rfl
+      · exact CloseAt.of_traced (ty := .heartbeatResp) (by rw [h]; rfl) rfl)
+    iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { becomeFollower s m.Term' (W64 0) with prvals := pvs } := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV

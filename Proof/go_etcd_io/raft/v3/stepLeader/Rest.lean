@@ -557,7 +557,7 @@ theorem wp_stepLeader_transfer
         "Hgtnow" ∷ (∀ o : List Msg, G o -∗ HookGateOpt s.gh.tr r none (G o)) ∗
         "Hgxapp" ∷ (∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧
             mm.commit = (toPState s).commit ∧ mm.dst = m.From' ∧
-            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
+            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm]))) ∗
         "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
@@ -740,7 +740,7 @@ theorem wp_stepLeader_transfer
     ihave Hga : ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState ({ s with lt := m.From' } : NState)) mm ∧
           mm.commit = (toPState ({ s with lt := m.From' } : NState)).commit ∧ mm.dst = m.From' ∧
           uint.Z ((prvalsMatch ({ s with lt := m.From' } : NState).prvals !! m.From').getD (W64 0)) ≤
-            uint.Z mm.index⌝ -∗ G o -∗
+            uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
         HookGateOpt ({ s with lt := m.From' } : NState).gh.tr r
           (sendOutGate id { s with lt := m.From' } c MsgApp [mm]) (G (o ++ [mm])) $$ [Hgxapp]
     · iintro %mm %o %Hmm HG
@@ -825,7 +825,7 @@ theorem wp_stepLeader_hbresp
         "HG" ∷ G s.outbox ∗
         "Hgapp" ∷ (∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧
             mm.commit = s.logst.committed ∧ mm.dst = m.From' ∧
-            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
+            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
         "#Hgresp" ∷ □ (∀ (mm : Msg) (o : List Msg), ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
@@ -903,7 +903,7 @@ theorem wp_stepLeader_hbresp
     ihave Hga : ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState ({ s with prvals := pvs1 } : NState)) mm ∧
           mm.commit = (toPState ({ s with prvals := pvs1 } : NState)).commit ∧ mm.dst = m.From' ∧
           uint.Z ((prvalsMatch ({ s with prvals := pvs1 } : NState).prvals !! m.From').getD (W64 0)) ≤
-            uint.Z mm.index⌝ -∗
+            uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗
         G o -∗ HookGateOpt ({ s with prvals := pvs1 } : NState).gh.tr r
           (sendOutGate id { s with prvals := pvs1 } c MsgApp [mm]) (G (o ++ [mm])) $$ [Hgapp]
     · iintro %mm %o %Hmm HG
@@ -1289,7 +1289,7 @@ theorem wp_stepLeader_appresp
         "HG" ∷ G s.outbox ∗
         "Hgrej" ∷ (⌜m.Reject' = true⌝ -∗ ∀ (mm : Msg) (o : List Msg), ⌜AppOk id (toPState s) mm ∧
             mm.commit = s.logst.committed ∧ mm.dst = m.From' ∧
-            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ G o -∗
+            uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
         "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
           ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
@@ -1312,7 +1312,7 @@ theorem wp_stepLeader_appresp
         "#Hgaapp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
           ∀ (b : Bool) (N to : w64) (mm : Msg) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
           ⌜AppOk id (toPState (commitAt s b N)) mm ∧ mm.commit = (commitAt s b N).logst.committed ∧
-            mm.dst = to ∧ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0)) ≤ uint.Z mm.index⌝ -∗ Gc b N o -∗
+            mm.dst = to ∧ uint.Z ((appRespMatch s m.From' m.Index' !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ Gc b N o -∗
           HookGateOpt s.gh.tr r (sendOutGate id (commitAt s b N) c MsgApp [mm]) (Gc b N (o ++ [mm]))) ∗
         "#Hgatnow" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (b : Bool) (N : w64) (o : List Msg),
           Gc b N o -∗ HookGateOpt s.gh.tr r none (Gc b N o)) ∗
@@ -1860,10 +1860,11 @@ theorem wp_stepLeader_appresp
         · iintro %mm %o %Hmm HG
           have Hmm' : AppOk id (toPState (commitAt s bc Nc)) mm ∧
               mm.commit = (commitAt s bc Nc).logst.committed ∧ mm.dst = m.From' ∧
-              uint.Z ((appRespMatch s m.From' m.Index' !! m.From').getD (W64 0)) ≤ uint.Z mm.index :=
+              uint.Z ((appRespMatch s m.From' m.Index' !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧
+                mm.rejecthint = W64 0 :=
             ⟨(appOk_hdr id _ _ mm HhdT HhdL).1 Hmm.1,
               by rw [Hmm.2.1]; exact congrArg LogState.committed HhdL, Hmm.2.2.1,
-              by have h := Hmm.2.2.2; simp only at h; rwa [Hmm5, Hmm4, HmA] at h⟩
+              by have h := Hmm.2.2.2.1; simp only at h; rwa [Hmm5, Hmm4, HmA] at h, Hmm.2.2.2.2⟩
           iapply hookGateOpt_congr _ _ r _ _ _ ?hg1 ?hg2
           case hg1 => exact (congrArg NGhost.tr Hs2gh).symm
           case hg2 => exact (sendOutGate_hdr id _ _ c MsgApp [mm] HhdT HhdV HhdL HhdR).symm

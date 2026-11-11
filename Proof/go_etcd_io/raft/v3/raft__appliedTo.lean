@@ -159,18 +159,21 @@ theorem raft.appliedTo.wp_proof
               wp_stepCandidate wp_stepLeader Q c r id s1 ml leaveMsgM none [] [] [leaveEntM]
               [some (.v2 ConfChangeV2M.empty)] k0
               ⟨iprop(emp), fun _ => iprop(emp), fun _ => iprop(emp), fun _ => iprop(emp), iprop(emp),
-                iprop(emp), iprop(emp), iprop(emp), fun _ => iprop(emp), fun _ _ _ => iprop(emp)⟩ rfl rfl (.inl rfl) (by simp) (by simp)
+                iprop(emp), iprop(emp), iprop(emp), fun _ => iprop(emp), fun _ _ _ => iprop(emp), fun _ => iprop(emp)⟩ rfl rfl (.inl rfl) (by simp) (by simp)
               (fun h => absurd (h.symm.trans Hrl) (by decide))
               (fun _ => by rw [Hs1term]; exact Hlnz (Hs1role ▸ Hrl)) (Hwf1 (Hs1role ▸ Hrl))
               (by rw [Hs1ps]; exact HL (Hs1role ▸ Hrl)) rfl (fun h => absurd Htr1 h))
             $$ [$Hphys Hm $Hcc $Hrc Hgates]
-            as %err %s' %B ⟨Hphys, -, %HBb, Hrcb, -, %Hwf', %Hfr, %Happl, %Hpk, %Hst, Herr⟩
+            as %err %s' %B ⟨Hphys, -, %HBb, Hrcb, -, %Hwf', %Hfr, %Happl, %Hpk, -, %Hst, Herr⟩
           · rw [show leaveMsgM = propMsgM from rfl, show leaveEntM = ccEntryM none [] from rfl]
             isplitl [Hm]
             · iexact Hm
             isplitr
             · iempintro
-            iexact Hgates
+            isplitl [Hgates]
+            · iexact Hgates
+            iintro - -
+            iempintro
           obtain ⟨recv, Hrecv, Hrl1, Hstep⟩ := Hst
           have Hout : LeaveStep c id s1 s' B recv :=
             .inr ⟨Hcal, Hrl, Hrecv, Hrl1, Hstep, Hfr.1, Hfr.2, Happl, Hwf', HBb.1, by

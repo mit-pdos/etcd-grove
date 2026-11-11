@@ -507,7 +507,7 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
       iframe Htl
     -- (slice 9) the three remaining arms' gates
     isplitr
-    · iintro %_ %cs _ -
+    · iintro %_ %cs _ - -
       iapply hookGateN_none r _ _ tl iprop(emp) Htlok
       iframe Htl
     isplitr

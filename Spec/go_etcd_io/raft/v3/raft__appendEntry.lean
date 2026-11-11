@@ -193,8 +193,10 @@ abbrev raft.appendEntry.spec : Prop :=
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the gates below
       "HG" ∷ G ∗
-      -- the `Replicate` lines' gate: one event per normal entry, of the state before the append
-      "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G1) ∗
+      -- the `Replicate` lines' gate: one event per normal entry, of the state before the append;
+      -- (2026-11-11, slice 23a) with the receipt the clone loop raised (`⧖ (m + |ents|)`, before
+      -- `traceReplicate`), which a traced caller's propose ghost update consumes inside the gate
+      "Hgrep" ∷ (⧖ (m + ents.length) -∗ G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G1) ∗
       -- the self-acknowledgement's gate, at the state with the batch appended
       "Hgack" ∷ (G1 -∗ HookGateOpt s.gh.tr r (sendOutGate id
           { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
