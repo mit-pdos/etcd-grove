@@ -58,11 +58,15 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `isPanic` conjunct dropped; docstrings (ErrServerStopped, flags/:1446, links, respond's range,
     address strings, si-nil comparison); gate entries finding-specific (`entry NAME KEY,... reason`,
     stale keys reported), `Dn` entries, selftests 26/26; verified-code's exact model-only names;
-    Go test T10b. **STOPPED: the two blocker fixes go to re-verification (etcd-grove-81).**
+    Go test T10b.
+  - **CP1a APPROVED** (etcd-grove-81, after re-verification). Then: `grpc.serveStream`'s same flag gap
+    recorded in STATUS/decisions as a known overclaim until B1b; gate keys carry the counts
+    (`3:E:produced2/consumed1`, `produced∞`, callback hand-off) and stale axioms are reported;
+    selftests 30/30 + stale check. **Waiting for pf8c C3 before B1b.**
 
 ## Next, in order
 
-1. Re-verification of B1/B2's fixes (etcd-grove-81).
+1. Wait for premise-fixes-8c's C3 (edits `InvGrpc.lean`'s `ctxOk`); merge `lean` after it lands.
 2. B1b after pf8c C3: restatement and wiring (r5 §4.1 B1b): `trusted = ["Server.Serve"]` with
    `Server.Serve.impl := model.Serve`; `grpcServeTokR` → `grpcServeTok`; `grpc.start`/`start'`;
    `isGrpcRpcMd`/`isGrpcStreamMd` over `isGrpcRpcAt`/`isGrpcStreamAt`; the stream contract returns
@@ -72,7 +76,8 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
    `GoFunc` handlers (`md.Handler'`), and `RegisterService` (+ the six `Register*Server`) takes
    `⌜∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝`, discharged in
    `v3rpc.Server` from the generated descriptors; `RegisterHealthServer`'s post: health `Watch` is
-   `ServerStreams`.
+   `ServerStreams` (a docstring claim, checked by T10b). `grpcSrvNew`'s docstring
+   (`InvGrpcServer.lean:112`) states the flag invariant for every producer.
 3. Before any landing: full build, `etc/tcb-report.py --check --update` (+11 in B1a, net +1 after
    B1b), delete `Scratch/`.
 4. Gate for CP3: walk `□` callbacks independently (lifts the 15 caps), neutral case through defined
@@ -88,8 +93,9 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
   (a handler `mh`) needs the fact (`grpcAccepted`'s stream arm has it); `#x` has it by
   `isPanic_intoVal`. `#mh` with `mh : val` is NOT `mh` (`intoVal` is abstract).
 - `--goal L` of `etc/lean-check.py` shows the state before line L's tactic.
-- Gate entries are finding-specific: after changing an entry's axiom, rerun and update its keys
-  (`finding_key`); a stale key is reported. New texts' run: `/shared/tmp/stageB/gate5/` (command:
+- Gate entries are finding-specific (keys with counts): after changing an entry's axiom, rerun and
+  update its keys (`finding_key`); a stale key, or an entry for an axiom not in `--json`, is reported
+  (a run over a subset of names, like gate5's, shows the others as stale). New texts' run: `/shared/tmp/stageB/gate5/` (command:
   `lake env lean --run etc/AxiomTokCheck.lean --axioms=names.txt <modules>`, then
   `etc/axiom-tok-check.py --json names.json --reuse-raw raw.jsonl`).
 - `Scratch/StageB/Spike.lean` predates the `GoFunc` typing (not rechecked; scratch).

@@ -181,6 +181,16 @@ The fixes (the user's decision via etcd-grove-82): the pool tied to `threadTok` 
 the encoding keyed on the frozen wire content, with `pbEnc_ok` derived from one `_sat` per
 registered type.
 
+**Known overclaim, same axiom (found 2026-11-11, stage B's CP1a re-verification; until B1b deletes
+`grpc.serveStream`).** `grpc.serveStream` (`InvGrpcStream.lean:1136`) runs every `sregs` entry through
+the stream interceptor chain. Go calls the handler of a stream descriptor that sets neither
+`ClientStreams` nor `ServerStreams` directly, without the interceptor (`server.go:1446-1450`, Go
+test T10b in `examples/stageb/grpcruns/`), and nothing in `RegisterService` or `grpcSrvNew` excludes
+such a descriptor. etcd's own stream descriptors (Watch, LeaseKeepAlive, Snapshot, health Watch) all
+set a flag, so no result's program is affected, but the axiom claims more than Go for an unflagged
+one. B1b replaces it with the trusted `Serve` model under `RegisterService`'s stream-flag premise,
+carried in `grpcSrvNew`'s docstring (`notes/decisions.md`, "Stage B: the stream-flag premise").
+
 ## Axiom sweep batch 3: start tokens, the lessor, the snapshot stream, membership (2026-11-07, etcd-grove-56; repairs decided, not started)
 
 Batch 3 of the sweep, plus two follow-ups: the alias attack on start tokens other than the WAL's, and

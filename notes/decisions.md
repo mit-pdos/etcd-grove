@@ -34474,3 +34474,31 @@ Go tests: `examples/premisefix/ctxvalue` (examples module) and `examples/premise
 `go.mod`, the k8s pins of `examples/k8s/etcd3`). Interfaces: only raft's `Changer__apply.txt`
 changed (and the two `ConfChangeType__String.txt` deleted). Handoff:
 `notes/premise-fixes-7-handoff.md`.
+
+## Stage B: the stream-flag premise; `grpc.serveStream`'s known overclaim (2026-11-11 · decided by etcd-grove-81 under the user's delegation, CP1a review `wf_85371608-bdd` and its re-verification · branch `stage-b`)
+
+grpc-go v1.84 runs the stream interceptor only for a descriptor that sets `ClientStreams` or
+`ServerStreams`: `if s.opts.streamInt == nil || (!sd.ClientStreams && !sd.ServerStreams) {
+appErr = sd.Handler(server, wrappedStream) }` (`server.go:1446-1450`; Go test T10b,
+`examples/stageb/grpcruns/`). Neither the landed `grpc.serveStream` (`InvGrpcStream.lean:1136`) nor
+B1a's model (`runCall`'s stream arm) represents the direct path. An unflagged descriptor behind an
+interceptor that never calls its handler would give a no-panic proof of a run that panics in Go.
+
+**Decision** (option (a) of the review): `RegisterService` takes
+`⌜∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝` (B1b), where the descriptors are
+visible; the six `Register*Server` specs carry it up; `v3rpc.Server` discharges it from the generated
+descriptors (`grpcDescIs`). `grpc.start` sees only `grpcSrvNew`, so the invariant "every `sregs` entry
+comes from a flagged descriptor" is stated in `grpcSrvNew`'s docstring (B1b), which every producer of
+`grpcSrvNew` must uphold, and in `GrpcSrvCfg`'s and `acceptRun`'s docstrings. `RegisterHealthServer`'s
+claim that health `Watch` is `ServerStreams` is a docstring claim of that trusted text, checked by
+T10b. Rejected: (b) carrying the flag in `sregs` and having `acceptRun` return `si = nil` for an
+unflagged entry (more model, no gain for etcd's descriptors).
+
+**Until B1b**: `grpc.serveStream` keeps the overclaim (STATUS, "Soundness bugs: `grpc.serve`'s
+handler pool ..."). No result is affected (etcd's stream descriptors all set a flag); B1b deletes the
+axiom.
+
+Also decided at CP1a: handlers typed `GoFunc` (`GrpcSrvCfg`, `grpcSrvStreamChain`, `grpcAccepted`;
+`descRegs`/`descSRegs`/`grpcSrvNew` in B1b), since `h : val` admitted a panic value for which the
+stream chain fact is false; `axiom-tok` entries name the findings they accept.
+

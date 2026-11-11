@@ -106,22 +106,31 @@ def partial_modules(mods):
 
 
 def finding_key(f):
-    """The key an entry names to accept the finding `f` (CP1a review M2: entries are
-    finding-specific, so an edit's new finding is not silently accepted). No spaces:
-    rule 2 `2:<level>` (`2:*`); rule 3 `3:<atom>` (the counted atom without its `atom:` prefix and
-    `#n` index: `3:E`, `3:Φ.f`); rule 5 `5:<opaque>` (short name); rule 7 `7:<binder>:<type>` (the
-    `∃` binder and its type, spaces removed: `7:Dn:Nat→Rep.M→IPropGF`); rule 4 and notes
-    `<rule>:<text>` (spaces removed)."""
+    """The key an entry names to accept the finding `f` (CP1a review M2 and its re-verification:
+    entries are finding-specific, so an edit's new finding, or a changed count, is not silently
+    accepted). No spaces. Rules 2 and 3 keep the counts and how they arise: `2:<level>:<counts>`,
+    `3:<atom>:<counts>`, the counts being the finding's text after the subject with `/` for
+    `, ` (`produced1/consumed0`; a persistent production is `produced∞`; a token handed to a
+    callback is `handedtoacallback1/supplieddirectly0`), the atom without its `atom:` prefix and `#n` index;
+    rule 5 `5:<opaque>` (short name); rule 7 `7:<binder>:<type>` (the `∃` binder and its type,
+    spaces removed); rule 4 and notes `<rule>:<text>` (spaces removed)."""
     r, why = f["rule"], f["why"]
+
+    def counts(t):
+        return t.replace(", ", "/").replace(",", "/").replace(" ", "")
+
     if r == "2":
-        m = re.match(r"level (\S+):", why)
-        return f"2:{m.group(1) if m else why.replace(' ', '')}"
+        m = re.match(r"level (\S+): (.*)$", why)
+        if m:
+            return f"2:{m.group(1)}:{counts(m.group(2))}"
+        return f"2:{why.replace(' ', '')}"
     if r == "3":
-        atom = why.rsplit(": produced", 1)[0]
+        m = re.match(r"(.*?): (produced.*)$", why)
+        atom, cnt = (m.group(1), m.group(2)) if m else (why, "")
         atom = re.sub(r"#\d+", "", atom)
         if atom.startswith("atom:"):
             atom = atom[5:]
-        return "3:" + atom.replace(" ", "")
+        return f"3:{atom.replace(' ', '')}:{counts(cnt)}"
     if r == "5":
         return "5:" + short(why.rsplit(" ", 1)[-1])
     if r == "7":
@@ -153,6 +162,11 @@ def read_allow(path):
             elif w[0] == "real-pass":
                 real_pass.append(w[1])
     return entries, pairs, real_pass
+
+
+def stale_axioms(allow, known):
+    """The entry and pair lines naming an axiom not in `known` (one that no longer exists)."""
+    return sorted(n for n in set(allow[0]) | set(allow[1]) if n not in known)
 
 
 def covered(name, f, entries):
@@ -374,8 +388,20 @@ def main():
         finally:
             os.unlink(nfile)
             raw.close()
-    axs = judge(objs, read_allow(a.allow), locs)
+    allow = read_allow(a.allow)
+    axs = judge(objs, allow, locs)
     report(axs, objs, a.v, a.all)
+    gone = stale_axioms(allow, locs)
+    unwalked = sorted(n for n in set(allow[0]) | set(allow[1]) if n in locs and n not in axs)
+    if gone:
+        print(f"\nStale entries: {len(gone)} entry or pair line(s) name an axiom that no longer "
+              f"exists (not in {os.path.relpath(a.json)}); remove or rename them:")
+        for n in gone:
+            print(f"    {short(n)}")
+    if unwalked:
+        print(f"\nEntries for axioms not walked in this run (in modules not imported): {len(unwalked)}")
+        for n in unwalked:
+            print(f"    {short(n)}")
     present = set()
     for o in objs:
         if o["t"] == "present":
@@ -414,6 +440,11 @@ def selftest(a, extra):
         res = " (pair resolved)" if o.get("resolved") else ""
         print(f"  {'ok  ' if ok else 'FAIL'} {s:28} {'refused' if refused else 'passed'}{res}  {why}")
         fails += not ok
+    # an entry naming an axiom that does not exist is reported stale: `st_gone` must be, and only it
+    gone = stale_axioms(allow, axs)
+    ok = gone == ["AxiomTokSelftest.st_gone"]
+    print(f"  {'ok  ' if ok else 'FAIL'} stale entries {', '.join(gone) or '(none)'}")
+    fails += not ok
     if allow[2]:
         if a.reuse_raw:
             main_objs = [json.loads(l) for l in open(a.reuse_raw) if l.startswith("{")]

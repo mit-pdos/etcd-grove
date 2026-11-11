@@ -1,11 +1,16 @@
 # The selftests' declared pairs (rule 7) and the real axioms the main run must pass.
 pair AxiomTokSelftest.st_refuse_pairtype AxiomTokSelftest.st_partner_bad
 pair AxiomTokSelftest.st_pass_pair AxiomTokSelftest.st_partner_ok
-entry AxiomTokSelftest.st_refuse_entrykey 3:S  names another atom than the finding's R
-entry AxiomTokSelftest.st_refuse_entrypart 3:R  accepts R only; S is left
+entry AxiomTokSelftest.st_refuse_entrykey 3:S:produced1/consumed0  names another atom than the finding's R
+entry AxiomTokSelftest.st_refuse_entrypart 3:R:produced1/consumed0  accepts R only; S is left
 entry AxiomTokSelftest.st_refuse_entrytype 7:P:Nat→IPropGF  the binder's type is Bool → IProp GF
-entry AxiomTokSelftest.st_pass_entry 3:R  the finding's key
+entry AxiomTokSelftest.st_pass_entry 3:R:produced1/consumed0  the finding's key
 entry AxiomTokSelftest.st_pass_entry7 7:P:Nat→IPropGF  the finding's key
+entry AxiomTokSelftest.st_refuse_entrycount 3:R:produced1/consumed0  the finding's count is 2
+entry AxiomTokSelftest.st_refuse_entrypers 2:*:produced1/consumed0  the mint is persistent (produced ∞)
+entry AxiomTokSelftest.st_refuse_entrycb 2:*:produced1/consumed0  the token is handed to a callback
+entry AxiomTokSelftest.st_gone 3:R:produced1/consumed0  no such axiom: reported stale
+entry AxiomTokSelftest.st_pass_entrymint 2:*:produced1/consumed0  the finding's key
 real-pass Perennial.EtcdGrove.bbolt.DB.Begin_kv.wp_proof
 real-pass Perennial.EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof
 real-pass Perennial.EtcdGrove.EtcdServer.leaseTimeToLive.wp_proof

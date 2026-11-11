@@ -76,6 +76,19 @@ axiom st_refuse_entrypart : ∀ (R S : IProp GF) (f : val),
 /-- A rule-7 entry names the binder's type: another type is not accepted. -/
 axiom st_refuse_entrytype : ⊢ |==> ∃ (P : Bool → IProp GF), P true
 
+/-- An entry names the count: `R` produced twice is not `R` produced once. -/
+axiom st_refuse_entrycount : ∀ (R : IProp GF) (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #(); R ∗ R }}
+
+/-- A single mint's entry does not accept the mint turned persistent. -/
+axiom st_refuse_entrypers : ⊢ □ (iprop(True) -∗ threadTok (GF := GF))
+
+/-- A single mint's entry does not accept a token handed to a callback. -/
+axiom st_refuse_entrycb : ∀ (S : IProp GF) (n : Nat) (h : val),
+  ([∗list] _x ∈ List.replicate n (), S) ∗
+    □ ({{ S ∗ threadTok }} (App (Val h) (Val #())) {{ RET #(); S ∗ threadTok }}) ⊢
+  |={⊤}=> stServes (GF := GF) h
+
 /-! Passed -/
 
 /-- Token in, token out (as `lessor.Renew`/`leaseTimeToLive`'s `levelTok 0`). -/
@@ -122,5 +135,9 @@ axiom st_pass_entry : ∀ (R : IProp GF) (f : val),
 
 /-- A rule-7 finding accepted by an entry naming its binder and type (`allow.txt`). -/
 axiom st_pass_entry7 : ⊢ |==> ∃ (P : Nat → IProp GF), P 0
+
+/-- A single mint accepted by an entry naming its count. -/
+axiom st_pass_entrymint : ∀ (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #(); threadTok }}
 
 end AxiomTokSelftest

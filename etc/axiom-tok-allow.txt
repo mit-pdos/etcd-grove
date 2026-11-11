@@ -7,12 +7,16 @@
 #                                     a key no finding has is reported as stale (CP1a review M2)
 #   pair NAME PARTNER                 a transfer of NAME (rule 7) is matched by PARTNER consuming
 #                                     the type
-# Keys (etc/axiom-tok-check.py, `finding_key`; no spaces): `2:<level>`; `3:<atom>` (the counted
-# atom, without its `#n` index); `5:<opaque>`; `7:<binder>:<type>` (the `∃` binder and its type,
-# spaces removed).
+# Keys (etc/axiom-tok-check.py, `finding_key`; no spaces): `2:<level>:<counts>`;
+# `3:<atom>:<counts>` (the counted atom, without its `#n` index); the counts as the finding states
+# them, `, ` written `/` (`produced1/consumed0`; `produced∞` for a persistent production,
+# `handedtoacallback1/supplieddirectly0` for a token handed to a callback), so a changed count or
+# a mint turning persistent needs a new key; `5:<opaque>`; `7:<binder>:<type>` (the `∃` binder and
+# its type, spaces removed). An entry or pair naming an axiom that no longer exists is reported
+# stale.
 
 # --- rule 2: the one token mint ---
-entry Perennial.EtcdGrove.goose_adequacy_start_files 2:*  the first thread's token, from `σ.threads = 1` at the start of the run (Proof/runtime/Start.lean); the adequacy theorem's own premise
+entry Perennial.EtcdGrove.goose_adequacy_start_files 2:*:produced1/consumed0  the first thread's token, from `σ.threads = 1` at the start of the run (Proof/runtime/Start.lean); the adequacy theorem's own premise
 
 # --- the grpc pair (Scope r5 §2.2, "The pair"; InvGrpcRun.lean's header) ---
 pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
@@ -25,16 +29,16 @@ pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.
 # whose pre the walk counts as produced), an observation callback with a pure conclusion, or an
 # abstract family bound together with the one handle that uses it (rule 7's neutral case, not
 # recognized through a defined, non-opaque handle).
-entry Perennial.EtcdGrove.grpc.NewClient.wp_proof 3:Q  Q is produced only as `□ Q cm` in the one-credential arm of `connCredsOk`, where the credential's `perRPCCredsOk` (consumed) gives it; with no credential nothing is produced (the walk does not see the `match` on the list)
-entry Perennial.EtcdGrove.heap.Init_.wp_proof 3:E  E occurs only in the pre of the `Push` method of the consumed `heapIface`; `heap.Init` never calls `Push` (container/heap/heap.go: `Len`, `down`'s `Less`/`Swap`)
-entry Perennial.EtcdGrove.heap.Pop.wp_proof 3:E  as `heap.Init_`: `heap.Pop` never calls `Push`; the post's `E x a` is the `Pop` method's own (consumed `heapPopIface`)
-entry Perennial.EtcdGrove.http.CloseIdleConnections_ok 3:H.proto.req,3:H.proto.sreq  H.proto's fields occur only in the pre of the `RoundTrip` method of the consumed `roundTripperOk`; `CloseIdleConnections` never calls `RoundTrip`, and the axiom produces only `True` and a pointer equality
-entry Perennial.EtcdGrove.backend.backend.Snapshot.wp_proof 3:R,7:Φ:GoString×GoString→IPropGF  R is passed to the caller's observation function `R -∗ … -∗ ⌜Q …⌝`, whose conclusion is pure (an observation, `R ⊢ R ∗ ⌜Q⌝`); the `∃ Φ` is `dlIs`'s, bound with `dlReg`'s saved predicate at the backend's own name (fixed by the creator; `saved_pred_agree`)
-entry Perennial.EtcdGrove.lease.NewLessor.wp_proof 3:GA,3:R,7:Lk:IPropGF→IPropGF,7:Φ:GoString×GoString→IPropGF  GA is the caller's: produced (Lookup's post) only for leases in the map, each of which consumed `□ GA id` (here `recs`; later grants consume `leaseGranted`, pinned by `lessorGuard`'s saved predicate); `Lk`/`R` are `leaseBatchTx`'s abstract lock family, bound with its three methods; `∃ Φ` as backend.Snapshot's (`dlIs`)
-entry Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof 3:Pre,7:Φ:GoString×GoString→IPropGF  Pre is the critical-section contract's (`csContractA`/`hookRun`) handed between the backend's own methods; the axiom's post gives the caller no `Pre`; `∃ Φ` as backend.Snapshot's (`dlIs`)
-entry Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof 3:Ψ,7:Φ:Unit-n>IPropGF  the `∃ Φ : Unit -n> IProp` is an atomic update's greatest fixpoint (`atomic_update` = `bi_greatest_fixpoint`), bound with its own coinduction hypothesis, inside the consumed server handle; the post is `True`
-entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 3:Ψ,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle; post `True`)
-entry Perennial.EtcdGrove.etcd_noRefusal 3:Ψ,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle)
+entry Perennial.EtcdGrove.grpc.NewClient.wp_proof 3:Q:produced1/consumedlen(credsOfDialds)  Q is produced only as `□ Q cm` in the one-credential arm of `connCredsOk`, where the credential's `perRPCCredsOk` (consumed) gives it; with no credential nothing is produced (the walk does not see the `match` on the list)
+entry Perennial.EtcdGrove.heap.Init_.wp_proof 3:E:produced1/consumed0  E occurs only in the pre of the `Push` method of the consumed `heapIface`; `heap.Init` never calls `Push` (container/heap/heap.go: `Len`, `down`'s `Less`/`Swap`)
+entry Perennial.EtcdGrove.heap.Pop.wp_proof 3:E:produced2/consumed1  as `heap.Init_`: `heap.Pop` never calls `Push`; the post's `E x a` is the `Pop` method's own (consumed `heapPopIface`)
+entry Perennial.EtcdGrove.http.CloseIdleConnections_ok 3:H.proto.req:produced1/consumed0,3:H.proto.sreq:produced1/consumed0  H.proto's fields occur only in the pre of the `RoundTrip` method of the consumed `roundTripperOk`; `CloseIdleConnections` never calls `RoundTrip`, and the axiom produces only `True` and a pointer equality
+entry Perennial.EtcdGrove.backend.backend.Snapshot.wp_proof 3:R:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  R is passed to the caller's observation function `R -∗ … -∗ ⌜Q …⌝`, whose conclusion is pure (an observation, `R ⊢ R ∗ ⌜Q⌝`); the `∃ Φ` is `dlIs`'s, bound with `dlReg`'s saved predicate at the backend's own name (fixed by the creator; `saved_pred_agree`)
+entry Perennial.EtcdGrove.lease.NewLessor.wp_proof 3:GA:produced1/consumedlen(List.map(funx=>x.fst)recs),3:R:produced1/consumed0,7:Lk:IPropGF→IPropGF,7:Φ:GoString×GoString→IPropGF  GA is the caller's: produced (Lookup's post) only for leases in the map, each of which consumed `□ GA id` (here `recs`; later grants consume `leaseGranted`, pinned by `lessorGuard`'s saved predicate); `Lk`/`R` are `leaseBatchTx`'s abstract lock family, bound with its three methods; `∃ Φ` as backend.Snapshot's (`dlIs`)
+entry Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  Pre is the critical-section contract's (`csContractA`/`hookRun`) handed between the backend's own methods; the axiom's post gives the caller no `Pre`; `∃ Φ` as backend.Snapshot's (`dlIs`)
+entry Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  the `∃ Φ : Unit -n> IProp` is an atomic update's greatest fixpoint (`atomic_update` = `bi_greatest_fixpoint`), bound with its own coinduction hypothesis, inside the consumed server handle; the post is `True`
+entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle; post `True`)
+entry Perennial.EtcdGrove.etcd_noRefusal 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle)
 entry Perennial.EtcdGrove.io.MultiReader.wp_proof 7:Src:Listw8→IPropGF  `∃ Src` is `streamHas`'s representation predicate, bound with the one reader contract (`streamReaderOk`) that uses it and its start `Src []`
 
 # --- CP1a: the stream content's transfer (freeze-cp1a.md §4, review m4/m1) ---
