@@ -10,7 +10,7 @@ module
 
 public import Spec.context.WithTimeoutBackground
 public import Proof.google_golang_org.grpc.metadata.Outgoing
-public import Proof.context.LibKeys
+public import Proof.context.LibKeysChain
 
 @[expose] public section
 
@@ -35,7 +35,9 @@ context's outgoing metadata is none. Go: grpc stores outgoing metadata under its
 (`mdOutgoingKey{}`, `metadata.NewOutgoingContext`/`AppendToOutgoingContext`), `Background()` holds
 no value, and `WithTimeout` adds none (a `*timerCtx` whose `Value` defers to its parent), so
 `FromOutgoingContext` of it finds nothing. (premise-fixes-7) Its library values are well formed
-(`context.libCtxOk ctx'`): it answers every library key with `Background()`'s `nil`. -/
+(`context.libCtxOk ctx'`): it answers every library key with `Background()`'s `nil`.
+(premise-fixes-8, C1) So does Perennial's chain (`metadata.outgoingCtxOkC ctx'`): `context.value`
+walks from the `*timerCtx` to its parent `Background()`, never written, which answers `nil`. -/
 abbrev context.WithTimeoutBackgroundMd.spec : Prop :=
   ∀ (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.isClosedchanInit }}
@@ -46,7 +48,7 @@ abbrev context.WithTimeoutBackgroundMd.spec : Prop :=
       □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
         WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
       context.isContext ctx' cd ∗ ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ ∗
-      context.libCtxOk ctx' }}
+      context.libCtxOk ctx' ∗ metadata.outgoingCtxOkC ctx' }}
 
 end spec
 

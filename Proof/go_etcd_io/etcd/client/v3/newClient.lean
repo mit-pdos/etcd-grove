@@ -84,7 +84,7 @@ theorem newClient.wp_proof
   rw [Htok, Hctx]
   wp_auto
   wp_apply wp_TODO
-  wp_apply wp_WithCancelTodo as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx'⟩
+  wp_apply wp_WithCancelTodo as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', -⟩
   ihave #Hvars0 := Hvars
   iunfold clientNewVars at Hvars
   icases Hvars with ⟨⟨%dsl, #Hdsl, #Hdslok⟩, -, -, -⟩

@@ -56,7 +56,7 @@ theorem reqCtx.wp_proof
     (try wp_auto)
     ihave #Hout0 := context.outgoingCtxOk_of_libCtxOk cctx $$ Hlib
     wp_apply wp_Append cctx cd _ (DFrac.own 1) go!"token" badToken (by unfold metadata.lowerKey; decide) $$ [Hksl]
-      as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', %Hmd, -⟩
+      as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', -, %Hmd, -⟩
     · iframe; iframe #
     (try wp_auto)
     ihave #Hall := client.ctxErrClientAllW_of wp_ErrAny hAs $$ Pctx

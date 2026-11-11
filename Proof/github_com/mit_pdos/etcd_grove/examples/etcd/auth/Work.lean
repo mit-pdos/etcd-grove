@@ -666,7 +666,7 @@ theorem Work.wp_proof
       ihave #Hwout0 := context.outgoingCtxOk_of_libCtxOk wc $$ Hwlib
       wp_apply wp_Append wc wcd _ (DFrac.own 1) go!"token" badToken
           (by unfold metadata.lowerKey; decide) $$ [Hksl]
-        as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', %Hmd, -⟩
+        as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', -, %Hmd, -⟩
       · iframe; iframe #
       subst Hc'
       (try wp_auto)
