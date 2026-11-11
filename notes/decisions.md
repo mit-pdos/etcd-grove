@@ -35471,4 +35471,4 @@ receive line at a server of its term, round by round: `quorumLogF_conflict` (the
 raft's `leadPrefix`/`lpfull` of the request and the vote table, used once per server,
 `votesTbl_forall_list`), `quorumLogF_noConflict`, `quorumLogF_alreadyDone`; a leader's log growth,
 `quorumLogF_grow`. If the acknowledgement-history copy later gives `QuorumLogInv` directly, `KeptFrom` and
-these lemmas may lose their users. Reviews `a5-r1.md`, `a5-r2.md`, `a5-r3.md`.
+these lemmas may lose their users. Reviews `a5-r1.md`, `a5-r2.md` (round 2's first-tier finding, a build break, repaired; the full build confirms).
