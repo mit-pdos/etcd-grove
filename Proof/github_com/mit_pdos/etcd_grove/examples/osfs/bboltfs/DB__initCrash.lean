@@ -28,8 +28,6 @@ open Fs
 section pure
 variable [GooseExts]
 
-theorem getD_lt {α : Type} {l : List α} {i : Nat} (d : α) (h : i < l.length) : l.getD i d = l[i] := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]; rfl
 
 theorem initBytes_page3 (k : Nat) (hk : k < 4096) :
     initBytes[4096 * 3 + k]? = some ((emptyPageBytes (W64 3) (W16 2))[k]?.getD 0) := by
@@ -44,45 +42,11 @@ theorem initBytes_page3 (k : Nat) (hk : k < 4096) :
   rw [show 4096 * 3 + k - (4096 + 4096 + 4096) = k by omega, List.getElem?_eq_getElem (by omega)]
   rfl
 
-/-- The 64 bytes of meta slot `j` of `B`. -/
-def slotOf (B : List w8) (j : Nat) : List w8 := (List.range 64).map fun k => B.getD (4096 * j + 16 + k) 0
 
-theorem slotOf_length (B : List w8) (j : Nat) : (slotOf B j).length = 64 := by simp [slotOf]
 
-theorem slotOf_getD (B : List w8) (j k : Nat) (hk : k < 64) :
-    (slotOf B j).getD k 0 = B.getD (4096 * j + 16 + k) 0 := by
-  rw [List.getD_eq_getElem?_getD, slotOf, List.getElem?_map, List.getElem?_range hk]; rfl
 
-/-- A slot of zeros. -/
-theorem slotOf_zero {B : List w8} {j : Nat} (h : ∀ k < 64, B.getD (4096 * j + 16 + k) 0 = 0) :
-    ¬ metaValid (decode (slotOf B j) : Meta) := by
-  have : slotOf B j = List.replicate 64 0 := by
-    apply List.ext_getElem (by simp [slotOf_length]); intro k h1 h2
-    have := slotOf_getD B j k (by simpa [slotOf_length] using h1)
-    rw [getD_lt _ h1] at this
-    rw [this, h k (by simpa [slotOf_length] using h1), List.getElem_replicate]
-  rw [this]; exact zeroSlot_invalid
 
-/-- A slot as `fileMeta` reads it. -/
-theorem slotOf_fileMeta (B : List w8) (j : Nat) (hl : 4096 * j + 80 ≤ B.length) :
-    (decode (slotOf B j) : Meta) = fileMeta B j := by
-  rw [fileMeta_slot]; congr 1
-  apply List.ext_getElem? ; intro k
-  by_cases hk : k < 64
-  · rw [metaSlot_getElem? _ _ _ hk, List.getElem?_eq_some_iff.2 ⟨by simp [slotOf_length]; omega, ?_⟩]
-    · rw [List.getElem?_eq_getElem (by omega)]
-    · have := slotOf_getD B j k hk
-      rw [getD_lt _ (by simp [slotOf_length]; omega)] at this
-      rw [this, getD_lt _ (by omega)]
-  · rw [List.getElem?_eq_none (by simp [slotOf_length]; omega),
-      List.getElem?_eq_none (by rw [metaSlot_length]; omega)]
 
-theorem slotOf_append_left (A C : List w8) (j : Nat) (h : 4096 * j + 80 ≤ A.length) :
-    slotOf (A ++ C) j = slotOf A j := by
-  apply List.ext_getElem (by simp [slotOf_length]); intro k h1 h2
-  simp only [slotOf, List.getElem_map, List.getElem_range]
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
-    List.getElem?_append_left (by simp [slotOf] at h1; omega)]
 
 /-- The bytes `init` leaves: its four pages over the old ones. -/
 theorem init_final (z : w8) (I rest : List w8) (hI : I.length = 16384) :
@@ -99,12 +63,6 @@ theorem init_final (z : w8) (I rest : List w8) (hI : I.length = 16384) :
     List.append_assoc, List.drop_left' (by rw [List.length_take, hz]; omega),
     ← List.append_assoc, ← List.append_assoc, List.take_append_drop, List.take_append_drop]
 
-/-- The candidates a synced state knows of its bytes below the size: durable, holding them. -/
-theorem kc_synced {m : OsMeta} {B : List w8} {fa fb b : Nat} (hl : B.length = m.size)
-    (hb : b < m.size) :
-    (⟨m, B.map durB, fa, fb, .idle⟩ : CSt).kc b = some [(B.getD b 0, 0)] := by
-  simp only [CSt.kc, CSt.baseC, if_pos hb, List.getElem?_map, List.getElem?_eq_getElem (show b < B.length by omega),
-    Option.map_some, getD_lt _ (show b < B.length by omega)]
 
 /-- **The bytes a successful `WriteAt` leaves**: the data over the old ones. -/
 theorem written_fst {m m' : OsMeta} {bs bs' : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
