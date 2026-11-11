@@ -4,7 +4,7 @@ Branch `wal-w4`, worktree `/shared/etcd-grove-walw3` (W3's worktree, reused), cu
 `e891d049fc` (W3 landed: F-Z/F-N1/F-N2 in the etcd pin `71f99a4bf`). Coordinator: etcd-grove-81.
 Scratch: `/shared/tmp/wal-spec/w4/`.
 
-## State (2026-11-11, W4a in progress; stopped at a design question)
+## State (2026-11-11; W4a done up to the Freeze review, see the last section before "After W4a")
 
 W3b and the Draft's §9 decisions 1-8 approved (K-N confirmed, F-N4 pushed: goose-lean b18c2d500).
 W4a so far:
@@ -70,6 +70,23 @@ Next, in order:
    modules?), `gen-init --check`, `goose --check` (PATH export, no GOWORK=off).
 2. STATUS entry (oldest to status-history, append-only), Freeze package
    `/shared/tmp/wal-spec/w4/freeze-w4a.md`; STOP before land.sh.
+
+## W4a checks and the Freeze package (third agent, 2026-11-11)
+
+Done at `659ca87f10` + this commit (lean unmoved since `a259c0efd1`, no merge needed):
+- `etc/tcb-report.py --check`: **matches the baseline (865 axioms, 5 sorries); no update needed.**
+  The baseline lists only the axioms the roots (linked results) reach, and no root reaches the 12 new
+  axioms or the walpb/fileutil translation axioms (20 + 9, names-only `underlying`/`.init`/types, with
+  10 `sorry -- axiomatized type` instances): consistent with "no closed theorem uses them".
+- All 53 collections `--check`: unchanged. `gen-interface --check` (backend, bbolt, etcdstart, mvcc,
+  raft): unchanged. `api-check`, `bounds-check --check`, `issues-status --check`: ok.
+  `gen-init --check`: 225 up to date. `goose.py --check` (PATH export, no GOWORK=off): clean.
+- STATUS entry (the oldest, premise fixes 8 C1, to status-history; 19154 lines ≥ lean's 19153).
+- Freeze package assembled: `/shared/tmp/wal-spec/w4/freeze-w4a.md` (from `gen/freeze-head.md`,
+  `gen/review-items.md` (the six flagged items, [FREEZE-1..6]), `gen/axioms-section.md`, the tcb
+  section; `gen/assemble.py`).
+
+Next: the coordinator's independent adversarial Freeze review; then `etc/land.sh` when told.
 
 ## After W4a
 
