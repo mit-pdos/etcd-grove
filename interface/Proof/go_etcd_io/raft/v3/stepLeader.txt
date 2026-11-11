@@ -267,34 +267,36 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                           "Hgcommit" ∷
                                                                               (⌜m.Type' = MsgAppResp ∧
                                                                                     m.Reject' = false⌝ -∗
-                                                                                ∀ pvs b N,
-                                                                                  ⌜prvalsMatch pvs =
-                                                                                        appRespMatch s m.From'
-                                                                                          m.Index'⌝ -∗
-                                                                                    ⌜maybeCommitOut c
-                                                                                          { term := s.term,
-                                                                                            vote := s.vote,
-                                                                                            lead := s.lead,
-                                                                                            role := s.role,
-                                                                                            votes := s.votes,
-                                                                                            outbox := s.outbox,
-                                                                                            stepfn := s.stepfn,
-                                                                                            ticking := s.ticking,
-                                                                                            progress := s.progress,
-                                                                                            log := s.log,
-                                                                                            logst := s.logst,
-                                                                                            prvals := pvs,
-                                                                                            prevote := s.prevote,
-                                                                                            gh := s.gh, rd := s.rd,
-                                                                                            lt := s.lt, pci := s.pci,
-                                                                                            isLearner := s.isLearner,
-                                                                                            sdr := s.sdr, cq := s.cq }
-                                                                                          b N⌝ -∗
-                                                                                      G s.outbox -∗
-                                                                                        HookGate s.gh.tr r
-                                                                                          (NodeEvOf rsmCommit id
-                                                                                            (commitAt s b N) c)
-                                                                                          (Gc b N s.outbox)) ∗
+                                                                                ⌜AppRespRan s m.From' m.Index'⌝ -∗
+                                                                                  ∀ pvs b N,
+                                                                                    ⌜prvalsMatch pvs =
+                                                                                          appRespMatch s m.From'
+                                                                                            m.Index'⌝ -∗
+                                                                                      ⌜maybeCommitOut c
+                                                                                            { term := s.term,
+                                                                                              vote := s.vote,
+                                                                                              lead := s.lead,
+                                                                                              role := s.role,
+                                                                                              votes := s.votes,
+                                                                                              outbox := s.outbox,
+                                                                                              stepfn := s.stepfn,
+                                                                                              ticking := s.ticking,
+                                                                                              progress := s.progress,
+                                                                                              log := s.log,
+                                                                                              logst := s.logst,
+                                                                                              prvals := pvs,
+                                                                                              prevote := s.prevote,
+                                                                                              gh := s.gh, rd := s.rd,
+                                                                                              lt := s.lt, pci := s.pci,
+                                                                                              isLearner := s.isLearner,
+                                                                                              sdr := s.sdr, cq := s.cq }
+                                                                                            b N⌝ -∗
+                                                                                        £ 1 -∗
+                                                                                          G s.outbox -∗
+                                                                                            HookGate s.gh.tr r
+                                                                                              (NodeEvOf rsmCommit id
+                                                                                                (commitAt s b N) c)
+                                                                                              (Gc b N s.outbox)) ∗
                                                                             "#Hgrlresp" ∷
                                                                                 □
                                                                                   (⌜m.Type' = MsgAppResp ∧

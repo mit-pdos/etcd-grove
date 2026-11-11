@@ -202,7 +202,7 @@ theorem LeaderStepResultC.not_precand {c : CfgM} {id : w64} {s : NState} {m : Me
       | simp_all [sendMsgs, readRespondAll_role, readRespond_role, arriveState]
       | skip
     -- the accepted `MsgAppResp`
-    obtain ⟨x, pvs, n, hb, ms, -, -, -, -, H⟩ := H
+    obtain ⟨x, pvs, n, hb, ms, -, -, -, -, -, -, H⟩ := H
     split at H
     · obtain ⟨-, rfl⟩ := H; simp_all [sendMsgs]
     · rcases H with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩ <;>
@@ -341,7 +341,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok.replOk Hok.commitEq (Hok.snapTo Hpc)
   · -- accepted
-    obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
+    obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, -, -, Hms, Hrel⟩ := Hacc
     by_cases Hcc : n0 ≠ s.logst.committed
     · -- a commit, which releases the pending read-index requests (2026-10-13)
       rw [ite_eq_right Hcc] at Hrel

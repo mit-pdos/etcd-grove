@@ -466,14 +466,16 @@ theorem gate_close [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id :
     (R : StepG GF) (Gout : NState → IProp GF) (s' : NState) (B : Int) (recv : List Msg)
     (h : s.gh.tr.isSome → StepCD c id B m s recv s')
     (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
-    (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp) :
+    (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp)
+    -- (2026-11-11, slice 28c) nor a leader's accepted append response
+    (hna : m.Type' ≠ MsgAppResp) :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOut (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout s' ∗
         ⌜OutTrStep s s'⌝ := by
   iintro Hc Ho
   ihave Ho := stepOutG_of_ne c m s _ hnv $$ Ho
-  iapply gate_close_g γ md c id m ents ctx s R Gout s' B recv h he (fun _ => CloseMid.not_of hnp hnv) $$ Hc Ho
+  iapply gate_close_g γ md c id m ents ctx s R Gout s' B recv h he (fun _ => CloseMid.not_of hnp hnv hna) $$ Hc Ho
 
 /-- (2026-11-11, slice 23a) **The ghost state back at `s` or past it** (`CloseMid`), on a proposal. -/
 theorem gate_close_mid [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
@@ -742,7 +744,7 @@ theorem leaderGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Messa
     iapply hookGateOpt_none r _ tl X Htlok
     iframe Htl HX
   isplitr
-  · iintro %_ %pvs %b %N %_ %_ HX
+  · iintro %_ %_ %pvs %b %N %_ %_ - HX
     iapply hookGate_none r _ tl X Htlok
     iframe Htl HX
   isplitr
