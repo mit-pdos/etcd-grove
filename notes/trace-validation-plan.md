@@ -1256,7 +1256,7 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   definition: for the coordinator or the user.
   **Taken by the coordinator (an intermediate statement; the user reviews only the top level): (a)**, amend
   `simInit` so that non-voters get `bootJunk`, in the design pass's amendment A8.
-  **Done (A8, 2026-11-11, branch `trace-check-a8`):** `bootInit_eq`, `bootFacts_of_bootDone`; `not_bootFacts` deleted.
+  **Done (A8, 2026-11-11, branch `trace-check-a8`):** `newTrace_simInit`, `bootFacts_of_bootDone`; `not_bootFacts`, `bootInit` deleted.
 - **Q38 (2026-11-11, design review design-r1 F1): the closed theorem's step bound and the corollary's form
   (the user's: the closed statement).** The harness's network wait group `c.net` gets `Add(1)` per
   message (`concurrent.go:351`) with no bound, Go panics past `2^31`, and the proof bounds the counter
@@ -3057,3 +3057,22 @@ initial state differs from `simInit C` outside the voters; Q36), and the per-vot
 `StartNode` would return has no persistent witness in the frozen ghost state (Q37); `runOk_of_sim` keeps
 its hypothesis. No axiom, no `sorry`. Reviews `a7-r1.md`, `a7-r2.md` (no first-tier finding against the amended statements; Q36, Q37 open)
 (`notes/decisions.md`, "Amendment A7 (Q29)").
+
+**Amendment A8 (2026-11-11, branch `trace-check-a8`; Q36 (a), Q37 (a), taken by the coordinator): done but
+`StartNode`'s minting.** Checked first against the checker: `newTraceWith` builds a non-server id's server
+from the trace's first line (a voter's `InitState`), `bootJunk`; `simInit C` now gives it to every id
+outside the voters, so `newTrace`'s initial state is `simInit C` (`newTrace_simInit`) and complete segments give
+`BootFacts` (`bootFacts_of_bootDone`; `not_bootFacts`, `bootInit` and its lemmas deleted). Every reader of `simInit`
+re-proved: `SimRun` and its first step unchanged; `TracedNodeBoot`'s bootstrap facts gain a membership
+premise where they stated a voter's fact of every id (`simInit_log`, `srvFacts_simInit`, `simIdle_boot`).
+`TraceNames` gains `dn`: persistent witnesses `bootDone tn i` (a mono list's index witnesses, not the
+design's ghost map, whose authority cannot re-issue an element: a second minting would be unprovable),
+`simInv`'s clause `∀ i ∈ Dn, BootDone C L i` (kept by every law through `bootDone_snoc`, `trCapB_perm`
+included), the law `trCapB_bootDone` (an unbooted capability whose last event is `BootEvAt C id (|C| + 3)`
+mints `bootDone tn id`; `bootDone_of_last`, by A7's `bootEvAt_unique`). `StartNode.gatedSpec`'s post
+returns `startDoneB γ cv.ID'`, the client's `StartNode.tracedSpec` the sealed `startDone γ cv.ID'`, and the
+end law `Cluster.traceSim_bootEnd` turns the voters' `□ startDone` (with the directory, review design-r1's
+S3) into `newTrace`'s success at `simInit vs`: `HarnessEnd.lean`'s `BootEnd` hypothesis is now the
+theorem `bootEnd`. Not done: minting at the end of `setupNode`, which waits on the traced
+`newRaft`/`Bootstrap` (§5.2 of `notes/trace-check-design.md`). No axiom, no `sorry`, no closed statement
+changed. Reviews `a8-r1.md` (no first-tier finding), `a8-r2.md` (`notes/decisions.md`, "Amendment A8 (Q36, Q37)").
