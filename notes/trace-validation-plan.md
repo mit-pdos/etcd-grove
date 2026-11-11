@@ -1286,7 +1286,13 @@ bounds as a gated premise, post `[∗list] q ∈ ms, readyTok γ q.st`; the `Rea
 `rnTrace_fireReady` (`TracedReady.lean`, over `trCap_fire_ready`), the tokens split by
 `readyToks_selfSplit`. `RawNode.Ready.traced` (`TracedRawNodeReady.lean`). `Advance`: its storage
 acknowledgements need a close that knows the end state; decided: `stepClose` gains an `AckEnd` premise
-(details in the decisions entry).
+(details in the decisions entry). Also: `acceptReady` now reaches `TracedHooksGlobal`, whose `keep_pure`
+clashed with the cache's in the server's link: renamed `trKeep_pure`. Checked (branch at `trace-check`
+`6722b166d4` plus this slice): full `lake build` green (13852 jobs); `etc/tcb-report.py --check` (806
+axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`, none updated; `interface/` differs
+in `RawNode__acceptReady.txt` and `RawNode__readyWithoutAccept.txt` (the two proofs' unfolded specs: the
+premise dropped, `acceptReady`'s gated bounds and tokens); `--check --layout` 0 new; `etc/api-check.py` 0
+errors; `etc/gen-link.py --raft` unchanged.
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

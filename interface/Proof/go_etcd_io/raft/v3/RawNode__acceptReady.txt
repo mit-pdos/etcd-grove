@@ -81,22 +81,23 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
   -- `Perennial.EtcdGrove.RawNode.acceptReady.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
     (h : HardStateM) (L : Option SnapLoan),
-    γ.reTrace = none →
+    (γ.reTrace ≠ none → uint.Z rs.tc + 1 < ↑traceNumBound ∧ receiptBound GF + γ.reBoot.length ≤ traceNumBound) →
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
               "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗ "#Hh" ∷ hsOpt rd.HardState' h -∗
             (▷
                 ∀ steps ss,
-                  "#Hss" ∷ softStateIs rd.SoftState' ss ∗
+                  ("#Hss" ∷ softStateIs rd.SoftState' ss ∗
                       "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
                         "Hrn" ∷
-                          ownRawNode γ rn id
-                            { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
-                              storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
-                              cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L, phs := phsNext rs.phs h,
-                              dur := readyDurable rs.dur (phsNext rs.phs h) L es, role := roleAfter rs.role ss,
-                              bw := rs.bw, hlb := rs.hlb } -∗
+                            ownRawNode γ rn id
+                              { delivered := rs.delivered ++ ce, unpersisted := es, steps := steps, term := rs.term,
+                                storage := rs.storage, sn := rs.sn, clb := rs.clb, tc := rs.tc, mode := rs.mode,
+                                cfg := rs.cfg, capplied := rs.capplied, flw := rs.flw, slent := L,
+                                phs := phsNext rs.phs h, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                                role := roleAfter rs.role ss, bw := rs.bw, hlb := rs.hlb } ∗
+                          "Htoks" ∷ [∗list] q ∈ ms, readyTok γ q.st) -∗
                     Φ (intoVal ())) -∗
               WP
                 ((intoVal
