@@ -224,7 +224,16 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
       `etcd_lease_served`, `etcd_kv_lease_served` (`raftLessor` at `etcdKVSlot`),
       `client_lessor_isEtcdLease_served`, `client_new_isEtcdLeaseClient_served` (take `F h1 h2` over
       `etcdLeaseSlot`, `γ`, pools, `srvLevels`).
-    Next: finish checking these two files; then the callers (`AuthnServedOn`, `LeaseReadServed`,
+    State at commit (after `1af900e9de`): `v3rpc/Results` checked up to the Watch section: the auth
+    part has 0 errors; the 8 errors left are all in `etcd_watchMethodOk`/`etcd_watch_served*`
+    (from line ~1749: step (3), Watch exact; the stream contract returns `S` and the stream lend).
+    client `Results` is written but NOT checked (it imports `v3rpc/Results`, which does not build
+    until Watch is fixed; to check it earlier, temporarily `sorry` the watch theorems in a scratch
+    copy, never committed). Lean pitfall found: a method list's element at `pbXRequestT` does not
+    unify with a hypothesis at `pbXRequest` under `iexact`/`iframe` (`ProtoMsgT` defs are not
+    unfolded at the IPM's transparency); `change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req :=
+    pbXRequest) (Rep := pbXResponse) _ _ _ _)` first (as the old Txn case did).
+    Next: Watch (3), then check client `Results`; then the callers (`AuthnServedOn`, `LeaseReadServed`,
     `LeaseGrantServed`, `ServeFromStart`, `cache/v3/Results`, etcdstart `ServedLease`/`Served`,
     `watch/Served`, `auth/MainServe` (calls `grpc.start` directly), cluster3), then (3)-(8) below.
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/

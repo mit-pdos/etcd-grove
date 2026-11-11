@@ -1460,19 +1460,24 @@ theorem etcd_auth_served (addr : GoString) (p s : Loc) (E : apply.AEnv GF) (ρ :
     unfold etcdAuthMethods
     iapply bigSepL_cons_intro'
     isplitl []
-    · iexact Hku
+    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbAuthUserAddRequest) (Rep := pbAuthUserAddResponse) _ _ _ _)
+      iexact Hku
     iapply bigSepL_cons_intro'
     isplitl []
-    · iexact Hkg
+    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbAuthUserGrantRoleRequest) (Rep := pbAuthUserGrantRoleResponse) _ _ _ _)
+      iexact Hkg
     iapply bigSepL_cons_intro'
     isplitl []
-    · iexact Hkr
+    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbAuthRoleAddRequest) (Rep := pbAuthRoleAddResponse) _ _ _ _)
+      iexact Hkr
     iapply bigSepL_cons_intro'
     isplitl []
-    · iexact Hkp
+    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbAuthRoleGrantPermissionRequest) (Rep := pbAuthRoleGrantPermissionResponse) _ _ _ _)
+      iexact Hkp
     iapply bigSepL_cons_intro'
     isplitl []
-    · iexact Hke
+    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbAuthEnableRequest) (Rep := pbAuthEnableResponse) _ _ _ _)
+      iexact Hke
     iapply BigSepL.bigSepL_nil.2
     itrivial
   simp only [etcdAuthMethods, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT]

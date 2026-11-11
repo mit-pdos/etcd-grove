@@ -2514,11 +2514,27 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
     imodintro
     iapply BigSepL.bigSepL_append.2
     isplitl []
-    · simp only [etcdKVMethodsM, pbCompactionRequestT, pbCompactionResponseT, pbDeleteRangeRequestT, pbDeleteRangeResponseT, pbPutRequestT, pbPutResponseT, pbRangeRequestT, pbRangeResponseT, pbTxnRequestT, pbTxnResponseT]
-      iframe #
+    · unfold etcdKVMethodsM
+      iapply bigSepL_cons_intro'
+      isplitl []
+      · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbPutRequest) (Rep := pbPutResponse) _ _ _ _)
+        iexact Hmp'
+      iapply bigSepL_cons_intro'
+      isplitl []
+      · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbRangeRequest) (Rep := pbRangeResponse) _ _ _ _)
+        iexact Hmr'
+      iapply bigSepL_cons_intro'
+      isplitl []
+      · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbDeleteRangeRequest) (Rep := pbDeleteRangeResponse) _ _ _ _)
+        iexact Hmd'
+      iapply bigSepL_cons_intro'
       isplitl []
       · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbTxnRequest) (Rep := pbTxnResponse) _ _ _ _)
         iexact Hmt'
+      iapply bigSepL_cons_intro'
+      isplitl []
+      · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbCompactionRequest) (Rep := pbCompactionResponse) _ _ _ _)
+        iexact Hmc'
       iapply BigSepL.bigSepL_nil.2
       itrivial
     · iexact Hxs
@@ -3962,10 +3978,12 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
   unfold etcdLeaseMethods etcdLeaseSlot
   iapply bigSepL_cons_intro'
   isplitl []
-  · iexact Hmg'
+  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseGrantRequest) (Rep := pbLeaseGrantResponse) _ _ _ _ _)
+    iexact Hmg'
   iapply bigSepL_cons_intro'
   isplitl []
-  · iexact Hmr'
+  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseRevokeRequest) (Rep := pbLeaseRevokeResponse) _ _ _ _ _)
+    iexact Hmr'
   iapply BigSepL.bigSepL_nil.2
   itrivial
 
@@ -4026,10 +4044,12 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
     unfold etcdLeaseMethods
     iapply bigSepL_cons_intro'
     isplitl []
-    · iexact Hkg
+    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbLeaseGrantRequest) (Rep := pbLeaseGrantResponse) _ _ _ _)
+      iexact Hkg
     iapply bigSepL_cons_intro'
     isplitl []
-    · iexact Hkr
+    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbLeaseRevokeRequest) (Rep := pbLeaseRevokeResponse) _ _ _ _)
+      iexact Hkr
     iapply BigSepL.bigSepL_nil.2
     itrivial
   simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]

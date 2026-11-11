@@ -125,7 +125,7 @@ theorem grpcHandlerOk_slot {Req Rep : ProtoMsg GF} (h : val) (S S' F : IProp GF)
 so that it applies again to the tail: the method lists of the served theorems). -/
 theorem bigSepL_cons_intro' {α : Type _} {P : α → IProp GF} {a : α} {l : List α} :
     P a ∗ ([∗list] x ∈ l, P x) ⊢ [∗list] x ∈ a :: l, P x :=
-  BigSepL.bigSepL_cons.2
+  (BigSepL.bigSepL_cons (Φ := fun _ x => P x)).2
 
 end slot
 
