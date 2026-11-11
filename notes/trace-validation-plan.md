@@ -2622,6 +2622,23 @@ the traced statements the harness takes as hypotheses (`StartNode.tracedSpec D`,
   gains one `decide`); (b) none other: the premise is real (Go panics on a non-positive ticker).
   **Recommended: (a)**, with `RunConcurrent`'s proof (not changed before a proof needs it).
 
+**The design pass (2026-11-11, branch `trace-check-design`; the user's approval, `notes/spec-first-plan.md`'s
+"Design before plumbing"): written, for review; nothing threaded.** `notes/trace-check-design.md` holds the
+chain from the closed statements to the proved pieces, every statement old → new with its callees and a
+one-line argument (`notes/decisions.md`, "Design pass (node API, harness)"). **For the user (§1 only):**
+`raft_tracecheck_safe` with Q32's premise bundle (`tracecheck.premises boot`, `bootMarshal`, and the pure
+`tracecheck.BootFacts boot`, as `etcd_putget_safe`), and the corollary `raft_tracecheck_accepts` given a form
+(a triple at `defaultCConfig` composing `RunConcurrent.spec` with `tracecheck_Events_traceAccepts`). The
+agent's: the tokens at `node.Advance` through a claim (29n's finding 4, deposited in `advInv` in both
+rendezvous orders); the gated node-API statements with today's specs as their untraced instances; Q33 by
+the existing `strconv.Itoa` axiom; Q34 by a local `netJoin`; Q35 (a); amendment A8's exact statements (Q36
+(a), Q37 (a)). **Found:** nothing supplies the received messages' types (`TrNetTy`) or a forwarded
+proposal's normal entries at a traced `run` (G1, G2; designed: `TrSent` in the sealed `trTok`, from an
+`rnTrace` outbox clause); `switchToConfig`'s leader case has no `ApplyConfChange` line lemma (`AccIdle`),
+so the leader is excluded instead (argued from `hup` and A1, not checked); five node calls refused at a
+traced node. Not argued in full: L1-L4 (the document's §9). Next: a review round on the document, then
+Probe A (client glue) and Probe B (the node's claim and deposit), then A8 and the plumbing.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and

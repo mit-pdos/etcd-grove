@@ -36922,3 +36922,65 @@ needed either way).
 
 No axiom, no `sorry`; frozen statements changed: `simInv` (the clause), `trCap_fire_boot.statement` (the
 premise). Reviews `notes/trace-validation-reviews/a7-r1.md`, `a7-r2.md`: no first-tier finding against the amended statements; the gates' `BootNext` premises gated on the trace mode (a7-r2's N1); Q36 and Q37 confirmed.
+
+## Design pass (node API, harness): the chain from `raft_tracecheck_safe` to the proved pieces, as text; the tokens at `Advance` through a claim; the messages' types at the receiver (found); A8's statements (2026-11-11 · trace-check, the design pass the user approved under `notes/spec-first-plan.md`'s "Design before plumbing"; decided by the agent under the user's delegation, but §1 of the document (the closed statements), which is the user's · branch `trace-check-design`; DRAFT, for review)
+
+**What.** `notes/trace-check-design.md`: the closed statements (the user's: `raft_tracecheck_safe` with
+Q32's premise bundle `tracecheck.premises boot := bootMarshal [1,2,3] [[],[],[]] (toEntries boot)` and
+`tracecheck.BootFacts boot := BootLog …`, as `etcd_putget.premises`/`BootFacts`; the corollary
+`raft_tracecheck_accepts`, a triple at `defaultCConfig` composing `RunConcurrent.spec` with the proved
+`tracecheck_Events_traceAccepts`), then every intermediate statement old → new with what it is proved
+from and why. Nothing threaded or proved; no Lean statement typechecked.
+
+**Decided by the agent (each argued in the document):**
+- *The tokens at `node.Advance`* (slice 29n's finding 4, made exact): `readyGotT` carries a sealed, gated
+  claim `readyToksClaim n γ N ms` (the driver's half of a new node ghost variable at the `Ready`'s
+  messages) instead of the tokens; `node.Advance.tracedSpec` takes the claim and returns
+  `[∗list] q ∈ ms, trTok γ q.st`. Inside the node the tokens (from `acceptReady`'s `"Htoks"`) sit in `run`'s
+  busy loop state and are deposited in `advInv` in both rendezvous orders: in `advDep` (receiver first,
+  the sender takes them at its commit) and in the `RcvCommit` answer (sender first, `AdvReq` extended with
+  `ms`). Checked against the Go: the harness sends only after `Advance` (`concurrent.go`), and `run` arms
+  `advancec` only after `acceptReady` returned (`traceReady`, the `Ready` line, is its last statement).
+- *Gated client statements*: each traced node-API statement's untraced instance is the current spec (the
+  claim and `trTok` `True` untraced), so one proof per function; no existing client changes but §3.5's.
+- *Found: the received messages' types (G1) and a forwarded proposal's normal entries (G2)*: slice 30c's
+  premise table takes them from "the caller's type", but `netP` gives only `netStepTypes` and `fwdP` no
+  entry types. Design: `TrSent st` (`TrNetTy`, or `MsgProp` with normal entries) inside `trTok`'s sealed
+  traced body, from an `rnTrace` clause `TrOutTy` (the outbox's types, with the scope `lt = none` and no
+  pending read), carried through `netP`/`fwdP` (gated). Its preservation through `raft.Step.traced` is not
+  yet argued per path (the document's L1).
+- *The refused calls*: `node.ReadIndex`, `TransferLeadership`, `ForgetLeader`, `ReportSnapshot`,
+  `ProposeConfChange` gain `Cluster.trace γ = none` (the untraced clients' pure fact, Q6's acceptance
+  test); `netP`'s traced local disjunct only `MsgUnreachable` (and `hupP`). The harness's `ReportSnapshot`
+  branch is dead by a new law `trTok_type` (a traced token's message is no `MsgSnap`). Rejected: bundle
+  paths for those types (a transfer is not modelled; a conf change is out of the workload).
+- *`confc` at a leader*: excluded, not proved (29n recommended the proof, but `trCapB_hookGate_applyCC`
+  needs `AccIdle`, not a leader, so no line lemma exists): `hup`'s refusal with unapplied conf entries
+  (`HupCampaigns`), `Bootstrap`'s `applied = 0`, and A1 at `Advance`; a new `rnTrace` clause `role ≠
+  follower → applied ≥ |γ.reBoot|`. Argued, not checked (L2).
+- *Amendment A8* (Q36 (a), Q37 (a), the coordinator's): `simInit` gives `bootJunk` outside the voters
+  (`bootInit` becomes `simInit`; `bootInit_ne_simInit`, `not_bootFacts` deleted); `TraceNames.dn`, the
+  persistent `bootDone tn i`, `simInv`'s authority and clause (kept by `bootDone_snoc` in every law), the
+  law `trCapB_bootDone` (from an unbooted capability whose `Λ` pins position `|C| + 3`);
+  `StartNode.gatedSpec`'s post gains `startDoneB γ cv.ID'`; the API law `Cluster.traceSim_bootEnd`
+  replaces the harness's hypothesis `BootEnd D`. Exact statements in the document's §5.3.
+- *Q33*: the proposer uses the existing trust-boundary axiom `strconv.Itoa.wp_proof`
+  (`Spec/strconv/Itoa.lean`, K4's), a standard-library spec of the kind the plan's trust base already
+  lists; not a trust-base change (the tracecheck collection's baseline gains the line). The Perennial
+  entry's "no workaround yet" is stale.
+- *Q34*: a harness-local `netJoin` over the raw `WaitGroup` specs, backed by thread tokens (`tokJoin`'s
+  argument with fractional adders: an adder with any fraction keeps the waiters' token in the invariant;
+  the full fraction trades it out for `Wait`); `join3` for `drivers.Add(3)`. The general Perennial join
+  stays proposed (`notes/perennial-changes.md`).
+- *Q35 (a)*: `Workload` gains `0 < Tick`; the corollary is stated at `defaultCConfig`, so `Workload` stays
+  out of the closed statements.
+
+**Not argued in full** (the document's §9): L1 (the types' preservation), L2 (the leader exclusion's step
+from A1), L3 (the refused calls' client call sites, uncounted), L4 (`threadBound ≤ 2^31` at `tcGF`).
+
+**The probe** (§8): Probe A, the client glue (`harness_alloc` → `StartNode.tracedSpec` → `Ready` →
+`Advance` → `node.Step.tracedSpec` → `Cluster.traceSim_bootEnd` → `runOver_intro`); Probe B, chosen by its
+invariant, the node's claim and deposit through `readyc`, `advancec` (both orders) and the receiver's
+`recvc` arm. The order is the Go's: `Advance` before `send`.
+
+No axiom, no `sorry`, no Lean file changed.
