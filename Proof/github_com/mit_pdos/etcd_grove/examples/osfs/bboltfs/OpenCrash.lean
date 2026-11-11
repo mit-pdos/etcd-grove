@@ -65,65 +65,73 @@ theorem clean_of' (xs : List ByteG) (h : ∀ x ∈ xs, x = durB x.1) :
   rw [List.map_map]
   conv => lhs; rw [← List.map_id xs]
   refine List.map_congr_left fun x hx => ?_
-  obtain ⟨a, b⟩ := x
-  simp only [Function.comp_apply, id]
-  rw [show b = true from h _ hx]
+  exact h x hx
 
 theorem clean_get (F : List w8) (k : Nat) (hk : k < F.length) :
-    ∃ b, (F.map durB)[k]? = some (b, true) :=
+    ∃ b, (F.map durB)[k]? = some (durB b) :=
   ⟨F[k], by rw [List.getElem?_map, List.getElem?_eq_getElem hk]; rfl⟩
 
-/-- The file `Open` opened, of `OsMeta` `m` and bytes `F`, all clean and durable, one version of
-each sector, fresh sectors known from its last page on if short, its meta slots invalid on disk if
-`init` must lay it out. -/
+/-- The file `Open` opened, of `OsMeta` `m` and bytes `F`, all clean and durable, a good image;
+if `init` must lay it out, its meta slots (past the size included) are known, and invalid. -/
 structure openStart (m : OsMeta) (F : List w8) : Prop where
   len : F.length = m.size
-  ok : True
   maps : m.maps = ∅
   lo : m.lo = m.size
   hi : m.hi = m.size
-  vk : m.vk = some []
-  dz : m.size < 4 * 4096 → ∃ z, m.dz = some z ∧ z ≤ pageUp m.size
-  dur : noValid F → ∀ j < 2, 4096 * j < m.size → durSlot m j (fun _ => False)
+  slots : noValid F → ∀ j < 2, ∃ X : List w8, X.length = 64 ∧ ¬ metaValid (decode X : Meta) ∧
+    ∀ k < 64, (⟨m, F.map durB, 0, 0, .idle⟩ : CSt).kc (4096 * j + 16 + k) = some [(X.getD k 0, 0)]
   good : goodImg F
 
-theorem openStart_new : openStart newMeta [] := by
-  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl,
-    fun _ => ⟨0, rfl, by simp [newMeta, Fs.initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]⟩,
-    fun _ j _ hj => by simp [newMeta, Fs.initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk] at hj,
-    ⟨by simp, .inl ⟨by simp, fun i _ h => by simp at h⟩⟩⟩
+/-- What the client knows of a file as on disk: each byte's one candidate, its value. -/
+theorem kc_start (img : Nat → w8) (sz b : Nat) :
+    (⟨initMeta (OsFile.ofDisk img sz), (OsFile.ofDisk img sz).contents.map durB, 0, 0, .idle⟩ :
+      CSt).kc b = some [((OsFile.ofDisk img sz).cache b, 0)] := by
+  show CSt.baseC ⟨initMeta (OsFile.ofDisk img sz), _, 0, 0, .idle⟩ b = _
+  have hs : (initMeta (OsFile.ofDisk img sz)).size = sz := rfl
+  have hf : (OsFile.ofDisk img sz).size = sz := rfl
+  unfold CSt.baseC; dsimp only; rw [hs]
+  by_cases hb : b < sz
+  · rw [if_pos hb, List.getElem?_map, contents_getElem?, hf, if_pos hb]; rfl
+  · rw [if_neg hb]
+    unfold OsMeta.pc
+    rw [show (initMeta (OsFile.ofDisk img sz)).tc = tailMap (OsFile.ofDisk img sz) from rfl,
+      tailMap_lookup, hf]
+    by_cases h2 : sz ≤ b ∧ b < pageUp sz
+    · rw [if_pos h2]; rfl
+    · rw [if_neg h2]
+      show (if pageUp sz ≤ b then some [((0 : w8), 0)] else none) = _
+      have h3 : pageUp sz ≤ b := by omega
+      rw [if_pos h3, show (OsFile.ofDisk img sz).cache b = 0 from diskByte_past h3]
 
-theorem openStart_disk (vs : Nat → SecBytes) (sz : Nat)
-    (hg : Good (some (OsFile.ofDisk vs sz))) :
-    openStart (metaOf (OsFile.ofDisk vs sz)) (OsFile.ofDisk vs sz).contents := by
-  rw [metaOf_ofDisk]
-  have hsz : (OsFile.ofDisk vs sz).size = sz := rfl
-  refine ⟨by rw [contents_length]; rfl, rfl, rfl, rfl, rfl, rfl, fun _ => ?_,
-    fun hn j hj hs => ?_, hg.1⟩
-  · exact ⟨pageUp sz, by simp [Fs.initMeta, hsz], by simp [Fs.initMeta, hsz]⟩
-  · simp only [Fs.initMeta, hsz] at hs ⊢
-    have hpu : 4096 * j + 80 ≤ pageUp sz := by unfold pageUp; omega
-    refine ⟨(List.range (pageUp sz)).map (OsFile.ofDisk vs sz).rawAt, fun k hk => ?_, fun hv => ?_⟩
-    · refine ⟨(OsFile.ofDisk vs sz).rawAt (4096 * j + 16 + k), ?_, ?_⟩
-      · rw [List.getElem?_map, List.getElem?_range (by omega)]; rfl
-      · rw [List.getElem?_map, List.getElem?_range (by omega)]; rfl
-    · have e : fileMeta ((List.range (pageUp sz)).map (OsFile.ofDisk vs sz).rawAt) j =
-          decode (rawSlot (OsFile.ofDisk vs sz) j) := by
-        rw [fileMeta_slot]; congr 1
-        apply List.ext_getElem?; intro k
-        by_cases hk : k < 64
-        · rw [metaSlot_getElem? _ _ _ hk, List.getElem?_map, List.getElem?_range (by omega)]
-          simp only [rawSlot, List.getElem?_map, List.getElem?_range hk, Option.map_some, rawAt_def]
-          rw [show (4096 * j + 16 + k) / 512 = 8 * j by omega,
-            show (4096 * j + 16 + k) % 512 = 16 + k by omega]
-        · rw [List.getElem?_eq_none (by rw [metaSlot_length]; simp; omega),
-            List.getElem?_eq_none (by simp [rawSlot]; omega)]
-      rw [e] at hv
-      by_cases h80 : 4096 * j + 80 ≤ sz
-      · have := hn j hj (by rw [contents_length]; exact h80)
+theorem openStart_disk (img : Nat → w8) (sz : Nat) (hg : Good (some (OsFile.ofDisk img sz))) :
+    openStart (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz).contents := by
+  have hsz : (OsFile.ofDisk img sz).size = sz := rfl
+  refine ⟨by rw [contents_length]; rfl, rfl, rfl, rfl, fun hn j hj => ?_, hg.1⟩
+  refine ⟨rawSlot (OsFile.ofDisk img sz) j, by simp [rawSlot], ?_, fun k hk => ?_⟩
+  · by_cases hin : 4096 * j < sz
+    · by_cases h16 : sz < 4 * 4096
+      · exact hg.2.1 h16 j hj hin
+      · have h80 : 4096 * j + 80 ≤ (OsFile.ofDisk img sz).size := by rw [hsz]; omega
+        have := hn j hj (by rw [contents_length]; exact h80)
         rw [fileMeta_contents h80] at this
-        exact this hv
-      · exact hg.2.1 (by omega) j hj hs hv
+        exact this
+    · have e : rawSlot (OsFile.ofDisk img sz) j = List.replicate 64 0 := by
+        apply List.ext_getElem?; intro k
+        simp only [rawSlot, List.getElem?_map, List.getElem?_range', List.getElem?_replicate]
+        by_cases hk : k < 64
+        · rw [List.getElem?_range hk, if_pos hk]
+          show some (diskByte img sz _) = _
+          rw [diskByte_past (by unfold pageUp; omega)]
+        · rw [List.getElem?_eq_none (by simp; omega), if_neg hk]; rfl
+      rw [e]; exact zeroSlot_invalid
+  · rw [kc_start]
+    simp [rawSlot, List.getD_eq_getElem?_getD, List.getElem?_range hk]
+
+theorem openStart_new : openStart newMeta [] :=
+  openStart_disk (fun b => ([] : List w8).getD b 0) 0
+    ⟨⟨by rw [contents_length]; exact Nat.zero_le _, .inl ⟨by rw [contents_length]; show 0 < 16384; decide,
+      fun i _ h => by rw [contents_length] at h; have : 4096 * i + 80 ≤ 0 := h; omega⟩⟩,
+      fun _ j _ hj => absurd hj (Nat.not_lt_zero _), _, _, rfl⟩
 
 theorem startSt_open {j : Ino} {b : GoString} {V : Hist} {i : Ino} {s : CState}
     (hs : StartSt s) (hi : s = none ∨ sIno s = some i) :
@@ -134,16 +142,15 @@ theorem startSt_open {j : Ino} {b : GoString} {V : Hist} {i : Ino} {s : CState}
   · rcases hi with h | h
     · cases h
     · simp only [csStart, sIno, Option.some.injEq] at h; subst h
-      refine ⟨metaOf (OsFile.ofDisk vs sz), ?_, ?_⟩
-      · simp only [csOpenSt, csStart, startImg, bytesOf_ofDisk, fst_clean']
-      · simp only [startImg, csStart, bytesOf_ofDisk, fst_clean']
+      refine ⟨initMeta (OsFile.ofDisk vs sz), ?_, ?_⟩
+      · simp only [csOpenSt, csStart, startImg, fst_clean']
+      · simp only [startImg, csStart, fst_clean']
         exact openStart_disk vs sz hg
 
 theorem start_initIdle {m : OsMeta} {F : List w8} (hs : openStart m F) (hn : noValid F) :
     initIdle m (F.map durB) := by
   have hg := hs.good.1
-  refine ⟨by rw [List.length_map, hs.len], by rw [hs.hi, ← hs.len]; exact hg, hs.vk, hs.dz,
-    by rw [hs.lo]; omega, hs.dur hn⟩
+  exact ⟨by rw [List.length_map, hs.len], by rw [hs.hi, ← hs.len]; exact hg, hs.slots hn⟩
 
 theorem start_commitClean {m : OsMeta} {F : List w8} (hs : openStart m F) (hc : committedImg F) :
     commitClean m (F.map durB) := by
@@ -152,32 +159,31 @@ theorem start_commitClean {m : OsMeta} {F : List w8} (hs : openStart m F) (hc : 
   have hr1 := hmp.2.2.1
   have hr2 := hmp.2.2.2.1
   simp only [imgMetas] at hmp hpg hboot hslot hr1 hr2 htx
-  refine ⟨by rw [hs.hi, ← hs.len]; exact hg, by rw [hs.lo, ← hs.len]; exact h4, ?_, ?_, ?_, ?_,
-    fun k hk => clean_get F k (by omega), fun k hk => ?_, ?_⟩ <;> rw [fst_clean']
-  · exact hmp
-  · exact hslot
-  · rw [hs.lo, ← hs.len]; exact hpg
-  · exact hboot
-  · have : 4096 * (curRoot (F.take 8192) + 1) ≤ 4096 * curPgid (F.take 8192) :=
+  have e := fst_clean' F
+  refine ⟨by rw [hs.hi, ← hs.len]; exact hg, by rw [hs.lo, ← hs.len]; exact h4, by rw [e]; exact hmp,
+    by rw [e]; exact hslot, by rw [e, hs.lo, ← hs.len]; exact hpg, by rw [e]; exact hboot,
+    fun k hk => clean_get F k (by omega), fun k hk => ?_, by rw [e]; exact htx, fun k _ hk => ?_⟩
+  · rw [e]
+    have : 4096 * (curRoot (F.take 8192) + 1) ≤ 4096 * curPgid (F.take 8192) :=
       Nat.mul_le_mul_left _ hr2
     exact clean_get F _ (by omega)
-  · exact htx
+  · rw [e] at hk
+    exact clean_get F k (by omega)
 
 /-- The starting state is `dbOk`: `init`'s idle state, or a commit's. -/
 theorem start_okS {i : Ino} {m : OsMeta} {F : List w8} (hs : openStart m F) :
     dbOk (some (i, ⟨m, F.map durB, 0, 0, .idle⟩)) := by
   have hl : (F.map durB).length = m.size := by rw [List.length_map, hs.len]
   have hwf : (⟨m, F.map durB, 0, 0, .idle⟩ : CSt).Wf := ⟨hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
+  have hsz : m.size ≤ 2 ^ 30 := by rw [← hs.len]; exact hs.good.1
   rcases goodImg_cases hs.good with hn | hc
   · have h0 := start_initIdle hs hn
     have hz : ∀ k < 8192, (List.replicate 16384 (0 : w8)).getD k 0 = 0 := fun k _ => by
       rw [List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> rfl
-    refine initW1_okS (F := List.replicate 16384 0) (nn := 0) _ hwf h0 List.length_replicate hz
-      ⟨hl, Nat.zero_le _, (Nat.max_eq_left (Nat.zero_le _)).symm,
-        fun b hb => absurd hb (Nat.not_lt_zero _), rfl, rfl,
-        ⟨[], hs.vk, fun _ _ h => by simp at h⟩, Nat.le_max_left _ _, .inr rfl, rfl⟩
-      rfl rfl (.inl rfl)
-  · exact commitClean_okS ⟨m, F.map durB, 0, 0, .idle⟩ hwf rfl (start_commitClean hs hc)
+    exact noValid_okS _ hwf trivial (by show m.hi ≤ 2 ^ 30; rw [hs.hi]; exact hsz)
+      fun j hj => let ⟨X, hXl, hXv, hX⟩ := h0.slots j hj; ⟨X, X, ⟨hXl, hXl, .inl hX⟩, hXv, hXv⟩
+  · exact commitClean_okS ⟨m, F.map durB, 0, 0, .idle⟩ hwf trivial (start_commitClean hs hc)
+      (Nat.le_refl _) (by show m.hi ≤ 2 ^ 30; rw [hs.hi]; exact hsz) (fun _ _ => trivial)
 
 theorem freshTx_noValid {F : List w8} (hn : noValid F) : freshTx (F.map durB) = (1, none, 4) := by
   unfold freshTx
@@ -245,7 +251,7 @@ theorem ready_committed {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {
   rw [freshTx_committed hc] at hf
   simp only [Prod.mk.injEq] at hf
   obtain ⟨ht, hv, hn⟩ := hf
-  refine ⟨start_commitClean hs hc, by rw [List.length_map, hs.len], ?_, hs.ok, hs.maps, hs.lo,
+  refine ⟨start_commitClean hs hc, by rw [List.length_map, hs.len], ?_, trivial, hs.maps, hs.lo,
     by rw [← hs.len]; exact hc.1, by rw [← hs.len]; exact hs.good.1, ?_, ?_, ?_⟩
   · intro x hx; simp only [List.mem_map] at hx; obtain ⟨_, _, rfl⟩ := hx; rfl
   all_goals rw [fst_clean']
@@ -256,7 +262,7 @@ theorem ready_committed {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {
 theorem ready_init {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {n : Nat}
     (hs : openStart m F) (hn : noValid F)
     (hf : freshTx (F.map durB) = (t, vo, n)) :
-    openReady (initDoneMeta m (F.map durB)) (initFile (F.map durB)) t vo n := by
+    openReady (initDoneMeta m) (initFile (F.map durB)) t vo n := by
   rw [freshTx_noValid hn] at hf
   simp only [Prod.mk.injEq] at hf
   obtain ⟨rfl, rfl, rfl⟩ := hf
@@ -264,12 +270,12 @@ theorem ready_init {m : OsMeta} {F : List w8} {t : Nat} {vo : Option w64} {n : N
   have hl : (F.map durB).length = m.size := by rw [List.length_map, hs.len]
   generalize F.map durB = xs at hl
   have hc := curMeta_init _ (by rw [List.take_take, Nat.min_self])
-  refine ⟨init_commitClean hsz, ?_, ?_, hs.ok, hs.maps, rfl, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨init_commitClean hsz, ?_, ?_, trivial, hs.maps, rfl, ?_, ?_, ?_, ?_, ?_⟩
   · rw [initFile_length, hl]; rfl
   · intro x hx; rw [initFile_clean xs] at hx; simp only [List.mem_map] at hx
     obtain ⟨_, _, rfl⟩ := hx; rfl
-  · simp only [initDoneMeta]; omega
-  · simp only [initDoneMeta]; omega
+  · show 4 * 4096 ≤ max m.size 16384; omega
+  · show max m.size 16384 ≤ 2 ^ 30; omega
   · rw [initFile_take, hc, initMeta_txid]; rfl
   · rw [show curRoot (((initFile xs).map Prod.fst).take 8192) = 3 by
       unfold curRoot; rw [initFile_take, hc, initMeta_root]; rfl, initFile_root]
@@ -606,7 +612,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
       have hn := Hb.2 rfl
       (try wp_auto)
       wp_apply wp_init db f fd path (DFrac.own 1) (DFrac.own 1) dbCrashN path R γc i m0 (F.map durB)
-          hs.ok hs.maps hsz30 (start_initIdle hs hn) dbCrashN_disj
+          hs.maps hsz30 (start_initIdle hs hn) dbCrashN_disj
           $$ [filesz Hf Hfdo Hown] as %err4 ⟨Hf, Hfdo, Hres⟩
       · iframe; iframe #
       icases Hres with (⟨%He, Hfsz, Hown⟩ | ⟨%He, %sz, %s', Hfsz, Hown⟩)
@@ -615,7 +621,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
         ileft
         isplitr
         · ipureintro; trivial
-        iexists initDoneMeta m0 (F.map durB), initFile (F.map durB)
+        iexists initDoneMeta m0, initFile (F.map durB)
         rw [show (max (m0.size : Int) 16384) = ((max m0.size 16384 : Nat) : Int) by omega]
         iframe
         ipureintro; exact ready_init hs hn hfresh
@@ -659,8 +665,8 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   have hnsz : 4096 * curPgid mp ≤ m'.size := by rw [← hlo]; exact hpg
   imod cs_freeze dbCrashN path R i γc Good dbOk m' bs 0 0 8192 (4096 * curPgid mp) ⊤
       (fun _ _ => CoPset.mem_full) (by omega) hnsz (fun h => absurd h (Nat.lt_irrefl 0))
-      (commitClean_okS ⟨m', bs, 8192, 4096 * curPgid mp, .idle⟩ ⟨Hr.len, (Nat.mul_le_mul_left 4096 hn2 : 4096 * 2 ≤ _), hnsz, trivial⟩ rfl
-        Hr.cc) $$ Hci Hown
+      (commitClean_okS ⟨m', bs, 8192, 4096 * curPgid mp, .idle⟩ ⟨Hr.len, (Nat.mul_le_mul_left 4096 hn2 : 4096 * 2 ≤ _), hnsz, trivial⟩ trivial
+        Hr.cc (Nat.le_refl _) Hr.cc.hi (fun _ _ => trivial)) $$ Hci Hown
     with ⟨Hown, Hfr⟩
   imod ready_pages i bs (curPgid mp) Hr.clean (by rw [Hr.len]; exact hnsz) hn2 $$ Hfr with #Hps
   ihave Hr0 := pages_acc (fun r => pageIs (GF := GF) i r (pageOf (bs.map Prod.fst) r)) (curRoot mp)
@@ -709,7 +715,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
       iexists mp, false, curPgid mp, some (base, len, γm), m'', bs
       iframe
       isplitr
-      · ipureintro; intro _; rw [Hm''.2.1]; exact Hr.ok
+      · ipureintro; intro _; trivial
       dsimp only
       iframe; iframe #
       ipureintro; exact ⟨Hmaps'', by omega, Hbase, Hl41⟩

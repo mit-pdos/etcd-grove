@@ -1,14 +1,15 @@
 /- Lean-first (no Rocq counterpart). minibolt's crash invariant: `Good`, the database files a
-crash may leave (`BootMinibolt`'s crash safety, `BootNoTear.lean`), and why `Open` and `BootMinibolt`'s
+crash may leave (`BootMinibolt`'s crash safety, `BootP1.lean`), and why `Open` and `BootMinibolt`'s
 checks accept them.
 
 A crash image `img` of the database file is `Good` (`goodImg`) if it is at most 1 GiB and:
 * **short** (fewer than four pages), with no valid meta in a slot it holds whole: `Open` redoes
   `init`. The slot condition makes the property inductive: `init` writes over a short file, and
-  a valid slot it left in place would survive its writes. A slot past the end counts too, as the
-  sectors hold it (`RawOk`): a crash during `init` may grow the file over a sector of the page that
-  held its end without the sector's new bytes (ext4 orders only new blocks, `Impl.lean`, "Ordered
-  growth"), and no meta may then appear there;
+  a valid slot it left in place would survive its writes. A slot past the end, in a page that
+  holds a byte of the file, counts too (`RawOk`): those bytes are on disk as they were
+  (`OsFile.ofDisk`: the last page's bytes past the size are kept), and a crash during `init`, which
+  grows the file over them, may bring any of them back (each byte comes back as one of its
+  candidates), so no meta may be valid there;
 * **uninitialized** (four pages or more, neither meta valid): `Open` redoes `init`;
 * **committed**: the meta pages are an open database's (`metaPagesOk`), the high water mark is
   inside the file, and the current meta's root page holds what `BootMinibolt` checks of it

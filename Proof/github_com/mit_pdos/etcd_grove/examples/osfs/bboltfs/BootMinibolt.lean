@@ -48,8 +48,8 @@ variable [GooseExts]
 theorem startSt_good {s : CState} (hs : StartSt s) : goodImg (startImg s) := by
   rcases hs with rfl | ⟨i, vs, sz, rfl, hg⟩
   · exact ⟨by simp [startImg], Or.inl ⟨by simp [startImg], fun i _ h => by simp [startImg] at h⟩⟩
-  · simp only [startImg, csStart, bytesOf_ofDisk, List.map_map]
-    have : (Prod.fst ∘ fun x : w8 => (x, true)) = id := rfl
+  · simp only [startImg, csStart, List.map_map]
+    have : (Prod.fst ∘ durB) = id := rfl
     rw [this, List.map_id]; exact hg.1
 
 /-- `bootOk`'s first check: transaction `t ≤ 1` holds no value. -/

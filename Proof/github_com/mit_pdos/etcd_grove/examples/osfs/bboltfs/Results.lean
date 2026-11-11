@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart). minibolt's end-to-end crash safety (`BootCrashSafety`,
-`BootNoTear.lean`): the boot program, which initializes the package and runs `BootMinibolt(dir)` at
-the start and after every crash, over the Linux file extension v2 restricted by the no-tear
-premises (`fsExtsSemanticsWithS NoTearStep NoTearCrash`), reaches no stuck thread and no
-unrecovered panic. Its adequacy is `fsSQ_crash_adequacy` (with `noTearStep_keeps`).
+`BootP1.lean`): the boot program, which initializes the package and runs `BootMinibolt(dir)` at
+the start and after every crash, over the Linux file extension's per-byte semantics with P1 as the
+crash filter and every step allowed (`fsExtsSemanticsWithS AnyStep P1`), reaches no stuck thread
+and no unrecovered panic. Its adequacy is `fsSQ_crash_adequacy` (with `anyStep_keeps`).
 
 A generation's precondition (`bootPre`) is the extension's invariant, the whole of the tree's history
 with nothing logged, the file at `dir/db` as the generation starts with it (`StartSt`: absent, or as
@@ -13,8 +13,8 @@ invariant and takes the file and the history from it (`csInv_crash_keep`): a `Go
 generation, as on disk. At the first boot the file is absent.
 
 The specs `wp_BootMinibolt` uses are linked to their proofs (`Open`, `Get`, `Close`, `Commit`, from
-the crash-aware proofs of their callees, `Proof/os/CrashStSpec.lean`'s `*.wp_proof_crashS` with the
-no-tear cut, and the crash-free ones of `Link.lean`).
+the crash-aware proofs of their callees, `Proof/os/CrashStSpec.lean`'s `*.wp_proof_crashS`, and the
+crash-free ones of `Link.lean`).
 
 **What is assumed** (hypotheses of `bootCrashSafety`, besides `BootCrashSafety`'s thread bound):
 * `Hinit_wp`: the package initializer runs from the fresh package state and gives `pkgFacts`; as
@@ -26,7 +26,7 @@ no-tear cut, and the crash-free ones of `Link.lean`).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootMinibolt
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootNoTear
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.OpenCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__CommitCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commitCrash
@@ -57,7 +57,6 @@ open Fs
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-variable [FsStepSat NoTearStep]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -123,9 +122,7 @@ theorem treeCrashed_nil {m : Tree} {V' : Hist} (h : TreeCrashed (m, []) V') : V'
 theorem startSt_okS [GooseExts] {s : CState} (hs : StartSt s) : dbOk s := by
   rcases hs with rfl | ⟨i, vs, sz, rfl, hg⟩
   · trivial
-  · have h := start_okS (i := i) (openStart_disk vs sz hg)
-    simp only [csStart, bytesOf_ofDisk]
-    exact h
+  · exact start_okS (i := i) (openStart_disk vs sz hg)
 
 section start
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -161,25 +158,28 @@ theorem startAt_startSt [L : GooseLocalGS GF] (p : GoString) (R : Roots) (m : Tr
         refine ⟨.inr ⟨i, vs, sz, rfl, hg⟩, hl, fun V' h => ?_⟩
         rw [treeCrashed_nil h]; exact .inr ⟨i, rfl, hl⟩
       · unfold csStartRes
-        simp only [csStart, metaOf_ofDisk, bytesOf_ofDisk]
+        simp only [csStart]
         iunfold osFileStart at Hf; iexact Hf
 
 end start
 
 attribute [local instance] fsExts fsExtsInterp
 
-local instance : GooseSemantics := fsExtsSemanticsWithS NoTearStep NoTearCrash
-local instance : ExtSemantics fsExt := fsSemWithS NoTearStep NoTearCrash
-local instance : HasExt fsExt := fsExtsWithS_hasFs NoTearStep NoTearCrash
+/-- `AnyStep` keeps every step. -/
+theorem anyStep_keeps : StepKeeps AnyStep := by
+  intro _ _ _ _ _ _ _ _ _ _ hs
+  exact ⟨_, _, _, hs, trivial⟩
 
-/-- The semantics' instances the specs need, over the no-tear semantics. -/
-abbrev NoTearCtx (P : ∀ [GooseSemantics] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-    [FsStepSat NoTearStep], Prop) : Prop :=
-  letI := fsExtsSemanticsWithS NoTearStep NoTearCrash
-  letI := fsSemWithS NoTearStep NoTearCrash
-  letI := fsExtsWithS_hasFs NoTearStep NoTearCrash
-  haveI : FsSemOk := fsSemWithS_ok NoTearStep NoTearCrash noTearStep_keeps
-  haveI : FsStepSat NoTearStep := fsSemWithS_sat NoTearStep NoTearCrash
+local instance : GooseSemantics := fsExtsSemanticsWithS AnyStep P1
+local instance : ExtSemantics fsExt := fsSemWithS AnyStep P1
+local instance : HasExt fsExt := fsExtsWithS_hasFs AnyStep P1
+
+/-- The semantics' instances the specs need, over the semantics with P1. -/
+abbrev P1Ctx (P : ∀ [GooseSemantics] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Prop) : Prop :=
+  letI := fsExtsSemanticsWithS AnyStep P1
+  letI := fsSemWithS AnyStep P1
+  letI := fsExtsWithS_hasFs AnyStep P1
+  haveI : FsSemOk := fsSemWithS_ok AnyStep P1 anyStep_keeps
   P
 
 section adequacy
@@ -203,7 +203,7 @@ threads are live. -/
 theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
-    (Hinit_wp : NoTearCtx fun [_] [_] [_] [_] [_] =>
+    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
       ∀ hG : HeapGS .hasLC GF, initialize'.spec (GF := GF) (hG := heapAt hG lctx))
     (N T : Nat) (hT : T ≤ 2 ^ 30) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
@@ -211,18 +211,17 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hnone : (extLocal fsExt σ.world).lookup (child dir dbB) = none)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
-    (Hsteps : @RealCrashNsteps fsExts (fsExtsSemanticsWithS NoTearStep NoTearCrash) _
+    (Hsteps : @RealCrashNsteps fsExts (fsExtsSemanticsWithS AnyStep P1) _
       (boot dir) n ([boot dir], ((σ, g) : CfgState)) κs (t2, σ2) b)
     (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : @RealCrashThreadsBelow fsExts (fsExtsSemanticsWithS NoTearStep NoTearCrash) _
+    (Hlive : @RealCrashThreadsBelow fsExts (fsExtsSemanticsWithS AnyStep P1) _
       (boot dir) T n ([boot dir], ((σ, g) : CfgState))) :
-    (∀ e2, e2 ∈ t2 → @RealNotStuck fsExts (fsExtsSemanticsWithS NoTearStep NoTearCrash) _ e2 σ2) ∧
+    (∀ e2, e2 ∈ t2 → @RealNotStuck fsExts (fsExtsSemanticsWithS AnyStep P1) _ e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  letI := fsExtsSemanticsWithS NoTearStep NoTearCrash
-  letI := fsSemWithS NoTearStep NoTearCrash
-  letI := fsExtsWithS_hasFs NoTearStep NoTearCrash
-  haveI : FsSemOk := fsSemWithS_ok NoTearStep NoTearCrash noTearStep_keeps
-  haveI : FsStepSat NoTearStep := fsSemWithS_sat NoTearStep NoTearCrash
+  letI := fsExtsSemanticsWithS AnyStep P1
+  letI := fsSemWithS AnyStep P1
+  letI := fsExtsWithS_hasFs AnyStep P1
+  haveI : FsSemOk := fsSemWithS_ok AnyStep P1 anyStep_keeps
   obtain ⟨j, hrj⟩ := Hdir
   have hR : RootsOk (extLocal fsExt σ.world).fs.roots := Hinit.2.2.2.1
   have hl0 : (extLocal fsExt σ.world).lookup (child dir dbB) =
@@ -234,7 +233,7 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
   rw [hRdef] at hR hrj Hnone
   obtain ⟨m0, hm0⟩ : ∃ m0, (extLocal fsExt σ.world).fs.treeDur = m0 := ⟨_, rfl⟩
   rw [hm0] at Hnone
-  have h := fsSQ_crash_adequacy (GF := GF) NoTearStep NoTearCrash noTearStep_keeps N T (boot dir) σ g
+  have h := fsSQ_crash_adequacy (GF := GF) AnyStep P1 anyStep_keeps N T (boot dir) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit (fun L => bootPre R dir L)
     ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
   · exact h.2
@@ -290,7 +289,7 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       imod inv_acc (E := ⊤) (show ↑dbCrashN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
         with ⟨Hi, Hclose⟩
       icases Hi with ⟨%s', %W, >Hv, >Hs, >Ht, >%Hok⟩
-      icases csInv_crash_keep NoTearCrash hG.goose_localGS L' [] V' (child dir dbB) R Good s' W
+      icases csInv_crash_keep P1 hG.goose_localGS L' [] V' (child dir dbB) R Good s' W
           (fun _ _ => List.not_mem_nil) Hok.2 (fun i x h => by subst h; exact Hok.1) $$ Hr Hs Ht
         with ⟨%fo', %hgt, Ht', Hst, -, Hs, Ht⟩
       obtain ⟨hg', htc'⟩ := hgt
@@ -305,13 +304,13 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       iframe Ht' Hs2
       ipureintro; exact hs2
 
-/-- **minibolt's crash safety** (`BootCrashSafety`, `BootNoTear.lean`: executions along which fewer
+/-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions along which fewer
 than `2 ^ 30` threads are live), under the hypotheses of the file header: the package initializer
 (`Hinit_wp`) and the `os.file`/`os.fileStat` field instances. -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (dir : GoString)
-    (Hinit_wp : NoTearCtx fun [_] [_] [_] [_] [_] =>
+    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
       ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx)) :
     BootCrashSafety dir := by
   intro σ g Hlctx Hpkgs Hinit Hdir Hnone Hthreads n κs t2 σ2 b Hsteps Hlive
