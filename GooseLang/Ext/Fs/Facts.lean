@@ -1,7 +1,7 @@
 /-
 Pure facts about the Linux file extension's state, for its specs: how the derived notions
-(`Affects`, `InflightAt`, the mapped cells' view) change, or do not, across the operations; what a
-sync does to clean bytes. Untrusted.
+(`InflightAt`, the mapped cells' view) change, or do not, across the operations; the ghost maps
+after a file is replaced (`osCoh_setFile`); what a sync does. Untrusted.
 -/
 module
 
@@ -41,98 +41,35 @@ theorem size_of_file {st : OsState} {i : Ino} {f : OsFile} (hf : st.file i = som
     st.size i = f.size := by
   simp [OsState.size, hf]
 
-/-- Below the size, the bytes a change affects are the bytes it takes. -/
-theorem affects_iff_affRange (st : OsState) (c : OsChange) (b : Nat) (f : OsFile)
-    (hf : st.file c.ino = some f) (hb : b < f.size) :
-    Affects st c b ↔ b ∈ affRange st c := by
-  unfold Affects affRange affLo affHi inRange
-  rw [size_of_file hf]
-  cases c.kind <;> dsimp only <;>
-    simp only [List.mem_range'_1, Bool.and_eq_true, decide_eq_true_eq] <;> omega
-
 theorem coh_byte {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
-    {b : Nat} {x : w8 × Bool} (hx : Γb !! (i, b) = some x) :
-    ∃ f, st.file i = some f ∧ ∃ h : b < f.contents.length, f.contents[b] = x.1 := by
-  obtain ⟨f, hf, hb, -⟩ := hcoh.bytes i b x hx
-  obtain ⟨h, h'⟩ := List.getElem?_eq_some_iff.1 hb
-  exact ⟨f, hf, h, h'⟩
+    {b : Nat} {x : ByteG} (hx : Γb !! (i, b) = some x) :
+    ∃ f, st.file i = some f ∧ b < f.size ∧ x = (f.cache b, f.cand b) :=
+  hcoh.bytes i b x hx
 
 theorem coh_tok {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
-    {c : OsChange} (ht : st.proc.inflight !! t = some c) : ∃ ti, Γt !! t = some ti ∧ ti.c = c := by
+    {c : OsChange} (ht : st.proc.inflight !! t = some c) : ∃ ti, Γt !! t = some ti ∧ ti.Is c := by
   have := hcoh.toks t
   rw [ht] at this
   cases h : Γt !! t with
   | none => rw [h] at this; cases this
-  | some ti => rw [h] at this; exact ⟨ti, rfl, Option.some.inj this⟩
+  | some ti => exact ⟨ti, rfl, hcoh.tok_is t ti c h ht⟩
 
-/-- A size `fstat` may see is past every byte that no change affects. -/
-theorem statSees_gt {st : OsState} {i : Ino} {f : OsFile} {b sz : Nat}
-    (hf : st.file i = some f) (hb : b < f.size) (hn : ¬ InflightAt st i b)
-    (hs : StatSees st i sz) : b < sz := by
-  rcases hs with rfl | ⟨t, c, ht, hci, hlo, -⟩
-  · rw [size_of_file hf]; exact hb
-  · have hna : ¬ Affects st c b := fun ha => hn ⟨t, c, ht, hci, ha⟩
-    subst hci
-    rw [size_of_file hf] at hlo
-    unfold Affects inRange at hna
-    unfold OsChange.target at hlo
-    rw [size_of_file hf] at hna hlo
-    cases hk : c.kind with
-    | write off data => simp only [hk] at hna hlo; simp at hna; omega
-    | truncate sz' => simp only [hk] at hna hlo; omega
-
-/-- With no change in flight on `i` that may resize it, `fstat` sees the size. -/
+/-- With no change in flight on `i`, `fstat` sees the size. -/
 theorem statSees_eq {st : OsState} {i : Ino} {sz : Nat}
-    (h : ∀ t c, st.proc.inflight !! t = some c → c.ino = i → ¬ Reaches st c)
+    (h : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i)
     (hs : StatSees st i sz) : sz = st.size i := by
-  rcases hs with rfl | ⟨t, c, ht, hci, hlo, hhi⟩
+  rcases hs with rfl | ⟨t, c, ht, hci, -, -⟩
   · rfl
-  · have hr := h t c ht hci
-    subst hci
-    unfold Reaches at hr
-    unfold OsChange.target at hlo hhi
-    cases hk : c.kind with
-    | write off data => simp only [hk] at hr hlo hhi; omega
-    | truncate _ => simp [hk] at hr
+  · exact absurd hci (h t c ht)
 
-/-! ## States with the same sizes and changes in flight -/
+/-! ## States with the same changes in flight -/
 
 section congr
 variable {st st' : OsState}
 
-theorem affects_congr (hs : ∀ i, st'.size i = st.size i) (c : OsChange) (b : Nat) :
-    Affects st' c b = Affects st c b := by
-  unfold Affects; rw [hs]
-
-theorem target_congr (hs : ∀ i, st'.size i = st.size i) (c : OsChange) :
-    c.target st' = c.target st := by
-  unfold OsChange.target; rw [hs]
-
-theorem affLo_congr (hs : ∀ i, st'.size i = st.size i) (c : OsChange) :
-    affLo st' c = affLo st c := by
-  unfold affLo; rw [hs]
-
-theorem affHi_congr (hs : ∀ i, st'.size i = st.size i) (c : OsChange) :
-    affHi st' c = affHi st c := by
-  unfold affHi; rw [hs]
-
-theorem affRange_congr (hs : ∀ i, st'.size i = st.size i) (c : OsChange) :
-    affRange st' c = affRange st c := by
-  unfold affRange; rw [affLo_congr hs, affHi_congr hs]
-
-theorem reaches_congr (hs : ∀ i, st'.size i = st.size i) (c : OsChange) :
-    Reaches st' c = Reaches st c := by
-  unfold Reaches; rw [hs]
-
-theorem inflightAt_congr (hs : ∀ i, st'.size i = st.size i)
-    (hin : st'.proc.inflight = st.proc.inflight) (i : Ino) (b : Nat) :
+theorem inflightAt_congr (hin : st'.proc.inflight = st.proc.inflight) (i : Ino) (b : Nat) :
     InflightAt st' i b = InflightAt st i b := by
-  unfold InflightAt; rw [hin]; simp only [affects_congr hs]
-
-theorem secBusy_congr (hs : ∀ i, st'.size i = st.size i)
-    (hin : st'.proc.inflight = st.proc.inflight) (i : Ino) (n : Nat) :
-    SecBusy st' i n = SecBusy st i n := by
-  unfold SecBusy; simp only [inflightAt_congr hs hin]
+  unfold InflightAt; rw [hin]
 
 theorem cellByte_congr (hf : ∀ i, (st'.file i).map OsFile.contents = (st.file i).map OsFile.contents)
     (hI : ∀ i b, InflightAt st' i b = InflightAt st i b) (i : Ino) (b : Nat) :
@@ -157,13 +94,13 @@ theorem cellView_congr' (hwf : OsWf st) (hwf' : OsWf st') (hm : st'.proc.maps = 
 
 end congr
 
-/-- The mapped cells' view depends on the mappings, the files and the changes in flight. -/
+/-- The mapped cells' view depends on the mappings, the files' contents and the changes in flight. -/
 theorem cellView_congr {st st' : OsState} (hwf : OsWf st) (hwf' : OsWf st')
-    (h1 : st'.proc.maps = st.proc.maps) (h2 : st'.fs.files = st.fs.files)
+    (h1 : st'.proc.maps = st.proc.maps)
+    (h2 : ∀ i, (st'.file i).map OsFile.contents = (st.file i).map OsFile.contents)
     (h3 : st'.proc.inflight = st.proc.inflight) : cellView st' = cellView st := by
-  have hs : ∀ i, st'.size i = st.size i := by intro i; simp [OsState.size, OsState.file, h2]
-  have hI := inflightAt_congr hs h3
-  exact cellView_congr' hwf hwf' h1 (cellByte_congr (fun i => by simp [OsState.file, h2]) hI) hI
+  have hI := inflightAt_congr h3
+  exact cellView_congr' hwf hwf' h1 (cellByte_congr h2 hI) hI
 
 /-! ## Replacing a file -/
 
@@ -175,20 +112,6 @@ theorem size_setFile (st : OsState) (i q : Ino) (f : OsFile) :
     (st.setFile i f).size q = if i = q then f.size else st.size q := by
   simp only [OsState.size, file_setFile]
   split <;> rfl
-
-/-- Replacing a file by one of the same size keeps the sizes. -/
-theorem size_setFile_same {st : OsState} {i : Ino} {f f' : OsFile} (hf : st.file i = some f)
-    (hl : f'.size = f.size) (q : Ino) : (st.setFile i f').size q = st.size q := by
-  rw [size_setFile]; split
-  · subst_vars; rw [size_of_file hf, hl]
-  · rfl
-
-theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
-    (hs : ∀ i, st'.size i = st.size i) (hm : st'.proc.maps = st.proc.maps)
-    (hin : st'.proc.inflight = st.proc.inflight) (h : MetaOk st q m f) : MetaOk st' q m f :=
-  ⟨h.size, h.lo, h.hi, h.ok, by rw [hm]; exact h.maps,
-    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur,
-    h.vk, h.dz⟩
 
 theorem file_setFile_ne (st : OsState) {i q : Ino} (f : OsFile) (h : i ≠ q) :
     (st.setFile i f).file q = st.file q := by
@@ -204,32 +127,105 @@ theorem files_setFile (st : OsState) (i q : Ino) (f : OsFile) :
 
 theorem setFile_proc (st : OsState) (i : Ino) (f : OsFile) : (st.setFile i f).proc = st.proc := rfl
 
-/-- Replacing a file by one with the same contents keeps every derived notion of the other files,
-and of the mapped cells. -/
-theorem osWf_setFile_sameCur {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
-    (hf : st.file i = some f) (hsize : f'.size = f.size)
-    (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi) (hv : ∀ n, (f'.secs n).vers ≠ []) :
-    OsWf (st.setFile i f') := by
-  have hs := size_setFile_same hf hsize
-  have hex : ∀ q f0, st.file q = some f0 → ∃ f1, (st.setFile i f').file q = some f1 := by
-    intro q f0 h0; rw [file_setFile]; split
+theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
+    (hm : st'.proc.maps = st.proc.maps) (hin : st'.proc.inflight = st.proc.inflight)
+    (h : MetaOk st q m f) : MetaOk st' q m f :=
+  ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, by rw [hin]; exact h.targets, h.dur, h.zf⟩
+
+/-- `OsWf` after the file `i` is replaced by `f'` (and the stamp perhaps advanced): the new file's
+sizes in order and its stamps at most the new one. -/
+theorem osWf_setFile {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
+    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi) (n : Nat)
+    (hn : st.fs.stamp ≤ n) (hst : ∀ b p, p ∈ f'.cand b → p.2 ≤ n) (p : ProcState)
+    (hp : p.fds = st.proc.fds ∧ p.maps = st.proc.maps)
+    (hinfl : ∀ t c, p.inflight !! t = some c → ∃ c', st.proc.inflight !! t = some c' ∧ c'.ino = c.ino)
+    (hone : ∀ t1 c1 t2 c2, p.inflight !! t1 = some c1 → p.inflight !! t2 = some c2 →
+      c1.ino = c2.ino → t1 = t2) :
+    OsWf { fs := { st.fs with files := <[i := f']> st.fs.files, stamp := n }, proc := p } := by
+  have hex : ∀ q f0, st.file q = some f0 →
+      ∃ f1, ({ fs := { st.fs with files := <[i := f']> st.fs.files, stamp := n }, proc := p } :
+        OsState).file q = some f1 := by
+    intro q f0 h0
+    show ∃ f1, (<[i := f']> st.fs.files) !! q = some f1
+    rw [GMap.lookup_insert_eq_iff]; split
     · exact ⟨_, rfl⟩
     · exact ⟨_, h0⟩
-  refine ⟨fun fd d h => ?_, fun b m h => ?_, hwf.maps_disj, fun t c h => ?_, ?_, ?_, ?_⟩
-  · obtain ⟨f0, h0⟩ := hwf.fds fd d h; exact hex _ _ h0
-  · obtain ⟨⟨f0, h0⟩, h1, h2, h3⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2, h3⟩
-  · obtain ⟨f0, h0⟩ := hwf.infl t c h; exact hex _ _ h0
-  · intro t1 c1 t2 c2 b h1 h2 hne hp
-    simp only [affects_congr hs]
-    exact hwf.infl_disj t1 c1 t2 c2 b h1 h2 hne hp
+  refine ⟨fun fd d h => ?_, fun b m h => ?_, ?_, fun t c h => ?_, hone, ?_, ?_⟩
+  · rw [hp.1] at h; obtain ⟨f0, h0⟩ := hwf.fds fd d h; exact hex _ _ h0
+  · rw [hp.2] at h; obtain ⟨⟨f0, h0⟩, h1, h2, h3⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2, h3⟩
+  · intro b1 m1 b2 m2 h1 h2; rw [hp.2] at h1 h2; exact hwf.maps_disj b1 m1 b2 m2 h1 h2
+  · obtain ⟨c', h', hci⟩ := hinfl t c h; obtain ⟨f0, h0⟩ := hwf.infl t c' h'; rw [← hci]
+    exact hex _ _ h0
   · intro q f1 h1
-    rw [file_setFile] at h1; split at h1
+    change (<[i := f']> st.fs.files) !! q = some f1 at h1
+    rw [GMap.lookup_insert_eq_iff] at h1; split at h1
     · cases h1; exact hsz
     · exact hwf.sizes q f1 h1
-  · intro q f1 n h1
-    rw [file_setFile] at h1; split at h1
-    · cases h1; exact hv n
-    · exact hwf.vers q f1 n h1
+  · intro q f1 b p0 h1 hp0
+    change (<[i := f']> st.fs.files) !! q = some f1 at h1
+    rw [GMap.lookup_insert_eq_iff] at h1; split at h1
+    · cases h1; exact hst b p0 hp0
+    · exact Nat.le_trans (hwf.stamps q f1 b p0 h1 hp0) hn
+
+/-- `osWf_setFile` for a step that leaves the process alone and the stamp as it is. -/
+theorem osWf_setFile' {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
+    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi)
+    (hst : ∀ b p, p ∈ f'.cand b → p.2 ≤ st.fs.stamp) : OsWf (st.setFile i f') :=
+  osWf_setFile hwf hf hsz st.fs.stamp (Nat.le_refl _) hst st.proc ⟨rfl, rfl⟩
+    (fun t c h => ⟨c, h, rfl⟩) hwf.infl_one
+
+/-- **The ghost maps after the file `i` is replaced by `f'`**, with no change in flight on it, and
+the state's process the same: its bytes exactly the new map's, its `OsMeta` `m'`. -/
+theorem osCoh_setFile {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
+    {f f' : OsFile} (hf : st.file i = some f) (hnt : ∀ t ti, Γt !! t = some ti → ti.ino ≠ i)
+    (Γb' : GMap (Ino × Nat) ByteG) (m' : OsMeta) (st' : OsState)
+    (hst' : st'.fs.files = <[i := f']> st.fs.files) (hproc : st'.proc = st.proc)
+    (hmo : MetaOk st' i m' f')
+    (hbi : ∀ b x, Γb' !! (i, b) = some x → b < f'.size ∧ x = (f'.cache b, f'.cand b))
+    (hfull : ∀ b, b < f'.size → (Γb' !! (i, b)).isSome)
+    (hother : ∀ q b, q ≠ i → Γb' !! (q, b) = Γb !! (q, b)) :
+    OsCoh st' Γb' (<[i := m']> Γm) Γf Γt := by
+  have hfile : ∀ q, st'.file q = if i = q then some f' else st.file q := by
+    intro q; simp only [OsState.file, hst', GMap.lookup_insert_eq_iff]
+  refine ⟨fun q => ?_, fun q m hm => ?_, fun q b x hx => ?_, fun q f1 b h1 hb => ?_,
+    by rw [hproc]; exact hcoh.fds, fun t => by rw [hproc]; exact hcoh.toks t,
+    fun t ti c h hc => by rw [hproc] at hc; exact hcoh.tok_is t ti c h hc,
+    fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_⟩
+  · rw [hst', GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]
+    split
+    · simp
+    · exact hcoh.meta_dom q
+  · rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · subst_vars; cases hm; exact ⟨f', by rw [hst', GMap.lookup_insert_eq_iff, if_pos rfl], hmo⟩
+    · rename_i hpq
+      obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m hm
+      exact ⟨f1, by rw [hst', GMap.lookup_insert_eq_iff, if_neg hpq]; exact h1,
+        hm1.transfer (by rw [hproc]) (by rw [hproc])⟩
+  · by_cases hq : q = i
+    · subst hq; obtain ⟨h1, h2⟩ := hbi b x hx
+      exact ⟨f', by rw [hfile, if_pos rfl], h1, h2⟩
+    · rw [hother q b hq] at hx
+      obtain ⟨f1, h1, hb, hx⟩ := hcoh.bytes q b x hx
+      exact ⟨f1, by rw [hfile, if_neg (Ne.symm hq)]; exact h1, hb, hx⟩
+  · rw [hfile] at h1; split at h1
+    · subst_vars; cases h1; exact hfull b hb
+    · rename_i hq; rw [hother q b (Ne.symm hq)]; exact hcoh.bytes_full q f1 b h1 hb
+  · have := hcoh.tok_meta t ti h
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm (hnt t ti h))]; exact this
+  · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_file t ti h
+    exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t ti h))]; exact h1, hrest⟩
+  · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t ti h
+    exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t ti h))]; exact h1, hrest⟩
+
+/-- No change in flight on a file whose whole `OsMeta` the client holds (`tokRes_meta_whole`), as
+the state has it. -/
+theorem noInfl_of_noTok {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
+    (h : ∀ t ti, Γt !! t = some ti → ti.ino ≠ i) :
+    ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i := by
+  intro t c ht hci
+  obtain ⟨ti, hti, his⟩ := coh_tok hcoh ht
+  exact h t ti hti (his.1 ▸ hci)
 
 /-! ## Syncs -/
 
@@ -237,200 +233,34 @@ section sync
 variable (f : OsFile) (busy : Nat → Prop) [DecidablePred busy]
 
 theorem synced_size : (f.synced busy).size = f.size := rfl
-theorem syncFailed_size : (f.syncFailed busy).size = f.size := rfl
 
-/-- The page of the byte `b` below the size holds a byte below the size. -/
-theorem pageIn_of_lt {sz b : Nat} (h : b < sz) : pageIn sz (b / 512) = true := by
-  simp only [pageIn, decide_eq_true_eq]; omega
-
-/-- A sync keeps the page cache's version of a sector in a page the size reaches (one past it is
-durable zeros). -/
-theorem synced_last (n : Nat) (hn : pageIn f.size n = true) :
-    ((f.synced busy).secs n).last = (f.secs n).last := by
-  simp only [OsFile.synced, hn, if_true]
-  split
+theorem synced_cache_lt (b : Nat) (hb : b < f.size) : (f.synced busy).cache b = f.cache b := by
+  simp only [OsFile.synced]; split
   · rfl
-  · split
-    · simp [Sector.last]
-    · rfl
-
-theorem syncFailed_last (n : Nat) : ((f.syncFailed busy).secs n).last = (f.secs n).last := by
-  simp only [OsFile.syncFailed]
-  split <;> rfl
-
-theorem synced_rawAt (b : Nat) (hb : b < f.size) : (f.synced busy).rawAt b = f.rawAt b := by
-  simp only [OsFile.rawAt, synced_last f busy _ (pageIn_of_lt hb)]
-
-theorem syncFailed_rawAt (b : Nat) : (f.syncFailed busy).rawAt b = f.rawAt b := by
-  simp only [OsFile.rawAt, syncFailed_last]
+  · exact diskByte_of_lt hb
 
 theorem synced_contents : (f.synced busy).contents = f.contents := by
   apply List.ext_getElem?; intro b
-  simp only [OsFile.contents, synced_size, List.getElem?_map]
-  by_cases hb : b < f.size
-  · rw [List.getElem?_range hb]; simp [synced_rawAt f busy b hb]
-  · rw [List.getElem?_eq_none (by simp; omega)]; rfl
-
-theorem syncFailed_contents : (f.syncFailed busy).contents = f.contents := by
-  unfold OsFile.contents; rw [syncFailed_size]; congr 1; funext b; exact syncFailed_rawAt f busy b
-
-/-- After a successful sync, a byte of the file in an idle sector that is dirty or has one version
-(not lost) is clean. -/
-theorem synced_clean (b : Nat) (hb : b < f.size) (hnb : ¬ busy (b / 512))
-    (hl : (f.secs (b / 512)).dirty = true ∨ (f.secs (b / 512)).vers.length ≤ 1)
-    (hne : (f.secs (b / 512)).vers ≠ []) : CleanPhys (f.synced busy) b := by
-  refine ⟨by simp [OsFile.synced]; exact hb, fun v hv => ?_⟩
-  rw [synced_rawAt f busy b hb]
-  simp only [OsFile.synced, if_neg hnb, pageIn_of_lt hb, if_true] at hv
-  split at hv
-  · simp only [List.mem_singleton] at hv; subst hv; rfl
-  · rename_i hn
-    have hd : (f.secs (b / 512)).dirty = false := by simpa using hn
-    rcases hl with hl | hl
-    · rw [hd] at hl; cases hl
-    · -- one version: it is the last
-      obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers = [w] := by
-        cases h : (f.secs (b / 512)).vers with
-        | nil => exact absurd h hne
-        | cons w ws => cases ws with
-          | nil => exact ⟨w, rfl⟩
-          | cons w' ws' => rw [h] at hl; simp at hl
-      rw [hw] at hv; simp only [List.mem_singleton] at hv; subst hv
-      simp [OsFile.rawAt, Sector.last, hw]
-
-theorem syncFailed_clean (b : Nat) (h : CleanPhys f b) : CleanPhys (f.syncFailed busy) b := by
-  obtain ⟨h1, h2⟩ := h
-  refine ⟨h1, fun v hv => ?_⟩
-  rw [syncFailed_rawAt]
-  simp only [OsFile.syncFailed] at hv
-  split at hv <;> exact h2 v hv
-
-theorem synced_vers (n : Nat) (h : (f.secs n).vers ≠ []) : ((f.synced busy).secs n).vers ≠ [] := by
-  simp only [OsFile.synced]; split
-  · exact h
-  · split
-    · split
-      · simp
-      · exact h
-    · simp
-
-theorem syncFailed_vers (n : Nat) (h : (f.secs n).vers ≠ []) :
-    ((f.syncFailed busy).secs n).vers ≠ [] := by
-  simp only [OsFile.syncFailed]; split
-  · exact h
-  · exact h
-
-end sync
-
-/-! ## Replacing a file by one with the same contents -/
-
-section sameCur
-variable {st : OsState} {i : Ino} {f f' : OsFile}
-
-theorem sizes_setFile_sameCur (hf : st.file i = some f) (hsize : f'.size = f.size) :
-    ∀ q, (st.setFile i f').size q = st.size q :=
-  size_setFile_same hf hsize
-
-theorem inflightAt_setFile_sameCur (hf : st.file i = some f) (hsize : f'.size = f.size) :
-    ∀ q b, InflightAt (st.setFile i f') q b = InflightAt st q b :=
-  inflightAt_congr (sizes_setFile_sameCur hf hsize) rfl
-
-theorem cellView_setFile_sameCur (hwf : OsWf st) (hwf' : OsWf (st.setFile i f'))
-    (hf : st.file i = some f) (hcur : f'.contents = f.contents) (hsize : f'.size = f.size) :
-    cellView (st.setFile i f') = cellView st := by
-  have hI := inflightAt_setFile_sameCur hf hsize
-  refine cellView_congr' hwf hwf' rfl (cellByte_congr (fun q => ?_) hI) hI
-  rw [file_setFile]; split
-  · subst_vars; rw [hf]; simp [hcur]
+  rw [contents_getElem?, contents_getElem?, synced_size]
+  split
+  · rename_i hb; rw [synced_cache_lt f busy b hb]
   · rfl
 
-/-- The ghost maps after replacing the file `i` by `f'`, with the same contents, and its `OsMeta`
-by `m'`, and the bytes `xs` the client holds by `ys`, with the same values: the clean bytes of `f`
-stay clean, and those `ys` marks clean are clean. -/
-theorem osCoh_setFile_sameCur {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt)
-    (hf : st.file i = some f) (hcur : f'.contents = f.contents) (hsize : f'.size = f.size)
-    {m' : OsMeta} (hmo : MetaOk (st.setFile i f') i m' f') (lo : Nat) (xs ys : List (w8 × Bool))
-    (hys : ys.length = xs.length)
-    (hxs : ∀ k (hk : k < xs.length), Γb !! (i, lo + k) = some xs[k])
-    (hval : ∀ k (hk : k < ys.length), ys[k].1 = (xs[k]'(hys ▸ hk)).1)
-    (hkeep : ∀ b, CleanPhys f b → CleanPhys f' b)
-    (hnew : ∀ k (hk : k < ys.length), ys[k].2 = true → CleanPhys f' (lo + k))
-    (hnoI : ∀ b, ¬ InflightAt st i b) :
-    OsCoh (st.setFile i f') (insertBytes i lo ys Γb) (<[i := m']> Γm) Γf Γt := by
-  have hs := sizes_setFile_sameCur hf hsize
-  have hI := inflightAt_setFile_sameCur hf hsize
-  refine ⟨fun q => ?_, fun q m hm => ?_, fun q b x hx => ?_, fun q f1 b h1 hb => ?_,
-    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_,
-    fun t ti h => ?_⟩
-  · rw [files_setFile, GMap.lookup_insert_eq_iff]
-    split
-    · simp
-    · exact hcoh.meta_dom q
-  · rw [GMap.lookup_insert_eq_iff] at hm
-    split at hm
-    · subst_vars; cases hm; exact ⟨f', by rw [files_setFile, if_pos rfl], hmo⟩
-    · rename_i hpq
-      obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m hm
-      exact ⟨f1, by rw [files_setFile, if_neg hpq]; exact h1, hm1.transfer hs rfl rfl⟩
-  · rw [lookup_insertBytes] at hx
-    split at hx
-    · rename_i hr
-      obtain ⟨rfl, h1, h2⟩ := hr
-      have hk : b - lo < ys.length := by omega
-      rw [List.getElem?_eq_getElem hk] at hx; cases hx
-      have hk' : b - lo < xs.length := hys ▸ hk
-      obtain ⟨f1, h1', hb, -⟩ := hcoh.bytes q (lo + (b - lo)) _ (hxs _ hk')
-      rw [hf] at h1'; cases h1'
-      refine ⟨f', file_setFile_eq st q f', ?_, fun hc => ⟨?_, by rw [hI]; exact hnoI b⟩⟩
-      · rw [hcur, hval _ hk]; rw [show lo + (b - lo) = b by omega] at hb; exact hb
-      · have := hnew _ hk hc; rwa [show lo + (b - lo) = b by omega] at this
-    · obtain ⟨f1, h1, hb, hc⟩ := hcoh.bytes q b x hx
-      by_cases hpq : i = q
-      · subst hpq; rw [hf] at h1; cases h1
-        refine ⟨f', file_setFile_eq st i f', by rw [hcur]; exact hb, fun hx2 => ?_⟩
-        obtain ⟨hc1, hc2⟩ := hc hx2
-        exact ⟨hkeep b hc1, by rw [hI]; exact hc2⟩
-      · refine ⟨f1, by rw [file_setFile_ne st f' hpq]; exact h1, hb, fun hx2 => ?_⟩
-        obtain ⟨hc1, hc2⟩ := hc hx2
-        exact ⟨hc1, by rw [hI]; exact hc2⟩
-  · rw [lookup_insertBytes]
-    split
-    · rename_i hr; rw [List.getElem?_eq_getElem (by omega)]; rfl
-    · rw [file_setFile] at h1
-      split at h1
-      · subst_vars; cases h1; exact hcoh.bytes_full _ f b hf (by rw [← hsize]; exact hb)
-      · exact hcoh.bytes_full q f1 b h1 hb
-  · rw [reaches_congr hs]; exact hcoh.tok_q t ti h
-  · obtain ⟨f1, h1, hsv⟩ := hcoh.tok_saved t ti h
-    rw [affRange_congr hs]
-    rw [file_setFile]; split
-    · subst_vars; rw [hf] at h1; cases h1; exact ⟨f', rfl, by rw [hcur]; exact hsv⟩
-    · exact ⟨f1, h1, hsv⟩
-  · intro j hj
-    obtain ⟨hjl, f1, h1, hc⟩ := hcoh.tok_clean t ti h j hj
-    have hlo : affLo (st.setFile i f') ti.c = affLo st ti.c := by unfold affLo; rw [hs]
-    have hhi : affHi (st.setFile i f') ti.c = affHi st ti.c := by unfold affHi; rw [hs]
-    rw [hlo, hhi]
-    refine ⟨hjl, ?_⟩
-    rw [file_setFile]; split
-    · subst_vars; rw [hf] at h1; cases h1; exact ⟨f', rfl, hkeep _ hc⟩
-    · exact ⟨f1, h1, hc⟩
+/-- After a sync, every byte not busy has the one candidate its page-cache value, stamped 0. -/
+theorem synced_cand (b : Nat) (hnb : ¬ busy b) :
+    (f.synced busy).cand b = [((f.synced busy).cache b, 0)] := by
+  simp [OsFile.synced, hnb]
 
-end sameCur
+end sync
 
 /-! ## Changing the mappings -/
 
 section maps
 
-theorem size_congr_files {st st' : OsState} (h : st'.fs.files = st.fs.files) :
-    ∀ i, st'.size i = st.size i := by
-  intro i; simp [OsState.size, OsState.file, h]
-
 theorem cellView_lookup_congr {st st' : OsState} (hwf : OsWf st) (hwf' : OsWf st')
     (hfi : st'.fs.files = st.fs.files) (hin : st'.proc.inflight = st.proc.inflight) (l : Loc)
     (hl : ∀ i k, MapsTo st' l i k ↔ MapsTo st l i k) : cellView st' !! l = cellView st !! l := by
-  have hs := size_congr_files hfi
-  have hI := inflightAt_congr hs hin
+  have hI := inflightAt_congr hin
   have hb : ∀ i k, cellByte st' i k = cellByte st i k :=
     cellByte_congr (fun i => by simp [OsState.file, hfi]) hI
   by_cases h : Mapped st l
@@ -452,38 +282,23 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     (X : GMap Loc OsMap) (Γm' : GMap Ino OsMeta)
     (hdom : ∀ q, Γm' !! q = none ↔ Γm !! q = none)
     (hsome : ∀ q m', Γm' !! q = some m' → ∃ m, Γm !! q = some m ∧
-      m'.size = m.size ∧ m'.lo = m.lo ∧ m'.hi = m.hi ∧ m'.ok = m.ok ∧ m'.dur = m.dur ∧
-      m'.vk = m.vk ∧ m'.dz = m.dz ∧
-      ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
+      m' = { m with maps := m'.maps } ∧
+      ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩)
+    (htok : ∀ t ti, Γt !! t = some ti → Γm' !! ti.ino = some ti.meta) :
     OsCoh { st with proc := { st.proc with maps := X } } Γb Γm' Γf Γt :=
   { hcoh with
     meta_dom := fun q => (hdom q).trans (hcoh.meta_dom q)
     meta_some := fun q m' h => by
-      obtain ⟨m, hm, h1, h2, h3, h5, h7, h9, h10, h6⟩ := hsome q m' h
+      obtain ⟨m, hm, he, h6⟩ := hsome q m' h
       obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
-      exact ⟨f, hf, ⟨h1 ▸ hmo.size, h2 ▸ hmo.lo, h3 ▸ hmo.hi,
-        fun hok => hmo.ok (h5 ▸ hok), h6,
-        fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc, h7 ▸ hmo.dur,
-        fun ns hns => hmo.vk ns (h9 ▸ hns),
-        fun z hz => hmo.dz z (h10 ▸ hz)⟩⟩ }
+      rw [he]
+      exact ⟨f, hf, ⟨hmo.size, hmo.lo, hmo.hi, by rw [← he]; exact h6, hmo.targets, hmo.dur,
+        hmo.zf⟩⟩
+    tok_meta := htok }
 
 end maps
 
-
 /-! ## Zeros past the size -/
-
-theorem secHits_of_mem {lo hi b : Nat} (h1 : lo ≤ b) (h2 : b < hi) : secHits lo hi (b / 512) = true := by
-  have := Nat.div_add_mod b 512
-  have := Nat.mod_lt b (show 0 < 512 by decide)
-  simp only [secHits, Bool.and_eq_true, decide_eq_true_eq]
-  constructor <;> omega
-
-theorem written_length_ge (f : OsFile) (off : Nat) (d : List w8) :
-    f.size ≤ (f.written off d).length := by
-  unfold OsFile.written
-  split
-  · simp [OsFile.contents]
-  · simp [OsFile.resized]; omega
 
 /-- **A file grows with zeros.** -/
 theorem resized_drop (f : OsFile) (sz : Nat) :
@@ -500,3 +315,5 @@ theorem pageIn_mono {a b n : Nat} (h : a ≤ b) (ha : pageIn a n = true) : pageI
 
 end Fs
 end Perennial
+
+end

@@ -1,18 +1,22 @@
 /-
-The ghost state of the Linux file extension, version 2 (`GooseLang/Ext/Fs/Impl.lean`): its values,
-the pure relations between it and the extension's state, and the extension's ghost state for the
-adequacy theorem (`ExtInterp`). The design is `notes/fs-v2-port-plan.md`, "The ghost state". The
-specs are in `Specs.lean`; the step lemmas and the resources in `World.lean`. Untrusted.
+The ghost state of the Linux file extension (`GooseLang/Ext/Fs/Impl.lean`): its values, the pure
+relations between it and the extension's state, and the extension's ghost state for the adequacy
+theorem (`ExtInterp`). The specs are in `Specs.lean`; the step lemmas and the resources in
+`World.lean`. Untrusted.
 
-* Ghost maps, all in the one `AllG GF`: the bytes of the page cache, `(i, b) ↦ (x, clean)` for every
-  byte `b < size` of the file of inode `i`; the files, `i ↦ m` (an `OsMeta`); the fds; the in-flight
-  changes (`TokInfo`); the tree's history (one entry, `Hist`); the directory fds (`DirPh`); the calls
-  on paths in flight (`calls`, token ↦ start).
-* The relations: `OsWf` (the state alone) and `OsCoh` (the files' maps mirror the state, a byte
-  marked clean is the same in every version of its sector); `FsTreeWf` and `TreeCoh` (the history is
-  the state's durable tree and log, the log is `Sequential`, a directory fd's read holds a view of the
-  history).
-* The heap: as in the first version (`cellView`, the invariant `osInv` of `World.lean`).
+* Ghost maps, all in the one `AllG GF`: the bytes of the page cache, `(i, b) ↦ (x, cs)` for every
+  byte `b < size` of the file of inode `i`, its page-cache value and its crash candidates, exactly
+  (`ByteG`); the files, `i ↦ m` (an `OsMeta`: the size, its crash bounds, the mappings, the bytes
+  that may not be durable, the zeros known past the size); the fds; the changes in flight
+  (`TokInfo`); the tree's history (one entry, `Hist`); the directory fds (`DirPh`); the calls on
+  paths in flight (`calls`, token ↦ start).
+* The relations: `OsWf` (the state alone) and `OsCoh` (the files' maps mirror the state); `FsTreeWf`
+  and `TreeCoh` (the history is the state's durable tree and log, the log is `Sequential`, a
+  directory fd's read holds a view of the history).
+* A change in flight holds the whole of its file's `OsMeta` and the bytes below the size it
+  announced (`tokRes`): at most one change is in flight on a file (the semantics' stuck rule), and
+  while it is, nothing else changes the file.
+* The heap: `cellView`, the invariant `osInv` of `World.lean`.
 -/
 module
 
@@ -36,6 +40,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-! ## Ghost values -/
 
+/-- What the ghost state holds of a byte of the page cache: its value and its crash candidates. -/
+abbrev ByteG := w8 × Cands
+
+/-- A durable byte holding `x`: its one candidate is `x`, as of the last sync. -/
+abbrev durB (x : w8) : ByteG := (x, [(x, 0)])
+
 /-- What the ghost state knows of a file. -/
 structure OsMeta where
   /-- The size of the page cache. -/
@@ -43,58 +53,82 @@ structure OsMeta where
   /-- Bounds of the size a crash may leave the file with. -/
   lo : Nat
   hi : Nat
-  /-- No sector of the file is lost by a failed sync (every sector not dirty has one version). -/
-  ok : Bool
   /-- The mappings of the file: base address to length. -/
   maps : GMap Loc Nat
-  /-- Bytes known as of the last successful sync: `some d` at `b` if the oldest version of `b`'s
-  sector (the disk's as of the last successful sync) holds `d` there. A write adds versions after
-  it, a failed sync keeps them, a successful one collapses them. -/
-  dur : List (Option w8)
-  /-- Versions known per sector: `some ns` if, since the last successful sync, every sector has at
-  most one version except those in `ns`, which have at most two (the synced contents and one
-  change); `none` if nothing is known. A crash then leaves such a sector whole: its synced version,
-  its current one (or a change in flight, landed). -/
-  vk : Option (List Nat)
-  /-- Durable zeros known past an offset: `some z` if, at every byte from `z` on, the oldest
-  version of its sector holds 0 (the semantics' durable zeros: a file created in this generation,
-  `some 0`; a file on disk, or after a successful sync, the end of its size's last page). A finite
-  `dur` for the unbounded zeros; a write, a truncate and a failed sync keep it (they add versions
-  after the oldest). -/
-  dz : Option Nat := none
+  /-- Every byte below the size outside `[dlo, dhi)` is durable (`durB`): a successful sync makes
+  every byte so, and a change adds the bytes it announces. -/
+  dlo : Nat
+  dhi : Nat
+  /-- Zeros known past an offset: `some z` if `z` is at least the size and every byte from `z` on
+  has the one candidate 0, stamped 0 (durable zeros: a file created in this generation, `some 0`; a
+  file on disk, or after a successful sync, the end of its size's last page). -/
+  zf : Option Nat := none
 
-/-- The sectors that a change of the bytes `[lo, hi)` meets. -/
-def hitSecs (lo hi : Nat) : List Nat :=
-  (List.range (hi / 512 + 1)).filter (fun n => lo < 512 * (n + 1) && 512 * n < hi)
+/-- `[dlo, dhi)` with `[lo, hi)` added: the smallest interval that holds both (an empty interval,
+`dhi ≤ dlo`, holds nothing). -/
+def OsMeta.touch (m : OsMeta) (lo hi : Nat) : OsMeta :=
+  if hi ≤ lo then m
+  else if m.dhi ≤ m.dlo then { m with dlo := lo, dhi := hi }
+  else { m with dlo := min m.dlo lo, dhi := max m.dhi hi }
 
-/-- What a change of the bytes `[lo, hi)` leaves of the versions known: each sector it meets has
-one version more: a sector known with one has two; if one it meets is known with two already, nothing
-is known any more. -/
-def vkHit (vk : Option (List Nat)) (lo hi : Nat) : Option (List Nat) :=
-  match vk with
-  | none => none
-  | some ns => if (hitSecs lo hi).all (fun n => decide (n ∉ ns)) then some (ns ++ hitSecs lo hi)
-    else none
-
-/-- An in-flight change, as the ghost state records it. -/
+/-- An in-flight change, as the ghost state records it: its file, what it does, its number (the
+stamp of the candidates it announced), the file's `OsMeta` before its first step, and the bytes
+below the size it announced, as its first step left them. What it announced is determined by its
+kind and the size at its first step (`TokInfo.lo`, `hi`, `val`, `target`). -/
 structure TokInfo where
-  c : OsChange
-  /-- The fraction of the file's `OsMeta` the first step took. -/
-  q : Qp
-  /-- The file's bytes the change took (`affRange`), as they were. -/
-  saved : List w8
-  /-- The file's `OsMeta`, as the first step left it. -/
-  om : OsMeta
-  /-- The clean flags the taken bytes had (`OsCoh.tok_clean`). -/
-  cl : List Bool
+  ino : Ino
+  kind : OsChangeKind
+  n : Nat
+  m0 : OsMeta
+  saved : List ByteG
+
+/-- The first byte the change announced. -/
+def TokInfo.lo (ti : TokInfo) : Nat :=
+  match ti.kind with
+  | .write off _ => min off ti.m0.size
+  | .truncate sz => min ti.m0.size sz
+
+/-- The end of the bytes the change announced. -/
+def TokInfo.hi (ti : TokInfo) : Nat :=
+  match ti.kind with
+  | .write off data => off + data.length
+  | .truncate sz => max ti.m0.size sz
+
+/-- The value the change announced for byte `b` (in its range). -/
+def TokInfo.val (ti : TokInfo) (b : Nat) : w8 :=
+  match ti.kind with
+  | .write off data => if off ≤ b then data.getD (b - off) 0 else 0
+  | .truncate _ => 0
+
+/-- The size the change leaves the file with. -/
+def TokInfo.target (ti : TokInfo) : Nat :=
+  match ti.kind with
+  | .write off data => max ti.m0.size (off + data.length)
+  | .truncate sz => sz
+
+/-- `m` as a change's first step leaves it, which announced `[lo, hi)` with the target `tg`: the
+bytes it announced below the size may no longer be durable; past the zeros known, they no longer
+have only the zero candidate; a crash may leave the file with the target size. -/
+def OsMeta.announce (m : OsMeta) (lo hi tg : Nat) : OsMeta :=
+  { m.touch lo (min hi m.size) with
+    zf := m.zf.map (fun z => if lo < hi then max z hi else z),
+    lo := min m.lo tg, hi := max m.hi tg }
+
+/-- The `OsMeta` a change holds. -/
+def TokInfo.meta (ti : TokInfo) : OsMeta := ti.m0.announce ti.lo ti.hi ti.target
+
+/-- The change `c` in flight is the one `ti` records. -/
+def TokInfo.Is (ti : TokInfo) (c : OsChange) : Prop :=
+  c.ino = ti.ino ∧ c.kind = ti.kind ∧ c.lo = ti.lo ∧ c.hi = ti.hi ∧ c.target = ti.target ∧
+    ∀ b, inRange c.lo c.hi b = true → c.val b = ti.val b
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.vk, m.dz))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -149,17 +183,14 @@ def OsChangeKind.enc : OsChangeKind → (Nat × List w8) ⊕ Nat
   | .write off data => .inl (off, data)
   | .truncate sz => .inr sz
 
-instance OsChange.countable : Pos.Countable OsChange :=
-  Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.ino, c.kind.enc))
+instance OsChangeKind.countable : Pos.Countable OsChangeKind :=
+  Pos.Countable.ofInjective (fun k => Pos.Countable.encode k.enc)
     (fun a b h => by
       have h := Pos.encode_inj h
-      obtain ⟨pa, ka⟩ := a; obtain ⟨pb, kb⟩ := b
-      simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2⟩ := h; subst h1
-      cases ka <;> cases kb <;> simp_all [OsChangeKind.enc])
+      cases a <;> cases b <;> simp_all [OsChangeKind.enc])
 
 instance TokInfo.countable : Pos.Countable TokInfo :=
-  Pos.Countable.ofInjective (fun t => Pos.Countable.encode (t.c, t.q, t.saved, t.om, t.cl))
+  Pos.Countable.ofInjective (fun t => Pos.Countable.encode (t.ino, t.kind, t.n, t.m0, t.saved))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
@@ -170,35 +201,6 @@ instance TokInfo.countable : Pos.Countable TokInfo :=
 section derived
 variable (st : OsState)
 
-/-- Byte `b` of `f` is clean: it has been part of the file since the last successful sync (so a crash
-keeps the file at least that long), and every version of its sector holds the page cache's byte (so a
-crash keeps it, `Bridge.lean`). -/
-def CleanPhys (f : OsFile) (b : Nat) : Prop :=
-  b < f.sizeLo ∧ ∀ v ∈ (f.secs (b / 512)).vers, v.toList.getD (b % 512) 0 = f.rawAt b
-
-/-- The first byte the change `c` takes: a write, where its affected range starts; a truncate,
-where the old and new sizes part. -/
-def affLo (c : OsChange) : Nat :=
-  match c.kind with
-  | .write off _ => min off (st.size c.ino)
-  | .truncate sz => min (st.size c.ino) sz
-
-/-- The end of the bytes the change `c` takes: its affected range, cut at the size. -/
-def affHi (c : OsChange) : Nat :=
-  match c.kind with
-  | .write off data => min (off + data.length) (st.size c.ino)
-  | .truncate _ => st.size c.ino
-
-/-- The file's bytes the change `c` takes: its affected bytes below the size. -/
-def affRange (c : OsChange) : List Nat := List.range' (affLo st c) (affHi st c - affLo st c)
-
-/-- The change `c` may change the size, or bytes past it: a write that ends past the size, or a
-truncate. Its first step takes the file's `OsMeta` whole. -/
-def Reaches (c : OsChange) : Prop :=
-  match c.kind with
-  | .write off data => st.size c.ino < off + data.length
-  | .truncate _ => True
-
 /-- The state's files are well formed: what the operations maintain of them, independently of the
 ghost state. -/
 structure OsWf : Prop where
@@ -208,53 +210,53 @@ structure OsWf : Prop where
   maps_disj : ∀ b1 m1 b2 m2, st.proc.maps !! b1 = some m1 → st.proc.maps !! b2 = some m2 →
     b1 ≠ b2 → b1.addr + m1.len ≤ b2.addr ∨ b2.addr + m2.len ≤ b1.addr
   infl : ∀ t c, st.proc.inflight !! t = some c → ∃ f, st.file c.ino = some f
-  infl_disj : ∀ t1 c1 t2 c2 b, st.proc.inflight !! t1 = some c1 →
-    st.proc.inflight !! t2 = some c2 → t1 ≠ t2 → c1.ino = c2.ino → Affects st c1 b →
-    ¬ Affects st c2 b
+  /-- At most one change is in flight on a file. -/
+  infl_one : ∀ t1 c1 t2 c2, st.proc.inflight !! t1 = some c1 →
+    st.proc.inflight !! t2 = some c2 → c1.ino = c2.ino → t1 = t2
   sizes : ∀ i f, st.file i = some f → f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi
-  /-- Every sector has a version (its page cache's, the last). -/
-  vers : ∀ i f n, st.file i = some f → (f.secs n).vers ≠ []
+  /-- Every candidate's stamp is at most the last change's number. -/
+  stamps : ∀ i f b p, st.file i = some f → p ∈ f.cand b → p.2 ≤ st.fs.stamp
 
 /-- What the ghost `OsMeta` `m` of the file `f` of inode `i` says of it. -/
 structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   size : m.size = f.size
   lo : m.lo ≤ f.sizeLo
   hi : f.sizeHi ≤ m.hi
-  ok : m.ok = true → ∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1
   maps : ∀ b len, m.maps !! b = some len ↔ st.proc.maps !! b = some ⟨i, len⟩
   targets : ∀ t c, st.proc.inflight !! t = some c → c.ino = i →
-    m.lo ≤ c.target st ∧ c.target st ≤ m.hi
-  dur : ∀ (b : Nat) (d : w8), m.dur[b]? = some (some d) →
-    ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = d
-  vk : ∀ ns, m.vk = some ns → ∀ n, (f.secs n).vers.length ≤ if n ∈ ns then 2 else 1
-  dz : ∀ z, m.dz = some z → ∀ b, z ≤ b →
-    ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0
+    m.lo ≤ c.target ∧ c.target ≤ m.hi
+  dur : ∀ b, b < f.size → ¬ (m.dlo ≤ b ∧ b < m.dhi) → f.cand b = [(f.cache b, 0)]
+  zf : ∀ z, m.zf = some z → f.size ≤ z ∧ ∀ b, z ≤ b → f.cand b = [(0, 0)]
 
 /-- The files' ghost maps mirror the state. -/
-structure OsCoh (Γb : GMap (Ino × Nat) (w8 × Bool)) (Γm : GMap Ino OsMeta)
+structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
     (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo) : Prop where
   meta_dom : ∀ i, Γm !! i = none ↔ st.fs.files !! i = none
   meta_some : ∀ i m, Γm !! i = some m → ∃ f, st.fs.files !! i = some f ∧ MetaOk st i m f
-  bytes : ∀ i b x, Γb !! (i, b) = some x → ∃ f, st.file i = some f ∧ f.contents[b]? = some x.1 ∧
-    (x.2 = true → CleanPhys f b ∧ ¬ InflightAt st i b)
+  bytes : ∀ i b x, Γb !! (i, b) = some x →
+    ∃ f, st.file i = some f ∧ b < f.size ∧ x = (f.cache b, f.cand b)
   bytes_full : ∀ i f b, st.file i = some f → b < f.size → (Γb !! (i, b)).isSome
   fds : Γf = st.proc.fds
-  toks : ∀ t, (Γt !! t).map TokInfo.c = st.proc.inflight !! t
-  tok_q : ∀ t ti, Γt !! t = some ti → Reaches st ti.c → ti.q = 1
-  tok_alone : ∀ t ti, Γt !! t = some ti → ti.q = 1 →
-    ∀ t' c', t' ≠ t → st.proc.inflight !! t' = some c' → c'.ino ≠ ti.c.ino
-  tok_saved : ∀ t ti, Γt !! t = some ti → ∃ f, st.file ti.c.ino = some f ∧
-    ti.saved = (affRange st ti.c).map (fun b => f.contents.getD b 0)
-  /-- A taken byte the token records as clean is clean, even while in flight. -/
-  tok_clean : ∀ t ti, Γt !! t = some ti → ∀ j, ti.cl[j]? = some true →
-    j < affHi st ti.c - affLo st ti.c ∧
-    ∃ f, st.file ti.c.ino = some f ∧ CleanPhys f (affLo st ti.c + j)
+  toks : ∀ t, (Γt !! t).isSome = (st.proc.inflight !! t).isSome
+  /-- A change in flight is the one its ghost entry records; it holds its file's `OsMeta`, as its
+  first step left it; the size is the one its first step saw. -/
+  tok_is : ∀ t ti c, Γt !! t = some ti → st.proc.inflight !! t = some c → ti.Is c
+  tok_meta : ∀ t ti, Γt !! t = some ti → Γm !! ti.ino = some ti.meta
+  tok_file : ∀ t ti, Γt !! t = some ti → ∃ f, st.file ti.ino = some f ∧ ti.m0.size = f.size ∧
+    ti.lo ≤ ti.hi ∧ ti.saved.length = min ti.hi f.size - ti.lo
+  /-- Each byte a change announced has its value as the last candidate, stamped with its number;
+  before it, the candidates the byte had, which are the zero alone past the zeros known. -/
+  tok_cand : ∀ t ti, Γt !! t = some ti → ∃ f, st.file ti.ino = some f ∧
+    ∀ b, inRange ti.lo ti.hi b = true → ∃ c0, f.cand b = c0 ++ [(ti.val b, ti.n)] ∧
+      ∀ z, ti.m0.zf = some z → z ≤ b → c0 = [(0, 0)]
+
+end derived
 
 /-- The tree is well formed: the roots are; every prefix of the log replayed on the durable tree is
 a tree over the roots, whose files are files of `files` and whose inodes are below `nextIno`; a
 directory fd is on a directory of the tree now; no fd number is both a file's and a directory's;
 every inode of `files` is below `nextIno`. -/
-structure FsTreeWf : Prop where
+structure FsTreeWf (st : OsState) : Prop where
   roots : RootsOk st.fs.roots
   hist : ∀ n, n ≤ st.fs.metaLog.length →
     TreeWf st.fs.roots (replay ((st.fs.metaLog.take n).map (·.op)) st.fs.treeDur) ∧
@@ -264,8 +266,6 @@ structure FsTreeWf : Prop where
   dfds : ∀ fd df, st.proc.dfds !! fd = some df → df.ino ∈ st.tree
   disj : ∀ fd, st.proc.fds !! fd ≠ none → st.proc.dfds !! fd = none
   files_lt : ∀ i, i ∈ st.fs.files → i < st.fs.nextIno
-
-end derived
 
 /-- `st'` is `st` after a step that leaves the tree alone: the tree's state, the directory fds, the
 calls in flight and the inode counter are the same, every inode of `files` stays one, and a new fd
@@ -559,18 +559,18 @@ section bytes
 variable {GF : BundledGFunctors} (hL : OsGS GF)
 
 /-- The bytes `xs` of the file `i` from `off` on. -/
-def bytesG (i : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) : IProp GF :=
+def bytesG (i : Ino) (off : Nat) (dq : DFrac) (xs : List (ByteG)) : IProp GF :=
   [∗list] k ↦ x ∈ xs, gElem hL hL.γb (i, off + k) dq x
 
-instance bytesG_timeless (i : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
+instance bytesG_timeless (i : Ino) (off : Nat) (dq : DFrac) (xs : List (ByteG)) :
     Timeless (bytesG hL i off dq xs) := by
   unfold bytesG; infer_instance
 
 theorem bytesG_nil (i : Ino) (off : Nat) (dq : DFrac) :
     bytesG hL i off dq [] ⊣⊢ emp := .rfl
 
-theorem bytesG_cons (i : Ino) (off : Nat) (dq : DFrac) (x : w8 × Bool)
-    (xs : List (w8 × Bool)) :
+theorem bytesG_cons (i : Ino) (off : Nat) (dq : DFrac) (x : ByteG)
+    (xs : List (ByteG)) :
     bytesG hL i off dq (x :: xs) ⊣⊢ gElem hL hL.γb (i, off) dq x ∗ bytesG hL i (off + 1) dq xs := by
   unfold bytesG
   refine BigSepL.bigSepL_cons.trans ?_
@@ -581,7 +581,7 @@ theorem bytesG_cons (i : Ino) (off : Nat) (dq : DFrac) (x : w8 × Bool)
   rw [show off + (k + 1) = off + 1 + k by omega]
 
 theorem bytesG_append (i : Ino) (dq : DFrac) :
-    ∀ (off : Nat) (xs ys : List (w8 × Bool)),
+    ∀ (off : Nat) (xs ys : List (ByteG)),
     bytesG hL i off dq (xs ++ ys) ⊣⊢ bytesG hL i off dq xs ∗ bytesG hL i (off + xs.length) dq ys
   | off, [], ys => by
     simp only [List.nil_append, List.length_nil, Nat.add_zero]
@@ -594,13 +594,13 @@ theorem bytesG_append (i : Ino) (dq : DFrac) :
     exact ⟨by iintro ⟨H1, H2, H3⟩; iframe, by iintro ⟨⟨H1, H2⟩, H3⟩; iframe⟩
 
 /-- `m` with the bytes `ys` from `off` on. -/
-def insertBytes (i : Ino) : Nat → List (w8 × Bool) → GMap (Ino × Nat) (w8 × Bool) →
-    GMap (Ino × Nat) (w8 × Bool)
+def insertBytes (i : Ino) : Nat → List (ByteG) → GMap (Ino × Nat) (ByteG) →
+    GMap (Ino × Nat) (ByteG)
   | _, [], m => m
   | off, y :: ys, m => insertBytes i (off + 1) ys (<[(i, off) := y]> m)
 
-theorem lookup_insertBytes (i : Ino) : ∀ (off : Nat) (ys : List (w8 × Bool))
-    (m : GMap (Ino × Nat) (w8 × Bool)) (q : Ino) (j : Nat),
+theorem lookup_insertBytes (i : Ino) : ∀ (off : Nat) (ys : List (ByteG))
+    (m : GMap (Ino × Nat) (ByteG)) (q : Ino) (j : Nat),
     insertBytes i off ys m !! (q, j) =
       if q = i ∧ off ≤ j ∧ j < off + ys.length then ys[j - off]? else m !! (q, j)
   | off, [], m, q, j => by simp [insertBytes]; intros; omega
@@ -618,8 +618,8 @@ theorem lookup_insertBytes (i : Ino) : ∀ (off : Nat) (ys : List (w8 × Bool))
           rw [if_neg (fun h => by omega)]
     · simp [hq, Ne.symm hq]
 
-theorem bytesG_update (i : Ino) : ∀ (off : Nat) (xs ys : List (w8 × Bool))
-    (Γb : GMap (Ino × Nat) (w8 × Bool)), ys.length = xs.length →
+theorem bytesG_update (i : Ino) : ∀ (off : Nat) (xs ys : List (ByteG))
+    (Γb : GMap (Ino × Nat) (ByteG)), ys.length = xs.length →
     gAuth hL hL.γb Γb ∗ bytesG hL i off (DFrac.own 1) xs ⊢
       |==> (gAuth hL hL.γb (insertBytes i off ys Γb) ∗ bytesG hL i off (DFrac.own 1) ys)
   | off, [], [], Γb, _ => by
@@ -639,8 +639,8 @@ theorem bytesG_update (i : Ino) : ∀ (off : Nat) (xs ys : List (w8 × Bool))
   | _, [], _ :: _, _, hl => by simp at hl
   | _, _ :: _, [], _, hl => by simp at hl
 
-theorem bytesG_alloc (i : Ino) : ∀ (off : Nat) (ys : List (w8 × Bool))
-    (Γb : GMap (Ino × Nat) (w8 × Bool)), (∀ k, k < ys.length → Γb !! (i, off + k) = none) →
+theorem bytesG_alloc (i : Ino) : ∀ (off : Nat) (ys : List (ByteG))
+    (Γb : GMap (Ino × Nat) (ByteG)), (∀ k, k < ys.length → Γb !! (i, off + k) = none) →
     gAuth hL hL.γb Γb ⊢
       |==> (gAuth hL hL.γb (insertBytes i off ys Γb) ∗ bytesG hL i off (DFrac.own 1) ys)
   | off, [], Γb, _ => by
@@ -660,13 +660,13 @@ theorem bytesG_alloc (i : Ino) : ∀ (off : Nat) (ys : List (w8 × Bool))
     iframe
 
 /-- `m` without the bytes `[off, off + n)` of `i`. -/
-def deleteBytes (i : Ino) : Nat → Nat → GMap (Ino × Nat) (w8 × Bool) →
-    GMap (Ino × Nat) (w8 × Bool)
+def deleteBytes (i : Ino) : Nat → Nat → GMap (Ino × Nat) (ByteG) →
+    GMap (Ino × Nat) (ByteG)
   | _, 0, m => m
   | off, n + 1, m => deleteBytes i (off + 1) n (GMap.delete (i, off) m)
 
 theorem lookup_deleteBytes (i : Ino) : ∀ (off n : Nat)
-    (m : GMap (Ino × Nat) (w8 × Bool)) (q : Ino) (j : Nat),
+    (m : GMap (Ino × Nat) (ByteG)) (q : Ino) (j : Nat),
     deleteBytes i off n m !! (q, j) = if q = i ∧ off ≤ j ∧ j < off + n then none else m !! (q, j)
   | off, 0, m, q, j => by simp [deleteBytes]; intros; omega
   | off, n + 1, m, q, j => by
@@ -682,8 +682,8 @@ theorem lookup_deleteBytes (i : Ino) : ∀ (off n : Nat)
             if_neg (fun h => by omega)]
     · simp [hq, Ne.symm hq]
 
-theorem bytesG_delete (i : Ino) : ∀ (off : Nat) (xs : List (w8 × Bool))
-    (Γb : GMap (Ino × Nat) (w8 × Bool)),
+theorem bytesG_delete (i : Ino) : ∀ (off : Nat) (xs : List (ByteG))
+    (Γb : GMap (Ino × Nat) (ByteG)),
     gAuth hL hL.γb Γb ∗ bytesG hL i off (DFrac.own 1) xs ⊢
       |==> gAuth hL hL.γb (deleteBytes i off xs.length Γb)
   | off, [], Γb => by simp only [List.length_nil, deleteBytes]; iintro ⟨H, -⟩; imodintro; iexact H
@@ -695,15 +695,15 @@ theorem bytesG_delete (i : Ino) : ∀ (off : Nat) (xs : List (w8 × Bool))
     iapply bytesG_delete i (off + 1) xs _
     iframe
 
-theorem bytesG_lookup (i : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool))
-    (Γb : GMap (Ino × Nat) (w8 × Bool)) :
+theorem bytesG_lookup (i : Ino) (off : Nat) (dq : DFrac) (xs : List (ByteG))
+    (Γb : GMap (Ino × Nat) (ByteG)) :
     ⊢ gAuth hL hL.γb Γb -∗ bytesG hL i off dq xs -∗
       ⌜∀ k (hk : k < xs.length), Γb !! (i, off + k) = some xs[k]⌝ := by
   iintro HA Hbs
   iapply pure_forall.2; iintro %k
   iapply pure_forall.2; iintro %hk
   unfold bytesG
-  icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) => gElem hL hL.γb (i, off + k) dq x)
+  icases BigSepL.bigSepL_lookup (Φ := fun k (x : ByteG) => gElem hL hL.γb (i, off + k) dq x)
     (List.getElem?_eq_getElem hk) $$ Hbs with Hb
   iapply gAuth_lookup $$ HA Hb
 
@@ -711,43 +711,33 @@ end bytes
 
 /-! ## The start -/
 
-/-- `x` rounded up to a 4096-byte page. -/
-def pageUp (x : Nat) : Nat := 4096 * ((x + 4095) / 4096)
-
-theorem pageIn_pageUp {L n : Nat} (h : pageUp L ≤ 512 * n) : pageIn L n = false := by
-  simp only [pageIn, pageUp, decide_eq_false_iff_not] at *; omega
-
-theorem pageUp_mono {a b : Nat} (h : a ≤ b) : pageUp a ≤ pageUp b := by
-  simp only [pageUp]; omega
-
-/-- The ghost `OsMeta` of a file as on disk: all of it durable, the bytes known through the end of
-its last page (those past the size are the sectors' bytes there, which a crash that grows the file
-over them may keep: `OsFile.rawAt`), and zeros past it (durable zeros). -/
+/-- The ghost `OsMeta` of a file as on disk: all of it durable, zeros past its last page (durable
+zeros). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, true, ∅, (List.range (pageUp f.size)).map (fun b => some (f.rawAt b)),
-    some [], some (pageUp f.size)⟩
+  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageUp f.size)⟩
 
-/-- A file on disk holds zeros from the end of its last page on (`diskSec`). -/
-theorem ofDisk_dz (vs : Nat → SecBytes) (sz : Nat) : ∀ b, pageUp sz ≤ b →
-    ∀ v, ((OsFile.ofDisk vs sz).secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0 := by
-  intro b hb v hv
-  have hp : pageIn sz (b / 512) = false := pageIn_pageUp (by unfold pageUp at hb ⊢; omega)
-  simp only [OsFile.ofDisk, diskSec, hp, List.head?_cons, Option.some.injEq] at hv
-  subst hv; simp [zeroSec]; split <;> rfl
-
-/-- The bytes of the files of `st`, all clean. -/
-def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
-  ⟨fun k => (st.file k.1).bind (fun f => f.contents[k.2]?.map (·, true)),
-   ⟨st.fs.files.toList.flatMap (fun pf => (List.range pf.2.contents.length).map (fun b => (pf.1, b))),
+/-- The bytes of the files of `st`, each as the state has it. -/
+def bytesMapF (F : GMap Ino OsFile) : GMap (Ino × Nat) ByteG :=
+  ⟨fun k => (F !! k.1).bind (fun f => if k.2 < f.size then some (f.cache k.2, f.cand k.2) else none),
+   ⟨F.toList.flatMap (fun pf => (List.range pf.2.size).map (fun b => (pf.1, b))),
     fun ⟨i, b⟩ h => by
       simp only [List.mem_flatMap]
-      cases hf : st.file i with
+      cases hf : F !! i with
       | none => simp [hf] at h
       | some f =>
-        simp only [hf, Option.bind_some, Option.isSome_map] at h
+        simp only [hf, Option.bind_some] at h
         refine ⟨⟨i, f⟩, (GMap.mem_toList _ _ _).2 hf, ?_⟩
         simp only [List.mem_map, List.mem_range, Prod.mk.injEq]
-        exact ⟨b, by simpa using h, by simp⟩⟩⟩
+        split at h
+        · exact ⟨b, by assumption, by simp⟩
+        · simp at h⟩⟩
+
+theorem bytesMapF_lookup (F : GMap Ino OsFile) (i : Ino) (b : Nat) :
+    bytesMapF F !! (i, b) = (F !! i).bind (fun f => if b < f.size then some (f.cache b, f.cand b) else none) :=
+  rfl
+
+/-- The bytes of the files of `st`. -/
+def bytesMap (st : OsState) : GMap (Ino × Nat) ByteG := bytesMapF st.fs.files
 
 /-- The files of `st`, as on disk. -/
 def metaMap (st : OsState) : GMap Ino OsMeta := GMap.fmap initMeta st.fs.files
@@ -755,12 +745,11 @@ def metaMap (st : OsState) : GMap Ino OsMeta := GMap.fmap initMeta st.fs.files
 section ghost
 variable {GF : BundledGFunctors}
 
-/-- What the ext holds for each in-flight change: the fraction of the file's `OsMeta` and the bytes
-its first step took. -/
-def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
+/-- What the state interpretation holds for each change in flight: its file's `OsMeta`, whole, and
+the bytes below the size it announced. -/
+def tokRes (hL : OsGS GF) (Γt : GMap Nat TokInfo) : IProp GF :=
   iprop([∗map] _t ↦ ti ∈ Γt,
-    gElem hL hL.γm ti.c.ino (DFrac.own ti.q) ti.om ∗
-    bytesG hL ti.c.ino (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))
+    gElem hL hL.γm ti.ino (DFrac.own 1) ti.meta ∗ bytesG hL ti.ino ti.lo (DFrac.own 1) ti.saved)
 
 /-- What the state interpretation holds of each directory fd: the fraction of the history its open
 took, so that no one changes the directory while it is open. -/
@@ -805,11 +794,11 @@ def treeStart (hL : OsGS GF) (st : OsState) : IProp GF :=
 
 /-- The interpretation of the files of `st`. -/
 def osCtxF (hL : OsGS GF) (st : OsState) : IProp GF :=
-  iprop(∃ (Γb : GMap (Ino × Nat) (w8 × Bool)) (Γm : GMap Ino OsMeta)
+  iprop(∃ (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
       (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo),
     ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ gAuth hL hL.γf Γf ∗ gAuth hL hL.γt Γt ∗
-    tokRes hL st Γt ∗
+    tokRes hL Γt ∗
     gVar hL (1 : Qp).half (cellView st, GMap.size st.proc.inflight))
 
 /-- The interpretation of the state `st`: its files and its tree. -/
@@ -828,36 +817,47 @@ def osStart (hL : OsGS GF) (st : OsState) : IProp GF := iprop(osStartF hL st ∗
 
 end ghost
 
-theorem contents_length (f : OsFile) : f.contents.length = f.size := by simp [OsFile.contents]
+theorem ofDisk_cand_lt (img : Nat → w8) (sz b : Nat) (hb : b < sz) :
+    (OsFile.ofDisk img sz).cand b = [((OsFile.ofDisk img sz).cache b, 0)] := by
+  simp [OsFile.ofDisk]
 
-theorem contents_getElem? (f : OsFile) (b : Nat) :
-    f.contents[b]? = if b < f.size then some (f.rawAt b) else none := by
-  simp only [OsFile.contents, List.getElem?_map, List.getElem?_range']
-  split
-  · rename_i h; simp [List.getElem?_range h]
-  · rename_i h; simp [List.getElem?_range', h]
+theorem ofDisk_cand_past (img : Nat → w8) (sz b : Nat) (hb : pageUp sz ≤ b) :
+    (OsFile.ofDisk img sz).cand b = [(0, 0)] := by
+  simp [OsFile.ofDisk, diskByte_past hb]
 
-theorem ofDisk_rawAt (vs : Nat → SecBytes) (sz b : Nat) :
-    (OsFile.ofDisk vs sz).rawAt b = (diskSec vs sz (b / 512)).toList.getD (b % 512) 0 := by
-  simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
+/-- `initMeta` says what is true of a file on disk. -/
+theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
+    (hmaps : ∀ b m, st.proc.maps !! b = some m → m.ino ≠ i)
+    (hinfl : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i) :
+    MetaOk st i (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz) := by
+  refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_⟩
+  · intro b len
+    simp only [initMeta]
+    constructor
+    · intro h; simp at h
+    · intro h; exact absurd rfl (hmaps b _ h)
+  · intro t c ht hc; exact absurd hc (hinfl t c ht)
+  · intro b hb _; exact ofDisk_cand_lt img sz b hb
+  · intro z hz
+    simp only [initMeta, Option.some.injEq] at hz; subst hz
+    refine ⟨le_pageUp _, fun b hb => ofDisk_cand_past img sz b hb⟩
 
 theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by
   obtain ⟨hproc, -, -, -, -, -, hdisk, -, -⟩ := h
-  have hdisk' : ∀ i f, st.file i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
+  have hdisk' : ∀ i f, st.file i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
     fun i f hf => (hdisk i f hf).2
-  have hnoinfl : ∀ i b, ¬ InflightAt st i b := by
-    rintro i b ⟨t, c, ht, -⟩; simp [hproc, ProcState.empty] at ht
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · intro fd d h; simp [hproc, ProcState.empty] at h
   · intro b m h; simp [hproc, ProcState.empty] at h
   · intro b1 m1 _ _ h; simp [hproc, ProcState.empty] at h
   · intro t c h; simp [hproc, ProcState.empty] at h
-  · intro t1 c1 _ _ _ h; simp [hproc, ProcState.empty] at h
+  · intro t1 c1 _ _ h; simp [hproc, ProcState.empty] at h
   · intro i f hf
-    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
-  · intro i f n hf
-    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+    obtain ⟨img, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+  · intro i f b p hf hp
+    obtain ⟨img, sz, rfl⟩ := hdisk' i f hf
+    simp only [OsFile.ofDisk, List.mem_singleton] at hp; subst hp; simp
   · intro i; simp [metaMap]
   · intro i m hm
     simp only [metaMap, GMap.lookup_fmap] at hm
@@ -866,45 +866,24 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     | some f =>
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
-      obtain ⟨vs, sz, rfl⟩ := hdisk' i f hfo
-      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_,
-        fun ns hns n => by simp [initMeta] at hns; subst hns; simp [OsFile.ofDisk],
-        fun z hz => by
-          simp only [initMeta, Option.some.injEq] at hz; subst hz
-          exact ofDisk_dz vs sz⟩⟩
-      · simp [initMeta, OsFile.ofDisk]
-      · simp [initMeta, OsFile.ofDisk]
-      · intro _ n _; simp [OsFile.ofDisk]
-      · intro b len; simp [initMeta, hproc, ProcState.empty]
-      · intro t c ht; simp [hproc, ProcState.empty] at ht
-      · intro b d hb v hv
-        simp only [initMeta, List.getElem?_map, Option.map_eq_some_iff, Option.some.injEq] at hb
-        obtain ⟨x, hx, rfl⟩ := hb
-        simp only [OsFile.ofDisk, List.head?_cons, Option.some.injEq] at hv
-        subst hv
-        obtain ⟨-, rfl⟩ := List.getElem?_eq_some_iff.1 hx
-        rw [List.getElem_range, ofDisk_rawAt]
+      obtain ⟨img, sz, rfl⟩ := hdisk' i f hfo
+      exact ⟨_, rfl, metaOk_ofDisk img sz (fun b m h => by simp [hproc, ProcState.empty] at h)
+        (fun t c h => by simp [hproc, ProcState.empty] at h)⟩
   · intro i b x hx
-    simp only [bytesMap, GMap.lookup_mk] at hx
-    cases hf : st.file i with
+    simp only [bytesMap, bytesMapF_lookup] at hx
+    cases hf : st.fs.files !! i with
     | none => simp [hf] at hx
     | some f =>
-      simp only [hf, Option.bind_some, Option.map_eq_some_iff] at hx
-      obtain ⟨y, hy, rfl⟩ := hx
-      refine ⟨f, rfl, hy, fun _ => ⟨⟨?_, ?_⟩, hnoinfl i b⟩⟩
-      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
-        rw [contents_getElem?] at hy; split at hy
-        · simpa [OsFile.ofDisk]
-        · cases hy
-      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
-        intro v hv
-        simp only [OsFile.ofDisk, List.mem_singleton] at hv
-        subst hv; rw [ofDisk_rawAt]
+      simp only [hf, Option.bind_some] at hx
+      split at hx
+      · cases hx; exact ⟨f, hf, by assumption, rfl⟩
+      · cases hx
   · intro i f b hf hb
-    simp [bytesMap, hf, contents_getElem?, hb]
+    simp only [bytesMap, bytesMapF_lookup]
+    simp [show st.fs.files !! i = some f from hf, hb]
   · simp [hproc, ProcState.empty]
   · intro t; simp [hproc, ProcState.empty]
-  · intro t ti h; simp at h
+  · intro t ti c h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h

@@ -6,11 +6,11 @@ step (`wp_os_step` for the data operations, `wp_fs_stepT` for every operation, w
 world), and the tree's resources and their laws. Untrusted.
 
 **Resources** (all of the generation's ghost state `gooseOsGS`):
-* `osByte i b dq (x, c)`: byte `b` of the page cache of the file of inode `i` is `x`, and, if `c`,
-  clean (every version of its sector holds it: a crash keeps it); fractional. `osBytes i off dq xs`:
+* `osByte i b dq (x, cs)`: byte `b` of the page cache of the file of inode `i` is `x`, and its crash
+  candidates are `cs` (a crash leaves it one of their values); fractional. `osBytes i off dq xs`:
   the bytes from `off` on.
 * `osMeta i dq m`: the file of inode `i` exists and `m` (`OsMeta`) says what the ghost state knows of
-  it. Fractional; changing the size, syncing and (un)mapping need it whole.
+  it. Fractional; a change, a sync and (un)mapping need it whole.
 * `osFd fd dq d`: `fd` is open, on the file `d.ino`, with `d`'s access mode; fractional.
 * `osTree dq V`: (a fraction of) the tree's history `V`. `osDir j dq g`: the directory of inode `j`,
   as `g` says: a fraction of the history, of which `g` is `j`'s view. `osDirFd fd dq x`: `fd` is an
@@ -43,99 +43,52 @@ variable {GF : BundledGFunctors} (hL : OsGS GF)
 /-- A byte the client holds a fraction of is under no change in flight: the change would hold all
 of it. -/
 theorem tokRes_byte_free {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt)
-    {i : Ino} {b : Nat} {dq : DFrac} {x : w8 × Bool} (hx : Γb !! (i, b) = some x) :
-    ⊢ tokRes hL st Γt -∗ gElem hL hL.γb (i, b) dq x -∗ ⌜¬ InflightAt st i b⌝ := by
+    {i : Ino} {b : Nat} {dq : DFrac} {x : ByteG} (hx : Γb !! (i, b) = some x) :
+    ⊢ tokRes hL Γt -∗ gElem hL hL.γb (i, b) dq x -∗ ⌜¬ InflightAt st i b⌝ := by
   iintro Htok Hb
   by_cases hin : InflightAt st i b
   · obtain ⟨t, c, ht, hci, haff⟩ := hin
-    obtain ⟨ti, hti, rfl⟩ := coh_tok hcoh ht
+    obtain ⟨ti, hti, his⟩ := coh_tok hcoh ht
     obtain ⟨f, hf, hb, -⟩ := coh_byte hcoh hx
-    obtain ⟨f', hf', hsaved⟩ := hcoh.tok_saved t ti hti
-    subst hci
-    rw [hf] at hf'; cases hf'
-    have hbs : b < f.size := by rw [← contents_length]; exact hb
-    have hmem := (affects_iff_affRange st ti.c b f hf hbs).1 haff
-    have hlo : affLo st ti.c ≤ b ∧ b < affLo st ti.c + (affHi st ti.c - affLo st ti.c) :=
-      List.mem_range'_1.1 hmem
-    have hk : (affRange st ti.c)[b - affLo st ti.c]? = some b := by
-      unfold affRange; rw [List.getElem?_range']; simp; omega; omega
-    have hk' : ti.saved[b - affLo st ti.c]? = some (f.contents.getD b 0) := by
-      rw [hsaved, List.getElem?_map, hk]; rfl
-    have hk'' : (ti.saved.map (·, false))[b - affLo st ti.c]? =
-        some (f.contents.getD b 0, false) := by
-      rw [List.getElem?_map, hk']; rfl
+    obtain ⟨f', hf', -, -, hlen⟩ := hcoh.tok_file t ti hti
+    obtain ⟨hino, -, hlo, hhi, -⟩ := his
+    rw [← hino, hci, hf] at hf'; cases hf'
+    rw [hlo, hhi] at haff
+    simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at haff
+    have hk : b - ti.lo < ti.saved.length := by rw [hlen]; omega
     unfold tokRes
     icases BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (ti : TokInfo) =>
-      iprop(gElem hL hL.γm ti.c.ino (DFrac.own ti.q) ti.om ∗
-        bytesG hL ti.c.ino (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
+      iprop(gElem hL hL.γm ti.ino (DFrac.own 1) ti.meta ∗
+        bytesG hL ti.ino ti.lo (DFrac.own 1) ti.saved))
       hti $$ Htok with ⟨-, Hs⟩
     unfold bytesG
-    icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) =>
-      gElem hL hL.γb (ti.c.ino, affLo st ti.c + k) (DFrac.own 1) x) hk'' $$ Hs with Hs
-    rw [show affLo st ti.c + (b - affLo st ti.c) = b by omega]
+    icases BigSepL.bigSepL_lookup (Φ := fun k (x : ByteG) =>
+      gElem hL hL.γb (ti.ino, ti.lo + k) (DFrac.own 1) x) (List.getElem?_eq_getElem hk) $$ Hs with Hs
+    rw [show ti.lo + (b - ti.lo) = b by omega, ← hino, hci]
     icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hs Hb with %Hv
     exact absurd (DFrac.valid_own_op Hv.1) (by simp)
   · ipureintro; exact hin
 
-/-- A client's fraction of a file's `OsMeta` leaves the changes in flight on it only fractions:
-none of them takes the whole. -/
-theorem tokRes_meta_frac {st : OsState} {Γt : GMap Nat TokInfo} {i : Ino} {dq : DFrac}
-    {m : OsMeta} :
-    ⊢ tokRes hL st Γt -∗ gElem hL hL.γm i dq m -∗
-      ⌜∀ t ti, Γt !! t = some ti → ti.c.ino = i → ti.q ≠ 1⌝ := by
+/-- Any fraction of a file's `OsMeta`: no change is in flight on it (a change holds it whole). -/
+theorem tokRes_meta_whole {Γt : GMap Nat TokInfo} {i : Ino} {dq : DFrac} {m : OsMeta} :
+    ⊢ tokRes hL Γt -∗ gElem hL hL.γm i dq m -∗ ⌜∀ t ti, Γt !! t = some ti → ti.ino ≠ i⌝ := by
   iintro Htok Hm
   iapply pure_forall.2; iintro %t
   iapply pure_forall.2; iintro %ti
   by_cases hti : Γt !! t = some ti
-  · by_cases hp : ti.c.ino = i
-    · by_cases hq : ti.q = 1
-      · unfold tokRes
-        icases BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (ti : TokInfo) =>
-          iprop(gElem hL hL.γm ti.c.ino (DFrac.own ti.q) ti.om ∗
-            bytesG hL ti.c.ino (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
-          hti $$ Htok with ⟨Hs, -⟩
-        rw [hp, hq]
-        icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hs Hm with %Hv
-        exact absurd (DFrac.valid_own_op Hv.1) (by simp)
-      · ipureintro; exact fun _ _ => hq
-    · ipureintro; exact fun _ h => absurd h hp
-  · ipureintro; exact fun h => absurd h hti
-
-/-- The whole of a file's `OsMeta`: no change is in flight on it. -/
-theorem tokRes_meta_whole {st : OsState} {Γt : GMap Nat TokInfo} {i : Ino} {m : OsMeta} :
-    ⊢ tokRes hL st Γt -∗ gElem hL hL.γm i (DFrac.own 1) m -∗
-      ⌜∀ t ti, Γt !! t = some ti → ti.c.ino ≠ i⌝ := by
-  iintro Htok Hm
-  iapply pure_forall.2; iintro %t
-  iapply pure_forall.2; iintro %ti
-  by_cases hti : Γt !! t = some ti
-  · by_cases hp : ti.c.ino = i
+  · by_cases hp : ti.ino = i
     · unfold tokRes
       icases BigSepM.bigSepM_lookup (Φ := fun (_t : Nat) (ti : TokInfo) =>
-        iprop(gElem hL hL.γm ti.c.ino (DFrac.own ti.q) ti.om ∗
-          bytesG hL ti.c.ino (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false))))
+        iprop(gElem hL hL.γm ti.ino (DFrac.own 1) ti.meta ∗
+          bytesG hL ti.ino ti.lo (DFrac.own 1) ti.saved))
         hti $$ Htok with ⟨Hs, -⟩
       rw [hp]
-      icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hm Hs with %Hv
+      icases gElem_valid_2 hL _ _ _ _ _ _ $$ Hs Hm with %Hv
       exact absurd (DFrac.valid_own_op Hv.1) (by simp)
     · ipureintro; exact fun _ => hp
   · ipureintro; exact fun h => absurd h hti
 
 end tokres
-
-theorem noReach_of_frac {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
-    (h : ∀ t ti, Γt !! t = some ti → ti.c.ino = i → ti.q ≠ 1) :
-    ∀ t c, st.proc.inflight !! t = some c → c.ino = i → ¬ Reaches st c := by
-  intro t c ht hci hr
-  obtain ⟨ti, hti, rfl⟩ := coh_tok hcoh ht
-  exact h t ti hti hci (hcoh.tok_q t ti hti hr)
-
-theorem noTok_of_whole {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
-    (h : ∀ t ti, Γt !! t = some ti → ti.c.ino ≠ i) :
-    ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i := by
-  intro t c ht hci
-  obtain ⟨ti, hti, rfl⟩ := coh_tok hcoh ht
-  exact h t ti hti hci
 
 /-! ## Resources -/
 
@@ -150,12 +103,12 @@ theorem os_local_ctx_eq (st : OsState) :
     ExtInterp.localCtx (E := fsExt) (extLocalGS fsExt) st ⊣⊢ osCtx (gooseOsGS (L := L)) st :=
   .rfl
 
-/-- Byte `b` of the file `i` is `x.1`, clean if `x.2`. -/
-def osByte (i : Ino) (b : Nat) (dq : DFrac) (x : w8 × Bool) : IProp GF :=
+/-- Byte `b` of the file `i` is `x.1` in the page cache, and its crash candidates are `x.2`. -/
+def osByte (i : Ino) (b : Nat) (dq : DFrac) (x : ByteG) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb (i, b) dq x
 
 /-- The bytes of the file `i` from `off` on are `xs`. -/
-def osBytes (i : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) : IProp GF :=
+def osBytes (i : Ino) (off : Nat) (dq : DFrac) (xs : List (ByteG)) : IProp GF :=
   bytesG (gooseOsGS (L := L)) i off dq xs
 
 /-- The file of inode `i` exists, as `m` says. -/
@@ -170,7 +123,7 @@ def osFd (fd : w64) (dq : DFrac) (d : OsFd) : IProp GF :=
 def osTok (t : Nat) (ti : TokInfo) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt t (DFrac.own 1) ti
 
-instance osByte_timeless (i : Ino) (b : Nat) (dq : DFrac) (x : w8 × Bool) :
+instance osByte_timeless (i : Ino) (b : Nat) (dq : DFrac) (x : ByteG) :
     Timeless (osByte (L := L) i b dq x) := by unfold osByte; infer_instance
 instance osMeta_timeless (i : Ino) (dq : DFrac) (m : OsMeta) :
     Timeless (osMeta (L := L) i dq m) := by unfold osMeta; infer_instance
@@ -331,6 +284,25 @@ theorem treeFrame_setFile (st : OsState) (i : Ino) (f f0 : OsFile) (hf : st.file
     simp [this]
   · rw [GMap.lookup_insert_ne _ _ he]
 
+theorem treeFrame_stampFile (st : OsState) (i : Ino) (g : Nat → OsFile) (f0 : OsFile)
+    (hf : st.file i = some f0) : TreeFrame st (st.stampFile i g) := by
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun k => ?_, fun _ h => Or.inl h⟩
+  rw [GMap.mem_iff, GMap.mem_iff]
+  show ((<[i := g (st.fs.stamp + 1)]> st.fs.files) !! k).isSome = true ↔
+    (st.fs.files !! k).isSome = true
+  by_cases he : i = k
+  · subst he; rw [GMap.lookup_insert]
+    have : st.fs.files !! i = some f0 := hf
+    simp [this]
+  · rw [GMap.lookup_insert_ne _ _ he]
+
+theorem treeFrame_addInflight (st : OsState) (t : Nat) (c : OsChange) :
+    TreeFrame st (st.addInflight t c) :=
+  treeFrame_inflight st _
+
+theorem treeFrame_doneInflight (st : OsState) (t : Nat) : TreeFrame st (st.doneInflight t) :=
+  treeFrame_inflight st _
+
 /-- The operations that leave the tree alone: the data operations, on fds and their files. -/
 def DataOp (o : String) : Prop :=
   o ∈ ["PRead", "PWriteStart", "PWriteFinish", "Fstat", "FtruncateStart", "FtruncateFinish",
@@ -347,20 +319,20 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
   · -- PRead
     obtain ⟨_, _, _, _, _, -, -, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- PWriteStart
-    obtain ⟨_, _, _, _, _, -, -, -, -, h1, -⟩ := h
-    obtain ⟨-, -, -, rfl⟩ := h1
-    exact treeFrame_inflight _ _
+    obtain ⟨_, _, _, d, f, t, -, -, -, -, -, hf, -, -, -, h1, -⟩ := h
+    rw [h1]; exact (treeFrame_stampFile _ _ _ f hf).trans (treeFrame_addInflight _ _ _)
   · -- PWriteFinish
-    obtain ⟨t, i, off, data, f, k, e, -, -, hf, -, -, rfl, -⟩ := h
-    exact (treeFrame_inflight st _).trans (treeFrame_setFile _ i _ f hf)
+    obtain ⟨t, c, off, data, f, k, e, -, -, -, hf, -, -, h1, -⟩ := h
+    rw [h1]; exact (treeFrame_doneInflight st t).trans (treeFrame_setFile _ _ _ f hf)
   · -- Fstat
     obtain ⟨_, _, _, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- FtruncateStart
-    obtain ⟨_, _, _, _, -, -, -, -, -, -, -, rfl, -⟩ := h; exact treeFrame_inflight _ _
+    obtain ⟨_, _, t, d, f, -, -, -, -, -, hf, -, -, h1, -⟩ := h
+    rw [h1]; exact (treeFrame_stampFile _ _ _ f hf).trans (treeFrame_addInflight _ _ _)
   · -- FtruncateFinish
-    obtain ⟨t, i, sz, f, -, -, hf, hres⟩ := h
-    have h0 := treeFrame_inflight st (GMap.delete t st.proc.inflight)
-    have h1 := h0.trans (treeFrame_setFile _ i (f.truncate sz) f hf)
+    obtain ⟨t, c, sz, f, -, -, -, hf, hres⟩ := h
+    have h0 := treeFrame_doneInflight st t
+    have h1 := h0.trans (treeFrame_setFile _ c.ino (f.land c c.hi c.target) f hf)
     rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, rfl | rfl⟩
     · exact h1
     · exact h0
@@ -369,13 +341,13 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
     obtain ⟨fd, d, f, -, -, hf, hres⟩ := h
     rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, -, rfl⟩
     · exact treeFrame_setFile _ _ _ f hf
-    · exact treeFrame_setFile _ _ _ f hf
+    · exact TreeFrame.refl _
   · -- Flock
     obtain ⟨_, _, _, _, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- Close
     obtain ⟨fd, _, _, -, -, rfl, -⟩ := h; exact treeFrame_fds_delete _ _
   · -- Mmap
-    obtain ⟨_, _, _, _, _, _, -, -, -, -, -, -, -, -, hres⟩ := h
+    obtain ⟨_, _, _, _, _, _, -, -, -, -, -, -, -, hres⟩ := h
     rcases hres with ⟨_, -, -, -, rfl, -⟩ | ⟨_, -, rfl, -⟩
     · exact treeFrame_maps _ _
     · exact TreeFrame.refl _
@@ -388,14 +360,15 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
   · -- FdKind
     obtain ⟨_, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- FallocStart
-    obtain ⟨_, _, _, _, _, -, -, -, -, -, -, -, -, rfl, -⟩ := h; exact treeFrame_inflight _ _
+    obtain ⟨_, _, _, t, d, f, -, -, -, -, -, -, hf, -, -, h1, -⟩ := h
+    rw [h1]; exact (treeFrame_stampFile _ _ _ f hf).trans (treeFrame_addInflight _ _ _)
   · -- FallocFinish
-    obtain ⟨t, i, sz, f, -, -, hf, hres⟩ := h
-    have h0 := treeFrame_inflight st (GMap.delete t st.proc.inflight)
-    rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, rfl | ⟨sz', -, -, rfl⟩⟩
-    · exact h0.trans (treeFrame_setFile _ i _ f hf)
+    obtain ⟨t, c, sz, f, -, -, -, hf, hres⟩ := h
+    have h0 := treeFrame_doneInflight st t
+    rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, rfl | ⟨w, -, -, rfl⟩⟩
+    · exact h0.trans (treeFrame_setFile _ _ _ f hf)
     · exact h0
-    · exact h0.trans (treeFrame_setFile _ i _ f hf)
+    · exact h0.trans (treeFrame_setFile _ _ _ f hf)
   · -- FallocKeep
     obtain ⟨_, _, _, _, d, -, -, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- OfdLock
@@ -412,13 +385,13 @@ variable {s : Stuckness} {E : CoPset}
 
 /-- What an operation's proof works with of the files: the state, its ghost maps, what the extension
 holds of each change in flight, the invariant's share of the mapped cells, and the heap. -/
-def osWorld (st : OsState) (Γb : GMap (Ino × Nat) (w8 × Bool))
+def osWorld (st : OsState) (Γb : GMap (Ino × Nat) (ByteG))
     (Γm : GMap Ino OsMeta) (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo)
     (h : GMap Loc (NonAtomic val)) : IProp GF :=
   iprop(⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb ∗ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf ∗ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt ∗
-    tokRes (gooseOsGS (L := L)) st Γt ∗ cellsRes (cellView st) ∗ naHeapCtx tls h)
+    tokRes (gooseOsGS (L := L)) Γt ∗ cellsRes (cellView st) ∗ naHeapCtx tls h)
 
 /-- What a tree operation's proof works with of the tree: the state's facts, the ghost maps of the
 history, the directory fds and the calls in flight, and the fractions the reads in progress hold. -/
@@ -598,56 +571,45 @@ theorem filesSame_file : ∀ i, st'.file i = st.file i := by
 theorem filesSame_size : ∀ i, st'.size i = st.size i := by
   intro i; simp [OsState.size, filesSame_file h]
 
-theorem filesSame_affects : ∀ c b, Affects st' c b = Affects st c b :=
-  affects_congr (filesSame_size h)
-
 theorem filesSame_inflightAt : ∀ i b, InflightAt st' i b = InflightAt st i b :=
-  inflightAt_congr (filesSame_size h) h.2.2.1
+  inflightAt_congr h.2.2.1
 
-theorem osWf_filesSame (hw : OsWf st) : OsWf st' := by
+theorem osWf_filesSame (hw : OsWf st) (hstamp : st'.fs.stamp = st.fs.stamp) : OsWf st' := by
   have hf := filesSame_file h
   obtain ⟨h1, h2, h3, h4⟩ := h
   refine ⟨fun fd d hd => ?_, fun b m hm => ?_, fun b1 m1 b2 m2 hm1 hm2 => ?_, fun t c ht => ?_,
-    fun t1 c1 t2 c2 b ht1 ht2 => ?_, fun i f hfi => ?_, fun i f n hfi => ?_⟩
+    fun t1 c1 t2 c2 ht1 ht2 => ?_, fun i f hfi => ?_, fun i f b p hfi => ?_⟩
   · rw [h2] at hd; rw [hf]; exact hw.fds fd d hd
   · rw [h4] at hm; rw [hf]; exact hw.maps b m hm
   · rw [h4] at hm1 hm2; exact hw.maps_disj b1 m1 b2 m2 hm1 hm2
   · rw [h3] at ht; rw [hf]; exact hw.infl t c ht
-  · rw [h3] at ht1 ht2
-    simp only [filesSame_affects ⟨h1, h2, h3, h4⟩]
-    exact hw.infl_disj t1 c1 t2 c2 b ht1 ht2
+  · rw [h3] at ht1 ht2; exact hw.infl_one t1 c1 t2 c2 ht1 ht2
   · rw [hf] at hfi; exact hw.sizes i f hfi
-  · rw [hf] at hfi; exact hw.vers i f n hfi
+  · rw [hf] at hfi; rw [hstamp]; exact hw.stamps i f b p hfi
 
 theorem metaOk_filesSame {i : Ino} {m : OsMeta} {f : OsFile} (hm : MetaOk st i m f) :
     MetaOk st' i m f :=
-  hm.transfer (filesSame_size h) h.2.2.2 h.2.2.1
+  hm.transfer h.2.2.2 h.2.2.1
 
 theorem osCoh_filesSame {Γb Γm Γf Γt} (hc : OsCoh st Γb Γm Γf Γt) : OsCoh st' Γb Γm Γf Γt := by
   have hf := filesSame_file h
-  have hs := filesSame_size h
-  have hI := filesSame_inflightAt h
   obtain ⟨h1, h2, h3, h4⟩ := h
   refine ⟨fun i => by rw [h1]; exact hc.meta_dom i, fun i m hm => ?_, fun i b x hx => ?_,
     fun i f b hfi hb => ?_, by rw [h2]; exact hc.fds, fun t => by rw [h3]; exact hc.toks t,
-    fun t ti hti hr => ?_, fun t ti hti hq t' c' hne ht' => ?_, fun t ti hti => ?_,
-    fun t ti hti j hj => ?_⟩
+    fun t ti c hti hc' => by rw [h3] at hc'; exact hc.tok_is t ti c hti hc', hc.tok_meta,
+    fun t ti hti => ?_, fun t ti hti => ?_⟩
   · obtain ⟨f, hfi, hmo⟩ := hc.meta_some i m hm
     exact ⟨f, by rw [h1]; exact hfi, metaOk_filesSame ⟨h1, h2, h3, h4⟩ hmo⟩
-  · obtain ⟨f, hfi, hb, hcl⟩ := hc.bytes i b x hx
-    exact ⟨f, by rw [hf]; exact hfi, hb, fun hx2 => by rw [hI]; exact hcl hx2⟩
+  · obtain ⟨f, hfi, hb, hx⟩ := hc.bytes i b x hx
+    exact ⟨f, by rw [hf]; exact hfi, hb, hx⟩
   · rw [hf] at hfi; exact hc.bytes_full i f b hfi hb
-  · rw [reaches_congr hs] at hr; exact hc.tok_q t ti hti hr
-  · rw [h3] at ht'; exact hc.tok_alone t ti hti hq t' c' hne ht'
-  · rw [affRange_congr hs, hf]; exact hc.tok_saved t ti hti
-  · rw [affLo_congr hs, affHi_congr hs, hf]; exact hc.tok_clean t ti hti j hj
+  · rw [hf]; exact hc.tok_file t ti hti
+  · rw [hf]; exact hc.tok_cand t ti hti
 
-theorem tokRes_filesSame {GF : BundledGFunctors} (hL : OsGS GF) (Γt : GMap Nat TokInfo) :
-    tokRes hL st' Γt = tokRes hL st Γt := by
-  unfold tokRes; simp only [affLo_congr (filesSame_size h)]
-
-theorem cellView_filesSame (hw : OsWf st) : cellView st' = cellView st :=
-  cellView_congr hw (osWf_filesSame h hw) h.2.2.2 h.1 h.2.2.1
+theorem cellView_filesSame (hw : OsWf st) (hstamp : st'.fs.stamp = st.fs.stamp) :
+    cellView st' = cellView st :=
+  cellView_congr hw (osWf_filesSame h hw hstamp) h.2.2.2
+    (fun i => by rw [filesSame_file h]) h.2.2.1
 
 end filesSame
 
@@ -671,27 +633,27 @@ theorem cells_same {st st' : OsState} {h h' : GMap Loc (NonAtomic val)} (hwf : O
 
 /-- The files' world after a step that leaves them alone. -/
 theorem osWorld_filesSame {st st' : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtomic val)}
-    (hs : FilesSame st st') (hr : HeapRendered st st' h h') (hfr : MapsFresh st st' h) :
+    (hs : FilesSame st st') (hstamp : st'.fs.stamp = st.fs.stamp) (hr : HeapRendered st st' h h')
+    (hfr : MapsFresh st st' h) :
     osWorld (L := L) st Γb Γm Γf Γt h ⊢ |==> osWorld (L := L) st' Γb Γm Γf Γt h' := by
   unfold osWorld
   iintro ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
-  have hwf' := osWf_filesSame hs hwf
-  imod cells_same hwf hwf' hr hfr hs.2.2.2 (cellView_filesSame hs hwf) $$ [Hσ Hcells]
+  have hwf' := osWf_filesSame hs hwf hstamp
+  imod cells_same hwf hwf' hr hfr hs.2.2.2 (cellView_filesSame hs hwf hstamp) $$ [Hσ Hcells]
     with ⟨Hσ, Hcells⟩
   · iframe
-  rw [tokRes_filesSame hs _ Γt]
   imodintro
   iframe
   ipureintro; exact ⟨hwf', osCoh_filesSame hs hcoh⟩
 
 /-- A step that leaves the files alone exists from any heap the cells' view agrees with. -/
 theorem step_filesSame {st st' : OsState} {h : GMap Loc (NonAtomic val)} (hwf : OsWf st)
-    (hs : FilesSame st st')
+    (hs : FilesSame st st') (hstamp : st'.fs.stamp = st.fs.stamp)
     (Hag : ∀ l x, cellView st !! l = some x → ∃ m, h !! l = some (m, toCellVal x.1)) :
     MapsFresh st st' h ∧ HeapRendered st st' h h :=
   ⟨mapsFresh_same hs.2.2.2,
-    heapRendered_same (osWf_filesSame hs hwf) hs.2.2.2 (cellView_filesSame hs hwf) Hag⟩
+    heapRendered_same (osWf_filesSame hs hwf hstamp) hs.2.2.2 (cellView_filesSame hs hwf hstamp) Hag⟩
 
 end specs
 
