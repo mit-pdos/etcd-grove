@@ -37,7 +37,6 @@ abbrev runner.newMember.spec : Prop :=
   0 ≤ sint.Z id → sint.Z id ≤ 2 → backend.dbOpenOk → ckptEffectsOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗
-      □ (∀ (γB : backend.BNames) (P : backend.BParams) (b' : Loc), keySized γB P b') ∗
       envVerifyOff ∗ threadTok ∗ histRd h γh ∗ monoListLbOwn γh.l hist0 ∗ backend.fileHolds path ∅ }}
     (App (App (x @!! go.GoType.PointerType runner.ty @!! go!"newMember") (Val #id)) (Val #path))
   {{ (mp : Loc), RET #mp; threadTok ∗ histRd h γh ∗

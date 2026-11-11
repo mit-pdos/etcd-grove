@@ -358,6 +358,14 @@ branch changes only `notes/`), and fast-forwards `lean`. A landing that finds th
 one that finds `lean` moved merges it outside the lock and reruns. No `git merge --ff-only` into
 `lean` by hand.
 
+**The model-param gate is cached** (2026-11-11, `model-param-incr`). Gate 5b's Lean runs
+(`etc/model-param-check.py`: over an hour until rule 7 stopped passing over every constant per
+registration, about 4 minutes since) are cached in `/shared/tmp/model-param-cache/`, shared by
+the worktrees, under a SHA-256 of everything a run depends on (the `.olean`s of its whole import
+closure, the toolchain, the scripts, the manifests: the script's docstring), so a landing that
+changes none of a group's inputs reuses its result; the judging always runs. `--no-cache` for a
+suspicious result (and for CI, if it ever runs this gate).
+
 **The session registry** (2026-11-05, the user's). Sessions under two accounts work on this
 repository and cannot all message each other, so one file says who does what:
 `/shared/etcd-grove-sessions.md`, a table with one row per active session (session name, account,

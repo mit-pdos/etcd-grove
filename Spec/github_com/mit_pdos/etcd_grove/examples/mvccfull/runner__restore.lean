@@ -50,7 +50,6 @@ abbrev runner.restore.spec : Prop :=
   v1.ops < v0.ops → backend.dbOpenOk → backend.dbCloseOk → ckptEffectsOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γ.h ∗
-      □ (∀ (γB : backend.BNames) (P : backend.BParams) (b' : Loc), keySized γB P b') ∗
       envVerifyOff ∗ threadTok ∗ writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs }}
     (App (App (x @!! go.GoType.PointerType runner.ty @!! go!"restore") (Val #mp0)) (Val #mp1))
   {{ RET #(); threadTok ∗

@@ -85,7 +85,7 @@ theorem runner.restore.wp_proof
   haveI : Persistent (rdShared (GF := GF) x) := by unfold rdShared ctrInv; infer_instance
   haveI : Persistent (runnerKeys (GF := GF) x ks) := by unfold runnerKeys; infer_instance
   haveI : Persistent (runnerH (GF := GF) x h) := by unfold runnerH; infer_instance
-  wp_start as ⟨#Hctx, #Hks, #Hvoff, Htok, Hw⟩
+  wp_start as ⟨#Hctx, #Hvoff, Htok, Hw⟩
   ihave #HctxK : writerCtx x ks cfg wr h γ.h $$ []
   · iexact Hctx
   ihave #HrnK : rnCtx x ks cfg h γ.h $$ []

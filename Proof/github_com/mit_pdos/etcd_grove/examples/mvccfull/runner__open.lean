@@ -78,7 +78,7 @@ theorem runner.open.wp_proof
   haveI : Persistent (rnCtx (GF := GF) x ks cfg h γh) := by
     unfold rnCtx runnerKeys runnerH ctrInv; infer_instance
   haveI : Persistent (runnerKeys (GF := GF) x ks) := by unfold runnerKeys; infer_instance
-  wp_start as ⟨#Hctx, #Hks, #Hvoff, Htok, Hrd, #Hlb, #Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv,
+  wp_start as ⟨#Hctx, #Hvoff, Htok, Hrd, #Hlb, #Hid, #Hhook, HhookOk, Hpath, Hbe, Hle, Hkv,
     Hrev, Hcmp, Hleases, Hfile, Himg, %Hrec, Hcarry, Hσw, Hbw⟩
   ihave #HctxK : writerCtx x ks cfg wr h γh $$ []
   · iexact Hctx

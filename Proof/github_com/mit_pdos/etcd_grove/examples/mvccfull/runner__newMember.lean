@@ -40,7 +40,7 @@ theorem runner.newMember.wp_proof
     runner.newMember.spec (GF := GF) (hG := hG) := by
   intro _ _ x ks cfg wr h γh id path hid0 hid2 hdbo hck hlim hcbl
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
-  wp_start as ⟨#Hctx, #Hks, #Hvoff, Htok, Hrd, #Hlb, Hfile⟩
+  wp_start as ⟨#Hctx, #Hvoff, Htok, Hrd, #Hlb, Hfile⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull $$ []
   · iunfold writerCtx at Hctx; icases Hctx with ⟨#Hrn, -⟩; iunfold rnCtx at Hrn
     icases Hrn with ⟨#H, -⟩; iexact H

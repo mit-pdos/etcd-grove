@@ -880,9 +880,10 @@ backend's proof and bbolt's key-value contract) makes what the apply thread star
 store as the txn package's `isKV`, its reader slots, the sole writer of the initial log, and a
 supply of `N` write tokens (`txn.storeWTs`, the backend's write-back tokens: `applyEntries`
 spends one per entry). The premises are the backend creator's (the backend's constructor is not
-proved): the backend made for the real instance, its post-lock hook set for good, **`keySized`**
-(fewer than `2 ^ 62` entries of the `Key` bucket in any state a read transaction holds: a
-genuine assumption, nothing in etcd bounds a bucket's size), the clients' view of the empty
+proved): the backend made for the real instance, its post-lock hook set for good (until premise
+fixes 5, 2026-11-10, also `keySized`, fewer than `2 ^ 62` entries of the `Key` bucket in any state a
+read transaction holds, assumed; now proved, `mvcc.keySized_at`, from bbolt's address-space bound
+`backend.rtxSnap_size`), the clients' view of the empty
 `Key` bucket, the lock resource's registration right, `N + 2` write-back tokens (`NewStore`
 spends two) and a reader token per reader slot; and, since the merge with the store's compaction
 (unit 5a, 2026-10-13), `NewStore`'s premise on its configuration (`mvcc.batchLimitOk`:
@@ -925,7 +926,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.plHookRO d.γB f ∗ □ (∀ (γ : backend.BNames) (b' : Loc), mvcc.keySized γ d.P b') ∗
+        backend.plHookRO d.γB f ∗
         backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) Pk K d.be D ∗
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
@@ -947,7 +948,8 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
           mvcc.api.backendRest d.γB d.P K d.be D ∗
           backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
           lease.leaseOwn γl [] ∅ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, #Hsz, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
       mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]
@@ -993,7 +995,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.plHookRO d.γB f ∗ □ (∀ (γ : backend.BNames) (b' : Loc), mvcc.keySized γ d.P b') ∗
+        backend.plHookRO d.γB f ∗
         backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) Pk K d.be D ∗
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
@@ -1016,7 +1018,8 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
           mvcc.api.backendRest d.γB d.P K d.be D ∗
           backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
           lease.leaseOwn γl [] ∅ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, #Hsz, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
       mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]
@@ -1136,7 +1139,7 @@ theorem server_kv_backend_hooks (lg : Loc) (le : GoInterface) (γA : ApplyNames)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.plHookRO d.γB f ∗ □ (∀ (γ : backend.BNames) (b' : Loc), mvcc.keySized γ d.P b') ∗
+        backend.plHookRO d.γB f ∗
         backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) K d.be D ∗
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
