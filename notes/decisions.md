@@ -35498,7 +35498,7 @@ commit index are never cut):
   in "Users re-proved". Restarts (`InitState` past the
   bootstrap) are out of scope (P1); a restart could lower a term (`durable`) and would need a durable
   copy of the clause.
-- *(Superseded by "Amendment A6 (Q22, Q23)": the `Commit` line is kept by `quorumLogF_commit`, and
+- *(Superseded by "Amendment A6 (Q22, Q23, Q24)": the `Commit` line is kept by `quorumLogF_commit`, and
   `BecomeLeader` needs `ackHists_becomeLeader`, not `quorumLogF_congr` alone.)* *A leader's `Commit` line* (not yet proved; it was blocked on the acknowledgement-history copy of the
   notes' table already): its new prefix takes `t` the leader's term and its certificate raft's new
   commit quorum (`commitJ`'s right arm); its quorum of holders at terms `≥ t` comes from that copy: the
@@ -35749,7 +35749,7 @@ allocation already has); then `stepBundle_traced.on_of_onRB` discharges both bun
   `m.term`).
 - The bootstrap positions' question above (then `.on_of_onRB`).
 
-## Amendment A6 (Q22, Q23): the acknowledgement histories in `QuorumLogF`, for a leader's `Commit` line; messages between servers, for a won vote's quorum (2026-11-11 · trace-check, Q22 (a) and Q23 (a) taken by the coordinator pending the user's veto, their forms decided by the agent · branch `trace-check-a6`; amends the frozen Draft (A5 merged, not yet re-frozen) in `simFx`'s `QuorumLogF` and `MsgsShape` clauses and the receive law's `PhaseStepR`; DRAFT until the re-freeze)
+## Amendment A6 (Q22, Q23, Q24): the acknowledgement histories in `QuorumLogF`, for a leader's `Commit` line; messages between servers, for a won vote's quorum; the capability's voters fit the bootstrap log, for an accepted append (2026-11-11 · trace-check, Q22 (a), Q23 (a) and Q24 (a) taken by the coordinator pending the user's veto, their forms decided by the agent · branch `trace-check-a6`; amends the frozen Draft (A5 merged, not yet re-frozen) in `simFx`'s `QuorumLogF` and `MsgsShape` clauses, the receive law's `PhaseStepR` and `trCapB`'s pure clause; DRAFT until the re-freeze)
 
 **The problem** (A5's open item, "Amendment A5 (Q21)"): a leader's `Commit` line (`AdvanceCommitIndex`)
 raises its commit index to `c`, agreed by a quorum `Q` of its match indices; its new committed prefix
@@ -35869,3 +35869,22 @@ configured sender), and `wonVote_quorum`: at a won `MsgVoteResp`'s receive line,
 must hand the guard's fact to the `BecomeLeader` line's phase in the same `Step` call (`PhaseStepB` has no
 message premise); `phaseStepR_voteRespCand` does not use the new premises yet. Not done: `AckHists`'
 guard `x.source ∈ σ.server` is now implied by `MsgEnds` (harmless; may be dropped at the re-freeze).
+
+### Q24: the capability's voters fit the bootstrap log
+
+**The problem** (slice 24c, "Q8 stage 1 (slice 24c)"): an accepted `MsgApp`'s bundle needs
+`C.length ≤ γ.reBoot.length` (the specification's first `|C|` log positions are the bootstrap entries;
+raft's facts put the batch past `|γ.reBoot|`). It holds where the capability's invariant is allocated
+(`BootLogOk`: `|γ.reBoot| = |C|`), but nothing carried it.
+
+**Checked first**: `C` (the voters, `tn.voters`) and `γ.reBoot` are fixed for the cluster's life, so
+every law, which rebuilds `trCapB` at the same `C` and `γ`, keeps the clause by passing it through; it is
+established where the capability is made: `trCapB_intro` takes it, `startTrace_trCapB` gives it from
+`nodeBoot`'s `BootLogOk` (its length equation), as `Cluster.traceSimInv_alloc` does.
+
+**The amendment**: `trCapB`'s pure clause, old `tn.voters = C ∧ (elements c.incoming).Perm C ∧
+c.outgoing = ∅ ∧ id ∈ C`, new `… ∧ id ∈ C ∧ C.length ≤ γ.reBoot.length`. Users: the laws and the
+capability's lemmas destructure and rebuild the clause (`TracedHooksGlobal.lean`, `TracedCap.lean`'s
+`trCapB_cfg`, `TracedFamilies.lean`'s `trCapB_pinMem`); `trCapB_intro`'s premise; `startTrace_trCapB`.
+`trCapB_bootFit` puts the clause into the phase, and with slice 24c's `stepBundle_traced.on_of_onRB`
+gives `stepBundle_traced_folAppAcc_on` and `stepBundle_traced_candAppAcc_on` (`.on`, every capability).

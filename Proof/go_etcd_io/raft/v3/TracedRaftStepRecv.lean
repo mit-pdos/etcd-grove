@@ -1080,7 +1080,7 @@ theorem trCapB_pinDir (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : C
   iintro H
   iunfold trCapB at H
   icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
-  obtain ⟨hC, hpin, hpout, hid⟩ := Hpf
+  obtain ⟨hC, hpin, hpout, hid, hbf⟩ := Hpf
   subst hC
   iexists tn, cs, P
   iframe Hdir
@@ -1088,7 +1088,7 @@ theorem trCapB_pinDir (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : C
   iunfold trCapB
   iexists tn, tn.voters, tl, cs, P
   iframe Hdir Htl Hlg Hinv Hrinv Hnode Hbt
-  isplitr; · ipureintro; exact ⟨rfl, hpin, hpout, hid⟩
+  isplitr; · ipureintro; exact ⟨rfl, hpin, hpout, hid, hbf⟩
   isplitr; · ipureintro; exact Hnn
   ipureintro; exact ⟨rfl, rfl, rfl, HΦ⟩
 

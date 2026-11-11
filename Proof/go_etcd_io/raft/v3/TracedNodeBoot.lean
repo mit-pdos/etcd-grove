@@ -380,7 +380,8 @@ invariant, the node's share in phase `Φ` and its `booted` flag unset make the c
 theorem trCapB_intro (γd : GName) (tn : TraceNames) (C : List w64) (tl : GoInterface) (cs : ServerC)
     (P : List Etcdraft.Msg) (o : Option TraceEv) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop)
-    (hC : tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C)
+    (hC : tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C ∧
+      C.length ≤ γ.reBoot.length)
     (htl : tl ≠ interface.nil) (hΦ : Φ C cs P) (hΛ : Λ o) :
     (traceDir γd tn ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
         inv (simNS γ) (simInv C tn (simFx γ C)) ∗ raftLogInv γ ∗ simNode tn id cs P ∗

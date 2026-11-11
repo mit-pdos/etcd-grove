@@ -1356,7 +1356,9 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `stepBundle_traced.on_of_onRB` turns into `.on` given (a)'s law (`notes/decisions.md`, "Q8 stage 1
   (slice 24c)").
   **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, folded
-  into amendment A6 (one review round with Q22 and Q23).
+  into amendment A6 (one review round with Q22 and Q23). **Done** on branch `trace-check-a6` (`trCapB`'s clause;
+  `trCapB_bootFit`; `stepBundle_traced_folAppAcc_on`/`_candAppAcc_on`; `notes/decisions.md`, "Amendment A6
+  (Q22, Q23, Q24)").
 - **Q22 (2026-11-11, amendment A5's open item): what a leader's `Commit` line needs to keep
   `QuorumLogF`.** A5's `QuorumLogF` (`KeptFrom` with `CommitCert`) is kept by every line but a leader's
   `Commit` (the specification's `AdvanceCommitIndex`): its new committed prefix `P`, of the leader's term
@@ -1378,7 +1380,7 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   `QuorumLogF` (the readers need `QuorumLogInv` itself, A5's check). **Taken by the coordinator (the
   freeze being delegated to it), pending the user's veto: (a), as (a2)**, amendment A6 (checked against
   the specification first, a review round, then the re-freeze). **Done** on branch `trace-check-a6`
-  (`AckHists`; `quorumLogF_commit`; `notes/decisions.md`, "Amendment A6 (Q22, Q23)").
+  (`AckHists`; `quorumLogF_commit`; `notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").
 - **Q21 (2026-11-11, Q8 stage 1 slice 22b): an accepted append's truncation and the frozen
   `QuorumLogF`.** A receiver at the request's term may hold, by coincidence, a prefix a quorum
   committed at a higher term, and truncate it; `QuorumLogF` (a clause of the frozen `simFx`) stays
@@ -2548,6 +2550,9 @@ configured (its premise tuple gains `m.source ∈ confAbs C ∧ ∀ k ∈ cs.vot
 which `trCap_fire_recv` supplies): sufficiency `wonVote_quorum` (`tallyGranted_quorum`'s `hc` at a won
 `MsgVoteResp`, from `votesIn_of_responded` and `votesIn_recordVote`; the won path must hand it to the
 `BecomeLeader` line's phase). No axiom, no `sorry`, no client-visible change. Concurrent slices: a new
-`PhaseStepR` proof's premise pattern gains two components, a new send its ends. Reviews `a6-r1.md`,
+`PhaseStepR` proof's premise pattern gains two components, a new send its ends. (Q24) `trCapB`'s pure
+clause gains `C.length ≤ γ.reBoot.length` (fixed for the cluster; from `BootLogOk` in
+`startTrace_trCapB`), which `trCapB_bootFit` hands to a phase: slice 24c's accepted-`MsgApp` bundles
+become `stepBundle_traced.on` (`stepBundle_traced_folAppAcc_on`, `_candAppAcc_on`). Reviews `a6-r1.md`,
 `a6-r2.md`, `a6-r3.md`
-(`notes/decisions.md`, "Amendment A6 (Q22, Q23)").
+(`notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").

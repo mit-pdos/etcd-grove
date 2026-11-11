@@ -269,7 +269,7 @@ theorem trCapB_pinMem (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : C
   iunfold trCapB at H
   icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   iexists C, cs, P
-  isplitr; · ipureintro; exact ⟨HΦ, Hpf.2.2.2⟩
+  isplitr; · ipureintro; exact ⟨HΦ, Hpf.2.2.2.1⟩
   iunfold trCapB
   iexists tn, C, tl, cs, P
   iframe Hdir Htl Hlg Hinv Hrinv Hnode Hbt
@@ -295,6 +295,25 @@ theorem trCapB_pinPerm (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : 
   isplitr; · ipureintro; exact Hpf
   isplitr; · ipureintro; exact Hnn
   ipureintro; exact HΦ
+
+/-- (Amendment A6, Q24) **The capability's voters fit the bootstrap log**, into its phase (the
+capability's clause `C.length ≤ γ.reBoot.length`): what `stepBundle_traced.on_of_onRB` asks. -/
+theorem trCapB_bootFit (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    trCapB (GF := GF) tr γ r id c b Φ Λ ⊢
+      trCapB tr γ r id c b (fun C cs P => Φ C cs P ∧ C.length ≤ γ.reBoot.length) Λ := by
+  cases tr with
+  | none => simp only [trCapB]; exact .rfl
+  | some γd =>
+    iintro H
+    iunfold trCapB at H
+    icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
+    iunfold trCapB
+    iexists tn, C, tl, cs, P
+    iframe Hdir Htl Hlg Hinv Hrinv Hnode Hbt
+    isplitr; · ipureintro; exact Hpf
+    isplitr; · ipureintro; exact Hnn
+    ipureintro; exact ⟨HΦ, Hpf.2.2.2.2⟩
 
 /-- **The traced family**: the capability (booted `b`) in the phase `Φs` of the server, its share's
 pending list the outbox's traced messages up to order (`PhaseAt`). -/

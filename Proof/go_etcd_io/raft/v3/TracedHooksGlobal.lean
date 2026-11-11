@@ -606,7 +606,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
-  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hvC, hperm, hout, hC, hbf⟩ := Hpf
   have hnd : C.Nodup := hperm.nodup_iff.1 (NoDup_elements _)
   iunfold TraceFire
   iexists tn
@@ -697,7 +697,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
     iframe Hdir Htl Hlg Hinv Hnode
-    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC, hbf⟩
     isplitr; · ipureintro; exact Hnn
     isplitr; · iunfold raftLogInv; iexact Hrinv
     isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
@@ -1093,7 +1093,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
-  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hvC, hperm, hout, hC, hbf⟩ := Hpf
   have hnd : C.Nodup := hperm.nodup_iff.1 (NoDup_elements _)
   iunfold TraceFire
   iexists tn
@@ -1185,7 +1185,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
       iexists tn, C, tl, toC σ.server ((σ.ready (idAbs id)).s (idAbs id)), []
       iunfold simNode
       iframe Hdir Htl Hlg Hinv Hnode
-      isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+      isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC, hbf⟩
       isplitr; · ipureintro; exact Hnn
       isplitr; · iunfold raftLogInv; iexact Hrinv
       isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
@@ -1217,7 +1217,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
   subst Htn
   ihave #Hdir : traceDir γd tn $$ [Hdir]
   · iunfold traceDir; iexact Hdir
-  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hvC, hperm, hout, hC, hbf⟩ := Hpf
   have hnd : C.Nodup := hperm.nodup_iff.1 (NoDup_elements _)
   iunfold TraceFire
   iexists tn
@@ -1337,7 +1337,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
     iframe Hdir Htl Hlg Hinv Hnode
-    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC, hbf⟩
     isplitr; · ipureintro; exact Hnn
     isplitr; · iunfold raftLogInv; iexact Hrinv
     isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
@@ -1351,7 +1351,7 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
-  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hvC, hperm, hout, hC, hbf⟩ := Hpf
   iunfold TraceFire
   iexists tn
   iframe Hdir Hlg
@@ -1424,7 +1424,7 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
     iunfold trCapB
     iexists tn, C, tl, cs, P
     iframe Hdir Htl Hlg Hinv Hnode
-    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC, hbf⟩
     isplitr; · ipureintro; exact Hnn
     isplitr; · iunfold raftLogInv; iexact Hrinv
     isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
@@ -1447,7 +1447,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
-  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hvC, hperm, hout, hC, hbf⟩ := Hpf
   have hnd : C.Nodup := hperm.nodup_iff.1 (NoDup_elements _)
   iunfold TraceFire
   iexists tn
@@ -1540,7 +1540,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
       iexists tn, C, tl, cs, P
       iunfold simNode
       iframe Hdir Htl Hlg Hinv Hnode
-      isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+      isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC, hbf⟩
       isplitr; · ipureintro; exact Hnn
       isplitr; · iunfold raftLogInv; iexact Hrinv
       isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
@@ -1579,7 +1579,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
       iexists tn, C, tl, toC σ.server (bfSrv (σ.s (idAbs id))), P ++ []
       iunfold simNode
       iframe Hdir Htl Hlg Hinv Hnode
-      isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+      isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC, hbf⟩
       isplitr; · ipureintro; exact Hnn
       isplitr; · iunfold raftLogInv; iexact Hrinv
       isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE
@@ -1594,7 +1594,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
   icombine Htl Htl' gives %Htleq
   subst Htleq
-  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hvC, hperm, hout, hC, hbf⟩ := Hpf
   have hnd : C.Nodup := hperm.nodup_iff.1 (NoDup_elements _)
   iunfold TraceFire
   iexists tn
@@ -1689,7 +1689,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
     iexists tn, C, tl, toC σ.server a', P ++ P'
     iunfold simNode
     iframe Hdir Htl Hlg Hinv Hnode
-    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC⟩
+    isplitr; · ipureintro; exact ⟨hvC, hperm, hout, hC, hbf⟩
     isplitr; · ipureintro; exact Hnn
     isplitr; · iunfold raftLogInv; iexact Hrinv
     isplitl [Hbt]; · iexists some e; iunfold simBoot; iframe Hbt; ipureintro; exact hΛ e HE

@@ -1070,7 +1070,10 @@ F4), the node's logger and its contract, and the simulation's invariant. `c` is 
 clause, always the voters': raft's own whenever raft's tracker holds all the voters (the gates
 require it once `b = true`: `trCapB_hookGate_bf`'s `hcC`), not while it grows from empty in `newRaft` and `Bootstrap` (amendment A1: the bootstrap
 lines' events are of raft's configuration, their law's bound of the capability's,
-`trCapB_hookGate_bf`; `trCapB_cfg` re-keys it). -/
+`trCapB_hookGate_bf`; `trCapB_cfg` re-keys it). (Amendment A6, Q24) The voters fit the bootstrap log
+(`C.length ≤ γ.reBoot.length`: one bootstrap entry per voter, `BootLogOk`, known where the capability is
+made; every law keeps it, `C` and `γ.reBoot` being fixed), so that an accepted append request's entries
+lie past the specification's bootstrap positions. -/
 def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop := fun _ => True) :
     IProp GF :=
@@ -1078,7 +1081,8 @@ def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) 
   | none => iprop(emp)
   | some γd => iprop(∃ (tn : TraceNames) (C : List w64) (tl : GoInterface) (cs : ServerC)
       (P : List Etcdraft.Msg),
-      traceDir γd tn ∗ ⌜tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C⌝ ∗
+      traceDir γd tn ∗ ⌜tn.voters = C ∧ (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C ∧
+        C.length ≤ γ.reBoot.length⌝ ∗
       r.[raft, go!"traceLogger"] ↦□ tl ∗ isTraceLogger tn.tr tl ∗
       ⌜tl ≠ interface.nil⌝ ∗ inv (simNS γ) (simInv C tn (simFx γ C)) ∗ raftLogInv γ ∗ simNode tn id cs P ∗
       (∃ o, simBoot tn id b o ∗ ⌜Λ o⌝) ∗ ⌜Φ C cs P⌝)
@@ -1364,11 +1368,11 @@ theorem trCapB_cfg (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c c' : C
   iunfold trCapB at H
   iunfold trCapB
   icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, Hrest⟩
-  obtain ⟨hvC, hperm, hout, hC⟩ := Hpf
+  obtain ⟨hvC, hperm, hout, hC, hbf⟩ := Hpf
   obtain ⟨hperm', hout'⟩ := h C hperm hout hC
   iexists tn, C, tl, cs, P
   iframe Hdir Hrest
-  ipureintro; exact ⟨hvC, hperm', hout', hC⟩
+  ipureintro; exact ⟨hvC, hperm', hout', hC, hbf⟩
 
 /-- A capability with its `booted` flag known is one. -/
 theorem trCapB_trCap (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
