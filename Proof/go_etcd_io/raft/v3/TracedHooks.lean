@@ -420,7 +420,8 @@ theorem raft.becomeFollower.traced (h : raft.becomeFollower.spec (GF := GF) (hG 
     (hle : uint.Z s.term ≤ uint.Z term) (hV : s.gh.tr ≠ none → V = c.voters)
     (hcC : b = true → cC = c) (hout : b = false → c.outgoing = ∅)
     (hbf : b = true → PhaseStepBF id c (becomeFollower s term lead) Φ Φ' Λ)
-    (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P)
+    (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P ∧
+      ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → ∀ o, Λ o → BootNext C id o e)
     (hΛ : ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → Λ' (some e))
     (hOk : s.gh.tr.isSome →
       (b = true → ∀ e, NodeEvOf (W64 2) id (becomeFollower s term lead) c e → TraceEv.Ok (elements c.incoming).length e) ∧

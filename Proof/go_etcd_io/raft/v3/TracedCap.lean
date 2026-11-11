@@ -1270,12 +1270,16 @@ abbrev trCap_fire_ready.statement : Prop :=
 /-- **A bootstrap line's law**: before its segment is over (`booted` unset), a node's bootstrap-named
 line is one `TraceNext` steps over, the state and the share unchanged. `c` is the capability's
 configuration, the voters' (`trCapB`), not raft's: the events `E` (`InitState`, `BecomeFollower`,
-`ApplyConfChange`) are of raft's growing configuration, within the voters' (amendment A1). -/
+`ApplyConfChange`) are of raft's growing configuration, within the voters' (amendment A1).
+(Amendment A7, Q29) Each event is the next of raft's bootstrap sequence for the voters `C` (the
+capability's, which the phase `Φ` may pin) after the node's last event, which `Λ` describes
+(`BootNext`): so the bootstrap segments `simInv` keeps (`BootSegs`) are raft's, which `NewTrace` reads. -/
 abbrev trCap_fire_boot.statement : Prop :=
   ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (tl : GoInterface) (E : TraceEv → Prop)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop),
   (∀ e, E e → e.nid = decStr id ∧ ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧ ln.nid = idAbs id ∧
-    Etcdraft.isBootstrapName ln.ev.name = true) → (∀ e, E e → Λ' (some e)) →
+    Etcdraft.isBootstrapName ln.ev.name = true) →
+  (∀ C cs P, Φ C cs P → ∀ e, E e → ∀ o, Λ o → BootNext C id o e) → (∀ e, E e → Λ' (some e)) →
   (∀ e, E e → TraceEv.OkBoot (elements c.incoming).length e) →
   (trCapB (some γd) γ r id c false Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c false Φ Λ')

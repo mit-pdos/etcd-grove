@@ -183,7 +183,7 @@ theorem Cluster.traceSimInv_alloc (γ : Cluster) (N : Namespace) (vs : List w64)
   iframe Hfr HA HB HBt Hfx
   ipureintro
   refine ⟨.inl ⟨rfl, rfl⟩, rfl, fun i hi => ⟨[], hA i hi⟩, hA', ?_, ?_, rfl, rfl, ?_, ?_,
-    simEvents_nil _⟩
+    simEvents_nil _, bootSegs_nil _⟩
   · have hfl : vs.flatMap (fun i => ((A !! i).map Prod.snd).getD []) = [] := by
       rw [List.flatMap_eq_nil_iff]
       intro i hi
