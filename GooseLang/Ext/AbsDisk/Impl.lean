@@ -37,6 +37,8 @@ public import Proof.go_etcd_io.raft.v3.PbModel
 
 @[expose] public section
 
+noncomputable section
+
 namespace Perennial
 
 open go_etcd_io.raft.v3 EtcdGrove
@@ -55,6 +57,43 @@ structure WalEnt where
   index : w64
   typ : w32
   data : List w8
+
+/-! Injective encodings (the steps' arguments, `walCode`; the ghost state's values). -/
+
+instance : Pos.Countable HardStateM :=
+  .ofInjective (fun h => Pos.Countable.encode (h.Term', h.Vote', h.Commit'))
+    (by intro a b h; cases a; cases b; simp_all)
+
+instance : Pos.Countable ConfStateM :=
+  .ofInjective (fun c => Pos.Countable.encode
+      (c.Voters', c.Learners', c.VotersOutgoing', c.LearnersNext', c.AutoLeave'))
+    (by intro a b h; cases a; cases b; simp_all)
+
+instance : Pos.Countable SnapshotMetadataM :=
+  .ofInjective (fun m => Pos.Countable.encode (m.ConfState', m.Index', m.Term'))
+    (by intro a b h; cases a; cases b; simp_all)
+
+instance {E : Type} [Pos.Countable E] : Pos.Countable (WalOpG E) :=
+  .ofInjective (fun o => Pos.Countable.encode (match o with
+      | .save h es => (Sum.inl (h, es) : (HardStateM × List E) ⊕ SnapshotMetadataM)
+      | .snap m => Sum.inr m))
+    (by intro a b h; cases a <;> cases b <;> simp_all)
+
+instance : Pos.Countable WalEnt :=
+  .ofInjective (fun e => Pos.Countable.encode (e.term, e.index, e.typ, e.data))
+    (by intro a b h; cases a; cases b; simp_all)
+
+/-- **The value naming a step's argument** (an operation, a mark, a position): an injective code
+as a string of `encode a` zero bytes. Any injective code gives the same semantics up to renaming
+the values; no translated code builds one (only the WAL's axiomatized bodies, which pass the
+operation, mark or position their axiom names). -/
+def walCode {A : Type} [Pos.Countable A] (a : A) : GoString :=
+  List.replicate (Pos.Countable.encode a).toNat (0 : w8)
+
+theorem walCode_inj {A : Type} [Pos.Countable A] {a b : A} (h : walCode a = walCode b) : a = b := by
+  have h' := congrArg List.length h
+  simp only [walCode, List.length_replicate] at h'
+  exact Pos.encode_inj (Pos.Pos_toNat_inj h')
 
 /-- **What a crash can leave of a WAL whose history is `H` with its first `n` operations synced**:
 the first `j` operations (`n ≤ j ≤ |H|`), then possibly the first `k` entry records of operation `j`
@@ -137,7 +176,8 @@ the history's length; `"WalUnlock"` raises `unl` (`ReleaseLockTo`, a restart's `
 before a snapshot record's position); `"WalPurge"` raises `pur` to `unl` (a purge round);
 `"WalUnsize"` clears `sized` (a `Save` of unsized entries); `"DirDurable"` of `d` records that `d`'s
 entry and its ancestors' are durable (`TouchDirAll`). The operation, mark and position a step takes
-are chosen by the step: the WAL function's spec (an axiom) says which one its body performs. -/
+are passed as the second component of the argument, by their code (`walCode`): the WAL
+function's spec (an axiom) says which ones its body passes. -/
 def AbsDiskStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (s : AbsDiskState)
     (_g : Unit) (e' : Expr) (h' : GMap Loc (NonAtomic val)) (s' : AbsDiskState) (_g' : Unit) :
     Prop :=
@@ -146,12 +186,12 @@ def AbsDiskStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (s : AbsD
   | "WalCreate" => ∃ (dir : GoString) (md : List w8), v = PairV (#dir) (#md) ∧
       s.wal !! dir = none ∧ s' = { s with wal := <[dir := walDurFresh md]> s.wal }
   | "WalNamed" => ∃ dir : GoString, v = #dir ∧ s' = absDiskUpd s dir (fun d => { d with named := true })
-  | "WalAppend" => ∃ (dir : GoString) (o : WalOpG WalEnt), v = #dir ∧
+  | "WalAppend" => ∃ (dir : GoString) (o : WalOpG WalEnt), v = PairV (#dir) (#(walCode o)) ∧
       s' = absDiskUpd s dir (fun d => { d with H := d.H ++ [o] })
-  | "WalSync" => ∃ (dir : GoString) (n : Nat), v = #dir ∧
+  | "WalSync" => ∃ (dir : GoString) (n : Nat), v = PairV (#dir) (#(walCode n)) ∧
       (∀ d, s.wal !! dir = some d → n ≤ d.H.length) ∧
       s' = absDiskUpd s dir (fun d => { d with m := max d.m n })
-  | "WalUnlock" => ∃ (dir : GoString) (p : Nat), v = #dir ∧
+  | "WalUnlock" => ∃ (dir : GoString) (p : Nat), v = PairV (#dir) (#(walCode p)) ∧
       s' = absDiskUpd s dir (fun d => { d with unl := max d.unl p })
   | "WalPurge" => ∃ dir : GoString, v = #dir ∧
       s' = absDiskUpd s dir (fun d => { d with pur := max d.pur d.unl })
