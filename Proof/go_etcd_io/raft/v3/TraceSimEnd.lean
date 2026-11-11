@@ -17,7 +17,7 @@ events ASCII, in scope (`ScopeOk`), the bootstrap lines' logs (`BootLogsOk`), th
 `mainPure`. Not here: the event count (`L.length < numBound`), bounded by the run's steps
 (the recorder's, outside the simulation). (Amendment A7, Q29) The bootstrap segments: `simInv_end_boot`
 also gives `BootSegs`, and `newTrace_bootInit` what `NewTrace` computes of complete segments
-(`bootInit C`, which is `simInit C` at the voters only: the plan's Q30).
+(`bootInit C`, which is `simInit C` at the voters only: the plan's Q36).
 -/
 module
 

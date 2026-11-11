@@ -36512,7 +36512,7 @@ once the harness is proved.
 `etc/tcb-collections/tracecheck.txt` now also selects the Link's roots (`roots
 …/tracecheck/etcdraft/Link\.lean$`), which rest on no axiom or `sorry` of this repository.
 
-## Amendment A7 (Q29): the bootstrap segments in `simInv`, the bootstrap law's next-event premise, `NewTrace`'s computation; `BootFacts` found false (Q30) and the completion fact without an anchor (Q31) (2026-11-11 · trace-check, Q29 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-a7`; amends the frozen Draft (tag `trace-check-frozen-a6`) in `simInv`'s pure clause and `trCap_fire_boot.statement`'s premises only; DRAFT until the re-freeze)
+## Amendment A7 (Q29): the bootstrap segments in `simInv`, the bootstrap law's next-event premise, `NewTrace`'s computation; `BootFacts` found false (Q36) and the completion fact without an anchor (Q37) (2026-11-11 · trace-check, Q29 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-a7`; amends the frozen Draft (tag `trace-check-frozen-a6`) in `simInv`'s pure clause and `trCap_fire_boot.statement`'s premises only; DRAFT until the re-freeze)
 
 **Checked first: raft's bootstrap.** `StartNode` (`setupNode`: `NewRawNode`, then `RawNode.Bootstrap`,
 then `go n.run()`) on empty storage logs, per voter, six kinds of line, not Q29's three: `newRaft`'s
@@ -36548,14 +36548,14 @@ call site with `b = true` unchanged).
 `bootstrapOf_eq` (the `find?`/`foldl` of a server whose lines are bootstrap-named below an index `c`),
 `voter_bootstrapOf` (a voter's flagged lines are its segment's indices), and `newTrace_of_bootDone`:
 with every voter's segment complete (`BootDone`), `newTrace` succeeds, its servers and initial servers are
-`confAbs C`, its initial state `bootInit C` (`newTrace_bootInit`). **Found (Q30):** `bootInit C` is
+`confAbs C`, its initial state `bootInit C` (`newTrace_bootInit`). **Found (Q36):** `bootInit C` is
 `simInit C` at the voters only; at any other id `newTraceWith` builds a server from the trace's first line
 (`lines.getD (0 - 1)`), so `BootFacts`' `t.init = simInit C` is false of every complete run
-(`not_bootFacts`), and `runOk_of_sim`'s hypothesis cannot be discharged as stated. **Found (Q31):** the
+(`not_bootFacts`), and `runOk_of_sim`'s hypothesis cannot be discharged as stated. **Found (Q37):** the
 frozen ghost state has no persistent witness to carry "voter `i`'s bootstrap is complete" from
 `StartNode`'s return to the end of the run, so `StartNode.gatedSpec`'s post is unchanged. Both are the
 plan's questions, with options; nothing here depends on their answers (the clause and the premise are
 needed either way).
 
 No axiom, no `sorry`; frozen statements changed: `simInv` (the clause), `trCap_fire_boot.statement` (the
-premise). Reviews `notes/trace-validation-reviews/a7-r1.md`, `a7-r2.md`: no first-tier finding against the amended statements; the gates' `BootNext` premises gated on the trace mode (a7-r2's N1); Q30 and Q31 confirmed.
+premise). Reviews `notes/trace-validation-reviews/a7-r1.md`, `a7-r2.md`: no first-tier finding against the amended statements; the gates' `BootNext` premises gated on the trace mode (a7-r2's N1); Q36 and Q37 confirmed.

@@ -1231,9 +1231,9 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   "unless the proof needs another" (2026-11-08): the traced cluster's three bootstrap entries need
   `receiptBound + 3 ≤ 2^61` for raft's `readyFits`.
   **Done in part (A7, 2026-11-11, branch `trace-check-a7`):** the `simInv` clause, the bootstrap law's
-  premise and `NewTrace`'s computation (below, "Amendment A7"); `BootFacts` itself found false (Q30) and
-  the per-voter "bootstrap complete" fact not expressible in the frozen ghost state (Q31).
-- **Q30 (2026-11-11, A7): `BootFacts` is false.** `MainSim.lean`'s `BootFacts C L` asks `t.init =
+  premise and `NewTrace`'s computation (below, "Amendment A7"); `BootFacts` itself found false (Q36) and
+  the per-voter "bootstrap complete" fact not expressible in the frozen ghost state (Q37).
+- **Q36 (2026-11-11, A7): `BootFacts` is false.** `MainSim.lean`'s `BootFacts C L` asks `t.init =
   simInit C`, an equality of states whose `s` is a total function. `newTraceWith` builds `s i` for an id
   `i` outside the trace's servers too: from `lines.getD (0 - 1)`, the trace's first line (an `InitState`:
   term 0, no log, the empty configuration), while `simInit C` gives every id a voter's bootstrap server.
@@ -1254,7 +1254,7 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   transfer is a new lemma beside them), a larger proof. **Recommended: (a)** (mechanical,
   and it makes the simulation's initial state the one TLC starts from, junk included). A frozen
   definition: for the coordinator or the user.
-- **Q31 (2026-11-11, A7): the per-voter "bootstrap complete" fact has no ghost anchor.** `newTrace`'s
+- **Q37 (2026-11-11, A7): the per-voter "bootstrap complete" fact has no ghost anchor.** `newTrace`'s
   initial state needs every voter's segment complete at the end of the run (`BootDone`). Raft logs a
   voter's whole bootstrap inside `StartNode` (`setupNode`, before `go n.run()`), so `StartNode`'s post is
   where the fact is known; but `Main` must still know it when it opens the invariant at the end, and the
@@ -2858,7 +2858,7 @@ raft's next after the node's last (`BootNext`, the voters through `Φ`, the last
 bootstrap gates and `raft.becomeFollower.traced`'s `hb0` carry it. The pure computation is proved:
 complete segments make `newTrace` succeed with the voters' servers and initial state `bootInit C`
 (`newTrace_bootInit`). Not done, two questions: `BootFacts` is false (`not_bootFacts`: `newTraceWith`'s
-initial state differs from `simInit C` outside the voters; Q30), and the per-voter completion fact
-`StartNode` would return has no persistent witness in the frozen ghost state (Q31); `runOk_of_sim` keeps
-its hypothesis. No axiom, no `sorry`. Reviews `a7-r1.md`, `a7-r2.md` (no first-tier finding against the amended statements; Q30, Q31 open)
+initial state differs from `simInit C` outside the voters; Q36), and the per-voter completion fact
+`StartNode` would return has no persistent witness in the frozen ghost state (Q37); `runOk_of_sim` keeps
+its hypothesis. No axiom, no `sorry`. Reviews `a7-r1.md`, `a7-r2.md` (no first-tier finding against the amended statements; Q36, Q37 open)
 (`notes/decisions.md`, "Amendment A7 (Q29)").

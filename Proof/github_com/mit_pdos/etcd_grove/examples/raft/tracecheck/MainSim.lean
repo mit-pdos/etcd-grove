@@ -80,7 +80,7 @@ theorem runOk_of_sim (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
   obtain ⟨t, hnt, hinit, hsrv, hisrv⟩ := hb
   exact ⟨C.length, hC, simRun_runAccepted C L σ t hrun hnt hinit hsrv hisrv, hev⟩
 
-/-- **`BootFacts` is false of the traced cluster's runs** (amendment A7's check, Q30): once every
+/-- **`BootFacts` is false of the traced cluster's runs** (amendment A7's check, Q36): once every
 voter's bootstrap segment is raft's and complete (`BootSegs`, `BootDone`), `newTrace`'s initial state
 is `bootInit C`, which is `simInit C` at the voters only (`newTrace_bootInit`, `bootInit_ne_simInit`):
 `newTraceWith` builds the server of an id outside the trace's servers from the trace's first line,
