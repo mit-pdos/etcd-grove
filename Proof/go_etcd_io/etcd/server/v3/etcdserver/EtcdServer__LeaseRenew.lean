@@ -122,8 +122,14 @@ local macro "renew_forward" : tactic => `(tactic| (
     cleanup_bool_decide
     (try wp_auto)
     -- `err := cctx.Err()`: `Canceled` or `DeadlineExceeded`, the context being done
-    wp_apply hErrDone cctx _ $$ [] as %cerr ⟨%Hty, #Hcv⟩
+    wp_apply hErrDone cctx _ $$ [] as %cerr ⟨%-, #Hcv⟩
     · iframe #; iexact Hcl
+    ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+    · iPkgInit
+    ihave #HcE : (context.isCtxErr cerr : IProp GF) $$ []
+    · icases Hcv with (#H | #H)
+      · iapply context.isCtxErr_of_Canceled $$ Pctx H
+      · iapply context.isCtxErr_of_DeadlineExceeded $$ Pctx H
     ihave #Prd : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
     · iPkgInit
     ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.read.readInit : IProp GF) $$ []
@@ -137,7 +143,7 @@ local macro "renew_forward" : tactic => `(tactic| (
     ihave ⟨%eTo, #HeTo, #HeToE⟩ := errVarLeaf_get _ $$ HETo
     (try wp_auto)
     -- `case errorspkg.Is(err, context.DeadlineExceeded): return -1, errors.ErrTimeout`
-    wp_apply hIsC cerr (GoInterface.ok eD) Hty $$ [] as %b1 %Hb1
+    wp_apply hIsC cerr (GoInterface.ok eD) $$ [] as %b1 %Hb1
     · iframe #
     (try wp_auto)
     cases b1 with
@@ -147,7 +153,7 @@ local macro "renew_forward" : tactic => `(tactic| (
     | false =>
       (try wp_auto)
       -- `case errorspkg.Is(err, context.Canceled): return -1, errors.ErrCanceled`
-      wp_apply hIsC cerr (GoInterface.ok eC) Hty $$ [] as %b2 %Hb2
+      wp_apply hIsC cerr (GoInterface.ok eC) $$ [] as %b2 %Hb2
       · iframe #
       (try wp_auto)
       cases b2 with

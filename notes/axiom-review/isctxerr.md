@@ -4,6 +4,16 @@
 (`Proof/errors/IsCtxErr.lean:29`, triple `Spec/errors/IsCtxErr.lean`). The Go code is go1.27.3's
 `errors/wrap.go`, which is also the body Perennial translated, `@! errors.Is`.
 
+## Repaired (premise fixes 6, part B, 2026-11-11)
+
+The premise is now Perennial's `context.isCtxErr err`, a conjunct of the pre (`Spec/errors/IsCtxErr.lean`),
+not `isTypedErr`. Unlike the plan below, `parseProposeCtxErr.spec` is unchanged (its pre already
+gives `isCtxErr` through `isCtxErr_of_Canceled`/`_DeadlineExceeded`), and `watchServer.Watch`'s
+first `errors.Is` (grpc's `Recv` error, not a context error) uses the proved `errors.Is.spec` over
+`streamErr`'s tree. `notes/decisions.md`, "Premise fixes 6, part B"; Go test
+`examples/premisefix/isctxerr`. The program below no longer meets the premises (`badUnwrap{}` is no
+`isCtxErr`).
+
 ## Verdict
 
 **Refuted (Go side). The Lean side has not been built yet.** The spec's only premise on `err` is
@@ -64,7 +74,7 @@ PASS
 
 `#print axioms` should show only this axiom and the generic ones.
 
-## Reach and proposed restatement (not applied)
+## Reach and proposed restatement (applied, with corrections: see "Repaired")
 
 The sweep-plan review recomputed the reach: 17 of 23 `_safe` roots, 137 roots in all. The users are:
 

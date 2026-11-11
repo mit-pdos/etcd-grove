@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStr
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__close
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Spec.errors.IsCtxErr
+public import Spec.errors.Is
 public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.Error
@@ -41,10 +42,10 @@ local macro "watch_tail" : tactic => `(tactic| (
   iframe Hspec))
 
 set_option hygiene false in
-/-- `errors.Is(err, context.Canceled)` on a typed `err`, then the assignment of
-`ErrGRPCWatchCanceled` when it holds. -/
+/-- `errors.Is(err, context.Canceled)` on a context's error `err` (`context.isCtxErr`), then the
+assignment of `ErrGRPCWatchCanceled` when it holds. -/
 local macro "canceled_check" e:term : tactic => `(tactic| (
-  wp_apply hIs $e (GoInterface.ok eC) (by assumption) $$ [] as %bC -
+  wp_apply hIs $e (GoInterface.ok eC) $$ [] as %bC -
   · iframe #; try (ileft; iexact HeC)
   wp_if_destruct
   rotate_left
@@ -68,6 +69,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
     (hClose : v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG))
     (hICE : v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG))
     (hIs : errors.IsCtxErr.spec (GF := GF) (hG := hG))
+    (hIsT : errors.Is.spec (GF := GF) (hG := hG))
     (hZD : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hZW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
@@ -203,7 +205,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %errc %γe ⟨#Herrc, %-, Hoe⟩
   · ipureintro; decide
   let PE : Int → GoInterface → IProp GF := fun _ e =>
-    iprop(⌜context.isTypedErr e⌝ ∗ ∃ sent : List Loc, spscProducer γctrl sent)
+    iprop(v3rpc.streamErr e ∗ ∃ sent : List Loc, spscProducer γctrl sent)
   imod start_spsc errc PE (fun _ => iprop(False)) γe $$ Herrc [Hoe]
     with ⟨%γerr, #HspscE, HprodE, HconsE⟩
   · iright; iexact Hoe
@@ -211,13 +213,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
   wp_apply wp_fork_tok_body $$ [Hrt Hprod HPool HRD HprodE HrdR]
   · iintro Htt
     wp_apply hRecv sws_ptr r Up Dn st ci cd [] [] $$ [$Hrt $Hprod $HPool $HRD $Htt $HrdR]
-      as %rerr ⟨%Hrerr, Htt, -, %sent', Hprod⟩
+      as %rerr ⟨#Hrerr, Htt, -, %sent', Hprod⟩
     · iframe #
     rcases rerr with ei | _
-    · have Hty : context.isTypedErr (GoInterface.ok ei) := by
-        rcases Hrerr with h | h
-        · cases h
-        · exact h
+    · icases Hrerr with (%h | #Hse)
+      · cases h
       wp_auto
       rw [Hsi]
       wp_auto
@@ -254,7 +254,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
           as -
         · iframe #
           isplitr
-          · ipureintro; exact Hty
+          · iexact Hse
           iexists _; iexact Hprod
         iframe Htt; try (ipureintro; rfl)
       · wp_apply hZE as %f -
@@ -269,7 +269,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
           as -
         · iframe #
           isplitr
-          · ipureintro; exact Hty
+          · iexact Hse
           iexists _; iexact Hprod
         iframe Htt; try (ipureintro; rfl)
     · wp_auto
@@ -305,9 +305,19 @@ theorem v3rpc.watchServer.Watch.wp_proof
     cases okE <;> simp only [Bool.false_eq_true, if_true, if_false]
     · icases Hv with ⟨Hf, -⟩
       iexfalso; iexact Hf
-    icases Hv with ⟨⟨%HtyE, %sentE, HprodC⟩, -⟩
+    icases Hv with ⟨⟨#HseE, %sentE, HprodC⟩, -⟩
     wp_auto
-    canceled_check ve
+    -- `errors.Is(err, context.Canceled)` over the stream error's tree (`streamErr`; `Canceled`'s
+    -- value is a pointer error), then the assignment of `ErrGRPCWatchCanceled` when it holds
+    iunfold v3rpc.streamErr at HseE
+    icases HseE with ⟨-, #HseT⟩
+    ihave ⟨%S, %M, #Ht, %HS⟩ := HseT $$ %(GoInterface.ok eC)
+    wp_apply hIsT S M ve (GoInterface.ok eC) (fun tii h => by cases h; exact HeCp)
+      (HS.2 (fun tii h => by cases h; exact HeCp)) $$ [] as %bC -
+    · iframe #; ipureintro; exact HS.1
+    wp_if_destruct
+    rotate_left
+    all_goals try wp_auto
     all_goals (
       wp_apply wp_spsc_close γctrl ctrl P' (fun _ => iprop(True)) sentE $$ [$HprodC]
       · iframe #
@@ -329,7 +339,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrDone $$ [$HCC] as %cerr %HtyC -
+    wp_apply +noauto HErrDone $$ [$HCC] as %cerr %- #HcE
     wp_auto
     canceled_check cerr
     all_goals watch_tail
