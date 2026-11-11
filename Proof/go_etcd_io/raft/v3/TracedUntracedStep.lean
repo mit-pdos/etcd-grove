@@ -530,7 +530,7 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
       iapply hookGateOpt_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro %_ %pvs %b %N %_ %_ -
+    · iintro %_ %_ %pvs %b %N %_ %_ - -
       iapply hookGate_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr

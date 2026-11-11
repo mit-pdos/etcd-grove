@@ -36352,6 +36352,73 @@ bootstrap law records. `MainSim.lean` names them (`BootFacts C L`) and proves `R
 `Cluster.traceSimInv_end`'s facts (`runOk_of_sim`); the harness's proof will need them, from Q29's
 amendment.
 
+## Q8 stage 1 (slice 28c): a leader's accepted `MsgAppResp`, raft's side: `"Hgcommit"` given the run condition and a later credit, `CloseMid`'s third case, `Step`'s arm split, the family's ghost step; the lines not done (2026-11-11 · trace-check, Q8 stage 1 slice 28c; slice 27c's question taken by the coordinator as option (a), raft-internal, its form the agent's under the user's delegation · branch `trace-check-q8s28c`; DRAFT until trace-check's Freeze)
+
+**Done** (no axiom, no `sorry`, no frozen or client-visible statement changed; raft-internal):
+- *`stepLeader.spec`* (`Spec/go_etcd_io/raft/v3/stepLeader.lean`): `AppRespRan s src idx` (new, in `LemmasStepLeader.lean` beside `appRespMatch`: a spec file exposes only its spec), the code's
+  own test `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index && pr.State == StateProbe && pr.Next ==
+  pr.Match+1)` at the sender's `Progress` before the step. `"Hgcommit"` takes `⌜AppRespRan s m.From'
+  m.Index'⌝` and `£ 1`; `AppRespAcceptedC` gains `(AppRespRan → ∃ b N, maybeCommitOut c { s with prvals :=
+  pvs } b N ∧ n = (commitAt s b N).logst.committed) ∧ (¬ AppRespRan → n = committed)` (`pvs` the end
+  state's map, `maybeCommitOut_prvals`: `maybeCommitOut` reads only `Match`). The proof
+  (`stepLeader/Rest.lean`) records the condition exactly at the `MaybeUpdate` join (`RanCond`, an iff) and
+  takes the credit by `wp_pure_lc` at the `if` it guards. Why the credit: the family's commit of raft's
+  ghost state (`ownRaftGhost_step_commit`) needs the commit invariant's registry half, whose contents
+  (`regsOwn`, with `noopAu`) are not timeless; `Step`'s own credit (`raft.Step.spec`'s `"Hlc"`) is spent
+  by its own ghost step from the state after the commit. Rejected: lending `Step`'s credit through a new
+  `StepG` field (then `Step` needs a second one, a `raft.Step.spec` change). `leaderGates`' mirror and its
+  two untraced instances (`TracedStepGates.lean`, `TracedUntracedStep.lean`) follow mechanically.
+- *`CloseMid`'s third case* (`LemmasStepGates.lean`): a leader's accepted `MsgAppResp` of its term from a
+  sender with a `Progress`, `s1 = commitAt { s with prvals := pvs } b N` at `appRespMatch`'s `Match`
+  values, `s1.logst = s'.logst`. No `c` or `maybeCommitOut` in it: `Step` needs only that the end state's
+  commit index is `s1`'s (`appResp_rest`); the family proves `s1.logst = s'.logst` from the new
+  `AppRespAcceptedC` clause and `maybeCommitOut`'s uniqueness at its close. `CloseMid.ty` is three-way;
+  `CloseMid.not_of` and `gate_close` take `m.Type' ≠ MsgAppResp` (every call site in `raft__Step.lean`,
+  mechanically); slice 27b's won-case site (`TracedRaftStepRecvVoteRespWon.lean`) re-tagged `.inr (.inl …)`.
+- *`Step`'s `MsgAppResp` arm split* (`raft__Step.lean`'s `dispatch_AppResp`, `raft__Step/AppRespMid.lean`):
+  `gate_close_mid`; at `s`, `finish_branch` as before; past `maybeCommit`, `finish_branch_mid` with the rest
+  stepped alone from `s1` (`appResp_rest`: the tail of `leader_appresp_step` restated from `s1`, the
+  release and the appends; written as its own lemma, not by refactoring `leader_appresp_step`, which
+  stays as it was) and the whole step's witness (`stepOut_of_stepCD_appResp`), the mode unchanged
+  (`stepOut_appResp_md`).
+- *The family's ghost step* (`TracedRaftStepRecvLeadAccGhost.lean`, `ghost_stepAppCommit`): from
+  `ownStepGhost` at `s` to the state after the outcome, one `ghost_stepCD` with the response's `isMessage`
+  and `"Hgcommit"`'s credit; the model step `stepCD_appCommit` (`StepC.appResp`, then `StepC.commit` by
+  `commitOkC_of_out`, `maybeCommit`'s own argument restated). Using the generic ghost step instead of
+  `ownRaftGhost_step_app_resp` then `ownRaftGhost_step_commit` by hand moves `ghostRest` too.
+
+**Not done** (the family's lines; each a fresh piece):
+1. *The path premise*: `LeadAcc s m` (`m.Term' = s.term`, leader, accepted `MsgAppResp`, `m.From' ∈
+   domSet s.progress`) for `stepBundle_traced.on`. `RawNode.Step` supplies the membership at its third
+   guard (`TracedRawNode.lean`, `RawNode.Step.traced`: after `IsResponseMsg` and `!IsLocalMsgTarget(m.From)`,
+   the `trk.Progress[m.From]` lookup `wp_if_destruct`s past `early_return_tr errStepPeer`; with
+   `ownTrackerC_progress_map`'s `Hdom` the lookup's non-nil result is `m.From' ∈ domSet s.progress`).
+2. *The resources*: `G0`/`G1` the receive line's result (`AccPin`) with raft's ghost state at `s` and
+   `⌜o = s.outbox⌝` (`maybeCommit` not run: nothing sent, the close at `s`, `SimIdleS` of the end state
+   by `AccIdle`); `Gc b N o` = `∃ pvs, ⌜prvalsMatch pvs = appRespMatch … ∧ maybeCommitOut c { s with
+   prvals := pvs } b N ∧ AppRespRan …⌝ ∗ lineF … (commitAt { s with prvals := pvs } b N) …`.
+3. *The `Commit` line inside `"Hgcommit"`*: `ghost_stepAppCommit`, then `trCapB_hookGate` with
+   `phaseStepB_commit` at `X = commitAt { s with prvals := pvs } b N` (`nodeEvOf_prvals`). Its source
+   phase from `AccPin` needs `AdvancesTo a n`: the bridge from `maybeCommitOut` (`JCommittedIdx` with
+   `c.outgoing = ∅`, `MajIdx ∅` the top, so `N` is `IsQuorumIndex c.incoming`) to
+   `advanceCommitIndex_eq`/`_noop`'s `IsQuorum (listToSet C) (ackedBy …)` and maximality, with every
+   `Match` within the log (the response's index by `ownRaftGhost_ackIn_le`, the others from raft's ghost
+   state). Its facts: a new `fxPres_commit` (no leader-commit `FxPres` exists): `P' = []` from the two
+   `SimIdle`s, `AdvancesTo` at the line's server (`advancesTo_toC`), `σ.advanceCommitIndex i = some
+   (σ.commitTo i n)`, `quorumLogF_commit`, `specInv_advanceCommitIndex` (`moreThanOneLeaderInv` from
+   `simFx_violated`), `simFx_congr` to the line's `withNode`; the leader's `srvFacts` at the new commit
+   rebuilt from raft's ghost state at `X` (`ownRaftGhost_logFacts`: records, `isCommitted`, `commitIn`;
+   `ownRaftGhost_isLeader`; `leadFull` of the full log; `pend = []`), the pure clauses from `SimServerR`
+   and `LogShapeOk` (slice 27b's `srvFacts_newLeader` is the model).
+4. *After it*: `"#Hgaapp"` by `lineF_app` at `X` (`sendOutGate_hdr`; `AppOk` at `toPState X` from
+   `toPState (commitAt s b N)`: they differ only in `matched`), `"#Hgrlhb"` by `lineF_heartbeat` at `X`,
+   `"#Hgrlresp"` by `lineF_untraced`, `"#Hgatnow"` (a no-message variant of `lineF_untraced`).
+5. *The close and the bundle* (`TracedRaftStepRecvLeadAcc*.lean`): from `Gc b N s'.outbox` and
+   `StepEnd`, `AppRespRan` and `maybeCommitOut`'s uniqueness (`JCommittedIdx` functional; `MajIdx`
+   unique) give `n = X.logst.committed`, so `CloseMid`'s third case and `lineF_close` at `X`
+   (`SimIdleS` of the end state: `simIdleS_rd`, `simIdleS_readRespondAll`, the `Progress` values at the
+   same `Match`); from `G0`/`G1`, the close at `s`.
+
 ## S7 (the checker's link): `etc/gen-link.py --tracecheck`, every checker proof linked; `TcOpen` is `RunConcurrent.spec` alone (2026-11-11 · trace-check, S7; decided by the agent under the user's delegation · branch `trace-check-link`; DRAFT until trace-check's Freeze of layer D)
 
 **What.** The checker (`examples/raft/tracecheck/etcdraft`, layer C) gets a `Link.lean`

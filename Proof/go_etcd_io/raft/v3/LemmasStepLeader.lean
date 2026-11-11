@@ -39,6 +39,16 @@ def appRespMatch (s : NState) (src index : w64) : GMap w64 w64 :=
   | some x => <[src := if uint.Z x < uint.Z index then index else x]> (prvalsMatch s.prvals)
   | none => prvalsMatch s.prvals
 
+/-- (2026-11-11, trace-check Q8 stage 1 slice 28c) **Whether an accepted `MsgAppResp` from `src` at
+`index` reaches `maybeCommit`**: the code's own test, `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index
+&& pr.State == StateProbe && pr.Next == pr.Match+1)`, at the sender's `Progress` `p` before the step
+(`MaybeUpdate` raises `Match` exactly when it is below `index`, and leaves `p` as it is otherwise).
+False when the sender has no `Progress` (no gate runs). -/
+def AppRespRan (s : NState) (src index : w64) : Prop :=
+  ∃ p : Progress, s.prvals !! src = some p ∧
+    (uint.Z p.matched < uint.Z index ∨
+      (p.matched = index ∧ p.state = .probe ∧ p.next = p.matched + W64 1))
+
 theorem appRespMatch_of_some (s : NState) (src index x : w64)
     (h : prvalsMatch s.prvals !! src = some x) :
     appRespMatch s src index =

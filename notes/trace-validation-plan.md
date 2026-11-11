@@ -1245,6 +1245,22 @@ gate); the self-acknowledgement and the appends; the close at `CloseMid`'s won c
 `winLend` also lends `⌜id ∈ domSet s.prvals⌝` (Step's own fact; `raft.Step.spec`'s text unchanged). Left:
 assembling the paths into `stepBundle_traced.on`.
 
+**Q8 stage 1 (slice 28c), 2026-11-11 (branch `trace-check-q8s28c`): a leader's accepted `MsgAppResp`,
+raft's side done; the family's lines not done.** Slice 27c's question decided by the coordinator (option
+(a), raft-internal), its form and the rest the agent's (`notes/decisions.md`, "Q8 stage 1 (slice 28c)").
+Done: `stepLeader.spec`'s `"Hgcommit"` takes the code's run condition (`AppRespRan`, the sender's
+`Progress` before the step) and a later credit (`£ 1`, the stepLeader proof's own `wp_pure_lc`: a
+traced family commits raft's ghost state inside the gate, which opens the commit invariant);
+`AppRespAcceptedC` ties `n` to `maybeCommit`'s outcome when it ran and to `committed` when it did not;
+`CloseMid`'s third case (the state after `maybeCommit`, `commitAt { s with prvals := pvs } b N`, the
+sender with a `Progress`) and `Step`'s `MsgAppResp` arm split (`raft__Step/AppRespMid.lean`:
+`appResp_rest`, the release and the appends from there); the family's ghost step inside `"Hgcommit"`
+(`ghost_stepAppCommit`, `TracedRaftStepRecvLeadAccGhost.lean`: `stepCD_appCommit`, `commitOkC_of_out`).
+Left (each item in the decisions entry): the path premise `m.From' ∈ domSet s.progress` (the bundle's
+`Path`; `RawNode.Step.traced`'s third guard supplies it), the `Commit` line (the `AdvancesTo` bridge from
+`maybeCommitOut`, `fxPres_commit` with the leader's `srvFacts` rebuilt from raft's ghost state), the
+sends after it, the close and the bundle.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
