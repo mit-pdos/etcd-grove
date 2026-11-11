@@ -79,10 +79,11 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hspc1 := Hspw $$ Hspc
   -- (sweep repairs 1, B2) the request context's start time, kept by `Start`
   ihave #Hstc1 := Hst1 $$ Hst

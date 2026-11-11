@@ -274,9 +274,10 @@ theorem EtcdServer.Compact.wp_proof
   iintro %osl ⟨-, -⟩
   (try wp_auto)
   -- the span, over the caller's context (which carries no trace: `Htrc`, kept by `Start`)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -⟩
+  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hspc1 := Hspw $$ Hspc
   ihave #Htrc1 := Hctr1 $$ %none Htrc
   iunfold trace.isSpan at Hsp
@@ -296,7 +297,7 @@ theorem EtcdServer.Compact.wp_proof
   (try wp_auto)
   -- the trace: a new one (the context carries none)
   wp_apply hEnsure ctx1 _ none false v.lg _ slice.nil $$ []
-    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2t, Hctx2w, #Hspw2⟩
+    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2t, Hctx2w, #Hspw2, #Hlibw2⟩
   · iframe Hctx1t
     isplitr
     · iexact Htrc1
@@ -307,6 +308,7 @@ theorem EtcdServer.Compact.wp_proof
     iapply zapLoggerOk_orNil; iexact Hlgn
   ihave #Hctx2 := Hctx2w $$ Hctx1
   ihave #Hspc2 := Hspw2 $$ Hspc1
+  ihave #Hlib2 := Hlibw2 $$ Hlib1
   (try wp_auto)
   -- `&pb.InternalRaftRequest{Compaction: r}`, read-only but for its header; the request's revision,
   -- read-only from here on (the caller gave it)

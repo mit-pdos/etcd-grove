@@ -195,7 +195,7 @@ theorem EtcdServer.start.wp_proof
   -- (R8, 2026-11-07) with its trace and span facts (`traceutil.wp_WithCancelBackground_noTrace`:
   -- the revocation's `LeaseRevoke` takes the span fact, `srvRevokeCtx`)
   wp_apply traceutil.wp_WithCancelBackground_noTrace $$ [] as %cctx %γcx %cancel
-    ⟨#Hcancel, #Hcctx, -, #Hcspan, #Hcst⟩
+    ⟨#Hcancel, #Hcctx, -, #Hcspan, #Hcst, #Hclib⟩
   iunfold context.cancelSpec at Hcancel
   icases Hctx with ⟨%ctx0, Hctx⟩
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩

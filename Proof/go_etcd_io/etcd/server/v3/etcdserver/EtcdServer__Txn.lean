@@ -827,9 +827,10 @@ theorem EtcdServer.Txn.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
   · iframe Htr; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hspc1 := Hspw $$ Hspc
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
@@ -844,7 +845,7 @@ theorem EtcdServer.Txn.wp_proof
   iintro %fsl' ⟨Hfl, Hflc⟩
   (try wp_auto)
   wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
-    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2, Hctx2w, #Hspw2⟩
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2, Hctx2w, #Hspw2, #Hlibw2⟩
   · iframe Hctx1t
     isplitr
     · iapply Hctr1 $$ Hct
@@ -856,6 +857,7 @@ theorem EtcdServer.Txn.wp_proof
     exact traceutil.fieldsWf_cons_bool _ _ _ traceutil.fieldsWf_nil
   ihave #Hctx2i := Hctx2w $$ Hctx1
   ihave #Hspc2 := Hspw2 $$ Hspc1
+  ihave #Hlib2 := Hlibw2 $$ Hlib1
   (try wp_auto)
   cases hro : txn.txnReadonly t
   · -- a write: through raft, as `Put`; the modes differ at the permit and the grant
@@ -870,6 +872,11 @@ theorem EtcdServer.Txn.wp_proof
       · ipureintro; right; right; left; rfl
       ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
       subst Hc3e
+      ihave #Hlib3 : context.libCtxOk ctx3 $$ []
+      · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']
+        iapply (context.libCtxOk_of_valueWand (GF := GF) ctx2 c3'
+          ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _
+          (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel3 Hlib2
       -- (the span fact) the context `raftRequest` sees has it, through `WithValue`'s delegation
       ihave #Hspc3 : trace.spanCtxOk ctx3 $$ []
       · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']
@@ -1045,6 +1052,11 @@ theorem EtcdServer.Txn.wp_proof
       · ipureintro; right; right; left; rfl
       ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
       subst Hc3e
+      ihave #Hlib3 : context.libCtxOk ctx3 $$ []
+      · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']
+        iapply (context.libCtxOk_of_valueWand (GF := GF) ctx2 c3'
+          ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _
+          (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel3 Hlib2
       -- (the span fact) the context `raftRequest` sees has it, through `WithValue`'s delegation
       ihave #Hspc3 : trace.spanCtxOk ctx3 $$ []
       · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']

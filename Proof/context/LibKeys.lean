@@ -189,6 +189,21 @@ abbrev context.libKeys : List GoInterface :=
 
 end defs
 
+/-- The side condition of `context.libCtxOk_of_valueWand` at a key of the named types `tys`
+(their `.ty` definitions): none of the libraries' key types. -/
+syntax "context_libKeys_ne" "[" Lean.Parser.Tactic.simpLemma,* "]" : tactic
+set_option hygiene false in
+macro_rules
+  | `(tactic| context_libKeys_ne [$tys,*]) => `(tactic| (
+      intro k hk k' h
+      simp only [context.libKeys, List.mem_cons, List.not_mem_nil, or_false] at hk
+      rcases hk with rfl | rfl | rfl | rfl <;>
+        simp only [metadata.mdIncomingKeyAny, metadata.mdOutgoingKeyAny, peer.peerKeyAny,
+          trace.spanKeyVal, interface.mkOk, GoInterface.ok.injEq] at h <;> subst h <;>
+        simp [google_golang_org.grpc.metadata.mdIncomingKey.ty,
+          google_golang_org.grpc.metadata.mdOutgoingKey.ty, google_golang_org.grpc.peer.peerKey.ty,
+          go_opentelemetry_io.otel.trace.traceContextKeyType.ty, $tys,*]))
+
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -357,7 +372,8 @@ theorem context.valueAt_of_valueWand (parent c' key : GoInterfaceOk) (v k : GoIn
   · itrivial
   · inext; iexact HΦ
 
-/-- **`WithValue` at a key of none of the libraries' types keeps `libCtxOk`.** -/
+/-- **`WithValue` at a key of none of the libraries' types keeps `libCtxOk`.** Its side condition
+`hk` at a named key type `T` (`⟨T.ty, _⟩`): `by context_libKeys_ne [T.ty]`. -/
 theorem context.libCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v : GoInterface)
     (hk : ∀ k ∈ context.libKeys, ∀ k' : GoInterfaceOk, k = GoInterface.ok k' → k'.ty ≠ key.ty) :
     (□ (∀ (k : GoInterface) (R : GoInterface → Prop),

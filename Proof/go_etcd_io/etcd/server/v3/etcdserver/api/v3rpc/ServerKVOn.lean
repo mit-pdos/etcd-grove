@@ -471,7 +471,7 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   simp only [srvKVAnsM]
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, -, %Htok⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, -, -, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, -, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
   wp_apply hPut s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
@@ -561,7 +561,7 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     · intro o' h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hnz0
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hst, -, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hst, -, Hcred, Hrd⟩
   subst Hci
   ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
   wp_apply hDel s E ρ ci cd r o (opDepQ d) F $$ [Hrd Hard Hcred Hdep] as %resp %err ⟨Hrd, Hard, Hres⟩
@@ -1062,7 +1062,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
   ihave #Hdep' := kvDep_of_depM E.authOn s E ρ γr tok d $$ Hdep
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
   wp_apply hRange s E ρ γr c ci cd r o none false (rangeDepQM E.authOn γr.kv d) F n Hany $$ [Hrc]
     as %resp %err ⟨Hrc, Hres⟩
@@ -1144,7 +1144,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   simp only [kvDepPre] at Hro
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF, #Hn, %Htok⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hlib, #Hspan, #Hstc, #Hct, Hcred, Hlt⟩
   subst Hci
   ihave #Hrt := txnReqIs_txnRequestIs r cs ts es ts' es' hts hes $$ Hr
   generalize ht : ({ cmps := cs, thenOps := ts', elseOps := es' } : TxnModel) = t at hm ⊢

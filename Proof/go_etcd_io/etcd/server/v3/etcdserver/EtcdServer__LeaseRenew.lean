@@ -373,9 +373,10 @@ theorem EtcdServer.LeaseRenew.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -⟩
+  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi

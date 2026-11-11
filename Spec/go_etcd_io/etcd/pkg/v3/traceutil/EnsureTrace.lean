@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
 public import Proof.google_golang_org.grpc.metadata.Incoming
 public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -55,7 +56,8 @@ abbrev traceutil.EnsureTrace.spec : Prop :=
       ∃ vs : GMap GoInterface GoInterface,
         mvcc.txnCtx ctx' { cd with Values := vs } ∗
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) ∗
-        □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') }}
+        □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
+        □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') }}
 
 end spec
 

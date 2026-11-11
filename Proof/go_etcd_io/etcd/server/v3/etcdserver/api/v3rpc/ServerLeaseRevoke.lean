@@ -51,6 +51,7 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
   unfold lessorRevokeOk
   iintro %ci %cd %r %id !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq⟩ HΦ
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
+  ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   wp_apply (hLR s E ρ ci cd r id h) $$ [Hlt HRD] as %resp %err ⟨Hlt, HRD, Hans⟩

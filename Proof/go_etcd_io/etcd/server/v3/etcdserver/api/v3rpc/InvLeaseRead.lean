@@ -96,7 +96,7 @@ def leasesAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) 
 def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
       (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
         r ↦{dq} v }}
       (App (App (Val (srvM s go!"LeaseTimeToLive")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗ r ↦{dq} v ∗
@@ -105,7 +105,7 @@ def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : I
 /-- **The server's `LeaseLeases`** (one conjunct of `raftLeaseRead`). -/
 def lessorLeasesOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseLeases")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗
         leasesAns s E γl ci n m resp err }})

@@ -35,7 +35,7 @@ theorem v3rpc.authMaintenanceServer.Snapshot.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.Snapshot.spec (GF := GF) (hG := hG) := by
   intro p ms aa s E ctx cd sr srv Pin Q
-  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, HRD, HPin, #Hsc, #Hin⟩
+  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, #Hlib, HRD, HPin, #Hsc, #Hin⟩
   ihave #Hams' := Hams
   iunfold v3rpc.amsIs at Hams'
   icases Hams' with ⟨%Hpn, #Hms, #Haaf⟩

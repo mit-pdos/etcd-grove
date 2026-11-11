@@ -838,8 +838,9 @@ theorem EtcdServer.Range.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
@@ -859,7 +860,7 @@ theorem EtcdServer.Range.wp_proof
   iintro %fsl ⟨Hfl, Hflc⟩
   (try wp_auto)
   wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
-    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2, -⟩
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2, -, -, #Hlibw2⟩
   · iframe #
     isplitr
     · iapply Hctr1 $$ Hct
@@ -870,6 +871,7 @@ theorem EtcdServer.Range.wp_proof
     ipureintro
     exact traceutil.fieldsWf_cons_string _ _ _
       (traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil)
+  ihave #Hlib2 := Hlibw2 $$ Hlib1
   (try wp_auto)
   wp_apply time.wp_Now as %start -
   (try wp_auto)

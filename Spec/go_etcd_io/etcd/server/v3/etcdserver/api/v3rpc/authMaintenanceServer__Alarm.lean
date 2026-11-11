@@ -7,6 +7,7 @@ otherwise. Lean-first (no Rocq counterpart); the auth plan's A2 (2026-10-23), vo
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -38,7 +39,7 @@ abbrev v3rpc.authMaintenanceServer.Alarm.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (ar : Loc) (act : w32) (Pin : IProp GF)
     (Q : Loc → GoInterface → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       E.RD ∗ Pin ∗ v3rpc.alarmActionOk ar act ∗
       v3rpc.guardedOk2 (v3rpc.alarmTok E.authMode act) Pin E.RD
         (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"Alarm" ms (GoInterface.ok ctx) ar

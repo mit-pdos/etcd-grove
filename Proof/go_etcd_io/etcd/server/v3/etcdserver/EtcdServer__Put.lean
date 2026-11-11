@@ -77,9 +77,10 @@ theorem EtcdServer.Put.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hspc1 := Hspw $$ Hspc
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
@@ -114,6 +115,12 @@ theorem EtcdServer.Put.wp_proof
     · iintro %hne; exact absurd rfl hne
     · itrivial
     · iexact HΦ'
+  -- (premise-fixes-8) its library values, through `WithValue` at a key of none of their types
+  ihave #Hlib2 : context.libCtxOk ctx2 $$ []
+  · rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e']
+    iapply (context.libCtxOk_of_valueWand (GF := GF) ctx1 c2'
+      ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _
+      (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel2 Hlib1
   -- (E3zb) the context `raftRequest` sees carries the request's metadata
   have Hinc : metadata.incomingOf (GoInterface.ok ctx2) = metadata.incomingOf (GoInterface.ok ctx) := by
     rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e', Hinc2, Hinc1]
