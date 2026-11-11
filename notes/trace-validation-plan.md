@@ -1105,6 +1105,29 @@ traced `RawNode.Tick` (Q25: a leader's `r.tick` is not known to be `tickHeartbea
 
   **Taken by the coordinator (raft-internal): (a)** (`pendingRel`'s `.self` case carries `recvTokOf` when
   traced).
+  **Done** in slice 26n (the ghost change; `Ready`/`Advance` themselves not yet).
+
+**Q8 stage 1 (slice 26n), 2026-11-11 (branch `trace-check-q8s26n`): Q25 (a) and the traced
+`RawNode.Tick` done; Q26 (a)'s ghost change done; `Ready`, `Advance`, `ApplyConfChange`,
+`ReportUnreachable`, `node.run`, `newRaft`/`Bootstrap` not done, one question (Q27).** Decided by the
+coordinator (Q25 (a), Q26 (a)) and the agent (their form) (`notes/decisions.md`, "Q8 stage 1 (slice
+26n)"); all raft-internal. Q25 (a) needed no spec change: `hup`'s `"Hgbc"` was already asked only under
+`HupCampaigns` (non-leader); the hup bundle's path `LocalHup` and `raft.tickElection.tracedTriple` drop
+the non-leader premise (at a leader `stepLeader`'s gates are vacuous and the close is at `s`).
+`RawNode.Tick.traced` (`TracedRawNode.lean`). Q26 (a): `recvTokOf` moved to `TracedRecvTok.lean`;
+`pendingRel`'s `.self` arm carries `selfTok` (`recvTokOf` traced, `True` untraced), no longer persistent;
+`self_pending` takes the tokens (`selfToks_none` untraced). Remaining, with designs in the decisions entry:
+`RawNode.Ready` (a unified `acceptReady.spec` firing `trCap_fire_ready` and distributing the tokens over
+`outboxRelP`), `Advance` (the `.self` steps over the response types' bundle, the storage
+acknowledgements' close), the rest as slice 25n listed.
+
+- **Q27 (2026-11-11, slice 26n): a traced `ReportUnreachable`'s close.** `MsgUnreachable` is not a
+  `StepEndTy`, so no bundle's closing wand learns the end state, and `raft.Step`'s other
+  postconditions do not give the idle relation at it (a leader's `BecomeProbe` changes its `Progress`).
+  Options: (a) `MsgUnreachable` in `StepEndTy`/`StepEnd` (the end state `s` but for `Progress` values
+  with the same `Match`; raft-internal: `raft.Step`'s `MsgUnreachable` arms, each bundle a vacuous case);
+  (b) the capability framed around `raft.Step` with vacuous gates, and a new `Step` postcondition clause
+  for `MsgUnreachable`. Recommended: (a).
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
