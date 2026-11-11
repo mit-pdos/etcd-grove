@@ -25,8 +25,9 @@ check of the trusted definitions).
   candidates of its file) holds at the start (`cacheOk_init`), after every step (`cacheOk_step`,
   each case of `IsFsStep`) and after a crash (`cacheOk_crash`): so in every reachable state a crash
   that keeps every file as it is exists.
-* `sectorWhole_durable`: `SectorWhole` is satisfiable: a crash keeping every byte as of the last
-  sync is a crash, and leaves every sector as one state of it.
+* `sectorWhole_durable`, `sectorWhole_reachable`: `SectorWhole` is satisfiable: a crash keeping
+  every byte as of the last sync is a crash, and leaves every sector as one state of it; in every
+  reachable state (`CacheOk`, which carries the stamp-0 candidate of every byte, `Stamp0`).
 * `crash_overlap`: two overlapping calls in disjoint directories (a rename of the file `a` to `d`,
   and a create in `c/x` begun before the rename took effect): a crash may keep the create without
   the rename.
@@ -330,41 +331,52 @@ theorem crash_past_end_zeros (st : OsState) (i : Ino) (img : Nat → w8) (n : Na
     · exact (Prod.mk.inj h).1
   simp only [OsFile.ofDisk, diskByte, hv]; split <;> rfl
 
-/-- The page cache is among the candidates, byte by byte, and the size in its range. -/
+/-- Every byte has a candidate stamped 0 (its value as of the last sync). -/
+def Stamp0 (f : OsFile) : Prop := ∀ b, ∃ v, (v, 0) ∈ f.cand b
+
+/-- The page cache is among the candidates, byte by byte, every byte has a candidate stamped 0,
+and the size is in its range. -/
 def CacheCand (f : OsFile) : Prop :=
-  (∀ b, ∃ s, (f.cache b, s) ∈ f.cand b) ∧ f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi
+  ((∀ b, ∃ s, (f.cache b, s) ∈ f.cand b) ∧ Stamp0 f) ∧ f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi
 
 /-- **A crash may keep a file as it is** (its page cache and size; the pages past the size zeros):
 the crash rule never leaves a file without a crash. -/
 theorem crash_current (st : OsState) (i : Ino) (f : OsFile) (hok : CacheCand f) :
     CrashFile st i f (OsFile.ofDisk f.cache f.size) :=
-  crashFile_of _ _ _ _ _ hok.2.1 hok.2.2 hok.1
+  crashFile_of _ _ _ _ _ hok.2.1 hok.2.2 hok.1.1
 
 theorem cacheCand_ofDisk (img : Nat → w8) (sz : Nat) : CacheCand (OsFile.ofDisk img sz) :=
-  ⟨fun b => ⟨0, by simp [OsFile.ofDisk]⟩, Nat.le_refl _, Nat.le_refl _⟩
+  ⟨⟨fun b => ⟨0, by simp [OsFile.ofDisk]⟩, fun _ => ⟨_, List.mem_singleton_self _⟩⟩,
+    Nat.le_refl _, Nat.le_refl _⟩
 
 theorem cacheCand_announce {f : OsFile} (hok : CacheCand f) (c : OsChange) (n : Nat) :
     CacheCand (f.announce c n) := by
-  refine ⟨fun b => ?_, hok.2.1, hok.2.2⟩
-  obtain ⟨s, h⟩ := hok.1 b
-  exact ⟨s, mem_announce_old h c n⟩
+  refine ⟨⟨fun b => ?_, fun b => ?_⟩, hok.2.1, hok.2.2⟩
+  · obtain ⟨s, h⟩ := hok.1.1 b
+    exact ⟨s, mem_announce_old h c n⟩
+  · obtain ⟨v, h⟩ := hok.1.2 b
+    exact ⟨v, mem_announce_old h c n⟩
 
 theorem cacheCand_synced {f : OsFile} (hok : CacheCand f) (busy : Nat → Prop)
     [DecidablePred busy] : CacheCand (f.synced busy) := by
-  refine ⟨fun b => ?_, by simp [OsFile.synced], by simp [OsFile.synced]⟩
-  simp only [OsFile.synced]; split
-  · exact hok.1 b
-  · exact ⟨0, by simp⟩
+  refine ⟨⟨fun b => ?_, fun b => ?_⟩, by simp [OsFile.synced], by simp [OsFile.synced]⟩
+  · simp only [OsFile.synced]; split
+    · exact hok.1.1 b
+    · exact ⟨0, by simp⟩
+  · simp only [OsFile.synced]; split
+    · exact hok.1.2 b
+    · exact ⟨_, List.mem_singleton_self _⟩
 
 /-- Landing a change keeps `CacheCand` when its announced values are candidates up to where it
 lands. -/
 theorem cacheCand_land {f : OsFile} (hok : CacheCand f) (c : OsChange) (e sz : Nat)
     (hv : ∀ b, inRange c.lo e b = true → ∃ s, (c.val b, s) ∈ f.cand b) :
     CacheCand (f.land c e sz) := by
-  refine ⟨fun b => ?_, by simp only [OsFile.land]; omega, by simp only [OsFile.land]; omega⟩
+  refine ⟨⟨fun b => ?_, hok.1.2⟩, by simp only [OsFile.land]; omega,
+    by simp only [OsFile.land]; omega⟩
   simp only [OsFile.land]; split
   · exact hv b (by assumption)
-  · exact hok.1 b
+  · exact hok.1.1 b
 
 /-! ## The page cache is always a crash candidate -/
 
@@ -539,16 +551,18 @@ theorem cacheOk_setProc {st : OsState} (h : CacheOk st) (p : ProcState)
 /-- `open`'s effect keeps the invariant. -/
 theorem cacheOk_openEffect {st st1 : OsState} (h : CacheOk st) {p : GoString} {acc : Nat}
     {creat trunc : Bool} {start : Nat} {tgt : Node}
+    (hnb : trunc = true → ∀ i, st.lookup p = some (.file i) → ¬ BusyAt st i)
     (he : OpenEffect st p acc creat trunc start st1 tgt) : CacheOk st1 := by
   unfold OpenEffect at he
   split at he
   · obtain ⟨-, -, -, rfl, -⟩ := he; exact h
-  · obtain ⟨⟨f, hf, hnb, rfl⟩, -⟩ := he
+  · rename_i i hl
+    obtain ⟨⟨f, hf, rfl⟩, -⟩ := he
     split
     · rename_i htr
       refine cacheOk_stampFile h hf _ (fun n => cacheCand_land
         (cacheCand_announce (h.1 _ _ hf) _ n) _ _ _ fun b hb => ⟨n, mem_announce_new f hb n⟩)
-        (hnb htr)
+        (hnb htr i hl)
     · exact h
   · obtain ⟨-, j, b, -, rfl, -⟩ := he
     exact cacheOk_metaDo (cacheOk_newFile h) _ _
@@ -561,11 +575,12 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- Open
     obtain ⟨p, fl, t, start, -, -, -, -, hr⟩ := hs
     dsimp only at hr
+    obtain ⟨hg, hr⟩ := hr
     rcases hr with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, rfl | ⟨tgt, he⟩⟩
-    · have h1 := cacheOk_openEffect (cacheOk_metaEnd h t) he
+    · have h1 := cacheOk_openEffect (cacheOk_metaEnd h t) hg he
       cases tgt <;> exact cacheOk_setProc h1 _ rfl
     · exact cacheOk_metaEnd h t
-    · exact cacheOk_openEffect (cacheOk_metaEnd h t) he
+    · exact cacheOk_openEffect (cacheOk_metaEnd h t) hg he
   next => -- PRead
     obtain ⟨-, -, -, -, -, -, -, -, -, -, rfl, -⟩ := hs; exact h
   next => -- PWriteStart
@@ -607,7 +622,7 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- Close
     obtain ⟨-, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- Mmap
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨base, -, -, -, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ := hs
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, ⟨base, -, -, -, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ := hs
     · exact cacheOk_setProc h _ rfl
     · exact h
   next => -- Munmap
@@ -722,6 +737,18 @@ theorem sectorWhole_durable (st : OsState) (i : Ino) (f : OsFile) (hsz : f.sizeL
   have h1 : (512 * n + j) / 4096 = (512 * n) / 4096 := by omega
   have h2 : 4096 * ((512 * n) / 4096) ≤ 512 * n := Nat.mul_div_le _ _
   rw [h1]; omega
+
+/-- **`SectorWhole` never leaves a reachable state without a crash**: in every state satisfying the
+invariant (`CacheOk`, true from boot, after every step and after a crash), each file has the crash
+`sectorWhole_durable` gives. -/
+theorem sectorWhole_reachable {st : OsState} (h : CacheOk st) {i : Ino} {f : OsFile}
+    (hf : st.fs.files !! i = some f) :
+    CrashFile st i f (OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo) ∧
+    ∀ n, 512 * n < (OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo).size → ∀ j < 512,
+      (OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo).cache (512 * n + j) =
+        valAt (f.cand (512 * n + j)) 0 :=
+  have hc := h.1 i f hf
+  sectorWhole_durable st i f (Nat.le_trans hc.2.1 hc.2.2) hc.1.2
 
 /-! ## The directory tree -/
 

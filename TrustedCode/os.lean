@@ -23,7 +23,8 @@ kept. Errors are as Go makes them: `&PathError{Op, Path: f.name, Err: Errno(e)}`
 `io.EOF` unwrapped. The model is less defined than Go (stuck) where Go's answer depends on what is
 not modelled: a nil `*File` or a zero `File` (Go returns `ErrInvalid` or `EINVAL`), and a closed
 file (`Close` sets `fd` to -1, as Go's `pfd.destroy` sets `Sysfd`; Go then returns `ErrClosed`,
-while the extension is stuck on fd -1), including a method racing `Close` (Go's reference count
+while the extension is stuck on fd -1, and the methods that answer without it, `Seek`, `Write`,
+`Read` and `Truncate`, panic first: not modelled), including a method racing `Close` (Go's reference count
 makes that safe; in the model it is a race on the inner cell, or an operation on a closed fd).
 Unrelated to the extension: an open file's finalizer (`notes/osfs-ext-plan.md`, D5).
 -/
@@ -332,11 +333,18 @@ noncomputable def File.WriteAt.impl : val :=
               (#(W64 0), model.wrapErrno #"write" "inner" (Snd "r"))
             else "pwrite" "nn") #(W64 0)
 
-/-- The bound below which the model keeps file offsets (`2^62`): past it Linux's `lseek` fails
-(`EINVAL` past the filesystem's maximum file size, which the extension does not model) and an
-`int64` sum may wrap, so the model does not go there: a panic, never reached by a proved
-program. -/
+/-- The bound below which the model keeps file offsets (`2^62`), so that an `int64` sum of two of
+them cannot wrap: past it the model does not go (a panic, never reached by a proved program). A
+read or write there is a superset of Linux's answers anyway (any errno, `EFBIG`); `Seek` has the
+filesystem's own bound, `model.seekMax`. -/
 abbrev model.offMax : w64 := W64 0x4000000000000000
+
+/-- The largest offset `lseek` accepts on the target configuration's ext4 (extent files, 4 KiB
+blocks): `s_maxbytes = (2^32 - 1) · 4096 = 2^44 - 4096` (`ext4_max_size`; `generic_file_llseek_size`
+→ `vfs_setpos` returns `EINVAL` past it). Measured on configuration C
+(`notes/axiom-review/fs-v2-r8/`, `TestSeekPastMaxBytes`): `Seek(0xffffffff000)` succeeds,
+`Seek(0xffffffff001)` is `EINVAL`. -/
+abbrev model.seekMax : w64 := W64 0xffffffff000
 
 /-- `(*File).Seek(offset int64, whence int) (int64, error)` (`file.go`, `file_unix.go`'s
 `seek`, `poll.FD.Seek`): one `lseek(2)`, whose result Go returns, an error being
@@ -347,13 +355,16 @@ offset in the `file`'s `off` (the module docstring) and reads the size by the ex
 (an `lseek` is not a call to `fstat`, and cannot fail with its errnos: the model has more outcomes
 than Linux, which only weakens what a proof shows). A `SEEK_CUR` after a failed `Write` (whose
 effect on the offset the model does not know, `off` being -1) and a result at or past
-`model.offMax` are not modelled (a panic). The check of Go's `Seek` that a directory's fd (one
+`model.offMax` are not modelled (a panic); a result past `model.seekMax` is `EINVAL`, as ext4 on
+the target configuration answers. A closed file (fd -1) is not modelled (a panic; Go returns
+`ErrClosed` before the system call). The check of Go's `Seek` that a directory's fd (one
 `Readdirnames` used) returns `EISDIR` does not arise: the extension's `Fstat` is stuck on a
 directory's fd, and `Seek` of one is not modelled. -/
 noncomputable def File.Seek.impl : val :=
   λ: "f" "offset" "whence",
     let: "inner" := model.inner "f" in
     let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
+    if: "fd" <⟨go.int⟩ #(W64 0) then Panic "os: Seek of a closed file not modelled" else
     let: "cur" := ![go.int64] (StructFieldRef model.file go!"off" "inner") in
     let: "base" :=
       if: "whence" =⟨go.int⟩ #(W64 0) then (#(W64 0), #(W64 0))
@@ -370,6 +381,8 @@ noncomputable def File.Seek.impl : val :=
       else if: (#model.offMax ≤⟨go.int64⟩ "n") || (#model.offMax ≤⟨go.int64⟩ Fst "base") ||
           (#model.offMax ≤⟨go.int64⟩ "offset") then
         Panic "os: Seek past 2^62 not modelled"
+      else if: #model.seekMax <⟨go.int64⟩ "n" then
+        (#(W64 0), model.wrapErrno #"seek" "inner" #(W64 22)) -- EINVAL past ext4's maximum
       else
         StructFieldRef model.file go!"off" "inner" <-[go.int64] "n" ;;
         ("n", #GoInterface.nil)
@@ -384,13 +397,19 @@ Go returns the bytes written before it (`poll.FD.Write`'s `nn`, which a short `w
 by a failing one makes positive), which the model's `WriteAt` does not keep: the model returns any
 count (`ArbitraryInt`), and the offset is unknown (`off` set to -1): a later `Write`, `Read` or
 `SEEK_CUR` is not modelled (a panic; a `SEEK_SET` sets a known offset again). A write reaching
-`model.offMax` is not modelled. -/
+`model.offMax` is not modelled. Not modelled either (a panic): a closed file (fd -1: Go returns
+`ErrClosed`), and an empty `b`, for which Go (with no empty-buffer shortcut in `poll.FD.Write`)
+issues a zero-byte `write(2)` whose answer depends on the fd's mode (`EBADF` on a read-only fd,
+measured on C, `notes/axiom-review/fs-v2-r8/`). -/
 noncomputable def File.Write.impl : val :=
   λ: "f" "b",
     let: "inner" := model.inner "f" in
+    let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
     let: "off" := ![go.int64] (StructFieldRef model.file go!"off" "inner") in
     let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
-    if: "off" <⟨go.int64⟩ #(W64 0) then Panic "os: Write at an unknown offset not modelled"
+    if: "fd" <⟨go.int⟩ #(W64 0) then Panic "os: Write of a closed file not modelled"
+    else if: "len" =⟨go.int⟩ #(W64 0) then Panic "os: an empty Write not modelled"
+    else if: "off" <⟨go.int64⟩ #(W64 0) then Panic "os: Write at an unknown offset not modelled"
     else if: #model.offMax ≤⟨go.int64⟩ ("off" +⟨go.int64⟩ Convert go.int go.int64 "len") then
       Panic "os: Write past 2^62 not modelled"
     else
@@ -409,15 +428,17 @@ bytes, `EINTR` retried; the offset advances by what was read; 0 bytes is `io.EOF
 `&PathError{"read", name, Errno(e)}` with `n = 0`, the offset unchanged. A `read(2)` is a
 `pread(2)` at the offset that then moves it: the extension's `PRead` at `off` (as
 `File.ReadAt.impl`'s), whose bytes are copied into `b`. An empty `b` returns `0, nil` at once
-(`poll.FD.Read`). A read from an unknown offset (after a failed `Write`) or reaching
-`model.offMax` is not modelled (a panic). -/
+(`poll.FD.Read`, after its lock). A closed file (fd -1: Go returns `ErrClosed` from that lock), a
+read from an unknown offset (after a failed `Write`), or one reaching `model.offMax` is not
+modelled (a panic). -/
 noncomputable def File.Read.impl : val :=
   λ: "f" "b",
     let: "inner" := model.inner "f" in
     let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
     let: "off" := ![go.int64] (StructFieldRef model.file go!"off" "inner") in
     let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
-    if: "len" =⟨go.int⟩ #(W64 0) then (#(W64 0), #GoInterface.nil)
+    if: "fd" <⟨go.int⟩ #(W64 0) then Panic "os: Read of a closed file not modelled"
+    else if: "len" =⟨go.int⟩ #(W64 0) then (#(W64 0), #GoInterface.nil)
     else if: "off" <⟨go.int64⟩ #(W64 0) then Panic "os: Read at an unknown offset not modelled"
     else if: #model.offMax ≤⟨go.int64⟩ ("off" +⟨go.int64⟩ Convert go.int go.int64 "len") then
       Panic "os: Read past 2^62 not modelled"
@@ -474,10 +495,11 @@ noncomputable def File.Truncate.impl : val :=
         else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then model.wrapErrno #"truncate" "inner" "e"
         else #GoInterface.nil) #()
 
-/-- `(*File).Sync() error` (`file_posix.go`, `poll.FD.Fsync`): `fsync(2)`, `EINTR` retried (each
-failed attempt loses the writeback of the dirty bytes, D2, as on Linux), an error being
-`&PathError{"sync", name, Errno(e)}`: the extension's `Fsync` (`fd ↦ errno`), or `DirSync` for a
-directory's fd (`FdKind`, as in `Close`). -/
+/-- `(*File).Sync() error` (`file_posix.go`, `poll.FD.Fsync`): `fsync(2)`, `EINTR` retried, an
+error being `&PathError{"sync", name, Errno(e)}`: the extension's `Fsync` (`fd ↦ errno`), or
+`DirSync` for a directory's fd (`FdKind`, as in `Close`). A failed `Fsync` changes nothing (the
+semantics assumes no failed writeback, `Impl.lean`'s header) and never returns `EINTR`, so the
+retry is reachable only for `DirSync`. -/
 noncomputable def File.Sync.impl : val :=
   λ: "f" <>,
     let: "inner" := model.inner "f" in

@@ -57,9 +57,10 @@ meaning: a step on any other path is stuck.
   `ProcState.inflight`). **At most one change is in flight on a file**: a change's first step is
   stuck while another is in flight on the same file (a restriction on programs, sound by
   construction: every client writes each file from one thread; Linux serializes a buffered write
-  and a truncate on `i_rwsem` anyway). An empty `pwrite` is stuck too (Go's `WriteAt` and `Write`
-  never issue one). A mapped load that could see a change in flight is stuck (a hole), a racing
-  `pread` or `fstat` returns any mix, and a racing `mmap` is stuck. Path calls
+  and a truncate on `i_rwsem` anyway); an `open` with `O_TRUNC` is such a first step. An empty
+  `pwrite` is stuck too (Go's `WriteAt` never issues one; the `os` model's empty `Write`, which
+  Go does issue, is not modelled). A mapped load that could see a change in flight is stuck (a
+  hole), and a racing `pread` or `fstat` returns any mix. Path calls
   (`CallBegin` … step) overlap, except that a rename of a directory is stuck while any other path
   call is in flight: Linux walks a path a component at a time, and the model resolves it at one
   instant, which agrees with Linux only when no directory is moved during the walk. This stuck
@@ -484,15 +485,15 @@ def OsState.commitAll (st : OsState) : OsState :=
 def newFile : OsFile := OsFile.ofBytes []
 
 /-- What `open(p)` does before its fd (`st1`), and what the fd will be on (`tgt`): an existing file
-(truncated with `trunc`: a resize to 0 announced and landed at once, and, as every change, stuck
-while another change is in flight on the file); a new file of a fresh inode, with its `create`
+(truncated with `trunc`: a resize to 0 announced and landed at once; the `Open` step is stuck
+then while a change is in flight on the file, as every change's first step); a new file of a fresh inode, with its `create`
 logged (`O_CREAT`, in an existing directory; `start` the call's start); or a directory, opened
 read-only without `O_CREAT` or `O_TRUNC` (Linux refuses the rest, `EISDIR`). -/
 def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (start : Nat)
     (st1 : OsState) (tgt : Node) : Prop :=
   match st.lookup p with
   | some (.dir j) => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = .dir j
-  | some (.file i) => (∃ f, st.file i = some f ∧ (trunc = true → ¬ BusyAt st i) ∧
+  | some (.file i) => (∃ f, st.file i = some f ∧
       st1 = (if trunc then
         st.stampFile i (fun n => let c := OsChange.ofResize i f 0; (f.announce c n).land c c.hi 0)
         else st)) ∧
@@ -581,6 +582,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       let creat := decide (fl.toNat / O_CREAT % 2 = 1)
       let trunc := decide (fl.toNat / O_TRUNC % 2 = 1)
       let st0 := st.metaEnd t
+      (trunc = true → ∀ i, st0.lookup p = some (.file i) → ¬ BusyAt st0 i) ∧
       ((∃ (st1 : OsState) (tgt : Node) (fd : w64),
           OpenEffect st0 p acc creat trunc start st1 tgt ∧ FdFree st fd ∧
           st' = (match tgt with
@@ -663,7 +665,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "Mmap" => ∃ (fd off len prot fl : w64) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl)))) ∧
       FdOpen st fd d ∧ d.readable ∧ off = 0 ∧ 0 < len.toInt ∧ prot.toNat = PROT_READ ∧
-      (fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) ∧ ¬ BusyAt st d.ino ∧
+      (fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) ∧
       ((∃ base : Loc, 0 < base.addr ∧ (osPageSize : Int) ∣ base.addr ∧
           st.proc.maps !! base = none ∧
           st' = st.setProc { st.proc with maps := <[base := ⟨d.ino, len.toNat⟩]> st.proc.maps } ∧

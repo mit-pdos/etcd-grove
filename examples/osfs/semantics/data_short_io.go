@@ -12,7 +12,8 @@ import (
 //
 // Decision: every system call may fail with any nonzero errno. A pread that
 // succeeds returns a non-empty prefix of what it asked for (or nothing at
-// EOF); a failed one returns nothing. A pwrite that succeeds writes all of its
+// EOF); a failed one returns any prefix with its errno (the os model's ReadAt
+// copies it, uncounted). A pwrite that succeeds writes all of its
 // data or a non-empty prefix (a short write with errno 0); a failed one may
 // have written any prefix, none included.
 //
@@ -21,7 +22,7 @@ import (
 // header's "Environmental failure"; notes/axiom-review/fs-v2.md, F4 and F6.
 //
 // Allowed: n < len(buf) with err == nil; a short write with err == nil; a
-// failed write whose prefix landed.
+// failed write whose prefix landed; a failed read that returned a prefix.
 // Excluded: a successful read past what the file holds.
 //
 // Why: documented (read(2), write(2): "the number of bytes ... may be less
@@ -37,6 +38,7 @@ func ShortIO(dir string) {
 	_, _ = n, err
 	buf := make([]byte, 8192)
 	m, err := syscall.Pread(fd, buf, 0)
-	// allowed: 0 < m <= 8192 (a prefix), err == nil; m <= 0, err != nil
+	// allowed: 0 < m <= 8192 (a prefix), err == nil; err != nil with any
+	//          prefix of the file copied into buf
 	_, _ = m, err
 }

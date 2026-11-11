@@ -231,3 +231,27 @@ program logic (`Specs.lean`, ...) was not reviewed. On this branch no Lean file 
 `GooseLang/` or `Proof/` refers to `Seek.impl`, `File.Write.impl` or `File.Read.impl`, so no
 proof uses R1-R3 yet. No new crash experiment: no finding
 depends on a crash behaviour not measured in rounds 4-6.
+
+## Dispositions (2026-11-11, fork S3)
+
+- **R1, fixed.** `File.Seek.impl` returns `EINVAL` for a result past `model.seekMax =
+  0xffffffff000` (ext4's `s_maxbytes` on C, measured here); `model.offMax` stays only as the
+  overflow guard (its docstring corrected). Kept deterministic: `lseek` on a regular file fails
+  only with `EINVAL` (or `EOVERFLOW`, out of reach below `seekMax`).
+- **R2, fixed (not modelled).** An empty `File.Write` panics in the model ("not modelled"): Go
+  issues a zero-byte `write(2)` whose answer depends on the fd's mode, which the model's file
+  cell does not hold. No client writes an empty buffer.
+- **R3, fixed.** `Seek`, `Write` and `Read` start with `Truncate.impl`'s closed-file guard (a
+  panic on fd -1). The module docstring says so.
+- **F4, fixed.** The `Open` step's premises carry `trunc → ∀ i, lookup p = .file i → ¬ BusyAt i`
+  (on the state after the call's metadata end), so an `O_TRUNC` open of a busy file is stuck,
+  as every change's first step; `OpenEffect` no longer repeats it.
+- **F5, fixed.** `Mmap`'s `¬ BusyAt` dropped (a load of a byte under a change is already a hole);
+  the header's "Races" and `data_inflight_changes.go` updated.
+- **F6, fixed.** `File.Sync`'s docstring (a failed `Fsync` changes nothing; the retry is reachable
+  only for `DirSync`); minibolt's `Commit` comment (translation regenerated).
+- **F7, fixed.** `data_short_io.go`: a failed `pread` returns any prefix, which the model's
+  `ReadAt` copies.
+- **F8, fixed.** `CacheCand` carries `Stamp0` (every byte has a candidate stamped 0), so
+  `CacheOk` does; `sectorWhole_reachable` proves `SectorWhole`'s crash exists in every state
+  satisfying `CacheOk` (from boot, after every step and after a crash).
