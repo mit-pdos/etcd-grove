@@ -94,7 +94,7 @@ theorem startAt_start [L : GooseLocalGS GF] (p : GoString) (R : Roots) (m : Tree
     | file i =>
       iintro ⟨%f, %hfo, Hf⟩
       subst hfo
-      iexists some (i, initMeta f, f.contents.map (·, true), none)
+      iexists some (i, initMeta f, f.contents.map durB, none)
       isplitr
       · ipureintro
         refine ⟨.inr ⟨i, f, rfl, hg⟩, ⟨fun V' h => ?_, fun i' x h => ?_⟩, ⟨?_, rfl⟩, hl,
