@@ -1225,6 +1225,21 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   (c) take `BootFacts` as a premise of the closed theorem: not allowed (it is about raft's run).
   **Recommended: (a)**; `RunConcurrent.spec`'s post (`RunOk`) needs it, and `runOk_of_sim` takes it as
   its hypothesis until then. A frozen-statement change: for the coordinator or the user.
+
+**Q8 stage 1 (slice 27b), 2026-11-11 (branch `trace-check-q8s27b`): a candidate's won election done.**
+Slice 25b's remaining list taken by the coordinator, its form the agent's (`notes/decisions.md`, "Q8
+stage 1 (slice 27b)"); all raft-internal. Done (new modules `TracedRaftStepRecvVoteRespWon{Phase,Fx,}.lean`):
+the receive line's result phase carries the won tally's quorum (`phaseStepR_voteRespWon`, A6's premises,
+`isQuorum_of_jquorum`, `wonVote_quorum`) to the `BecomeLeader` line (`phaseStepB_becomeLeader`, at a
+`Progress` map with `reset`'s `Match` values, `wonPvs`); its facts with the term log's allocation
+(`fxPresU_becomeLeader`: `specInv_becomeLeader` from `becomeLeader_hyps`, `ackHists_becomeLeader`, the new
+leader's `srvFacts` from raft's facts and `leadFull`, `srvFacts_newLeader`); the empty entry's `Replicate`
+line (`phaseStepB_replicateB`, `fxPres_replicateW`, the entry's record by `ghost_stepWin_entry` in the
+gate); the self-acknowledgement and the appends; the close at `CloseMid`'s won case (`wonEnd`); the bundle
+**`stepBundle_traced_candVoteRespWon`** over `stepBundle_traced.onC CandVoteRespWon`. One loan changed:
+`winLend` also lends `⌜id ∈ domSet s.prvals⌝` (Step's own fact; `raft.Step.spec`'s text unchanged). Left:
+assembling the paths into `stepBundle_traced.on`.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
