@@ -1013,6 +1013,21 @@ self-acknowledgement's facts, the appends' gates (unblocked now by the `RejectHi
 the vote's loss (a guarded `stepOut` for the close) and win (the win's ghost update split, its receipt
 through `becomeLeader`), each recorded with its design in the decisions entry. Checked (branch at `trace-check` `98618b5dfa` plus this slice): full `lake build` green (13813 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in six function proof interfaces (`raft__appendEntry`, `stepLeader`: the receipt in the `Replicate` gate; those, `raft__maybeSendAppend`, `raft__sendAppend`, `raft__bcastAppend`, `stepCandidate`: `mm.rejecthint = W64 0`); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 24c), 2026-11-11 (branch `trace-check-q8s24c`): an accepted `MsgApp` at a follower
+and at a candidate of its term, for a capability whose voters fit the bootstrap log; the higher-term one
+not done; Q22.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 24c)"); all raft-internal,
+no frozen statement changed. Done (new modules `TracedRaftStepRecvAppAcc{,Fol,Cand}.lean`): raft's facts of
+`maybeAppend`'s new log without the step (`ownRaftGhost_appAccFacts`: records, the raised commit's
+certificate by `commitIn_move`, the committed prefix), the line's facts at every `appMid` state
+(`simFx_appAccMid`, with `quorumLogF_appLog`, amendment A5's truncation lemma generalized to any new log
+keeping the prefixes the request agrees with) and at the end (`simFx_appAccEnd`), the new log's length
+bound (`logRecs_traceBound`, its last entry's receipt), the close (`accEnd_simIdle`, the new log's
+`LogShapeOk`), the response's skipped send line; **`stepBundle_traced_folAppAcc`** and
+**`stepBundle_traced_candAppAcc`**, proved as `stepBundle_traced.onRB` (the capability's phase
+strengthened by `|C| ≤ |γ.reBoot|`, which the request's bootstrap positions need and nothing carries: Q22;
+`stepBundle_traced.on_of_onRB` gives `.on` once it is carried). Left: the higher-term accepted `MsgApp`
+(its pieces in place; `ownRaftGhost_appAccFacts` to state its certificate at the request's term), Q22.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -1278,6 +1293,17 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q22 (2026-11-11, Q8 stage 1 slice 24c): an accepted `MsgApp`'s bootstrap positions.** The
+  specification's log fixes its first `|C|` entries (term `1`); the accepted request's entries there must be
+  of term `1`. Raft's facts put the batch past `|γ.reBoot|` (the commit index covers the bootstrap log), and
+  `|C| = |γ.reBoot|` (`BootLogOk`) holds where the capability's invariant is allocated, but no clause of the
+  capability, `SimIdle`, `simFx` or `stepBundle_traced.on`'s premises carries it. Options: (a) `trCapB`'s
+  pure clause gains `C.length ≤ γ.reBoot.length` (frozen `TracedCap.lean`; established by
+  `startTrace_trCapB`, every law mechanically); (b) `SimIdle` gains `C.length ≤ committed` (every close
+  re-proved); (c) a bundle premise (needs the capability's names). **Recommended: (a).** Until then
+  `stepBundle_traced_folAppAcc`/`_candAppAcc` are `stepBundle_traced.onRB`, which
+  `stepBundle_traced.on_of_onRB` turns into `.on` given (a)'s law (`notes/decisions.md`, "Q8 stage 1
+  (slice 24c)").
 - **Q21 (2026-11-11, Q8 stage 1 slice 22b): an accepted append's truncation and the frozen
   `QuorumLogF`.** A receiver at the request's term may hold, by coincidence, a prefix a quorum
   committed at a higher term, and truncate it; `QuorumLogF` (a clause of the frozen `simFx`) stays
