@@ -185,6 +185,16 @@ def RdOk (cfg : GSet w64) (rd : RdState) : Prop :=
 
 -- `CfgM.joint` (`alreadyJoint`) is in `Protocol/StepC.lean` since stage B3.
 
+/-- (2026-11-11, trace-check Q8 stage 1 slice 28c) **Whether an accepted `MsgAppResp` from `src` at
+`index` reaches `maybeCommit`**: the code's own test, `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index
+&& pr.State == StateProbe && pr.Next == pr.Match+1)`, at the sender's `Progress` `p` before the step
+(`MaybeUpdate` raises `Match` exactly when it is below `index`, and leaves `p` as it is otherwise).
+False when the sender has no `Progress` (no gate runs). -/
+def AppRespRan (s : NState) (src index : w64) : Prop :=
+  ∃ p : Progress, s.prvals !! src = some p ∧
+    (uint.Z p.matched < uint.Z index ∨
+      (p.matched = index ∧ p.state = .probe ∧ p.next = p.matched + W64 1))
+
 /-- `MsgAppResp` accepted from `src` at `index`: `s'` is `s` with the sender's `Match`
 raised as `MaybeUpdate` raises it (the `Progress` values are otherwise unconstrained:
 `pvs`), `committed` at `n` -- unchanged, or a `CommitOkC` index (a joint quorum) judged
@@ -193,7 +203,10 @@ the commit. A commit releases the pending read-index requests (2026-10-12), with
 heartbeats `hb` judged at the raised `Match` map (2026-10-13: a heartbeat's `Commit` is
 `min(Match, committed)` of the `Progress` it is sent from) -- or (2026-10-14, the single-voter
 fix) at a configuration whose only voter is the leader itself, each answered at once at the new
-commit index. (Until 2026-10-14 also `AppRespAccepted`, at a simple configuration.) -/
+commit index. (Until 2026-10-14 also `AppRespAccepted`, at a simple configuration.)
+(2026-11-11, trace-check Q8 stage 1 slice 28c) And `n` is `maybeCommit`'s outcome when it runs
+(`AppRespRan`: `n` the committed index of an outcome `(b, N)` of `maybeCommitOut` at the raised
+`Match` values), the commit index unchanged when it does not. -/
 def AppRespAcceptedC (c : CfgM) (id : w64) (s : NState) (src index : w64)
     (s' : NState) : Prop :=
   ∃ (x : w64) (pvs : GMap w64 Progress) (n : w64) (hb ms : List Msg),
@@ -202,6 +215,9 @@ def AppRespAcceptedC (c : CfgM) (id : w64) (s : NState) (src index : w64)
       <[src := if uint.Z x < uint.Z index then index else x]> (prvalsMatch s.prvals) ∧
     (n = s.logst.committed ∨
      CommitOkC c (toPState { s with prvals := pvs }) n) ∧
+    (AppRespRan s src index → ∃ (b : Bool) (N : w64),
+      maybeCommitOut c { s with prvals := pvs } b N ∧ n = (commitAt s b N).logst.committed) ∧
+    (¬ AppRespRan s src index → n = s.logst.committed) ∧
     ReplSends id { s with logst := { s.logst with committed := n } } ms ∧
     (if n = s.logst.committed then hb = [] ∧
        s' = { sendMsgs { s with logst := { s.logst with committed := n } } ms with
@@ -505,10 +521,12 @@ abbrev stepLeader.spec : Prop :=
         ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
       -- an accepted `MsgAppResp`: `maybeCommit`'s `Commit` gate at each outcome, at the raised `Match`
       -- values (where a traced caller creates the new commit's `isCommitted` before `traceCommit`) ...
-      "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
+      -- (2026-11-11, slice 28c) given the code's run condition (`AppRespRan`) and a later credit (a traced
+      -- caller's commit of raft's ghost state opens the commit invariant inside the gate)
+      "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜AppRespRan s m.From' m.Index'⌝ -∗
         ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
         ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index'⌝ -∗
-        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G s.outbox -∗
+        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ £ 1 -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N s.outbox)) ∗
       -- ... then, after a commit, the release's (a single voter's responses, at no event; otherwise
       -- the `k`-th request's heartbeats, at the state with the first `k` released) ...

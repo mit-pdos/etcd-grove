@@ -1242,6 +1242,52 @@ theorem wp_stepLeader_readindex
     ipureintro
     exact ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr ⟨Hb', Hres⟩⟩)))⟩
 
+/-- (slice 28c) The run condition at the sender's `Progress` `p` (`AppRespRan`'s). -/
+def RanCond (p : Progress) (idx : w64) : Prop :=
+  uint.Z p.matched < uint.Z idx ∨ (p.matched = idx ∧ p.state = .probe ∧ p.next = p.matched + W64 1)
+
+theorem progressMaybeUpdate_of_le (p : Progress) (idx : w64) (h : ¬ uint.Z p.matched < uint.Z idx) :
+    progressMaybeUpdate p idx = p := by
+  unfold progressMaybeUpdate; rw [if_neg h]
+
+theorem prstateW64_eq_probe {st : PRState} (h : prstateW64 st = W64 0) : st = .probe := by
+  cases st <;> first | rfl | (exfalso; revert h; decide)
+
+theorem ranCond_iff_probe (p : Progress) (idx : w64) (hlt : ¬ uint.Z p.matched < uint.Z idx)
+    (hm : p.matched = idx) (hs : p.state = .probe) {b : Bool}
+    (hb : (decide (p.next = p.matched + W64 1) = true) ↔ b = true) : b = true ↔ RanCond p idx := by
+  unfold RanCond
+  rw [← hb]
+  simp only [decide_eq_true_eq]
+  exact ⟨fun h => .inr ⟨hm, hs, h⟩, fun h => h.elim (fun h => absurd h hlt) (fun h => h.2.2)⟩
+
+theorem ranCond_false (p : Progress) (idx : w64) (hlt : ¬ uint.Z p.matched < uint.Z idx)
+    (h : p.matched = idx → p.state = .probe → p.next = p.matched + W64 1 → False) :
+    (false = true ↔ RanCond p idx) := by
+  unfold RanCond
+  simp only [Bool.false_eq_true, false_iff, not_or]
+  exact ⟨hlt, fun ⟨a, b, c⟩ => h a b c⟩
+
+theorem maybeCommitOut_prvals {c : CfgM} {s : NState} {pvs pvs' : GMap w64 Progress} {b : Bool} {N : w64}
+    (h : maybeCommitOut c { s with prvals := pvs } b N) (hm : prvalsMatch pvs' = prvalsMatch pvs) :
+    maybeCommitOut c { s with prvals := pvs' } b N := by
+  have he : pvsMatchAt pvs' = pvsMatchAt pvs := by
+    funext v
+    have := congrArg (fun g => g !! v) hm
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap] at this
+    simp only [pvsMatchAt, pvsAcked]
+    exact congrArg (fun o => Option.getD o (W64 0)) this
+  unfold maybeCommitOut at h ⊢
+  simp only at h ⊢
+  rw [he]; exact h
+
+theorem appRespRan_of_ranCond (s : NState) (src idx : w64) (p : Progress) (hp : s.prvals !! src = some p) :
+    AppRespRan s src idx ↔ RanCond p idx := by
+  unfold AppRespRan RanCond
+  constructor
+  · rintro ⟨p', hp', h⟩; rw [hp] at hp'; cases hp'; exact h
+  · intro h; exact ⟨p, hp, h⟩
+
 set_option maxHeartbeats 1600000 in
 /-- **`MsgAppResp`** (2026-11-10, Q8 stage 1 slice 9; until then the premise `s.gh.tr = none`):
 rejected, `sendAppend`'s gate at `s`, `G` to `G`; accepted, `maybeCommit`'s per-outcome gate (`G` to
@@ -1291,10 +1337,10 @@ theorem wp_stepLeader_appresp
             mm.commit = s.logst.committed ∧ mm.dst = m.From' ∧
             uint.Z ((prvalsMatch s.prvals !! m.From').getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0⌝ -∗ G o -∗
           HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
-        "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
+        "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜AppRespRan s m.From' m.Index'⌝ -∗
           ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
           ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index'⌝ -∗
-          ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G s.outbox -∗
+          ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ £ 1 -∗ G s.outbox -∗
           HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N s.outbox)) ∗
         "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (N : w64) (mm : Msg) (o : List Msg),
           ⌜CfgSingle c id⌝ -∗ ⌜mm.ty = .readIndexResp⌝ -∗
@@ -1394,6 +1440,8 @@ theorem wp_stepLeader_appresp
     wp_join (Q := fun v => iprop(∃ cb : Bool, ⌜v = #cb⌝ ∗
         ⌜cb = true → uint.Z p.matched < uint.Z m.Index' ∨
           (progressMaybeUpdate p m.Index').next = (progressMaybeUpdate p m.Index').matched + W64 1⌝ ∗
+        -- (slice 28c) exactly the run condition
+        ⌜cb = true ↔ RanCond p m.Index'⌝ ∗
         ownProgress pr (progressMaybeUpdate p m.Index') ∗
         "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "pr" ∷ pr_ptr ↦ pr)) at (If _ (Val #true) _) with [Hpa m Hm pr]
     · wp_apply wp_GetIndex.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1407,6 +1455,8 @@ theorem wp_stepLeader_appresp
         · ipureintro; rfl
         isplitr
         · ipureintro; intro _; left; exact Hif
+        isplitr
+        · ipureintro; exact ⟨fun _ => .inl Hif, fun _ => rfl⟩
         iapply ownProgress_intro $$ Hpv Hinfl %Habs
       try wp_auto
       wp_apply wp_GetIndex.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -1424,6 +1474,13 @@ theorem wp_stepLeader_appresp
             right
             rw [← HabsU.2.2.2.1, ← HabsU.2.2.1]
             exact of_decide_eq_true h
+          isplitr
+          · rename_i Hnlt Hmeq
+            ipureintro
+            have Hpu := progressMaybeUpdate_of_le p m.Index' Hnlt
+            exact ranCond_iff_probe p m.Index' Hnlt (by rw [← Hpu, ← HabsU.2.2.1]; exact Hmeq)
+              (by rw [← Hpu]; exact prstateW64_eq_probe (HabsU.2.1.symm.trans Hif))
+              (by rw [HabsU.2.2.2.1, HabsU.2.2.1, Hpu])
           iapply ownProgress_intro $$ Hpv Hinfl %Habs
         · iexists false
           iframe
@@ -1431,6 +1488,11 @@ theorem wp_stepLeader_appresp
           · ipureintro; rfl
           isplitr
           · ipureintro; intro h; cases h
+          isplitr
+          · rename_i Hnlt Hmeq
+            ipureintro
+            exact ranCond_false p m.Index' Hnlt (fun _ hs _ => Hif (by
+              rw [HabsU.2.1, progressMaybeUpdate_of_le p m.Index' Hnlt, hs]; rfl))
           iapply ownProgress_intro $$ Hpv Hinfl %Habs
       · iexists false
         iframe
@@ -1438,8 +1500,13 @@ theorem wp_stepLeader_appresp
         · ipureintro; rfl
         isplitr
         · ipureintro; intro h; cases h
+        isplitr
+        · rename_i Hnlt
+          ipureintro
+          exact ranCond_false p m.Index' Hnlt (fun hm _ _ => Hif (by
+            rw [HabsU.2.2.1, progressMaybeUpdate_of_le p m.Index' Hnlt, hm]))
         iapply ownProgress_intro $$ Hpv Hinfl %Habs
-    iintro ⟨%cb, %Hv, %Hcb, Hpa, m, Hm, pr⟩
+    iintro ⟨%cb, %Hv, %Hcb, %Hcb2, Hpa, m, Hm, pr⟩
     subst Hv
     -- (2026-10-20) `prok`'s last alternative, directly: its first ones fail slowly here (9s)
     ihave Hphys := Hpback $$ %(progressMaybeUpdate p m.Index') Hpa %(by first | rfl | simp)
@@ -1469,9 +1536,13 @@ theorem wp_stepLeader_appresp
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inr ⟨Hfdom, Hrej,
         p.matched, pvs2, s.logst.committed, [], [], Hx, Hmm2, Or.inl rfl,
+        fun hr => absurd (Hcb2.2 ((appRespRan_of_ranCond s _ _ p Hpvs).1 hr)) (by decide), fun _ => rfl,
         fun _ h => absurd h List.not_mem_nil, ?_⟩)⟩))))⟩
       simp only [↓reduceIte, _root_.true_and]
       cases s; simp [sendMsgs]
+    -- (slice 28c) `maybeCommit` runs: the run condition, and a later credit for `"Hgcommit"`
+    have Hran : AppRespRan s m.From' m.Index' := (appRespRan_of_ranCond s _ _ p Hpvs).2 (Hcb2.1 rfl)
+    wp_pure_lc Hlc
     wp_auto
     -- the `switch` on `pr.State`, joined: `Match` does not move
     iNamed m
@@ -1602,12 +1673,12 @@ theorem wp_stepLeader_appresp
         -- (slice 9) the commit's outcome and the gate's resource
         "%HbN" ∷ ⌜n = (commitAt s bc Nc).logst.committed⌝ ∗
         "%Hout" ∷ ⌜maybeCommitOut c { s with prvals := pvs3 } bc Nc⌝) at next
-      with [Hphys m Hm r pr HG Hgcommit] as HJ
-    · wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } (fun b N => Gc b N s.outbox) Hlead $$ [$Hphys HG Hgcommit]
+      with [Hphys m Hm r pr HG Hgcommit Hlc] as HJ
+    · wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } (fun b N => Gc b N s.outbox) Hlead $$ [$Hphys HG Hgcommit Hlc]
         as %b %N ⟨%Hout, Hphys, %HN, HGc⟩
       · iintro %b %N %Hout
         iapply hookGate_congr _ _ r _ _ (Gc b N s.outbox) (by rfl) (by cases b <;> rfl) $$
-          (Hgcommit $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %pvs3 %b %N %HmA %Hout HG)
+          (Hgcommit $$ %(And.intro (by first | trivial | exact Hty) (by first | trivial | rfl | exact Hrej)) %Hran %pvs3 %b %N %HmA %Hout Hlc HG)
       cases b <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · -- not committed: `r.id != m.From && pr.CanBumpCommit(r.raftLog.committed)`
         wp_auto
@@ -1969,9 +2040,11 @@ theorem wp_stepLeader_appresp
       simp only [toPState, Hmm5, Hmm4]
     subst Hsc
     refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inr ⟨Hfdom, Hrej,
-      p.matched, pvs5, n, hb, ms ++ ms', Hx, ?_, ?_, ?_, ?_⟩)⟩))))⟩
+      p.matched, pvs5, n, hb, ms ++ ms', Hx, ?_, ?_, ?_, ?_, ?_, ?_⟩)⟩))))⟩
     · rw [Hmm5, Hmm4, Hmm3, Hmm2]
     · rw [Hts]; exact Hn
+    · intro _; exact ⟨bc, Nc, maybeCommitOut_prvals Hout (Hmm5.trans Hmm4), HbN⟩
+    · intro h; exact absurd Hran h
     · exact replSends_app _ _ _ _ Hms Hms'
     · by_cases Hceq : n = s.logst.committed
       · simp only [Hceq, ↓reduceIte] at Hs2 ⊢

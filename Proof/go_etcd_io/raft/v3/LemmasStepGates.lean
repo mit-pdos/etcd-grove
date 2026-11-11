@@ -428,10 +428,10 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ ∀ (mm : Msg) (o : List Msg),
         ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
-      "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
+      "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜AppRespRan s m.From' m.Index'⌝ -∗
         ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
         ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index'⌝ -∗
-        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G s.outbox -∗
+        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ £ 1 -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N s.outbox)) ∗
       "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (N : w64) (mm : Msg) (o : List Msg),
         ⌜CfgSingle c id⌝ -∗ ⌜mm.ty = .readIndexResp⌝ -∗
@@ -541,23 +541,34 @@ end state past its append (its log the proposed state's); `Step` then steps the 
 (2026-11-11, slice 25b) Or on a candidate's `MsgVoteResp` of its term, the won state (`becomeLeader`
 after the tally: the empty entry appended, the self-acknowledgement queued, at a `Progress` map of
 `reset`'s `Match` values), the step's end state past it (its log the won state's: the election won);
-`Step` then steps the broadcast (`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). -/
+`Step` then steps the broadcast (`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). (2026-11-11, slice 28c)
+Or on a leader's accepted `MsgAppResp` of its term, the state after `maybeCommit` (the sender's `Match`
+raised as `MaybeUpdate` raises it, at a `Progress` map `pvs` of `appRespMatch`'s `Match` values, then the
+commit index at an outcome `(b, N)`), the step's end state past it (its log the committed state's: the
+commit index the outcome's); `Step` then steps the release and the appends (`notes/decisions.md`, "Q8
+stage 1 (slice 28c)"). -/
 def CloseMid (id : w64) (m : MessageM) (ents : List EntryM) (s s1 s' : NState) : Prop :=
   (m.Type' = MsgProp ∧ s.role = .leader ∧ (∀ e ∈ ents, ¬ IsConfEnt e) ∧
     s1 = proposed id s ents ∧ s1.logst = s'.logst) ∨
   (m.Type' = MsgVoteResp ∧ s.role = .candidate ∧ m.Term' = s.term ∧
     ∃ pvs : GMap w64 Progress, prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals ∧
       s1 = { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } ∧
-      s1.logst = s'.logst)
+      s1.logst = s'.logst) ∨
+  (m.Type' = MsgAppResp ∧ s.role = .leader ∧ m.Term' = s.term ∧ m.Reject' = false ∧
+    m.From' ∈ domSet s.progress ∧ ∃ (pvs : GMap w64 Progress) (b : Bool) (N : w64), prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
+      s1 = commitAt { s with prvals := pvs } b N ∧ s1.logst = s'.logst)
 
 theorem CloseMid.ty {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
-    (h : CloseMid id m ents s s1 s') : m.Type' = MsgProp ∨ m.Type' = MsgVoteResp :=
-  h.elim (fun h => .inl h.1) (fun h => .inr h.1)
+    (h : CloseMid id m ents s s1 s') :
+    m.Type' = MsgProp ∨ m.Type' = MsgVoteResp ∨ m.Type' = MsgAppResp :=
+  h.elim (fun h => .inl h.1) (fun h => h.elim (fun h => .inr (.inl h.1)) (fun h => .inr (.inr h.1)))
 
-/-- (slice 25b) A close of another type than `MsgProp` and `MsgVoteResp` is none past `s`. -/
+/-- (slice 25b) A close of another type than `MsgProp` and `MsgVoteResp` ((slice 28c) and `MsgAppResp`)
+is none past `s`. -/
 theorem CloseMid.not_of {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
-    (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp) : ¬ CloseMid id m ents s s1 s' :=
-  fun h => h.ty.elim hnp hnv
+    (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp) (hna : m.Type' ≠ MsgAppResp) :
+    ¬ CloseMid id m ents s s1 s' :=
+  fun h => h.ty.elim hnp (fun h => h.elim hnv hna)
 
 /-- (slice 25b) A proposal's close past `s` (the `MsgProp` case). -/
 theorem CloseMid.prop {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
