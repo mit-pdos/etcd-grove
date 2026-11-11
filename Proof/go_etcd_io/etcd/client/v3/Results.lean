@@ -1113,24 +1113,30 @@ theorem etcdRunSlot_split (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 interceptors' lent resources (`etcdIcRs`, whose `lgMu` reader is the check's). -/
 theorem quotaRd_lent (K : IProp GF) (s : Loc) :
     iprop(K ∗ v3rpc.quotaRd s) ⊣⊢ iprop((K ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs (GF := GF) s, R) := by
-  unfold v3rpc.quotaRd etcdIcRs
-  simp only [BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+  have hl : ([∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
+      iprop(srvLgReader s ∗ True ∗ True ∗ emp) := .rfl
+  unfold v3rpc.quotaRd
   constructor
-  · iintro ⟨HK, Hl, Hb⟩; iframe; isplitl []; · itrivial
+  · iintro ⟨HK, Hl, Hb⟩; iframe; iapply hl.2; iframe; isplitl []; · itrivial
     isplitl []; · itrivial
     itrivial
-  · iintro ⟨⟨HK, Hb⟩, Hl, -⟩; iframe
+  · iintro ⟨⟨HK, Hb⟩, Hl⟩
+    icases hl.1 $$ Hl with ⟨Hl, -⟩
+    iframe
 
 /-- **A run's bundle is `etcdGrpcSlot` and its level 0** (per-type stage B3). -/
 theorem etcdGrpcSlot_bundle (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvRunBundle (GF := GF) s E γr ⊣⊢ etcdGrpcSlot s E γr ∗ levelTok 0 := by
-  unfold srvRunBundle etcdGrpcSlot etcdKVSlot etcdIcRs
-  simp only [BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+  have hl : ([∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
+      iprop(srvLgReader s ∗ True ∗ True ∗ emp) := .rfl
+  unfold srvRunBundle etcdGrpcSlot etcdKVSlot
   constructor
-  · iintro ⟨H0, Hl, ⟨Hlt, Hrd⟩, Hm, Hr, Hb⟩; iframe; isplitl []; · itrivial
+  · iintro ⟨H0, Hl, ⟨Hlt, Hrd⟩, Hm, Hr, Hb⟩; iframe; iapply hl.2; iframe; isplitl []; · itrivial
     isplitl []; · itrivial
     itrivial
-  · iintro ⟨⟨⟨⟨Hlt, Hm, Hr, Hrd⟩, Hb⟩, Hl, -⟩, H0⟩; iframe
+  · iintro ⟨⟨⟨⟨Hlt, Hm, Hr, Hrd⟩, Hb⟩, Hl⟩, H0⟩
+    icases hl.1 $$ Hl with ⟨Hl, -⟩
+    iframe
 
 /-- **A run's context carries no trace** (`traceutil.ctxTraceIs ci none`, what `v3rpc.srvCall`
 needs, unit P1b): `TraceKey` is a type of etcd's packages, under which the server's runtime sets no
@@ -2306,13 +2312,37 @@ theorem etcd_compactMethodM (p q s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   · simp only [isServerReqM_false, isServerReadM_false]
     ihave #Hc := etcd_compactHandlerOk p s E ρ γr cid mid n (hρ hon) $$ []
     · iframe #
-    ihave #Hc' := grpcHandlerOwnOk_frame _ _ (v3rpc.quotaRd s) (etcdCompactSpec E ρ.rd cid mid) $$ Hc
+    ihave #Hc' := grpcHandlerOwnOk_slot _ (etcdRunSlot s E γr)
+      iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R)
+      iprop(srvBemuReader s ∗ True ∗ True) (etcdCompactSpec E ρ.rd cid mid)
+      (by have hl : ([∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
+              iprop(srvLgReader s ∗ True ∗ True ∗ emp) := .rfl
+          iintro ⟨⟨HK, Hb⟩, Hl⟩
+          icases hl.1 $$ Hl with ⟨Hl, -⟩
+          isplitl [HK Hl]
+          · iapply (etcdRunSlot_split s E γr).2; iframe
+          iframe
+          isplitl []
+          · itrivial
+          itrivial)
+      (by have hl : ([∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
+              iprop(srvLgReader s ∗ True ∗ True ∗ emp) := .rfl
+          iintro ⟨HR, Hb, -⟩
+          icases (etcdRunSlot_split s E γr).1 $$ HR with ⟨HK, Hl⟩
+          iframe
+          iapply hl.2; iframe
+          isplitl []; · itrivial
+          isplitl []; · itrivial
+          itrivial) $$ Hc
     ihave #Hqc := v3rpc.quotaKV_promotedHandlerOwnOk (etcdCompactSpec E ρ.rd cid mid) q s
-      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"Compact" inferInstance $$ [Hq Hc']
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
+      iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) go!"Compact"
+      inferInstance $$ [Hq Hc']
     · iframe #
     ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
     · iPkgInit
-    ihave #Hmc := etcd_compactMethodOk q E ρ.rd cid mid _ _ _ $$ [Hqc Ppb Hics]
+    ihave #Hmc := etcd_compactMethodOk q E ρ.rd cid mid
+      iprop(etcdKVSlot s E γr ∗ srvBemuReader s) ics (etcdIcRs s) $$ [Hqc Ppb Hics]
     · iframe #
     ihave #Hmc' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmc
     unfold etcdGrpcSlot
@@ -2333,8 +2363,11 @@ theorem etcd_quotaHandler_lent {Req Rep : ProtoMsg GF} (h : val) (K : IProp GF) 
     (Spec : GrpcSpecMd Req Rep) :
     grpcHandlerOkMd h iprop(K ∗ v3rpc.quotaRd s) Spec ⊢
       grpcHandlerOkMd h iprop((K ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) Spec :=
-  grpcHandlerOkMd_slot h _ _ iprop(True) Spec
-    (by iintro H; iframe; iapply (quotaRd_lent K s).2; iexact H)
+  grpcHandlerOkMd_slot h iprop(K ∗ v3rpc.quotaRd s)
+    iprop((K ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) iprop(True) Spec
+    (by iintro H; isplitl [H]
+        · iapply (quotaRd_lent K s).2; iexact H
+        itrivial)
     (by iintro ⟨H, -⟩; iapply (quotaRd_lent K s).1; iexact H)
 
 /-- `etcd_quotaHandler_lent`'s, for an owning service method. -/
@@ -2342,8 +2375,11 @@ theorem etcd_quotaHandlerOwn_lent {Req Rep : ProtoMsg GF} (h : val) (K : IProp G
     (Spec : GrpcSpec Req Rep) :
     grpcHandlerOwnOk h iprop(K ∗ v3rpc.quotaRd s) Spec ⊢
       grpcHandlerOwnOk h iprop((K ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) Spec :=
-  grpcHandlerOwnOk_slot h _ _ iprop(True) Spec
-    (by iintro H; iframe; iapply (quotaRd_lent K s).2; iexact H)
+  grpcHandlerOwnOk_slot h iprop(K ∗ v3rpc.quotaRd s)
+    iprop((K ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) iprop(True) Spec
+    (by iintro H; isplitl [H]
+        · iapply (quotaRd_lent K s).2; iexact H
+        itrivial)
     (by iintro ⟨H, -⟩; iapply (quotaRd_lent K s).1; iexact H)
 
 /-- `etcd_quotaHandler_lent`'s, for a plain spec. -/
@@ -2351,8 +2387,11 @@ theorem etcd_quotaHandlerPlain_lent {Req Rep : ProtoMsg GF} (h : val) (K : IProp
     (Spec : GrpcSpec Req Rep) :
     grpcHandlerOk h iprop(K ∗ v3rpc.quotaRd s) Spec ⊢
       grpcHandlerOk h iprop((K ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) Spec :=
-  grpcHandlerOk_slot h _ _ iprop(True) Spec
-    (by iintro H; iframe; iapply (quotaRd_lent K s).2; iexact H)
+  grpcHandlerOk_slot h iprop(K ∗ v3rpc.quotaRd s)
+    iprop((K ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) iprop(True) Spec
+    (by iintro H; isplitl [H]
+        · iapply (quotaRd_lent K s).2; iexact H
+        itrivial)
     (by iintro ⟨H, -⟩; iapply (quotaRd_lent K s).1; iexact H)
 
 /-- **A method proved at `etcdGrpcSlot` meets grpc's run contract** (per-type stage B3): at the
@@ -2387,9 +2426,9 @@ theorem etcd_runOks_of_slot (ics : List GoFunc) (s : Loc) (E : apply.AEnv GF) (�
     ihave ⟨#Hm, #Hms'⟩ := BigSepL.bigSepL_cons.1 $$ Hms
     ihave #Hk := etcd_runOk_of_slot #m.handler m.srv ics s E γr m.spec HL $$ [Hm]
     · iframe #
-    ihave #Hks := ih $$ [Hms']
-    · iframe #
-      iexact Hms'
+    ihave #Hks : iprop(□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv ics m.spec) $$ []
+    · iapply ih
+      iframe #
     iintro !>
     iapply bigSepL_cons_intro'
     iframe #
@@ -2438,11 +2477,17 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
   ihave #Ht := etcd_txnHandlerM p s E ρ γr cid mid n hρ $$ []
   · iframe #; ipureintro; exact Hany
   -- the inner handlers at the KV slot and the lent `lgMu` reader
-  ihave #Hp1 := grpcHandlerOkMd_slot _ _ iprop(etcdKVSlot s E γr ∗ srvLgReader s) iprop(True) _
-    (by iintro H; iframe; iapply (etcdRunSlot_split s E γr).2; iexact H)
+  ihave #Hp1 := grpcHandlerOkMd_slot _ (etcdRunSlot s E γr)
+    iprop(etcdKVSlot s E γr ∗ srvLgReader s) iprop(True) _
+    (by iintro H; isplitl [H]
+        · iapply (etcdRunSlot_split s E γr).2; iexact H
+        itrivial)
     (by iintro ⟨H, -⟩; iapply (etcdRunSlot_split s E γr).1; iexact H) $$ Hp
-  ihave #Ht1 := grpcHandlerOkMd_slot _ _ iprop(etcdKVSlot s E γr ∗ srvLgReader s) iprop(True) _
-    (by iintro H; iframe; iapply (etcdRunSlot_split s E γr).2; iexact H)
+  ihave #Ht1 := grpcHandlerOkMd_slot _ (etcdRunSlot s E γr)
+    iprop(etcdKVSlot s E γr ∗ srvLgReader s) iprop(True) _
+    (by iintro H; isplitl [H]
+        · iapply (etcdRunSlot_split s E γr).2; iexact H
+        itrivial)
     (by iintro ⟨H, -⟩; iapply (etcdRunSlot_split s E γr).1; iexact H) $$ Ht
   ihave #Hr1 := grpcHandlerOkMd_slot _ _ iprop(etcdKVSlot s E γr ∗ v3rpc.quotaRd s)
     (srvBemuReader s) _
@@ -2533,7 +2578,11 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
         iexact Hmt'
       iapply bigSepL_cons_intro'
       isplitl []
-      · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbCompactionRequest) (Rep := pbCompactionResponse) _ _ _ _)
+      · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbCompactionRequest)
+          (Rep := pbCompactionResponse) (@! etcdserverpb._KV_Compact_Handler)
+          (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) [il, im, iu]
+          (GrpcSpec.md (etcdCompactSpecM E.authOn E ρ cid mid)))
         iexact Hmc'
       iapply BigSepL.bigSepL_nil.2
       itrivial
@@ -3954,7 +4003,6 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
     S $$ [Hg']
   · iframe #
-    iexact Hg'
   ihave #Hr' := grpcHandlerOk_frame _ _ (v3rpc.quotaRd s)
     (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E γr false)) $$ Hr
   ihave #Hqr := v3rpc.quotaLease_revokeHandlerOk
@@ -3978,14 +4026,51 @@ theorem etcd_leaseMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF)
   unfold etcdLeaseMethods etcdLeaseSlot
   iapply bigSepL_cons_intro'
   isplitl []
-  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseGrantRequest) (Rep := pbLeaseGrantResponse) _ _ _ _ _)
+  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseGrantRequest)
+          (Rep := pbLeaseGrantResponse) (@! etcdserverpb._Lease_LeaseGrant_Handler)
+          (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q) [il, im, iu]
+          iprop((S ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R)
+          (GrpcSpec.md (etcdLeaseGrantSpecAny (EM := v3rpc.etcdModelOfServer E γr false))))
     iexact Hmg'
   iapply bigSepL_cons_intro'
   isplitl []
-  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseRevokeRequest) (Rep := pbLeaseRevokeResponse) _ _ _ _ _)
+  · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbLeaseRevokeRequest)
+          (Rep := pbLeaseRevokeResponse) (@! etcdserverpb._Lease_LeaseRevoke_Handler)
+          (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q) [il, im, iu]
+          iprop((S ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R)
+          (GrpcSpec.md (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E γr false))))
     iexact Hmr'
   iapply BigSepL.bigSepL_nil.2
   itrivial
+
+/-- **Methods proved at a slot the run's bundle holds meet grpc's run contract**
+(`srvRunOk_of_pools` with `grpcMethodOkMd_slot`, for a list; per-type stage B3). -/
+theorem srvRunOks_of_slot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ics : List GoFunc)
+    (S F : IProp GF) (h1 : srvRunBundle s E γr ⊢ S ∗ F) (h2 : S ∗ F ⊢ srvRunBundle s E γr)
+    (HL : srvLevels (GF := GF)) (ms : List (GrpcMethod GF)) :
+    (□ [∗list] m ∈ ms, grpcMethodOkMd #m.handler m.srv ics S m.spec) ∗
+      srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+    □ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv ics m.spec := by
+  induction ms with
+  | nil =>
+    iintro ⟨-, -, -⟩ !>
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | cons m ms ih =>
+    iintro ⟨#Hms, #Hb, #Hr⟩
+    ihave ⟨#Hm, #Hms'⟩ := BigSepL.bigSepL_cons.1 $$ Hms
+    ihave #Hm' := grpcMethodOkMd_slot #m.handler m.srv ics S (srvRunBundle s E γr) F m.spec h1 h2
+      $$ Hm
+    ihave #Hk := srvRunOk_of_pools s E γr #m.handler m.srv ics m.spec HL $$ [Hm']
+    · iframe #
+    ihave #Hks : iprop(□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv ics m.spec) $$ []
+    · iapply ih
+      iframe #
+    iintro !>
+    iapply bigSepL_cons_intro'
+    iframe #
 
 /-- **etcd's server serves its Lease methods** (the server side; as `etcd_kv_served`): the gRPC
 server `γ` at `addr` built with etcd's chain of interceptors, with the Lease service registered on
@@ -4018,20 +4103,8 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
   iintro ⟨#Pv, #Ps, #Hsrv, #HNR, #Hat, #HL, #Hq, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrp⟩
   ihave #Hms := etcd_leaseMethodsOk lp q s A E ρ cid mid S il im iu γr hNx $$ []
   · iframe #
-  unfold etcdLeaseMethods
-  ihave ⟨#Hmg, #Hms⟩ := BigSepL.bigSepL_cons.1 $$ Hms
-  ihave ⟨#Hmr, -⟩ := BigSepL.bigSepL_cons.1 $$ Hms
-  ihave #Hmg' := grpcMethodOkMd_slot _ _ _ _ (srvRunBundle s E γr) F _ h1 h2 $$ Hmg
-  ihave #Hmr' := grpcMethodOkMd_slot _ _ _ _ (srvRunBundle s E γr) F _ h1 h2 $$ Hmr
-  ihave #Hkg := srvRunOk_of_pools s E γr (@! etcdserverpb._Lease_LeaseGrant_Handler)
-    (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q) [il, im, iu] _ HLv
-    $$ [Hmg']
-  · iframe #
-  ihave #Hkr := srvRunOk_of_pools s E γr (@! etcdserverpb._Lease_LeaseRevoke_Handler)
-    (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q) [il, im, iu] _ HLv
-    $$ [Hmr']
+  ihave #Hks := srvRunOks_of_slot s E γr [il, im, iu] (etcdLeaseSlot s S) F h1 h2 HLv
+    (etcdLeaseMethods q E γr) $$ []
   · iframe #
   imod (grpc.serve addr [il, im, iu] regs (etcdLeaseMethods q E γr) γ
     (by
@@ -4039,19 +4112,7 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
       apply hregs
       simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
       rcases hx with rfl | rfl <;> simp [etcdLeaseRegs])) $$ [] with Hrpcs
-  · iframe Hl
-    iintro !>
-    unfold etcdLeaseMethods
-    iapply bigSepL_cons_intro'
-    isplitl []
-    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbLeaseGrantRequest) (Rep := pbLeaseGrantResponse) _ _ _ _)
-      iexact Hkg
-    iapply bigSepL_cons_intro'
-    isplitl []
-    · change Iris.ProofMode.Entails' _ (grpcRunOkMd (Req := pbLeaseRevokeRequest) (Rep := pbLeaseRevokeResponse) _ _ _ _)
-      iexact Hkr
-    iapply BigSepL.bigSepL_nil.2
-    itrivial
+  · iframe #
   simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]
   icases Hrpcs with ⟨#H1, #H2, -⟩
   ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
