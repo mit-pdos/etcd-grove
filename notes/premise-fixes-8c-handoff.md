@@ -47,8 +47,11 @@ Commits `00aff9fc2c`..`c6fac95dc1`, lean merged (`ef76c3ad9e`, with S1). Done:
   `chanCtx_outgoingCtxOkC`. Nothing consumes them yet.
 - Every affected leaf (119, `etc/importers.py --leaves --git f808e61706`) built before the merge.
 
-Next: full build (`/shared/tmp/premise-fixes-8c/full.sh`), tcb --check (no change expected),
-collections, interfaces, gen-init --check; STOP before land.sh with the exported-statement list.
+Checks (after merging lean `e5afedb770`, S2 and restart S1 included; HEAD `1a2514e0b5`): full build
+clean (`/shared/tmp/premise-fixes-8c/full.sh`, 14018 jobs), `etc/tcb-report.py --check` matches
+(865 axioms, 5 sorries), every collection matches, the five `etc/api` interfaces unchanged,
+`gen-init --check` clean. STATUS entry written. Ready to land on etcd-grove-81's go: merge lean
+again, then `etc/land.sh`.
 
 Tools: `/shared/tmp/premise-fixes-8c/lb.sh FILE...` (a targeted `lake build` of files, errors only,
 under the 64G cap; full log `/shared/tmp/premise-fixes-8c/lb.log`). Do not run several
