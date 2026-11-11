@@ -1331,6 +1331,27 @@ axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`, none up
 in `RawNode__acceptReady.txt` and `RawNode__readyWithoutAccept.txt` (the two proofs' unfolded specs: the
 premise dropped, `acceptReady`'s gated bounds and tokens); `--check --layout` 0 new; `etc/api-check.py` 0
 errors; `etc/gen-link.py --raft` unchanged.
+**Q8 stage 1 (slice 29n), 2026-11-11 (branch `trace-check-q8s29n`): a booted node's `ApplyConfChange`
+line's gate and the Draft's `traceConfChangeEvent.tracedSpec` proved; the traced `switchToConfig`,
+`applyConfChange`, `RawNode.ApplyConfChange`, the gated `node.run` and the node API's traced statements
+not done; four findings.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 29n)"); all
+raft-internal (new modules `TracedApplyCC.lean`, `TracedConfChangeHook.lean`), nothing frozen or
+client-visible changed. Done: `trCapB_hookGate_applyCC` (the line at a booted capability idle at `s`:
+`AccIdle` from `SimServerR` once the commit index covers the bootstrap log, the share unchanged by
+`accSrv`, `lineEffect_applyCC`); `traceConfChangeEvent.tracedSpec_proof` (the Draft's statement from the
+code). Found: (1) `applyConfChange` cannot close raft's struct at the old configuration for the hook (the
+`Changer`'s shallow `Progress` copies share the `Inflights` rings, moved by `ownResult_transfer`);
+recommended a read-only lending in `traceEvent.spec` (`RaftReadLend`: what `traceEvent` reads, no
+`Progress`) with the `Changer` specs giving back the old configuration's maps; (2) the `confc` arm needs
+the capability booted: the traced conjunct to tie the flag to delivery; (3) a leader's `switchToConfig`
+logs a no-op `Commit` line and appends: prove it with slice 29c's pieces; (4) **S7 part 2's
+`isReadyChan_recvAu.tracedSpec` is not provable**: `run` sends the `Ready` before `acceptReady` logs its
+line and mints the tokens; they can come at `node.Advance` (the harness sends after `Advance`), through a
+claim handed out with the `Ready` and the `advancec` protocol (statements in the decisions entry). Checked (branch at `trace-check` `409da4cb23` plus this slice): full `lake build` green (13857 jobs);
+`etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`, none
+updated; `interface/` unchanged (no listed module touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors;
+`etc/gen-link.py --raft` and `--tracecheck` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
