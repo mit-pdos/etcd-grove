@@ -187,6 +187,9 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         -- (D19i part 1) and at least to it
         "%Happ2" ∷ ⌜∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        -- (2026-11-11, slice 30c) traced, the protocol reading unchanged (`AckEnd`: no automatic
+        -- leave at a traced node)
+        "%Hack" ∷ ⌜s.gh.tr.isSome → toPState s' = toPState s⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
@@ -233,7 +236,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     isplitr
     · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
     ipureintro
-    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl⟩
+    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => rfl⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -321,7 +324,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %s2 %B %recv
     iframe Hphys HG
     rcases Hls with ⟨rfl, rfl, rfl⟩ |
-      ⟨-, Hrl, Hrecv, Hrl1, Hst2, Hfr2, Hapg2, Happl2, Hwf2, HB1, HB2, HB3, Hbound⟩
+      ⟨Hal, Hrl, Hrecv, Hrl1, Hst2, Hfr2, Hapg2, Happl2, Hwf2, HB1, HB2, HB3, Hbound⟩
     · -- nothing more
       isplitr
       · ipureintro; exact Hwf1
@@ -336,7 +339,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       isplitl [Hrcb]
       · iintro %Hlt; iapply Hrcb; ipureintro; exact Hlt
       ipureintro
-      refine ⟨Hst1, .inr ⟨e, by simp, Happ1⟩, fun e0 He0 => ?_, rfl⟩
+      refine ⟨Hst1, .inr ⟨e, by simp, Happ1⟩, fun e0 He0 => ?_, rfl, fun _ => Hps1⟩
       have He0' : e = e0 := by simpa using He0
       subst He0'
       rw [Happ1]; exact Happ2'
@@ -356,7 +359,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       · iintro %Hlt; iapply Hrcb; ipureintro; exact Hlt
       ipureintro
       refine ⟨StepCD.trans_leave Hst1 Hst2 Hrl (by rw [Hps1]) Happl2 Hbound,
-        .inr ⟨e, by simp, Happl2.trans Happ1⟩, fun e0 He0 => ?_, rfl⟩
+        .inr ⟨e, by simp, Happl2.trans Happ1⟩, fun e0 He0 => ?_, rfl,
+        fun h => by rw [Htr (by simp) Hal] at h; cases h⟩
       have He0' : e = e0 := by simpa using He0
       subst He0'
       rw [Happl2, Happ1]; exact Happ2'

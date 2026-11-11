@@ -36419,6 +36419,71 @@ amendment.
    (`SimIdleS` of the end state: `simIdleS_rd`, `simIdleS_readRespondAll`, the `Progress` values at the
    same `Match`); from `G0`/`G1`, the close at `s`.
 
+## Q8 stage 1 (slice 29c): a leader's accepted `MsgAppResp`: the `Commit` line, the sends after it, the close past `maybeCommit`, the bundle on a non-committing outcome; a guard found missing for the committing one (Q30) (2026-11-11 · trace-check, Q8 stage 1 slice 29c; slice 28c's remaining list taken by the coordinator, its form the agent's under the user's delegation · branch `trace-check-q8s29c`; DRAFT until trace-check's Freeze)
+
+**Done** (new modules `TracedRaftStepRecvLeadAcc{Commit,Gates,Bundle}.lean`, none on `etc/api/raft.txt`; no
+axiom, no `sorry`, no frozen or client-visible statement changed):
+- *The bridge from `maybeCommitOut` to `AdvancesTo`* (`advancesTo_of_out`): with no outgoing half
+  (`MajIdx ∅` the top) `Committed()` is the voters' `IsQuorumIndex` (`isQuorumIndex_of_out`, the voters'
+  set `listToSet C` by `gset_eq_listToSet`); a committing outcome is `advanceCommitIndex_eq`'s
+  (`isQuorumIndex_acked'` for `ackedBy`, `IsQuorumIndex`'s third clause for maximality,
+  `isQuorum_filter_of_acked`); a non-committing one `advanceCommitIndex_noop`'s, which needs the quorum
+  index within the log, so every `Match` within the log (`hm`).
+- *Every `Match` within the log* (`appRespMatch_le`): the old ones by raft's `PrvalsOk` (a pure conjunct of
+  `ownRaftPhys`, not of raft's ghost state: `matchedOk` gives `isAcked`, not `ackIn`), the raised one by the
+  response's `ackIn` (`ownRaftGhost_ackIn_le`). So **the path premise** (`LeadAcc`) is `MsgAppResp`
+  accepted, of the leader's term, `m.From' ∈ domSet s.progress` (for `CloseMid`), `m.From' ∈ domSet
+  s.prvals` (for `phaseStepR_leadAcc`'s `hdom`) and `PrvalsOk s`: all read off before the call by the node
+  API (`RawNode.Step`'s `Progress` lookup, `ownTrackerC_prvals_dom`, `ownRaftPhysC_prvals_ok`), as slice
+  18a's `domSet` premise. Rejected: the bound from the specification's `SpecInv` (the leader's match
+  indices within its durable log): it is a fact of the state `σ`, read only in the line's facts, and the
+  phase (`AdvancesTo`) is pure, before `σ`.
+- *The `Commit` line* (`TracedRaftStepRecvLeadAccCommit.lean`): its pinned phases (`CommitSrc`,
+  `CommitTgt`, `phaseStepB_commitPin`: `phaseStepB_commit` with the share's server named, so that the
+  facts know the result up to `toC`); its facts (`fxPres_commit`): `AdvancesTo` gives `σ.advanceCommitIndex
+  i = some (σ.commitTo i n)`; `quorumLogF_commit` (A6) with the new state's `allFacts`, the leader's
+  `srvFacts` rebuilt from raft's ghost state after the commit (`srvFacts_leaderOf`: `logRecs`,
+  `isCommitted`, `commitIn` from `ownRaftGhost_logFacts`, `isLeader`, `leadFull` of its log from
+  `ownLogGhost_lead_full`, `ownRaftGhost_leadFull`; no pending entry, so the campaign clause's left
+  disjunct), the others' unchanged; `specInv_advanceCommitIndex` (`moreThanOneLeaderInv` by
+  `allFacts_oneLeader`); bags, `MsgsShape`, `AppSlices` (no log moves); `simFx_congr` to the line's result.
+- *`"Hgcommit"`* (`leadAccGate_commit`): the response's index within the log and the leader's term non-zero
+  (`ownRaftGhost_term_nz`) read at `s`; `ghost_stepAppCommit` (slice 28c) with `"Hgcommit"`'s credit; raft's
+  facts at the state after the commit; the source phase from the receive line's result (`AccPin`: its
+  witness `pvsA` has `appRespMatch`'s `Match` values, so the same `toPState` as the outcome's map,
+  `toPState_prvalsEq`), `simServerR_commitAt`; `trCapB_hookGate` at `NodeEvOf rsmCommit` of the committed
+  state (`nodeEvOf_prvals`, `commitAt_prvals`); into **`leadAccGc b N o`** (the outcome's map and witness,
+  `AppRespRan`, no outgoing half, and `lineF` at `commitAt { s with prvals := pvs } b N`).
+- *The sends after it*: `leadAccGate_app` (`lineF_app` at the committed state: `sendOutGate_hdr`,
+  `appOk_hdr`, the gates' `commitAt s b N` agreeing in the header, `commitAt_hdr`), `leadAccGate_hb`
+  (`lineF_heartbeat`), `leadAccGate_resp` (`lineF_untraced`), `leadAccGate_tnow` (`lineF_none`, new: a gate
+  at no event).
+- *The close past `maybeCommit`*: `leadAcc_end` (`AppRespAcceptedC` unfolded: the end state's log at the
+  commit index `n`, its idle server the one of `s` at `n` and `appRespMatch`'s `Match` values, through the
+  release's and the single voter's read states); `maybeCommitOut_unique` (`JCommittedIdx` functional:
+  `isQuorumIndex_unique`, `majIdx_unique`) gives `n` the family's outcome's; `CloseMid`'s third case and
+  `lineF_close` at the committed state.
+- *The bundle* `stepBundle_traced_leadAccNC` over `.onC LeadAccNC` (`LeadAcc` and no committing outcome).
+
+**Found: the close given `G0`/`G1` on a committing outcome cannot be proved** (Q30 in the plan). `Step`'s
+result at `G1` does not say that `maybeCommit` did not run: `stepLeader.spec`'s `G` arm is not guarded by
+`¬ AppRespRan` (it holds: the code reaches `maybeCommit`, hence `"Hgcommit"`, exactly when `AppRespRan`),
+and `stepOutG` guards `G0`/`G1` by `CandHooked` only. Given `G1`, the close must give the idle capability
+at an end state whose commit index is the outcome's, past the recorded server's, with no `Commit` line
+logged; nothing the close holds refutes it (the outbox may be unchanged: a single voter, or every peer
+paused). On a non-committing outcome (`b = false`, or `maybeCommit` not run) the end state's commit index
+is the node's (`leadAccNC_committed`), so `G1`'s close at `s` holds (`leadAcc_closeAt`); hence the path
+`LeadAccNC`. Rejected: carrying a pure fact in `G1` (the family cannot know at the receive line that the
+step will not commit, and `"Hgcommit"` consumes `G1`); a later credit in the close to step the ghost and
+the capability (no line can be logged there).
+
+**Left** (after Q30): with a guard `¬ (m.Type' = MsgAppResp ∧ m.Reject' = false ∧ AppRespRan s m.From'
+m.Index')` on `G0`/`G1` (`stepLeader.spec`'s `G` arm, `stepOutG`, `Step`'s `MsgAppResp` arm), the bundle on
+`.on LeadAcc`: the same family and gates, `G1`'s close then at `¬ AppRespRan` only (`n = committed` by
+`AppRespAcceptedC`), the committing outcome closed past `maybeCommit` as now. Then the assembly of the
+paths (`LeadAcc` among them; its premises `m.From' ∈ domSet s.prvals` and `PrvalsOk s` added to the
+assembly's list).
+
 ## Q8 stage 1 (slice 27n): Q27 (a), `MsgUnreachable` in `StepEndTy`; the report's bundle path and the traced `RawNode.ReportUnreachable`; a `Ready` line's tokens over the queues; the rest of the node API not done (2026-11-11 · trace-check, Q8 stage 1 slice 27n; Q27 (a) taken by the coordinator, its form the agent's · branch `trace-check-q8s27n`; DRAFT until trace-check's Freeze)
 
 All raft-internal: no module on `etc/api/raft.txt` changed; nothing frozen (`TracedCap.lean`,
@@ -36480,6 +36545,58 @@ permutation-of-filter-map split (`bigSepL_pairs_split`, no `MsgsUniq`), the queu
   `node.Ready` to `node.Step`; the `recvc` arm's `MsgUnreachable` over `UnreachPath`), traced
   `newRaft`/`Bootstrap` (`startTrace_trCapB`, a unified `traceConfChangeEvent.spec`).
 
+## Q8 stage 1 (slice 28n): `acceptReady` one spec for both modes, the `Ready` line fired; traced `RawNode.Ready`; `Advance`'s storage acknowledgements need a close (designed, not done) (2026-11-11 · trace-check, Q8 stage 1 slice 28n; slice 27n's designs taken by the coordinator, their form the agent's · branch `trace-check-q8s28n`; DRAFT until trace-check's Freeze)
+
+All raft-internal: no module on `etc/api/raft.txt` changed; nothing frozen (`TracedCap.lean`,
+`TracedHooksDraft.lean`, `TracedApiDraft.lean` untouched); no axiom, no `sorry`. Untraced
+client-visible statements unchanged: `RawNode.Ready.spec` keeps its premise `γ.reTrace = none` and its
+statement; the traced triple is a separate theorem.
+
+**Found: a traced node could not reach `ownRawNodeReady`.** `ownRaftPhysReady`'s `Hf_traceLogger` said
+`TraceLoggerOk tl` (a nil logger), which a traced node's capability contradicts (`tl ≠ nil`). Now
+`TraceLoggerOkS s.gh.tr tl` (the mode's contract), built by `ownRaftPhysC_traceLoggerS`
+(`InvRawnodeReady.lean`: the struct's field untraced, the capability's traced, from `rnTrace`).
+`RawNode.readyWithoutAccept.spec` drops its premise `γ.reTrace = none` (it logs nothing). Two more
+facts `acceptReady` needs traced, now in `ownRawNodeReady`: `Hmslen` strengthened from a length bound to
+`MsSub id ms ms1 ms2` (the handed-out messages and the self-addressed ones are, up to order, among the
+queues: `readyWithoutAccept`'s `ms1 ++ nonself id ms2`, a stale `Ready`'s `[]`), so the `Ready` line's
+tokens split between them; and `"%Houttr" ∷ ⌜OutTr γ s⌝` (the outbox's numbers at the cut state, which
+`self_pending`'s `MsgTrOk` premise needs once the ghost state is at the drained outbox; from `NsLink`).
+
+**`RawNode.acceptReady.spec`, one spec for both modes**: premise `γ.reTrace ≠ none → uint.Z rs.tc + 1 <
+traceNumBound ∧ receiptBound GF + γ.reBoot.length ≤ traceNumBound` (in place of `γ.reTrace = none`;
+untraced callers pass `absurd`), post gains `"Htoks" ∷ [∗list] q ∈ ms, readyTok γ q.st` (`readyTok`:
+`True` untraced, `recvTokOf` traced; `InvRawnodeReady.lean`). Proof: the struct is closed before
+`traceReady` (ghost steps only in between) and lent to its gate (`trOwn_split`); the gate is
+`rnTrace_fireReady` (`TracedReady.lean`): untraced the nil logger; traced `trCap_fire_ready` with
+`PhaseStepReady` from `SimIdle C s` (the cut state) to `SimIdle C s'` (`phaseStepReady_idle`:
+`toPState s' = {toPState s with outbox := [], rd}`, `SimServerR` not reading `durable`), the event's
+`TraceEv.Ok` by `nodeEvOf_ok` (the commit and last index from `ownRaftGhost_traceBoundIf`, the term from
+the ceiling), its tokens by `readyToks_queues`; then `readyToks_selfSplit` gives the self-addressed
+ones to `self_pending` (as `selfTok`, no entries or context by `AAMsgOk`) and the handed-out ones to the
+post. The node closes with `ownRawNode_intro_tr` and the capability at `s'`. The proof's heartbeats
+raised to 400000. Callers (`RawNode.Ready`, `node.run`) unchanged but the premise and a dropped `-`.
+
+**`RawNode.Ready.traced`** (`TracedRawNodeReady.lean`): `RawNode.Ready.tracedTriple`, the untraced
+triple at `γ.reTrace = some γd` with the two bounds, post gaining `[∗list] q ∈ ms, recvTokOf γd q.st.msg
+q.st.ents q.st.ctx`; hypotheses `readyWithoutAccept.spec`, `acceptReady.spec` (no bundle).
+
+**`Advance`: decided, not done.** The self-addressed responses step over `stepBundle_traced.on` of the
+response types with `pendingRel`'s `selfTok` (as `RawNode.Step.traced`). The storage acknowledgements
+(`MsgStorageAppendResp`/`MsgStorageApplyResp`) cannot use a close that ignores the end state: every close
+must prove `OutTrStep s s'`, which needs the end state's outbox, and `StepEnd` says nothing of these
+types; a fifth `StepEnd` clause shifts the path files' `.2.2.2`, and a guard inside the fourth breaks
+every reader. Decided: `stepClose`/`stepCloseAt` gain a premise `⌜s.gh.tr.isSome → AckEnd m s s'⌝`
+(`AckEnd`: for an acknowledgement type, raft.Step's `LocalFrame`-like end state, outbox and protocol
+reading unchanged; vacuous for other types), which `raft.Step`'s gate-close sites supply (its two
+acknowledgement arms prove it, the others `AckEnd.of_ty`); every path file's close intro gains one `%_`
+(mechanical). Then a bundle `stepBundle_traced_storAck` over `localR` (close at `s`, `SimIdle` by
+`simIdle_congr`), and the traced `Advance` (its loop invariant carrying `rnTrace` at the current state;
+the snapshot-acknowledgement arm vacuous traced by `TrNoSnap`).
+Not done, exact: the above; `RawNode.ApplyConfChange` (the booted node's line under `AccIdle`,
+`lineEffect_applyCC`, `switchToConfig`'s hook); gated `node.run` and the node API's statements
+(`recvTokOf` from `node.Ready` to `node.Step`, over `RawNode.Ready.traced`'s and `acceptReady`'s tokens).
+
 ## S7 (the checker's link): `etc/gen-link.py --tracecheck`, every checker proof linked; `TcOpen` is `RunConcurrent.spec` alone (2026-11-11 · trace-check, S7; decided by the agent under the user's delegation · branch `trace-check-link`; DRAFT until trace-check's Freeze of layer D)
 
 **What.** The checker (`examples/raft/tracecheck/etcdraft`, layer C) gets a `Link.lean`
@@ -36511,6 +36628,252 @@ once the harness is proved.
 `etc/gates.sh` checks the mode from `gen-link.py`'s usage line; the TCB collection
 `etc/tcb-collections/tracecheck.txt` now also selects the Link's roots (`roots
 …/tracecheck/etcdraft/Link\.lean$`), which rest on no axiom or `sorry` of this repository.
+
+## Q8 stage 1 (slice 29n): a booted node's `ApplyConfChange` line's gate and the Draft's `traceConfChangeEvent.tracedSpec` proved; the traced `switchToConfig` blocked on the struct at the hook; the node API's tokens come at `Advance`, not at the `Ready` receive (a mismatch with S7 part 2) (2026-11-11 · trace-check, Q8 stage 1 slice 29n; decided by the agent under the user's delegation · branch `trace-check-q8s29n`; DRAFT until trace-check's Freeze)
+
+All raft-internal: two new modules, none on `etc/api/raft.txt`; nothing frozen, nothing client-visible
+changed; no axiom, no `sorry`.
+
+**Done.**
+- `TracedApplyCC.lean`: **the booted node's `ApplyConfChange` line** (the application's
+  `ApplyConfChange` of a bootstrap conf entry, after the node's first `Ready`). `accIdle_of_simServerR`:
+  a server `SimServerR`-related to raft's state whose commit index covers the bootstrap log (`|C| ≤
+  commit ≤ |log|`) is `AccIdle` at the voters (`foldl_lastBelow`: the specification's
+  `SelectLastInSubSeq` fold gives the last bootstrap entry, `logAbs_type`; its value `.conf (confAbs C)
+  []`); `toC_accSrv`: `accSrv` zeroes only progress outside the voters, which the share does not hold,
+  so the line keeps the share; `phaseStepB_applyCC` (from the pinned share to itself, the line
+  `lineEffect_applyCC`); `trCapB_hookGate_applyCC`, the hook's gate either mode (the booted capability
+  idle at `s` in, idle at `s` out, its last event `Λ'`'s; the facts by `fxPres_skip`; premises: raft's
+  `(γ.reBoot.length : Int) ≤ committed` (`ownRaftGhost`'s `%Hboot`), `committed ≤ lastIndex`, the new
+  configuration no larger than the old, the event's numbers below `traceNumBound` traced, the nil
+  logger untraced).
+- `TracedConfChangeHook.lean`: **the frozen Draft's `traceConfChangeEvent.tracedSpec` proved from the
+  code** (`traceConfChangeEvent.tracedSpec_proof`, over `traceEvent.spec`,
+  `quorum.MajorityConfig.Slice.spec`, `formatConf.spec`): untraced the nil check; traced the
+  `TracingConfChange` of the new configuration's incoming voters (`ownConfigC`'s `Voters[0]`,
+  `Slice()`, formatted), the properties' map `{"cc": cc}` made read-only (`tracingPropsRep` at
+  `propCC := some ⟨[], ns⟩`), `traceEvent` with raft's state lent whole (`raftLend_self`).
+  `traceConfChangeEvent.spec` (the untraced one) keeps its statement: its callers (`switchToConfig`;
+  `newRaft`, A7's) hold the struct open at the call.
+
+**Found 1: the traced `switchToConfig` cannot lend raft's state whole at its hook.** The Draft's
+statement (`TracedHooksDraft.lean`) asks `ownRaftPhysCV c` closed at `switchToConfig`'s entry, at the
+old configuration. `applyConfChange` cannot give it: the `Changer` (`checkAndCopy`) clones the
+configuration's maps (`Config.Clone`: the old maps are only read) but copies each `Progress` shallowly,
+so the new `Progress` objects share the old ones' `Inflights` rings, which `ownResult_transfer` moves to
+the new tracker before `switchToConfig` runs. `traceEvent` reads only raft's scalar fields (term, vote,
+commit, `lastIndex`, state, id) and `trk.Voters[0]`, `[1]` (`Slice()`), never a `Progress`. Options:
+(a) **a read-only lending in `traceEvent.spec`**: `RaftLend P c r id s` replaced by a weaker
+`RaftReadLend` exposing exactly what `traceEvent` reads (the hard state's fields and `raftLog` for
+`lastIndex`, `state`, `id`, the `trk` field's `Config.Voters` maps), `raftLend_self` giving it from the
+whole struct (every hook's caller unchanged but for the lemma), and `Changer.{Simple,EnterJoint,
+LeaveJoint}.spec` giving back the old configuration's maps (only read), so that `switchToConfig` lends
+them from its open struct (`Htrkf` at the old tracker value); then `traceConfChangeEvent`'s spec one for
+both modes over `RaftReadLend` (callers `switchToConfig` and `newRaft`'s two, A7's); (b) keep the old
+`Progress` objects whole: not possible (the rings are shared in Go); (c) a premise: not acceptable
+(raft's own ownership). **Recommended (a)**, raft-internal (`traceEvent`'s lending is not a law of the
+frozen Draft; the Draft's `traceConfChangeEvent.tracedSpec` stays as it is, proved for a caller holding
+the struct closed).
+
+**Found 2: the `confc` arm needs the capability booted.** `trCapB_hookGate_applyCC` needs `b = true` (an
+`ApplyConfChange` line of an unbooted node is a bootstrap line, which A7's `BootNext` admits only inside
+the bootstrap sequence). `node.run`'s `confc` arm applies a conf entry the driver was handed by an
+accepted `Ready` (`DynCCPre`: the next committed conf entry, delivered), so a `Ready` line was logged and
+the node is booted, but nothing records it. Design: `ownRawNode`'s traced conjunct ties the flag to
+delivery (`rs.delivered ≠ [] → b = true`; `acceptReady`'s `Ready` line sets the flag, the laws' posts
+being booted), and the `confc` arm reads `rs.delivered ≠ []` from `DynCCPre` (the entry's position
+within the delivered log).
+
+**Found 3: a leader's `switchToConfig` logs more lines.** At a leader `switchToConfig` runs `maybeCommit`
+(its deferred `traceCommit`: a `Commit` line, here a no-op: voters and `Match` values unchanged,
+`MatchKept`) and `maybeSendAppend(id, false)` per peer (`MsgApp` send lines). Either prove the leader
+case (slice 29c's no-op `Commit` line, `phaseStepB_commitPin`/`advancesTo_of_out` at `b = false`, the
+appends' `lineF_app`), or exclude it for a traced node (it applies only the bootstrap conf entries, which
+it cannot have campaigned before applying: `HupCampaigns` refuses with an unapplied conf entry, and A1
+applies them before `Advance`; an invariant `s.role ≠ .follower → raftLog.applied ≥ |γ.reBoot|`).
+Recommended: the proof (its pieces exist; no new invariant).
+
+**Found 4 (a mismatch with S7 part 2's hypotheses): the messages' tokens cannot be handed out at the
+`Ready` receive.** `node.run`'s `readyc` arm sends `rd` first and calls `acceptReady(rd)` after the
+rendezvous (`case readyc <- rd: n.rn.acceptReady(rd)`), and the tokens are minted by the `Ready` line
+(`trCap_fire_ready`, logged by `acceptReady`'s `traceReady`): when the driver receives the `Ready`, the
+line may not be logged yet, so no token exists (and the after-`Ready` half forbids minting one early).
+S7 part 2's `isReadyChan_recvAu.tracedSpec` (`readyGotT`: `readyGot` plus `[∗list] q ∈ ms, trTok γ q.st`)
+is therefore not provable. The harness itself sends the messages only after `Advance` (`concurrent.go`'s
+comment: `Advance` rendezvouses with `run` after `acceptReady` returned), which is where the tokens can
+come. Proposed client statements (S7 part 2's vocabulary, `TracedNodeApi.lean`):
+- `readyGotT n γ N id st rd`: `readyGot`'s conjuncts and, in place of the tokens, a **claim**
+  `readyToksClaim n γ N ms` (sealed, exclusive; `True` untraced) on the `Ready`'s messages `ms` (the
+  `ms` of `readyRest`/`readyLeaderMsgs`/`readyEnter`);
+- `node.Advance.tracedSpec`: `node.Advance.spec` with `readyToksClaim n γ N ms` in the precondition and
+  `[∗list] q ∈ ms, trTok γ q.st` added to the postcondition's first disjunct (the stopped disjunct gives
+  nothing: a stopped node's messages are not needed);
+- `node.Step.tracedSpec` as S7 part 2 states it (the token in, `trTok`).
+Inside the node (sealed, raft-internal): a ghost variable of the `Ready`'s messages (a new `NodeNames`
+field: half to the driver as the claim at the `readyc` send, half kept by `run`); after `acceptReady`
+`run` holds the tokens (`acceptReady.spec`'s `"Htoks"`), which it deposits with its half in the
+`advancec` protocol's `RcvPending` state (`advDep`); at `RcvCommit` the driver's `Advance` takes them,
+the claim agreeing (`advInv`'s `RcvCommit` arm already hands the sender `run`'s answer, `reqWit`,
+`capAns`). Untraced the claim and the tokens are `True` (`trTok_untraced`), so the current
+`node.Advance.spec` and `isReadyChan_recvAu` are the untraced instances, unchanged.
+
+**Not done, exact** (in order):
+1. Found 1's (a): `RaftReadLend`, `traceEvent.spec`'s premise, the `Changer` specs giving back the old
+   maps, `traceConfChangeEvent.spec` one for both modes (callers `switchToConfig`, `newRaft`: with A7).
+2. The traced `switchToConfig` (non-leader: the line by `trCapB_hookGate_applyCC`; leader: Found 3) and
+   `raft.applyConfChange` (`s.gh.tr = none` dropped, the capability in and out); then the traced
+   `RawNode.ApplyConfChange` (`RawNode.ApplyConfChange.tracedTriple`, as `RawNode.Tick.traced`: the
+   capability from `rnTrace`, the bounds from the ceiling and the receipts' fit, `%Hboot`).
+3. Found 2's flag-to-delivery clause.
+4. The gated `node.run`: `node.run.spec` without `γ.raft.reTrace = none` (one spec for both modes), over
+   slice 30c's traced `raft.Step` assembly (the `recvc` and `propc` arms; `MsgUnreachable` through the
+   `recvc` arm), `RawNode.Tick.traced`, `acceptReady`'s tokens, the traced `RawNode.Advance` (slice 30c's
+   `AckEnd` close, then `Advance` itself; a hypothesis until then), the traced `applyConfChange` (2.); the
+   `recvc` payload (`netP`) carrying `trTok` from `node.Step`; Found 4's claim and `advancec` deposit.
+5. The node API's traced statements (Found 4's), proved from 4.
+
+## Q8 stage 1 (slice 30c): Q30 (a)'s guard; `LeadAcc` over `.on`; Q28 (c); `AckEnd` and the storage acknowledgements' bundle; the assembly `stepBundle_traced` and `raft.Step.traced` (2026-11-11 · trace-check, Q8 stage 1 slice 30c; Q28 (c), Q30 (a) and slice 28n's `AckEnd` taken by the coordinator, raft-internal, their form the agent's under the user's delegation · branch `trace-check-q8s30c`; DRAFT until trace-check's Freeze)
+
+All raft-internal; no axiom, no `sorry`; no module on `etc/api/raft.txt` changed; nothing frozen
+(`TracedCap.lean`, `TracedHooksDraft.lean`, `TracedApiDraft.lean`) touched; untraced client-visible
+statements unchanged.
+
+**Done.**
+- *Q30 (a)*: `LeadRan m s` (`LemmasStepGates.lean`: an accepted `MsgAppResp` of a leader's term with
+  `AppRespRan`); `stepOutG`'s `G0`/`G1` guard is `¬ CandHooked c m s ∧ ¬ LeadRan m s`;
+  `stepLeader.spec`'s `G` arm gains `¬ (m.Type' = MsgAppResp ∧ m.Reject' = false ∧ AppRespRan s m.From'
+  m.Index')` (its proof: `wp_stepLeader_appresp`'s `G` result guarded at the join, `RanCond` false; the
+  rejected and untracked-sender exits by `Reject'`/the `Progress` lookup); `wp_Step_MsgAppResp(_eq)` return
+  `stepOutG` (`stepOutG_leader`, `stepOutG_of_not`); `stepOutG_of_not`/`_or` take `¬ LeadRan`,
+  `stepOutG_of_ne` the type `≠ MsgAppResp`. `interface/.../stepLeader.txt` differs by the guard (an internal
+  function's unfolded spec).
+- *`LeadAcc` over `.on`*: `stepBundle_traced_leadAcc` (`LeadAccNC`, `leadAccNC_committed` gone); `G0`/`G1`'s
+  close at `¬ AppRespRan` (`leadAcc_notRan` from the guard), `n = committed` by `AppRespAcceptedC`.
+- *Q28 (c)*: `TrRecvShape`'s fourth clause (a traced message's term not `0`); the node API's
+  `isRaftMsg_trRecv` gives it from `SentMsgShape` (`sentMsgShape_term`); readers of the third clause
+  `hsh.2.2` → `hsh.2.2.1` (mechanical).
+- *`AckEnd` (slice 28n's design)*: `stepClose`/`stepCloseAt` gain `⌜s.gh.tr.isSome → AckEnd m s s'⌝`
+  (`AckTy`: `MsgStorageAppendResp`, `MsgStorageApplyResp`; `AckEnd`: then `toPState s' = toPState s`).
+  `wp_Step_MsgStorageAppendResp_none` returns `toPState s' = toPState s` (`toPState_logStableTo`);
+  `wp_Step_MsgStorageApplyResp` returns it at a traced node (the leave branch refuted by its
+  `autoLeave → tr = none` premise); `gate_close`/`_g`/`_mid` take it, `raft.Step`'s other sites by type
+  (`ack_ty`); every close intro one more `%_`.
+- *`stepBundle_traced_storAck`* (`TracedRaftStepBundle.lean`) over `stepBundle_traced.onA StorAck`: not
+  `.on`, whose `StepEndTy` premise the acknowledgements fail (a bundle over `.on` would be vacuous);
+  `.onA` is `.on`'s premises with `AckTy`. `localR`'s resources, no hook logs, close at `s`
+  (`simIdleS_congr`).
+- *The assembly* `stepBundle_traced : stepBundle_traced.statement`, from slice 27d's coverage table with 27b's
+  won vote, 27n's `MsgUnreachable`, `LeadAcc` and `StorAck`; `MsgHup` at any role by `stepBundle_hup_R`;
+  `γ.reBoot ≠ []` from the capability (`trCapB_reBoot`: `id ∈ C`, `C.length ≤ γ.reBoot.length`).
+- *`raft.Step.traced : raft.Step.tracedTriple`* (from `raft.Step.spec` and the assembly).
+- For the node API: `stepBundle_traced.on_of_statement`, `.onG_of_statement`.
+
+**Form: `.on` keeps its premises (the per-path form); `stepBundle_traced.statement` is its own premise
+list** (until now `.on (fun _ _ => True)`). Rejected: changing `.on`'s premise list, which would have
+edited every path lemma's binders and the node API's three applications (`RawNode.Step.traced`, the
+proposal, `ReportUnreachable`, 25n/27n/28n's files) with no gain: the paths keep the premises they use,
+the statement drops those the assembly derives.
+
+**The final premise list** (`stepBundle_traced.statement`) and where the node API supplies each:
+`s.gh.tr = some γd` (`ownRawNode`'s trace field at a traced cluster); `s.prevote = false`, `s.cq = false`
+(`rnTrace`'s scope, its `checkQuorum ↦□ false` with `ownRaftPhysC_cq`); `StepEndTy m.Type' ∨ AckTy m.Type'`
+(the caller's type: `TrNetTy`, the ticks', `Propose`'s, `ReportUnreachable`'s, `Advance`'s); `NStateWf s`
+(`ownRawNode`); `MsgHup`/`MsgBeat`/`MsgProp`/`MsgUnreachable`/`MsgStorageApplyResp` at term `0` (the
+messages' constructors); `MsgStorageAppendResp → Term ≤ s.term` (`raft.Step.spec`'s own premise, which
+`Advance` already supplies); a traced message to `id` (`NetMsgOk`); `s.term + 1`, `m.Term` below
+`traceNumBound` (the ceiling's premise, `RNPv`); `MsgTrOk` (`isRaftMsg_trRecv`); the receipts' fit (the
+traced triples' premise); no learners (`rnTrace`'s scope); `domSet s.progress ⊆ voters ∪ learners`
+(`ownRaftPhysC_dom`); not a pre-candidate (`ownRaftPhysC_precand`); `TrRecvShape` (`isRaftMsg_trRecv`;
+vacuous clauses for local types); a proposal's batch non-empty of normal entries (`Propose`'s one normal
+entry); `StepNodeOk s m`: `PrvalsOk s` (`ownRaftPhysC_prvals_ok`), `domSet s.prvals = domSet s.progress`
+(`ownTrackerC_prvals_dom`), `MsgAppResp → m.From' ∈ domSet s.progress` (`RawNode.Step`'s third guard,
+`ErrStepPeerNotFound`). Dropped from `.on`'s: the path, `MsgHup → s.role ≠ .leader`, `MsgHeartbeat ∨
+MsgApp → γ.reBoot ≠ []`. `raft.Step.tracedTriple` adds `raft.Step.spec`'s premises and, for the two that read
+`s.gh.tr`, `MsgStorageAppendResp → sn = none` and `MsgStorageApplyResp → ents ≠ [] → c.autoLeave = false`.
+
+**The node API's hypotheses** (slice 28n's and later): take `hb : stepBundle_traced.statement` and either
+apply it or derive their `.on`/`.onG` form by `on_of_statement`/`onG_of_statement`, adding `StepNodeOk` to
+the path (`RawNode.Step.traced`: `TrNetTy m.Type' ∧ StepNodeOk s m`, its `MsgAppResp` clause from the
+`Progress` lookup the third guard does; the proposal: `PropAny ∧ StepNodeOk`; `ReportUnreachable`:
+`UnreachPath ∧ StepNodeOk`); `Advance` applies the statement with `.inr` of `AckTy`.
+
+**Left**: the node API on the statement (`RawNode.Step.traced`'s `StepNodeOk`, the traced `Advance`,
+`ApplyConfChange`, gated `node.run`); `newRaft`/`Bootstrap` (A7).
+
+**Checked** (branch at `trace-check` `409da4cb23` plus this slice): full `lake build` green (13856 jobs);
+`#print axioms` of `stepBundle_traced` and `raft.Step.traced`: the existing type axioms, no `sorryAx`;
+`etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`,
+none updated; `interface/` differs in `stepLeader.txt` only (the `G` arm's guard); `--check --layout` 0
+new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` and `--tracecheck` unchanged.
+
+## S7 (part 2): the traced `cluster_alloc`, the client's traced node API (`TracedNodeApi`), the harness's allocation and end, `below` and `replica`; `RunConcurrent`'s proof blocked on four gaps (2026-11-11 · trace-check, S7 part 2; decided by the agent under the user's delegation · branch `trace-check-s7b`; DRAFT until trace-check's Freeze of layer D)
+
+**Done** (no axiom, no `sorry`; no existing statement changed; the closed statement untouched):
+- *The traced allocation* (Q6 item 8, revision 2): `cluster_alloc_traced` (`InvNodeRule.lean`, an API
+  module: a new law, `cluster_alloc` unchanged), `cluster_alloc` at a bootstrap log with the trace mode
+  `Cluster.trace γ = some γd` (the caller's directory). Revision 2's premises: a bootstrap log (the
+  `BootLog` premise; `StartNode` is a traced cluster's only constructor); no voter bound, `dup` free.
+  Raft-side: `ownRaftGhost_alloc_core_reg_tr` (`Protocol/Facts.lean`, the core with the trace mode
+  `tr`; the old name its instance at `none`, statement unchanged), `cluster_alloc_boot_impl_tr`
+  (`InvApiBoot.lean`, likewise). Rejected: a `tr` argument on `cluster_alloc` itself (Q6 item 8's
+  first form): every client's statement and proof would change; a separate law changes none.
+- *The client's traced node API* (`TracedNodeApi.lean`, new, on `etc/api/raft.txt`). **Found:** the
+  frozen Draft (`TracedApiDraft.lean`) cannot be imported by the harness: it publicly imports
+  `TracedCap`, which publicly imports `InvRaftPhys`, `TraceSimFacts`, `TraceSimSpecInv` (raft's
+  internals; `etc/api-check.py` refuses a listed module with an unlisted public import). Options: (a)
+  list the Draft and that chain (exposes raft's physical state); (b) edit the frozen file (`import`
+  `TracedCap` privately, move `startTrace_trCapB` out); (c) a new API module importing the Draft
+  privately and re-sealing what a client needs. Taken: (c) (no frozen file touched, no internal
+  exposed): `Cluster.traceSim` (`@[no_expose]`, the Draft's `Cluster.traceSimInv`) with its two laws
+  (`Cluster.traceSim_alloc`, `_end`, by the Draft's), `startTraceC` (the Draft's `startTrace`, word for
+  word over `Cluster.traceSim`; `startTraceC_eq` in the internal `TracedNodeApiBridge.lean`), and the
+  three traced statements the harness takes as hypotheses until the node-API slices prove them:
+  `StartNode.tracedSpec D` (`StartNode.gatedSpec` over `startTraceC`, its post giving `startDone γ D
+  cv.ID'`: A7's per-voter completion fact, Q31, as a parameter; `StartNode.tracedSpec_of_gated`
+  gives it at `D := True` from the Draft's), `isReadyChan_recvAu.tracedSpec` (the law with
+  `readyGotT`: `readyGot` plus each handed-out message's token `trTok`), `node.Step.tracedSpec`
+  (`node.Step.spec` at `stepIn_intro`'s premises plus `trTok`). `trTok γ st` (`@[no_expose]`): `True`
+  untraced (`trTok_untraced`), `recvTokOf` traced (slice 28n's `readyTok` at the node level). Why not
+  restate `stepIn`/`stepIn_intro` with the token: `stepIn_intro` is an existing law, true of every
+  cluster today; a token inside `stepIn` would make it false traced. The node API's other functions
+  the harness calls keep their statements (their traced content is `node.run`'s).
+- *The harness's allocation* (`tracecheck/HarnessAlloc.lean`): `ghostMap_alloc_list`,
+  `traceNames_alloc` (the shares at the bootstrap servers, the empty bag, the flags unset, the
+  directory, from the recorder's trace `γt`), `harness_alloc` (names, `cluster_alloc_traced`,
+  `Cluster.traceSim_alloc` from the first voter's `nodeBoot`; each voter's `voterStart`), and
+  `startTraceC_intro`.
+- *The end* (`tracecheck/HarnessEnd.lean`): `BootEnd D` (A7's bootstrap facts at the end, from every
+  voter's `D tn i`, a hypothesis until A7 lands; with Q30 (a) `BootFacts` keeps its statement),
+  `runOk_at_end` (`Cluster.traceSim_end`, `BootEnd`, `runOk_of_sim`), `runOver_intro` (the post).
+- *Two harness functions*: `below` (`0 < n`: `% 0` panics) and `(*Cluster).replica` (over
+  `replicasRO`), specified and proved.
+
+**`RunConcurrent`'s proof: the design, and what blocks it.** The harness (`concurrent.go`) read
+exactly: `RunConcurrent` allocates the cluster, the recorder and `stop`; three `StartNode`s (each
+`NewMemoryStorage`, a `Config` with the recorder as `TraceLogger`, `quietLogger` as `Logger`); one `app`
+goroutine per replica (`c.apps`); three drivers (`drivers`): the isolations (`time.Sleep`,
+`isolated.Store(1 + below(3))`), the proposer (`context.WithTimeout`, `strconv.Itoa`, `node.Propose`,
+`cancel`, `Proposed.Add`), the configuration changes (at `ConfChanges = 0` its loop's first conjunct is
+false: `ConfChanges.Load()` only, which needs the counter's value persistent at `0`); then `Sleep`,
+`close(stop)`, `apps.Wait`, each `node.Stop` (`nodeRunning 1`, given back by the app goroutines through
+`apps`), `net.Wait`. `app`: a ticker (`time.NewTicker`), a `select` over `stop`, `ticker.C` (`Tick`)
+and the `Ready` channel (`isReadyChan_recvAu.tracedSpec`), `handleReady` (the storage: `Append`,
+`SetHardState`, the bootstrap conf entries applied, `proto.Unmarshal`, `node.ApplyConfChange` with the
+decisions authority shared: `confPolicy`, as kvreconf), `Advance`, then one `send` per message
+(`proto.Clone`, `below`). `send`: `net.Add(1)`, a goroutine: `Sleep`, `replica(m.To)`, the isolation
+`Load`, `node.Step.tracedSpec` (the token from the `Ready`), `cancel`, `Dropped`/`Delivered.Add`,
+`ReportUnreachable`, `ReportSnapshot` (their untraced specs: `isNode` only). The blockers,
+each a question (the plan, Q32-Q35):
+1. *`bootMarshal`* (Q32): `cluster_alloc`/`cluster_alloc_traced` take `proto.Marshal`'s bytes of the
+   bootstrap conf changes as a premise (`bootMarshal`: each call returns the given log's bytes), which
+   no closed theorem has discharged (the etcd examples keep it as a premise); `proto.MarshalConfChange`'s
+   spec (an axiom) gives bytes decoding to the change, not fixed ones, and the three `StartNode`s must
+   produce one log.
+2. *`strconv.Itoa`* (Q33): no spec in Perennial (the proposer's data `"v"+strconv.Itoa(k)`).
+3. *`c.net`'s wait group* (Q34): added to by the three `app` goroutines concurrently, once per message
+   (unboundedly many), waited on once at the end: Perennial's thread-token joins (`tokJoin`,
+   `tokJoinL`) have one exclusive adder (`ownAdder`).
+4. *`Workload`* (Q35): `time.NewTicker` needs `0 < Tick`, which `Workload` does not state.
 
 ## Amendment A7 (Q29): the bootstrap segments in `simInv`, the bootstrap law's next-event premise, `NewTrace`'s computation; `BootFacts` found false (Q36) and the completion fact without an anchor (Q37) (2026-11-11 · trace-check, Q29 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-a7`; amends the frozen Draft (tag `trace-check-frozen-a6`) in `simInv`'s pure clause and `trCap_fire_boot.statement`'s premises only; DRAFT until the re-freeze)
 

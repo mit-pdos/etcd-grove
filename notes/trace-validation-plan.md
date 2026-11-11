@@ -1270,7 +1270,29 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   hands the capability (its `simBoot`) back at `Stop`, and the last-event predicate says complete (slice
   27n's statements). **Recommended: (a)** (one structure field, the clause, the post; nothing of layer A
   or the node API). A frozen structure: for the coordinator or the user.
+- **Q30 (2026-11-11, slice 29c): a leader's accepted `MsgAppResp` whose `maybeCommit` commits: `Step`'s
+  result before `"Hgcommit"` unguarded.** `stepClose` hands the closing wand `stepOutG`, whose `G0`/`G1`
+  disjuncts are guarded by `¬ CandHooked` only, and `stepLeader.spec` returns its `G` on an accepted
+  `MsgAppResp` whatever `AppRespRan`. So the traced family's close must take `G1` (raft's ghost state at `s`,
+  the capability at the receive line's result) to the idle capability at an end state whose commit index is
+  `maybeCommit`'s outcome's, past the recorded server's, with no `Commit` line logged: unprovable when the
+  outcome commits (nothing in the close refutes it; the outbox may be unchanged). It cannot happen (the
+  code calls `maybeCommit`, hence `"Hgcommit"`, exactly when `AppRespRan`), but no statement says so.
+  Options: (a) **a guard**: `stepLeader.spec`'s `G` arm gains `¬ (m.Type' = MsgAppResp ∧ m.Reject' = false
+  ∧ AppRespRan s m.From' m.Index')` (its proof, `stepLeader/Rest.lean`, has the condition at the join,
+  `RanCond`), `stepOutG`'s `G0`/`G1` guard becomes `¬ CandHooked c m s ∧ ¬ LeadRan m s` (the same condition
+  at a leader of the message's term), `Step`'s `MsgAppResp` arm passes it (`raft__Step/MsgAppResp.lean`,
+  `raft__Step.lean`; elsewhere `stepOutG_of_ne` refutes it by the type), the closes destructuring
+  `stepOutG` one more ignored conjunct; raft-internal, `interface/` unchanged, `stepBundle_traced.on`'s
+  text unchanged but its `stepClose`'s meaning (as slice 28c's `CloseMid`); (b) the same with `CandHooked`
+  widened to the leader's case (fewer binders, a misleading name); (c) keep the path `LeadAccNC` and make
+  the committing case an assembly premise: not acceptable (every commit is on that path). **Recommended:
+  (a).** With it the bundle moves to `.on LeadAcc` mechanically (slice 29c's `leadAccR`, gates and Gc close
+  unchanged; `G1`'s close at `¬ AppRespRan`, `n = committed` by `AppRespAcceptedC`). For the coordinator
+  (the definition `stepClose` reads, under the frozen `stepBundle_traced.on`).
 
+  **Taken by the coordinator (raft-internal): (a)** (`stepBundle_traced.on`, `stepClose` and `stepOutG` were
+  written during Q8, not laws of the frozen Draft).
 **Q8 stage 1 (slice 27b), 2026-11-11 (branch `trace-check-q8s27b`): a candidate's won election done.**
 Slice 25b's remaining list taken by the coordinator, its form the agent's (`notes/decisions.md`, "Q8
 stage 1 (slice 27b)"); all raft-internal. Done (new modules `TracedRaftStepRecvVoteRespWon{Phase,Fx,}.lean`):
@@ -1301,6 +1323,22 @@ Left (each item in the decisions entry): the path premise `m.From' ∈ domSet s.
 `maybeCommitOut`, `fxPres_commit` with the leader's `srvFacts` rebuilt from raft's ghost state), the
 sends after it, the close and the bundle.
 
+**Q8 stage 1 (slice 29c), 2026-11-11 (branch `trace-check-q8s29c`): a leader's accepted `MsgAppResp`: the
+`Commit` line, the sends, the close past `maybeCommit`; the bundle on a non-committing outcome; Q30.**
+Slice 28c's remaining list taken by the coordinator, its form the agent's (`notes/decisions.md`, "Q8 stage
+1 (slice 29c)"); all raft-internal, nothing frozen or client-visible changed. Done (new modules
+`TracedRaftStepRecvLeadAcc{Commit,Gates,Bundle}.lean`): the bridge `advancesTo_of_out` (`maybeCommitOut` with
+no outgoing half to `advanceCommitIndex_eq`/`_noop`); the `Commit` line's pinned phase step
+(`phaseStepB_commitPin`) and facts (`fxPres_commit`: `quorumLogF_commit`, `specInv_advanceCommitIndex`,
+the leader's `srvFacts` rebuilt from raft's ghost state after the commit, `srvFacts_leaderOf`,
+`ownRaftGhost_leadFull`); `"Hgcommit"` (`leadAccGate_commit`: the ghost step, raft's facts, the line);
+`"#Hgaapp"`, `"#Hgrlhb"`, `"#Hgrlresp"`, `"#Hgatnow"` on the family past `maybeCommit` (`leadAccGc`);
+the close past `maybeCommit` (`leadAcc_end`, `maybeCommitOut_unique`, `CloseMid`'s third case); the path
+`LeadAcc` (accepted, of the leader's term, the sender tracked: `m.From' ∈ domSet s.progress` and `∈ domSet
+s.prvals`, and `PrvalsOk s`, the `Match` values within the log that the no-op commit needs: all the node
+API's, read off `ownRaftPhysC`); the bundle **`stepBundle_traced_leadAccNC`** over `.onC LeadAccNC`
+(`LeadAcc` and no committing outcome). The committing outcome needs a guard on `G0`/`G1` (Q30). Left:
+Q30's guard and the bundle on `.on LeadAcc` (the close given `G1` then at `¬ AppRespRan`); the assembly.
 
 **Q8 stage 1 (slice 27n), 2026-11-11 (branch `trace-check-q8s27n`): Q27 (a) done; the report's bundle
 path and the traced `RawNode.ReportUnreachable` done; a `Ready` line's tokens over the queues done;
@@ -1314,6 +1352,60 @@ full pattern on the report case of `LeaderNonpropResultC` gains a `-`). `stepBun
 (`TracedRaftStepUnreach.lean`), `RawNode.ReportUnreachable.traced` (`TracedRawNodeRep.lean`),
 `readyToks_queues` (`TracedReadyToks.lean`: `trCap_fire_ready`'s tokens as one `recvTokOf` per queued
 message, `outboxRelP`). Remaining, with designs, in the decisions entry.
+
+**Q8 stage 1 (slice 30c), 2026-11-11 (branch `trace-check-q8s30c`): Q30 (a), Q28 (c) and slice 28n's
+`AckEnd` done; `raft.Step`'s traced bundle assembled (`stepBundle_traced`) and its traced triple
+(`raft.Step.traced`) proved.** Decided by the coordinator (Q28 (c), Q30 (a), `AckEnd`; raft-internal), the
+form the agent's (`notes/decisions.md`, "Q8 stage 1 (slice 30c)"). `stepLeader.spec`'s `G` arm and
+`stepOutG`'s `G0`/`G1` guarded off `LeadRan` (an accepted `MsgAppResp` that reaches `maybeCommit`);
+`stepBundle_traced_leadAcc` over `.on LeadAcc`; `TrRecvShape`'s term clause (from `SentMsgShape`);
+`stepClose`'s `AckEnd` premise (the storage acknowledgements' end state, proved by `raft.Step`'s two
+arms) and `stepBundle_traced_storAck`. `stepBundle_traced.statement` is now its own premise list (the
+per-path `.on` unchanged): `.on`'s but the path, `MsgHup → ¬ leader` and the bootstrap-log premise (from the
+capability), with the acknowledgements admitted, a proposal's batch of normal entries and `StepNodeOk`
+(`PrvalsOk`, the `Progress` values' domain, an append response's sender tracked). The premise list with its
+sources is in the decisions entry. Left: the node API on the statement (`RawNode.Step.traced`'s
+`StepNodeOk`, the traced `Advance`, `ApplyConfChange`, `node.run`).
+
+**Q8 stage 1 (slice 28n), 2026-11-11 (branch `trace-check-q8s28n`): `acceptReady` one spec for both
+modes and the traced `RawNode.Ready` done; `Advance` designed, not done; `ApplyConfChange`, `node.run`
+not started.** Slice 27n's designs taken by the coordinator, their form the agent's (`notes/decisions.md`,
+"Q8 stage 1 (slice 28n)"); all raft-internal, nothing frozen or client-visible changed. Found: a traced
+node could not reach `ownRawNodeReady` (its logger clause said nil); now `TraceLoggerOkS`, and
+`readyWithoutAccept.spec` drops `γ.reTrace = none`. `ownRawNodeReady` gains `MsSub` (the handed-out and
+self-addressed messages among the queues) and `OutTr` of the cut state. `acceptReady.spec`: the traced
+bounds as a gated premise, post `[∗list] q ∈ ms, readyTok γ q.st`; the `Ready` line fired by
+`rnTrace_fireReady` (`TracedReady.lean`, over `trCap_fire_ready`), the tokens split by
+`readyToks_selfSplit`. `RawNode.Ready.traced` (`TracedRawNodeReady.lean`). `Advance`: its storage
+acknowledgements need a close that knows the end state; decided: `stepClose` gains an `AckEnd` premise
+(details in the decisions entry). Also: `acceptReady` now reaches `TracedHooksGlobal`, whose `keep_pure`
+clashed with the cache's in the server's link: renamed `trKeep_pure`. Checked (branch at `trace-check`
+`6722b166d4` plus this slice): full `lake build` green (13852 jobs); `etc/tcb-report.py --check` (806
+axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`, none updated; `interface/` differs
+in `RawNode__acceptReady.txt` and `RawNode__readyWithoutAccept.txt` (the two proofs' unfolded specs: the
+premise dropped, `acceptReady`'s gated bounds and tokens); `--check --layout` 0 new; `etc/api-check.py` 0
+errors; `etc/gen-link.py --raft` unchanged.
+**Q8 stage 1 (slice 29n), 2026-11-11 (branch `trace-check-q8s29n`): a booted node's `ApplyConfChange`
+line's gate and the Draft's `traceConfChangeEvent.tracedSpec` proved; the traced `switchToConfig`,
+`applyConfChange`, `RawNode.ApplyConfChange`, the gated `node.run` and the node API's traced statements
+not done; four findings.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 29n)"); all
+raft-internal (new modules `TracedApplyCC.lean`, `TracedConfChangeHook.lean`), nothing frozen or
+client-visible changed. Done: `trCapB_hookGate_applyCC` (the line at a booted capability idle at `s`:
+`AccIdle` from `SimServerR` once the commit index covers the bootstrap log, the share unchanged by
+`accSrv`, `lineEffect_applyCC`); `traceConfChangeEvent.tracedSpec_proof` (the Draft's statement from the
+code). Found: (1) `applyConfChange` cannot close raft's struct at the old configuration for the hook (the
+`Changer`'s shallow `Progress` copies share the `Inflights` rings, moved by `ownResult_transfer`);
+recommended a read-only lending in `traceEvent.spec` (`RaftReadLend`: what `traceEvent` reads, no
+`Progress`) with the `Changer` specs giving back the old configuration's maps; (2) the `confc` arm needs
+the capability booted: the traced conjunct to tie the flag to delivery; (3) a leader's `switchToConfig`
+logs a no-op `Commit` line and appends: prove it with slice 29c's pieces; (4) **S7 part 2's
+`isReadyChan_recvAu.tracedSpec` is not provable**: `run` sends the `Ready` before `acceptReady` logs its
+line and mints the tokens; they can come at `node.Advance` (the harness sends after `Advance`), through a
+claim handed out with the `Ready` and the `advancec` protocol (statements in the decisions entry). Checked (branch at `trace-check` `409da4cb23` plus this slice): full `lake build` green (13857 jobs);
+`etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`, none
+updated; `interface/` unchanged (no listed module touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors;
+`etc/gen-link.py --raft` and `--tracecheck` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -1394,6 +1486,11 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   The agent records such a question in "Questions for the user" below, takes the plan's
   recommendation where it has one (marked "taken by the agent, pending the user's veto"), and
   goes on with the work that does not depend on it; it does not stop for them.
+- **The user reviews only the top-level statement** (the user's, 2026-11-11): changes to the closed
+  theorems (`raft_tracecheck_safe`, `TraceAccepts`: what they promise, their premises, the workload they
+  cover) or to the trust base go to the user before they land; amendments to the frozen layer-B
+  Draft and every other intermediate statement are the agent's, recorded as before, with no veto list
+  to work through.
 - Every other decision the agent takes is recorded where it is taken, "decided by the agent",
   with the options and the reason (`notes/spec-first-plan.md`, "Who decides").
 
@@ -2470,6 +2567,56 @@ mode `etc/gen-link.py --tracecheck` (`etc/link-lean-first-tracecheck.txt`) write
 `Trace.Len`, `Trace.StepLine`, `indexOf`, `State.Violated`. The TCB collection
 `etc/tcb-collections/tracecheck.txt` selects the Link's roots too. Left for S7: `RunConcurrent`'s
 proof, then the closed statements.
+
+**S7 (part 2) (2026-11-11, branch `trace-check-s7b`): the traced allocation, the client's traced node
+API, the harness's allocation and end; `RunConcurrent`'s proof not started, four questions (Q32-Q35).**
+Done (`notes/decisions.md`, "S7 (part 2)"; no axiom, no `sorry`, no existing statement changed):
+`cluster_alloc_traced` (Q6 item 8: a new law beside `cluster_alloc`); `TracedNodeApi.lean`, a new API
+module (the frozen Draft publicly imports raft's internals, so a client cannot import it): the
+Draft's invariant and `startTrace` re-sealed (`Cluster.traceSim`, `startTraceC`) with their laws, and
+the traced statements the harness takes as hypotheses (`StartNode.tracedSpec D`,
+`isReadyChan_recvAu.tracedSpec`, `node.Step.tracedSpec`, the token `trTok`);
+`StartNode.tracedSpec_of_gated` (from the Draft's, `D := True`); the harness's ghost allocation
+(`harness_alloc`) and end (`runOver_intro` from `BootEnd D`, A7's bootstrap facts as a hypothesis);
+`below` and `(*Cluster).replica` proved. Left: `RunConcurrent`, `app`, `handleReady`, `send`'s proofs
+(the design in the decisions entry), blocked on:
+
+- **Q32 (2026-11-11, S7 part 2): the bootstrap log's bytes (`bootMarshal`).** `cluster_alloc` with a
+  bootstrap log, traced or not, takes `bootMarshal vs ctxs log`: each `proto.Marshal` of a voter's
+  `AddNode` returns the given log's bytes. The three `StartNode`s marshal independently and raft's
+  proof needs one committed log, but `proto.MarshalConfChange.spec` (an axiom) gives only bytes that
+  decode to the change. No closed theorem discharges it (the etcd examples keep it a premise of their
+  `Main` specs). Options: (a) strengthen the trust boundary: `proto.MarshalConfChange.spec` returns
+  `ccEncodeV1 m` for a fixed (unspecified) function `ccEncodeV1` with `ccDecodeV1 (ccEncodeV1 m) = some
+  m` (deterministic marshalling of a message without maps, which protobuf-go is within one binary);
+  `bootMarshal` then follows for the log of those bytes; (b) raft's bootstrap proved for per-node
+  bytes (each node's log its own bytes, equal up to decoding): a redesign of the committed log's
+  equality; (c) the harness bootstraps without `Bootstrap` (`RestartNode` on storage the harness
+  fills): excluded today (P1, traced restart). **Recommended: (a)** (a trust-base change: the user's).
+  **Decided by the user (2026-11-11): follow the etcd examples.** `raft_tracecheck_safe` takes a named Iris
+  premise bundle (as `etcd_putget_safe`'s `etcd_putget.premises`) holding `bootMarshal`; no axiom changes. The
+  kvraft examples need none because they start by `RestartNode` on a configured storage, not `StartNode`'s
+  bootstrap; the etcd examples carry `bootMarshal` this way.
+- **Q33 (2026-11-11, S7 part 2): `strconv.Itoa` has no spec.** The proposer's data
+  `"v"+strconv.Itoa(k)` needs a spec (any string suffices). Options: (a) a Perennial change: a spec of
+  `strconv.Itoa` (proved from the translated `strconv`, or its result's bytes unconstrained); (b) the
+  harness proposes fixed data (a Go change, weaker workload). **Recommended: (a)**, as an independent
+  Perennial change (`notes/perennial-changes.md`).
+- **Q34 (2026-11-11, S7 part 2): a wait group added to concurrently, without bound.** `c.net` counts
+  the message goroutines: each `send` (from any of the three `app` goroutines) calls `net.Add(1)`, the
+  goroutine `Done`, and `RunConcurrent` waits once at the end, after the `app`s. Perennial's
+  thread-token joins (`sync.tokJoin`, `sync.tokJoinL`) bound the counter by thread tokens but have one
+  exclusive adder (`ownAdder`). Options: (a) a Perennial change: a join with a shared adder (fractions of
+  `ownAdder`, `Wait` with the whole), its counter backed by thread tokens as `tokJoin`'s; (b) the same
+  protocol proved locally in the harness over `WaitGroup`'s raw specs; (c) a Go change: one adder (a
+  per-replica wait group, or the sends counted by the `app` goroutine). **Recommended: (a)** (general;
+  `CLAUDE.md`'s rule for Perennial limitations: record, work around locally (b) if it blocks, propose
+  (a)).
+- **Q35 (2026-11-11, S7 part 2): `Workload` lacks the ticker's premise.** `app`'s `time.NewTicker(Tick)`
+  needs `0 < Tick` (`time.NewTicker.spec`); `Workload` (layer D's, not frozen) does not state it.
+  Options: (a) add `0 < sint.Z cfg.Tick'` to `Workload` (`DefaultCConfig`'s 10ms meets it; `Main`'s proof
+  gains one `decide`); (b) none other: the premise is real (Go panics on a non-positive ticker).
+  **Recommended: (a)**, with `RunConcurrent`'s proof (not changed before a proof needs it).
 
 ## Order of work
 

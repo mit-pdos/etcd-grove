@@ -312,7 +312,7 @@ theorem stepBundle_traced_candVoteRespLost :
     -- (`stepOutG`): the election decided, the step ends past `"Hglost"`
     iapply stepClose_anyB
     iunfold stepClose
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { lostState s m with prvals := pvs } := by
       obtain ⟨pvs0, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
       rw [hpre pvs0] at h
@@ -342,8 +342,8 @@ theorem stepBundle_traced_candVoteRespLost :
     unfold stepOutG
     dsimp only [vrLostR]
     icases Hout with (⟨%hn, -⟩ | ⟨%hn, -⟩ | ⟨Hgh, Hc⟩ | %h | ⟨%b, %N, %h⟩)
-    · exact (hn hhook).elim
-    · exact (hn hhook).elim
+    · exact (hn.1 hhook).elim
+    · exact (hn.1 hhook).elim
     · imodintro
       isplitl [Hgh]
       · ileft; iframe Hgh; ipureintro; exact CloseAt.of_traced hmty rfl

@@ -1374,7 +1374,9 @@ theorem wp_stepLeader_appresp
         ownRaftPhysCV c c.voters r id s' ∗
         ((∃ (b : Bool) (N : w64), ⌜m.Reject' = false ∧
             ∃ pvs : GMap w64 Progress, prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
-              maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨ G s'.outbox) ∗
+              maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨
+          -- (2026-11-11, slice 30c, plan Q30 (a)) `G` only when `maybeCommit` did not run
+          (⌜¬ (m.Reject' = false ∧ AppRespRan s m.From' m.Index')⌝ ∗ G s'.outbox)) ∗
         ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   wp_start as ⟨Hphys, Hm, HG, Hgrej, Hgcommit, #Hgrlresp, #Hgrlhb, #Hgaapp, #Hgatnow, #Hnosnap⟩
@@ -1402,7 +1404,10 @@ theorem wp_stepLeader_appresp
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     isplitl [HG]
-    · iright; iexact HG
+    · iright; iframe HG; ipureintro
+      rintro ⟨-, p, hp, -⟩
+      have : m.From' ∈ domSet s.progress := by rw [← Hpdom, GMap.elem_of_dom]; exact ⟨p, hp⟩
+      rw [GMap.elem_of_dom] at this; obtain ⟨v, hv⟩ := this; rw [Hlk] at hv; cases hv
     ipureintro
     refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inl ⟨?_, rfl⟩⟩))))⟩
     rw [GMap.elem_of_dom]; rintro ⟨v, hv⟩; rw [Hlk] at hv; cases hv
@@ -1538,7 +1543,10 @@ theorem wp_stepLeader_appresp
       iapply HΦ $$ %interface.nil %{ s with prvals := pvs2 }
       iframe Hphys
       isplitl [HG]
-      · iright; iidx HG
+      · iright; isplitr
+        · ipureintro
+          exact fun hr => absurd (Hcb2.2 ((appRespRan_of_ranCond s _ _ p Hpvs).1 hr.2)) (by decide)
+        iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inr ⟨Hfdom, Hrej,
         p.matched, pvs2, s.logst.committed, [], [], Hx, Hmm2, Or.inl rfl,
@@ -2128,7 +2136,9 @@ theorem wp_stepLeader_appresp
       iapply HΦ $$ %interface.nil %{ s with prvals := pvs2 }
       iframe Hphys
       isplitl [HG]
-      · iright; iidx HG
+      · iright; isplitr
+        · ipureintro; rintro ⟨h, -⟩; first | cases h | (rw [Hrej] at h; cases h)
+        iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inl ⟨Hfdom, Hrej, [], pvs2, ?_,
         fun _ h => absurd h List.not_mem_nil, Hmm2⟩)⟩))))⟩
@@ -2166,7 +2176,9 @@ theorem wp_stepLeader_appresp
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }
       iframe Hphys
       isplitl [HG]
-      · iright; iidx HG
+      · iright; isplitr
+        · ipureintro; rintro ⟨h, -⟩; first | cases h | (rw [Hrej] at h; cases h)
+        iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inl ⟨Hfdom, Hrej, ms, pvs, rfl,
         (replSends_prvals id s _ ms).1 Hms, ?_⟩)⟩))))⟩
@@ -2192,7 +2204,9 @@ theorem wp_stepLeader_appresp
       iapply HΦ $$ %interface.nil %{ sendMsgs s ms with prvals := pvs }
       iframe Hphys
       isplitl [HG]
-      · iright; iidx HG
+      · iright; isplitr
+        · ipureintro; rintro ⟨h, -⟩; first | cases h | (rw [Hrej] at h; cases h)
+        iidx HG
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inl ⟨Hfdom, Hrej, ms, pvs, rfl,
         (replSends_prvals id s _ ms).1 Hms, ?_⟩)⟩))))⟩

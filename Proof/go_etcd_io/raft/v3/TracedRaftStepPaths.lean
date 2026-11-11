@@ -499,7 +499,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_notLeader hp.2)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     have hend' := localNoLine_end hp hns hpre (hend (by rw [htr]; rfl))
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := by
       intro C; rcases hend' with rfl | ⟨fwd, -, rfl⟩

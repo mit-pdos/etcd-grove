@@ -192,11 +192,25 @@ theorem stepOut_leader (R : StepG GF) {o : List Msg} (φ1 φ2 φ4 : Prop) (φ3 :
 
 /-- (2026-11-11, slice 24b) `stepCandidate`'s tagged result, guarded (`stepOutG`): `G1` only when no
 gate ran, which off the tag `ψ` rules out a deciding vote response. -/
-theorem stepOutG_or (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg} (φ ψ : Prop) :
+theorem stepOutG_or (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg} (φ ψ : Prop)
+    (hl : ¬ LeadRan m s) :
     iprop((⌜φ⌝ ∗ R.GE o) ∨ (⌜ψ⌝ ∗ R.G1 o)) ⊢ ⌜ψ → ¬ CandHooked c m s⌝ -∗ stepOutG c m s R o := by
   iintro (⟨-, H⟩ | ⟨%hψ, H⟩) %h
   · unfold stepOutG; iright; iright; ileft; iexact H
-  · unfold stepOutG; iright; ileft; iframe H; ipureintro; exact h hψ
+  · unfold stepOutG; iright; ileft; iframe H; ipureintro; exact ⟨h hψ, hl⟩
+
+/-- (2026-11-11, slice 30c, plan Q30 (a)) `stepLeader`'s result, guarded (`stepOutG`): `G1` only off
+`LeadRan` (`stepLeader.spec`'s guard on its `G` arm, `h4`), off a deciding vote response (`hc`). -/
+theorem stepOutG_leader (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg}
+    (φ1 φ2 φ4 : Prop) (φ3 : Bool → w64 → Prop) (hc : ¬ CandHooked c m s) (h4 : φ4 → ¬ LeadRan m s) :
+    iprop((⌜φ1⌝ ∗ R.GE o) ∨ (⌜φ2⌝ ∗ R.Gp2 o) ∨ (∃ (b : Bool) (N : w64), ⌜φ3 b N⌝ ∗ R.Gc b N o) ∨
+      (⌜φ4⌝ ∗ R.G1 o)) ⊢ stepOutG c m s R o := by
+  unfold stepOutG
+  iintro (⟨-, H⟩ | ⟨-, H⟩ | ⟨%b, %N, -, H⟩ | ⟨%h, H⟩)
+  · iright; iright; ileft; iexact H
+  · iright; iright; iright; ileft; iexact H
+  · iright; iright; iright; iright; iexists b, N; iexact H
+  · iright; ileft; iframe H; ipureintro; exact ⟨hc, h4 h⟩
 
 /-- `hup`'s result (its `G0` is `R.G1 s.outbox`, at the state unchanged). -/
 theorem stepOut_hup (R : StepG GF) {s s' : NState} :
@@ -443,7 +457,9 @@ theorem gate_close_g [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id
     (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
     -- (2026-11-11, slice 23a) a close of another type than `MsgProp`: the ghost state back at `s`
     -- ((slice 25b) nor a candidate's won vote)
-    (hnp : ∀ s1, ¬ CloseMid id m ents s s1 s') :
+    (hnp : ∀ s1, ¬ CloseMid id m ents s s1 s')
+    -- (2026-11-11, slice 30c) a storage acknowledgement's end state (`AckEnd`)
+    (ha : s.gh.tr.isSome → AckEnd m s s') :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOutG c m s (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout s' ∗
@@ -452,7 +468,7 @@ theorem gate_close_g [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id
   have hw : stepOutG c m s (ghostIn γ md c id s R) s'.outbox ⊢ stepOutG c m s R s'.outbox := .rfl
   ihave Ho := hw $$ Ho
   unfold stepClose
-  imod Hc $$ %s' %B %recv %h %he Ho with ⟨(⟨-, Hg⟩ | ⟨%s1, %Hmid, -⟩), HG, %Hot⟩
+  imod Hc $$ %s' %B %recv %h %he %ha Ho with ⟨(⟨-, Hg⟩ | ⟨%s1, %Hmid, -⟩), HG, %Hot⟩
   · unfold ownStepGhost
     icases Hg with ⟨Hg, Hr⟩
     imodintro
@@ -468,21 +484,24 @@ theorem gate_close [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id :
     (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
     (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp)
     -- (2026-11-11, slice 28c) nor a leader's accepted append response
-    (hna : m.Type' ≠ MsgAppResp) :
+    (hna : m.Type' ≠ MsgAppResp)
+    -- (2026-11-11, slice 30c) a storage acknowledgement's end state (`AckEnd`)
+    (ha : s.gh.tr.isSome → AckEnd m s s') :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOut (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout s' ∗
         ⌜OutTrStep s s'⌝ := by
   iintro Hc Ho
-  ihave Ho := stepOutG_of_ne c m s _ hnv $$ Ho
-  iapply gate_close_g γ md c id m ents ctx s R Gout s' B recv h he (fun _ => CloseMid.not_of hnp hnv hna) $$ Hc Ho
+  ihave Ho := stepOutG_of_ne c m s _ hnv hna $$ Ho
+  iapply gate_close_g γ md c id m ents ctx s R Gout s' B recv h he (fun _ => CloseMid.not_of hnp hnv hna) ha $$ Hc Ho
 
 /-- (2026-11-11, slice 23a) **The ghost state back at `s` or past it** (`CloseMid`), on a proposal. -/
 theorem gate_close_mid [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (s : NState)
     (R : StepG GF) (Gout : NState → IProp GF) (s' : NState) (B : Int) (recv : List Msg)
     (h : s.gh.tr.isSome → StepCD c id B m s recv s')
-    (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s') :
+    (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
+    (ha : s.gh.tr.isSome → AckEnd m s s') :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOutG c m s (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ((⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost γ md c id s) ∨
@@ -492,7 +511,7 @@ theorem gate_close_mid [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (
   have hw : stepOutG c m s (ghostIn γ md c id s R) s'.outbox ⊢ stepOutG c m s R s'.outbox := .rfl
   ihave Ho := hw $$ Ho
   unfold stepClose
-  iapply Hc $$ %s' %B %recv %h %he Ho
+  iapply Hc $$ %s' %B %recv %h %he %ha Ho
 
 end ghostgate
 

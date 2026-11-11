@@ -342,7 +342,7 @@ theorem stepBundle_traced_beat : stepBundle_traced.on (GF := GF) (hG := hG) Loca
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne nP)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨ms, pvs, rfl, hm⟩ := localBeat_end hp hns hpre (hend (by rw [htr]; rfl))
     have hS : ∀ C, SimIdleS C s = SimIdleS C { sendMsgs s ms with prvals := pvs } :=
       fun C => (simIdleS_prvals C s ms pvs hm).symm
@@ -428,8 +428,8 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
         simp only [MsgHup, MsgBeat]; exact of_decide_eq_true rfl))
       (fun ty h => by rw [hmt] at h; cases h) (by rw [hT2]; exact hT) (by simp; unfold traceNumBound; omega)
       (fun ty h => by rw [hmt] at h; cases h) hfit hlrn (by rw [hpr2]; exact Hsub) (by rw [hrole]; nofun)
-      (by refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> rw [hb] at h <;>
-            simp [MsgBeat, MsgHeartbeat, MsgHeartbeatResp, MsgVote, MsgApp] at h)
+      (by refine ⟨fun h => ?_, fun h => ?_, fun h => ?_, fun ty h => by rw [hmt] at h; cases h⟩ <;>
+            rw [hb] at h <;> simp [MsgBeat, MsgHeartbeat, MsgHeartbeatResp, MsgVote, MsgApp] at h)
       (fun h => by rw [hb] at h; simp [MsgBeat, MsgHeartbeat, MsgApp] at h)
     rw [hS2, hgh, hls2] at hgo
     iapply hgo

@@ -505,7 +505,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
   have hev10 : evt = W64 10 := by
     rcases hev with ⟨h, -⟩ | ⟨-, -, h⟩ | ⟨h, -⟩ | (⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -, -⟩) <;> first | exact h | cases h
   have hto' : m.To' = id := hto .heartbeat hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inr hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inr hTy)) (by rw [hto', h])
   have hents : ents = [] := hsh.1 hTy
   have hb0 : γ.reBoot ≠ [] := hboot (.inl hTy)
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
@@ -694,7 +694,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
         s' = heartbeatResult id (bfState s m.From' pvs) m ctx := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV

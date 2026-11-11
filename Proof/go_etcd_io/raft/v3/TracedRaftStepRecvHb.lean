@@ -599,7 +599,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
   have htrd : MsgType.traced .heartbeat = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .heartbeat m ents hmty htrd hsh
   have hto' : m.To' = id := hto .heartbeat hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inr hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inr hTy)) (by rw [hto', h])
   have hents : ents = [] := hsh.1 hTy
   have hb0 : γ.reBoot ≠ [] := hboot (.inl hTy)
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
@@ -757,7 +757,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h

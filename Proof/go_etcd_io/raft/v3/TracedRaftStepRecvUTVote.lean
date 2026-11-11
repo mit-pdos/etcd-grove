@@ -178,7 +178,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
   have htrd : MsgType.traced .vote = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .vote m ents hmty htrd hsh
   have hto' : m.To' = id := hto .vote hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inl hTy) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inl hTy) (by rw [hto', h])
   obtain ⟨hnA, hnH, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnVR, hnHR, hnAR, hnPV, hnHup⟩ := vote_ne hTy
   have hnS : m.Type' ≠ MsgSnap := by rw [hTy]; simp [MsgVote, MsgSnap]
   have hbf : PreBF m s := ⟨hgt, hnPV, fun h => hnPVR h.1⟩
@@ -325,7 +325,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hve⟩ : ∃ pvs : GMap w64 Progress,
         VoteEnd id { becomeFollower s m.Term' (W64 0) with prvals := pvs } m s' := by
       rcases ((hend (by rw [htr]; rfl)) hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩

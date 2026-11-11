@@ -248,6 +248,41 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1⟩
     ipureintro; exact Hd.2.2.2
 
+/-- **A new traced cluster** (2026-11-11, trace-check S7 part 2: Q6 item 8, revision 2 of
+`notes/trace-validation-q6.md`; `notes/decisions.md`, "S7 (part 2)"): `cluster_alloc` with a
+bootstrap log `boot` (a traced cluster needs one: `StartNode` is its only constructor, `RestartNode`
+taking an untraced cluster), whose trace mode is the caller's directory `γd` (`Cluster.trace γ = some
+γd`, the gate of every traced-only premise of the node API; the directory names the simulation's
+ghost state, `traceDir`, which the caller allocates before). Everything else as `cluster_alloc`'s
+post at `boot ≠ []`. -/
+theorem cluster_alloc_traced (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (γd : GName) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    BootLog vs ctxs boot →
+    ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗
+        ⌜Cluster.trace γ = some γd⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+        ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
+        confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
+        ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
+        isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
+  intro Hrb Hne Hnd Hnz Hlen HB
+  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
+    nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace isCommittedLogLb raftState
+    nodeVacant
+  iintro Hm
+  imod ApiImpl.cluster_alloc_boot_impl_tr (GF := GF) N vs ctxs boot dup sl (some γd) E Hrb Hne Hnd
+    Hnz Hlen HB $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
+  icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
+    (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
+      ApiImpl.nodeVacantU γ id))).1 $$ Hbs with ⟨#Hbs, Hrs⟩
+  imodintro
+  iexists γ
+  iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs Hrs
+  isplitr
+  · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1⟩
+  ipureintro; exact Hd.2.2.2
+
 /-! ## Joining -/
 
 /-- **Reserving a new id**: its durable state at `RaftState.init` and its vacant slot, out of the

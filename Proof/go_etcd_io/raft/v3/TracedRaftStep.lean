@@ -48,10 +48,14 @@ variable [GooseExts]
 heartbeat has none) and a heartbeat response does not reject (the specification's is a success); and a
 vote request, an append request or a heartbeat is not from its destination (its response's send line,
 skipped by the specification, is of a message to another node: `lineEffect_skipResp`; `isRaftMsg`'s
-`SentMsgShape` states it; slice 19b added the append request and the heartbeat). -/
+`SentMsgShape` states it; slice 19b added the append request and the heartbeat). (2026-11-11, slice 30c,
+plan Q28 (c), the coordinator's) And a traced message's term is not `0`: raft handles a term-`0` message
+as of the node's term, the specification drops it as stale; raft never sends one (`SentMsgShape`'s
+term clause, `isRaftMsg_trRecv`). -/
 def TrRecvShape (m : MessageM) (ents : List EntryM) : Prop :=
   (m.Type' = MsgHeartbeat → ents = []) ∧ (m.Type' = MsgHeartbeatResp → m.Reject' = false) ∧
-    (m.Type' = MsgVote ∨ m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat → m.From' ≠ m.To')
+    (m.Type' = MsgVote ∨ m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat → m.From' ≠ m.To') ∧
+    (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.Term' ≠ W64 0)
 
 end shape
 
@@ -149,16 +153,66 @@ theorem stepClose_anyB (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : 
   iintro H
   iunfold stepClose at H
   iunfold stepClose
-  iintro %s' %B %recv %h1 %h2 Hout
-  imod H $$ %s' %B %recv %h1 %h2 Hout with ⟨Hgh, Hc, %Ho⟩
+  iintro %s' %B %recv %h1 %h2 %h3 Hout
+  imod H $$ %s' %B %recv %h1 %h2 %h3 Hout with ⟨Hgh, Hc, %Ho⟩
   imodintro
   iframe Hgh
   isplitl [Hc]
   · iexists true; iexact Hc
   ipureintro; exact Ho
 
-/-- **`raft.Step`'s resources from the capability** on every path (see `stepBundle_traced.on`). -/
-abbrev stepBundle_traced.statement : Prop := stepBundle_traced.on (GF := GF) (hG := hG) (fun _ _ => True)
+/-- (2026-11-11, slice 30c) **What the traced paths read of the node's state beyond
+`stepBundle_traced.on`'s premises**, all the node API's, read off `ownRaftPhysC` before the call: the
+leader's `Match` values within its log (`PrvalsOk`, `ownRaftPhysC_prvals_ok`; a no-op commit's
+`advanceCommitIndex_noop` needs every `Match` within the log), the `Progress` values' domain the
+tracker's (`ownTrackerC_prvals_dom`), and an append response's sender tracked (`RawNode.Step`'s third
+guard, `ErrStepPeerNotFound`: a response from a node without a `Progress` is not stepped). What a
+leader's accepted `MsgAppResp` needs (the path `LeadAcc`, slice 29c). -/
+def StepNodeOk (s : NState) (m : MessageM) : Prop :=
+  PrvalsOk s ∧ domSet s.prvals = domSet s.progress ∧ (m.Type' = MsgAppResp → m.From' ∈ domSet s.progress)
+
+/-- **`raft.Step`'s resources from the capability, on every path** (2026-11-11, slice 30c: the assembly,
+`stepBundle_traced`, `TracedRaftStepBundle.lean`; until then `stepBundle_traced.on (fun _ _ => True)`).
+`stepBundle_traced.on`'s premises (the per-path form), with:
+- no `Path`;
+- (slice 30c, slice 28n's design) the storage acknowledgements too (`AckTy`: `Advance`'s), an append
+  acknowledgement at most at the node's term (`raft.Step.spec`'s premise);
+- `MsgUnreachable` (`ReportUnreachable`'s; slice 27n's path premised it, `UnreachPath`) and
+  `MsgStorageApplyResp` among the local types at term `0`;
+- no `MsgHup → s.role ≠ .leader`: `hup` at a leader does nothing (slice 26n, `stepBundle_hup_R` at any
+  role);
+- no `m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []`: the capability's `id ∈ C` and
+  `C.length ≤ γ.reBoot.length` (amendment A6, Q24) give it (`trCapB_reBoot`);
+- (slice 24a's) a proposal's batch non-empty, of normal entries (`Propose`'s single normal entry; an
+  empty batch or a configuration change is not traced: `PropLead`); its bootstrap log from the
+  capability as above;
+- (slice 29c's) `StepNodeOk`;
+- (plan Q28 (c)) the term of a traced message not `0`, now a clause of `TrRecvShape`. -/
+abbrev stepBundle_traced.statement : Prop :=
+  ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
+    (Λ : Option TraceEv → Prop) (bt : Bool),
+  s.gh.tr = some γd →
+  s.prevote = false → s.cq = false → (StepEndTy m.Type' ∨ AckTy m.Type') → NStateWf s →
+  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgUnreachable ∨
+    m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
+  (m.Type' = MsgStorageAppendResp → uint.Z m.Term' ≤ uint.Z s.term) →
+  (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
+  uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
+  (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
+  receiptBound GF + γ.reBoot.length ≤ traceNumBound →
+  c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
+  s.role ≠ .preCandidate → TrRecvShape m ents →
+  (m.Type' = MsgProp → ents ≠ [] ∧ ∀ e ∈ ents, e.Type' = EntryNormal) →
+  StepNodeOk s m →
+  (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
+      (recvTokOf γd m ents ctx ∗
+        □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
+          isMessageC γ (absMsg ty m ents ctx))) ∗
+      TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
+    |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      stepClose γ md c id m ents ctx s R
+        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
 
 end traced
 

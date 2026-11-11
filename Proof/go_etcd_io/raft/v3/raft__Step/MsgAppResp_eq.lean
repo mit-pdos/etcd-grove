@@ -78,7 +78,9 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R s'.outbox }} := by
+        -- (2026-11-11, slice 30c, plan Q30 (a)) guarded: on an accepted response that reaches
+        -- `maybeCommit` the step ends past its gate (`stepLeader.spec`'s guard)
+        "HG" ∷ stepOutG c m s R s'.outbox }} := by
   intro Hty Hto Hterm Hteq Hfnz Hrej Hwf
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
     m.Type' = MsgCheckQuorum :=
@@ -126,6 +128,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
+      (fun h => absurd (Hrole.symm.trans h.2.2.2.1) (by decide)) $$ HG
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -154,6 +158,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
+      (fun h => absurd (Hrole.symm.trans h.2.2.2.1) (by decide)) $$ HG
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -186,7 +192,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-    ihave HG := stepOut_leader R _ _ _ _ $$ HGo
+    ihave HG := stepOutG_leader c m s R _ _ _ _ (CandHooked.of_ne (by rw [Hty]; w32_ne))
+      (fun h4 hl => h4.2.2 ⟨hl.1, hl.2.1, hl.2.2.2.2⟩) $$ HGo
     obtain ⟨rfl, Hwf', ⟨recv, Hrecv, Hstep⟩, Hft⟩ :=
       leader_appresp_step (B := B) c id s m ents ents dropped s' Hrole Hty Hto Hteq Hwf Hpc Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -214,6 +221,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
+      (fun h => absurd (Hrole.symm.trans h.2.2.2.1) (by decide)) $$ HG
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]

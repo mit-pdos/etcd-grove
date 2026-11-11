@@ -1342,8 +1342,9 @@ start (`γ.reBoot = L`, `BootWf`: the bootstrap log, or `[]`), in either mode (`
 `ownRaftGhost_alloc_gen` (`[]`, either mode), `ownRaftGhost_alloc_boot` (the bootstrap log,
 static). (2026-10-28, stage U4a) With the registry of the snapshots made (`RaftNames.reSnapReg`)
 the caller's `reg`: `ownRaftGhost_alloc_core_reg`; `ownRaftGhost_alloc_core` is its instance at
-`none`. -/
-theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
+`none`. (2026-11-11, trace-check S7 part 2) Of a traced cluster too: the trace's names `tr`
+(`RaftNames.reTrace`; `ownRaftGhost_alloc_core_reg` is this at `none`). -/
+theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
     (dyn : Option ((e : GooseExts) → @DynCfg e))
     -- (2026-10-15, stage N) the conf-change bytes the cluster admits
     (ccOk : w32 → List w8 → Prop)
@@ -1368,7 +1369,9 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-28, the decision switch) the client's decision map (`RaftNames.reDec`)
     (rdec : Option GName)
     -- (2026-10-29, S1) whether the network may duplicate a `MsgProp` (`RaftNames.dup`)
-    (dup : Bool) :
+    (dup : Bool)
+    -- (2026-11-11, trace-check S7 part 2) the trace's names (`RaftNames.reTrace`)
+    (tr : Option GName) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1378,8 +1381,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
           γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
           γ.reDec = rdec ∧ γ.dup = dup ∧
-          -- (2026-11-09, Q8 stage 0) an untraced cluster (`RaftNames.reTrace`'s default)
-          γ.reTrace = none⌝ ∗
+          γ.reTrace = tr⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
@@ -1421,7 +1423,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec, dup, none, nsl⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec, dup, tr, nsl⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1554,6 +1556,39 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
   isplitr; · iexact Hc0
   iframe HCl Hcr Hcinv' Hnodes
 
+
+/-- **The allocation's core** of an untraced cluster (`ownRaftGhost_alloc_core_reg_tr` at `none`). -/
+theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
+    (dyn : Option ((e : GooseExts) → @DynCfg e))
+    (ccOk : w32 → List w8 → Prop)
+    (L : List EntryM) (t : w64) (C : RaftNames → IProp GF)
+    (trk : Option (GSet w64)) (Htrk : ∀ T, trk = some T → cfg ⊆ T ∧ dyn = none)
+    (ns : Bool) (Hns : ns = true → L ≠ [])
+    (nx : Bool) (Hnx : nx = true → L ≠ [])
+    (sok : List BootEntry → List w8 → Prop)
+    (sl : w64 → Option GName)
+    (nsN : Namespace)
+    (certN : Namespace)
+    (reg : Option GName)
+    (rdec : Option GName)
+    (dup : Bool) :
+    cfg ≠ ∅ →
+    W64 0 ∉ ids →
+    BootWf L → (L ≠ [] → 1 ≤ uint.Z t) →
+    ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
+      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
+          γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
+          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
+          γ.reDec = rdec ∧ γ.dup = dup ∧
+          -- (2026-11-09, Q8 stage 0) an untraced cluster (`RaftNames.reTrace`'s default)
+          γ.reTrace = none⌝ ∗
+        raftCommitInv (GF := GF) γ ∗
+        isCommitted γ L ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownDurGhost γ id RaftState.init ∗ raftIdSlot γ id) ∗
+        C γ ∗
+        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) :=
+  ownRaftGhost_alloc_core_reg_tr E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN
+    reg rdec dup none
 
 /-- **The allocation's core**, with no registry of the snapshots made
 (`ownRaftGhost_alloc_core_reg` at `none`). -/

@@ -245,7 +245,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-    Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs, Hgtr, Hglq⟩
+    Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Houttr, Hsdt, Hrole, Hpst, Hphs, Hgtr, Hglq⟩
 
 /-! ## A `Ready`'s batch and committed entries (raft-final phase 2, for `readyData`) -/
 
@@ -499,7 +499,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     iexists hrd; iframe Hh Hw; ipureintro; exact Hhseq
   isplitr
   · ipureintro
-    refine ⟨Hmslen, fun h => by rw [Hes] at h; exact decide_eq_true (.inl h),
+    refine ⟨Hmslen.length_le, fun h => by rw [Hes] at h; exact decide_eq_true (.inl h),
       fun h => decide_eq_true (.inr h), fun e He => ?_, Hphs.1⟩
     obtain ⟨-, H2, H3⟩ := Hceok e He
     refine ⟨H2, ?_⟩

@@ -428,7 +428,10 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                             b N⌝ ∗
                                                                 Gc b N s'.outbox) ∨
                                                             ⌜¬(m.Type' = MsgCheckQuorum ∧ s'.role = PRole.follower) ∧
-                                                                  ¬(m.Type' = MsgProp ∧ dropped = false)⌝ ∗
+                                                                  ¬(m.Type' = MsgProp ∧ dropped = false) ∧
+                                                                    ¬(m.Type' = MsgAppResp ∧
+                                                                        m.Reject' = false ∧
+                                                                          AppRespRan s m.From' m.Index')⌝ ∗
                                                               G s'.outbox) -∗
                                               Φ (intoVal err)) -∗
                                         WP (((intoVal (functions stepLeader [])) (intoVal r)) (intoVal ml)) {{ Φ }}

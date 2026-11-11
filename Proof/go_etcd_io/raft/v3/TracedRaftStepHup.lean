@@ -838,7 +838,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne (nX _ hne.2.2.1))
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     have hok' : HupOkC c id s s' := (hend (by rw [htr]; rfl) hty).2.1 hns hp
     obtain ⟨-, -, ⟨-, -, -, hpv', -⟩, -, hg⟩ := hok'
     unfold stepOut

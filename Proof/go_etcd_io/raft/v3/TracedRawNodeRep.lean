@@ -111,7 +111,8 @@ theorem RawNode.ReportUnreachable.traced
       Hfit Hscope.2 Hsub
       (fun h => by have := Hpcd h; rw [Hscope.1] at this; cases this)
       ⟨fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne),
-        fun h => by rcases h with h | h | h <;> exact absurd h (by msg_ne)⟩
+        fun h => by rcases h with h | h | h <;> exact absurd h (by msg_ne),
+        fun ty h => by rw [Hmt] at h; cases h⟩
       (fun h => by rcases h with h | h <;> exact absurd h (by msg_ne)) $$ Hpre
     with ⟨%R, HG, Hgates, Hclose⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 10, From' := to } : MessageM) [] [] none [] R

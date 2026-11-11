@@ -968,7 +968,7 @@ theorem quorumLogF_conflict (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.S
       (fun i => by
         iintro ⟨Htbl, ⟨%t, %hK, #Hc⟩, #Hp, #Hf⟩
         by_cases ht : t ≤ m.term
-        · icases keep_pure (commitCert_app γ C (committedL σ i) t src T bL l fp ents idx lt m
+        · icases trKeep_pure (commitCert_app γ C (committedL σ i) t src T bL l fp ents idx lt m
               (by rw [← hT]; exact ht) hin hsl hidx1 hidx hents) $$ [$Htbl $Hc $Hp $Hf]
             with ⟨⟨Htbl, -⟩, %hag⟩
           iframe Htbl
@@ -1041,7 +1041,7 @@ theorem okL_commitAgree (γ : RaftNames) (es X : List EntryM) (c T : w64) (B : I
   iintro ⟨Htbl, #Hr, #Hcj, #HL, #Hok⟩
   unfold okL
   icases Hok with (⟨%t'', %Ht, #Hf⟩ | ⟨%t'', %n'', %Ht, #Hq⟩ | %Hb)
-  · icases keep_pure (commitJ_leadFull γ es X c T t'' hw hc Ht.1) $$ [$Htbl $Hr $Hcj $Hf]
+  · icases trKeep_pure (commitJ_leadFull γ es X c T t'' hw hc Ht.1) $$ [$Htbl $Hr $Hcj $Hf]
       with ⟨⟨Htbl, -⟩, %hag⟩
     iframe Htbl; ipureintro; exact hag j hj hjX
   · icases cq_full γ t'' n'' X $$ Hq with ⟨%hwX, #HrX⟩
@@ -1054,7 +1054,7 @@ theorem okL_commitAgree (γ : RaftNames) (es X : List EntryM) (c T : w64) (B : I
       iright; iexists t'', n'', X
       iframe Hq
       ipureintro; exact ⟨Int.le_refl _, Int.le_refl _, rfl⟩
-    icases keep_pure (commitJ_leadFull γ X es n'' t'' T hwX hnX (by omega)) $$ [$Htbl $HrX $HcjX $HL]
+    icases trKeep_pure (commitJ_leadFull γ X es n'' t'' T hwX hnX (by omega)) $$ [$Htbl $HrX $HcjX $HL]
       with ⟨⟨Htbl, -⟩, %hag⟩
     iframe Htbl; ipureintro; exact (hag j Ht.2 (by omega)).symm
   · obtain ⟨hjb, rfl⟩ := Hb

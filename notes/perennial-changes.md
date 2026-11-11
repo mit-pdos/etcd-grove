@@ -1055,6 +1055,30 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   loads (`Server.remove`'s preconditions, the `ObjectMeta` accessors).
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
+### `strconv.Itoa` has no spec (2026-11-11, trace-check S7 part 2)
+
+- **Missing.** A spec of `strconv.Itoa` (Perennial translates `strconv`, but specifies only
+  `ParseUint` and the errors).
+- **Who needs it.** The trace-check harness's proposer (`examples/raft/tracecheck/concurrent.go`,
+  `[]byte("v"+strconv.Itoa(k))`): any string serves (the plan's Q33).
+- **Workaround here.** None yet: `RunConcurrent`'s proof is not written.
+- **Proposed (general).** `strconv.Itoa.spec` (and `FormatInt`'s): the decimal string of the value,
+  proved from the translation (or, weaker, some string).
+- **Status.** Recorded only.
+
+### A thread-token join with several adders (2026-11-11, trace-check S7 part 2)
+
+- **Missing.** `sync.tokJoin`/`sync.tokJoinL` bound a wait group's counter by thread tokens, with one
+  exclusive adder (`ownAdder`, with the waiters' token); a group added to by several goroutines
+  concurrently, without bound, then waited on once, has no idiom.
+- **Who needs it.** The trace-check harness's network (`c.net`: every `app` goroutine's `send` adds one
+  goroutine per message; `RunConcurrent` waits after the `app`s end) (the plan's Q34).
+- **Workaround here.** None yet (the proof is not written); a local protocol over `WaitGroup`'s raw specs
+  is possible.
+- **Proposed (general).** `ownAdder` fractional (`Add` with any fraction, `Wait` with the whole), the
+  counter backed by the adders' deposited thread tokens as `tokJoin`'s.
+- **Status.** Recorded only.
+
 ## Landed
 
 ### Package initialization: a monotone package map; `os`'s initializers translated (landed 2026-11-03 to 2026-11-04; used here 2026-11-07)
