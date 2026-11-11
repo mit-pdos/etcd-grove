@@ -22,7 +22,8 @@ restart then opens at `a`, not at the dormant record.
 at its index is the committed one, so either read is a compaction of the same durable log (raft's
 `StorageHolds` allows a base above raft's). Behavior etcd does not promise otherwise; no fix
 (decided by etcd-grove-81, 2026-11-11, D2). Shown with the WAL crash spec's harness (W0
-`TestCW2Harness`) and robustness tester (W1.5, chain 3002; W3's targeted runs: RESULTS).
+`TestCW2Harness`) and robustness tester (W1.5, chain 3002; W3's targeted runs, 150 chains per crash model at the fixed fork: the strict reader is false at 30, 22 and
+24 restarts in 27, 20 and 23 chains under kill, posix and ordered; the relaxed reader, 0 violations).
 
 ## Proof
 

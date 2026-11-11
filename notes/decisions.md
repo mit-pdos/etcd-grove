@@ -34583,3 +34583,17 @@ nonissues' directories) fail at `a4d2bb172` and pass at `71f99a4bf` with no mode
 runs): a dormant snapshot record (C-W2) can sit in a file that `ReleaseLockTo` and the purge
 delete; the restart then opens at the released snapshot, not at the dormant record. W4's `walRead`
 allows a missing prefix up to the last released snapshot's record.
+
+**A kill, then a power loss** (etcd-grove-81's question from rung 3, where bbolt has the gap): a
+restart without a reboot reads unsynced WAL bytes from the page cache; without F-Z nothing syncs
+them before the next `Save`, and a power loss takes back what the restart returned. F-Z closes it:
+`TestKillThenPower` (the robustness tester's, a copy in `nonissues/etcd-wal-readall-zero-unsynced/`)
+fails at `a4d2bb172` under posix and ordered, passes with F-Z modelled and at `71f99a4bf`. So the WAL
+spec's crash relation may compose a kill with a later power loss: a restart's image is durable once
+`ReadAll` returns (W4: the restart's post gives the synced mark at the image's length, whatever the
+crash before it was). The tester gained `crashsim.Compose`/`KillInodes` and `-killpl`/`-killtarget`.
+
+**A tester bug fixed on the way**: the W1.5 tester's `readEnt` (`ref.go`) kept the entries above
+the base when an entry at or below it was read; `ReadAll` truncates the log there (`ents[:0]`),
+as W0's `walref.ReadEnt` and the Scope's reader say. It explains W1.5's unanalyzed ordered
+violation (chain 2145), which was not a garbage effect.

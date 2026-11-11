@@ -44,13 +44,30 @@ pass on each). Need a `Signed-off-by` before filing.
   (F-Z, F-N1, F-N2, C-W2, C-P6, the Save doc, the sector-write dependence); decisions entry
   "WAL W3".
 
+## Checked (2026-11-11)
+
+Full build green (14018 jobs); `etc/tcb-report.py --check`: matches (865 axioms, 5 sorries); 54
+collections match; the 5 interfaces unchanged; `gen-init --check` clean; `goose.py --check
+--src etcd=/shared/tmp/wal-spec/w3/etcd --perennial /shared/perennial-ddc0f0acc`: 41 projects up to
+date (without `GOWORK=off`: the etcd checkout needs its go.work); `issues-status.py --check` clean.
+
+Runs (logs under `/shared/tmp/wal-spec/w3/runs/`; `r2/` and `r4/` are the final ones; round 1's
+`t-*.log` and the first `k-*` used a tester `readEnt` bug and a broken `Compose`, superseded):
+- task 1, targeted purge + dormant (`r2/t-*`, fixed fork, 150 chains each): strict reader false at
+  30/22/24 restarts in 27/20/23 chains (kill/posix/ordered), relaxed 0 violations; the strict
+  violations (27/20/23) are exactly those chains.
+- task 2, tester at the fixed fork without modelled fixes (`f-*.log`, `r2/f-ordered.log`): 0
+  violations (kill, posix x2 seeds, posix strict, ordered).
+- kill then power loss (`r4/k-*`, targeted): pin 11 (posix) and 5 (ordered) violations; pin with F-Z
+  modelled and the fixed fork 0. `TestKillThenPower` deterministic (fails at pin, passes with F-Z).
+
 ## Next, in order
 
-See the checkpoint report / STATUS entry; if interrupted: finish the checks (tcb --check,
-collections, interfaces, gen-init --check, goose --check with
-`--src etcd=/shared/tmp/wal-spec/w3/etcd --perennial /shared/perennial-ddc0f0acc`,
-`etc/issues-status.py --index` then `--check`), then STOP before land.sh: the user pushes
-`goose-lean-walsync` (and fast-forwards `goose-lean`) first.
+1. The coordinator's go; the user pushes `goose-lean-walsync` (and fast-forwards `goose-lean`) to
+   upamanyus/etcd; then merge lean, rerun gates (`etc/land.sh`), land.
+2. W4 takes the tester from `/shared/tmp/wal-spec/w3/tester` (not W1.5's copy): it has the
+   `readEnt` fix, `crashsim.Compose`/`KillInodes`, `-killpl`/`-killtarget`, the sector-preserving
+   garbage model, and `kpl_test.go`.
 
 ## Pitfalls
 

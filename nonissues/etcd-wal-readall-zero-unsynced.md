@@ -27,6 +27,19 @@ the form "a prefix of what this incarnation's history wrote" is false. Code:
 [`ZeroToEnd`](https://github.com/etcd-io/etcd/blob/6974f522338b/client/pkg/fileutil/fileutil.go#L101) (truncate and fallocate, no sync). The
 same at upstream main (6974f522338b, 2026-11-10).
 
+**A second path, the same fix: a kill, then a power loss.** A member killed after a `Save`'s
+write but before its `fdatasync` (the record in the page cache only) and restarted without a
+reboot reads the unsynced record (`ReadAll` reads the page cache) and never syncs it: a power
+loss before its next sync takes back records the restart returned (a hard state with a higher
+commit, entries), which raft may already have applied to the backend. `TestKillThenPower` in
+[etcd-wal-readall-zero-unsynced/](etcd-wal-readall-zero-unsynced/) (a test of the WAL robustness
+tester, `examples/etcd/wal` in W4; kill image, a second traced process on it, one composed
+power-loss model of both): at `a4d2bb172`, posix and ordered, the restart on the page cache
+reads `commit=2` with two entries, the restart after the power loss `commit=1` with one; with F-Z
+(modelled on the pin, or the fork's 41fddbc2d) both read `commit=2`. The robustness tester's
+targeted runs (`-killpl -killtarget`) find it at the pin without F-Z and not with it (W3 report,
+etcd-grove-81's rung-3 question; bbolt's analogue is in `/shared/tmp/crash-rung3/`).
+
 ## Proof
 
 yes: the WAL's crash spec (the W-stages, `/shared/tmp/wal-spec/scope.md` "C-P5'") states the
