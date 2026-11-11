@@ -195,7 +195,7 @@ theorem EtcdServer.start.wp_proof
   -- (R8, 2026-11-07) with its trace and span facts (`traceutil.wp_WithCancelBackground_noTrace`:
   -- the revocation's `LeaseRevoke` takes the span fact, `srvRevokeCtx`)
   wp_apply traceutil.wp_WithCancelBackground_noTrace $$ [] as %cctx %γcx %cancel
-    ⟨#Hcancel, #Hcctx, -, #Hcspan, #Hcst⟩
+    ⟨#Hcancel, #Hcctx, -, #Hcspan, #Hcst, #Hclib⟩
   iunfold context.cancelSpec at Hcancel
   icases Hctx with ⟨%ctx0, Hctx⟩
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩
@@ -600,7 +600,7 @@ theorem EtcdServer.start.wp_proof
       · rw [← isServerReadM_false, ← hCoff]; iexact Hrd
     iframe HNR
     iexists cctx, _
-    iframe Hctx Hcctx Hcspan Hcst
+    iframe Hctx Hcctx Hclib Hcspan Hcst
   -- (R2d'a swap batch 5) `run`'s start conjuncts in restart form, from a first start's (`%HEr`,
   -- `Hsnap`, `Hstart`; `srvRunRestartR_first`)
   ihave HRr : srvRunRestartR C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw

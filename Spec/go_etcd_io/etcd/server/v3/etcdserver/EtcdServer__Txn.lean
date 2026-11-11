@@ -8,6 +8,7 @@ public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -77,7 +78,7 @@ abbrev EtcdServer.Txn.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
+      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
       ⌜txn.txnReadonly t = true → txn.txnGetsOk t ∧ E.authMode ≠ .any⌝ ∗
       ⌜txn.txnReadonly t = false → apply.txnDepthOk t⌝ ∗ srvApi.kvLogLb E.γs F ∗

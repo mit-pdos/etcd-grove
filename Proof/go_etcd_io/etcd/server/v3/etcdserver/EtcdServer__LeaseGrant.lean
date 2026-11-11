@@ -53,7 +53,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
   obtain ⟨hlg, hoff⟩ := hg
   have hRR := hRR0 s E ρ
   rw [hoff] at hRR
-  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hspc, #Hst, Hreq⟩
+  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, Hreq⟩
   iunfold leaseGrantReqOwn at Hreq
   icases Hreq with ⟨%hr, #HTTL, HID⟩
   ihave #Hsrv' := Hsrv
@@ -120,10 +120,11 @@ theorem EtcdServer.LeaseGrant.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hspc1 := Hspw $$ Hspc
   -- (sweep repairs 1, B2) the request context's start time, kept by `Start`
   ihave #Hstc1 := Hst1 $$ Hst

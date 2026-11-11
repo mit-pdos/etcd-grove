@@ -189,6 +189,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hctx2 := Hctxis
+  ihave #Hlibk := libCtxOk_of_runCtx ci $$ Hrunctx
   iNamed Hctx2
   ihave #HErrU := HErr $$ %Broadcast.Unknown
   wp_auto

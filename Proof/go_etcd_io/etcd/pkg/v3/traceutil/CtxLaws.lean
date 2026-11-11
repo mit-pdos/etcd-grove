@@ -7,6 +7,7 @@ auto-compactor's context, `WithCancel(Background())`, carries no trace, which `E
 module
 
 public import Proof.context.ReqKeys
+public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Perennial.Proof.context.Results
 public import Spec.context.WithCancelBackground
@@ -73,7 +74,8 @@ theorem traceutil.wp_WithCancelBackground_noTrace :
         _root_.Perennial.context.cancelSpec cancel γ' iprop(True) ∗
         _root_.Perennial.context.isContext ctx'
           { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
-        traceutil.ctxTraceIs ctx' none ∗ trace.spanCtxOk ctx' ∗ context.startTimeOk ctx' }} := by
+        traceutil.ctxTraceIs ctx' none ∗ trace.spanCtxOk ctx' ∗ context.startTimeOk ctx' ∗
+        context.libCtxOk ctx' }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci := _root_.Perennial.context.isClosedchanInit_of_init $$ Hpkg
   iapply _root_.Perennial.context.wp_WithCancel_gen
@@ -102,7 +104,13 @@ theorem traceutil.wp_WithCancelBackground_noTrace :
   · iapply trace.spanCtxOk_cancelCtx_background c
     iframe #
   -- (sweep repairs 1, B2) its start time: `nil` (a child of `Background()`, Perennial's `ctxValue`)
+  isplitl []
   · iapply startTimeOk_of_bgFrom
+    iframe #
+    iapply _root_.Perennial.context.ctxValueFrom_cancel c
+    iexact Hf
+  -- (premise-fixes-8) its library values: `nil`, as its start time's
+  · iapply context.libCtxOk_bgFrom
     iframe #
     iapply _root_.Perennial.context.ctxValueFrom_cancel c
     iexact Hf

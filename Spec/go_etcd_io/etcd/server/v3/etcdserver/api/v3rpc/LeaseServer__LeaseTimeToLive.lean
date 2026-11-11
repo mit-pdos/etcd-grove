@@ -6,6 +6,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseRead
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -45,7 +46,7 @@ abbrev v3rpc.LeaseServer.LeaseTimeToLive.spec : Prop :=
     (dq : DFrac) (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ∗ S ∗ A.revR ∗
-      context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+      context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       r ↦{dq} v }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ci))) (Val #r))

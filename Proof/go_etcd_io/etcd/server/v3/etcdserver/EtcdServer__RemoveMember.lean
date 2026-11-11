@@ -32,7 +32,7 @@ theorem EtcdServer.RemoveMember.wp_proof
     (hEnum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) := by
   intro s E ctx cd id Pin Pm Qm Qin
-  wp_start as ⟨#Hau, #Hnil, #Hctx, HRD, HPin, HPm, #Hmay, #Hconf⟩
+  wp_start as ⟨#Hau, #Hnil, #Hctx, #Hlib, HRD, HPin, HPm, #Hmay, #Hconf⟩
   iunfold mayRemoveOk at Hmay
   iunfold configureRemoveOk at Hconf
   (try wp_auto)

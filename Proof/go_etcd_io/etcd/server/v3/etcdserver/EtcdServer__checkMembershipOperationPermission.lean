@@ -33,7 +33,7 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) := by
   intro s E ctx cd
-  wp_start as ⟨#Hau, #Hnil, #Hctx, HRD⟩
+  wp_start as ⟨#Hau, #Hnil, #Hctx, #Hlib, HRD⟩
   iunfold srvAuthAt at Hau
   icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold srvAdminNilOk at Hnil

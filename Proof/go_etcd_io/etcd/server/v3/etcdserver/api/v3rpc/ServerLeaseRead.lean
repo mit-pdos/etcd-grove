@@ -54,7 +54,7 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
   iunfold raftLeaseRead
   isplitr
   · iunfold lessorTTLOk
-    iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hpub, #Hllb, Hr⟩ HΦ
+    iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hlib, #Hpub, #Hllb, Hr⟩ HΦ
     wp_apply (hTTL hP s E ρ γr γl ci cd r dq v n m) $$ [HRD Htok Hr]
       as %resp %err ⟨HRD, Htok, Hr, Hans⟩
     · iframe; iframe #; ipureintro; exact hT
@@ -63,7 +63,7 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
     iunfold ttlAns
     iexact Hans
   · iunfold lessorLeasesOk
-    iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hpub, #Hllb⟩ HΦ
+    iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hlib, #Hpub, #Hllb⟩ HΦ
     wp_apply (hLs s E γr γl ci cd r ms cs n m) $$ [HRD Htok HR]
       as %resp %err ⟨Htok, HR, HRD, Hans⟩
     · iframe; iframe #; ipureintro; exact ⟨hT, hR⟩
@@ -122,7 +122,7 @@ theorem raftLeaseRenew_of_server (hRn : EtcdServer.LeaseRenew.spec (GF := GF) (h
         iprop(E.RD ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr) := by
   iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpool, #Hpr⟩
   iunfold raftLeaseRenew
-  iintro %ci %cd %id %n %m !> %Φ ⟨⟨HRD, Htok, Hlg, Hrr⟩, #Hctx, #Hpub, #Hllb⟩ HΦ
+  iintro %ci %cd %id %n %m !> %Φ ⟨⟨HRD, Htok, Hlg, Hrr⟩, #Hctx, #Hlib, #Hpub, #Hllb⟩ HΦ
   wp_apply (hRn s E ρ γr γl ci cd id n m) $$ [HRD Htok Hlg Hrr]
     as %ttl %err ⟨HRD, Htok, Hlg, Hrr, Hans⟩
   · iframe; iframe #; ipureintro; exact hT

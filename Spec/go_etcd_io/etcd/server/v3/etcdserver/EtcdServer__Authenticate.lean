@@ -12,6 +12,7 @@ public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthnStore
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -53,7 +54,7 @@ abbrev EtcdServer.Authenticate.spec : Prop :=
       isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗
       authnStoreOk (GoInterface.ok ast) E.RD ∗
-      □ (|==> idCred ρ.ids 1) ∗ srvApi.kvLogLb E.γs F ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗
+      □ (|==> idCred ρ.ids 1) ∗ srvApi.kvLogLb E.γs F ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗
       context.startTimeOk ctx ∗
       ⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthenticateRequest go!"Name" r ↦□ name ∗
       structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ pw ∗

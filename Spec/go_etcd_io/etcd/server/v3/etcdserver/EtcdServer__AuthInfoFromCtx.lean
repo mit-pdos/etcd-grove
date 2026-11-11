@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -33,14 +34,16 @@ the unbound request side (the auth-mode merge, 2026-10-29: `spec` and `boundSpec
 G of `notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). With auth
 on, the error is moreover `nil` or one of the auth package's error variables (`authErrVarIs`; the
 store returns only `ErrInvalidAuthToken`; the lease-expiry plan's E3, 2026-11-05, gated as the
-binding is). -/
+binding is). The context's library values are well formed (`context.libCtxOk`: the store reads its
+incoming metadata, and with `ClientCertAuthEnabled` its peer; premise-fixes-8). -/
 abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
   ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
       □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ RD }}
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗
+      context.libCtxOk ctx ∗ RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗

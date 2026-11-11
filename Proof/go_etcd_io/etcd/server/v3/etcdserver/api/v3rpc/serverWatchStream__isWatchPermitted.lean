@@ -56,7 +56,8 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   iunfold v3rpc.watchSrvOk at Hok
   icases Hok with ⟨-, ⟨%sta, %cca, %P, %f, %BT, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
   iunfold v3rpc.srvStreamIs at Hstr
-  icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, -⟩
+  icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, #Hrc⟩
+  ihave #Hlib := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   iunfold apply.isAuthStore at Has2

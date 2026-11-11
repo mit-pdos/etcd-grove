@@ -59,14 +59,19 @@ local macro "et_new" : tactic => `(tactic| (
   isplitr
   · iintro Hi
     iapply Hic $$ Hi
-  iintro !> #Hsp
-  have hk : go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty ≠
-      go_opentelemetry_io.otel.trace.traceContextKeyType.ty := by
-    simp [go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
-      go_opentelemetry_io.otel.trace.traceContextKeyType.ty]
-  iapply (trace.spanCtxOk_valueCtx (GF := GF) ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
-      #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ c' _ hk)
-  iframe Hdel Hsp))
+  isplitr
+  · iintro !> #Hsp
+    have hk : go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty ≠
+        go_opentelemetry_io.otel.trace.traceContextKeyType.ty := by
+      simp [go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
+        go_opentelemetry_io.otel.trace.traceContextKeyType.ty]
+    iapply (trace.spanCtxOk_valueCtx (GF := GF) ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
+        #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ c' _ hk)
+    iframe Hdel Hsp
+  iintro !> #Hlib
+  iapply (context.libCtxOk_of_valueWand (GF := GF) ctx c' ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
+      #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _
+      (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty])) $$ Hdel Hlib))
 
 theorem traceutil.EnsureTrace.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
@@ -109,7 +114,9 @@ theorem traceutil.EnsureTrace.wp_proof
       iframe Hctr
       isplitr
       · iintro Hi; iexact Hi
-      iintro !> #Hsp; iexact Hsp
+      isplitr
+      · iintro !> #Hsp; iexact Hsp
+      iintro !> #Hlib; iexact Hlib
     · et_new
   | none =>
     (try wp_auto)

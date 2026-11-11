@@ -337,7 +337,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specOff : Prop :=
   -- (`reqPropOkM`'s `attrIdOk`)
   apply.dispatchKind rq ≠ .clusterMemberAttrSet →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
+      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
       trace.spanCtxOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
       srvApi.kvLogLb E.γs F }}
@@ -369,7 +369,7 @@ abbrev EtcdServer.raftRequest.specOff : Prop :=
   -- (`reqPropOkM`'s `attrIdOk`)
   apply.dispatchKind rq ≠ .clusterMemberAttrSet →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
+      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
       trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
       srvApi.kvLogLb E.γs F }}
@@ -398,7 +398,7 @@ abbrev EtcdServer.doSerialize.specOff : Prop :=
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
     (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (t : Loc) (e : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗
+      isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
         {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
@@ -431,14 +431,14 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
     EtcdServer.processInternalRaftRequestOnce.specOff (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qr F Hid0 Hdpt Hka
   iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, Hsp, Hg, Hok, Hi, Hj⟩
+  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, #Hlib, Hsp, Hg, Hok, Hi, Hj⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
   have hM := h s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt
   rw [hon] at hM
   iapply hM $$ [Ha Hc Hd He Hf Hsp Hg Hok Hi Hj] [HΦ]
   · ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
     rw [isServerReqM_false]
-    iframe Ha Hb Hc Hd He Hf Hsp Hg Hok' Hi Hj
+    iframe Ha Hb Hc Hd He Hf Hlib Hsp Hg Hok' Hi Hj
   · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
     iapply HΦ
     iframe Hrd Hard
@@ -473,14 +473,14 @@ theorem EtcdServer.raftRequest.spec_off
     EtcdServer.raftRequest.specOff (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qr F Hid0 Hdpt Hka
   iintro %Φ Hpre HΦ
-  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, Hsp, #Hst, Hg, Hok, Hi, Hj⟩
+  icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, #Hlib, Hsp, #Hst, Hg, Hok, Hi, Hj⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
   have hM := h s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt
   rw [hon] at hM
   ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
   rw [← isServerReqM_false]
   iapply hM $$ [Ha Hc Hd He Hf Hsp Hg Hok' Hi Hj] [HΦ]
-  · iframe Ha Hb Hc Hd He Hf Hsp Hst Hg Hok' Hi Hj
+  · iframe Ha Hb Hc Hd He Hf Hlib Hsp Hst Hg Hok' Hi Hj
   iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
   iapply HΦ
   iframe Hrd Hard

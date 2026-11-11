@@ -30,7 +30,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) := by
   intro s st RD M cca ctx cd
-  wp_start as ⟨#Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩
+  wp_start as ⟨#Hst, #Hauth, #Hbd, #Hcca, #Hctx, #Hlib, Hrd⟩
   ihave #Hauth' := Hauth
   iunfold isReqAuth at Hauth'
   icases Hauth' with ⟨%ai, %Hai, -, #HFromTLS⟩

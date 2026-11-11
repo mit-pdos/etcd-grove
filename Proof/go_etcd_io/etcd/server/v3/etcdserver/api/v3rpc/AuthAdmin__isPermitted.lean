@@ -35,7 +35,7 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) := by
   intro aa s E ctx cd
-  wp_start as ⟨#Haa, #Hnil, #Hctx, HRD⟩
+  wp_start as ⟨#Haa, #Hnil, #Hctx, #Hlib, HRD⟩
   iunfold v3rpc.authAdminIs at Haa
   icases Haa with ⟨%Hann, #Hag, #Hau⟩
   iunfold srvAuthAt at Hau

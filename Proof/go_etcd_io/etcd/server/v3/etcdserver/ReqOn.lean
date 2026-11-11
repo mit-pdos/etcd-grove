@@ -790,20 +790,21 @@ theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
       srvAuthBoundM on s E ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗
+      context.libCtxOk ctx ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); E.RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
       □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a) }} := by
   cases on
-  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, Hrd⟩ HΦ
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, #Hlib, Hrd⟩ HΦ
     iapply (hAuth s st E.RD .off cca ctx cd) $$ [Hrd] [HΦ]
     · iframe Hrd; iframe #
       iintro !> %h; exact absurd h (by decide)
     · iintro !> %a %err ⟨Hrd, Ha, #Herr, -⟩
       iapply HΦ; iframe Hrd Ha Herr
       iintro !> %h; cases h
-  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩ HΦ
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, #Hlib, Hrd⟩ HΦ
     unfold srvAuthBoundM
     icases Hbd with ⟨#Hbd, %hon⟩
     ihave #Hbd2 : □ (⌜E.authOn = true⌝ → srvAuthBound s E) $$ []
