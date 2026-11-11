@@ -35749,6 +35749,65 @@ allocation already has); then `stepBundle_traced.on_of_onRB` discharges both bun
   `m.term`).
 - The bootstrap positions' question above (then `.on_of_onRB`).
 
+## Q8 stage 1 (slice 25n): the node holds the capability (`rnTrace`); `checkQuorum` persistent; traced `RawNode.Step` and proposal step; two questions (a leader's tick, the self-addressed tokens) (2026-11-11 · trace-check, Q8 stage 1 slice 25n; decided by the agent under the user's delegation · branch `trace-check-q8s25n`; DRAFT until trace-check's Freeze)
+
+All raft-internal (no module on `etc/api/raft.txt` changed its interface; nothing frozen); no axiom, no
+`sorry`; every untraced statement unchanged.
+
+**`rnTrace`** (`InvRawnode.lean`): `match s.gh.tr` — `emp` untraced; traced, `⌜s.prevote = false ∧
+c.learners = ∅⌝ ∗ r.[raft, "checkQuorum"] ↦□ false ∗ TrNoSnap s.gh.tr s.logst ∗ ∃ b, trCapB s.gh.tr γ r
+id c b (fun C => SimIdle C s)` (Λ the default). A conjunct `"Hrntr"` of `ownRawNode`, `ownRawNodeIdle`
+and `ownRawNodeReady` (at its `s`, whose outbox the `Ready` hands out: the `Ready` line, in
+`acceptReady`, is not yet logged). Threading: `ownRawNode_intro_tr` takes it as a last wand;
+`ownRawNode_intro` keeps its arguments with an auto-premise `(Hntr : γ.reTrace = none := by
+assumption)` — the untraced specs all have it in context, so ~35 sites are unchanged; the mode-agnostic
+lemmas (`ownRawNode_mode`, `_raise_tc`, `_appended`, `_raise_floor`, `_capLoan`, `_borrow`, `_shared`,
+`_async`, `_slent_nil`, `ownRawNodeIdle_*`, `HasReady`, `BasicStatus`, `ownRawNodeReady_abandon(_keep)`)
+pass the capability, across a state change through `rnTrace_congr` (same trace mode, pre-vote, log
+boundary, storage, protocol reading). Rejected: an auto-premise `s.gh.tr = none` by `tr_none` (its
+`simp_all` timed out at `acceptReady` and failed on reshaped states). `ownRawNode_borrow_in` (static
+mode only, closed through `ownRawNode_intro_static`) gained `γ.reTrace = none` (its two callers in
+`node.run` have it). The self-addressed queue's tokens are not in `rnTrace` (Q26).
+
+**`checkQuorum` persistent** (`InvRaftPhys.lean`'s `raftOwn`, `newRaft.lean`). Found: `raft.Step.spec`'s
+frames keep `prevote` (`NetFrame`) but say nothing of `cq`, so `s.cq = false` could not be carried
+across a step. The field is never written after `newRaft`, like `id`, `logger`, `stepDownOnRemoval`,
+`traceLogger`: `"#H_checkQuorum" ∷ … ↦□`, `raftOwn_cq`, `ownRaftPhysC_cq` (`↦□ s.cq`), the load through
+`wp_load_pers`. The capability holds `↦□ false`; a use combines it with `ownRaftPhysC_cq`. Rejected:
+`s'.cq = s.cq` in `NetFrame` (≈40 step files, several edited by concurrent slices).
+
+**Traced triples** (`TracedRawNode.lean`, new; each takes the traced bundle as a hypothesis):
+- `RawNode.Step.traced`: `RawNode.Step.tracedTriple` — a message of the six traced network types
+  (`TrNetTy`: the harness's peers' messages with pre-vote and check-quorum off), `NetMsgOk`, at
+  `γ.reTrace = some γd`, with `isRaftMsg` (giving the bundle's `isMessageC`, `MsgTrOk`, `TrRecvShape`
+  by `isRaftMsg_trRecv`, and `raft.Step`'s `isMessage`; the read credit `0`, the transfer and snapshot
+  clauses vacuous) and `recvTokOf`; premises `uint.Z rs.tc + 1 < traceNumBound` (the step's terms are
+  within the ceiling), the receipts' fit, `γ.reBoot ≠ []`. Hypothesis: `stepBundle_traced.on (fun _ m
+  => TrNetTy m.Type')`. The bundle's other premises from the node: `domSet` (`ownRaftPhysC_dom`), no
+  pre-candidate (`ownRaftPhysC_precand`), `cq` (`ownRaftPhysC_cq`).
+- `wp_rn_raft_Step_prop_traced`: `node.run`'s `propc` arm (`node.Propose`'s proposal and a forwarded
+  one, which `node.Step` sends to `propc`: the harness proposes at any node, `concurrent.go`, and
+  forwarding is on). `RawNode.Propose` is not on the node API's path, so its traced triple is not
+  needed. Hypothesis: `stepBundle_traced.onG PropAny` (`MsgProp`, non-empty batch, normal entries,
+  `γ.reBoot ≠ []`, any role: the assembly's premises of slice 24a plus the non-leader paths); premise
+  `∀ e ∈ st.ents, e.Type' = EntryNormal` (`node.Propose` builds one normal entry; a peer forwards only
+  those).
+
+**Questions** (plan Q25, Q26). Q25: the traced `RawNode.Tick` at a leader — `ownRaftPhysC` does not tie
+`r.tick` to the role, and `raft.tickElection.tracedTriple` excludes a leader; recommended: `raft.hup`'s
+`BecomeCandidate` gate asked only off a leader. Q26: the self-addressed messages' tokens from `Ready`
+to `Advance`; recommended: in `pendList`'s `.self` arm, gated on the trace mode.
+
+**Not done, exact.** Traced `RawNode.Tick` (Q25); `RawNode.Ready` (`readyWithoutAccept` and
+`acceptReady`: `trCap_fire_ready` at the `Ready` line, the capability at the cut state, the tokens out,
+the self-addressed ones kept, Q26); `RawNode.Advance` (its queued steps through `RawNode.Step.traced`'s
+pattern with the kept tokens; the local acknowledgements are untraced types); `RawNode.ApplyConfChange`
+(a booted node's `ApplyConfChange` line: a gate on `lineEffect_applyCC` under `AccIdle`, none yet;
+`switchToConfig`'s `traceConfChangeEvent` traced); `RawNode.ReportUnreachable` (`MsgUnreachable`, no
+line: the capability kept through `LocalFrame`-like facts); `node.run` gated and the node API's
+statements (`recvTokOf` from `node.Ready` to `node.Step`); traced `newRaft`/`Bootstrap`
+(`startTrace_trCapB`, a unified `traceConfChangeEvent.spec`; `newRaft.spec` sets `tr := none`).
+
 ## Amendment A6 (Q22, Q23, Q24): the acknowledgement histories in `QuorumLogF`, for a leader's `Commit` line; messages between servers, for a won vote's quorum; the capability's voters fit the bootstrap log, for an accepted append (2026-11-11 · trace-check, Q22 (a), Q23 (a) and Q24 (a) taken by the coordinator pending the user's veto, their forms decided by the agent · branch `trace-check-a6`; amends the frozen Draft (A5 merged, not yet re-frozen) in `simFx`'s `QuorumLogF` and `MsgsShape` clauses, the receive law's `PhaseStepR` and `trCapB`'s pure clause; DRAFT until the re-freeze)
 
 **The problem** (A5's open item, "Amendment A5 (Q21)"): a leader's `Commit` line (`AdvanceCommitIndex`)

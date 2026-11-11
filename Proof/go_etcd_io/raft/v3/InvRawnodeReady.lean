@@ -1370,7 +1370,10 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hgtr" ∷ ⌜s.gh.tr = γ.reTrace⌝ ∗
   -- (2026-11-09, Q8 stage 1 slice 5) no message recorded as just queued (`NGhost.lq`: `send`
   -- pops what it pushes), which the queue-draining closures need (`ownRaftPhysC_view`'s `LqOk`)
-  "%Hglq" ∷ ⌜s.gh.lq = []⌝)
+  "%Hglq" ∷ ⌜s.gh.lq = []⌝ ∗
+  -- (2026-11-11, Q8 stage 1 slice 25n) as `ownRawNode`'s: the trace capability, idle at the state
+  -- whose outbox the `Ready` hands out (its `Ready` line, in `acceptReady`, not yet logged)
+  "Hrntr" ∷ rnTrace γ rnv.raft' id cf s)
 
 /-- (D22 S-d3a) `loanCom` with no loan. -/
 theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
@@ -1514,12 +1517,13 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
               clb := s.logst.committed }
   let s' : NState := { s with outbox := s.outbox, logst := s.logst, gh := g }
   ihave Hghost := ownStepGhost_congr γ _ c id (s := s) (s' := s') rfl rfl rfl rfl $$ Hghost
-  iapply ownRawNode_intro γ rn id rs' s' c fp rnv sv hprev [] Hwf Hin Hasync Hdlen
+  iapply ownRawNode_intro_tr γ rn id rs' s' c fp rnv sv hprev [] Hwf Hin Hasync Hdlen
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc [Hdur]
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc [Hdur] [Hrntr]
   · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdur
+  · iapply rnTrace_congr γ _ id c (s := s) (s' := s') rfl rfl rfl rfl rfl $$ Hrntr
 
 -- (2026-10-26, raft's signature, stage 1) `readyIdx` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
@@ -2429,7 +2433,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
     iexists s, c, fp, ds, rnv, sv, hprev
     simp only [named, ↓reduceIte]
     iframe Hrn Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hrdsoft
-      Hrdrs Hce Hce_cap Hents Hsloc Hmsgl Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2
+      Hrdrs Hce Hce_cap Hents Hsloc Hmsgl Hout2 Hstrecs2 Hrdz2 Hdur2 Hrdhard2 Hrdlead2 Hrntr
     isplitl
     · iunfold ownRaftPhysReady
       iexists rsl, sl1, sl2, ms1, ms2
@@ -2531,7 +2535,9 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hgtr" ∷ ⌜s.gh.tr = γ.reTrace⌝ ∗
   -- (2026-11-09, Q8 stage 1 slice 5) no message recorded as just queued (`NGhost.lq`: `send`
   -- pops what it pushes), which the queue-draining closures need (`ownRaftPhysC_view`'s `LqOk`)
-  "%Hglq" ∷ ⌜s.gh.lq = []⌝)
+  "%Hglq" ∷ ⌜s.gh.lq = []⌝ ∗
+  -- (2026-11-11, Q8 stage 1 slice 25n) as `ownRawNode`'s: the trace capability
+  "Hrntr" ∷ rnTrace γ rnv.raft' id cf s)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
@@ -2562,12 +2568,13 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       loanCom γ rs.slent -∗
       snapLocOk γ id s.logst.snap -∗
       durTie γ rs s -∗
+      rnTrace γ rnv.raft' id c s -∗
       ownRawNodeIdle γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hdur
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hdur Hrntr
   unfold ownRawNodeIdle
   iexists s, c, fp, ds, rnv, sv, hprev, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
+  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
   ipureintro
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt, Hrole, Hphs, Hhsi, Hgtr, Hglq⟩
@@ -2576,9 +2583,9 @@ theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : R
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNode γ rn id rs := by
   iintro H
   iNamed H
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
+  iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
+    Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
 
 /-- What the client sees of an idle node: the lower bounds at their least, and the commit
 index at most the committed log handed out (`applying`). (D22 S-d3a) With no loan: no snapshot
@@ -2605,7 +2612,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       · exact absurd Hsn H
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hidle
-    Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur
+    Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
 
 /-- Accepting, after all, a `Ready` computed earlier and abandoned (see the section
 header): an idle node (no `Ready` outstanding: `rs.steps = []`, `rs.unpersisted = []`) is
@@ -2703,7 +2710,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iexists s, cf, fp, ds, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
-    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hrdlead
+    Hce Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hrdlead Hrntr
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2

@@ -885,6 +885,8 @@ theorem newRaft.wp_proof
     isplitr
     · iexact H_id
     isplitr
+    · iexact H_checkQuorum
+    isplitr
     · iexact H_stepDownOnRemoval
     isplitr
     · iexact H_logger
