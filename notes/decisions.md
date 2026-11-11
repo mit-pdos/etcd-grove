@@ -34289,3 +34289,94 @@ No exported or closed statement changes. Go test: `examples/premisefix/isctxerr`
 the old premise admits panicking errors; the errors of done standard contexts (canceled, timed out,
 children) are `Canceled`/`DeadlineExceeded` and `errors.Is` on them is `err == target`; etcd's
 two-case switch is exhaustive on them; a grpc status error is no context error.
+
+## Premise fixes 6, parts A and D: the zap logger family; `fmt.argsOk` depends on the format's verbs (2026-11-11 · the Scope approved by etcd-grove-81, D2a/D2b by the user, `/shared/tmp/premise-fixes-6/scope.md` · branch `premise-fixes-6`)
+
+### A. The zap logger family
+
+The axiom reviews `notes/axiom-review/zap-zero.md` and `logger-family.md` refuted zap's logger
+specs and 27 axioms of the family on the Go side: their only premise on a logger was `⌜l ≠ null⌝`,
+which the zero struct `&zap.Logger{}` meets, and logging through it panics on its nil core.
+
+**The rule** (the Scope's A.0). A logger premise is the strongest of these that Go needs:
+`zapLoggerOk lg` (`Spec/go_uber_org/zap/Defs.lean`: `⌜lg ≠ null⌝ ∗ □ zap.loggerRaw lg`, persistent;
+only the constructors give it) where Go logs through `lg` without a nil check;
+`zapLoggerOrNil lg := ⌜lg = null⌝ ∨ zapLoggerOk lg` (new, `zap/Defs.lean`) where Go checks
+`lg != nil` before every use or replaces nil by `zap.NewNop()`; and `⌜lg ≠ null⌝` stays only where
+Go reaches no zap call but `Panic` (D4). Every predicate that holds a logger and hands it to a zap
+call carries the same fact in place of `≠ null`. New vocabulary: `srvLoggerOk s` (etcdserver),
+`snap.snapLgAddr`.
+
+**Trusted text restated** (no axiom added or removed; the count unchanged): zap's 6 specs,
+`Logger.{Debug,Info,Warn,Error,Fatal,Check}`, take `zapLoggerOk l` (posts unchanged; `Fatal`'s
+`False` and its CM-1 caveat stay); `Logger.Panic` keeps `⌜l ≠ null⌝` (**D4**: on a zero logger it
+panics with a runtime error instead of `msg`, which only a `recover` inspecting the value tells
+apart). Of the 24 open family axioms, 13 changed by text (#1-8, #13, #18, #22, #23, #27) and 11
+through a predicate they hold (#12, #14-17, #19-21, #24-26); the per-axiom map is
+`logger-family.md`, "Repaired". #9-11 were repaired earlier (`dbe4904326`).
+
+**Decisions.**
+- **D1** (etcd-grove-81): `bootOk`/`bootOkR`'s `#Hss`, through `isSnapshotter`, asserts the
+  snapshotter's logger is a zap logger (`snapLgAddr ss ↦□ lg ∗ zapLoggerOk lg`): a stronger assumed
+  contract, true of Go under its `zapLoggerOk cfg.Logger'` pre (precedent: L4's `#Hclg`).
+- **bootOk's `%Hraft` conjunct `bv.lg' = cfg.Logger'`** (approved by etcd-grove-81 under the user's
+  delegation, 2026-11-11; a change to the closed contract): the raft wrapper logs through `bv.lg'`,
+  and `NewServer` needs its `zapLoggerOk`; Go sets it to `cfg.Logger` (`bootstrap.go:546,557`,
+  copied by `newRaftNode`). `bootOkR` is unchanged. Go test: `zaplogger`'s `TestRaftNodeLogger`.
+- **D2a** (the user, via etcd-grove-81): the backend API `newBackend.spec`/`New.spec` take
+  `zapLoggerOrNil cfg.Logger'`. **D2b** (the user): the frozen mvcc API `mvcc.api.New`/`NewStore`
+  take `zapLoggerOrNil lg`; `mvccfull_safe`'s text is unchanged (its `Main` passes `NewNop()`).
+  The `etcdstart` interface (`Serve`: `zapLoggerOk cfg.Logger'`) and those of backend and mvcc are
+  regenerated.
+- **D3** deferred: the `lgMu` reader slots of `s.Logger()` in #22, #23, #25-27 go to a bounds
+  follow-up. **D5** deferred: `NewBackendQuota`'s other gaps (a nil `be`, `Cost(nil)`) stay open
+  (`notes/audit.md`).
+
+**Forms** (decided by the agent, accepted by etcd-grove-81): `isTreeIndex` carries `zapLoggerOk`,
+not `≠ null`, because `treeIndex.Compact` logs `Info`; `keyIndex.*`, `treeIndex.unsafeGet`,
+`createPostRequest`/`createSnapBody`, the alarm and the compactor's schedule, which reach only
+`Panic`, keep `≠ null`; txn's `Range`/`Count`/`Put`/`DeleteRange`, traceutil's `newTrace`/
+`EnsureTrace`, the v3rpc and auth constructors and v3compactor's `New` take `zapLoggerOrNil`; the
+Results restatements (`server_kv_backend*`, `token_simple_new`: `zapLoggerOrNil lg`;
+`auth_store_new_on`/`_boot_on`: `zapLoggerOk lg`; txn's `range_rangeSel`, `txn_runTxn`) follow
+their specs; the zap specs changed first, then each package once, bottom-up; mvccfull's Go doc
+comment corrected and its `Code` re-translated (part C). No `*_safe`/`*_adequate` statement changed;
+the closed programs' loggers come from `zap.NewNop()` (the Mains) or the boot contract.
+
+Go test: `examples/premisefix/zaplogger` (gates step 9): the zero logger panics at each method
+(`Panic` with a runtime error), the constructors' loggers do not, each family function reachable
+from an exported entry point panics at a zero logger and returns with `zap.NewNop()` (and with nil
+on the `zapLoggerOrNil` rows), the zero server's `Logger()` panics (`srvLoggerOk`), every logger
+reachable from the examples' running servers and client is a constructed one, and the raft node's
+logger is `cfg.Logger`.
+
+### D. `fmt.argsOk` depends on the format's verbs
+
+Round 3 of the premise attack (etcd-grove-81, `wf_2800d6e7-41c`) found `fmt.argOk` ignoring the
+verb: `fmt.Printf`/`Errorf` quantified over every format while `fmt` calls `Error()`/`String()` only
+under `v s x X q` (and `w` in `Errorf`); under `%d` it prints by reflection and runs a nested
+field's `Format`, so an error admitted by the `Error()` disjunct could run an effectful `Format`.
+The fix, the Scope's "D text" (approved as written by etcd-grove-81 under the user's delegation,
+2026-11-11), as bbolt's `logArgOk`/`fmtVerbs` (`notes/bbolt-spec-decisions.md`, D20'):
+
+- `fmt.argsOk mv format xs` (`Spec/fmt/Errorf.lean`): the format's directives parse
+  (`fmt.fmtDirectives`, Go's `doPrintf`: flags `+ - # 0` and space, width, precision, verb; `%%`
+  and a trailing `%` consume no argument; `*` or `[n]` give none), and each argument is
+  `fmt.argOkAt` its directive: nil or `ArgWf` under any verb; under a verb that is not a method
+  verb, an integer of a named type without `Format`; `fmt.argOk` only under a method verb other than
+  `%#v`; leftover arguments as under `%v`. `fmt.argOk`'s text is unchanged (docstring).
+- `Errorf`/`ErrorfPlain` take `fmt.errorfVerbs`, `Printf`/`SprintfArgs` `fmt.methodVerbs`.
+  Trusted text restated, no axiom added; every verified call site's format is a literal with
+  `%s %v %d %q %w` only, and every verified argument stays admitted.
+- Proofs: `fmt_args_ok` evaluates the directives (`fmt_args_intro`) and gains the integer disjunct;
+  `fmt_arg_method` for the hand-written callers. raft `Changer.apply`'s interface regenerated
+  (`fmt.argsOk.eq_def` gone).
+
+Go test: `examples/premisefix/fmtarg` (gates step 9): the round-3 counterexample (`%d` runs the
+nested `Format`, `%v` calls `Error()`), `%d` of a named `int32` / `raftpb.ConfChangeType` calls no
+`String`, `%#v` (`GoString`, or reflection), the method verbs, `EXTRA` under `%v`, `%*d` and `%%`,
+and `fmt.fmtDirectives`' examples against the verbs Go formats each argument with.
+
+Follow-up: raft confchange's `"unexpected conf type %d"` of a `ConfChangeType` is now admitted by
+the integer disjunct, so `Changer.apply.wp_proof`'s hypothesis `raftpb.ConfChangeType.String.spec`
+is unused; it stays (dropping it changes raft's approved proof interface), for a later cleanup.

@@ -35,26 +35,34 @@ Full build (lock, 64G cap) clean at the part-B commit; `tcb-report --check` matc
   `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc`.
 - Then A, D, C per the Scope's section F, on the coordinator's brief.
 
-## Parts A, D, C (in progress, 2026-11-11)
+## Parts A, D, C (done, 2026-11-11)
 
-- Done and committed: A's vocabulary, zap specs, family axioms' text, trusted predicates (173a618ddd);
-  client/concurrency (c258bcd99b, f18372b1f7); Go test `examples/premisefix/zaplogger` (c95275b5e0,
-  passes); backend/storage/mvcc/traceutil + mvcc testers (4d9a9dc281; backend, mvcc interfaces
-  regenerated); auth/snap/membership/rafthttp (c7aa26a37d); txn/apply/read/v3rpc/v3compactor
-  (97b391c3a4); etcdserver core (94b1d6a4ce); part C notes and docs (3b6c7d7d12; mvccfull's Go doc
-  comment changed, `Code/.../mvccfull.lean` regenerated).
-- Order chosen (form decision): the zap specs changed first, then each package fixed once,
-  bottom-up. Subagent brief: `/shared/tmp/premise-fixes-6/brief-A.md`; callers left between agents:
-  `/shared/tmp/premise-fixes-6/callers-from-storage.md`.
-- STOPPED (for etcd-grove-81): (1) `bootOk`'s `%Hraft` needs `bv.lg' = cfg.Logger'` (the raft wrapper
-  logs through `bv.lg'`; Go: bootstrap.go:546,557 `lg: cfg.Logger`): ready patch
-  `/shared/tmp/premise-fixes-6/A4/bootok-raft-logger.patch` (not applied; with it the etcdserver Link
-  and Results and every client Link build); without it `NewServer.lean:541,1321` fail.
-  (2) D's text: Scope "D text" (appended), draft `/shared/tmp/premise-fixes-6/d-text-draft.md`.
-- Next after the answers: apply the patch (or the alternative), build the examples and k8s
-  (etcdstart `Serve`'s `zapLoggerOk`, `restart/serveClient`, `ServeFromStart`, `grpcCfgOk` users,
-  `examples/etcd/auth/MainServe.lean`), regenerate the etcdstart interface; then D; then merge lean,
-  full build, tcb --check, collections, interfaces, gen-init --check; STATUS; checkpoint (c).
+- A: vocabulary, zap specs, family axioms (173a618ddd); client/concurrency (c258bcd99b, f18372b1f7);
+  backend/storage/mvcc/traceutil (4d9a9dc281); auth/snap/membership/rafthttp (c7aa26a37d);
+  txn/apply/read/v3rpc/v3compactor (97b391c3a4); etcdserver core (94b1d6a4ce); bootOk's
+  `bv.lg' = cfg.Logger'` (4edc093cc5, approved by etcd-grove-81); examples and ServeFromStart
+  (36015f1ad5); Go test `examples/premisefix/zaplogger` (c95275b5e0, 505a2ee91c).
+- D: verb-aware `fmt.argsOk` (5cdd1a5b9e; `etc/gen-init.py` follows, 50c19406f0); Go test
+  `examples/premisefix/fmtarg`.
+- C: audit refresh, logger-family Repaired, docs (3b6c7d7d12).
+- lean 8809f94d74 merged (3bd81a2afc).
+- Notes: `decisions.md` "Premise fixes 6, parts A and D"; `axiom-review/zap-zero.md` "Repaired";
+  STATUS entry and section.
+
+## Verified (checkpoint (c), 2026-11-11)
+
+Full build (lock, 64G cap) clean, 14015 jobs, 4m01s wall (incremental), peak 4.0 GiB;
+`tcb-report --check` matches the baseline (866 axioms, 5 sorries); all 54 collections `--check` ok;
+`gen-interface --check` and `api-check --check` (backend, bbolt, etcdstart, mvcc, raft) ok;
+`gen-init --check`, `goose.py --check`, `issues-status --check`, `bounds-check --check` ok;
+`go test ./premisefix/...` (9 packages) passes.
+
+## Next
+
+Ready to land after etcd-grove-81's go: merge lean if it moved (rebuild and re-check what the merge
+touches), then land with `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
+PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh`. Follow-ups: D3 (`lgMu` slots, bounds),
+D5 (`NewBackendQuota`), raft `Changer.apply`'s unused `ConfChangeType.String.spec` hypothesis.
 
 ## Build
 
