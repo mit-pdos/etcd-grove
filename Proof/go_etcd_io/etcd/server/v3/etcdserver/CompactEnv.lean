@@ -123,7 +123,7 @@ theorem compactableOk_server_of (hC : EtcdServer.Compact.spec (GF := GF) (hG := 
   isplitr
   · ipureintro; rfl
   imodintro
-  iintro %r %ctx %cd %p %Φ !> ⟨Hpm, HR, Htt, #Hctx, #Hspc, #Htr, Hreq⟩ HΦ
+  iintro %r %ctx %cd %p %Φ !> ⟨Hpm, HR, Htt, #Hctx, #Hspc, #Hlib, #Htr, Hreq⟩ HΦ
   ihave ⟨%Hr, #Hlb⟩ := hP r $$ Hpm
   iunfold srvCompactR at HR
   icases HR with ⟨Hlt, Hlr, Hrd, Hmr⟩
