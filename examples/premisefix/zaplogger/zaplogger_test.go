@@ -673,3 +673,54 @@ func TestExamplesLoggers(t *testing.T) {
 		t.Fatal("client: no logger found")
 	}
 }
+
+// TestRaftNodeLogger backs bootOk's `bv.lg' = cfg.Logger'`
+// (Proof/go_etcd_io/etcd/server/v3/etcdserver/, NewServer's %Hraft: the raft node's logger is the
+// configuration's; Go: server/etcdserver/bootstrap.go, bootstrapRaftFromCluster's and
+// bootstrapRaftFromWAL's `lg: cfg.Logger`, which newRaftNode copies into raftNode.lg): a
+// three-member cluster over cluster3.StartCluster(cfg, lg), with lg a logger of its own (over a
+// buffer, so distinct from any other), and for each member the server's raftNode `lg` field (and
+// its raftNodeConfig's) is the very *zap.Logger passed as the configuration's Logger.
+func TestRaftNodeLogger(t *testing.T) {
+	dir := t.TempDir()
+	wd, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+	p := freePorts(t, 9)
+	cfg := cluster3.Config{Token: "rnlg", Name1: "rnlg-1", Name2: "rnlg-2", Name3: "rnlg-3",
+		Peer1: p[0], Peer2: p[1], Peer3: p[2], Client1: p[3], Client2: p[4], Client3: p[5],
+		Bridge1: p[6], Bridge2: p[7], Bridge3: p[8], SnapCount: etcdstart.NoSnapCount,
+		SnapCatchUp: etcdstart.NoSnapCatchUp}
+	lg := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), &syncBuf{},
+		zapcore.InfoLevel))
+	mustHold(t, "zapLoggerOk(the passed logger)", ZapLoggerOk(lg))
+	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	if !ok {
+		t.Fatal("StartCluster failed")
+	}
+	defer func() {
+		for _, s := range srvs {
+			s.Stop()
+		}
+		for _, b := range brs {
+			b.Close()
+		}
+	}()
+	for i, s := range srvs {
+		if s.Cfg.Logger != lg {
+			t.Fatalf("member %d: s.Cfg.Logger is not the passed logger", i+1)
+		}
+		r := field(reflect.ValueOf(s).Elem(), "r")
+		rlg := field(r, "lg").Interface().(*zap.Logger)
+		clg := field(field(r, "raftNodeConfig"), "lg").Interface().(*zap.Logger)
+		if rlg != s.Cfg.Logger {
+			t.Fatalf("member %d: raftNode.lg %p is not cfg.Logger %p", i+1, rlg, s.Cfg.Logger)
+		}
+		if clg != s.Cfg.Logger {
+			t.Fatalf("member %d: raftNodeConfig.lg %p is not cfg.Logger %p", i+1, clg, s.Cfg.Logger)
+		}
+		t.Logf("member %d: raftNode.lg == raftNodeConfig.lg == cfg.Logger (%p)", i+1, rlg)
+	}
+}
