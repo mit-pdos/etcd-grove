@@ -17,6 +17,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 /-- The model's NaN test on a `float64`'s bits is `float64IsNaN`. -/

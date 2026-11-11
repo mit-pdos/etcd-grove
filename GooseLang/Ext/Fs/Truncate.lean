@@ -116,11 +116,12 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
   obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
   have hni := noInfl_of_noTok hcoh Hnt
   have hnb : ¬ BusyAt st d.ino := by rintro ⟨t', c', ht', hc'⟩; exact hni t' c' ht' hc'
-  have hxs : ∀ k (hk : k < xs.length), xs[k] =
-      (f.cache (min f.size tg + k), f.cand (min f.size tg + k)) := by
+  have hxs : ∀ k (hk : k < xs.length), ∀ q ∈ xs[k].2, q.2 ≤ st.fs.stamp := by
     intro k hk
-    obtain ⟨f1, hf1, -, hx⟩ := hcoh.bytes _ _ _ (Hbl k hk)
-    rw [hf] at hf1; cases hf1; rw [← hmo.size]; exact hx
+    obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes _ _ _ (Hbl k hk)
+    rw [hf] at hf1; cases hf1
+    exact hrel.stamps_le (fun p hp => hwf.stamps _ f _ p hf hp)
+      (fun c hc => hcoh.cut_le d.ino m c Hml (by simpa [cutOf, Hml] using hc))
   have Hh : ∀ l, Mapped st l → (h !! l).isSome := by
     intro l hm
     obtain ⟨x, hx⟩ := cellView_isSome hwf hm
@@ -155,7 +156,8 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
     (fun j hj => by
       simp only [ti, rsAnn, List.getElem_map] at hj ⊢
       have hj' : j < xs.length := by simpa using hj
-      rw [hxs j hj', show c.lo = min f.size tg by simp [c, OsChange.ofResize]]; rfl)
+      refine ⟨xs[j], ?_, rfl⟩
+      rw [show c.lo = min f.size tg by simp [c, OsChange.ofResize], ← hmo.size]; exact Hbl j hj')
   have hI := inflightAt_start (c := c) (f := f) (p := d.ino) ht
   have hdisj : MapsDisj m.maps.toList := mapsDisj_toList _ (fun b1 l1 b2 l2 h1 h2 hne =>
     hwf.maps_disj b1 _ b2 _ ((hmo.maps b1 l1).1 h1) ((hmo.maps b2 l2).1 h2) hne)
@@ -240,8 +242,7 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
   iapply wp_value'
   iapply HΦ $$ %t %n %(fun x hx q hq => by
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hx
-    rw [hxs k hk] at hq
-    exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq)) Hfd
+    exact Nat.lt_succ_of_le (hxs k hk q hq)) Hfd
   unfold rsTok osTok
   iframe Ht; ipureintro; exact hlen
 
@@ -392,6 +393,7 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
       (insertBytes c.ino m.size ys (deleteBytes c.ino (min m.size tg) (m.size - tg) Γb))
       (<[c.ino := rsPost m tg sz']> Γm) Γf (GMap.delete t Γt) := by
     refine osCoh_setFile (osCoh_done hcoh) hf (noTok_done hwf hcoh hct) _ _ _ rfl rfl ?_ ?_ ?_ ?_
+      (Nat.le_refl _) (fun c0 hc0 => hcoh.cut_le _ _ c0 hml (by simpa [rsPost] using hc0))
     · have hlo := hmo.lo
       have hhi := hmo.hi
       simp only [announce_lo, announce_hi] at hlo hhi
@@ -446,10 +448,11 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
         rw [List.getElem?_eq_getElem hj] at hx; cases hx
         rw [hysl] at hj
         refine ⟨by show b < sz'; omega, ?_⟩
-        simp only [hys0, List.getElem_map, Prod.mk.injEq]
-        constructor
+        simp only [hys0, List.getElem_map]
+        refine ⟨?_, ⟨n, by simp⟩, ?_⟩
         · rw [hcache b, if_pos ⟨by rw [hclo]; omega, by rcases hland with ⟨hl1, hl2, hl3⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega⟩]
-        · show _ = f.cand b
+        · apply CandRel.of_eq
+          show f.cand b = _
           rw [hzs b h1 (by omega), List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
           rfl
       · rename_i hr
@@ -457,7 +460,7 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
         split at hx
         · cases hx
         · rename_i hr2
-          obtain ⟨f1, hf1, hb, hx1⟩ := hcoh.bytes _ _ _ hx
+          obtain ⟨f1, hf1, hb, hx1, hmem, hrel⟩ := hcoh.bytes _ _ _ hx
           rw [hf] at hf1; cases hf1
           have hb2 : b < sz' := by
             rw [← hmsz] at hb
@@ -465,8 +468,11 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
             · apply Classical.byContradiction; intro h4
               exact hr2 ⟨rfl, by omega, by omega⟩
             · omega
-          refine ⟨hb2, ?_⟩
-          rw [hx1, hcache b, if_neg (by rw [hclo]; rw [← hmsz] at hb; omega)]; rfl
+          refine ⟨hb2, ?_, hmem, ?_⟩
+          · rw [hx1, hcache b, if_neg (by rw [hclo]; rw [← hmsz] at hb; omega)]
+          · simp only [cutOf, hml, Option.bind_some, OsMeta.announce_cut] at hrel
+            show CandRel (rsPost m tg sz').cut x.2 (f.cand b)
+            simpa [rsPost] using hrel
     · intro b hb
       rw [lookup_insertBytes]
       split

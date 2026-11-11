@@ -26,6 +26,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -57,7 +59,7 @@ theorem pt_split {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
     (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1
   rw [DFrac.op_own, Qp.half_add_half]
 
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 
 /-- Two halves of the mapping fields, as the whole. -/
 theorem mapFields_join2 (db : Loc) (ms : MapSt) :

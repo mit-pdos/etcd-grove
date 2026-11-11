@@ -123,7 +123,7 @@ theorem osBytes_lookup {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm
     (List.getElem?_eq_getElem hk) $$ Hbs with Hb
   icases gAuth_lookup _ _ _ _ _ _ $$ HAb Hb with %Hx
   icases tokRes_byte_free _ hcoh Hx $$ Htok Hb with %Hn
-  obtain ⟨f, hf, hb, hx⟩ := hcoh.bytes p (off + k) _ Hx
+  obtain ⟨f, hf, hb, hx, -⟩ := hcoh.bytes p (off + k) _ Hx
   ipureintro; exact ⟨f, hf, by rw [contents_getElem?_of_lt hb, hx], Hn⟩
 
 theorem coh_meta {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {p : Ino}
@@ -619,7 +619,8 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
     iframe
     isplitr
     · ipureintro
-      refine ⟨hwfS, osCoh_setFile hcoh hf Hnt _ m.synced _ rfl rfl ?_ ?_ ?_ ?_⟩
+      refine ⟨hwfS, osCoh_setFile hcoh hf Hnt _ m.synced _ rfl rfl ?_ ?_ ?_ ?_ (Nat.le_refl _)
+        (fun c hc => hcoh.cut_le d.ino m c Hml hc)⟩
       · refine ⟨by simp [OsMeta.synced, hmo.size, f', synced_size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size], hmo.maps,
@@ -640,11 +641,12 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
           have hk : b - lo2 < ys.length := by simp at h2; omega
           rw [List.getElem?_map, List.getElem?_eq_getElem hk] at hx
           simp only [Option.map_some, Option.some.injEq] at hx; subst hx
-          obtain ⟨f1, hf1, hb, hx1⟩ := hcoh.bytes _ _ _ (Hbl2 (b - lo2) hk)
+          obtain ⟨f1, hf1, hb, hx1, -, -⟩ := hcoh.bytes _ _ _ (Hbl2 (b - lo2) hk)
           rw [hf] at hf1; cases hf1
           rw [show lo2 + (b - lo2) = b by omega] at hb hx1
-          refine ⟨hb, ?_⟩
-          rw [hx1, synced_cand f _ b (hnoI b), synced_cache_lt f _ b hb]
+          refine ⟨hb, by rw [synced_cache_lt f _ b hb]; exact hx1, ⟨0, by simp⟩, ?_⟩
+          rw [synced_cand f _ b (hnoI b), synced_cache_lt f _ b hb, ← hx1]
+          exact CandRel.dur _ _
         · rw [lookup_insertBytes] at hx
           split at hx
           · rename_i hr
@@ -652,16 +654,18 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
             have hk : b - lo < xs.length := by simp at h2; omega
             rw [List.getElem?_map, List.getElem?_eq_getElem hk] at hx
             simp only [Option.map_some, Option.some.injEq] at hx; subst hx
-            obtain ⟨f1, hf1, hb, hx1⟩ := hcoh.bytes _ _ _ (Hbl (b - lo) hk)
+            obtain ⟨f1, hf1, hb, hx1, -, -⟩ := hcoh.bytes _ _ _ (Hbl (b - lo) hk)
             rw [hf] at hf1; cases hf1
             rw [show lo + (b - lo) = b by omega] at hb hx1
-            refine ⟨hb, ?_⟩
-            rw [hx1, synced_cand f _ b (hnoI b), synced_cache_lt f _ b hb]
-          · obtain ⟨f1, hf1, hb, hx1⟩ := hcoh.bytes _ _ _ hx
+            refine ⟨hb, by rw [synced_cache_lt f _ b hb]; exact hx1, ⟨0, by simp⟩, ?_⟩
+            rw [synced_cand f _ b (hnoI b), synced_cache_lt f _ b hb, ← hx1]
+            exact CandRel.dur _ _
+          · obtain ⟨f1, hf1, hb, hx1, hmem, hrel⟩ := hcoh.bytes _ _ _ hx
             rw [hf] at hf1; cases hf1
-            refine ⟨hb, ?_⟩
-            rw [hx1, synced_cand f _ b (hnoI b), synced_cache_lt f _ b hb]
-            congr 1
+            simp only [cutOf, Hml, Option.bind_some] at hrel
+            refine ⟨hb, by rw [synced_cache_lt f _ b hb]; exact hx1, hmem, ?_⟩
+            rw [synced_cand f _ b (hnoI b), synced_cache_lt f _ b hb, ← hx1]
+            show CandRel m.cut x.2 [(x.1, 0)]
             rename_i hn2 hn
             by_cases hdd : m.dlo ≤ b ∧ b < m.dhi
             · rcases hcov b (by rw [hmo.size]; exact hb) hdd.1 hdd.2 with ⟨hc1, hc2⟩ | ⟨hc1, hc2⟩ |
@@ -672,8 +676,10 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
                 rw [show r.1 + (b - r.1) = b by omega, hx] at hy
                 have hd := hdur r hr _ (List.getElem_mem (show b - r.1 < r.2.2.length by omega))
                 rw [← Option.some.inj hy] at hd
-                rw [hx1] at hd; exact (Prod.mk.inj hd).2
-            · exact hmo.dur b hb hdd
+                have h2 : x.2 = [(x.1, 0)] := congrArg Prod.snd hd
+                rw [h2]; exact CandRel.dur _ _
+            · have hd := hmo.dur b hb hdd
+              rw [hx1, ← hd]; exact hrel
       · intro b hb
         rw [lookup_insertBytes]; split
         · rename_i hr; rw [List.getElem?_eq_getElem (by simp at hr ⊢; omega)]; rfl
@@ -746,6 +752,134 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (x
   · iapply BigSepL.bigSepL_nil.2; iempintro
   iintro %e Hr Hfd -
   iapply HΦ $$ Hr Hfd
+
+/-- The `OsMeta` after a successful sync without the bytes, at change number `c`: the byte
+resources' candidates now relate to the state's through the cut `c` (`CandRel`), the candidates
+known past the size are forgotten, and zeros are known from the end of the size's last page on. -/
+def OsMeta.bsynced (m : OsMeta) (c : Nat) : OsMeta :=
+  { m with cut := some c, zf := some (pageUp m.size), tc := ∅ }
+
+/-- The resource's candidates' stamps are at most `S` if the state's are and the cut is. -/
+theorem CandRel.stamps_le {o : Option Nat} {cs sc : Cands} (h : CandRel o cs sc) {S : Nat}
+    (hs : ∀ p ∈ sc, p.2 ≤ S) (ho : ∀ c, o = some c → c ≤ S) : ∀ p ∈ cs, p.2 ≤ S := by
+  intro p hp
+  cases o with
+  | none => simp only [CandRel] at h; subst h; exact hs p hp
+  | some c =>
+    obtain ⟨h1, -⟩ := h
+    by_cases hc : c < p.2
+    · have : p ∈ sc.filter (fun p => decide (c < p.2)) := by
+        rw [h1]; exact List.mem_filter.2 ⟨hp, by simp [hc]⟩
+      exact hs p (List.mem_filter.1 this).1
+    · exact Nat.le_trans (Nat.le_of_not_lt hc) (ho c rfl)
+
+/-- **`fsync(fd)` (and `fdatasync`) without the bytes**, with the whole of the file's `OsMeta` (so
+that no change is in flight on it). On success the size is durable and the `OsMeta` is `m.bsynced
+c` for some change number `c`: the size and the mappings are as before, and the byte resources,
+wherever they are, stay as they are (their candidates relate to the state's through the cut). On
+failure, which is never `EINTR`, nothing changes. For a client whose in-process proof never looks
+at crash candidates (bbolt), and whose not-yet-durable bytes it does not hold together. -/
+theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
+      (∀ e : w64,
+        ((⌜e = 0⌝ ∗ ∃ c, osMeta (L := L) d.ino (DFrac.own 1) (m.bsynced c)) ∨
+         (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta (L := L) d.ino (DFrac.own 1) m)) -∗
+        osFd (L := L) fd dq d -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hm HΦ
+  iapply wp_os_step "Fsync" _ Φ (by simp) hE (by simp [DataOp]) $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osFd osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  obtain ⟨f, hf, hmo⟩ := coh_meta hcoh Hml
+  have hni := noInfl_of_noTok hcoh Hnt
+  have hnoI : ∀ b, ¬ InflightAt st d.ino b := by
+    rintro b ⟨t, c, ht, hcp, -⟩; exact hni t c ht hcp
+  let f' := f.synced (InflightAt st d.ino ·)
+  have hszf := hwf.sizes d.ino f hf
+  have hwfS : OsWf (st.setFile d.ino f') :=
+    osWf_setFile' hwf hf (by simp [f', OsFile.synced]) (fun b p hp => by
+      simp only [f', OsFile.synced, if_neg (hnoI b), List.mem_singleton] at hp; subst hp; simp)
+  have hcvS : cellView (st.setFile d.ino f') = cellView st :=
+    cellView_congr hwf hwfS rfl (fun q => by
+      rw [file_setFile]; split
+      · subst_vars; rw [hf]; simp [f', synced_contents]
+      · rfl) rfl
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, _, ⟨fd, d, f, rfl, hfd, hf, .inl ⟨rfl, rfl⟩⟩, mapsFresh_same rfl,
+      heapRendered_same hwfS rfl hcvS Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsFsStep] at Hst
+  obtain ⟨fd', d', f'', hv, hfd', hf', hres⟩ := Hst
+  cases go.intoVal_inj hv
+  simp only [FdOpen, hfd, Option.some.injEq] at hfd'; subst hfd'
+  rw [hf] at hf'; cases hf'
+  rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, hEINTR, rfl, rfl⟩
+  · -- success
+    imod gAuth_update _ _ _ _ _ (m.bsynced st.fs.stamp) $$ HAm Hm with ⟨HAm, Hm⟩
+    imod cells_same hwf hwfS Hr Hfr rfl hcvS $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists Γb, _, Γf, Γt
+    iframe
+    isplitr
+    · ipureintro
+      refine ⟨hwfS, osCoh_setFile hcoh hf Hnt Γb (m.bsynced st.fs.stamp) _ rfl rfl ?_ ?_ ?_
+        (fun _ _ _ => rfl) (Nat.le_refl _) (fun c hc => ?_)⟩
+      · refine ⟨by simp [OsMeta.bsynced, hmo.size, f', synced_size],
+          by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.lo; omega,
+          by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.hi; omega, hmo.maps,
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_⟩
+        · intro b _ _; exact synced_cand f _ b (hnoI b)
+        · intro z hz
+          simp only [OsMeta.bsynced, Option.some.injEq] at hz; subst hz
+          refine ⟨by rw [hmo.size]; exact le_pageUp _, fun b hb => ?_⟩
+          rw [synced_cand f _ b (hnoI b)]
+          simp only [f', OsFile.synced, if_neg (hnoI b)]
+          rw [diskByte_past (by rw [← hmo.size]; exact hb)]
+        · intro b c _ hc; simp [OsMeta.bsynced] at hc
+      · intro b x hx
+        obtain ⟨f1, hf1, hb, hx1, hmem, hrel⟩ := hcoh.bytes _ _ _ hx
+        rw [hf] at hf1; cases hf1
+        simp only [cutOf, Hml, Option.bind_some] at hrel
+        refine ⟨hb, by rw [synced_cache_lt f _ b hb]; exact hx1, hmem, ?_⟩
+        rw [synced_cand f _ b (hnoI b), synced_cache_lt f _ b hb, ← hx1]
+        have hst := hrel.stamps_le (fun p hp => hwf.stamps _ f b p hf hp)
+          (fun c hc => hcoh.cut_le d.ino m c Hml hc)
+        obtain ⟨s0, hs0⟩ := hmem
+        refine ⟨?_, fun p hp => ?_⟩
+        · have h1 : x.2.filter (fun p => decide (st.fs.stamp < p.2)) = [] :=
+            List.filter_eq_nil_iff.2 (fun p hp => by have := hst p hp; simp; omega)
+          rw [h1]; simp
+        · simp at hp; subst hp; exact ⟨s0, hs0⟩
+      · intro b hb; exact hcoh.bytes_full _ f b hf hb
+      · simp only [OsMeta.bsynced, Option.some.injEq] at hc; subst hc; exact Nat.le_refl _
+    iapply wp_value'
+    iapply HΦ $$ [Hm] Hfd
+    ileft; iframe; ipureintro; rfl
+  · -- failure: nothing changes
+    imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists Γb, Γm, Γf, Γt
+    iframe
+    isplitr
+    · ipureintro; exact ⟨hwf, hcoh⟩
+    iapply wp_value'
+    iapply HΦ $$ [Hm] Hfd
+    iright; iframe; ipureintro; exact ⟨he, hEINTR⟩
 
 /-- `mmap(nil, len, PROT_READ, MAP_SHARED[|MAP_POPULATE], fd, 0)`, with the whole of the file's
 `OsMeta`, so that no change is in flight on it: on success, fresh cells at `base`, whose client
@@ -1187,10 +1321,9 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (
   have hmt : MapsTo σ (base +ₗ (i : Int)) p i := ⟨base, ⟨p, len⟩, (hmo.maps base len).1 hb, rfl, hi, rfl⟩
   have hcv := cellView_mapsTo hwf hmt
   rw [cellByte_noinfl hf Hn] at hcv
-  obtain ⟨f1, hf1, hbx, hx⟩ := hcoh.bytes p i x Hbl
+  obtain ⟨f1, hf1, hbx, hx, -⟩ := hcoh.bytes p i x Hbl
   rw [hf] at hf1; cases hf1
-  rw [contents_getElem?_of_lt hbx] at hcv
-  subst hx
+  rw [contents_getElem?_of_lt hbx, ← hx] at hcv
   unfold cellsRes
   icases BigSepM.bigSepM_lookup_acc (Φ := fun l (x : Option w8 × Bool) =>
     heapPointsto l (cellFrac x.2) (toCellVal x.1)) hcv $$ Hcells with ⟨Hl, Hcl⟩

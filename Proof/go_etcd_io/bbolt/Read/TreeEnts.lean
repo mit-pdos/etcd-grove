@@ -21,6 +21,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 namespace TreeEnts
 
 open Ents

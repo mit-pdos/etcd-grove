@@ -20,6 +20,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 /-- `Rollback(txid)` as the code does it: nothing without a pending entry for `txid`. -/
 def FLPg.rollbackGo (fl : FLPg) (txid : w64) : FLPg :=
   if fl.pending !! txid = none then fl else fl.rollbackEntry txid

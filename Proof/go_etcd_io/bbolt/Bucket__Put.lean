@@ -17,6 +17,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -27,10 +29,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Bucket.Put.wp_proof (hclone : cloneBytes.spec (GF := GF) (hG := hG))
-    (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
-    (hseek : ∀ [HasExt osFsExt], Cursor.seek_w.spec (GF := GF) (hG := hG))
-    (hnode : ∀ [HasExt osFsExt], Cursor.node.spec (GF := GF) (hG := hG))
-    (hput : ∀ [HasExt osFsExt], node.put.spec (GF := GF) (hG := hG))
+    (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
+    (hseek : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_w.spec (GF := GF) (hG := hG))
+    (hnode : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.node.spec (GF := GF) (hG := hG))
+    (hput : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], node.put.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Put.spec (GF := GF) (hG := hG) := by
   intro _ tx γ T b n m key value kb vb dk

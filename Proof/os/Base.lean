@@ -138,7 +138,7 @@ end def_
 
 theorem osMeta_eq {a b : OsMeta} (h1 : a.size = b.size) (h2 : a.lo = b.lo) (h3 : a.hi = b.hi)
     (h4 : a.maps = b.maps) (h5 : a.dlo = b.dlo) (h6 : a.dhi = b.dhi) (h7 : a.zf = b.zf)
-    (h8 : a.tc = b.tc) : a = b := by
+    (h8 : a.tc = b.tc) (h9 : a.cut = b.cut) : a = b := by
   cases a; cases b; simp_all
 
 theorem rsPost_tc (m : OsMeta) (tg sz' b : Nat) :
@@ -181,6 +181,7 @@ theorem announce_idem (m : OsMeta) (lo hi tg : Nat) :
   · apply GMap.ext; intro b
     simp only [announce_tc]
     split <;> rfl
+  · simp [rsPost]
 
 /-- A resize to the size a file has, after one that landed, changes nothing. -/
 theorem rsPost_rsPost (m : OsMeta) (tg : Nat) : rsPost (rsPost m tg tg) tg tg = rsPost m tg tg := by
@@ -196,6 +197,7 @@ theorem rsPost_rsPost (m : OsMeta) (tg : Nat) : rsPost (rsPost m tg tg) tg tg = 
     rw [rsPost_tc, rsPost_size']
     simp only [Nat.min_self, Nat.max_self]
     rw [if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
+  · simp [rsPost]
 
 theorem announce_rsPost (m : OsMeta) (tg : Nat) :
     (rsPost m tg tg).announce (min (rsPost m tg tg).size tg) (max (rsPost m tg tg).size tg) tg =
@@ -212,6 +214,7 @@ theorem announce_rsPost (m : OsMeta) (tg : Nat) :
     rw [announce_tc]
     simp only [rsPost_size', Nat.min_self, Nat.max_self]
     rw [if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
+  · simp [rsPost]
 
 theorem rsPost_announce (m : OsMeta) (tg sz' : Nat) :
     rsPost (m.announce (min m.size tg) (max m.size tg) tg) tg sz' = rsPost m tg sz' := by

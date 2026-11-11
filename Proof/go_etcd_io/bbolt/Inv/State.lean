@@ -12,7 +12,7 @@ public import GeneratedProof.go_etcd_io.bbolt
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Ghost.GhostVar
 public import Iris.BI.Lib.Atomic
-public import GooseLang.Ext.OsFs.Specs
+public import GooseLang.Ext.Fs.Specs
 
 @[expose] public section
 
@@ -22,12 +22,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode
 
 section state
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 

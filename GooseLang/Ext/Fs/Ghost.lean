@@ -68,6 +68,51 @@ structure OsMeta where
   the size included, which a crash may have left in the size's last page). A change forgets the
   bytes it announces; a successful sync forgets all of them (`zf` keeps its zeros). -/
   tc : GMap Nat Cands := ∅
+  /-- How the file's byte resources' candidates relate to the state's (`CandRel`): `none`, the
+  same; `some c`, after a sync without the bytes (`wp_osFsyncB`) at change number `c`: the state's
+  are one candidate stamped 0, then the resource's stamped after `c`. -/
+  cut : Option Nat := none
+
+/-- How the candidates `cs` of a byte resource relate to the state's `sc`, as `cut` says: the same
+(`none`); or (`some c`, after a sync without the bytes at change number `c`) the same candidates
+stamped after `c`, and every value of the state's among the resource's. -/
+def CandRel : Option Nat → Cands → Cands → Prop
+  | none, cs, sc => sc = cs
+  | some c, cs, sc => sc.filter (fun p => decide (c < p.2)) = cs.filter (fun p => decide (c < p.2)) ∧
+      ∀ p ∈ sc, ∃ s, (p.1, s) ∈ cs
+
+/-- Equal candidates relate under any cut. -/
+theorem CandRel.of_eq (o : Option Nat) {cs sc : Cands} (h : sc = cs) : CandRel o cs sc := by
+  subst h
+  cases o with
+  | none => rfl
+  | some c => exact ⟨rfl, fun p hp => ⟨p.2, hp⟩⟩
+
+/-- A change numbered after the cut appends its candidate to both. -/
+theorem CandRel.append {o : Option Nat} {cs sc : Cands} (h : CandRel o cs sc) (v : w8) (n : Nat)
+    (hn : ∀ c, o = some c → c < n) : CandRel o (cs ++ [(v, n)]) (sc ++ [(v, n)]) := by
+  cases o with
+  | none => simp only [CandRel] at h ⊢; rw [h]
+  | some c =>
+    obtain ⟨h1, h2⟩ := h
+    refine ⟨?_, fun p hp => ?_⟩
+    · rw [List.filter_append, List.filter_append, h1]
+    · rcases List.mem_append.1 hp with hp | hp
+      · obtain ⟨s, hs⟩ := h2 p hp; exact ⟨s, List.mem_append_left _ hs⟩
+      · simp at hp; subst hp; exact ⟨n, by simp⟩
+
+/-- A durable byte relates to itself under any cut. -/
+theorem CandRel.dur (o : Option Nat) (x : w8) : CandRel o [(x, 0)] [(x, 0)] := CandRel.of_eq o rfl
+
+/-- The state's candidates' values are among the resource's. -/
+theorem CandRel.mem {o : Option Nat} {cs sc : Cands} (h : CandRel o cs sc) {p : w8 × Nat}
+    (hp : p ∈ sc) : ∃ s, (p.1, s) ∈ cs := by
+  cases o with
+  | none => simp only [CandRel] at h; subst h; exact ⟨p.2, hp⟩
+  | some c => exact h.2 p hp
+
+/-- The cut of the file `i` in the files' ghost map `Γm`. -/
+def cutOf (Γm : GMap Ino OsMeta) (i : Ino) : Option Nat := (Γm !! i).bind OsMeta.cut
 
 /-- `[dlo, dhi)` with `[lo, hi)` added: the smallest interval that holds both (an empty interval,
 `dhi ≤ dlo`, holds nothing). -/
@@ -120,6 +165,15 @@ def OsMeta.announce (m : OsMeta) (lo hi tg : Nat) : OsMeta :=
     lo := min m.lo tg, hi := max m.hi tg,
     tc := m.tc.filter (fun b _ => !inRange lo hi b) }
 
+@[simp] theorem OsMeta.touch_cut (m : OsMeta) (lo hi : Nat) : (m.touch lo hi).cut = m.cut := by
+  unfold OsMeta.touch; split
+  · rfl
+  · split <;> rfl
+
+@[simp] theorem OsMeta.announce_cut (m : OsMeta) (lo hi tg : Nat) :
+    (m.announce lo hi tg).cut = m.cut := by
+  simp [OsMeta.announce]
+
 /-- The `OsMeta` a change holds. -/
 def TokInfo.meta (ti : TokInfo) : OsMeta := ti.m0.announce ti.lo ti.hi ti.target
 
@@ -130,11 +184,11 @@ def TokInfo.Is (ti : TokInfo) (c : OsChange) : Prop :=
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc, m.cut))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8 h9; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -240,8 +294,11 @@ structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
     (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo) : Prop where
   meta_dom : ∀ i, Γm !! i = none ↔ st.fs.files !! i = none
   meta_some : ∀ i m, Γm !! i = some m → ∃ f, st.fs.files !! i = some f ∧ MetaOk st i m f
+  /-- A byte resource holds the page-cache value, one of its candidates' values, and candidates
+  the state's relate to (`CandRel`, by the file's cut). -/
   bytes : ∀ i b x, Γb !! (i, b) = some x →
-    ∃ f, st.file i = some f ∧ b < f.size ∧ x = (f.cache b, f.cand b)
+    ∃ f, st.file i = some f ∧ b < f.size ∧ x.1 = f.cache b ∧ (∃ s, (x.1, s) ∈ x.2) ∧
+      CandRel (cutOf Γm i) x.2 (f.cand b)
   bytes_full : ∀ i f b, st.file i = some f → b < f.size → (Γb !! (i, b)).isSome
   fds : Γf = st.proc.fds
   toks : ∀ t, (Γt !! t).isSome = (st.proc.inflight !! t).isSome
@@ -257,6 +314,8 @@ structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
     ∀ b, inRange ti.lo ti.hi b = true → ∃ c0, f.cand b = c0 ++ [(ti.val b, ti.n)] ∧
       (∀ z, ti.m0.zf = some z → z ≤ b → c0 = [(0, 0)]) ∧
       ∀ c, ti.m0.size ≤ b → ti.m0.tc !! b = some c → c0 = c
+  /-- A cut is at most the last change's number. -/
+  cut_le : ∀ i m c, Γm !! i = some m → m.cut = some c → c ≤ st.fs.stamp
 
 end derived
 
@@ -788,7 +847,7 @@ theorem tailMap_cand (f : OsFile) (b : Nat) (c : Cands) (h : tailMap f !! b = so
 /-- The ghost `OsMeta` of a file as on disk: all of it durable, zeros past its last page (durable
 zeros), and the candidates of the bytes past its size in its last page (`tailMap`). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageUp f.size), tailMap f⟩
+  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageUp f.size), tailMap f, none⟩
 
 /-- The bytes of the files of `st`, each as the state has it. -/
 def bytesMapF (F : GMap Ino OsFile) : GMap (Ino × Nat) ByteG :=
@@ -922,7 +981,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
   obtain ⟨hproc, -, -, -, -, -, hdisk, -, -⟩ := h
   have hdisk' : ∀ i f, st.file i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
     fun i f hf => (hdisk i f hf).2
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · intro fd d h; simp [hproc, ProcState.empty] at h
   · intro b m h; simp [hproc, ProcState.empty] at h
   · intro b1 m1 _ _ h; simp [hproc, ProcState.empty] at h
@@ -951,7 +1010,10 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     | some f =>
       simp only [hf, Option.bind_some] at hx
       split at hx
-      · cases hx; exact ⟨f, hf, by assumption, rfl⟩
+      · cases hx
+        obtain ⟨img, sz, rfl⟩ := hdisk' i f hf
+        refine ⟨_, hf, by assumption, rfl, ⟨0, by simp [OsFile.ofDisk]⟩, ?_⟩
+        simp [cutOf, metaMap, GMap.lookup_fmap, hf, initMeta, CandRel]
       · cases hx
   · intro i f b hf hb
     simp only [bytesMap, bytesMapF_lookup]
@@ -962,6 +1024,11 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
   · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h
+  · intro i m c hm hc
+    simp only [metaMap, GMap.lookup_fmap] at hm
+    cases hfo : st.fs.files !! i with
+    | none => simp [hfo] at hm
+    | some f => simp [hfo] at hm; subst hm; simp [initMeta] at hc
 
 /-- An initial tree is well formed, and coherent with the history of nothing logged on it, and no
 fd. -/
