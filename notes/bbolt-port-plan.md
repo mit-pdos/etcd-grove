@@ -1,7 +1,9 @@
 # Plan: real bbolt onto the per-byte Linux file extension
 
-**Date:** 2026-11-12. **Status:** plan, for review before any proof is written. **Scope:** the real bbolt
-proof of `origin/lean` (`Proof/go_etcd_io/bbolt`, `Spec/go_etcd_io/bbolt`; 812 files), today over the v1
+**Date:** 2026-11-12. **Status:** plan, revised after its review
+(`notes/axiom-review/bbolt-port-plan-review/README.md` on `fs-bytes`); no proof written yet. **Scope:**
+the real bbolt proof of `origin/lean` (`Proof/go_etcd_io/bbolt`, `Spec/go_etcd_io/bbolt`; 1044 `.lean`
+files), today over the v1
 extension (`GooseLang/Ext/OsFs`: files by path, `(value, clean)` bytes, unsynced bytes arbitrary at a
 crash), moved onto branch `fs-bytes`'s extension (`GooseLang/Ext/Fs`: files by inode under a directory
 tree, per-byte page cache + stamped crash candidates, at most one change in flight per file). The user's
@@ -17,32 +19,43 @@ scratch directory, then `grep` (the lists below are reproducible from those patt
   no `CrashImage` reasoning (`Proof.os.CrashFile` is imported only for `osBytes_halves`). So **P1 is not
   needed** and crash candidates never matter to it: every byte it owns is read through its value
   (`xs.map Prod.fst`). The port is a change of *resource shape and file naming*, not of crash reasoning.
-- **395 of the 451 OS-touching files are mechanical**: only the section variable `[hos : HasExt osFsExt]`
-  (500 occurrences), a few `osN`/`osInv`.
-- **4 files** use os specs by name only (linking, initialization, options).
-- **52 files (19,008 lines)** hold or pass file resources (`osMeta`, `osBytes`, `osSlot`, `osFd`, `OsMeta`
-  fields): the real work, concentrated in `Inv/Store.lean` (2,804 lines), `Open.lean`, `Open/*`, `Mmap/*`,
-  `Commit/Write*`, `Tx__write*`, `Tx__writeMeta`, `DB__init`, `fdatasync`.
+- **463 of the 1044 files touch the OS layer.** 363 carry only the section variable `[hos : HasExt
+  osFsExt]` and are handled by a script; 38 more need manual edits of file names (`K.p`, `(p : GoString)`
+  binders, `Inv/Ctx`'s `BC.p`); 62 files (20.5k lines) hold or pass file resources (`osMeta`, `osBytes`,
+  `osSlot`, `osFd`, `OsMeta`, `pwBytes`, `pwSize`): the real work, concentrated in `Inv/Store.lean` (2,804
+  lines), `Open.lean`, `Open/*`, `Mmap/*`, `Commit/*`, `Tx__write*`, `Tx__writeMeta`, `DB__init`,
+  `fdatasync` (§1).
 - **Three things are not mechanical and need a decision first** (§2.4, §6):
   1. *D22*: `Tx.writeMeta`'s commit point needs a one-page meta write to land all or nothing in-process;
-     the new semantics lets a failed `pwrite` land any prefix. Proposed fix: a uniform, true-on-C rule for
-     a `pwrite`'s returned count (*errno lands nothing; a short count is a page cut*), a trusted change.
+     the new semantics lets a `pwrite` land any prefix. Fix: a trusted `PWriteFinish` rule, *whatever the
+     errno, the landed prefix is empty, the whole write, or ends on a 4096-byte file-page boundary*,
+     measured on C (§2.4).
   2. *File naming*: v1's `osMeta path none` ("no file here") has no counterpart; `Open` must take the
-     directory tree (`osTree`) to look up or create `path`. An API change.
+     directory tree (`osTree`) to look up or create `path`. An API change of `Open.spec` only.
   3. *Durability-free syncs*: bbolt's `fdatasync` spec holds no file bytes; the new `Fdatasync` needs the
-     bytes covering every not-yet-durable byte (`Covers`). Proposed fix: a byte-less `fsync` spec in the
-     program logic (no trusted change).
+     bytes covering every not-yet-durable byte (`Covers`). The byte-less `fsync` spec this forces is a
+     program-logic change, no trusted change (§2.3).
 
 ## 1. Inventory
 
-### (a) Mechanical: 395 files
+Counts as the review re-derived them (`notes/axiom-review/bbolt-port-plan-review/inventory.py`,
+`mechanical.py`): 1044 `.lean` files, 463 touching the OS layer.
 
-Only `variable [hos : HasExt osFsExt]` (and `osN`, `osInv`, `osSlot` 2×) — the readers (`Read/*`), the
-writer's tree code (`Write/*`, `Spill/*`, `Rebalance/*`, `Bucket__*`, `Cursor__*`, `node__*`), the
-freelist, transactions (`Txn/*` but the four below), stats, `Inv/{Bolt,Ctx,State,Tx,Txs,…}` except §(c).
-Edit: `[hos : HasExt osFsExt]` → `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` (the section variables
-of fs-bytes' clients, e.g. `Spec/github_com/.../bboltfs/testMinibolt.lean`), `open Fs`, imports
-`GooseLang.Ext.OsFs.*` → `GooseLang.Ext.Fs.*`. A `sed` script (§5) does all 395; nothing to review.
+### (a) Section variable only: 363 files, by script
+
+Only `variable [hos : HasExt osFsExt]` (and `osN`, `osInv`) — most of the readers (`Read/*`), the writer's
+tree code (`Write/*`, `Spill/*`, `Rebalance/*`, `Bucket__*`, `Cursor__*`, `node__*`), the freelist,
+stats. Edit: `[hos : HasExt osFsExt]` → `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` (the section
+variables of fs-bytes' clients, e.g. `Spec/github_com/.../bboltfs/testMinibolt.lean`), `open Fs`, imports
+`GooseLang.Ext.OsFs.*` → `GooseLang.Ext.Fs.*`. A `sed` script (§5).
+
+### (a') File names, by hand: 38 files
+
+The file is named by `K.p`/`BC.p : GoString` (the context `BC`, defined in `Inv/Ctx.lean`) or by a binder
+`(p : GoString)` threaded to resources; with files by inode these become `K.i`/`BC.i : Ino` and `(i : Ino)`.
+`Inv/Ctx.lean` (the definition of `BC.p`); 21 files using `K.p` (`DB__beginRWTx` 16×, `Commit/Step` 11×,
+…); 16 files with `(p : GoString)` file binders (`Inv/Bolt` 7×, `Inv/Tx`, `Inv/Txs`, `Commit/TailSlots`,
+`Write/Retarget`, …). The script does none of these; the review's `mechanical.py` lists them.
 
 ### (b) os specs by name only: 4 files
 
@@ -50,7 +63,12 @@ of fs-bytes' clients, e.g. `Spec/github_com/.../bboltfs/testMinibolt.lean`), `op
 `internal/common/Verify.lean` (package initializers), `Spec/go_etcd_io/bbolt/Options.lean`. Regenerated or
 mechanical once §2's specs exist (`etc/gen-link.py --bbolt`, `etc/gen-init.py`).
 
-### (c) File resources: 52 files
+### (c) File resources: 62 files (20.5k lines)
+
+The 52 below plus 10 the first inventory missed: `Commit/PubOk`, `Commit/PwMeta` (`pwBytes`/`pwSize`, the
+D22 lemma), `Commit/TailFPure`, `Commit/TailFWrap`, `Commit/TailPartErr`, `Commit/TailPub`,
+`Commit/WriteDefs` (`osSlot`), `Mmap/GrowPure`, `Open/CoreFacts`, `Open/Facts`. Also `DB__grow.lean:282`
+builds a v1 `OsMeta` literal positionally, with fields that are gone (`named`, `ok`, `dur`, `durHi`).
 
 | group | files | relies on |
 |---|---|---|
@@ -100,15 +118,31 @@ bbolt's `fdatasync` (`Spec/go_etcd_io/bbolt/fdatasync.lean`) holds only `osMeta`
 needs `m.Covers lo xs.length`: the bytes of every byte that may not be durable, so that the ghost can
 collapse their candidates. Options:
 
-- **(recommended) a byte-less spec in the program logic:** `wp_osFsyncAny`: `{osMeta i 1 m} fsync {osMeta i
-  1 m'}`, with `m'` = `m` but the size bounds (`lo`, `hi`) and the durable range unchanged (no knowledge
-  gained). It needs the state interpretation to let a byte resource's candidates be a *superset* of the
-  state's (a sync shrinks the state's lists; resources keep the old ones). That is sound for every crash
-  lemma (each says "a crash leaves one of the resource's candidates"), and changes no trusted file. Check
-  that nothing needs candidates to be *exact* (minibolt's P1 proof uses `valAt` of the resource's candidates;
-  a superset only weakens what it gets).
-- carry the bytes: every caller passes the writer's `W` slots and meta slots. Possible (the writer owns
-  them) but touches `Commit`, `grow`, `init`, `writeMeta` for no in-process benefit.
+**Carrying the bytes is not possible**, so the byte-less spec is forced. `Covers` is over the interval
+`[dlo, dhi)`, which spans committed pages that the store (not the writer) holds, lying between the
+transaction's dirty pages. Under `NoSync` no sync runs at all, so the interval grows across transactions.
+`DB.grow` calls `File.Sync` too, so both `Fdatasync` and `File.Sync` need it.
+
+**The byte-less spec** (program logic, no trusted change): `{osMeta i 1 m} fsync {osMeta i 1 m'}`. It
+needs the state interpretation to relate a resource to the state by a *superset* relation, field by field:
+
+| field | resource vs state |
+|---|---|
+| a byte's candidates (`osByte i b dq (x, cs)`) | the resource's `cs` contains the state's candidates of `b` (the page-cache value `x` equal) |
+| `[dlo, dhi)` (bytes below the size that may not be durable) | the resource's interval contains the state's |
+| `[lo, hi)` (crash-size bounds) | the resource's range contains the state's |
+| `tc` (candidates known past the size), `zf` (zeros from an offset) | the candidate lists they give for a byte contain the state's |
+
+A sync shrinks the state's lists, so an old resource stays related. The `tc`/`zf` row is the delicate one.
+`OsFile.synced` resets every byte's candidates, past the size included (`diskByte`: the page-cache value in
+the last page, 0 beyond), and `OsMeta.synced` sets `tc := ∅` and `zf := some (pageUp size)`. Later grows
+and extensions build new bytes' candidates from the resource's `m` (`ofResize`, `ofWrite`'s gap), so an old
+`tc` must still predict a superset. The byte-less spec therefore returns `m' := { m with tc := ∅ }`, every
+other field as in `m`, unless the proof shows that the old `tc` stays sound.
+
+Every crash lemma says "a crash leaves one of the resource's candidates", which stays true of a superset.
+Before step 3's other work, prove the `tc`/`zf` part, and check that minibolt's crash proof (P1 uses `valAt`
+of the resource's candidates) and walfs's and crashlog's crash proofs survive the relaxation.
 
 ### 2.4 D22: the meta write's commit point
 
@@ -120,32 +154,69 @@ both metas from the mapping (`db.meta()`), so a torn page-cache meta would have 
 in-process P1-like premise. The new `PWriteFinish` (`GooseLang/Ext/Fs/Impl.lean:619`) lets a call that
 returns an errno land any prefix (`(k = len ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0`).
 
-**Proposed trusted change (uniform, replaces D22 entirely):** a `pwrite` returns either an errno having
-landed nothing, or a count `k > 0` that is the whole length or ends on a 4096-byte file-page boundary:
+**Trusted change (replaces D22 entirely), a `PWriteFinish` rule only:** whatever the errno, the landed
+prefix is empty, the whole write, or ends on a 4096-byte file-page boundary.
 
 ```lean
-((k = data.length ∨ (0 < k ∧ (off + k) % 4096 = 0)) ∧ e = 0) ∨ (k = 0 ∧ e ≠ 0)
+(k = 0 ∨ k = data.length ∨ (off + k) % 4096 = 0) ∧ (e = 0 → 0 < k)
 ```
 
-- *Errno lands nothing* is write(2)'s ABI: "On error, -1 is returned"; a call that wrote something returns
-  the count (`generic_perform_write` returns `written ? written : status`). Documented.
-- *A short count is a page cut on C*: a buffered write is cut short only between folios (`ENOSPC`/`EDQUOT`
-  from `write_begin` of the next folio), by `RLIMIT_FSIZE` (unlimited on C), at `s_maxbytes` (page-aligned
-  with 4 KiB blocks, round 4 N2), or if faulting the source back in fails (`EFAULT`, never for live Go
-  memory). A copy that stops mid-page because the source was being migrated (round 6, mechanism A) is
-  retried within the call after the fault-in, so it is never *returned* (round 6's e2e tears were transient
-  states reaching disk, not return values). Reasoned from v7.0 `mm/filemap.c`; to be checked by review and,
-  where possible, measured (§6).
-- Transient mid-call states are invisible in-process: a mapped load of a byte under a change in flight is
-  stuck (the per-byte semantics), and bbolt's readers read the metas under `metalock`, which `writeMeta`
-  holds.
+It holds on configuration C, which already fixes the two conditions it rests on:
+- **`RLIMIT_FSIZE` unlimited.** With a limit inside a page, the count is cut there, mid-page.
+- **A readable source buffer**, which live Go memory always is. An unreadable source page gives `EFAULT`
+  after progress, mid-page.
 
-With it, a one-page aligned write lands all or nothing (`k = 0` or `k = 4096`), which is D22 as a
-consequence, and Go's `WriteAt` loop returns either the whole page or nothing, with the page cache
-untouched on error. The new rule is an Impl change (header, `examples/osfs/semantics/data_short_io.go`,
-`Tests.lean`), and needs a review round. Alternative without a trusted change: an in-process P1 premise on
-steps (a torn page-cache meta slot never validates) — rejected: another client premise, harder to state,
-and the rule above is simply true on C.
+Both contrasts were measured and produced mid-page counts, so both conditions are load-bearing; the rule's
+docstring states them.
+
+**Evidence** (the review's Part 2, `notes/axiom-review/bbolt-port-plan-review/{pw/,results.txt}`, on fresh C
+filesystems that passed `check.sh`):
+- **ENOSPC**, swept over 0–3071 free blocks, aligned and unaligned offsets, a write past EOF:
+  - 18 `pwrite`s returned `ENOSPC` with nothing landed.
+  - 17 returned a short count, every one ending on a page boundary of the file offset, landing exactly the
+    count and nothing beyond.
+  - Aligned one-page and 16-page writes landed all or nothing at every free-block count.
+- **EFBIG** at `s_maxbytes` (`2^44 - 4096`, page-aligned with 4 KiB blocks): 2 short counts ending at
+  `s_maxbytes`, 2 `EFBIG` with nothing landed.
+- **Signals**: 155,816 `SIGUSR1` during 3 × 256 MiB writes. Always full: only fatal signals interrupt.
+- **Mechanism** (v7.0 `mm/filemap.c:4296-4386`): `written` advances only by whole folios' `write_end`
+  status, and a `write_begin` failure stops before any copy into its folio.
+  - So a cut ends on a folio boundary, and folios are page-aligned.
+  - `generic_write_check_limits` cuts at `s_maxbytes` or `RLIMIT_FSIZE`.
+  - A cut inside a folio needs a short copy followed by a stop before the folio finishes: `EFAULT`, a fatal
+    signal (the process dies), or a `write_begin` failure on already-reserved blocks.
+
+"Errno lands nothing" is dropped. bbolt doesn't need it: v1's `Tx.writeMeta` proof already handles a meta
+page that fully landed while `WriteAt` returned an error (`Tx__writeMeta.lean:96`,
+`(j = 0 ∨ j = 4096) ∧ (err = nil → j = 4096)`). It also has kernel exceptions on extending writes
+(`ext4_da_do_write_end`, `ext4_write_end` failing after committing). The weaker rule holds even on those
+paths, because what lands is a whole folio.
+
+**What follows from it:**
+- **One aligned page lands all or nothing** (`k = 0` or `k = 4096`): D22, as a consequence.
+- **Mid-call states are invisible in-process.** A mapped load of a byte under a change in flight is stuck,
+  and bbolt's readers read the metas under `metalock`, which `writeMeta` holds.
+- **Not at a crash or restart.** The rule is about a `PWriteFinish`'s result. A process killed mid-write
+  (`fatal_signal_pending`, `filemap.c:4319`, after a short copy) leaves a mid-page prefix in the page
+  cache. It is never returned, so it is invisible in-process, but a restarted process sees it. So the rule
+  never applies to a change in flight at a crash or restart; that case keeps the general per-byte crash
+  rule.
+
+It is an Impl change (the header, `examples/osfs/semantics/data_short_io.go` citing the measurements,
+`Tests.lean`), and gets a review round.
+
+**Go's `WriteAt` over it.** Go's loop (`os/file.go:251-260`) retries a short count, and when the retry fails
+it returns `(0, err)`, skipping `n += m`, after a page-cut prefix landed. Measured 19 times under ENOSPC and
+twice under EFBIG. So:
+- **A one-page aligned write** returns the whole page or an error, and on error the page holds all of the
+  new data or none of it (`j = 0 ∨ j = 4096`, whatever `err` is).
+- **A multi-page write** (data-page runs, `DB.init`'s 4 pages) can return `(0, err)` with any page-cut
+  prefix landed. The `WriteAt` spec's error case keeps `j` as any page cut, not 0. The fs-bytes model
+  already returns 0 on error.
+
+Side finding: this contradicts `io.WriterAt`'s contract ("returns the number of bytes written"), a Go
+standard-library defect recorded nowhere. It goes to `nonissues/` (Go code, not a precondition bbolt
+violates).
 
 ### 2.5 Writes past the end of the file (`NoGrowSync`)
 
@@ -158,19 +229,25 @@ proof work only; (ii) exclude `NoGrowSync` from `OptsM.ok` (an API narrowing; et
 
 ### 2.6 Chunked writes
 
-lean's `os.File.WriteAt` model (`TrustedCode/os.lean`, after the fork) writes in chunks of at most 1 GiB
-(`poll.FD.Pwrite`'s `maxRW`), with `Proof/os/WriteChunks.lean`; fs-bytes's spec instead requires
-`data.length ≤ 2^30`. bbolt writes a page run (overflow pages included) in one `WriteAt`, which can exceed
-1 GiB for a large value. The merge keeps lean's chunked model (it is what Go does) and ports
-`WriteChunks` onto `pwPost`/`PwOut`; the spec drops the `≤ 2^30` premise.
+fs-bytes's `File.WriteAt.impl` already chunks at `0x40000000`, as Go does (`TrustedCode/os.lean`, the `max`
+in the `pwrite` loop), so no trusted-model merge is needed for this. Only the spec's `data.length ≤ 2^30`
+premise has to be lifted, a program-logic proof over the chunk loop (lean's `Proof/os/WriteChunks.lean`
+is the template). The generalization is needed: bbolt writes up to `maxAllocSize - 1` (2 GiB - 1) per
+`WriteAt` (`tx.go`'s write loop).
 
 ## 3. bbolt's own specs that change
 
 Exported (`etc/api/bbolt.txt`, `importable`; their `interface/` files are API diffs the user reviews):
-`Spec.go_etcd_io.bbolt.Api` (vocabulary: `fileHolds` and its laws), `Open`, `DB__Close`; and every
-exported spec's binder `∀ [HasExt osFsExt]` (§1a's rename: shape only). Internal: `fdatasync`,
-`Tx__write_ext`, `DB__grow`, `DB__init`, `Tx__writeMeta`, the `_kv` backend specs (`Open_kv`,
-`DB__Close_kv`: still axioms for etcd's backend, restated the same way).
+`Spec.go_etcd_io.bbolt.Api` (vocabulary: `fileHolds` and its laws), `Open`; and every exported spec's
+binder `∀ [HasExt osFsExt]` (§1a's rename: shape only). `DB.Close.spec` does not change: it returns
+`True`, giving nothing back, and `isBolt` already hides the path (`Inv/Bolt.lean:116`, `∃ p`). Internal:
+`fdatasync`, `Tx__write_ext`, `DB__grow`, `DB__init`, `Tx__writeMeta`.
+
+**The `_kv` specs stay unchanged** (`Open_kv`, `DB__Close_kv`, …). They are over etcd backend's own axiomatic
+vocabulary (`backend.fileHolds`, `dbFile`, `Proof/.../storage/backend/InvBbolt.lean:113`), with no OS
+resource, and about 25 etcd server files use the path-keyed `backend.fileHolds` (snapshots, `Rename`,
+`Cleanup`). Restating them would break those files for no gain. They only need §1a's section-variable
+rename.
 
 ### `fileHolds` (Api.lean, sealed; `Inv/FileHolds.lean`'s `fileHoldsDef`)
 
@@ -211,21 +288,26 @@ abbrev Open.spec : Prop :=
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
       (∃ V', osTree (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝) ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ γ : BoltName, ⌜γ.ns = N⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
+          ⌜γ.ns = N ∧ lookupH R V' path = some (.file i)⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
        ⌜err ≠ GoInterface.nil⌝) }}
 ```
 
-The tree is taken whole only because creating a file needs it (`os.OpenFile.specCreate`); it is returned
-before `Open` returns (bbolt does no metadata operation afterwards), so a caller (etcd's backend, at
-startup) is not blocked from other tree operations while the database is open. If the caller cannot give
-the whole tree, a variant for an existing file takes a fraction (`os.OpenFile.spec` accepts any `q`) — open
-question §6.
+The post says where the file is (`lookupH R V' path = some (.file i)`), so a later reopen can find it.
 
-### `DB.Close.spec`
+The tree is taken whole only because creating a file needs it (`os.OpenFile.specCreate`). bbolt always
+passes `O_CREATE` (`db.go:229`). The tree is returned before `Open` returns (bbolt does no metadata
+operation afterwards). Today only `Results` uses `Open.spec`; etcd's backend uses `Open_kv`. A variant for
+an existing file over a tree fraction is cheap (`os.OpenFile.spec` takes any `q`) — open question §6.
 
-Its post gives back `fileHolds`; with the inode: `… ∗ ∃ i, fileHolds i D` where `i` is the one `Open`
-resolved (recorded in `isBolt`'s ghost name: add `γ.ino : Ino`, so the post is `fileHolds γ.ino D`).
-`DB.Close_kv` likewise.
+`OpenFile` fixes the flag to `0x42`, which is fine because `OptsM.ok` excludes `ReadOnly` and a custom
+`OpenFile`, as on lean. `PageSize` must stay 4096 in `OptsM.ok` (it does, `Api.lean:43`, `:148`); otherwise a
+meta page spans several OS pages and the §2.4 consequence fails.
+
+**Restart caveat.** These are in-process specs. A restart is modelled as a machine crash (the semantics'
+restart assumption: a `sync` before the program restarts), and a change in flight at a crash or restart
+falls under the per-byte crash rule, not §2.4's rule. So nothing here claims anything across a restart; a
+crash theorem for real bbolt would be separate work (§4, §6).
 
 ### Internal specs
 
@@ -235,8 +317,13 @@ resolved (recorded in `isBolt`'s ghost name: add `γ.ino : Ino`, so the post is 
 - `Tx.write_ext.spec`: `K.p : GoString` → `K.i : Ino` (the writer's context names the inode),
   `osMeta K.p 1 (some om)` → `osMeta K.i 1 om`, `wrSlotsSz b K.p …` → `wrSlotsSz b K.i …`; the post's size
   facts unchanged; proved over §2.5(i).
-- `DB.grow`, `DB.init`, `Tx.writeMeta`, `Tx.write`, `mmap`/`munmap`: the same renames; `writeMeta`'s commit
-  point uses §2.4's consequence (`j = 0 ∨ j = 4096` for the aligned meta page) in place of D22.
+- `DB.grow`, `DB.init`, `Tx.writeMeta`, `Tx.write`, `mmap`/`munmap`: the same renames.
+  - `writeMeta`'s commit point uses §2.4's consequence (`j = 0 ∨ j = 4096` for the aligned meta page,
+    whatever `err` is) in place of D22. v1's proof already has that shape (`Tx__writeMeta.lean:96`).
+  - `DB.grow`'s error path must allow either size, since `Truncate`'s failure is "maybe resized"
+    (`ftUndone`). `fileOK`'s `hwm·4096 ≤ size` stays true, because the file only grows.
+  - `DB__grow.lean:282`'s positional `OsMeta` literal is rewritten with the new fields.
+  - Data-page runs and `DB.init`'s 4 pages take `WriteAt`'s error case with any page-cut `j` (§2.4).
 
 ## 4. The invariants
 
@@ -272,67 +359,68 @@ and the invariant would carry the candidates instead of hiding them.
 
 **Order** (each step builds before the next; one `lake build` target at a time):
 
-1. *Trusted*: §2.4's `PWriteFinish` rule (Impl, header, example, Tests) → review round.
+1. *Trusted*: §2.4's `PWriteFinish` rule (Impl, header, `data_short_io.go`, Tests) → review round.
 2. *Merge `origin/lean` into `fs-bytes`* (before bbolt, since bbolt's lean files depend on lean's
    post-fork os work):
    - `GooseLang/Ext/OsFs/*`: deleted on fs-bytes, modified on lean (D22, `RLIMIT_FSIZE` text, the
      `netpollinit` note) → keep deleted; carry the text: `RLIMIT_FSIZE` is part of C, the `netpollinit`
      fatal error is covered by the restart assumption (fs-bytes' header already says so), D22 is §2.4.
    - `TrustedCode/{os,syscall}.lean`, `golang_org/x/sys/unix.lean`: both sides changed. Take fs-bytes's
-     extension calls and lean's initializer translation (`os-init-lean`), `Stderr`, `arbitraryStrings`,
-     `fmtErrorOk` error models, and the chunked `WriteAt` loop. Manual; then a review round of the merged
-     models (they are trusted).
+     extension calls (its `WriteAt` already chunks, §2.6) and lean's initializer translation
+     (`os-init-lean`), `Stderr`, `arbitraryStrings` and `fmtErrorOk` error models. Manual; then a review
+     round of the merged models (they are trusted).
    - `Spec/os`, `Proof/os`, `Spec/syscall`, `Proof/syscall`, `Proof/golang_org/x/sys/unix`: fs-bytes's
      statements, plus lean's `fmtErrorOkOrNil err` / `IsPointerError` conjuncts in every post that has them
-     on lean (52 bbolt files use `fmtErrorOk`), plus lean-only modules ported: `Getpagesize`, `Init`,
-     `PkgInit`, `Models`, `ErrorOk`, `WriteChunks` (onto `PwOut`). Drop lean's `CrashNarrow`,
-     `CrashWReach` (v1 crash, superseded).
+     on lean (35+ bbolt files depend on them), plus lean-only modules ported: `Getpagesize`, `Init`,
+     `PkgInit`, `Models`, `ErrorOk`. Drop lean's `CrashNarrow`, `CrashWReach` (v1 crash, superseded).
    - `ManualProof/*`, `Proof/OsFsPrelude.lean` (→ an `FsPrelude`), `Proof/runtime/Init.lean`,
      `Code/*.toml`, `etc/*.py`: mechanical.
    - `examples/osfs/*` and their proofs: fs-bytes's (lean's are v1).
-3. *Program logic additions*: §2.3 byte-less fsync (and the superset relaxation), §2.5 writes past EOF,
-   §2.6 chunked `WriteAt` spec.
-4. *bbolt specs* (§3): `Api.lean`, `Open`, `DB.Close`, internal specs. Regenerate `interface/`
+3. *Program logic additions*: first the `tc`/`zf` part of §2.3's superset relaxation (the step most likely
+   to fail), checked against minibolt's, walfs's and crashlog's crash proofs; then the byte-less
+   fsync/`File.Sync` spec, §2.5's writes past EOF, §2.6's lifted `2^30` premise, and the `WriteAt` error
+   case with any page-cut `j` (§2.4).
+4. *bbolt specs* (§3): `Api.lean`, `Open`, internal specs. Regenerate `interface/`
    (`etc/gen-interface.py etc/api/bbolt.txt`) for review.
-5. *bbolt invariants* (§4): `Inv/{FileHolds,Store,Locks,WSlots}`.
-6. *The 395 mechanical files*: `sed -i -e 's/\[hos : HasExt osFsExt\]/[ExtSemantics fsExt] [FsSemOk] [hos :
-   HasExt fsExt]/' -e 's/GooseLang\.Ext\.OsFs\./GooseLang.Ext.Fs./'` plus `open Fs` where `osInv`/`osN` are
-   used; then a build sweep.
-7. *The 52 files*, in dependency order: `Inv/*` → `Mmap/*`, `DB__grow` → `Open/*`, `Open` → `DB__init`,
-   `DB__loadFreelist` → `Commit/Write*`, `Tx__write*` → `Tx__writeMeta`, `Commit/Tail*`, `Commit/Rollback*`,
-   `Tx__rollback_f` → `Txn/*` → `DB__Close` → `Link` (regenerated) → `Results`.
+5. *bbolt invariants* (§4): `Inv/{Ctx,FileHolds,Store,Locks,WSlots}`.
+6. *The 363 section-variable files*: `sed -i -e 's/\[hos : HasExt osFsExt\]/[ExtSemantics fsExt] [FsSemOk]
+   [hos : HasExt fsExt]/' -e 's/GooseLang\.Ext\.OsFs\./GooseLang.Ext.Fs./'` plus `open Fs` where
+   `osInv`/`osN` are used; the 38 file-name files (§1a') by hand; then a build sweep.
+7. *The 62 files*, in dependency order: `Inv/*` → `Mmap/*`, `DB__grow` → `Open/*`, `Open` → `DB__init`,
+   `DB__loadFreelist` → `Commit/WriteDefs`, `Commit/Write*`, `Tx__write*` → `Commit/PwMeta`,
+   `Tx__writeMeta`, `Commit/Tail*`, `Commit/PubOk`, `Commit/Rollback*`, `Tx__rollback_f` → `Txn/*` →
+   `DB__Close` → `Link` (regenerated) → `Results`.
 8. Gates: every bbolt target, `etc/tcb-report.py --check`, `etc/api-check.py`, `etc/gen-interface.py
-   --check`, `notes/STATUS.md`.
+   --check`, `notes/STATUS.md`. Also record the `io.WriterAt` side finding (§2.4) in `nonissues/`.
 
-**Estimates** (relative; the 52 files are 19k lines):
-- mechanical renames (steps 4–6 for most files): small, but a full build sweep of bbolt (812 files) is the
-  long pole; expect several sweeps.
+**Estimates** (relative; the 62 files are 20.5k lines):
+- renames (steps 4–6): small per file, but a full build sweep of bbolt (1044 files) is the long pole;
+  expect several sweeps.
 - `Inv/Store.lean` (2.8k lines): mostly renames; its byte-splitting lemmas (`osBytes_cons'`, slot carving)
   move to `ByteG` unchanged.
 - `Open` (path → tree; create branch; `fileHolds` decode): moderate, new logic for the lookup split.
-- `Commit/Write*`, `Tx__write*`: moderate (new `PwOut` post in place of `pwBytes` equalities; chunks).
-- `Tx__writeMeta`: small once §2.4 is in.
+- `Commit/Write*`, `Tx__write*`: moderate (new `PwOut` post in place of `pwBytes` equalities; page-cut
+  error case; chunks).
+- `Tx__writeMeta`: small once §2.4 is in (v1's proof already has the needed shape).
 - the merge's trusted models (step 2): the riskiest non-proof step.
 
 **Risks / unknowns**:
-- §2.4's rule must survive review; if it does not, the fallback is an in-process slot premise (P2-like).
-- The superset relaxation (§2.3) must not break minibolt's crash proof or crashlog/walfs (they rely on
-  exact candidates only through crash lemmas that stay true for supersets — to check).
+- §2.4's rule must survive review; it is measured on C, and the fallback (an in-process slot premise) is
+  not expected to be needed.
+- The superset relaxation's `tc`/`zf` part (§2.3) is the likeliest step to fail; if the old `tc` can't be
+  kept, the byte-less spec returns `tc := ∅` (already planned).
 - Whether bbolt ever needs `off > size` writes other than `write_ext` (grep `pwSize` users).
-- lean's post-fork `TrustedCode/os.lean` (initializers, errors, chunking) interleaved with fs-bytes's
-  extension calls: conflicts are certain; the merged file gets its own review.
+- lean's post-fork `TrustedCode/os.lean` (initializers, errors) interleaved with fs-bytes's extension
+  calls: conflicts are certain; the merged file gets its own review.
 - Build memory: bbolt's files are large; one target at a time, `etc/lean-check.py` for the edit loop.
 
 ## 6. Open questions for review
 
-1. §2.4: accept the uniform `PWriteFinish` rule (*errno lands nothing; a short count is a page cut*) in
-   place of D22? It is true on C (ABI + reasoning from `generic_perform_write`); a measurement would count
-   short returns of aligned page writes under compaction and `ENOSPC`.
-2. §3: `Open` takes the whole tree (`osTree (own 1)`) and returns it; acceptable for etcd's backend, or do we
-   want an existing-file variant over a tree fraction?
-3. §3: record the inode in `BoltName` (`γ.ino`) so `DB.Close` returns `fileHolds γ.ino D`?
-4. §2.3: byte-less fsync via a superset relaxation of byte resources (program logic only) — or thread the
-   bytes through bbolt's sync callers?
-5. §2.5: generalize `WriteAt`'s spec to writes past EOF (keep `NoGrowSync`) — or narrow `OptsM.ok`?
-6. Should real bbolt get a crash theorem now (minibolt's design, P1) or stay Hoare-only? This plan keeps it
+1. §3: `Open` takes the whole tree (`osTree (own 1)`) and returns it; keep that, or add an existing-file
+   variant over a tree fraction (cheap; today only `Results` uses `Open.spec`)?
+2. §2.5: keep (i), generalizing `WriteAt`'s spec to writes past EOF? Under the §2.4 rule the gap case
+   behaves like any other (measured: an ENOSPC write past EOF lands nothing, or a page cut with the gap
+   zeroed). (ii), narrowing `OptsM.ok`, is cheaper than first thought, because etcd's backend uses the
+   `_kv` axioms rather than `Open.spec`.
+3. Should real bbolt get a crash theorem now (minibolt's design, P1) or stay Hoare-only? This plan keeps it
    Hoare-only, as on lean.
