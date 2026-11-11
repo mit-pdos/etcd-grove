@@ -1490,3 +1490,23 @@ The same applies to any slot that takes a field of a names record before its sub
 
 From the same review: suggestion 1 taken (narrow elimination laws, above); (2), the program-start
 boundary, is step 7 of "Incremental adoption"; (3), the three twin triples, is its step 6.
+
+## Trace-check's Probe A: the record (2026-11-11)
+
+The easy probe of trace-check's design pass (`notes/trace-check-design.md` §8, after review round 3),
+run as a Lean proof over the client statements, the missing ones as hypotheses
+(`tracecheck/ProbeA.lean`; `notes/decisions.md`, "Probe A (harness glue)"). **Time:** about 45 minutes
+of one agent from the branch to a building probe with the design's text fixed (22:22-23:07 UTC; the
+proof itself about 25 minutes, five check rounds of `etc/lean-check.py`), plus the acceptance runs. Of
+it, most went to reading the client statements; no step needed a raft-internal fact.
+
+**Spec problems found that three review rounds and the glue had not:** one first-tier, the missing raft
+law for the empty `ConfChangeV2`'s step at a joint membership (P1: the `ConfChangeV2` arm, which every
+review marked "holds", cannot discharge `node.ApplyConfChange.spec`'s premise from what raft exports);
+two statement-shape errors a typechecker catches at once (P2, the claim's `ms` out of scope; P3,
+`tcOpsInv`'s missing `boot`); and a simplification (P4: the conf arms need less than the design asked,
+so a planned move of a kvreconf lemma into raft is dropped). The review rounds read the same text and
+judged A6 "holds as a design"; the step premise was taken as "where the leave applies". As for the
+dsverify ablation's easy proofs: an easy probe is cheap and finds what reading misses, here in the
+statements' scope and in a law that a reader assumes exists. Probe B (the escrow, chosen by its
+invariant) is still to run.

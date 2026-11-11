@@ -37210,3 +37210,50 @@ unchanged. Nothing threaded, no Lean run, no axiom.
 (the review's uncertain point, to check at threading).
 
 No axiom, no `sorry`, no Lean file changed. Nothing for the user (§1 unchanged).
+
+---
+
+## Probe A (harness glue): the client-side composition along the concrete path, in Lean; one missing raft law (the empty `ConfChangeV2`'s step), the claim's scope, a simpler conf-entry argument (2026-11-11 · trace-check, §8's Probe A of `notes/trace-check-design.md` revision 3; decided by the agent under the user's delegation · branch `trace-check-probeA`; DRAFT, for review)
+
+**What was run.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/ProbeA.lean`: a Lean
+proof (built; no axiom, no `sorry`, no existing statement changed) of the harness's composition over the
+client statements, in the Go's order: the allocation (`probeA_alloc`: `harness_alloc`, then `tcOpsInv`,
+`confPolicy_alloc`, `tcSnapsInv`), a voter's `StartNode.tracedSpec` precondition (`probeA_startPre`), the
+snapshot refutation (`probeA_noSnap`), both conf arms (`tcOps_emptyV2`, `tcOps_v1_boot`,
+`probeA_confV2`), the `Ready` taken apart (`probeA_readySplit`), A5's instance
+(`advance_spec_of_traced`: `node.Advance.spec` from `node.Advance.tracedSpec` and `readyToksClaim_nil`),
+one round from the `Ready` to `Advance`'s return (`probeA_round`), the per-message resources
+(`probeA_msgs`), `proto.Clone` then `node.Step` (`probeA_cloneStep`), the dead `MsgSnap` branches
+(`probeA_noSnapReport`), the thread tokens (`probeA_appToken`, `probeA_goroutineEnd`, `probeA_forkApp`)
+and the end (`probeA_end`: three `startDone`s into `runOver_intro`). The design's statements not in Lean
+are hypotheses, each a `Prop` (`AdvanceTracedSpec`, `RecvTracedSpec`, `StepInIntroTr`, `TrTokType`,
+`NetJoinAdd`/`NetJoinDone`, `ClaimNil`, `LeaveJoint`) or a parameter standing for a sealed predicate
+(`claim` for `readyToksClaim`, `njAdder`/`njDone`). Nothing links the file; it is no root of the TCB
+report.
+
+**Found** (design text fixed in the same commit, §"Probe A (2026-11-11)" of the design):
+- *P1 (first tier)*: A6's `ConfChangeV2` arm needs `Membership.applyChange (.v2 ConfChangeV2M.empty) m
+  = some m'` (the premise of `confPolicy_decide` and `node.ApplyConfChange.spec`); raft gives only
+  `m.isJoint` (`committed_emptyV2_joint`) and seals `applyChange` with laws of simple memberships. Fix:
+  the raft API law `Membership.applyChange_leaveJoint` (valid and joint → the leave is defined), in the
+  first landing. The review rounds took "where the empty change (the leave) applies" as given.
+- *P2*: the revised `readyGotT` must put the claim inside `readyGot`'s existentials (its `ms`).
+- *P3*: `tcOpsInv` takes `boot`.
+- *P4 (simplification)*: the arms need neither `ConfShaped` nor moving `confShaped_of_ops` into raft:
+  `tcOps_emptyV2` (no position argument) and `tcOps_v1_boot` (by `opsOf (boot ++ x) = boot ++ opsOf x`),
+  harness-local, over exported laws. Struck from the design.
+- *P5*: two glue facts the design did not name (the original's empty responses from `sentMsg_shape`;
+  `snapLocalMsg_noDir` at the harness's `snapLoc`).
+
+**Not modelled.** The Goose code of `app`/`send`/`handleReady` (the probe composes the specs; `send`'s
+`defer`, the goroutine's body and `handleReady`'s storage calls are abstract), the storage contract with
+`storBnd_zero` (not on §8's list; the statement does not exist yet), building `StartNode`'s
+`raftState` AU, and `Membership.applyChange_addVoter` at the bootstrap positions (the existing law; the
+probe proves only that a committed `ConfChange` is at one).
+
+**Unfolds across a package boundary** (spec-first-plan's list): raft's exposed vocabulary `readySnap`,
+`readyEnter`, `readyRest` (destructured, as kv's and kvreconf's `run` do today) and the pure
+`SentMsgShape` (its last conjunct, `resps = []`), `opsOf`, `LogEntry.isFiller`/`isEmptyV2`, `BootLog`,
+`ccDecode`; `pbMessage`'s fields through its `simp` lemmas (rafthttp's, moving to raft, B4). Candidates
+for laws: `sentMsg_resps` (`sentMsg ⊢ ⌜st.resps = []⌝`) and a `readyEnter` elimination lemma; the rest
+are definitions clients are meant to read.

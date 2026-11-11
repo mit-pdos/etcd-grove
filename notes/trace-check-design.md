@@ -11,6 +11,9 @@ Revision 2: branch `trace-check-design3`, from `trace-check` at `2a0b56856b`, af
 `notes/trace-validation-reviews/design-r2.md` (first tier A1-A6, second tier B1-B7).
 Revision 3: branch `trace-check-design4`, from `trace-check` at `344537cee1`, after the review round
 `notes/trace-validation-reviews/design-r3.md` (first tier N1-N3, second tier S1-S8).
+Probe A (2026-11-11): branch `trace-check-probeA`, from `trace-check` at `31058ad33c`: §8's Probe A as a
+Lean proof (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/ProbeA.lean`); its
+corrections, P1-P5, in the section below.
 
 Reading order: §1 is the only part the user reviews (settled: Q32 and Q38 decided by the user). §2-§6
 are the agent's (intermediate statements, recorded per "The gates, delegated"). §7 is the whole chain
@@ -21,6 +24,53 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 `MsgHeartbeat`, `MsgHeartbeatResp`), `AckTy` (`MsgStorageAppendResp`, `MsgStorageApplyResp`),
 `recvTokOf` (`TracedRecvTok.lean`), `trTok` (today `TracedNodeApi.lean`; revision 1 moves it to
 `InvNode.lean`, §3.1), the capability `trCapB` (`TracedCap.lean`), `rnTrace` (`InvRawnode.lean`).
+
+---
+
+## Probe A (2026-11-11): what the probe changed
+
+§8's Probe A, run as a Lean proof (`tracecheck/ProbeA.lean`, built; no axiom, no `sorry`; the
+statements not in Lean yet are hypotheses of its lemmas). Every post supplied the next pre but at the
+points below; each is fixed in the text here (`notes/decisions.md`, "Probe A (harness glue)").
+
+- **P1 (first tier: A6's `ConfChangeV2` arm does not compose).** `node.ApplyConfChange.spec` and
+  `confPolicy_decide` need `Membership.applyChange (.v2 ConfChangeV2M.empty) m = some m'`;
+  `committed_emptyV2_joint` gives only `m.isJoint`, and `Membership.applyChange` is sealed with laws of
+  simple memberships only (`InvNode.lean:902-933`, "nothing is said of joint configurations"). **Fix:**
+  a new raft API law, `Membership.applyChange_leaveJoint : m.Valid → m.isJoint → ∃ m',
+  Membership.applyChange (.v2 ConfChangeV2M.empty) m = some m'` (raft-internal proof: `memApply`,
+  `ccApplyM_leaveJoint` (`ConfchangeApiImpl.lean:109`), `leaveJointM`'s definedness at a valid joint
+  state); `m.Valid` from `confAt_valid`. The probe takes it as the hypothesis `LeaveJoint`
+  (`probeA_confV2`). §2.3, §7, §9 updated. It goes in step 1's landing (an API addition that re-opens
+  nothing).
+- **P2 (`readyGotT`'s claim is out of scope).** "`readyGotT` = `readyGot` ∗ `readyToksClaim n γ N ms`"
+  leaves `ms` unbound: `readyGot` binds it inside its existentials. **Fix:** the claim is `readyGotT`'s
+  last conjunct *inside* them, at `readyRest`'s `ms` (the list `rd.Messages'` points to), where today's
+  `readyGotT` places the tokens (§3.1, §2.3). The probe's `readyGotC`; `probeA_readySplit` reads the one
+  `ms` off it.
+- **P3 (`tcOpsInv`'s parameter).** Revision 2's clause names `boot`: `tcOpsInv γ boot` (§2.2).
+- **P4 (`tc_confShaped` is more than the arms need; a simplification).** Neither arm needs `ConfShaped`
+  (`ccTransOk`) or the move of kvreconf's `confShaped_of_ops` to `ConfRule.lean`. The `ConfChangeV2` arm
+  needs only `e.isEmptyV2` (`tcOps_emptyV2`, no position argument: a non-empty type-`2` entry would be a
+  requested one, so in `boot`, of type `1`, or past it, of type `0`). The `ConfChange` arm needs only that
+  the position is a bootstrap one (`tcOps_v1_boot`: `opsOf (boot ++ x) = boot ++ opsOf x`, so past
+  `boot` the requested entries are a prefix of `ops.drop |boot|`), where `BootLogFacts` gives the voter's
+  `AddNode` and `Membership.applyChange_addVoter` the step at the voters' simple membership. Both are
+  harness-local, over raft's exported `opsOf`, `ownCommittedOps_lb_prefix` and `isCommittedLogLb_agree`.
+  `tc_confShaped` and the move are struck (§2.2, §2.3, §7). Also: the client-visible filler is
+  `LogEntry.isFiller` (`NodeApiVocab.lean:47`, type `0` only), not the protocol's `Filler`.
+- **P5 (glue the design did not name).** `ClonePb`'s `eqv` carries only "no responses if the original
+  had none". The original's empty responses come from `sentMsg_shape` (`SentMsgShape`'s last conjunct),
+  and `stepIn_intro`'s `snapLocalMsg` from `snapLocalMsg_noDir` at `harness_alloc`'s
+  `γ.snapLoc = fun _ => none` (§2.3's last row; `clone_st`, `probeA_cloneStep`).
+
+**Held as written:** the allocation (`harness_alloc`, then `tcOpsInv`, `confPolicy_alloc`, `tcSnapsInv`;
+`startTraceC_intro` into `StartNode.tracedSpec`'s precondition); the snapshot refutation; A5's instance
+(`node.Advance.spec_of_traced` proved from `readyToksClaim_nil` and `node.Advance.tracedSpec`); *enter*'s
+`readyMsgs` with `Advance`'s tokens into `send`'s per-message precondition at one `q.st`; `ClonePb` into
+`stepIn_intro` with `trTok` and `node.Step.spec`; `trTok_type` through the clone's type; the thread
+tokens (`netJoin.wp_Add`, `wp_fork_tok_self`, `netJoin.wp_Done`; `wp_fork_tok_body` for `app`); and
+`startDone` ×3 into `runOver_intro`.
 
 ---
 
@@ -409,20 +459,23 @@ user (Q38, 2026-11-11)**; the instance `[ThreadBoundLe GF (2 ^ 31)]` is Q38 (a).
 
 The harness's own invariants (named here, S12), allocated after `harness_alloc`, all outside `N`
 (raft's namespace):
-- **`tcOpsInv γ := inv tcOpsN (∃ ops, ownCommittedOps γ ops)`**, from `harness_alloc`'s
+- **`tcOpsInv γ boot := inv tcOpsN (∃ ops, ownCommittedOps γ ops ∗ ⌜boot <+: ops ∧ ∀ op ∈ ops.drop boot.length, op.type = W32 0⌝)`**
+  (Probe A, P3: the clause names `boot`), from `harness_alloc`'s
   `ownCommittedOps γ boot`. `γ.dup = false`, so `node.Propose.spec` takes one non-persistent AU per
   call, `AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t, ownCommittedOps γ (ops ++ [⟨t, 0, data⟩]), COMM True }>`;
   the proposer builds it from `tcOpsInv` (open, take, close with the appended list). **Revision 2
   (A6):** the invariant also holds the pure clause `boot <+: ops ∧ ∀ op ∈ ops.drop boot.length,
-  op.type = W32 0` (the requested entries past the bootstrap log are the proposer's normal ones), from
-  which `∀ op ∈ ops, op.isConfChange → ConfShaped op` follows (kvreconf's `%Hsh`: `boot`'s three
-  `AddNode`s decode by `BootLogFacts`; a type-`0` entry is no conf entry, kvreconf's
-  `confShaped_normal`); kept by each proposal (type `0`). `boot` has no filler, so a committed entry at
-  a position `k ≥ |boot|` that is a requested entry is one of `ops.drop boot.length`. `handleReady` reads it through
-  `tc_confShaped : tcOpsInv γ -∗ isCommittedLogLb γ l ={E}=∗ ⌜∀ e ∈ l, e.isConfChange → ConfShaped e⌝`,
-  proved as kvreconf's `rkv_confShaped` (`ownCommittedOps_lb_prefix` and the pure `confShaped_of_ops`,
-  which moves from kvreconf's `Rule.lean` to raft's client library `ConfRule.lean`, beside `ccDecode`, so
-  both use one copy). Nothing else of the run reads the committed operations.
+  op.type = W32 0` (the requested entries past the bootstrap log are the proposer's normal ones); kept by
+  each proposal (type `0`). `handleReady` reads it through two harness-local laws, each opening
+  `tcOpsInv` and using `ownCommittedOps_lb_prefix` (Probe A, P4: in place of revision 2's
+  `tc_confShaped` and the move of kvreconf's `confShaped_of_ops`, which the arms do not need):
+  `tcOps_emptyV2 : tcOpsInv γ boot -∗ isCommittedLogLb γ l ={E}=∗ ⌜∀ e ∈ l, e.type = W32 2 → e.isEmptyV2⌝`
+  (a non-empty type-`2` entry is no filler, so a requested entry, so in `boot`, type `1`, or past it,
+  type `0`) and `tcOps_v1_boot : tcOpsInv γ boot -∗ isCommittedLogLb γ boot -∗ isCommittedLogLb γ l ={E}=∗
+  ⌜∀ k e, l[k]? = some e → e.type = W32 1 → k < |boot|⌝` (`boot` has no filler and no empty
+  `ConfChangeV2`, so `opsOf (boot ++ x) = boot ++ opsOf x`, and past `boot` the requested entries are a
+  prefix of `ops.drop |boot|`; with `isCommittedLogLb_agree`). Nothing else of the run reads the
+  committed operations.
 - **`confPolicy γ tcConfN tcRule`**, from `harness_alloc`'s `ownConfDecisions γ ∅` by `confPolicy_alloc`
   (`ConfPolicy.lean`, raft's client library, the one kv uses), with `tcRule := fun _ _ e => ccDecode e`
   (kv's `kvRule`). Persistent, so the three `app`s share it: each `handleReady` obtains
@@ -457,10 +510,10 @@ The harness's own invariants (named here, S12), allocated after `harness_alloc`,
 | `time.NewTicker(c.cfg.Tick)`, `defer ticker.Stop()` | Perennial's `time.NewTicker.spec` (proved; needs `0 < Tick`: Q35) | unchanged |
 | `case <-c.stop: return` | the closed-channel receive; `apps.Done` with `nodeRunning 1 ∗ njAdder ⅓` | unchanged |
 | `case <-ticker.C: r.node.Tick()` | `node.Tick.spec` (`isNode` only) | unchanged: its traced content is `run`'s `tickc` arm |
-| `case rd := <-r.node.Ready()` | `isReadyChan_recvAu.tracedSpec` | **changed** (29n finding 4): `readyGotT`'s last conjunct is the claim `readyToksClaim n γ N ms`, no longer the tokens (§3.1); revision 2: the claim also carries the key's allocation bound (A1) |
-| `c.handleReady(r, rd)` | `raft.IsEmptySnap`, `MemoryStorage.Append`/`SetHardState` (storage contract), `proto.Unmarshal` into a `*ConfChange` (`proto.UnmarshalConfChange.spec`, existing axiom), **`node.ApplyConfChange.spec`** with `confDecided` from `confPolicy_decide` (§2.2), `atomic.Int64.Add` | the snapshot branch refuted from client-visible facts (S12): `readyGot`'s `readyRest` holds `readySnap … L`; at `L = some l` it holds `snapshotCert γ N …`, whence `snapshotCert_made` gives `snapMade γ s` and `snapMade_elem` against `tcSnapsInv`'s `ownSnapsMade γ []` gives `s ∈ []`; at `L = none`, `rd.Snapshot' = null`, so `IsEmptySnap` is true. **Both conf arms** (revision 2, A6: as kvreconf's `Replica__applyEntry`): the entry `e` at position `k` is committed (`readyGot`'s `committedEntriesAt` with `isCommittedLogLb`), so `tc_confShaped` (§2.2) gives `ConfShaped e`: it decodes, `proto.Unmarshal` returns no error (`proto.UnmarshalConfChange.spec` / **`proto.UnmarshalConfChangeV2.spec`**, existing axioms) and the `panic` (`concurrent.go:315-317`, `:322-324`) is not reached. Then `confPolicy_decide` (rule `ccDecode`, decision `.apply o`) and `node.ApplyConfChange.spec` at `confAt γ k m` (the driver's view), whose premise `Membership.applyChange o m = some m'` holds: for a `ConfChange` past the bootstrap log, impossible (type `1` is never a filler, `Filler` admitting types `0` and `2` only, `Ghost.lean:1177`; so it would be among the requested entries, which are normal past `boot`), at a bootstrap position the voter's `AddNode` into `m ∋` it; for a `ConfChangeV2`, `e` is not a requested entry (same reason), so `e.isEmptyV2` (`opsOf`), and raft's exported **`committed_emptyV2_joint`** (`InvNodeRule.lean:365`) gives `m.isJoint`, where the empty change (the leave) applies. The arm is reached in no run (G3), but its proof needs no raft-internal fact. The `CreateSnapshot`/`Compact` branch: `SnapshotEvery = 0` |
+| `case rd := <-r.node.Ready()` | `isReadyChan_recvAu.tracedSpec` | **changed** (29n finding 4): `readyGotT`'s last conjunct is the claim `readyToksClaim n γ N ms`, no longer the tokens (§3.1), inside `readyGot`'s existentials at `readyRest`'s `ms` (Probe A, P2); revision 2: the claim also carries the key's allocation bound (A1) |
+| `c.handleReady(r, rd)` | `raft.IsEmptySnap`, `MemoryStorage.Append`/`SetHardState` (storage contract), `proto.Unmarshal` into a `*ConfChange` (`proto.UnmarshalConfChange.spec`, existing axiom), **`node.ApplyConfChange.spec`** with `confDecided` from `confPolicy_decide` (§2.2), `atomic.Int64.Add` | the snapshot branch refuted from client-visible facts (S12): `readyGot`'s `readyRest` holds `readySnap … L`; at `L = some l` it holds `snapshotCert γ N …`, whence `snapshotCert_made` gives `snapMade γ s` and `snapMade_elem` against `tcSnapsInv`'s `ownSnapsMade γ []` gives `s ∈ []`; at `L = none`, `rd.Snapshot' = null`, so `IsEmptySnap` is true. **Both conf arms** (revision 2, A6: as kvreconf's `Replica__applyEntry`): the entry `e` at position `k` is committed (`readyGot`'s `committedEntriesAt` with `isCommittedLogLb`). For a `ConfChange`, `tcOps_v1_boot` (§2.2) puts `k` in the bootstrap log (type `1` is never a filler: the client-visible `LogEntry.isFiller` is type `0` only, `NodeApiVocab.lean:47`; so past `boot` it would be among the requested entries, which are normal there; Probe A, P4), where `BootLogFacts` gives the voter's `AddNode`, whose bytes decode (`MarshalsConfChange`), and `Membership.applyChange_addVoter` the step at the voters' simple membership `m ∋` it. For a `ConfChangeV2`, `tcOps_emptyV2` gives `e.isEmptyV2`: its empty bytes decode (`ccDecodeV2_nil`), raft's exported **`committed_emptyV2_joint`** (`InvNodeRule.lean:365`) gives `m.isJoint`, `confAt_valid` gives `m.Valid`, and the **new raft API law `Membership.applyChange_leaveJoint`** (`m.Valid → m.isJoint → ∃ m', Membership.applyChange (.v2 ConfChangeV2M.empty) m = some m'`; Probe A, P1: raft exports no law of joint memberships, so without it the step premise is unprovable) gives the step. Either way `proto.Unmarshal` returns no error (`proto.UnmarshalConfChange.spec` / **`proto.UnmarshalConfChangeV2.spec`**, existing axioms), the `panic` (`concurrent.go:315-317`, `:322-324`) is not reached, and `confPolicy_decide` (rule `ccDecode`, decision `.apply o`) then `node.ApplyConfChange.spec` at `confAt γ k m` (the driver's view) take the step as their premise `Membership.applyChange o m = some m'`. The arm is reached in no run (G3), but its proof needs no raft-internal fact. The `CreateSnapshot`/`Compact` branch: `SnapshotEvery = 0` |
 | `r.node.Advance()` | **`node.Advance.tracedSpec`** (new, §3.1; the one proof, `node.Advance.spec` its instance, A5) | the claim in, `[∗list] q ∈ ms, trTok γ q.st` out. The stopped disjunct is refuted by `nodeRunning_stopped`: the `app` holds `nodeRunning 1` |
-| `for _, m := range rd.Messages { c.send(r, proto.Clone(m).(*pb.Message), …) }` | **`proto.ClonePb.spec`** (existing axiom) at `pbMessage` (the `PbType` of a `*raftpb.Message`; revision 2, B4: `PbMessage.lean` moves from `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/` to `Proof/go_etcd_io/raft/v3/`, beside `InvPbMsg`, dropping its import of rafthttp's `Net`, which its body does not use, and is listed in `etc/api/raft.txt`; rafthttp's importers import the new path; the harness then imports no server module), `below`, `send` (below) | **corrected** (S1): revision 0 said "`proto.Clone` as kvreconf"; kvreconf copies messages by hand (`copyMsg`), and the generic `proto.Clone.spec` has no `Message` case. Glue to check in Probe A: `ClonePb`'s `T.ro l m` from the `Ready`'s `msgOwn q.loc (readyDq q.st) q.st`, and the clone's `T.dec l' m'` with `eqv` into `node.Step`'s `msgPtsC … ⟨st.msg, st.ents, st.snap, st.ctx, []⟩` (the etcd server's `netRecv` does the same from a decoded copy) |
+| `for _, m := range rd.Messages { c.send(r, proto.Clone(m).(*pb.Message), …) }` | **`proto.ClonePb.spec`** (existing axiom) at `pbMessage` (the `PbType` of a `*raftpb.Message`; revision 2, B4: `PbMessage.lean` moves from `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/` to `Proof/go_etcd_io/raft/v3/`, beside `InvPbMsg`, dropping its import of rafthttp's `Net`, which its body does not use, and is listed in `etc/api/raft.txt`; rafthttp's importers import the new path; the harness then imports no server module), `below`, `send` (below) | **corrected** (S1): revision 0 said "`proto.Clone` as kvreconf"; kvreconf copies messages by hand (`copyMsg`), and the generic `proto.Clone.spec` has no `Message` case. Checked in Probe A (`probeA_cloneStep`): `ClonePb`'s `T.ro l m` from the `Ready`'s `msgOwn q.loc (readyDq q.st) q.st` by `msgOwn_persist`, and the clone's `T.dec l' m'` with `eqv` into `node.Step`'s `msgPtsC … ⟨st.msg, st.ents, st.snap, st.ctx, []⟩` (the etcd server's `netRecv` does the same from a decoded copy), the original's empty responses from `sentMsg_shape` (`eqv` only carries their emptiness), and `stepIn_intro`'s `snapLocalMsg` from `snapLocalMsg_noDir` at the harness's `γ.snapLoc = fun _ => none` (P5) |
 
 **When the harness sends, checked against the Go.** `app` calls `handleReady`, then `Advance`, then
 `send` for each message (`concurrent.go`, the comment at the loop). `node.Advance` returns only once
@@ -503,7 +556,7 @@ changes but §3.5's refusals and F2's `stepIn_intro` premise.
 |---|---|---|
 | `StartNode` | `StartNode.gatedSpec` (frozen Draft, over `startTrace`); `StartNode.tracedSpec D` (hypothesis, `D` free) | A8.3: the gated post gains `startDoneB γ cv.ID'`; `StartNode.tracedSpec` has no parameter, its post the sealed `startDone γ cv.ID'`. Proved from `setupNode`'s traced spec (§5) |
 | `node.Tick` | `node.Tick.spec` | unchanged |
-| `node.Ready` / `isReadyChan_recvAu` | untraced law; `.tracedSpec` (hypothesis) with `readyGotT` = `readyGot` ∗ `[∗list] q ∈ ms, trTok γ q.st` (**unprovable**, 29n finding 4) | `readyGotT` = `readyGot` ∗ **`readyToksClaim n γ N ms`**. `.tracedSpec` a theorem; `isReadyChan_recvAu` stays proved for every `γ` (it drops the claim) |
+| `node.Ready` / `isReadyChan_recvAu` | untraced law; `.tracedSpec` (hypothesis) with `readyGotT` = `readyGot` ∗ `[∗list] q ∈ ms, trTok γ q.st` (**unprovable**, 29n finding 4) | `readyGotT` = `readyGot` with **`readyToksClaim n γ N ms`** as its last conjunct, inside its existentials at `readyRest`'s `ms` (Probe A, P2: as a separate conjunct, `ms` would be unbound). `.tracedSpec` a theorem; `isReadyChan_recvAu` stays proved for every `γ` (it drops the claim) |
 | `node.Advance` | `node.Advance.spec` (no tokens) | New **`node.Advance.tracedSpec`**, the one proof (A5): `node.Advance.spec`'s pre ∗ `readyToksClaim n γ N ms`; post: its first disjunct ∗ `[∗list] q ∈ ms, trTok γ q.st`; the stopped disjunct gives nothing. **`node.Advance.spec`: text unchanged, every `γ`, now its instance** at `ms = []` (`readyToksClaim_nil` in, the empty list out). F3: `run` needs nothing back |
 | `node.Propose` | `node.Propose.spec` | unchanged (the `propc` payload's entry is normal by construction) |
 | `node.ApplyConfChange` | `node.ApplyConfChange.spec` | unchanged (traced content: `run`'s `confc` arm) |
@@ -1374,7 +1427,8 @@ rows say so. Revision 3: rows re-checked against N1-N3 and S1-S6; changed or new
 | `tcMainSpec` / `Main.spec` ★(premises) | `Main.wp_proof` (proved) with `RunConcurrent.spec` and the checker's Link | unchanged proof, plus passing the instance and `premises boot` |
 | `RunConcurrent.spec` ★ | §2.2's calls: `harness_alloc`, `tcOpsInv` (with its requested-entries clause, A6)/`confPolicy_alloc`/`tcSnapsInv`, the storage with `storBnd_zero` (B2), `startTraceC_intro`, `StartNode.tracedSpec`, `sync.join`, `join3`, `netJoin`, `wp_fork_tok_body` for `app` (B5), `app`/`send`, `node.Stop.spec`, `time.Now`, `Time.Add`, `runOver_intro` (with `bootEnd`, a theorem on `trace-check-a8`) | allocation gives each voter's `startTraceC`; the three `startDone`s with `traceDir` and `Cluster.traceSim` give `BootFacts`; `runOver_intro` composes |
 | `app` ★ (harness-local: `isNode`, driver state, `nodeRunning 1`, `njAdder ⅓`, `ownDone apps …`, a `threadTok`) | `time.NewTicker`, `node.Tick.spec`, `isReadyChan_recvAu.tracedSpec`, `handleReady`, `node.Advance.tracedSpec`, `proto.ClonePb.spec` at `pbMessage` (moved to raft's tree, B4), `send`, `wp_fork_tok_self` | loop invariant: the driver idle, `nodeRunning 1`, `njAdder ⅓`, one `threadTok` (B5). Each round: the claim (with its allocation bound, A1) at the receive, the tokens at `Advance`, one `send` per token |
-| `handleReady` ★ | storage contract, `tc_confShaped` (`tcOpsInv`, `ownCommittedOps_lb_prefix`, `confShaped_of_ops` moved to `ConfRule.lean`), `proto.UnmarshalConfChange.spec`, `proto.UnmarshalConfChangeV2.spec`, `confPolicy_decide`, `committed_emptyV2_joint`, `node.ApplyConfChange.spec`, `snapshotCert_made`, `snapMade_elem` with `tcSnapsInv` | **changed (A6)**: both conf arms as kvreconf's `Replica__applyEntry`, from client-visible facts only (§2.3); the snapshot branch refuted from `readySnap` |
+| `handleReady` ★ | storage contract, `tcOps_emptyV2`/`tcOps_v1_boot` (`tcOpsInv`, `ownCommittedOps_lb_prefix`, `isCommittedLogLb_agree`; Probe A, P4), `proto.UnmarshalConfChange.spec`, `proto.UnmarshalConfChangeV2.spec`, `confPolicy_decide`, `committed_emptyV2_joint`, `confAt_valid`, **`Membership.applyChange_leaveJoint`** (new raft law, P1), `Membership.applyChange_addVoter`, `node.ApplyConfChange.spec`, `snapshotCert_made`, `snapMade_elem` with `tcSnapsInv` | **changed (A6; Probe A, P1, P4)**: both conf arms from client-visible facts only (§2.3); the snapshot branch refuted from `readySnap` |
+| `Membership.applyChange_leaveJoint` ★ (Probe A, P1; raft API, `InvNode.lean` beside `applyChange_addVoter`) | `ApiImpl.memApply`, `ccApplyM_leaveJoint` (`ConfchangeApiImpl.lean:109`), `leaveJointM` at a valid joint state | the empty `ConfChangeV2` is the leave; no other law speaks of joint memberships |
 | `send` ★ | `netJoin.wp_Add`, `wp_fork_tok_self`, `trTok_type`, `node.Step.tracedSpec`, `node.ReportUnreachable.spec`, `netJoin.wp_Done` | the token rides into the goroutine; `ReportSnapshot` dead by `trTok_type`; the goroutine ends with `wp_Done`'s thread token |
 | `netJoin` laws, `join3` ★ | raw `WaitGroup.Add/Done/Wait`, `alloc_wait_token`, `threadToks_add_one_lt`, `ThreadBoundLe.le` | §6, end to end |
 | `StartNode.tracedSpec` ★ (A8.3) | `StartNode.gatedSpec` (Draft, amended), `startTraceC_eq` | the Draft's over the sealed names (as today's `tracedSpec_of_gated`) |
@@ -1419,7 +1473,7 @@ rows say so. Revision 3: rows re-checked against N1-N3 and S1-S6; changed or new
 
 The first `Ready` of a fresh voter hands out no message, so the concrete run that reaches a message:
 `StartNode` ×3; voter 1's first `Ready` (the three bootstrap entries; `ApplyConfChange` ×3 through
-`tc_confShaped` and `confPolicy_decide`; `Advance` without using the claim's tokens: `ms = []`); ticks
+`tcOps_v1_boot` and `confPolicy_decide`; `Advance` without using the claim's tokens: `ms = []`); ticks
 until `tickElection` campaigns (`hup`: `applied = 3 ≥ |boot|`, §3.4); voter 1's second `Ready` with
 `MsgVote` to 2 and 3 (key 1 of voter 1's escrow); `Advance`, giving `trTok` for each `MsgVote`;
 `proto.Clone`; `send` → `node.Step` at voter 2; voter 2's `recvc` arm steps the `MsgVote` (`TrNetTy`)
@@ -1433,8 +1487,9 @@ hypotheses:
 - the fork of `app` by `wp_fork_tok_body` (B5): `app`'s precondition with its `threadTok`;
 - `isReadyChan_recvAu.tracedSpec` (revised), giving `readyGotT` with the claim on `ms`;
 - `handleReady`'s refutation of a snapshot `Ready` (`snapshotCert_made`, `snapMade_elem`), and (A6)
-  its `ConfChangeV2` arm: `tc_confShaped`, `proto.UnmarshalConfChangeV2.spec` without error,
-  `committed_emptyV2_joint`, `confPolicy_decide`, `node.ApplyConfChange.spec`'s premises;
+  its `ConfChangeV2` arm: `tcOps_emptyV2` (was `tc_confShaped`), `proto.UnmarshalConfChangeV2.spec`
+  without error, `committed_emptyV2_joint`, `Membership.applyChange_leaveJoint` (P1),
+  `confPolicy_decide`, `node.ApplyConfChange.spec`'s premises;
 - `node.Advance.tracedSpec`, giving `[∗list] q ∈ ms, trTok γ q.st`; and `node.Advance.spec_of_traced`
   (A5);
 - for `q ∈ ms`: `netJoin.wp_Add` with the thread token, `wp_fork_tok_self`, `proto.ClonePb.spec` at
@@ -1549,7 +1604,8 @@ proved theorem before its facts.** Each landing passes the acceptance test (`not
    `storBnd_intro_untraced`, and **every L3 call site** (about 25), each discharged; `trTok_type`,
    `trTok_untraced`; `isReadyChan_recvAu.tracedSpec` and **`node.Advance.tracedSpec` as the one proof,
    `node.Advance.spec` its instance** (both use only the driver's side of the escrow, so they are
-   provable for every `γ` before `run`'s traced arms exist). Every proof of today's untraced results
+   provable for every `γ` before `run`'s traced arms exist); (Probe A, P1) the API law
+   `Membership.applyChange_leaveJoint`, an addition that re-opens nothing. Every proof of today's untraced results
    has `γ.raft.reTrace = none` (the premise of `node.run.spec`, `StartNode.spec`, `RestartNode.spec`,
    or the client's fact) and is re-proved by rewriting the gate. No `rnTrace` clause, no `readyTok` body
    change.
@@ -1630,8 +1686,8 @@ API, harness)", "Design pass, revision 1", "Design pass, revision 2" and "Design
   empty `ConfChangeV2` by the existing `ev2Rec`), then 1(d), `c.autoLeave = false`, from it; A3, S4,
   S5);
 - `TrNoSnap` in its update form, built at `setupNode` from the client's storage contract (A4);
-- `handleReady`'s conf arms from client-visible facts (`tc_confShaped`, `committed_emptyV2_joint`), as
-  kvreconf (A6);
+- `handleReady`'s conf arms from client-visible facts (`tcOps_emptyV2`, `tcOps_v1_boot`,
+  `committed_emptyV2_joint`, the new `Membership.applyChange_leaveJoint`; A6, Probe A's P1 and P4);
 - A8's form as landed and frozen (`trace-check-frozen-a8`: a mono list for the witnesses; §5.3
   restated to it in revision 3);
 - Q33 by the existing `strconv.Itoa` axiom; the harness's `proto.Clone` by the existing `ClonePb` at
