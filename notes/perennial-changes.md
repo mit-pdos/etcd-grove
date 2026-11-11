@@ -2091,3 +2091,46 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
   type), so its comparison is the translated one; or a reflect model fact stating the underlying.
 - **Status.** Recorded; not started in Perennial (the axiom here stands in for it).
+
+## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
+
+- **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
+  compaction mode, `restore()` resumes a compaction (`compactLockfree`) before the deferred
+  `s.mu.Unlock()`. That call takes the store (`isStore`), whose `s.mu` must be a lock
+  (`isRWMutexGuard`); but `sync.init_RWMutex` takes an unlocked `RWMutex` (`zero_val`) and its
+  resource `▷ P 1`, which `NewStore` has only after `restore()` (the index it publishes, the fixed
+  registration).
+- **Local workaround.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/RWMutexWLocked.lean`:
+  `init_RWMutex_wlocked P rw : rw ↦ rwW ={E}=∗ ownRWMutexWLocked rw P ∗ [∗list] … ownRWMutex rw P`
+  (every slot), from the write-locked memory `plain.wp_Lock` leaves; `P 1` is given at the unlock
+  (`RWMutex.wp_Unlock_guard`). Proved over Perennial's sealed RWMutex internals
+  (`rwmutex.ownRWMutexInvariant_unseal`, `isRWMutex_unseal`, `isLock_unseal`, `ownLock_unseal`,
+  `isMutex_unseal`, `ownMutex_unseal`, the guard's `invSt`), mirroring `rwmutex.init_RWMutex` at the
+  protocol's `Locked`/`IsLocked` state, with `init_lock_locked` for the inner `Mutex`. No axiom.
+- **Proposed (general).** `sync.init_RWMutex_wlocked` (and `init_Mutex_locked`) in Perennial, next to
+  `init_RWMutex`: a lock made by its holder.
+- **Status.** Local lemma; to be proposed.
+
+## `Int64.Load` with the fraction chosen inside the update (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `sync.atomic.Int64.Load.spec` (and `LoadInt64.spec`) quantify the fraction `dq` before
+  the atomic update; a caller whose fraction is known only once it opens its invariant (the update's
+  `∃ dq x, ownInt64 u dq x ∗ …`) cannot use them, although their proofs open the update before the
+  load and would prove the stronger form unchanged.
+- **Needed by.** mvccfull's `inBounds.spec` (frozen): `check(v <= hi.Load())` with the caller's
+  accessor picking the fraction.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/AtomicLoad.lean`:
+  `wp_LoadInt64_ex`, `wp_Int64_Load_ex`, Perennial's two proofs re-run with `∃ dq` inside the
+  update (`wp_load_bytes_typed`, the struct field). No axiom.
+- **Proposed (general).** State `LoadInt64`/`Int64.Load` (and the other atomic loads) with the
+  fraction inside the update, the current form a corollary.
+- **Status.** Local lemma; to be proposed.
+
+## `GoStringLe` as the negation of the converse `GoStringLt` (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `go.GoStringLe a b ↔ ¬ go.GoStringLt b a`, a general fact about Perennial's string
+  order.
+- **Workaround here.** `goStringLe_iff_not_lt` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
+- **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
+- **Status.** Local lemma; to be proposed.

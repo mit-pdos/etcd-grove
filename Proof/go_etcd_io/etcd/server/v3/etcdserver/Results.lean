@@ -910,7 +910,9 @@ data the empty history's image: no key, no compaction recorded), its storage ope
 (`etcdStorage_open.law`, `mvccImage_fresh.law`), gives a store of the API (`isMvcc` at `*store`), at
 `mvccStart`, open, with the backend's whole share at the batch lock `Pk` and the hook `f` frozen
 (`hookIs`), its reader tokens and range deleter, the client's rest (`backendRest`) and two counted
-reader slots. -/
+reader slots. (mvccfull's Freeze, 2026-11-10) The lessor's owner part with no lease
+(`lease.leaseOwn γl [] ∅`, `NewLessor`'s post) is lent and given back: `NewStore` on any image
+re-attaches the restored keys' leases through it. -/
 theorem server_kv_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hlp : mvcc.leaseParams d.P) (hcm : d.cm = true)
@@ -928,7 +930,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
         ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen d.γB backend.rdOpen) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ lease.leaseOwn γl [] ∅ }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
@@ -943,8 +945,9 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
           mvcc.api.mvccReaders γ mvcc.api.mvccReaderN ∗
           (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.api.mvccDeleter rd γ) ∗
           mvcc.api.backendRest d.γB d.P K d.be D ∗
-          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, #Hsz, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro⟩ HΦ
+          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
+          lease.leaseOwn γl [] ∅ }} := by
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, #Hsz, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
       mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]
@@ -952,14 +955,24 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
   rw [← mvcc.api.etcdStorage_val d]
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (mvcc.api.mvccApi_NewStore_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg)
-    $$ [Hsto Hlrd Hro]
-  · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro
+  -- (mvccfull's Freeze, 2026-11-10) the spec on any image, at the fresh one; the lessor's owner part
+  -- (no lease) lent and given back
+  iapply (mvcc.api.mvccApi_NewStore_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0
+      mvcc.api.mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True)
+      iprop(True) iprop(True))
+    $$ [Hsto Hlrd Hro Hlo]
+  · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro Hlo
+    isplitr
+    · ipureintro; exact ⟨hcfg, .start, rfl⟩
+    isplitr
+    · ipureintro; intro it lid hl; rw [mvcc.api.pendItems_mvccStart] at hl; cases hl
+    simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   inext
-  iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel⟩
+  iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel, Hlo, -, -⟩
   iapply HΦ
   iexists γ
-  iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
+  iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2 Hlo
   isplitr
   · ipureintro; exact Hγ
   rw [mvcc.api.etcdStorage_hookIs]
@@ -985,7 +998,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
         ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen d.γB backend.rdOpen) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ lease.leaseOwn γl [] ∅ }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
@@ -1001,8 +1014,9 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
           mvcc.api.mvccReaders γ mvcc.api.mvccReaderN ∗
           (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.api.mvccDeleter rd γ) ∗
           mvcc.api.backendRest d.γB d.P K d.be D ∗
-          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, #Hsz, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro⟩ HΦ
+          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
+          lease.leaseOwn γl [] ∅ }} := by
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, #Hsz, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
       mvcc.api.mvccStart.crev false hP hlp hcm) $$ [Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos]
@@ -1010,14 +1024,24 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
   · iframe Hsz Him HPKP Hreg Hw1 Hw2 Hsup Hos
   rw [← mvcc.api.etcdStorage_val d]
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
-  iapply (mvcc.api.mvccApi_New_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0 hcfg)
-    $$ [Hsto Hlrd Hro]
-  · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro
+  -- (mvccfull's Freeze, 2026-11-10) the spec on any image, at the fresh one; the lessor's owner part
+  -- (no lease) lent and given back
+  iapply (mvcc.api.mvccApi_New_wp_proof lg le cfg (mvcc.api.etcdStorage d) (Pk d.γB) γl rd0
+      mvcc.api.mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True)
+      iprop(True) iprop(True))
+    $$ [Hsto Hlrd Hro Hlo]
+  · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro Hlo
+    isplitr
+    · ipureintro; exact ⟨hcfg, .start, rfl⟩
+    isplitr
+    · ipureintro; intro it lid hl; rw [mvcc.api.pendItems_mvccStart] at hl; cases hl
+    simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   inext
-  iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel⟩
+  iintro %s ⟨%γ, %Hγ, #Hkv, Hst, Hop, HB, Hrds, Hdel, Hlo, -, -⟩
   iapply HΦ
   iexists γ
-  iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
+  iframe Hkv Hst Hop HB Hrds Hdel Hrest Hrt1 Hrt2 Hlo
   isplitr
   · ipureintro; exact Hγ
   rw [mvcc.api.etcdStorage_hookIs]
@@ -1117,7 +1141,7 @@ theorem server_kv_backend_hooks (lg : Loc) (le : GoInterface) (γA : ApplyNames)
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) ∗
         ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen d.γB backend.rdOpen) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ lease.leaseOwn γl [] ∅ }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
@@ -1132,7 +1156,8 @@ theorem server_kv_backend_hooks (lg : Loc) (le : GoInterface) (γA : ApplyNames)
           mvcc.api.mvccReaders γ mvcc.api.mvccReaderN ∗
           (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.api.mvccDeleter rd γ) ∗
           mvcc.api.backendRest d.γB d.P K d.be D ∗
-          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be }} :=
+          backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
+          lease.leaseOwn γl [] ∅ }} :=
   server_kv_backend lg le cfg d hP hlp hcm (fun γB => batchLockInv γA (metaTM γB d.P)) K D hk hsch hfin
     γl f rd0 hcfg hrb
 

@@ -2,7 +2,7 @@
 (`wp_spsc_receive`); each tick a published revision, small (`tick_bound`), so the start revision is
 in `[1, pub + 1]`; the watcher's struct; under `c.mu`, `Watch` with the update for its range
 (`register_au` when it is not empty: the stream open, the watcher registered in both halves of the
-registry; `register_au_empty` when it is, which `Watch` gives back); the lock's map and watchers
+registry; no update when it is empty, which `Watch` does not ask then); the lock's map and watchers
 grow by the new one (its position at its start, nothing received for its fresh id,
 `recvEvs_fresh`). -/
 module
@@ -109,19 +109,17 @@ theorem watchCheck.register.wp_proof
     · iempintro
   by_cases hemp : e ≠ [] ∧ ¬ go.GoStringLt kk e
   · -- an empty range: `ErrEmptyWatcherRange`, nothing registered
-    have hsen : se ≠ slice.nil := fun hn => hemp.1 (He.2 hn)
-    have hcov : ∀ id k, (watchRangeOf kk e se (W64 1 + x) id).covers k = false :=
-      fun id k => covers_empty kk e se _ id hemp.1 hemp.2 hsen k
-    ihave Hau := register_au_empty hpers h γ kk e se (W64 1 + x) hcov $$ Hinv
     wp_apply (hWatch γ.kv γ.ws todoCtxVal
         { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
         sk se slice.nil kk e [] (W64 1 + x) (fun _ _ _ => iprop(True)))
-      $$ [$Hmpkg $Hws $Hrdr $Hsk $Hse $Hflt $Hau]
+      $$ [$Hmpkg $Hws $Hrdr $Hsk $Hse $Hflt]
     · isplitl []
       · ileft; ipureintro; rfl
-      · ipureintro; word
+      · isplitl []
+        · ipureintro; word
+        · ileft; ipureintro; exact hemp
     iintro %id %err ⟨Hrdr, Hres⟩
-    icases Hres with (⟨%Hi, #Herr, -⟩ | ⟨%Hne, -⟩)
+    icases Hres with (⟨%Hi, #Herr⟩ | ⟨%Hne, -⟩)
     rotate_left
     · exfalso
       rcases Hne with h1 | h1
@@ -131,7 +129,7 @@ theorem watchCheck.register.wp_proof
     have hlen0 : se.len ≠ W64 0 := by
       intro h0; apply hemp.1; rw [← List.length_eq_zero_iff, Hsel.1, h0]; rfl
     ihave Hinit := errVars $$ Hmpkg
-    icases Hinit with ⟨-, -, #HeEmp⟩
+    icases Hinit with ⟨-, -, #HeEmp, -⟩
     iunfold errorsNewVar at HeEmp
     icases HeEmp with ⟨%xe, #HeEmp, -⟩
     ihave %Hag := typedPointsto_agree_wand _ _ _ _ _ $$ Herr HeEmp
@@ -176,12 +174,14 @@ theorem watchCheck.register.wp_proof
   wp_apply (hWatch γ.kv γ.ws todoCtxVal
       { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
       sk se slice.nil kk e [] (W64 1 + x) (regQ γ W «$r0_ptr» kk e se (W64 1 + x)))
-    $$ [$Hmpkg $Hws $Hrdr $Hsk $Hse $Hflt $Hau]
+    $$ [$Hmpkg $Hws $Hrdr $Hsk $Hse $Hflt Hau]
   · isplitl []
     · ileft; ipureintro; rfl
-    · ipureintro; word
+    · isplitl []
+      · ipureintro; word
+      · iright; iexact Hau
   iintro %id %err ⟨Hrdr, Hres⟩
-  icases Hres with (⟨%Hi, -, -⟩ | ⟨-, %σ, %S, HQ, Herr⟩)
+  icases Hres with (⟨%Hi, -⟩ | ⟨-, %σ, %S, HQ, Herr⟩)
   · exfalso
     rcases hne with h1 | h1
     · exact Hi.1 h1
