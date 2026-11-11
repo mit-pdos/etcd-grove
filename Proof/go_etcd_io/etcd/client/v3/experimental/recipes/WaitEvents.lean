@@ -45,7 +45,8 @@ theorem WaitEvents.wp_proof (wp_WithRev : EtcdGrove.WithRev.spec (GF := GF) (hG 
   (try wp_auto)
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Hctxp $Hcci]
-      as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', -⟩
+      as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', -, #Hfrom'⟩
+  ihave #HctxC' := metadata.outgoingCtxOkC_bgFrom ctx' $$ Hfrom'
   ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
   (try wp_auto)
   wp_apply wp_WithRev rev $$ [$Hcv] as %f #Hf
@@ -73,7 +74,7 @@ theorem WaitEvents.wp_proof (wp_WithRev : EtcdGrove.WithRev.spec (GF := GF) (hG 
   obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := keyWatchOp_fields key rev
   unfold keyWatchOp at Hw1 Hw3 Hw4
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
-  · iframe Hctx' Hopts
+  · iframe Hctx' HctxC' Hopts
     ipureintro
     refine ⟨Hw1, Hw2, Hp.2.2.1, ?_, keyWatchOp_size rev Hp.2.2.2⟩
     rw [Hw3, Hw4]; exact concurrency.keyRangeUnder_key pfx key Hp.2.1

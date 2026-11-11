@@ -226,7 +226,7 @@ def isLeasingClient (cl : Loc) (kv : GoInterfaceOk) (osl : GoSlice) : IProp GF :
       (pctx : GoInterfaceOk) (pcs : context.ContextDesc (IProp GF)),
       concurrency.isEtcdSessionClient cl cctx ∗ concurrency.sessOptsAt osl gs ∗
       ⌜(concurrency.sessOptsFold gs (concurrency.SessionOpts.init cctx)).ctx = GoInterface.ok pctx⌝ ∗
-      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs)
+      context.isContext pctx pcs ∗ context.isCancelCtxCtx pctx pcs ∗ metadata.outgoingCtxOkC pctx)
 
 instance isLeasingClient_persistent (cl : Loc) (kv : GoInterfaceOk) (osl : GoSlice) :
     Persistent (isLeasingClient (GF := GF) cl kv osl) := by
@@ -256,7 +256,7 @@ def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
     structFieldRef leasingKV go!"cancel" lkv ↦□ cancel ∗
     structFieldRef leasingKV go!"sessionOpts" lkv ↦□ osl ∗
     isEtcdKV kv [] ∗ isEtcdDoKV kv [] ∗ isEtcdTxnKVO kv [] ∗ isLeasingClient cl kv osl ∗
-    context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+    context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
     lkvCache lkv γ pfx ∗
     sync.isWaitGroup (lkvWg lkv) γ.wg leasingWgWGN ∗ inv leasingWgN (leasingWgInv γ) ∗
     threadPool.isThreadPool leasingPoolN γ.rp (lkvReader lkv γ pfx) ∗
@@ -297,7 +297,7 @@ def isLeasingEtcdClient (cl : Loc) (osl : GoSlice) : IProp GF :=
   iprop(∃ (kv : GoInterfaceOk) (cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
     isEtcdKV kv [] ∗ isEtcdDoKV kv [] ∗ isEtcdTxnKVO kv [] ∗ isLeasingClient cl kv osl ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ GoInterface.ok cctx ∗
-    context.isContext cctx ccs ∗ context.isCancelCtxCtx cctx ccs)
+    context.isContext cctx ccs ∗ context.isCancelCtxCtx cctx ccs ∗ metadata.outgoingCtxOkC cctx)
 
 instance isLeasingEtcdClient_persistent (cl : Loc) (osl : GoSlice) :
     Persistent (isLeasingEtcdClient (GF := GF) cl osl) := by
@@ -396,7 +396,7 @@ def ownTxnLeasing (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : Go
     txnBuilderSpecO t [] B ∗
     structFieldRef txnLeasing go!"lkv" txn ↦ lkv ∗ isLeasingKV lkv γ pfx ∗
     structFieldRef txnLeasing go!"ctx" txn ↦ GoInterface.ok ctx ∗ context.isContext ctx cs ∗
-    structFieldRef txnLeasing go!"cs" txn ↦ csl ∗ cmpsOwn csl b.cmps ∗
+    metadata.outgoingCtxOkC ctx ∗ structFieldRef txnLeasing go!"cs" txn ↦ csl ∗ cmpsOwn csl b.cmps ∗
     structFieldRef txnLeasing go!"opst" txn ↦ tsl ∗ opsOwn tsl b.thenOs ∗
     structFieldRef txnLeasing go!"opse" txn ↦ esl ∗ opsOwn esl b.elseOs ∗
     ⌜b.thenOps = some tops ∧ b.elseOps = some eops⌝)

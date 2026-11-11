@@ -40,7 +40,7 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
     (hRev : leasingKV.revoke.spec (GF := GF) (hG := hG)) :
     leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs sl ps kvs
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #Hcc, #Hsl, #Hkvs, %Hkeys⟩
+  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hsl, #Hkvs, %Hkeys⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, -, #Hp, -⟩
@@ -102,7 +102,7 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
     ihave #H0 := etcdReached_zero (GF := GF)
     wp_apply hRev lkv γ pfx ctx cs (strings.trimPrefix v.key pfx) opv
         (opGetModel (strings.trimPrefix v.key pfx) []) (.get (opGetModel (strings.trimPrefix v.key pfx) []))
-        (W64 0) $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hopv $H0]
+        (W64 0) $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hopv $H0]
       as %resp %err ⟨Hrd, -⟩
     · ipureintro
       have Hk : v.key.length ≤ 2 ^ 27 := Hkeys v (List.mem_of_getElem? Hvi)

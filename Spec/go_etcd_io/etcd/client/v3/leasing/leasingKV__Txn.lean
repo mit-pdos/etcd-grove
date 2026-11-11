@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 abbrev leasingKV.Txn.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
     (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Txn")) (Val #(GoInterface.ok ctx)))
   {{ (txn : Loc), RET #(GoInterface.ok (txnIface txn));
       ownTxnLeasing txn lkv γ pfx ctx cs LTxnBuild.empty }}

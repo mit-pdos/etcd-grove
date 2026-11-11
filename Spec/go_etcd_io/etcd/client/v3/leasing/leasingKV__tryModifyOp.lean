@@ -33,7 +33,7 @@ abbrev leasingKV.tryModifyOp.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (top : TxnOp) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ opFullAt opv o ∗ etcdReached lo ∗
       ⌜txnOpOf o = some top ∧ (o.t = W64 2 ∨ o.t = W64 3) ∧ OpShape opKeyMax opKeyMax opValMax o⌝ }}
     (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"tryModifyOp")) (Val #(GoInterface.ok ctx))) (Val #opv))
   {{ (resp : Loc) (wc : GoChan) (err : GoInterface), RET (PairV (PairV #resp #wc) #err);
