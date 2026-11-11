@@ -1261,6 +1261,19 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q21 (2026-11-11, Q8 stage 1 slice 22b): an accepted append's truncation and the frozen
+  `QuorumLogF`.** A receiver at the request's term may hold, by coincidence, a prefix a quorum
+  committed at a higher term, and truncate it; `QuorumLogF` (a clause of the frozen `simFx`) stays
+  true of reachable states (the committing quorum never truncates it), but it does not record who
+  committed or at which term, so it cannot be re-proved after the truncation from the facts at hand
+  (in a three-node cluster the servers lacking the prefix can go from one to two, a quorum)
+  (`notes/decisions.md`, "Q8 stage 1 (slice 22b)"). Options: (a) an inductive strengthening of the
+  clause (the committing quorum's term recorded, so a truncating receiver is shown not to be in it),
+  checked against the specification first; (b) a weaker `QuorumLogF` that the simulation still
+  needs (to check: who reads it); (c) facts from raft's ghost state passed into the line's `FxPres`
+  (the frozen laws see only `σ`). **Taken by the coordinator (the freeze being delegated to it),
+  pending the user's veto: (a)**, as amendment A5 (checked against the specification first, a review
+  round, then the re-freeze `trace-check-frozen-a5`).
 - **Q20 (2026-11-10, Q8 stage 1 slice 21): the frozen `StartNode.gatedSpec` does not give the
   capability.** `TracedApiDraft`'s `startTrace` hands `StartNode` the simulation's invariant as
   `inv (simN N) (simInv vs tn (fun _ => True))` and the node's share `simNode`, but `trCapB` (frozen,
