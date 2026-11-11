@@ -1,7 +1,7 @@
 /-
 **grpc's runs on real forks** (per-type stage B, B1a, 2026-11-11; Scope r5 §2.1-2.2,
 `/shared/tmp/stageB/scope-r5.md`; Lean-first, no Rocq counterpart). The vocabulary of the trusted
-`Serve` model (`TrustedCode/google_golang_org/grpcServeModel.lean`) and of its leaves' axioms
+`Serve` model (`TrustedCode/google_golang_org/grpc.lean`) and of its leaves' axioms
 (`Spec/google_golang_org/grpc/model/`), which replace `grpc.serve`/`grpc.serveStream`'s
 caller-chosen run resource and count (`axiom/grpc-serve-pool`, `1ad2cc63a0`) in B1b. B1a adds these
 names beside the old ones; nothing outside this file, the model, its leaves and the `Serve` theorem
@@ -56,7 +56,7 @@ to Go's handler with the carrier's own fork token and credit (`wp_fork_tok_upd`)
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcServer
-public import TrustedCode.google_golang_org.grpcServeModel
+public import TrustedCode.google_golang_org.grpc
 public import Perennial.Proof.ThreadPool
 
 @[expose] public section
@@ -70,92 +70,11 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode
 
-/-! ## Go's configuration of a server -/
-
-section cfg
-variable [GooseExts]
-
-/-- **Go's configuration of one gRPC server**: the unary and stream interceptor chains
-`grpc.NewServer`'s options compose (`ics`, `sics`), and the `(full method name, handler, service
-value)` of every registered method (`regs`) and stream (`sregs`) (`RegisterService`). A handler is
-Go's `MethodDesc.Handler`/`StreamDesc.Handler`, a function value (`GoFunc`). Every `sregs` entry
-comes from a stream descriptor that sets `ClientStreams` or `ServerStreams` (`RegisterService`'s
-premise, B1b): grpc calls the handler of a descriptor with neither directly, without the stream
-interceptor (`server.go:1446-1450`, test T10b), which the model does not represent. -/
-structure GrpcSrvCfg (GF : BundledGFunctors) where
-  ics : List GoFunc
-  sics : List GoFunc
-  regs : List (GoString × GoFunc × GoInterface)
-  sregs : List (GoString × GoFunc × GoInterface)
-
-/-- **The full names of `c`'s methods and streams are jointly distinct** (`grpc.start`'s premise, M1:
-what makes the one entry named by a call's path the handler Go's split lookup finds). -/
-def grpcSrvNodup {GF : BundledGFunctors} (c : GrpcSrvCfg GF) : Prop :=
-  ((c.regs ++ c.sregs).map Prod.fst).Nodup
-
-end cfg
-
-/-- **The server listening at `addr` is `γ`** (raw; see `grpcAddrIs`). Made only by `grpc.start` (and
-carried to a bridge's address by `bridge.New`). `addr` is the exact string `grpc.start` listened on:
-two strings for one socket (`":2379"`, `"127.0.0.1:2379"`) are different addresses here, so the
-pair's "the server listening at `a`" assumes the client dials that string. -/
-axiom grpcAddrIsRaw {GF : BundledGFunctors} (addr : List w8) (γ : GName) : IProp GF
-
-/-- **Server `γ` was built with Go's configuration `c`** (raw). Made only by `grpc.start`, from
-`grpcSrvNew gs c.ics c.sics _ c.regs c.sregs`: no registration is made after `Serve` starts (grpc
-logs fatally on `RegisterService` after `Serve`, `server.go` `RegisterService`/`register`). -/
-axiom grpcSrvCfgRaw {GF : BundledGFunctors} [GooseExts] (γ : GName) (c : GrpcSrvCfg GF) : IProp GF
-
-/-- **The right to accept `γ`'s calls on `lis` through `gs`** (exclusive; made only by `grpc.start`;
-`acceptRun` returns it with each accepted call, consumes it in its `lisFailed` arm, and drops it in
-its `stopped` arm). -/
-axiom grpcSrvLink {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (γ : GName) :
-  IProp GF
-
-/-- **The right to accept further calls on `gs`'s already-open connections** after its listener
-failed (exclusive; made only by `acceptRun`'s `lisFailed` arm, one by each `lisFailed` return:
-one per link consumed, so two `Serve` calls on one `gs` with two listeners can make two). -/
-axiom grpcConnsLink {GF : BundledGFunctors} (gs : Loc) (γ : GName) : IProp GF
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **The server listening at `addr` is `γ`** (persistent by construction). -/
-def grpcAddrIs (addr : GoString) (γ : GName) : IProp GF := iprop(□ grpcAddrIsRaw addr γ)
-
-instance grpcAddrIs_persistent (addr : GoString) (γ : GName) :
-    Persistent (grpcAddrIs (GF := GF) addr γ) := by
-  unfold grpcAddrIs; infer_instance
-
-/-- **Server `γ` was built with Go's configuration `c`** (persistent by construction). -/
-def grpcSrvCfg (γ : GName) (c : GrpcSrvCfg GF) : IProp GF := iprop(□ grpcSrvCfgRaw γ c)
-
-instance grpcSrvCfg_persistent (γ : GName) (c : GrpcSrvCfg GF) :
-    Persistent (grpcSrvCfg (GF := GF) γ c) := by
-  unfold grpcSrvCfg; infer_instance
-
-end defs
-
 section axioms
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **One server per address string.** True: `netAddrFree` allows one `Listen` per address in a run
-(`Proof/net/InvNet.lean`), `grpc.start` consumes the listener, and `bridge.New` consumes the
-bridge's own listener. Addresses are compared as strings (`grpcAddrIsRaw`): the law is used only at
-one string, never to identify two spellings of one socket. (Restart's S10 must revisit this if a
-`Stop` spec ever frees an address.) -/
-axiom grpcAddrIs_agree (addr : GoString) (γ γ' : GName) :
-  grpcAddrIs (GF := GF) addr γ ∗ grpcAddrIs addr γ' ⊢ ⌜γ = γ'⌝
-
-/-- **One configuration per server**: `grpc.start` makes `grpcSrvCfg γ _` once per `γ`. -/
-axiom grpcSrvCfg_agree (γ : GName) (c c' : GrpcSrvCfg GF) :
-  grpcSrvCfg (GF := GF) γ c ∗ grpcSrvCfg γ c' ⊢ ⌜c = c'⌝
 
 /-- **The reply channel of the accepted unary call `r`**, back to the client whose `Invoke`
 deposited `Φ`, `Ψe` (exclusive; made only by `acceptRun`/`acceptRunConns`; its only use is
@@ -165,90 +84,6 @@ axiom grpcReplyTo (r : val) (Rep : ProtoMsgT GF) (Φ : Rep.M → IProp GF)
 
 end axioms
 
-/-! ## The run contracts -/
-
-section run
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **The run contract of a unary handler**: `grpcMethodOkMd`'s text with the per-run resource fixed
-to what a run is given, the fork's thread token and later credit (`wp_fork_tok_upd`), in the pre, and
-the token in the post. A run, given the token and the credit, the run's context (`isContext`,
-`grpcRunCtx`), grpc's `dec` for the request at `m`, the chain's interceptor (`grpcSrvChain`) and
-`Spec md m Φ Ψe` at the context's incoming metadata, returns the token and, on success, a response
-`*T` (as `any`) at some `m'` with `Φ m'`, on a handler's error its `Ψe`, and an error grpc's
-`status.FromError` takes. Handlers are proved against `grpcMethodOkMd` at their bundle; the adapters
-(`grpcRunOkMd_of_pools`) give this contract. -/
-def grpcRunOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
-    (Spec : GrpcSpecMd Req Rep) : IProp GF :=
-  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
-    {{ threadTok ∗ £ 1 ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-        grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
-      (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
-    {{ (resp err : GoInterface), RET (PairV #resp #err); threadTok ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-        (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
-
-instance grpcRunOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
-    Persistent (grpcRunOkMd mh srv ics Spec) := by
-  unfold grpcRunOkMd; infer_instance
-
-/-- **The run contract of a stream handler**: `grpcStreamMethodOk`'s text with the per-run resource
-fixed to the fork's thread token and later credit, and the post returning the token: the stream
-specification is satisfiable per stream (`streamSpecOk`, at every metadata), and a run, given
-`Spec md γ Dn` at its context's metadata, the token and the credit, the run's raw server end (both
-tokens at `[]`) and grpc's `info`, through the chain, terminates or not, returning an error grpc's
-`status` takes and the token. -/
-def grpcStreamRunOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (sics : List GoFunc)
-    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
-  iprop((□ ∀ md, streamSpecOk (Spec md)) ∗
-    □ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc),
-      Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn -∗ threadTok -∗ £ 1 -∗
-      srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
-      srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
-      srvStreamInfoIs info -∗
-      srvStreamChainWP #info sics mh #srv #st
-        (fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-          threadTok)))
-
-instance grpcStreamRunOk_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
-    (sics : List GoFunc) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
-    Persistent (grpcStreamRunOk mh srv sics Up Spec) := by
-  unfold grpcStreamRunOk; infer_instance
-
-/-- A run contract at a spec is one at a stronger spec. -/
-theorem grpcRunOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
-    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) :
-    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' := by
-  iintro #Hm
-  unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
-  iapply (h _ m Φ Ψe) $$ HSpec
-
-/-- A run contract at a spec is one at a spec that gives it after an update. -/
-theorem grpcRunOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
-    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
-    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' := by
-  iintro #Hm
-  unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  ihave HSpec := (h _ m Φ Ψe) $$ HSpec
-  imod HSpec
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
-
-end run
 
 /-! ## The registration and the accepted call -/
 
@@ -257,30 +92,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **The registration of `name` at server `γ`, as Go has it**: Go's configuration `c` lists
-`(name, mh, srv)`, and the handler meets `Spec` under Go's chain, each run given a thread token and
-one later credit and returning the token (`grpcRunOkMd`). -/
-def isGrpcRpcAt {Req Rep : ProtoMsg GF} (γ : GName) (name : GoString) (Spec : GrpcSpecMd Req Rep) :
-    IProp GF :=
-  iprop(∃ (c : GrpcSrvCfg GF) (mh : GoFunc) (srv : GoInterface),
-    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.regs⌝ ∗ □ grpcRunOkMd #mh srv c.ics Spec)
-
-instance isGrpcRpcAt_persistent {Req Rep : ProtoMsg GF} (γ : GName) (name : GoString)
-    (Spec : GrpcSpecMd Req Rep) : Persistent (isGrpcRpcAt γ name Spec) := by
-  unfold isGrpcRpcAt; infer_instance
-
-/-- **The registration of the stream `name` at server `γ`, as Go has it** (the stream analogue of
-`isGrpcRpcAt`, with `grpcStreamRunOk`). -/
-def isGrpcStreamAt {Req Rep : StreamMsg GF} (γ : GName) (name : GoString)
-    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
-  iprop(∃ (c : GrpcSrvCfg GF) (mh : GoFunc) (srv : GoInterface),
-    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.sregs⌝ ∗ grpcStreamRunOk #mh srv c.sics Up Spec)
-
-instance isGrpcStreamAt_persistent {Req Rep : StreamMsg GF} (γ : GName) (name : GoString)
-    (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
-    Persistent (isGrpcStreamAt γ name Up Spec) := by
-  unfold isGrpcStreamAt; infer_instance
 
 /-- **The composed stream interceptor grpc calls, for the chain `sics`** (persistent; as
 `grpcSrvChain` for streams: grpc's `chainStreamServerInterceptors`, `server.go:1245-1262`: `nil` for
@@ -331,12 +142,44 @@ def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
       srvRecvTok (Req := Req.toStreamMsg) γs [] ∗ srvSendTok (Rep := Rep.toStreamMsg) γs [] ∗
       streamAuxTok γs ∗ srvStreamInfoIs info))
 
-/-- **The right to serve `gs` on `lis` as server `γ`** (B1a's name; B1b makes it `grpcServeTok`,
-replacing the old axiom): the link, Go's configuration, and the replies' size premise under which
-`grpc.start` made them. -/
-def grpcServeTokR (gs : Loc) (lis : GoInterface) (γ : GName) : IProp GF :=
+/-- **The right to serve `gs` on `lis` as server `γ`** (what `gs.Serve(lis)` takes; per-type stage B,
+B1b: a definition, replacing the axiom of the same name): the link, Go's configuration with jointly
+distinct full names, and the replies' size premise under which `grpc.start` made them. Made only by
+`grpc.start'`. -/
+def grpcServeTok (gs : Loc) (lis : GoInterface) (γ : GName) : IProp GF :=
   iprop(grpcSrvLink gs lis γ ∗ (∃ c : GrpcSrvCfg GF, grpcSrvCfg γ c ∗ ⌜grpcSrvNodup c⌝) ∗
     ⌜grpcRepliesFit⌝)
+
+/-- **The start, packaged** (proved from `grpc.start`): the server listening at `addr`, as the facts
+`grpc.serve` and `grpc.serveStream` use (`grpcServerAt`, `grpcStreamServerAt`), and the right to
+serve it (`grpcServeTok`). -/
+theorem grpc.start' (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
+    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface))
+    (hfit : grpcRepliesFit) (hnd : ((regs ++ sregs).map Prod.fst).Nodup) :
+    grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
+    |={⊤}=> ∃ γ : GName, grpcServerAt addr ics regs γ ∗ grpcStreamServerAt addr sics sregs γ ∗
+      grpcServeTok gs lis γ := by
+  iintro H
+  imod (grpc.start gs lis addr ics sics svcs regs sregs hfit hnd) $$ H with ⟨%γ, #Ha, #Hc, Hl⟩
+  imodintro
+  iexists γ
+  unfold grpcServerAt grpcStreamServerAt grpcServeTok
+  isplitr [Hl]
+  · iframe Ha
+    iexists sics, sregs
+    iexact Hc
+  isplitr [Hl]
+  · iframe Ha
+    iexists ics, regs
+    iexact Hc
+  iframe Hl
+  isplitr
+  · iexists ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF)
+    iframe Hc
+    ipureintro
+    exact hnd
+  ipureintro
+  exact hfit
 
 end reg
 
@@ -408,6 +251,89 @@ theorem grpcRunOkMd_of_pools {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfa
   imodintro
   iapply HΨ
   iframe
+  iapply (threadTok_levels0123 (GF := GF) HT).2
+  iframe
+
+/-- An update before a stream chain's call is absorbed (`fupd_wp` at the chain's first call). -/
+theorem srvStreamChainWP_fupd (info : val) (ics : List GoFunc) (h srv st : val)
+    (Ψ : val → IProp GF) :
+    (|={⊤}=> srvStreamChainWP info ics h srv st Ψ) ⊢ srvStreamChainWP info ics h srv st Ψ := by
+  cases ics with
+  | nil =>
+    unfold srvStreamChainWP
+    exact fupd_wp
+  | cons ic ics =>
+    unfold srvStreamChainWP
+    iintro H %h' #Hh'
+    iapply fupd_wp
+    imod H
+    imodintro
+    iapply H $$ %h' Hh'
+
+/-- A stream chain's postcondition may be weakened, with an update (`Ψ` is only its first call's
+postcondition). -/
+theorem srvStreamChainWP_wand (info : val) (ics : List GoFunc) (h srv st : val)
+    (Ψ Ψ' : val → IProp GF) :
+    srvStreamChainWP info ics h srv st Ψ ∗ (∀ v, Ψ v -∗ |={⊤}=> Ψ' v) ⊢
+      srvStreamChainWP info ics h srv st Ψ' := by
+  cases ics with
+  | nil =>
+    unfold srvStreamChainWP
+    iintro ⟨H, Hw⟩
+    iapply wp_fupd
+    iapply wp_wand $$ H Hw
+  | cons ic ics =>
+    unfold srvStreamChainWP
+    iintro ⟨H, Hw⟩ %h' #Hh'
+    iapply wp_fupd
+    iapply wp_wand $$ [H] Hw
+    iapply H $$ %h' Hh'
+
+/-- **The stream adapter** (Scope r5 §3.4; B1b): a stream handler proved against
+`grpcStreamMethodOk` at a bundle `R₁ ∗ R₂ ∗ R₃` of three leveled pools (levels 1, 2, 3), which it
+returns, meets the stream run contract: the run borrows each pool with its token's level, strips the
+joined later with the run's one credit, runs the chain, and gives the loans back. Generic in the
+pools, as `grpcRunOkMd_of_pools`. -/
+theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
+    (sics : List GoFunc) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep)
+    (R₁ R₂ R₃ : IProp GF) (N₁ N₂ N₃ : Namespace) (γ₁ γ₂ γ₃ : GName) (HT : 4 ≤ threadBound GF) :
+    □ grpcStreamMethodOk mh srv sics iprop(R₁ ∗ R₂ ∗ R₃) Up Spec ∗
+      threadPool.isThreadPoolL N₁ 1 γ₁ R₁ ∗ threadPool.isThreadPoolL N₂ 2 γ₂ R₂ ∗
+      threadPool.isThreadPoolL N₃ 3 γ₃ R₃ ⊢
+    grpcStreamRunOk mh srv sics Up Spec := by
+  iintro ⟨#Hm, #Hp1, #Hp2, #Hp3⟩
+  iunfold grpcStreamMethodOk at Hm
+  icases Hm with ⟨#Hs, #Hr⟩
+  unfold grpcStreamRunOk
+  iframe Hs
+  iintro !> %γ %Dn %ci %cd %st %info HSp Htok Hlc Hraw HR HT' Ha Hi
+  iapply srvStreamChainWP_fupd
+  icases (threadTok_levels0123 (GF := GF) HT).1 $$ Htok with ⟨H0, H1, H2, H3, H4⟩
+  imod threadPool.borrowL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 H1] with ⟨HR1, Hl1⟩
+  · iframe; iframe #
+  imod threadPool.borrowL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 H2] with ⟨HR2, Hl2⟩
+  · iframe; iframe #
+  imod threadPool.borrowL N₃ 3 γ₃ R₃ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp3 H3] with ⟨HR3, Hl3⟩
+  · iframe; iframe #
+  ihave HRs : iprop(▷ (R₁ ∗ R₂ ∗ R₃)) $$ [HR1 HR2 HR3]
+  · inext; iframe
+  imod lc_fupd_elim_later (E := ⊤) $$ Hlc HRs with HRs
+  imodintro
+  iapply srvStreamChainWP_wand
+  isplitl [HSp HRs Hraw HR HT' Ha Hi]
+  · iapply Hr $$ HSp HRs Hraw HR HT' Ha Hi
+  iintro %v ⟨%err, %Hv, #Hse, ⟨HB1, HB2, HB3⟩⟩
+  imod threadPool.giveBackL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 Hl1 HB1] with H1
+  · iframe; iframe #
+  imod threadPool.giveBackL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 Hl2 HB2] with H2
+  · iframe; iframe #
+  imod threadPool.giveBackL N₃ 3 γ₃ R₃ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp3 Hl3 HB3] with H3
+  · iframe; iframe #
+  imodintro
+  iexists err
+  isplitr
+  · ipureintro; exact Hv
+  iframe Hse
   iapply (threadTok_levels0123 (GF := GF) HT).2
   iframe
 

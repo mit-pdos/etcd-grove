@@ -23,14 +23,19 @@ A service method `h` meets `Spec` with the per-run resource `S` (`grpcHandlerOk 
 runtime runs, for a call of a registered method, its `MethodDesc.Handler` `mh` on the registered
 service value `srv`, with grpc's `dec` (`grpcDecOk`) and the interceptor it composes for the
 server's chain `ics` (`grpcSrvChain`, `srvChainWP`); `grpcMethodOk mh srv ics S Spec` is what
-such a run must meet. A server gets its methods served at its address by `grpc.serve` (an axiom),
-handing the runtime its server object (`grpcServerAt addr ics regs`, exclusive: built with the
-chain `ics`, the methods `regs` registered) and `n` copies of `S` (a run holds one: at most `n`
-runs at a time); it obtains `grpcServes addr name mh srv ics S` (persistent, opaque) for each.
+such a run must meet. Since per-type stage B (B1b), a run is a fork of grpc's `Server.Serve`
+(its trusted model, `TrustedCode/google_golang_org/grpc.lean`), given the fork's thread
+token and one later credit and returning the token (`grpcRunOkMd`, the run contract; handlers
+proved against `grpcMethodOkMd` at a bundle get it from the adapters, `InvGrpcRun.lean`). The server's
+configuration is Go's (`grpcSrvCfg γ c`, made only by `grpc.start` from `grpcSrvNew`), at the server
+listening at `addr` (`grpcAddrIs addr γ`); `grpc.serve` (a theorem) packages it with the run
+contracts into registrations. (Until B1b, `grpc.serve` was an axiom taking a caller-chosen run
+resource `S` and count `n`, `axiom/grpc-serve-pool`.)
 Interceptors are specified as transparent (`srvInterceptorOk`, `srvChainWP_of_ok`).
 
-**Registration** (`isGrpcRpc addr name Spec`, persistent, a definition): some method handler
-served at `addr` under `name` meets `Spec` as grpc runs it (`grpcMethodOk`). Several specs of one
+**Registration** (`isGrpcRpc addr name Spec`, persistent, a definition): the handler Go's
+configuration of the server at `addr` registers under `name` meets `Spec` as grpc runs it
+(`isGrpcRpcAt`, `grpcRunOkMd`). Several specs of one
 method may hold (each a fact about the one handler); a client needs one.
 
 **The client side** (unit P3a, 2026-10-14: the boundary below the interceptors).
@@ -799,7 +804,7 @@ structure GrpcMethod (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [sem :
   Req : ProtoMsgT GF
   Rep : ProtoMsgT GF
   spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg
-  handler : val
+  handler : GoFunc
   srv : GoInterface
   reqReg : grpcReqModelOf GF Req.ty = some Req
   repReg : grpcRepModelOf GF Rep.ty = some Rep
@@ -808,29 +813,190 @@ end method
 
 /-! ## The opaque facts about grpc's runtime -/
 
-/-- **The gRPC server listening at `addr`, built with the unary interceptor chain `ics`, its
-services' methods `regs` registered** (exclusive; an axiomatized predicate, unit P3b; it was
-`grpcListener addr`). Exists only in a run satisfying `grpcRepliesFit`: made only by
-`grpc.start`, which takes it. One registration per address (urpc's `host c↦ ∅`); `ics` the
-interceptors `grpc.NewServer`'s options chain (`UnaryInterceptor`'s, then `ChainUnaryInterceptor`'s, in
-order), `regs` the `(full method name, MethodDesc.Handler, service value)` of every unary method
-of the `ServiceDesc`s registered with `RegisterService`. Established by the server's unverified
-construction (etcd's `v3rpc.Server`, `grpc.NewServer`, the `Register*Server` calls, `Serve`): a
-premise of the server's results. -/
-axiom grpcServerAt {GF : BundledGFunctors} [GooseExts] (addr : GoString) (ics : List GoFunc)
-  (regs : List (GoString × val × GoInterface)) : IProp GF
+/-! ## Go's configuration of a server -/
 
-/-- **The server at `addr` runs the method handler `mh` with the service `srv` and the chain
-`ics` for the method `name`, with the per-run resource `S`** (persistent; an axiomatized
-predicate, introduced only by `grpc.serve`). -/
-axiom grpcServes {GF : BundledGFunctors} [GooseExts] (addr name : GoString) (mh : val)
-  (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) : IProp GF
+section cfg
+variable [GooseExts]
 
-axiom grpcServes_persistent {GF : BundledGFunctors} [GooseExts] (addr name : GoString) (mh : val)
-  (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) :
-  Persistent (grpcServes addr name mh srv ics S)
+/-- **Go's configuration of one gRPC server**: the unary and stream interceptor chains
+`grpc.NewServer`'s options compose (`ics`, `sics`), and the `(full method name, handler, service
+value)` of every registered method (`regs`) and stream (`sregs`) (`RegisterService`). A handler is
+Go's `MethodDesc.Handler`/`StreamDesc.Handler`, a function value (`GoFunc`). Every `sregs` entry
+comes from a stream descriptor that sets `ClientStreams` or `ServerStreams` (`RegisterService`'s
+premise, B1b): grpc calls the handler of a descriptor with neither directly, without the stream
+interceptor (`server.go:1446-1450`, test T10b), which the model does not represent. -/
+structure GrpcSrvCfg (GF : BundledGFunctors) where
+  ics : List GoFunc
+  sics : List GoFunc
+  regs : List (GoString × GoFunc × GoInterface)
+  sregs : List (GoString × GoFunc × GoInterface)
 
-attribute [instance] grpcServes_persistent
+/-- **The full names of `c`'s methods and streams are jointly distinct** (`grpc.start`'s premise, M1:
+what makes the one entry named by a call's path the handler Go's split lookup finds). -/
+def grpcSrvNodup {GF : BundledGFunctors} (c : GrpcSrvCfg GF) : Prop :=
+  ((c.regs ++ c.sregs).map Prod.fst).Nodup
+
+end cfg
+
+/-- **The server listening at `addr` is `γ`** (raw; see `grpcAddrIs`). Made only by `grpc.start` (and
+carried to a bridge's address by `bridge.New`). `addr` is the exact string `grpc.start` listened on:
+two strings for one socket (`":2379"`, `"127.0.0.1:2379"`) are different addresses here, so the
+pair's "the server listening at `a`" assumes the client dials that string. -/
+axiom grpcAddrIsRaw {GF : BundledGFunctors} (addr : List w8) (γ : GName) : IProp GF
+
+/-- **Server `γ` was built with Go's configuration `c`** (raw). Made only by `grpc.start`, from
+`grpcSrvNew gs c.ics c.sics _ c.regs c.sregs`: no registration is made after `Serve` starts (grpc
+logs fatally on `RegisterService` after `Serve`, `server.go` `RegisterService`/`register`). -/
+axiom grpcSrvCfgRaw {GF : BundledGFunctors} [GooseExts] (γ : GName) (c : GrpcSrvCfg GF) : IProp GF
+
+/-- **The right to accept `γ`'s calls on `lis` through `gs`** (exclusive; made only by `grpc.start`;
+`acceptRun` returns it with each accepted call, consumes it in its `lisFailed` arm, and drops it in
+its `stopped` arm). -/
+axiom grpcSrvLink {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (γ : GName) :
+  IProp GF
+
+/-- **The right to accept further calls on `gs`'s already-open connections** after its listener
+failed (exclusive; made only by `acceptRun`'s `lisFailed` arm, one by each `lisFailed` return:
+one per link consumed, so two `Serve` calls on one `gs` with two listeners can make two). -/
+axiom grpcConnsLink {GF : BundledGFunctors} (gs : Loc) (γ : GName) : IProp GF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The server listening at `addr` is `γ`** (persistent by construction). -/
+def grpcAddrIs (addr : GoString) (γ : GName) : IProp GF := iprop(□ grpcAddrIsRaw addr γ)
+
+instance grpcAddrIs_persistent (addr : GoString) (γ : GName) :
+    Persistent (grpcAddrIs (GF := GF) addr γ) := by
+  unfold grpcAddrIs; infer_instance
+
+/-- **Server `γ` was built with Go's configuration `c`** (persistent by construction). -/
+def grpcSrvCfg (γ : GName) (c : GrpcSrvCfg GF) : IProp GF := iprop(□ grpcSrvCfgRaw γ c)
+
+instance grpcSrvCfg_persistent (γ : GName) (c : GrpcSrvCfg GF) :
+    Persistent (grpcSrvCfg (GF := GF) γ c) := by
+  unfold grpcSrvCfg; infer_instance
+
+end defs
+
+section axioms
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **One server per address string.** True: `netAddrFree` allows one `Listen` per address in a run
+(`Proof/net/InvNet.lean`), `grpc.start` consumes the listener, and `bridge.New` consumes the
+bridge's own listener. Addresses are compared as strings (`grpcAddrIsRaw`): the law is used only at
+one string, never to identify two spellings of one socket. (Restart's S10 must revisit this if a
+`Stop` spec ever frees an address.) -/
+axiom grpcAddrIs_agree (addr : GoString) (γ γ' : GName) :
+  grpcAddrIs (GF := GF) addr γ ∗ grpcAddrIs addr γ' ⊢ ⌜γ = γ'⌝
+
+/-- **One configuration per server**: `grpc.start` makes `grpcSrvCfg γ _` once per `γ`. -/
+axiom grpcSrvCfg_agree (γ : GName) (c c' : GrpcSrvCfg GF) :
+  grpcSrvCfg (GF := GF) γ c ∗ grpcSrvCfg γ c' ⊢ ⌜c = c'⌝
+end axioms
+
+/-! ## The run contracts -/
+
+section run
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The run contract of a unary handler**: `grpcMethodOkMd`'s text with the per-run resource fixed
+to what a run is given, the fork's thread token and later credit (`wp_fork_tok_upd`), in the pre, and
+the token in the post. A run, given the token and the credit, the run's context (`isContext`,
+`grpcRunCtx`), grpc's `dec` for the request at `m`, the chain's interceptor (`grpcSrvChain`) and
+`Spec md m Φ Ψe` at the context's incoming metadata, returns the token and, on success, a response
+`*T` (as `any`) at some `m'` with `Φ m'`, on a handler's error its `Ψe`, and an error grpc's
+`status.FromError` takes. Handlers are proved against `grpcMethodOkMd` at their bundle; the adapters
+(`grpcRunOkMd_of_pools`) give this contract. -/
+def grpcRunOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
+    (Spec : GrpcSpecMd Req Rep) : IProp GF :=
+  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+    {{ threadTok ∗ £ 1 ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
+        grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+      (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
+    {{ (resp err : GoInterface), RET (PairV #resp #err); threadTok ∗
+        (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+        (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
+
+instance grpcRunOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
+    Persistent (grpcRunOkMd mh srv ics Spec) := by
+  unfold grpcRunOkMd; infer_instance
+
+/-- A run contract at a spec is one at a stronger spec. -/
+theorem grpcRunOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) :
+    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' := by
+  iintro #Hm
+  unfold grpcRunOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
+  iframe
+  iapply (h _ m Φ Ψe) $$ HSpec
+
+/-- A run contract at a spec is one at a spec that gives it after an update. -/
+theorem grpcRunOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
+    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' := by
+  iintro #Hm
+  unfold grpcRunOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  ihave HSpec := (h _ m Φ Ψe) $$ HSpec
+  imod HSpec
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
+  iframe
+
+end run
+
+/-! ## The registration and the accepted call -/
+
+section reg
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The registration of `name` at server `γ`, as Go has it**: Go's configuration `c` lists
+`(name, mh, srv)`, and the handler meets `Spec` under Go's chain, each run given a thread token and
+one later credit and returning the token (`grpcRunOkMd`). -/
+def isGrpcRpcAt {Req Rep : ProtoMsg GF} (γ : GName) (name : GoString) (Spec : GrpcSpecMd Req Rep) :
+    IProp GF :=
+  iprop(∃ (c : GrpcSrvCfg GF) (mh : GoFunc) (srv : GoInterface),
+    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.regs⌝ ∗ □ grpcRunOkMd #mh srv c.ics Spec)
+
+instance isGrpcRpcAt_persistent {Req Rep : ProtoMsg GF} (γ : GName) (name : GoString)
+    (Spec : GrpcSpecMd Req Rep) : Persistent (isGrpcRpcAt γ name Spec) := by
+  unfold isGrpcRpcAt; infer_instance
+
+/-- **The server listening at `addr` is `γ`, built with the unary chain `ics` and the unary methods
+`regs`** (persistent; per-type stage B, B1b: it was an exclusive axiom): Go's configuration of `γ`
+(`grpcSrvCfg`), whatever its stream chain and streams. Made by `grpc.start'` from `grpc.start`'s
+facts. Several registrations of one Go handler at different specs are each a true fact about it. -/
+def grpcServerAt (addr : GoString) (ics : List GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface)) (γ : GName) : IProp GF :=
+  iprop(grpcAddrIs addr γ ∗ ∃ (sics : List GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
+    grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF))
+
+instance grpcServerAt_persistent (addr : GoString) (ics : List GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface)) (γ : GName) :
+    Persistent (grpcServerAt (GF := GF) addr ics regs γ) := by
+  unfold grpcServerAt; infer_instance
+
+end reg
 
 /-- **The client's connection `conn` reaches the servers at `addrs`, with the unary interceptors
 `ics` and the default call options `dopts`** (persistent; an axiomatized predicate: a fact about
@@ -863,42 +1029,30 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The method `name` of the server at `addr` meets `Spec`** (persistent; see the file
-header): grpc's runtime at `addr` runs, for `name`, a method handler with a service and the
-server's chain that meet it (`grpcMethodOk`), with the resource it was served with. -/
-def isGrpcRpc {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpec Req Rep) :
-    IProp GF :=
-  iprop(∃ (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
-    grpcServes addr name mh srv ics S ∗ grpcMethodOk mh srv ics S Spec)
-
-instance isGrpcRpc_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
-    (Spec : GrpcSpec Req Rep) : Persistent (isGrpcRpc addr name Spec) := by
-  unfold isGrpcRpc; infer_instance
-
 /-- **The method `name` of the server at `addr` meets the metadata-indexed `Spec`** (persistent;
-the auth plan's E3zb): as `isGrpcRpc`, with `grpcMethodOkMd`. A plain spec's is `isGrpcRpc`
-(`isGrpcRpc_md`). -/
+the auth plan's E3zb; per-type stage B, B1b): the server listening at `addr` is some `γ`
+(`grpcAddrIs`), and `γ`'s Go configuration registers `name` with a handler that meets `Spec` as a
+run on a fork of grpc's (`isGrpcRpcAt`: the run contract `grpcRunOkMd`). -/
 def isGrpcRpcMd {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpecMd Req Rep) :
     IProp GF :=
-  iprop(∃ (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
-    grpcServes addr name mh srv ics S ∗ grpcMethodOkMd mh srv ics S Spec)
+  iprop(∃ γ : GName, grpcAddrIs addr γ ∗ isGrpcRpcAt γ name Spec)
 
 instance isGrpcRpcMd_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
     (Spec : GrpcSpecMd Req Rep) : Persistent (isGrpcRpcMd addr name Spec) := by
   unfold isGrpcRpcMd; infer_instance
 
+/-- **The method `name` of the server at `addr` meets `Spec`** (persistent; see the file
+header): `isGrpcRpcMd` at the plain spec (`GrpcSpec.md`). -/
+def isGrpcRpc {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpec Req Rep) :
+    IProp GF :=
+  isGrpcRpcMd addr name (GrpcSpec.md Spec)
+
+instance isGrpcRpc_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
+    (Spec : GrpcSpec Req Rep) : Persistent (isGrpcRpc addr name Spec) := by
+  unfold isGrpcRpc; infer_instance
+
 theorem isGrpcRpc_md {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpec Req Rep) :
-    isGrpcRpc addr name Spec ⊣⊢ isGrpcRpcMd addr name (GrpcSpec.md Spec) := by
-  unfold isGrpcRpc isGrpcRpcMd
-  constructor
-  · iintro ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
-    iexists mh, srv, ics, S
-    iframe Hs
-    iapply (grpcMethodOk_md mh srv ics S Spec).1 $$ Hm
-  · iintro ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
-    iexists mh, srv, ics, S
-    iframe Hs
-    iapply (grpcMethodOk_md mh srv ics S Spec).2 $$ Hm
+    isGrpcRpc addr name Spec ⊣⊢ isGrpcRpcMd addr name (GrpcSpec.md Spec) := .rfl
 
 /-- **The method `name` of every server at `addrs` meets `Spec`** (persistent; D27): what a call
 on a connection to `addrs` needs, wherever grpc's balancer sends the attempt. Reducible, by
@@ -983,18 +1137,6 @@ theorem grpcMethodOk_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
   iframe
   iapply (h m Φ) $$ HSpec
 
-/-- A registration with `Spec` is one with a stronger request precondition `Spec'`. -/
-theorem isGrpcRpc_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
-    (Spec Spec' : GrpcSpec Req Rep) (h : ∀ m Φ, Spec' m Φ ⊢ Spec m Φ) :
-    isGrpcRpc addr name Spec ⊢ isGrpcRpc addr name Spec' := by
-  iintro #H
-  iunfold isGrpcRpc at H
-  icases H with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
-  unfold isGrpcRpc
-  iexists mh, srv, ics, S
-  iframe Hs
-  iapply (grpcMethodOk_mono mh srv ics S Spec Spec' h) $$ Hm
-
 /-- A method meeting the metadata-indexed `Spec` meets a stronger `Spec'`. -/
 theorem grpcMethodOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpecMd Req Rep)
@@ -1013,11 +1155,30 @@ theorem isGrpcRpcMd_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
     isGrpcRpcMd addr name Spec ⊢ isGrpcRpcMd addr name Spec' := by
   iintro #H
   iunfold isGrpcRpcMd at H
-  icases H with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
-  unfold isGrpcRpcMd
-  iexists mh, srv, ics, S
-  iframe Hs
-  iapply (grpcMethodOkMd_mono mh srv ics S Spec Spec' h) $$ Hm
+  icases H with ⟨%γ, #Ha, #H⟩
+  iunfold isGrpcRpcAt at H
+  icases H with ⟨%c, %mh, %srv, #Hc, %Hin, #Hm⟩
+  unfold isGrpcRpcMd isGrpcRpcAt
+  iexists γ
+  iframe Ha
+  iexists c, mh, srv
+  iframe Hc
+  isplitr
+  · ipureintro; exact Hin
+  imodintro
+  iapply (grpcRunOkMd_mono #mh srv c.ics Spec Spec' h) $$ Hm
+
+/-- A registration with `Spec` is one with a stronger request precondition `Spec'`. -/
+theorem isGrpcRpc_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
+    (Spec Spec' : GrpcSpec Req Rep) (h : ∀ m Φ, Spec' m Φ ⊢ Spec m Φ) :
+    isGrpcRpc addr name Spec ⊢ isGrpcRpc addr name Spec' := by
+  unfold isGrpcRpc
+  apply isGrpcRpcMd_mono
+  intro md m Φ Ψe
+  iintro ⟨H, #H'⟩
+  isplitl [H]
+  · iapply (h m Φ) $$ H
+  iexact H'
 
 /-- A method meeting the metadata-indexed `Spec` meets a `Spec'` that gives `Spec` after an update
 (`Spec` is only the method triple's precondition, where an update is eliminated). -/
@@ -1040,75 +1201,54 @@ theorem isGrpcRpcMd_mono_upd {Req Rep : ProtoMsg GF} (addr name : GoString)
     isGrpcRpcMd addr name Spec ⊢ isGrpcRpcMd addr name Spec' := by
   iintro #H
   iunfold isGrpcRpcMd at H
-  icases H with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
-  unfold isGrpcRpcMd
-  iexists mh, srv, ics, S
-  iframe Hs
-  iapply (grpcMethodOkMd_mono_upd mh srv ics S Spec Spec' h) $$ Hm
-
-/-- A served method handler that meets the metadata-indexed `Spec` registers it. -/
-theorem isGrpcRpcMd_intro {Req Rep : ProtoMsg GF} (addr name : GoString) (mh : val)
-    (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpecMd Req Rep) :
-    grpcServes addr name mh srv ics S ∗ grpcMethodOkMd mh srv ics S Spec ⊢
-      isGrpcRpcMd addr name Spec := by
-  iintro ⟨#H1, #H2⟩
-  unfold isGrpcRpcMd
-  iexists mh, srv, ics, S
-  iframe #
-
-/-- A served method handler that meets `Spec` registers it. -/
-theorem isGrpcRpc_intro {Req Rep : ProtoMsg GF} (addr name : GoString) (mh : val)
-    (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
-    grpcServes addr name mh srv ics S ∗ grpcMethodOk mh srv ics S Spec ⊢
-      isGrpcRpc addr name Spec := by
-  iintro ⟨#H1, #H2⟩
-  unfold isGrpcRpc
-  iexists mh, srv, ics, S
-  iframe #
-
-/-- **Serving** (an axiom, the server side of the trust boundary; see the file header and
-`notes/decisions.md`, "The server end of the gRPC boundary"; unit P3b): a gRPC server at `addr`,
-built with the chain `ics`, with the methods `regs` registered (`grpcServerAt`), of which the
-methods `ms` (distinct names), each meeting its spec with the per-run resource `S` as grpc runs
-it (`grpcMethodOk`: its `MethodDesc.Handler` on the registered service value, the call's context
-(`isContext`, and `grpcRunCtx`: no value under etcd's keys), grpc's `dec` for the request, the
-interceptor for `ics`), and that hands the runtime `n` copies of `S`, is served at `addr`: a run
-holds one copy of `S` (taken from the `n` and given back: at most `n` runs at a time).
-
-Since 2026-10-31 (`notes/reply-size.md`): grpc marshals a reply before any size check, and the
-codec's `make` panics above `grpcReplyMax`. This axiom's resource (`grpcServerAt`,
-`grpcStreamServerAt`, `grpcServeTok`) comes only from `grpc.start`, under `grpcRepliesFit`, so no
-reply exceeds it. A reply in `(2 ^ 31 - 1, 2 ^ 48]` fails with `ResourceExhausted`. -/
-axiom grpc.serve (addr : GoString) (ics : List GoFunc) (regs : List (GoString × val × GoInterface))
-    (ms : List (GrpcMethod GF)) (S : IProp GF) (n : Nat) :
-  (ms.map GrpcMethod.name).Nodup → (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →
-  (grpcServerAt addr ics regs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
-    [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics S m.spec) ⊢
-  |={⊤}=> [∗list] m ∈ ms, grpcServes addr m.name m.handler m.srv ics S
-
-/-- **The methods of a served server are registered** (`grpc.serve`, `isGrpcRpc_intro`). -/
-theorem grpc_serve_rpcs (addr : GoString) (ics : List GoFunc)
-    (regs : List (GoString × val × GoInterface)) (ms : List (GrpcMethod GF)) (S : IProp GF)
-    (n : Nat) (hnd : (ms.map GrpcMethod.name).Nodup)
-    (hreg : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) :
-    (grpcServerAt addr ics regs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
-      □ [∗list] m ∈ ms, grpcMethodOkMd m.handler m.srv ics S m.spec) ⊢
-    |={⊤}=> [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
-  iintro ⟨Hl, Hs, #Hh⟩
-  imod (grpc.serve addr ics regs ms S n hnd hreg) $$ [Hl Hs] with Hsv
-  · iframe
-    iexact Hh
+  icases H with ⟨%γ, #Ha, #H⟩
+  iunfold isGrpcRpcAt at H
+  icases H with ⟨%c, %mh, %srv, #Hc, %Hin, #Hm⟩
+  unfold isGrpcRpcMd isGrpcRpcAt
+  iexists γ
+  iframe Ha
+  iexists c, mh, srv
+  iframe Hc
+  isplitr
+  · ipureintro; exact Hin
   imodintro
-  have Hm := BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := ms)
-    (Φ := fun _ m => iprop(grpcServes addr m.name m.handler m.srv ics S ∗
-      grpcMethodOkMd m.handler m.srv ics S m.spec))
-    (Ψ := fun _ m => isGrpcRpcMd addr m.name m.spec)
-    (fun {_ m} => isGrpcRpcMd_intro (GF := GF) addr m.name m.handler m.srv ics S m.spec)
-  iapply Hm
-  iapply BigSepL.bigSepL_sep_eqv.2
-  isplitl [Hsv]
-  · iexact Hsv
-  · iexact Hh
+  iapply (grpcRunOkMd_mono_upd #mh srv c.ics Spec Spec' h) $$ Hm
+
+/-- **Serving** (a theorem since per-type stage B, B1b; it was an axiom whose caller-chosen run
+resource and count made every handler meet every spec, `axiom/grpc-serve-pool`): the methods `ms`
+of the server at `addr` with the unary chain `ics` and the registrations `regs`
+(`grpcServerAt`, made by `grpc.start'`), each registered with its handler and service and meeting
+its run contract (`grpcRunOkMd`: a run on a fork of grpc's, given the fork's thread token and
+later credit), are registered at `addr` (`isGrpcRpcMd`). What runs the handlers is `Server.Serve`
+(its trusted model, `TrustedCode/google_golang_org/grpc.lean`). -/
+theorem grpc.serve (addr : GoString) (ics : List GoFunc)
+    (regs : List (GoString × GoFunc × GoInterface)) (ms : List (GrpcMethod GF)) (γ : GName) :
+    (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) →
+    grpcServerAt addr ics regs γ ∗ □ ([∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv ics m.spec) ⊢
+    |={⊤}=> [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
+  intro hreg
+  iintro ⟨#Hs, #Hms⟩
+  iunfold grpcServerAt at Hs
+  icases Hs with ⟨#Ha, %sics, %sregs, #Hc⟩
+  imodintro
+  have Hm : iprop(□ (grpcAddrIs (GF := GF) addr γ ∗ grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF))) ⊢
+      [∗list] m ∈ ms, (grpcRunOkMd #m.handler m.srv ics m.spec -∗ isGrpcRpcMd addr m.name m.spec) :=
+    BigSepL.bigSepL_intro (fun _ m hk => by
+      have hm : m ∈ ms := List.mem_of_getElem? hk
+      iintro #⟨Ha, Hc⟩ #Hr
+      unfold isGrpcRpcMd isGrpcRpcAt
+      iexists γ
+      iframe Ha
+      iexists ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF),
+        m.handler, m.srv
+      iframe Hc
+      isplitr
+      · ipureintro; exact hreg m hm
+      imodintro
+      iexact Hr)
+  ihave Hw := Hm $$ []
+  · imodintro; iframe #
+  iapply BigSepL.bigSepL_wand $$ Hms Hw
 
 /-! ## The client side: one attempt, the interceptor chain (unit P3a) -/
 

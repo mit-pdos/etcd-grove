@@ -1,9 +1,9 @@
 /-
 **The trusted model of grpc's `(*Server).Serve`** (per-type stage B, B1a, 2026-11-11; Scope r5 §2.2,
-`/shared/tmp/stageB/scope-r5.md`). Part of the trust base. B1a keeps it a standalone definition
-(`model.Serve`); B1b makes it `Server.Serve.impl` (`trusted = ["Server.Serve"]` in
-`Code/google_golang_org/grpc.toml`), so that the old `Server.Serve` axiom and this model never
-coexist on one function.
+`/shared/tmp/stageB/scope-r5.md`). Part of the trust base. It is `Server.Serve.impl`
+(`trusted = ["Server.Serve"]` in `Code/google_golang_org/grpc.toml`, B1b); B1a kept it a standalone
+definition (`model.Serve`), so that the old `Server.Serve` axiom and this model never coexisted on one
+function.
 
 **What it models** (grpc-go v1.84.0, `server.go`): `Serve(lis)` accepts connections on `lis` and, per
 connection, runs the HTTP/2 transport, which reads each stream's headers and calls `serveStreams`'
@@ -148,6 +148,10 @@ def serveLoop : val :=
 def Serve : val := glv(λ: "s" "lis", Val serveLoop "s" "lis")
 
 end model
+
+/-- **`(*Server).Serve`'s trusted body** (`trusted = ["Server.Serve"]` in
+`Code/google_golang_org/grpc.toml`; per-type stage B, B1b): the model above. -/
+def Server.Serve.impl : val := model.Serve
 
 end
 end google_golang_org.grpc

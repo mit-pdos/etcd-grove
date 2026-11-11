@@ -8,3 +8,5 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+trusted = ["Server.Serve"]

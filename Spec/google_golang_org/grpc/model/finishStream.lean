@@ -1,6 +1,6 @@
 /-
 `grpc.model.finishStream(s, r, err)` (per-type stage B, B1a, 2026-11-11; Scope r5 §2.2): a leaf of the trusted `Serve` model
-(`TrustedCode/google_golang_org/grpcServeModel.lean`), a model-only name with no Go body of its
+(`TrustedCode/google_golang_org/grpc.lean`), a model-only name with no Go body of its
 own. Lean-first (no Rocq counterpart).
 -/
 module

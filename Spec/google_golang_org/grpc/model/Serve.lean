@@ -1,5 +1,5 @@
 /-
-`(*grpc.Server).Serve(lis)`'s trusted model (`TrustedCode/google_golang_org/grpcServeModel.lean`,
+`(*grpc.Server).Serve(lis)`'s trusted model (`TrustedCode/google_golang_org/grpc.lean`,
 `model.Serve`; per-type stage B, B1a, 2026-11-11; Scope r5 §2.2): its spec over the new vocabulary.
 B1b makes the model `Server.Serve.impl` and this the spec of `Server.Serve` (with `grpcServeTok`).
 Lean-first (no Rocq counterpart).
@@ -28,7 +28,7 @@ returns an error if it returns. Every call it accepts runs on a goroutine of its
 meeting the registration its client deposited (the model's `runCall`). -/
 abbrev grpc.model.Serve.spec : Prop :=
   ∀ (gs : Loc) (lis : GoInterface) (γ : GName),
-  {{ grpcServeTokR (GF := GF) gs lis γ }}
+  {{ grpcServeTok (GF := GF) gs lis γ }}
     (App (App (Val google_golang_org.grpc.model.Serve) (Val #gs)) (Val #lis))
   {{ (err : GoInterface), RET #err; True }}
 

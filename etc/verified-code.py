@@ -128,13 +128,13 @@ STATES = ["verified", "unfinished", "assumed", "translated", "not translated"]
 
 # Go functions whose spec is proved over a trusted model (a `trusted` declaration of a Goose
 # configuration, `TrustedCode/`) that rests on model-only leaves, axioms standing for Go composites
-# (per-type stage B: grpc's `Server.Serve`, `TrustedCode/google_golang_org/grpcServeModel.lean`,
+# (per-type stage B: grpc's `Server.Serve`, `TrustedCode/google_golang_org/grpc.lean`,
 # whose leaves are `Spec/google_golang_org/grpc/model/`): what is proved is the model, not the Go
 # code, so they count as assumed, not verified.
 ASSUMED_MODELS = {"grpc.Server.Serve"}
 
 # The model-only names (the trusted model `grpc.model.Serve` and its leaves, as
-# `TrustedCode/google_golang_org/grpcServeModel.lean`'s `model.names`): they are not Go functions and
+# `TrustedCode/google_golang_org/grpc.lean`'s `model.names`): they are not Go functions and
 # are not counted. Exact names only, so that a real Go package or function named `model` still counts.
 MODEL_ONLY = {"grpc.model.Serve", "grpc.model.acceptRun", "grpc.model.acceptRunConns",
               "grpc.model.respond", "grpc.model.finishStream"}

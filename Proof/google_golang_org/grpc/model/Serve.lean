@@ -1,6 +1,6 @@
 /-
 Proof of `Spec/google_golang_org/grpc/model/Serve.lean`: the trusted `Serve` model
-(`TrustedCode/google_golang_org/grpcServeModel.lean`) meets its spec over its leaves' axioms
+(`TrustedCode/google_golang_org/grpc.lean`) meets its spec over its leaves' axioms
 (per-type stage B, B1a, 2026-11-11; Scope r5 §2.2). A Löb loop over `acceptRun`; each accepted call
 is forked (`wp_fork_tok_upd`: the forker gets the fork's thread token and a later credit, both
 passed into the run); the run identifies the client's deposited registration with Go's handler
@@ -216,7 +216,7 @@ theorem grpc.model.Serve.wp_proof
     grpc.model.Serve.spec (GF := GF) (hG := hG) := by
   intro gs lis γ
   iintro %Φ Htok HΦ
-  iunfold grpcServeTokR at Htok
+  iunfold grpcServeTok at Htok
   icases Htok with ⟨Hl, ⟨%c, #Hc, %Hnd⟩, %Hfit⟩
   unfold model.Serve
   wp_pure
