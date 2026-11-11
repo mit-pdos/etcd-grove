@@ -513,6 +513,80 @@ theorem fxPres_replicate (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s :
   iframe Htbl
   iexact H3
 
+/-- **Sending keeps the facts**, the specification invariant given (`simFx_send` with `SpecInv` of the
+result in place of `MsgOk`: an action whose step `specInv_*` proves, as `AppendEntriesToSelf`'s). -/
+theorem simFx_sendS (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Etcdraft.Msg)
+    (hsi' : TraceSpecInv.SpecInv σ → TraceSpecInv.SpecInv (σ.send x)) (hx0 : canonMsg x = x)
+    (hxk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y x)
+    (hxs : AppSliceOf σ x) :
+    (simFx (GF := GF) γ C σ ∗ msgFacts γ C x) ⊢ simFx γ C (σ.send x) := by
+  iintro ⟨Hfx, #Hx⟩
+  iunfold simFx at Hfx
+  iunfold simFx
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
+  isplitl
+  · iapply allFacts_congr_s γ C σ (σ.send x) rfl
+    iexact Hal
+  isplitl
+  · imodintro
+    iintro %y %hy
+    rcases TraceSpecInv.mem_msgs_send σ x y hy with hy | rfl
+    · iapply Hmf; ipureintro; exact hy
+    · iexact Hx
+  isplitl
+  · iapply quorumLogF_congr γ C σ (σ.send x) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _) $$ Hq
+  ipureintro
+  obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxk
+  exact ⟨hsi' hsi, hu', hsh', appSlices_send σ x has hxs⟩
+
+/-- **The self-acknowledgement's facts** (`FxPres` of its `SendAppendEntriesResponse` line, at phases
+keeping the share's server and adding its specification message `ma0`): the specification's
+`AppendEntriesToSelf` (`appendEntriesToSelf_send`, `specInv_appendEntriesToSelf`) at a leader's idle
+server of `s1`; the message plain (no entries, `msgFacts_plain`), canonical, pinning nothing. -/
+theorem fxPres_selfAck (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s1 : NState)
+    (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (C0 : List w64) (ma0 : Etcdraft.Msg)
+    (hma : TraceSim.msgAbs C0 C0.length (selfAck id s1) = some ma0) (hrole : s1.role = .leader)
+    (hC : ∀ C cs P, Φ C cs P → C = C0 ∧ id ∈ C ∧ SimIdleS C s1 cs)
+    (hΦ' : ∀ C cs P cs' P', Φ C cs P → Φ' C cs' (P ++ P') → cs' = cs ∧ P' = [ma0]) :
+    ⊢ FxPres (GF := GF) γ id E Φ Φ' := by
+  iunfold FxPres
+  imodintro
+  iintro %C %cs %P %e %a %a' %P' %σ %hpre Htbl #Hfx
+  obtain ⟨hΦ, -, hcs, hΦ1, -, hsrv, hσa, -, -, -⟩ := hpre
+  obtain ⟨hcs', hP'⟩ := hΦ' C cs P _ P' hΦ hΦ1
+  subst hP'
+  obtain ⟨rfl, hidC, ⟨a0, ha0, hR0, hs, -⟩⟩ := hC C cs P hΦ
+  have hR : SimServerR C C.length (toPState s1) (σ.s (idAbs id)) :=
+    simServerR_toC (ha0.trans (hσa ▸ hcs).symm) hR0
+  have hrl : (toPState s1).role = .leader := by rw [toPState_role, hrole]; rfl
+  have hstep := appendEntriesToSelf_send σ C C.length (toPState s1) id hR hrl hs
+  rw [selfAck_eq_pselfAck] at hma
+  have hget : (TraceSim.msgAbs C C.length (pselfAck id (toPState s1))).get
+      (by simp [TraceSim.msgAbs, pselfAck]) = ma0 := by simp only [hma, Option.get_some]
+  rw [hget] at hstep
+  have hty : ma0.type = .appendEntriesResponse := by
+    simp only [TraceSim.msgAbs, pselfAck] at hma; cases hma; rfl
+  have hen : ma0.entries = [] := by
+    simp only [TraceSim.msgAbs, pselfAck] at hma; cases hma; rfl
+  ihave #Hpf := msgFacts_plain (GF := GF) γ C ma0 (by rw [hty]; decide) hen
+  ihave #H2 := simFx_sendS γ C σ ma0 (fun hsi => TraceSpecInv.specInv_appendEntriesToSelf hsi hstep)
+    (msgAbs_canon C C.length _ ma0 hma) (fun _ _ h => absurd (h.symm.trans hty) (by decide))
+    (appSliceOf_nil σ ma0 hen) $$ [$Hfx $Hpf]
+  have hs' : ∀ j, toC (σ.send ma0).server
+      ((withNode σ (idAbs id) a' _root_.id (fun b => [ma0].foldl Etcdraft.Bag.with b)).s j) =
+      toC (σ.send ma0).server ((σ.send ma0).s j) := by
+    intro j
+    show toC σ.server (if j = idAbs id then a' else σ.s j) = toC σ.server (σ.s j)
+    split
+    · rename_i hj; subst hj; rw [hσa, hsrv, hcs', hcs]
+    · rfl
+  ihave #H3 := simFx_congr γ C (σ.send ma0)
+    (withNode σ (idAbs id) a' _root_.id (fun b => [ma0].foldl Etcdraft.Bag.with b))
+    rfl rfl rfl hs' $$ H2
+  iframe Htbl
+  iexact H3
+
 end facts
 
 end EtcdGrove
