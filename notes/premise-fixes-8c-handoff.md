@@ -61,7 +61,7 @@ under the 64G cap; full log `/shared/tmp/premise-fixes-8c/lb.log`). Do not run s
 `etc/lean-check.py` files at once on a cold import tree: parallel `lake setup-file`s raced and lost
 `.olean`s (`BaseApply.olean` missing); `lb.sh` is reliable.
 
-## C3 (the flip): implementation in progress (handed off at context limit)
+## C3 (the flip): ready to land (STOP before land.sh)
 
 Stop 1 approved by etcd-grove-81 (`questions.md`; texts in `/shared/tmp/premise-fixes-8c/c3-trusted.md`).
 Decisions entry written ("Premise fixes 8, part C3", with the correction to D4). Commits `78fe100e76`
@@ -84,21 +84,22 @@ Done (all built in targeted builds unless noted):
   `watcher.RequestProgress.spec` take `outgoingCtxOkC ctx` (callers in the branch discharge it); new law
   `metadata.outgoingCtxOk_of_valueWand` (LibKeysChain); the newClient join carries `outgoingCtxOkC cx`.
 - Full build (after `81dfaef76c`): the only failures were the `watchCtx_of_isContext` callers. Fixed
-  since: `KMWatch`, `auth/Work` (built). **Not yet rebuilt:** `examples/etcd/{watch/Main,
-  compactwatch/checkCompactRev, compactwatch/Main, auth/Main}`: their `wp_WithCancel_Background` post
+  since: `KMWatch`, `auth/Work` (built). The four examples `examples/etcd/{watch/Main,
+  compactwatch/checkCompactRev, compactwatch/Main, auth/Main}` (fixed in `3e7c890665`) built: their `wp_WithCancel_Background` post
   is `⟨cancel, isContext, isCancelCtxCtx ∗ ctxValueFrom⟩`; the pattern is now `⟨…, -, #xFrom⟩` with
   `ihave #xO := metadata.outgoingCtxOkC_bgFrom x $$ xFrom` (the `isplitl [] <;> iassumption` at the
   `watchCtx_of_isContext` call then finds `xO`). Earlier cascade errors in those files (watch/Main
   454/510, auth/Main 614/631) should be consequences; check.
 
-Next, in order:
-1. `lb.sh` the four example files; fix.
-2. Full build (`/shared/tmp/premise-fixes-8c/full.sh`, under the lock and 64G cap).
-3. `etc/tcb-report.py --check` (865 axioms, 5 sorries; LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json),
-   every collection, `etc/gen-interface.py etc/api/<pkg>.txt --check` (client/v3, concurrency, cache,
-   raft, ...: regenerate the changed ones and list the changed exported statements), `etc/gen-init.py --check`.
-4. STATUS entry (oldest to status-history, append-only, check `wc -l`), handoff, then STOP before
-   land.sh with the changed exported statements. Stage B waits on C3.
+Checks (second agent, after merging lean `6c1c6ba238`: C-W1 issue and gates 9d, no Lean change): the four
+examples built; full build clean (14018 jobs); `etc/tcb-report.py --check` matches (865 axioms, 5 sorries);
+every collection matches; the five `etc/api` interfaces unchanged; `gen-init --check` clean. Exported
+results whose statements change through the restated `ctxOk`/`watchCtx`/`kaCtxOk` (texts unchanged): 24
+(client v3 `kv.wp_{Get,Put,Delete,Compact,Txn}`, `txn.wp_{If,Then,Else,Commit}`, `watcher.wp_Close`,
+`client_{put,delete,txn}_end_to_end`, `client_get_after_put`, `client_lessor_isEtcdLease_served`,
+`client_new_isEtcdLeaseClient_served`, `client_watcher_progressNotifier`, `watchClient_Watch`,
+`cache_end_to_end_{client,new}`, `authkv_{SetUp,reqCtx}`, `recipes_{client,kv}_of_km`); no closed `*_safe`
+theorem reaches the changed definitions. STATUS entry written. Next: etcd-grove-81's go, merge lean, `etc/land.sh`.
 
 ## Pitfalls
 
