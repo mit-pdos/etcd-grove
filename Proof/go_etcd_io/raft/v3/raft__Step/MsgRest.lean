@@ -126,7 +126,7 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   obtain ⟨rfl, Hres⟩ := H
   unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ |
-    ⟨-, lt', ms, pvs, rfl, Hms, Hpm⟩ | ⟨Hc, -⟩
+    ⟨-, lt', ms, pvs, rfl, Hms, Hpm, -⟩ | ⟨Hc, -⟩
   rotate_right 2
   · refine ⟨rfl, Hwf, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, rfl, rfl, rfl, rfl⟩
     have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
@@ -204,7 +204,8 @@ local macro "local_follower" : tactic => `(tactic| (
     iframe Hphys HG
     ipureintro
     refine ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame ?_ (by rframe)⟩, rfl,
-      NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
+      NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _),
+      StepEnd.localRep (.inl Hty) Hterm hnbf (fun h => absurd (Hty.symm.trans h) (by w32_ne))⟩
     rw [toPState_forget s Hrole (Hfv Hrole)]
     exact StepCF.abandon _ (by rw [toPState_role, Hrole]; decide)
   all_goals
@@ -220,7 +221,8 @@ local macro "local_follower" : tactic => `(tactic| (
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
-      TermStep.refl _ _⟩))
+      TermStep.refl _ _, StepEnd.localRep (by simp [Hty]) Hterm hnbf
+        (fun _ => StepFnEnd.follower Hrole Hres)⟩))
 
 set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a candidate or pre-candidate: nothing. -/
@@ -248,9 +250,15 @@ local macro "local_candidate" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro
-  exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
-    StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
-    TermStep.refl _ _⟩))
+  -- (slice 27n) `wp_Step_MsgLocal`'s end state; the other callers' postconditions have none
+  first
+  | exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+      StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
+      TermStep.refl _ _, StepEnd.localRep Hty3 Hterm hnbf
+        (fun _ => StepFnEnd.candidate (by simp [Hrole]) Hres)⟩
+  | exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+      StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
+      TermStep.refl _ _⟩))
 
 set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a leader: `leaderStepResult_rest`. -/
@@ -278,9 +286,15 @@ local macro "local_leader" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %s'
   iframe Hphys HG
   ipureintro
-  exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
-    TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
-      (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
+  -- (slice 27n) `wp_Step_MsgLocal`'s end state; the other callers' postconditions have none
+  first
+  | exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
+      TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
+        (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres)),
+      StepEnd.localRep Hty3 Hterm hnbf (fun _ => StepFnEnd.leader Hrole Hres)⟩
+  | exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
+      TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
+        (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
 
 set_option hygiene false in
 /-- A leader-transfer request at a follower (at the state `s`): forwarded, or dropped. -/
@@ -383,6 +397,8 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (2026-11-11, slice 27n, Q27 (a)) the end state (`MsgUnreachable`'s)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty3 Hterm Hwf Hfv
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨

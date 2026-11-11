@@ -1284,6 +1284,35 @@ gate); the self-acknowledgement and the appends; the close at `CloseMid`'s won c
 `winLend` also lends `⌜id ∈ domSet s.prvals⌝` (Step's own fact; `raft.Step.spec`'s text unchanged). Left:
 assembling the paths into `stepBundle_traced.on`.
 
+**Q8 stage 1 (slice 28c), 2026-11-11 (branch `trace-check-q8s28c`): a leader's accepted `MsgAppResp`,
+raft's side done; the family's lines not done.** Slice 27c's question decided by the coordinator (option
+(a), raft-internal), its form and the rest the agent's (`notes/decisions.md`, "Q8 stage 1 (slice 28c)").
+Done: `stepLeader.spec`'s `"Hgcommit"` takes the code's run condition (`AppRespRan`, the sender's
+`Progress` before the step) and a later credit (`£ 1`, the stepLeader proof's own `wp_pure_lc`: a
+traced family commits raft's ghost state inside the gate, which opens the commit invariant);
+`AppRespAcceptedC` ties `n` to `maybeCommit`'s outcome when it ran and to `committed` when it did not;
+`CloseMid`'s third case (the state after `maybeCommit`, `commitAt { s with prvals := pvs } b N`, the
+sender with a `Progress`) and `Step`'s `MsgAppResp` arm split (`raft__Step/AppRespMid.lean`:
+`appResp_rest`, the release and the appends from there); the family's ghost step inside `"Hgcommit"`
+(`ghost_stepAppCommit`, `TracedRaftStepRecvLeadAccGhost.lean`: `stepCD_appCommit`, `commitOkC_of_out`).
+Left (each item in the decisions entry): the path premise `m.From' ∈ domSet s.progress` (the bundle's
+`Path`; `RawNode.Step.traced`'s third guard supplies it), the `Commit` line (the `AdvancesTo` bridge from
+`maybeCommitOut`, `fxPres_commit` with the leader's `srvFacts` rebuilt from raft's ghost state), the
+sends after it, the close and the bundle.
+
+
+**Q8 stage 1 (slice 27n), 2026-11-11 (branch `trace-check-q8s27n`): Q27 (a) done; the report's bundle
+path and the traced `RawNode.ReportUnreachable` done; a `Ready` line's tokens over the queues done;
+`acceptReady`/`Ready`, `Advance`, `ApplyConfChange`, `node.run`, `newRaft`/`Bootstrap` not done.**
+Decided by the coordinator (Q27 (a)) and the agent (its form) (`notes/decisions.md`, "Q8 stage 1 (slice
+27n)"); all raft-internal. `StepEndTy` gains `MsgUnreachable`; `StepEnd` keeps its shape (the fourth
+clause covers it), made exact by `LeaderNonpropResultC`'s report case gaining `m.Type' = MsgUnreachable
+→ lt' = s.lt ∧ ms = []` (`stepLeader/Rest.lean`) and `wp_Step_MsgLocal` returning `StepEnd`
+(`StepEnd.localRep`). Other slices' new path files add nothing (they build `StepEndTy` by `simp`; only a
+full pattern on the report case of `LeaderNonpropResultC` gains a `-`). `stepBundle_traced_unreach`
+(`TracedRaftStepUnreach.lean`), `RawNode.ReportUnreachable.traced` (`TracedRawNodeRep.lean`),
+`readyToks_queues` (`TracedReadyToks.lean`: `trCap_fire_ready`'s tokens as one `recvTokOf` per queued
+message, `outboxRelP`). Remaining, with designs, in the decisions entry.
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -2429,6 +2458,17 @@ some γd`, `Cluster.traceSimInv_alloc`, three `StartNode`s with `startTrace`, th
 application goroutines over the traced node API of slice 27n, `Cluster.traceSimInv_end` and
 `BootFacts` at the end); the checker's `Link.lean` (a link mode for `etcdraft`); then
 `raft_tracecheck_safe` and `TraceAccepts` as closed statements and a TCB collection.
+
+**S7 (the checker's link) (2026-11-11, branch `trace-check-link`): the checker linked; `TcOpen` is
+`RunConcurrent.spec` alone.** Done (`notes/decisions.md`, "S7 (the checker's link)"): a Lean-first
+mode `etc/gen-link.py --tracecheck` (`etc/link-lean-first-tracecheck.txt`) writes
+`etcdraft/Link.lean`, linking all 144 proved checker functions over their callees' results (no
+`sorry`, no axiom, no pending or external callee; every `Spec/.../etcdraft/` spec has its proof).
+`Results.lean`'s `tcMainSpec_of` takes `Etcdraft.wp_NewTrace`, `Etcdraft.wp_CheckTrace` and
+`Etcdraft.Result.wp_TLCOK` from the Link, so `TcOpen` no longer holds `NewTraceWith`, `Trace.Init`,
+`Trace.Len`, `Trace.StepLine`, `indexOf`, `State.Violated`. The TCB collection
+`etc/tcb-collections/tracecheck.txt` selects the Link's roots too. Left for S7: `RunConcurrent`'s
+proof, then the closed statements.
 
 ## Order of work
 

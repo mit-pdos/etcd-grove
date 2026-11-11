@@ -103,11 +103,13 @@ Each is what the callee's spec gives (`FollowerStepResultC`, `CandidateStepResul
 `LeaderStepResultC`, `HupOkC`), so as exact as the code's specs: the messages a broadcast queues
 (`ReplSends`' `ms`) are existential there (`notes/decisions.md`, "Q8 stage 1 (slice 13)"). -/
 
-/-- The message types `StepEnd` describes: the six traced types and the three local ones a traced
-node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s `MsgProp`). -/
+/-- The message types `StepEnd` describes: the six traced types and the four local ones a traced
+node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s `MsgProp`, and
+(2026-11-11, slice 27n, Q27 (a)) `ReportUnreachable`'s `MsgUnreachable`, whose end state is `s` but
+for `Progress` values of the same `Match`: `LeaderNonpropResultC`'s report case queues nothing). -/
 def StepEndTy (ty : w32) : Prop :=
   ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
-    ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp
+    ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp ∨ ty = MsgUnreachable
 
 /-- (2026-11-11, slice 24b) **A candidate's vote response that decides its election**: a `MsgVoteResp`
 of the candidate's term whose recorded tally is won (`JQuorum`) or lost (`JLost`) at `c`, so that
@@ -212,6 +214,32 @@ theorem StepFnEnd.leader {c : CfgM} {id : w64} {s1 : NState} {m : MessageM} {ent
   refine ⟨?_, ?_, fun _ => ⟨d, h⟩⟩
   · intro h'; rw [hr] at h'; cases h'
   · intro h'; rcases h' with h' | h' <;> rw [hr] at h' <;> cases h'
+
+/-- (2026-11-11, slice 27n, Q27 (a)) **`StepEnd` of a local report** (`MsgForgetLeader`,
+`MsgUnreachable`, `MsgSnapStatus`, term zero, no preamble): the step function's result at `s` for
+`MsgUnreachable`, the one of the three `StepEnd` describes. -/
+theorem StepEnd.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState}
+    (hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)
+    (hT0 : m.Term' = W64 0) (hnbf : ¬ PreBF m s)
+    (h : m.Type' = MsgUnreachable → StepFnEnd c id s m ents ctx s') :
+    StepEnd c id m ents ctx s s' := by
+  by_cases hu : m.Type' = MsgUnreachable
+  · have hpre : preState s m s.prvals = s := by simp [preState, hnbf]
+    have hh : m.Type' ≠ MsgHup := fun e => absurd (hu.symm.trans e)
+      (by simp only [MsgUnreachable, MsgHup, ne_eq]; first | exact of_decide_eq_true rfl | word)
+    have hv : m.Type' ≠ MsgVote := fun e => absurd (hu.symm.trans e)
+      (by simp only [MsgUnreachable, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word)
+    have hns : ¬ StaleMsg s m := fun h' => h'.1 hT0
+    have hfn : StepFnEnd c id (preState s m s.prvals) m ents ctx s' := by rw [hpre]; exact h hu
+    exact StepEnd.fn hns hh hv s.prvals hfn
+  · apply StepEnd.of_ty
+    have hnf : ¬ StepEndTy MsgForgetLeader := by unfold StepEndTy; decide
+    have hns : ¬ StepEndTy MsgSnapStatus := by unfold StepEndTy; decide
+    rcases hty with h' | h' | h'
+    · rw [h']; exact hnf
+    · exact absurd h' hu
+    · rw [h']; exact hns
 
 end pure
 
@@ -428,10 +456,10 @@ def leaderGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
         HookGateOpt s.gh.tr r (sendOutGate id s c MsgApp [mm]) (G (o ++ [mm]))) ∗
       "#Hghresp" ∷ □ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ ∀ (mm : Msg) (o : List Msg),
         ⌜mm.ty = .readIndexResp⌝ -∗ G o -∗ HookGateOpt s.gh.tr r none (G (o ++ [mm]))) ∗
-      "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗
+      "Hgcommit" ∷ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ⌜AppRespRan s m.From' m.Index'⌝ -∗
         ∀ (pvs : GMap w64 Progress) (b : Bool) (N : w64),
         ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index'⌝ -∗
-        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ G s.outbox -∗
+        ⌜maybeCommitOut c { s with prvals := pvs } b N⌝ -∗ £ 1 -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf rsmCommit id (commitAt s b N) c) (Gc b N s.outbox)) ∗
       "#Hgrlresp" ∷ □ (⌜m.Type' = MsgAppResp ∧ m.Reject' = false⌝ -∗ ∀ (N : w64) (mm : Msg) (o : List Msg),
         ⌜CfgSingle c id⌝ -∗ ⌜mm.ty = .readIndexResp⌝ -∗
@@ -541,23 +569,34 @@ end state past its append (its log the proposed state's); `Step` then steps the 
 (2026-11-11, slice 25b) Or on a candidate's `MsgVoteResp` of its term, the won state (`becomeLeader`
 after the tally: the empty entry appended, the self-acknowledgement queued, at a `Progress` map of
 `reset`'s `Match` values), the step's end state past it (its log the won state's: the election won);
-`Step` then steps the broadcast (`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). -/
+`Step` then steps the broadcast (`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). (2026-11-11, slice 28c)
+Or on a leader's accepted `MsgAppResp` of its term, the state after `maybeCommit` (the sender's `Match`
+raised as `MaybeUpdate` raises it, at a `Progress` map `pvs` of `appRespMatch`'s `Match` values, then the
+commit index at an outcome `(b, N)`), the step's end state past it (its log the committed state's: the
+commit index the outcome's); `Step` then steps the release and the appends (`notes/decisions.md`, "Q8
+stage 1 (slice 28c)"). -/
 def CloseMid (id : w64) (m : MessageM) (ents : List EntryM) (s s1 s' : NState) : Prop :=
   (m.Type' = MsgProp ∧ s.role = .leader ∧ (∀ e ∈ ents, ¬ IsConfEnt e) ∧
     s1 = proposed id s ents ∧ s1.logst = s'.logst) ∨
   (m.Type' = MsgVoteResp ∧ s.role = .candidate ∧ m.Term' = s.term ∧
     ∃ pvs : GMap w64 Progress, prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals ∧
       s1 = { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } ∧
-      s1.logst = s'.logst)
+      s1.logst = s'.logst) ∨
+  (m.Type' = MsgAppResp ∧ s.role = .leader ∧ m.Term' = s.term ∧ m.Reject' = false ∧
+    m.From' ∈ domSet s.progress ∧ ∃ (pvs : GMap w64 Progress) (b : Bool) (N : w64), prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
+      s1 = commitAt { s with prvals := pvs } b N ∧ s1.logst = s'.logst)
 
 theorem CloseMid.ty {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
-    (h : CloseMid id m ents s s1 s') : m.Type' = MsgProp ∨ m.Type' = MsgVoteResp :=
-  h.elim (fun h => .inl h.1) (fun h => .inr h.1)
+    (h : CloseMid id m ents s s1 s') :
+    m.Type' = MsgProp ∨ m.Type' = MsgVoteResp ∨ m.Type' = MsgAppResp :=
+  h.elim (fun h => .inl h.1) (fun h => h.elim (fun h => .inr (.inl h.1)) (fun h => .inr (.inr h.1)))
 
-/-- (slice 25b) A close of another type than `MsgProp` and `MsgVoteResp` is none past `s`. -/
+/-- (slice 25b) A close of another type than `MsgProp` and `MsgVoteResp` ((slice 28c) and `MsgAppResp`)
+is none past `s`. -/
 theorem CloseMid.not_of {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
-    (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp) : ¬ CloseMid id m ents s s1 s' :=
-  fun h => h.ty.elim hnp hnv
+    (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp) (hna : m.Type' ≠ MsgAppResp) :
+    ¬ CloseMid id m ents s s1 s' :=
+  fun h => h.ty.elim hnp (fun h => h.elim hnv hna)
 
 /-- (slice 25b) A proposal's close past `s` (the `MsgProp` case). -/
 theorem CloseMid.prop {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}

@@ -675,8 +675,8 @@ theorem stepBundle_traced_candVoteRespWon :
         iexists wonStateW id s m (wonPvs id (logLast s.logst) s.prvals)
         iframe Hgh
         ipureintro
-        exact .inr ⟨hTy, hrole, hterm, wonPvs id (logLast s.logst) s.prvals, wonPvs_reset _ _ _ Hid, rfl,
-          by rw [hse]; rfl⟩
+        exact .inr (.inl ⟨hTy, hrole, hterm, wonPvs id (logLast s.logst) s.prvals, wonPvs_reset _ _ _ Hid, rfl,
+          by rw [hse]; rfl⟩)
       isplitl [Hc]
       · iexists b
         iapply trCapB_monoΛ (some γd) γ r id c b _ _ _ (fun o h => .inr h) $$ Hc
