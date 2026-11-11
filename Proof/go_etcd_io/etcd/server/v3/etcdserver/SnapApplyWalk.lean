@@ -71,7 +71,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
+    (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (st : ApplyState) (b : GoInterface)
@@ -155,7 +155,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
-       srvCfgAddr s ↦□ cfg ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
+       srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
        snap.isSnapshotter ss ∗ backend.fileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
        backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
@@ -189,6 +189,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
+       -- (premise-fixes-6) the cluster's logger, a zap logger (`RaftCluster.Recover`'s)
+       (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc) ∗
        rnTransportAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
        trLive γn t c rs ∗ srvMemberIDAddr s ↦□ idm ∗
@@ -220,12 +222,13 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Lr recs U reqOf ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
   iunfold srvFieldsAtM at Hfl
-  icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
+  icases Hfl with ⟨#Hlgf, #Hlgz, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, -, ⟨%gg, #Hgg, #Hggs⟩, -⟩
@@ -252,7 +255,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   wp_apply HInc
   (try wp_auto)
   wp_apply hLg s sfv.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgnn
+  · iframe #; iframe Hlr
   (try wp_auto)
   -- the "applying snapshot" log
   wp_apply hU64 as %fl1 -
@@ -269,7 +272,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   iintro %fsl1 ⟨-, -⟩
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   -- `if GetIndex() <= ep.appliedi { Panic }`: not taken
   wp_apply hGI $$ [Hsm] as -
@@ -328,9 +331,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
     iunfold storage.openPre
-    iframe Hfg Hhooks Hvoff
+    iframe Hfg Hhooks Hvoff Hcfgl
     isplitr
-    · ipureintro; exact ⟨hdbo, hmmap, hcfgl, hP.1, hP.2.1⟩
+    · ipureintro; exact ⟨hdbo, hmmap, hP.1, hP.2.1⟩
     iexact Hcreate
   icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, #HnFile⟩ | ⟨%Herr, -, -⟩)
   rotate_left
@@ -366,7 +369,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases HnK with ⟨HnCls, #HmetaN, %jf, %γcf, Htcf, #Hidxf⟩
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   -- `s.consistIndex.SetBackend(newbe)`: the protocol moves to the snapshot's backend's names
   iunfold applyBackend at Hab
@@ -481,7 +484,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   (try wp_auto)
   -- `s.lessor.Recover(newbe, …)`: the lessor on the new backend, no lease live
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
@@ -587,9 +590,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   -- (`KV.Restore.contract` at the store handle's dynamic type, at `restoreArgs_holds`'s
   -- precondition: no hook yet, no lease live)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -696,7 +699,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   iintro %fsl5 ⟨-, -⟩
   (try wp_auto)
   wp_apply (lc := 2) hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   -- `oldbe := s.be; s.be = newbe` under `bemu`'s write side (`srv_be_swap`)
   imod (lc_fupd_elim_later (E := ⊤) (P := bemuP s E.γbe 1)) $$ Hlc1 Hbm with Hbm
   ihave #HnRO : srvBeRO (GF := GF) d' $$ []
@@ -726,7 +729,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   (try wp_auto)
   -- `s.alarmStore.Recover(schema.NewAlarmBackend(lg, newbe))`: the alarm store on the new backend
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   wp_apply hNAB as %ab ⟨%abl, %Habl, #Hablg, #Hablb⟩
   subst Habl
@@ -752,10 +755,10 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   (try wp_auto)
   -- `s.authStore.Recover(schema.NewAuthBackend(lg, newbe))` (the named premise)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   wp_apply hNAuB as %aub ⟨%aubl, %Haubl, #Haublg, #Haublb⟩
   subst Haubl
@@ -783,7 +786,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   (try wp_auto)
   -- `s.cluster.SetBackend(schema.NewMembershipBackend(lg, newbe))`
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   wp_apply hNMB as %mbl ⟨#Hmblg, #Hmblb⟩
   icases toks_take d'.γB.wb 1 1 (by omega) $$ Hwb2' with ⟨-, Hwbm⟩
@@ -835,7 +838,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · wp_apply wp_with_defer as %defer2 defer2
     (try wp_auto)
     wp_apply hInfo $$ []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgz
     (try wp_auto)
     -- (R2b-3c part 2) the old backend with its stop channels, at their client resources
     iunfold srvStopChans at HoSC
@@ -855,13 +858,13 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     subst hcerr
     (try wp_auto)
     wp_apply hInfo $$ []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgz
     (try wp_auto)
     ipureintro; trivial
   (try wp_auto)
   -- `s.cluster.Recover(api.UpdateCapability)`: the image's members
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   ihave #Hapipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api $$ []
   · iPkgInit
@@ -879,13 +882,13 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   wp_apply hCRec cl d' (mvcc.api.mvccW d'.gx) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       ((((backend.rbData d.P D).insert go!"lease" lb).insert go!"alarm" ∅)) _ memI himg'
     $$ [HnCl HnPl HthT HnRC HoMem] as ⟨HnCl, HnPl, HthT, HnRC, HnMem⟩
-  · rw [hP']; (try rw [hgx']); iframe #; iframe HnCl HnPl HthT HnRC HoMem
+  · rw [hP']; (try rw [hgx']); iframe Hclgz; iframe #; iframe HnCl HnPl HthT HnRC HoMem
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   -- `s.r.transport.RemoveAllPeers()`
   ihave #Hrhpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
@@ -897,10 +900,10 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iframe #; iframe
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   -- `for _, m := range s.cluster.Members() { … s.r.transport.AddPeer(m.ID, m.PeerURLs) }`
   iunfold srvMembersDir at Hmembers
@@ -1006,7 +1009,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       exact membersCov_done γn dir hdir ps hps mps Hmps idm L (sint.Z n).toNat
         (by have h1 : mps.length = (sint.Z msl.len).toNat := Hmsll.1; omega) Hcov
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   -- the progress at the snapshot
   wp_apply hGT $$ [Hsm] as -
@@ -1055,7 +1058,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   iintro %fsld ⟨-, -⟩
   (try wp_auto)
   wp_apply hInfo $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgz
   (try wp_auto)
   wp_apply HDec
   (try wp_auto)

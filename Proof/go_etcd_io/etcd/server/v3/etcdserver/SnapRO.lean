@@ -421,7 +421,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
   iprop(□ ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk lgh stp : Loc) (γd : GName)
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
       (d : mvcc.KBReal),
-    ⌜E.BkTie = srvBkTie d ∧ cfg.Logger' ≠ null ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
+    ⌜E.BkTie = srvBkTie d ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
       storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧
@@ -438,7 +438,9 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
-    srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
+    -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
+    srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
+    srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
     srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ cfg.ServerFeatureGate' ∗
     isFeatureGate cfg.ServerFeatureGate' ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off (what `OpenSnapshotBackend` takes)
@@ -486,7 +488,10 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     □ (∀ (sc scu : w64), srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc -∗
       srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu -∗
       srvCfgAddr s ↦□ ({ cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } :
-        go_etcd_io.etcd.server.v3.config.ServerConfig)))
+        go_etcd_io.etcd.server.v3.config.ServerConfig)) ∗
+    -- (premise-fixes-6) the cluster's logger, a zap logger (`bootOk`'s `Hclg`): what
+    -- `RaftCluster.Recover` logs through
+    (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc))
 
 instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     Persistent (srvSnapRO (GF := GF) s ci E γr γt) := by
@@ -515,14 +520,14 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iintro ⟨#H, #Hal, #Hau, #Hle, #Hcl⟩
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
-    %Hp, #H1, #H2, #H3, #H4, #Hvo, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
-    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32⟩
+    %Hp, #H1, #Hzl, #H2, #H3, #H4, #Hvo, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32, #H33⟩
   icombine Hal H14 gives %e1
   icombine Hau H15 gives %e2
   icombine Hle H16 gives %e3
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
-  obtain ⟨hkb0, hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
+  obtain ⟨hkb0, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
     -, hrb⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
@@ -536,7 +541,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iexists cfg, ss, hk, lgh, stp, γd, idm, al, ast, lp, cl, ps, dir, d'
   isplitr
   · ipureintro
-    refine ⟨hkb', hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    refine ⟨hkb', hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
       hRO, hrb⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl

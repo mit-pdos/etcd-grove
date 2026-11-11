@@ -64,7 +64,7 @@ abbrev adminEntryOn.spec : Prop :=
         Perennial.EtcdGrove.apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestResC stl (.on γa) T) ∗
-        waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+        waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
         apply.bkToks v3 E Pre Q Post ∗ Pre ∗
         apply.applyKV E ua x ∗ apply.applyTok E ∗
         ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
@@ -140,7 +140,7 @@ theorem apply_admin_entry_on
     (hAL : Perennial.EtcdGrove.apply.Apply.adminSpecL (GF := GF) (hG := hG)) :
     adminEntryOn.spec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot γa stl bel T Pk st rs hs hM hns hPk
-  iintro %Φ ⟨#Hpkg, #Hsteps, #Hwok, HRD, HK, %Hlg, #He, Htoks, HPre, Hkv, Htt, %Hprem, %Hch,
+  iintro %Φ ⟨#Hpkg, #Hsteps, #Hwok, HRD, HK, #Hlg, #He, Htoks, HPre, Hkv, Htt, %Hprem, %Hch,
     ⟨Hfu, Htie, %Hl⟩, HT, Htp, #Hwa, #Hro, HRO, Hrc, Hx⟩ HΦ
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hrb⟩ := Hprem
   ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -177,7 +177,7 @@ theorem apply_admin_entry_on
     $$ [HRD HK Hkv Htt Hfu Htie Hrc HW Hx]
   · iframe Hpkg Hsteps Hwok HRD HK He Hkv Htt Hrc HW Hx
     isplitr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     isplitr
     · ipureintro; exact ⟨Hdec, Hid, Hadm, Hdk, hM, Hrb⟩
     isplitr

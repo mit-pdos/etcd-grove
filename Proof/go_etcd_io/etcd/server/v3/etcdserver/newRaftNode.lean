@@ -52,7 +52,8 @@ theorem newRaftNode.wp_proof
     (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E node id nl pre ms γs key wal cv
-  wp_start as ⟨#Hzap, #Htdok, %Hlg, %Hhb⟩
+  wp_start as ⟨#Hzap, #Htdok, #Hlgz, %Hhb⟩
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold rnLoggerZapOk at Hzap
   iunfold rnTimeoutDetectorOk at Htdok
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -148,9 +149,7 @@ theorem newRaftNode.wp_proof
   · ipureintro; simp
   iunfold rnParts
   simp only [named]
-  iframe Htki Htdi HdcU
-  isplitr
-  · ipureintro; exact Hlg
+  iframe Htki Htdi HdcU Hlgz
   isplitr
   · iunfold isRNMsgSnapC; iexists γms
     have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc, [], W64 0⟩ =

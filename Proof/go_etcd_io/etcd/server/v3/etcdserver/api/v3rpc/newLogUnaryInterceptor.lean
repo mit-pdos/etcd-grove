@@ -59,7 +59,7 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   subst Hv
   wp_auto
   wp_apply wp_Logger s lg $$ [HR] as ⟨-, HR⟩
-  · iframe; iframe #; ipureintro; exact Hlgnn
+  · iframe; iframe #
   wp_if_destruct
   · exact absurd rfl Hlgnn
   wp_apply wp_log $$ []

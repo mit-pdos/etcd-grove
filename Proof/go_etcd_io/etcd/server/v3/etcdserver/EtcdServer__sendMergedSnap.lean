@@ -57,7 +57,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) := by
   intro s mg ml rc lg id stg tr γn S TS lid
-  wp_start as ⟨Hgr, Hlr, #Hlgf, %Hlgnn, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr, #Hmg, Hbun⟩
+  wp_start as ⟨Hgr, Hlr, #Hlgf, #Hlgnn, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr, #Hmg, Hbun⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   (try wp_auto)
@@ -90,7 +90,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   · iPkgInit
   -- the log fields
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgnn
+  · iframe #; iframe Hlr
   (try wp_auto)
   wp_apply hMID s id $$ []
   · iframe #
@@ -133,7 +133,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   ipersist lg
   ipersist s
   wp_apply hInfo _ _ _ $$ []
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto)
   -- `s.GoAttach(func() { ... })`: the release goroutine, with the fields' capacity for `append`
   iunfold stopChan at Hstg
@@ -231,7 +231,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
       · iframe Hfsl Hfcap Hf4
       (try wp_auto)
       wp_apply hInfo _ _ _ $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ'
       itrivial
@@ -248,7 +248,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
       iintro ⟨-, -⟩
       (try wp_auto)
       wp_apply hWarn _ _ _ $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ'
       itrivial

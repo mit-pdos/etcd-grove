@@ -101,7 +101,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨%Hρrd, -, ⟨%sv, #Hfl⟩, -, -, #HrnS, -⟩
   iunfold srvFieldsAtM at Hfl
-  icases Hfl with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
+  icases Hfl with ⟨#Hlgf, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, -, #Hsc,
@@ -176,7 +176,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
   ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
   wp_apply hLg s sv.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgnn
+  · iframe #; iframe Hlr
   (try wp_auto)
   wp_apply hV be sv.lg true bsl $$ []
   · iframe #
@@ -505,7 +505,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
               (by have h := Hsh.1.2.2.2.2.2.2.1 (Or.inr (Or.inr Hty)); exact ⟨h.1, h.2, Hsh.1.2.2.2.2.2.2.2⟩))
               $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT]
               as %mg ⟨Hlr, HRS', Hbeo, HgT, %rc, %D, %c, #Hmg, #Hml, #HszC, #Hcso, %Hcml, Hrs, HQd⟩
-            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT; ipureintro; exact Hlgnn
+            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HgT
             ihave Hgr : srvGoRes s $$ [HgrW HgT]
             · iunfold srvGoRes; iframe HgrW HgT
             imod Hback $$ %D HRS' HQd Hbeo with ⟨%st3, HthT, Hst, Hbe, Happ, HKVc, HRS, #Hmimg, HAr, %Hst3⟩
@@ -549,7 +549,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             (try wp_auto)
             wp_apply (hSMS s mg m rc sv.lg sv.memberID stg tr γN SN TSN lid) $$ [Hgr Hlr Hbun]
               as ⟨Hgr, Hlr⟩
-            · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun; ipureintro; exact Hlgnn
+            · iframe #; iframe Hgr Hlr; rw [HγN]; iframe Hbun
             (try wp_auto)
             have hF3 : loopOk γ st3 ai' ∧ ciEff γ st3.k = ciEff γ st'.k :=
               ⟨Hst3.2.1, by rw [Hst3.2.2]; exact Hst''.2⟩

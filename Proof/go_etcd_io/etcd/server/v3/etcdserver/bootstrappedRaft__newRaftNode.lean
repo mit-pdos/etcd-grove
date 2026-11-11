@@ -124,7 +124,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
       bv.heartbeat' GoInterface.nil)) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
-    ipureintro; exact ⟨Hcfg.lg, Hhb⟩
+    ipureintro; exact Hhb
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn

@@ -79,7 +79,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
   ihave ⟨%ctx, %cd, #Hctxf, #Hctx, #Hspc, #Hcst⟩ := srvRevokeCtx_ctx s E ρ γr γg $$ Hrvk
   ihave ⟨%stl, #Hauf, #HEn⟩ := srvRevokeCtx_withRoot s E ρ γr γg hoff $$ Hrvk
   iunfold srvFieldsAt at Hf
-  icases Hf with ⟨#Hlgf, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -, -⟩
+  icases Hf with ⟨#Hlgf, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -, -⟩
   iunfold srvRunFieldsAt at Hrf
   icases Hrf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
   ihave ⟨%sch, #Hsch, #Hstop⟩ := srvGoAttachOk_stopping s γg $$ Hgok
@@ -120,8 +120,8 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
     imod raftPool_borrowL (srvLgReader s) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hlc2 HrP G1]
       with ⟨Glr, GloanR⟩
     · iframe Hlc2 G1; iexact HrP
-    wp_apply hLg s v.lg $$ [Glr] as ⟨%Hl, Glr⟩
-    · iframe #; iframe Glr; ipureintro; exact Hlgnn
+    wp_apply hLg s v.lg $$ [Glr] as ⟨#Hl, Glr⟩
+    · iframe #; iframe Glr
     (try wp_auto)
     wp_apply hEL s E ρ γr 3 $$ [Glr Grdr G3] as %b ⟨Glr, Grdr, G3⟩
     · rw [hoff, isServerReqM_false, isServerReadM_false]
@@ -159,7 +159,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
       iintro %fl ⟨-, -⟩
       (try wp_auto)
       wp_apply hW v.lg _ _ $$ []
-      · ipureintro; exact Hl
+      · iexact Hl
       (try wp_auto)
       iapply Hexit
       iframe
@@ -283,7 +283,7 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
             iintro %fl ⟨-, -⟩
             (try wp_auto)
             wp_apply hW v.lg _ _ $$ []
-            · ipureintro; exact Hl
+            · iexact Hl
             (try wp_auto)
             wp_apply (wp_bag_receive γc ch (fun _ : Unit => iprop(True))) $$ [] as %u -
             · iexact Hbag

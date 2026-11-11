@@ -326,7 +326,7 @@ theorem raftNode.processMessages.wp_proof
           iintro %fsl -
           wp_auto
           wp_apply wp_Warn lg _ _ $$ [$Hzap]
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           ihave Hsi : (srvInit : IProp GF) $$ []
           · iapply isPkgInit_access $$ Hpkg
           iunfold srvInit at Hsi

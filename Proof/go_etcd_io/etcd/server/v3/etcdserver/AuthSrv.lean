@@ -185,7 +185,7 @@ provider's admin resource in the mode `on`). -/
 def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
   iprop(∃ K : IProp GF, K ∗ □ ∀ (lg : Loc) (ab : GoInterface) (abl : Loc)
       (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData) (cost : w64),
-    {{ K ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    {{ K ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗ ⌜ab = authBkIface abl⌝ ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -233,7 +233,7 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
 auth store's construction in it. -/
 abbrev authSrvTP (on : Bool) : Prop :=
   ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
       ⌜on = true → opts = go!"simple" ∧ 0 < sint.Z ttl⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewTokenProvider)) (Val #lg))
       (Val #opts)) (Val #iw)) (Val #ttl))
@@ -307,14 +307,16 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   iexists iprop(True)
   isplitr
   · itrivial
-  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, %Hlg, %Htp, %Hfit, %Hab, #Habbe,
+  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe,
     #Hablg, #HB, Ho, Hh, Hwb, Hrb, -, %Hr, %Hhas⟩ HΦ
   -- (the auth-on snapshot plan's Prove step) the axiom at the auth buckets, idle
   ihave Hrb := backend.rbOwnIn_part _ _ _ $$ Hrb
   iapply (h30 lg ab tp cost abl d W Pk qo authBkts r (fun _ h => h) Hhas.1 Hhas.2.1
     Hhas.2.2) $$ [Ho Hh Hwb Hrb]
   · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
-    ipureintro; exact ⟨Hlg, Htp, Hfit, Hab, Hr⟩
+    isplitr
+    · iapply zapLoggerOk_orNil; iexact Hlg
+    ipureintro; exact ⟨Htp, Hfit, Hab, Hr⟩
   iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
   iapply HΦ
   iframe Ho Hh
@@ -364,9 +366,9 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) :
     authSrvTP (GF := GF) false := by
   intro lg opts iw ttl
-  iintro %Φ ⟨#Hpkg, %Hlg, -⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hlg, -⟩ HΦ
   iapply (h25 lg opts iw ttl) $$ [Hpkg]
-  · iframe Hpkg; ipureintro; exact Hlg
+  · iframe Hpkg; iapply zapLoggerOk_orNil; iexact Hlg
   iintro !> %tp %err ⟨%Htp, -⟩
   iapply HΦ
   isplitr
@@ -433,7 +435,7 @@ theorem authStoreKit_on
     auth.authSucc γa ∗ ghostVar γa.bk 1 γ0 ∗ auth.authPubQ γa (1 : Qp).half 0)
   iframe HA Hown Hcur HI Hfr Hcap Hsucc Hbk HpubQ
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI, Hfr, Hcap, Hsucc, Hbk,
-    HpubQ⟩, #Hpkg, %Hlg, %Htp, %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, HkIn, %Hr,
+    HpubQ⟩, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, HkIn, %Hr,
     %Hhas⟩ HΦ
   simp only [authKitIn]
   icases HkIn with ⟨HopQ, Hslots0⟩
@@ -444,7 +446,7 @@ theorem authStoreKit_on
   iunfold authSchemaSrv at HD
   ihave HD' := HD $$ %γa %lg %abl %d %W %Pk %qo %r [] [] [] [] HB Hopen HopQ Hslots0 Hhook Hwb Hrbo
     Hsucc HI HpubQ
-  · ipureintro; exact Hlg
+  · iapply zapLoggerOk_ne_null; iexact Hlg
   · ipureintro; exact Hr
   · iunfold ablOn; iframe Habbe Hablg
   · ipureintro; exact Hhas
@@ -468,7 +470,7 @@ theorem authStoreKit_on
     $$ [$Hpkg $Hrdok Hbk $Hcu $HwokR $HCreate $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
     as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', #Hbc, #Htot, Hslots⟩
   · iframe; isplitr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     isplitr
     · ipureintro; rfl
     unfold auth.authBkCur; iexact Hbk
@@ -561,7 +563,7 @@ theorem authStoreKit_on
   · iunfold authBeOn
     iexists abl, lg
     iframe Hbe Habbe Hablg
-    ipureintro; exact Hlg
+    iapply zapLoggerOk_ne_null; iexact Hlg
   isplitl [Hslots HRs]
   · icases replicate_takeN _ (backend.authRdN - 1) _ (by omega) $$ HRs with ⟨HRs, -⟩
     ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
@@ -645,10 +647,10 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     authSrvTP (GF := GF) true := by
   intro lg opts iw ttl
-  iintro %Φ ⟨#Hpkg, %Hlg, %Hon⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hlg, %Hon⟩ HΦ
   obtain ⟨hopts, httl⟩ := Hon rfl
   iapply (h25 lg opts iw ttl) $$ [Hpkg]
-  · iframe Hpkg; ipureintro; exact Hlg
+  · iframe Hpkg; iapply zapLoggerOk_orNil; iexact Hlg
   iintro !> %tp %err ⟨%Htp, Hres⟩
   iapply HΦ
   isplitr

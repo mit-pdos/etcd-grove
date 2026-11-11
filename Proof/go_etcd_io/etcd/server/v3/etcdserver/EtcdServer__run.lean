@@ -846,6 +846,7 @@ local macro "ul_tail" : tactic => `(tactic| (
     ul_stats))
 
 set_option maxHeartbeats 0 in
+set_option maxRecDepth 8192 in
 /-- **`run`** at a first start or a restart at `σ.b = 0` (R2d'a A10 item 4; swap batch 5, 2026-11-07:
 `RunRestart.lean`'s `run.wp_proofR`, in place of the first-start proof): the loop's resources in
 restart form (`applyResR` at the restart point `⟨0, A₀⟩`, from `applyResR_start`), the batch jobs over
@@ -902,7 +903,7 @@ theorem EtcdServer.run.wp_proofG
   icases Hsrv' with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, -⟩
   ihave #Hfv' := Hfv
   iunfold srvFieldsAtM at Hfv'
-  icases Hfv' with ⟨#Hlgf, %Hslgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has,
+  icases Hfv' with ⟨#Hlgf, #Hslgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has,
     #Hcl, #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave #Hrf' := Hrf
   iunfold srvRunFieldsAt at Hrf'
@@ -919,8 +920,8 @@ theorem EtcdServer.run.wp_proofG
   · iPkgInit
   ihave #Hrpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
-  wp_apply hLg s fv.lg $$ [Hlr] as ⟨%Hlg0, Hlr⟩
-  · iframe Hlgf; iframe Hlr; ipureintro; exact Hslgnn
+  wp_apply hLg s fv.lg $$ [Hlr] as ⟨#Hlg0, Hlr⟩
+  · iframe Hlgf; iframe Hlr; iexact Hslgnn
   (try wp_auto)
   -- `s.r.raftStorage.Snapshot()`: the snapshot the server started from
   icases Hsnap with ⟨%ms', #Hms', Hsnap⟩
@@ -961,7 +962,7 @@ theorem EtcdServer.run.wp_proofG
   (try wp_auto)
   -- the FIFO scheduler: its stop token, its queue `[n₀, p₀]` (`p₀` saving `True`)
   wp_apply hFifo fv.lg iprop(True) $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0, #Hpay⟩
-  · ipureintro; exact Hlg0
+  · iapply zapLoggerOk_ne_null; iexact Hlg0
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
   icases Hfifo' with ⟨%Hscnn, -⟩

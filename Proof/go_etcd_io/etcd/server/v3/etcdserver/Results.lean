@@ -926,6 +926,8 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        -- (premise-fixes-6) the logger nil or a zap logger (mvcc's `NewStore`, approved D2b)
+        zapLoggerOrNil lg ∗
         backend.plHookRO d.γB f ∗
         backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) Pk K d.be D ∗
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
@@ -948,7 +950,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
           mvcc.api.backendRest d.γB d.P K d.be D ∗
           backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
           lease.leaseOwn γl [] ∅ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hzl, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
   ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
@@ -963,7 +965,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
       mvcc.api.mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True)
       iprop(True) iprop(True))
     $$ [Hsto Hlrd Hro Hlo]
-  · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro Hlo
+  · iframe Hpkg Hbpkg Hsch Hzl Hsto Hlrd Hle Hro Hlo
     isplitr
     · ipureintro; exact ⟨hcfg, .start, rfl⟩
     isplitr
@@ -995,6 +997,8 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        -- (premise-fixes-6) the logger nil or a zap logger (mvcc's `NewStore`, approved D2b)
+        zapLoggerOrNil lg ∗
         backend.plHookRO d.γB f ∗
         backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) Pk K d.be D ∗
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
@@ -1018,7 +1022,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
           mvcc.api.backendRest d.γB d.P K d.be D ∗
           backend.rdTok d.γB d.P d.be ∗ backend.rdTok d.γB d.P d.be ∗
           lease.leaseOwn γl [] ∅ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hzl, #Hhk, HPKP, Hreg, Hw1, Hw2, #Hsup, Hos, Hlrd, #Hle, Hro, Hlo⟩ HΦ
   ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   imod (mvcc.api.mvccApi_mvccImage_fresh_law_holds D hk hsch hfin) with #Him
   imod (mvcc.api.mvccApi_etcdStorage_open_law_holds d Pk K D mvcc.api.mvccStart.log
@@ -1033,7 +1037,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
       mvcc.api.mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True)
       iprop(True) iprop(True))
     $$ [Hsto Hlrd Hro Hlo]
-  · iframe Hpkg Hbpkg Hsch Hsto Hlrd Hle Hro Hlo
+  · iframe Hpkg Hbpkg Hsch Hzl Hsto Hlrd Hle Hro Hlo
     isplitr
     · ipureintro; exact ⟨hcfg, .start, rfl⟩
     isplitr
@@ -1139,6 +1143,7 @@ theorem server_kv_backend_hooks (lg : Loc) (le : GoInterface) (γA : ApplyNames)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        zapLoggerOrNil lg ∗
         backend.plHookRO d.γB f ∗
         backend.newPostKP d.γB d.P (fun _ => mvcc.api.mvccW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) K d.be D ∗
         mvcc.api.mvccWReg d.gx ∗ backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
@@ -1919,7 +1924,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `auth/TokenKeeperRun.lean`): the provider's facts, its index waiter, the admin side's share and the
 authority over the rights to issue tokens, under fresh names. -/
 theorem token_simple_new (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
         □ (∀ idx : w64, {{ True }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) }}
       (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg)) (Val #iw))
         (Val #ttl))
@@ -1948,7 +1953,7 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
     (γa : auth.AuthNames) (γc : auth.AuthBkNames) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF)
     (hs : List auth.AuthState) (stl : auth.AuthState) (hlast : hs.getLast? = some stl)
     (hfit : auth.permsFit stl) (hempty : ∃ s ∈ hs, s.users = ∅) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) γc ∗
         auth.authBkCur γa (1 : Qp).half γc ∗ auth.authCur γc 1 ∗
         auth.authWBackendOkR ab (.on γa) P f T ∗
@@ -1986,7 +1991,7 @@ share, the admin side's authority at `[bootState, bump bootState]` and the cap o
 (H5). -/
 theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
     (γt γf : GName) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ auth.authSchemaBoot ab bi γt γf R P f T ∗
         T ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderBoot tp γt γf A ∗ A }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))

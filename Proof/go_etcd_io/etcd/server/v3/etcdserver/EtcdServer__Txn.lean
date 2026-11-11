@@ -102,7 +102,7 @@ set_option hygiene false in
 local macro "txn_defer_lg" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  · iframe #; iframe Hlr
   (try wp_auto)))
 
 set_option hygiene false in
@@ -221,7 +221,7 @@ local macro "txn_tail" : tactic => `(tactic| (
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-      · iframe #; iframe Hlr; ipureintro; exact Hlgn
+      · iframe #; iframe Hlr
       (try wp_auto)
       rw [Hfi]
       (try wp_auto)
@@ -242,7 +242,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
         isplitr
-        · ipureintro; exact ⟨Hlgn, hro, Hg⟩
+        · ipureintro; exact ⟨hro, Hg⟩
         iunfold srvApi.auRead at HAU
         iexact HAU
       iunfold srvApi.kvReadAtG at Hq
@@ -420,7 +420,7 @@ local macro "txn_tail" : tactic => `(tactic| (
     (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest)) _) _) _) _) _) _)
   iapply (hWarn _ _ _ r t respv _ P) $$ [HP]
   · isplitr; · iexact Ptxn
-    isplitr; · ipureintro; exact Hlgn
+    isplitr; · iexact Hlgn
     isplitr; · iexact Hrt
     iframe HP Hw
   iintro !> HP
@@ -471,7 +471,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-      · iframe #; iframe Hlr; ipureintro; exact Hlgn
+      · iframe #; iframe Hlr
       (try wp_auto)
       rw [Hfi]
       (try wp_auto)
@@ -492,7 +492,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         isplitl [Hown0]
         · simp only [traceutil.ownTraceOpt]; iexact Hown0
         isplitr
-        · ipureintro; exact ⟨Hlgn, hro, Hg⟩
+        · ipureintro; exact ⟨hro, Hg⟩
         iunfold srvApi.auRead at HAU
         iexact HAU
       iunfold srvApi.kvReadAtG at Hq
@@ -667,7 +667,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
     (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest)) _) _) _) _) _) _)
   iapply (hWarn _ _ _ r t respv _ P) $$ [HP]
   · isplitr; · iexact Ptxn
-    isplitr; · ipureintro; exact Hlgn
+    isplitr; · iexact Hlgn
     isplitr; · iexact Hrt
     iframe HP Hw
   iintro !> HP
@@ -719,7 +719,8 @@ theorem EtcdServer.Txn.wp_proof
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, %Hkveq0, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
+    #Hlgn, #Hwad, #Hterm, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
+  ihave #HlgnO := zapLoggerOk_orNil _ $$ Hlgn
   -- (the `lean` merge, R6) the store invariant, for `txn.Txn`'s read update
   ihave ⟨#HkS, %Hwit⟩ := srvKVInvsM_kvStoreInv E.authOn s E γr $$ Hkvi
   haveI := Hwit.1
@@ -835,7 +836,7 @@ theorem EtcdServer.Txn.wp_proof
   subst Hsi
   (try wp_auto)
   wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
+  · iframe Hlgf; iframe Hlr; iexact Hlgn
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr
@@ -847,7 +848,7 @@ theorem EtcdServer.Txn.wp_proof
   · iframe Hctx1t
     isplitr
     · iapply Hctr1 $$ Hct
-    iframe Hto
+    iframe Hto HlgnO
     iunfold traceutil.ownFields
     iexists _
     iframe Hfl Hflc

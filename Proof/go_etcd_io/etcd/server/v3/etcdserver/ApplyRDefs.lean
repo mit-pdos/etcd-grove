@@ -313,7 +313,7 @@ theorem srvApRes_ccRep (s : Loc) (γr : ReadNames) (A : List EntryModel) (cm : C
         (prs : trIds),
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
         srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
         membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γr.raft cl tl lid prs ∗
         ⌜(cm.nodeId ≠ lid → cm.nodeId ∈ prs) ∧
           ∀ mem : GMap w64 apply.MemberM, (∀ k, (mem !! k).isSome =
@@ -322,11 +322,9 @@ theorem srvApRes_ccRep (s : Loc) (γr : ReadNames) (A : List EntryModel) (cm : C
         (ccMembRes γr.raft cl tl lid prs -∗ srvApRes s γr A) := by
   unfold srvApRes
   iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6,
-    %H7, #H8, Hmr, %Hp, #Hd⟩
+    #H7, #H8, Hmr, %Hp, #Hd⟩
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-  iframe H1 H2 H3 H4 H5 H6 H8 Hmr
-  isplitr
-  · ipureintro; exact H7
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 Hmr
   isplitr
   · ipureintro
     refine ⟨fun hne => Hp.1 _ hok.2.1 hne, fun mem hkeys => ?_⟩
@@ -339,8 +337,8 @@ theorem srvApRes_ccRep (s : Loc) (γr : ReadNames) (A : List EntryModel) (cm : C
       _ ≤ 2 ^ 62 := by have := Hp.2.2.1; omega
   iintro Hmr
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-  iframe H1 H2 H3 H4 H5 H6 H8 Hmr Hd
-  ipureintro; exact ⟨H7, Hp⟩
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 Hmr Hd
+  ipureintro; exact Hp
 
 /-- **The replay arm opened** (`srvRest_open`'s form at an image `r`). -/
 theorem srvRestRp_open (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :

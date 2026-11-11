@@ -425,7 +425,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start
   iNamed Hpre
-  ihave %Hlgnn := zapLoggerOk_ne_null cfg.Logger' $$ Hzlg
   -- (D19r (C)) the raft status's mutex, from the package's facts
   ihave #Hrs : rnRaftStatusOk (GF := GF) $$ []
   · ihave Hsi0 : (srvInit : IProp GF) $$ []
@@ -462,7 +461,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iintro %fsl -
     wp_auto
     wp_apply h0
-    · ipureintro; exact Hlgnn
+    · iexact Hzlg
     iapply HΦ
     ileft
     iframe Htok
@@ -495,7 +494,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
   · iPkgInit
   wp_apply h2
-  · ipureintro; exact Hlgnn
+  · iexact Hzlg
   wp_apply h5 as %cls -
   · iexact Hrc
   wp_apply h4 as %sstats %Hssnn
@@ -630,7 +629,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod raftPool_init (srvLgReader s) ⊤ (2 ^ 28) (by omega) $$ HlgPool with #HrPool
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr1, Hlgrs⟩
   wp_apply h19 $$ [Hlr1] as ⟨-, Hlr1⟩
-  · iframe lg; iframe Hlr1; ipureintro; exact Hlgnn
+  · iframe lg; iframe Hlr1; iexact Hzlg
   (try wp_auto)
   ihave #Htmpkg : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
@@ -776,9 +775,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iPkgInit
   wp_func_lits
   wp_apply hTP as %tp %terr ⟨%Htp, Hkit⟩
-  · ipureintro
-    exact ⟨Hlgnn, fun hon => ⟨(Hauthcfg hon).1,
-      tokenTTL_pos _ (Hauthcfg hon).2.1 (Hauthcfg hon).2.2⟩⟩
+  · iframe Hzlg
+    ipureintro
+    exact fun hon => ⟨(Hauthcfg hon).1,
+      tokenTTL_pos _ (Hauthcfg hon).2.1 (Hauthcfg hon).2.2⟩
   clear Hauthcfg
   (try wp_auto)
   cases terr with
@@ -792,7 +792,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iintro %fsl -
     wp_auto_lc 1
     wp_apply h3
-    · ipureintro; exact Hlgnn
+    · iexact Hzlg
     -- (R-D1) `b.Close()` (deferred): the backend's whole open token, from the constructors' half,
     -- the pool's shares and the stock's (R8, 2026-11-07: the storage's, which no store took,
     -- `mvccStorageFor_rest.law`; the apply thread's read token's; the write budget's, no one
@@ -848,7 +848,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- deleter
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr2, Hlgrs⟩
   wp_apply h19 $$ [Hlr2] as ⟨-, Hlr2⟩
-  · iframe lg; iframe Hlr2; ipureintro; exact Hlgnn
+  · iframe lg; iframe Hlr2; iexact Hzlg
   (try wp_auto)
   subst Hl
   ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -874,6 +874,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply (hNew _ _) $$ [HstoF Hlrd Hro Hlown]
     as %ws ⟨%γm, %Hγl, #HisKV, Hst0, Hopn, HmB, Hrds, Hrdat, Hlown, -, -⟩
   · iframe #; iframe HstoF Hlrd Hro Hlown
+    isplitr
+    · iapply zapLoggerOk_orNil; iexact Hzlg
     isplitr
     · ipureintro; exact ⟨Hcbl, .start, rfl⟩
     isplitr
@@ -920,9 +922,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `auth.NewAuthStore(srv.Logger(), schema.NewAuthBackend(srv.Logger(), srv.be), tp, …)`
   icases replicate_take2 _ _ (by omega) $$ Hlgrs with ⟨Hlr3, Hlr4, Hlgrs⟩
   wp_apply h19 $$ [Hlr3] as ⟨-, Hlr3⟩
-  · iframe lg; iframe Hlr3; ipureintro; exact Hlgnn
+  · iframe lg; iframe Hlr3; iexact Hzlg
   wp_apply h19 $$ [Hlr4] as ⟨-, Hlr4⟩
-  · iframe lg; iframe Hlr4; ipureintro; exact Hlgnn
+  · iframe lg; iframe Hlr4; iexact Hzlg
   (try wp_auto)
   wp_apply h29 as %ab ⟨%abl, %Hab, #Hablg, #Habbe⟩
   (try wp_auto)
@@ -941,9 +943,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     as %ast ⟨Hopen, Hhook, HkOut, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
       #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauC, #HauSK, #Hbc⟩
   · iframe Habbe Hablg HB
-    iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn
+    iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn Hzlg
     ipureintro
-    refine ⟨Hlgnn, Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
+    refine ⟨Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"auth" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authUsers" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)
@@ -998,7 +1000,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
           srvCompactR s ({ E₀ with kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, Nx := srvApi.kvNx ρ.rd on, RD := RD } : apply.AEnv GF)⟩
         hPer
     simp only at hNew
-    wp_apply hNew as %cp %cperr Hcp
+    wp_apply hNew $$ [] as %cp %cperr Hcp
+    · iframe #; iapply zapLoggerOk_orNil; iexact Hzlg
     icases Hcp with (⟨%Hcpe, %T, %γf, #Hcpo, HT⟩ | %Hcpe)
     rotate_left
     · rcases Hmode' with h | h
@@ -1049,7 +1052,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     -- the backend's reader pool and the constructing thread's token, given back
     iframe Hopen Hwal alarmStore be Hrbo HbkP Htok
     ipureintro
-    refine ⟨Hlgnn, ?_⟩
     rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide),
       GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide)]
     exact hDl go!"alarm" (by decide)
@@ -1193,9 +1195,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iunfold srvProcOk
     iexists cfg.Logger', bc.cl', sstats, γrn
     rw [← Hid]
-    iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind
+    iframe stats memberID HNodeC cluster lg HstepI Hrc Hkind Hzlg
     ipureintro
-    exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1],
+    exact ⟨by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1],
       by rw [Hrn1]; (first | (rw [Hid]; exact Hsloc) | (rw [← Hid]; exact Hsloc) | exact Hsloc)⟩
   -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
   -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j); (2026-10-26, D22 J2) at
@@ -1226,8 +1228,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool
-    ipureintro; refine ⟨Hlgnn, Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
+    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg
+    ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
     cases terr with
@@ -1731,12 +1733,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       simp only
       ihave #HszS := keySized_withCm d true $$ Hsz
       rw [← Hstp, ← Hastl, Hfgi]
-      iframe LoggerS DataDirS ServerFeatureGateS Hfg Hvoff QuotaBackendBytesS WarningApplyDurationS
+      -- (premise-fixes-6) the cluster's logger (`bootOk`'s `Hclg`), framed first: `Hzlg` would
+      -- instantiate its existential
+      iframe Hclg
+      iframe LoggerS Hzlg DataDirS ServerFeatureGateS Hfg Hvoff QuotaBackendBytesS WarningApplyDurationS
       iframe snapshotter Hss beHooks Hbh' storageC memberID alarmStore authStore lessor cluster
       iframe HalS HalA HisAuth HauR HauSK Hlbe Hlcfg Hrc Hisc HszS
       isplitr
       · ipureintro
-        refine ⟨trivial, Hlgnn, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, HbP,
+        refine ⟨trivial, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, HbP,
           Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
@@ -2064,8 +2069,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuiltNA srvLeadInv
     iframe #
-    isplitr
-    · ipureintro; exact Hlgnn
     ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
   isplitr
@@ -2095,7 +2098,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     unfold srvReadBuiltNK
     iframe firstCommitInTerm Hast Hapl Hti WarningApplyDurationS lessor authStore lg
     isplitr
-    · ipureintro; exact Hlgnn
+    · iexact Hzlg
     iexists [[], []]
     iframe Hlb0
     ipureintro; exact ⟨by simp, mvcc.LogPutsLe.empties _⟩
@@ -2374,7 +2377,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       iunfold srvApRes
       icases Hbh with ⟨%lgh, #Hbhi⟩
       icases Hclg with ⟨%lgc, #Hclgf, #Hlgcz⟩
-      ihave %Hlgcnn := zapLoggerOk_ne_null lgc $$ Hlgcz
       iunfold membership.clusterCid at Hcid
       iexists bk.beHooks',
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩,
@@ -2382,7 +2384,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       rw [← Hid]
       iframe beHooks Hbhi Htrf memberID cluster Hclgf Hcid
       isplitr
-      · ipureintro; exact Hlgcnn
+      · iexact Hlgcz
       unfold ccMembRes srvDynLog
       rw [hργ]
       iframe Hrc
@@ -2478,7 +2480,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     simp only
     rw [Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu11, Hu12]
     isplitr
-    · ipureintro; exact Hlgnn
+    · iexact Hzlg
     isplitr
     · iunfold apply.isApplyKV; iexact HisKV
     isplitr

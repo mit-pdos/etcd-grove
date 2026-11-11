@@ -74,6 +74,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- (raft-entsize [r3f], 2026-11-09) `StartNode`'s `MaxSizePerMsg` premise from
       -- `rnStartCfg`'s `maxMsg` (until then an interim `γr.cl.maxData = none`)
       "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧ storage.walReady wal⌝ ∗
+      -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode`'s, which it logs through)
+      "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
       -- `StartNode` boots it (`restartStorage` at the empty contents: the zero hard state and the

@@ -63,10 +63,10 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     (hNM : snap.NewMessage.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
   intro s ml st snapt snapi cs lg kv be dq RC RC' RS RS' Qd γs Hsz20 Hsh
-  wp_start as ⟨#Hlgf, %Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Huf, #Hcs, Htok⟩
+  wp_start as ⟨#Hlgf, #Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Huf, #Hcs, Htok⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgnn
+  · iframe #; iframe Hlr
   (try wp_auto)
   wp_apply hKV s kv $$ []
   · iframe #
@@ -98,7 +98,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   -- `newSnapshotReaderCloser(lg, dbsnap)`, with half of the snapshot (its `Size` read after)
   icases (backend.snapOpenQ_half sp D γd 1).1 $$ Hsn with ⟨Hsn1, Hsn2⟩
   wp_apply hNSR lg sp D γd $$ [Hsn1] as %rc ⟨Htok, Hrc⟩
-  · iframe #; iframe Hsn1; ipureintro; exact Hlgnn
+  · iframe #; iframe Hsn1
   (try wp_auto)
   ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit

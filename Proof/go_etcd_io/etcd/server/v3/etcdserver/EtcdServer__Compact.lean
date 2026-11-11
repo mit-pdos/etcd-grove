@@ -290,9 +290,9 @@ theorem EtcdServer.Compact.wp_proof
   iunfold isServerRead at Hsrd'
   icases Hsrd' with ⟨%v, #Hf⟩
   iunfold srvReadFieldsAt at Hf
-  icases Hf with ⟨-, -, #HkvA, #Hkv, %Hkveq0, -, -, -, -, #Hlgf, %Hlgn, -⟩
+  icases Hf with ⟨-, -, #HkvA, #Hkv, %Hkveq0, -, -, -, -, #Hlgf, #Hlgn, -⟩
   wp_apply hLogger s v.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  · iframe #; iframe Hlr
   (try wp_auto)
   -- the trace: a new one (the context carries none)
   wp_apply hEnsure ctx1 _ none false v.lg _ slice.nil $$ []
@@ -302,7 +302,9 @@ theorem EtcdServer.Compact.wp_proof
     · iexact Htrc1
     isplitr
     · unfold traceutil.ownTraceOpt; itrivial
-    iapply traceutil.ownFields_nil
+    isplitr
+    · iapply traceutil.ownFields_nil
+    iapply zapLoggerOk_orNil; iexact Hlgn
   ihave #Hctx2 := Hctx2w $$ Hctx1
   ihave #Hspc2 := Hspw2 $$ Hspc1
   (try wp_auto)

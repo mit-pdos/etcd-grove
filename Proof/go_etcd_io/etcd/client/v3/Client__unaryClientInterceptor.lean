@@ -46,6 +46,7 @@ precondition, kept until its attempt (`Hpre`, `Hp`), has its `▷` here, out of 
 private def laterHid (P : IProp GF) : IProp GF := iprop(▷ P)
 
 set_option maxHeartbeats 1600000 in
+set_option maxRecDepth 8192 in
 theorem Client.unaryClientInterceptor.wp_proof
     (wp_reuse : reuseOrNewWithCallOptions.spec (GF := GF) (hG := hG))
     (wp_withVersion : withVersion.spec (GF := GF) (hG := hG))

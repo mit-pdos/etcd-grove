@@ -55,7 +55,7 @@ theorem newSnapshotReaderCloser.wp_proof
     (hCl : backend.snapshot.Close.spec (GF := GF) (hG := hG)) :
     newSnapshotReaderCloser.spec (GF := GF) (hG := hG) := by
   intro lg sp D γ
-  wp_start as ⟨%Hlg, Hsn⟩
+  wp_start as ⟨#Hlg, Hsn⟩
   ihave #Pbe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -84,7 +84,7 @@ theorem newSnapshotReaderCloser.wp_proof
       (try wp_auto)
       zap_fields
       wp_apply hWarn _ _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       (try wp_auto)
       wp_apply hCWE pw _ _ true ([] ++ bs) (GoInterface.ok ei) $$ [Hpw] as Hhalf
       · iframe Hpw; ipureintro; intro h; cases h
@@ -104,7 +104,7 @@ theorem newSnapshotReaderCloser.wp_proof
       (try wp_auto)
       zap_fields
       wp_apply hInfo _ _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       (try wp_auto)
       wp_apply hCWE pw _ _ true ([] ++ bs) GoInterface.nil $$ [Hpw] as Hhalf
       · iframe Hpw; ipureintro; intro _; simpa using Himg rfl

@@ -45,7 +45,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu⟩, #Hinf,
-    ⟨%lg, #Hlgf, %Hlgn⟩, -, -⟩
+    ⟨%lg, #Hlgf, #Hlgn⟩, -, -⟩
   ihave #Hss' := Hss
   iunfold srvSnapStor at Hss'
   icases Hss' with ⟨#Hmsi, -⟩
@@ -114,7 +114,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofBatch
       unfold compactIdx; split <;> constructor <;> word
     ihave #Hfr := srvFrozen_get γs (uint.nat ai) (compactIdx ai scu) hcI.1 hcI.2 $$ [$Hfa $Hfb]
     wp_apply hC s ai ms γs γr.raft.raft nk scu lg Hai1 $$ [Hlr] as Hlr
-    · iframe #; iframe Hlr; ipureintro; exact Hlgn
+    · iframe #; iframe Hlr
     (try wp_auto)
     ihave HKV := HKVk $$ HKV
     iapply HΦ

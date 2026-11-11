@@ -2209,7 +2209,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
       (hb : time.Duration) (msc apc rsc stc dnc : GoChan),
     "#Henv" ∷ rnEnvOk E γ ∗ "#Hfits" ∷ rnLogFits γ ∗ "#Hrsb" ∷ rnReadStateBridge E γ ∗
     "#Hreg" ∷ memStorReg γ.ms γ.γs ∗
-    "#Hlg" ∷ rnLgAddr r ↦□ lg ∗ "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗
+    "#Hlg" ∷ rnLgAddr r ↦□ lg ∗ "#Hlgnn" ∷ zapLoggerOk lg ∗
     "#Hmu" ∷ rnTickMuAddr r ↦□ mu ∗ "#Hmug" ∷ sync.isRWMutexGuard mu (rnTickInv r) ∗
     "#Hn" ∷ rnNodeAddr r ↦□ n ∗ "#Hni" ∷ isRaftNodeIfc E γ n ∗
     "#Hidr" ∷ rnIsIDRemovedAddr r ↦□ idr ∗ "#Hidri" ∷ isRNIDRemoved idr ∗
@@ -2241,9 +2241,7 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
     iexists lg, mu, ms, td, tk, n, st, tr, idr, hb, msc, apc, rsc, stc, dnc
     simp only [named]
     iframe #
-    isplit
-    · ipureintro; exact Hlgnn
-    · ipureintro; exact Hmsγ
+    ipureintro; exact Hmsγ
 
 /-- The right to close `done` (the loop's: its deferred `onStop`). -/
 def rnDoneTok (γ : RNNames) (r : Loc) : IProp GF :=

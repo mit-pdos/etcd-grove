@@ -207,7 +207,7 @@ theorem isBackendNH_of_hooksAt (γ : backend.BNames) (P : backend.BParams) (W Pk
   iintro ⟨#Hb, #Hh⟩
   iunfold backend.isBackend at Hb
   iunfold backend.hooksAt at Hh
-  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h', #Ht, #Hrt, #Hlim, #Hlg, %Hlg0, #Hh', #Hbe, #Htm, -,
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h', #Ht, #Hrt, #Hlim, #Hlg, #Hlg0, #Hh', #Hbe, #Htm, -,
     #Hmu, #Hrmu, #Htmu, #Hcmu, #Hci, #Hmet, #Hdbmu, #Hdb, %Hwf, #Hdbf⟩
   icombine Hh Hh' gives %Heq
   subst Heq
@@ -215,8 +215,6 @@ theorem isBackendNH_of_hooksAt (γ : backend.BNames) (P : backend.BParams) (W Pk
   imodintro
   iexists t, rt, tm, db, lg
   iframe #
-  isplitr
-  · ipureintro; exact Hlg0
   ipureintro; exact Hwf
 
 

@@ -97,7 +97,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
+    (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
@@ -173,7 +173,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        -- the apply thread's token, given back
        threadTok ∗
-       srvCfgAddr s ↦□ cfg ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
+       -- (premise-fixes-6, until then the pure premise `cfg.Logger' ≠ null`) the configuration's
+       -- logger a zap logger (`OpenSnapshotBackend`'s `openPre`)
+       srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
        snap.isSnapshotter ss ∗ backend.fileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
        backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
@@ -208,6 +210,8 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
+       -- (premise-fixes-6) the cluster's logger, a zap logger (`RaftCluster.Recover`'s)
+       (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc) ∗
        rnTransportAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
        trLive γn t c rs ∗ srvMemberIDAddr s ↦□ idm ∗

@@ -44,9 +44,8 @@ theorem v3rpc.newHealthNotifier.wp_proof
   wp_if_destruct
   · contradiction
   (try wp_auto)
-  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgn
   wp_apply (hLogger s lg) $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe; iframe #; ipureintro; exact Hlgnn
+  · iframe; iframe #
   (try wp_auto)
   wp_apply (hFE s fg _) as %b -
   · iframe #; ipureintro; simp [serverFeatures]

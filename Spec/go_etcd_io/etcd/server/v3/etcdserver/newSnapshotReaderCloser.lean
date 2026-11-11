@@ -26,7 +26,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `newSnapshotReaderCloser(lg, sp)`, of a non-nil logger and half of a snapshot open over bbolt's
+/-- `newSnapshotReaderCloser(lg, sp)`, of a zap logger (premise-fixes-6: until then any non-nil one) and half of a snapshot open over bbolt's
 committed data `D` (`snapOpenQ`, consumed: the goroutine streams it, then closes it): a reader
 whose complete streams are bbolt images of `D` (`readerStreams`, the transport's `SendSnapshot`
 takes it) whose `Close` returns (`io.rcCloseOk`, which `snap.NewMessage` takes; sweep repairs 1,
@@ -39,7 +39,7 @@ close reaches `lg.Panic`. (2026-11-06, `notes/begin-tok-plan.md`) The goroutine 
 `threadTok` `snapshot.Close` gives back, and the fork's fresh token is the caller's (`threadTok`). -/
 abbrev newSnapshotReaderCloser.spec : Prop :=
   ∀ (lg sp : Loc) (D : backend.Data) (γ : GName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ zapLoggerOk lg ∗
       backend.snapOpenQ sp D γ (1 : Qp).half }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser)) (Val #lg))
       (Val #(interface.mkOk

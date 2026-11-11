@@ -157,8 +157,6 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
     simp only [named]
     iframe #
     isplitr
-    · ipureintro; exact Hlgnn
-    isplitr
     · ipureintro; exact Hmsγ
     rw [Hmsγ]
     iexact Hmsi
@@ -373,6 +371,8 @@ abbrev NodeStartSpec : Prop :=
         "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧
           ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧ γr.vs = ps ∧
           storage.walReady wal ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61⌝ ∗
+        -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode` logs through it)
+        "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
         -- the receiver, the config and its logger
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- (2026-10-30, the repair) the fresh registered `MemoryStorage`, as `NewMemoryStorage`
@@ -596,8 +596,6 @@ theorem raftNode_of_StartNode
     iNamed Hparts
     simp only [named]
     iframe #
-    isplitr
-    · ipureintro; exact Hlgnn
     -- (2026-10-31) `stopped`'s bag at the storage's WAL; (R2b-3b) `done`'s escrow at it
     isplitr
     · iExactEq Hstci

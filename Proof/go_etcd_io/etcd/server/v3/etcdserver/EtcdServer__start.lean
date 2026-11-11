@@ -64,7 +64,7 @@ local macro "start_info" : tactic => `(tactic| (
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply hInfo _ _ _ $$ []
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   (try wp_auto)))
 
 set_option maxHeartbeats 0 in
@@ -112,7 +112,7 @@ theorem EtcdServer.start.wp_proof
   icases Hfb' with ⟨%fv, #Hfv⟩
   ihave #Hfv' := Hfv
   iunfold srvFieldsBuilt at Hfv'
-  icases Hfv' with ⟨#Hlgf, %Hlgn, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, -, #Hmidf, -, -, -, -, -⟩
+  icases Hfv' with ⟨#Hlgf, #Hlgn, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, -, #Hmidf, -, -, -, -, -⟩
   -- the cluster's id (the request path's view of the same `s.cluster`)
   ihave #Hreqb' := Hreqb
   icases Hreqb' with ⟨%vq0, #Hvq0⟩
@@ -123,7 +123,7 @@ theorem EtcdServer.start.wp_proof
   icases Hpq with ⟨#Hcidq, -, -⟩
   wp_auto
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
+  · iframe Hlgf; iframe Hlr Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
   icases Hscu with ⟨%scu0, Hscu⟩
   wp_auto
@@ -354,8 +354,8 @@ theorem EtcdServer.start.wp_proof
   icases ownStopChan_pending_unknown _ _ _ $$ Hsg with ⟨Hsg, #HsgU⟩
   ihave #HrP := srvRevokeBuilt_raftPool s E $$ Hrvkb
   imod goAttach_init s sgc γsg (GoInterface.ok cctx) fv.lg
-    (by unfold backend.rdPoolN at Hbound; omega) Hlgn $$ Hstopping Hsg Hwg HwgMu
-    Hctx Hlgf HrP with ⟨%γg, #Hgok, Hclose, Hwgs⟩
+    (by unfold backend.rdPoolN at Hbound; omega) $$ Hstopping Hsg Hwg HwgMu
+    Hctx Hlgf Hlgn HrP with ⟨%γg, #Hgok, Hclose, Hwgs⟩
   icases replicate_take2 _ _ sync.actualMaxReaders_ge_2 $$ Hwgs with ⟨Hwg1, Hwg2, Hwgs⟩
   -- (revoke-open, 2026-11-06) the outer pool's `wgMu` slots
   icases replicate_takeN _ srvRevokePoolN _ (by
@@ -379,12 +379,12 @@ theorem EtcdServer.start.wp_proof
     · iexists { fv with w := w }
       ihave #Hfv2 := Hfv
       iunfold srvFieldsBuilt at Hfv2
-      icases Hfv2 with ⟨#F1, %F2, %F5, %F5o, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13,
+      icases Hfv2 with ⟨#F1, #F2, %F5, %F5o, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13,
         #F14, #F15, #F16, #F17, #F18, #F19, #F20⟩
       iunfold srvFieldsAtM
       iframe F20 F19 F18 F17 F16 F15 F14 F13 F12 F11 F10 F9 F8 F7 F6 F1 Hw
       isplitr
-      · ipureintro; exact F2
+      · iexact F2
       isplitr
       · iunfold waitInvM
         isplitr
@@ -424,7 +424,7 @@ theorem EtcdServer.start.wp_proof
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    ipureintro; exact ⟨Hlgn, Hkv0⟩
+    ipureintro; exact Hkv0
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
@@ -514,7 +514,7 @@ theorem EtcdServer.start.wp_proof
     ipureintro; exact ⟨kvTieM_of_names _ E γr Hktie, Q19⟩
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd
-  icases Hvd with ⟨#R1, #R2, %R3, #R4, #R5, #R6, #R7, #R8, %R9, #R10, #R11, #R12, #R13⟩
+  icases Hvd with ⟨#R1, #R2, %R3, #R4, #R5, #R6, #R7, #R8, #R9, #R10, #R11, #R12, #R13⟩
   let awi : GoInterface :=
     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.timeList.ty) #tl
   ihave #Hrd : isServerReadM C.isOn s E γr $$ []
@@ -525,7 +525,7 @@ theorem EtcdServer.start.wp_proof
     isplitr
     · ipureintro; exact R3
     isplitr
-    · ipureintro; exact R9
+    · iexact R9
     isplitl
     · iunfold stopChan
       iexists γsg

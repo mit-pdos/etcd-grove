@@ -42,12 +42,13 @@ log; 2026-10-27, the node API's, until then raft's no-snapshot and no-transfer m
 a `MsgSnap`'s file before `Process` steps it (`netSnapRecv`). -/
 def srvProcOk (γn : NetNames GF) (s : Loc) (id : w64) (γd : GName) : IProp GF :=
   iprop(∃ (l c st : Loc) (γ : RNNames),
-    srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗ srvMemberIDAddr s ↦□ id ∗ ⌜γ.id = id⌝ ∗
+    srvLgAddr s ↦□ l ∗ zapLoggerOk l ∗ srvMemberIDAddr s ↦□ id ∗ ⌜γ.id = id⌝ ∗
     srvClusterAddr s ↦□ c ∗ membership.isRaftCluster c ∗
     srvStatsAddr s ↦□ st ∗ ⌜st ≠ null⌝ ∗
     rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ) ∗
     srvClusterOk γ.srv ∗ ⌜γn.N = srvNet γ.node⌝ ∗ ⌜γ.node.snapLoc id = some γd⌝)
 
+set_option synthInstance.maxSize 512 in
 instance srvProcOk_persistent (γn : NetNames GF) (s : Loc) (id : w64) (γd : GName) :
     Persistent (srvProcOk (GF := GF) γn s id γd) := by
   unfold srvProcOk; infer_instance

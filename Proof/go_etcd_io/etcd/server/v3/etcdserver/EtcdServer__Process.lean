@@ -53,7 +53,7 @@ theorem EtcdServer.Process.wp_proof
   intro γn γd s id ctx cd ml
   wp_start as ⟨#Hok, #Hctx, Hlr, Hrecv⟩
   iunfold srvProcOk at Hok
-  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
+  icases Hok with ⟨%l, %c, %st, %γ, #Hlg, #Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
     #Hsi, #Hcok, %HN, %Hd⟩
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
@@ -76,7 +76,7 @@ theorem EtcdServer.Process.wp_proof
   have Hmsg : sm'.msg = sm.msg := by rw [← hsm', Hcm]
   wp_auto
   wp_apply wp_Logger s l $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgnn
+  · iframe #; iframe Hlr
   (try wp_auto)
   -- `s.cluster.IsIDRemoved(m.GetFrom())`: `false`
   wp_apply wp_GetFrom.1 ml _ _ _ sm' $$ [Hm] as Hm

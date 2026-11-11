@@ -387,7 +387,7 @@ theorem raftNode.start.wp_proof
             iintro %fsl -
             wp_auto
             wp_apply wp_Warn lg _ _ $$ [$Hzap]
-            · ipureintro; exact Hlgnn
+            · iexact Hlgnn
             try wp_auto
             ileft
             iframe
@@ -668,7 +668,7 @@ theorem raftNode.start.wp_proof
             -- (focused: `wp_apply` overflows the stack on the long continuation)
             wp_bind (App (App (Val _) (Val _)) (Val _))
             iapply wp_Fatal lg $$ [$Hzap]
-            · ipureintro; exact Hlgnn
+            · iexact Hlgnn
             inext
             iintro %v Hf
             iexfalso
@@ -722,7 +722,7 @@ theorem raftNode.start.wp_proof
           iintro %fsl -
           wp_auto
           wp_apply wp_Info lg _ _ $$ [$Hzap]
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           (try wp_auto)
           -- `r.raftStorage.Append(rd.Entries)`, after the snapshot's index
           ihave ⟨Hrange, Hkeep⟩ := srv_snapAppend_pre γ.γs (uint.nat l.snap.Metadata'.Index' + 1)
@@ -1133,7 +1133,7 @@ theorem raftNode.start.wp_proof
           iintro %fsl -
           wp_auto
           wp_apply wp_Warn lg _ _ $$ [$Hzap]
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           try wp_auto
           ileft
           iframe

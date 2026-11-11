@@ -125,7 +125,7 @@ theorem EtcdServer.snapshot.wp_proof
   iunfold isServerCI at Hsci'
   icases Hsci' with ⟨#Hcif, #Hcii, #Hcinv⟩
   iunfold srvFieldsAtM at Hfl'
-  icases Hfl' with ⟨#Hlg, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -⟩
+  icases Hfl' with ⟨#Hlg, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, -, -, -⟩
@@ -148,7 +148,7 @@ theorem EtcdServer.snapshot.wp_proof
   · iPkgInit
   wp_auto
   wp_apply hLg s sv.lg $$ [$Hlr] as ⟨-, Hlr⟩
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto))
   · -- no disk: straight to `CreateSnapshot`
     iunfold epConfState at Hcs
@@ -256,9 +256,9 @@ theorem EtcdServer.snapshot.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hLg s sv.lg $$ [$Hlr] as ⟨-, Hlr⟩
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     wp_apply hInfo sv.lg $$ []
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     (try wp_auto)
     wp_apply hKV s kv $$ []
     · iframe #
@@ -442,7 +442,7 @@ theorem EtcdServer.snapshot.wp_proof
       iintro %fsl2 ⟨-, -⟩
       (try wp_auto)
       wp_apply hInfo sv.lg $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ
       iexists stLoaded γ st

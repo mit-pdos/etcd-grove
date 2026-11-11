@@ -265,7 +265,7 @@ theorem EtcdServer.apply.wp_proofOff
   iunfold isServerCI at Hsci'
   icases Hsci' with ⟨#Hcif, #Hci, #Hinv⟩
   iunfold srvFieldsAt at Hfl
-  icases Hfl with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
+  icases Hfl with ⟨#Hlg, #Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
     #Hcl, #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   obtain ⟨γB, Hobj, HROeq, -, dB, alB, stB, lpB, hkbB, hgbB, hHB⟩ := HEo.2.2
   subst hHB
@@ -284,7 +284,7 @@ theorem EtcdServer.apply.wp_proofOff
   iintro %fsl1 ⟨-, -⟩
   wp_auto
   wp_apply hDebug $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   irename i => cnt
   irename i => iv
   rename_i ivp
@@ -471,7 +471,7 @@ theorem EtcdServer.apply.wp_proofOff
     iintro %fsl2 ⟨-, -⟩
     (try wp_auto)
     wp_apply hDebug $$ []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     try simp only [api.membership.ApplyV2storeOnly, api.membership.ApplyBoth]
     (try wp_auto)
@@ -677,7 +677,7 @@ theorem EtcdServer.apply.wp_proofOff
         icases srvApRes_cc s γr (A ++ ms.take (sint.nat j)) m cm ρ.raft hρr (by rw [h1]; decide) Hdec
           (by rw [← hρr]; exact Hcb cm Hdec) hidxA $$ [HAR HlbJ] with
           ⟨%bh, %ix, %lgh, %tl, %lid, %cl', %lgc, %cid, %prs, #Hbh, #Hbhi, #Htr, #Hmid, #Hcl', #Hclg,
-            %Hlgcnn, #Hcid, Hmr, %Hprem, HARk⟩
+            #Hlgcnn, #Hcid, Hmr, %Hprem, HARk⟩
         · iframe HAR HlbJ
         ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
         subst Hcleq
@@ -738,9 +738,9 @@ theorem EtcdServer.apply.wp_proofOff
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
             HplP HthT HbeRO
           isplitr
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           isplitr
-          · ipureintro; exact Hlgcnn
+          · iexact Hlgcnn
           isplitr
           · ipureintro
             refine membersDecode_restLeasesWith _ _ _ ?_
@@ -1018,7 +1018,7 @@ theorem EtcdServer.apply.wp_proofOff
           have hokc : ccApplyOkM γr.raft cm := by rw [← hρr]; exact Hcb cm Hdec
           icases srvApRes_ccRep s γr rp.A₀ cm hokc $$ HAR with
             ⟨%bh, %ix, %lgh, %tl, %lid, %cl', %lgc, %cid, %prs, #Hbh, #Hbhi, #Htr, #Hmid, #Hcl', #Hclg,
-              %Hlgcnn, #Hcid, Hmr, %Hpeer, HARk⟩
+              #Hlgcnn, #Hcid, Hmr, %Hpeer, HARk⟩
           obtain ⟨Hpeer, Hszk⟩ := Hpeer
           ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
           subst Hcleq
@@ -1032,8 +1032,8 @@ theorem EtcdServer.apply.wp_proofOff
             as %removed %err ⟨%Hrem, Hlr, ⟨%cm', Hcc, %hIdEq⟩, Hcs, Hmr, HRO⟩
           · iframe Hlg Hlr Hcl Hclg Hcid Hcc Hcs Hbh Hbhi Htr Hmid Hmr HRO
             isplitr
-            · ipureintro; exact Hlgnn
-            ipureintro; exact Hlgcnn
+            · iexact Hlgnn
+            iexact Hlgcnn
           ihave HRS := HRSk $$ HRO
           ihave HAR := HARk $$ Hmr
           (try wp_auto)
@@ -1280,7 +1280,7 @@ theorem EtcdServer.apply.wp_proofOn
   iunfold isServerCI at Hsci'
   icases Hsci' with ⟨#Hcif, #Hci, #Hinv⟩
   iunfold srvFieldsAtM at Hfl
-  icases Hfl with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
+  icases Hfl with ⟨#Hlg, #Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
     #Hcl, #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   obtain ⟨γB, Hobj, HROeq, -, dB, alB, stB, lpB, hkbB, hgbB, hHB⟩ := HEo.2.2
   subst hHB
@@ -1299,7 +1299,7 @@ theorem EtcdServer.apply.wp_proofOn
   iintro %fsl1 ⟨-, -⟩
   wp_auto
   wp_apply hDebug $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   irename i => cnt
   irename i => iv
   rename_i ivp
@@ -1496,7 +1496,7 @@ theorem EtcdServer.apply.wp_proofOn
     iintro %fsl2 ⟨-, -⟩
     (try wp_auto)
     wp_apply hDebug $$ []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     try simp only [api.membership.ApplyV2storeOnly, api.membership.ApplyBoth]
     (try wp_auto)
@@ -1715,7 +1715,7 @@ theorem EtcdServer.apply.wp_proofOn
         icases srvApRes_cc s γr (A ++ ms.take (sint.nat j)) m cm ρ.raft hρr (by rw [h1]; decide) Hdec
           (by rw [← hρr]; exact Hcb cm Hdec) hidxA $$ [HAR HlbJ] with
           ⟨%bh, %ix, %lgh, %tl, %lid, %cl', %lgc, %cid, %prs, #Hbh, #Hbhi, #Htr, #Hmid, #Hcl', #Hclg,
-            %Hlgcnn, #Hcid, Hmr, %Hprem, HARk⟩
+            #Hlgcnn, #Hcid, Hmr, %Hprem, HARk⟩
         · iframe HAR HlbJ
         ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
         subst Hcleq
@@ -1776,9 +1776,9 @@ theorem EtcdServer.apply.wp_proofOn
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
             HplP HthT HbeRO
           isplitr
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           isplitr
-          · ipureintro; exact Hlgcnn
+          · iexact Hlgcnn
           isplitr
           · ipureintro
             refine membersDecode_restLeasesWith _ _ _ ?_
@@ -2068,7 +2068,7 @@ theorem EtcdServer.apply.wp_proofOn
           have hokc : ccApplyOkM γr.raft cm := by rw [← hρr]; exact Hcb cm Hdec
           icases srvApRes_ccRep s γr rp.A₀ cm hokc $$ HAR with
             ⟨%bh, %ix, %lgh, %tl, %lid, %cl', %lgc, %cid, %prs, #Hbh, #Hbhi, #Htr, #Hmid, #Hcl', #Hclg,
-              %Hlgcnn, #Hcid, Hmr, %Hpeer, HARk⟩
+              #Hlgcnn, #Hcid, Hmr, %Hpeer, HARk⟩
           obtain ⟨Hpeer, Hszk⟩ := Hpeer
           ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
           subst Hcleq
@@ -2082,8 +2082,8 @@ theorem EtcdServer.apply.wp_proofOn
             as %removed %err ⟨%Hrem, Hlr, ⟨%cm', Hcc, %hIdEq⟩, Hcs, Hmr, HRO⟩
           · iframe Hlg Hlr Hcl Hclg Hcid Hcc Hcs Hbh Hbhi Htr Hmid Hmr HRO
             isplitr
-            · ipureintro; exact Hlgnn
-            ipureintro; exact Hlgcnn
+            · iexact Hlgnn
+            iexact Hlgcnn
           ihave HRS := HRSk $$ HRO
           ihave HAR := HARk $$ Hmr
           (try wp_auto)

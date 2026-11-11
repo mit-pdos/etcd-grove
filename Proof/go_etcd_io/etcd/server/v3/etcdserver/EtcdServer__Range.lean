@@ -277,10 +277,10 @@ set_option hygiene false in
 local macro "range_defer" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  · iframe #; iframe Hlr
   (try wp_auto)
   wp_apply (hWarn _ _ _ _ respv _ (txn.rangeHdr respv _)) $$ [Hhdr] as Hhdr
-  · isplitr; · ipureintro; exact Hlgn
+  · isplitr; · iexact Hlgn
     isplitr; · iexact Hstr
     iframe Hhdr
     iapply rangeResult_warn hSize _ _ _ _ _ _ _ $$ Hres
@@ -330,7 +330,7 @@ local macro "range_tail" : tactic => `(tactic| (
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-      · iframe #; iframe Hlr; ipureintro; exact Hlgn
+      · iframe #; iframe Hlr
       (try wp_auto)
       wp_apply hKV s w.kv $$ []
       · iframe #
@@ -348,8 +348,6 @@ local macro "range_tail" : tactic => `(tactic| (
         simp only [Bool.false_eq_true, ↓reduceIte]
         isplitr
         · itrivial
-        isplitr
-        · ipureintro; exact Hlgn
         isplitr
         · ipureintro; exact Hvst
         iunfold srvApi.auRead at HAU
@@ -472,10 +470,10 @@ local macro "range_tail" : tactic => `(tactic| (
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
         wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-        · iframe #; iframe Hlr; ipureintro; exact Hlgn
+        · iframe #; iframe Hlr
         (try wp_auto)
         wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
-        · isplitr; · ipureintro; exact Hlgn
+        · isplitr; · iexact Hlgn
           isplitr; · iexact Hstr
           isplitr; · itrivial
           ileft; ipureintro; rfl
@@ -545,7 +543,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-      · iframe #; iframe Hlr; ipureintro; exact Hlgn
+      · iframe #; iframe Hlr
       (try wp_auto)
       wp_apply hKV s w.kv $$ []
       · iframe #
@@ -563,8 +561,6 @@ local macro "range_tailOn" : tactic => `(tactic| (
         simp only [Bool.false_eq_true, ↓reduceIte]
         isplitr
         · itrivial
-        isplitr
-        · ipureintro; exact Hlgn
         isplitr
         · ipureintro; exact Hvst
         iunfold srvApi.auRead at HAU
@@ -684,10 +680,10 @@ local macro "range_tailOn" : tactic => `(tactic| (
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
         wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-        · iframe #; iframe Hlr; ipureintro; exact Hlgn
+        · iframe #; iframe Hlr
         (try wp_auto)
         wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
-        · isplitr; · ipureintro; exact Hlgn
+        · isplitr; · iexact Hlgn
           isplitr; · iexact Hstr
           isplitr; · itrivial
           ileft; ipureintro; rfl
@@ -752,7 +748,8 @@ theorem EtcdServer.Range.wp_proof
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, %Hkveq0, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
+    #Hlgn, #Hwad, #Hterm, ⟨%log₀', #Hc0', %Hl0'⟩, #Hainv, #Hkvi, -⟩
+  ihave #HlgnO := zapLoggerOk_orNil _ $$ Hlgn
   -- (the `lean` merge, R6) the store invariant, for `txn.Range`'s read update
   ihave ⟨#HkS, %Hwit⟩ := srvKVInvsM_kvStoreInv E.authOn s E γr $$ Hkvi
   haveI := Hwit.1
@@ -848,7 +845,7 @@ theorem EtcdServer.Range.wp_proof
   subst Hsi
   (try wp_auto)
   wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  · iframe #; iframe Hlr
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [Hks] as -
   · iexact Hks
@@ -975,10 +972,10 @@ theorem EtcdServer.Range.wp_proof
       ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
       · iexists false; iexact Hown0
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-      · iframe #; iframe Hlr; ipureintro; exact Hlgn
+      · iframe #; iframe Hlr
       (try wp_auto)
       wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
-      · isplitr; · ipureintro; exact Hlgn
+      · isplitr; · iexact Hlgn
         isplitr; · iexact Hstr
         isplitr; · itrivial
         ileft; ipureintro; rfl
@@ -1116,10 +1113,10 @@ theorem EtcdServer.Range.wp_proof
       ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
       · iexists false; iexact Hown0
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-      · iframe #; iframe Hlr; ipureintro; exact Hlgn
+      · iframe #; iframe Hlr
       (try wp_auto)
       wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
-      · isplitr; · ipureintro; exact Hlgn
+      · isplitr; · iexact Hlgn
         isplitr; · iexact Hstr
         isplitr; · itrivial
         ileft; ipureintro; rfl

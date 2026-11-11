@@ -140,7 +140,7 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- `sendMergedSnap` writes
     srvInflight s ∗
     -- (2026-10-26) the logger, which `compactRaftLog` logs with
-    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝) ∗
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ zapLoggerOk l) ∗
     -- (2026-10-31, S1) the raft wrapper's started transport, of the server's network
     -- (`srvNet`), which `sendMergedSnap` sends the merged snapshot through
     (∃ (tr : GoInterface) (γn : NetNames GF) (lid : w64) (S TS : IProp GF),

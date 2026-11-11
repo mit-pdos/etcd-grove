@@ -207,11 +207,11 @@ instance rnTickInv_fractional (r : Loc) : Fractional (rnTickInv (GF := GF) r) :=
 
 /-- **The wrapper's components** (persistent): the predicates on the struct *value* `rv`'s
 components, independent of where the struct lives (`NewServer` copies `*newRaftNode(...)` into
-`EtcdServer.r` by value): the logger non-nil, `msgSnapC`'s bag, `applyc`'s SPSC channel,
+`EtcdServer.r` by value): the logger a zap logger (premise-fixes-6: until then non-nil), `msgSnapC`'s bag, `applyc`'s SPSC channel,
 `readStateC`'s bag of answered read states, the ticker, the detector, `stopped`'s bag and `done`'s
 broadcast channel (its `Unknown` view). -/
 def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
-  iprop("%Hlgnn" ∷ ⌜rv.lg' ≠ null⌝ ∗
+  iprop("#Hlgnn" ∷ zapLoggerOk rv.lg' ∗
     "#Hmsci" ∷ isRNMsgSnapC γ rv.msgSnapC' ∗
     "#Hapci" ∷ isRNApplyc E γ rv.applyc' ∗
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗

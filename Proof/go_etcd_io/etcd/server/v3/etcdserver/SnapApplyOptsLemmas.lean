@@ -101,17 +101,18 @@ theorem srvRestOwnH_lens_cluster (M : auth.AuthMode) (γB : backend.BNames) (al 
 
 /-! ## The logger -/
 
-/-- The new options' logger is the server's, not `nil` (`srvFieldsAt`'s). -/
+/-- The new options' logger is the server's, a zap logger (`srvFieldsAt`'s; premise-fixes-6: until
+then only not `nil`). -/
 theorem snap_lg_nn (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (lg : Loc) :
-    isServerM on s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ⊢ ⌜lg ≠ null⌝ := by
+    isServerM on s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ⊢ zapLoggerOk lg := by
   iintro ⟨#HS, #Hlg⟩
   iunfold isServerM at HS
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
   iunfold srvFieldsAtM at Hf
-  icases Hf with ⟨#Hlg', %Hnn, -⟩
+  icases Hf with ⟨#Hlg', #Hnn, -⟩
   icombine Hlg Hlg' gives %Heq
-  ipureintro; rw [Heq]; exact Hnn
+  rw [Heq]; iexact Hnn
 
 /-! ## The stores' contracts at the new backend -/
 

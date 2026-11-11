@@ -430,7 +430,7 @@ def srvApRes (s : Loc) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
       (prs : trIds),
     srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
     srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-    srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+    srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
     membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γr.raft cl tl lid prs ∗
     ⌜srvPeersCover γr.raft lid A prs ∧ srvMemOk γr.raft γr.kv.c0 A⌝ ∗ srvDynLog γr.raft lid)
 
@@ -471,14 +471,12 @@ theorem srvApRes_trStop (s : Loc) (γr : ReadNames) (A : List EntryModel) :
 theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜GMap.size γr.raft.raft.cfg ≤ 2 ^ 20⌝ := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   isplitl
   · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 Hd
     iframe
-    isplitr
-    · ipureintro; exact H7
     ipureintro; exact Hp
   ipureintro; exact Hp.2.2.1
 
@@ -486,14 +484,12 @@ theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :
 theorem srvApRes_cover (s : Loc) (γr : ReadNames) (A : List EntryModel) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr A ∗ ⌜srvMemCover γr.raft γr.kv.c0 A⌝ := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   isplitl
   · iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-    iframe H1 H2 H3 H4 H5 H6 H8 Hd
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 Hd
     iframe
-    isplitr
-    · ipureintro; exact H7
     ipureintro; exact Hp
   ipureintro; exact Hp.2.2.2
 
@@ -509,13 +505,13 @@ theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : E
     (ht : m.typ = W32 0) :
     srvApRes (GF := GF) s γr A ⊢ srvApRes s γr (A ++ [m]) := by
   unfold srvApRes
-  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, %H7, #H8,
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     Hmr, %Hp, #Hd⟩
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
   iframe Hmr
   iframe #
   ipureintro
-  refine ⟨H7, Hp.1, ?_, Hp.2.2.1, srvMemCover_normal _ _ A m ht Hp.2.2.2⟩
+  refine ⟨Hp.1, ?_, Hp.2.2.1, srvMemCover_normal _ _ A m ht Hp.2.2.2⟩
   intro k hk
   rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht] at hk
   exact Hp.2.1 k hk
@@ -720,7 +716,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
         (prs : trIds),
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
         srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
         membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γs cl tl lid prs ∗
         ⌜(cm.type = W32 0 → cm.nodeId ≠ lid → cm.nodeId ∈ prs) ∧
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
@@ -734,14 +730,12 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   iintro ⟨H, -⟩
   unfold srvApRes
   icases H with ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6,
-    %H7, #H8, Hmr, %Hp, #Hd⟩
+    #H7, #H8, Hmr, %Hp, #Hd⟩
   iunfold srvDynLog at Hd
   icases Hd with %Hl
   obtain ⟨h0, hin, -⟩ := hok
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
-  iframe H1 H2 H3 H4 H5 H6 H8 Hmr
-  isplitr
-  · ipureintro; exact H7
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 Hmr
   isplitr
   · ipureintro
     refine ⟨fun _ hne => Hp.1 _ hin hne, fun h1 => ?_, fun _ => ?_, Hl⟩
@@ -771,7 +765,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   iframe #
   iunfold srvDynLog
   ipureintro
-  exact ⟨H7, ⟨Hp.1, hmem⟩, Hl⟩
+  exact ⟨⟨Hp.1, hmem⟩, Hl⟩
 
 end lemmas
 

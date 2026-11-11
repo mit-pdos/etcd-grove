@@ -56,7 +56,7 @@ theorem EtcdServer.Authenticate.wp_proof
   iunfold isServerReadM at Hrd'
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨#Hread, #HisRead, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -⟩
+  icases Hw with ⟨#Hread, #HisRead, -, -, -, -, -, -, -, #Hlgf, #Hlgn, -⟩
   ihave #Hauthn' := Hauthn
   iunfold authnStoreOk at Hauthn'
   icases Hauthn' with ⟨%ai, %Hai, #HCP, #HGT, #HRev⟩
@@ -95,7 +95,7 @@ theorem EtcdServer.Authenticate.wp_proof
   | nil =>
     (try wp_auto)
     wp_apply hLg s w.lg $$ [Hlg] as ⟨-, Hlg⟩
-    · iframe #; iframe Hlg; ipureintro; exact Hlgn
+    · iframe #; iframe Hlg
     (try wp_auto)
     ihave #Papkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
     · iPkgInit
@@ -136,7 +136,7 @@ theorem EtcdServer.Authenticate.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply hWarn w.lg $$ []
-        · iframe #; ipureintro; exact Hlgn
+        · iframe #
         (try wp_auto)
         wp_for_post
         rw [decide_eq_false Hrn]
@@ -252,7 +252,7 @@ theorem EtcdServer.Authenticate.wp_proof
           ipureintro; exact Hvu
         · (try wp_auto)
           wp_apply hInfo w.lg $$ []
-          · iframe #; ipureintro; exact Hlgn
+          · iframe #
           wp_for_post
           iframe
           iexists _; iframe

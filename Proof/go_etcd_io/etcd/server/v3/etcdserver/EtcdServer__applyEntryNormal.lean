@@ -364,7 +364,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
     have Hpe : plainEntryM γr.kv.cmp E.lm m := Hlmt ▸ Hpc0.1 m HmA
     imod srvApplyKV_writer hPers hReach s E γr ρ.wait x $$ Hkvi HKV with ⟨HKV, #Hcx, -, -, %Hwf⟩
     iunfold srvFieldsAt at Hfv
-    icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
+    icases Hfv with ⟨#Hlg, #Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
       #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
     have Hpl : ∀ rq, m.data ≠ [] → apply.irrDecode m.data = some rq → plainOrCmpG E.lm rq :=
       fun rq hd hdec => plainOrCmpG_of_entryM _ _ m Hpe Htyp hd rq hdec
@@ -463,7 +463,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         · simp only [waitRegdOpt]; itrivial
         simp only [Bool.false_eq_true, ↓reduceIte]
         isplitr
-        · ipureintro; exact Hlgnn
+        · iexact Hlgnn
         iframe Hcx
         iframe Hcpq
         ipureintro
@@ -549,7 +549,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   ihave ⟨Hka, #Hkc⟩ := kvAppliedL_nx' _ _ _ _ HkeysA $$ Hka
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAt at Hfv
-  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
+  icases Hfv with ⟨#Hlg, #Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   -- (M2's apply side, 2026-10-31) the entry: a covered request (D22: its rest buckets' effect is
   -- `dispatch`'s), or, in the cluster's compaction mode, a compaction in M2's scope
@@ -796,7 +796,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
           iexact Hr1
         try simp only [↓reduceIte]
         isplitr
-        · ipureintro; exact Hlgnn
+        · iexact Hlgnn
         iframe Hst Happ Hbe HcF
         iframe Hcpq
         ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk, fun _ => Hca rq hdata hdec, by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
@@ -1296,7 +1296,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       ⟨HKV, #Hcx, -, -, %Hwf⟩
     icases srvApplyKVOn_authOn s E ρ.wait x sa $$ HKV with ⟨HKV, %HaOn⟩
     iunfold srvFieldsAtM at Hfv
-    icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl,
+    icases Hfv with ⟨#Hlg, #Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl,
       #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
     ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
     ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
@@ -1397,7 +1397,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           · simp only [waitRegdOpt]; itrivial
           simp only [Bool.false_eq_true, ↓reduceIte]
           isplitr
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           iframe Hcx
           iframe Hcpq
           ipureintro
@@ -1439,7 +1439,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           isplitr
           · simp only [waitRegdOpt]; itrivial
           isplitr
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           isplitr
           · ipureintro; exact ⟨hdec, hid, hadm, HaOn ▸ hdk, Hrb⟩
           isplitr
@@ -1511,7 +1511,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   icases kvAppliedLOn_nx _ _ _ _ _ HkeysA $$ Hka with ⟨Hka, #Hkc⟩
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAtM at Hfv
-  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl,
+  icases Hfv with ⟨#Hlg, #Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl,
     #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
@@ -1737,7 +1737,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
               iexact Hr1
             isplitr
-            · ipureintro; exact Hlgnn
+            · iexact Hlgnn
             iframe HcF
             isplitr
             · ipureintro; exact ⟨hdec, hid, hrq', HaOn ▸ hdk⟩
@@ -1810,7 +1810,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
               iexact Hr1
             isplitr
-            · ipureintro; exact Hlgnn
+            · iexact Hlgnn
             iframe Hst Happ Hbe HcF
             iframe Hcpq
             ipureintro; exact ⟨hpre, hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, fun _ => apply.cmpAdmit_nonCmp _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
@@ -1890,7 +1890,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
               ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
               iexact Hr1
             isplitr
-            · ipureintro; exact Hlgnn
+            · iexact Hlgnn
             iframe Hst Happ Hbe
             isplitr
             · ipureintro; exact hpre
@@ -1969,7 +1969,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
             iexact Hr1
           isplitr
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           iframe Hst Happ Hbe
           isplitr
           · ipureintro; exact hpre

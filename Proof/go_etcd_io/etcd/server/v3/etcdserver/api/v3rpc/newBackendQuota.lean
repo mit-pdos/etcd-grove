@@ -37,9 +37,8 @@ theorem v3rpc.newBackendQuota.wp_proof
   intro s lg qb name Hbuq
   wp_start as ⟨#Hlg, #Hlgn, Hlr, #Hqb, Hbr⟩
   wp_auto
-  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgn
   wp_apply wp_Logger s lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe; iframe #; ipureintro; exact Hlgnn
+  · iframe; iframe #
   iunfold srvBemuReader at Hbr
   icases Hbr with ⟨%γbe, Hbr⟩
   wp_apply wp_Backend s γbe $$ [Hbr] as %be ⟨Hbr, -⟩

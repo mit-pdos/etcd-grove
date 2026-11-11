@@ -81,7 +81,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`isServer`'s fields but `w`** (persistent): `srvFieldsAt` without `s.w` (which `start` sets). -/
 def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+  iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
@@ -128,7 +128,7 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
   iprop(srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
     srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
@@ -390,14 +390,14 @@ theorem replicate_map (P Q R : IProp GF) [Persistent R] (M : Nat) (h : R ∗ P �
 zero `wg` and `wgMu`, and the fields the protocol reads, the protocol (`srvGoAttachOk`), the
 closer's token (`run`'s shutdown's) and the reader slots of `wgMu`. -/
 theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc)
-    (hbound : 2 * threadBound GF ≤ 2 ^ 31) (hl : l ≠ null) :
+    (hbound : 2 * threadBound GF ≤ 2 ^ 31) :
     ⊢ srvStoppingAddr' s ↦□ ch -∗ ownStopChan ch γch iprop(True) .Pending -∗
       srvWgAddr s ↦ (zero_val sync.WaitGroup) -∗ srvWgMuAddr s ↦ (zero_val sync.RWMutex) -∗
-      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l -∗ raftPool (srvLgReader s) ={⊤}=∗
+      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l -∗ zapLoggerOk l -∗ raftPool (srvLgReader s) ={⊤}=∗
       ∃ γ : GoNames, srvGoAttachOk s γ ∗ token γ.close ∗
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvWgReaderAt s γ := by
-  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg #HrP
+  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg #Hlz #HrP
   unfold ownStopChan
   icases Hch with ⟨%γchi, #Hint, Hflag⟩
   imod sync.init_WaitGroup goAttachWGN (srvWgAddr s) $$ Hwg with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
@@ -435,8 +435,6 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   · iunfold srvGoAttachOk
     iexists ch, c
     iframe #
-    isplitr
-    · ipureintro; exact hl
     ipureintro; exact hbound
   imodintro
   iexists γ
