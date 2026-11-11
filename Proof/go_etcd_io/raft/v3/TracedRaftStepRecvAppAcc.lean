@@ -728,6 +728,174 @@ theorem simFx_appDone (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma 
     exact has m hm hty' k hk' hlk htk hs k' e he
   · exact absurd hty' hxq
 
+
+/-- **A log with records has a record at its last index** (`lastRec`: `0`, or its last entry's). -/
+theorem logRecs_lastRec (γ : RaftNames) (F : List EntryM) (hw : PlogWf base0 F) (hl : F.length < 2 ^ 63) :
+    logRecs (GF := GF) γ base0 F ⊢ lastRec γ (F.length : Int) := by
+  iintro #H
+  unfold lastRec
+  rcases Nat.eq_zero_or_pos F.length with h0 | hpos
+  · ileft; ipureintro; rw [h0]; rfl
+  iright
+  obtain ⟨e, he⟩ : ∃ e, F[F.length - 1]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  have hi := hw _ e he
+  rw [base0_index] at hi
+  icases logRecs_isEntry γ base0 F _ e he (by rw [base0_index]; omega) $$ H with ⟨%pt, #He⟩
+  iexists e
+  isplitr
+  · iunfold isEntry; iexists pt; iexact He
+  · ipureintro; rw [hi]; push_cast; omega
+
+/-- **Raft's commit index covers the bootstrap log** (`ownLogGhost_boot`); the ghost state unchanged. -/
+theorem ownRaftGhost_bootLe (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
+    ownRaftGhost (GF := GF) γ id s md ⊢ ownRaftGhost γ id s md ∗ ⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝ := by
+  iintro Hg
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γs, %V, %πc, %kl, H⟩
+  iNamed H
+  icases persistent_entails_right (wand_entails (ownLogGhost_boot (GF := GF) γ id s kl (virt V πc))) $$ Hlg
+    with ⟨⟨%Hbt, -⟩, Hlg⟩
+  isplitl
+  · iunfold ownRaftGhost
+    iexists γs, V, πc, kl
+    iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
+    ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
+  · ipureintro; exact Hbt.1
+
+/-- **The new log's length is within the trace's number bound** (its last index's time receipt,
+`lastRec_receipt`, below the receipts' bound past the bootstrap log). -/
+theorem logRecs_traceBound (γ : RaftNames) (F : List EntryM) (hw : PlogWf base0 F) (hl : F.length < 2 ^ 63)
+    (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
+    logRecs (GF := GF) γ base0 F ⊢ |==> ⌜(F.length : Int) < traceNumBound⌝ := by
+  iintro #H
+  ihave #Hlr := logRecs_lastRec γ F hw hl $$ H
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc
+  ihave %Hlt := preceipt_lt _ $$ Hrc
+  imodintro
+  ipureintro
+  have hb : traceNumBound = 2 ^ 61 := rfl
+  omega
+
+/-- The new log's facts the line's states need (`maybeAppend`'s new log `es'` from the log `L` at the
+batch `ents` after `p`, the commit index `c` at most `p`): its bootstrap terms, its committed prefix
+the old one's, the batch in it, its length past `lastnewi`. -/
+theorem newLog_pure (C : List w64) (L ents es' : List EntryM) (p : Nat) (lt lastnewi : w64) (c : Nat)
+    (hbL : BootTerms C.length 1 L) (hbe : BootTerms C.length (p + 1) ents)
+    (hwf : ∀ (k : Nat) (e : EntryM), ents[k]? = some e → uint.Z e.Index' = (p : Int) + k + 1)
+    (hp : p < 2 ^ 64) (hnw : (p : Int) + ents.length + 1 < 2 ^ 64) (hcp : c ≤ p)
+    (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) L (entryID.mk lt (W64 p)) ents = some (lastnewi, es')) :
+    BootTerms C.length 1 es' ∧ es'.take c = L.take c ∧ p + ents.length ≤ es'.length ∧
+      (∀ k e, ents[k]? = some e → p + k < es'.length → (es'[p + k]?).map EntryM.Term' = some e.Term') ∧
+      uint.Z lastnewi = (p : Int) + ents.length := by
+  obtain ⟨hpl, hli, hcase⟩ := maybeAppend_spec L ents es' p lt lastnewi hwf hp hnw happ
+  rcases hcase with ⟨rfl, hq, hnc⟩ | ⟨d, hd, hpd, rfl, -, -, hbef, -⟩
+  · exact ⟨hbL, rfl, hq, hnc, hli⟩
+  refine ⟨bootTerms_truncAppend C.length p d L ents hpd hbL hbe, ?_, ?_, truncAppend_has L ents p d hpd hbef, hli⟩
+  · rw [List.take_append_of_le_length (by simp; omega), List.take_take, Nat.min_eq_left (by omega)]
+  · simp; omega
+
+/-- **The facts at every intermediate state of an accepted append request's line** (`appMid`, up to
+the receiver's server: the log truncated to `k` entries past the first conflict, or the new log), the
+receiver `i` a follower of the request's term with raft's log `L`; from `simFx_appLog` with the kept
+prefixes (`prefix_take_of_conflict`, `prefix_newLog`). -/
+theorem simFx_appAccMid (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : w64) (ma : Etcdraft.Msg)
+    (L ents es' : List EntryM) (p : Nat) (lt lastnewi : w64) (j : Etcdraft.ID)
+    (hsrv : σ.server = confAbs C) (hiC : i ∈ C) (hdst : ma.dest = idAbs i)
+    (hf : (σ.s (idAbs i)).state = Etcdraft.follower)
+    (hterm : ma.term = (σ.s (idAbs i)).currentTerm) (hmem : ma ∈ σ.messages.domain)
+    (hlog : (σ.s (idAbs i)).log = logAbs C C.length 1 L) (hbL : BootTerms C.length 1 L)
+    (hwr : PlogWfR base0 L) (hln : L.length < 2 ^ 63)
+    (hcp : (σ.s (idAbs i)).commitIndex ≤ p) (hc0 : 0 ≤ (σ.s (idAbs i)).commitIndex)
+    (hprev : ma.prevLogIndex = p) (hents : ma.entries = logAbs C C.length (p + 1) ents)
+    (hbe : BootTerms C.length (p + 1) ents)
+    (hwf : ∀ (k : Nat) (e : EntryM), ents[k]? = some e → uint.Z e.Index' = (p : Int) + k + 1)
+    (hp : p < 2 ^ 64) (hnw : (p : Int) + ents.length + 1 < 2 ^ 64)
+    (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) L (entryID.mk lt (W64 p)) ents = some (lastnewi, es'))
+    (hwr' : PlogWfR base0 es') (hln' : es'.length < 2 ^ 63)
+    (src T : w64) (bL : entryID) (l fp ents0 : List EntryM) (idx lt0 : w64)
+    (hTm : ma.term = uint.Z T) (hin : plogTermAt bL l idx = some lt0)
+    (hsl : ents0 <+: plogFrom bL l (idx + W64 1)) (hidx1 : uint.Z idx + 1 < 2 ^ 64)
+    (hidx : ma.prevLogIndex = uint.Z idx) (hents0 : ma.entries = logAbs C C.length (uint.nat idx + 1) ents0)
+    (L' : List EntryM)
+    (hL' : (∃ k, p ≤ k ∧ k < L.length ∧ ConflictBy ents L p k ∧ L' = L.take k) ∨ L' = es') :
+    votesTbl (GF := GF) γ ∗ simFx γ C σ ∗ logRecs γ base0 L ∗ logRecs γ base0 es' ∗
+        leadPrefix γ src T bL l ∗ lpfull γ src T bL l fp ⊢
+      votesTbl γ ∗ simFx γ C (withNode σ (idAbs i)
+        { σ.s (idAbs i) with log := logAbs C C.length 1 L', lead := j } _root_.id _root_.id) := by
+  have hwL : PlogWf base0 L := PlogWfR_wf _ _ hwr (by unfold plogLastIndexZ; rw [base0_index]; omega)
+  have hcn : (σ.s (idAbs i)).commitIndex.toNat ≤ p := by omega
+  obtain ⟨hbN, htkN, hqN, -, -⟩ := newLog_pure C L ents es' p lt lastnewi _ hbL hbe hwf hp hnw hcn happ
+  iintro ⟨Htbl, Hfx, #HL, #HN, #Hp, #Hf⟩
+  rcases hL' with ⟨k, hpk, hkl, hcf, rfl⟩ | rfl
+  · ihave #HLk := logRecs_take γ L k $$ HL
+    iapply simFx_appLog γ C σ i ma L (L.take k) j hsrv hiC hdst hf hterm hmem hlog hbL hwL (hbL.take k)
+      (PlogWf_wfR _ _ (PlogWf_take _ _ _ hwL)) (by simp; omega) (by simp; omega)
+      (by rw [List.take_take, Nat.min_eq_left (by omega)])
+      (fun k' e he => .inl (takeLog_entries C L k k' e he))
+      (fun P hP hag => prefix_take_of_conflict C P L ents p k ma hprev hents hbL hbe hP hag hcf)
+      src T bL l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0
+    iframe Htbl Hfx HL HLk Hp Hf
+  · iapply simFx_appLog γ C σ i ma L L' j hsrv hiC hdst hf hterm hmem hlog hbL hwL hbN hwr' hln'
+      (by omega) htkN (newLog_entries C L ents L' p lt lastnewi ma hprev hents hwf hp hnw happ)
+      (fun P hP hag => prefix_newLog C P L ents L' p lt lastnewi ma hprev hents hbL hbe hwf hp hnw happ hP hag)
+      src T bL l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0
+    iframe Htbl Hfx HL HN Hp Hf
+
+/-- **The facts at the end of an accepted append request's line** (`doneSt` over the new log, as a
+node update of the line's first state): `simFx_appLog` to the new log, then `simFx_appDone`. -/
+theorem simFx_appAccEnd (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : w64) (ma : Etcdraft.Msg)
+    (L ents es' : List EntryM) (p : Nat) (lt lastnewi : w64)
+    (hsrv : σ.server = confAbs C) (hiC : i ∈ C) (hdst : ma.dest = idAbs i)
+    (hf : (σ.s (idAbs i)).state = Etcdraft.follower) (hty : ma.type = .appendEntriesRequest)
+    (hterm : ma.term = (σ.s (idAbs i)).currentTerm) (hsub : ma.subtype = "app") (hmem : ma ∈ σ.messages.domain)
+    (hlog : (σ.s (idAbs i)).log = logAbs C C.length 1 L) (hbL : BootTerms C.length 1 L)
+    (hwr : PlogWfR base0 L) (hln : L.length < 2 ^ 63)
+    (hcp : (σ.s (idAbs i)).commitIndex ≤ p) (hc0 : 0 ≤ (σ.s (idAbs i)).commitIndex)
+    (hprev : ma.prevLogIndex = p) (hents : ma.entries = logAbs C C.length (p + 1) ents)
+    (hbe : BootTerms C.length (p + 1) ents)
+    (hwf : ∀ (k : Nat) (e : EntryM), ents[k]? = some e → uint.Z e.Index' = (p : Int) + k + 1)
+    (hp : p < 2 ^ 64) (hnw : (p : Int) + ents.length + 1 < 2 ^ 64)
+    (happ : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) L (entryID.mk lt (W64 p)) ents = some (lastnewi, es'))
+    (hwr' : PlogWfR base0 es') (hln' : es'.length < 2 ^ 63)
+    (src T : w64) (bL : entryID) (l fp ents0 : List EntryM) (idx lt0 : w64)
+    (hTm : ma.term = uint.Z T) (hin : plogTermAt bL l idx = some lt0)
+    (hsl : ents0 <+: plogFrom bL l (idx + W64 1)) (hidx1 : uint.Z idx + 1 < 2 ^ 64)
+    (hidx : ma.prevLogIndex = uint.Z idx) (hents0 : ma.entries = logAbs C C.length (uint.nat idx + 1) ents0)
+    (cc : Int) (hcc : cc = max (σ.s (idAbs i)).commitIndex (min ma.commitIndex ((p : Int) + ents.length)))
+    (hccl : cc ≤ es'.length) :
+    votesTbl (GF := GF) γ ∗ simFx γ C σ ∗ logRecs γ base0 L ∗ logRecs γ base0 es' ∗
+        leadPrefix γ src T bL l ∗ lpfull γ src T bL l fp ∗
+        commitIn γ es' (W64 cc) (W64 (σ.s (idAbs i)).currentTerm) ∗ isCommitted γ (es'.take cc.toNat) ⊢
+      votesTbl γ ∗ simFx γ C (withNode σ (idAbs i)
+        (doneSrv (σ.s (idAbs i)) (logAbs C C.length 1 es') ma.source (min ma.commitIndex ((p : Int) + ents.length)))
+        (fun b => b.without ma) (fun b => b.with (doneResp (σ.s (idAbs i)) ma p ents.length))) := by
+  have hwN : PlogWf base0 es' := PlogWfR_wf _ _ hwr' (by unfold plogLastIndexZ; rw [base0_index]; omega)
+  have hcn : (σ.s (idAbs i)).commitIndex.toNat ≤ p := by omega
+  obtain ⟨hbN, -, hqN, hncN, -⟩ := newLog_pure C L ents es' p lt lastnewi _ hbL hbe hwf hp hnw hcn happ
+  iintro ⟨Htbl, Hfx, #HL, #HN, #Hp, #Hf, #Hci, #Hcm⟩
+  icases simFx_appAccMid γ C σ i ma L ents es' p lt lastnewi ma.source hsrv hiC hdst hf hterm hmem hlog hbL hwr hln
+      hcp hc0 hprev hents hbe hwf hp hnw happ hwr' hln' src T bL l fp ents0 idx lt0 hTm hin hsl hidx1 hidx hents0
+      es' (.inr rfl) $$ [$Htbl $Hfx $HL $HN $Hp $Hf] with ⟨Htbl, #HA⟩
+  iframe Htbl
+  obtain ⟨v0, hv0⟩ : ∃ v0, v0 = ({ σ.s (idAbs i) with log := logAbs C C.length 1 es', lead := ma.source } :
+      Etcdraft.Server) := ⟨_, rfl⟩
+  obtain ⟨A, hA⟩ : ∃ A, A = withNode σ (idAbs i) v0 _root_.id _root_.id := ⟨_, rfl⟩
+  rw [← hv0, ← hA]
+  have hAs : A.s ma.dest = v0 := by rw [hA, hdst]; exact withNode_s_self _ _ _ _ _
+  have heq : withNode A ma.dest (doneSrv (A.s ma.dest) (A.s ma.dest).log ma.source
+      (min ma.commitIndex ((p : Int) + ents.length))) (fun b => b.without ma)
+      (fun b => b.with (doneResp (A.s ma.dest) ma p ents.length)) =
+      withNode σ (idAbs i)
+        (doneSrv (σ.s (idAbs i)) (logAbs C C.length 1 es') ma.source (min ma.commitIndex ((p : Int) + ents.length)))
+        (fun b => b.without ma) (fun b => b.with (doneResp (σ.s (idAbs i)) ma p ents.length)) := by
+    rw [hAs, hA, hdst, withNode_withNode, hv0]; rfl
+  ihave #HD := simFx_appDone γ C A ma es' ents i p (by rw [hA]; exact hsrv) hiC hdst
+    (by rw [hAs, hv0]; exact hf) hty (by rw [hAs, hv0]; exact hterm) hsub (by rw [hA]; exact hmem)
+    (by rw [hAs, hv0]) hbN hwN hents hprev hqN
+    (by rw [hAs, hv0]; simp only; omega) hbe hncN cc (by rw [hAs, hv0]; exact hcc) hccl $$ [$HA $HN]
+  · rw [hAs, hv0]; iframe Hci Hcm
+  rw [← heq]
+  iexact HD
 end fx
 end EtcdGrove
 end Perennial
