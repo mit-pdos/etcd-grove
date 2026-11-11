@@ -368,7 +368,15 @@ def goose_owned(module):
     return any(r == root and (rel == o or rel.startswith(o + "/")) for r, o in OWNED)
 
 
-def code_line_ok(module, name, cache={}):
+def code_line_ok(module, name, cache={}, memo={}):
+    """Whether `name` is declared by an `axiom` line of `module`'s file (memoized: 144k `satax`
+    lines name 988 distinct axioms)."""
+    if (module, name) not in memo:
+        memo[(module, name)] = _code_line_ok(module, name, cache)
+    return memo[(module, name)]
+
+
+def _code_line_ok(module, name, cache):
     if not module.startswith("Perennial.") and not goose_owned(module):
         return False
     if module.startswith("Perennial."):
