@@ -110,7 +110,7 @@ def TokInfo.target (ti : TokInfo) : Nat :=
 bytes it announced below the size may no longer be durable; past the zeros known, they no longer
 have only the zero candidate; a crash may leave the file with the target size. -/
 def OsMeta.announce (m : OsMeta) (lo hi tg : Nat) : OsMeta :=
-  { m.touch lo (min hi m.size) with
+  { m.touch lo hi with
     zf := m.zf.map (fun z => if lo < hi then max z hi else z),
     lo := min m.lo tg, hi := max m.hi tg }
 
