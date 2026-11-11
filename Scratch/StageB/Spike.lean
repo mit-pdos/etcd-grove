@@ -9,6 +9,7 @@ module
 
 public import Proof.google_golang_org.grpc.InvGrpc
 public import Perennial.Proof.ThreadPool
+public import Proof.google_golang_org.grpc.InvGrpcServer
 
 @[expose] public section
 
@@ -223,6 +224,174 @@ theorem spike_body :
   ipureintro; exact isPanic_intoVal ()
 
 end spike
+
+end EtcdGrove
+end Perennial
+
+/-! ## Spike (4): the joint `Nodup` on etcd's server path (M2 (3)) -/
+
+namespace Perennial
+namespace EtcdGrove
+
+section nodup
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+
+theorem spike_go_slash : (go!"/" : GoString) = [(47 : w8)] := rfl
+
+theorem spike_sep_inj {α : Type} (c : α) : ∀ (a a' b b' : List α), c ∉ a → c ∉ a' →
+    a ++ c :: b = a' ++ c :: b' → a = a' ∧ b = b'
+  | [], [], b, b', _, _, h => by simpa using h
+  | [], x :: a', b, b', _, h2, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (h.1 ▸ List.mem_cons_self) h2
+  | x :: a, [], b, b', h1, _, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (h.1.symm ▸ List.mem_cons_self) h1
+  | x :: a, y :: a', b, b', h1, h2, h => by
+    simp only [List.cons_append, List.cons.injEq] at h
+    obtain ⟨rfl, h⟩ := h
+    have := spike_sep_inj c a a' b b' (fun hm => h1 (List.mem_cons_of_mem _ hm))
+      (fun hm => h2 (List.mem_cons_of_mem _ hm)) h
+    exact ⟨by rw [this.1], this.2⟩
+
+/-- **`grpcFullName_inj`** (r5 §2.4): slash-free service names are recovered from full names. -/
+theorem spike_grpcFullName_inj (sn sn' mn mn' : GoString) (h1 : (47 : w8) ∉ sn) (h2 : (47 : w8) ∉ sn')
+    (h : grpcFullName sn mn = grpcFullName sn' mn') : sn = sn' ∧ mn = mn' := by
+  unfold grpcFullName at h
+  rw [spike_go_slash] at h
+  simp only [List.cons_append, List.nil_append, List.append_assoc, List.cons.injEq, true_and] at h
+  exact spike_sep_inj (47 : w8) sn sn' mn mn' h1 h2 h
+
+theorem spike_nodup_map_on {α β : Type} (f : α → β) : ∀ (l : List α),
+    (∀ x ∈ l, ∀ y ∈ l, f x = f y → x = y) → l.Nodup → (l.map f).Nodup
+  | [], _, _ => List.nodup_nil
+  | a :: l, hinj, hnd => by
+    rw [List.nodup_cons] at hnd
+    rw [List.map_cons, List.nodup_cons]
+    refine ⟨fun hm => ?_, spike_nodup_map_on f l
+      (fun x hx y hy => hinj x (List.mem_cons_of_mem _ hx) y (List.mem_cons_of_mem _ hy)) hnd.2⟩
+    obtain ⟨b, hb, hfb⟩ := List.mem_map.mp hm
+    exact hnd.1 (hinj b (List.mem_cons_of_mem _ hb) a List.mem_cons_self hfb ▸ hb)
+
+/-- The services' full names: service `s.1`'s methods `s.2.1` and streams `s.2.2`. -/
+def spikeNames (S : List (GoString × List GoString × List GoString)) : List GoString :=
+  S.flatMap fun s => (s.2.1 ++ s.2.2).map (grpcFullName s.1)
+
+/-- Distinct slash-free services with per-service distinct names have distinct full names. -/
+theorem spike_names_nodup (S : List (GoString × List GoString × List GoString))
+    (hS : ∀ s ∈ S, (47 : w8) ∉ s.1 ∧ (s.2.1 ++ s.2.2).Nodup) (hsn : (S.map (·.1)).Nodup) :
+    (spikeNames S).Nodup := by
+  induction S with
+  | nil => simp [spikeNames]
+  | cons s S ih =>
+    simp only [spikeNames, List.flatMap_cons, List.map_cons, List.nodup_cons] at hsn ⊢
+    have hs := hS s List.mem_cons_self
+    refine List.nodup_append.mpr ⟨?_, ih (fun t ht => hS t (List.mem_cons_of_mem _ ht)) hsn.2, ?_⟩
+    · refine spike_nodup_map_on _ _ ?_ hs.2
+      intro x _ y _ hxy
+      exact (spike_grpcFullName_inj s.1 s.1 x y hs.1 hs.1 hxy).2
+    · intro a ha b hb hab
+      subst hab
+      obtain ⟨x, _, rfl⟩ := List.mem_map.mp ha
+      obtain ⟨t, ht, hb⟩ := List.mem_flatMap.mp hb
+      obtain ⟨y, _, hy⟩ := List.mem_map.mp hb
+      have := (spike_grpcFullName_inj s.1 t.1 x y hs.1 (hS t (List.mem_cons_of_mem _ ht)).1 hy.symm).1
+      exact hsn.1 (this ▸ List.mem_map_of_mem ht)
+
+end nodup
+
+end EtcdGrove
+end Perennial
+
+/-! ### Spike (4b): etcd's lists, in `v3rpc.Server`'s registration order -/
+
+namespace Perennial
+namespace EtcdGrove
+
+section nodupEtcd
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+
+open google_golang_org.grpc in
+theorem spike_descRegs_names (sn : GoString) (mds : List MethodDesc) (ss : GoInterface) :
+    (descRegs sn mds ss).map Prod.fst = (mds.map (·.MethodName')).map (grpcFullName sn) := by
+  simp [descRegs, List.map_map, Function.comp_def]
+
+open google_golang_org.grpc in
+theorem spike_descSRegs_names (sn : GoString) (sds : List StreamDesc) (ss : GoInterface) :
+    (descSRegs sn sds ss).map Prod.fst = (sds.map (·.StreamName')).map (grpcFullName sn) := by
+  simp [descSRegs, List.map_map, Function.comp_def]
+
+theorem spike_health_prefix : (go!"/grpc.health.v1.Health/" : GoString) =
+    go!"/" ++ go!"grpc.health.v1.Health" ++ go!"/" := rfl
+
+open google_golang_org.grpc in
+/-- **The joint `Nodup` of `v3rpc.Server`'s registrations** (M2 (3)), from what `svcDescsOk` gives
+(the KV, Watch, Lease, Auth names exactly; Cluster's and Maintenance's `descNames` distinct) and the
+restated `RegisterHealthServer` post (`rs ++ srs` distinct, under `/grpc.health.v1.Health/`), in the
+proof's registration order (KV, Watch, Lease, Cluster, Auth, health, Maintenance). -/
+theorem spike_v3rpc_nodup (kmds lmds cmds amds mmds : List MethodDesc)
+    (ksds wsds lsds csds asds msds : List StreamDesc) (q pw ql pc pa pm : GoInterface)
+    (rs srs : List (GoString × val × GoInterface))
+    (hk : kmds.map (·.MethodName') = [go!"Range", go!"Put", go!"DeleteRange", go!"Txn", go!"Compact"])
+    (hks : ksds.map (·.StreamName') = [go!"RangeStream"])
+    (hws : wsds.map (·.StreamName') = [go!"Watch"])
+    (hl : lmds.map (·.MethodName') = [go!"LeaseGrant", go!"LeaseRevoke", go!"LeaseTimeToLive", go!"LeaseLeases"])
+    (hls : lsds.map (·.StreamName') = [go!"LeaseKeepAlive"])
+    (hc : (descNames cmds csds).Nodup)
+    (ha : (amds.map (·.MethodName')).Nodup) (has : asds.map (·.StreamName') = [])
+    (hm : (descNames mmds msds).Nodup)
+    (hH : ((rs ++ srs).map Prod.fst).Nodup)
+    (hHp : ∀ x ∈ rs ++ srs, go!"/grpc.health.v1.Health/" <+: x.1) :
+    let regs := [] ++ descRegs go!"etcdserverpb.KV" kmds q ++ descRegs go!"etcdserverpb.Watch" [] pw ++
+      descRegs go!"etcdserverpb.Lease" lmds ql ++ descRegs go!"etcdserverpb.Cluster" cmds pc ++
+      descRegs go!"etcdserverpb.Auth" amds pa ++ rs ++ descRegs go!"etcdserverpb.Maintenance" mmds pm
+    let sregs := [] ++ descSRegs go!"etcdserverpb.KV" ksds q ++ descSRegs go!"etcdserverpb.Watch" wsds pw ++
+      descSRegs go!"etcdserverpb.Lease" lsds ql ++ descSRegs go!"etcdserverpb.Cluster" csds pc ++
+      descSRegs go!"etcdserverpb.Auth" asds pa ++ srs ++ descSRegs go!"etcdserverpb.Maintenance" msds pm
+    ((regs ++ sregs).map Prod.fst).Nodup := by
+  intro regs sregs
+  let S : List (GoString × List GoString × List GoString) :=
+    [(go!"etcdserverpb.KV", kmds.map (·.MethodName'), ksds.map (·.StreamName')),
+     (go!"etcdserverpb.Watch", [], wsds.map (·.StreamName')),
+     (go!"etcdserverpb.Lease", lmds.map (·.MethodName'), lsds.map (·.StreamName')),
+     (go!"etcdserverpb.Cluster", cmds.map (·.MethodName'), csds.map (·.StreamName')),
+     (go!"etcdserverpb.Auth", amds.map (·.MethodName'), asds.map (·.StreamName')),
+     (go!"etcdserverpb.Maintenance", mmds.map (·.MethodName'), msds.map (·.StreamName'))]
+  have hperm : ((regs ++ sregs).map Prod.fst).Perm (spikeNames S ++ (rs ++ srs).map Prod.fst) := by
+    rw [List.perm_iff_count]
+    intro a
+    simp only [regs, sregs, S, spikeNames, List.flatMap_cons, List.flatMap_nil, List.map_append,
+      spike_descRegs_names, spike_descSRegs_names, List.count_append, List.map_nil, List.append_nil,
+      List.nil_append]
+    omega
+  refine (List.Perm.nodup_iff hperm).mpr (List.nodup_append.mpr ⟨?_, hH, ?_⟩)
+  · apply spike_names_nodup
+    · intro s hs
+      simp only [S, List.mem_cons, List.not_mem_nil, or_false] at hs
+      rcases hs with rfl | rfl | rfl | rfl | rfl | rfl
+      · refine ⟨by dsimp only; decide, ?_⟩; rw [hk, hks]; decide
+      · refine ⟨by dsimp only; decide, ?_⟩; rw [hws]; decide
+      · refine ⟨by dsimp only; decide, ?_⟩; rw [hl, hls]; decide
+      · exact ⟨by dsimp only; decide, hc⟩
+      · exact ⟨by dsimp only; decide, by rw [has, List.append_nil]; exact ha⟩
+      · exact ⟨by dsimp only; decide, hm⟩
+    · simp only [S, List.map_cons, List.map_nil]; decide
+  · intro a ha b hb hab
+    subst hab
+    obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hb
+    obtain ⟨t, ht⟩ := hHp x hx
+    obtain ⟨s, hs, hsa⟩ := List.mem_flatMap.mp ha
+    obtain ⟨y, _, hy⟩ := List.mem_map.mp hsa
+    have hfull : x.1 = grpcFullName go!"grpc.health.v1.Health" t := by
+      rw [← ht, spike_health_prefix]; simp [grpcFullName, List.append_assoc]
+    have hS1 : (47 : w8) ∉ s.1 ∧ s.1 ≠ go!"grpc.health.v1.Health" := by
+      simp only [S, List.mem_cons, List.not_mem_nil, or_false] at hs
+      rcases hs with rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨by dsimp only; decide, by dsimp only; decide⟩
+    have := (spike_grpcFullName_inj s.1 go!"grpc.health.v1.Health" y t hS1.1 (by decide)
+      (hy.trans hfull)).1
+    exact hS1.2 this
+
+end nodupEtcd
 
 end EtcdGrove
 end Perennial
