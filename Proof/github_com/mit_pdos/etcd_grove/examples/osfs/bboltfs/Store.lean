@@ -61,7 +61,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
 /-- The window `[a, a + n)` of a file's bytes, and back. -/
-theorem osBytes_window (p : Ino) (dq : DFrac) (xs : List (w8 × Bool)) (a n : Nat)
+theorem osBytes_window (p : Ino) (dq : DFrac) (xs : List ByteG) (a n : Nat)
     (h : a + n ≤ xs.length) :
     osBytes (L := L) p 0 dq xs ⊣⊢
       osBytes (L := L) p 0 dq (xs.take a) ∗ osBytes (L := L) p a dq ((xs.drop a).take n) ∗

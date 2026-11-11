@@ -24,20 +24,20 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- A database closed while not failed, at transaction `t` and high water mark `n`, on the path `p`: the whole of the
-file's `OsMeta` `m` (no byte lost by a failed sync, `ok`), the meta pages' bytes (clean, valid,
+file's `OsMeta` `m` (no byte that may not be durable, `m.dhi ≤ m.dlo`), the meta pages' bytes (clean, valid,
 `metaPagesOk`, the current meta at `t`), the
 committed pages (`pageIs`, discarded), the current root page holding `dbTx γ t`'s value, and the
 bytes from the high water mark on, whole. The mapping is gone, and the file is at least four pages
 and at most 1 GiB: what `Open` accepts (`dbClosed_reopen`). -/
 def dbClosed (γ : DBNames) (p : GoString) (t n : Nat) : IProp GF :=
-  iprop(∃ (m : OsMeta) (mp : List w8) (mxc tail : List (w8 × Bool)) (B : List w8),
+  iprop(∃ (m : OsMeta) (mp : List w8) (mxc tail : List ByteG) (B : List w8),
     osMeta (GF := GF) γ.ino (DFrac.own 1) m ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own 1) mxc ∗
     ([∗list] r ∈ List.range' 2 (curPgid mp - 2), ∃ B', pageIs (GF := GF) γ.ino r B') ∗
     osBytes (GF := GF) γ.ino (4096 * curPgid mp) (DFrac.own 1) tail ∗
     pageIs (GF := GF) γ.ino (curRoot mp) B ∗ dbTx (GF := GF) γ t (pageVal B) ∗
-    ⌜mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ metaPagesOk mp ∧
+    ⌜mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x = durB x.1) ∧ metaPagesOk mp ∧
       (curMeta mp).txid'.toNat = t ∧ curPgid mp = n ∧ 4096 * curPgid mp ≤ m.size ∧
-      tail.length = m.size - 4096 * curPgid mp ∧ m.ok = true ∧ m.maps = ∅ ∧
+      tail.length = m.size - 4096 * curPgid mp ∧ m.dhi ≤ m.dlo ∧ m.maps = ∅ ∧
       4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 30⌝)
 
 /-- See the file header. -/

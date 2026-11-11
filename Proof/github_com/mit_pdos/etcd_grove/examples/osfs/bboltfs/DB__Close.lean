@@ -49,7 +49,7 @@ theorem close_unmapped (p : Ino) (m : OsMeta) (base : Loc) (len : Nat) (err : Go
     (hm : m.maps = {[base := len]}) (hb : 0 < base.addr) (herr : err = interface.nil) :
     unmappedRes (GF := GF) p m ⟨base, W64 len, W64 len⟩ err ⊢
       ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗
-        ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ m'.maps = ∅⌝ := by
+        ⌜m'.size = m.size ∧ (m'.dhi = m.dhi ∧ m'.dlo = m.dlo) ∧ m'.maps = ∅⌝ := by
   unfold unmappedRes
   iintro (%Hnil | ⟨%b, %l, %vf, %e, %Heq, Hu⟩)
   · exfalso
@@ -60,7 +60,7 @@ theorem close_unmapped (p : Ino) (m : OsMeta) (base : Loc) (len : Nat) (err : Go
     by_cases he : e = 0
     · icases Hu with (⟨-, Hm⟩ | ⟨%He, -⟩)
       · iexists _; iframe
-        ipureintro; refine ⟨rfl, rfl, ?_⟩; simp only [hm]; exact GMap.delete_singleton _ _
+        ipureintro; refine ⟨rfl, ⟨rfl, rfl⟩, ?_⟩; simp only [hm]; exact GMap.delete_singleton _ _
       · exact absurd he He
     · exact absurd herr (errnoErr_ne_nil' e he)
 
@@ -294,9 +294,9 @@ theorem DB.Close.wp_proof (wp_close : DB.close.spec (GF := GF) (hG := hG)) :
         iexists m', mx, mxw, tail, B
         iframe; iframe #
         ipureintro
-        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1, Hok, rfl, rfl, by omega, by omega, ?_, Hm'.2.2,
+        refine ⟨(Hw.2.2.2.2 rfl).1, (Hw.2.2.2.2 rfl).2.1.1, Hok, rfl, rfl, by omega, by omega, ?_, Hm'.2.2,
           by have := (Hw.2.2.2.2 rfl).2.2.2.2.1; omega, by have := (Hw.2.2.2.2 rfl).2.2.2.2.2.1; omega⟩
-        rw [Hm'.2.1]; exact Hok0 rfl
+        rw [Hm'.2.1.1, Hm'.2.1.2]; exact (Hw.2.2.2.2 rfl).2.1.2
       · iright; ileft; ipureintro; exact herrc
 
 end proof

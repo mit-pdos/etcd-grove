@@ -32,7 +32,7 @@ variable {s : Stuckness} {E : CoPset}
 /-- `wp_osPRead_racy_list` (`GooseLang/Ext/Fs/Specs.lean`), and: a successful `pread` that read
 nothing reached no held byte of its range. -/
 theorem wp_osPRead_racy_reach (fd off n : w64) (dq : DFrac) (d : OsFd)
-    (rs : List (Nat × DFrac × List (w8 × Bool))) (hE : ↑osN ⊆ E) (hrd : d.readable = true)
+    (rs : List (Nat × DFrac × List ByteG)) (hE : ↑osN ⊆ E) (hrd : d.readable = true)
     (hoff : 0 ≤ off.toInt) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
       ([∗list] x ∈ rs, osBytes (L := L) d.ino x.1 x.2.1 x.2.2) -∗
@@ -81,7 +81,7 @@ theorem wp_osPRead_racy_reach (fd off n : w64) (dq : DFrac) (d : OsFd)
     obtain ⟨f', hf', hb, hn⟩ := Hbl x hx k hk
     rw [hf] at hf'; cases hf'
     have hlt : x.1 + k < f.size := by rw [← contents_length]; exact (List.getElem?_eq_some_iff.1 hb).1
-    have hgt := statSees_gt hf hlt hn hss
+    have hgt := statSees_gt hcoh hf hlt hn hss
     refine ⟨by rw [hrl]; omega, fun hlt' => ?_⟩
     have hn' : ¬ InflightAt st' d.ino (off.toNat + (x.1 + k - off.toNat)) := by
       rw [show off.toNat + (x.1 + k - off.toNat) = x.1 + k by omega]; exact hn

@@ -127,7 +127,7 @@ failed, the meta cells back in the invariant holding whatever the failed write l
 `metaR`'s failed branch with half of the meta pages' bytes `X` and its half of `own`, and
 `dbFailed`; the committer's token, with `metaR`'s half, at high water mark 0. -/
 theorem meta_fail (γ : DBNames) (db : Loc) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
-    (mp : List w8) (hwm : Nat) (mc : List w8) (hmc : mc.length = 128) (X : List (w8 × Bool))
+    (mp : List w8) (hwm : Nat) (mc : List w8) (hmc : mc.length = 128) (X : List ByteG)
     (hX : X.length = 8192) (T : GMap Nat (Option w64)) (x : Nat × Nat) (t n : Nat) :
     mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗ ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗

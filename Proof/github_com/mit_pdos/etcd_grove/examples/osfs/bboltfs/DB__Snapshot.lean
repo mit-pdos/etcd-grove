@@ -233,8 +233,8 @@ theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       iunfold pageIs at HBc HB2c
       icases HBc with ⟨%HBl, #HBb⟩
       icases HB2c with ⟨%HB2l, #HB2b⟩
-      ihave Hrs : ([∗list] r ∈ [(4096 * curRoot mp, DFrac.discard, B.map (·, true)),
-          (4096 * (curPgid mp - 1), DFrac.discard, B2.map (·, true))],
+      ihave Hrs : ([∗list] r ∈ [(4096 * curRoot mp, DFrac.discard, B.map durB),
+          (4096 * (curPgid mp - 1), DFrac.discard, B2.map durB)],
           osBytes (GF := GF) γ.ino r.1 r.2.1 r.2.2) $$ []
       · iapply BigSepL.bigSepL_cons.2; isplitl; · iexact HBb
         iapply BigSepL.bigSepL_singleton.2; iexact HB2b
@@ -246,8 +246,8 @@ theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       obtain ⟨-, Heofpe, T, l, rfl⟩ := Heof
       obtain ⟨Hl', Hn, Hheld, Hcase⟩ := Hres
       simp only [List.length_replicate] at Hl' Hn Hheld Hcase
-      have hlast : os.heldByte [(4096 * curRoot mp, DFrac.discard, B.map (·, true)),
-          (4096 * (curPgid mp - 1), DFrac.discard, B2.map (·, true))] (4096 * curPgid mp - 1) (B2[4095]!) := by
+      have hlast : os.heldByte [(4096 * curRoot mp, DFrac.discard, B.map durB),
+          (4096 * (curPgid mp - 1), DFrac.discard, B2.map durB)] (4096 * curPgid mp - 1) (B2[4095]!) := by
         refine ⟨_, List.mem_cons_of_mem _ (List.mem_singleton_self _), ?_, ?_⟩
         · dsimp only; omega
         · dsimp only

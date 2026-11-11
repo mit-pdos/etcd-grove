@@ -32,7 +32,7 @@ instance cellsR_timeless (base : Loc) (lo n : Nat) (vf : Nat → val) :
     Timeless (cellsR (GF := GF) base lo n vf) := by
   unfold cellsR; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
 
-instance osBytes_timeless' (p : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
+instance osBytes_timeless' (p : Ino) (off : Nat) (dq : DFrac) (xs : List ByteG) :
     Timeless (osBytes (GF := GF) p off dq xs) := by
   unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
 
@@ -51,7 +51,7 @@ instance mapCells_timeless (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) :
 
 /-- Two halves of the same bytes of a file, as the whole (they agree). -/
 theorem osBytes_join (p : Ino) :
-    ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
+    ∀ (xs ys : List ByteG) (off : Nat), xs.length = ys.length →
     osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
       osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) ys ⊢
       osBytes (GF := GF) p off (DFrac.own 1) xs
@@ -635,7 +635,7 @@ theorem pages_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (m
     icases (cellsR_append _ _ _ _ _).1 $$ Hc with ⟨Hc0, Hc⟩
     iunfold pageIs at HB
     icases HB with ⟨%HBl, #HBs⟩
-    iapply cellsR_agree e htv p dqm m base len hb DFrac.discard hE Φ (B.map (·, true)) (4096 * r0) vf
+    iapply cellsR_agree e htv p dqm m base len hb DFrac.discard hE Φ (B.map durB) (4096 * r0) vf
       (by simp; omega) $$ Hinv Hm HBs [Hc0]
     · simp only [List.length_map, HBl]; iexact Hc0
     iintro Hm _ Hc0
@@ -653,7 +653,7 @@ theorem pages_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (m
 /-- The new mapping's cells of a window `[a, a + n)` of bytes the client holds a fraction of. -/
 theorem window_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (m : OsMeta)
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (hE : ↑osN ⊆ E) (Φ : val → IProp GF)
-    (dq : DFrac) (xs : List (w8 × Bool)) (a n : Nat) (vf : Nat → val) (h : a + n ≤ xs.length)
+    (dq : DFrac) (xs : List ByteG) (a n : Nat) (vf : Nat → val) (h : a + n ≤ xs.length)
     (hl : a + n ≤ len) :
     ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm m -∗ osBytes (GF := GF) p 0 dq xs -∗
       cellsR (GF := GF) base a n vf -∗

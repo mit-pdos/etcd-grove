@@ -335,18 +335,17 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       obtain ⟨Hxl, -, -, Hsz30, -⟩ := Hxs
       obtain ⟨rfl, rfl, rfl⟩ := Ht
       (try wp_auto)
-      wp_apply wp_init db f fd (child d nm) i (DFrac.own 1) (DFrac.own 1) m xs Hmok Hmaps Hxl (by omega)
+      wp_apply wp_init db f fd (child d nm) i (DFrac.own 1) (DFrac.own 1) m xs Hmaps Hxl (by omega)
           $$ [filesz Hf Hfdo Hm Hb] as %err4 ⟨Hf, Hfdo, Hres⟩
       · iframe; iframe #
       icases Hres with (⟨%He, Hfsz, Hm, Hb⟩ | ⟨%He, %sz, %m', Hfsz, Hm⟩)
       · subst He
-        imod stored_of_init i m xs Hxl Hmok Hmaps Hsz30 $$ Hb with Hs
+        imod stored_of_init i m xs Hxl Hmaps Hsz30 $$ Hb with Hs
         (try wp_auto)
         ileft
         isplitr
         · ipureintro; trivial
-        iexists { m with size := max m.size 16384, lo := max m.size 16384, hi := max m.size 16384,
-                         dur := durOf 0 (initFile xs), vk := some [], dz := some (pageUp (max m.size 16384)) }
+        iexists ({ m with size := max m.size 16384 } : OsMeta).synced
         rw [show (max (m.size : Int) 16384) = ((max m.size 16384 : Nat) : Int) by omega]
         iframe
       · cases err4 with
@@ -407,7 +406,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro
       exact ⟨by have := hmp.2.2.1; have := hmp.2.2.2.1; omega, hpg, hl8, htl,
-        fun _ => ⟨hmx, hclean, rfl, Hfd, h16', h40', by simp only [mapLen]; omega⟩⟩
+        fun _ => ⟨hmx, ⟨hclean, hok'⟩, rfl, Hfd, h16', h40', by simp only [mapLen]; omega⟩⟩
     dsimp only
     iframe
     ipureintro; exact hmaps'
@@ -422,7 +421,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       iexists mp, false, curPgid mp, some (base, len, γm), m''
       iframe
       isplitr
-      · ipureintro; intro _; rw [Hm''.2]; exact hok'
+      · ipureintro; intro _; trivial
       dsimp only
       iframe; iframe #
       ipureintro; exact ⟨Hmaps'', by omega, Hbase, Hl41⟩

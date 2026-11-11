@@ -49,7 +49,7 @@ def commitErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (t : Nat) : 
 /-- An error exit of `commit` while the handle is not yet failed, with a mapping. -/
 theorem commitErr_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
     (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m2 : OsMeta)
-    (mxc tail : List (w8 × Bool)) (fsz t n : Nat)
+    (mxc tail : List ByteG) (fsz t n : Nat)
     (h : m2.maps = {[base := len]} ∧ m2.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
       4096 * hwm ≤ m2.size ∧ mxc.length = 8192 ∧ tail.length = m2.size - 4096 * hwm) :
     dbOwner (GF := GF) γ t n ∗ ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
@@ -88,18 +88,17 @@ theorem writerCells_top (base : Loc) (hwm len : Nat) :
 /-- A grown file (`Truncate` to the mapping's length `len`), as the writer's: its bytes from the
 high water mark on and their cells. -/
 theorem grown_writer (p : Ino) (base : Loc) (m' : OsMeta) (len hwm : Nat)
-    (tail : List (w8 × Bool)) (vf : Nat → val) (hmaps : m'.maps = {[base := len]})
+    (tail : List ByteG) (vf : Nat → val) (hmaps : m'.maps = {[base := len]})
     (hsz : m'.size ≤ len) (h4 : 4096 * hwm ≤ m'.size) (htl : tail.length = m'.size - 4096 * hwm) :
-    osGrown (GF := GF) p m' len len ∗ osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
+    os.ftDone (GF := GF) p m' len ∗ osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
       cellsR (GF := GF) base (4096 * hwm) (m'.size - 4096 * hwm) vf ⊢
-      ∃ tail2, ⌜tail2.length = len - 4096 * hwm⌝ ∗ osMeta (GF := GF) p (DFrac.own 1) (m'.grown len) ∗
+      ∃ tail2, ⌜tail2.length = len - 4096 * hwm⌝ ∗ osMeta (GF := GF) p (DFrac.own 1) (rsPost m' len len) ∗
         osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail2 ∗
         cellsAny (GF := GF) base (4096 * hwm) (len - 4096 * hwm) := by
   iintro ⟨Hg, Htail, Hlow⟩
-  iunfold osGrown at Hg
-  icases Hg with ⟨%zs, %Hzs, Hm, Hz, Hc, -⟩
-  obtain ⟨hzl, -⟩ := Hzs
-  iexists tail ++ zs.map (·, false)
+  iunfold os.ftDone at Hg
+  icases Hg with ⟨%zs, %hzl, Hm, Hz, Hc⟩
+  iexists tail ++ zs.map (fun c => ((0 : w8), c))
   iframe Hm
   isplitr
   · ipureintro; simp; omega
@@ -108,6 +107,7 @@ theorem grown_writer (p : Ino) (base : Loc) (m' : OsMeta) (len hwm : Nat)
     rw [htl, show 4096 * hwm + (m'.size - 4096 * hwm) = m'.size by omega]
     iframe
   rw [hmaps] at *
+  rw [show min m'.size len = m'.size by omega, show max m'.size len = len by omega]
   icases (mcells_single (GF := GF) base len m'.size len _ hsz (Nat.le_refl _)).1 $$ Hc with Hc
   rw [show len - 4096 * hwm = (m'.size - 4096 * hwm) + (len - m'.size) by omega]
   iapply cellsAny_append
@@ -188,7 +188,7 @@ theorem pwSize_inside (sz off k : Nat) (h : off + k ≤ sz) : pwSize sz off k = 
   unfold pwSize; split <;> omega
 
 /-- A page's bytes and cells back with the rest of the writer's, from the high water mark on. -/
-theorem page_rejoin (p : Ino) (base : Loc) (hwm len : Nat) (ys rest : List (w8 × Bool))
+theorem page_rejoin (p : Ino) (base : Loc) (hwm len : Nat) (ys rest : List ByteG)
     (hys : ys.length = 4096) (hl : 4096 * hwm + 4096 ≤ len) :
     osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ∗
@@ -214,7 +214,7 @@ theorem page_rejoin (p : Ino) (base : Loc) (hwm len : Nat) (ys rest : List (w8 �
 back with the writer's. -/
 theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
     (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m3 : OsMeta)
-    (mxc ys rest : List (w8 × Bool)) (fsz t n : Nat)
+    (mxc ys rest : List ByteG) (fsz t n : Nat)
     (h : m3.maps = {[base := len]} ∧ m3.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
       4096 * hwm + 4096 ≤ m3.size ∧ mxc.length = 8192 ∧ ys.length = 4096 ∧
       rest.length = m3.size - 4096 * hwm - 4096) :
@@ -301,7 +301,7 @@ the writer's half of the meta pages' bytes `mxc`, the data page's bytes and cell
 rest. -/
 theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
     (hwm : Nat) (base : Loc) (len : Nat) (γm : GName) (m3 : OsMeta)
-    (mxc ys rest : List (w8 × Bool)) (fsz t n : Nat)
+    (mxc ys rest : List ByteG) (fsz t n : Nat)
     (h : m3.maps = {[base := len]} ∧ m3.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41 ∧ 2 ≤ hwm ∧
       4096 * hwm + 4096 ≤ m3.size ∧ mxc.length = 8192 ∧ ys.length = 4096 ∧
       rest.length = m3.size - 4096 * hwm - 4096) :
@@ -344,7 +344,7 @@ theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : Lis
   · iright; iframe #; ipureintro; rfl
 
 /-- The two metas' bytes of meta pages' bytes `xs`. -/
-theorem metas_length (xs : List (w8 × Bool)) (h : xs.length = 8192) :
+theorem metas_length (xs : List ByteG) (h : xs.length = 8192) :
     (((xs.map Prod.fst).drop 16).take 64 ++ ((xs.map Prod.fst).drop 4112).take 64).length = 128 := by
   rw [List.length_append, List.length_take, List.length_take, List.length_drop, List.length_drop,
     List.length_map, h]
@@ -373,7 +373,7 @@ theorem pick_page (P : Nat → IProp GF) (i : Nat) (hi : i < 2) :
   · exact ⟨by iintro ⟨H0, H1⟩; iframe H0 H1, by iintro ⟨H1, H0⟩; iframe H0 H1⟩
 
 /-- A window of the meta pages' bytes, rewritten, back with the others. -/
-theorem window_join (p : Ino) (dq : DFrac) (xs ys : List (w8 × Bool)) (a n : Nat)
+theorem window_join (p : Ino) (dq : DFrac) (xs ys : List ByteG) (a n : Nat)
     (h : a + n ≤ xs.length) (hy : ys.length = n) :
     osBytes (GF := GF) p 0 dq (xs.take a) ∗ osBytes (GF := GF) p a dq ys ∗
       osBytes (GF := GF) p (a + n) dq ((xs.drop a).drop n) ⊢
@@ -386,13 +386,13 @@ theorem window_join (p : Ino) (dq : DFrac) (xs ys : List (w8 × Bool)) (a n : Na
   rw [List.length_take, show 0 + min a xs.length = a by omega]
   iframe H0 H1
 
-theorem window_join_length (xs ys : List (w8 × Bool)) (a n : Nat) (h : a + n ≤ xs.length)
+theorem window_join_length (xs ys : List ByteG) (a n : Nat) (h : a + n ≤ xs.length)
     (hy : ys.length = n) : (xs.take a ++ ys ++ (xs.drop a).drop n).length = xs.length := by
   simp only [List.length_append, List.length_take, List.length_drop, hy]; omega
 
 /-- Bytes of a file, as two halves. -/
 theorem osBytes_halves (p : Ino) :
-    ∀ (xs : List (w8 × Bool)) (off : Nat),
+    ∀ (xs : List ByteG) (off : Nat),
     osBytes (GF := GF) p off (DFrac.own 1) xs ⊢
       osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
         osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs
@@ -487,7 +487,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   -- remap if the next high water mark passes the mapping
   wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (base' : Loc) (len' : Nat) (γm' : GName) (m' : OsMeta),
       writerSt (GF := GF) γ db f fd p mp false hwm (some (base', len', γm')) m' ∗
-      ⌜m'.size = m.size ∧ m'.ok = true ∧ (hwm + 2) * 4096 ≤ len'⌝ ∗
+      ⌜m'.size = m.size ∧ True ∧ (hwm + 2) * 4096 ≤ len'⌝ ∗
       dbOwner (GF := GF) γ mv.txid'.toNat hwm ∗
       db_ptr ↦ db ∗ minsz_ptr ↦ minsz ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       v_ptr ↦ v ∗ pg_ptr ↦ mv.pgid' ∗ m_ptr ↦ nextMeta mv) ∨
@@ -518,7 +518,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       dsimp only
       iframe; iframe #
       ipureintro
-      refine ⟨⟨Hmaps', by omega, Hb', Hl41⟩, Hm'.1, by rw [Hm'.2]; exact Hmok, by omega⟩
+      refine ⟨⟨Hmaps', by omega, Hb', Hl41⟩, Hm'.1, trivial, by omega⟩
     · obtain ⟨Herr, rfl⟩ := Herr
       cases err with
       | nil => exact absurd rfl Herr
@@ -581,8 +581,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   (try wp_auto)
   simp only [hsZ, hmZ]
   -- grow: Truncate and Sync
-  wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (tail2 : List (w8 × Bool)),
-      ⌜m2.maps = {[base := len]} ∧ m2.size ≤ len ∧ (hwm + 2) * 4096 ≤ m2.size ∧ m2.ok = true ∧
+  wp_join (Q := fun bv => iprop((⌜bv = executeVal⌝ ∗ ∃ (m2 : OsMeta) (tail2 : List ByteG),
+      ⌜m2.maps = {[base := len]} ∧ m2.size ≤ len ∧ (hwm + 2) * 4096 ≤ m2.size ∧ m2.dhi ≤ m2.dlo ∧
         tail2.length = m2.size - 4096 * hwm ∧ 4 * 4096 ≤ m2.size ∧ m2.size ≤ 2 ^ 30⌝ ∗
       osMeta (GF := GF) γ.ino (DFrac.own 1) m2 ∗ db.[DB, go!"filesz"] ↦ W64 m2.size ∗
       osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail2 ∗ writerCells (GF := GF) base hwm len ∗
@@ -609,17 +609,24 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     ihave Hmc := (mcellsAny_single (GF := GF) base len m'.size len Hsz (Nat.le_refl _)).2 $$ [Hhigh]
     · unfold cellsAny; iexists vf; iexact Hhigh
     rw [← Hmaps]
-    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨γ.ino, true, true⟩ m' len hfd rfl hlenI
-        (by rw [hlen64]; exact Hsz) (fun b l h => by rw [Hmaps] at h; simp at h; omega)
-        $$ [Hf Hfd Hm Hmc] as %err ⟨Hf, Hfd, Hres⟩
-    · iframe #
+    ihave Hnil := (osBytes_nil (GF := GF) γ.ino m'.size (DFrac.own 1)).2 $$ []
+    · iempintro
+    wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨γ.ino, true, true⟩ m' [] hfd rfl hlenI
+        (by simp only [List.length_nil, hlen64]; omega)
+        $$ [Hf Hfd Hm Hnil Hmc] as %err ⟨Hf, Hfd, Hres⟩
+    · simp only [hlen64]
+      rw [show min m'.size len = m'.size by omega, show max m'.size len = len by omega]
+      iframe #
       iframe
     simp only [hlen64]
     have h4 := Hwf.2.1
     have htl := Hwf.2.2.2.1
     have hmx8 := Hwf.2.2.1
     have h2 := Hwf.1
-    icases Hres with (⟨%Herr, Hg⟩ | ⟨%Herr, (Hg | ⟨Hm, Hmc⟩)⟩)
+    have hmR0 : (rsPost m' len len).maps = m'.maps :=
+      announce_maps m' (min m'.size len) (max m'.size len) len
+    have hmR : (rsPost m' len len).maps = {[base := len]} := hmR0.trans Hmaps
+    icases Hres with (⟨%Herr, Hg⟩ | ⟨%Herr, (Hg | Hu)⟩)
     · subst Herr
       ihave Hx := grown_writer γ.ino base m' len hwm tail vf Hmaps Hsz h4 htl $$ [Hg Htail Hlow]
       · iframe
@@ -627,21 +634,22 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
       · iframe
       (try wp_auto)
-      ihave Hnil := (osBytes_nil (GF := GF) γ.ino 0 (DFrac.own 1)).2 $$ []
-      · iempintro
-      wp_apply wp_Sync f fd p _ _ ⟨γ.ino, true, true⟩ (m'.grown len) 0 [] $$ [Hf Hfd Hm Hnil]
-        as %err2 ⟨Hf, Hfd, Hres2⟩
+      have hcov : (rsPost m' len len).Covers (4096 * hwm) tail2.length :=
+        covers_touch_clean m' (rsPost m' len len) (min m'.size len) (max m'.size len) (4096 * hwm)
+          tail2.length hclean.2 rfl rfl (by omega) (by omega)
+      wp_apply wp_Sync f fd p _ _ ⟨γ.ino, true, true⟩ (rsPost m' len len) (4096 * hwm) tail2 hcov
+          $$ [Hf Hfd Hm Htail] as %err2 ⟨Hf, Hfd, Hres2⟩
       · iframe; iframe #
-      icases Hres2 with (⟨%Herr2, Hm, -⟩ | ⟨%Herr2, Hm, -⟩)
+      icases Hres2 with (⟨%Herr2, Hm, Htail⟩ | ⟨%Herr2, Hm, Htail⟩)
       · subst Herr2
         (try wp_auto)
         ileft
         isplitr
         · ipureintro; trivial
-        iexists (m'.grown len).synced 0 [], tail2
+        iexists (rsPost m' len len).synced, tail2.map (fun x => durB x.1)
         iframe
         ipureintro
-        exact ⟨rfl, Nat.le_refl _, Hlen, Hok', Htl2,
+        exact ⟨hmR0, Nat.le_refl _, Hlen, Nat.le_refl _, by rw [List.length_map]; exact Htl2,
           Nat.le_trans hsz.1 (Nat.le_of_lt (Nat.lt_of_lt_of_le hsz' Hlen)), hsz.2.2⟩
       · cases err2 with
         | nil => exact absurd rfl Herr2
@@ -652,9 +660,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
         iframe
         isplitr
         · ipureintro; exact ⟨rfl, Herr2⟩
-        iapply commitErr_of γ db f fd p mp hwm base len γm { m'.grown len with ok := false } mxc tail2
-          m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown]; omega, hmx8,
-            by simp [OsMeta.grown]; exact Htl2⟩
+        iapply commitErr_of γ db f fd p mp hwm base len γm (rsPost m' len len) mxc tail2
+          m'.size _ _ ⟨hmR, Nat.le_refl _, Hbase, Hl41, h2, show 4096 * hwm ≤ len by omega, hmx8, Htl2⟩
         iframe; iframe #
     · cases err with
       | nil => exact absurd rfl Herr
@@ -670,13 +677,15 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       iframe
       isplitr
       · ipureintro; exact ⟨rfl, Herr⟩
-      iapply commitErr_of γ db f fd p mp hwm base len γm (m'.grown len) mxc tail2
-        m'.size _ _ ⟨Hmaps, Nat.le_refl _, Hbase, Hl41, h2, by simp [OsMeta.grown]; omega, hmx8,
-          by simp [OsMeta.grown]; exact Htl2⟩
+      iapply commitErr_of γ db f fd p mp hwm base len γm (rsPost m' len len) mxc tail2
+        m'.size _ _ ⟨hmR, Nat.le_refl _, Hbase, Hl41, h2, show 4096 * hwm ≤ len by omega, hmx8, Htl2⟩
       iframe; iframe #
     · cases err with
       | nil => exact absurd rfl Herr
       | ok ie =>
+      iunfold os.ftUndone at Hu
+      rw [show min m'.size len = m'.size by omega, show max m'.size len = len by omega]
+      icases Hu with ⟨%xs', -, Hm, -, Hmc⟩
       ihave Htop := cells_back base m' len hwm vf Hmaps Hsz h4 $$ [Hmc Hlow]
       · iframe
       ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
@@ -687,15 +696,16 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       iframe
       isplitr
       · ipureintro; exact ⟨rfl, Herr⟩
-      iapply commitErr_of γ db f fd p mp hwm base len γm (ftFail m' len) mxc tail
-        m'.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, h2, h4, hmx8, htl⟩
+      iapply commitErr_of γ db f fd p mp hwm base len γm (m'.announce m'.size len len) mxc tail
+        m'.size _ _ ⟨by rw [announce_maps]; exact Hmaps, by rw [announce_size]; exact Hsz, Hbase,
+          Hl41, h2, by rw [announce_size]; exact h4, hmx8, by rw [announce_size]; exact htl⟩
       iframe; iframe #
   · ileft
     isplitr
     · ipureintro; trivial
     iexists m', tail
     iframe
-    ipureintro; exact ⟨Hmaps, Hsz, by omega, Hok', Hwf.2.2.2.1, hsz.1, hsz.2.1⟩
+    ipureintro; exact ⟨Hmaps, Hsz, by omega, hclean.2, Hwf.2.2.2.1, hsz.1, hsz.2.1⟩
   iintro (⟨%Hbv, %m2, %tail2, %Hm2, Hm, Hfsz, Htail, Hwc, Hf, Hfd, Hdsz, db, «$res0», v, pg, m, Hown, Hcur, Hmap,
     Hout, Hflds, Hcls, Htok, Hmx⟩ | ⟨%e, %Hbv, db, «$res0», Herr⟩)
   rotate_left
@@ -760,27 +770,27 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   rw [← Hmaps]
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) buf (dataPage mv.pgid' v) (DFrac.own 1)
       (mv.pgid' * W64 4096) (DFrac.own (1 : Qp).half)
-      ⟨γ.ino, true, true⟩ 1 m2 (tail2.take 4096) rfl hoffI (by rw [hoff]; omega)
-      (by rw [hoff, hdl]; omega) (by omega) (by omega)
-      (by rw [hoff, htk, hdl]; omega) (fun _ => rfl) (.inl rfl) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
-    as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %h, %vk1, %Hres, Hm, Hpg, Hpc⟩
+      ⟨γ.ino, true, true⟩ m2 (tail2.take 4096) rfl hoffI (by rw [hoff]; omega)
+      (by rw [hoff, hdl]; omega) (by rw [hdl]; omega) (by rw [hdl]; omega)
+      (by rw [hoff, htk, hdl]; omega) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
+    as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %Hres, Hm, Hpg, Hpc⟩
   · rw [hoff, hdl]
-    (try rw [Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)])
     iframe Hf Hbuf Hfd Hm Hpg Hpc; iframe #
   rw [hoff, dataPage_length] at *
-  (try rw [Nat.min_eq_left (by omega : 4096 * hwm ≤ m2.size)] at *)
   have hj : j ≤ 4096 := Hres.1
+  have hm3s : (pwPost m2 (4096 * hwm) 4096 j).size = m2.size := pwSize_inside _ _ _ (by omega)
+  have hm3m : (pwPost m2 (4096 * hwm) 4096 j).maps = {[base := len]} :=
+    (announce_maps m2 _ _ (max m2.size (4096 * hwm + 4096))).trans Hmaps
   have hys : ys.length = 4096 := by
-    have h1 := congrArg List.length Hres.2.2.1
-    simp only [List.length_map, pwBytes_length] at h1
-    rw [pwSize_inside m2.size (4096 * hwm) j (by omega), dataPage_length] at h1; omega
-  rw [pwSize_inside m2.size (4096 * hwm) j (by omega)]
-  have hmp3 : ({ m2 with size := m2.size, hi := h, vk := vk1 } : OsMeta).maps = {[base := len]} := Hmaps
+    have h1 := Hres.2.1.1
+    rw [pwSize_inside m2.size (4096 * hwm) j (by omega)] at h1
+    simp only [dataPage_length] at h1
+    omega
   icases (mcellsAny_single (GF := GF) base len (4096 * hwm) (4096 * hwm + 4096) (by omega)
     (by omega)).1 $$ [Hpc] with Hpc
   · rw [Hmaps]; iexact Hpc
   rw [show 4096 * hwm + 4096 - 4096 * hwm = 4096 by omega]
-  obtain ⟨-, -, hys', hh, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨-, hpw, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne
@@ -790,9 +800,9 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; exact hne
-    ihave Herr := dataErr γ db f fd p mp hwm base len γm { m2 with size := m2.size, hi := h, vk := vk1 } mxc ys
-      (tail2.drop 4096) m2.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, Hwf.1, hin, Hwf.2.2.1, hys,
-        by simp only [List.length_drop]; omega⟩
+    ihave Herr := dataErr γ db f fd p mp hwm base len γm (pwPost m2 (4096 * hwm) 4096 j) mxc ys
+      (tail2.drop 4096) m2.size _ _ ⟨hm3m, by rw [hm3s]; exact Hsz, Hbase, Hl41, Hwf.1,
+        by rw [hm3s]; exact hin, Hwf.2.2.1, hys, by rw [hm3s]; simp only [List.length_drop]; omega⟩
       $$ [Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest]
     · iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest
       iframe #
@@ -802,8 +812,11 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   wp_apply wp_Fd f fd p _ $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ { m2 with size := m2.size, hi := h, vk := vk1 }
-      (4096 * hwm) ys $$ [Hfd Hm Hpg] as %e ⟨Hfd, Hs⟩
+  have hcov3 : (pwPost m2 (4096 * hwm) 4096 4096).Covers (4096 * hwm) ys.length :=
+    covers_touch_clean m2 (pwPost m2 (4096 * hwm) 4096 4096) (min (4096 * hwm) m2.size)
+      (4096 * hwm + 4096) (4096 * hwm) ys.length Hok2 rfl rfl (by omega) (by omega)
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ (pwPost m2 (4096 * hwm) 4096 4096)
+      (4096 * hwm) ys hcov3 $$ [Hfd Hm Hpg] as %e ⟨Hfd, Hs⟩
   · iframe Hfd Hm Hpg; iframe #
   icases Hs with (⟨%He, Hm, Hpg⟩ | ⟨%He, Hm, Hpg⟩)
   rotate_left
@@ -813,9 +826,9 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; simp
-    ihave Herr := dataErr γ db f fd p mp hwm base len γm { m2 with size := m2.size, hi := h, ok := false, vk := vk1 }
-      mxc ys (tail2.drop 4096) m2.size _ _ ⟨Hmaps, Hsz, Hbase, Hl41, Hwf.1, hin, Hwf.2.2.1, hys,
-        by simp only [List.length_drop]; omega⟩
+    ihave Herr := dataErr γ db f fd p mp hwm base len γm (pwPost m2 (4096 * hwm) 4096 4096)
+      mxc ys (tail2.drop 4096) m2.size _ _ ⟨hm3m, by rw [hm3s]; exact Hsz, Hbase, Hl41, Hwf.1,
+        by rw [hm3s]; exact hin, Hwf.2.2.1, hys, by rw [hm3s]; simp only [List.length_drop]; omega⟩
       $$ [Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest]
     · iframe Hown Hcur Hmap Hout Hflds Hcls Htok Hwc4 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hmx Hpg Hrest
       iframe #
@@ -824,32 +837,26 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   subst He
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
-  -- the data page is clean, and its cells hold it
-  have hysB : ys.map Prod.fst = dataPage mv.pgid' v := by
-    rw [hys']
-    have := pwBytes_inside m2.size (4096 * hwm) (dataPage mv.pgid' v) (List.take 4096 tail2)
-      (by rw [dataPage_length]; omega) (by omega)
-    rwa [dataPage_length] at this
-  have hsyn : syncedBytes { m2 with size := m2.size, hi := h, vk := vk1 } ys =
-      (dataPage mv.pgid' v).map (·, true) := by
-    unfold syncedBytes
-    rw [ite_eq_left (show ({ m2 with size := m2.size, hi := h, vk := vk1 } : OsMeta).ok = true from Hok2), ← hysB,
-      List.map_map]
-    rfl
+  -- the data page is durable, and its cells hold it
+  have hysB : ys.map Prod.fst = dataPage mv.pgid' v :=
+    pwOut_inside m2 (4096 * hwm) (dataPage mv.pgid' v) (List.take 4096 tail2) ys
+      (by rw [dataPage_length]; omega) (by omega) (by rw [dataPage_length]; exact hpw)
+  have hsyn : ys.map (fun x => durB x.1) = (dataPage mv.pgid' v).map durB := by
+    rw [← hysB, List.map_map]; rfl
   rw [hsyn]
-  generalize hm4 : ({ m2 with size := m2.size, hi := h, vk := vk1 } : OsMeta).synced (4096 * hwm) ys = m4
-  have hm4m : m4.maps = {[base := len]} := by rw [← hm4]; exact Hmaps
-  have hm4s : m4.size = m2.size := by rw [← hm4]; rfl
-  have hm4o : m4.ok = true := by rw [← hm4]; exact Hok2
+  generalize hm4 : (pwPost m2 (4096 * hwm) 4096 4096).synced = m4
+  have hm4m : m4.maps = {[base := len]} := by rw [← hm4]; exact hm3m
+  have hm4s : m4.size = m2.size := by rw [← hm4]; exact hm3s
+  have hm4o : m4.dhi ≤ m4.dlo := by rw [← hm4]; exact Nat.le_refl _
   have hb4 : m4.maps !! base = some len := by rw [hm4m]; exact GMap.lookup_insert _ _ _
   iunfold cellsAny at Hpc
   icases Hpc with ⟨%vf, Hpc⟩
   iapply cellsR_agree _ rfl γ.ino _ m4 base len hb4 (DFrac.own 1) (by simp) _
-    ((dataPage mv.pgid' v).map (·, true)) (4096 * hwm) vf (by simp only [List.length_map, dataPage_length]; omega)
+    ((dataPage mv.pgid' v).map durB) (4096 * hwm) vf (by simp only [List.length_map, dataPage_length]; omega)
     $$ Hos Hm Hpg [Hpc]
   · rw [List.length_map, dataPage_length]; iexact Hpc
   iintro Hm Hpg Hpc
-  rw [show ((dataPage mv.pgid' v).map (·, true)).map Prod.fst = dataPage mv.pgid' v by
+  rw [show ((dataPage mv.pgid' v).map durB).map Prod.fst = dataPage mv.pgid' v by
     rw [List.map_map]; exact List.map_id _]
   -- the meta page
   wp_apply (wp_slice_make2 (V := w8) (W64 4096)) as %mbuf ⟨Hmb, -⟩
@@ -942,29 +949,30 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     simp only [List.length_take, List.length_drop, hmxl]; omega
   wp_apply wp_WriteAt f fd p (DFrac.own (1 : Qp).half) mbuf (metaPageOf mv) (DFrac.own 1)
       ((mv.txid' + W64 1) % W64 2 * W64 4096) (DFrac.own (1 : Qp).half)
-      ⟨γ.ino, true, true⟩ 1 m4 ((mxc.drop (4096 * i)).take 4096) rfl hoffmI
+      ⟨γ.ino, true, true⟩ m4 ((mxc.drop (4096 * i)).take 4096) rfl hoffmI
       (by rw [hoffm]; omega) (by rw [hoffm, metaPageOf_length]; omega)
       (by rw [metaPageOf_length]; omega) (by rw [metaPageOf_length]; omega)
-      (by rw [hoffm, metaPageOf_length, hwl]; omega) (fun _ => rfl) (.inl rfl)
+      (by rw [hoffm, metaPageOf_length, hwl]; omega)
       $$ [Hf Hmb Hfd Hm Wi Hpi]
-    as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %h2, %vk2, %Hres2, Hm, Wi, Hpi⟩
+    as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %Hres2, Hm, Wi, Hpi⟩
   · rw [hoffm, metaPageOf_length]
-    (try rw [Nat.min_eq_left (by omega : 4096 * i ≤ m4.size)])
     iframe Hf Hmb Hfd Hm Wi Hpi; iframe #
   rw [hoffm, metaPageOf_length] at *
-  (try rw [Nat.min_eq_left (by omega : 4096 * i ≤ m4.size)] at *)
   have hj2 : j2 ≤ 4096 := Hres2.1
+  have hm6s : (pwPost m4 (4096 * i) 4096 j2).size = m4.size := pwSize_inside _ _ _ (by omega)
+  have hm6m : (pwPost m4 (4096 * i) 4096 j2).maps = m4.maps :=
+    announce_maps m4 _ _ (max m4.size (4096 * i + 4096))
   have hys2 : ys2.length = 4096 := by
-    have h1 := congrArg List.length Hres2.2.2.1
-    simp only [List.length_map, pwBytes_length] at h1
-    rw [pwSize_inside m4.size (4096 * i) j2 (by omega), metaPageOf_length] at h1; omega
-  rw [pwSize_inside m4.size (4096 * i) j2 (by omega)]
+    have h1 := Hres2.2.1.1
+    rw [pwSize_inside m4.size (4096 * i) j2 (by omega)] at h1
+    simp only [metaPageOf_length] at h1
+    omega
   -- the meta pages' bytes whole again, and both metas' cells holding them
   ihave Hmxw := window_join γ.ino _ mxc ys2 (4096 * i) 4096 (by omega) hys2 $$ [W0 Wi W2]
   · iframe W0 Wi W2
   generalize hX : mxc.take (4096 * i) ++ ys2 ++ (mxc.drop (4096 * i)).drop 4096 = X
   have hXl : X.length = 8192 := by rw [← hX, window_join_length _ _ _ _ (by omega) hys2, hmxl]
-  have hb5 : ({ m4 with size := m4.size, hi := h2, vk := vk2 } : OsMeta).maps !! base = some len := hb4
+  have hb5 : (pwPost m4 (4096 * i) 4096 j2).maps !! base = some len := by rw [hm6m]; exact hb4
   icases (mcellsAny_single (GF := GF) base len (4096 * i) (4096 * i + 4096) (by omega)
     (by omega)).1 $$ [Hpi] with Hpi
   · rw [hm4m]; iexact Hpi
@@ -983,7 +991,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   iapply window_agree _ rfl γ.ino _ _ base len hb5 (by simp) _ _ X 4112 64 v1 (by omega) (by omega)
     $$ Hos Hm Hmxw Hc1
   iintro Hm Hmxw Hc1
-  obtain ⟨-, -, hys2', hh2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
+  obtain ⟨-, hpw2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
   · -- the meta `WriteAt` failed: fail the handle
     cases err2 with
@@ -1009,11 +1017,11 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     · ipureintro; exact hne2
     ihave Hpc := cellsB_any base _ _ $$ Hpc
     rw [dataPage_length]
-    ihave Herr := dataErrT γ db f fd p mx hwm base len γm { m4 with size := m4.size, hi := h2, vk := vk2 } X
-      ((dataPage mv.pgid' v).map (·, true)) (tail2.drop 4096) m2.size _ _
-      ⟨hm4m, by rw [hm4s]; exact Hsz, Hbase, Hl41, Hwf.1, by show 4096 * hwm + 4096 ≤ m4.size; omega, hXl,
-        by simp only [List.length_map, dataPage_length],
-        by simp only [List.length_drop]; show _ = m4.size - _ - _; omega⟩
+    ihave Herr := dataErrT γ db f fd p mx hwm base len γm (pwPost m4 (4096 * i) 4096 j2) X
+      ((dataPage mv.pgid' v).map durB) (tail2.drop 4096) m2.size _ _
+      ⟨by rw [hm6m]; exact hm4m, by rw [hm6s, hm4s]; exact Hsz, Hbase, Hl41, Hwf.1,
+        by rw [hm6s]; omega, hXl, by simp only [List.length_map, dataPage_length],
+        by simp only [List.length_drop]; rw [hm6s]; omega⟩
       $$ [Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest]
     · iframe Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest
       iframe #
@@ -1021,16 +1029,17 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     iexact Herr
   (try wp_auto)
   -- the meta write succeeded: `Fdatasync` the meta pages
-  have hys2B : ys2.map Prod.fst = metaPageOf mv := by
-    rw [hys2']
-    have := pwBytes_inside m4.size (4096 * i) (metaPageOf mv) ((mxc.drop (4096 * i)).take 4096)
-      (by rw [metaPageOf_length]; omega) (by omega)
-    rwa [metaPageOf_length] at this
+  have hys2B : ys2.map Prod.fst = metaPageOf mv :=
+    pwOut_inside m4 (4096 * i) (metaPageOf mv) ((mxc.drop (4096 * i)).take 4096) ys2
+      (by rw [metaPageOf_length]; omega) (by omega) (by rw [metaPageOf_length]; exact hpw2)
   wp_apply wp_Fd f fd p _ $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ { m4 with size := m4.size, hi := h2, vk := vk2 }
-      0 X $$ [Hfd Hm Hmxw] as %e2 ⟨Hfd, Hs⟩
+  have hcov6 : (pwPost m4 (4096 * i) 4096 4096).Covers 0 X.length :=
+    covers_touch_clean m4 (pwPost m4 (4096 * i) 4096 4096) (min (4096 * i) m4.size)
+      (4096 * i + 4096) 0 X.length hm4o rfl rfl (by omega) (by omega)
+  wp_apply wp_Fdatasync fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ (pwPost m4 (4096 * i) 4096 4096)
+      0 X hcov6 $$ [Hfd Hm Hmxw] as %e2 ⟨Hfd, Hs⟩
   · iframe Hfd Hm Hmxw; iframe #
   icases Hs with (⟨%He2, Hm, Hmxw⟩ | ⟨%He2, Hm, Hmxw⟩)
   rotate_left
@@ -1057,11 +1066,11 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     ihave Hpc := cellsB_any base _ _ $$ Hpc
     rw [dataPage_length]
     ihave Herr := dataErrT γ db f fd p mx hwm base len γm
-      { m4 with size := m4.size, hi := h2, ok := false, vk := vk2 } X
-      ((dataPage mv.pgid' v).map (·, true)) (tail2.drop 4096) m2.size _ _
-      ⟨hm4m, by rw [hm4s]; exact Hsz, Hbase, Hl41, Hwf.1, by show 4096 * hwm + 4096 ≤ m4.size; omega, hXl,
-        by simp only [List.length_map, dataPage_length],
-        by simp only [List.length_drop]; show _ = m4.size - _ - _; omega⟩
+      (pwPost m4 (4096 * i) 4096 4096) X
+      ((dataPage mv.pgid' v).map durB) (tail2.drop 4096) m2.size _ _
+      ⟨by rw [hm6m]; exact hm4m, by rw [hm6s, hm4s]; exact Hsz, Hbase, Hl41, Hwf.1,
+        by rw [hm6s]; omega, hXl, by simp only [List.length_map, dataPage_length],
+        by simp only [List.length_drop]; rw [hm6s]; omega⟩
       $$ [Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest]
     · iframe Hown Hcur Hmap Hout Hflds Hcls Htok T0 T1 Hpc Htop Hfsz Hdsz Hf Hfd Hm Hx2 Hpg Hrest
       iframe #
@@ -1075,12 +1084,8 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     rw [← hX, ← hmx]; unfold setPage
     rw [show 4096 * (i + 1) = 4096 * i + 4096 by omega]
     simp only [List.map_append, List.map_take, List.map_drop, hys2B, List.drop_drop]
-  have hsynX : syncedBytes { m4 with size := m4.size, hi := h2, vk := vk2 } X =
-      (setPage mx i (metaPageOf mv)).map (·, true) := by
-    unfold syncedBytes
-    rw [ite_eq_left (show ({ m4 with size := m4.size, hi := h2, vk := vk2 } : OsMeta).ok = true from hm4o), ← hXB,
-      List.map_map]
-    rfl
+  have hsynX : X.map (fun x => durB x.1) = (setPage mx i (metaPageOf mv)).map durB := by
+    rw [← hXB, List.map_map]; rfl
   rw [hsynX, hXB]
   obtain ⟨hok', -, hcr', hcp', hct'⟩ := metaPagesOk_commit mx i (metaPageOf mv) Hok
     (by rw [hmv]; exact Ht) (by rw [hhwm]; exact Hb) hi2 (metaPageOf_length mv)
@@ -1089,10 +1094,10 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   rw [hmv] at hct'
   rw [hhwm] at hcr' hcp'
   have hmpl : mp'.length = 8192 := hok'.1
-  generalize hm5 : ({ m4 with size := m4.size, hi := h2, vk := vk2 } : OsMeta).synced 0 X = m5
-  have hm5m : m5.maps = {[base := len]} := by rw [← hm5]; exact hm4m
-  have hm5s : m5.size = m2.size := by rw [← hm5]; exact hm4s
-  have hm5o : m5.ok = true := by rw [← hm5]; exact hm4o
+  generalize hm5 : (pwPost m4 (4096 * i) 4096 4096).synced = m5
+  have hm5m : m5.maps = {[base := len]} := by rw [← hm5]; exact hm6m.trans hm4m
+  have hm5s : m5.size = m2.size := by rw [← hm5]; exact hm6s.trans hm4s
+  have hm5o : m5.dhi ≤ m5.dlo := by rw [← hm5]; exact Nat.le_refl _
   -- publish: the meta pages, page `hwm` committed, the owner, the last txid, the transaction
   imod pageIs_of γ.ino hwm (DFrac.own 1) (dataPage mv.pgid' v) (dataPage_length _ _) $$ Hpg with #HBp
   imod metas_publish γ γ.ino base len γm mx mp' hwm (dataPage mv.pgid' v) (by omega) Hwf.1 hmpl
@@ -1107,7 +1112,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
     $$ [$Hmeta $Hsync $Hlocked Hfl Hcm Hx1 Hcls2 Hauth Hout2 Hfail Hlast Hown2]
   · iunfold metaR
-    iexists false, mp', mp', hwm + 1, mp'.map (·, true), T.insert (mv.txid'.toNat + 1) (some v)
+    iexists false, mp', mp', hwm + 1, mp'.map durB, T.insert (mv.txid'.toNat + 1) (some v)
     iframe Hfl Hcm Hauth Hout2
     isplitl [Hx1 Hcls2]
     · ileft; iframe
@@ -1140,7 +1145,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       show len - (4096 * hwm + 4096) = len - 4096 * hwm - 4096 by omega]
     iframe Hwc4 Htop
   isplitl [Hfsz Hdsz Hmap Hflds Hcls Hrest Hf Hfd Hm Htok Hcur Hout Hx2 Hwc]
-  · iapply rwR_of_writerSt γ db f fd p mp' false (hwm + 1) (some (base, len, γm)) m5 (fun _ => hm5o)
+  · iapply rwR_of_writerSt γ db f fd p mp' false (hwm + 1) (some (base, len, γm)) m5 (fun _ => trivial)
     isplitl
     · unfold writerSt writerFile
       dsimp only [mapLen]
@@ -1150,11 +1155,11 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       isplitl [Hout]; · iexact Hout
       isplitl [Hflds]; · iexact Hflds
       isplitl [Hfsz Hdsz Hf Hfd Hm Hx2 Hrest]
-      · iexists mp'.map (·, true), tail2.drop 4096, m2.size
+      · iexists mp'.map durB, tail2.drop 4096, m2.size
         iframe Hfsz Hdsz Hf Hfd Hm Hx2 Hrest
         ipureintro
         refine ⟨by omega, by omega, by simp [hmpl], by simp only [List.length_drop]; omega,
-          fun _ => ⟨by rw [List.map_map]; exact List.map_id _, by simp, hm5s.symm, hfd,
+          fun _ => ⟨by rw [List.map_map]; exact List.map_id _, ⟨by simp, hm5o⟩, hm5s.symm, hfd,
             by rw [hm5s]; exact Hm2sz.1, by rw [hm5s]; exact Hm2sz.2, hsz.2.2⟩⟩
       isplitl [Hcls]; · iexact Hcls
       iframe Htok Hwc; iframe #

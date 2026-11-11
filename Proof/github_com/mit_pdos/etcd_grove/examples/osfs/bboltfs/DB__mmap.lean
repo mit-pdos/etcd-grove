@@ -110,11 +110,11 @@ theorem errnoErr_ne_nil (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil :
 theorem mmap_unmapped (p : Ino) (m : OsMeta) (st : MapSt) (err : GoInterface) :
     unmappedRes (GF := GF) p m (mapSlice st) err ∗ unmapRest (GF := GF) p m st ⊢
       ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗
-        ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ (err = interface.nil → m'.maps = ∅)⌝ := by
+        ⌜m'.size = m.size ∧ (m'.dhi = m.dhi ∧ m'.dlo = m.dlo) ∧ (err = interface.nil → m'.maps = ∅)⌝ := by
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only [unmapRest]
     iintro ⟨-, Hm, %Hmaps⟩
-    iexists m; iframe; ipureintro; exact ⟨rfl, rfl, fun _ => Hmaps⟩
+    iexists m; iframe; ipureintro; exact ⟨rfl, ⟨rfl, rfl⟩, fun _ => Hmaps⟩
   · dsimp only [unmapRest, mapSlice]
     iintro ⟨Hu, %Hr⟩
     obtain ⟨Hmaps, Hbase⟩ := Hr
@@ -128,12 +128,12 @@ theorem mmap_unmapped (p : Ino) (m : OsMeta) (st : MapSt) (err : GoInterface) :
       subst hb
       icases Hu with (⟨%He, Hm⟩ | ⟨%He, (Hm | ⟨Hm, -⟩)⟩)
       · iexists _; iframe; ipureintro
-        refine ⟨rfl, rfl, fun _ => ?_⟩
+        refine ⟨rfl, ⟨rfl, rfl⟩, fun _ => ?_⟩
         simp only [Hmaps]; exact GMap.delete_singleton _ _
       · iexists _; iframe; ipureintro
-        exact ⟨rfl, rfl, fun h => absurd h (errnoErr_ne_nil e He)⟩
+        exact ⟨rfl, ⟨rfl, rfl⟩, fun h => absurd h (errnoErr_ne_nil e He)⟩
       · iexists _; iframe; ipureintro
-        exact ⟨rfl, rfl, fun h => absurd h (errnoErr_ne_nil e He)⟩
+        exact ⟨rfl, ⟨rfl, rfl⟩, fun h => absurd h (errnoErr_ne_nil e He)⟩
 
 theorem mapSlice_ite {α : Type} (st : MapSt)
     (h : ∀ base len γm, st = some (base, len, γm) → 0 < base.addr) (a : MapSt → α) (z : α)
@@ -207,11 +207,11 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     iframe
     isplitr
     · ipureintro
-      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, ⟨(Hw.2.2.2.2 hfl).2.1.1, by (try simp only); rw [Hm1.2.1.1, Hm1.2.1.2]; exact (Hw.2.2.2.2 hfl).2.1.2⟩,
         (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
         (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by simp only [mapLen]; omega⟩⟩
     isplitr
-    · ipureintro; exact ⟨rfl, Hm1.2.1⟩
+    · ipureintro; exact ⟨rfl, trivial⟩
     iright
     iframe
     ipureintro; simp
@@ -240,11 +240,11 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     iframe
     isplitr
     · ipureintro
-      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, ⟨(Hw.2.2.2.2 hfl).2.1.1, by (try simp only); rw [Hm1.2.1.1, Hm1.2.1.2]; exact (Hw.2.2.2.2 hfl).2.1.2⟩,
         (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
         (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by simp only [mapLen]; omega⟩⟩
     isplitr
-    · ipureintro; exact ⟨rfl, Hm1.2.1⟩
+    · ipureintro; exact ⟨rfl, trivial⟩
     iright
     iframe
     ipureintro; simp [interface.mkOk]
@@ -273,9 +273,9 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
       (GMap.lookup_insert _ _ _) $$ [Hm Hcells] as %e3 Hm3
     · iframe; iframe #
     ihave Hm : ∃ m2 : OsMeta, osMeta (GF := GF) γ.ino (DFrac.own 1) m2 ∗
-        ⌜m2.size = m.size ∧ m2.ok = m.ok⌝ $$ [Hm3]
+        ⌜m2.size = m.size ∧ m2.dhi = m.dhi ∧ m2.dlo = m.dlo⌝ $$ [Hm3]
     · icases Hm3 with (⟨-, Hm⟩ | ⟨-, (Hm | ⟨Hm, -⟩)⟩) <;>
-        (iexists _; iframe; ipureintro; exact ⟨Hm1.1, Hm1.2.1⟩)
+        (iexists _; iframe; ipureintro; exact ⟨Hm1.1, Hm1.2.1.1, Hm1.2.1.2⟩)
     icases Hm with ⟨%m2, Hm, %Hm2⟩
     (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hmap0 Hflds0]
@@ -288,11 +288,11 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
     iframe
     isplitr
     · ipureintro
-      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+      exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, ⟨(Hw.2.2.2.2 hfl).2.1.1, by (try simp only); rw [Hm2.2.1, Hm2.2.2]; exact (Hw.2.2.2.2 hfl).2.1.2⟩,
         (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
         (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by simp only [mapLen]; omega⟩⟩
     isplitr
-    · ipureintro; exact ⟨rfl, Hm2.2⟩
+    · ipureintro; exact ⟨rfl, trivial⟩
     iright
     iframe
     ipureintro; exact ⟨errnoErr_ne_nil e2 he2, rfl⟩
@@ -372,11 +372,11 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   iframe
   isplitr
   · ipureintro
-    exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, (Hw.2.2.2.2 hfl).2.1,
+    exact ⟨Hw.1, Hw.2.1, Hw.2.2.1, Hw.2.2.2.1, fun hfl => ⟨(Hw.2.2.2.2 hfl).1, ⟨(Hw.2.2.2.2 hfl).2.1.1, by (try simp only); rw [Hm1.2.1.1, Hm1.2.1.2]; exact (Hw.2.2.2.2 hfl).2.1.2⟩,
       (Hw.2.2.2.2 hfl).2.2.1, (Hw.2.2.2.2 hfl).2.2.2.1, (Hw.2.2.2.2 hfl).2.2.2.2.1,
       (Hw.2.2.2.2 hfl).2.2.2.2.2.1, by have := Hsz2.2.2.2.2 (by omega); omega⟩⟩
   isplitr
-  · ipureintro; exact ⟨rfl, Hm1.2.1⟩
+  · ipureintro; exact ⟨rfl, trivial⟩
   ileft
   isplitr
   · ipureintro; trivial

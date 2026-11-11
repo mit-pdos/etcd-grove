@@ -118,9 +118,9 @@ def pageVal (B : List w8) : Option w64 :=
 /-- A file `Open` accepts (crash-free, as after a crash: all of it clean): shorter than four
 pages (`init` lays it out), or with no valid meta (`init` again), or an open database's meta pages
 whose high water mark is inside the file. -/
-def fileOk (xs : List (w8 × Bool)) : Prop :=
+def fileOk (xs : List ByteG) : Prop :=
   xs.length < 4 * 4096 ∨
-    ((∀ x ∈ xs, x.2 = true) ∧
+    ((∀ x ∈ xs, x = durB x.1) ∧
       let mp := (xs.map Prod.fst).take 8192
       ((¬ metaValid (fileMeta mp 0) ∧ ¬ metaValid (fileMeta mp 1)) ∨
        (metaPagesOk mp ∧ 4096 * curPgid mp ≤ xs.length)))
@@ -152,9 +152,9 @@ variable [package_sem : Assumptions]
 
 /-- Committed page `r` of the file of inode `i` holds `B`, clean (synced), forever. -/
 def pageIs (i : Ino) (r : Nat) (B : List w8) : IProp GF :=
-  iprop(⌜B.length = 4096⌝ ∗ osBytes (GF := GF) i (4096 * r) DFrac.discard (B.map (·, true)))
+  iprop(⌜B.length = 4096⌝ ∗ osBytes (GF := GF) i (4096 * r) DFrac.discard (B.map durB))
 
-instance osBytes_discard_persistent (p : Ino) (off : Nat) (xs : List (w8 × Bool)) :
+instance osBytes_discard_persistent (p : Ino) (off : Nat) (xs : List ByteG) :
     Persistent (osBytes (GF := GF) p off DFrac.discard xs) := by
   unfold osBytes bytesG
   refine BigSepL.bigSepL_persistent ?_
@@ -408,7 +408,7 @@ theorem pkgFacts_errMapTooLarge :
 
 /-- `metalock`'s resource (see the file header). -/
 def metaR (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
-  iprop(∃ (b : Bool) (mp mx : List (w8)) (hwm : Nat) (mxc : List (w8 × Bool))
+  iprop(∃ (b : Bool) (mp mx : List (w8)) (hwm : Nat) (mxc : List ByteG)
       (T : GMap Nat (Option w64)),
     db.[DB, go!"failed"] ↦ b ∗ ghostVar γ.cur (1 : Qp).half (mp, b, hwm) ∗
     ((osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗ ghostVar γ.cls (1 : Qp).half false) ∨
@@ -434,7 +434,7 @@ def writerCells (base : Loc) (hwm len : Nat) : IProp GF :=
 /-- The writer's part of the file, with the mapping in the state `st` (see `rwR`). -/
 def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
     (hwm : Nat) (st : MapSt) (m : OsMeta) : IProp GF :=
-  iprop(∃ (mxc tail : List (w8 × Bool)) (fsz : Nat),
+  iprop(∃ (mxc tail : List ByteG) (fsz : Nat),
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
     osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
@@ -442,7 +442,7 @@ def writerFile (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
     osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
     osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧ mxc.length = 8192 ∧ tail.length = m.size - 4096 * hwm ∧
-      (fl = false → mxc.map Prod.fst = mp ∧ (∀ x ∈ mxc, x.2 = true) ∧ fsz = m.size ∧
+      (fl = false → mxc.map Prod.fst = mp ∧ ((∀ x ∈ mxc, x = durB x.1) ∧ m.dhi ≤ m.dlo) ∧ fsz = m.size ∧
         0 ≤ fd.toInt ∧ 4 * 4096 ≤ m.size ∧ m.size ≤ 2 ^ 30 ∧ mapLen st ≤ 2 ^ 30)⌝)
 
 /-- What the writer holds besides `writerFile` while there is no mapping: the invariant's quarter
@@ -461,7 +461,7 @@ def rwR (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) : IProp GF :=
     ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗ ghostVar γ.map (1 : Qp).half st ∗
     ghostVar γ.out (1 : Qp).half.half false ∗ mapFields (GF := GF) db (DFrac.own (1 : Qp).half) st ∗
     writerFile (GF := GF) γ db f fd p mp fl hwm st m ∗ ghostVar γ.cls (1 : Qp).half false ∗
-    ⌜fl = false → m.ok = true⌝ ∗
+    ⌜fl = false → True⌝ ∗
     match st with
     | some (base, len, γm) =>
       ⌜m.maps = {[base := len]} ∧ m.size ≤ len ∧ 0 < base.addr ∧ len ≤ 2 ^ 41⌝ ∗

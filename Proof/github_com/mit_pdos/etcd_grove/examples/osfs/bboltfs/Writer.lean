@@ -178,32 +178,40 @@ theorem metaPagesOk_commit (xs : List w8) (i : Nat) (PB : List w8) (h : metaPage
 theorem pwSize_full (sz off n : Nat) (h : 0 < n) : pwSize sz off n = max sz (off + n) := by
   unfold pwSize; rw [if_neg (by omega)]
 
-/-- A whole `pwrite` of `data` at `off`: the range's bytes are the zero gap, then `data`. -/
-theorem pwBytes_full (sz off : Nat) (data : List w8) (xs : List (w8 × Bool)) (h : 0 < data.length) :
-    (pwBytes sz off data data.length xs).map Prod.fst =
-      List.replicate (off - min off sz) 0 ++ data := by
-  have hs := pwSize_full sz off data.length h
-  have hl : (pwBytes sz off data data.length xs).length = off - min off sz + data.length := by
-    rw [pwBytes_length, hs]; omega
-  apply List.ext_getElem
-  · simp only [List.length_map, hl, List.length_append, List.length_replicate]
-  · intro i h1 h2
-    simp only [List.getElem_map]
-    rw [pwBytes_getElem _ _ _ _ _ _ (by simpa using h1)]
-    simp only [List.length_map, hl] at h1
-    simp only [List.length_append, List.length_replicate] at h2
-    unfold pwByte
-    by_cases hi : min off sz + i < off
-    · rw [if_pos hi, List.getElem_append_left (by simp; omega)]; simp
-    · rw [if_neg hi, if_pos (by omega), List.getElem_append_right (by simp; omega)]
-      simp only [List.length_replicate, List.getD_eq_getElem?_getD]
-      rw [List.getElem?_eq_getElem (by omega)]
-      simp only [Option.getD_some]; congr 1; omega
+/-- A clean `OsMeta` (no byte that may not be durable) touched in `[lo, hi)`: the bytes
+`[base, base + n)`, holding that range, hold every byte that may not be durable. -/
+theorem covers_touch_clean (m m' : OsMeta) (lo hi base n : Nat) (hc : m.dhi ≤ m.dlo)
+    (hd : m'.dlo = (m.touch lo hi).dlo) (hh : m'.dhi = (m.touch lo hi).dhi)
+    (h1 : base ≤ lo) (h2 : hi ≤ base + n) : m'.Covers base n := by
+  unfold OsMeta.Covers
+  intro b _ hb1 hb2
+  rw [hd, os.touch_dlo] at hb1
+  rw [hh, os.touch_dhi] at hb2
+  by_cases c1 : hi ≤ lo <;> by_cases c2 : m.dhi ≤ m.dlo <;> simp only [c1, c2, if_true, if_false] at hb1 hb2 <;> omega
 
-/-- A whole `pwrite` of `data` inside the file: its range's bytes are `data`. -/
-theorem pwBytes_inside (sz off : Nat) (data : List w8) (xs : List (w8 × Bool)) (h : 0 < data.length)
-    (hin : off ≤ sz) : (pwBytes sz off data data.length xs).map Prod.fst = data := by
-  rw [pwBytes_full _ _ _ _ h, show off - min off sz = 0 by omega]; rfl
+/-- A whole `WriteAt` of `data` at `off`, inside the file: its range's bytes are the zero gap
+(none: it starts inside the file), then `data`. -/
+theorem pwOut_full (m : OsMeta) (off : Nat) (data : List w8) (xs ys : List ByteG)
+    (h : 0 < data.length) (hoff : off ≤ m.size) (hp : os.PwOut m off data data.length xs ys) :
+    ys.map Prod.fst = List.replicate (off - min off m.size) 0 ++ data := by
+  obtain ⟨hl, hv⟩ := hp
+  rw [show off - min off m.size = 0 by omega, List.replicate_zero, List.nil_append]
+  have hs := pwSize_full m.size off data.length h
+  have hl' : ys.length = data.length := by rw [hl, hs]; omega
+  apply List.ext_getElem (by simp [hl'])
+  intro i h1 h2
+  simp only [List.getElem_map]
+  rw [(hv i (by simpa using h1)).1]
+  have hi : i < data.length := by simpa [hl'] using h1
+  unfold pwByte
+  rw [if_pos (by omega), show off + i - off = i by omega, List.getD_eq_getElem?_getD,
+    List.getElem?_eq_getElem hi, Option.getD_some]
+
+/-- A whole `WriteAt` of `data` inside the file: its range's bytes are `data`. -/
+theorem pwOut_inside (m : OsMeta) (off : Nat) (data : List w8) (xs ys : List ByteG)
+    (h : 0 < data.length) (hoff : off ≤ m.size) (hp : os.PwOut m off data data.length xs ys) :
+    ys.map Prod.fst = data := by
+  rw [pwOut_full m off data xs ys h hoff hp, show off - min off m.size = 0 by omega]; rfl
 
 end pure
 
@@ -411,14 +419,14 @@ theorem mcells_single (b : Loc) (l lo hi : Nat) (vf : Nat → val) (hlo : lo ≤
   rw [Nat.min_eq_left hhi, Nat.min_eq_left (by omega : lo ≤ l)]
   exact .rfl
 
-theorem osBytes_app (p : Ino) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
+theorem osBytes_app (p : Ino) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
     osBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
       osBytes (GF := GF) p off dq xs ∗ osBytes (GF := GF) p (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
 /-- `rwR`'s open branch, from the writer's part. -/
 theorem rwR_of_writerSt (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List w8)
-    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (hok : fl = false → m.ok = true) :
+    (fl : Bool) (hwm : Nat) (st : MapSt) (m : OsMeta) (hok : fl = false → True) :
     writerSt (GF := GF) γ db f fd p mp fl hwm st m ∗
       (match st with | none => dbFailed (GF := GF) γ | some _ => emp) ⊢
       rwR (GF := GF) γ db f fd p := by
@@ -441,7 +449,7 @@ theorem gElem_persist {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Counta
 
 /-- Bytes of a file, persistent (discarded). -/
 theorem osBytes_persist (p : Ino) (dq : DFrac) :
-    ∀ (xs : List (w8 × Bool)) (off : Nat),
+    ∀ (xs : List ByteG) (off : Nat),
     osBytes (GF := GF) p off dq xs ⊢ |==> osBytes (GF := GF) p off DFrac.discard xs
   | [], off => by
     iintro _; imodintro; iapply (osBytes_nil p off _).2; iempintro
@@ -458,7 +466,7 @@ theorem osBytes_persist (p : Ino) (dq : DFrac) :
 
 /-- A page's bytes, clean, as a committed page. -/
 theorem pageIs_of (p : Ino) (r : Nat) (dq : DFrac) (B : List w8) (hB : B.length = 4096) :
-    osBytes (GF := GF) p (4096 * r) dq (B.map (·, true)) ⊢ |==> pageIs (GF := GF) p r B := by
+    osBytes (GF := GF) p (4096 * r) dq (B.map durB) ⊢ |==> pageIs (GF := GF) p r B := by
   iintro H
   imod osBytes_persist p dq _ _ $$ H with H
   imodintro

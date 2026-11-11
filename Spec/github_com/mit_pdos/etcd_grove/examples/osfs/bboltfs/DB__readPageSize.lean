@@ -26,7 +26,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 /-- See the file header. -/
 abbrev DB.readPageSize.spec : Prop :=
   ∀ (db f : Loc) (dqd : DFrac) (fd : w64) (name : GoString) (dqf dq dqm dqb : DFrac) (d : OsFd)
-    (m : OsMeta) (xs : List (w8 × Bool)),
+    (m : OsMeta) (xs : List ByteG),
   d.readable = true → xs.length = 2 * 4096 → 2 * 4096 ≤ m.size →
   {{ osInv (GF := GF) ∗ db.[DB, go!"file"] ↦{dqd} f ∗ os.ownFile (GF := GF) f fd name dqf ∗
       osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino dqm m ∗

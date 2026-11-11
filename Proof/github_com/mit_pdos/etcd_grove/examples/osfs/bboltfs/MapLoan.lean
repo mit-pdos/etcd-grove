@@ -306,7 +306,7 @@ theorem metaLent_unlent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List
     grind
 
 theorem osBytes_disc_agree (p : Ino) :
-    ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
+    ∀ (xs ys : List ByteG) (off : Nat), xs.length = ys.length →
     osBytes (GF := GF) p off DFrac.discard xs ∗ osBytes (GF := GF) p off DFrac.discard ys ⊢ ⌜xs = ys⌝
   | [], [], _, _ => by iintro -; ipureintro; rfl
   | [], _ :: _, _, h => by simp at h
@@ -327,13 +327,13 @@ theorem pageIs_agree (p : Ino) (r : Nat) (B B' : List w8) :
     pageIs (GF := GF) p r B ∗ pageIs (GF := GF) p r B' ⊢ ⌜B = B'⌝ := by
   unfold pageIs
   iintro ⟨⟨%Hl, H1⟩, ⟨%Hl', H2⟩⟩
-  icases osBytes_disc_agree p (B.map (·, true)) (B'.map (·, true)) (4096 * r)
+  icases osBytes_disc_agree p (B.map durB) (B'.map durB) (4096 * r)
     (by simp only [List.length_map]; omega) $$ [H1 H2] with %H
   · iframe
   ipureintro
   have := congrArg (List.map Prod.fst) H
   simp only [List.map_map] at this
-  have e : (Prod.fst ∘ fun x : w8 => (x, true)) = id := rfl
+  have e : (Prod.fst ∘ durB) = id := rfl
   rw [e, List.map_id, List.map_id] at this
   exact this
 

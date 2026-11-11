@@ -21,6 +21,9 @@ open Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
+/-- What a mapped cell holding the byte `b` shows. -/
+abbrev Fs.byteCell [GooseExts] (b : w8) : val := toCellVal (some b)
+
 namespace github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section cells
@@ -145,7 +148,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-theorem osBytes_cons (p : Ino) (off : Nat) (dq : DFrac) (x : w8 × Bool) (xs : List (w8 × Bool)) :
+theorem osBytes_cons (p : Ino) (off : Nat) (dq : DFrac) (x : ByteG) (xs : List ByteG) :
     osBytes (L := L) p off dq (x :: xs) ⊣⊢ osByte (L := L) p off dq x ∗ osBytes (L := L) p (off + 1) dq xs := by
   unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
 
@@ -158,7 +161,7 @@ which the client holds a fraction, given its `OsMeta`. -/
 theorem cellsR_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (m : OsMeta)
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ∀ (xs : List (w8 × Bool)) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
+    ∀ (xs : List ByteG) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
     ⊢ osInv (L := L) -∗ osMeta (L := L) p dqm m -∗ osBytes (L := L) p lo dqb xs -∗
       cellsR base lo xs.length vf -∗
       (osMeta (L := L) p dqm m -∗ osBytes (L := L) p lo dqb xs -∗
