@@ -103,7 +103,9 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
   -- a byte a run holds
   have hrun : ∀ r ∈ s.vruns, ∀ k (hk : k < r.2.2.length), f.cand (r.1 + k) = (r.2.2[k]).2 := by
     intro r hr k hk
-    obtain ⟨f1, hf1, -, hx⟩ := hcoh.bytes _ _ _ (hrs r hr k hk)
+    have hcut : cutOf Γm i = none := by
+      simp only [cutOf, hm, Option.bind_some]; exact s.vmeta_cut ▸ hwf.2.2.2.2
+    obtain ⟨f1, hf1, -, hx⟩ := coh_byte_exact hcoh hcut (hrs r hr k hk)
     have : f1 = f := by
       have h1 : st.fs.files !! i = some f1 := hf1
       rw [hf] at h1; cases h1; rfl
@@ -185,7 +187,7 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
         simp only [CSt.vmeta, hbs, cfMeta]
         exact announce_pc_out _ _ _ _ _ _ hr (by omega) hc
   · -- a growing truncate
-    have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2; simp only [hbs] at this; exact this
+    have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2.1; simp only [hbs] at this; exact this
     split at hc
     · rename_i hr
       simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, Nat.min_eq_left hgrow,

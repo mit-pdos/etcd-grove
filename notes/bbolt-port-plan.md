@@ -469,3 +469,14 @@ Not done (in order):
    lean's `fmtErrorOkOrNil` on `WriteAt`/`ReadAt`/`OpenFile`; `specRacyLt`.
 2. bbolt's invariants beyond `osSlot` and `BC` (`Inv/{Store,Locks,WSlots,Bolt,Tx,Txs}` over
    `K.i`), the 38 file-name files, then the 62 substantive files; `Link`, `Results`; gates.
+
+**2026-11-12, fork BX, continued.** minibolt rebuilt over the cut: `CSt.Wf` (`Proof/os/CrashSt.lean`)
+gains `s.m.cut = none` (no sync without the bytes in a crash-proved client; preserved by every
+crash-aware op, `Proof/os/CrashStOps.lean`, since their posts' metas keep the cut), `CSt.vmeta_cut`;
+`kc_cand` (`bboltfs/CrashOk.lean`) reads the candidates exactly through `coh_byte_exact`;
+`synced_eq` (`bboltfs/DB__init.lean`) takes the cuts' equality.
+Status at this commit: every osfs target builds but bboltfs `Results` (the crash side): minibolt's
+crash files build their states' `Wf` themselves (`DBCrash.writer_okS`, `DB__initCrash`'s
+`noValid_okS`/`initMid_okS`/`hfacts` uses), which now need `m'.cut = none`. Next: `WReach.cut`
+(`m'.cut = m.cut`, by induction, `Spec/os/CrashSt.lean`), `m.cut = none` in `initIdle` and
+`commitClean` (their producers: `newMeta`, a file on disk, `CsWf`), then those constructions.

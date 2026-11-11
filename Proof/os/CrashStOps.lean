@@ -309,7 +309,7 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
       WP (ExternalOp fsExt.name "PWriteStart" (Val (PairV (#fd) (PairV (#off) (#data))))) {{ Φ }} := by
   iintro #Hos #Hinv Hfd Hown Hc HΦ
   icases (csOwnF_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
-  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  obtain ⟨hl, hab, hfb, -, hcut⟩ := Hwf
   dsimp only at hl hab hfb
   have hlo : cfLo m off.toNat = off.toNat := Nat.min_eq_left hgap
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
@@ -351,7 +351,7 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
   · iapply (show thrBytes (L := L) d.ino ⟨m, bs, fa, fb, .write 0 off.toNat data 0⟩ ⊢
       thrBytes (L := L) d.ino ⟨m, bs, fa, fb, .write t off.toNat data n⟩ from .rfl)
     iexact Hb1
-  ipureintro; exact ⟨hl, hab, hfb, hfz⟩
+  ipureintro; exact ⟨hl, hab, hfb, hfz, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
 
 /-- `pwrite`'s second step on a file in a crash invariant: idle again, as the write of the first
 `k` bytes left it (`finBytes`: the bytes it reached past the old end with the candidates `zs`),
@@ -377,7 +377,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
       WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hos #Hinv Hown HΦ
   icases (csOwnF_busy _ _ _ (by simp)).1 $$ Hown with ⟨Hv, Hb1, %Hwf⟩
-  obtain ⟨hl, hab, hfb, hfz⟩ := Hwf
+  obtain ⟨hl, hab, hfb, hfz, hcut⟩ := Hwf
   dsimp only at hl hab hfb hfz
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
   imod cs_open N P R γ Good Ok _ ⊤ (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv Hv
@@ -467,7 +467,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
   iapply (csOwnF_idle _ _ _ rfl).2
   iframe
   ipureintro
-  refine ⟨finBytes_length hl hgap hk, hab, ?_, trivial⟩
+  refine ⟨finBytes_length hl hgap hk, hab, ?_, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
   show fb ≤ pwSize m.size off k
   have := pwSize_ge3 m.size off k; omega
 
@@ -512,7 +512,7 @@ theorem wp_osFtruncateStart_cs (fd sz : w64) (dq : DFrac) (d : OsFd) (N : Namesp
       WP (ExternalOp fsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) {{ Φ }} := by
   iintro #Hos #Hinv Hfd Hown Hc HΦ
   icases (csOwnF_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
-  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  obtain ⟨hl, hab, hfb, -, hcut⟩ := Hwf
   dsimp only at hl hab hfb
   have hmin : min m.size sz.toNat = m.size := Nat.min_eq_left hgrow
   have hmax : max m.size sz.toNat = sz.toNat := Nat.max_eq_right hgrow
@@ -546,7 +546,7 @@ theorem wp_osFtruncateStart_cs (fd sz : w64) (dq : DFrac) (d : OsFd) (N : Namesp
   · iapply (show thrBytes (L := L) d.ino ⟨m, bs, fa, fb, .idle⟩ ⊢
       thrBytes (L := L) d.ino ⟨m, bs, fa, fb, .trunc t sz.toNat n⟩ from .rfl)
     iexact Hb1
-  ipureintro; exact ⟨hl, hab, hfb, hgrow⟩
+  ipureintro; exact ⟨hl, hab, hfb, hgrow, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
 
 /-- The caller's part after a truncate grew the file (`rsDone`): the file, its new bytes (zeros,
 with the candidates `zs` they had, then the zero the truncate announced), and the mapped cells of
@@ -581,7 +581,7 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hos #Hinv Hown HΦ
   icases (csOwnF_busy _ _ _ (by simp)).1 $$ Hown with ⟨Hv, Hb1, %Hwf⟩
-  obtain ⟨hl, hab, hfb, hgrow⟩ := Hwf
+  obtain ⟨hl, hab, hfb, hgrow, hcut⟩ := Hwf
   dsimp only at hl hab hfb hgrow
   have hmin : min m.size sz = m.size := Nat.min_eq_left hgrow
   have hmax : max m.size sz = sz := Nat.max_eq_right hgrow
@@ -636,7 +636,7 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
     iframe
     ipureintro
     refine ⟨by simp only [List.length_append, List.length_map, hl, hzs.1]; show _ = sz; omega, hab,
-      by show fb ≤ sz; omega, trivial⟩
+      by show fb ≤ sz; omega, trivial, by simp_all [rsPost, OsMeta.announce]⟩
   unfold rsUndone
   icases Hres with (⟨%he, Hg⟩ | ⟨%he, (Hg | ⟨Hm, -, Hc⟩)⟩)
   · iapply (hG _) $$ [HΦ] Hv Hv' Hb2 Hb1 Hg Hclose
@@ -671,7 +671,7 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
         thrBytes (L := L) p ⟨m.announce (min m.size sz) (max m.size sz) sz, bs, fa, fb, .idle⟩
         from .rfl)
       iexact Hb1
-    ipureintro; exact ⟨by rw [announce_size]; exact hl, hab, by rw [announce_size]; exact hfb, trivial⟩
+    ipureintro; exact ⟨by rw [announce_size]; exact hl, hab, by rw [announce_size]; exact hfb, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
 
 /-! ### Sync -/
 
@@ -694,7 +694,7 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
       WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
   iintro #Hos #Hinv Hfd Hown HΦ
   icases (csOwnF_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
-  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  obtain ⟨hl, hab, hfb, -, hcut⟩ := Hwf
   dsimp only at hl hab hfb
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
   imod cs_open N P R γ Good Ok _ ⊤ (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv Hv
@@ -758,7 +758,7 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
     iapply (csOwnF_idle _ _ _ rfl).2
     iframe
     ipureintro
-    refine ⟨?_, hab, ?_, trivial⟩ <;> simp only [OsMeta.synced, List.length_append, List.length_map]
+    refine ⟨?_, hab, ?_, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩ <;> simp only [OsMeta.synced, List.length_append, List.length_map]
     · omega
     · omega
   · icases hback m H T hH $$ [Hm HH HF HT] with ⟨Hi, Ht⟩
@@ -775,7 +775,7 @@ theorem wp_osFsync_cs (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : Go
     iright; isplitr; · ipureintro; exact he
     iapply (csOwnF_idle _ _ _ rfl).2
     iframe
-    ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+    ipureintro; exact ⟨hl, hab, hfb, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
 
 /-! ### Mappings -/
 
@@ -802,7 +802,7 @@ theorem wp_osMmap_cs (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Nam
         (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) {{ Φ }} := by
   iintro #Hos #Hinv Hfd Hown HΦ
   icases (csOwnF_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
-  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  obtain ⟨hl, hab, hfb, -, hcut⟩ := Hwf
   dsimp only at hl hab hfb
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
   imod cs_open N P R γ Good Ok _ ⊤ (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv Hv
@@ -837,7 +837,7 @@ theorem wp_osMmap_cs (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Nam
     · iapply (show thrBytes (L := L) d.ino ⟨m, bs, fa, fb, .idle⟩ ⊢ thrBytes (L := L) d.ino
         ⟨{ m with maps := <[base := len.toNat]> m.maps }, bs, fa, fb, .idle⟩ from .rfl)
       iexact Hb1
-    ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+    ipureintro; exact ⟨hl, hab, hfb, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     imod Hclose $$ [Hv' Hm2 Hb2] with -
     · inext; iexists (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)); iframe Hv'; isplitl
@@ -849,7 +849,7 @@ theorem wp_osMmap_cs (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Nam
     isplitr; · ipureintro; exact he
     iapply (csOwnF_idle _ _ _ rfl).2
     iframe
-    ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+    ipureintro; exact ⟨hl, hab, hfb, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
 
 /-- `munmap` of a mapping of a file in a crash invariant, idle: the mapping is gone, or (on
 failure) maybe not, each of which the caller shows `Ok`. -/
@@ -871,7 +871,7 @@ theorem wp_osMunmap_cs (base : Loc) (len cap : w64) (p : Ino) (N : Namespace) (P
       WP (ExternalOp fsExt.name "Munmap" (Val (PairV (#base) (PairV (#len) (#cap))))) {{ Φ }} := by
   iintro #Hos #Hinv Hown Hc HΦ
   icases (csOwnF_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
-  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  obtain ⟨hl, hab, hfb, -, hcut⟩ := Hwf
   dsimp only at hl hab hfb
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
   imod cs_open N P R γ Good Ok _ ⊤ (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv Hv
@@ -914,7 +914,7 @@ theorem wp_osMunmap_cs (base : Loc) (len cap : w64) (p : Ino) (N : Namespace) (P
     · iapply (show thrBytes (L := L) p ⟨m, bs, fa, fb, .idle⟩ ⊢ thrBytes (L := L) p
         ⟨{ m with maps := GMap.delete base m.maps }, bs, fa, fb, .idle⟩ from .rfl)
       iexact Hb1
-    ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+    ipureintro; exact ⟨hl, hab, hfb, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
   icases Hres with (⟨%he, Hm⟩ | ⟨%he, (Hm | ⟨Hm, Hc⟩)⟩)
   · iapply (hD _) $$ [HΦ] Hv Hv' Hb2 Hb1 Hm Hclose
     iintro H; iapply HΦ; ileft; iframe; ipureintro; exact he
@@ -931,7 +931,7 @@ theorem wp_osMunmap_cs (base : Loc) (len cap : w64) (p : Ino) (N : Namespace) (P
     iright; iframe Hc
     iapply (csOwnF_idle _ _ _ rfl).2
     iframe
-    ipureintro; exact ⟨hl, hab, hfb, trivial⟩
+    ipureintro; exact ⟨hl, hab, hfb, trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
 
 
 /-! ### Open -/
@@ -987,7 +987,7 @@ theorem wp_osOpenCreate_cs (d b : GoString) (N : Namespace) (R : Roots) (γ : GN
   iintro #Hos #Hinv Hv Ht Hk HΦ
   have hnm : newMeta.size = 0 := by simp [initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
   have hwf : ∀ i, CsWf (csNew i) := fun i =>
-    ⟨by show 0 = newMeta.size; exact hnm.symm, Nat.le_refl _, Nat.zero_le _, trivial⟩
+    ⟨by show 0 = newMeta.size; exact hnm.symm, Nat.le_refl _, Nat.zero_le _, trivial, rfl⟩
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
   imod cs_openT N (child d b) R γ Good Ok _ V _ $$ Hinv Hv Ht
     with ⟨Hv, Ht, -, Hti, Hv', %Hok', Hclose⟩
@@ -1131,7 +1131,7 @@ theorem cs_freeze (N : Namespace) (P : GoString) (R : Roots) (p : Ino) (γ : GNa
       osBytes (L := L) p fa' DFrac.discard ((bs.drop fa').take (fb' - fa')) := by
   iintro #Hinv Hown
   icases (csOwnF_idle _ _ _ rfl).1 $$ Hown with ⟨Hv, ⟨Hm1, Hb1⟩, %Hwf⟩
-  obtain ⟨hl, hab, hfb, -⟩ := Hwf
+  obtain ⟨hl, hab, hfb, -, hcut⟩ := Hwf
   dsimp only at hl hab hfb
   imod cs_open N P R γ Good Ok _ E hE $$ Hinv Hv with ⟨Hv, Hr, Hv', %Hok', Hclose⟩
   icases (invResS_idle _ _ rfl).1 $$ Hr with ⟨Hm2, Hb2⟩
@@ -1192,7 +1192,7 @@ theorem cs_freeze (N : Namespace) (P : GoString) (R : Roots) (p : Ino) (γ : GNa
   imodintro
   isplitl [Hv Hm1 Hb1]
   · iapply (csOwnF_idle _ _ _ rfl).2
-    iframe; ipureintro; exact ⟨hl, hab', hfb', trivial⟩
+    iframe; ipureintro; exact ⟨hl, hab', hfb', trivial, by simp_all [pwPostK, pwPost, rsPost, OsMeta.synced, OsMeta.announce]⟩
   icases (cBytes_split3 (L := L) p _ _ fa' fb' bs hab' (by omega)).1 $$ Hd with ⟨-, Hd, -⟩
   iapply (cBytes_full (L := L) p (fun _ => DFrac.discard) (fun k => decide (fa' ≤ k ∧ k < fb'))
     DFrac.discard fa' ((bs.drop fa').take (fb' - fa')) fun k hk => ⟨by

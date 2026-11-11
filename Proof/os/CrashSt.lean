@@ -148,14 +148,19 @@ def toks (p : Ino) (s : CSt) : List (Nat × TokInfo) :=
       pwAnn data n (cfRange s.m s.bs off data.length)⟩)]
   | .trunc t sz n => [(t, ⟨p, .truncate sz, n, s.m, rsAnn n []⟩)]
 
+/-- What a crash sees of a state's `OsMeta` has its cut. -/
+theorem vmeta_cut (s : CSt) : s.vmeta.cut = s.m.cut := by
+  unfold CSt.vmeta; split <;> simp [cfMeta, OsMeta.announce]
+
 /-- What the specs keep of a state: all the bytes, the frozen ones inside, a write in flight
-misses them (and so does what it appends, which starts at the size), a truncate grows. -/
+misses them (and so does what it appends, which starts at the size), a truncate grows; and no
+cut (no sync without the bytes: the crash lemmas read the candidates exactly). -/
 def Wf (s : CSt) : Prop :=
   s.bs.length = s.m.size ∧ s.fa ≤ s.fb ∧ s.fb ≤ s.m.size ∧
-  match s.busy with
+  (match s.busy with
   | .idle => True
   | .write _ off data _ => off + data.length ≤ s.fa ∨ s.fb ≤ off
-  | .trunc _ sz _ => s.m.size ≤ sz
+  | .trunc _ sz _ => s.m.size ≤ sz) ∧ s.m.cut = none
 
 theorem frozen_out (s : CSt) (k : Nat) (h : k < s.fa ∨ s.fb ≤ k) : s.frozen k = false := by
   simp only [frozen, decide_eq_false_iff_not]; omega
@@ -498,7 +503,7 @@ def csStart (i : Ino) (f : OsFile) : CState :=
   some (i, ⟨initMeta f, f.contents.map durB, 0, 0, .idle⟩)
 
 theorem csStart_wf (i : Ino) (f : OsFile) : CsWf (csStart i f) :=
-  ⟨by simp [initMeta, contents_length], Nat.le_refl _, Nat.zero_le _, trivial⟩
+  ⟨by simp [initMeta, contents_length], Nat.le_refl _, Nat.zero_le _, trivial, rfl⟩
 
 /-- What a generation's start gives of an idle state with nothing frozen: nothing, or its file
 whole. -/
