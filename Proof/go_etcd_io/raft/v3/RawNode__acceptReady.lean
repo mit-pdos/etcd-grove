@@ -30,6 +30,7 @@ is read with `GetIndex` through its read-only pointer (`entsRO_lookup`).
 module
 
 public import Proof.go_etcd_io.raft.v3.LemmasReadyR
+public import Proof.go_etcd_io.raft.v3.TracedReady
 public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
@@ -206,6 +207,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+-- (2026-11-11, slice 28n) the `Ready` line's fire and tokens raised the proof past the default budget
+set_option maxHeartbeats 400000 in
 theorem RawNode.acceptReady.wp_proof
     (wp_IsEmptyHardState : IsEmptyHardState.spec (GF := GF) (hG := hG))
     (wp_needStorageApplyRespMsg : needStorageApplyRespMsg.spec (GF := GF) (hG := hG))
@@ -219,7 +222,7 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd ce es ms h L HtrG
+  intro γ rn id rs rd ce es ms h L Hbnd
   wp_start as H
   iNamed H
   -- (2026-10-28, stage U3c) a lent snapshot's committed log ends at its id
@@ -269,6 +272,10 @@ theorem RawNode.acceptReady.wp_proof
   imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftGhost_terms_le _ _ _ $$ Hghost with ⟨%Htle, Hghost⟩
+  -- (2026-11-11, slice 28n) at a traced cluster, the log's numbers within the trace's bound, for the
+  -- `Ready` line's event (`Hbnd`'s receipts' fit)
+  imod ownRaftGhost_traceBoundIf γ id _ (γ.reTrace ≠ none) (fun h => (Hbnd h).2) $$ Hghost
+    with ⟨%Hnb, Hghost⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
@@ -712,24 +719,10 @@ theorem RawNode.acceptReady.wp_proof
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0
-  icases Hf_traceLogger with ⟨%tl, #Htl, %Htlok⟩
-  wp_apply wp_traceReady cf _ id s tl iprop(True) $$ [Htl] as -
-  · isplitr
-    · iexact Htl
-    isplitr
-    · iapply trOwn_of_none (Hgtr.trans HtrG)
-    iapply traceFire_of_none (Hgtr.trans HtrG)
-    isplitr
-    · ipureintro; exact Htlok
-    itrivial
-  -- the self-addressed responses, as the queue's first pending steps (before the raft struct
-  -- is closed: `Hself` is about `ms2`)
+  -- (2026-11-11, slice 28n) `traceReady(rn.raft)` is stepped below, once the struct is closed (its
+  -- gate lends it whole when traced); the self-addressed responses are queued after it, with their
+  -- tokens (`Hself` is about `ms2`, which the closing leaves alone)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
-  ihave Hps := self_pending γ id s.term { s with outbox := [] } s.outbox ms1 ms2 Houtbox ms2 Hsub2
-    HmsgsAA_ok.1 Hnsout (Hxf.of_fields rfl rfl rfl) (fun x _ => MsgTrOk.of_none HtrG x) rs.bw
-    $$ Hout Hqc Hxw Hself []
-  · -- (slice 26n) the tokens, untraced: nothing
-    iapply selfToks_none γ QMsg.st _ HtrG
   -- (D22 S-d3a) the log after the `Ready`: what it keeps of `ls0` and `s.logst`
   have Haf := accept_fields ls0 ce sz
   have Hsip00 : s.logst.sip = false := by
@@ -908,6 +901,64 @@ theorem RawNode.acceptReady.wp_proof
   · unfold readyNstate
     rw [Hls0]
     iexact Hphys
+  -- (2026-11-11, slice 28n) `traceReady(rn.raft)`: the node's `Ready` line, in either mode
+  -- (`rnTrace_fireReady`): the capability from the cut state `s` to the accepted one, and a token per
+  -- queued message; the struct lent to the gate when traced (`trOwn_split`)
+  have HpN : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.prev =
+      s.logst.prev := by rw [Hlogst, Haf1, Hf_prev]
+  have HstN : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.storage =
+      s.logst.storage := by rw [Hlogst, Haf3, Hf_st]
+  have HcmN : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.committed =
+      s.logst.committed := by rw [Hlogst, Haf4, Hf_cm]
+  have HpsN := toPState_ready s L ce sz (dk := max s.logst.dtk (dlvAfter rs.delivered ce L).length)
+  have HnbN : s.gh.tr ≠ none →
+      uint.nat (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).term < traceNumBound ∧
+      uint.nat (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.committed < traceNumBound ∧
+      uint.nat (plastIndex (toPState (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)))) < traceNumBound := by
+    intro htr
+    have hγ : γ.reTrace ≠ none := Hgtr ▸ htr
+    obtain ⟨hl, hc⟩ := Hnb hγ
+    have hl' : plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) < traceNumBound := hl
+    have hc' : uint.Z s.logst.committed < traceNumBound := hc
+    have htc := (Hbnd hγ).1
+    have h1 : rs.tc = s.gh.tc := Hpvoff.2.1
+    have h2 : uint.Z s.term ≤ uint.Z s.gh.tc := Hpvoff.2.2.1
+    have h0 : (0 : Int) ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) := by
+      unfold plogLastIndexZ; have := uint_Z_nonneg s.logst.prev.index'; omega
+    have hB : traceNumBound = 2 ^ 61 := rfl
+    rw [h1] at htc
+    refine ⟨?_, ?_, ?_⟩
+    · show uint.nat s.term < traceNumBound
+      rw [hB] at htc ⊢; word
+    · rw [HcmN, hB]; rw [hB] at hc'; word
+    · rw [HpsN]
+      show uint.nat (W64 (plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents))) < traceNumBound
+      rw [hB] at hl' ⊢; word
+  icases Hf_traceLogger with ⟨%tl, #Htl, %Htlok⟩
+  ihave Hfire := rnTrace_fireReady γ rnv.raft' id cf s
+    (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length))
+    { (toPState s).rd with states := [] } ms1 ms2 tl Hgtr rfl rfl HpN HstN HpsN rfl HcmN Houtbox HnbN
+    $$ Htl %Htlok Hrntr
+  icases trOwn_split s.gh.tr
+    (ownRaftPhysCV cf cf.voters rnv.raft' id (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)))
+    $$ Hphys with ⟨Hown, Hback⟩
+  wp_apply wp_traceReady cf rnv.raft' id (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) tl
+    iprop(rnTrace γ rnv.raft' id cf (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) ∗
+      [∗list] q ∈ ms1 ++ ms2, readyTok γ q.st)
+    $$ [Hown Hfire] as ⟨Hown, Hrntr, Htoks⟩
+  · iframe Htl Hfire
+    iExactEq Hown; rfl
+  ihave Hphys := Hback $$ [Hown]
+  · iexact Hown
+  -- the tokens: the self-addressed responses' (`selfTok`, at no entries and no context), and the
+  -- handed-out messages'
+  icases readyToks_selfSplit γ id ms ms1 ms2 Hmslen
+    (fun q hq hto => ⟨((HmsgsAA_ok.1 q hq).2.2 hto).2.1, ((HmsgsAA_ok.1 q hq).2.2 hto).2.2.1⟩)
+    $$ Htoks with ⟨Hstk, Htoks⟩
+  -- the self-addressed responses, as the queue's first pending steps
+  ihave Hps := self_pending γ id s.term { s with outbox := [] } s.outbox ms1 ms2 Houtbox ms2 Hsub2
+    HmsgsAA_ok.1 Hnsout (Hxf.of_fields rfl rfl rfl) Houttr rs.bw
+    $$ Hout Hqc Hxw Hself Hstk
   have Hrapp : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.applied = s.logst.applied := by
     rw [Hlogst, Haf10, Hf_ap]
   ihave Hrest := ghostRest_keep γ _ cf id (s := { s with outbox := [] })
@@ -1133,7 +1184,8 @@ theorem RawNode.acceptReady.wp_proof
         rw [(Hrdp.2 l hl).2.1] at hs'
         obtain rfl := Option.some.inj hs'
         exact hn l hl rfl
-  iapply ownRawNode_intro γ rn id rsN
+  iframe Htoks
+  iapply ownRawNode_intro_tr γ rn id rsN
     (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
@@ -1152,7 +1204,7 @@ theorem RawNode.acceptReady.wp_proof
     ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,
       readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
-    HsdtN HroleN HphsN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' []
+    HsdtN HroleN HphsN $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' [] Hrntr
   · -- (durability stage II, G2; (i)) the `Ready` keeps the durable state's tie: the batch handed out
     -- (`readyDurable`) is what the storage holds once it is appended, the whole log (`durFull_cut`)
     have Hp' : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.prev = s.logst.prev := by
