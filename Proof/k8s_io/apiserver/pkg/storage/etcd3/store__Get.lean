@@ -21,6 +21,7 @@ public import Spec.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Perennial.Proof.time.Link
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 
 @[expose] public section
 
@@ -66,7 +67,7 @@ theorem store.Get.wp_proof
   ihave #Hst0 := Hst
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, -⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -107,7 +108,7 @@ theorem store.Get.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
@@ -116,7 +117,7 @@ theorem store.Get.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
       c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hau]
     as %resp %gerr Hget
@@ -138,7 +139,7 @@ theorem store.Get.wp_proof
       ipureintro; exact Hspn
     (try wp_auto)
     wp_apply wp_validateMin Obj sp c opts.ResourceVersion' n resp.Revision' $$ []
-      as %verr %Hverr
+      as %verr Hverr
     · iframe Hst0 #
       ipureintro; exact hrv
     have hσn : uint.nat (W64 (σ.rev : Int)) = σ.rev := by
@@ -146,8 +147,10 @@ theorem store.Get.wp_proof
       word
     by_cases hlt : uint.nat resp.Revision' < uint.nat n
     · -- the minimum resource version is above the state's revision
-      rw [ite_eq_left hlt] at Hverr
-      obtain ⟨l, rfl⟩ := Hverr
+      rw [if_pos hlt]
+      icases persistent_entails_left (apierrors.tooLargeErrIs_ptr verr) $$ Hverr with
+        ⟨Hverr, %Hptr⟩
+      obtain ⟨l, rfl⟩ := Hptr
       (try wp_auto)
       wp_apply wp_End spn _ $$ []
       · iframe #
@@ -165,11 +168,12 @@ theorem store.Get.wp_proof
         rw [ite_eq_left (by rw [hr]; exact hlt), hr]
       rw [hg]
       simp only [respIs]
-      isplitl []
-      · ipureintro; exact ⟨l, rfl⟩
+      isplitl [Hverr]
+      · iexact Hverr
       iexists o0, rv0
       iexact Hout
-    rw [ite_eq_right hlt] at Hverr
+    rw [if_neg hlt]
+    icases Hverr with %Hverr
     subst Hverr
     have hle : ¬ (uint.nat n > (c.abs σ).rv) := by
       show ¬ (uint.nat n > σ.rev)

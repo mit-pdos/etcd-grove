@@ -1027,7 +1027,10 @@ PROJECTS = [
                     "github.com/anishathalye/porcupine=",
                     # the etcd project's names-only translations, which client-go's workqueue
                     # and flowcontrol name (notes/k8s-clientgo-goose.md)
-                    "golang.org/x/time=", "container/heap=", "github.com/go-logr="],
+                    "golang.org/x/time=", "container/heap=", "github.com/go-logr=",
+                    # pflag, names only: `FlagSet`, which featuregate's `MutableFeatureGate.AddFlag`
+                    # names (so that goose translates the interface: the driver's noStreaming)
+                    "github.com/spf13="],
         packages=[
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
@@ -1160,6 +1163,8 @@ PROJECTS = [
             "k8s.io/apiserver/pkg/util/flowcontrol",
             "k8s.io/component-base/tracing",
             "k8s.io/component-base/featuregate",
+            # (pflag, names only: what featuregate's interfaces name, Code/github_com/spf13/pflag.toml)
+            "github.com/spf13/pflag",
             "k8s.io/klog/v2",
             # (logr: the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
             "github.com/go-logr/logr",
@@ -1214,6 +1219,7 @@ PROJECTS = [
                os.path.join("k8s_io", "utils", "buffer"),
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
+               os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],

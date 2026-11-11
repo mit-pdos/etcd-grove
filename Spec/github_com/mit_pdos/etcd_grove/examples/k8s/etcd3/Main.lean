@@ -16,8 +16,7 @@ bootstrap log, the thread and time-receipt bounds, the server's workload and eff
 gRPC's method sets, `errors.As`'s target, the method-set classes of `*errorString`), the method-set
 fact the store asks of the driver's objects (`objTyOk`: `*Obj` is a `runtime.Object` and not a
 `runtime.Unstructured`; `methodSet` is uninterpreted), the one its `errOut` asks of
-`*storage.StorageError` (`storageErrTyOk`: it has `Unwrap`, so no client error is one) and
-`Run`'s bounds on `clients` and `ops`. Stated under the cache package's assumptions, as putget's.
+`*storage.StorageError` (`storageErrTyOk`: it has `Unwrap`, so no client error is one) and `Run`'s bounds on `clients` and `ops`. Stated under the cache package's assumptions, as putget's.
 -/
 module
 
@@ -25,6 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartR
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
 
 @[expose] public section
 

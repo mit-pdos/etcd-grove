@@ -71,7 +71,9 @@ theorem store.Create.wp_proof
   wp_start as ⟨#Hst, #Hctx, #Hce, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  iunfold storeListOk at Hlst
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -120,7 +122,7 @@ theorem store.Create.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   iunfold versionerOk at Hver
@@ -155,7 +157,7 @@ theorem store.Create.wp_proof
     iunfold transformerOk at Htr
     icases Htr with ⟨-, #HtrTo⟩
     wp_apply HtrTo $$ [$Hdsl] as %vsl %terr Htres
-    icases Htres with (⟨%Hterr, %v, %Hv, #Hvsl⟩ | ⟨%Hterr, #Htes⟩)
+    icases Htres with (⟨%Hterr, %v, %Hv, #Hvsl⟩ | ⟨%Hterr, %Htre, #Htes⟩)
     · subst Hterr
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
@@ -173,7 +175,8 @@ theorem store.Create.wp_proof
         fun i x hx => by
           iintro HAU
           unfold kvOpAu1
-          iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial) $$ HAU
+          iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial
+            (fun σ hw => keysIn_optPut _ _ _ _ _ hpfx σ hw.1)) $$ HAU
       ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
       rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
         (m := go!"OptimisticPut")]
@@ -191,7 +194,7 @@ theorem store.Create.wp_proof
       wp_apply wp_txnError as %te Hte
       ihave #Hse := Hte $$ Hse0
       (try wp_auto)
-      wp_apply wp_RecordEtcdRequest
+      wp_apply (wp_RecordEtcdRequest go!"create" c.gr _ _ (by decide) Hutf.1 Hutf.2)
       · iexact Hse
       (try wp_auto)
       icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ, -⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse, #Hpcl⟩)
@@ -322,7 +325,7 @@ theorem store.Create.wp_proof
         · iframe #
           ipureintro; exact Hspn
         (try wp_auto)
-        wp_apply wp_NewInternalError ti' $$ [] as %ie -
+        wp_apply wp_NewInternalError ti' $$ [] as %ie %Hie
         · iframe #
           iunfold go_etcd_io.etcd.cache.v3.errorStringSpec
           iexact Hes
@@ -336,7 +339,7 @@ theorem store.Create.wp_proof
         · iexists o, []; iexact Hobj
         ileft
         isplitl []
-        · iapply unkErr_internal
+        · iapply (unkErr_internal _ _ (by rw [Hie]; exact Htre))
         iexists o0, rv0
         iexact Hout
   · -- the encoding failed

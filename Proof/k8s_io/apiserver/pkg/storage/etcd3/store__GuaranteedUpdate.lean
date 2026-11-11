@@ -380,7 +380,7 @@ theorem store.GuaranteedUpdate.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, #Hmeta⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
@@ -437,7 +437,7 @@ theorem store.GuaranteedUpdate.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   wp_apply wp_EnforcePtr c.S.objTy p $$ [] as %v %eerr %Hen'
@@ -446,7 +446,7 @@ theorem store.GuaranteedUpdate.wp_proof
   obtain ⟨rfl, Hv⟩ := Hen'
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci' cd go!"updateGet" (c.pathPrefix ++ k) v p ign
-      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preOk pr) f))) hpfx hkl hR) $$ [] as %gf #Hgf
+      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preOk pr) f))) hpfx hkl hR (by decide)) $$ [] as %gf #Hgf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)

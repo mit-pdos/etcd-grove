@@ -26,6 +26,7 @@ axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.crypto.tls.opaqueInitsOk
+axiom Perennial.encoding.base64.RawURLEncoding_init
 axiom Perennial.encoding.base64.StdEncoding_init
 axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.hex.opaqueInitsOk
@@ -39,6 +40,7 @@ axiom Perennial.github_com.go_logr.logr.opaqueInitsOk
 axiom Perennial.github_com.jonboulle.clockwork.opaqueInitsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
+axiom Perennial.github_com.spf13.pflag.opaqueInitsOk
 axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
 axiom Perennial.go_etcd_io.bbolt.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
@@ -220,6 +222,7 @@ axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
+axiom Perennial.google_golang_org.grpc.DefaultBackoffConfig_init
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -250,6 +253,7 @@ axiom Perennial.k8s_io.apimachinery.pkg.runtime.schema.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.errors.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.runtime.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.validation.field.opaqueInitsOk
+axiom Perennial.k8s_io.apimachinery.pkg.util.version.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.util.wait.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.watch.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.audit.initFuncsOk

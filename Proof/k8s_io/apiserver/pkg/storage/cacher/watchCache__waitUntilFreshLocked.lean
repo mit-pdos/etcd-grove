@@ -154,7 +154,8 @@ theorem watchCache.waitUntilFreshLocked.wp_proof
       wp_if_destruct
       · -- the timeout: `NewTooLargeResourceVersionError`
         (try wp_auto)
-        wp_apply (wp_TooLarge _ _ _) $$ [] as %err %Herr
+        wp_apply (wp_TooLarge _ _ _) $$ [] as %err HerrT
+        icases (apierrors.tooLargeErrIs_ptr err) $$ HerrT with %Herr
         wp_for_post
         (try wp_auto)
         (try rw [decide_eq_true hpos])

@@ -221,7 +221,7 @@ theorem memberServed_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqName
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗
     etcdstart.srvPeerCtl γn s id ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
+    isGrpcRpcMd client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpecE E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
@@ -267,6 +267,20 @@ theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec :
   iunfold forwards at Hf
   icases Hf with ⟨#Hf, -, -⟩
   unfold isGrpcRpc
+  icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+  iexists mh, srv, ics, S
+  isplitl
+  · iapply Hf $$ %name %mh %srv %ics %S Hs
+  · iexact Hm
+
+/-- A unary method registered with a metadata-indexed spec at `b` is registered at an address that
+forwards to `b` (`isGrpcRpc_forwards`'s; k8s 7e-1, the members' `Range` with its error outcome). -/
+theorem isGrpcRpcMd_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpecMd Req Rep) :
+    forwards (GF := GF) a b ∗ isGrpcRpcMd b name Spec ⊢ isGrpcRpcMd a name Spec := by
+  iintro ⟨#Hf, #Hr⟩
+  iunfold forwards at Hf
+  icases Hf with ⟨#Hf, -, -⟩
+  unfold isGrpcRpcMd
   icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
   iexists mh, srv, ics, S
   isplitl
@@ -353,7 +367,7 @@ theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
     memberAt γn s id ρ E cid mid R b c γ cmp .none =
   iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
+    isGrpcRpcMd c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpecE E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗

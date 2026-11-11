@@ -13,6 +13,7 @@ cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
 Perennial's own packages state their globals), and `ErrCompacted.Error()` returns some string
 (`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description), as do the
 cache's `ErrKeyRangeInvalid.Error()` and `ErrUnsupportedRequest.Error()`;
+grpc's `EnableTracing` holds `false` for good (`grpcInit`);
 `clientv3`'s `noPrefixEnd` points for good to a slice holding the byte `0`. Everything here is an assumption about
 package initialization, as in `Proof/go_etcd_io/raft/v3/Base.lean`: nothing proves it from `initialize'`.
 -/
@@ -159,8 +160,16 @@ end google_golang_org.grpc.metadata
 
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
+/-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`
+at v1.84.0, no initializer) holds `false` for good. Go allocates it zero-valued before grpc's first
+initializer runs; grpc's generated `Init.lean` takes the cell from the trust-boundary axiom
+`DefaultBackoffConfig_init` and persists it. No translated code writes it; a program that sets it
+(etcd's `embed` at log level debug) gets no proof. Read by the reply-ownership claim of
+`grpcInvokerOk`/`RepSat` (`InvGrpc.lean`): with tracing on, grpc keeps every reply. -/
+abbrev grpcInit : IProp GF := globalAddr google_golang_org.grpc.EnableTracing ↦□ false
+
 instance grpc_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init grpcInit
 instance grpc_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc :=
   build_get_is_pkg_init_wf
@@ -372,7 +381,8 @@ def rpctypesEtcdErrorTy : Prop :=
   methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none ∧
   methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
 
-/-- `rpctypes`' package facts: the two errors the store returns; `ErrCompacted.Error()`
+/-- `rpctypes`' package facts: the two errors the store returns (`EtcdError` values, k8s etcd3 7e-2's
+D1, `examples/k8s7e2attack`'s `TestRpctypesErrTypes`); `ErrCompacted.Error()`
 (the watcher's `Compact` puts it in the cancel response) returns some string, and so does
 `ErrFutureRev.Error()` (`WatchResponse.Err` returns it; both are `EtcdError`s, whose `Error`
 returns their description); and (unit P3a: `rpctypes.Error` is translated) the map
@@ -390,11 +400,16 @@ abbrev rpctypesInit : IProp GF :=
       -- (k8s etcd3 7c) its description
       ⌜errDesc (GoInterface.ok e) = futureRevDesc⌝ ∗
       -- (premise-fixes-4) no `Format` method: `fmt` prints it through `Error()`
-      ⌜methodSet e.ty !! go!"Format" = none⌝) ∗
+      ⌜methodSet e.ty !! go!"Format" = none⌝ ∗
+      -- (k8s etcd3 7e-2, D1) an `EtcdError` value (`TestRpctypesErrTypes`)
+      ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+        GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗
       errorStringSpec e ∗ ⌜errDesc (GoInterface.ok e) = compactedDesc⌝ ∗
-      ⌜methodSet e.ty !! go!"Format" = none⌝) ∗
+      ⌜methodSet e.ty !! go!"Format" = none⌝ ∗
+      ⌜∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+        GoInterface.ok e = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝) ∗
     □ (∀ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e -∗
       errorStringSpec e) ∗

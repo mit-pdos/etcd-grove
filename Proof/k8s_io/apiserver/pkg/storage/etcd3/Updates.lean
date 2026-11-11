@@ -38,15 +38,30 @@ variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable {Obj : Type} [DecidableEq Obj]
 
-/-- **A step of etcd's state, for the caller's history** (see the file header). -/
+/-- **etcd's state `σ'` extends `σ`'s history** (stage 7e-4): the same base and compaction
+revision, `σ`'s changes a prefix of `σ'`'s (so they agree at every revision of `σ`). -/
+def KvExt (σ σ' : KVState) : Prop :=
+  σ.compacted = σ'.compacted ∧ σ.base = σ'.base ∧ σ.changes <+: σ'.changes
+
+/-- **A step of etcd's state, for the caller's history** (see the file header; stage 7e-4: it
+extends the history, `KvExt`). -/
 def KvNext (σ σ' : KVState) : Prop :=
-  σ' = σ ∨ (σ'.rev = σ.rev + 1 ∧ ∀ v ∈ σ'.kvs, v ∈ σ.kvs ∨ v.modRev = W64 ((σ'.rev : Nat) : Int))
+  σ' = σ ∨ (σ'.rev = σ.rev + 1 ∧ (∀ v ∈ σ'.kvs, v ∈ σ.kvs ∨ v.modRev = W64 ((σ'.rev : Nat) : Int)) ∧
+    KvExt σ σ')
+
+/-- **A step's new keys are under the prefix `pfx`** (stage 7e-4): every key of `σ'`'s key-values is
+one of `σ`'s or under `pfx` (the store writes only its own keys). -/
+def KeysIn (pfx : GoString) (σ σ' : KVState) : Prop :=
+  ∀ v ∈ σ'.kvs, (∃ w ∈ σ.kvs, w.key = v.key) ∨ pfx <+: v.key
+
+theorem keysIn_refl (pfx : GoString) (σ : KVState) : KeysIn pfx σ σ := fun v hv => Or.inl ⟨v, hv, rfl⟩
 
 /-- A commit is such a step. -/
 theorem kvNext_commit (σ : KVState) (cs : List mvcc.Change) : KvNext σ (σ.commit cs) := by
   by_cases hc : cs = []
   · subst hc; exact Or.inl (KVState.commit_nil σ)
-  · refine Or.inr ⟨KVState.commit_rev σ cs hc, fun v hv => ?_⟩
+  · refine Or.inr ⟨KVState.commit_rev σ cs hc, fun v hv => ?_,
+      by simp only [KVState.commit, hc, ↓reduceIte]; exact ⟨rfl, rfl, List.prefix_append _ _⟩⟩
     rw [KVState.commit_kvs σ cs hc] at hv
     rw [KVState.commit_rev σ cs hc]
     by_cases hm : v.modRev = W64 ((σ.rev + 1 : Nat) : Int)
@@ -82,7 +97,7 @@ def k8sAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ⌝ ∗ kvSeen c.γh σ }>
       @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
     <{ ∀∀ (σ' : KVState), etcdKV γk σ' ∗
-        ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ' ∧ kvRoom σ⌝,
+        ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ' ∧ kvRoom σ ∧ KeysIn c.pfx σ σ'⌝,
       COMM Φ σ }>)
 
 /-- (2026-11-05, H-rr1) A state with room has room for two revisions. -/
@@ -96,7 +111,8 @@ def StepOk (c : StoreCfg GF Obj) (op : KVOp) (step : KSt Obj → KSt Obj) : Prop
 
 /-- **The caller's update gives the client's** for a transaction whose step is the model's. -/
 theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
-    (step : KSt Obj → KSt Obj) (Φ : KVState → IProp GF) (h : StepOk c op step) (hop : op.isKV) :
+    (step : KSt Obj → KSt Obj) (Φ : KVState → IProp GF) (h : StepOk c op step) (hop : op.isKV)
+    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ)) :
     k8sAu1 γk c step Φ ⊢
       kvAu1 γk (kvOpStep op)
         (fun σ => iprop(Φ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) := by
@@ -127,7 +143,7 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     ispecialize Hcommit $$ %(kvOpStep op σ)
     imod Hcommit $$ [Hkv] with HΦ
     · iframe Hkv
-      ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop, Hroom⟩
+      ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop, Hroom, hk σ Hwf⟩
     imodintro
     iframe HΦ Hseen
     ipureintro; exact ⟨Hwf, hr⟩
@@ -165,7 +181,8 @@ def k8sAuRW (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj) (
   iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ⌝ ∗ kvSeen c.γh σ }>
       @ rwMask, ∅
     <{ ∀∀ (b : Bool) (σ' : KVState), etcdKV γk σ' ∗ ⌜kvRoom σ⌝ ∗
-        (if b then W ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ'⌝ else ⌜σ' = σ⌝),
+        (if b then W ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ' ∧ KeysIn c.pfx σ σ'⌝
+          else ⌜σ' = σ⌝),
       COMM if b then Φ σ else iprop(True) }>)
 
 instance k8sAuRW_persistent (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
@@ -192,7 +209,8 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
     (A : KVState → Prop)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
-      (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ))) :
+      (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ)))
+    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ)) :
     k8sAuRW γk c step W Φ ∗ W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝) ⊢
       kvAu1 γk (kvOpStep op) (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
         rdFacts c σ ∗ ⌜A σ⌝)) := by
@@ -244,7 +262,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
         isimp only [↓reduceIte] at Hcommit
         imod Hcommit $$ [Hkv HW] with HΦ
         · iframe Hkv HW
-          ipureintro; exact ⟨Hroom, Hwf, (hhand hh).symm, Or.inl rfl⟩
+          ipureintro; exact ⟨Hroom, Hwf, (hhand hh).symm, Or.inl rfl, keysIn_refl _ _⟩
         imodintro
         simp only [Bool.false_or, ↓reduceIte]
         iframe HΦ
@@ -256,7 +274,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
       isimp only [↓reduceIte] at Hcommit
       imod Hcommit $$ [Hkv HW] with HΦ
       · iframe Hkv HW
-        ipureintro; exact ⟨Hroom, hwf', habs, kvNext_step op σ hop⟩
+        ipureintro; exact ⟨Hroom, hwf', habs, kvNext_step op σ hop, hk σ Hwf⟩
       imodintro
       simp only [Bool.true_or, ↓reduceIte]
       iframe HΦ
@@ -271,7 +289,8 @@ theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
     (ok hand : KVState → Bool) (A : KVState → Prop)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
-      (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ))) :
+      (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ)))
+    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ)) :
     (W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝)) ∗ ([∗list] x ∈ ms, k8sAuRW x.γr.kv c step W Φ) ⊢
       [∧list] x ∈ ms, kvOpAu1 x.γr.kv op (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
         rdFacts c σ ∗ ⌜A σ⌝)) := by
@@ -279,7 +298,7 @@ theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
   intro x hx
   iintro ⟨⟨HW, #HA⟩, #Hx⟩
   unfold kvOpAu1
-  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op hop ok hand A h
+  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op hop ok hand A h hk
   iframe Hx HW HA
 
 end defs

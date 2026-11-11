@@ -14,6 +14,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.fmt.Errorf
 public import Perennial.Proof.time.Link
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
 
 @[expose] public section
 
@@ -50,7 +51,9 @@ theorem store.GetCurrentResourceVersion.wp_proof
   wp_start as ⟨#Hst, #Hctx, #Hce, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  iunfold storeListOk at Hlst
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
   · iPkgInit
   ihave #Pti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -78,7 +81,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
       c.ms c.V ci cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hau]
     as %resp %gerr Hget
@@ -86,7 +89,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     iexact Hau
   (try wp_auto)
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
-  wp_apply wp_RecordEtcdRequest $$ []
+  wp_apply (wp_RecordEtcdRequest go!"getCurrentResourceVersion" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
   · iexact Hse
   icases Hget with (⟨%Hgerr, %σ, #HQ, %Hσ, -⟩ | ⟨%Hgerr, -, -⟩)
   · -- the client read the state σ

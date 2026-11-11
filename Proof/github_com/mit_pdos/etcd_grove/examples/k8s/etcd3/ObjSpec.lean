@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # The driver's objects in the heap (stage 6c of `notes/k8s-etcd3-plan.md`)
 
 `driverSpec`: the store's `ObjSpec` of the driver: `driverCodec` and the ownership of an object,
-`objAtD x o rv`: the `runtime.Object` `x` is a non-nil `*Obj` holding `o`'s name, UID and value and a
+`objAtD x o rv`: the `runtime.Object` `x` is a non-nil `*Obj` holding `o`'s fields (`o.toObj`) and a
 resource version whose string form is `rv` (`rvStr`). `reflect.New(Obj)`'s allocation is the
 empty object (`newObj`, by `reflNew_pointsto` at `Obj`'s Lean type).
 -/
@@ -85,7 +85,7 @@ abbrev objTyD : go.GoType := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.O
 def objAtD (x : GoInterface) (o : DObj) (rv : GoString) : IProp GF :=
   iprop(∃ (p : Loc) (n : w64),
     ⌜x = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ p ≠ null ∧ rv = rvStr n⌝ ∗
-    p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n)
+    p ↦ o.toObj n)
 
 theorem objAtD_ne_nil (x : GoInterface) (o : DObj) (rv : GoString) :
     objAtD (GF := GF) x o rv ⊢ ⌜x ≠ GoInterface.nil⌝ := by
@@ -116,7 +116,7 @@ theorem objAtD_new (p : Loc) :
   isplitr
   · ipureintro; exact ⟨rfl, Hn, rfl⟩
   have hz : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) =
-      github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk dzero.name dzero.uid dzero.val (W64 0) := rfl
+      dzero.toObj (W64 0) := rfl
   rw [← hz]
   iexact H
 
@@ -129,8 +129,13 @@ def driverSpec : ObjSpec GF DObj where
   objAt_ptr := objAtD_ptr
   newObj := objAtD_new
   encErr _ := False
+  trErr _ := False
 
 theorem driverSpec_tyOk (h : objTyOk) : (driverSpec (GF := GF)).tyOk := h
+
+/-- The store's reading of a stored value through the driver's spec is its codec's (7e-3c's
+`refine_list` is stated with `driverCodec.dec`). -/
+theorem driverSpec_dec : (driverSpec (GF := GF)).dec = driverCodec.dec := rfl
 
 end defs
 

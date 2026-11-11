@@ -7,7 +7,10 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   started in process, a kubernetes client configured for one attempt per call, the seed objects,
   the Kubernetes etcd3 store over the client (`etcd3.New`, the driver's codec, versioner,
   transformer and decoder), `Check(s, st0, clients, ops, 0)` (`lintest.Run` with the driver's Go
-  model of the store, `Apply` over the store: `Create`, `Get`, `Delete`, `GuaranteedUpdate`;
+  model of the store, `Apply` over the store: `Create`, `Get`, `Delete`, `GuaranteedUpdate`, and
+  `GetList` (with selectors and the past-revision modes; stage 7e: the store pages through the
+  result itself, but the driver never sends a continue token, so `storage.DecodeContinue` and
+  `GetList`'s continue-key branch are not covered);
   porcupine's checker), and a panic if porcupine answers `Illegal` -- does not panic and returns
   `Ok` or `Unknown`. From `isPkgInit k8setcd3`, the right to listen on `127.0.0.1:23896`, the main
   thread's token and `Main`'s named premises
@@ -41,13 +44,20 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   schedule `steps` built as a slice literal (`schedLit`), for every `steps` of fewer than `2 ^ 63`
   steps, under `k8s_etcd3_cluster_safe`'s hypotheses.
 
-**Vacuous for now (2026-11-07).** Every `_safe` theorem here, `k8s_etcd3_partition_safe` included,
-rests on `pbEnc_ok`, which proves `False` (lean `cffe36ea9d`, `notes/pbenc-ok-inconsistent.md`), and
-on grpc's refuted `ProtoMsg` axioms: until etcd-grove-c9's per-type fix lands, they hold vacuously.
-They also rest on false axioms until the axiom sweep's repairs of batch 1 land (lean `0eda5f10de`,
-`notes/axiom-review/`): `zap.Logger.{Debug,Error,Fatal,Info,Warn}`, `errors.IsCtxErr`,
-`context.ValueStartTime` (a theorem since sweep repairs 1's B2, 2026-11-08), `http.Handle_ok`, and
-the k8s `DefaultFeatureGate` and `DefaultFeatureSupportChecker` initializers.
+**No pending hypotheses (k8s 7e-1, 2026-11-10).** The client's `List` spec, `GetAt` spec and
+`clientErrPlain` were hypotheses of every result here during 7e-4; 7e-1 proved `Client.List`
+(`client/v3/kubernetes/Client__List.lean`), restated `Client.Get.spec` at any revision, and made
+`clientErrPlain` a lemma (`clientErrPlain_holds`).
+
+**Resting on refuted axioms (axiom sweep batch 1, 2026-11-07; checked 2026-11-10).** The `_safe`
+theorems rest on two of the batch's refuted families that sweep repairs 1 left unrepaired:
+`zap.Logger.{Debug,Error,Fatal,Info,Warn}` (still `⌜l ≠ null⌝`, which a zero `&zap.Logger{}` meets
+and panics on; R1-2 gave `zapLoggerOk` to `bootstrap`'s contract and to `Check`/`Write` only, the
+loggers' own specs deferred to LG-2..LG-5, `notes/decisions.md`) and `errors.IsCtxErr` (premise
+`context.isTypedErr`, `notes/axiom-review/isctxerr.md`). The batch's other ones this header listed
+were repaired (`http.Handle`, B3; the default feature gate's and `DefaultFeatureSupportChecker`'s
+initializers, B5; `context.ValueStartTime`, a theorem since B2), and the `pbEnc_ok` axiom and grpc's
+refuted `ProtoMsg` axioms are gone (per-type protobuf models, stage A).
 -/
 module
 
@@ -179,7 +189,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
-header and `Adequacy.lean`; vacuous until the `pbEnc_ok` fix lands, and resting on false axioms until the sweep's batch-1 repairs land: see the file header). -/
+header and `Adequacy.lean`; resting on the refuted `zap.Logger` and `errors.IsCtxErr` axioms: see the file header). -/
 theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]

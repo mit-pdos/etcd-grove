@@ -46,9 +46,12 @@ introduced only by the client's `streamClientInterceptor` axiom
 **The resolver** (`grpcResolverAt rb scheme addrs`, exclusive, axiomatized): the resolver builder
 `rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the addresses `addrs`, for good
 (a list since 2026-10-21, `notes/decisions.md` D27; one address until then):
-the resolver's state is grpc's once it is dialed with (`NewClient` takes it). etcd's
-`EtcdManualResolver` gives it for plain endpoints (`client/v3/InvNew.lean`,
-`etcdResolver_grpc`).
+the resolver's state is grpc's once it is dialed with (`NewClient` takes it), and its service
+config sets no retry policy (k8s 7e-1, 2026-11-10, decided by etcd-grove-81: a `retryPolicy` that
+exhausts its attempts makes grpc-go v1.84 return a `*fmt.wrapError`, `stream.go:867`, which
+`grpcInvokerOk`/`cliStreamErr` exclude through `clientErr`; no dial option of `GrpcDialOpt` sets a
+default service config). etcd's `EtcdManualResolver` gives it for plain endpoints
+(`client/v3/InvNew.lean`, `etcdResolver_grpc`: `{"loadBalancingPolicy":"round_robin"}` only).
 -/
 module
 

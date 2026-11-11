@@ -25,13 +25,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem decoder.Decode.wp_proof (wp_decodeObj : decodeObj.spec (GF := GF) (hG := hG)) :
     decoder.Decode.spec (GF := GF) (hG := hG) := by
-  intro sl dq d p name uid val rv rev
+  intro sl dq d p v rev
   wp_start as ⟨Hs, Hp⟩
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hi with ⟨-, ⟨%eD, #HeD, #HsD, -⟩, -⟩
   (try wp_auto)
-  wp_apply wp_decodeObj $$ [$Hs] as %n %u %v %ok ⟨Hs, %Hd⟩
+  wp_apply wp_decodeObj $$ [$Hs] as %w %ok ⟨Hs, %Hd⟩
   cases hdec : decodeD d with
   | none =>
     rw [hdec] at Hd
@@ -52,10 +52,9 @@ theorem decoder.Decode.wp_proof (wp_decodeObj : decodeObj.spec (GF := GF) (hG :=
         (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
       simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF
       ipureintro; exact hF
-  | some nv =>
-    rcases nv with ⟨n', u', v'⟩
+  | some w' =>
     rw [hdec] at Hd
-    obtain ⟨rfl, rfl, rfl, rfl⟩ := Hd
+    obtain ⟨rfl, rfl⟩ := Hd
     (try wp_auto)
     iapply HΦ
     simp only

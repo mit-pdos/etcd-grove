@@ -312,6 +312,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   ihave #Hus := rangeUpd_srvsAt addr E γr cid mid (rangeWireOf (opGetModel key gs)) Q $$ Hdq
+  iapply wp_fupd
   iapply (v3.kv.wp_GetM api (srvsAt addr E γr cid mid) ci cd key sl gs R (W64 0) F Q) $$ [HR]
   · iframe #
     iframe
@@ -324,10 +325,12 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
     iapply knownAt_srvsAt $$ []
     iframe #
   inext
-  iintro %resp %err ⟨HR, Hout⟩
+  iintro %resp %err ⟨HR, Hout, -⟩
+  imod rangeCallOut_persist _ _ _ $$ Hout with Hout
+  imodintro
   iapply HΦ
   iframe HR
-  iunfold rangeCallOut at Hout
+  iunfold rangeCallOutP at Hout
   icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, #Hse, -⟩)
   ihave #Hq := rangeAns_srvsAt addr E γr (W64 0) cid mid F _ Q m $$ Hq
   rotate_left

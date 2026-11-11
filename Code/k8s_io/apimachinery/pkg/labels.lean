@@ -219,6 +219,54 @@ noncomputable def SelectorFromValidatedSet [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def ParseToRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.ParseToRequirements"
 
+/-- Has returns whether the provided label exists in the map.
+
+    go: labels.go:55:15 -/
+noncomputable def Set.Has.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ls"
+  (Lam "label"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ls" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "ls"))
+  (Let "label" (App (Val (GoInstruction (GoAlloc go.string))) (Var "label"))
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.string)) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "ls"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "label")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- Get returns the value in the map for the provided label.
+
+    go: labels.go:61:15 -/
+noncomputable def Set.Get.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ls"
+  (Lam "label"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ls" (App (Val (GoInstruction (GoAlloc Set'.ty))) (Var "ls"))
+  (Let "label" (App (Val (GoInstruction (GoAlloc go.string))) (Var "label"))
+  (Let "$r0" (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "ls"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "label")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.labels where
   pkgImportedPkgs := []
 
@@ -272,10 +320,20 @@ class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
   method_set : go.MethodSetIs Set'.ty [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) [(go!"AsSelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsSelectorPreValidated", (some (go.signature.Signature [] false [Selector.ty]))), (go!"AsValidatedSelector", (some (go.signature.Signature [] false [Selector.ty, go.error]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Lookup", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  Get_unfold : MethodUnfold Set'.ty go!"Get" Set.Get.impl
+  Has_unfold : MethodUnfold Set'.ty go!"Has" Set.Has.impl
+  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set'.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
+  ptr_Has_unfold : MethodUnfold (go.GoType.PointerType Set'.ty) go!"Has" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Set'.ty go!"Has"))) (App (Val (GoInstruction (GoLoad Set'.ty))) (Var "$r"))))
 
 attribute [instance] Set.TypeAssumptions.underlying
   Set.TypeAssumptions.method_set
   Set.TypeAssumptions.ptr_method_set
+  Set.TypeAssumptions.Get_unfold
+  Set.TypeAssumptions.Has_unfold
+  Set.TypeAssumptions.ptr_Get_unfold
+  Set.TypeAssumptions.ptr_Has_unfold
 
 abbrev Requirements [GooseExts] : Type := GoSlice
 

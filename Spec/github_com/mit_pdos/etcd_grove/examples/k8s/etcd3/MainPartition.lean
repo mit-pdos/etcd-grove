@@ -17,6 +17,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Cluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
 
 @[expose] public section
 
