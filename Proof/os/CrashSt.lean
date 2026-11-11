@@ -62,6 +62,12 @@ structure CSt where
   fb : Nat
   busy : CBusy
 
+/-- The change number `n` of a write of `data` at `off` from `m`, `bs` is later than every
+candidate of the bytes it announces: those it takes below the size, those `m` knows past it. -/
+def PwFresh (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) (n : Nat) : Prop :=
+  (∀ x ∈ cfRange m bs off data.length, ∀ q ∈ x.2, q.2 < n) ∧
+    ∀ b c, m.size ≤ b → m.tc !! b = some c → ∀ q ∈ c, q.2 < n
+
 /-- A file's state: absent, or its inode and `CSt`. -/
 abbrev CState := Option (Ino × CSt)
 

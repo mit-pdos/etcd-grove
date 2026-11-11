@@ -119,6 +119,7 @@ abbrev os.File.WriteAt.specCrashS : Prop :=
   ↑osN ⊆ (⊤ : CoPset) \ ↑N → (off.toNat + data.length ≤ fa ∨ fb ≤ off.toNat) →
   (∀ nn m' bs', WReach m bs off.toNat data nn m' bs' →
     Ok (some (d.ino, ⟨m', bs', fa, fb, .idle⟩)) ∧ (nn < data.length → ∀ t n,
+      PwFresh m' bs' (off.toNat + nn) (data.drop nn) n →
       Ok (some (d.ino, ⟨m', bs', fa, fb, .write t (off.toNat + nn) (data.drop nn) n⟩)))) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
       sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗

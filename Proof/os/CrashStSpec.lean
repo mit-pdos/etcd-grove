@@ -373,9 +373,9 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
       by rw [hcl, hend, hNar.maps]) $$ Hc2
   have hdne : data.drop nnv.toNat ≠ [] := by
     intro h; have := congrArg List.length h; rw [hdl] at this; simp at this; omega
-  have hW1 : ∀ t n, Ok (some (d.ino,
+  have hW1 : ∀ t n, PwFresh m' bs' (off + nnv).toNat (data.drop nnv.toNat) n → Ok (some (d.ino,
       ⟨m', bs', fa, fb, .write t (off + nnv).toNat (data.drop nnv.toNat) n⟩)) := by
-    intro t n; rw [hoffv]; exact (hW _ _ _ hR).2 hnn t n
+    intro t n hfr; rw [hoffv] at hfr ⊢; exact (hW _ _ _ hR).2 hnn t n hfr
   wp_apply wp_osPWriteStart_cs fd (off + nnv) (data.drop nnv.toNat) dq d N P R γ Good Ok m' bs' fa fb
     hN hwr hoffv' hgap' hdne hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t %nst Hosfd Hown
   have hW2 : ∀ k (zs : List Cands), k ≤ (data.drop nnv.toNat).length → (off + nnv).toNat ≤ m'.size →

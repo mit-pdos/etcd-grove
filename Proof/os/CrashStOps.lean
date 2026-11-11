@@ -298,7 +298,8 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
     (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (bs : List ByteG)
     (fa fb : Nat) (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hwr : d.writable = true) (hoff : 0 ≤ off.toInt)
     (hgap : off.toNat ≤ m.size) (hd : data ≠ []) (hfz : off.toNat + data.length ≤ fa ∨ fb ≤ off.toNat)
-    (hok : ∀ t n, Ok (some (d.ino, ⟨m, bs, fa, fb, .write t off.toNat data n⟩))) (Φ : val → IProp GF) :
+    (hok : ∀ t n, PwFresh m bs off.toNat data n →
+      Ok (some (d.ino, ⟨m, bs, fa, fb, .write t off.toNat data n⟩))) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗ osFd (L := L) fd dq d -∗
       csOwnF (L := L) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)) -∗
       mcellsAny (L := L) m.maps (cfLo m off.toNat) (off.toNat + data.length) -∗
@@ -330,7 +331,7 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
   iapply wp_osPWriteStart fd off data dq d m (cfRange m bs off.toNat data.length) hN hwr hoff
     hgap hd (by unfold cfRange cfLo cfHi; simp only [List.length_take, List.length_drop]; omega)
     $$ Hos Hfd Hm Hrg Hc
-  iintro %t %n %- Hfd Ht
+  iintro %t %n %hfr Hfd Ht
   imod ghostVar_update_halves (some (d.ino, ⟨m, bs, fa, fb, .write t off.toNat data n⟩) : CState) γ _ _
     $$ Hv Hv' with ⟨Hv, Hv'⟩
   imod Hclose $$ [Hv' Ht Hb2] with -
@@ -340,7 +341,7 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
       · iapply (show invBytes (L := L) d.ino ⟨m, bs, fa, fb, .write 0 off.toNat data 0⟩ ⊢
           invBytes (L := L) d.ino ⟨m, bs, fa, fb, .write t off.toNat data n⟩ from .rfl)
         iexact Hb2
-    ipureintro; exact ⟨hok t n, rfl⟩
+    ipureintro; exact ⟨hok t n hfr, rfl⟩
   imodintro
   iapply HΦ $$ %t %n Hfd
   iapply (csOwnF_busy _ _ _ (by simp)).2
