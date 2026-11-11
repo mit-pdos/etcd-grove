@@ -362,5 +362,402 @@ theorem accEnd_simIdle (C : List w64) (id : w64) (s : NState) (m : MessageM) (a0
     word
 end fx
 
+
+variable [GooseExts] in
+/-- An uncompacted well-formed log's length fits a word (its last entry's index). -/
+theorem plogWf_len_lt (F : List EntryM) (hw : PlogWf base0 F) : F.length < 2 ^ 64 := by
+  rcases Nat.eq_zero_or_pos F.length with h0 | hpos
+  · omega
+  · obtain ⟨e, he⟩ : ∃ e, F[F.length - 1]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    have hi := hw _ e he
+    rw [base0_index] at hi
+    have := uint_Z_lt e.Index'
+    omega
+
+section paths
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **`stepBundle_traced.on` for a capability whose voters fit the bootstrap log** (`|C| ≤ |γ.reBoot|`:
+the bootstrap log has one entry per voter, `BootLogOk`, known when the capability is made but carried
+by none of its clauses; `notes/decisions.md`, "Q8 stage 1 (slice 24c)"): the statement of
+`stepBundle_traced.on` with the capability's phase `SimIdle C s` strengthened by it. -/
+abbrev stepBundle_traced.onRB (Path : NState → MessageM → Prop) : Prop :=
+  ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
+    (Λ : Option TraceEv → Prop) (bt : Bool),
+  Path s m →
+  s.gh.tr = some γd →
+  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
+  (m.Type' = MsgHup → s.role ≠ .leader) →
+  (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
+  uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
+  (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
+  receiptBound GF + γ.reBoot.length ≤ traceNumBound →
+  c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
+  s.role ≠ .preCandidate → TrRecvShape m ents →
+  (m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []) →
+  (trCapB s.gh.tr γ r id c bt (fun C cs P => SimIdle C s cs P ∧ C.length ≤ γ.reBoot.length) Λ ∗
+      (recvTokOf γd m ents ctx ∗
+        □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
+          isMessageC γ (absMsg ty m ents ctx))) ∗
+      TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
+    |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      stepClose γ md c id m ents ctx s R
+        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+
+/-- **`stepBundle_traced.onRB` gives `stepBundle_traced.on`** once the capability gives the voters' fit
+(`hcap`, a law of the capability that carries it). -/
+theorem stepBundle_traced.on_of_onRB {Path : NState → MessageM → Prop}
+    (hcap : ∀ (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool) (s : NState)
+      (Λ : Option TraceEv → Prop),
+      trCapB (GF := GF) tr γ r id c b (fun C => SimIdle C s) Λ ⊢
+        trCapB tr γ r id c b (fun C cs P => SimIdle C s cs P ∧ C.length ≤ γ.reBoot.length) Λ)
+    (h : stepBundle_traced.onRB (GF := GF) (hG := hG) Path) :
+    stepBundle_traced.on (GF := GF) (hG := hG) Path := by
+  intro γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+    hnpc hsh hboot
+  iintro ⟨Hcap, Htok, Hns⟩
+  iapply h γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+    hnpc hsh hboot
+  iframe Htok Hns
+  iapply hcap $$ Hcap
+
+/-- **An accepted append request of the node's term at a follower** (at or above the commit index, the
+log matching its previous entry). -/
+def FolAppAcc (s : NState) (m : MessageM) : Prop :=
+  m.Type' = MsgApp ∧ m.Term' = s.term ∧ s.role = .follower ∧ uint.Z s.logst.committed ≤ uint.Z m.Index' ∧
+  PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index')
+
+/-- `maybeAppend` succeeds at a matching previous entry. -/
+theorem plogMaybeAppend_some_of {b : entryID} {es : List EntryM} {prev : entryID} (ents : List EntryM)
+    (h : PlogMatches b es prev) : ∃ x, plogMaybeAppend b es prev ents = some x := by
+  unfold plogMaybeAppend; simp only [h, ↓reduceIte]; exact ⟨_, rfl⟩
+
+/-- **`raft.Step`'s traced bundle on an accepted append request of the node's term at a follower**: the
+receive line (the specification's truncations, append and `AppendEntriesAlreadyDone`, `lineEffect_appRecv`,
+with raft's facts of the new log), then the response's send line, which the specification skips. The
+resources are `voteR`'s. Proved for the capability whose voters fit the bootstrap log
+(`stepBundle_traced.onRB`). -/
+theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := hG) FolAppAcc := by
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+    hnpc hsh hboot
+  obtain ⟨hTy, hterm, hrole, hge, hmt⟩ := hp
+  have hmty : mtypeOf m.Type' = some .app := by rw [hTy]; rfl
+  have htrd : MsgType.traced .app = true := rfl
+  obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .app m ents hmty htrd hsh
+  have hto' : m.To' = id := hto .app hmty htrd
+  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inl hTy)) (by rw [hto', h])
+  have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
+  have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
+  have hns : ¬ StaleMsg s m := fun h => absurd h.2 (by rw [hterm]; omega)
+  have hsome : s.gh.tr ≠ none := by rw [htr]; simp
+  obtain ⟨hnH, hnV, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnVR, hnHR, hnAR, hnPV, hnHup, hnS⟩ := app_ne hTy
+  have hmt2 : mtypeOf m.Type' = some .app ∧ MsgType.traced .app = true := ⟨hmty, htrd⟩
+  iintro ⟨Hcap, ⟨Htok, #Hmsg⟩, #Hnosnap⟩
+  iunfold recvTokOf at Htok
+  icases Htok $$ %MsgType.app %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
+  ihave #Hmc := Hmsg $$ %MsgType.app %hmt2
+  ihave #Hm := isMessageC_isMessage γ _ $$ Hmc
+  icases isMessage_app_inv γ (absMsg .app m ents ctx) rfl $$ Hm with
+    ⟨%Hpay, -, ⟨%bL, %l, %fpL, #Hlp, %Hpl, #Hlf, -, -, -⟩, -⟩
+  icases isMessage_app_index0 γ (absMsg .app m ents ctx) rfl $$ Hm with %Hi0
+  rw [msgAbs_absMsg_ctx] at hma
+  rw [htr]
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
+  subst Htn
+  obtain ⟨⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hCB⟩, hidC⟩ := hI0
+  ihave Hcap := trCapB_mono (some γd) γ r id c bfl _ (IdlePin s tn.voters cs0 P0) Λ
+    (fun C cs P h => ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1⟩) $$ Hcap
+  -- the request's abstraction
+  have hfa : ma.dest = idAbs id ∧ ma.source = idAbs m.From' ∧ ma.type = .appendEntriesRequest ∧
+      ma.subtype = "app" ∧ ma.term = uint.Z m.Term' ∧ ma.prevLogIndex = ((uint.nat m.Index' : Nat) : Int) ∧
+      ma.entries = logAbs tn.voters tn.voters.length (uint.nat m.Index' + 1) ents ∧
+      ma.commitIndex = uint.Z m.Commit' := by
+    simp only [TraceSim.msgAbs, absMsg, absMsgFrom, Msg.mkV] at hma
+    injection hma with hma
+    rw [← hma]
+    simp [hto']
+  obtain ⟨hmd, hms, hmty', hmsub, hmterm, hmprev, hments, hmcm⟩ := hfa
+  -- the new log
+  have hbase : (toPState s).base = base0 := hs0.1
+  have hmatch : PlogMatches base0 (toPState s).log (entryID.mk m.LogTerm' m.Index') := by
+    rw [← hbase]; exact hmt
+  obtain ⟨⟨lastnewi, es'⟩, happ⟩ := plogMaybeAppend_some_of ents hmatch
+  have hWi : W64 (uint.nat m.Index') = m.Index' := by word
+  have happ' : plogMaybeAppend (entryID.mk (W64 0) (W64 0)) (toPState s).log
+      (entryID.mk m.LogTerm' (W64 (uint.nat m.Index'))) ents = some (lastnewi, es') := by
+    rw [hWi]; exact happ
+  obtain ⟨hwfE, hnwE⟩ := Hpay
+  have hpZ : ((uint.nat m.Index' : Nat) : Int) = uint.Z m.Index' := by word
+  have hwfZ : ∀ (k : Nat) (x : EntryM), ents[k]? = some x →
+      uint.Z x.Index' = (uint.nat m.Index' : Int) + k + 1 := by
+    intro k x hx
+    have h2 : uint.Z x.Index' = uint.Z m.Index' + ((k + 1 : Nat) : Int) := hwfE k x hx
+    rw [h2, ← hpZ]; push_cast; omega
+  have hnw : (uint.nat m.Index' : Int) + ents.length + 1 < 2 ^ 64 := by
+    have h2 : uint.Z m.Index' + (ents.length : Int) + 1 < 2 ^ 64 := hnwE
+    rw [hpZ]; exact h2
+  have hlt0 : uint.nat m.Index' = 0 → m.LogTerm' = W64 0 := fun h => Hi0 (by
+    show uint.Z m.Index' = 0; have := h; word)
+  have hwB : PlogWf base0 (toPState s).log := by have h := hs0.2.1; rw [hs0.1] at h; exact h
+  have hbL : BootTerms tn.voters.length 1 (toPState s).log := fun k e hk he => hs0.2.2 k e (by omega) he
+  have hcp : uint.Z s.logst.committed ≤ (uint.nat m.Index' : Int) := by rw [hpZ]; exact hge
+  have hbN0 : ∀ (hreb : (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed),
+      BootTerms tn.voters.length (uint.nat m.Index' + 1) ents := by
+    intro hreb k e hk _; omega
+  have hT2 : uint.nat s.term < traceNumBound := by word
+  imodintro
+  iexists voteR bfl γ md c r id s γd tn cs0
+    (toC (confAbs tn.voters) (doneSrv a0 (logAbs tn.voters tn.voters.length 1 es') (idAbs m.From')
+      (min ma.commitIndex ((uint.nat m.Index' : Int) + ents.length)))) P0
+    (P0 ++ [doneResp a0 ma (uint.nat m.Index') ents.length]) Λ k ma
+  isplitl [Hcap Htok]
+  · dsimp only [voteR]; iframe Hcap Htok
+  isplitr
+  · iunfold stepGates
+    dsimp only [ghostIn, voteR]
+    isplitr
+    · -- the receive line
+      iintro ⟨Hgh, Hc, Htok⟩
+      iapply hookGateOpt_fupd_recv
+      icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
+      imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hterm hbase hge happ hfit
+        $$ [$Hm $Hgh] with ⟨Hgh, ⟨#HL, #HN, #Hci, #Hcm⟩, %Hf⟩
+      obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
+      imodintro
+      have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
+      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hreT htrd).1
+      have hbe := hbN0 hreb
+      have hps := phaseStepR_appAcc id c s m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hterm hrole hge
+        lastnewi es' happ' hbe hwfZ hlt0 hnw hnb hma
+      have hnb' := recvEvTy_notBoot hev
+      have hOk : ∀ e, SendEvOf evt id s c (absMsg .app m ents) e → TraceEv.Ok (elements c.incoming).length e :=
+        fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .app evt bfl k ma _
+        (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
+      iframe Hgh Hc
+      isplitr
+      · have hli' : uint.Z lastnewi = (uint.nat m.Index' : Int) + ents.length := by rw [hpZ]; exact hli
+        have hlast : uint.Z lastnewi ≤ es'.length := by
+          obtain ⟨-, -, hq, -, -⟩ := newLog_pure tn.voters (toPState s).log ents es' (uint.nat m.Index') m.LogTerm'
+            lastnewi 0 hbL hbe hwfZ (by word) hnw (Nat.zero_le _) happ'
+          omega
+        have hccZ : uint.Z (accCommit (toPState s).commit m.Commit' lastnewi) =
+            max (uint.Z s.logst.committed) (min ma.commitIndex ((uint.nat m.Index' : Int) + ents.length)) := by
+          rw [hmcm, ← hli']
+          unfold accCommit plogCommitTo
+          show _ = max (uint.Z (toPState s).commit) _
+          repeat' split
+          all_goals omega
+        have hW1 : W64 (uint.Z (accCommit (toPState s).commit m.Commit' lastnewi)) =
+            accCommit (toPState s).commit m.Commit' lastnewi := by word
+        have hW2 : W64 (uint.Z s.term) = (toPState s).term := by
+          show W64 (uint.Z s.term) = s.term; word
+        have hBN' : (es'.length : Int) < 2 ^ 63 := by
+          have : traceNumBound = 2 ^ 61 := rfl
+          omega
+        rw [← hms]
+        iapply fxPresR_appAcc γ id ma _ s tn.voters cs0 _ P0 _ a0 (toPState s).log ents es' (uint.nat m.Index')
+          m.LogTerm' lastnewi (uint.Z s.logst.committed) (uint.Z s.term) hidC hmd hmty' hmsub hbL hwr
+          (by have h1 := bl; have h2 := plogWf_len_lt _ hwB
+              unfold plastIndex plogLastIndexZ at h1; rw [hbase, base0_index] at h1
+              simp only [Int.zero_add] at h1
+              have : uint.Z (W64 ((toPState s).log.length : Int)) = (toPState s).log.length := by word
+              omega)
+          hcp (uint_Z_nonneg _) hmprev hments hbe hwfZ (by word) hnw happ' hwr' (by omega)
+          (absMsg .app m ents ctx).src (absMsg .app m ents ctx).term bL l fpL ents m.Index' m.LogTerm' hmterm
+          Hpl.1 Hpl.2
+          (by have h2 : uint.Z m.Index' + (ents.length : Int) + 1 < 2 ^ 64 := hnwE; omega) (by rw [hmprev, hpZ]) hments
+          (uint.Z (accCommit (toPState s).commit m.Commit' lastnewi)) hccZ (by
+            rw [hccZ]; have := hcl; omega)
+        · intro a ha
+          have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
+          have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0
+          refine ⟨by rw [hms]; exact toC_doneSrv _ _ _ _ _ _ hcx, doneResp_toC _ _ _ _ _ _ hcx,
+            by rw [hmterm, hRa.1, hterm]; rfl, ?_, hRa.2.2.2.2.2.2.1, by rw [hRa.1]; rfl, hRa.2.2.2.2.2.1, hcx.symm⟩
+          rw [hRa.2.1]; simp [toPState, hrole, proleRole, roleAbs]
+        · rw [hW1, hW2, show (absMsg .app m ents ctx).commit = m.Commit' from rfl]
+          iframe HL HN Hlp Hlf Hci Hcm
+      · iexists tn; iframe Hdir Htok
+    isplitr
+    · -- the preamble: no step-down at the node's term
+      unfold preGate
+      iintro %_ HG0
+      simp only [hnbf, ↓reduceIte]
+      imodintro
+      iexact HG0
+    isplitr
+    · iintro %h; exact (hns h).elim
+    isplitr
+    · iintro %h; exfalso; rcases h with h | h
+      · exact hnV h
+      · exact hnPV h
+    isplitr
+    · iintro %h; exact (hnHup h).elim
+    isplitr
+    · unfold stepFnGates
+      iintro %pvs
+      rw [hpre pvs]
+      isplit
+      · iintro %_
+        iunfold followerGates
+        isplitr
+        · -- the response's send line, skipped by the specification
+          iintro %_ %s1 %mm %hres ⟨Hgh, Hc⟩
+          have hx : ∃ ls' : LogState, s1 = { ({ s with lead := m.From' } : NState) with logst := ls' } ∧
+              mm = appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0) ∧
+              ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
+              ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
+            unfold HandleAppResult at hres
+            try simp only at hres
+            rcases hres with ⟨h, -⟩ | ⟨-, ln2, es2, ls', h2, hp', hes2, -, hc2, -, -, h⟩ | ⟨-, hnm, -⟩
+            · exact absurd h (by omega)
+            · rw [show s.logst.prev = base0 from hbase] at h2
+              have h3 := h2.symm.trans happ
+              simp only [Option.some.injEq, Prod.mk.injEq] at h3
+              obtain ⟨rfl, rfl⟩ := h3
+              obtain ⟨h1, h4⟩ := sendMsgs_one_inj h
+              exact ⟨ls', h1, h4, hp', hes2, by rw [hc2]; rfl⟩
+            · exact absurd hmt hnm
+          obtain ⟨ls', rfl, rfl, hprev', hes', hcm'⟩ := hx
+          rw [htr]
+          iapply hookGateOpt_fupd_recv
+          icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
+          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hterm hbase hge happ hfit
+            $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
+          obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
+          imodintro
+          have hli' : uint.Z lastnewi = (uint.nat m.Index' : Int) + ents.length := by rw [hpZ]; exact hli
+          have hb61 : traceNumBound = 2 ^ 61 := rfl
+          have hlast : uint.Z lastnewi ≤ es'.length := by
+            obtain ⟨-, -, hq, -, -⟩ := newLog_pure tn.voters (toPState s).log ents es' (uint.nat m.Index') m.LogTerm'
+              lastnewi 0 hbL (hbN0 hreb) hwfZ (by word) hnw (Nat.zero_le _) happ'
+            omega
+          have hacc : uint.Z (accCommit s.logst.committed m.Commit' lastnewi) ≤ es'.length := by
+            unfold accCommit plogCommitTo
+            have : (uint.nat m.Index' : Int) = uint.Z m.Index' := hpZ
+            repeat' split
+            all_goals omega
+          have hn := appResp_nums id { s with lead := m.From' } m.From' lastnewi hT (by
+            show uint.nat lastnewi < traceNumBound; have := uint_Z_nonneg lastnewi; rw [hb61] at hBN ⊢; word)
+          have ht2 : uint.nat s.term < traceNumBound := by word
+          have hc1 : uint.nat ({ ({ s with lead := m.From' } : NState) with logst := ls' } : NState).logst.committed
+              < traceNumBound := by
+            show uint.nat ls'.committed < traceNumBound
+            rw [hcm']; have := uint_Z_nonneg (accCommit s.logst.committed m.Commit' lastnewi)
+            rw [hb61] at hBN ⊢; word
+          have hl1 : uint.nat (plastIndex (toPState ({ ({ s with lead := m.From' } : NState) with logst := ls' } :
+              NState))) < traceNumBound := by
+            unfold plastIndex plogLastIndexZ
+            show uint.nat (W64 (uint.Z ls'.prev.index' + ((ls'.sents ++ ls'.uents).length : Int))) < traceNumBound
+            rw [hprev', hes', show s.logst.prev = base0 from hbase, base0_index]
+            rw [hb61] at hBN ⊢
+            have h0 : (0 : Int) + (es'.length : Int) < 2 ^ 61 := by omega
+            word
+          have hOkR : ∀ e, (∃ mm ∈ [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)],
+              SendEvOf (W64 11) id { ({ s with lead := m.From' } : NState) with logst := ls' } c mm e) →
+              TraceEv.Ok (elements c.incoming).length e := by
+            intro e ⟨mm, hmm, he⟩
+            simp only [List.mem_singleton] at hmm; subst hmm
+            exact sendEvOf_ok _ id _ c _ e _ he (by decide) ht2 hc1 hl1 hn (Nat.le_refl _)
+          iapply skipGate_appresp γd γ r id c _ _ tn.voters _ _ (ownStepGhost γ md c id s) rfl
+            (by simp only [appResp]; exact hne) hOkR
+          iframe Hgh Hc
+        isplitr; · iintro %hg; exact (hnH hg).elim
+        isplitr
+        · iintro %hg
+          rcases hg with h | h | h
+          · exact (hnP h).elim
+          · exact (hnRI h).elim
+          · exact (hnTL h).elim
+        isplitr; · iintro %hg; exact (hnTN hg).elim
+        imodintro; iintro %hg; exact (hnTN hg).elim
+      isplit
+      · iintro %h; exfalso; rw [hrole] at h; rcases h with h | h <;> cases h
+      · iintro %h; exfalso; rw [hrole] at h; cases h
+    · ipureintro
+      exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
+        IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
+  · -- the closing wand: raft's accepted append, the specification's
+    iapply stepClose_anyB
+    -- (slice 23a) a close at `s`
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
+    iunfold stepCloseAt
+    iintro %s' %B %recv %_ %hend Hout
+    obtain ⟨ls', hse, hprev', hes', hcm'⟩ : ∃ ls' : LogState,
+        s' = sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
+          [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧
+        ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
+        ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
+      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      rw [hpre pvs] at h
+      obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
+      unfold FollowerStepResultC at hf
+      obtain ⟨-, hf⟩ := hf
+      rw [hTy] at hf
+      simp [MsgVoteResp, MsgProp, MsgApp] at hf
+      obtain ⟨-, hf⟩ := hf
+      unfold HandleAppResult at hf
+      try simp only at hf
+      rcases hf with ⟨h, -⟩ | ⟨-, ln2, es2, ls', h2, hp', hes2, -, hc2, -, -, h⟩ | ⟨-, hnm, -⟩
+      · exact absurd h (by omega)
+      · rw [show s.logst.prev = base0 from hbase] at h2
+        have h3 := h2.symm.trans happ
+        simp only [Option.some.injEq, Prod.mk.injEq] at h3
+        obtain ⟨rfl, rfl⟩ := h3
+        exact ⟨ls', h, hp', hes2, by rw [hc2]; rfl⟩
+      · exact absurd hmt hnm
+    subst hse
+    unfold stepOut
+    dsimp only [voteR]
+    icases Hout with (⟨Hgh, Hc⟩ | ⟨Hgh, Hc⟩ | ⟨Hgh, Hc, -⟩ | %h | ⟨%b, %N, %h⟩)
+    rotate_right 2
+    · exact h.elim
+    · exact h.elim
+    all_goals
+      icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hterm hbase hge happ hfit
+        $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
+      obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
+      have hre : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
+      have hb61 : traceNumBound = 2 ^ 61 := rfl
+      obtain ⟨hbN, -, hq, -, -⟩ := newLog_pure tn.voters (toPState s).log ents es' (uint.nat m.Index') m.LogTerm'
+        lastnewi 0 hbL (hbN0 hreb) hwfZ (by word) hnw (Nat.zero_le _) happ'
+      have hli' : uint.Z lastnewi = (uint.nat m.Index' : Int) + ents.length := by rw [hpZ]; exact hli
+      have hlast : uint.Z lastnewi ≤ es'.length := by omega
+      have hmono : ∀ C cs P, VPin tn.voters
+          (toC (confAbs tn.voters) (doneSrv a0 (logAbs tn.voters tn.voters.length 1 es') (idAbs m.From')
+            (min ma.commitIndex ((uint.nat m.Index' : Int) + ents.length))))
+          (P0 ++ [doneResp a0 ma (uint.nat m.Index') ents.length]) C cs P →
+          SimIdle C (sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
+            [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)]) cs P := by
+        rintro C cs P ⟨rfl, rfl, rfl⟩
+        have hP0' : P0 = pendAbs tn.voters s.outbox := hP0
+        rw [hP0']
+        exact accEnd_simIdle tn.voters id s m a0 ma ls' es' lastnewi (uint.nat m.Index') ents.length hR0 hs0 bt
+          hrole hprev' hes' hcm' hbN hwN hBN hli' hlast hcp hmcm hmsub hmd hms
+      iframe Hgh
+      isplitl [Hc]
+      · iapply trCapB_monoΛ (some γd) γ r id c true _ _ _ (fun o h => .inr h)
+        iapply trCapB_mono (some γd) γ r id c true _ _ _ hmono $$ Hc
+      · ipureintro
+        intro _ x hx
+        simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx
+        rcases hx with hx | rfl
+        · exact .inl hx
+        · exact .inr (Msg.trOk_of_nums (by intro h; cases h) (by intro h; cases h)
+            (fun _ => appResp_nums id _ m.From' lastnewi hT (by
+              show uint.nat lastnewi < traceNumBound; have := uint_Z_nonneg lastnewi
+              rw [hb61] at hBN ⊢; word)))
+
+end paths
+
 end EtcdGrove
 end Perennial
