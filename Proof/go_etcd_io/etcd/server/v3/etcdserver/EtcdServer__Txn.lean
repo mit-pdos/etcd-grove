@@ -710,7 +710,7 @@ theorem EtcdServer.Txn.wp_proof
     (hLb : apply.CheckTxnAuth.specLb (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr c ctx cd r t Q Qr ot te F n
-  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hspc, #Hct, Hto, #Hrt, %Hro2, %Hdpt, #HF, Hnp⟩
+  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hlib, #Hspc, #Hct, Hto, #Hrt, %Hro2, %Hdpt, #HF, Hnp⟩
   have Hgets : txn.txnReadonly t = true → txn.txnGetsOk t := fun h => (Hro2 h).1
   wp_auto
   wp_apply wp_with_defer as %defer defer

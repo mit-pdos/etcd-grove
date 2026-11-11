@@ -31,7 +31,7 @@ theorem EtcdServer.MemberList.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd r lin dq c g Q
-  wp_start as ⟨#Hq, #Hr, #Hctx, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
+  wp_start as ⟨#Hq, #Hr, #Hctx, #Hlib, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
   ihave #Hau : srvAuthAt s E $$ []
   · iapply (srvAuthAt_of_views s E ρ γr); iframe #
   ihave #Hr' := Hr

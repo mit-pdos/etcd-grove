@@ -51,7 +51,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   obtain ⟨hlm, hoff⟩ := hv
   have hRR := hRR0 s E ρ
   rw [hoff] at hRR
-  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hspc, #Hst, #Hreq⟩
+  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, #Hreq⟩
   iunfold leaseRevokeReqRO at Hreq
   icases Hreq with ⟨%hr, #HID⟩
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []

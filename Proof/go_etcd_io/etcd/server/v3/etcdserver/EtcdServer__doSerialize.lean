@@ -51,7 +51,7 @@ theorem EtcdServer.doSerialize.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd chk get G Q C t e
-  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
+  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hlib, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,

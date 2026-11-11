@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Code.net.http
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -52,7 +53,7 @@ abbrev EtcdServer.LeaseRenew.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
       srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       srvPeerRt s }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRenew"))

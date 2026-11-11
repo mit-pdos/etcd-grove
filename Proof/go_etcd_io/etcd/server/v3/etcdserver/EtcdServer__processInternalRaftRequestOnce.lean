@@ -530,7 +530,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   -- the proof is over the mode as a variable `on` (it cases on it at the handoff's receipt)
   have hPE := hPE s E ρ
   generalize E.authOn = on at hPE ⊢
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hspc, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Hspc, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv

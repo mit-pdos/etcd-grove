@@ -224,7 +224,7 @@ theorem EtcdServer.Compact.wp_proof
   have hPIRRO := EtcdServer.processInternalRaftRequestOnce.spec_off hPIRRO0
   intro s E ρ ctx cd p r Hr1
   haveI := Hp.1
-  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Hmr, #Hcred, #Hctx, #Hspc, #Htrc, #Hlb, Hreq⟩
+  wp_start as ⟨#Hsrv, %Hcmp, #Hsrd, Hlt, Hlr, Hrd, Hmr, #Hcred, #Hctx, #Hlib, #Hspc, #Htrc, #Hlb, Hreq⟩
   ihave ⟨%logS, #Hc0, %HlogS⟩ := isServerRead_log0 s E ρ.rd $$ Hsrd
   -- the store invariant (the readers' view's KV invariants), for `s.kv.Rev()`
   ihave #Hkvi := isServerRead_kvInvs s E ρ.rd $$ Hsrd

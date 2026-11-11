@@ -7,6 +7,7 @@ module
 public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -45,7 +46,7 @@ abbrev EtcdServer.Put.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull)
     (Q : KVState → IProp GF) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗
       txn.putRequestIs r op ∗ putPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #r))

@@ -53,7 +53,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
   obtain ⟨hlg, hoff⟩ := hg
   have hRR := hRR0 s E ρ
   rw [hoff] at hRR
-  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hspc, #Hst, Hreq⟩
+  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, Hreq⟩
   iunfold leaseGrantReqOwn at Hreq
   icases Hreq with ⟨%hr, #HTTL, HID⟩
   ihave #Hsrv' := Hsrv

@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -35,7 +36,7 @@ abbrev v3rpc.authMaintenanceServer.requireAuthInfo.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!!
       go!"requireAuthInfo")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}

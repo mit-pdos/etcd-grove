@@ -36,7 +36,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γl ctx cd sl ls dq n m
-  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, HRD, Htok, %Hbound, Hsl, #Hls⟩
+  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, #Hlib, HRD, Htok, %Hbound, Hsl, #Hls⟩
   ihave ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, #HAdm, -, #HRng⟩

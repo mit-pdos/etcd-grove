@@ -47,7 +47,7 @@ theorem EtcdServer.Put.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG)) :
     EtcdServer.Put.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op Q F
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hspc, #Hput, Hperm, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Hspc, #Hput, Hperm, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
