@@ -194,7 +194,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold roleGrantPermissionReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, %pp, #HP, Hw⟩
   (try wp_auto)
@@ -607,7 +607,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Info
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *

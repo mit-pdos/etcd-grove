@@ -205,8 +205,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "go_humanize.Bytes" => (wp_apply hBytes as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
-    | "Warn" => (wp_apply hWarn hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Info" => (wp_apply hInfo hv.lg' _ _ $$ []; (iframe #))
+    | "Warn" => (wp_apply hWarn hv.lg' _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -273,7 +273,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
   intro Rh a γd Rs h wi r R γk rd Hhost Hpath
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd HRs
   iunfold snapHandlerOk at Hh
-  icases Hh with ⟨%hv, %Rm, #Hhv, %Hhvok, #Hraft, #Hss, #Hdir, #Haddr⟩
+  icases Hh with ⟨%hv, %Rm, #Hhv, #Hhvlg, %Hhvok, #Hraft, #Hss, #Hdir, #Haddr⟩
   rw [method_unfold (t := go.GoType.PointerType rafthttp.snapshotHandler.ty) (m := go!"ServeHTTP")]
   wp_auto
   ihave #HR0 := HR
@@ -299,7 +299,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
     have Hver : verHdrOk (http.hdrSet [] go!"X-Etcd-Cluster-ID" cs) :=
       verHdrOk_set _ _ _ (by decide) verHdrOk_nil
     -- the header check
-    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
+    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr $$ [$Hhs $Hhvlg] as %rv Hrv
     icases Hrv with (%Hrv | ⟨%e, %Hre, #He⟩)
     · rcases Hrv with rfl | ⟨p, rfl⟩
       · -- `nil`: `addRemoteFromRequest(h.tr, r)`
@@ -310,7 +310,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         iunfold snapReq at Hsr0
         icases Hsr0 with %Hfrom
         wp_apply Haddr $$ [$HR0]
-        · ipureintro; rw [← Hhvok.2, ← Hhost]; exact Hfrom
+        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hfrom
         -- the body: a stream of the protocol's contract
         iunfold http.reqBody at Hbody
         icases Hbody with (⟨%Hns, -⟩ | ⟨-, %Pre, %Φ, #Hsreq, %Hpc, Hbs⟩)
@@ -465,7 +465,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
                 · rw [Hc2.1]
                   exact MsgSt.eq_of_wire (by simp [wireOf, Hweq.1, Hweq.2.1, Hweq.2.2.1, Hweq.2.2.2])
                     Hwire.1
-                · rw [Hto0, Hhost]; exact Hhvok.2
+                · rw [Hto0, Hhost]; exact Hhvok
               iunfold netSnapRecv
               iintro -
               iexists sn

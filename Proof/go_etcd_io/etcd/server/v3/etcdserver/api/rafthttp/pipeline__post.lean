@@ -53,7 +53,8 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_start as ⟨#Hs, Hd, #HP, HO⟩
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, #Hpk, #Hsc, #Hec,
-    #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem, %Hturls⟩
+    #Hto, #Hlg, #Hlgz, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem, %Hturls⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -196,8 +197,8 @@ theorem rafthttp.pipeline.post.wp_proof
     iapply HΦ; iexact HberrS
   | nil =>
   wp_auto
-  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to (fun _ => True) Hlgnn
-    $$ [$Hbsl $Hreq] as %cerr #Hcerr
+  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to (fun _ => True)
+    $$ [$Hbsl $Hreq $Hlgz] as %cerr #Hcerr
   · unfold http.respAt
     iframe #
     ipureintro; exact Hrdnn

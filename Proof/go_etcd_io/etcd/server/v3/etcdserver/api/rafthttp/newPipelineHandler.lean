@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 
 theorem rafthttp.newPipelineHandler.wp_proof :
     rafthttp.newPipelineHandler.spec (GF := GF) (hG := hG) := by
-  intro Rh a γd Rs t r cid lg lid Hlg Hown
-  wp_start as ⟨#Hlgf, #Hid, #Hraft, #Harr⟩
+  intro Rh a γd Rs t r cid lg lid Hown
+  wp_start as ⟨#Hlgf, #Hlgz, #Hid, #Hraft, #Harr⟩
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   rw [_root_.decide_eq_false Hlg]
   ipersist «$r0»
@@ -36,7 +37,7 @@ theorem rafthttp.newPipelineHandler.wp_proof :
   iunfold pipeHandlerOk
   iexists _
   iframe #
-  ipureintro; exact ⟨Hlg, Hown⟩
+  ipureintro; exact Hown
 
 end proof
 

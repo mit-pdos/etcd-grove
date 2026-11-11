@@ -77,7 +77,7 @@ local macro "dl_dropped" : tactic => `(tactic| (
     | "zap.Bool" => (wp_apply hZBool as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)))
 
@@ -363,8 +363,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
   wp_start as ⟨#Hf, Hrr, #Hcl, %Hrcnn, #Hreg, Hrd⟩
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
-  icases Hf' with ⟨%lg, %tr, %ps, %rcv, %pcv, %γr, %γp, %ctx, %cd, #Hlg, %Hlgnn, #Hpid, #Htr,
+  icases Hf' with ⟨%lg, %tr, %ps, %rcv, %pcv, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
     #Hlid, #Hps, #Hpsok, #Hrcv, #Hrbag, #Hpcv, #Hpbag, #Hmu, #Hctxf, #Hctx⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto

@@ -87,7 +87,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold userAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩, ⟨%o, %nob, #Ho, #Hopts⟩⟩
   iunfold authWRxB at HWR
@@ -304,7 +304,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Info
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
@@ -403,7 +403,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Info
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     irename «$r0» => Hresp
     generalize «$r0_ptr» = resp at *

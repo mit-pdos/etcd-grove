@@ -39,7 +39,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
   iunfold tpAdmin at Htpa
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
@@ -153,7 +153,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   iintro HA
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
   -- (E3h) the field's ghost variable set to the new latest state's flag

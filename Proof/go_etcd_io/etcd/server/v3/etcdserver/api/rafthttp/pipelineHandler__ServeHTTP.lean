@@ -63,7 +63,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
   intro Rh a γd Rs h wi r R γk rd Hhost Hpath
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd %hfl HRs
   iunfold pipeHandlerOk at Hh
-  icases Hh with ⟨%hv, #Hhv, %Hhvok, #Hraft, #Haddr⟩
+  icases Hh with ⟨%hv, #Hhv, #Hhvlg, %Hhvok, #Hraft, #Haddr⟩
   rw [method_unfold (t := go.GoType.PointerType rafthttp.pipelineHandler.ty) (m := go!"ServeHTTP")]
   wp_pures
   ihave #HR0 := HR
@@ -80,7 +80,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
     have Hver : verHdrOk (http.hdrSet [] go!"X-Etcd-Cluster-ID" cs) :=
       verHdrOk_set _ _ _ (by decide) verHdrOk_nil
     -- the header check
-    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
+    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr $$ [$Hhs $Hhvlg] as %rv Hrv
     ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
     icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, #HES, -, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -, -⟩
@@ -94,7 +94,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         iunfold pipeReq at Hpr0
         icases Hpr0 with ⟨%st0, %Hst0, -, -⟩
         wp_apply Haddr $$ [$HR0]
-        · ipureintro; rw [← Hhvok.2, ← Hhost]; exact Hst0.2.2.2.2.2
+        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hst0.2.2.2.2.2
         ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
         · iPkgInit
         ihave #Heof0 := io.eof_of_init $$ Hio
@@ -121,7 +121,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
           wp_apply hWarn hv.lg' _ _ $$ []
-          · iframe #; ipureintro; exact Hhvok.1
+          · iframe #
           wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
           · simp only [raftHttpNet]
             isplitr
@@ -218,7 +218,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             · ipureintro
               refine ⟨by rw [hc0m]; exact MsgSt.eq_of_wire rfl Hst.2.2.2.2.1, hc0cs, ?_,
                 fun hs _ => hc0sz hs⟩
-              rw [Hst.2.2.1, Hhost]; exact Hhvok.2
+              rw [Hst.2.2.1, Hhost]; exact Hhvok
             iunfold netSnapRecv
             iintro %h; exact absurd h Hst.2.2.2.1
           iunfold nodeErr at Hperr
@@ -262,7 +262,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             iintro %fsl ⟨-, -⟩
             (try wp_auto)
             wp_apply hWarn hv.lg' _ _ $$ []
-            · iframe #; ipureintro; exact Hhvok.1
+            · iframe #
             wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
             · simp only [raftHttpNet]
               isplitr

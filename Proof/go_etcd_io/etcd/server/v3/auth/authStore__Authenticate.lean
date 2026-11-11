@@ -68,7 +68,7 @@ theorem auth.authStore.Authenticate.wp_core
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
   icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, -, #HAssign, -⟩
   subst Htpi
@@ -155,8 +155,7 @@ theorem auth.authStore.Authenticate.wp_core
       (try wp_auto)
       -- (sweep repairs 1, R1-2) at `DebugLevel` (`W8 (-1)`), below `DPanicLevel`
       wp_apply h_Check as %ce Hce
-      · iframe #; isplitr
-        · ipureintro; exact Hlgnn
+      · iframe #
         ipureintro; exact ⟨_, rfl, by decide⟩
       (try wp_auto)
       wp_if_destruct
@@ -273,8 +272,7 @@ theorem auth.authStore.Authenticate.wp_core
       (try wp_auto)
       -- (sweep repairs 1, R1-2) at `DebugLevel` (`W8 (-1)`), below `DPanicLevel`
       wp_apply h_Check as %ce Hce
-      · iframe #; isplitr
-        · ipureintro; exact Hlgnn
+      · iframe #
         ipureintro; exact ⟨_, rfl, by decide⟩
       (try wp_auto)
       wp_if_destruct

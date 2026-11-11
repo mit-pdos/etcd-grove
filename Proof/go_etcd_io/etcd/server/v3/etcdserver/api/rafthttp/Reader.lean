@@ -55,13 +55,13 @@ def srLockInv (cr : Loc) : IProp GF :=
     cr.[rafthttp.streamReader, go!"closer"] ↦ c ∗ (⌜c = GoInterface.nil⌝ ∨ http.respCloser c))
 
 /-- **A stream reader's fixed fields** (persistent) of the local member `lid`, reading from `pid`:
-its logger (not `nil`), peer id, transport (with `lid`), peer status, mutex, context, and the peer's
+its logger (a zap logger), peer id, transport (with `lid`), peer status, mutex, context, and the peer's
 receive channels (bags of received messages, `netRecv`: what `Process` takes, `γd` the local
 snapshot directory). -/
 def srFixed (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) : IProp GF :=
   iprop(∃ (lg tr ps : Loc) (rc pc : GoChan) (γr γp : ChanNames) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)),
-    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     cr.[rafthttp.streamReader, go!"peerID"] ↦□ pid ∗
     cr.[rafthttp.streamReader, go!"tr"] ↦□ tr ∗ tr.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
     cr.[rafthttp.streamReader, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗

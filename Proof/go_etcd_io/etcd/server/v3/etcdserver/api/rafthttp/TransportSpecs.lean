@@ -44,7 +44,7 @@ theorem rafthttp.Transport.Start_ok
     (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Start.spec (GF := GF) (hG := hG) := by
   intro γn t tv R γd Rm uvs L
-  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, HRL⟩
+  wp_start_folded as ⟨Ht, #Hlgz, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, HRL⟩
   wp_apply (rafthttp.Transport.Start_full hNSRT hNRT hNewProber hEvery γn t tv R γd Rm uvs L)
     $$ [Ht Hlsf HRL] as %err Hres
   · iframe; iframe #; ipureintro; exact Hpre

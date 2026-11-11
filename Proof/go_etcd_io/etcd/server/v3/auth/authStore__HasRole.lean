@@ -36,7 +36,7 @@ theorem auth.authStore.HasRole.wp_proof
   wp_start as ⟨#Hinv, Hown, HWR, Hcs⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
@@ -82,7 +82,7 @@ theorem auth.authStore.HasRole.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Warn
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     iapply HΦ
     iframe HPost Hown

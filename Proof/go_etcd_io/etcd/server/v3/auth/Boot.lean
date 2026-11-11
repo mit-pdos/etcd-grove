@@ -163,7 +163,7 @@ theorem newAuthStore_boot
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γt γf : GName)
     (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ authSchemaBoot ab bi γt γf R P f T ∗
         T ∗ srvApi.csContractA P f Pre Q Post ∗ tokenProviderBoot tp γt γf A ∗ A }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
@@ -174,7 +174,7 @@ theorem newAuthStore_boot
         authOwn (.on γa) [bootState, bump bootState] ∗ capAuth γa [bootState, bump bootState] ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start_folded as ⟨%Hlg, %Hab, HD, HT, Hcs, #Htp, HA⟩
+  wp_start_folded as ⟨#Hlg, %Hab, HD, HT, Hcs, #Htp, HA⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
   imod (authBoot_alloc (GF := GF) γt γf) with
@@ -196,7 +196,7 @@ theorem newAuthStore_boot
       $$ [$Hpkg $Hrd Hbk $Hcu $Hw $Hcr $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
     as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs, -, -, Hslots⟩
   · iframe; isplitr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     isplitr
     · ipureintro; exact Hab
     unfold authBkCur; iexact Hbk

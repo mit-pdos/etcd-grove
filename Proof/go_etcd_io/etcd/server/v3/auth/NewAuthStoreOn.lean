@@ -247,7 +247,7 @@ theorem newAuthStore_on
     (hempty : ∃ s ∈ hs, s.users = ∅)
     -- (R-D2, 2026-11-04) the readers handed out, each with its ticket for the store's currency
     (N : Nat) (hN : N ≤ Int.toNat sync.rwmutex.actualMaxReaders) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) γc ∗
         authBkCur γa (1 : Qp).half γc ∗ authCur γc 1 ∗
         authWBackendOkR ab (.on γa) P f T ∗
@@ -267,10 +267,11 @@ theorem newAuthStore_on
         authRdTotal γa N ∗
         ([∗list] _x ∈ List.replicate N (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start as ⟨%Hlg, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
+  wp_start as ⟨#Hlgz, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
   iunfold authStoreInit at Hcur
   icases Hcur with ⟨Hcur, Hrq, #Hcl, Hpub, Hrdt, ⟨%b0, Hfe⟩, %v0, Hfc⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -299,7 +300,7 @@ theorem newAuthStore_on
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Warn
-    · ipureintro; exact Hlg
+    · iexact Hlgz
     (try wp_auto)
     simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
     (try wp_auto)
@@ -320,7 +321,7 @@ theorem newAuthStore_on
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Warn
-      · ipureintro; exact Hlg
+      · iexact Hlgz
       (try wp_auto)
       simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
       (try wp_auto)
@@ -481,7 +482,7 @@ theorem newAuthStore_on
     isplitr
     · ipureintro; exact Hstnn
     isplitr
-    · iexists lg; iframe lg; ipureintro; exact Hlg
+    · iexists lg; iframe lg; iexact Hlgz
     iexists tp; iframe tokenProvider
     iapply tokenProviderOk_of_A $$ HtpA
   -- `if enabled { as.tokenProvider.enable() }`: the provider's admin resource kept

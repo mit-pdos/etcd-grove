@@ -55,7 +55,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold userGrantRoleReqIs at Hr
   icases Hr with ⟨%Hrnn, #HU, #HR⟩
   iunfold authWRxB at HWR
@@ -233,7 +233,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply h_Warn
-        · ipureintro; exact Hlgnn
+        · iexact Hlgnn
         (try wp_auto)
         irename «$r0» => Hresp
         generalize «$r0_ptr» = resp at *
@@ -378,7 +378,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Info
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *

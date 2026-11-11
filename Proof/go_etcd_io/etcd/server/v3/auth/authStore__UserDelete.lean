@@ -47,7 +47,7 @@ theorem auth.authStore.UserDelete.wp_tie
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, ⟨%tp0, -, -⟩, -, -⟩
   iunfold tpAdmin at Htpa
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
@@ -91,7 +91,7 @@ theorem auth.authStore.UserDelete.wp_tie
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Error
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     iapply HΦ
     iexists true, sc0
@@ -246,7 +246,7 @@ theorem auth.authStore.UserDelete.wp_tie
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   irename «$r0» => Hresp
   generalize «$r0_ptr» = resp at *

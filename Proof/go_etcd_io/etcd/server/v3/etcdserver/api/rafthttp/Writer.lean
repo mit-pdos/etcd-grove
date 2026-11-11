@@ -131,7 +131,7 @@ def swRunOwn (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (cw : Loc) (mc :
     typedPointsto (cw.[rafthttp.streamWriter, go!"closer"]) cl (DFrac.own (1 : Qp).half) ∗
     isChanBag γm mc (swMsg Rh ty lid pid))
 
-/-- **A stream writer's fixed fields** (persistent): its logger (not `nil`), ids, peer status,
+/-- **A stream writer's fixed fields** (persistent): its logger (a zap logger), ids, peer status,
 follower stats (not `nil`: the msgappv2 encoder counts into it), `Raft` (whose calls take one of
 the resources `Rr`), mutex, and channels: `connc` a bag of attached connections, `stopc` and
 `done` broadcast channels (`stop` closes the one, `run` the other). -/
@@ -139,7 +139,7 @@ def swFixed (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (Rr : IProp GF) (
     IProp GF :=
   iprop(∃ (lg ps fs : Loc) (r : GoInterface) (γd : GName) (cc sc dc : GoChan)
       (γc γs γdn : ChanNames),
-    cw.[rafthttp.streamWriter, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    cw.[rafthttp.streamWriter, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     cw.[rafthttp.streamWriter, go!"localID"] ↦□ lid ∗
     cw.[rafthttp.streamWriter, go!"peerID"] ↦□ pid ∗
     cw.[rafthttp.streamWriter, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗

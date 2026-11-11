@@ -44,7 +44,7 @@ theorem auth.NewTokenProvider.wp_proof
     (h_Error : zap.Error.spec (GF := GF) (hG := hG)) :
     auth.NewTokenProvider.spec (GF := GF) (hG := hG) := by
   intro lg opts iw ttl
-  wp_start as %Hlg
+  wp_start as #Hzl
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HIO, -⟩
@@ -54,7 +54,7 @@ theorem auth.NewTokenProvider.wp_proof
   · iPkgInit
   (try wp_auto)
   wp_apply h_decomposeOpts lg opts $$ [] as %tt %m %err Hd
-  · iframe #; ipureintro; exact Hlg
+  · iframe #
   have Hsimple1 : _root_.Perennial.strings.split go!"simple" go!"," = [go!"simple"] := by
     simp [_root_.Perennial.strings.split, _root_.Perennial.strings.splitAux]
   -- not the options `"simple"` (when the token type is not `"simple"`)
@@ -67,25 +67,41 @@ theorem auth.NewTokenProvider.wp_proof
     wp_if_destruct
     · -- the simple provider
       wp_if_destruct
-      · exfalso; first | exact Hlg rfl | (apply Hlg; assumption)
-      wp_apply h_Warn $$ []
-      · iframe #; ipureintro; exact Hlg
-      (try wp_auto)
-      wp_apply h_Simple lg iw ttl $$ [] as %p ⟨#Hw, Hp⟩
-      (try wp_auto)
-      iapply HΦ
-      isplitl []
-      · ipureintro; intro _; simp
-      icases Hp with (%Hneg | ⟨%γt, %γf, #Hok, Had, Hf⟩)
-      · ileft; ipureintro; right; exact Hneg
-      · iright
-        iexists p, γt, γf
-        iframe Hw Hok Had Hf
-        ipureintro; exact ⟨rfl, rfl⟩
+      · -- a nil logger: no warning
+        (try wp_auto)
+        wp_apply h_Simple _ iw ttl $$ [] as %p ⟨#Hw, Hp⟩
+        · iframe #
+        (try wp_auto)
+        iapply HΦ
+        isplitl []
+        · ipureintro; intro _; simp
+        icases Hp with (%Hneg | ⟨%γt, %γf, #Hok, Had, Hf⟩)
+        · ileft; ipureintro; right; exact Hneg
+        · iright
+          iexists p, γt, γf
+          iframe Hw Hok Had Hf
+          ipureintro; exact ⟨rfl, rfl⟩
+      · ihave #Hlgok := zapLoggerOrNil_ok lg Hif $$ Hzl
+        wp_apply h_Warn $$ []
+        · iframe #
+        (try wp_auto)
+        wp_apply h_Simple lg iw ttl $$ [] as %p ⟨#Hw, Hp⟩
+        · iframe #
+        (try wp_auto)
+        iapply HΦ
+        isplitl []
+        · ipureintro; intro _; simp
+        icases Hp with (%Hneg | ⟨%γt, %γf, #Hok, Had, Hf⟩)
+        · ileft; ipureintro; right; exact Hneg
+        · iright
+          iexists p, γt, γf
+          iframe Hw Hok Had Hf
+          ipureintro; exact ⟨rfl, rfl⟩
     · have Hno := Hns Htt Hif
       wp_if_destruct
       · -- the JWT provider
         wp_apply h_JWT lg m mm $$ [$Hm] as %p %err -
+        · iframe #
         (try wp_auto)
         iapply HΦ
         isplitl []
@@ -101,7 +117,12 @@ theorem auth.NewTokenProvider.wp_proof
           ileft; ipureintro; left; exact Hno
         · -- an unknown token type: the error
           wp_if_destruct
-          · exfalso; first | exact Hlg rfl | (apply Hlg; assumption)
+          · (try wp_auto)
+            iapply HΦ
+            isplitl []
+            · ipureintro; intro h; simp at h
+            ileft; ipureintro; left; exact Hno
+          ihave #Hlgok := zapLoggerOrNil_ok lg Hif $$ Hzl
           wp_apply h_String _ _ as %f1 -
           (try wp_auto)
           wp_apply h_Error _ as %f2 -
@@ -112,7 +133,7 @@ theorem auth.NewTokenProvider.wp_proof
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
           wp_apply h_Warn
-          · ipureintro; exact Hlg
+          · iexact Hlgok
           (try wp_auto)
           iapply HΦ
           isplitl []

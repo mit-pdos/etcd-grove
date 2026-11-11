@@ -51,7 +51,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold userRevokeRoleReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, #HR⟩
   iunfold authWRx at HWR
@@ -92,7 +92,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Error
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     iapply HΦ
     iexists true, sc0
@@ -384,7 +384,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   irename «$r0» => Hresp
   generalize «$r0_ptr» = resp at *

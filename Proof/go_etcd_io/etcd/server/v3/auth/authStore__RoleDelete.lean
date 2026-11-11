@@ -113,7 +113,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
   icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, #HInval, -, -⟩
   subst Htpi
@@ -154,7 +154,7 @@ theorem auth.authStore.RoleDelete.wp_tie
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Error
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     iapply HΦ
     iexists true, sc0
@@ -511,7 +511,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   irename «$r0» => Hresp
   generalize «$r0_ptr» = resp at *

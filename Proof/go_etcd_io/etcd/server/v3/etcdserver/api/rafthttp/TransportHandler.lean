@@ -311,8 +311,9 @@ theorem rafthttp.Transport.Handler_core
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
-    #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
+    #Hlg, #Hlgz, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
     #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -320,13 +321,13 @@ theorem rafthttp.Transport.Handler_core
   ihave #HraftRs := netRaftOk_frame Rh.γn lid γd R (trReadTok Rh t lid γd R γs γr) r $$ Hraft
   wp_alloc_auto
   wp_auto
-  wp_apply hNPH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r cid lg lid Hlgnn Hown $$ []
+  wp_apply hNPH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r cid lg lid Hown $$ []
     as %hp ⟨%hpl, %Hhp, #Hhpok⟩
   · iunfold trAddRemoteReq at Harr
     iframe #
   (try wp_auto)
   wp_apply hNSH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t
-    ⟨go.GoType.PointerType rafthttp.Transport.ty, #t⟩ r lid cid lg Hlgnn Hown $$ []
+    ⟨go.GoType.PointerType rafthttp.Transport.ty, #t⟩ r lid cid lg Hown $$ []
     as %hs ⟨%hsl, %Hhs, #Hhsok⟩
   · iunfold trAddRemote at HAddR
     iframe #
@@ -341,7 +342,7 @@ theorem rafthttp.Transport.Handler_core
       · ipureintro; exact Hp
       iapply peerStreams_of_peerOk $$ Hpok
   (try wp_auto)
-  wp_apply hNSnH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r ss cid lg lid Rm Hlgnn Hown
+  wp_apply hNSnH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r ss cid lg lid Rm Hown
     $$ [] as %hsn ⟨%hsnl, %Hhsn, #Hsnok⟩
   · iunfold trAddRemoteReq at Harr
     iframe #

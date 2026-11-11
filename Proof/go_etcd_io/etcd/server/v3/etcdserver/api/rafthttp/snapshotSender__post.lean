@@ -65,8 +65,9 @@ theorem rafthttp.snapshotSender.post.wp_proof
   wp_start as ⟨#Hs, Hreq, Hstr, #Hso, Htk, #Hrq⟩
   iunfold snapSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %ps, %r, %ec, %sc, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, %γd, %Rr,
-    #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hrtf,
+    #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, #Hlgz, #Hurls, #Huvs, #Hrtf,
     #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem, %Hturls⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, #HES, #HMR, -, -, -, -, -, -, -, -, -, -, -,
@@ -234,7 +235,7 @@ theorem rafthttp.snapshotSender.post.wp_proof
     · -- `checkPostResponse` of the response
       subst Hn
       wp_auto
-      wp_apply hCheck lg vresp rst rd vbody bs req' R pid Hd Hlgnn $$ [$Hra $Hb $Hreq]
+      wp_apply hCheck lg vresp rst rd vbody bs req' R pid Hd $$ [$Hra $Hb $Hreq $Hlgz]
         as %cerr #Hcerr
       icases Hrw with ⟨%w, #Hw⟩
       ihave %H403 := raftProto_resp_403 Rh R γk rst w $$ Hw

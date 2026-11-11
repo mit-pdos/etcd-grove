@@ -69,9 +69,10 @@ theorem rafthttp.Transport.Send.wp_proof
   wp_start as ⟨#Htr, Htok, Hsl, Hms⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
-  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
+  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, #Hlgz,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
     %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   wp_auto
   ihave %Hsll := ownSlice_len $$ Hsl
@@ -204,7 +205,7 @@ theorem rafthttp.Transport.Send.wp_proof
           | "zap.String" => (wp_apply hZString as %_ -)
           | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr;
               (ipureintro; rfl); iintro %_ ⟨-, -⟩)
-          | "Debug" => (wp_apply hDebug lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+          | "Debug" => (wp_apply hDebug lg _ _ $$ []; (iframe #))
           | wp_auto)
         next_msg
   · (try wp_auto)

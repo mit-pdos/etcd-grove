@@ -174,7 +174,7 @@ theorem tokenSimple_disable (p : Loc) (γt γf : GName) :
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold simpleOk at Hok
-  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
+  icases Hok with ⟨%lg, %γk, #Hlg, #Hlgnn, #Hmu⟩
   iunfold simpleAdmin at Had
   icases Had with ⟨%ka, Hka, #Hkst⟩
   (try wp_auto)
@@ -221,7 +221,7 @@ theorem tokenSimple_invalidateUser (p : Loc) (γt γf : GName) (user : GoString)
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold simpleOk at Hok
-  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
+  icases Hok with ⟨%lg, %γk, #Hlg, #Hlgnn, #Hmu⟩
   iunfold simpleAdmin at Had
   icases Had with ⟨%ka, Hka, #Hkst⟩
   (try wp_auto)
@@ -329,7 +329,7 @@ theorem tokenSimple_enable (hRun : RunSpec (GF := GF) (hG := hG))
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold simpleOk at Hok
-  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
+  icases Hok with ⟨%lg, %γk, #Hlg, #Hlgnn, #Hmu⟩
   iunfold simpleAdmin at Had
   icases Had with ⟨%ka, Hka, #Hkst⟩
   wp_bind (App (Val wrapDefer) _)
@@ -435,7 +435,7 @@ theorem tokenSimple_enable (hRun : RunSpec (GF := GF) (hG := hG))
         iintro Hfsl
         (try wp_auto)
         wp_apply h_Debug $$ []
-        · iframe #; ipureintro; exact Hlgnn
+        · iframe #
         (try wp_auto)
         wp_apply (wp_mapDelete mp0 m0 tk go.string go.string) $$ [$Hm0] as Hm0
         (try wp_auto)

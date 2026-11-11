@@ -66,7 +66,7 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
   iprop(∃ (lg ls ss : Loc) (urls : GoSlice) (uvs : List net.url.URL)
       (cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (r : GoInterface) (ec : GoChan)
       (srt prt : GoInterface) (drf : w64) (pp sp : GoInterface),
-    t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗
     t.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
     t.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     t.[rafthttp.Transport, go!"ClusterID"] ↦□ cid ∗
@@ -96,7 +96,7 @@ def peerLockInv (p : Loc) : IProp GF :=
 /-- **A started peer `p` of `pid` at the member `lid`** (persistent): see the file header. -/
 def peerOk (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF) (p : Loc) : IProp GF :=
   iprop(∃ (lg ps pk cw2 cw1 pl ss cr2 cr1 : Loc) (r : GoInterface) (rc pc : GoChan),
-    p.[rafthttp.peer, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    p.[rafthttp.peer, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     p.[rafthttp.peer, go!"localID"] ↦□ lid ∗ p.[rafthttp.peer, go!"id"] ↦□ pid ∗
     p.[rafthttp.peer, go!"r"] ↦□ r ∗ netRaftOk Rh.γn lid γd R r ∗
     p.[rafthttp.peer, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
@@ -152,7 +152,7 @@ J8a-7, 2026-11-01, `Pause` stopped the pipeline and `Resume` restarted it, so a 
 to be paused, `CutPeer`'s premise) and lock. -/
 def remoteOk (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc) : IProp GF :=
   iprop(∃ (lg ps pl : Loc),
-    g.[rafthttp.remote, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    g.[rafthttp.remote, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     g.[rafthttp.remote, go!"localID"] ↦□ lid ∗ g.[rafthttp.remote, go!"id"] ↦□ pid ∗
     g.[rafthttp.remote, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
     g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeHandleOk Rh pl pid R ∗
@@ -209,12 +209,12 @@ theorem peerStreams_of_peerOk (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (
     (p : Loc) : peerOk Rh lid pid γd R p ⊢ peerStreams Rh lid pid p := by
   iintro #H
   iunfold peerOk at H
-  icases H with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, %Hlgnn, -, -, -,
+  icases H with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, #Hlgz, -, -, -,
     -, -, -, -, -, #Hw2, #Hf2, #Hw1, #Hf1, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold peerStreams
   iexists lg, cw2, cw1, R, R
   iframe #
-  ipureintro; exact Hlgnn
 
 /-- A peer's message is the pipeline's. -/
 theorem pipeMsg_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :

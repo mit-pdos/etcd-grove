@@ -36,10 +36,11 @@ provider is the simple one, with `newTokenProviderSimple`'s facts: its index wai
 (read-only; the provider's `info` calls it, whose contract, `simpleWaitOk`, its caller states) and,
 under fresh names, `simpleOk`, `simpleAdmin` and the rights' authority, from which
 `tokenSimple_okA` gives the token provider's contract. No path panics (`decomposeOpts`'s
-`strings.Split` has a first field; the JWT constructor returns: its axiom). -/
+`strings.Split` has a first field; the JWT constructor returns: its axiom). The logger is nil or a zap logger (`zapLoggerOrNil`; premise fixes 6): Go
+logs under `lg != nil`, and the providers replace nil by `zap.NewNop()`. -/
 abbrev auth.NewTokenProvider.spec : Prop :=
   ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewTokenProvider)) (Val #lg))
       (Val #opts)) (Val #iw)) (Val #ttl))
   {{ (tp err : GoInterface), RET (PairV #tp #err);

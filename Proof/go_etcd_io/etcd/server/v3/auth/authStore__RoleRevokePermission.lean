@@ -135,7 +135,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold roleRevokePermissionReqIs at Hr
   icases Hr with ⟨%Hrnn, #HRole, ⟨%ks, #HKey, #Hks⟩, ⟨%res, #HRE, #Hres⟩⟩
   iunfold authWRx at HWR
@@ -475,7 +475,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   irename «$r0» => Hresp
   generalize «$r0_ptr» = resp at *

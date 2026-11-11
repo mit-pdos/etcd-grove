@@ -78,8 +78,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -155,8 +155,9 @@ theorem rafthttp.snapshotSender.send.wp_proof
   ihave #Hs' := Hs
   iunfold snapSenderOk at Hs'
   icases Hs' with ⟨%tr, %pk, %ps, %r, %ec, %sc, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, %γd, %Rr,
-    #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hrtf,
+    #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, #Hlgz, #Hurls, #Huvs, #Hrtf,
     #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem, %Hturls⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave ⟨#HfM, ⟨%tsz, #HfT, %Htsz⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

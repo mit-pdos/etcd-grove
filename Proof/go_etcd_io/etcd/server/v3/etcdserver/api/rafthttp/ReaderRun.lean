@@ -86,7 +86,7 @@ instance srDial_persistent (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : 
 the context. -/
 def srFixed0 (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) : IProp GF :=
   iprop(∃ (lg tr ps : Loc) (rc pc : GoChan) (γr γp : ChanNames),
-    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    cr.[rafthttp.streamReader, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
     cr.[rafthttp.streamReader, go!"peerID"] ↦□ pid ∗
     cr.[rafthttp.streamReader, go!"tr"] ↦□ tr ∗ tr.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
     cr.[rafthttp.streamReader, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗

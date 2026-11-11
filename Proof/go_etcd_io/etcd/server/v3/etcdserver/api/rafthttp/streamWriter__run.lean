@@ -53,8 +53,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.String" => (wp_apply hZString as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -516,9 +516,10 @@ theorem rafthttp.streamWriter.run.wp_proof
   wp_start as ⟨#Hf, Hrun, Hdone⟩
   ihave #Hf' := Hf
   iunfold swFixed at Hf'
-  icases Hf' with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, #Hlg, %Hlgnn, #Hlid,
+  icases Hf' with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, #Hlg, #Hlgz, #Hlid,
     #Hpid, #Hps, #Hpsok, #Hfs, %Hfsnn, #Hr, #Hraft, #Hmu, #Hcc, #Hcbag, #Hsc, #Hstop, #Hdc,
     #Hdunk⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, #Hhb, -, -, -, -, -, -, -, -, -, -, ⟨%vSB, #HSB, %HSBl⟩, ⟨%vSF, #HSF, %HSFl⟩, -, -,
@@ -543,7 +544,7 @@ theorem rafthttp.streamWriter.run.wp_proof
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply hInfo lg _ _ $$ []
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto)
   ihave #Htk : iprop(∃ (ch : Loc) (γ : ChanNames), time.isTicker (GF := GF) tk ch γ) $$ []
   · iexists tch, γt; iexact Htk0

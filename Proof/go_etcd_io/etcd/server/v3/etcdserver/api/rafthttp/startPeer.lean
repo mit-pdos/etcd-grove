@@ -51,8 +51,8 @@ local macro "sp_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -138,7 +138,6 @@ local macro "sp_reader" cr:term "," ty:term "," rl:term : tactic => `(tactic| (
     · iunfold srFixed0
       iexists lg, t, ps, rcc, pcc, γr, γp
       iframe #
-      ipureintro; exact Hlgnn
     ihave #Hidu : iprop(∃ lidT : w64, t.[rafthttp.Transport, go!"ID"] ↦□ lidT ∗
         ⌜trURLsOk Rh lidT tuvs⌝) $$ []
     · iexists lid; iframe #; ipureintro; exact Hturls
@@ -170,9 +169,10 @@ theorem rafthttp.startPeer.wp_proof
   wp_start as ⟨#Htr, #Hus⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
-  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
+  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, #Hlgz,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
     %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
@@ -181,7 +181,7 @@ theorem rafthttp.startPeer.wp_proof
   (try wp_auto)
   rw [_root_.decide_eq_false Hlgnn]
   sp_log
-  wp_apply hNewStatus lg lid pid Hlgnn as %ps #Hps
+  wp_apply hNewStatus lg lid pid $$ [$Hlgz] as %ps #Hps
   (try wp_auto)
   wp_apply hNewPicker urls uvs (peerURL Rh pid) Hne Hurls $$ [] as %pk #Hpk
   · iframe #
@@ -199,8 +199,6 @@ theorem rafthttp.startPeer.wp_proof
     iexists t, pk, ec, lg, turls, tuvs, lid, cid, prt, ps, fs, r, lid, γd
     iframe #
     isplitr
-    · ipureintro; exact Hlgnn
-    isplitr
     · ipureintro; exact ⟨Hmem, Hnp⟩
     ipureintro; exact Hturls
   (try wp_auto)
@@ -208,10 +206,10 @@ theorem rafthttp.startPeer.wp_proof
   subst hpl
   -- the two stream writers; the snapshot sender
   wp_apply hStartSW Rh .msgAppV2 lid pid R lg ps fs r γd $$ [] as %cw2 ⟨#Hcw2, Hcw2s⟩
-  · iframe #; ipureintro; exact ⟨Hlgnn, Hfs⟩
+  · iframe #; ipureintro; exact Hfs
   (try wp_auto)
   wp_apply hStartSW Rh .message lid pid R lg ps fs r γd $$ [] as %cw1 ⟨#Hcw1, Hcw1s⟩
-  · iframe #; ipureintro; exact ⟨Hlgnn, Hfs⟩
+  · iframe #; ipureintro; exact Hfs
   (try wp_auto)
   wp_apply hNewSnap Rh t lid γd R pk pid ps Hpm (fun h => Hnp h.symm) $$ [] as %sns ⟨#Hsns, Hsnstop⟩
   · iframe #
@@ -310,7 +308,6 @@ theorem rafthttp.startPeer.wp_proof
   · iunfold peerOk
     iexists lg, ps, pk, cw2, cw1, pl, sns, cr2, cr1, GoInterface.ok ri, rcc, pcc
     iframe #
-    ipureintro; exact Hlgnn
   iunfold peerStop
   iexists cw2, cw1, pl, sns, sc, γs, cancel, γc
   iframe

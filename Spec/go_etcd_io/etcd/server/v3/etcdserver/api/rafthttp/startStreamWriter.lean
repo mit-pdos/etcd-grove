@@ -22,14 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`startStreamWriter(lg, local, id, status, fs, r)`** of a writer of type `ty` from `lid` to
-`pid` (a non-`nil` logger, a peer status, non-`nil` follower stats, a `Raft` whose calls take one
+`pid` (a zap logger, a peer status, non-`nil` follower stats, a `Raft` whose calls take one
 of the resources `Rr`): the writer, started, and the right to stop it. (Until J8a-6, 2026-11-01, it
 took one `Rr` for the goroutine, which never uses it: the writer calls only `ReportUnreachable`.) -/
 abbrev rafthttp.startStreamWriter.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (Rr : IProp GF) (lg ps fs : Loc)
     (r : GoInterface) (γd : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      ⌜lg ≠ null⌝ ∗ peerStatusOk ps ∗ ⌜fs ≠ null⌝ ∗ netRaftOk Rh.γn lid γd Rr r }}
+      zapLoggerOk lg ∗ peerStatusOk ps ∗ ⌜fs ≠ null⌝ ∗ netRaftOk Rh.γn lid γd Rr r }}
     (App (App (App (App (App (App (Val (@! rafthttp.startStreamWriter)) (Val #lg)) (Val #lid))
       (Val #pid)) (Val #ps)) (Val #fs)) (Val #r))
   {{ (cw : Loc), RET #cw; swFixed Rh ty lid pid Rr cw ∗ swStopRight cw }}

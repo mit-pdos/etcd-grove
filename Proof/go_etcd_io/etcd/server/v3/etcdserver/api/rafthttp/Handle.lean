@@ -61,7 +61,7 @@ def pipeFixed (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF) : IProp GF 
       (r : GoInterface) (id : w64) (γd : GName),
     p.[rafthttp.pipeline, go!"tr"] ↦□ tr ∗ p.[rafthttp.pipeline, go!"picker"] ↦□ pk ∗
     p.[rafthttp.pipeline, go!"errorc"] ↦□ ec ∗ p.[rafthttp.pipeline, go!"peerID"] ↦□ to ∗
-    tr.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    tr.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"ID"] ↦□ lid ∗ tr.[rafthttp.Transport, go!"ClusterID"] ↦□ cid ∗
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗

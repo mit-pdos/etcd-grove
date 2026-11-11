@@ -28,7 +28,7 @@ transport returning on a request from another member (as `pipeHandlerOk`). -/
 def snapHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
     IProp GF :=
   iprop(∃ (hv : rafthttp.snapshotHandler) (Rm : w64 → IProp GF), h ↦□ hv ∗
-    ⌜hv.lg' ≠ null ∧ Rh.owner a = hv.localID'⌝ ∗
+    zapLoggerOk hv.lg' ∗ ⌜Rh.owner a = hv.localID'⌝ ∗
     □ netRaftOk Rh.γn hv.localID' γd Rs hv.r' ∗
     snap.isSnapshotter hv.snapshotter' ∗ inv snapDirN (snapDirInv hv.snapshotter' γd Rh.γn.N.img Rm) ∗
     □ (∀ (r : Loc) (R : http.HReq) (rd : GoInterface),

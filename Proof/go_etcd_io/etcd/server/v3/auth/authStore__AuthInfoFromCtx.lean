@@ -51,7 +51,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
   icases HeIT' with ⟨%eIT, #HeITa, -⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   wp_auto
   wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en ⟨Hen, -⟩
   cases en
@@ -116,7 +116,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Warn
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       iapply HΦ
       iframe
@@ -192,7 +192,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply h_Warn
-        · ipureintro; exact Hlgnn
+        · iexact Hlgnn
         (try wp_auto)
         iapply HΦ
         iframe

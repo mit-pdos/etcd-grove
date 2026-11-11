@@ -41,7 +41,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold roleAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
   iunfold authWRxB at HWR
@@ -187,7 +187,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   irename «$r0» => Hresp
   generalize «$r0_ptr» = resp at *

@@ -44,7 +44,7 @@ def snapSenderOk (Rh : RaftHttp GF) (pid : w64) (s : Loc) : IProp GF :=
     s.[rafthttp.snapshotSender, go!"status"] ↦□ ps ∗ s.[rafthttp.snapshotSender, go!"r"] ↦□ r ∗
     s.[rafthttp.snapshotSender, go!"errorc"] ↦□ ec ∗
     s.[rafthttp.snapshotSender, go!"stopc"] ↦□ sc ∗
-    tr.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    tr.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
     pickerOk pk (peerURL Rh pid) ∗ peerStatusOk ps ∗ netRaftOk Rh.γn lid γd R r ∗
