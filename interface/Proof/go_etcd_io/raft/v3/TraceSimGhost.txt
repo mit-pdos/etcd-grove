@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def TraceSim.BootDone (C : List w64) (L : List TraceEv) (i : w64) : Prop :=
+  (TraceSim.bootSeg L i).length = C.length + 4
+
 def TraceSim.inFlight (tn : TraceSim.TraceNames) (k : Nat) (m : Etcdraft.Msg) : IProp GF :=
   k ↪[tn.bag] m
 
@@ -60,6 +63,11 @@ def TraceSim.bagOf (l : List Etcdraft.Msg) : Etcdraft.Bag :=
 theorem TraceSim.simInv_timeless (C : List w64) (tn : TraceSim.TraceNames) (Fx : Etcdraft.State →
     IProp GF) [hFx : ∀ (σ : Etcdraft.State), Timeless (Fx σ)] : Timeless (TraceSim.simInv C tn Fx)
 
+def TraceSim.BootNext (C : List w64) (i : w64) (o : Option TraceEv) (e : TraceEv) : Prop :=
+  match o with
+  | none => TraceSim.BootEvAt C i 0 e
+  | some x => ∀ (k : Nat), TraceSim.BootEvAt C i k x → TraceSim.BootEvAt C i (k + 1) e
+
 def TraceSim.SimRun (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) : Prop :=
   L = [] ∧ σ = TraceSim.simInit C ∨
     ∃ lines ts,
@@ -74,6 +82,15 @@ def TraceSim.LastOf (L : List TraceEv) (n : GoString) (o : Option TraceEv) : Pro
   match o with
   | none => ∀ (x : TraceEv), x ∈ L → x.nid ≠ n
   | some e0 => ∃ L1 L2, L = L1 ++ e0 :: L2 ∧ e0.nid = n ∧ ∀ (x : TraceEv), x ∈ L2 → x.nid ≠ n
+
+def TraceSim.BootSegs (C : List w64) (L : List TraceEv) : Prop :=
+  (∀ (x : TraceEv), x ∈ L → ∃ j, j ∈ C ∧ x.nid = decStr j) ∧
+    ∀ (i : w64),
+      i ∈ C → ∀ (k : Nat) (hk : k < (TraceSim.bootSeg L i).length), TraceSim.BootEvAt C i k (TraceSim.bootSeg L i)[k]
+
+def TraceSim.bootSeg (L : List TraceEv) (i : w64) : List TraceEv :=
+  List.takeWhile (fun x => Etcdraft.isBootstrapName (TraceSim.gsStr x.name))
+    (List.filter (fun x => decide (x.nid = decStr i)) L)
 
 def TraceSim.bootFlags (srv : Etcdraft.SetIds) (lines : List Etcdraft.Line) : List Bool :=
   List.map (fun k => (List.map (fun i => (Etcdraft.bootstrapOf lines i).fst) srv).any fun f => f.getD k false)
@@ -94,6 +111,29 @@ def TraceSim.msg_countable : Pos.Countable Etcdraft.Msg :=
         source := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         dest := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd })
     TraceSim.msg_countable._proof_1
+
+def TraceSim.BootEvAt (C : List w64) (i : w64) : Nat → TraceEv → Prop :=
+  match x✝¹, x✝ with
+  | 0, e =>
+    e.nid = decStr i ∧
+      TraceSim.gsStr e.name = "InitState" ∧
+        e.term = W64 0 ∧
+          e.vote = decStr (W64 0) ∧ e.commit = W64 0 ∧ e.logSize = W64 0 ∧ TraceSim.gsStr e.role = "StateFollower"
+  | 1, e =>
+    e.nid = decStr i ∧
+      TraceSim.gsStr e.name = "ApplyConfChange" ∧ e.term = W64 0 ∧ e.propCC = some { changes := [], newconf := [] }
+  | 2, e => e.nid = decStr i ∧ TraceSim.gsStr e.name = "BecomeFollower" ∧ e.term = W64 0
+  | 3, e => e.nid = decStr i ∧ TraceSim.gsStr e.name = "BecomeFollower" ∧ e.term = W64 1
+  | k.succ.succ.succ.succ, e =>
+    k < C.length ∧
+      e.nid = decStr i ∧
+        TraceSim.gsStr e.name = "ApplyConfChange" ∧
+          e.term = W64 1 ∧
+            e.vote = decStr (W64 0) ∧
+              e.commit = W64 ↑C.length ∧
+                e.logSize = W64 ↑C.length ∧
+                  TraceSim.gsStr e.role = "StateFollower" ∧
+                    ∃ ns, ns.Perm (List.take (k + 1) C) ∧ e.propCC = some { changes := [], newconf := List.map decStr ns }
 
 def TraceSim.value_countable : Pos.Countable Etcdraft.Value :=
   countableOfLeftInverse
@@ -152,6 +192,8 @@ def TraceSim.booted (L : List TraceEv) (i : Etcdraft.ID) : Prop :=
 def TraceSim.traceDir (γd : GName) (tn : TraceSim.TraceNames) : IProp GF :=
   dghostVar γd DfracDiscarded tn
 
+theorem TraceSim.bootSegs_nil (C : List w64) : TraceSim.BootSegs C []
+
 def TraceSim.durable_countable : Pos.Countable Etcdraft.Durable :=
   countableOfLeftInverse (fun d => (d.currentTerm, d.votedFor, d.log, d.commitIndex, d.config))
     (fun p =>
@@ -190,7 +232,7 @@ def TraceSim.simInv (C : List w64) (tn : TraceSim.TraceNames) (Fx : Etcdraft.Sta
                                             Bt !! i = some (b, o) ∧
                                               (b = true ↔ TraceSim.booted L (TraceSim.idAbs i)) ∧
                                                 TraceSim.LastOf L (decStr i) o ∧ (b = true → o.isSome = true)) ∧
-                                      TraceSim.SimEvents C.length L⌝)
+                                      TraceSim.SimEvents C.length L ∧ TraceSim.BootSegs C L⌝)
 
 def TraceSim.msgType_countable : Pos.Countable Etcdraft.MsgType :=
   countableOfLeftInverse
