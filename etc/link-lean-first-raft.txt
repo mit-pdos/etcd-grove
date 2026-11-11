@@ -118,8 +118,8 @@ proto_UnmarshalConfChangeV2:
 
 # Stage R2: confchange (the old proof's 22 functions, `ccs ...*pb.ConfChangeSingle` read through
 # the getters, `toConfChangeSingle`/`Restore` on a `*pb.ConfState`), with etcd-grove's
-# `fmt.Errorf` axiom (linked in `Proof/fmt/Link.lean`) and `ConfChangeType.String` at the trust
-# boundary (protobuf plumbing, names-only in the v3.7 translation; the old proof's axiom restated).
+# `fmt.Errorf` axiom (linked in `Proof/fmt/Link.lean`). (`ConfChangeType.String`, an axiom here
+# until premise fixes 7, is no longer called: `%d` prints the enum as an integer.)
 confchange_incoming:
 confchange_outgoing:
 confchange_outgoingPtr:
@@ -135,12 +135,11 @@ confchange_Changer__initProgress: confchange_incoming tracker_NewInflights confc
 confchange_Changer__remove: confchange_incoming confchange_outgoing confchange_nilAwareDelete
 confchange_Changer__makeVoter: confchange_Changer__initProgress confchange_incoming confchange_nilAwareDelete
 confchange_Changer__makeLearner: confchange_Changer__initProgress confchange_Changer__remove confchange_outgoing confchange_nilAwareAdd
-confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming fmt_Errorf raftpb_ConfChangeType__String raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
+confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming fmt_Errorf raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
 fmt_Errorf: @
 # A done context's `Err()` is `Canceled` or `DeadlineExceeded` (etcd-grove's trust boundary of
 # `context`, `Proof/context/Link.lean`; stage R7c): `node.stepWithWaitOption`'s `return ctx.Err()`.
 context_ErrDone: @
-raftpb_ConfChangeType__String:
 confchange_Changer__Simple: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
 confchange_Changer__EnterJoint: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_incoming confchange_outgoingPtr confchange_outgoing confchange_Changer__apply confchange_checkAndReturn
 confchange_Changer__LeaveJoint: confchange_Changer__checkAndCopy confchange_joint confchange_Changer__err confchange_nilAwareAdd confchange_outgoing confchange_incoming confchange_outgoingPtr confchange_checkAndReturn

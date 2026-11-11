@@ -12,7 +12,6 @@ public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__remove
 public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__makeWitness
 public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.fmt.Errorf
-public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
 public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 
@@ -111,7 +110,6 @@ theorem confchange.Changer.apply.wp_proof
     (wp_Changer_makeWitness : confchange.Changer.makeWitness.spec (GF := GF) (hG := hG))
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG))
-    (wp_ConfChangeType_String : raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetNodeId : raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetType : raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG)) :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) := by
@@ -291,9 +289,7 @@ theorem confchange.Changer.apply.wp_proof
       wp_auto
       -- a `ConfChangeType` argument: etcd-grove's `fmt.Errorf` (Perennial's admits basic types
       -- only); under `%d` Go prints it as an integer, calling no method (`fmt.argOkAt`'s integer
-      -- disjunct, premise fixes 6, D), so the enum's `String()` spec is no longer used (to drop
-      -- from the hypotheses, with the links regenerated)
-      have _hS := wp_ConfChangeType_String
+      -- disjunct, premise fixes 6, D): the enum's `String()` is not called
       wp_apply wp_fmt_Errorf $$ [$Hsl'] as %e -
       · fmt_args_ok
       wp_for_post

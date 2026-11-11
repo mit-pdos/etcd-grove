@@ -218,7 +218,6 @@ public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetN
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__Enum
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
-public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
 public import RaftWitness.Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
@@ -685,10 +684,6 @@ theorem confchange.Changer.wp_makeWitness :
     confchange.Changer.makeWitness.spec (GF := GF) (hG := hG) :=
   confchange.Changer.makeWitness.wp_proof confchange.Changer.wp_initProgress confchange.wp_incoming fmt.wp_Errorf
 
-theorem raftpb.ConfChangeType.wp_String :
-    raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG) :=
-  raftpb.ConfChangeType.String.wp_proof
-
 theorem raftpb.ConfChangeSingle.wp_GetNodeId :
     raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeSingle.GetNodeId.wp_proof
@@ -699,7 +694,7 @@ theorem raftpb.ConfChangeSingle.wp_GetType :
 
 theorem confchange.Changer.wp_apply :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.Changer.wp_makeWitness confchange.wp_incoming fmt.wp_Errorf raftpb.ConfChangeType.wp_String raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeSingle.wp_GetType
+  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.Changer.wp_makeWitness confchange.wp_incoming fmt.wp_Errorf raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeSingle.wp_GetType
 
 theorem confchange.wp_symdiff :
     confchange.symdiff.spec (GF := GF) (hG := hG) :=
