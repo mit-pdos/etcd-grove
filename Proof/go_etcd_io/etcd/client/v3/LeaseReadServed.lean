@@ -95,6 +95,7 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
       iprop(∃ v : etcdserverpb.LeaseTimeToLiveRequest, r ↦□ v ∗ ⌜(v.ID', v.Keys') = req⌝) from rfl]
   icases Hr with ⟨%v, #Hv, %Hvm⟩
   iapply wp_fupd
+  ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd r DFrac.discard v n m)
     $$ [HS Hrev]
   · iframe; iframe #
@@ -174,6 +175,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   unfold grpcHandlerOk
   iintro %req %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, Hspec⟩ HΨ
   iapply wp_fupd
+  ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd r n m) $$ [HS Hrev]
   · iframe; iframe #
   inext
