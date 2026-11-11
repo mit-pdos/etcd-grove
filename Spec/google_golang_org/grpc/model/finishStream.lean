@@ -22,8 +22,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **finishStream** -- the composite: `processRPC`'s end of a streaming call (`status.FromError` on
-the handler's error, then `http2Server.writeStatus`, `http2_server.go:1089`; test T12). -/
+/-- **finishStream** -- the composite: `processRPC`'s end of a streaming call (`server.go:1459-1515`:
+on the handler's error `status.FromError` (:1461) and `ss.writeStatus(appStatus)` (:1494), on
+success `ss.writeStatus(statusOK)` (:1513); `http2Server.writeStatus`, `http2_server.go:1089`;
+test T12). -/
 abbrev grpc.model.finishStream.spec : Prop :=
   ∀ (gs : Loc) (r : val) (err : GoInterface),
   {{ go_etcd_io.etcd.cache.v3.srvErrOk (GF := GF) err }}

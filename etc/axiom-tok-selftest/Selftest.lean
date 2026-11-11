@@ -64,6 +64,18 @@ axiom st_refuse_sym : ∀ (n : Nat) (f : val),
 /-- m2: a model-only name with a `FuncUnfold` (the run reports `modelUnfold`). -/
 axiom st_refuse_unfold : FuncUnfold go!"google.golang.org/grpc#model.acceptRun" [] (#())
 
+/-- Entries are finding-specific (CP1a review M2; `allow.txt`): an entry naming another key than
+the finding's does not accept it. -/
+axiom st_refuse_entrykey : ∀ (R : IProp GF) (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #(); R }}
+
+/-- An entry accepting one of two findings leaves the other. -/
+axiom st_refuse_entrypart : ∀ (R S : IProp GF) (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #(); R ∗ S }}
+
+/-- A rule-7 entry names the binder's type: another type is not accepted. -/
+axiom st_refuse_entrytype : ⊢ |==> ∃ (P : Bool → IProp GF), P true
+
 /-! Passed -/
 
 /-- Token in, token out (as `lessor.Renew`/`leaseTimeToLive`'s `levelTok 0`). -/
@@ -103,5 +115,12 @@ axiom st_pass_sym : ∀ (n : Nat) (f : val),
 axiom st_pass_ite : ∀ (w : Bool) (f : val),
   {{ if w then iprop(True) else threadTok (GF := GF) }} (App (Val f) (Val #()))
   {{ RET #(); if w then iprop(True) else threadTok }}
+
+/-- A rule-3 finding accepted by an entry naming its key (`allow.txt`). -/
+axiom st_pass_entry : ∀ (R : IProp GF) (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #())) {{ RET #(); R }}
+
+/-- A rule-7 finding accepted by an entry naming its binder and type (`allow.txt`). -/
+axiom st_pass_entry7 : ⊢ |==> ∃ (P : Nat → IProp GF), P 0
 
 end AxiomTokSelftest

@@ -25,8 +25,9 @@ variable [sem : go.Semantics]
 /-- **respond** -- the composite: the reply path after a unary handler, in v1.84's unified pipeline:
 `wrapUnaryHandler`'s `stream.SendMsg(reply)` (`server.go:1281-1289`; `serverStream.SendMsg`: the
 codec's encode, the size check against the send limit, the transport's `write`,
-`http2_server.go:1160`), then `processRPC`'s status path (`server.go:1458-1465`: on error
-`status.FromError`; `http2Server.writeStatus`, `http2_server.go:1089`). Under `grpcRepliesFit` the
+`http2_server.go:1160`), then `processRPC`'s status paths (`server.go:1459-1515`: on error
+`status.FromError` (:1461) and `ss.writeStatus(appStatus)` (:1494); on success
+`ss.writeStatus(statusOK)` (:1513); `http2Server.writeStatus`, `http2_server.go:1089`). Under `grpcRepliesFit` the
 marshalled reply does not exceed `grpcReplyMax`, so the codec's `make` does not panic
 (`notes/reply-size.md`). The reply (or the handler's error) is the one the client's `Invoke` returns
 (`InvGrpcRun.lean`, "The pair"). -/

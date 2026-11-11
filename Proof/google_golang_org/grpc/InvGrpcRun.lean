@@ -77,12 +77,16 @@ variable [GooseExts]
 
 /-- **Go's configuration of one gRPC server**: the unary and stream interceptor chains
 `grpc.NewServer`'s options compose (`ics`, `sics`), and the `(full method name, handler, service
-value)` of every registered method (`regs`) and stream (`sregs`) (`RegisterService`). -/
+value)` of every registered method (`regs`) and stream (`sregs`) (`RegisterService`). A handler is
+Go's `MethodDesc.Handler`/`StreamDesc.Handler`, a function value (`GoFunc`). Every `sregs` entry
+comes from a stream descriptor that sets `ClientStreams` or `ServerStreams` (`RegisterService`'s
+premise, B1b): grpc calls the handler of a descriptor with neither directly, without the stream
+interceptor (`server.go:1446-1450`, test T10b), which the model does not represent. -/
 structure GrpcSrvCfg (GF : BundledGFunctors) where
   ics : List GoFunc
   sics : List GoFunc
-  regs : List (GoString × val × GoInterface)
-  sregs : List (GoString × val × GoInterface)
+  regs : List (GoString × GoFunc × GoInterface)
+  sregs : List (GoString × GoFunc × GoInterface)
 
 /-- **The full names of `c`'s methods and streams are jointly distinct** (`grpc.start`'s premise, M1:
 what makes the one entry named by a call's path the handler Go's split lookup finds). -/
@@ -92,7 +96,9 @@ def grpcSrvNodup {GF : BundledGFunctors} (c : GrpcSrvCfg GF) : Prop :=
 end cfg
 
 /-- **The server listening at `addr` is `γ`** (raw; see `grpcAddrIs`). Made only by `grpc.start` (and
-carried to a bridge's address by `bridge.New`). -/
+carried to a bridge's address by `bridge.New`). `addr` is the exact string `grpc.start` listened on:
+two strings for one socket (`":2379"`, `"127.0.0.1:2379"`) are different addresses here, so the
+pair's "the server listening at `a`" assumes the client dials that string. -/
 axiom grpcAddrIsRaw {GF : BundledGFunctors} (addr : List w8) (γ : GName) : IProp GF
 
 /-- **Server `γ` was built with Go's configuration `c`** (raw). Made only by `grpc.start`, from
@@ -100,13 +106,15 @@ axiom grpcAddrIsRaw {GF : BundledGFunctors} (addr : List w8) (γ : GName) : IPro
 logs fatally on `RegisterService` after `Serve`, `server.go` `RegisterService`/`register`). -/
 axiom grpcSrvCfgRaw {GF : BundledGFunctors} [GooseExts] (γ : GName) (c : GrpcSrvCfg GF) : IProp GF
 
-/-- **The right to accept `γ`'s calls on `lis` through `gs`** (exclusive; made only by `grpc.start`,
-consumed by `acceptRun`'s `lisFailed` arm). -/
+/-- **The right to accept `γ`'s calls on `lis` through `gs`** (exclusive; made only by `grpc.start`;
+`acceptRun` returns it with each accepted call, consumes it in its `lisFailed` arm, and drops it in
+its `stopped` arm). -/
 axiom grpcSrvLink {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (γ : GName) :
   IProp GF
 
 /-- **The right to accept further calls on `gs`'s already-open connections** after its listener
-failed (exclusive; made only by `acceptRun`'s `lisFailed` arm, once per `gs`). -/
+failed (exclusive; made only by `acceptRun`'s `lisFailed` arm, one by each `lisFailed` return:
+one per link consumed, so two `Serve` calls on one `gs` with two listeners can make two). -/
 axiom grpcConnsLink {GF : BundledGFunctors} (gs : Loc) (γ : GName) : IProp GF
 
 section defs
@@ -137,9 +145,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **One server per address.** True: `netAddrFree` allows one `Listen` per address in a run
+/-- **One server per address string.** True: `netAddrFree` allows one `Listen` per address in a run
 (`Proof/net/InvNet.lean`), `grpc.start` consumes the listener, and `bridge.New` consumes the
-bridge's own listener. (Restart's S10 must revisit this if a `Stop` spec ever frees an address.) -/
+bridge's own listener. Addresses are compared as strings (`grpcAddrIsRaw`): the law is used only at
+one string, never to identify two spellings of one socket. (Restart's S10 must revisit this if a
+`Stop` spec ever frees an address.) -/
 axiom grpcAddrIs_agree (addr : GoString) (γ γ' : GName) :
   grpcAddrIs (GF := GF) addr γ ∗ grpcAddrIs addr γ' ⊢ ⌜γ = γ'⌝
 
@@ -253,8 +263,8 @@ variable [sem : go.Semantics]
 one later credit and returning the token (`grpcRunOkMd`). -/
 def isGrpcRpcAt {Req Rep : ProtoMsg GF} (γ : GName) (name : GoString) (Spec : GrpcSpecMd Req Rep) :
     IProp GF :=
-  iprop(∃ (c : GrpcSrvCfg GF) (mh : val) (srv : GoInterface),
-    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.regs⌝ ∗ □ grpcRunOkMd mh srv c.ics Spec)
+  iprop(∃ (c : GrpcSrvCfg GF) (mh : GoFunc) (srv : GoInterface),
+    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.regs⌝ ∗ □ grpcRunOkMd #mh srv c.ics Spec)
 
 instance isGrpcRpcAt_persistent {Req Rep : ProtoMsg GF} (γ : GName) (name : GoString)
     (Spec : GrpcSpecMd Req Rep) : Persistent (isGrpcRpcAt γ name Spec) := by
@@ -264,8 +274,8 @@ instance isGrpcRpcAt_persistent {Req Rep : ProtoMsg GF} (γ : GName) (name : GoS
 `isGrpcRpcAt`, with `grpcStreamRunOk`). -/
 def isGrpcStreamAt {Req Rep : StreamMsg GF} (γ : GName) (name : GoString)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
-  iprop(∃ (c : GrpcSrvCfg GF) (mh : val) (srv : GoInterface),
-    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.sregs⌝ ∗ grpcStreamRunOk mh srv c.sics Up Spec)
+  iprop(∃ (c : GrpcSrvCfg GF) (mh : GoFunc) (srv : GoInterface),
+    grpcSrvCfg γ c ∗ ⌜(name, mh, srv) ∈ c.sregs⌝ ∗ grpcStreamRunOk #mh srv c.sics Up Spec)
 
 instance isGrpcStreamAt_persistent {Req Rep : StreamMsg GF} (γ : GName) (name : GoString)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) :
@@ -274,14 +284,15 @@ instance isGrpcStreamAt_persistent {Req Rep : StreamMsg GF} (γ : GName) (name :
 
 /-- **The composed stream interceptor grpc calls, for the chain `sics`** (persistent; as
 `grpcSrvChain` for streams: grpc's `chainStreamServerInterceptors`, `server.go:1245-1262`: `nil` for
-no interceptor, the one interceptor, or grpc's closure). The handler `h` is any value (a
-`StreamDesc.Handler`), as `srvStreamChainWP` takes it. -/
+no interceptor, the one interceptor, or grpc's closure). The handler `h` is a function value (a
+`StreamDesc.Handler`), as in the unary `grpcSrvChain`: a panic value there would unwind the call
+while the chain's interceptors never see it. -/
 def grpcSrvStreamChain (sics : List GoFunc) (si : GoFunc) : IProp GF :=
   match sics with
   | [] => iprop(⌜si = func.nil⌝)
-  | _ :: _ => iprop(⌜si ≠ func.nil⌝ ∗ □ ∀ (srv st info h : val) (Ψ : val → IProp GF),
-      srvStreamChainWP info sics h srv st Ψ -∗
-      WP (App (App (App (App (Val #si) (Val srv)) (Val st)) (Val info)) (Val h)) {{ Ψ }})
+  | _ :: _ => iprop(⌜si ≠ func.nil⌝ ∗ □ ∀ (srv st info : val) (h : GoFunc) (Ψ : val → IProp GF),
+      srvStreamChainWP info sics #h srv st Ψ -∗
+      WP (App (App (App (App (Val #si) (Val srv)) (Val st)) (Val info)) (Val #h)) {{ Ψ }})
 
 instance grpcSrvStreamChain_persistent (sics : List GoFunc) (si : GoFunc) :
     Persistent (grpcSrvStreamChain (GF := GF) sics si) := by
@@ -292,12 +303,11 @@ with `runOk`). Unary: the run value of Go's handler `(name, mh, srv) ∈ c.regs`
 the registration the client deposited (`isGrpcRpcAt γ name Spec`) and its request precondition
 `▷ Spec md m Φ Ψe` at the metadata the run's context carries; grpc's context, decoder and chain
 (Go facts); the reply channel `grpcReplyTo r Rep Φ Ψe`. Stream: the run value of Go's handler
-`(name, mh, srv) ∈ c.sregs`, a function value (not a panic: grpc passes it to the interceptor as
-an argument); the deposited stream registration; Go's composed stream interceptor;
+`(name, mh, srv) ∈ c.sregs`; the deposited stream registration; Go's composed stream interceptor;
 the stream's shared persistent `Spec md γs Dn` and its raw server end with both tokens at `[]`;
 grpc's `info`. -/
 def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
-  iprop((∃ (name : GoString) (mh : val) (srv : GoInterface) (ci : GoInterfaceOk)
+  iprop((∃ (name : GoString) (mh : GoFunc) (srv : GoInterface) (ci : GoInterfaceOk)
         (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc) (Req Rep : ProtoMsgT GF)
         (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF)
         (Ψe : GoString → IProp GF),
@@ -307,13 +317,13 @@ def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
       grpcSrvChain c.ics ui ∗
       ▷ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe ∗
       grpcReplyTo r Rep Φ Ψe) ∨
-    (∃ (name : GoString) (mh : val) (srv : GoInterface) (ci : GoInterfaceOk)
+    (∃ (name : GoString) (mh : GoFunc) (srv : GoInterface) (ci : GoInterfaceOk)
         (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc) (si : GoFunc)
         (Req Rep : StreamMsgT GF) (Up : Nat → Req.M → IProp GF)
         (Spec : GrpcMd → StreamSpec Rep.toStreamMsg) (γs : StreamNames)
         (Dn : Nat → Rep.M → IProp GF),
       ⌜r = google_golang_org.grpc.model.runStream mh srv st info ci si⌝ ∗
-      ⌜(name, mh, srv) ∈ c.sregs⌝ ∗ ⌜mh.isPanic = false⌝ ∗
+      ⌜(name, mh, srv) ∈ c.sregs⌝ ∗
       isGrpcStreamAt γ name Up Spec ∗
       grpcSrvStreamChain c.sics si ∗
       □ Spec (metadata.incomingOf (GoInterface.ok ci)) γs Dn ∗
@@ -420,8 +430,8 @@ theorem grpc_inj_of_nodup_map {α β : Type} (f : α → β) :
     · exact grpc_inj_of_nodup_map f l h.2 x hx' y hy' hxy
 
 /-- Under the joint `Nodup`, two unary entries of one name are one entry. -/
-theorem grpc_regs_unique (regs sregs : List (GoString × val × GoInterface)) (name : GoString)
-    (mh mh' : val) (srv srv' : GoInterface)
+theorem grpc_regs_unique (regs sregs : List (GoString × GoFunc × GoInterface)) (name : GoString)
+    (mh mh' : GoFunc) (srv srv' : GoInterface)
     (Hnd : ((regs ++ sregs).map Prod.fst).Nodup)
     (H1 : (name, mh, srv) ∈ regs) (H2 : (name, mh', srv') ∈ regs) : mh = mh' ∧ srv = srv' := by
   have Hnd' : (regs.map Prod.fst).Nodup := by
@@ -431,8 +441,8 @@ theorem grpc_regs_unique (regs sregs : List (GoString × val × GoInterface)) (n
   exact this
 
 /-- Under the joint `Nodup`, two stream entries of one name are one entry. -/
-theorem grpc_sregs_unique (regs sregs : List (GoString × val × GoInterface)) (name : GoString)
-    (mh mh' : val) (srv srv' : GoInterface)
+theorem grpc_sregs_unique (regs sregs : List (GoString × GoFunc × GoInterface)) (name : GoString)
+    (mh mh' : GoFunc) (srv srv' : GoInterface)
     (Hnd : ((regs ++ sregs).map Prod.fst).Nodup)
     (H1 : (name, mh, srv) ∈ sregs) (H2 : (name, mh', srv') ∈ sregs) : mh = mh' ∧ srv = srv' := by
   have Hnd' : (sregs.map Prod.fst).Nodup := by

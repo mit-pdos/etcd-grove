@@ -51,6 +51,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -1337,6 +1338,66 @@ func TestT10Composite(t *testing.T) {
 			t.Fatalf("stream handler's incoming metadata x-t10 = %q", md)
 		}
 	})
+}
+
+// T10b. Review B2 of CP1a (acceptRun's composite, the model's stream arm): grpc calls a stream
+// descriptor's handler directly, skipping a configured stream interceptor, when the descriptor sets
+// neither ClientStreams nor ServerStreams (processRPC, server.go:1446-1450), so the model (which
+// calls the interceptor whenever there is one) is faithful only for flagged stream descriptors:
+// RegisterService's premise (B1b) requires a flag on every stream descriptor. Also checks that
+// every stream descriptor etcd registers (Watch, Lease's LeaseKeepAlive, Maintenance's Snapshot,
+// grpc's health Watch) sets one.
+func TestT10bUnflaggedStreamSkipsInterceptor(t *testing.T) {
+	var icptRuns atomic.Int64
+	var directCaller atomic.Value
+	si := func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, h grpc.StreamHandler) error {
+		icptRuns.Add(1)
+		return h(srv, ss)
+	}
+	h := func(srv any, ss grpc.ServerStream) error {
+		pc := make([]uintptr, 2)
+		runtime.Callers(1, pc) // [this handler, its caller]
+		fr := runtime.CallersFrames(pc)
+		fr.Next()
+		caller, _ := fr.Next()
+		directCaller.Store(caller.Function)
+		return ss.SendMsg(&msg{Value: []byte("ok")})
+	}
+	unflagged := grpc.StreamDesc{StreamName: "St", Handler: h}
+	s := serve(t, nil, []grpc.ServerOption{grpc.ChainStreamInterceptor(si)},
+		service("t10b.S", nil, []grpc.StreamDesc{unflagged}))
+	cc := dial(t, s.addr)
+	cs, err := cc.NewStream(ctxT(t, 5*time.Second), &grpc.StreamDesc{ServerStreams: true,
+		ClientStreams: true}, "/t10b.S/St")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs.CloseSend()
+	out := new(msg)
+	if err := cs.RecvMsg(out); err != nil || string(out.Value) != "ok" {
+		t.Fatalf("unflagged stream: %v %v", out, err)
+	}
+	if n := icptRuns.Load(); n != 0 {
+		t.Fatalf("stream interceptor ran %d times for an unflagged descriptor, want 0", n)
+	}
+	if c := directCaller.Load().(string); c != "google.golang.org/grpc.(*Server).processRPC" {
+		t.Fatalf("unflagged stream handler called by %s, want processRPC directly", c)
+	}
+
+	// etcd's stream descriptors all set a flag.
+	for _, sd := range []*grpc.ServiceDesc{&pb.Watch_ServiceDesc, &pb.Lease_ServiceDesc,
+		&pb.Maintenance_ServiceDesc, &pb.KV_ServiceDesc, &pb.Cluster_ServiceDesc, &pb.Auth_ServiceDesc,
+		&healthpb.Health_ServiceDesc} {
+		for _, st := range sd.Streams {
+			if !st.ClientStreams && !st.ServerStreams {
+				t.Fatalf("%s/%s sets no stream flag", sd.ServiceName, st.StreamName)
+			}
+		}
+	}
+	if n := len(pb.Watch_ServiceDesc.Streams) + len(pb.Lease_ServiceDesc.Streams) +
+		len(pb.Maintenance_ServiceDesc.Streams) + len(healthpb.Health_ServiceDesc.Streams); n != 4 {
+		t.Fatalf("etcd's stream descriptors: %d, want 4 (Watch, LeaseKeepAlive, Snapshot, health Watch)", n)
+	}
 }
 
 // =============================================================================================

@@ -22,6 +22,7 @@ is passed to `lake`. Run it under a memory cap (`systemd-run --scope -p MemoryMa
 import argparse
 import collections
 import json
+import re
 import os
 import subprocess
 import sys
@@ -104,16 +105,49 @@ def partial_modules(mods):
     return sorted(set(out)), sorted(dropped)
 
 
+def finding_key(f):
+    """The key an entry names to accept the finding `f` (CP1a review M2: entries are
+    finding-specific, so an edit's new finding is not silently accepted). No spaces:
+    rule 2 `2:<level>` (`2:*`); rule 3 `3:<atom>` (the counted atom without its `atom:` prefix and
+    `#n` index: `3:E`, `3:Φ.f`); rule 5 `5:<opaque>` (short name); rule 7 `7:<binder>:<type>` (the
+    `∃` binder and its type, spaces removed: `7:Dn:Nat→Rep.M→IPropGF`); rule 4 and notes
+    `<rule>:<text>` (spaces removed)."""
+    r, why = f["rule"], f["why"]
+    if r == "2":
+        m = re.match(r"level (\S+):", why)
+        return f"2:{m.group(1) if m else why.replace(' ', '')}"
+    if r == "3":
+        atom = why.rsplit(": produced", 1)[0]
+        atom = re.sub(r"#\d+", "", atom)
+        if atom.startswith("atom:"):
+            atom = atom[5:]
+        return "3:" + atom.replace(" ", "")
+    if r == "5":
+        return "5:" + short(why.rsplit(" ", 1)[-1])
+    if r == "7":
+        m = re.match(r"transfer of ∃ (\S+) : ", why)
+        name = m.group(1) if m else "?"
+        return f"7:{name}:{f.get('type', '').replace(' ', '')}"
+    return f"{r}:{why.replace(' ', '')}"
+
+
 def read_allow(path):
+    """`entry NAME KEY[,KEY...] reason`: the axiom's findings with these keys (`finding_key`) are
+    accepted; any other finding of it is still reported. `pair NAME PARTNER`, `real-pass NAME`."""
     entries, pairs, real_pass = {}, collections.defaultdict(set), []
     if path and os.path.exists(path):
         for line in open(path, encoding="utf-8"):
             line = line.split("#", 1)[0].strip()
             if not line:
                 continue
-            w = line.split(None, 2)
-            if w[0] == "entry" and len(w) >= 2:
-                entries[w[1]] = w[2] if len(w) > 2 else ""
+            w = line.split(None, 3)
+            if w[0] == "entry":
+                if len(w) < 3 or ":" not in w[2]:
+                    sys.exit(f"{PROG}: {path}: an entry names the findings it accepts "
+                             f"(entry NAME KEY[,KEY...] reason): {line[:120]}")
+                e = entries.setdefault(w[1], {"keys": set(), "reason": ""})
+                e["keys"] |= set(w[2].split(","))
+                e["reason"] = (e["reason"] + " " + (w[3] if len(w) > 3 else "")).strip()
             elif w[0] == "pair" and len(w) >= 3:
                 pairs[w[1]].add(w[2].split()[0])
             elif w[0] == "real-pass":
@@ -121,30 +155,36 @@ def read_allow(path):
     return entries, pairs, real_pass
 
 
+def covered(name, f, entries):
+    e = entries.get(name)
+    return e is not None and finding_key(f) in e["keys"]
+
+
 def retaint(axs, entries):
     """Rule 5 again, over every group at once and with the entries: an axiom with an entry does not
     taint what it produces (the Lean runs compute the taint per group, without the entries). The
-    rule-5 findings are replaced; returns the tainted predicates."""
+    rule-5 findings are replaced; returns the tainted predicates. An axiom whose rule-2/3 findings
+    all have entries (`covered`) does not taint by itself, but it still passes on a taint it receives,
+and gets the rule-5 findings of it (which its entry does not name)."""
     def produced(o):
         return {k[4:] for s in o["scenarios"] for k in s["prod"] if k.startswith("opq:")}
 
-    def fails(o):
-        return any(f["rule"] in ("2", "3") for f in o["findings"])
+    def fails(o, n=None):
+        return any(f["rule"] in ("2", "3") and not (n and covered(n, f, entries))
+                   for f in o["findings"])
 
     tainted, changed = set(), True
     while changed:
         changed = False
         for n, o in axs.items():
-            if n in entries:
-                continue
-            if fails(o) or produced(o) & tainted:
+            if fails(o, n) or produced(o) & tainted:
                 new = produced(o) - tainted
                 if new:
                     tainted |= new
                     changed = True
     for n, o in axs.items():
         o["findings"] = [f for f in o["findings"] if f["rule"] != "5"]
-        if not fails(o):
+        if not fails(o, n):
             o["findings"] += [{"rule": "5", "why": f"produces the tainted opaque {c}"}
                               for c in sorted(produced(o) & tainted)]
         o["ok"] = not o["findings"]
@@ -166,8 +206,12 @@ def judge(objs, allow, locs):
     objs[:] = [o for o in objs if o["t"] != "tainted"] + [{"t": "tainted", "opq": c}
                                                          for c in sorted(tainted)]
     for name, o in axs.items():
-        left = []
+        left, used = [], set()
         for f in o["findings"]:
+            if covered(name, f, entries):
+                used.add(finding_key(f))
+                o.setdefault("accepted", []).append(f)
+                continue
             if f["rule"] == "7":
                 ok = any(f.get("type") in axs.get(p, {}).get("consumesTypes", [])
                          for p in pairs.get(name, ()))
@@ -177,7 +221,10 @@ def judge(objs, allow, locs):
                     continue
             left.append(f)
         o["left"] = left
-        o["entry"] = entries.get(name)
+        e = entries.get(name)
+        o["entry"] = e["reason"] if e else None
+        # an entry key no finding has: the statement changed, or the walk did (review it)
+        o["stale"] = sorted(e["keys"] - used) if e else []
         mod, line = locs.get(name, ("?", "?"))
         o["loc"] = f"{proof_roots.path_of(mod) if mod != '?' else '?'}:{line}"
     return axs
@@ -193,8 +240,9 @@ def short(n):
 def report(axs, objs, verbose, show_all):
     checked = len(axs)
     skipped = sum(o.get("n", 0) for o in objs if o["t"] == "skipped")
-    need = {n: o for n, o in axs.items() if o["left"] and o["entry"] is None and not o.get("capped")}
-    capped = {n: o for n, o in axs.items() if o["left"] and o["entry"] is None and o.get("capped")}
+    need = {n: o for n, o in axs.items() if o["left"] and not o.get("capped")}
+    capped = {n: o for n, o in axs.items() if o["left"] and o.get("capped")}
+    stale = {n: o for n, o in axs.items() if o.get("stale")}
     trunc = {n: o for n, o in axs.items() if o["trunc"]}
     mints = {n: o for n, o in axs.items() if o.get("mint")}
     print(f"{PROG}: report-only; {checked} Prop axioms walked ({skipped} non-Prop axioms skipped: "
@@ -202,11 +250,15 @@ def report(axs, objs, verbose, show_all):
     print(f"{PROG}: {checked - len(need) - len(capped)} pass (or have an entry), {len(need)} would "
           f"need an entry, {len(capped)} unknown (scenario cap: the walk merged its scenarios, so its "
           f"rule-3 counts are not reliable); {len(trunc)} have truncated subterms (see 'trunc')")
+    if stale:
+        print("\nEntry keys that match no finding (the axiom or the walk changed; review the entry):")
+        for n, o in sorted(stale.items()):
+            print(f"    {short(n)}  {', '.join(o['stale'])}")
     if mints:
         print("\n*** TOKEN MINT CANDIDATES (produce tokens, consume none: a soundness finding unless "
               "the entry below explains it) ***")
         for n, o in sorted(mints.items()):
-            print(f"  {short(n)}  {o['loc']}")
+            print(f"  {short(n)}  {o['loc']}" + ("  (entry)" if not o["left"] else ""))
             for f in o["left"]:
                 print(f"      rule {f['rule']}: {f['why'][:200]}")
     by_rule = collections.defaultdict(list)
@@ -228,11 +280,11 @@ def report(axs, objs, verbose, show_all):
         for n, o in sorted(capped.items()):
             toks = [f for f in o["left"] if f["rule"] == "2"]
             print(f"    {short(n)}  {o['loc']}  ({len(o['left'])} findings{', TOKEN: ' + toks[0]['why'] if toks else ''})")
-    # rule 5's roots: the axioms failing rule 2 or 3 that produce a tainted predicate
+    # rule 5's roots: the axioms failing rule 2 or 3 (with no entry for it) that produce a tainted predicate
     tainted_set = {o["opq"] for o in objs if o["t"] == "tainted"}
     roots = collections.defaultdict(set)
     for n, o in axs.items():
-        if any(f["rule"] in ("2", "3") for f in o["findings"]):
+        if any(f["rule"] in ("2", "3") and f not in o.get("accepted", []) for f in o["findings"]):
             for sc in o["scenarios"]:
                 for k in sc["prod"]:
                     if k.startswith("opq:") and k[4:] in tainted_set:
@@ -262,7 +314,7 @@ def report(axs, objs, verbose, show_all):
     if show_all:
         print("\nAll verdicts:")
         for n, o in sorted(axs.items()):
-            v = "ok" if not o["left"] else ("entry" if o["entry"] is not None else "NEEDS-ENTRY")
+            v = ("entry" if o.get("accepted") else "ok") if not o["left"] else "NEEDS-ENTRY"
             print(f"  {v:11} {short(n)}  {o['loc']}")
             if verbose:
                 for s in o["scenarios"][:3]:

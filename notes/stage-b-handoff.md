@@ -51,16 +51,28 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `Spec|Proof/google_golang_org/grpc/model/{acceptRun,acceptRunConns,respond,finishStream}.lean`;
     `grpc.model.Serve.wp_proof` proved (`Proof/google_golang_org/grpc/model/Serve.lean`).
   - `etc/verified-code.py`: `ASSUMED_MODELS`, model-only names skipped.
-  - **CP1a Freeze package: `/shared/tmp/stageB/freeze-cp1a.md`. STOPPED for review.**
+  - CP1a Freeze package: `/shared/tmp/stageB/freeze-cp1a.md`; reviewed (`wf_85371608-bdd`: B1, B2
+    blockers, M2 and minors), decisions by etcd-grove-81 in `questions.md`.
+  - **Review fixes done** (freeze-cp1a.md §8, the commit after `ea85f7b661`): handlers typed `GoFunc`
+    (`GrpcSrvCfg`, `grpcSrvStreamChain`, `grpcAccepted`, `isGrpc*At`, the model's run values), the
+    `isPanic` conjunct dropped; docstrings (ErrServerStopped, flags/:1446, links, respond's range,
+    address strings, si-nil comparison); gate entries finding-specific (`entry NAME KEY,... reason`,
+    stale keys reported), `Dn` entries, selftests 26/26; verified-code's exact model-only names;
+    Go test T10b. **STOPPED: the two blocker fixes go to re-verification (etcd-grove-81).**
 
 ## Next, in order
 
-1. CP1a review (etcd-grove-81): §7 of the package (the `isPanic` conjunct, the forms, `Dn`).
+1. Re-verification of B1/B2's fixes (etcd-grove-81).
 2. B1b after pf8c C3: restatement and wiring (r5 §4.1 B1b): `trusted = ["Server.Serve"]` with
    `Server.Serve.impl := model.Serve`; `grpcServeTokR` → `grpcServeTok`; `grpc.start`/`start'`;
    `isGrpcRpcMd`/`isGrpcStreamMd` over `isGrpcRpcAt`/`isGrpcStreamAt`; the stream contract returns
    `S` and the stream adapter `grpcStreamRunOk_of_pools`; delete `grpcSlotPool`, `grpcServes*`,
-   `grpc.serve*`; `RegisterHealthServer`, `srvInterceptorOk`, `bridge.New`; docstrings.
+   `grpc.serve*`; `RegisterHealthServer`, `srvInterceptorOk`, `bridge.New`; docstrings. Also
+   (freeze-cp1a.md §8.2): `descRegs`/`descSRegs` and `grpcSrvNew`'s `regs`/`sregs` retyped to
+   `GoFunc` handlers (`md.Handler'`), and `RegisterService` (+ the six `Register*Server`) takes
+   `⌜∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝`, discharged in
+   `v3rpc.Server` from the generated descriptors; `RegisterHealthServer`'s post: health `Watch` is
+   `ServerStreams`.
 3. Before any landing: full build, `etc/tcb-report.py --check --update` (+11 in B1a, net +1 after
    B1b), delete `Scratch/`.
 4. Gate for CP3: walk `□` callbacks independently (lifts the 15 caps), neutral case through defined
@@ -76,4 +88,9 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
   (a handler `mh`) needs the fact (`grpcAccepted`'s stream arm has it); `#x` has it by
   `isPanic_intoVal`. `#mh` with `mh : val` is NOT `mh` (`intoVal` is abstract).
 - `--goal L` of `etc/lean-check.py` shows the state before line L's tactic.
+- Gate entries are finding-specific: after changing an entry's axiom, rerun and update its keys
+  (`finding_key`); a stale key is reported. New texts' run: `/shared/tmp/stageB/gate5/` (command:
+  `lake env lean --run etc/AxiomTokCheck.lean --axioms=names.txt <modules>`, then
+  `etc/axiom-tok-check.py --json names.json --reuse-raw raw.jsonl`).
+- `Scratch/StageB/Spike.lean` predates the `GoFunc` typing (not rechecked; scratch).
 - The examples pin etcd at `a4d2bb1720b9` (not `673da07c8f` as the brief said).

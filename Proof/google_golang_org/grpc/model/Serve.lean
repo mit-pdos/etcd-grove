@@ -56,7 +56,7 @@ theorem grpc.model.runCall_wp
   icases Hacc with (⟨%name, %mh, %srv, %ci, %cd, %dec, %ui, %Req, %Rep, %Spec, %m, %Φ, %Ψe, %Hr,
       %Hin, Hat, Hctx, Hrc, Hd, Hch, HSpec, Hrep⟩ |
     ⟨%name, %mh, %srv, %ci, %cd, %st, %info, %si, %Req, %Rep, %Up, %Spec, %γs, %Dn, %Hr, %Hin,
-      %Hmh, Hat, Hsch, #HSpec, Hraw, HRt, HSt, HAt, Hinfo⟩)
+      Hat, Hsch, #HSpec, Hraw, HRt, HSt, HAt, Hinfo⟩)
   · -- unary
     iunfold isGrpcRpcAt at Hat
     icases Hat with ⟨%c', %mh', %srv', #Hc', %Hin', #Hrun⟩
@@ -98,7 +98,7 @@ theorem grpc.model.runCall_wp
       subst Hsi
       simp only [srvStreamChainWP]
       wp_pures
-      wp_bind (App (App (Val mh) _) _)
+      wp_bind (App (App (Val #mh) _) _)
       iapply wp_wand_r
       isplitl [Hw]
       · iexact Hw
