@@ -35258,3 +35258,87 @@ appended state, through `"#Hgpapp"`); the bundle (`G1` at `o = s.outbox`, `Gp2` 
 `LeaderProposeResult`'s two outcomes).
 
 No axiom, no `sorry`, no frozen, client-visible or untraced statement changed.
+
+## Q8 stage 1 (slice 22b): a candidate's stale or rejected `MsgApp`; a candidate's pending vote response; a leader's non-advancing response's receive line; three statement questions (the vote's win and loss, `QuorumLogF` under a truncation, the appends' `RejectHint`) (2026-11-11 · trace-check, Q8 stage 1 slice 22b; decided by the agent under the user's delegation · branch `trace-check-q8s22b`; DRAFT until trace-check's Freeze)
+
+**Done** (new modules, none on `etc/api/raft.txt`; no axiom, no `sorry`, no frozen or client-visible
+statement changed):
+- `TracedRaftStepRecvCandApp.lean`: `stepBundle_traced_candAppSR b` (a candidate's stale, `b = true`, or
+  rejected, `b = false`, `MsgApp` of its term), slice 20b's pieces put together: the receive line's two
+  rounds (`lineEffect_rtfApp`: `ReturnToFollowerState` then any `RecvAt` at `rtfSrv`, here `recvAt_stale`
+  / `recvAt_reject`), its phase step `phaseStepR_candApp`, its facts `fxPresR_candLeadReply` (`simFx_rtf`
+  then `simFx_leadReply`), the `BecomeFollower` skip (`phaseStepBF_rtf`), the response's skipped send
+  line, the close by `staleEnd_simIdle`/`rejEnd_simIdle` at `bfState` (`bfState_lead`: the step-down
+  already has the sender as leader).
+- `TracedRaftStepRecvVoteResp.lean`: `stepBundle_traced.onC` (`.on` with a path reading the step's
+  configuration `c`: `poll`'s outcome does; `.on_of_onC` for a path that does not) and
+  `stepBundle_traced_candVoteRespPending` (a candidate's vote response of its term, the tally neither
+  `JQuorum` nor `JLost` at `c`): amendment A3's receive line (`phaseStepR_voteRespCand`,
+  `fxPresR_voteRespCand`), every later gate refuted by the path, the close from `CandVoteRespResultC`
+  (`won`/`lost` refuted), `simIdleS_prvals_nl`.
+- `TracedRaftStepRecvLead.lean`: the receive line of a leader's rejected `MsgAppResp` or `MsgHeartbeatResp`
+  of its term (`phaseStepR_leadResp`, `fxPresR_leadResp`): `respSrv` moves no match index the share
+  reads (`toC_respSrv_keep`: a rejection records nothing, a heartbeat response raises the sender's to
+  `0`, which `SimServerR`'s leader clause already reaches), so the pinned idle phase is kept and the facts
+  are a dropped response's (`fxPresR_staleResp`).
+- Merged slice 22a's Q19 (`bt` in, `∃ bt'` out; `stepClose_anyB`) into these files mechanically.
+
+**Question 1: the won and the lost vote** (task 2's other outcomes; not done).
+- *Lost*: `stepClose` is handed `stepOut R s'.outbox`, a disjunction that does not say which gates ran.
+  On a lost tally raft fires `"Hglost"` (`G1` to `GE`), but the close must also accept `G1` (the
+  resource before the step-down, the capability at the candidate's share) with the lost end state,
+  which no family can close (the share's server is a candidate, `s'` a follower), and the outbox does
+  not tell them apart (both `s.outbox`). Options: (a) `stepOut`'s `G1` disjunct guarded by
+  `¬ Hooked` (`stepCandidate`'s result tag, `JQuorum ∨ JLost` at a candidate's vote response, which the
+  spec already returns and `Step` has), raft-internal (`LemmasStepGates`, `Step`'s close, every close
+  site's `stepOut` case analysis mechanically); (b) the families index `G1` by a ghost token the
+  step-down's gate consumes (heavier, the token's allocation at the receive gate);
+  (c) `CandVoteRespResultC` with `lost = true ↔ JLost` when not won (exact, like `poll`), which only
+  removes the other mismatch (`GE` with the pending state) and does not suffice alone. Recommended: (a),
+  with (c) for the `GE`-pending case (or `GE` guarded the same way). Raft-internal; it touches
+  `stepClose`, which slice 22a's successor also changes for `MsgProp`: one change for both.
+- *Won*: the `BecomeLeader` line's facts need the new leader's `isLeader` and term log (`leadFull`),
+  which raft's ghost step creates (`win_register`, the term log's allocation, `Refinement.lean`); the
+  family holds raft's ghost at `s`, and the close must give it back at `s`, so `Step`'s own ghost step
+  would redo them. Needs the close relaxation slice 19a decided for `MsgProp` (the ghost given back at
+  the post-step state), extended to a candidate's won vote response; and `tallyGranted_quorum`'s `hc`
+  (every voter raft heard from configured): no derivation found yet from the message facts (a refusal's
+  `isMessageC` is `True`); `SimServerR`'s `votesResponded` with `SpecInv`'s typing would give it inside
+  the facts (`FxPres`), not in the pure phase step where the `BecomeLeader` guard is checked.
+
+**Question 2: `QuorumLogF` is not preserved by an accepted `MsgApp`'s truncation, from the facts alone**
+(task 3, an accepted `MsgApp`; not done). A truncation at the first conflict `k` keeps every committed
+prefix the receiver's log carried only if `k` is past it, i.e. if the request's entries agree with every
+such prefix. They need not: a committed prefix can be committed (by a quorum) at a term above the
+request's, after its leader wrote a conflicting entry, and a receiver still at the request's term can
+carry it by coincidence (from an earlier leader); it then truncates it. `QuorumLogInv` stays true (the
+committing quorum is at the higher term and never truncates it), but `QuorumLogF` (the servers lacking
+the prefix are no quorum) cannot show it: before the step the lacking set may be one short of a quorum,
+the receiver joining it. So the clause is not inductive under this step without knowing which servers
+committed a prefix and at what term, which `simFx` does not carry (nor `srvFacts`: a server's raft
+facts are its own; the spec state's other servers' logs are related to no ghost). Options (each a
+frozen `simFx` change): (a) strengthen the clause to an inductive form (a quorum of servers at a term
+at least the prefix's commit term holding it, with leader completeness of the append requests in flight
+of those terms); (b) carry per committed prefix its committing quorum's acknowledgements (raft's
+`isCommitted` justification) in `allFacts`, related to the spec servers' logs; (c) derive at the step
+from raft's global commit invariant (the ack table) a quorum holding the prefix that excludes the
+receiver (needs the other servers' logs in the spec state tied to their acks: not available). Recommended:
+(a), after a TLC check of the strengthened clause. The other pieces of task 3 (the new log's records,
+the raised commit's certificate by `commitIn_move`, the `appMid` states' facts, the new last index's
+bound, the close's `LogShapeOk`) wait on it.
+
+**Question 3: the append send lines cannot bound `RejectHint`** (task 4; and the won vote's broadcast,
+`MsgProp`'s appends, `MsgTransferLeader`'s catch-up). Every append gate (`"Hgsapp"`, `"#Hgaapp"`,
+`"#Hgpapp"`, `"#Hgcast"`, `"Hgxapp"`, `maybeSendAppend`'s `"Hgate"`) gives its message as `AppOk …`, the
+commit, the destination and `Match ≤ Index`; none bounds `mm.rejecthint`, which the send line's
+`TraceEv.Ok` reads (`Msg.NumsBelow`, q13-r1's F1) and the outbox's `OutOk` (`Msg.TrOk`) needs. Raft sends
+`0` (`maybeSendAppend`'s `Msg.mk .app … (W64 0) es`). Options: (a) add `mm.rejecthint = W64 0` to every
+append gate's premise (raft-internal: the `Spec` files of `maybeSendAppend`, `sendAppend`, `bcastAppend`,
+`stepLeader`, `stepCandidate`, `LemmasStepGates`, the untraced bundles mechanically; `maybeSendAppend`'s
+proof gives it by `rfl`); (b) add it to `AppOk` (`Protocol/Model.lean`: client-visible, and `isMessage`
+then carries it); (c) a weaker trace bound (frozen `TraceEv.Ok`). Recommended: (a). Until then the
+leader's response paths (`MsgAppResp` accepted or rejected, `MsgHeartbeatResp`) have only their receive
+line (`TracedRaftStepRecvLead.lean`); the rest of their pieces (the appends' pinned phase step from
+`phaseStepB_send_pin` with `lineEffect_msgApp`, their facts `fxPres_app` with `app_lead`/`pinAt_step`
+and `msgFacts` from raft's ghost: `ownRaftGhost_isLeader`, `ownRaftGhost_logFacts` with `FullOk_take`/
+`logRecs_drop` and a take at a general base) are mechanical once (a) is in.
