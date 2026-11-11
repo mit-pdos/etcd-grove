@@ -4,10 +4,40 @@ Branch `wal-w4`, worktree `/shared/etcd-grove-walw3` (W3's worktree, reused), cu
 `e891d049fc` (W3 landed: F-Z/F-N1/F-N2 in the etcd pin `71f99a4bf`). Coordinator: etcd-grove-81.
 Scratch: `/shared/tmp/wal-spec/w4/`.
 
-## State (2026-11-11)
+## State (2026-11-11, W4a in progress; stopped at a design question)
 
-Phase 1 (the Draft) done and stopped at its hard stop: `/shared/tmp/wal-spec/w4/draft.md`. No Lean
-edited, built or committed; this note is the only commit.
+W3b and the Draft's §9 decisions 1-8 approved (K-N confirmed, F-N4 pushed: goose-lean b18c2d500).
+W4a so far:
+1. lean merged (a259c0efd1: restart S3) — `2b86bf5f2f`.
+2. etcd pin → b18c2d500 (translated from GitHub, no file changes; go.mod/go.sum of examples,
+   k8s/etcd3, k8s/compactor from the published modules, `go mod verify`; `goose.py --check` clean
+   without `--src`); W3b's two nonissues with `kn_test.go` — `edb11c84da`.
+3. Trusted core, first part (built, not used by any result: tcb unchanged):
+   `GooseLang/Ext/AbsDisk/Impl.lean` (`WalOpG`, `WalEnt`, `walImg`, `WalDur`, `walDurFresh`,
+   `AbsDiskState`, `absDiskExt`, `walCrash`, `AbsDiskStep`, `absDisk_semantics`, the world
+   assumptions in the module docstring) and `Proof/.../storage/WalHist.lean` (Draft §1.3: `WalOp`,
+   `WalHist`, the `WalEnt`/`EntryM` bijection, `walLastHS`, `walMustSync`, `readEnt`,
+   `walFoldChkFrom`, `walKeep`, `walRead`, `walNewest`, `walReadFrom`, `walReadCut`, `walReadR`).
+   Forms decided (questions.md): `WalDur.meta` → `metadata` (`meta` is a Lean keyword); the steps'
+   operation/mark/position chosen by the step (only `#dir`/`#md` passed), the axioms say which.
+
+**Stopped at Q-W4a-1 (questions.md):** the Draft makes `walDisk` the extension's points-to and
+`walRecs`/`isWalStorage`/`wal.bootOk` definitions over it, but does not say how the server (generic
+in `GooseExts`, no `HasExt absDiskExt`) sees it, nor where `wal.bootOk`'s `walDisk dir []` comes
+from: minted by a trusted slot it contradicts the extension's own `localStart` ownership (two
+points-to for one directory, so `False`) in any closure that includes `absDiskExt`.
+
+## Next, in order (after Q-W4a-1)
+
+4. `GooseLang/Ext/AbsDisk/Specs.lean`: ghost state (one auth map, per-directory fragments; marks
+   `walSyncedLb` as mono-nat per directory), `ExtInterp`, the specs of the steps, `ExtCrashInterp`
+   (`walDisk_crash`), durableExt's `ExtCrashInterp` (identity).
+5. walpb/fileutil names-only in the etcd project (`TouchDirAll`; walpb types for `walSnapAt`), then
+   the 13 specs of Draft §1.4-1.5 as axioms (`Spec/.../storage/wal/*.lean`, `Proof/...` axioms).
+6. `walRecs`/`walFiles` as definitions, the five laws re-proved, `isWalStorage` restated, per the
+   answer to Q-W4a-1; split WalRecs's pure model out if `WalHist` ↔ `WalRecs` would cycle.
+7. Checks (full build, tcb `--check --update` expect +12 −2, collections, interfaces, gen-init,
+   goose), Freeze package `/shared/tmp/wal-spec/w4/freeze-w4a.md`; STOP before land.sh.
 
 ## The Draft in one paragraph
 
@@ -21,14 +51,9 @@ header correction at `k ≥ 1`). `walRecs`/`walFiles` become definitions (−2 a
 their statements; `walFiles` now means "the restart reads σ or a compaction of it" (C-W2). The closed
 theorem is over `goose_crash_adequacy` with `[durableExt, absDiskExt]`.
 
-## Next, in order
+## After W4a
 
-1. The coordinator's answers to the Draft's §9 decisions, and to finding K-N (§6).
-2. If K-N goes ahead: W3b (targeted `-killpl` runs with `/shared/tmp/wal-spec/w3/tester` at the first
-   start and at cuts; fork fix F-N4; nonissues; pin move: a hard stop).
-3. W4a: the extension, `WalHist.lean`, the specs as axioms, walpb/fileutil names-only, `isWalStorage`
-   restated, `walFiles` → definition; Freeze (`spec-reviewer` fresh + `axiom` skill).
-4. W4b, W4c as the Draft's §8.
+W4b, W4c as the Draft's §8 (Freeze review of W4a first: `spec-reviewer` fresh + the `axiom` skill).
 
 ## Pitfalls
 
