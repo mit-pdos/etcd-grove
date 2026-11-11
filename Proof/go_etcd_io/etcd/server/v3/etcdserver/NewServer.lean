@@ -907,16 +907,23 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws) γm ρ.rd on E₀.γs
       (by cases on <;> exact (show _ = ρ.rd.kv.log0 from rfl).trans Hlog0))
     $$ [$HisKV $Hst0 $Hkvs $Hrlb0] with ⟨#HkvS, Hw0, Hcr0⟩
-  -- (R8) the store's reader tokens, split: the stop's (`srvKeepRdN`), the request slots' 64, the
-  -- watch service's 64, the compactor's or the stop's 1, the apply thread's 1
-  have hRN : mvcc.api.mvccReaderN = srvKeepRdN + 64 + 64 + 1 + 1 := by
-    unfold srvKeepRdN; rw [mvcc.api.mvccReaderN_eq]; omega
-  ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + 64 + 64 + 1 + 1) $$ [Hrds]
+  -- (R8) the store's reader tokens, split: the stop's (`srvKeepRdN`), (per-type stage B2) the gRPC
+  -- run pool's raw stock (`srvRevokePoolN`, `srvServeStock`), the request slots' 64, the watch
+  -- service's 64, the compactor's or the stop's 1, the apply thread's 1
+  have hRN : mvcc.api.mvccReaderN = srvKeepRdN + srvRevokePoolN + 64 + 64 + 1 + 1 := by
+    -- (`srvRevokePoolN` an atom: no `Nat.sub` of a large literal is evaluated)
+    have hP : srvRevokePoolN = 268435455 := by unfold srvRevokePoolN backend.rdPoolN; omega
+    have := backend.rdStockN_val
+    rw [mvcc.api.mvccReaderN_eq]
+    unfold srvKeepRdN
+    omega
+  ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + srvRevokePoolN + 64 + 64 + 1 + 1) $$ [Hrds]
   · rw [← hRN]; iexact Hrds
   icases (hRS γm _ 1).1 $$ Hrds with ⟨Hrds, HrdApp⟩
   icases (hRS γm _ 1).1 $$ Hrds with ⟨Hrds, HrdC⟩
   icases (hRS γm _ 64).1 $$ Hrds with ⟨Hrds, HrdWatch⟩
-  icases (hRS γm _ 64).1 $$ Hrds with ⟨HrdKeep, HrdServe⟩
+  icases (hRS γm _ 64).1 $$ Hrds with ⟨Hrds, HrdServe⟩
+  icases (hRS γm _ srvRevokePoolN).1 $$ Hrds with ⟨HrdKeep, HrdP⟩
   -- `newCorruptionChecker(lg, srv, srv.kv.HashStorage())`
   wp_apply (h28 ws γm) $$ [] as %hst -
   · iframe #
@@ -1247,13 +1254,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     -- open token, by the census (`stop_census_open`): every reader token of the store back, with
     -- the closed store and its backend share, gives the storage's shares; the apply thread's read
     -- token's share, the write budget's (no one registered, `srvWTPool_reclaim`)
-    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + 64) $$ [HrdKeep HrdServe]
-    · iapply (hRS γm _ _).2; iframe HrdKeep HrdServe
-    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + 64 + 64) $$ [Hrds HrdWatch]
+    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + srvRevokePoolN) $$ [HrdKeep HrdP]
+    · iapply (hRS γm _ _).2; iframe HrdKeep HrdP
+    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + srvRevokePoolN + 64) $$ [Hrds HrdServe]
+    · iapply (hRS γm _ _).2; iframe Hrds HrdServe
+    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + srvRevokePoolN + 64 + 64) $$ [Hrds HrdWatch]
     · iapply (hRS γm _ _).2; iframe Hrds HrdWatch
-    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + 64 + 64 + 1) $$ [Hrds HrdC]
+    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + srvRevokePoolN + 64 + 64 + 1) $$ [Hrds HrdC]
     · iapply (hRS γm _ _).2; iframe Hrds HrdC
-    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + 64 + 64 + 1 + 1) $$ [Hrds HrdApp]
+    ihave Hrds : mvcc.api.mvccReaders γm (srvKeepRdN + srvRevokePoolN + 64 + 64 + 1 + 1)
+        $$ [Hrds HrdApp]
     · iapply (hRS γm _ _).2; iframe Hrds HrdApp
     ihave Hrds : mvcc.api.mvccReaders γm mvcc.api.mvccReaderN $$ [Hrds]
     · rw [hRN]; iexact Hrds
@@ -1542,8 +1552,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨Hbmr2, Hbmslots⟩
   -- (D22g (A)) the quota checks' reader slots of `bemu`, for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hbmslots with ⟨Hbms, Hbmslots⟩
+  -- (per-type stage B2, r5 §3.2's row `bemu`) the gRPC run pool's raw stock (`srvServeStock`)
+  have hPv : srvRevokePoolN = 268435455 := by unfold srvRevokePoolN backend.rdPoolN; omega
+  icases replicate_takeN _ srvRevokePoolN _ (by rw [hPv]; omega) $$ Hbmslots with ⟨HbmP, Hbmslots⟩
   -- (D19i part 2) the storage version monitor's
-  icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨HbmSV, -⟩
+  icases replicate_take1 _ _ (by rw [hPv]; omega) $$ Hbmslots with ⟨HbmSV, -⟩
   -- the raft node, its transport installed
   ihave #Henv : rnEnvOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)) γrn $$ []
   · iapply (rnEnvOk_of_clusterM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) γrn
@@ -1648,7 +1661,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (audit B4a) `monitorDowngrade`'s `lgMu` reader slot, and the monitors' configuration fields
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgMon, Hlgrs⟩
   -- (M2) one for the compactor's calls (`srvCompactR`)
-  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgC, -⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgC, Hlgrs⟩
+  -- (per-type stage B2, r5 §3.2's row `lgMu`) `Start`'s counted stock of two (`srvServeStock`)
+  icases replicate_take2 _ _ (by omega) $$ Hlgrs with ⟨HlgS1, HlgS2, -⟩
   ipersist CorruptCheckTimeS
   ipersist DowngradeCheckTimeS
   ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
@@ -1803,6 +1818,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
         try (ipureintro; exact Hmto)
     iframe Hbmr2 Hlts Hlgs HRDs Hbms
     iapply (mvccReaders_rep hRS γm 64) $$ HrdServe
+  -- (per-type stage B2, r5 §3.2) the gRPC run pool's raw stock: `srvRevokePoolN` store tokens, each
+  -- with a `bemu` slot (at `srvBemuReader` first, then paired at those forms: no bare `iframe` over
+  -- these lists)
+  ihave HbmP := replicate_mono _ (srvBemuReader (GF := GF) s) srvRevokePoolN
+    (by iintro H; iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact H) $$ HbmP
+  ihave HrdP := mvccReaders_rep hRS γm srvRevokePoolN $$ HrdP
+  ihave HstkP := replicate_pair (mvcc.api.mvccReaders γm 1) (srvBemuReader (GF := GF) s)
+    srvRevokePoolN $$ [HrdP HbmP]
+  · isplitl [HrdP]
+    · iexact HrdP
+    · iexact HbmP
   -- (D19i part 2) the storage version monitor's read token, with an open share
   -- (D19i part 2) the storage version monitor's backend access
   ihave HSV : srvSVRes s
@@ -2018,6 +2044,26 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod threadPool.initL srvRevokeInnerN 2
       iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ RD) _ srvRevokePoolN
       (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HIp with ⟨%γI, #HIp⟩
+  -- (revoke-open, 2026-11-06) the revocation's built part: the inner pool from `leadTimeMu`'s rest
+  -- and the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), `raftPool`, the store's pointer
+  ihave #Hrvkb : srvRevokeBuilt s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd on, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) $$ []
+  · iapply srvRevokeBuilt_intro s _ astl
+    isplitr
+    · iapply srvRevokeInnerPool_intro s _ γI
+      iexact HIp
+    iframe HrPool
+    rw [← Hastl]
+    iframe authStore
+    ipureintro; unfold backend.rdPoolN; omega
+  -- (per-type stage B2, r5 §4.2) the raw serving stocks (`srvServeStock`): the revocation's built
+  -- part, the run pool's store tokens with `bemu` slots (`HstkP`), `Start`'s two `lgMu` slots
+  ihave HsvStk : srvServeStock s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd on, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) $$ [HstkP HlgS1 HlgS2]
+  · iunfold srvServeStock
+    isplitr
+    · iexact Hrvkb
+    isplitl [HstkP]
+    · iexact HstkP
+    iframe HlgS1 HlgS2
   -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
   imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
   imodintro
@@ -2032,10 +2078,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
-  iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLsrv HttlR HBF ClientCertAuthEnabledS HStopK
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
+  isplitl [HsvStk]
+  · iexact HsvStk
+  iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
+  iframe HLsrv HttlR HBF ClientCertAuthEnabledS HStopK
   isplitr
   · unfold srvWatchBuilt
     iexists ws
@@ -2053,17 +2101,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · ipureintro; exact ⟨rfl, Hci0, HhP, rfl⟩
     iExactEq HB; rfl
-  -- (revoke-open, 2026-11-06) the revocation's built part: the inner pool from `leadTimeMu`'s rest
-  -- and the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), `raftPool`, the store's pointer
-  ihave #Hrvkb : srvRevokeBuilt s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd on, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) $$ []
-  · iapply srvRevokeBuilt_intro s _ astl
-    isplitr
-    · iapply srvRevokeInnerPool_intro s _ γI
-      iexact HIp
-    iframe HrPool
-    rw [← Hastl]
-    iframe authStore
-    ipureintro; unfold backend.rdPoolN; omega
   unfold srvBuiltG
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
   isplitr

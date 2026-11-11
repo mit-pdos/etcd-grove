@@ -123,8 +123,8 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
-  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlsrv, #Httl, -, -, Hkeep⟩)
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, Hstk,
+    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlsrv, #Httl, -, -, Hkeep⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr
@@ -154,8 +154,13 @@ theorem newServerMode.wp_proof
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, _, γk, τ
   simp only [Bool.false_eq_true, ↓reduceIte]
-  iframe
-  iframe #
+  -- (per-type stage B2) the raw stocks framed explicitly (`srvServeStock`)
+  isplitr
+  rotate_left
+  · isplitl [Hstk]
+    · iexact Hstk
+    iframe
+    iframe #
   ipureintro
   exact ⟨HE.1, HE.2.1, rfl, rfl, rfl⟩
 

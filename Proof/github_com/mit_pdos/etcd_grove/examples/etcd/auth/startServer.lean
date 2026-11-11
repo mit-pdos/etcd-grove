@@ -139,8 +139,8 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
-  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, Hstk,
+    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -192,6 +192,8 @@ theorem startServer.wp_proof
   subst hEr hx₀
   iunfold srvStartReaders at Hsr
   icases Hsr with ⟨Hrslots, -⟩
+  -- (per-type stage B2) the run pool's share of the read loop's slots
+  icases etcdstart.srvStartReaders_split srv ρ.rd $$ Hrslots with ⟨Hrslots, Hrun⟩
   (try wp_auto)
   iapply HΦ
   iright
@@ -205,21 +207,28 @@ theorem startServer.wp_proof
   iclear Hreq Hrd
   iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
   unfold etcdstart.kvServeStocks
-  iframe
-  iframe #
+  -- (per-type stage B2) the raw run-pool stocks first, framed explicitly; the pure part last (the
+  -- configuration is found by the framing)
   isplitr
-  · ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
-  isplitl [Htokp]
-  · iunfold etcdstart.srvPeerCtl
-    iexists τ
-    iframe Hnm Htokp
-  -- the TLS fallback off: the configuration's `ClientCertAuthEnabled` is the default `false`
-  isplitr
-  · iintro !> #Ht
-    iapply srvTLSId_false srv $$ [Ht]
-    iframe Ht
-    iExactEq Hcca; rfl
-  iapply HBF; ipureintro; first | rfl | trivial
+  rotate_left
+  · isplitl [Hstk]
+    · iexact Hstk
+    isplitl [Hrun]
+    · iexact Hrun
+    iframe
+    iframe #
+    isplitl [Htokp]
+    · iunfold etcdstart.srvPeerCtl
+      iexists τ
+      iframe Hnm Htokp
+    -- the TLS fallback off: the configuration's `ClientCertAuthEnabled` is the default `false`
+    isplitr
+    · iintro !> #Ht
+      iapply srvTLSId_false srv $$ [Ht]
+      iframe Ht
+      iExactEq Hcca; rfl
+    iapply HBF; ipureintro; first | rfl | trivial
+  ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
 
 end proof
 

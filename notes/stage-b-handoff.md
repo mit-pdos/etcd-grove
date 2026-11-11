@@ -132,9 +132,36 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
   - Built with `lake build` (0 errors): the lease package, the server's lease specs, `NewServer`,
     `revokeExpiredLeases`, v3rpc `ServerLeaseRead`/`InvLeaseKeepAlive`, mvccfull/mvccrand Links.
 
+- **B2, rest done (CP2)** (sub-agent, built with targeted `lake build`, 0 errors: `RevokeCtx`,
+  `InvServe`, `InvRestart`, `StopReaders`, `StopShutdown`, `NewServer` (proof and Spec), etcdstart
+  `Defs`, `Start`, `newServerMode`, `NewMember`, `Adequacy`, `AdequacyMembers`):
+  - `InvServe.lean`: `srvServeStock s E := srvRevokeBuilt s E ∗ replicate srvRevokePoolN
+    (mvccReaders E.γ 1 ∗ srvBemuReader s) ∗ srvLgReader s ∗ srvLgReader s` (the handle a started
+    member lacked, the raw stock, Start's counted 2); `srvRunReadStock s γr` (`srvRevokePoolN`
+    `srvReadReader`s); `srvRunN`, `srvRunPool s E γr` (level 3, persistent, not sealed);
+    `srvRunPool_init : srvServeStock ∗ srvRunReadStock ⊢ |={Em}=> srvRunPool ∗ srvRevokeBuilt ∗ 2
+    lgMu readers` — **the run pool is built at the serve step (B3), not in `memberUp`** (r5 §0
+    item 5 / D6: a non-cancelable pool would break `memberUp_stop`'s exact census);
+    `srvServeStock_built`, `replicate_pair`.
+  - `RevokeCtx.lean`: `srvRevokeBuilt_innerBorrow` (`£ 1 ∗ srvRevokeBuilt ∗ levelTok 2`),
+    `srvRevokeBuilt_bound`; `raftPool` via `srvRevokeBuilt_raftPool`.
+  - `NewServer.specG` post gains `srvServeStock srv E`; `srvKeepRdN := backend.rdStockN - 7 -
+    srvRevokePoolN - 64 - 64 - 1 - 1` (= `mvccReaderN - srvRevokePoolN - 130`; written over
+    `rdStockN`: over the sealed `mvccReaderN` the kernel recursed too deep); `srvStopReaders`,
+    `srvKeepRdN_total`, `srvStopReaders_intro` follow; `mvccReaders_ofRep`.
+  - etcdstart: `memberBuilt` gains `srvServeStock`; `memberUp`/`memberUpOn` gain `srvServeStock s E ∗
+    srvRunReadStock s ρ.rd` (carved in `Start.lean` from `srvStartReadN`: `memberReadN :=
+    srvStartReadN - srvRevokePoolN`, `srvStartReadN_split`, `srvStartReaders_split`; the server's
+    `start` untouched); `memberUp_served`/`memberUpOn_served` drop the new stocks (B3 surfaces them,
+    ~18 example callers); adequacy lemmas at `max (n + 2) srvLevelK`; `k8s_etcd3_adequate` proof only.
+  - Unchecked (import boundary files): `restart/startMember`, `restart/Defs`, `etcdstart/Served`,
+    `auth/startServer`, `k8s/etcd3/Adequacy`.
+  - `etc/bounds-check.py --check`: 377 vs baseline 374 (`srvRunReadStock`, `srvStartReaders_split`):
+    allow entries or baseline at CP3.
+
 ## Next, in order
 
-1. **B2, rest** (CP2), per r5 §4.2/§3.2: `srvServeStock` in `InvServe.lean` (raw stock `P =
+1. (done, see above) **B2, rest**, per r5 §4.2/§3.2: `srvServeStock` in `InvServe.lean` (raw stock `P =
    srvRevokePoolN` of `mvccReaders E.γ 1 ∗ srvBemuReader s`, the counted Start stock) in
    `NewServer`'s post beside `srvServeBuilt` (keep counts symbolic: the 80 GB compile; pair lists at
    their elements' own forms, as at `NewServer.lean:2010`); `srvKeepRdN := mvccReaderN - P - 130`

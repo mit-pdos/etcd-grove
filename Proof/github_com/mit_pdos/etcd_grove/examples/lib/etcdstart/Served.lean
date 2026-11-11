@@ -176,8 +176,8 @@ off), configuration `cfg` (with the logger `lg`, no tracer options, no progress-
 wait-registry name `γw`, the request and read views, the serving facts, the `GoAttach` resources, an
 `lgMu` and a `bemu` reader slot, the watchable store's readers, the reader stocks the gRPC runs take
 (`kvServeStocks`), the partitioner's part (`srvPeerCtl`) and the lease
-subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, ...) is
-dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
+subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, (per-type
+stage B2, until B3 serves from them) the gRPC run pool's raw stocks, ...) is dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
 a new conjunct of `memberUp` changes only these laws' proofs. -/
 theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (m : lease.Mode) :
@@ -191,8 +191,8 @@ theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : L
         srvPeerCtl γn s id ∗ srvLeaseRd s E m := by
   iintro Hup
   iunfold memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts, Hlgs,
-    Hrds, Hsts, Hbms, Hctl, HWR, #HLR, -⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, -, -, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu,
+    Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, #HLR, -⟩
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
   iframe Hreq Hrd Hsf Hgo Hlg3 Hbemu HWR Hctl HLR
@@ -200,13 +200,15 @@ theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : L
   iframe
 
 /-- **A member started with auth on, from its parts** (N6, 2026-11-06; `memberUpOn`'s introduction,
-for a starter outside the package, authkv's `startServer`): its conjuncts, the views in its mode (`E.authOn`, `true`), the reader stocks the
+for a starter outside the package, authkv's `startServer`): its conjuncts (per-type stage B2: with
+the gRPC run pool's raw stocks), the views in its mode (`E.authOn`, `true`), the reader stocks the
 gRPC runs take (`kvServeStocks`). -/
 theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) :
     ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
         cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+      srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
       isServerReqM E.authOn s E { ρ with wait := γw } ∗ isServerReadM E.authOn s E ρ.rd ∗
       srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
       srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
@@ -218,11 +220,13 @@ theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   irevert H
   rw [hon]
-  iintro ⟨#Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, HWR,
+  iintro ⟨Hstk, Hrun, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, HWR,
     ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hctl, #Htls, #HBF⟩
   iunfold memberUpOn
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
+  isplitl [Hstk]; · iexact Hstk
+  isplitl [Hrun]; · iexact Hrun
   iframe Hreq Hrd Hlb Hwb Hsf Htls HBF
   iframe
 
@@ -243,8 +247,8 @@ theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
         srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD := by
   iintro Hup
   iunfold memberUpOn at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts,
-    Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, #Htls, #HBF⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, -, -, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, -, #Hsf,
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, #Htls, #HBF⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc

@@ -157,13 +157,14 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     · rfl
     · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
       exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy_start (GF := k8setcd3GF) (hAsLit := by decide) (hEnv := HEnv) (n + 1) (n + 2) (k8setcd3Program clients ops) σ g
+  refine goose_adequacy_start (GF := k8setcd3GF) (hAsLit := by decide) (hEnv := HEnv) (n + 1) (max (n + 2) srvLevelK) (k8setcd3Program clients ops) σ g
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown"))
     (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩
     k8setcd3Names [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (by decide) (by decide)
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HNs HAs HDs ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
+    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
   intro hG HN HT HL
   have Hprem0 := Hprem hG
   have Hctx0 := Hctx hG

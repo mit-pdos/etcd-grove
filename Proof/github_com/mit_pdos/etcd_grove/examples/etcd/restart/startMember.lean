@@ -89,7 +89,7 @@ theorem startMember.wp_proof
   wp_auto
   iunfold etcdstart.memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
     Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR, Hlrd, Hkeep⟩
   -- the listener registered, closable (the draft boundary): it serves the peer address with the
   -- member's raft protocol
@@ -113,7 +113,7 @@ theorem startMember.wp_proof
   -- `s.Start()`
   wp_apply (etcdstart.wp_Start_built wp_Start s ρ E₀ lg γn id N true
       (ReceiptBoundLe.le (GF := GF) (N + 1)) .none (ReceiptBoundLe.le (GF := GF) (2 ^ 48)))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hkeep] as Hup
+    $$ [Hstk Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hkeep] as Hup
   · iframe Htok
     iframe #
     iunfold etcdstart.memberBuilt
@@ -185,7 +185,7 @@ theorem startMember.wp_proofRestart
   icases Hmb with ⟨%ai₀, %at₀, %c₀, %x₀, Hmb⟩
   iunfold etcdstart.memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
     Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR⟩
   -- the listener registered, closable (the draft boundary): it serves the peer address with the
   -- member's raft protocol
@@ -208,7 +208,7 @@ theorem startMember.wp_proofRestart
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_StartR s ρ' E₀ lg γn id N true)
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
+    $$ [Hstk Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
   · iframe Htok
     iframe #
     iunfold etcdstart.memberBuiltR

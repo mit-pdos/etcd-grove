@@ -25,7 +25,9 @@ takes from them only through narrow laws, one per use: the pools' borrows and gi
 `srvRevokeInnerLoan_giveBack`), `raftPool` (`srvRevokeCtx_raftPool`), the bound `ensureLeadership`
 takes (`srvRevokeCtx_bound`), the views (`srvRevokeCtx_views`), `WithRoot`'s premise
 (`srvRevokeCtx_withRoot`), the credential (`srvRevokeCtx_cred`) and the context
-(`srvRevokeCtx_ctx`).
+(`srvRevokeCtx_ctx`). (Per-type stage B2) A gRPC run borrows `I` from the built part a member
+holds (`srvRevokeBuilt_innerBorrow`, in `srvServeStock`), and the run pool's `initL` takes the bound
+from it (`srvRevokeBuilt_bound`).
 -/
 module
 
@@ -283,6 +285,39 @@ theorem srvRevokeInnerLoan_giveBack (s : Loc) (E : apply.AEnv GF) (Em : CoPset)
   iapply threadPool.giveBackL srvRevokeInnerN 2 γ iprop(srvLeadTimeReader s ∗ E.RD) Em HN
   iframe Hl Hlt HRD
   iexact HI
+
+/-- **Borrow the inner pool's slots from the built part** (per-type stage B2, r5 §3.3): a gRPC run's
+level-2 loan, from what a member `NewServer` built holds (`srvServeStock`'s `srvRevokeBuilt`), with
+level 2 of a thread token and a later credit; given back with `srvRevokeInnerLoan_giveBack`. -/
+theorem srvRevokeBuilt_innerBorrow (s : Loc) (E : apply.AEnv GF) (Em : CoPset)
+    (HN : ↑srvRevokeInnerN ⊆ Em) :
+    £ 1 ∗ srvRevokeBuilt (GF := GF) s E ∗ levelTok 2 ⊢
+      |={Em}=> (srvLeadTimeReader s ∗ E.RD) ∗ srvRevokeInnerLoan s E := by
+  iintro ⟨Hlc, #Hb, H2⟩
+  iunfold srvRevokeBuilt at Hb
+  icases Hb with ⟨#HI, -, -, -⟩
+  iunfold srvRevokeInnerPool at HI
+  icases HI with ⟨%γ, #HI⟩
+  imod threadPool.borrowL_lc srvRevokeInnerN 2 γ iprop(srvLeadTimeReader s ∗ E.RD) Em HN
+    $$ [Hlc HI H2] with ⟨HR, Hl⟩
+  · iframe Hlc H2; iexact HI
+  imodintro
+  iframe HR
+  iunfold srvRevokeInnerLoan
+  iexists γ
+  iframe Hl
+  iexact HI
+
+/-- The server's thread bound within the backend's pool of readers, out of the revocation's built
+part (`NewServer`'s premise; per-type stage B2: what the gRPC run pool's `threadPool.initL` needs,
+`srvRunPool_init`). -/
+theorem srvRevokeBuilt_bound (s : Loc) (E : apply.AEnv GF) :
+    srvRevokeBuilt (GF := GF) s E ⊢ ⌜threadBound GF ≤ backend.rdPoolN⌝ := by
+  iintro #Hb
+  iunfold srvRevokeBuilt at Hb
+  icases Hb with ⟨-, -, -, %Hbnd⟩
+  ipureintro
+  exact Hbnd
 
 /-- The transport's pool of `lgMu` readers (the outer goroutine's `Logger()`). -/
 theorem srvRevokeCtx_raftPool (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)

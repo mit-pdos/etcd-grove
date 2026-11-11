@@ -79,7 +79,7 @@ theorem NewMember.wp_proof
   wp_auto
   iunfold memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
     Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlr, Hkeep⟩
   -- (2026-10-24, rafthttp stage 6d) the listener serves the peer address with the raft protocol
   -- (the program start's reservation)

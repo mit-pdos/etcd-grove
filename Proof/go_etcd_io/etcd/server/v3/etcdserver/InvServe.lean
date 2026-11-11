@@ -19,6 +19,11 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
   the fork's `NewWatchServer` keeps the adjusted interval local, and the field is read-only in
   `srvServeCfg`.)
 * `replicate_takeN`, `replicate_sepL`: splitting and pairing replicated resources.
+* (Per-type stage B2, 2026-11-11, r5 §3.2-§3.3 and §4.2) `srvServeStock s E`: the raw stocks
+  `NewServer` hands out beside `srvServeBuilt` until B3 (the revocation's built part, `srvRevokePoolN`
+  store tokens with `bemu` slots, `Start`'s two `lgMu` slots); `srvRunReadStock`, the read loop's
+  share; the gRPC run pool `srvRunPool` (level 3), built from both at the serve step
+  (`srvRunPool_init`).
 -/
 module
 
@@ -65,6 +70,12 @@ theorem replicate_mono (P Q : IProp GF) (n : Nat) (h : P ⊢ Q) :
     isplitl [HP1]
     · iapply h $$ HP1
     · iapply ih $$ HP
+
+/-- `n` copies of `P` and `n` of `Q` are `n` of `P ∗ Q` (as `InvBoot`'s `replicate_sep`). -/
+theorem replicate_pair (P Q : IProp GF) (n : Nat) :
+    ([∗list] _x ∈ List.replicate n (), P) ∗ ([∗list] _x ∈ List.replicate n (), Q) ⊢
+      [∗list] _x ∈ List.replicate n (), iprop(P ∗ Q) :=
+  BigSepL.bigSepL_sep_eqv.2
 
 end lemmas
 
@@ -135,7 +146,101 @@ def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3
     ([∗list] _x ∈ List.replicate K (), srvBemuReader s) ∗
     ([∗list] _x ∈ List.replicate K (), mvcc.api.mvccReaders E.γ 1))
 
+/-- **The serving stocks `NewServer` hands out raw** (per-type stage B2, 2026-11-11; r5 §3.2 and
+§4.2, beside `srvServeBuilt`'s 64-stocks until stage B3): the revocation's built part
+(`srvRevokeBuilt`, persistent: the inner pool `I` of `leadTimeMu` and `E.RD` a gRPC run borrows at
+level 2, `srvRevokeBuilt_innerBorrow`, and `raftPool` at level 1, `srvRevokeBuilt_raftPool`);
+`srvRevokePoolN` copies of a store reader token with a reader slot of `bemu`, the raw stock the
+gRPC run pool is made of (`srvRunPool_init`, at the serve step: r5's D6, so that a member that
+never serves returns the store's tokens to its stop, `srvStopReaders_intro`); and `Start`'s counted
+stock of two `lgMu` reader slots (r5 §3.2's row `lgMu`; until B3 `Start` still spends two of
+`srvServeBuilt`'s). -/
+def srvServeStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(srvRevokeBuilt s E ∗
+    ([∗list] _x ∈ List.replicate srvRevokePoolN (),
+      iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)) ∗
+    srvLgReader s ∗ srvLgReader s)
+
+/-- **The read loop's reader slots a started member keeps for its gRPC runs** (per-type stage B2,
+r5 §3.2's row `readMu`): `srvRevokePoolN` of them, the run pool's other raw stock
+(`srvRunPool_init`), carved from `start`'s by `etcdstart`'s `memberUp`. -/
+def srvRunReadStock (s : Loc) (γr : ReadNames) : IProp GF :=
+  iprop([∗list] _x ∈ List.replicate srvRevokePoolN (), srvReadReader s γr)
+
+/-- The gRPC run pool's namespace. -/
+def srvRunN : Namespace := nroot .@ "srvRun"
+
+/-- **The gRPC run pool** (per-type stage B2, r5 §3.3: level 3; persistent): a store reader token,
+a reader slot of the read loop's lock and one of `bemu`, which a KV or lease run (and the watch
+loops) borrows with level 3 of its thread token (`threadPool.borrowL`). Built at the serve step from
+the raw stocks (`srvRunPool_init`: r5's D6). Not sealed: the gRPC adapters are generic in the
+pools (r5 §3.4). -/
+def srvRunPool (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRunN 3 γ
+    iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s))
+
+instance srvRunPool_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvRunPool (GF := GF) s E γr) := by
+  unfold srvRunPool; infer_instance
+
 end defs
+
+section runPool
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The revocation's built part, out of the raw stocks** (persistent; the stock kept): what a gRPC
+run borrows the inner pool `I` from at level 2 (`srvRevokeBuilt_innerBorrow`) and `raftPool` at
+level 1 (`srvRevokeBuilt_raftPool`). -/
+theorem srvServeStock_built (s : Loc) (E : apply.AEnv GF) :
+    srvServeStock (GF := GF) s E ⊢ srvRevokeBuilt s E ∗ srvServeStock s E := by
+  iintro Hst
+  iunfold srvServeStock at Hst
+  icases Hst with ⟨#Hb, Hp, Hlg1, Hlg2⟩
+  iframe Hb
+  iunfold srvServeStock
+  iframe Hb
+  isplitl [Hp]
+  · iexact Hp
+  iframe Hlg1 Hlg2
+
+/-- **The gRPC run pool, from the raw stocks** (per-type stage B2, r5 §3.3): `threadPool.initL` at
+level 3 over `srvServeStock`'s `srvRevokePoolN` store tokens with `bemu` slots and the read loop's
+`srvRunReadStock`, paired; the bound `threadBound GF ≤ srvRevokePoolN + 1` from the built part
+(`srvRevokeBuilt_bound`). The stock's other parts come back. -/
+theorem srvRunPool_init (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Em : CoPset) :
+    srvServeStock (GF := GF) s E ∗ srvRunReadStock s γr ⊢
+      |={Em}=> srvRunPool s E γr ∗ srvRevokeBuilt s E ∗ srvLgReader s ∗ srvLgReader s := by
+  iintro ⟨Hst, Hrd⟩
+  iunfold srvServeStock at Hst
+  icases Hst with ⟨#Hb, Hp, Hlg1, Hlg2⟩
+  ihave %Hbd := srvRevokeBuilt_bound s E $$ Hb
+  iunfold srvRunReadStock at Hrd
+  -- (paired at the elements' own forms, then rearranged element by element: no bare `iframe`
+  -- over these `srvRevokePoolN`-long lists)
+  ihave Hpr := replicate_pair iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)
+    (srvReadReader s γr) srvRevokePoolN $$ [Hp Hrd]
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact Hrd
+  ihave Hpr := replicate_mono
+    iprop((mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s) ∗ srvReadReader s γr)
+    iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s) srvRevokePoolN
+    (by iintro ⟨⟨H1, H2⟩, H3⟩; iframe H1 H2 H3) $$ Hpr
+  imod threadPool.initL srvRunN 3
+      iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s) Em srvRevokePoolN
+      (by simp only [srvRevokePoolN, backend.rdPoolN] at Hbd ⊢; omega) $$ Hpr with ⟨%γ, #Hpool⟩
+  imodintro
+  isplitr
+  · iunfold srvRunPool
+    iexists γ
+    iexact Hpool
+  iframe Hb Hlg1 Hlg2
+
+end runPool
 
 end EtcdGrove
 end Perennial

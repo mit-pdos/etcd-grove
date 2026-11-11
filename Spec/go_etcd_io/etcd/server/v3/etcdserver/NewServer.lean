@@ -329,6 +329,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
+          -- (per-type stage B2, 2026-11-11, r5 §4.2) the raw serving stocks, beside
+          -- `srvServeBuilt`'s 64-stocks until B3: the revocation's built part, the gRPC run pool's
+          -- store tokens with `bemu` slots, `Start`'s two `lgMu` slots
+          srvServeStock srv E ∗
           srvWatchBuilt srv E ∗
           -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
           -- directory entry are in the built part (`srvSnapBoot`'s `srvSnapRes`)
