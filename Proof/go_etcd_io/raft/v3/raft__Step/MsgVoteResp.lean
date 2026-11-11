@@ -117,7 +117,10 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-18, D19b stage 5) a time receipt, raised by one (the step's first resolution)
         "#Hrc" ∷ ⧖ k0 ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R ∗
+        -- (2026-11-11, slice 25b) the loan to a win's `Replicate` gate (`StepG.Tw`) from the raised
+        -- receipt
+        "HTw" ∷ (⧖ (k0 + 1) -∗ R.Tw) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (B : Int), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -140,7 +143,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hto Hterm Hwf HL
   have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; w32_ne
   have Hnprop : m.Type' ≠ MsgProp := by rw [Hty]; w32_ne
-  wp_start as ⟨Hphys, Hm, #Hrc, HG, Hgates⟩
+  wp_start as ⟨Hphys, Hm, #Hrc, HG, Hgates, HTw⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   wp_gets
@@ -354,14 +357,21 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         wp_gets
         ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
         · iapply rcvSrc_ne; notsnap_tac
-        gates_cand
-        wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 (.inl Hty)
+        -- (2026-11-11, slice 25b) the candidate's gates at `stepCandidate`'s loan (the raised receipt)
+        ihave Hcg := stepFnGates_candidate c r id s m _ _ R ∅ s (preState_nobf hnbf ∅)
+          (by rw [Hrole]; simp) $$ Hgstep
+        ihave Hcg := candidateGates_tw c r id s m _ _ _ _ _ _ _ R.Tw iprop(⧖ (k0 + 1)) $$ [HTw Hcg]
+        · iframe Hcg; iintro %_ Hr; iapply HTw $$ Hr
+        ihave #Hrc00 : ⧖ k0 $$ []
+        · iapply (preceipt_mono (GF := GF) (show k0 ≤ k0 + 1 by omega)); iexact Hrc
+        iunfold candidateGates at Hcg
+        wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 k0 (.inl Hty)
             (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hrole] at Hc; exact absurd Hc (by decide))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
         ihave HG := stepOutG_or c m s R _ _ $$ HGo
         ihave HG := HG $$ %(fun hψ hc => hψ (Or.inr (Or.inr ⟨Or.inl ⟨hc.1, by first | exact hc.2.2.1 | rfl⟩, hc.2.2.2⟩)))
@@ -529,13 +539,13 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
         · iapply rcvSrc_ne; notsnap_tac
         gates_cand
-        wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 (.inl Hty)
+        wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0 (.inl Hty)
             (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
         ihave HG := stepOut_or R _ _ $$ HGo
         ihave HG := stepOutG_of_not c m s R (fun h => absurd (Hrole.symm.trans h.2.2.1) (by decide)) $$ HG

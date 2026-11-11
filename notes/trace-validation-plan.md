@@ -1105,6 +1105,24 @@ traced `RawNode.Tick` (Q25: a leader's `r.tick` is not known to be `tickHeartbea
 
   **Taken by the coordinator (raft-internal): (a)** (`pendingRel`'s `.self` case carries `recvTokOf` when
   traced).
+
+**Q8 stage 1 (slice 25b), 2026-11-11 (branch `trace-check-q8s25b`): a candidate's won vote, raft's side
+done; the won path not done.** Slice 24b's design taken by the coordinator, its form the agent's
+(`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). Done: the win's ghost update in three phases
+(`Protocol/Refinement.lean` additions `winPend`, `ownRaftGhost_step_win_reg`, `ownRaftGhost_step_win_entry`;
+`ownRaftGhost_step_win` their composition); the receipt through `stepCandidate.spec` (`#Hrc`, the win's
+guarded `"Hgrep"`) and `candidateGates` (the loan `StepG.Tw`, `winLend`); `CloseMid`'s won case and
+`Step`'s `MsgVoteResp` arm split (`raft__Step/VoteWin.lean`); the family's ghost step `ghost_stepWin_reg`,
+`ghost_stepWin_entry` (`TracedWinGhost.lean`). Left (each item in the decisions entry): the `BecomeLeader`
+line's phase step (a leader phase carrying `reset`'s `Progress`; `hc` as the path's hypothesis until A6)
+and `FxPresU` (`specInv_becomeLeader` from `becomeLeader_hyps`, the term log inside it), the empty entry's
+`Replicate` line, the self-acknowledgement, the broadcast appends, the close and the bundle. Checked (branch at
+`trace-check` `259ced3753` plus this slice): full `lake build` green (13822 jobs); `etc/tcb-report.py
+--check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated;
+`interface/` differs in `Protocol/Refinement.txt` (the three additions) and `stepCandidate.txt` (`#Hrc`, the
+win's guarded `"Hgrep"`); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft`
+unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

@@ -72,7 +72,7 @@ theorem stepCandidate.wp_proof
     stepCandidate.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 8) the gated specs, each arm consuming its gates; a `MsgSnap` untraced
   have wp_raft_becomeFollowerU := raft.becomeFollower.untraced wp_raft_becomeFollower
-  intro c scfg r id s ml m ents sn rs sv cl G G' Gf G1 G2 Hty Hterm Hrole Happ Hhb Hpvnw Hsnap
+  intro c scfg r id s ml m ents sn rs sv cl G G' Gf G1 G2 k0 Hty Hterm Hrole Happ Hhb Hpvnw Hsnap
     Hpinv Hidx' Hidx
   wp_start as H
   iNamed H
@@ -183,13 +183,12 @@ theorem stepCandidate.wp_proof
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
       ispecialize Hgbl $$ %(⟨trivial, Hwin.2⟩)
-      -- (2026-11-11, slice 24b) `becomeLeader`'s receipt: the least one (the spec's `"Hgrep"` takes none)
-      imod (preceipt_zero (GF := GF)) with #Hrc00
+      -- (2026-11-11, slice 25b) `becomeLeader`'s receipt: the caller's, raised to `"Hgrep"`
       wp_apply wp_raft_becomeLeader c r id _ (G s.outbox) G1 G2
-          (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])) 0 (by simp only [Hrole]; decide)
-          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $Hrc00 $HG $Hgbl Hgrep $Hgack]
+          (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])) k0 (by simp only [Hrole]; decide)
+          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $Hrc $HG $Hgbl Hgrep $Hgack]
         as %pvs1 ⟨Hphys, %Hmb, HG⟩
-      · iintro - HG; iapply Hgrep $$ HG
+      · iintro #Hr HG; iapply Hgrep $$ %(⟨trivial, Hwin.2⟩) Hr HG
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
       ihave #Hgc := Hgcast $$ %(⟨trivial, Hwin.2⟩)

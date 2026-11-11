@@ -523,7 +523,7 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
           iframe Hgh Hc
         isplitr; · iintro %hg; exact (hnH hg).elim
         isplitr; · iintro %hg; exact (hnVR hg.1).elim
-        isplitr; · iintro %hg; exact hg.elim
+        isplitr; · iintro %hg; exact (hnVR hg.1).elim
         isplitr; · iintro %hg; exact hg.elim
         isplitr; · imodintro; iintro %hg; exact (hnVR hg.1).elim
         isplitr; · rw [htr]; iexact Hnosnap

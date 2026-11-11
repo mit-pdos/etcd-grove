@@ -952,10 +952,10 @@ theorem followerGates_false (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Me
 
 /-- `stepCandidate`'s gates at resources no path reaches (the log's `TrNoSnap` given). -/
 theorem candidateGates_false (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (cl : List w8) :
+    (cl : List w8) (Tw : IProp GF) :
     TrNoSnap (GF := GF) s.gh.tr s.logst ⊢
       candidateGates (GF := GF) c r id s m ents cl (fun _ => iprop(⌜False⌝)) (fun _ => iprop(⌜False⌝))
-        iprop(⌜False⌝) iprop(⌜False⌝) iprop(⌜False⌝) := by
+        iprop(⌜False⌝) iprop(⌜False⌝) iprop(⌜False⌝) Tw := by
   iintro #Hns
   iunfold candidateGates
   dsimp only

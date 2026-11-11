@@ -471,7 +471,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
         isplitr
         · iintro %h; exact (localTy_ne hp.1 (by decide) h.1).elim
         isplitr
-        · iintro %h; exact h.elim
+        · iintro %h; exact (localTy_ne hp.1 (by decide) h.1).elim
         isplitr
         · iintro %h; exact h.elim
         isplitr

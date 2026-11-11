@@ -243,6 +243,11 @@ structure StepG (GF : BundledGFunctors) where
   entries' data and the receipt `appendEntry` raises, traced only); a caller's own resources leave it
   `emp`, and no gate reads it but `"Hgprep"` (`notes/decisions.md`, "Q8 stage 1 (slice 23a)"). -/
   Tp : List EntryM → IProp GF := fun _ => iprop(emp)
+  /-- (2026-11-11, slice 25b) **What `Step` lends a won vote's empty entry's `Replicate` gate**
+  (`candidateGates`' `"Hgrep"`): set by `Step`'s side (`ghostIn`: `winLend`, the receipt covering the
+  entry's index, traced only); a caller's own resources leave it `emp`, and no gate reads it but
+  `"Hgrep"` (`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). -/
+  Tw : IProp GF := iprop(emp)
 
 /-- What `Step` gives back of the caller's resources, at the outbox `o` it ended with. -/
 def stepOut (R : StepG GF) (o : List Msg) : IProp GF :=
@@ -317,7 +322,7 @@ def followerGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (e
 /-- `stepCandidate.spec`'s gates, at `G`, `G'`, `Gf`, `G1`, `G2` (2026-11-10, slice 14: `G`, `G'` indexed
 by the outbox). -/
 def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
-    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) : IProp GF :=
+    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (Tw : IProp GF) : IProp GF :=
   iprop(
       "Hgbf" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 2) id (becomeFollower s s.term m.From') c) Gf) ∗
@@ -334,7 +339,10 @@ def candidateGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (
       "Hgbl" ∷ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 3) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G1) ∗
-      "Hgrep" ∷ (G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) 1 G2) ∗
+      -- (2026-11-11, slice 25b) with what `Step` lends it (`Tw`: `StepG.Tw`), on the win
+      "Hgrep" ∷ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ Tw -∗
+        G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) 1 G2) ∗
       "Hgack" ∷ (G2 -∗ HookGateOpt s.gh.tr r (sendOutGate id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c MsgAppResp
           [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])
         (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })]))) ∗
@@ -461,7 +469,7 @@ def stepFnGates (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ent
     (⌜(preState s m pvs).role = .follower⌝ -∗
       followerGates c r id (preState s m pvs) m ents ctx R.G1 R.GE) ∧
     (⌜(preState s m pvs).role = .candidate ∨ (preState s m pvs).role = .preCandidate⌝ -∗
-      candidateGates c r id (preState s m pvs) m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2) ∧
+      candidateGates c r id (preState s m pvs) m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw) ∧
     (⌜(preState s m pvs).role = .leader⌝ -∗
       leaderGates c r id (preState s m pvs) m ents (R.Tp ents) R.G1 R.GE R.Gp1 R.Gp2 R.Gc))
 
@@ -523,6 +531,41 @@ theorem stepOutG_of_ne (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o 
 
 end outg
 
+section closemid
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- (2026-11-11, slice 23a) **The end states the closing wand may give raft's ghost state back past `s`**
+(`stepClose`'s second disjunct, `CloseMid`): on a leader's `MsgProp` of no configuration change, the
+proposed state (`proposed id s ents`: the batch appended, the self-acknowledgement queued), the step's
+end state past its append (its log the proposed state's); `Step` then steps the rest (the broadcast).
+(2026-11-11, slice 25b) Or on a candidate's `MsgVoteResp` of its term, the won state (`becomeLeader`
+after the tally: the empty entry appended, the self-acknowledgement queued, at a `Progress` map of
+`reset`'s `Match` values), the step's end state past it (its log the won state's: the election won);
+`Step` then steps the broadcast (`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). -/
+def CloseMid (id : w64) (m : MessageM) (ents : List EntryM) (s s1 s' : NState) : Prop :=
+  (m.Type' = MsgProp ∧ s.role = .leader ∧ (∀ e ∈ ents, ¬ IsConfEnt e) ∧
+    s1 = proposed id s ents ∧ s1.logst = s'.logst) ∨
+  (m.Type' = MsgVoteResp ∧ s.role = .candidate ∧ m.Term' = s.term ∧
+    ∃ pvs : GMap w64 Progress, prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals ∧
+      s1 = { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs } ∧
+      s1.logst = s'.logst)
+
+theorem CloseMid.ty {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
+    (h : CloseMid id m ents s s1 s') : m.Type' = MsgProp ∨ m.Type' = MsgVoteResp :=
+  h.elim (fun h => .inl h.1) (fun h => .inr h.1)
+
+/-- (slice 25b) A close of another type than `MsgProp` and `MsgVoteResp` is none past `s`. -/
+theorem CloseMid.not_of {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
+    (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp) : ¬ CloseMid id m ents s s1 s' :=
+  fun h => h.ty.elim hnp hnv
+
+/-- (slice 25b) A proposal's close past `s` (the `MsgProp` case). -/
+theorem CloseMid.prop {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
+    (h : m.Type' = MsgProp ∧ s.role = .leader ∧ (∀ e ∈ ents, ¬ IsConfEnt e) ∧
+      s1 = proposed id s ents ∧ s1.logst = s'.logst) : CloseMid id m ents s s1 s' := .inl h
+
+end closemid
+
 section close
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -543,16 +586,15 @@ def propLend (γ : RaftNames) (s : NState) (ents : List EntryM) : IProp GF :=
       ⧖ ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + ents.length))
   else iprop(emp)
 
-/-- (2026-11-11, slice 23a) **The end states the closing wand may give raft's ghost state back past `s`**
-(`stepClose`'s second disjunct, `CloseMid`): on a leader's `MsgProp` of no configuration change, the
-proposed state (`proposed id s ents`: the batch appended, the self-acknowledgement queued), the step's
-end state past its append (its log the proposed state's); `Step` then steps the rest (the broadcast). -/
-def CloseMid (id : w64) (m : MessageM) (ents : List EntryM) (s s1 s' : NState) : Prop :=
-  m.Type' = MsgProp ∧ s.role = .leader ∧ (∀ e ∈ ents, ¬ IsConfEnt e) ∧
-    s1 = proposed id s ents ∧ s1.logst = s'.logst
-
-theorem CloseMid.ty {id : w64} {m : MessageM} {ents : List EntryM} {s s1 s' : NState}
-    (h : CloseMid id m ents s s1 s') : m.Type' = MsgProp := h.1
+/-- (2026-11-11, slice 25b) **What `Step` lends a traced won vote's empty entry's `Replicate` gate**
+(`StepG.Tw`, `candidateGates`' `"Hgrep"`): the receipt covering the entry's index (the log's last index
+plus one), which `becomeLeader`'s `appendEntry` raises before the line; the win's last ghost phase
+(`ownRaftGhost_step_win_entry`) consumes it there, before the broadcast's lines whose facts read the
+entry's record. Nothing untraced. -/
+def winLend (γ : RaftNames) (s : NState) : IProp GF :=
+  if s.gh.tr.isSome then
+    iprop(⧖ ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + 1))
+  else iprop(emp)
 
 /-- (2026-11-11, slice 23a) **The closing wand's ghost state back at `s`** (`stepClose`'s first
 disjunct, `CloseAt`): on a traced leader's `MsgProp` of no configuration change, only when the batch was
@@ -585,7 +627,7 @@ theorem CloseAt.of_traced {id : w64} {m : MessageM} {ents : List EntryM} {s s' :
 /-- The caller's resources with raft's ghost state put into the first (the receive hook's gate's
 argument): `raft.Step.spec`'s gates take the ghost state from `Step` there. -/
 def ghostIn (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (R : StepG GF) : StepG GF :=
-  { R with G := iprop(ownStepGhost γ md c id s ∗ R.G), Tp := propLend γ s }
+  { R with G := iprop(ownStepGhost γ md c id s ∗ R.G), Tp := propLend γ s, Tw := winLend γ s }
 
 /-- **Raft's ghost state, given back to `Step`** by the caller from whichever resource the path ended
 in (`stepOut R`), with the caller's own `Gout` at the step's end state `s'` (2026-11-10, slice 12: the

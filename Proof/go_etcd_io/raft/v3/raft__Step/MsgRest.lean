@@ -229,12 +229,12 @@ local macro "local_candidate" : tactic => `(tactic| (
   ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
   · iapply rcvSrc_ne; notsnap_tac
   gates_cand
-  wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 (by ty_cases simp [Hty])
+  wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0 (by ty_cases simp [Hty])
       (by ty_other) (by simp [Hrole]) (by ty_other) (by ty_other)
       (fun _ Hc => by ty_cases (rw [Hty] at Hc; exact absurd Hc (by w32_ne)))
       (by ty_other)
     Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-  · iframe Hphys Hsrc0 HG Hcg
+  · iframe Hphys Hrc00 Hsrc0 HG Hcg
     rw [if_neg (by ty_cases (rw [Hty]; w32_ne))]
     iexact Hm
   ihave HG := stepOut_or R _ _ $$ HGo
