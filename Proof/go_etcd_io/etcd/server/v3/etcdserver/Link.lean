@@ -232,6 +232,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend__Cl
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Close
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
 public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
@@ -2765,6 +2766,10 @@ theorem bootstrappedStorage.wp_Close :
 theorem bootstrappedServer.wp_Close :
     bootstrappedServer.Close.spec (GF := GF) (hG := hG) :=
   bootstrappedServer.Close.wp_proof bootstrappedStorage.wp_Close
+
+theorem bootstrappedWAL.wp_MemoryStorage :
+    bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.MemoryStorage.wp_proof wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_SetHardState MemoryStorage.wp_Append
 
 theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=

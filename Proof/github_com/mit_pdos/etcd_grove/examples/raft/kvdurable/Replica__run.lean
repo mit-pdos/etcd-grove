@@ -1161,7 +1161,7 @@ theorem Replica.run.wp_proof
               memLog ρ.γs (uint.nat lo.snap.Metadata'.Index') DFrac.discard [memDummy lo.snap] ∗
               memEnd ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1)) }} := by
         iintro %Φ HP HΦ
-        iapply wp_ApplySnapshot ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key) none k old lo.ptr _ lo.snap _ Hk
+        iapply wp_ApplySnapshot.1 ρ.ms ρ.γs (kdJ γ.r.cluster ρ.key) none k old lo.ptr _ lo.snap _ Hk
           (by word) $$ HP
         inext
         iintro ⟨Hs, Hc, Hd, He, -, -⟩

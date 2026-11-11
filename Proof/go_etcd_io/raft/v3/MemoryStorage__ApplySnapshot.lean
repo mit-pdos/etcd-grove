@@ -57,16 +57,34 @@ private theorem wp_EnsureSnapshot_arg
     iapply HΦ
     iapply ownSnapS_M $$ Hs
 
-theorem MemoryStorage.ApplySnapshot.wp_proof
+/-- Both triples at once (restart S3, 2026-11-11): the owned range from `j ≤ s`, or (`s = 0`) from
+`j = 1` with the dummy at `0` already the snapshot's (`HZ`), which takes the place of inserting it. -/
+private theorem wp_ApplySnapshot_gen
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG))
     (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
-    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
-    MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
+    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG))
+    (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat)
+    (old : List EntryM) (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface)
+    (Hjs : j ≤ uint.nat sv.Metadata'.Index' ∨ (uint.nat sv.Metadata'.Index' = 0 ∧ j = 1))
+    (Hs61 : uint.nat sv.Metadata'.Index' < 2^61) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memStorAt ms γs J o
+        iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
+      memLog γs j (DFrac.own 1) old ∗ memEnd γs (j + old.length) ∗
+      snapArg sp dq sv ∗ memSnapLb γs 0 ∗ globalAddr ErrSnapOutOfDate ↦□ eood ∗
+      (⌜j ≤ uint.nat sv.Metadata'.Index'⌝ ∨ memLog γs 0 DFrac.discard [memDummy sv]) }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot")) (Val #sp))
+  {{ RET #interface.nil; ownSnapM sp dq sv ∗
+      memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+      memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+      memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') ∗
+      (match o with
+       | some (c, _) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
+       | none => emp) }} := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs J o j old sp dq sv eood Hjs Hs61
-  wp_start as ⟨Hat, Hold, Hend, Hsnap, #Hlb0, #Herr⟩
+  wp_start as ⟨Hat, Hold, Hend, Hsnap, #Hlb0, #Herr, HZ⟩
   iunfold memSnapLb at Hlb0
   icases Hlb0 with ⟨-, #Hpr⟩
   icases memStorAt_split ms γs J o _ $$ Hat with ⟨#Hlock, Hjc, Hho⟩
@@ -126,7 +144,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   · exfalso
     rcases Hsij with H | H
     · apply ‹¬ sv0.Metadata'.Index' = W64 0›; word
-    · word
+    · rcases Hjs with h | ⟨h1, h2⟩ <;> word
   all_goals
     wp_apply wp_CloneSnapshot.1 sp dq sv $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
     · iframe Hsnap
@@ -166,13 +184,39 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     -- the ghost state: the caller's range deleted, the dummy at `s` frozen, the end at `s + 1`,
     -- the compaction point at `s` (registered), the snapshot replaced
     imod memLogL_delete γs.log M j old $$ Hlog_inv Hold with ⟨%M1, Hlog, %HM1⟩
-    have Hs_abs : M1.lookup (uint.nat sv.Metadata'.Index') = none := by
-      rw [HM1]
-      by_cases h : j ≤ uint.nat sv.Metadata'.Index' ∧ uint.nat sv.Metadata'.Index' < j + old.length
-      · rw [if_pos h]
-      · rw [if_neg h]; exact Hok_inv.2.1 _ (by omega)
-    imod ghost_map_insert_persist (uint.nat sv.Metadata'.Index') (memDummy sv) Hs_abs $$ Hlog
-      with ⟨Hlog, #Hd⟩
+    -- the dummy at `s` frozen: inserted (`j ≤ s`), or already there (`s = 0`, `HZ`)
+    ihave Hins : iprop(|==> ∃ M2 : GMap Nat EntryM, ghostMapAuth γs.log 1 M2 ∗
+        (uint.nat sv.Metadata'.Index') ↪[γs.log]□ memDummy sv ∗
+        ⌜∀ i, i ≠ uint.nat sv.Metadata'.Index' → M2.lookup i = M1.lookup i⌝) $$ [Hlog HZ]
+    · by_cases Hle : j ≤ uint.nat sv.Metadata'.Index'
+      · have Hs_abs : M1.lookup (uint.nat sv.Metadata'.Index') = none := by
+          rw [HM1]
+          by_cases h : j ≤ uint.nat sv.Metadata'.Index' ∧ uint.nat sv.Metadata'.Index' < j + old.length
+          · rw [if_pos h]
+          · rw [if_neg h]; exact Hok_inv.2.1 _ (by omega)
+        imod ghost_map_insert_persist (uint.nat sv.Metadata'.Index') (memDummy sv) Hs_abs $$ Hlog
+          with ⟨Hlog, #Hd⟩
+        imodintro
+        iexists _
+        iframe Hlog Hd
+        ipureintro
+        intro i hi
+        exact GMap.lookup_insert_ne _ _ (Ne.symm hi)
+      · obtain ⟨H0, -⟩ : uint.nat sv.Metadata'.Index' = 0 ∧ j = 1 := Hjs.resolve_left Hle
+        icases HZ with (%Hle' | #HZ)
+        · exact absurd Hle' Hle
+        iunfold memLog at HZ
+        icases HZ with ⟨HZ, -⟩
+        iunfold memLogL at HZ
+        icases HZ with ⟨#Hd, -⟩
+        imodintro
+        iexists M1
+        rw [H0]
+        iframe Hlog Hd
+        ipureintro
+        intro i _
+        rfl
+    imod Hins with ⟨%M2, Hlog, #Hd, %HM2⟩
     imod ghostVar_update_halves (uint.nat sv.Metadata'.Index' + 1) γs.en _ _ $$ Hen Hen_inv
       with ⟨Hen, Hen_inv⟩
     imod mono_nat_own_update (uint.nat sv.Metadata'.Index') (by omega) $$ Hcp_inv with ⟨Hcp, #Hcplb⟩
@@ -186,13 +230,12 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
       (by iintro ⟨-, #HSV, #HDL⟩; iright; iframe HSV HDL) $$ Hjc with ⟨Hjc, Hvn⟩
     imod memSnap_put_at ms γs J (memBumpAt o (uint.nat sv.Metadata'.Index')) _ ⊤ HN sv p'
       $$ Hjc Hlko Hhk Hsnapshot Hp' Hsxh Hvn with ⟨Hjc, Hlk, Hho⟩
-    have Hok' : MemOk (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index') []
-        ((M1.insert (uint.nat sv.Metadata'.Index') (memDummy sv))) sv := by
+    have Hok' : MemOk (entryID.mk sv.Metadata'.Term' sv.Metadata'.Index') [] M2 sv := by
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [List.length_nil]; omega
       · intro i hi
         simp only [List.length_nil] at hi
-        rw [GMap.lookup_insert_ne _ _ (by omega), HM1]
+        rw [HM2 i (by omega), HM1]
         by_cases h : j ≤ i ∧ i < j + old.length
         · rw [if_pos h]
         · rw [if_neg h]; exact Hok_inv.2.1 _ (by omega)
@@ -265,6 +308,44 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
       simp only [memBumpAt, memSetAt, Option.map_some]
       iapply memStorFresh_of_at
       iframe Hjc Hho
+
+theorem MemoryStorage.ApplySnapshot.wp_proof
+    (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG))
+    (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (wp_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
+    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
+  refine ⟨?_, ?_⟩
+  · intro ms γs J o j old sp dq sv eood Hjs Hs61
+    iintro %Φ ⟨#Hinit, Hat, Hold, Hend, Hsnap, #Hlb0, #Herr⟩ HΦ
+    wp_apply wp_ApplySnapshot_gen wp_EnsureSnapshot wp_GetMetadata wp_GetIndex wp_GetTerm
+      wp_CloneSnapshot ms γs J o j old sp dq sv eood (Or.inl Hjs) Hs61 $$ [Hat Hold Hend Hsnap]
+      as ⟨Hs, #Hc, #Hd, He, #Hl, Hf⟩
+    · iframe Hat Hold Hend Hsnap Hlb0 Herr
+      ileft; ipureintro; exact Hjs
+    iapply HΦ
+    iframe Hs Hc Hd He Hl
+    cases o with
+    | none => iexact Hf
+    | some p0 => obtain ⟨c0, _⟩ := p0; iexact Hf
+  · intro ms γs J o old sp dq sv eood H0
+    iintro %Φ ⟨#Hinit, Hat, Hold, Hend, #Hd0, Hsnap, #Hlb0, #Herr⟩ HΦ
+    ihave Hat : memStorAt ms γs J o iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗
+        J.DL (uint.nat sv.Metadata'.Index')) $$ [Hat]
+    · rw [H0]; iexact Hat
+    wp_apply wp_ApplySnapshot_gen wp_EnsureSnapshot wp_GetMetadata wp_GetIndex wp_GetTerm
+      wp_CloneSnapshot ms γs J o 1 old sp dq sv eood (Or.inr ⟨H0, rfl⟩) (by omega)
+      $$ [Hat Hold Hend Hsnap]
+      as ⟨Hs, #Hc, #Hd, He, #Hl, Hf⟩
+    · iframe Hat Hold Hend Hsnap Hlb0 Herr
+      iright; iexact Hd0
+    rw [H0]
+    iapply HΦ
+    iframe Hs Hc Hd He Hl
+    cases o with
+    | none => iexact Hf
+    | some p0 => obtain ⟨c0, _⟩ := p0; simp only [Nat.max_zero]; iexact Hf
 
 end proof
 

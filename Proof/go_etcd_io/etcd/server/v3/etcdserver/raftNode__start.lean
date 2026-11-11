@@ -710,7 +710,7 @@ theorem raftNode.start.wp_proof
           ihave #HDLJ : (memStorJ γ.node.cl γ.key).DL (uint.nat l.snap.Metadata'.Index') $$ []
           · unfold memStorJ; iExactEq HcLbS; rfl
           -- (2026-11-02, the lean merge) attached (mode `none`, durability stage I-5)
-          wp_apply wp_ApplySnapshot ms γ.γs (memStorJ γ.node.cl γ.key) none k old c1 DFrac.discard
+          wp_apply wp_ApplySnapshot.1 ms γ.γs (memStorJ γ.node.cl γ.key) none k old c1 DFrac.discard
               l.snap eood Hk (by word) $$ [$Hrpkg $Hlog $Hend $Hslb0 $Heood]
             as ⟨-, #HcpS, #Hdum, HendS, -⟩
           · rw [memStorAt_none]
