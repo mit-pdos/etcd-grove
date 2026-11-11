@@ -23,7 +23,10 @@ Decisions and forms: `questions.md` (worktree root, untracked).
 lean `f808e61706` (2026-11-11; gates all passed, `/shared/tmp/premise-fixes-8c/land-c1.log`). The
 four trusted texts and the three forms were approved by etcd-grove-81 (`questions.md`).
 
-## C2 (the cascade; no trust change): done, full build and checks next
+## C2 (the cascade; no trust change): LANDED
+
+lean `23e7eedd58` (2026-11-11; gates all passed, `/shared/tmp/premise-fixes-8c/land-c2.log`),
+accepted by etcd-grove-81 with the forms in `questions.md`. C3 waits for a fresh brief.
 
 Commits `00aff9fc2c`..`c6fac95dc1`, lean merged (`ef76c3ad9e`, with S1). Done:
 - The 11 contracts take `metadata.outgoingCtxOkC ctx`; the real client's proofs; the cache
