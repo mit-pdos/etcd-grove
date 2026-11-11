@@ -54,7 +54,7 @@ theorem wp_osUnlinkNoDir (d b : GoString) (hb : NameOk b) (R : Roots) (V : Hist)
   · intro st hp
     have htn : st.TreeName (child d b) := by rw [OsState.TreeName, hp.roots]; exact hn
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, htn,
-      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hd' : ∀ J, st.lookup d ≠ some (.dir J) := fun J => by rw [lookup_pre hp d]; exact hd J
     obtain ⟨p, k', start, hv, -, hk', hres⟩ := hst
@@ -77,7 +77,7 @@ theorem wp_osRmdirNoDir (d b : GoString) (hb : NameOk b) (R : Roots) (V : Hist) 
   · intro st hp
     have htn : st.TreeName (child d b) := by rw [OsState.TreeName, hp.roots]; exact hn
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, htn,
-      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hd' : ∀ J, st.lookup d ≠ some (.dir J) := fun J => by rw [lookup_pre hp d]; exact hd J
     obtain ⟨p, k', start, hv, -, hk', hres⟩ := hst

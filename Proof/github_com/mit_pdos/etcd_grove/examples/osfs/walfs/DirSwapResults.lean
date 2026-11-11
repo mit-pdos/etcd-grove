@@ -109,8 +109,6 @@ theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
       unfold startFile; iempintro
     · icases (BigSepM.bigSepM_lookup
         (Φ := fun i f => osFileStart (L := hG.goose_localGS) i f) hf) $$ Hfs with Hf
-      obtain ⟨vs, sz, rfl⟩ := hdisk k f hf
-      ihave Hf := (osFileStartG_ofDisk (L := hG.goose_localGS) k vs sz).2 $$ Hf
       iexists _, (some k)
       iframe Ht
       isplitr

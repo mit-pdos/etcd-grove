@@ -55,42 +55,38 @@ def boot [GoGlobalContext] (dir : GoString) : Expr :=
 
 /-! ## The file of the key as a generation starts with it -/
 
-open Classical in
-theorem bytesOf_take8 (f : OsFile) (h8 : 8 ≤ f.size) {b : Nat} (hb : b < 8) :
-    ((bytesOf f).take 8)[b]? = some (f.rawAt b, decide (CleanPhys f b)) := by
-  simp [bytesOf, List.getElem?_take, hb, show b < f.size by omega]
+theorem durs_take8 (f : OsFile) (h8 : 8 ≤ f.size) {b : Nat} (hb : b < 8) :
+    ((f.contents.map durB).take 8)[b]? = some (durB (f.cache b)) := by
+  rw [List.getElem?_take_of_lt hb, List.getElem?_map, contents_getElem?_of_lt (by omega)]; rfl
 
-theorem contents_get (f : OsFile) {b : Nat} (hb : b < f.size) : f.contents[b]? = some (f.rawAt b) := by
-  simp [OsFile.contents, hb]
-
-open Classical in
 /-- The invariant's half of a `DataGood` file a generation starts with: every crash of it is
-`DataGood` (its first 8 bytes are clean). -/
+`DataGood` (its first 8 bytes are durable). -/
 theorem start_key (f : OsFile) (hg : DataGood (some f)) :
-    ∀ fo, FileCrashedR (metaOf f) [(0, DFrac.own (1 : Qp).half, (bytesOf f).take 8)] fo →
+    ∀ fo, FileCrashedR (initMeta f) [(0, DFrac.own (1 : Qp).half, (f.contents.map durB).take 8)] fo →
       DataGood fo := by
   obtain ⟨hsz, hb⟩ := hg f rfl
-  have hlo : 8 ≤ f.sizeLo := (hb 7 (by omega)).2.1
   intro fo hfc f' hf'
-  obtain ⟨hl, -, hr⟩ := hfc f' hf'
-  refine ⟨Nat.le_trans hlo hl, fun b hb8 => ?_⟩
-  have hx := bytesOf_take8 f hsz hb8
-  rw [decide_eq_true (hb b hb8).2] at hx
-  obtain ⟨hc, hcl⟩ := hr _ (List.mem_singleton_self _) b _ hx rfl
-  simp only [Nat.zero_add] at hc hcl
-  refine ⟨?_, hcl⟩
-  rw [hc, ← (hb b hb8).1, contents_get f (by omega)]
+  subst hf'
+  obtain ⟨-, hl, -, -, -⟩ := hfc f' rfl
+  have h8 : 8 ≤ f'.size := by simp only [initMeta] at hl; omega
+  refine ⟨h8, fun b hb8 => ?_⟩
+  have hx := durs_take8 f hsz hb8
+  have hbl : b < ((f.contents.map durB).take 8).length := (List.getElem?_eq_some_iff.1 hx).1
+  rw [List.getElem?_eq_getElem hbl, Option.some.injEq] at hx
+  rw [crashed_dur hfc (List.mem_singleton_self _) (b := b) (x := f.cache b) (Nat.zero_le _)
+    (by simpa using hbl) (by simp only [Nat.sub_zero, hx]) (by omega), ← (hb b hb8),
+    contents_getElem?_of_lt (by omega)]
 
 /-- The program's half: what `check` needs. -/
 theorem start_check (f : OsFile) (hg : DataGood (some f)) :
-    CheckOk (metaOf f) ((bytesOf f).take 8) := by
+    CheckOk (initMeta f) ((f.contents.map durB).take 8) := by
   obtain ⟨hsz, hb⟩ := hg f rfl
-  refine ⟨hsz, by simp [bytesOf_length]; omega, ?_⟩
+  refine ⟨hsz, by simp [contents_length]; omega, ?_⟩
   apply List.ext_getElem?
   intro b
   by_cases hb8 : b < 8
-  · rw [List.getElem?_map, bytesOf_take8 f hsz hb8, ← (hb b hb8).1, contents_get f (by omega)]; rfl
-  · have h1 : ((bytesOf f).take 8).length ≤ b := by simp; omega
+  · rw [List.getElem?_map, durs_take8 f hsz hb8, ← (hb b hb8), contents_getElem?_of_lt (by omega)]; rfl
+  · have h1 : ((f.contents.map durB).take 8).length ≤ b := by simp; omega
     rw [List.getElem?_eq_none (by simpa using h1),
       List.getElem?_eq_none (by rw [dataC_length]; omega)]
 
@@ -102,7 +98,7 @@ section gen
 variable [GoGlobalContext] {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF]
 
 theorem osBytes_append' [L : GooseLocalGS GF] (i : Ino) (dq : DFrac) (off : Nat)
-    (xs ys : List (w8 × Bool)) :
+    (xs ys : List ByteG) :
     osBytes (L := L) i off dq (xs ++ ys) ⊣⊢
       osBytes (L := L) i off dq xs ∗ osBytes (L := L) i (off + xs.length) dq ys :=
   bytesG_append _ i dq off xs ys
@@ -150,10 +146,10 @@ theorem startFile_res [hG : HeapGS .hasLC GF] (j : Ino) (V : Hist) (ko : Option 
       · ipureintro; exact ⟨safeH_rekey hs.1 (segNoneH_of hs.2 hn), hs.2⟩
       unfold keyRes segRes; isplitl [] <;> iempintro
     | some f =>
-      unfold osFileStartO osFileStartG
+      unfold osFileStartO osFileStart
       icases Hf with ⟨Hm, Hb⟩
       icases (osMeta_halves (L := hG.goose_localGS) k _).1 $$ Hm with ⟨Hm1, Hm2⟩
-      rw [← List.take_append_drop 8 (bytesOf f)]
+      rw [← List.take_append_drop 8 (f.contents.map durB)]
       icases (osBytes_append' (L := hG.goose_localGS) k _ 0 _ _).1 $$ Hb with ⟨Hb, -⟩
       icases (osBytes_halves (L := hG.goose_localGS) k 0 _).1 $$ Hb with ⟨Hb1, Hb2⟩
       iexists (some k)
@@ -252,8 +248,6 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
       isplitr
       · ipureintro; exact ⟨hgood, fun _ => rfl⟩
       unfold osFileStartO
-      subst hvs
-      iapply (osFileStartG_ofDisk (L := hG.goose_localGS) k vs sz).2
       iexact Hf
   · -- every generation: the invariant, the boot program, and the next generation's
     intro hG _ _ Hlctx'

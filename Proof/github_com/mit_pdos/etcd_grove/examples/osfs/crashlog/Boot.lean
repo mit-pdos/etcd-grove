@@ -58,15 +58,6 @@ theorem take8_of {img : List w8} (h : ∀ i < 8, img[i]? = dataC[i]?) : img.take
 
 theorem contents_length (f : OsFile) : f.contents.length = f.size := by simp [OsFile.contents]
 
-/-- A durable byte of a run survives a crash, below the crash's size. -/
-theorem crashed_dur {M : OsMeta} {rs : List (Nat × DFrac × List ByteG)} {f : OsFile}
-    (h : FileCrashedR M rs (some f)) {r : Nat × DFrac × List ByteG} (hr : r ∈ rs) {b : Nat}
-    {x : w8} (h1 : r.1 ≤ b) (h2 : b - r.1 < r.2.2.length) (hx : (r.2.2[b - r.1]).2 = [(x, 0)])
-    (hb : b < f.size) : f.contents[b]? = some x := by
-  obtain ⟨s, hs⟩ := fileCrashedR_byte h hr h1 h2 hb
-  rw [hx, List.mem_singleton] at hs
-  rw [contents_getElem?_of_lt hb, (Prod.mk.inj hs).1]
-
 /-- The first write, of the data at 0: a crash leaves no flag, or the flag as it was (durable). -/
 theorem crash_W1 (m : OsMeta) (bs : List ByteG) (hhi : m.hi = m.size)
     (hlen : bs.length = m.size) (hbd : m.size < 2 ^ 62)

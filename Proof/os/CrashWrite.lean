@@ -91,6 +91,15 @@ theorem fileCrashedR_byte {M : OsMeta} {rs : List (Nat × DFrac × List ByteG)} 
   have := (h f rfl).2.2.2.1 r hr (b - r.1) h2 (by omega)
   rwa [show r.1 + (b - r.1) = b by omega] at this
 
+/-- A durable byte of a run survives a crash, below the crash's size. -/
+theorem crashed_dur {M : OsMeta} {rs : List (Nat × DFrac × List ByteG)} {f : OsFile}
+    (h : FileCrashedR M rs (some f)) {r : Nat × DFrac × List ByteG} (hr : r ∈ rs) {b : Nat}
+    {x : w8} (h1 : r.1 ≤ b) (h2 : b - r.1 < r.2.2.length) (hx : (r.2.2[b - r.1]).2 = [(x, 0)])
+    (hb : b < f.size) : f.contents[b]? = some x := by
+  obtain ⟨s, hs⟩ := fileCrashedR_byte h hr h1 h2 hb
+  rw [hx, List.mem_singleton] at hs
+  rw [contents_getElem?_of_lt hb, (Prod.mk.inj hs).1]
+
 /-- **Every idle state the write passes through: its crash is `Good`.** -/
 theorem fileOk_idle {Good : Option OsFile → Prop} {m m' : OsMeta} {bs bs' : List ByteG}
     {off : Nat} {data : List w8} (hW : WIn m bs off data m' bs') (hok : WriteOk Good m bs off data)

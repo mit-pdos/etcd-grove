@@ -33,63 +33,74 @@ theorem segB_ok : NameOk segB := by decide
 
 /-! ## The data a crash must leave -/
 
-/-- What a crash may leave of the segment's file: no file, or the data at 0, clean. -/
+/-- What a crash may leave of the segment's file: no file, or the data at 0. -/
 def DataGood (fo : Option OsFile) : Prop :=
-  ∀ f, fo = some f → 8 ≤ f.size ∧ ∀ b < 8, f.contents[b]? = dataC[b]? ∧ CleanPhys f b
+  ∀ f, fo = some f → 8 ≤ f.size ∧ ∀ b < 8, f.contents[b]? = dataC[b]?
 
 /-- What the program knows of the segment's file, held at the fractions `m`, `bs`: its first 8
 bytes in the page cache are the data. -/
-def CheckOk (m : OsMeta) (bs : List (w8 × Bool)) : Prop :=
+def CheckOk (m : OsMeta) (bs : List ByteG) : Prop :=
   8 ≤ m.size ∧ bs.length = 8 ∧ bs.map Prod.fst = dataC
 
-/-- The data written and synced: every crash leaves it, clean. -/
-theorem synced_good (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys : List (w8 × Bool))
+/-- The data written and synced: every crash leaves it. -/
+theorem synced_good (m : OsMeta) (hsz : m.size = 8) (ys : List ByteG)
     (hys : ys.map Prod.fst = dataC) :
-    ∀ fo, FileCrashedR (m.synced 0 ys) [(0, DFrac.own (1 : Qp).half, syncedBytes m ys)] fo →
+    ∀ fo, FileCrashedR m.synced [(0, DFrac.own (1 : Qp).half, ys.map (fun x => durB x.1))] fo →
       DataGood fo := by
   intro fo hfc f hf
-  obtain ⟨hlo, -, hr⟩ := hfc f hf
+  subst hf
+  obtain ⟨-, hlo, -, -, -⟩ := hfc f rfl
   have hl : ys.length = 8 := by
     have := congrArg List.length hys; simp only [List.length_map] at this; rw [this]; rfl
-  refine ⟨by simpa [OsMeta.synced, hsz] using hlo, fun b hb => ?_⟩
+  have h8 : 8 ≤ f.size := by simpa [OsMeta.synced, hsz] using hlo
+  refine ⟨h8, fun b hb => ?_⟩
   have hyb : b < ys.length := by omega
-  have hx : (syncedBytes m ys)[b]? = some ((ys[b]'hyb).1, true) := by
-    simp [syncedBytes, hok, List.getElem?_map, List.getElem?_eq_getElem hyb]
-  obtain ⟨hc, hcl⟩ := hr _ (List.mem_singleton_self _) b _ hx rfl
-  simp only [Nat.zero_add] at hc hcl
-  refine ⟨?_, hcl⟩
-  rw [hc, ← hys, List.getElem?_map, List.getElem?_eq_getElem hyb]; rfl
+  rw [crashed_dur hfc (List.mem_singleton_self _) (b := b) (x := (ys[b]'hyb).1) (Nat.zero_le _)
+    (by simpa using hyb) (by simp) (by omega), ← hys, List.getElem?_map,
+    List.getElem?_eq_getElem hyb]; rfl
 
-theorem pwBytes_data : (pwBytes 0 0 dataC 8 []).map Prod.fst = dataC := by decide
+theorem newMeta_size : newMeta.size = 0 := rfl
 
-/-- A file a crash left `DataGood`, as a new generation starts with it (`osFileStartG`): its bytes'
+/-- The bytes a whole write of the data leaves in a new file: the data. -/
+theorem pwOut_data {ys : List ByteG} (h : os.PwOut newMeta 0 dataC 8 [] ys) :
+    ys.map Prod.fst = dataC := by
+  obtain ⟨hl, hv⟩ := h
+  have hl8 : ys.length = 8 := by rw [hl, newMeta_size]; rfl
+  apply List.ext_getElem (by simp [hl8, dataC])
+  intro i h1 h2
+  simp only [List.getElem_map]
+  rw [(hv i (by simpa using h1)).1]
+  have hi : i < 8 := by simpa [hl8] using h1
+  simp only [pwByte, Nat.zero_add, if_pos hi, Nat.sub_zero, List.getD_eq_getElem?_getD,
+    List.getElem?_eq_getElem (show i < dataC.length from hi), Option.getD_some]
+
+/-- A file a crash left `DataGood`, as a new generation starts with it (`osFileStart`): its bytes'
 first 8 the data, and every crash of it `DataGood` again. -/
 theorem dataGood_start {f : OsFile} (h : DataGood (some f)) :
-    CheckOk (metaOf f) ((bytesOf f).take 8) ∧
-      ∀ fo, FileCrashedR (metaOf f) [(0, DFrac.own (1 : Qp).half, bytesOf f)] fo → DataGood fo := by
+    CheckOk (initMeta f) ((f.contents.map durB).take 8) ∧
+      ∀ fo, FileCrashedR (initMeta f) [(0, DFrac.own (1 : Qp).half, f.contents.map durB)] fo →
+        DataGood fo := by
   obtain ⟨h8, hb⟩ := h f rfl
-  have hraw : ∀ b < 8, dataC[b]? = some (f.rawAt b) := by
-    intro b hb8
-    rw [← (hb b hb8).1]
-    simp [OsFile.contents, List.getElem?_map, List.getElem?_range (show b < f.size by omega)]
-  have hcl : ∀ b < 8, (bytesOf f)[b]? = some (f.rawAt b, true) := by
-    intro b hb8
-    simp [bytesOf, List.getElem?_map, List.getElem?_range (show b < f.size by omega),
-      (hb b hb8).2]
-  refine ⟨⟨h8, by simp [bytesOf]; omega, ?_⟩, ?_⟩
+  refine ⟨⟨h8, by simp [contents_length]; omega, ?_⟩, ?_⟩
   · apply List.ext_getElem?
     intro b
     by_cases hb8 : b < 8
-    · rw [List.getElem?_map, List.getElem?_take, if_pos hb8, hcl b hb8, hraw b hb8]; rfl
+    · rw [List.getElem?_map, List.getElem?_take, if_pos hb8, List.getElem?_map, hb b hb8]
+      cases dataC[b]? <;> rfl
     · rw [List.getElem?_map, List.getElem?_take, if_neg hb8]
       simp [dataC]; omega
   · intro fo hfc f' hf'
-    obtain ⟨hlo, -, hr⟩ := hfc f' hf'
-    have hlo8 : 8 ≤ f.sizeLo := (hb 7 (by omega)).2.1
-    refine ⟨by simp [metaOf] at hlo; omega, fun b hb8 => ?_⟩
-    obtain ⟨hc, hcl'⟩ := hr _ (List.mem_singleton_self _) b _ (hcl b hb8) rfl
-    simp only [Nat.zero_add] at hc hcl'
-    exact ⟨by rw [hc, hraw b hb8], hcl'⟩
+    subst hf'
+    obtain ⟨-, hlo, -, -, -⟩ := hfc f' rfl
+    have h8' : 8 ≤ f'.size := by have : (initMeta f).lo = f.size := rfl; omega
+    refine ⟨h8', fun b hb8 => ?_⟩
+    have hbl : b < (f.contents.map durB).length := by simp [contents_length]; omega
+    rw [crashed_dur hfc (List.mem_singleton_self _) (b := b) (x := f.cache b) (Nat.zero_le _)
+      (by simpa using hbl) (by
+        have e := contents_getElem?_of_lt (f := f) (show b < f.size by omega)
+        rw [List.getElem?_eq_getElem (by rw [contents_length]; omega), Option.some.injEq] at e
+        simp [e])
+      (by omega), ← hb b hb8, contents_getElem?_of_lt (by omega)]
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
@@ -100,7 +111,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 crash of which is `DataGood`. -/
 def keyRes : Option Ino → IProp GF
   | none => iprop(emp)
-  | some k => iprop(∃ (m : OsMeta) (bs : List (w8 × Bool)),
+  | some k => iprop(∃ (m : OsMeta) (bs : List ByteG),
       osMeta (L := L) k (DFrac.own (1 : Qp).half) m ∗
       osBytes (L := L) k 0 (DFrac.own (1 : Qp).half) bs ∗
       ⌜∀ fo, FileCrashedR m [(0, DFrac.own (1 : Qp).half, bs)] fo → DataGood fo⌝)
@@ -111,14 +122,14 @@ instance keyRes_timeless (ko : Option Ino) : Timeless (keyRes (L := L) ko) := by
 /-- The program's half of the segment's file of the key `ko`, as `check` needs it. -/
 def segRes : Option Ino → IProp GF
   | none => iprop(emp)
-  | some k => iprop(∃ (m : OsMeta) (bs : List (w8 × Bool)),
+  | some k => iprop(∃ (m : OsMeta) (bs : List ByteG),
       osMeta (L := L) k (DFrac.own (1 : Qp).half) m ∗
       osBytes (L := L) k 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜CheckOk m bs⌝)
 
 /-- The segment's file of the key `ko` as a generation starts with it: `DataGood`. -/
 def startFile : Option Ino → IProp GF
   | none => iprop(emp)
-  | some k => iprop(∃ f : OsFile, ⌜DataGood (some f)⌝ ∗ osFileStartG (L := L) k f)
+  | some k => iprop(∃ f : OsFile, ⌜DataGood (some f)⌝ ∗ osFileStart (L := L) k f)
 
 /-- A generation's start of the segment's file, split between the invariant and the program. -/
 theorem startFile_split (ko : Option Ino) :
@@ -126,12 +137,13 @@ theorem startFile_split (ko : Option Ino) :
   cases ko with
   | none => unfold startFile keyRes segRes; iintro -; isplitl [] <;> iempintro
   | some k =>
-    unfold startFile keyRes segRes osFileStartG
+    unfold startFile keyRes segRes osFileStart
     iintro ⟨%f, %hg, Hm, Hb⟩
     obtain ⟨hck, hcr⟩ := dataGood_start hg
-    icases (osMeta_halves k (metaOf f)).1 $$ Hm with ⟨Hm1, Hm2⟩
-    icases (osBytes_halves k 0 (bytesOf f)).1 $$ Hb with ⟨Hb1, Hb2⟩
-    icases (osBytes_take_drop' k 0 8 _ (bytesOf f) (by rw [bytesOf_length]; exact hck.1)).1 $$ Hb2
+    icases (osMeta_halves k (initMeta f)).1 $$ Hm with ⟨Hm1, Hm2⟩
+    icases (osBytes_halves k 0 (f.contents.map durB)).1 $$ Hb with ⟨Hb1, Hb2⟩
+    icases (osBytes_take_drop' k 0 8 _ (f.contents.map durB)
+        (by rw [List.length_map, contents_length]; exact hck.1)).1 $$ Hb2
       with ⟨Hb2, -⟩
     isplitl [Hm1 Hb1]
     · iexists _, _
@@ -217,7 +229,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (R : Roots) (w : GoString) (V : Hist) (q : Qp) (i : Ino)
     (hl : lookupH R V (child w segB) = some (.file i))
-    (m : OsMeta) (bs : List (w8 × Bool)) (hok : CheckOk m bs) :
+    (m : OsMeta) (bs : List ByteG) (hok : CheckOk m bs) :
     {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own q) R V ∗
         osMeta (GF := GF) i (DFrac.own (1 : Qp).half) m ∗
         osBytes (GF := GF) i 0 (DFrac.own (1 : Qp).half) bs }}

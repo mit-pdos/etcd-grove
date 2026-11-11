@@ -1020,11 +1020,11 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   · unfold mcellsAny; rw [show newMeta.maps = ∅ from rfl]
     iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply wp_WriteAt f fd (child (child dir wtB) segB) (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0)
-      (DFrac.own 1) ⟨i, true, true⟩ 1 newMeta [] rfl (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide) (fun _ => rfl) (.inl rfl) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
-    as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %h, %v, %Hres, Hm, Hys, -⟩
+      (DFrac.own 1) ⟨i, true, true⟩ newMeta [] rfl (by decide) (by decide) (by decide)
+      (by decide) (by decide) (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
+    as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
-  obtain ⟨hj, -, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, hys, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne
@@ -1035,11 +1035,13 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     itrivial
-  have hys' : ys.map Prod.fst = dataC := by rw [hys]; exact pwBytes_data
+  have hys' : ys.map Prod.fst = dataC := pwOut_data hys
+  have hysl : ys.length = (pwPost newMeta (W64 0).toNat dataC.length dataC.length).size := by
+    rw [hys.1]; rfl
   (try wp_auto)
   -- `f.Sync()`
   wp_apply wp_Sync f fd (child (child dir wtB) segB) (DFrac.own 1) (DFrac.own 1) ⟨i, true, true⟩ _
-      0 ys $$ [Hos Hf Hfd Hm Hys] as %err ⟨Hf, Hfd, Hr⟩
+      0 ys (OsMeta.covers_whole _ hysl) $$ [Hos Hf Hfd Hm Hys] as %err ⟨Hf, Hfd, Hr⟩
   · iframe; iexact Hos
   icases Hr with (⟨%he, Hm, Hys⟩ | ⟨%he, -, -⟩)
   rotate_left
@@ -1070,7 +1072,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   · unfold keyRes
     iexists _, _
     iframe Hmi Hysi
-    ipureintro; exact synced_good _ rfl rfl ys hys'
+    ipureintro; exact synced_good _ rfl ys hys'
   imod ds_deposit R j γ V4 ko i hw4 $$ Hinv Ht Hγ Hk with ⟨Ht, Hγ⟩
   -- `Rename(tmp, dir/wal)`
   try rw [show dir ++ go!"/wal" = child dir walB from rfl]
@@ -1097,7 +1099,7 @@ theorem wp_checkDir (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (R : Roots) (hR : RootsOk R) (w : GoString) (J k : Ino) (q : Qp) (V : Hist)
     (hw : lookupH R V w = some (.dir J)) (hk : V.now.entry J segB = some (.file k))
-    (m : OsMeta) (bs : List (w8 × Bool)) (hok : CheckOk m bs) :
+    (m : OsMeta) (bs : List ByteG) (hok : CheckOk m bs) :
     {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own q) R V ∗
         osMeta (GF := GF) k (DFrac.own (1 : Qp).half) m ∗
         osBytes (GF := GF) k 0 (DFrac.own (1 : Qp).half) bs }}

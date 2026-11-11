@@ -8,7 +8,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs
 public import Proof.os.Ns
 public import Proof.os.Off
-public import Proof.os.CrashFile
+public import Proof.os.CrashWrite
 public import GooseLang.Ext.Fs.TreeSpecsMeta
 
 @[expose] public section
@@ -113,7 +113,7 @@ theorem tree_half (q : Qp) (R : Roots) (V : Hist) :
     osTree (L := L) (DFrac.own q) R V ⊢ osTree (L := L) (DFrac.own (q.half + q.half)) R V := by
   rw [Qp.half_add_half]
 
-theorem osBytes_take_drop' (i : Ino) (off n : Nat) (dq : DFrac) (bs : List (w8 × Bool))
+theorem osBytes_take_drop' (i : Ino) (off n : Nat) (dq : DFrac) (bs : List ByteG)
     (hn : n ≤ bs.length) :
     osBytes (L := L) i off dq bs ⊣⊢
       osBytes (L := L) i off dq (bs.take n) ∗ osBytes (L := L) i (off + n) dq (bs.drop n) := by
