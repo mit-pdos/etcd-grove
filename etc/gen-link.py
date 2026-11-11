@@ -66,6 +66,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
+       etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
        etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
@@ -175,6 +176,10 @@ second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, 
 etc/link-lean-first-porcupine-dag.txt, as `--porcupine`: its specs are searched in the main tree
 and in `PorcupineDag/` (the part's spec of a function taking the place of v1.3.1's of the same
 name; `sort.Sort`'s is the main tree's).
+`--tracecheck` links the trace checker's proofs (`examples/raft/tracecheck/etcdraft`, layer C of
+`notes/trace-validation-plan.md`), from etc/link-lean-first-tracecheck.txt: every callee is in the
+package (no `@`, `?` or `=`); the trace check's `Results.lean` takes `NewTrace`'s, `CheckTrace`'s
+and `Result.TLCOK`'s results from it.
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
@@ -541,6 +546,13 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.lib.cluster3",
                    "github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions",
                    "The three-member cluster's start's proofs (`examples/lib/cluster3`)", [""]),
+    # the trace check's checker (examples/raft/tracecheck/etcdraft, layer C of
+    # notes/trace-validation-plan.md): every proof over its callees', all in the package
+    "--tracecheck": ("link-lean-first-tracecheck.txt",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions",
+                     "The trace checker's proofs (`examples/raft/tracecheck/etcdraft`, the Go "
+                     "transcription of raft's TLA+ trace specification)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
 EXTS = {"--bboltfs": "osFsExt"}
