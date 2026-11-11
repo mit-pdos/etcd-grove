@@ -49,14 +49,14 @@ theorem RawNode.Ready.wp_proof
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 HtrG $$ [$Hrn]
+  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
   -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
     $$ Hhard Hlive Hfree Hrn
     with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, -⟩
-  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L HtrG $$ [$Hrn $Hhard]
+  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L (fun h => absurd HtrG h) $$ [$Hrn $Hhard]
     as %steps %ss H
   iNamed H
   -- the soft state the node records is the cut's

@@ -592,7 +592,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A pure consequence, the resource kept. -/
-theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ ⌜φ⌝ :=
+theorem trKeep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ ⌜φ⌝ :=
   (and_intro .rfl h).trans persistent_and_sep.1
 
 /-- **The global step's law** (`trCap_fire.statement`). -/
@@ -651,7 +651,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     obtain ⟨hcs, hQP⟩ := hQ
     obtain ⟨hnid, hname, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
     obtain ⟨a', P', hΦ', hsrcP, hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    icases trKeep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
         LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' none _root_.id
           (fun b => List.foldl Etcdraft.Bag.with b P') (fun _ => False) ∧
@@ -661,7 +661,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', HR⟩
     have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
         confAbs C := hsrv
-    icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
+    icases trKeep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
     have hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P) := by rw [HAid, hcs]
     obtain ⟨hrun', hsrvN, hA', hAn', hsrc', hPb', hM'⟩ :=
       simStep_pure C L σ A phP id hC hnd P e a' P' hrun hsrv hA hAid hAn hsrcA hsrcP hPb hpv hcq
@@ -1138,13 +1138,13 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
     obtain ⟨hcs, hQP⟩ := hQ
     obtain ⟨⟨s0, cfg0, hev0, hout0⟩, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
     have hΦ' := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    icases trKeep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hpre : Φ C cs P ∧ E e ∧ σ.server = confAbs C ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧
         σ.preVote = false ∧ σ.checkQuorum = false ∧ σ.violated = .ok none :=
       ⟨HΦ, HE, hsrv, by rw [hcs, hsrv], hpv, hcq, hv⟩
     icases Hfx $$ %C %cs %P %e %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ'⟩
     have hsrv' : (σ.ready (idAbs id)).server = confAbs C := hsrv
-    icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
+    icases trKeep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
     have hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P) := by rw [HAid, hcs]
     obtain ⟨hrun', hsrvN, hA', hAn', hsrc', hPb', hM'⟩ :=
       simStepReady_pure C L σ A B (GMap.mapSeq (keyBound B) P) phP phM id hC hnd P e s0 cfg0 hev0 hout0
@@ -1262,7 +1262,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     obtain ⟨hcs, hQP⟩ := hQ
     iunfold inFlight at Htok
     icases ghost_map_lookup $$ HB Htok with %HBk
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv0⟩
+    icases trKeep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv0⟩
     have hmd : m ∈ σ.messages.domain := by
       have hml : m ∈ (GMap.toList B).map Prod.snd ++ phM :=
         List.mem_append_left _ (List.mem_map.2 ⟨(k, m), (GMap.mem_toList B k m).2 HBk, rfl⟩)
@@ -1297,7 +1297,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     iunfold simFx at Hfσc
     icases Hfσc with ⟨-, -, -, %hfx⟩
     have huq : MsgsUniq σ := hfx.2.1
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    icases trKeep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hsrv' : (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ (ph (σ.s (idAbs id)))))).server =
         confAbs C := hsrv
     -- the intermediate states' invariants, by contradiction on one
@@ -1307,9 +1307,9 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
       obtain ⟨v, hv, hbad⟩ := hmids
       ihave #Hfv := Hmid $$ %v %hv
       have hsv : (withNode σ (idAbs id) v _root_.id _root_.id).server = confAbs C := hsrv
-      icases keep_pure (simFx_violated γ C _ hsv) $$ [$Htbl $Hfv] with ⟨-, %hv'⟩
+      icases trKeep_pure (simFx_violated γ C _ hsv) $$ [$Htbl $Hfv] with ⟨-, %hv'⟩
       exact absurd hv' hbad
-    icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
+    icases trKeep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
     have hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P) := by rw [HAid, hcs]
     obtain ⟨hrun', hsrvN, hA', hAn', hsrc', hPb', hM'⟩ :=
       simStepR_pure C L σ A B phP phM id hC hnd P e a' P' (ph (σ.s (idAbs id))) k m Mid hrun hsrv hA hAid hAn hsrcA hsrcP hPb hMb HBk huq hpv hcq
@@ -1395,7 +1395,7 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
     have hnb : ¬ booted L (idAbs id) := fun h => by have := hiff.2 h; cases this
     obtain ⟨hnid, ln, hpl, hnl, hbl⟩ := hE e HE
     imod ghost_map_update (false, some e) $$ HBt Hbt with ⟨HBt, Hbt⟩
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    icases trKeep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hrun' := simRun_boot C L σ hrun hv e ln hpl (fun lines hl =>
       bootFlags_unbooted C L lines ln (idAbs id) (by rw [mem_confAbs]; exact hC) hl hnb hnl hbl)
     have hbt' : ∀ i ∈ C, ∃ b o, (Bt.insert id (false, some e)) !! i = some (b, o) ∧
@@ -1522,7 +1522,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
         (bootFlags (confAbs C) (lines ++ [ln])).getD L.length false = false :=
       fun lines ln hl hn => bootFlags_booted C L lines ln (idAbs id) hl hbooted hn
     have hBt' := bootClause_step C L e _ id Bt hpl rfl hnid1 (booted_snoc_mono L e _ hbooted) hbtC
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    icases trKeep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     imod ghost_map_update (true, some e) $$ HBt Hbt with ⟨HBt, Hbt⟩
     by_cases hcond : bfCond (evConv e0) (evConv e) = true
     · have hrun' := simRun_bfSkip C L σ hrun hL e id s c HE hout L1 L2 e0 hsplit hnid0' hnid2' hcond hboot hv
@@ -1556,7 +1556,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
       have hpreF := And.intro hΦσ (And.intro hsrv (And.intro hpv (And.intro hcq (And.intro hv hst))))
       icases Hfx $$ %C %P %σ %hpreF Htbl Hfσ with ⟨Htbl, #Hfσ'⟩
       have hsrv' : (withNode σ (idAbs id) (bfSrv (σ.s (idAbs id))) _root_.id _root_.id).server = confAbs C := hsrv
-      icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
+      icases trKeep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
       have hrun' := simRun_bfStepDown C L σ hrun hL e id s c HE hperm hout hC hsrv L1 L2 e0 hsplit hnid0' hnid2'
         hcond' hst (by rw [heq]; simpa [withNode] using hR) hs hpre bt bc bl hboot (by rw [heq]; exact hv')
       rw [heq] at hrun'
@@ -1647,7 +1647,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
       exact hiff.1 hb0.1.symm
     obtain ⟨hnid, hname, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
     obtain ⟨a', P', hΦ', hsrcP, hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
-    icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
+    icases trKeep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
         LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' none _root_.id
           (fun b => List.foldl Etcdraft.Bag.with b P') (fun _ => False) ∧
@@ -1657,7 +1657,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
     imod Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', HR⟩
     have hsrv' : (withNode σ (idAbs id) a' _root_.id (fun b => List.foldl Etcdraft.Bag.with b P')).server =
         confAbs C := hsrv
-    icases keep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
+    icases trKeep_pure (simFx_violated γ C _ hsrv') $$ [$Htbl $Hfσ'] with ⟨⟨Htbl, -⟩, %hv'⟩
     have hAid : A !! id = some (toC σ.server (σ.s (idAbs id)), P) := by rw [HAid, hcs]
     obtain ⟨hrun', hsrvN, hA', hAn', hsrc', hPb', hM'⟩ :=
       simStep_pure C L σ A phP id hC hnd P e a' P' hrun hsrv hA hAid hAn hsrcA hsrcP hPb hpv hcq

@@ -45,14 +45,18 @@ names.) (D22 S-d3a, 2026-10-21) With a snapshot (`L`): the acknowledgement queue
 `Ready`'s snapshot, the snapshot is in progress, and the node records the loan (`RNState.slent`);
 either way no snapshot is restored since this `Ready` (`psnap` off). (2026-11-01, durability stage
 I fix G2) The node records the batch's durable state (`readyDurable`, as the driver does:
-`NodeDriverState.afterReady`) and the role after the `Ready`'s soft state `ss` (`roleAfter`). -/
+`NodeDriverState.afterReady`) and the role after the `Ready`'s soft state `ss` (`roleAfter`).
+(2026-11-11, trace-check Q8 stage 1 slice 28n) One spec for both modes: at a traced cluster the
+`Ready` line (`traceReady`) moves the node's capability from the cut state to the accepted one
+(`rnTrace_fireReady`) and hands out one token per handed-out message (`readyTok`, `True` untraced). -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan),
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  γ.reTrace = none →
+  -- (2026-11-11, trace-check Q8 stage 1 slice 28n; from 2026-11-09, Q8 stage 0, until then the
+  -- premise `γ.reTrace = none`) one spec for both modes: at a traced cluster the `Ready` line's
+  -- numbers within the trace's bound (the term below the ceiling, the log by the receipts' fit)
+  (γ.reTrace ≠ none →
+    uint.Z rs.tc + 1 < traceNumBound ∧ receiptBound GF + γ.reBoot.length ≤ traceNumBound) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}
@@ -66,7 +70,10 @@ abbrev RawNode.acceptReady.spec : Prop :=
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
                   slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
-                  role := roleAfter rs.role ss } }}
+                  role := roleAfter rs.role ss } ∗
+      -- (2026-11-11, slice 28n) the handed-out messages' tokens (`readyTok`: nothing untraced; the
+      -- `Ready` line's `recvTokOf` traced, `trCap_fire_ready`)
+      "Htoks" ∷ [∗list] q ∈ ms, readyTok γ q.st }}
 
 end spec
 
