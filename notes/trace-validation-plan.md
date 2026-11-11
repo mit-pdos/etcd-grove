@@ -1266,6 +1266,9 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   (`notes/trace-check-design.md` §1.3, a triple: `RunConcurrent(defaultCConfig)` then `Events` returns a
   trace with `TraceAccepts`). **Recommended: (a)**; the design revision assumes it, and nothing lands
   on the closed statement until the user decides.
+  **Decided by the user (2026-11-11): (a), the tighter bound** (`n + 2 ≤ 2^31`, `[ThreadBoundLe GF (2^31)]` in
+  the corollary), **and the corollary's form as in `notes/trace-check-design.md` §1.3** (a triple:
+  `RunConcurrent(defaultCConfig)`, then `Events` returns a trace with `TraceAccepts`).
 - **Q37 (2026-11-11, A7): the per-voter "bootstrap complete" fact has no ghost anchor.** `newTrace`'s
   initial state needs every voter's segment complete at the end of the run (`BootDone`). Raft logs a
   voter's whole bootstrap inside `StartNode` (`setupNode`, before `go n.run()`), so `StartNode`'s post is
@@ -2648,6 +2651,17 @@ proposal's normal entries at a traced `run` (G1, G2; designed: `TrSent` in the s
 so the leader is excluded instead (argued from `hup` and A1, not checked); five node calls refused at a
 traced node. Not argued in full: L1-L4 (the document's §9). Next: a review round on the document, then
 Probe A (client glue) and Probe B (the node's claim and deposit), then A8 and the plumbing.
+
+**The design pass, revision 1 (2026-11-11, branch `trace-check-design2`): the review round `design-r1`
+answered** (`notes/trace-validation-reviews/design-r1.md`; the document's "Revision 1" header,
+`notes/decisions.md`, "Design pass, revision 1"). §1 settled: Q38 (a), decided by the user
+(`n + 2 ≤ 2^31`, `[ThreadBoundLe GF (2^31)]`, the corollary's form), checked end to end from
+`init_adequate`'s thread bound to `WaitGroup.Add`'s. `node.Step.spec` and `node.Advance.spec` keep their
+text and hold for every `γ`: the `Step` gate sits in `stepIn`'s body with `stepIn_intro` taking `trTok`
+(four call sites, each discharging it); the tokens reach `Advance` through a per-node escrow that `run`
+never needs back. Call sites counted (L3: about 21 in 16 files, none for `Advance`). Found: G3 (no conf
+entry past the bootstrap log, for the leader exclusion) and L5 (`TrNoSnap`'s source, Q6's gated
+`storBnd`). Not argued in full: L1, L2, L5. Next: a second review round on the document.
 
 ## Order of work
 
