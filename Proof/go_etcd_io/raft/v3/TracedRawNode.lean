@@ -416,7 +416,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
     exact absurd h.2 (by rw [Hpu ty h.1]; simp)
   imod hb γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s m ents sn ctx rsp γd
       (fun _ => True) bt ⟨Hty, Hne, Hnorm, Hboot⟩ Htr Hscope.1 Hcqe.symm
-      (by unfold StepEndTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => by prop_ne)
+      (by unfold StepEndTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => absurd h (by prop_ne))
       (fun ty h1 h2 => by rw [Hpu ty h1] at h2; cases h2)
       (by omega) (by rw [Hterm]; unfold traceNumBound; decide)
       (fun ty h => MsgTrOk.of_untraced γ (by
@@ -425,7 +425,8 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
         simpa [absMsg, absMsgFrom, Msg.mkV] using this))
       Hfit Hscope.2 Hsub
       (fun h => by have := Hpcd h; rw [Hscope.1] at this; cases this)
-      ⟨fun h => by prop_ne, fun h => by prop_ne, fun h => by rcases h with h | h | h <;> prop_ne⟩
+      ⟨fun h => absurd h (by prop_ne), fun h => absurd h (by prop_ne),
+        fun h => by rcases h with h | h | h <;> exact absurd h (by prop_ne)⟩
       (fun _ => Hboot) $$ Hpre
     with ⟨%R, HG, Hgates, Hclose⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp R
