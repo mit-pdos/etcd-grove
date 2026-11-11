@@ -683,7 +683,8 @@ theorem Main.wp_proof
     -- `wctx, wcancel := context.WithCancel(context.Background())`
     wp_apply context.wp_Background
     wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-      as %wctx %γctx %wcancel ⟨#Hwcancel, #Hwctx, -⟩
+      as %wctx %γctx %wcancel ⟨#Hwcancel, #Hwctx, -, #wctxFrom⟩
+    ihave #wctxO := metadata.outgoingCtxOkC_bgFrom wctx $$ wctxFrom
     (try wp_auto)
     -- the watch's option, `WithRev(2)`
     wp_apply wp_WithRev (W64 2) as %f2 #Hf2

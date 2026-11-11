@@ -613,7 +613,7 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     isEtcdWatcher (EM := etcdModelOfKV γ) (watcherIfaceOf w) pfx := by
   iintro ⟨#P1, #P2, #P3, #Hw, #Hinv⟩
   unfold isEtcdWatcher
-  iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, -, #Hopts, %Hpre, #Hrd⟩ HΦ
+  iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #HctxO, #Hopts, %Hpre, #Hrd⟩ HΦ
   obtain ⟨hpw, hnp, hrev, hsz⟩ := Hpre
   unfold OpFull.isPrefixWatch at hpw
   simp only [decide_eq_true_eq, hp, if_false] at hpw

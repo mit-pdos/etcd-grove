@@ -71,7 +71,8 @@ theorem checkCompactRev.wp_proof
   -- `cctx, ccancel := context.WithCancel(context.Background())`
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %cctx %γctx %ccancel ⟨#Hccancel, #Hcctx, -⟩
+    as %cctx %γctx %ccancel ⟨#Hccancel, #Hcctx, -, #cctxFrom⟩
+  ihave #cctxO := metadata.outgoingCtxOkC_bgFrom cctx $$ cctxFrom
   (try wp_auto)
   -- the watch's option, `WithRev(2)`
   wp_apply wp_WithRev (W64 2) as %f2 #Hf2

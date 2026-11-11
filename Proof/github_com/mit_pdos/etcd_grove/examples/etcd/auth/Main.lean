@@ -457,7 +457,8 @@ theorem Main.wp_proof
   -- holds at
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %hctx %γhctx %hcancel ⟨#Hhcancel, #Hhctx, -⟩
+    as %hctx %γhctx %hcancel ⟨#Hhcancel, #Hhctx, -, #hctxFrom⟩
+  ihave #hctxO := metadata.outgoingCtxOkC_bgFrom hctx $$ hctxFrom
   (try wp_auto)
   wp_apply wp_WithPrefix as %f1 #Hf1
   wp_apply wp_WithRev (W64 1) as %f2 #Hf2
@@ -536,7 +537,8 @@ theorem Main.wp_proof
   -- range u may read (`u_resp`)
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %uctx %γuctx %ucancel ⟨#Hucancel, #Huctx, -⟩
+    as %uctx %γuctx %ucancel ⟨#Hucancel, #Huctx, -, #uctxFrom⟩
+  ihave #uctxO := metadata.outgoingCtxOkC_bgFrom uctx $$ uctxFrom
   (try wp_auto)
   wp_apply wp_WithRange hi as %g1 #Hg1
   wp_apply wp_WithRev (W64 1) as %g2 #Hg2

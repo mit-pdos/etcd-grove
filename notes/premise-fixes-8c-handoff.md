@@ -61,18 +61,50 @@ under the 64G cap; full log `/shared/tmp/premise-fixes-8c/lb.log`). Do not run s
 `etc/lean-check.py` files at once on a cold import tree: parallel `lake setup-file`s raced and lost
 `.olean`s (`BaseApply.olean` missing); `lb.sh` is reliable.
 
-## C3 (the flip): STOP 1 pending
+## C3 (the flip): implementation in progress (handed off at context limit)
 
-Trusted texts written, old -> new: `/shared/tmp/premise-fixes-8c/c3-trusted.md` (awaiting etcd-grove-81).
-No Lean changed yet. Commit `78fe100e76`: Go case `errsNilCancelCtx` (the Scope's "`Value` at `*int`
-keys returns" is false; the clause is "at `&cancelCtxKey`, not a `*cancelCtx`"). Next, after approval:
-InvGrpc's `ctxDeadline`/`ctxWithCancelOk`, `ctxQuiet`/`ctxErrs`/`ctxOk`, `FromOutgoingContext`,
-`watchCtx`, `WithCancelValCtx`, `kaCtxOk`; producers (`ctxQuiet_todo`/`_background`, `chanCtx_ok`,
-`ctxOk_of_isContext`, `watchCtx_of_isContext`) and the destructuring proofs (`getToken`,
-`unaryClientInterceptor`, `quiet_ctx`, `ctxErrClient_quiet`). Stage B waits on C3; keep InvGrpc edits
-to the ctxOk section.
+Stop 1 approved by etcd-grove-81 (`questions.md`; texts in `/shared/tmp/premise-fixes-8c/c3-trusted.md`).
+Decisions entry written ("Premise fixes 8, part C3", with the correction to D4). Commits `78fe100e76`
+(Go case), `81dfaef76c` (the restatement and most of the cascade), then the commit with this note.
+
+Done (all built in targeted builds unless noted):
+- InvGrpc: `ctxDeadline`, `ctxWithCancelOk`, `ctxQuiet`/`ctxErrs`/`ctxOk` restated; laws
+  `ctxOk_of_isContext`/`_errs`/`_quiet` (take `outgoingCtxOkC`), `ctxOk_outgoingC`.
+- `FromOutgoingContext.spec` (+ `outgoingCtxOk`), `watchCtx` (+ `"#HOut"`, `watchCtx_of_isContext` takes
+  it, `watchCtx_outgoingC`), `WithCancelValCtx.spec` post (+ `outgoingCtxOkC ctx'`), `streamKeyFromCtx`
+  docstring, `kaCtxOk` (+ `outgoingCtxOk`).
+- Producers: `ctxQuiet_todo`/`_background`, `todo_ctx`/`background_ctx`, `quiet_ctx`,
+  `ctxErrClient_quiet`, `chanCtx_ok` (now takes `channelContext.Deadline`/`Value` specs and
+  `wait.Assumptions`; `go_type_set` proves no AfterFunc), `chanCtx_watch` (+ `wp_Value`), the k8s
+  compactor proofs (two new hypotheses; `etc/link-lean-first-k8s-etcd3.txt` and the regenerated k8s
+  etcd3 `Link.lean`).
+- Forms (to list at the checkpoint, "form decided by the agent"): `isWGS`'s second conjunct becomes
+  `((∃ vs, …) ∗ outgoingCtxOkC G.ctx)`; `lessorAt`/`lessorAtS`'s stop-context slot becomes
+  `(isContext sc scd ∗ outgoingCtxOkC sc)`; `openWatchClient.spec`, `lessor.KeepAlive.spec`,
+  `watcher.RequestProgress.spec` take `outgoingCtxOkC ctx` (callers in the branch discharge it); new law
+  `metadata.outgoingCtxOk_of_valueWand` (LibKeysChain); the newClient join carries `outgoingCtxOkC cx`.
+- Full build (after `81dfaef76c`): the only failures were the `watchCtx_of_isContext` callers. Fixed
+  since: `KMWatch`, `auth/Work` (built). **Not yet rebuilt:** `examples/etcd/{watch/Main,
+  compactwatch/checkCompactRev, compactwatch/Main, auth/Main}`: their `wp_WithCancel_Background` post
+  is `⟨cancel, isContext, isCancelCtxCtx ∗ ctxValueFrom⟩`; the pattern is now `⟨…, -, #xFrom⟩` with
+  `ihave #xO := metadata.outgoingCtxOkC_bgFrom x $$ xFrom` (the `isplitl [] <;> iassumption` at the
+  `watchCtx_of_isContext` call then finds `xO`). Earlier cascade errors in those files (watch/Main
+  454/510, auth/Main 614/631) should be consequences; check.
+
+Next, in order:
+1. `lb.sh` the four example files; fix.
+2. Full build (`/shared/tmp/premise-fixes-8c/full.sh`, under the lock and 64G cap).
+3. `etc/tcb-report.py --check` (865 axioms, 5 sorries; LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json),
+   every collection, `etc/gen-interface.py etc/api/<pkg>.txt --check` (client/v3, concurrency, cache,
+   raft, ...: regenerate the changed ones and list the changed exported statements), `etc/gen-init.py --check`.
+4. STATUS entry (oldest to status-history, append-only, check `wc -l`), handoff, then STOP before
+   land.sh with the changed exported statements. Stage B waits on C3.
 
 ## Pitfalls
+
+- Adding a conjunct to a stored predicate shifts positional `icases` patterns: nest the new fact inside an
+  existing slot (as done for `isWGS`, `lessorAt`) rather than append.
+- `gen-link.py` prints to stdout: redirect into the `Link.lean`.
 
 - Adding a conjunct to an axiom's post breaks `icases` patterns of its users: grep for the
   `wp_apply ... as` lines (`newClient`, `TimeoutCtx.wp_WithTimeout_bgMd`, auth `reqCtx`/`Work`).
