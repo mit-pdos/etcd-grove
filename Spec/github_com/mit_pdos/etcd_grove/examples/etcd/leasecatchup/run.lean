@@ -63,7 +63,8 @@ abbrev run.spec : Prop :=
       ⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot⌝ ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
-      ⌜threadBound GF ≤ 2 ^ 28 ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
+      -- (per-type stage B3) with the levels of a thread token the members' gRPC runs use
+      ⌜threadBound GF ≤ 2 ^ 28 ∧ srvLevels (GF := GF) ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
         N + 7 + bootWB ≤ backend.wbInit⌝ ∗
       ⌜ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk⌝ ∗
       ⌜leasePeersOk ∧ lease.leasesNoExpiry⌝ ∗

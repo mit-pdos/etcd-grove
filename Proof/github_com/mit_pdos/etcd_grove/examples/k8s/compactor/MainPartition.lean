@@ -99,7 +99,7 @@ theorem MainPartition.wp_proof
     (wp_writer : writer.spec (GF := GF) (hG := hG))
     (wp_apiserver : apiserver.spec (GF := GF) (hG := hG)) :
     MainPartition.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot sched steps Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot sched steps Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq
     Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, #Hsched, Htok,
     #Hprem, Hreg⟩
@@ -132,7 +132,7 @@ theorem MainPartition.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in compaction mode
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Htb
-      Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
+      HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)

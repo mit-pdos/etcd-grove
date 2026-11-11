@@ -302,7 +302,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ThreadBoundLe k8setcd3GF (2 ^ 28) := ⟨by rw [HT]; word⟩
   haveI : ReceiptBoundLe k8setcd3GF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
-  have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
+  have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops (srvLevels_of_max HT) Hbf
     (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
@@ -424,7 +424,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
-    steps Hbf (by unfold bootWB backend.wbInit; omega)
+    steps (srvLevels_of_max HT) Hbf (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]

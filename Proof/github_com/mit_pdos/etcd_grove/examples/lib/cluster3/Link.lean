@@ -135,7 +135,7 @@ theorem wp_holdToken :
 
 theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.cluster3.StartMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve wp_holdToken mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds
+  EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve wp_holdToken mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
 theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.cluster3.StartCluster.spec (GF := GF) (hG := hG) :=

@@ -173,7 +173,7 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
     ipureintro
-    exact ⟨Hbf, ⟨by rw [HT]; word, by rw [HN]; omega, by rw [HN]; omega,
+    exact ⟨Hbf, ⟨by rw [HT]; word, srvLevels_of_max HT, by rw [HN]; omega, by rw [HN]; omega,
       by unfold bootWB backend.wbInit; omega⟩, ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩, ⟨Hlp, Hlne⟩,
       ⟨inferInstance, EtcdGrove.rpctypesEtcdError_asTarget⟩⟩
   ipureintro

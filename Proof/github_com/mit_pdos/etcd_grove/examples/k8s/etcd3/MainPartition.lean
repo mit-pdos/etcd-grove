@@ -73,7 +73,7 @@ theorem MainPartition.wp_proof
     (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainPartition.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops sched steps ThB RcB RcN Hbf HwbN Hck
+  intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops sched steps ThB RcB RcN HLv Hbf HwbN Hck
     Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -103,7 +103,7 @@ theorem MainPartition.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, compaction off
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .none clusterCfg_ok Hbf
-      Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
+      Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
       (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #

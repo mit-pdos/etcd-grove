@@ -5,7 +5,7 @@ counterpart).
 The ghost step putget's, linkv's, linkvtxn's, putget3's and linkv3's `Main`s took between `Listen`
 and `go gs.Serve(l)`, once, for `Serve`'s caller's ghost step (`Serve.spec`'s `G`):
 * `kv_served`: from `v3rpc.Server`'s and `Listen`'s results (`grpcUp`) and the request slots a
-  started member leaves (`memberUp`'s; one gRPC slot, `client.etcdGrpcSlots_of_started`), the right
+  started member leaves (`memberUp`'s raw stocks; the run pools built from them, per-type stage B3), the right
   to serve and etcd's `Put`, `Range`, `DeleteRange` and `Txn` at the address
   (`client.etcd_kv_started`);
 * `grpcUp_noRefusal`: the member never refuses (authentication off, a voter: the members' axiom

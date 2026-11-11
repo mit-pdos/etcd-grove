@@ -352,8 +352,8 @@ B2, 2026-11-11, r5 §3.2's row `readMu`) Less the gRPC run pool's share, `srvRev
 (`srvRunReadStock`), which `memberUp` holds apart. -/
 def memberReadN : Nat := srvStartReadN - srvRevokePoolN
 
-/-- What the consumers take of the read loop's slots: at least one (each splits off one gRPC slot,
-`client.etcdGrpcSlots_of_started`'s `N ≤ M`). -/
+/-- The read loop's slots are at least one (until per-type stage B3 each consumer split off one gRPC
+slot from them; the runs now borrow from the run pool). -/
 theorem one_le_memberReadN : 1 ≤ memberReadN := by
   unfold memberReadN srvStartReadN
   rw [sync.rwmutex.actualMaxReaders_unseal]; unfold srvRevokePoolN backend.rdPoolN; omega

@@ -24,7 +24,7 @@ model_respond:
 model_finishStream:
 grpc_KeepaliveEnforcementPolicy:
 cluster3_holdToken:
-cluster3_StartMember: etcdstart_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve cluster3_holdToken =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds
+cluster3_StartMember: etcdstart_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve cluster3_holdToken =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds
 # `StartBridge`: `net.Listen` and the bridge's `New` (the bridge's trust-boundary axioms, D26)
 bridge_New:
 cluster3_StartBridge: net_Listen bridge_New
