@@ -9,19 +9,18 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
   `WarningUnaryRequestDuration`, `Metrics`, `EnableDistributedTracing`, `TracerOptions`,
   `MaxConcurrentStreams`, and since J8a-3 `WatchProgressNotifyInterval`), at `cfg`'s values,
   read-only.
-* `srvServeBuilt s E cfg K`: those, the KV field as the watchable store `NewServer` built
-  (`isWatchableStore`), a reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
-  the auth store (`E.RD`) and the store's reader tokens (`mvccReaders E.γ 1` each, one per request
-  slot, what its reads of the store borrow; R6, 2026-11-07, the `lean` merge: `lean`'s
-  `mvcc.storeReader`s, which strict M1 had dropped), which `NewServer`'s proof dropped
-  until D19g, and of `bemu` (the quota checks', which read the current backend: D22g (A)).
+* `srvServeBuilt s E cfg`: those, the KV field as the watchable store `NewServer` built
+  (`srvServeFacts`), a reader slot of `bemu` (`v3rpc.Server`'s) and `Start`'s two reader slots of
+  `lgMu`. (Until per-type stage B3, 2026-11-11, also `K` reader slots each of `leadTimeMu`,
+  `lgMu`, the auth store (`E.RD`), `bemu` and the store's reader tokens, one per request slot: the
+  gRPC runs now borrow them from the server's run pools, `srvRunPool`.)
   (Until J8a-3, 2026-11-01, also the progress interval's field, owned: `NewWatchServer` wrote it;
   the fork's `NewWatchServer` keeps the adjusted interval local, and the field is read-only in
   `srvServeCfg`.)
 * `replicate_takeN`, `replicate_sepL`: splitting and pairing replicated resources.
 * (Per-type stage B2, 2026-11-11, r5 §3.2-§3.3 and §4.2) `srvServeStock s E`: the raw stocks
-  `NewServer` hands out beside `srvServeBuilt` until B3 (the revocation's built part, `srvRevokePoolN`
-  store tokens with `bemu` slots, `Start`'s two `lgMu` slots); `srvRunReadStock`, the read loop's
+  `NewServer` hands out beside `srvServeBuilt` (the revocation's built part, `srvRevokePoolN`
+  store tokens with `bemu` slots); `srvRunReadStock`, the read loop's
   share; the gRPC run pool `srvRunPool` (level 3), built from both at the serve step
   (`srvRunPool_init`).
 -/
@@ -136,30 +135,22 @@ theorem srvServeFacts_interval (s : Loc) (E : apply.AEnv GF)
   iexact H
 
 /-- **What `NewServer` leaves for serving** (see the file header). -/
-def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (K : Nat) : IProp GF :=
-  iprop(srvServeFacts s E cfg ∗
-    srvBemuReader s ∗
-    ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
-    ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
-    ([∗list] _x ∈ List.replicate K (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate K (), srvBemuReader s) ∗
-    ([∗list] _x ∈ List.replicate K (), mvcc.api.mvccReaders E.γ 1))
+def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
+    IProp GF :=
+  iprop(srvServeFacts s E cfg ∗ srvBemuReader s ∗ srvLgReader s ∗ srvLgReader s)
 
 /-- **The serving stocks `NewServer` hands out raw** (per-type stage B2, 2026-11-11; r5 §3.2 and
-§4.2, beside `srvServeBuilt`'s 64-stocks until stage B3): the revocation's built part
-(`srvRevokeBuilt`, persistent: the inner pool `I` of `leadTimeMu` and `E.RD` a gRPC run borrows at
-level 2, `srvRevokeBuilt_innerBorrow`, and `raftPool` at level 1, `srvRevokeBuilt_raftPool`);
-`srvRevokePoolN` copies of a store reader token with a reader slot of `bemu`, the raw stock the
-gRPC run pool is made of (`srvRunPool_init`, at the serve step: r5's D6, so that a member that
-never serves returns the store's tokens to its stop, `srvStopReaders_intro`); and `Start`'s counted
-stock of two `lgMu` reader slots (r5 §3.2's row `lgMu`; until B3 `Start` still spends two of
-`srvServeBuilt`'s). -/
+§4.2): the revocation's built part (`srvRevokeBuilt`, persistent: the inner pool `I` of
+`leadTimeMu` and `E.RD` a gRPC run borrows at level 2, `srvRevokeBuilt_innerBorrow`, and `raftPool`
+at level 1, `srvRevokeBuilt_raftPool`); and `srvRevokePoolN` copies of a store reader token with a
+reader slot of `bemu`, the raw stock the gRPC run pool is made of (`srvRunPool_init`, at the serve
+step: r5's D6, so that a member that never serves returns the store's tokens to its stop,
+`srvStopReaders_intro`). (Until stage B3 also `Start`'s two `lgMu` reader slots, now in
+`srvServeBuilt`.) -/
 def srvServeStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(srvRevokeBuilt s E ∗
     ([∗list] _x ∈ List.replicate srvRevokePoolN (),
-      iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)) ∗
-    srvLgReader s ∗ srvLgReader s)
+      iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)))
 
 /-- **The read loop's reader slots a started member keeps for its gRPC runs** (per-type stage B2,
 r5 §3.2's row `readMu`): `srvRevokePoolN` of them, the run pool's other raw stock
@@ -199,24 +190,22 @@ theorem srvServeStock_built (s : Loc) (E : apply.AEnv GF) :
     srvServeStock (GF := GF) s E ⊢ srvRevokeBuilt s E ∗ srvServeStock s E := by
   iintro Hst
   iunfold srvServeStock at Hst
-  icases Hst with ⟨#Hb, Hp, Hlg1, Hlg2⟩
+  icases Hst with ⟨#Hb, Hp⟩
   iframe Hb
   iunfold srvServeStock
   iframe Hb
-  isplitl [Hp]
-  · iexact Hp
-  iframe Hlg1 Hlg2
+  iexact Hp
 
 /-- **The gRPC run pool, from the raw stocks** (per-type stage B2, r5 §3.3): `threadPool.initL` at
 level 3 over `srvServeStock`'s `srvRevokePoolN` store tokens with `bemu` slots and the read loop's
 `srvRunReadStock`, paired; the bound `threadBound GF ≤ srvRevokePoolN + 1` from the built part
-(`srvRevokeBuilt_bound`). The stock's other parts come back. -/
+(`srvRevokeBuilt_bound`). The built part comes back. -/
 theorem srvRunPool_init (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Em : CoPset) :
     srvServeStock (GF := GF) s E ∗ srvRunReadStock s γr ⊢
-      |={Em}=> srvRunPool s E γr ∗ srvRevokeBuilt s E ∗ srvLgReader s ∗ srvLgReader s := by
+      |={Em}=> srvRunPool s E γr ∗ srvRevokeBuilt s E := by
   iintro ⟨Hst, Hrd⟩
   iunfold srvServeStock at Hst
-  icases Hst with ⟨#Hb, Hp, Hlg1, Hlg2⟩
+  icases Hst with ⟨#Hb, Hp⟩
   ihave %Hbd := srvRevokeBuilt_bound s E $$ Hb
   iunfold srvRunReadStock at Hrd
   -- (paired at the elements' own forms, then rearranged element by element: no bare `iframe`
@@ -238,7 +227,7 @@ theorem srvRunPool_init (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Em : Co
   · iunfold srvRunPool
     iexists γ
     iexact Hpool
-  iframe Hb Hlg1 Hlg2
+  iexact Hb
 
 end runPool
 

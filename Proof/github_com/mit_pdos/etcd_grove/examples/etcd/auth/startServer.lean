@@ -140,7 +140,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, Hstk,
-    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
+    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -172,8 +172,7 @@ theorem startServer.wp_proof
     iexists _
     iframe Hmf Hfgc
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
-  icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
+  icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row, the lessor's
   have hB := isServerBuiltM_C (GF := GF) (.on γa) srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0)
     (W64 0) x₀ N hγa
@@ -206,7 +205,6 @@ theorem startServer.wp_proof
   · rw [hon]; iexact Hrd
   iclear Hreq Hrd
   iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
-  unfold etcdstart.kvServeStocks
   -- (per-type stage B2) the raw run-pool stocks first, framed explicitly; the pure part last (the
   -- configuration is found by the framing)
   isplitr

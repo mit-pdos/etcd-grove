@@ -329,9 +329,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
-          -- (per-type stage B2, 2026-11-11, r5 §4.2) the raw serving stocks, beside
-          -- `srvServeBuilt`'s 64-stocks until B3: the revocation's built part, the gRPC run pool's
-          -- store tokens with `bemu` slots, `Start`'s two `lgMu` slots
+          -- (per-type stage B2, 2026-11-11, r5 §4.2) the raw serving stocks: the revocation's built
+          -- part, the gRPC run pool's store tokens with `bemu` slots
           srvServeStock srv E ∗
           srvWatchBuilt srv E ∗
           -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
@@ -342,8 +341,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
           srvBuildGap srv γrn (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
-          -- watchable store, the progress interval's field, and the request slots
-          srvServeBuilt srv E cfg 64 ∗
+          -- watchable store, the progress interval's field, `v3rpc.Server`'s `bemu` slot and
+          -- `Start`'s two `lgMu` slots (until per-type stage B3, 2026-11-11, also 64 request slots:
+          -- the gRPC runs borrow the run pools, `srvRunPool`)
+          srvServeBuilt srv E cfg ∗
           -- (D19i part 2) the storage version monitor's backend access
           srvSVRes srv E ∗
           -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
@@ -357,10 +358,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- `MendPeer`) and what each request the handler serves borrows (`http.Serve`)
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-          -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
-          -- service's run slots (`v3rpc.watchRunSlot`); (the reader tokens of mvcc's API,
-          -- 2026-11-06) 64 of the store's reader tokens (`srvWatchReaders`)
-          srvWatchReaders srv E 64 ∗
+          -- (until per-type stage B3, 2026-11-11, also 64 of the store's reader tokens for the
+          -- watch service, `srvWatchReaders`: the watch loops borrow the run pool)
           -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease
           -- subsystem's part (`lease.srvInv`, `LeaseApi.lean`): with auth on its lessor finding no
           -- lease (E3zb, lease-grant D1), the peers' round tripper and the lessor's reader side (K7),

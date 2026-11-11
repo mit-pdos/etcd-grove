@@ -46,28 +46,21 @@ theorem mvccReaders_ofRep (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
     iframe H1
     iapply ih $$ H
 
-/-- **The stop's serving readers** (`srvStopReaders`) from `NewServer`'s 64 reader tokens, its
-watch service's 64 (`srvWatchReaders`' tokens, `srvWatchReaders_readers`) and (per-type stage B2,
-2026-11-11) the gRPC run pool's raw stock, a member that never served (`srvServeStock`'s
-`srvRevokePoolN` tokens; its `bemu` slots, `lgMu` slots and the built part are dropped), joined by
-the API's `mvccReaders_split.law`. -/
+/-- **The stop's serving readers** (`srvStopReaders`) from the gRPC run pool's raw stock, a member
+that never served (per-type stage B2, 2026-11-11: `srvServeStock`'s `srvRevokePoolN` tokens; its
+`bemu` slots and the built part are dropped), joined by the API's `mvccReaders_split.law`. (Until
+stage B3 also `NewServer`'s 64 request reader tokens and its watch service's 64, `srvWatchReaders`.) -/
 theorem srvStopReaders_intro (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc)
     (E : apply.AEnv GF) :
-    mvcc.api.mvccReaders E.γ 64 ∗ srvWatchReaders s E 64 ∗ srvServeStock s E ⊢
-      srvStopReaders (GF := GF) E := by
+    srvServeStock s E ⊢ srvStopReaders (GF := GF) E := by
   unfold srvStopReaders
-  iintro ⟨Hsts, HWR, Hstk⟩
-  ihave Hw := srvWatchReaders_readers s E 64 $$ HWR
+  iintro Hstk
   iunfold srvServeStock at Hstk
-  icases Hstk with ⟨-, Hp, -, -⟩
+  icases Hstk with ⟨-, Hp⟩
   ihave Hp := replicate_mono iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)
     (mvcc.api.mvccReaders E.γ 1) srvRevokePoolN (by iintro ⟨H, -⟩; iexact H) $$ Hp
-  ihave Hp := mvccReaders_ofRep hRS E.γ srvRevokePoolN
+  iapply mvccReaders_ofRep hRS E.γ srvRevokePoolN
     (by simp only [srvRevokePoolN, backend.rdPoolN]; omega) $$ Hp
-  iapply (hRS E.γ srvRevokePoolN (64 + 64)).2
-  iframe Hp
-  iapply (hRS E.γ 64 64).2
-  iframe Hsts Hw
 
 end readers
 

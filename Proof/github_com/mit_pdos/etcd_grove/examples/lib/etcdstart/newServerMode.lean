@@ -124,7 +124,7 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, Hstk,
-    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlsrv, #Httl, -, -, Hkeep⟩)
+    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, #Hlsrv, #Httl, -, -, Hkeep⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr

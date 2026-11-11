@@ -2,7 +2,7 @@
 **`s.Start()` of a built member** (2026-10-22, D33). Lean-first (no Rocq counterpart).
 
 `wp_Start_built`: `EtcdServer.Start.spec` at the auth slot's `off` (`isServerBuilt_offC`) at what `newServer` returns (`memberBuilt`) and the
-thread token: the member started (`memberUp`). Two of `srvServeBuilt`'s `lgMu` reader slots and
+thread token: the member started (`memberUp`). `srvServeBuilt`'s two `lgMu` reader slots and
 the downgrade monitor's go to `Start`; (per-type stage B2) `NewServer`'s raw stocks
 (`srvServeStock`) and the run pool's share of `Start`'s read-loop slots (`srvRunReadStock`) go to
 `memberUp`. The step every example's member start took after
@@ -48,10 +48,9 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
   iunfold memberBuilt at Hmb
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
-    Hlgm, Hrc, #Hnm, Htokp, -, HWR, #Hlr, Hkeep⟩
+    Hlgm, Hrc, #Hnm, Htokp, -, #Hlr, Hkeep⟩
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
-  icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
+  icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `Start.spec` at the slot's `off`
   imod isServerBuilt_offC s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ [Hsb Hkeep] with ⟨%hm, Hsb, Hl⟩

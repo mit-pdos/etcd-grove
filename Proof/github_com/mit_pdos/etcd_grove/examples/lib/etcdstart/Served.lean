@@ -114,19 +114,19 @@ def srvWOf (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) : v3rpc.SrvW GF :=
 /-- **The raw stocks a started member leaves for its gRPC runs** (per-type stage B3, 2026-11-11;
 `memberUp`'s, written once for `kv_served`, `kv_lease_served` and the watch servers): the server's
 serving stock (`srvServeStock`: the revocation's built part, the run pool's raw readers of the store
-and `bemu`, two `lgMu` readers) and the read loop's readers for the run pool (`srvRunReadStock`), from
-which the serve step builds the gRPC run pool (`srvRunPool_init`). Until B3: 64 reader slots of each
-kind, from which the served theorems' caller-chosen slots were made. -/
+and `bemu`) and the read loop's readers for the run pool (`srvRunReadStock`), from which the serve
+step builds the gRPC run pool (`srvRunPool_init`). Until B3: 64 reader slots of each kind, from which
+the served theorems' caller-chosen slots were made. -/
 def kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(srvServeStock s E ∗ srvRunReadStock s γr)
 
-/-- **The run pools, built at the serve step** (per-type stage B3): `srvRunPool_init` on the stocks
-(its two `lgMu` readers dropped), at any mask. -/
+/-- **The run pools, built at the serve step** (per-type stage B3): `srvRunPool_init` on the stocks,
+at any mask. -/
 theorem kvServeStocks_pools (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Em : CoPset) :
     kvServeStocks (GF := GF) s E γr ⊢ |={Em}=> srvRunPool s E γr ∗ srvRevokeBuilt s E := by
   iintro H
   unfold kvServeStocks
-  imod (srvRunPool_init s E γr Em) $$ H with ⟨#Hrp, #Hb, -, -⟩
+  imod (srvRunPool_init s E γr Em) $$ H with ⟨#Hrp, #Hb⟩
   imodintro
   iframe #
 
@@ -178,8 +178,8 @@ off), configuration `cfg` (with the logger `lg`, no tracer options, no progress-
 wait-registry name `γw`, the request and read views, the serving facts, the `GoAttach` resources, an
 `lgMu` and a `bemu` reader slot, the watchable store's built part (`srvWatchBuilt`), the raw stocks
 the gRPC run pools are built from (`kvServeStocks`, per-type stage B3), the partitioner's part (`srvPeerCtl`) and the lease
-subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, (per-type
-stage B2, until B3 serves from them) the gRPC run pool's raw stocks, ...) is dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
+subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, the read
+loop's other slots) is dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
 a new conjunct of `memberUp` changes only these laws' proofs. -/
 theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (m : lease.Mode) :
@@ -194,7 +194,7 @@ theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : L
   iintro Hup
   iunfold memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, Hrun, #Hreq, #Hrd, Hgo, Hlg3, -, #Hwb, #Hsf, Hbemu,
-    -, -, -, -, -, Hctl, -, #HLR, -⟩
+    Hctl, #HLR, -⟩
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
   iframe Hreq Hrd Hsf Hgo Hlg3 Hbemu Hwb Hctl HLR
@@ -203,8 +203,9 @@ theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : L
 
 /-- **A member started with auth on, from its parts** (N6, 2026-11-06; `memberUpOn`'s introduction,
 for a starter outside the package, authkv's `startServer`): its conjuncts (per-type stage B2: with
-the gRPC run pool's raw stocks), the views in its mode (`E.authOn`, `true`), the reader stocks the
-gRPC runs took until B3 (64 of each kind; removed with `memberUpOn`'s). -/
+the gRPC run pool's raw stocks), the views in its mode (`E.authOn`, `true`). (Until per-type stage
+B3, 2026-11-11, also the reader stocks the gRPC runs took, 64 of each kind, and the watch service's
+reader tokens, `srvWatchReaders`.) -/
 theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) :
@@ -213,21 +214,15 @@ theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
       srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
       isServerReqM E.authOn s E { ρ with wait := γw } ∗ isServerReadM E.authOn s E ρ.rd ∗
       srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
-      srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
-      (([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-        ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-        ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-        ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
-        ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
-        ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s)) ∗
+      srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗
+      ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
       srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ⊢
     memberUpOn (GF := GF) s ρ E₀ lg γn id γa := by
   iintro ⟨%HEc, H⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   irevert H
   rw [hon]
-  iintro ⟨Hstk, Hrun, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, HWR,
-    ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hctl, #Htls, #HBF⟩
+  iintro ⟨Hstk, Hrun, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, Hrslots, Hctl, #Htls, #HBF⟩
   iunfold memberUpOn
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
@@ -254,7 +249,7 @@ theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
   iintro Hup
   iunfold memberUpOn at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, Hrun, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, -, #Hwb, #Hsf,
-    Hbemu, -, -, -, -, -, Hctl, -, #Htls, #HBF⟩
+    Hbemu, Hctl, #Htls, #HBF⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc

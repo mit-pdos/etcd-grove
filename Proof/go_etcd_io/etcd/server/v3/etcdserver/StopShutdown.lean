@@ -392,7 +392,7 @@ abbrev stopCleanupImage.spec : Prop :=
 (`srvKeepRdN`), the compactor's slot's, the serving stocks' (`srvStopReaders`: per-type stage B2,
 with the gRPC run pool's raw stock) and the apply thread's. -/
 theorem srvKeepRdN_total :
-    srvKeepRdN + 1 + (srvRevokePoolN + (64 + 64)) + 1 = mvcc.api.mvccReaderN := by
+    srvKeepRdN + 1 + srvRevokePoolN + 1 = mvcc.api.mvccReaderN := by
   -- (`srvRevokePoolN` an atom: no `Nat.sub` of a large literal is evaluated)
   have hP : srvRevokePoolN = 268435455 := by unfold srvRevokePoolN backend.rdPoolN; omega
   have := backend.rdStockN_val
@@ -547,7 +547,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hgok with ⟨%gch, %gc, -, -, -, #Hginv, -⟩
   imod stop_monitorRT C.E C.wt γg d $$ [Hlc1 Hg Hwd] with ⟨Hg, HoM⟩
   · iframe Hlc1 Hpool Hginv Hreg Hwd Hg
-  -- the census (gap 4): the slot's reader tokens with the compactor's, the caller's 128, the apply
+  -- the census (gap 4): the slot's reader tokens with the compactor's, the caller's, the apply
   -- thread's, every one of the store's
   iunfold srvRunFieldsAt at Hrf
   icases Hrf with ⟨-, -, -, -, -, -, -, #Hcpa, #Hcpok, -⟩
@@ -555,9 +555,9 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   · iframe Hcsp Hcpa
   iunfold srvStopReaders at Hrds
   rw [hBγ] at *
-  ihave Hrs := (hRS C.E.γ (srvKeepRdN + 1) (srvRevokePoolN + (64 + 64))).2 $$ [Hcr0 Hrds]
+  ihave Hrs := (hRS C.E.γ (srvKeepRdN + 1) srvRevokePoolN).2 $$ [Hcr0 Hrds]
   · iframe Hcr0 Hrds
-  ihave Hrs := (hRS C.E.γ (srvKeepRdN + 1 + (srvRevokePoolN + (64 + 64))) 1).2 $$ [Hrs Hrdk]
+  ihave Hrs := (hRS C.E.γ (srvKeepRdN + 1 + srvRevokePoolN) 1).2 $$ [Hrs Hrdk]
   · iframe Hrs Hrdk
   rw [srvKeepRdN_total]
   ihave Hwand := stop_census_open hCR C.E.γ d 1 (B.E.Pk d) $$ [HoA HoM Hhalf HoPs]

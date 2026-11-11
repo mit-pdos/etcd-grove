@@ -304,7 +304,7 @@ request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`
 configuration `cfg` with the logger `lg`, no tracer options and no progress-notify interval:
 `isServerBuilt` (from `NewServer`'s `srvBuilt` and `srvBuildGap`, at the bound `N`), what `Start` takes besides (the storage version monitor's backend access, the
 monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServer` left for serving
-(`srvServeBuilt`, the watchable store's readers) and for the member's place in the network `γn`
+(`srvServeBuilt`) and for the member's place in the network `γn`
 (`srvNetMember`, with its transport `τ`; 2026-10-24, rafthttp stage 6d: the raft loop's key to the
 transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
 what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
@@ -315,7 +315,9 @@ lease-expiry plan's X2, 2026-11-04) The lease subsystem at the member's lease mo
 stop (its slot, `srvStop.keep`) at the raft wrapper's names, the configuration, the apply
 environment and the transport key's name, which `Start` hands `run` (2026-11-05, R2c-3: until then a
 parameter `K`, `True` unless given, and `memberBuiltS` the member with the slot). (Per-type stage B2,
-2026-11-11) And `NewServer`'s raw serving stocks (`srvServeStock`), beside `srvServeBuilt` until B3. -/
+2026-11-11) And `NewServer`'s raw serving stocks (`srvServeStock`). (Until per-type stage B3,
+2026-11-11, also the watch service's 64 reader tokens, `srvWatchReaders`, and `srvServeBuilt`'s
+64-stocks: the gRPC runs borrow the run pools.) -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
     (x₀ : apply.ApplyKV := bootKV) (m : lease.Mode := .none) :
@@ -329,10 +331,10 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvWatchBuilt s E ∗
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
-    srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
+    srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
+    srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
@@ -379,8 +381,8 @@ request names `ρ` (the wait registry's `γw`) at an apply environment `E` agree
 `E₀`, auth off, built from a configuration `cfg` with the logger `lg`, no tracer options and no
 progress-notify interval; what `Start` returns (the request and read views, the `GoAttach`
 resources with the thread token, a `lgMu` reader slot, the read loop's readers) and what
-`NewServer` left for serving (`srvServeBuilt`'s resources, two of its `lgMu` slots spent on
-`Start`; the watchable store's readers), and its place in the network `γn`; (the lease-expiry
+`NewServer` left for serving (`srvServeBuilt`'s resources, its two `lgMu` slots spent on
+`Start`; the watchable store, `srvWatchBuilt`), and its place in the network `γn`; (the lease-expiry
 plan's X2, 2026-11-04) the lease subsystem at the member's lease mode `m` (default `none`);
 (2026-11-05, the restart plan's R2c-4) and `Start`'s right to stop the server (`srvStopRight`, at
 `E`, the member id `id` and the configuration's data directory), at the environment of the
@@ -389,7 +391,8 @@ run pool's raw stocks: `NewServer`'s (`srvServeStock`, with the revocation's bui
 run borrows the inner pool `I` at level 2, `srvRevokeBuilt_innerBorrow`, and `raftPool` at level 1)
 and the read loop's share (`srvRunReadStock`), from which the serve step builds the run pool at
 level 3 (`srvRunPool_init`; raw here, r5's D6, so that a member that never serves returns the store's
-tokens to its stop, `memberUp_stop`). -/
+tokens to its stop, `memberUp_stop`). (Until stage B3 also `srvServeBuilt`'s 64-stocks and the
+watch service's 64 reader tokens: the gRPC runs borrow the run pools.) -/
 def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (m : lease.Mode := .none) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
@@ -400,33 +403,8 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗
-    ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-    ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-    ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
-    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗
+    srvPeerCtl γn s id ∗ srvLeaseRd s E m ∗
     (∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ id dd))
-
-open Iris.ProofMode in
-/-- **`n` single reader tokens of the store are `n` of them** (`mvccReaders_split.law`; R9, the `lean`
-merge: what `memberUp`'s serving stock of single tokens gives the stop's census). -/
-theorem mvccReaders_join (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
-    (γ : mvcc.api.MvccName) :
-    ∀ n, ([∗list] _x ∈ List.replicate (n + 1) (), mvcc.api.mvccReaders (GF := GF) γ 1) ⊢
-      mvcc.api.mvccReaders γ (n + 1)
-  | 0 => by
-    rw [List.replicate_succ]
-    iintro H
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, -⟩
-    iexact H1
-  | n + 1 => by
-    iintro H
-    rw [List.replicate_succ]
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
-    iapply (hRS γ (n + 1) 1).2
-    iframe H1
-    iapply mvccReaders_join hRS γ n $$ H
 
 /-- **A started member that will not serve, split for its stop** (R2c review F4, 2026-11-06): the
 request view and the `GoAttach` resources (what `AppliedIndex()` and the goroutines need), and what a
@@ -442,8 +420,7 @@ theorem memberUp_stop (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc
         ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ srvStopReaders E := by
   iintro Hup
   iunfold memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, -, #Hreq, -, Hgo, -, -, -, -, -, -, -, -, Hsts, -, -,
-    HWR, -, %dd, Hr⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, -, #Hreq, -, Hgo, -, -, -, -, -, -, -, %dd, Hr⟩
   isplitl [Hgo]
   · iexists E, γw
     iframe Hreq Hgo
@@ -451,9 +428,7 @@ theorem memberUp_stop (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc
   iframe Hr
   isplitr
   · ipureintro; exact ⟨HEc.2.1, HEc.1.2.2.2⟩
-  iapply srvStopReaders_intro hRS s E
-  iframe HWR Hstk
-  iapply mvccReaders_join hRS E.γ 63 $$ Hsts
+  iapply srvStopReaders_intro hRS s E $$ Hstk
 
 /-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the
@@ -564,12 +539,7 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
     ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗
-    ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-    ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-    ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
-    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗
+    srvPeerCtl γn s id ∗
     -- (authkv's Main, 2026-10-30) the TLS fallback off (`ClientCertAuthEnabled` the
     -- configuration's `false`, `srvTLSId_false`) and the auth store's cost field (`BcryptCost()`'s)
     -- and (C1's A4, 2026-10-31) its `Authenticate` side (`srvAuthStoreOn`)
