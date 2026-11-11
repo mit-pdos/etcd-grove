@@ -34912,7 +34912,8 @@ bootstrap state's bags are empty.
   response from a voter raft already knows leaves raft's tally unchanged and keeps the relation (the
   specification's `SetIds.add` is an idempotent sorted insertion; a granting one only adds a responded
   voter to `votesGranted`); a win gives the specification's `BecomeLeader` its quorum (`isQuorum` is
-  monotone on duplicate-free subsets of the configuration); a loss's step-down reads no tally; a
+  monotone on duplicate-free subsets of the configuration, given every voter raft heard from is
+  configured: `hc`, the won path's obligation); a loss's step-down reads no tally; a
   pending response has no further line. The specification's `votesGranted` is still reached by its own
   actions, so `SpecInv` is unaffected. Small: the tally conjunct is read by a few lemmas
   (`sim_recordVote`, the self-vote, `voteEnd_simIdle`, the won vote's `BecomeLeader` gate).
@@ -34952,8 +34953,11 @@ unpersisted candidate's empty tally, re-proved for the response, `specInv_respCa
 (specification-internal); never by a line's state check (`Line.stateMatches`: term, role, vote, log
 length, commit, configuration) nor by an invariant (`Invariants.lean`). So the specification's larger
 tally changes no action a line fires: a win's `BecomeLeader` gets its quorum from raft's
-(`tallyGranted_quorum`, `isQuorum` monotone on duplicate-free subsets), a loss's step-down
-(`StepDownToFollower`) reads no tally, and a pending response fires nothing more.
+(`tallyGranted_quorum`, `isQuorum` monotone on duplicate-free subsets of the configuration, given
+that every voter raft heard from is configured: its premise `hc`, open, the won path's obligation, which
+raft's `VoteWon` needs anyway), a loss's step-down (`StepDownToFollower`) reads no tally, and an
+election left pending fires nothing more. Reviews `notes/trace-validation-reviews/a3-r1.md`, `a3-r2.md`
+(no first-tier finding left).
 
 **Re-proved.** `sim_recordVote` without the premise `s.votes !! src = none` (a known voter's response:
 raft unchanged, the specification's `votesResponded` unchanged by the idempotent `SetIds.add`, its

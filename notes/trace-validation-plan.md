@@ -2214,7 +2214,11 @@ frozen changed. Checked first that nothing reads the equality: in the specificat
 only `BecomeLeader` (fired by raft's line; `tallyGranted_quorum`), pre-vote's `Timeout` (off) and
 `CandS`; no line's state check, invariant, layer C or acceptance file reads it. Re-proved: `sim_recordVote`
 for any response, the campaign's empty tally (`tallyGranted_empty`, also in slice 19a's
-`simServerR_becomeCandidate`). Sufficiency (`TracedRecvVoteResp.lean`): a candidate's pending
-`MsgVoteResp` of its term, granting or refusing, known voter or not: `phaseStepR_voteRespCand`,
-`fxPresR_voteRespCand`, `specInv_respCand`. Left: the bundle's `MsgVoteResp` path (pending, won, lost).
-Reviews `a3-r1.md` ….
+`simServerR_becomeCandidate`). Sufficiency (`TracedRecvVoteResp.lean`): the receive line of a
+candidate's `MsgVoteResp` of its term, granting or refusing, known voter or not, up to raft's state
+after `recordVote` (`poll`'s three outcomes branch from there): `phaseStepR_voteRespCand`,
+`fxPresR_voteRespCand`, `specInv_respCand`. Left: the bundle's `MsgVoteResp` path (the election
+pending, won, lost); for the won branch, `tallyGranted_quorum`'s `hc` (every voter raft heard from is
+configured: nothing in `SimServerR` or `msgAbs` gives it; from the message's origin, `isMessageC` or the
+ghost state), which raft's `VoteWon` needs anyway (`TallyVotes` counts configured voters only).
+Reviews `a3-r1.md`, `a3-r2.md` (no first-tier finding left).
