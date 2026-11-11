@@ -183,17 +183,18 @@ the step), at a node of the request's term with an uncompacted log whose commit 
 request's previous index: the old log's records, certificate and committed prefix; the new log's
 records (the kept prefix's, the leader's above the cut), its commit certificate at the raised commit
 index (`commitIn_move`, from the request's or the old log's) and its committed prefix; both logs'
-shapes. The ghost state is unchanged. -/
+shapes. The ghost state is unchanged. At a node whose term is at most the request's (slice 27d: a
+higher-term request, before raft's step-down), the new log's certificate is at the request's term. -/
 theorem ownRaftGhost_appAccFacts (γ : RaftNames) (id : w64) (s : PState) (m : Msg) {md : Bool}
     (lastnewi : w64) (es' : List EntryM)
-    (Hty : m.ty = .app) (Hterm : m.term = s.term) (Hbase : s.base = base0)
+    (Hty : m.ty = .app) (Hterm : uint.Z s.term ≤ uint.Z m.term) (Hbase : s.base = base0)
     (Hcidx : uint.Z s.commit ≤ uint.Z m.index)
     (Happ : plogMaybeAppend base0 s.log (entryID.mk m.logterm m.index) m.entries = some (lastnewi, es')) :
     ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md -∗
       ownRaftGhost γ id s md ∗
       (logRecs γ base0 s.log ∗ commitIn γ s.log s.commit s.term ∗
         isCommitted γ (s.log.take (uint.Z s.commit).toNat) ∗ logRecs γ base0 es' ∗
-        commitIn γ es' (accCommit s.commit m.commit lastnewi) s.term ∗
+        commitIn γ es' (accCommit s.commit m.commit lastnewi) m.term ∗
         isCommitted γ (es'.take (uint.Z (accCommit s.commit m.commit lastnewi)).toNat)) ∗
       ⌜PlogWfR base0 s.log ∧ PlogWfR base0 es' ∧ uint.Z s.commit ≤ s.log.length ∧
         uint.Z lastnewi = uint.Z m.index + (m.entries.length : Int) ∧ PlogWf base0 es'⌝ := by
@@ -212,9 +213,8 @@ theorem ownRaftGhost_appAccFacts (γ : RaftNames) (id : w64) (s : PState) (m : M
   icases isMessage_app_inv γ m Hty $$ Hm with
     ⟨%Hpay, -, ⟨%bL, %l', %fpL, #Hp', %Hpl, #Hpf', #Hmc, #Hmcm, -⟩, -⟩
   obtain ⟨Hprev', Hpre'⟩ := Hpl
-  rw [Hterm]
   ihave #HLf := leadFull_intro $$ Hp' Hpf'
-  icases leadFull_wf γ s.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
+  icases leadFull_wf γ m.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
   icases lpfull_fp $$ Hpf' with ⟨-, %HfL⟩
   obtain ⟨Hwfb, Hnw⟩ := Hpay
   obtain ⟨Hmatch, Hli, Hcase⟩ := plogMaybeAppend_inv _ _ _ _ _ _ Hwfb Hnw Happ
@@ -241,7 +241,7 @@ theorem ownRaftGhost_appAccFacts (γ : RaftNames) (id : w64) (s : PState) (m : M
   · rcases Hcase with ⟨rfl, -⟩ | ⟨d, e, Hd, Hnm, Hbefore, Hei, Hend, Hes'⟩
     · iexact Hrecs
     dsimp only at Hei
-    icases leadPrefix_wf γ m.src s.term bL l' $$ Hp' with ⟨%Hwfl, #Hrl⟩
+    icases leadPrefix_wf γ m.src m.term bL l' $$ Hp' with ⟨%Hwfl, #Hrl⟩
     have Hdlen : d < m.entries.length := (List.getElem?_eq_some_iff.mp Hd).1
     subst Hes'
     iapply logRecs_introA
@@ -330,10 +330,10 @@ theorem ownRaftGhost_appAccFacts (γ : RaftNames) (id : w64) (s : PState) (m : M
     · unfold accCommit plogCommitTo
       generalize (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = X at HXle HXm ⊢
       split
-      · iapply commitIn_move γ (fpL ++ l') es' X s.term s.term (Int.le_refl _)
+      · iapply commitIn_move γ (fpL ++ l') es' X m.term m.term (Int.le_refl _)
           HwLf.1 Hwl' (full_term_at_some _ _ lastnewi Hsli HXle) (HmL X HXle).symm $$ HrLf Hrecs'
-        iapply commitIn_le γ (fpL ++ l') m.commit X s.term HwLf.1 HXm $$ HrLf Hmc
-      · iapply commitIn_move γ s.log es' s.commit s.term s.term (Int.le_refl _)
+        iapply commitIn_le γ (fpL ++ l') m.commit X m.term HwLf.1 HXm $$ HrLf Hmc
+      · iapply commitIn_move γ s.log es' s.commit s.term m.term Hterm
           Hw Hwl' HcS (Hlow s.commit Hcidx) $$ Hrecs Hrecs' Hc
     · unfold accCommit plogCommitTo
       generalize (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = X at HXle HXm ⊢

@@ -601,10 +601,12 @@ def propLend (γ : RaftNames) (s : NState) (ents : List EntryM) : IProp GF :=
 (`StepG.Tw`, `candidateGates`' `"Hgrep"`): the receipt covering the entry's index (the log's last index
 plus one), which `becomeLeader`'s `appendEntry` raises before the line; the win's last ghost phase
 (`ownRaftGhost_step_win_entry`) consumes it there, before the broadcast's lines whose facts read the
-entry's record. Nothing untraced. -/
-def winLend (γ : RaftNames) (s : NState) : IProp GF :=
+entry's record. Nothing untraced. (2026-11-11, slice 27b) And the node's membership of its own
+`Progress` map (`reset`'s `Match` values then a `LeaderMatchOk`, which the won state's ghost needs),
+which `Step` knows from the tracker and the family does not. -/
+def winLend (γ : RaftNames) (id : w64) (s : NState) : IProp GF :=
   if s.gh.tr.isSome then
-    iprop(⧖ ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + 1))
+    iprop(⌜id ∈ domSet s.prvals⌝ ∗ ⧖ ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + 1))
   else iprop(emp)
 
 /-- (2026-11-11, slice 23a) **The closing wand's ghost state back at `s`** (`stepClose`'s first
@@ -638,7 +640,7 @@ theorem CloseAt.of_traced {id : w64} {m : MessageM} {ents : List EntryM} {s s' :
 /-- The caller's resources with raft's ghost state put into the first (the receive hook's gate's
 argument): `raft.Step.spec`'s gates take the ghost state from `Step` there. -/
 def ghostIn (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (R : StepG GF) : StepG GF :=
-  { R with G := iprop(ownStepGhost γ md c id s ∗ R.G), Tp := propLend γ s, Tw := winLend γ s }
+  { R with G := iprop(ownStepGhost γ md c id s ∗ R.G), Tp := propLend γ s, Tw := winLend γ id s }
 
 /-- **Raft's ghost state, given back to `Step`** by the caller from whichever resource the path ended
 in (`stepOut R`), with the caller's own `Gout` at the step's end state `s'` (2026-11-10, slice 12: the

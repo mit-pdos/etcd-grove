@@ -1162,6 +1162,61 @@ response past its receive line, which needs raft's ghost state moved past the co
 a raft-internal `stepLeader.spec` change (`"Hgcommit"` given the code's run condition, `AppRespAcceptedC`
 tied to `maybeCommit`'s outcome); the `Commit` line's `AdvancesTo` bridge from `maybeCommitOut`; a path
 premise that the sender has a `Progress` (`RawNode.Step`'s check). Checked (branch at `trace-check` `0627a67e4c` plus this slice): full `lake build` green (13827 jobs); `#print axioms` of the bundle and the receive-line lemmas: no `sorryAx`; `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
+**Q8 stage 1 (slice 27d), 2026-11-11 (branch `trace-check-q8s27d`): a higher-term accepted `MsgApp`
+done; the coverage check of `raft.Step`'s traced paths; two paths it found added; one premise left.**
+Decided by the agent under the user's delegation (`notes/decisions.md`, "Q8 stage 1 (slice 27d)"); all
+raft-internal, nothing frozen or client-visible changed. `ownRaftGhost_appAccFacts` (and
+`ownStepGhost_appAccFacts`) take `s.term ≤ m.term` and state the new log's certificate at `m.term` (the
+old log's moved up by `commitIn_move`); the follower's and candidate's callers pass `m.term = s.term`.
+New: `TracedRaftStepRecvAppAccUT.lean` (`stepBundle_traced_utAppAcc`, `.onRB`, and
+`stepBundle_traced_utAppAcc_on`: `UpdateTerm` then the accepted handling at `utSrv`, the facts
+`simFx_ut` then `simFx_appAccMid`/`End`, the close by `accEnd_simIdle` at the step-down's state);
+`TracedRaftStepRecvUTVoteResp.lean` (`stepBundle_traced_utVoteResp`: a vote response of a higher term,
+as `utResp`'s, `respSrv` at a follower); `TracedRaftStepRecvLeadReq.lean` (`stepBundle_traced_leadReq`:
+a `MsgApp` or `MsgHeartbeat` of a leader's own term, refuted in the receive gate by `isLeader_unique`).
+**Coverage** (paths of `stepBundle_traced.on`'s premises: `StepEndTy`, pre-vote and check-quorum off, no
+pre-candidate, a local message at term 0, `MsgHup` not at a leader): every path has a proved lemma but
+(i) slice 27b's won vote, (ii) a leader's accepted `MsgAppResp` of its term (slice 27c proved the
+rejected one and `MsgHeartbeatResp`, `stepBundle_traced_leadRespNA`, and the accepted one's receive line), (iii)
+`MsgProp` at a leader outside `PropLead` (an empty batch, a non-normal entry, no bootstrap log: slice
+24a's premises for the assembly) and (iv) a traced message of term `0` at a node of a positive term
+(raft handles it as of the node's term, no lemma; the node API knows `m.Term ≠ 0`, `InvRawnode`'s
+`NetMsgOk`, so the assembly needs it as a premise of `stepBundle_traced.on`, a frozen statement: Q28).
+The table is the decisions entry's. Checked (branch at `trace-check` `1b8bba4556` plus this slice): full
+`lake build` green (13830 jobs); `#print axioms` of the three new bundles: the set of
+`stepBundle_traced_folAppAcc_on`'s, no `sorryAx`; `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s,
+unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module
+touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
+
+- **Q28 (2026-11-11, slice 27d): a traced message of term `0`.** `stepBundle_traced.on` admits a traced
+  message with `m.Term' = 0` at a node of term `≥ 1`: not `StaleMsg` (which needs `m.Term' ≠ 0`), not of
+  the node's term, so no path lemma covers it; raft (`m.Term == 0`: no term check) would handle it as of
+  the node's term while the specification drops it as stale, so it cannot be proved, only excluded.
+  Options: (a) a premise of `stepBundle_traced.on` (and `.onC`/`.onG`/`.onRB`), `∀ ty, mtypeOf m.Type' =
+  some ty → ty.traced = true → m.Term' ≠ W64 0`, which the node API has (`NetMsgOk`'s `Term' ≠ 0` for
+  every traced type, `InvRawnode.lean`); every proved path ignores it (mechanical: one more `intro` binder); (b) derive it
+  from `isMessageC` (needs a per-type raft fact that a sent message's term is positive: present for
+  `MsgApp`/`MsgHeartbeat` through `isLeader` and the bootstrap log, absent for the responses and votes);
+  (c) put it in `TrRecvShape` (already a premise; its definition is in the same frozen file). Recommended:
+  (c) if `TrRecvShape` may grow (no new binder, every path's destructuring unchanged but where it reads
+  `hsh.2.2`), else (a). Frozen-statement change: for the coordinator.
+
+  **Taken by the coordinator: (c)** (a clause of `TrRecvShape`: `stepBundle_traced.on` is raft-internal, written in
+  slice 13, not a law of the frozen Draft; the node API discharges it from `NetMsgOk`).
+
+**Q8 stage 1 (slice 27b), 2026-11-11 (branch `trace-check-q8s27b`): a candidate's won election done.**
+Slice 25b's remaining list taken by the coordinator, its form the agent's (`notes/decisions.md`, "Q8
+stage 1 (slice 27b)"); all raft-internal. Done (new modules `TracedRaftStepRecvVoteRespWon{Phase,Fx,}.lean`):
+the receive line's result phase carries the won tally's quorum (`phaseStepR_voteRespWon`, A6's premises,
+`isQuorum_of_jquorum`, `wonVote_quorum`) to the `BecomeLeader` line (`phaseStepB_becomeLeader`, at a
+`Progress` map with `reset`'s `Match` values, `wonPvs`); its facts with the term log's allocation
+(`fxPresU_becomeLeader`: `specInv_becomeLeader` from `becomeLeader_hyps`, `ackHists_becomeLeader`, the new
+leader's `srvFacts` from raft's facts and `leadFull`, `srvFacts_newLeader`); the empty entry's `Replicate`
+line (`phaseStepB_replicateB`, `fxPres_replicateW`, the entry's record by `ghost_stepWin_entry` in the
+gate); the self-acknowledgement and the appends; the close at `CloseMid`'s won case (`wonEnd`); the bundle
+**`stepBundle_traced_candVoteRespWon`** over `stepBundle_traced.onC CandVoteRespWon`. One loan changed:
+`winLend` also lends `⌜id ∈ domSet s.prvals⌝` (Step's own fact; `raft.Step.spec`'s text unchanged). Left:
+assembling the paths into `stepBundle_traced.on`.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
