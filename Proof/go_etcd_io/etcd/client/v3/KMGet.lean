@@ -232,7 +232,7 @@ theorem isEtcdKVE_of_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString)
       isEtcdKVE (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hkv, #Hinv, #Hall⟩
   unfold isEtcdKVE
-  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, #Hopts, #Hlo, %Hpre⟩ HΦ
+  iintro !> %ctx %cs %key %sl %gs %lo %Φ !> ⟨#Hctx, -, #Hopts, #Hlo, %Hpre⟩ HΦ
   obtain ⟨Hnp, Ht, Hx, Hss, Hlin, Hsz⟩ := Hpre
   ihave #Hsi : sortNamesIf (GF := GF) (opGetModel key gs).base.sortSet $$ []
   · rw [Hss]; unfold sortNamesIf; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial

@@ -32,9 +32,9 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
     (hCl : Session.Client.spec (GF := GF) (hG := hG)) :
     Mutex.TryLock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #Hlo⟩
+  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hlo⟩
   wp_auto
-  wp_apply hTA m s γ client id pfx st ctx cs lo $$ [$Hm $Hst $Hctx $Hlo] as %resp %err Hr
+  wp_apply hTA m s γ client id pfx st ctx cs lo $$ [$Hm $Hst $Hctx $HctxC $Hlo] as %resp %err Hr
   icases Hr with (⟨%Hne, %key, Hst⟩ | ⟨%Heq, %key, %rev, %r, %hdr, Hst, #Hr, #Hacq, %Hp⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
@@ -115,11 +115,11 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
     exact ⟨Hp.1, Hp.2.1⟩
   wp_apply hCl s γ client id $$ [$Hpkg $Hsess]
   iunfold isEtcdMutexClient at Hcl
-  icases Hcl with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, -, #HDel, -⟩
+  icases Hcl with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, -, -, #HDel, -⟩
   wp_auto
   ihave #Hnil := optsAt_nil (GF := GF)
   iunfold isEtcdDeleteKV at HDel
-  wp_apply HDel $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %r [$Hctx $Hnil $Hr] as %dresp %derr #Hd
+  wp_apply HDel $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %r [$Hctx $HctxC $Hnil $Hr] as %dresp %derr #Hd
   · ipureintro
     refine ⟨deleteOp_not_panics key, ?_⟩
     rw [(deleteOp_fields key).1, (deleteOp_fields key).2]

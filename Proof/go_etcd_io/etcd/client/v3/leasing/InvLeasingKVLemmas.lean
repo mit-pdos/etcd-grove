@@ -174,7 +174,7 @@ theorem isLeasingKV_pool (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
     isLeasingKV (GF := GF) lkv γ pfx ⊢ threadPool.isThreadPool leasingPoolN γ.rp (lkvReader lkv γ pfx) := by
   iintro #Hlkv
   iunfold isLeasingKV at Hlkv
-  icases Hlkv with ⟨%_, %_, %_, %_, %_, %_, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hpool, -⟩
+  icases Hlkv with ⟨%_, %_, %_, %_, %_, %_, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hpool, -⟩
   iexact Hpool
 
 /-- **A thread borrows a reader slot** of the leasing KV's cache with its thread token. -/

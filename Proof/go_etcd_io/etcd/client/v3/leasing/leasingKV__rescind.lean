@@ -38,11 +38,11 @@ theorem leasingKV.rescind.wp_proof
     (hDel : EtcdGrove.OpDelete.spec (GF := GF) (hG := hG)) :
     leasingKV.rescind.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key rev
-  wp_start as ⟨#Hlkv, #Hctx, %Hkl⟩
+  wp_start as ⟨#Hlkv, #Hctx, #HctxC, %Hkl⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcan, #Hosl, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
+    #Hcan, #Hosl, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #HlctxC, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
   ihave #Hpeek := leasingX_peek (GF := GF) lkv γ
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -103,7 +103,7 @@ theorem leasingKV.rescind.wp_proof
     iintro %slC ⟨HslC, -⟩
     ipersist HslC
     (try wp_auto)
-    wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+    wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
     iunfold txnBuilderSpecO at HBs
     icases HBs with ⟨#HIf, #HThen, -, #HCommit⟩
     wp_apply_raw HIf $$ %TxnBuild.empty %_

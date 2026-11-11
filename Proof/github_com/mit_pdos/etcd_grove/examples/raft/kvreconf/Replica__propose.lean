@@ -123,7 +123,7 @@ theorem Replica.propose.wp_proof
     try wp_auto
     wp_apply context.wp_Background
     try wp_auto
-    wp_apply hWT tmo $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx⟩
+    wp_apply hWT tmo $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
     ihave #Hhch : isChan ch γh.chanName GoString $$ [Hho]
     · unfold isHandoff; icases Hho with ⟨$, -⟩

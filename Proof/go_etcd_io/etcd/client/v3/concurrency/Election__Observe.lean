@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem Election.Observe.wp_proof (wp_observe : Election.observe.spec (GF := GF) (hG := hG)) :
     Election.Observe.spec (GF := GF) (hG := hG) := by
   intro e s γs client id pfx ctx cs lo
-  wp_start as ⟨#He, #Hctx, #Hcc, #Hlo, %Hlo0⟩
+  wp_start as ⟨#He, #Hctx, #HctxC, #Hcc, #Hlo, %Hlo0⟩
   wp_auto
   wp_apply chan.wp_make1 (V := Loc) as %ch %γch ⟨#Hch, %_, Hoc⟩
   imod mono_list_own_alloc (GF := GF) [lo] with ⟨%γr, Hauth, #Hlb⟩
@@ -44,7 +44,7 @@ theorem Election.Observe.wp_proof (wp_observe : Election.observe.spec (GF := GF)
       fun i v => observeElem (GF := GF) ⟨⟨γch, γch.1, γch.1⟩, γr⟩ pfx i v := rfl
   wp_apply wp_fork $$ [Hprod Hauth]
   · wp_apply wp_observe e s γs client id pfx ctx cs ch ⟨γsp, γr⟩ [] [lo] lo
-      $$ [$Hpkg $He $Hctx $Hcc $Hprod $Hauth $Hlo]
+      $$ [$Hpkg $He $Hctx $HctxC $Hcc $Hprod $Hauth $Hlo]
     · isplitl
       · unfold isObserveChan; dsimp only; rw [hP]; iexact Hsp
       ipureintro; exact ⟨⟨rfl, rfl⟩, Hlo0⟩

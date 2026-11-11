@@ -58,11 +58,11 @@ theorem leasingKV.deleteRangeRPC.wp_proof
     (hGRD : EtcdGrove.ResponseOp.GetResponseDeleteRange.spec (GF := GF) (hG := hG)) :
     leasingKV.deleteRangeRPC.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs maxLeaseRev key e lo
-  wp_start as ⟨#Hlkv, #Hctx, #Hlo, %Hke⟩
+  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hlo, %Hke⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, #Hkv, #Hp, -, -, -, -, -,
-    #HTxn, -, -, -, #Hlc, -⟩
+    #HTxn, -, -, -, -, #Hlc, -⟩
   wp_auto
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -130,7 +130,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   ipersist HslC
   (try wp_auto)
   iunfold isEtcdTxnKVO at HTxn
-  wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
   iunfold txnBuilderSpecO at HBs
   icases HBs with ⟨#HIf, #HThen, -, #HCommit⟩
   wp_apply_raw HIf $$ %TxnBuild.empty %_

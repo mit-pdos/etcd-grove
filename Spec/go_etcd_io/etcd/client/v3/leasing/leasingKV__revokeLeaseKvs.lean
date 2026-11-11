@@ -35,7 +35,7 @@ create revision (`maxCreateRev`), or an error. The keys are etcd's, so at most `
 abbrev leasingKV.revokeLeaseKvs.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (sl : GoSlice) (ps : List Loc) (kvs : List EtcdKv),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ sessionReady γ ∗ context.isContext ctx cs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ sessionReady γ ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
       context.isCancelCtxCtx ctx cs ∗ sl ↦*□ ps ∗ kvPtrsAt ps kvs ∗
       ⌜∀ v ∈ kvs, v.key.length ≤ etcdKeyMax⌝ }}
     (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"revokeLeaseKvs")) (Val #(GoInterface.ok ctx))) (Val #sl))

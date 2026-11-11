@@ -32,7 +32,7 @@ abbrev leasingKV.Put.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (top : TxnOp) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ threadTok ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ threadTok ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗
       optsAt sl gs ∗ etcdReached lo ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2 ∧
         txnOpOf (opPutModel key val gs) = some top ∧ OpShape opKeyMax opKeyMax opValMax (opPutModel key val gs)⌝ }}
