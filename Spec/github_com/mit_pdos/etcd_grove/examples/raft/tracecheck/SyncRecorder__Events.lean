@@ -2,9 +2,13 @@
 Lean-first (no Rocq counterpart). Trace-check's layer D (2026-11-09).
 
 `(*SyncRecorder).Events()` (`examples/raft/tracecheck/concurrent.go`): under the recorder's lock, a
-copy of the recorded events. Its spec: given the client's half of the trace, `traceFrag γt L`
-(which fixes the trace, as the lock's half agrees with it), it returns a slice holding `L`
-(`traceEventsRep`, read-only), and the half back.
+copy of the recorded events. Its spec (S7 (part 1), 2026-11-11; until then it took the client's half
+`traceFrag γt L`, which the harness cannot hand over: the simulation's invariant keeps it): the caller's
+view shift `∀ L, traceAuth γt L ={⊤}=∗ traceAuth γt L ∗ Ψ L`, run under the lock against the
+recorder's half of the trace, so at the trace `L` the copy holds; it returns a slice holding `L`
+(`traceEventsRep`, read-only), `Ψ L`, and the event count's bound `L.length < receiptBound GF` (the
+lock holds a time receipt per event). The former form is the case `Ψ L := ⌜L = L0⌝ ∗ traceFrag γt L0`
+with the half in the view shift.
 -/
 module
 
@@ -29,12 +33,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 
 /-- See the file header. -/
 abbrev SyncRecorder.Events.spec : Prop :=
-  ∀ (γt : GName) (r : Loc) (L : List TraceEv),
+  ∀ (γt : GName) (r : Loc) (Ψ : List TraceEv → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
-      isSyncRecorder γt r ∗ traceFrag γt L }}
+      isSyncRecorder γt r ∗ (∀ L, traceAuth γt L ={⊤}=∗ traceAuth γt L ∗ Ψ L) }}
     (App (Val (r @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder.ty
       @!! go!"Events")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; traceFrag γt L ∗ traceEventsRep sl L }}
+  {{ (sl : GoSlice), RET #sl; ∃ L, traceEventsRep sl L ∗ ⌜L.length < receiptBound GF⌝ ∗ Ψ L }}
 
 end spec
 

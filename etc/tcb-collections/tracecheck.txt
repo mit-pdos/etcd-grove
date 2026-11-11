@@ -1,0 +1,13 @@
+# The trace check (examples/raft/tracecheck, notes/trace-validation-plan.md; 2026-11-11, S7 part 1):
+# the results of Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean. Until the
+# harness (`RunConcurrent`) is proved and the checker linked, these are the reduction
+# `raft_tracecheck_safe_of` (the closed statement given `TcOpen`), `tcMainSpec_of` and the corollary's
+# core `tracecheck_Events_traceAccepts`; the closed `raft_tracecheck_safe` replaces the first.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results\.lean$

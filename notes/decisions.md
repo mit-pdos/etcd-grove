@@ -36307,3 +36307,47 @@ at `wonStateW … wonPvs` (`CloseMid`'s second case, `wonPvs_reset`), the capabi
 
 Not done: the paths' assembly into `stepBundle_traced.on` (`.onC` for this path, as the lost and pending
 ones).
+
+## S7 (part 1): `Main` over its callees, the harness's spec, the event count by time receipts, adequacy at `n + 4 ≤ 2^61`, `Results.lean` as a reduction; the bootstrap facts not derivable (Q29) (2026-11-11 · trace-check, S7 part 1; decided by the agent under the user's delegation · branch `trace-check-s7a`; DRAFT until trace-check's Freeze of layer D)
+
+**What `RunConcurrent.spec` promises.** Its post is `runOver c`: the cluster's `rec` field, the recorder
+`isSyncRecorder γt r`, and a one-shot view shift `∀ L, traceAuth γt L ={⊤}=∗ traceAuth γt L ∗ ⌜RunOk L⌝`.
+Not a pure fact about a named trace: both halves of the trace are held for good, the recorder's under its
+lock and the simulation's (`traceFrag`) inside `Cluster.traceSimInv`, so the only place the trace can be
+named is under the lock, where `Events` runs the caller's view shift (whose producer, the harness, opens
+`Cluster.traceSimInv_end` there). `RunOk L` (`MainPure.lean`) is stated in the checker's and the
+simulation's exported terms (`RunAccepted L ∧ SimEvents n L`, `n < numBound`), not in raft's ghost state:
+it is exactly what `mainPure` needs but the event count. The workload is a predicate (`Workload cfg`:
+three voters, no extra node, configuration change or snapshot, a delay bound `below` can draw from),
+not `cfg = defaultCConfig`, so the spec names what the proof uses.
+
+**`SyncRecorder.Events.spec` restated** (layer D's own, not in the frozen Draft): its precondition took
+the client's half `traceFrag γt L`, which no caller can hand over once `Cluster.traceSimInv_alloc` has put
+it in the invariant. Now the caller's view shift at the recorder's half; the former form is the instance
+`Ψ L := ⌜L = L0⌝ ∗ traceFrag γt L0` (the half moved into the view shift, `trace_agree`).
+
+**The event count by time receipts** (Q13 left it to layer D): the recorder's lock invariant holds
+`⧗ L.length`; `TraceEvent` takes a receipt at its `Lock`'s method resolution (`wp_take_receipt`) and adds
+it at the append (`receipt_add_one_lt`); `Events` reads `L.length < receiptBound GF` (`receipt_lt_keep`).
+With `receiptBound GF + 3 ≤ 2^61`, `L.length < numBound`. Alternatives rejected: a ghost counter in
+`simInv` (the frozen laws have no resource for it), a bound through raft (the events are not raft's
+steps).
+
+**The step bound `n + 4 ≤ 2^61`** (not the kv examples' `n < 2^61`): the traced cluster boots three
+voters from a three-entry bootstrap log, and raft's `readyFits` (the premise `cluster_alloc` turns into
+the node API's receipts) is `receiptBound + bootLen ≤ 2^61`; adequacy fixes `receiptBound = n + 1`. The
+plan's statement allows another bound "if the proof needs it" (the user's, 2026-11-08); this is it, three
+steps fewer.
+
+**`Results.lean` is a reduction, not the closed theorem.** `raft_tracecheck_safe_of` has the closed
+statement's form with one hypothesis `TcOpen` (`RunConcurrent.spec` and the checker's six specs that
+`NewTrace`/`CheckTrace`'s proofs take and no `Link.lean` yet discharges), at the closed bundle `tcGF`
+(kv's without the non-atomic invariants). `raft_tracecheck_safe` itself is not stated: a statement with a
+`sorry` behind it would put a `sorry` in the TCB baseline. The corollary's core,
+`tracecheck_Events_traceAccepts`, needs no hypothesis.
+
+**Found: the bootstrap facts are not derivable from the frozen Draft** (Q29, the plan): `newTrace`'s
+initial state and servers come from the bootstrap lines' contents, which neither `simInv` nor the
+bootstrap law records. `MainSim.lean` names them (`BootFacts C L`) and proves `RunOk` from them and
+`Cluster.traceSimInv_end`'s facts (`runOk_of_sim`); the harness's proof will need them, from Q29's
+amendment.

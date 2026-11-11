@@ -341,6 +341,30 @@ theorem mainPure (L : List TraceEv) (K n : Nat) (hK : K ≤ 2 ^ 61) (hn : (n : I
   · obtain ⟨res, hres, hok⟩ := hr.accepts
     exact ⟨t, hnt, res, hres, hok⟩
 
+/-! ## What the harness's run gives (S7 (part 1), 2026-11-11) -/
+
+/-- **The run's trace is one `Main` checks successfully** (`RunConcurrent.spec`'s post, at the trace the
+recorder holds when `Events` reads it): the whole trace parses and layer B's run goes through every
+line (`RunAccepted`), and its events have the facts the simulation keeps (`SimEvents n L`: ASCII,
+in scope, the bootstrap lines' logs, the numbers below `traceNumBound`, the configuration lists
+within `n`), for a number of voters `n < numBound`. With the event count (`Events`' receipts), all of
+`mainPure`'s hypotheses. -/
+def RunOk (L : List TraceEv) : Prop :=
+  ∃ n : Nat, (n : Int) < Etcdraft.numBound ∧ RunAccepted L ∧ SimEvents n L
+
+/-- **`Main`'s pure obligations from the run** (`mainPure` at `K = traceNumBound`): `RunOk L` and the
+event count give `ConvertEvents`' premise (ASCII), `NewTrace`'s, `newTrace`'s success, `CheckTrace`'s
+premise, the verdict and `TraceAccepts`. -/
+theorem mainPure_of_runOk (L : List TraceEv) (hok : RunOk L)
+    (hlen : (L.length : Int) < Etcdraft.numBound) :
+    (∀ x ∈ L, x.Ascii) ∧ (∀ e ∈ L.map evConv, e.Bounded) ∧
+    ((L.map evConv).length : Int) < Etcdraft.numBound ∧ Etcdraft.Event.BootLogsOk (L.map evConv) ∧
+    ∃ t, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.CheckTraceOk true ∧
+      (∀ res, Etcdraft.CheckTraceRel t true res → res = { ok := true }) ∧
+      Etcdraft.TraceAccepts (L.map evConv) false false := by
+  obtain ⟨n, hn, hrun, hasc, hscope, hboot, hnums, hconf⟩ := hok
+  exact ⟨hasc, mainPure L traceNumBound n (Nat.le_refl _) hn hrun hscope hnums hlen hconf hboot⟩
+
 end pure
 
 end TraceCheck

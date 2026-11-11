@@ -97,7 +97,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'k8s_io.client_go.listers.core.v1',
          # the trace checker (2026-11-09, layer C of notes/trace-validation-plan.md): its fact says
          # what `Invariants` holds (`Violated`'s proof reads it)
-         'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft']
+         'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft',
+         # the closed trace-check program (2026-11-11, S7 of notes/trace-validation-plan.md)
+         'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -2450,6 +2452,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.tracecheck':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
 

@@ -1203,6 +1203,33 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
 
   **Taken by the coordinator: (c)** (a clause of `TrRecvShape`: `stepBundle_traced.on` is raft-internal, written in
   slice 13, not a law of the frozen Draft; the node API discharges it from `NetMsgOk`).
+- **Q29 (2026-11-11, S7 part 1): layer B's bootstrap facts.** `Main` needs, at the end of the run,
+  `newTrace` to succeed on the converted events with the voters' initial state and servers
+  (`MainSim.lean`'s `BootFacts C L`: `t.init = simInit C`, `t.server = t.initSrv = confAbs C`), which
+  `newTraceWith` computes from each server's bootstrap lines (the last one's term, role, vote, commit and
+  log size; the bootstrap `ApplyConfChange`s' `newconf` lists) and from every line's node. Nothing in
+  the frozen Draft records those lines' contents: `simInv` keeps the run (`SimRun`, which steps over the
+  flagged bootstrap lines without reading them) and `SimEvents` (bounds, scope), and the bootstrap law
+  `trCap_fire_boot` admits any bootstrap-named event of the node (`OkBoot` only). So `BootFacts` is not
+  derivable from `Cluster.traceSimInv_end` (checked), and `StartNode.gatedSpec`'s post says nothing of
+  the trace. Options: (a) amend the Draft: `simInv` gains a clause on the bootstrap segments (each
+  voter's bootstrap-named lines logged while unbooted are a prefix of raft's bootstrap sequence for the
+  voters `C`: `InitState` at term 0, `BecomeFollower` at term 1, `ApplyConfChange` with `newconf` the
+  first `k` voters, at commit `|C|` and log `|C|`), kept by `trCap_fire_boot` from a strengthened event
+  premise (the hooks' events pinned at `newRaft`/`Bootstrap`, which the bootstrap gates
+  `trCapB_hookGate_init`/`_ccBoot`/`_bf` already compute from raft's state), plus a per-voter "bootstrap
+  complete" fact `StartNode` returns, and a pure lemma (`newTraceWith` on such events: the
+  `bootstrapOf`/`find?` computation) giving `BootFacts` once every voter's sequence is complete; (b)
+  record the bootstrap events outside `simInv` (a ghost list per node the capability carries, handed out
+  by `StartNode`'s post): the same facts, more statements changed (the capability, `StartNode`'s post);
+  (c) take `BootFacts` as a premise of the closed theorem: not allowed (it is about raft's run).
+  **Recommended: (a)**; `RunConcurrent.spec`'s post (`RunOk`) needs it, and `runOk_of_sim` takes it as
+  its hypothesis until then. A frozen-statement change: for the coordinator or the user.
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, as
+  amendment A7 (checked against the specification and raft's bootstrap first, a review round, then the
+  re-freeze `trace-check-frozen-a7`). The step bound `n + 4 ≤ 2^61` (S7 part 1) is within the user's
+  "unless the proof needs another" (2026-11-08): the traced cluster's three bootstrap entries need
+  `receiptBound + 3 ≤ 2^61` for raft's `readyFits`.
 
 **Q8 stage 1 (slice 27b), 2026-11-11 (branch `trace-check-q8s27b`): a candidate's won election done.**
 Slice 25b's remaining list taken by the coordinator, its form the agent's (`notes/decisions.md`, "Q8
@@ -2335,6 +2362,34 @@ recorder. Its proof uses the node API's specs (`StartNode`, `Node.Step`, `Ready`
 never restarts, compacts or proposes a configuration change). The recorder's lock invariant holds
 layer B's ghost state: its `TraceEvent` is the logger spec's linearization point. `Main`'s proof:
 the checker's spec and layer B's invariant at the end (the whole trace accepted).
+
+**S7 (part 1) (2026-11-11, branch `trace-check-s7a`): `Main` proved over its callees, adequacy,
+`Results.lean` as a skeleton.** Done (no `sorry`, no axiom; `notes/decisions.md`, "S7 (part 1)"):
+`RunConcurrent.spec` stated (the harness's post `runOver c`: the cluster's recorder and a view shift
+that, at the recorder's half of the trace `L`, gives `RunOk L`, `MainPure.lean`: `RunAccepted L ∧
+SimEvents n L` with `n < numBound`; its premises the workload `Workload cfg`, `receiptBound GF + 3 ≤
+2^61` and `context.isClosedchanInit`); `Main.wp_proof` (`DefaultCConfig`, `RunConcurrent`,
+`(*Cluster).Events`, `ConvertEvents`, `NewTrace`, `CheckTrace`, `Result.TLCOK`, through
+`mainPure_of_runOk`); `DefaultCConfig` and `(*Cluster).Events` specified and proved; **the event
+count** from time receipts: the recorder's lock holds `⧗ L.length` (`TraceEvent` takes one at its
+`Lock`'s resolution), so `Events` returns `L.length < receiptBound GF ≤ 2^61 = numBound`;
+`SyncRecorder.Events.spec` restated with the caller's view shift at the recorder's half (its former
+precondition `traceFrag γt L` is the simulation's, inside `Cluster.traceSimInv` for good, so `Main`
+could never supply it); the package's `Init.lean`/`PkgTable.lean` (`etc/gen-init.py`, a new root and
+program); `Adequacy.lean` (`tcGF`, `tracecheckProgram`, `tracecheck_adequate_of` from `Main`'s spec,
+**for `n + 4 ≤ 2^61` steps**: raft's `readyFits` for the traced cluster's three bootstrap entries,
+`receiptBound + 3 ≤ 2^61`, the "another bound if the proof needs it" of "The statement");
+`Results.lean`: `raft_tracecheck_safe_of` (the closed statement given `TcOpen`: `RunConcurrent.spec` and
+the checker's six unlinked specs `NewTraceWith`, `Trace.Init`, `Trace.Len`, `Trace.StepLine`,
+`indexOf`, `State.Violated`) and the corollary's core `tracecheck_Events_traceAccepts` (no
+hypothesis: a finished run's `Events` returns a trace whose events satisfy `TraceAccepts`);
+`MainSim.lean`'s `runOk_of_sim` (`RunOk` from `Cluster.traceSimInv_end`'s facts and `BootFacts`).
+**Found:** layer B's bootstrap facts are not derivable from the frozen Draft (Q29). Left for S7:
+`RunConcurrent`'s proof (the names, the trace directory and the traced `cluster_alloc` with `reTrace :=
+some γd`, `Cluster.traceSimInv_alloc`, three `StartNode`s with `startTrace`, the drivers and
+application goroutines over the traced node API of slice 27n, `Cluster.traceSimInv_end` and
+`BootFacts` at the end); the checker's `Link.lean` (a link mode for `etcdraft`); then
+`raft_tracecheck_safe` and `TraceAccepts` as closed statements and a TCB collection.
 
 ## Order of work
 

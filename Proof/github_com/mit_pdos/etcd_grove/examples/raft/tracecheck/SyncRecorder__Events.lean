@@ -30,8 +30,8 @@ theorem SyncRecorder.Events.wp_proof
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG)) :
     SyncRecorder.Events.spec (GF := GF) (hG := hG) := by
-  intro γt r L
-  wp_start as ⟨#Hrec, Hf⟩
+  intro γt r Ψ
+  wp_start as ⟨#Hrec, Hvs⟩
   iunfold isSyncRecorder at Hrec
   icases Hrec with ⟨-, #Hm⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -42,9 +42,9 @@ theorem SyncRecorder.Events.wp_proof
   try wp_auto
   wp_apply wp_Lock $$ [$Hsync $Hm] as ⟨Hlocked, Hinv⟩
   iunfold recLockInv at Hinv
-  icases Hinv with ⟨%sl, %L', Hevs, #Hrep, Hcap, Ha⟩
-  ihave %HL := traceAuth_frag_agree γt L' L $$ Ha Hf
-  subst HL
+  icases Hinv with ⟨%sl, %L', Hevs, #Hrep, Hcap, Ha, Hrs⟩
+  imod Hvs $$ Ha with ⟨Ha, HΨ⟩
+  icases receipt_lt_keep (GF := GF) L'.length $$ Hrs with ⟨%Hlt, Hrs⟩
   iunfold traceEventsRep at Hrep
   icases Hrep with ⟨%gs, #Hgs, #Hgl⟩
   try wp_auto
@@ -54,7 +54,7 @@ theorem SyncRecorder.Events.wp_proof
     as %out ⟨Hout, -, -⟩
   imod ownSlice_persist $$ Hout with #Hout
   try wp_auto
-  wp_apply wp_Unlock _ (recLockInv γt r) $$ [$Hsync $Hm $Hlocked Hevs Ha Hcap]
+  wp_apply wp_Unlock _ (recLockInv γt r) $$ [$Hsync $Hm $Hlocked Hevs Ha Hcap Hrs]
   · iunfold recLockInv
     iexists sl, L'
     iframe
@@ -63,12 +63,15 @@ theorem SyncRecorder.Events.wp_proof
     iframe Hgs Hgl
   try wp_auto
   iapply HΦ
-  iframe Hf
-  iunfold traceEventsRep
-  iexists gs
-  iframe Hgl
-  simp only [List.nil_append]
-  iexact Hout
+  iexists L'
+  iframe HΨ
+  isplitl []
+  · iunfold traceEventsRep
+    iexists gs
+    iframe Hgl
+    simp only [List.nil_append]
+    iexact Hout
+  ipureintro; exact Hlt
 
 end proof
 
