@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 
 The steps (the examples' `Main`s' after `Start`): `v3rpc.Server(s, nil, nil, opt)` (its `grpcCfgOk`
 from the started server's views in its mode, `grpcCfgOk_of_startedM` at the mode's KV answers
-`raftKV_serverM` gives, which also gives 64 of the watchable store's readers; `opt` the keepalive policy, a neutral option, D28, as linkv3p's `startMember`);
+`raftKV_serverM` gives; `opt` the keepalive policy, a neutral option, D28, as linkv3p's `startMember`);
 `net.Listen("tcp", addr)`, whose error is returned; the caller's ghost step (`grpcUpM` from
 `Server`'s and `Listen`'s results); `go gs.Serve(l)` with the right to serve it gave.
 -/
@@ -61,9 +61,9 @@ theorem Serve.wp_proof
   -- KV answers in the server's mode
   ihave #Hkv := v3rpc.raftKV_serverM s E ρ γr (W64 0) [] .none 0 none $$ []
   · iframe #; ipureintro; exact Hany
-  imod (client.grpcCfgOk_of_startedM s E ρ γr cfg [] 64 E.authOn
+  imod (client.grpcCfgOk_of_startedM s E ρ γr cfg [] E.authOn
       (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)) $$ [HWR]
-    with ⟨%C, #Hgc, %HC, HWRs⟩
+    with ⟨%C, #Hgc, %HC⟩
   · iframe; iframe #
     rw [Htos]
     iapply ownSlice_nil
@@ -105,16 +105,16 @@ theorem Serve.wp_proof
     iexists ql, pl, lcid, lmid
     iframe #
     ipureintro; exact Hregs.2.2.2.1
-  ihave Hup : grpcUpM E.authOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 HWRs Hlis]
+  ihave Hup : grpcUpM E.authOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hlis]
   · iunfold grpcUpM
     iexists C, q, p, pw, pa, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro
     exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ, Hregs.2.2.2.2.2⟩
-  imod HG $$ %gs %lis %cid %mid %R Hup with ⟨Hserv, HQ⟩
+  imod HG $$ %gs %lis %cid %mid %R Hup with ⟨⟨%γ, Hserv⟩, HQ⟩
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]
-  · wp_apply (wp_Serve gs lis) $$ [$Hserv] as %serr -
+  · wp_apply (wp_Serve gs lis γ) $$ [$Hserv] as %serr -
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   iapply HΦ
