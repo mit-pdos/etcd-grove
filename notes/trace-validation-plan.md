@@ -1074,7 +1074,12 @@ guarded `"Hgrep"`) and `candidateGates` (the loan `StepG.Tw`, `winLend`); `Close
 `ghost_stepWin_entry` (`TracedWinGhost.lean`). Left (each item in the decisions entry): the `BecomeLeader`
 line's phase step (a leader phase carrying `reset`'s `Progress`; `hc` as the path's hypothesis until A6)
 and `FxPresU` (`specInv_becomeLeader` from `becomeLeader_hyps`, the term log inside it), the empty entry's
-`Replicate` line, the self-acknowledgement, the broadcast appends, the close and the bundle.
+`Replicate` line, the self-acknowledgement, the broadcast appends, the close and the bundle. Checked (branch at
+`trace-check` `259ced3753` plus this slice): full `lake build` green (13822 jobs); `etc/tcb-report.py
+--check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated;
+`interface/` differs in `Protocol/Refinement.txt` (the three additions) and `stepCandidate.txt` (`#Hrc`, the
+win's guarded `"Hgrep"`); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft`
+unchanged.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
