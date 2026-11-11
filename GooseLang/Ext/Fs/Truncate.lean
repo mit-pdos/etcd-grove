@@ -87,9 +87,10 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
     (fd : w64) (tg : Nat) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
     (hE : ↑osN ⊆ E)
     (hstep : ∀ st f t, st.proc.fds !! fd = some d → st.file d.ino = some f → ¬ BusyAt st d.ino →
-      st.proc.inflight !! t = none → st.proc.calls !! t = none →
+      st.proc.inflight !! t = none → st.proc.calls !! t = none → f.size = m.size →
       IsFsStep op v st (Val (osTokV t)) (startState st d.ino f (OsChange.ofResize d.ino f tg) t))
-    (hstep' : ∀ st e' st', st.proc.fds !! fd = some d → IsFsStep op v st e' st' →
+    (hstep' : ∀ st e' st', st.proc.fds !! fd = some d →
+      (∀ f, st.file d.ino = some f → f.size = m.size) → IsFsStep op v st e' st' →
       ∃ f t, st.file d.ino = some f ∧ st.proc.inflight !! t = none ∧ e' = Val (osTokV t) ∧
         st' = startState st d.ino f (OsChange.ofResize d.ino f tg) t)
     (hlen : xs.length = m.size - tg) (Φ : val → IProp GF) :
@@ -135,12 +136,13 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
   isplitr
   · ipureintro
     have hwf0 := osWf_start (c := c) hwf ht0 hf rfl hni
-    exact ⟨_, _, _, hstep st f t0 hfd hf hnb ht0 hc0, mapsFresh_same rfl,
+    exact ⟨_, _, _, hstep st f t0 hfd hf hnb ht0 hc0 hmo.size.symm, mapsFresh_same rfl,
       heapRendered_render hwf0 rfl Hh⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  obtain ⟨f', t, hf', ht, rfl, rfl⟩ := hstep' st e' st' hfd Hst
+  obtain ⟨f', t, hf', ht, rfl, rfl⟩ := hstep' st e' st' hfd
+    (fun f1 hf1 => by rw [hf] at hf1; cases hf1; exact hmo.size.symm) Hst
   rw [hf] at hf'; cases hf'
   let n := st.fs.stamp + 1
   let ti : TokInfo := ⟨d.ino, .truncate tg, n, m, rsAnn n xs⟩
@@ -749,7 +751,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
         rsTok t d.ino sz.toNat m xs n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) @ s; E {{ Φ }} := by
   refine wp_osResizeStart "FtruncateStart" _ (by simp [DataOp]) (by simp [val.isPanic]) fd
-    sz.toNat dq d m xs hE (fun st f t hfd hf hnb ht hc => ?_) (fun st e' st' hfd hst => ?_) hlen Φ
+    sz.toNat dq d m xs hE (fun st f t hfd hf hnb ht hc _ => ?_) (fun st e' st' hfd _ hst => ?_) hlen Φ
   · simp only [IsFsStep]
     exact ⟨fd, sz, t, d, f, rfl, hfd, hwr, hsz0, hnb, hf, ht, hc, rfl, rfl⟩
   · simp only [IsFsStep] at hst
