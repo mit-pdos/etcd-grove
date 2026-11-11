@@ -193,6 +193,8 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     Probe build `b3-probe1` (log `/shared/tmp/stageB/logs/b3-probe1.log`) was run before these edits;
     its only failures then were `_Watch_Watch_Handler` and `UnaryHandlerLemmas` (both fixed), so
     nothing downstream of them was tried: run a new full build to get the real error list.
+    It finished (lock released); its failures also included `client/v3/InvLeaseGrant`,
+    `v3rpc/QuotaLeaseLemmas` and `Spec/.../etcdstart/Serve` (still with the pre-B3 texts).
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
