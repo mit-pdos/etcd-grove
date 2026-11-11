@@ -54,6 +54,20 @@ of "one state" excludes it, which for `SectorWhole` is the assumption's intent (
 a short write is a torn sector) and for P1 a slot torn that way must fail its checksum, as one torn
 by A or B.
 
+**Round 7 (2026-11-11, `notes/axiom-review/fs-v2-r7.md`; fork S2).** The page cache is a crash
+candidate *by construction*: a change records what its start announced (`OsChange.lo`, `hi`, `val`,
+`target`: `OsChange.ofWrite`, `ofResize`), and its finish lands a prefix of exactly those values
+(`OsFile.land`) instead of recomputing them from the size at the finish. `Tests.lean` proves the
+invariant (`CacheOk`: every file's page cache among its candidates, every change in flight's values
+candidates of its file) at the start, after every step (`cacheOk_step`, each case of `IsFsStep`) and
+after a crash. Two stuck restrictions replace the concurrency machinery (the user, 2026-11-11:
+"make those assumptions instead of overcomplicating the semantics"): **at most one change in flight
+per file** (every `…Start` and `open(O_TRUNC)` stuck while one is; it removes the disjoint-range
+check, `Affects`, the resize's `[min, ∞)` range, the `O_TRUNC`-racing-a-write case and the
+out-of-order finishes of `valAt`), and **no empty `pwrite`** (Go never issues one; it removes the
+special cases of `written` and of an empty write past the end). Both only remove executions; every
+client changes each file from one thread.
+
 ## Why
 
 The extension as of `worktree-walfs-ext` has two ways to name a file: the original fixed table of

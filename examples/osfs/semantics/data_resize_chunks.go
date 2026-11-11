@@ -15,7 +15,7 @@ import (
 //
 // Lean: Impl.lean: CrashFile (a size between the sizes since the last sync and
 // an in-flight change's target), the FallocFinish step's failure branch (any
-// `sz'` between); OsFile.announceResize (the grown bytes' candidate, zero);
+// `sz'` between); OsChange.ofResize (the grown bytes' candidate, zero), OsFile.land;
 // notes/axiom-review/fs-v2.md, F5.
 //
 // Allowed: after a failure (or a crash during the call) below, any size in

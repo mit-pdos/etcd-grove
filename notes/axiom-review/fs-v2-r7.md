@@ -232,3 +232,44 @@ needs a candidate the model drops.
 No kernel experiment (none needed: no new kernel claim). The program logic and the clients do not
 build on this commit and were not reviewed. `Tree`/`Paths`/`Lookup` and the metadata rules are
 unchanged since round 6 and were not re-attacked.
+
+## Dispositions (2026-11-11, fork S2)
+
+- **F1: fixed**, more broadly. Every change's first step, `open(O_TRUNC)` included (`OpenEffect`),
+  is stuck while a change is in flight on the file: at most one change per file (`BusyAt`). This
+  was chosen over an `O_TRUNC`-only rule, per the user's guidance (stuck restrictions instead of
+  modelling interleavings). Every client changes each file from one thread.
+- **F2: fixed by construction.** `OsChange` stores its announcement (`lo`, `hi`, `val`, `target`;
+  `OsChange.ofWrite`, `OsChange.ofResize`), and `OsFile.announce c n` announces exactly it.
+  - Each finish lands a prefix `[c.lo, e)` of the announced values with `OsFile.land c e sz`:
+    - a write: `e = off + k`, or `c.lo` if nothing landed; `sz = max size e`;
+    - a resize: `e = c.hi`, `sz = c.target`;
+    - a failed `fallocate`: any `e` in `[c.lo, c.hi]`, `sz = e`.
+  - `InflightAt` is the announced range.
+  - `Tests.lean` proves the invariant `CacheOk` (page cache among candidates; size in range;
+    announced values of every change in flight are candidates of its file; a write's `hi` is the
+    end of its data; inodes below `nextIno`) at the start (`cacheOk_init`), after every step
+    (`cacheOk_step`, all 27 cases of `IsFsStep`) and after a crash (`cacheOk_crash`).
+- **F3: fixed.** A resize's range is its announced `[min, max)`; `Affects` is gone. An empty
+  `pwrite` is stuck (Go's `WriteAt`/`Write` never issue one), so `written` lost its `d = []` case.
+- **F4: fixed.** The header and `CrashFile` say "a size between the smallest and the largest it had
+  since its last successful sync (ext4's delayed allocation ...), or towards the target of the
+  change in flight".
+- **F5: documented.** Out-of-order finishes are now impossible (one change per file).
+  `valAt`'s and `SectorWhole`'s docstrings say `valAt · m` is the page cache after change `m` when
+  every change landed whole, and that a short landing's state is excluded on purpose.
+  Not adopted: a second stamp at each finish (announcing the landed state). It would make
+  `SectorWhole` hold for short landings, but it would also make a short-landed, torn meta slot
+  "one state" for bbolt's P1, so P1 would no longer exclude it. That weakens P1 where it matters,
+  and no client needs the extra case.
+- **F6, F7:** no change needed.
+- **F8: fixed.**
+  - The header's durable-zeros sentence now exempts bytes under the change in flight at a sync.
+  - `data_mixed_writeback.go` now says 1, 2 and 3.
+  - `data_inflight_changes.go` is rewritten: one change per file; any value seen by a racing read;
+    the `Mmap` moved before the write.
+  - `data_durable_zeros.go` now allows any byte-wise mix, excluding only a byte that is neither.
+  - `SemOk.lean` now points to `Premises.lean`.
+  - `TrustedCode/os.lean` now mentions the short write with errno 0.
+  - The `Tests.lean` header now describes `CacheOk`.
+  - Stale Lean names are fixed in the other examples.

@@ -15,7 +15,7 @@ import (
 // chosen independently of the bytes (data_durable_zeros.go: no ordering of
 // sizes against data).
 //
-// Lean: Impl.lean: OsFile.sizeLo, OsFile.sizeHi, OsFile.change (widens),
+// Lean: Impl.lean: OsFile.sizeLo, OsFile.sizeHi, OsFile.land (widens),
 // OsFile.synced (collapses), CrashFile (the `sz` bounds), OsChange.target.
 //
 // Allowed: after the crash below, any size in [100, 300], e.g. 250, which the

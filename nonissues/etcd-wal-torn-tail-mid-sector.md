@@ -64,3 +64,10 @@ buffer at the file offset's in-page offset).
   logged and scanned left a mixed page on disk. Syncing after `ZeroToEnd` (etcd-io/etcd#22709) removes it.
 - A fix for the decoder: a bad last record of the last segment followed only by zeros to the end of
   the file is torn, whatever its sectors hold.
+
+**In the proofs:** the file extension's general crash rule allows this image (each byte of a file
+any of its crash candidates, `GooseLang/Ext/Fs/Impl.lean`). A theorem about etcd's WAL may assume
+it away only by stating `SectorWhole` (`GooseLang/Ext/Fs/Premises.lean`: each 512-byte sector of
+the WAL's files comes back as one state of it), which this finding shows is not guaranteed by
+Linux; it is recorded as a known limitation (`notes/STATUS.md`, "Known limitations";
+`examples/osfs/semantics/premise_sector_whole.go`).

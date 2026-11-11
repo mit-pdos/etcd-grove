@@ -21,9 +21,10 @@ import (
 // header's "Durable zeros"; Tests.lean: crash_new_block_zeros,
 // crash_past_end_zeros, crash_current.
 //
-// Allowed: after the crash below, size 0; size 4096 starting with MAGIC; and
-// size 4096 of zeros (the new size with the block not yet written).
-// Excluded: size 4096 holding anything else than the page or zeros (stale
+// Allowed: after the crash below, size 0; or size 4096 with each byte either
+// the page's or zero (any byte-wise mix: all of the page, all zeros — the new
+// size with the block not yet written —, or a torn mix).
+// Excluded: size 4096 with a byte that is neither the page's nor zero (stale
 // bytes of a freed block).
 //
 // Why: measured on configuration C (Linux 7.0, ext4 defaults, dioread_nolock)
@@ -48,6 +49,6 @@ func DurableZeros(dir string) {
 	copy(page, "MAGIC")
 	f.WriteAt(page, 0)
 	// crash here, before any f.Sync()
-	// allowed:  size 0; size 4096 starting with MAGIC; size 4096 of zeros
-	// excluded: size 4096 with other bytes
+	// allowed:  size 0; size 4096, each byte the page's or zero
+	// excluded: size 4096 with a byte that is neither
 }

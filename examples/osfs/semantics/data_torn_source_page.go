@@ -13,7 +13,7 @@ import (
 // allows a write's prefix new and the rest old, at any byte. The model has no
 // "a write stops at a page boundary" rule (the NoTear premise this replaced).
 //
-// Lean: Impl.lean: CrashFile (each byte any candidate), OsFile.announceWrite;
+// Lean: Impl.lean: CrashFile (each byte any candidate), OsChange.ofWrite, OsFile.announce;
 // Tests.lean: crash_mix (k bytes landed, any k, and any mix).
 //
 // Allowed: after the crash below, page 0 holds bytes [0,752) new (2) and

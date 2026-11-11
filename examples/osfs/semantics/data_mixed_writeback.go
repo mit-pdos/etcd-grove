@@ -16,9 +16,9 @@ import (
 //
 // Lean: Impl.lean: CrashFile; Tests.lean: crash_mix.
 //
-// Allowed: after the crash below, the page holds any byte-wise mix of 1 and 2,
-// at arbitrary bytes, sector 0 included.
-// Excluded: a byte that is neither 1 nor 2.
+// Allowed: after the crash below, the page holds any byte-wise mix of 1, 2 and
+// 3, at arbitrary bytes, sector 0 included.
+// Excluded: a byte that is none of 1, 2 and 3.
 //
 // Why: measured on C (notes/axiom-review/fs-v2-r6/e2e/, run B1: aligned
 // buffer, no compaction, 16,707 torn images in 749,451 writebacks, 15,833 of

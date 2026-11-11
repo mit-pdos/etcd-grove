@@ -297,8 +297,10 @@ func (fd *FD) Pwrite(p []byte, off int64) (int, error) {
 or `(0, PathError{"write", ...})` (`n` is not incremented on an error). A negative offset returns
 Go's error without a system call. Each `pwrite(2)` is the extension's two steps, `PWriteStart`
 (`(fd, off, data) ↦ token`) and `PWriteFinish` (`token ↦ (written, errno)`), with the data passed
-as `string(p[nn:max])`, as goose models `string(b)`. `PWriteFinish` writes all of the data with
-errno 0, or a prefix with a nonzero errno, which the loop treats as Go treats the system call's
+as `string(p[nn:max])`, as goose models `string(b)` (never empty: the loop runs only while
+`nn < len`, and `PWriteStart` is stuck on empty data). `PWriteFinish` writes all of the data with
+errno 0, a non-empty prefix with errno 0 (a short write), or a prefix with a nonzero errno, which
+the loop treats as Go treats the system call's
 `(n, err)`; with errno 0 it always writes something, so the `io.ErrUnexpectedEOF` branch is
 unreachable and not modelled. -/
 noncomputable def File.WriteAt.impl : val :=

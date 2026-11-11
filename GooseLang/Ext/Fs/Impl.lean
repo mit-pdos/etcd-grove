@@ -52,9 +52,14 @@ meaning: a step on any other path is stuck.
 * *Environmental failure is a nondeterministic errno*: every step that makes a system call may fail
   with any nonzero errno; on failure, the changes listed in each case may or may not have happened;
   a failed `pread` read a prefix; a failed `pwrite` wrote a prefix.
-* *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`) is two steps
-  (`…Start`/`…Finish`, the change in flight between them, `ProcState.inflight`); a mapped load that
-  could see part of it is stuck (a hole), a racing `pread` or `fstat` returns any mix. Path calls
+* *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`, and `O_TRUNC`
+  in one step) is two steps (`…Start`/`…Finish`, the change in flight between them,
+  `ProcState.inflight`). **At most one change is in flight on a file**: a change's first step is
+  stuck while another is in flight on the same file (a restriction on programs, sound by
+  construction: every client writes each file from one thread; Linux serializes a buffered write
+  and a truncate on `i_rwsem` anyway). An empty `pwrite` is stuck too (Go's `WriteAt` and `Write`
+  never issue one). A mapped load that could see a change in flight is stuck (a hole), a racing
+  `pread` or `fstat` returns any mix, and a racing `mmap` is stuck. Path calls
   (`CallBegin` … step) overlap, except that a rename of a directory is stuck while any other path
   call is in flight: Linux walks a path a component at a time, and the model resolves it at one
   instant, which agrees with Linux only when no directory is moved during the walk. This stuck
@@ -74,21 +79,25 @@ unchanged.
 **File bytes and crashes.** A file is its page cache (`OsFile.cache`, what reads see) and, for
 each byte, its *crash candidates* (`OsFile.cand`): the value it had at the last successful sync,
 then the value each change since announced for it, stamped with the change's number. A change
-announces its bytes when it starts, with all of its data, whatever it later lands (`…Start`); its
-finish changes the page cache by what landed. A successful sync (`OsFile.synced`) collapses every
-byte not under a change in flight to its page-cache value; a failed one changes nothing (no
-failed writeback). **The crash rule** (`OsCrash`, a machine crash; a restart of the process is
-one, by the environment's assumption on restarts): the durable tree is kept with a set of the
-metadata operations since replayed (the committed ones, closed under the journal's order,
-`Follows`); every file that tree names gets a size it had since its last successful sync (or one
-an in-flight change gives it) and **each byte any one of its candidates, independently**
+announces its bytes when it starts, with all of its data, whatever it later lands (`…Start`,
+`OsFile.announce`); its finish lands a prefix of exactly those announced values in the page cache
+(`OsFile.land`), so the page-cache value of a byte is always one of its candidates. A successful
+sync (`OsFile.synced`) collapses every byte not under a change in flight to its page-cache value;
+a failed one changes nothing (no failed writeback). **The crash rule** (`OsCrash`, a machine
+crash; a restart of the process is one, by the environment's assumption on restarts): the durable
+tree is kept with a set of the metadata operations since replayed (the committed ones, closed
+under the journal's order, `Follows`); every file that tree names gets a size between the smallest
+and the largest it had since its last successful sync (ext4's delayed allocation leaves on-disk
+sizes the program never set in between), or towards the target of a change in flight, and **each
+byte any one of its candidates, independently**
 (`CrashFile`); every other file, and the process's state, is gone. Bytes are independent because
 Linux's are: one `pwrite` of a page can reach disk torn mid-sector, a prefix of it new (its source
 crossed a page that was migrated during the copy) or any mix of two writes (a page rewritten while
 its previous writeback was reading it, on a device without stable pages); both measured on C
 (`notes/axiom-review/fs-v2-r6/e2e/`). Nothing groups bytes into sectors. **Durable zeros**: at
 every point where a file's size is durable (a successful sync, a boot, a crash), the bytes of each
-page wholly past that size are zeros: such a page has no block, or an unwritten one (`dioread_nolock`
+page wholly past that size are zeros (at a sync, those not under the change in flight, which keep
+their candidates): such a page has no block, or an unwritten one (`dioread_nolock`
 and `FALLOC_FL_KEEP_SIZE` allocate unwritten extents), which reads as zeros (`diskByte`). The page
 holding the end keeps whatever its bytes past the size hold, stale ones included; an extension
 (truncate-up, a write past the end, `fallocate`) reads zeros past the old size. All measured on C
@@ -150,8 +159,10 @@ def OsFile.ofBytes (c : List w8) : OsFile := OsFile.ofDisk (fun b => c.getD b 0)
 /-- What reads, `fstat` and mappings see: the page cache, cut to the size. -/
 def OsFile.contents (f : OsFile) : List w8 := (List.range f.size).map f.cache
 
-/-- Byte `b`'s value as of change `n`: its candidate of the largest stamp up to `n` (the page
-cache's value right after change `n`, had each change landed all it announced). -/
+/-- Byte `b`'s value as of change `n`: its candidate of the largest stamp up to `n`. It is the page
+cache's value right after change `n` landed when every change on the byte since the last sync
+landed all it announced (changes on a file never overlap in time: at most one is in flight). A
+short landing's state (a prefix of the change new, the rest as before) is no stamp's. -/
 def valAt (l : Cands) (n : Nat) : w8 := ((l.filter (·.2 ≤ n)).getLast?.map (·.1)).getD 0
 
 /-- An open file description: its file and access mode. (The file offset of `Seek`/`Write`/`Read`
@@ -167,10 +178,18 @@ inductive OsChangeKind where
   | write (off : Nat) (data : List w8)
   | truncate (sz : Nat)
 
-/-- A change between its two steps, of the file `ino`. -/
+/-- A change between its two steps, of the file `ino`: what it does, and what its first step
+announced (`OsFile.announce`): the bytes `[lo, hi)` it may change, the value `val b` each gets, and
+the size it leaves the file (`target`). Its second step lands a prefix of the announced bytes with
+exactly the announced values (`OsFile.land`), so the page cache only ever takes a value that is a
+crash candidate. -/
 structure OsChange where
   ino : Ino
   kind : OsChangeKind
+  lo : Nat
+  hi : Nat
+  val : Nat → w8
+  target : Nat
 
 /-- A read-only shared mapping: its file and its length in bytes. -/
 structure OsMap where
@@ -268,44 +287,35 @@ the size: Linux zeroes it on an extension, F3). -/
 def OsFile.resized (f : OsFile) (sz : Nat) : List w8 :=
   (List.range sz).map (fun b => if b < f.size then f.cache b else 0)
 
-/-- The contents of `f` with `d` written at `off`, any gap past the end zero (as `resized`).
-Writing nothing changes nothing, even past the end. -/
+/-- The contents of `f` with `d` written at `off`, any gap past the end zero (as `resized`). -/
 def OsFile.written (f : OsFile) (off : Nat) (d : List w8) : List w8 :=
-  if d = [] then f.contents
-  else
-    let c := f.resized (max f.size (off + d.length))
-    c.take off ++ d ++ c.drop (off + d.length)
+  let c := f.resized (max f.size (off + d.length))
+  c.take off ++ d ++ c.drop (off + d.length)
 
-/-- `f` with the change numbered `n` announced for the bytes `[lo, hi)`: each gets the candidate
-`v b`, stamped `n`. -/
-def OsFile.announce (f : OsFile) (lo hi : Nat) (v : Nat → w8) (n : Nat) : OsFile :=
-  { f with cand := fun b => if inRange lo hi b then f.cand b ++ [(v b, n)] else f.cand b }
+/-- A `pwrite` of `data` at `off` to the file `f` of inode `i`, as its first step announces it:
+the bytes from where it starts or the end, whichever is first (the zero gap before the data
+included), to the end of the data, with the values `written` gives them. -/
+def OsChange.ofWrite (i : Ino) (f : OsFile) (off : Nat) (data : List w8) : OsChange :=
+  { ino := i, kind := .write off data, lo := min off f.size, hi := off + data.length,
+    val := fun b => (f.written off data).getD b 0, target := max f.size (off + data.length) }
 
-/-- `f` with a `pwrite` of `data` at `off` announced as change `n`: the bytes it may change, the
-zero gap before them included, with all of its data. -/
-def OsFile.announceWrite (f : OsFile) (off : Nat) (data : List w8) (n : Nat) : OsFile :=
-  f.announce (min off f.size) (off + data.length) (fun b => (f.written off data).getD b 0) n
+/-- A resize of the file `f` of inode `i` to `sz`, as its first step announces it: every byte from
+where the old and new sizes part, zero (an extension reads zeros; a cut zeroes the page cache past
+the new end). -/
+def OsChange.ofResize (i : Ino) (f : OsFile) (sz : Nat) : OsChange :=
+  { ino := i, kind := .truncate sz, lo := min f.size sz, hi := max f.size sz, val := fun _ => 0,
+    target := sz }
 
-/-- `f` with a resize to `sz` announced as change `n`: every byte from where the old and new sizes
-part becomes zero (an extension reads zeros; a cut zeroes the page cache past the new end). -/
-def OsFile.announceResize (f : OsFile) (sz n : Nat) : OsFile :=
-  f.announce (min f.size sz) (max f.size sz) (fun _ => 0) n
+/-- `f` with the change `c` announced as change number `n`: each byte of `[c.lo, c.hi)` gets the
+candidate `c.val b`, stamped `n`. -/
+def OsFile.announce (f : OsFile) (c : OsChange) (n : Nat) : OsFile :=
+  { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b }
 
-/-- `f` with its page cache changed to `c` in the bytes `[lo, hi)` (zero past `c`'s end), its size
-`c`'s length; the size range widens to it. -/
-def OsFile.change (f : OsFile) (c : List w8) (lo hi : Nat) : OsFile :=
-  { f with cache := fun b => if inRange lo hi b then c.getD b 0 else f.cache b,
-           size := c.length, sizeLo := min f.sizeLo c.length, sizeHi := max f.sizeHi c.length }
-
-/-- `f` with `k` bytes of a `pwrite` of `data` at `off` landed (nothing if `k = 0`): the bytes
-`[min off size, off + k)` change, the zero gap before them included. -/
-def OsFile.landWrite (f : OsFile) (off : Nat) (data : List w8) (k : Nat) : OsFile :=
-  if k = 0 then f
-  else f.change (f.written off (data.take k)) (min off f.size) (off + k)
-
-/-- `f`'s page cache resized to `sz`: every byte from where the old and new sizes part changes. -/
-def OsFile.truncate (f : OsFile) (sz : Nat) : OsFile :=
-  f.change (f.resized sz) (min f.size sz) (max f.size sz)
+/-- `f` with the change `c` landed up to `e` (`c.lo ≤ e ≤ c.hi`): the bytes `[c.lo, e)` take their
+announced values in the page cache, and the size becomes `sz`; the size range widens to it. -/
+def OsFile.land (f : OsFile) (c : OsChange) (e sz : Nat) : OsFile :=
+  { f with cache := fun b => if inRange c.lo e b then c.val b else f.cache b,
+           size := sz, sizeLo := min f.sizeLo sz, sizeHi := max f.sizeHi sz }
 
 /-- `f` after a successful sync: the size is durable; each byte not under an in-flight change
 (`busy`) is durable: its page-cache value in a page that holds a byte below the size, zero in a
@@ -333,31 +343,19 @@ def OsState.file (i : Ino) : Option OsFile := st.fs.files !! i
 /-- The size of the file of `i` (0 if there is none). -/
 def OsState.size (i : Ino) : Nat := ((st.file i).map (·.size)).getD 0
 
-/-- The in-flight change `c` may change byte `b` of its file: a write, the bytes it writes and the
-zero gap before them; a resize, every byte from where the old and new sizes part. -/
-def Affects (c : OsChange) (b : Nat) : Prop :=
-  match c.kind with
-  | .write off data => inRange (min off (st.size c.ino)) (off + data.length) b
-  | .truncate sz => min (st.size c.ino) sz ≤ b
-
-/-- The size the change `c` leaves its file. -/
-def OsChange.target (c : OsChange) : Nat :=
-  match c.kind with
-  | .write off data => max (st.size c.ino) (off + data.length)
-  | .truncate sz => sz
-
-/-- Some in-flight change may change byte `b` of the file of `i`. -/
+/-- The in-flight change on the file of `i` may change its byte `b`: `b` is one it announced. -/
 def InflightAt (i : Ino) (b : Nat) : Prop :=
-  ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ Affects st c b
+  ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ inRange c.lo c.hi b
 
-/-- Some change is in flight on the file of `i`. -/
+/-- A change is in flight on the file of `i`. A change's first step requires that none is: at most
+one change is in flight on a file (a stuck restriction, the header). -/
 def BusyAt (i : Ino) : Prop := ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i
 
 /-- What `fstat` may give as the size of the file of `i`: its size, or, while a change resizes it,
 a size between its size and the change's target. -/
 def StatSees (i : Ino) (sz : Nat) : Prop :=
   sz = st.size i ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧
-    min (st.size i) (c.target st) ≤ sz ∧ sz ≤ max (st.size i) (c.target st)
+    min (st.size i) c.target ≤ sz ∧ sz ≤ max (st.size i) c.target
 
 /-- What a `pread` of `n` bytes at `off` of the file of `i` may return: the bytes up to EOF, for a
 size `fstat` could see; each byte the file's, unless an in-flight change may change it, when it is
@@ -486,15 +484,18 @@ def OsState.commitAll (st : OsState) : OsState :=
 def newFile : OsFile := OsFile.ofBytes []
 
 /-- What `open(p)` does before its fd (`st1`), and what the fd will be on (`tgt`): an existing file
-(truncated with `trunc`: announced and done at once); a new file of a fresh inode, with its `create` logged (`O_CREAT`, in an
-existing directory; `start` the call's start); or a directory, opened read-only without `O_CREAT` or
-`O_TRUNC` (Linux refuses the rest, `EISDIR`). -/
+(truncated with `trunc`: a resize to 0 announced and landed at once, and, as every change, stuck
+while another change is in flight on the file); a new file of a fresh inode, with its `create`
+logged (`O_CREAT`, in an existing directory; `start` the call's start); or a directory, opened
+read-only without `O_CREAT` or `O_TRUNC` (Linux refuses the rest, `EISDIR`). -/
 def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (start : Nat)
     (st1 : OsState) (tgt : Node) : Prop :=
   match st.lookup p with
   | some (.dir j) => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = .dir j
-  | some (.file i) => (∃ f, st.file i = some f ∧
-      st1 = (if trunc then st.stampFile i (fun n => (f.announceResize 0 n).truncate 0) else st)) ∧
+  | some (.file i) => (∃ f, st.file i = some f ∧ (trunc = true → ¬ BusyAt st i) ∧
+      st1 = (if trunc then
+        st.stampFile i (fun n => let c := OsChange.ofResize i f 0; (f.announce c n).land c c.hi 0)
+        else st)) ∧
       tgt = .file i
   | none => creat = true ∧ ∃ j b, st.parent p = some (j, b) ∧
       st1 = ((st.setFile st.fs.nextIno newFile).takeIno).metaDo (.create j b st.fs.nextIno) start ∧
@@ -599,39 +600,45 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       ((∃ k, k ≤ r.length ∧ (0 < k ∨ r = []) ∧ e' = osRes (#(r.take k)) 0) ∨
        ∃ (k : Nat) (e : w64), k ≤ r.length ∧ e ≠ 0 ∧ e' = osRes (#(r.take k)) e)
   /- The first step of `pwrite(fd, data, off)`: `(#fd, #off, #data) ↦ token`. It makes no system
-  call and cannot fail; it announces the write (all of its data, as the next change). The bytes it
-  may change must be clear of every other change. -/
+  call and cannot fail; it announces the write (all of its data, as the next change). Stuck while
+  another change is in flight on the file, and on empty data (Go's `WriteAt` and `Write` never
+  issue an empty `pwrite`). -/
   | "PWriteStart" => ∃ (fd off : w64) (data : List w8) (d : OsFd) (f : OsFile) (t : Nat),
       v = PairV (#fd) (PairV (#off) (#data)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
-      st.file d.ino = some f ∧
-      (let c : OsChange := ⟨d.ino, .write off.toNat data⟩
-       (∀ b, Affects st c b → ¬ InflightAt st d.ino b) ∧
-       st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧
-       st' = (st.stampFile d.ino (f.announceWrite off.toNat data)).addInflight t c) ∧
+      data ≠ [] ∧ st.file d.ino = some f ∧ ¬ BusyAt st d.ino ∧
+      st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧
+      (let c := OsChange.ofWrite d.ino f off.toNat data
+       st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
-  /- The second step: `token ↦ (#written, #errno)`. A prefix of the data is written: with errno
-  0, all of it or a non-empty part (a short write, F6); with a nonzero errno, any prefix. -/
-  | "PWriteFinish" => ∃ (t : Nat) (i : Ino) (off : Nat) (data : List w8) (f : OsFile)
-      (k : Nat) (e : w64), v = osTokV t ∧ st.proc.inflight !! t = some ⟨i, .write off data⟩ ∧
-      st.file i = some f ∧ k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
-      st' = (st.doneInflight t).setFile i (f.landWrite off data k) ∧
+  /- The second step: `token ↦ (#written, #errno)`. A prefix of `k` bytes of the data is
+  written: with errno 0, all of it or a non-empty part (a short write, F6); with a nonzero errno,
+  any prefix. It lands the announced bytes up to the end of what was written (the zero gap
+  included), none if nothing was; the size grows to that end. -/
+  | "PWriteFinish" => ∃ (t : Nat) (c : OsChange) (off : Nat) (data : List w8) (f : OsFile)
+      (k : Nat) (e : w64), v = osTokV t ∧ st.proc.inflight !! t = some c ∧
+      c.kind = .write off data ∧ st.file c.ino = some f ∧ k ≤ data.length ∧
+      ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+      (let w := if k = 0 then c.lo else off + k
+       st' = (st.doneInflight t).setFile c.ino (f.land c w (max f.size w))) ∧
       e' = osRes (#(W64 k)) e
   /- `fstat(fd)`'s size: `#fd ↦ (#size, #errno)`, as `StatSees` allows. -/
   | "Fstat" => ∃ (fd : w64) (d : OsFd) (sz : Nat), v = #fd ∧ FdOpen st fd d ∧
       StatSees st d.ino sz ∧ st' = st ∧
       (e' = osRes (#(W64 sz)) 0 ∨ ∃ e : w64, e ≠ 0 ∧ e' = osRes (#(0 : w64)) e)
   /- The first step of `ftruncate(fd, sz)`: `(#fd, #sz) ↦ token`. It makes no system call and
-  cannot fail; it announces the resize. No other change may be in flight on the file. -/
+  cannot fail; it announces the resize. Stuck while another change is in flight on the file. -/
   | "FtruncateStart" => ∃ (fd sz : w64) (t : Nat) (d : OsFd) (f : OsFile), v = PairV (#fd) (#sz) ∧
       FdOpen st fd d ∧ d.writable ∧ 0 ≤ sz.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧
       st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧
-      st' = (st.stampFile d.ino (f.announceResize sz.toNat)).addInflight t ⟨d.ino, .truncate sz.toNat⟩ ∧
+      (let c := OsChange.ofResize d.ino f sz.toNat
+       st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
-  /- The second step: `token ↦ #errno`. On failure the file may or may not be resized. -/
-  | "FtruncateFinish" => ∃ (t : Nat) (i : Ino) (sz : Nat) (f : OsFile), v = osTokV t ∧
-      st.proc.inflight !! t = some ⟨i, .truncate sz⟩ ∧ st.file i = some f ∧
+  /- The second step: `token ↦ #errno`. It lands all of the announced bytes and the new size; on
+  failure the file may or may not be resized. -/
+  | "FtruncateFinish" => ∃ (t : Nat) (c : OsChange) (sz : Nat) (f : OsFile), v = osTokV t ∧
+      st.proc.inflight !! t = some c ∧ c.kind = .truncate sz ∧ st.file c.ino = some f ∧
       (let st0 := st.doneInflight t
-       let st1 := st0.setFile i (f.truncate sz)
+       let st1 := st0.setFile c.ino (f.land c c.hi c.target)
        st' = st1 ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ st' = st1))
   /- `fsync(fd)` and `fdatasync(fd)` of a file alike: `#fd ↦ #errno`. Success makes every byte
@@ -772,23 +779,24 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
   /- The first step of `fallocate(fd, 0, off, len)`: `(#fd, #off, #len) ↦ token`, a resize to
   `max size (off + len)` in flight (its visible effect is `ftruncate`'s to that size: zeros past the
-  end, announced; the blocks it allocates are not modelled). As `FtruncateStart`: no other change
-  may be in flight on the file. Stuck on a negative offset or a length not above 0. -/
+  end, announced; the blocks it allocates are not modelled). Stuck while another change is in
+  flight on the file, on a negative offset, or on a length not above 0. -/
   | "FallocStart" => ∃ (fd off len : w64) (t : Nat) (d : OsFd) (f : OsFile),
       v = PairV (#fd) (PairV (#off) (#len)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
       0 < len.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧ st.proc.inflight !! t = none ∧
       st.proc.calls !! t = none ∧
-      (let sz := max f.size (off.toNat + len.toNat)
-       st' = (st.stampFile d.ino (f.announceResize sz)).addInflight t ⟨d.ino, .truncate sz⟩) ∧
+      (let c := OsChange.ofResize d.ino f (max f.size (off.toNat + len.toNat))
+       st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
-  /- The second step: `token ↦ #errno`. On failure the file may have grown to any size between its
-  size and the target, zero-filled (ext4 grows it as each chunk is allocated). -/
-  | "FallocFinish" => ∃ (t : Nat) (i : Ino) (sz : Nat) (f : OsFile), v = osTokV t ∧
-      st.proc.inflight !! t = some ⟨i, .truncate sz⟩ ∧ st.file i = some f ∧
+  /- The second step: `token ↦ #errno`. It lands all of the announced bytes (zeros from the old
+  end) and the new size; on failure, a prefix of them, the size grown to the prefix's end (ext4
+  grows the file as each chunk is allocated). -/
+  | "FallocFinish" => ∃ (t : Nat) (c : OsChange) (sz : Nat) (f : OsFile), v = osTokV t ∧
+      st.proc.inflight !! t = some c ∧ c.kind = .truncate sz ∧ st.file c.ino = some f ∧
       (let st0 := st.doneInflight t
-       st' = st0.setFile i (f.truncate sz) ∧ e' = Val (#(0 : w64)) ∨
+       st' = st0.setFile c.ino (f.land c c.hi c.target) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
-         (st' = st0 ∨ ∃ sz', f.size ≤ sz' ∧ sz' ≤ sz ∧ st' = st0.setFile i (f.truncate sz')))
+         (st' = st0 ∨ ∃ w, c.lo ≤ w ∧ w ≤ c.hi ∧ st' = st0.setFile c.ino (f.land c w w)))
   /- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: `(#fd, #off, #len) ↦ #errno`. No change: the
   blocks it allocates past the end are unwritten extents, which read as zeros until written, as a
   page with no block does (durable zeros, the header); any errno. Stuck on a negative offset or a
@@ -816,14 +824,15 @@ end step
 
 /-! ## Crash -/
 
-/-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size it had since its
-last successful sync, or between such a size and one an in-flight change would give it; each byte
+/-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size between the
+smallest and the largest it had since its last successful sync, or between such a size and the
+target of the change in flight; each byte
 any one of its crash candidates, each independently (its bytes past the size included); all of it
 on disk (`ofDisk`: the pages past the size durable zeros). -/
 def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
   ∃ (sz : Nat) (img : Nat → w8),
-    ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target st ≤ sz) ∧
-     (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target st)) ∧
+    ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ sz) ∧
+     (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target)) ∧
     (∀ b, ∃ s, (img b, s) ∈ f.cand b) ∧ f' = OsFile.ofDisk img sz
 
 /-- The file `i` is named in the tree `m`. -/

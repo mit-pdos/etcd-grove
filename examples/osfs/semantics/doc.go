@@ -40,7 +40,7 @@
 //	data_extension_zeros.go       extensions read zeros (F3 refuted) OsFile.resized, OsFile.written
 //	data_keep_size.go             FALLOC_FL_KEEP_SIZE: no change     FallocKeep
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish
-//	data_inflight_changes.go      changes in flight, mappings        OsChange, inflight, announceWrite, osHole
+//	data_inflight_changes.go      changes in flight (one per file)   OsChange, announce, land, BusyAt, osHole
 //
 // The directory tree and metadata calls:
 //

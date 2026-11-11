@@ -31880,3 +31880,10 @@ decisions. Per-byte lists stamped by change numbers keep one uniform crash rule 
 say "one state of this range". **Supersedes** the V5 decision and the NoTear entries in
 `notes/fs-semantics-v2.md` and `notes/axiom-review/fs-v2-r4.md`/`-r5.md`/`-r6.md` dispositions.
 
+**Round 7's fixes (2026-11-11, fork S2, `notes/axiom-review/fs-v2-r7.md`).** A change stores its
+announcement and its finish lands exactly the announced values (`OsChange.lo/hi/val/target`,
+`OsFile.land`), so "the page cache is a candidate" holds by construction and is proved for every
+step (`Tests.lean`, `cacheOk_step`). At most one change is in flight per file and an empty `pwrite`
+is stuck: stuck restrictions in place of the disjoint-range concurrency rules, chosen because no
+client changes a file from two threads and they remove special cases the review found (`O_TRUNC`
+racing a write, out-of-order finishes, `Affects` disagreeing with the announcement).

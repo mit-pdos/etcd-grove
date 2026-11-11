@@ -2,7 +2,8 @@
 The program logic's specs hold for any semantics of the extension whose steps are steps of the
 extension's own (`FsStep`) and which keeps a step wherever `FsStep` has one (`FsSemOk`): a semantics
 that restricts the extension's steps by a premise on the executions (an assumption about the
-environment, e.g. `NoTear.lean`) and keeps a step from every state `FsStep` has one from. The specs
+environment: `Premises.lean`'s `fsSemWithS`) and keeps a step from every state `FsStep` has one
+from. The specs
 are stated over a semantics `S` with `[FsSemOk]`; `fs_semantics` is one. Untrusted.
 -/
 module

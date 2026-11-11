@@ -16,8 +16,8 @@ import (
 // candidates, independently of every other byte. Nothing groups bytes into
 // sectors or pages.
 //
-// Lean: Impl.lean: OsFile (cache, cand), OsFile.announce/announceWrite/
-// announceResize, OsFile.synced, CrashFile; Tests.lean: crash_mix,
+// Lean: Impl.lean: OsFile (cache, cand), OsFile.announce, OsChange.ofWrite/
+// ofResize, OsFile.land, OsFile.synced, CrashFile; Tests.lean: crash_mix,
 // crash_loses_unsynced, crash_after_sync; notes/fs-semantics-v2.md,
 // "Byte-level crash candidates" (it supersedes V5's sector versions).
 //
