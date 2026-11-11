@@ -557,9 +557,9 @@ end step
 /-- `st'` has `st`'s files, fds, changes in flight and mappings. -/
 def FilesSame (st st' : OsState) : Prop :=
   st'.fs.files = st.fs.files ∧ st'.proc.fds = st.proc.fds ∧
-    st'.proc.inflight = st.proc.inflight ∧ st'.proc.maps = st.proc.maps
+    st'.proc.inflight = st.proc.inflight ∧ st'.proc.maps = st.proc.maps ∧ st'.fs.stamp = st.fs.stamp
 
-theorem filesSame_refl (st : OsState) : FilesSame st st := ⟨rfl, rfl, rfl, rfl⟩
+theorem filesSame_refl (st : OsState) : FilesSame st st := ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 section filesSame
 variable {st st' : OsState} (h : FilesSame st st')
@@ -574,9 +574,9 @@ theorem filesSame_size : ∀ i, st'.size i = st.size i := by
 theorem filesSame_inflightAt : ∀ i b, InflightAt st' i b = InflightAt st i b :=
   inflightAt_congr h.2.2.1
 
-theorem osWf_filesSame (hw : OsWf st) (hstamp : st'.fs.stamp = st.fs.stamp) : OsWf st' := by
+theorem osWf_filesSame (hw : OsWf st) : OsWf st' := by
   have hf := filesSame_file h
-  obtain ⟨h1, h2, h3, h4⟩ := h
+  obtain ⟨h1, h2, h3, h4, hstamp⟩ := h
   refine ⟨fun fd d hd => ?_, fun b m hm => ?_, fun b1 m1 b2 m2 hm1 hm2 => ?_, fun t c ht => ?_,
     fun t1 c1 t2 c2 ht1 ht2 => ?_, fun i f hfi => ?_, fun i f b p hfi => ?_⟩
   · rw [h2] at hd; rw [hf]; exact hw.fds fd d hd
@@ -589,26 +589,26 @@ theorem osWf_filesSame (hw : OsWf st) (hstamp : st'.fs.stamp = st.fs.stamp) : Os
 
 theorem metaOk_filesSame {i : Ino} {m : OsMeta} {f : OsFile} (hm : MetaOk st i m f) :
     MetaOk st' i m f :=
-  hm.transfer h.2.2.2 h.2.2.1
+  hm.transfer h.2.2.2.1 h.2.2.1
 
 theorem osCoh_filesSame {Γb Γm Γf Γt} (hc : OsCoh st Γb Γm Γf Γt) : OsCoh st' Γb Γm Γf Γt := by
   have hf := filesSame_file h
-  obtain ⟨h1, h2, h3, h4⟩ := h
+  have hmk : ∀ i m f, MetaOk st i m f → MetaOk st' i m f := fun _ _ _ hm => metaOk_filesSame h hm
+  obtain ⟨h1, h2, h3, h4, -⟩ := h
   refine ⟨fun i => by rw [h1]; exact hc.meta_dom i, fun i m hm => ?_, fun i b x hx => ?_,
     fun i f b hfi hb => ?_, by rw [h2]; exact hc.fds, fun t => by rw [h3]; exact hc.toks t,
     fun t ti c hti hc' => by rw [h3] at hc'; exact hc.tok_is t ti c hti hc', hc.tok_meta,
     fun t ti hti => ?_, fun t ti hti => ?_⟩
   · obtain ⟨f, hfi, hmo⟩ := hc.meta_some i m hm
-    exact ⟨f, by rw [h1]; exact hfi, metaOk_filesSame ⟨h1, h2, h3, h4⟩ hmo⟩
+    exact ⟨f, by rw [h1]; exact hfi, hmk _ _ _ hmo⟩
   · obtain ⟨f, hfi, hb, hx⟩ := hc.bytes i b x hx
     exact ⟨f, by rw [hf]; exact hfi, hb, hx⟩
   · rw [hf] at hfi; exact hc.bytes_full i f b hfi hb
   · rw [hf]; exact hc.tok_file t ti hti
   · rw [hf]; exact hc.tok_cand t ti hti
 
-theorem cellView_filesSame (hw : OsWf st) (hstamp : st'.fs.stamp = st.fs.stamp) :
-    cellView st' = cellView st :=
-  cellView_congr hw (osWf_filesSame h hw hstamp) h.2.2.2
+theorem cellView_filesSame (hw : OsWf st) : cellView st' = cellView st :=
+  cellView_congr hw (osWf_filesSame h hw) h.2.2.2.1
     (fun i => by rw [filesSame_file h]) h.2.2.1
 
 end filesSame
@@ -633,14 +633,13 @@ theorem cells_same {st st' : OsState} {h h' : GMap Loc (NonAtomic val)} (hwf : O
 
 /-- The files' world after a step that leaves them alone. -/
 theorem osWorld_filesSame {st st' : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtomic val)}
-    (hs : FilesSame st st') (hstamp : st'.fs.stamp = st.fs.stamp) (hr : HeapRendered st st' h h')
-    (hfr : MapsFresh st st' h) :
+    (hs : FilesSame st st') (hr : HeapRendered st st' h h') (hfr : MapsFresh st st' h) :
     osWorld (L := L) st Γb Γm Γf Γt h ⊢ |==> osWorld (L := L) st' Γb Γm Γf Γt h' := by
   unfold osWorld
   iintro ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
-  have hwf' := osWf_filesSame hs hwf hstamp
-  imod cells_same hwf hwf' hr hfr hs.2.2.2 (cellView_filesSame hs hwf hstamp) $$ [Hσ Hcells]
+  have hwf' := osWf_filesSame hs hwf
+  imod cells_same hwf hwf' hr hfr hs.2.2.2.1 (cellView_filesSame hs hwf) $$ [Hσ Hcells]
     with ⟨Hσ, Hcells⟩
   · iframe
   imodintro
@@ -649,11 +648,11 @@ theorem osWorld_filesSame {st st' : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc 
 
 /-- A step that leaves the files alone exists from any heap the cells' view agrees with. -/
 theorem step_filesSame {st st' : OsState} {h : GMap Loc (NonAtomic val)} (hwf : OsWf st)
-    (hs : FilesSame st st') (hstamp : st'.fs.stamp = st.fs.stamp)
+    (hs : FilesSame st st')
     (Hag : ∀ l x, cellView st !! l = some x → ∃ m, h !! l = some (m, toCellVal x.1)) :
     MapsFresh st st' h ∧ HeapRendered st st' h h :=
-  ⟨mapsFresh_same hs.2.2.2,
-    heapRendered_same (osWf_filesSame hs hwf hstamp) hs.2.2.2 (cellView_filesSame hs hwf hstamp) Hag⟩
+  ⟨mapsFresh_same hs.2.2.2.1,
+    heapRendered_same (osWf_filesSame hs hwf) hs.2.2.2.1 (cellView_filesSame hs hwf) Hag⟩
 
 end specs
 

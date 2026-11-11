@@ -29,7 +29,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 spec talks about. -/
 def Hist.st (R : Roots) (V : Hist) : OsState :=
   { fs := { roots := R, treeDur := V.1, metaLog := V.2, committed := fun _ => False, files := ∅,
-            nextIno := 0 },
+            nextIno := 0, stamp := 0 },
     proc := ProcState.empty }
 
 /-- What `p` names, with the roots `R`, in the history `V`'s tree now. -/
@@ -300,7 +300,7 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   obtain ⟨t, ht1, ht2⟩ := exists_fresh2 st.proc.calls st.proc.inflight
   have hs : FilesSame st (st.setProc { st.proc with
-      calls := <[t := st.fs.metaLog.length]> st.proc.calls }) := ⟨rfl, rfl, rfl, rfl⟩
+      calls := <[t := st.fs.metaLog.length]> st.proc.calls }) := ⟨rfl, rfl, rfl, rfl, rfl⟩
   imodintro
   isplitr
   · ipureintro
@@ -313,7 +313,7 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
   obtain ⟨t', -, h1', h2', rfl, rfl⟩ := Hst
   imod osWorld_filesSame (st := st)
     (st' := st.setProc { st.proc with calls := <[t' := st.fs.metaLog.length]> st.proc.calls })
-    ⟨rfl, rfl, rfl, rfl⟩ Hr Hfr $$ [HAb HAm HAf HAt Htok Hcells Hσ]
+    ⟨rfl, rfl, rfl, rfl, rfl⟩ Hr Hfr $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     with Hw
   · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh⟩
   have hΓc : Γc !! t' = none := by
@@ -381,7 +381,7 @@ theorem wp_osLstatDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : 
   have hcall : st.proc.calls !! k = some s' := by rw [← hc.calls k, hk]; rfl
   have hV : V = (st.fs.treeDur, st.fs.metaLog) := hc.hist
   subst hV
-  have hs : FilesSame st (st.metaEnd k) := ⟨rfl, rfl, rfl, rfl⟩
+  have hs : FilesSame st (st.metaEnd k) := ⟨rfl, rfl, rfl, rfl, rfl⟩
   imodintro
   isplitr
   · ipureintro

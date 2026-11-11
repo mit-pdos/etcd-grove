@@ -323,7 +323,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
       with ⟨HAdf, Hfd⟩
     have hst'' : st' = setDfd (st.metaEnd k') fd ⟨j, .idle⟩ := hst
     subst hst''
-    have hs : FilesSame st (setDfd (st.metaEnd k') fd ⟨j, .idle⟩) := ⟨rfl, rfl, rfl, rfl⟩
+    have hs : FilesSame st (setDfd (st.metaEnd k') fd ⟨j, .idle⟩) := ⟨rfl, rfl, rfl, rfl, rfl⟩
     have hw' := fsTreeWf_setDfd (fsTreeWf_metaEnd hw k') (fd := fd) (df' := ⟨j, .idle⟩) hfdn
       (mem_of_lookup_dir hw hl')
     have hc' := treeCoh_setDfd (fd := fd) (df' := ⟨j, .idle⟩)

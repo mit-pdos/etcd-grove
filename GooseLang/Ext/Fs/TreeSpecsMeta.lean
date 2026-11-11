@@ -72,7 +72,7 @@ theorem mem_of_reach {R : Roots} {m : Tree} (hw : TreeWf R m) {j : Ino} (h : Rea
 /-- After a metadata step that changed nothing: the call ended. -/
 theorem metaPost_end {st : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp : MetaPre st R V k s') :
     MetaPost st (st.metaEnd k) ∧ ((st.metaEnd k).fs.treeDur, (st.metaEnd k).fs.metaLog) = V := by
-  refine ⟨⟨⟨rfl, rfl, rfl, rfl⟩, ⟨hp.wf.roots, hp.wf.hist, hp.wf.dfds, hp.wf.disj, hp.wf.files_lt⟩,
+  refine ⟨⟨⟨rfl, rfl, rfl, rfl, rfl⟩, ⟨hp.wf.roots, hp.wf.hist, hp.wf.dfds, hp.wf.disj, hp.wf.files_lt⟩,
     rfl, ?_, hp.dfds, hp.seq⟩, hp.hist.symm⟩
   show GMap.delete k st.proc.calls = ∅
   rw [hp.calls, delete_singleton_self]
@@ -86,14 +86,16 @@ theorem metaPost_do {st st1 : OsState} {R : Roots} {V : Hist} {k s' : Nat} (hp :
     (hlo : st1.fs.metaLog = st.fs.metaLog) (hca : st1.proc.calls = ∅) (hdf : st1.proc.dfds = ∅)
     (hni : st.fs.nextIno ≤ st1.fs.nextIno)
     (htw : TreeWf st.fs.roots (o.apply st.tree)) (hnm : ∀ i, Named (o.apply st.tree) i → Named st.tree i)
-    (hlt : ∀ j, j ∈ o.apply st.tree → j < st1.fs.nextIno) :
+    (hlt : ∀ j, j ∈ o.apply st.tree → j < st1.fs.nextIno)
+    (hst : st1.fs.stamp = st.fs.stamp := by rfl) :
     MetaPost st (st1.metaDo o s') ∧
       ((st1.metaDo o s').fs.treeDur, (st1.metaDo o s').fs.metaLog) = V.push ⟨o, V.2.length⟩ := by
   obtain ⟨-, hnamed, -⟩ := wf_tree hp.wf
   have hdfds' : (st1.metaDo o s').proc.dfds = ∅ := by
     simp only [OsState.metaDo, hdf, fmap_empty]
   refine ⟨⟨⟨by simp [OsState.metaDo, hf], by simp [OsState.metaDo, hfd], by simp [OsState.metaDo, hin],
-    by simp [OsState.metaDo, hm]⟩, ?_, by simp [OsState.metaDo, hro], by simp [OsState.metaDo, hca],
+    by simp [OsState.metaDo, hm], by simp [OsState.metaDo, hst]⟩, ?_, by simp [OsState.metaDo, hro],
+    by simp [OsState.metaDo, hca],
     hdfds', ?_⟩, ?_⟩
   · refine fsTreeWf_meta hp.wf (o := o) (s := s') (by simp [OsState.metaDo, hro])
       (by simp [OsState.metaDo, hdu]) (by simp [OsState.metaDo, hlo])
@@ -329,7 +331,7 @@ theorem wp_osUnlinkG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V :
   · intro st hp
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, treeName_child hd' hb,
-      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     have hroots := hp.wf.roots
@@ -378,7 +380,7 @@ theorem wp_osRmdirG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : 
   · intro st hp
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, treeName_child hd' hb,
-      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     have hroots := hp.wf.roots
@@ -427,7 +429,7 @@ theorem wp_osMkdirG (d b : GoString) (j : Ino) (hb : NameOk b) (R : Roots) (V : 
   · intro st hp
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     exact ⟨_, st.metaEnd k, ⟨child d b, k, s', rfl, treeName_child hd' hb,
-      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      by rw [hp.calls]; simp, .inr ⟨W64 1, by decide, rfl, rfl⟩⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hd' : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     have hroots := hp.wf.roots
@@ -525,7 +527,7 @@ theorem wp_osRenameFileG (d bs d' bt : GoString) (j j' i : Ino) (hbs : NameOk bs
     exact ⟨_, st.metaEnd k, ⟨child d bs, child d' bt, k, s', rfl, treeName_child hdd hbs,
       treeName_child hdd' hbt, by rw [hp.calls]; simp,
       fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
-      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     have hdd' : st.lookup d' = some (.dir j') := (lookup_pre hp d').trans hd'
@@ -577,7 +579,7 @@ theorem wp_osRenameDirG (d bs bt : GoString) (j J : Ino) (hbs : NameOk bs) (hbt 
     exact ⟨_, st.metaEnd k, ⟨child d bs, child d bt, k, s', rfl, treeName_child hdd hbs,
       treeName_child hdd hbt, by rw [hp.calls]; simp,
       fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
-      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   · intro st e' st' hp hst
     have hdd : st.lookup d = some (.dir j) := (lookup_pre hp d).trans hd
     have hss : st.lookup (child d bs) = some (.dir J) := (lookup_pre hp _).trans hs
@@ -631,7 +633,7 @@ theorem wp_osRenameAbsentG (d bs d' bt : GoString) (j j' : Ino) (hbs : NameOk bs
     exact ⟨_, st.metaEnd k, ⟨child d bs, child d' bt, k, s', rfl, treeName_child hdd hbs,
       treeName_child hdd' hbt, by rw [hp.calls]; simp,
       fun _ k'' s'' h => by rw [hp.calls] at h; simp at h; exact h.1.symm,
-      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl⟩⟩
+      .inr (.inr ⟨W64 1, by decide, rfl, rfl⟩)⟩, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
   have hpost : ∀ st e' st', MetaPre st R V k s' →
       IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' →
       ∃ e : w64, e' = Val (#e) ∧ MetaPost st st' ∧

@@ -60,7 +60,7 @@ abbrev setDfd (st : OsState) (fd : w64) (df' : OsDirFd) : OsState :=
   st.setProc { st.proc with dfds := <[fd := df']> st.proc.dfds }
 
 theorem filesSame_setDfd (st : OsState) (fd : w64) (df' : OsDirFd) :
-    FilesSame st (setDfd st fd df') := ⟨rfl, rfl, rfl, rfl⟩
+    FilesSame st (setDfd st fd df') := ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-- A directory fd set (added, or its read moved on), on a directory of the tree, at a number no
 file fd has: the tree's well-formedness kept. -/
@@ -258,7 +258,7 @@ theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN ⊆
     have hcm : FilesSame st st.commitAll ∧
         st.commitAll.fs.roots = st.fs.roots ∧ FsTreeWf st.commitAll ∧
         TreeCoh st.commitAll V Γdf Γc :=
-      ⟨⟨rfl, rfl, rfl, rfl⟩, rfl, ⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
+      ⟨⟨rfl, rfl, rfl, rfl, rfl⟩, rfl, ⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
         hc.congr rfl rfl rfl rfl⟩
     rcases hres with ⟨hst, -⟩ | ⟨e, -, -, hst⟩
     · rw [hst]; exact hcm
@@ -305,7 +305,7 @@ theorem wp_osDirClose (fd : w64) (x : Ino × DirPh) (hE : ↑osN ⊆ E) (Φ : va
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hs : FilesSame st (delDfd st fd) := ⟨rfl, rfl, rfl, rfl⟩
+  have hs : FilesSame st (delDfd st fd) := ⟨rfl, rfl, rfl, rfl, rfl⟩
   imodintro
   isplitr
   · ipureintro
