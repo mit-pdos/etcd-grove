@@ -214,14 +214,15 @@ theorem threadTok_levels0123 (HT : 4 ≤ threadBound GF) :
     iframe
 
 /-- **The unary adapter** (Scope r5 §3.4, A4-MAJ-3): a handler proved against `grpcMethodOkMd` at
-a bundle `R₁ ∗ R₂ ∗ R₃` of three leveled pools (levels 1, 2, 3; abstract `IProp`s, not known
-timeless) meets the run contract: the run borrows each pool with its token's level (each loan gives
+a bundle `levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃` (the run's own level 0, per-type stage B3: the lease handlers'
+level-0 pools, and three leveled pools, levels 1, 2, 3; abstract `IProp`s, not known timeless) meets
+the run contract: the run borrows each pool with its token's level (each loan gives
 `▷ Rᵢ`), strips the joined later with the run's one credit, runs the handler, and gives the loans
 back. Generic in the pools: B2/B3 instantiate it with `raftPool`, `I` and the run pool. -/
 theorem grpcRunOkMd_of_pools {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) (R₁ R₂ R₃ : IProp GF)
     (N₁ N₂ N₃ : Namespace) (γ₁ γ₂ γ₃ : GName) (HT : 4 ≤ threadBound GF) :
-    □ grpcMethodOkMd mh srv ics iprop(R₁ ∗ R₂ ∗ R₃) Spec ∗
+    □ grpcMethodOkMd mh srv ics iprop(levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃) Spec ∗
       threadPool.isThreadPoolL N₁ 1 γ₁ R₁ ∗ threadPool.isThreadPoolL N₂ 2 γ₂ R₂ ∗
       threadPool.isThreadPoolL N₃ 3 γ₃ R₃ ⊢
     grpcRunOkMd mh srv ics Spec := by
@@ -240,10 +241,10 @@ theorem grpcRunOkMd_of_pools {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfa
   · inext; iframe
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc HR with HR
   iapply wp_fupd
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HR Hctx Hrc Hd Hch HSpec]
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [H0 HR Hctx Hrc Hd Hch HSpec]
   · iframe
   inext
-  iintro %resp %err ⟨⟨HB1, HB2, HB3⟩, Hok, Herr, Hsrv⟩
+  iintro %resp %err ⟨⟨H0, HB1, HB2, HB3⟩, Hok, Herr, Hsrv⟩
   imod threadPool.giveBackL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 Hl1 HB1] with H1
   · iframe; iframe #
   imod threadPool.giveBackL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 Hl2 HB2] with H2
@@ -292,14 +293,14 @@ theorem srvStreamChainWP_wand (info : val) (ics : List GoFunc) (h srv st : val)
     iapply H $$ %h' Hh'
 
 /-- **The stream adapter** (Scope r5 §3.4; B1b): a stream handler proved against
-`grpcStreamMethodOk` at a bundle `R₁ ∗ R₂ ∗ R₃` of three leveled pools (levels 1, 2, 3), which it
-returns, meets the stream run contract: the run borrows each pool with its token's level, strips the
+`grpcStreamMethodOk` at a bundle `levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃` (the run's own level 0, B3, and three
+leveled pools, levels 1, 2, 3), which it returns, meets the stream run contract: the run borrows each pool with its token's level, strips the
 joined later with the run's one credit, runs the chain, and gives the loans back. Generic in the
 pools, as `grpcRunOkMd_of_pools`. -/
 theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
     (sics : List GoFunc) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep)
     (R₁ R₂ R₃ : IProp GF) (N₁ N₂ N₃ : Namespace) (γ₁ γ₂ γ₃ : GName) (HT : 4 ≤ threadBound GF) :
-    □ grpcStreamMethodOk mh srv sics iprop(R₁ ∗ R₂ ∗ R₃) Up Spec ∗
+    □ grpcStreamMethodOk mh srv sics iprop(levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃) Up Spec ∗
       threadPool.isThreadPoolL N₁ 1 γ₁ R₁ ∗ threadPool.isThreadPoolL N₂ 2 γ₂ R₂ ∗
       threadPool.isThreadPoolL N₃ 3 γ₃ R₃ ⊢
     grpcStreamRunOk mh srv sics Up Spec := by
@@ -322,9 +323,11 @@ theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoIn
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc HRs with HRs
   imodintro
   iapply srvStreamChainWP_wand
+  ihave HRs : iprop(levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃) $$ [H0 HRs]
+  · iframe
   isplitl [HSp HRs Hraw HR HT' Ha Hi]
   · iapply Hr $$ HSp HRs Hraw HR HT' Ha Hi
-  iintro %v ⟨%err, %Hv, #Hse, ⟨HB1, HB2, HB3⟩⟩
+  iintro %v ⟨%err, %Hv, #Hse, ⟨H0, HB1, HB2, HB3⟩⟩
   imod threadPool.giveBackL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 Hl1 HB1] with H1
   · iframe; iframe #
   imod threadPool.giveBackL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 Hl2 HB2] with H2

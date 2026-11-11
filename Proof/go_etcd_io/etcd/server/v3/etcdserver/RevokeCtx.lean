@@ -308,6 +308,23 @@ theorem srvRevokeBuilt_innerBorrow (s : Loc) (E : apply.AEnv GF) (Em : CoPset)
   iframe Hl
   iexact HI
 
+/-- **The two pools a gRPC run borrows from the built part** (per-type stage B3, r5 §3.4): `raftPool`'s
+`lgMu` readers at level 1 and the inner pool `I` (`leadTimeMu` ∗ `E.RD`) at level 2, as the
+adapters (`grpcRunOkMd_of_pools`) take them. -/
+theorem srvRevokeBuilt_runPools (s : Loc) (E : apply.AEnv GF) :
+    srvRevokeBuilt (GF := GF) s E ⊢ ∃ γ₁ γ₂ : GName,
+      threadPool.isThreadPoolL raftPoolN 1 γ₁ (srvLgReader s) ∗
+      threadPool.isThreadPoolL srvRevokeInnerN 2 γ₂ iprop(srvLeadTimeReader s ∗ E.RD) := by
+  iintro #Hb
+  iunfold srvRevokeBuilt at Hb
+  icases Hb with ⟨#HI, #Hp, -, -⟩
+  iunfold srvRevokeInnerPool at HI
+  icases HI with ⟨%γ₂, #HI⟩
+  iunfold raftPool at Hp
+  icases Hp with ⟨%γ₁, #Hp⟩
+  iexists γ₁, γ₂
+  iframe #
+
 /-- The server's thread bound within the backend's pool of readers, out of the revocation's built
 part (`NewServer`'s premise; per-type stage B2: what the gRPC run pool's `threadPool.initL` needs,
 `srvRunPool_init`). -/

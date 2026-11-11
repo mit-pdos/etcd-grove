@@ -159,6 +159,68 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
   - `etc/bounds-check.py --check`: 377 vs baseline 374 (`srvRunReadStock`, `srvStartReaders_split`):
     allow entries or baseline at CP3.
 
+- **B3, in progress** (2026-11-11, fresh agent; `lean` `e891d049fc` merged; CP2 decisions in
+  `questions.md`). Design (forms, recorded in `questions.md`):
+  - **The lend reaches the handler**: `wp_unaryHandler*` (`UnaryHandlerLemmas.lean`) and the 15
+    `Spec/.../etcdserverpb/_*_Handler.lean` take the handler contract at `iprop(S ∗ [∗list] R ∈ Rs, R)`
+    (pre/post still `S ∗ [∗list] Rs`); `_Watch_Watch_Handler`'s post gains `S`. Done, checked.
+  - **The bundle**: `srvRunBundle s E γr := levelTok 0 ∗ srvLgReader s ∗ (srvLeadTimeReader s ∗ E.RD)
+    ∗ (mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s)` (new
+    `Proof/go_etcd_io/etcd/server/v3/etcdserver/RunAdapt.lean`): the run's own level 0 (the lease
+    handlers' lessor/lease pools), `raftPool` (level 1), `I` (level 2), the run pool (level 3). The
+    generic adapters `grpcRunOkMd_of_pools`/`grpcStreamRunOk_of_pools` (`InvGrpcRun.lean`) now hand
+    the handler `levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃`. `srvRunOk_of_pools`/`srvStreamRunOk_of_pools` (RunAdapt):
+    `srvLevels → □ grpcMethodOkMd … (srvRunBundle s E γr) Spec ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr
+    ⊢ grpcRunOkMd …`; `srvRevokeBuilt_runPools` (RevokeCtx) gives the two pools.
+  - **lgMu**: the bundle has ONE `srvLgReader` (r5 §3.2): it is `etcdIcRs`'s, lent by the log
+    interceptor to the handler. So the KV handler's own resource is the bundle minus it, and the
+    quota servers' inner contract must take the lent reader: planned restatement of
+    `quotaKVServer.Put/Txn` and `quotaLeaseServer.LeaseGrant` specs: pre/post keep `S ∗ quotaRd s`,
+    the inner handler contract becomes `grpcHandlerOkMd … iprop(S ∗ srvLgReader s) Spec` (the check
+    and the inner call use the reader in turn). (Alternative r5 wording: `quotaRd` shrinks to
+    `srvBemuReader`; same accounting.)
+  - **Serving**: `memberUp_served`/`memberUpOn_served` surface `srvServeStock s E ∗ srvRunReadStock s
+    ρ.rd` in place of `srvWatchReaders s E 64 ∗ kvServeStocks`; a serve site runs `srvRunPool_init`
+    (its 2 `lgMu` readers are dropped) and passes `srvRevokeBuilt`/`srvRunPool` + `srvLevels` to the
+    served theorems, which take run contracts (via `srvRunOk_of_pools`) in place of `N`, `S`, `F`,
+    `h1`, `h2` and `replicate N S`.
+
+  - **State at this handoff** (commits `20ac8c68dd` and the next): checked with `etc/lean-check.py
+    -a`: `UnaryHandlerLemmas`, `_Watch_Watch_Handler`. Written, NOT yet checked (a full build held
+    the lock): `RevokeCtx.srvRevokeBuilt_runPools`, `RunAdapt.lean`, the level-0 change of the two
+    generic adapters in `InvGrpcRun.lean`, the three quota servers' specs/proofs
+    (`quotaKVServer__Put/Txn`, `quotaLeaseServer__LeaseGrant`: inner contract at `S ∗ srvLgReader s`).
+    Probe build `b3-probe1` (log `/shared/tmp/stageB/logs/b3-probe1.log`) was run before these edits;
+    its only failures then were `_Watch_Watch_Handler` and `UnaryHandlerLemmas` (both fixed), so
+    nothing downstream of them was tried: run a new full build to get the real error list.
+  - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
+    `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
+    and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
+    (2) client/v3: `etcdGrpcSlot` restated so that it is `srvRunBundle` up to rearrangement (the
+    handler's part `S_q := levelTok 0 ∗ (srvLeadTimeReader ∗ E.RD) ∗ (mvccReaders 1 ∗ srvReadReader ∗
+    srvBemuReader)`, the quota servers' `S := etcdRunSlot` minus its `lgMu` reader, plus the lent
+    `etcdIcRs`); `etcd_kv_servedM_with`/`_served_with`/`_served`/`etcd_kv_started(_with)` take
+    `srvRevokeBuilt s E ∗ srvRunPool s E γr`, `srvLevels`, and the other methods `ms` as
+    `□ [∗list] grpcRunOkMd …` (drop `N S F h1 h2`, `replicate N S`; exported: CP3 freeze list), then
+    `grpc.serve`; `ServeFromStart` (`etcdGrpcSlots_of_started` goes), `LeaseReadServed`,
+    `LeaseGrantServed`, `AuthnServedOn`, `v3rpc/Results` (auth served; lease handlers' `S` as
+    `E.RD ∗ levelTok 0` in `InvLeaseRead`/`InvLeaseKeepAlive`), `cache/v3/Results`;
+    (3) Watch exact (r5 §4.3 "Watch": `watchServer.Watch` pre `threadTok ∗` the pool handles, post
+    `+ threadTok`; recvLoop borrows `I` and the run pool and returns `E.RD`; sendLoop: interval borrow,
+    then run-pool loan); `etcd_watch_served(_chain)` with `srvStreamRunOk_of_pools`;
+    (4) etcdstart: `memberUp_served`/`memberUpOn_served` surface `srvServeStock ∗ srvRunReadStock`
+    in place of `srvWatchReaders 64 ∗ kvServeStocks`; `kv_served`, `ServedLease` run
+    `srvRunPool_init`; `Serve.lean` spec, `restart/serveClient`; the ~18 example callers, `srvLevels`
+    on the serving Main/Start specs; (5) remove the 64-stocks (`srvServeBuilt`'s, `srvWatchReaders`,
+    `InvWatchBuilt`, `NewServer`'s hand-out, `srvKeepRdN` to `mvccReaderN - srvRevokePoolN - 2`,
+    `StopShutdown`, `StopReaders`, etcdstart `Defs`/`Start` (Start spends `srvServeStock`'s two
+    `lgMu` readers), auth `startServer`); `holdToken` comments (r5 §4.3); (6) the unchecked files
+    (cluster3/Defs, StartBridge, etcdstart Serve/Served, restart/startMember and Defs,
+    auth/startServer, k8s/etcd3/Adequacy); (7) the Renew/leaseTimeToLive scope (CP2 decision 2);
+    (8) CP3 (brief: full build, tcb `--check --update` net +1, collections, interfaces, gen-init,
+    goose, gate enforcing with capped walks fixed, bounds allow entries, `tcb-report --roots` on the
+    18 `*_safe`; delete `Scratch/`; STOP before land.sh).
+
 ## Next, in order
 
 1. (done, see above) **B2, rest**, per r5 §4.2/§3.2: `srvServeStock` in `InvServe.lean` (raw stock `P =

@@ -43,11 +43,14 @@ theorem v3rpc.quotaKVServer.Txn.wp_proof
   cases err with
   | ok ei => cases Herr
   | nil =>
+    iunfold v3rpc.quotaRd at Hqr
+    icases Hqr with ⟨Hlg, Hbm⟩
     wp_auto
     iunfold grpcHandlerOkMd at Hh
-    wp_apply Hh $$ %m %Φ' %Ψe %ci %cd %r [HS HSpec] as %resp %err' ⟨HS, Hres, Hd, #Hse⟩
+    wp_apply Hh $$ %m %Φ' %Ψe %ci %cd %r [HS Hlg HSpec] as %resp %err' ⟨⟨HS, Hlg⟩, Hres, Hd, #Hse⟩
     · iframe; iframe #
     iapply HΦ
+    iunfold v3rpc.quotaRd
     iframe
     iframe Hse
 
