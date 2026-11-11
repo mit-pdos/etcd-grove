@@ -317,12 +317,14 @@ theorem ccEvOf_boot (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (h : CCE
 the bootstrap law `trCap_fire_boot` (the share unchanged, the last event recorded by `Λ'`); untraced,
 the struct's nil logger. `E` is the hook's events, each a bootstrap-named line of the node (`hboot`),
 bounded at the capability's configuration `cC` (`hOk`, `TraceEv.OkBoot`: raft's configuration grows
-to the voters' meanwhile, amendment A1). -/
+to the voters' meanwhile, amendment A1), each raft's next bootstrap event after the node's last
+(`hBN`, `BootNext`: amendment A7). -/
 theorem trCapB_hookGate_boot (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (cC : CfgM)
     (tl0 : GoInterface) (E : TraceEv → Prop) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop)
     (Λ Λ' : Option TraceEv → Prop)
     (hboot : ∀ e, E e → e.nid = decStr id ∧ ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧
       ln.nid = idAbs id ∧ Etcdraft.isBootstrapName ln.ev.name = true)
+    (hBN : tr.isSome → ∀ C cs P, Φ C cs P → ∀ e, E e → ∀ o, Λ o → BootNext C id o e)
     (hΛ : ∀ e, E e → Λ' (some e))
     (hOk : tr.isSome → ∀ e, E e → TraceEv.OkBoot (elements cC.incoming).length e)
     (hok : tr = none → TraceLoggerOk tl0) :
@@ -349,30 +351,34 @@ theorem trCapB_hookGate_boot (tr : Option GName) (γ : RaftNames) (r : Loc) (id 
     iexists tl
     isplitr
     · iexact Htl
-    iapply trCap_fire_boot γd γ r id cC tl E Φ Λ Λ' hboot hΛ (hOk rfl)
+    iapply trCap_fire_boot γd γ r id cC tl E Φ Λ Λ' hboot (hBN rfl) hΛ (hOk rfl)
     iframe Hcap Htl
 
 /-- **`InitState`'s gate** (`newRaft`'s `traceInitState`, at raft's state `s` and configuration `c`,
 empty at that point; the capability's `cC` the voters'), either mode. -/
 theorem trCapB_hookGate_init (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c cC : CfgM)
     (s : NState) (tl0 : GoInterface) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop)
-    (Λ Λ' : Option TraceEv → Prop) (hΛ : ∀ e, NodeEvOf (W64 0) id s c e → Λ' (some e))
+    (Λ Λ' : Option TraceEv → Prop)
+    (hBN : tr.isSome → ∀ C cs P, Φ C cs P → ∀ e, NodeEvOf (W64 0) id s c e → ∀ o, Λ o → BootNext C id o e)
+    (hΛ : ∀ e, NodeEvOf (W64 0) id s c e → Λ' (some e))
     (hOk : tr.isSome → ∀ e, NodeEvOf (W64 0) id s c e → TraceEv.OkBoot (elements cC.incoming).length e)
     (hok : tr = none → TraceLoggerOk tl0) :
     (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id cC false Φ Λ : IProp GF) ⊢
       HookGate tr r (NodeEvOf (W64 0) id s c) (trCapB tr γ r id cC false Φ Λ') :=
-  trCapB_hookGate_boot tr γ r id cC tl0 _ Φ Λ Λ' (nodeEvOf_init_boot id s c) hΛ hOk hok
+  trCapB_hookGate_boot tr γ r id cC tl0 _ Φ Λ Λ' (nodeEvOf_init_boot id s c) hBN hΛ hOk hok
 
 /-- **A bootstrap `ApplyConfChange`'s gate** (`switchToConfig`'s `traceConfChangeEvent` during
 `newRaft` and `Bootstrap`: raft's configuration `c` before, `cn` after), either mode. -/
 theorem trCapB_hookGate_ccBoot (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c cn cC : CfgM)
     (s : NState) (tl0 : GoInterface) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop)
-    (Λ Λ' : Option TraceEv → Prop) (hΛ : ∀ e, CCEvOf id s c cn e → Λ' (some e))
+    (Λ Λ' : Option TraceEv → Prop)
+    (hBN : tr.isSome → ∀ C cs P, Φ C cs P → ∀ e, CCEvOf id s c cn e → ∀ o, Λ o → BootNext C id o e)
+    (hΛ : ∀ e, CCEvOf id s c cn e → Λ' (some e))
     (hOk : tr.isSome → ∀ e, CCEvOf id s c cn e → TraceEv.OkBoot (elements cC.incoming).length e)
     (hok : tr = none → TraceLoggerOk tl0) :
     (r.[raft, go!"traceLogger"] ↦□ tl0 ∗ trCapB tr γ r id cC false Φ Λ : IProp GF) ⊢
       HookGate tr r (CCEvOf id s c cn) (trCapB tr γ r id cC false Φ Λ') :=
-  trCapB_hookGate_boot tr γ r id cC tl0 _ Φ Λ Λ' (ccEvOf_boot id s c cn) hΛ hOk hok
+  trCapB_hookGate_boot tr γ r id cC tl0 _ Φ Λ Λ' (ccEvOf_boot id s c cn) hBN hΛ hOk hok
 
 /-- **The capability's introduction** (`newRaft`'s, once its struct and its logger field exist): the
 trace directory, the logger field and its contract, the simulation's invariant with raft's commit log

@@ -36829,7 +36829,7 @@ new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` and `--tracecheck` un
   word over `Cluster.traceSim`; `startTraceC_eq` in the internal `TracedNodeApiBridge.lean`), and the
   three traced statements the harness takes as hypotheses until the node-API slices prove them:
   `StartNode.tracedSpec D` (`StartNode.gatedSpec` over `startTraceC`, its post giving `startDone γ D
-  cv.ID'`: A7's per-voter completion fact, Q31, as a parameter; `StartNode.tracedSpec_of_gated`
+  cv.ID'`: A7's per-voter completion fact, Q37, as a parameter; `StartNode.tracedSpec_of_gated`
   gives it at `D := True` from the Draft's), `isReadyChan_recvAu.tracedSpec` (the law with
   `readyGotT`: `readyGot` plus each handed-out message's token `trTok`), `node.Step.tracedSpec`
   (`node.Step.spec` at `stepIn_intro`'s premises plus `trTok`). `trTok γ st` (`@[no_expose]`): `True`
@@ -36843,7 +36843,7 @@ new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` and `--tracecheck` un
   `Cluster.traceSim_alloc` from the first voter's `nodeBoot`; each voter's `voterStart`), and
   `startTraceC_intro`.
 - *The end* (`tracecheck/HarnessEnd.lean`): `BootEnd D` (A7's bootstrap facts at the end, from every
-  voter's `D tn i`, a hypothesis until A7 lands; with Q30 (a) `BootFacts` keeps its statement),
+  voter's `D tn i`, a hypothesis until A7 lands; with Q36 (a) `BootFacts` keeps its statement),
   `runOk_at_end` (`Cluster.traceSim_end`, `BootEnd`, `runOk_of_sim`), `runOver_intro` (the post).
 - *Two harness functions*: `below` (`0 < n`: `% 0` panics) and `(*Cluster).replica` (over
   `replicasRO`), specified and proved.
@@ -36874,3 +36874,51 @@ each a question (the plan, Q32-Q35):
    (unboundedly many), waited on once at the end: Perennial's thread-token joins (`tokJoin`,
    `tokJoinL`) have one exclusive adder (`ownAdder`).
 4. *`Workload`* (Q35): `time.NewTicker` needs `0 < Tick`, which `Workload` does not state.
+
+## Amendment A7 (Q29): the bootstrap segments in `simInv`, the bootstrap law's next-event premise, `NewTrace`'s computation; `BootFacts` found false (Q36) and the completion fact without an anchor (Q37) (2026-11-11 · trace-check, Q29 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-a7`; amends the frozen Draft (tag `trace-check-frozen-a6`) in `simInv`'s pure clause and `trCap_fire_boot.statement`'s premises only; DRAFT until the re-freeze)
+
+**Checked first: raft's bootstrap.** `StartNode` (`setupNode`: `NewRawNode`, then `RawNode.Bootstrap`,
+then `go n.run()`) on empty storage logs, per voter, six kinds of line, not Q29's three: `newRaft`'s
+`traceInitState` (term 0, vote 0, commit 0, log 0, `StateFollower`), its `switchToConfig` from the empty
+`ConfState` (an `ApplyConfChange` at term 0 whose `newconf` is empty, which `ConvertEvents` drops: no
+`newconf` key), its `becomeFollower(r.Term = 0, None)` (a `BecomeFollower` at term 0); `Bootstrap`'s
+`becomeFollower(1, None)` (term 1), then, the `|C|` entries appended and `committed = |C|`, one
+`applyConfChange` per peer whose `traceConfChangeEvent` logs the new voters (`Slice()`, sorted: a
+permutation of the first `k` peers), at term 1, vote 0, commit and log `|C|`. `BootEvAt C i k e`
+(`TraceSimGhost.lean`) is that sequence, position by position (`|C| + 4` lines, none after); each
+position is told apart from the one before by its event (name, term, `newconf`'s size), so a hook's
+caller can say which comes next.
+
+**The clause** (`simInv`'s pure part, last): `BootSegs C L`, every event a voter's (`x.nid = decStr j`,
+`j ∈ C`: needed for `NewTrace`'s servers and for reading `booted` by string) and each voter's segment
+(`bootSeg L i`: its events, by id string, up to its first one not bootstrap-named, what `bootstrapOf`
+flags) a prefix of `BootEvAt`. Kept: a line not bootstrap-named, or of a booted node, leaves every
+segment (`bootSegs_snoc_other`: `trCap_fire`, `_ready`, `_recv`, `_bf`, `_booted`); a bootstrap line of an
+unbooted node extends its own by raft's next event (`bootSegs_snoc_boot`, `trCap_fire_boot`), the node's
+last event `o` being the segment's last (`LastOf`, all its events bootstrap-named while unbooted, read
+through the run's parse, `simRun_parse`). Holds initially (`bootSegs_nil`).
+
+**The law's premise** (`trCap_fire_boot.statement`): `∀ C cs P, Φ C cs P → ∀ e, E e → ∀ o, Λ o →
+BootNext C id o e` (`BootNext`: the first event when `o = none`, else the event after whichever position
+`o` holds). The voters come through the phase `Φ` (the capability's `C` is existential; the caller pins
+it in its phase, as `PhaseStep`'s callers do); the last event through `Λ`, already the capability's.
+Rejected: a position counter in the capability (changes `trCapB`); a premise on raft's state (the law
+does not know raft's state). The gates follow (`trCapB_hookGate_boot`/`_init`/`_ccBoot` gain `hBN`;
+`trCapB_hookGate_bf`'s and `raft.becomeFollower.traced`'s `hb0` gain the conjunct for `b = false`: every
+call site with `b = true` unchanged).
+
+**`NewTrace`'s computation** (`TraceSimBootFacts.lean`, raft-internal; restated in `TraceSimEnd.lean`):
+`bootstrapOf_eq` (the `find?`/`foldl` of a server whose lines are bootstrap-named below an index `c`),
+`voter_bootstrapOf` (a voter's flagged lines are its segment's indices), and `newTrace_of_bootDone`:
+with every voter's segment complete (`BootDone`), `newTrace` succeeds, its servers and initial servers are
+`confAbs C`, its initial state `bootInit C` (`newTrace_bootInit`). **Found (Q36):** `bootInit C` is
+`simInit C` at the voters only; at any other id `newTraceWith` builds a server from the trace's first line
+(`lines.getD (0 - 1)`), so `BootFacts`' `t.init = simInit C` is false of every complete run
+(`not_bootFacts`), and `runOk_of_sim`'s hypothesis cannot be discharged as stated. **Found (Q37):** the
+frozen ghost state has no persistent witness to carry "voter `i`'s bootstrap is complete" from
+`StartNode`'s return to the end of the run, so `StartNode.gatedSpec`'s post is unchanged. Both are the
+plan's questions, with options; nothing here depends on their answers (the clause and the premise are
+needed either way).
+
+No axiom, no `sorry`; frozen statements changed: `simInv` (the clause), `trCap_fire_boot.statement` (the
+premise). Reviews `notes/trace-validation-reviews/a7-r1.md`, `a7-r2.md`: no first-tier finding against the amended statements; the gates' `BootNext` premises gated on the trace mode (a7-r2's N1); Q36 and Q37 confirmed.

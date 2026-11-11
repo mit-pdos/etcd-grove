@@ -1230,6 +1230,50 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   re-freeze `trace-check-frozen-a7`). The step bound `n + 4 ≤ 2^61` (S7 part 1) is within the user's
   "unless the proof needs another" (2026-11-08): the traced cluster's three bootstrap entries need
   `receiptBound + 3 ≤ 2^61` for raft's `readyFits`.
+  **Done in part (A7, 2026-11-11, branch `trace-check-a7`):** the `simInv` clause, the bootstrap law's
+  premise and `NewTrace`'s computation (below, "Amendment A7"); `BootFacts` itself found false (Q36) and
+  the per-voter "bootstrap complete" fact not expressible in the frozen ghost state (Q37).
+- **Q36 (2026-11-11, A7): `BootFacts` is false.** `MainSim.lean`'s `BootFacts C L` asks `t.init =
+  simInit C`, an equality of states whose `s` is a total function. `newTraceWith` builds `s i` for an id
+  `i` outside the trace's servers too: from `lines.getD (0 - 1)`, the trace's first line (an `InitState`:
+  term 0, no log, the empty configuration), while `simInit C` gives every id a voter's bootstrap server.
+  Proved: once every voter's bootstrap segment is raft's and complete, `newTrace` succeeds with servers
+  and initial servers `confAbs C` and initial state `bootInit C` (`simInit C` at the voters, `bootJunk`
+  elsewhere; `TraceSimEnd.lean`'s `newTrace_bootInit`), and `bootInit C ≠ simInit C`; so `BootFacts` is
+  false of every complete run (`MainSim.lean`'s `not_bootFacts`), and `runOk_of_sim` (through
+  `simRun_runRel`'s `t.init = simInit C`) can never be applied. Options: (a) amend `simInit` (frozen):
+  every id outside `confAbs C` gets `bootJunk`, so `bootInit C = simInit C` and `BootFacts` holds as
+  stated; its users read voters' servers only (`simFx_simInit`, `specInv_simInit`: `bootJunk` is a
+  follower too; `cfgFixed_simInit`), so their proofs change mechanically, and `SimRun`'s meaning changes
+  only at non-servers; the cost is that `simInit` then names an artifact of the transcription's total
+  `s`. (b) Keep `simInit`; state `BootFacts` with `t.init = bootInit C` and prove that a `Trace.RunRel`
+  from one initial state is one from any state equal to it at the servers (TLA+'s `s` is a function on
+  `Server`): a new lemma over the transcription (each action, line predicate and invariant reads `s` at
+  servers only, the line's node and its messages' ends; to be checked, possibly with a premise that the
+  lines' message ends are servers), no frozen statement changed (`simRun_runRel`/`simRun_accepts` stay; the
+  transfer is a new lemma beside them), a larger proof. **Recommended: (a)** (mechanical,
+  and it makes the simulation's initial state the one TLC starts from, junk included). A frozen
+  definition: for the coordinator or the user.
+  **Taken by the coordinator (an intermediate statement; the user reviews only the top level): (a)**, amend
+  `simInit` so that non-voters get `bootJunk`, in the design pass's amendment A8.
+- **Q37 (2026-11-11, A7): the per-voter "bootstrap complete" fact has no ghost anchor.** `newTrace`'s
+  initial state needs every voter's segment complete at the end of the run (`BootDone`). Raft logs a
+  voter's whole bootstrap inside `StartNode` (`setupNode`, before `go n.run()`), so `StartNode`'s post is
+  where the fact is known; but `Main` must still know it when it opens the invariant at the end, and the
+  frozen ghost state has no persistent witness to carry it: the trace's halves are exclusive (no prefix
+  witness), every per-node piece (`simNode`, `simBoot`) is the capability's, held by the node for good,
+  and `simInv`'s facts are about the current trace only. Options: (a) `TraceNames` gains a name for a
+  set of voters whose bootstrap is complete (an authority in `simInv`, persistent elements `bootDone tn
+  i`; the new clause says each member's `BootDone`); a new lemma (no law changes) mints `bootDone tn id`
+  from an unbooted capability whose `Λ` pins the last event at position `|C| + 3`; `StartNode.gatedSpec`'s
+  post returns `bootDone tn cv.ID'`; `Cluster.traceSimInv_alloc` takes the empty authority. (b) the trace
+  ghost becomes a monotone list with prefix witnesses (layer A's `traceAuth`/`traceFrag`, the logger's
+  contract): `StartNode` returns a prefix witness with the voter's complete segment. (c) the node API
+  hands the capability (its `simBoot`) back at `Stop`, and the last-event predicate says complete (slice
+  27n's statements). **Recommended: (a)** (one structure field, the clause, the post; nothing of layer A
+  or the node API). A frozen structure: for the coordinator or the user.
+  **Taken by the coordinator: the recommended option** (a new ghost name in `TraceNames` for persistent
+  `bootDone tn i` tokens, returned by `StartNode`), in amendment A8.
 - **Q30 (2026-11-11, slice 29c): a leader's accepted `MsgAppResp` whose `maybeCommit` commits: `Step`'s
   result before `"Hgcommit"` unguarded.** `stepClose` hands the closing wand `stepOutG`, whose `G0`/`G1`
   disjuncts are guarded by `¬ CandHooked` only, and `stepLeader.spec` returns its `G` on an accepted
@@ -2953,3 +2997,19 @@ become `stepBundle_traced.on` (`stepBundle_traced_folAppAcc_on`, `_candAppAcc_on
 (the receiver's histories across the line, `hist_cutConflict`/`hist_newLog`/`hist_appReply`). Reviews
 `a6-r1.md` … `a6-r4.md` (no first-tier finding left)
 (`notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").
+
+**Amendment A7 (2026-11-11, branch `trace-check-a7`; Q29 (a), pending the user's veto): done in part.**
+Checked first against raft's bootstrap (`newRaft`, `Bootstrap`, `setupNode`): a voter logs `|C| + 4`
+bootstrap lines, not Q29's three (`newRaft`'s `InitState`, its empty `ApplyConfChange` and its
+`BecomeFollower` at term 0; `Bootstrap`'s `BecomeFollower` at term 1 and one `ApplyConfChange` per voter
+with the first `k` voters, at commit and log `|C|`): `BootEvAt`. `simInv` gains `BootSegs C L` (every event
+a voter's; each voter's bootstrap segment a prefix of `BootEvAt`), kept by every law
+(`bootSegs_snoc_other`, `bootSegs_snoc_boot`); `trCap_fire_boot`'s new premise is that each event is
+raft's next after the node's last (`BootNext`, the voters through `Φ`, the last event through `Λ`); the
+bootstrap gates and `raft.becomeFollower.traced`'s `hb0` carry it. The pure computation is proved:
+complete segments make `newTrace` succeed with the voters' servers and initial state `bootInit C`
+(`newTrace_bootInit`). Not done, two questions: `BootFacts` is false (`not_bootFacts`: `newTraceWith`'s
+initial state differs from `simInit C` outside the voters; Q36), and the per-voter completion fact
+`StartNode` would return has no persistent witness in the frozen ghost state (Q37); `runOk_of_sim` keeps
+its hypothesis. No axiom, no `sorry`. Reviews `a7-r1.md`, `a7-r2.md` (no first-tier finding against the amended statements; Q36, Q37 open)
+(`notes/decisions.md`, "Amendment A7 (Q29)").

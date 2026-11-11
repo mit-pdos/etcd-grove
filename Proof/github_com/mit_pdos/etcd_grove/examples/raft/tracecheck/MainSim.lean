@@ -80,6 +80,20 @@ theorem runOk_of_sim (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
   obtain ⟨t, hnt, hinit, hsrv, hisrv⟩ := hb
   exact ⟨C.length, hC, simRun_runAccepted C L σ t hrun hnt hinit hsrv hisrv, hev⟩
 
+/-- **`BootFacts` is false of the traced cluster's runs** (amendment A7's check, Q36): once every
+voter's bootstrap segment is raft's and complete (`BootSegs`, `BootDone`), `newTrace`'s initial state
+is `bootInit C`, which is `simInit C` at the voters only (`newTrace_bootInit`, `bootInit_ne_simInit`):
+`newTraceWith` builds the server of an id outside the trace's servers from the trace's first line,
+`simInit` gives it a voter's. So `runOk_of_sim`'s hypothesis cannot be discharged as stated. -/
+theorem not_bootFacts (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
+    (hCl : C.length < 2 ^ 40) (hrun : SimRun C L σ) (hev : SimEvents C.length L) (hseg : BootSegs C L)
+    (hdone : ∀ i ∈ C, BootDone C L i) : ¬ BootFacts C L := by
+  rintro ⟨t, hnt, hinit, -, -⟩
+  obtain ⟨t', hnt', -, -, hinit'⟩ := newTrace_bootInit C L σ hC0 hCl hrun hev hseg hdone
+  rw [hnt] at hnt'
+  cases hnt'
+  exact bootInit_ne_simInit C (hinit'.symm.trans hinit)
+
 open Iris.BI Iris.ProofMode in
 /-- **`Main`'s pure obligations at the end of the run** (`simInv_end` and `mainPure_of_sim`): with the
 recorder's half of the trace `L`, the simulation's invariant gives `NewTrace`'s premises,

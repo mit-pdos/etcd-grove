@@ -6,7 +6,7 @@ Lean-first (no Rocq counterpart). Trace-check's S7 (part 2) (2026-11-11; `notes/
 `startTraceC` is the Draft's `startTrace` (`startTraceC_eq`), so `StartNode.gatedSpec` gives
 `StartNode.tracedSpec` with no completion fact (`D := fun _ _ => True`): the post's `startDone` is the
 precondition's directory, kept (`StartNode.tracedSpec_of_gated`). Once amendment A7 gives `StartNode`'s
-post a completion fact (Q31), the bridge gains it.
+post a completion fact (Q37), the bridge gains it.
 -/
 module
 

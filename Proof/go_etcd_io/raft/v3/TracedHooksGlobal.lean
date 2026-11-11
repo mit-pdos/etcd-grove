@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.raft.v3.TracedHooksDraft
 public import Proof.go_etcd_io.raft.v3.TraceSimMatch
 public import Proof.go_etcd_io.raft.v3.TraceSimRun
 public import Proof.go_etcd_io.raft.v3.TraceSimLeader
+public import Proof.go_etcd_io.raft.v3.TraceSimBootSeg
 
 @[expose] public section
 
@@ -644,7 +645,7 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc, hseg⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -688,7 +689,8 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
         bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC,
-        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e hname)⟩
+        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e hname),
+        bootSegs_snoc_other C L e id hC hnid hseg (.inl hname)⟩
     imodintro
     isplitr [HR]
     rotate_left
@@ -1131,7 +1133,7 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc, hseg⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -1178,7 +1180,8 @@ theorem trCap_fire_ready : trCap_fire_ready.statement (GF := GF) := by
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc',
         bootClause_step C L e _ id Bt hpl rfl hnid1 (booted_snoc_self L e _ _ hpl rfl (by simp [evConv, hname1']; rfl)) hbtC,
-        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e (by rw [hname1']; rfl))⟩
+        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e (by rw [hname1']; rfl)),
+        bootSegs_snoc_other C L e id hC hnid1 hseg (.inl (by rw [hname1']; rfl))⟩
     imodintro
     isplitl [Hnode Hbt]
     · iunfold trCapB
@@ -1255,7 +1258,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc, hseg⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -1331,7 +1334,8 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
       iunfold traceFrag; iframe HL HA HB HBt Hfσ'
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', hM', hpv, hcq, hsrc', bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_self L e ln _ hpl hnl hbl) hbtC,
-        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e hname)⟩
+        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_name L e hname),
+        bootSegs_snoc_other C L e id hC hnid hseg (.inl hname)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, toC σ.server a', P ++ P'
@@ -1345,7 +1349,7 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
 
 /-- **The global step's law for a bootstrap line** (`trCap_fire_boot.statement`). -/
 theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
-  intro γd γ r id c tl E Φ Λ Λ' hE hΛ hOk
+  intro γd γ r id c tl E Φ Λ Λ' hE hBN hΛ hOk
   iintro ⟨Hcap, #Htl⟩
   iunfold trCapB at Hcap
   icases Hcap with ⟨%tn, %C, %tl', %cs, %P, #Hdir, %Hpf, #Htl', #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
@@ -1386,12 +1390,14 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
     iframe Hnode Hbt
   · iintro HL
     imod Hmask with -
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
-    icases Hbt with ⟨%o0, Hbt, -⟩
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc, hseg⟩ := Hp
+    icases Hbt with ⟨%o0, Hbt, %hΛo0⟩
     iunfold simBoot at Hbt
     icases ghost_map_lookup $$ HBt Hbt with %HBtid
-    obtain ⟨b0, o1, hb0, hiff, -, -⟩ := hbtC id hC
-    rw [HBtid] at hb0; cases hb0
+    obtain ⟨b0, o1, hb0, hiff, hlast0, -⟩ := hbtC id hC
+    rw [HBtid] at hb0
+    simp only [Option.some.injEq, Prod.mk.injEq] at hb0
+    obtain ⟨rfl, rfl⟩ := hb0
     have hnb : ¬ booted L (idAbs id) := fun h => by have := hiff.2 h; cases this
     obtain ⟨hnid, ln, hpl, hnl, hbl⟩ := hE e HE
     imod ghost_map_update (false, some e) $$ HBt Hbt with ⟨HBt, Hbt⟩
@@ -1419,7 +1425,9 @@ theorem trCap_fire_boot : trCap_fire_boot.statement (GF := GF) := by
       ipureintro
       exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbt',
         simEvents_snoc_boot C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (by rw [parseLine_ev _ _ _ hpl] at hbl; exact hbl)
-          (unbooted_nid L e id hnid hnb)⟩
+          (unbooted_nid L e id hnid hnb),
+        bootSegs_snoc_boot C L e id o0 hC hnid hseg (simRun_parse C L σ hrun) hnb
+          (by rw [parseLine_ev _ _ _ hpl] at hbl; exact hbl) hlast0 (hBN C cs P HΦ e HE o0 hΛo0)⟩
     imodintro
     iunfold trCapB
     iexists tn, C, tl, cs, P
@@ -1485,7 +1493,7 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc, hseg⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -1534,7 +1542,8 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
         iunfold traceFrag; iframe HL HA HB HBt Hfσ
         ipureintro
         exact ⟨hrun', hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hBt',
-          simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted)⟩
+          simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted),
+          bootSegs_snoc_other C L e id hC hnid1 hseg (.inr hbooted)⟩
       imodintro
       iunfold trCapB
       iexists tn, C, tl, cs, P
@@ -1573,7 +1582,8 @@ theorem trCap_fire_bf : trCap_fire_bf.statement (GF := GF) := by
         iunfold traceFrag; iframe HL HA HB HBt Hfσ'
         ipureintro
         exact ⟨hrun', hsrvN, hA', hAn', hPb', hMb, hpv, hcq, hsrc', hBt',
-          simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted)⟩
+          simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid1 hbooted),
+          bootSegs_snoc_other C L e id hC hnid1 hseg (.inr hbooted)⟩
       imodintro
       iunfold trCapB
       iexists tn, C, tl, toC σ.server (bfSrv (σ.s (idAbs id))), P ++ []
@@ -1632,7 +1642,7 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
     imod Hmask with -
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
-    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
+    obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc, hseg⟩ := Hp
     obtain ⟨Q, hQ⟩ := hA id hC
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
@@ -1680,7 +1690,8 @@ theorem trCap_fire_booted : trCap_fire_booted.statement (GF := GF) := by
       ipureintro
       exact ⟨hrun', hsrvN, hA', hAn', hPb', by rw [hM']; exact hMb, hpv, hcq, hsrc',
         bootClause_step C L e ln id Bt hpl hnl hnid (booted_snoc_mono L e _ hbooted) hbtC,
-        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid hbooted)⟩
+        simEvents_snoc C.length _ (Nat.le_of_eq hperm.length_eq) L e hasc (hOk e HE) (evBootLogOk_of_booted L e id hnid hbooted),
+        bootSegs_snoc_other C L e id hC hnid hseg (.inr hbooted)⟩
     imodintro
     isplitr [HR]
     rotate_left
@@ -1877,7 +1888,8 @@ theorem nodeEvOf_bf_boot (id : w64) (s : NState) (c : CfgM) (e : TraceEv) (hout 
   simp [evConv, hname']; rfl
 
 /-- **A `BecomeFollower` line, either mode**: before the node's segment is over (`b = false`) a
-bootstrap line (`trCap_fire_boot`, the share unchanged, `Φ` weakened to `Φ'`), after it a step-down
+bootstrap line (`trCap_fire_boot`, the share unchanged, `Φ` weakened to `Φ'`; amendment A7: the event
+raft's next bootstrap line after the last, `BootNext`, part of `hb0`), after it a step-down
 or a skip (`trCap_fire_bf`, `PhaseStepBF`, the caller's `FxPresBF` under the mode's gate).
 (Amendment A1, 2026-11-09) The capability's configuration `cC` is apart from raft's `c` (the struct's
 and the event's): during the node's bootstrap raft's grows from empty to the voters' (`newRaft`'s and
@@ -1888,7 +1900,9 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     (tl0 : GoInterface) (s : NState) (b : Bool)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ' : Option TraceEv → Prop)
     (hcC : b = true → cC = c) (hout : b = false → c.outgoing = ∅)
-    (hbf : b = true → PhaseStepBF id c s Φ Φ' Λ) (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P)
+    (hbf : b = true → PhaseStepBF id c s Φ Φ' Λ)
+    (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P ∧
+      (tr.isSome → ∀ e, NodeEvOf (W64 2) id s c e → ∀ o, Λ o → BootNext C id o e))
     (hΛ : ∀ e, NodeEvOf (W64 2) id s c e → Λ' (some e))
     (hOk : tr.isSome → (b = true → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.Ok (elements c.incoming).length e) ∧
       (b = false → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.OkBoot (elements cC.incoming).length e))
@@ -1930,8 +1944,9 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
       iapply traceFire_mono (some γd) tl _ (trCapB (some γd) γ r id cC false Φ Λ') _
       isplitr
       · iintro H
-        iapply trCapB_mono (some γd) γ r id cC false Φ Φ' Λ' (hb0 rfl) $$ H
-      iapply trCap_fire_boot γd γ r id cC tl _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e (hout rfl) he) hΛ
+        iapply trCapB_mono (some γd) γ r id cC false Φ Φ' Λ' (fun C cs P h => (hb0 rfl C cs P h).1) $$ H
+      iapply trCap_fire_boot γd γ r id cC tl _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e (hout rfl) he)
+        (fun C cs P h => (hb0 rfl C cs P h).2 rfl) hΛ
         (hOkF rfl)
       iframe Hcap Htl
 

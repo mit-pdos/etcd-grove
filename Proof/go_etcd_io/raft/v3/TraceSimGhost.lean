@@ -218,6 +218,60 @@ def LastOf (L : List TraceEv) (n : GoString) (o : Option TraceEv) : Prop :=
 def simBoot (tn : TraceNames) (i : w64) (b : Bool) (o : Option TraceEv) : IProp GF :=
   ghostMapElem tn.bt i (DFrac.own 1) (b, o)
 
+/-! ## The bootstrap segments (amendment A7, Q29) -/
+
+/-- **The `k`-th line (from 0) raft logs for node `i` while `StartNode` bootstraps it with the voters
+`C`** (raft v3.7's `newRaft` then `RawNode.Bootstrap`, on empty storage): `newRaft`'s `InitState`
+(term 0, no vote, nothing committed, an empty log, a follower), its `switchToConfig` from the empty
+`ConfState` (`ApplyConfChange` at term 0, no new voters), its `becomeFollower(0, None)`; then
+`Bootstrap`'s `becomeFollower(1, None)` (term 1) and, the `|C|` configuration entries appended and
+committed, one `applyConfChange` per voter, the `k`-th (from 1) with the new voters `C`'s first `k`
+(`Slice()`'s order, a permutation of them), at term 1, no vote, the commit index and the log size
+`|C|`, a follower. No `k ≥ |C| + 4`. Position 1's `newconf` is pinned empty (`ConvertEvents` then drops
+it, so `NewTrace`'s list of bootstrap configurations starts at position 4); the `conf` pair is pinned
+nowhere: `NewTrace` reads it only when a server's last bootstrap line is not an `ApplyConfChange`,
+which a complete segment's is not. Positions are told apart by the event (`bootEvAt_unique`). -/
+def BootEvAt (C : List w64) (i : w64) : Nat → TraceEv → Prop
+  | 0, e => e.nid = decStr i ∧ gsStr e.name = "InitState" ∧ e.term = W64 0 ∧ e.vote = decStr (W64 0) ∧
+      e.commit = W64 0 ∧ e.logSize = W64 0 ∧ gsStr e.role = "StateFollower"
+  | 1, e => e.nid = decStr i ∧ gsStr e.name = "ApplyConfChange" ∧ e.term = W64 0 ∧
+      e.propCC = some { changes := [], newconf := [] }
+  | 2, e => e.nid = decStr i ∧ gsStr e.name = "BecomeFollower" ∧ e.term = W64 0
+  | 3, e => e.nid = decStr i ∧ gsStr e.name = "BecomeFollower" ∧ e.term = W64 1
+  | k + 4, e => k < C.length ∧ e.nid = decStr i ∧ gsStr e.name = "ApplyConfChange" ∧ e.term = W64 1 ∧
+      e.vote = decStr (W64 0) ∧ e.commit = W64 C.length ∧ e.logSize = W64 C.length ∧
+      gsStr e.role = "StateFollower" ∧
+      ∃ ns : List w64, ns.Perm (C.take (k + 1)) ∧ e.propCC = some { changes := [], newconf := ns.map decStr }
+
+/-- **Event `e` comes next in node `i`'s bootstrap after its last event `o`** (`none`: no event yet):
+the first line, or the line after whichever position `o` holds (the bootstrap law's premise, from the
+hook's caller, who knows both). -/
+def BootNext (C : List w64) (i : w64) (o : Option TraceEv) (e : TraceEv) : Prop :=
+  match o with
+  | none => BootEvAt C i 0 e
+  | some x => ∀ k, BootEvAt C i k x → BootEvAt C i (k + 1) e
+
+/-- **Node `i`'s bootstrap segment in `L`**: its events (by its id's string) up to its first one not
+bootstrap-named (what `NewTrace`'s `bootstrapOf` flags of it, once parsed). -/
+def bootSeg (L : List TraceEv) (i : w64) : List TraceEv :=
+  (L.filter (fun x => decide (x.nid = decStr i))).takeWhile
+    (fun x => Etcdraft.isBootstrapName (gsStr x.name))
+
+/-- **The bootstrap segments are raft's** (amendment A7, Q29; a `simInv` clause): every event is a
+voter's, and each voter's bootstrap segment is a prefix of raft's bootstrap sequence for the voters
+`C` (`BootEvAt`). -/
+def BootSegs (C : List w64) (L : List TraceEv) : Prop :=
+  (∀ x ∈ L, ∃ j ∈ C, x.nid = decStr j) ∧
+  ∀ i ∈ C, ∀ k (hk : k < (bootSeg L i).length), BootEvAt C i k ((bootSeg L i)[k])
+
+/-- **Node `i`'s bootstrap is complete in `L`**: its segment is raft's whole sequence (`StartNode`
+has returned). -/
+def BootDone (C : List w64) (L : List TraceEv) (i : w64) : Prop :=
+  (bootSeg L i).length = C.length + 4
+
+theorem bootSegs_nil (C : List w64) : BootSegs C [] :=
+  ⟨by simp, fun i _ k hk => by simp [bootSeg] at hk⟩
+
 /-- The token of a handed-out message `m`, `k` its key (a multiset: equal messages occur). -/
 def inFlight (tn : TraceNames) (k : Nat) (m : Etcdraft.Msg) : IProp GF :=
   ghostMapElem tn.bag k (DFrac.own 1) m
@@ -239,7 +293,9 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
         (b = true → o.isSome)) ∧
       -- (Q13) `Main`'s facts of the events: ASCII (`ConvertEvents`'s premise), in scope, the
       -- bootstrap lines' logs, the numbers, the configuration lists
-      SimEvents C.length L⌝)
+      SimEvents C.length L ∧
+      -- (amendment A7, Q29) the voters' bootstrap segments are raft's: what `NewTrace` reads of them
+      BootSegs C L⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by
