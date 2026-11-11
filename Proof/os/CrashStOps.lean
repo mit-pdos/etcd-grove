@@ -303,7 +303,7 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗ osFd (L := L) fd dq d -∗
       csOwnF (L := L) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)) -∗
       mcellsAny (L := L) m.maps (cfLo m off.toNat) (off.toNat + data.length) -∗
-      (∀ t : Nat, ∀ n : Nat, osFd (L := L) fd dq d -∗
+      (∀ t : Nat, ∀ n : Nat, ⌜PwFresh m bs off.toNat data n⌝ -∗ osFd (L := L) fd dq d -∗
         csOwnF (L := L) γ (some (d.ino, ⟨m, bs, fa, fb, .write t off.toNat data n⟩)) -∗
         Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "PWriteStart" (Val (PairV (#fd) (PairV (#off) (#data))))) {{ Φ }} := by
@@ -343,7 +343,7 @@ theorem wp_osPWriteStart_cs (fd off : w64) (data : List w8) (dq : DFrac) (d : Os
         iexact Hb2
     ipureintro; exact ⟨hok t n hfr, rfl⟩
   imodintro
-  iapply HΦ $$ %t %n Hfd
+  iapply HΦ $$ %t %n %hfr Hfd
   iapply (csOwnF_busy _ _ _ (by simp)).2
   isplitl [Hv]
   · iexact Hv

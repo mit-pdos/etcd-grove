@@ -46,6 +46,7 @@ inductive WReach (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) :
   | step {nn : Nat} {m' : OsMeta} {bs' : List ByteG} (k nn' n : Nat) (zs : List Cands) :
       WReach m bs off data nn m' bs' → nn < data.length → k ≤ data.length - nn →
       (nn' = nn + k ∨ nn' = nn) → zs.length = pwSize m'.size (off + nn) k - m'.size → ZsOk m' zs →
+      PwFresh m' bs' (off + nn) (data.drop nn) n →
       WReach m bs off data nn'
         (pwPostK true m' (off + nn) (data.drop nn) k n) (finBytes m' bs' (off + nn) (data.drop nn) k n zs)
 
@@ -57,7 +58,7 @@ theorem WReach.wIn {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {
     WIn m bs off data m' bs' ∧ off + nn ≤ m'.size ∧ nn ≤ data.length := by
   induction h with
   | refl => exact ⟨wIn_refl off data hl, by simp; omega, Nat.zero_le _⟩
-  | @step nn0 m0 bs0 k nn' n zs _ hnn hk hn' _ _ ih =>
+  | @step nn0 m0 bs0 k nn' n zs _ hnn hk hn' _ _ _ ih =>
     obtain ⟨hW, hS, -⟩ := ih
     have hne : data.drop nn0 ≠ [] := by
       intro h; have := congrArg List.length h; simp at this; omega

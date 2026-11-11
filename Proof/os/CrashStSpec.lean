@@ -377,14 +377,14 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
       ⟨m', bs', fa, fb, .write t (off + nnv).toNat (data.drop nnv.toNat) n⟩)) := by
     intro t n hfr; rw [hoffv] at hfr ⊢; exact (hW _ _ _ hR).2 hnn t n hfr
   wp_apply wp_osPWriteStart_cs fd (off + nnv) (data.drop nnv.toNat) dq d N P R γ Good Ok m' bs' fa fb
-    hN hwr hoffv' hgap' hdne hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t %nst Hosfd Hown
+    hN hwr hoffv' hgap' hdne hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t %nst %hfr Hosfd Hown
   have hW2 : ∀ k (zs : List Cands), k ≤ (data.drop nnv.toNat).length → (off + nnv).toNat ≤ m'.size →
       zs.length = pwSize m'.size (off + nnv).toNat k - m'.size → ZsOk m' zs →
       Ok (some (d.ino,
       ⟨pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst,
         finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs, fa, fb, .idle⟩)) := by
     intro k zs hk _ hzl hz; rw [hoffv] at hzl ⊢
-    exact (hW _ _ _ (hR.step k _ nst zs hnn (by rw [hdl] at hk; exact hk) (.inl rfl) hzl hz)).1
+    exact (hW _ _ _ (hR.step k _ nst zs hnn (by rw [hdl] at hk; exact hk) (.inl rfl) hzl hz (by rw [hoffv] at hfr; exact hfr))).1
   wp_apply wp_osPWriteFinish_cs t d.ino (off + nnv).toNat (data.drop nnv.toNat) nst N P R γ Good Ok m'
     bs' fa fb hN hW2 $$ Hos Hinv Hown as %k %e %zs %hke Hown Hc2
   obtain ⟨hk, hke, -, hzl, hzt⟩ := hke
@@ -395,7 +395,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   have hRs : ∀ nn', (nn' = nnv.toNat + k ∨ nn' = nnv.toNat) →
       WReach m bs off.toNat data nn' (pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst)
         (finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs) := by
-    intro nn' h; rw [hoffv] at hzl ⊢; exact hR.step k nn' nst zs hnn hk h hzl hzt
+    intro nn' h; rw [hoffv] at hzl hfr ⊢; exact hR.step k nn' nst zs hnn hk h hzl hzt hfr
   -- the cells back
   ihave Hc2 := mcells_any _ _ _ _ $$ Hc2
   ihave Hc2 := (show mcellsAny (GF := GF) m'.maps (cfLo m' (off + nnv).toNat)
