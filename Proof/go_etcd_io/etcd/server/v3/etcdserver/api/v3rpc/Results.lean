@@ -2036,7 +2036,7 @@ end watch_wire
 
 `LeaseServer.LeaseTimeToLive` and `LeaseServer.LeaseLeases` (linked, over the contract
 `raftLeaseRead`), and the contract discharged from the server's linked `EtcdServer.LeaseTimeToLive`
-and `EtcdServer.LeaseLeases` at `S := E.RD ∗ threadTok` and the store's reader;
+and `EtcdServer.LeaseLeases` at `S := E.RD ∗ levelTok 0` and the store's reader;
 the two specs' bounds premises are the discharge's. Both handler proofs rest on a `sorry` (Go's
 second `errors.Is(err, ErrLeaseNotFound)` answering differently from the first), pending
 Perennial's change (`notes/perennial-changes.md`, "`errors.Is` answers the same twice"). -/
@@ -2068,7 +2068,7 @@ theorem raftLeaseRead_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
         srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvHeaderFacts s cs ms ⊢
-      raftLeaseRead s E γl iprop(E.RD ∗ threadTok)
+      raftLeaseRead s E γl iprop(E.RD ∗ levelTok 0)
         (mvcc.api.mvccReaders E.γ 1) :=
   raftLeaseRead_of_server EtcdServer.wp_LeaseTimeToLive EtcdServer.wp_LeaseLeases
     s E ρ γr γl cs ms hT hR hP
@@ -2123,7 +2123,7 @@ end leaseRead
 `LeaseServer.LeaseKeepAlive` (linked, over the contract `raftLeaseRenew`: the `j`th response answers
 the `j`th request and, unless its TTL is `0`, carries the renewal's key check at the request's ghost
 bounds for the stream's token, `kaStreamSpec`), and the contract discharged from the server's linked
-`EtcdServer.LeaseRenew` at `S' := E.RD ∗ threadTok ∗ srvLgReader s ∗
+`EtcdServer.LeaseRenew` at `S' := E.RD ∗ levelTok 0 ∗ srvLgReader s ∗
 srvReadReader s γr`, its peer round tripper `srvPeerRt s` (which `NewServer` exports, with
 `srvLessorRd`). -/
 
@@ -2149,7 +2149,7 @@ theorem raftLeaseRenew_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthAt s E ∗
         srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ lease.lessorRdPool γl ∗ srvPeerRt s ⊢
       raftLeaseRenew s E γl
-        iprop(E.RD ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr) :=
+        iprop(E.RD ∗ levelTok 0 ∗ srvLgReader s ∗ srvReadReader s γr) :=
   raftLeaseRenew_of_server EtcdServer.wp_LeaseRenew s E ρ γr γl hT
 
 end leaseKeepAlive
