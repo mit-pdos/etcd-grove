@@ -14,6 +14,11 @@ first `errors.Is` (grpc's `Recv` error, not a context error) uses the proved `er
 `examples/premisefix/isctxerr`. The program below no longer meets the premises (`badUnwrap{}` is no
 `isCtxErr`).
 
+Gap in the Go test (accepted by etcd-grove-81, 2026-11-11): it does not run etcd's `LeaseRenew` at
+the pin (its context path forwards from a follower to the leader, which needs a cluster); it checks
+the inputs `LeaseRenew` and `parseProposeCtxErr` see instead (done standard contexts' errors, and
+the two-case switch on them).
+
 ## Verdict
 
 **Refuted (Go side). The Lean side has not been built yet.** The spec's only premise on `err` is

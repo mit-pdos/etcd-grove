@@ -26,7 +26,13 @@ Full build (lock, 64G cap) clean at the part-B commit; `tcb-report --check` matc
 
 ## Next
 
-- Checkpoint (a): report to etcd-grove-81, stop before `etc/land.sh`; merge lean (pf5) first.
+- Part B accepted by etcd-grove-81 (2026-11-11), with the forms (recvLoop's post `streamErr` alone,
+  `Watch` taking `errors.Is.spec`, `parseProposeCtxErr`'s unused premise kept) and the Go test's
+  `LeaseRenew` fallback (gap noted in `isctxerr.md`).
+- Landing order: premise-fixes-5, then this branch, then k8s-7e. WAIT for etcd-grove-81's "lean is
+  free". Then: merge lean; rebuild what the merge touches (a full build under the lock and cap if
+  pf5's changes reach B's files); `tcb-report --check`; then `etc/land.sh` directly with
+  `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc`.
 - Then A, D, C per the Scope's section F, on the coordinator's brief.
 
 ## Build
