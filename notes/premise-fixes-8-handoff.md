@@ -43,15 +43,46 @@ Forms accepted: isWatchPermitted unchanged; stronger posts of `EnsureTrace` and
   (InvLeaseKeepAlive), `srvRevokeCtx` (RevokeCtx, from start's `#Hclib`); v3rpc
   `LeaseServer.{LeaseTimeToLive,LeaseLeases}` and `authMaintenanceServer.*` specs.
 
+## Also done (builds 1-4)
+
+- v3compactor: `compactableOk` (+ `libCtxOk ctx` after `spanCtxOk`), the `isPeriodic`/`isRevision`
+  state (+ `libCtxOk ctx`; their `Persistent` instances need `synthInstance.maxSize 1024`),
+  newPeriodic/newRevision (`#Hclib` from `wp_WithCancelBackground_noTrace`), every `icases`
+  pattern `#Hspc, #Hclib, #Hcancelf`; CompactEnv's `compactableOk_server_mode`.
+- `EtcdServer.start`: `#Hclib` into `srvRevokeCtx_intro`'s frame.
+- `LeaseServer.leaseKeepAlive`: `ihave #Hlibk := libCtxOk_of_runCtx ci $$ Hrunctx`.
+- **Exported results whose text changed** (list at the S1 checkpoint, Scope S.6):
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/Results.lean`'s `range_linearizable`,
+  `range_serializable`, `txn_readonly`, `txn_applied` (pre + `context.libCtxOk ctx`).
+- Full build 4 (`/shared/tmp/premise-fixes-8/s1/build4.log`, commit 9c85382de4): the only failure is
+  `Proof/go_etcd_io/etcd/client/v3/LeaseReadServed.lean:100` and `:178` (unsolved goals: the
+  `lessorTTLOk`/`lessorLeasesOk` contracts now take `context.libCtxOk ci`; supply it from the run
+  context, `libCtxOk_of_runCtx`, as elsewhere). Lake stops the modules importing it, so expect more
+  past it (client served results, `examples/lib/etcdstart/ServedLease`, auth-admin callers via
+  `AuthService`/`InvAuthAdmin`, publishV3/monitorClusterVersions if they reach raftRequest).
+
 ## Next, in order
 
-1. The first full build after these (log `/shared/tmp/premise-fixes-8/s1/build1.log`): fix what it
-   reports (expected: publishV3/monitorClusterVersions, auth-admin callers (AuthService,
-   InvAuthAdmin), keep-alive, Results files, client served results, examples).
-2. Go tests (Scope §4: S1 has only tracerctx; TestAuthInfoFromTLSReal is S2's).
-3. Full build clean, `etc/tcb-report.py --check` (expect no change: Tracer.Start's text changes, not the
-   axiom count; the collections `--check --update` only if the hash of trusted text is tracked),
-   collections, `etc/gen-interface.py` for changed packages, `etc/gen-init.py --check`. STOP before land.sh.
+1. Fix LeaseReadServed; full build again (flock, 64G); repeat until clean. Producers: request
+   contexts `libCtxOk_of_runCtx ci $$ Hrc` (beside each `spanCtxOk_of_runCtx`); `WithValue` at a
+   server key: `context.libCtxOk_of_valueWand ... (by context_libKeys_ne [K.ty]) $$ Hdel Hlib`;
+   `WithCancel/WithTimeout(Background())`: `context.libCtxOk_bgFrom`; `TODO()`: `libCtxOk_todo`.
+   For a chained `WithTimeout(s.ctx)` the Scope's new law `libCtxOk_from` (ctxValueFrom parent child
+   with parent nil at the keys) may be needed (not written yet).
+2. Then: `etc/tcb-report.py --check` (expect no axiom/sorry change), collections, interfaces
+   (`etc/gen-interface.py etc/api/<pkg>.txt` for changed packages, incl. raft? no; server/v3rpc,
+   traceutil, client), `etc/gen-init.py --check`; commit; STOP before land.sh with the report
+   (list the four Results above, and any further exported text change).
+3. S2 after S1 lands (Scope S.2; D2), with the old → new text STOP first.
+
+## Pitfalls
+
+- Don't run lean-check on several files whose shared imports changed: parallel Lake builds of one
+  module fail spuriously ("Lean exited with code 1"); a plain `lake build <mod>` then passes.
+- `git commit -a` needs the `-c user.name=... -c user.email=...` flags (no identity configured).
+- `questions.md` is gitignored (untracked, in the worktree): Q1 and the accepted forms are there.
+- Monitor/grep on the build log: match `^error: build failed|^Some required targets`, not
+  "Terminated" (k8s type names contain it).
 
 ## Build / check
 
