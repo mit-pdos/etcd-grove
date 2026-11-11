@@ -2391,6 +2391,17 @@ application goroutines over the traced node API of slice 27n, `Cluster.traceSimI
 `BootFacts` at the end); the checker's `Link.lean` (a link mode for `etcdraft`); then
 `raft_tracecheck_safe` and `TraceAccepts` as closed statements and a TCB collection.
 
+**S7 (the checker's link) (2026-11-11, branch `trace-check-link`): the checker linked; `TcOpen` is
+`RunConcurrent.spec` alone.** Done (`notes/decisions.md`, "S7 (the checker's link)"): a Lean-first
+mode `etc/gen-link.py --tracecheck` (`etc/link-lean-first-tracecheck.txt`) writes
+`etcdraft/Link.lean`, linking all 144 proved checker functions over their callees' results (no
+`sorry`, no axiom, no pending or external callee; every `Spec/.../etcdraft/` spec has its proof).
+`Results.lean`'s `tcMainSpec_of` takes `Etcdraft.wp_NewTrace`, `Etcdraft.wp_CheckTrace` and
+`Etcdraft.Result.wp_TLCOK` from the Link, so `TcOpen` no longer holds `NewTraceWith`, `Trace.Init`,
+`Trace.Len`, `Trace.StepLine`, `indexOf`, `State.Violated`. The TCB collection
+`etc/tcb-collections/tracecheck.txt` selects the Link's roots too. Left for S7: `RunConcurrent`'s
+proof, then the closed statements.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and
