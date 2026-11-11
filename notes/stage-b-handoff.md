@@ -195,6 +195,38 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     nothing downstream of them was tried: run a new full build to get the real error list.
     It finished (lock released); its failures also included `client/v3/InvLeaseGrant`,
     `v3rpc/QuotaLeaseLemmas` and `Spec/.../etcdstart/Serve` (still with the pre-B3 texts).
+  - **B3, second agent** (2026-11-11; the probe's PIDs and its orphaned `lake` were killed, a fresh
+    full build `b3-full2` run: failures `InvLeaseGrant`, `RunAdapt`, `etcdstart/Serve` (spec), and
+    `v3rpc/Results`). Done, `etc/lean-check.py -a` 0 errors: `RunAdapt` (`unfold srvRunBundle`; now
+    also holds `grpcMethodOkMd_slot` (moved from client `Results`), `grpcHandlerOkMd_slot`,
+    `grpcHandlerOwnOk_slot`, `grpcHandlerOk_slot`, `bigSepL_cons_intro'`), `InvLeaseGrant`
+    (`isGrpcRpc_mono_with` re-proved over `isGrpcRpcMd`), `QuotaLemmas`/`QuotaLeaseLemmas` (inner
+    contract at `S ∗ srvLgReader s`). Written, being checked:
+    - `v3rpc/Results`: the five auth `*MethodOk` take the handler at `iprop(S ∗ [∗list] Rs)`;
+      `grpcHandlerOwnOkMd_frame` (new); `etcdAuthMethods` over `functions … []`; `etcd_auth_served`
+      restated (drops `N`/`replicate`; takes `γr γ F h1 h2` with `h1 : srvRunBundle ⊢ (authSlot ∗
+      [∗list] Rs) ∗ F`, `h2` back, `srvLevels`, `grpcServerAt … γ ∗ srvRevokeBuilt ∗ srvRunPool`;
+      `grpc.serve`, each method via `grpcMethodOkMd_slot` + `srvRunOk_of_pools`). Pitfall: give
+      `srvRunOk_of_pools` the handler and service explicitly (with `_` and `$$ [H]; iframe #` the
+      frame picks any persistent hypothesis); build a method list with `bigSepL_cons_intro'` +
+      `iexact` (neither `iframe #` nor `simp`/`dsimp` reduce the records' projections there).
+      The Watch part (`etcd_watch_served*`, from line ~1720) is step (3), untouched.
+    - client `Results`: `etcdKVSlot` (= `etcdRunSlot` minus `lgMu`), `etcdGrpcSlot := (etcdKVSlot ∗
+      srvBemuReader) ∗ [∗list] etcdIcRs`, `etcdLeaseSlot S := (S ∗ srvBemuReader) ∗ [∗list] etcdIcRs`,
+      `etcdRunSlot_split`, `quotaRd_lent`, `etcdGrpcSlot_bundle : srvRunBundle ⊣⊢ etcdGrpcSlot ∗
+      levelTok 0`, `etcd_quotaHandler(Own|Plain)_lent`, `etcd_runOk_of_slot`, `etcd_runOks_of_slot`;
+      the KV/lease method lemmas take the handler at `iprop(S ∗ [∗list] Rs)`; method lists over
+      `functions … []`; restated (exported, CP3 freeze list): `etcd_kv_servedM_with`,
+      `etcd_kv_served_with`, `etcd_kv_served` (drop `N S F h1 h2 hnd`, `replicate`; take `γ`,
+      `srvRevokeBuilt ∗ srvRunPool`, `srvLevels`, others `ms` as `□ [∗list] grpcRunOkMd`),
+      `etcd_kv_started(_with)` (`grpc.start'`; take `hnd : ((regs ++ sregs).map Prod.fst).Nodup`,
+      the pools, `srvLevels`; post `∃ γ, grpcServeTok gs lis γ ∗ grpcStreamServerAt … γ ∗ …`),
+      `etcd_lease_served`, `etcd_kv_lease_served` (`raftLessor` at `etcdKVSlot`),
+      `client_lessor_isEtcdLease_served`, `client_new_isEtcdLeaseClient_served` (take `F h1 h2` over
+      `etcdLeaseSlot`, `γ`, pools, `srvLevels`).
+    Next: finish checking these two files; then the callers (`AuthnServedOn`, `LeaseReadServed`,
+    `LeaseGrantServed`, `ServeFromStart`, `cache/v3/Results`, etcdstart `ServedLease`/`Served`,
+    `watch/Served`, `auth/MainServe` (calls `grpc.start` directly), cluster3), then (3)-(8) below.
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
