@@ -13,7 +13,7 @@ with the names it is stated over (`srvSnapBoot`):
   `srvSnapRm` (J0 item 3), the stores and their contracts on whichever backend (the alarm store's,
   the auth store's in the environment's mode and, in the mode `off`, its `Recover`, the lessor's,
   the cluster's), the cluster's `Members()` (`srvMembersDir`, `bootOk`'s `Hmembers`), and the
-  Key bucket's size bound of every backend at the boot parameters (`keySized`, `bootOk`'s);
+  Key bucket's size bound of every backend at the boot parameters (`keySized`, proved since premise fixes 5: `mvcc.keySized_at`);
 * the snapshot-taken counter's authority at `0` (`γt`, the removal fact's);
 * (until J8a-6, 2026-11-01) a reader-slot stock (`srvSnapStock`): `lgMu`'s reader slots for the
   snapshots' `AddPeer`s (and until J8a-1 the auth store's reader resource `E.RD`, which the

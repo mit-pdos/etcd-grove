@@ -467,6 +467,7 @@ theorem ctxErrClient_quiet (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.r
     simp at Hag
   | _ =>
     iunfold ctxQuiet at Hq
+    icases Hq with ⟨-, #Hq⟩
     iapply Hq
     inext
     iapply HΦ

@@ -70,7 +70,7 @@ theorem compactor.runCompactLoop.wp_proof
   · iPkgInit
   ihave #Pklog : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 $$ []
   · iPkgInit
-  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
+  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Done wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
     $$ [Pw Hint]
   · iframe #
   (try wp_auto)

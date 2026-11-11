@@ -115,7 +115,7 @@ theorem Client.getToken.wp_proof
       iexists cd
       isplitr
       · iapply ctxOk_of_errs; iexact He
-      rw [ctxErrClient_eq_errs]; iexact He
+      rw [ctxErrClient_eq_errs]; iunfold ctxErrs at He; icases He with ⟨-, #He⟩; iexact He
   imod Hcd with ⟨%cd', #Hok', #Hce⟩
   wp_apply wp_Authenticate api eps ctx cd' u pw Spec
       (fun (t : (pbAuthenticateResponse (GF := GF)).M) => iprop(□ P t)) $$ []

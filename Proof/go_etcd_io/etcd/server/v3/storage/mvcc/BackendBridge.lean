@@ -23,7 +23,7 @@ backend whose parameters `P` have schema's buckets and whose hook's buckets are 
   (`rtRange`), which is the bucket's range only if the read buffer's keys are above bbolt's
   (`keySafe`: the "safe range bucket" discipline, keys never overwritten, put in increasing
   order). The order is the backend's invariant (`safeRv`, `rtHeld_safe`: unit 5); the size (the
-  range's limit is `2^63 - 1` entries) is the premise `keySized`. A `ConcurrentReadTx` promises
+  range's limit is `2^63 - 1` entries) is `keySized`, proved since premise fixes 5 (`keySized_all`). A `ConcurrentReadTx` promises
   no range (its cached read buffer can repeat a committed key:
   `nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`).
 - Unit 5: `storeBackend_of_backend` gives the contract `NewStore` takes for every store of a
@@ -593,11 +593,12 @@ variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 /-- **The premise of the range read**: the shared read transaction's states hold fewer than
 `2^62` entries of the `Key` bucket (bbolt's and the read buffer's). The range read's limit is
-`2^63 - 1` entries, and nothing bounds a bucket's size: bbolt's contract has no bound, nor has
-the store's log (each revision may have up to `2^63` changes). The order half of the safe-range
-discipline is the backend's invariant now (`rtHeld_safe`: the read buffer's `Key` entries above
-bbolt's, 2026-10-13, unit 5); this premise is only the size (2026-10-13; it replaces the unit-4
-premise `rangeSafe`, which also assumed the order). -/
+`2^63 - 1` entries. The order half of the safe-range discipline is the backend's invariant now
+(`rtHeld_safe`: the read buffer's `Key` entries above bbolt's, 2026-10-13, unit 5); this premise is
+only the size (2026-10-13; it replaces the unit-4 premise `rangeSafe`, which also assumed the
+order). Since premise fixes 5 (2026-11-10) it is proved (`keySized_all`): bbolt's snapshot holds
+fewer than `2^61` entries per bucket (`rtxSnap_size`, bbolt's address-space bound) and the read
+buffer fewer than `2^61` (`bbOk`); until then it was assumed, by the closed theorems among others. -/
 def keySized (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
   iprop(□ ∀ (rtx : Loc) (rv : RView), rtHeld γ P b rtx rv -∗ rtHeld γ P b rtx rv ∗
     ⌜(bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName).size +
@@ -606,6 +607,25 @@ def keySized (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
 instance keySized_persistent (γ : BNames) (P : BParams) (b : Loc) :
     Persistent (keySized (GF := GF) γ P b) := by
   unfold keySized; infer_instance
+
+/-- **Every backend's read states are sized** (premise fixes 5, 2026-11-10): `keySized` holds of
+every backend, from bbolt's bound (`rtxSnap_size`) and the read buffer's (`bbOk`), as
+`rtHeld_sizes` gives them. -/
+theorem keySized_all : ⊢ (□ ∀ (γ : BNames) (P : BParams) (b : Loc), keySized (GF := GF) γ P b) := by
+  iintro !> %γ %P %b
+  unfold keySized
+  iintro !> %rtx %rv Hh
+  ihave ⟨Hh, %Hs⟩ := rtHeld_sizes γ P b rtx rv go_etcd_io.etcd.server.v3.storage.schema.keyName
+    (W64 1) $$ Hh
+  iframe Hh
+  ipureintro
+  omega
+
+/-- `keySized_all` at the parameters `P` (the form the server's and mvccrand's premises had). -/
+theorem keySized_at (P : BParams) :
+    ⊢ (□ ∀ (γ : BNames) (b : Loc), keySized (GF := GF) γ P b) := by
+  iintro !> %γ %b
+  iapply keySized_all
 
 /-- A concurrent read transaction's token: its state, the way back to the reader's slot, and
 the backend open. -/

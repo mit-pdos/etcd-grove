@@ -293,8 +293,17 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF :=
                                                                                         go_etcd_io.etcd.server.v3.storage.mvcc.reportCurrentRevMu
                                                                                         go_etcd_io.etcd.server.v3.storage.mvcc.reportCurrentRev ∗
                                                                                       go_etcd_io.etcd.server.v3.storage.mvcc.reportVar
-                                                                                        go_etcd_io.etcd.server.v3.storage.mvcc.reportCompactRevMu
-                                                                                        go_etcd_io.etcd.server.v3.storage.mvcc.reportCompactRev)
+                                                                                          go_etcd_io.etcd.server.v3.storage.mvcc.reportCompactRevMu
+                                                                                          go_etcd_io.etcd.server.v3.storage.mvcc.reportCompactRev ∗
+                                                                                        errorsNewVar
+                                                                                            go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherNotExist
+                                                                                            go!"mvcc: watcher does not exist" ∗
+                                                                                          errVarCell
+                                                                                              go_etcd_io.etcd.server.v3.storage.mvcc.ErrEmptyWatcherRange
+                                                                                              go!"mvcc: watcher range is empty" ∗
+                                                                                            errVarCell
+                                                                                              go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherNotExist
+                                                                                              go!"mvcc: watcher does not exist")
 
 def Perennial.go_opentelemetry_io.otel.trace.embedded.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp
     GF) pkg_id.go_opentelemetry_io.otel.trace.embedded :=

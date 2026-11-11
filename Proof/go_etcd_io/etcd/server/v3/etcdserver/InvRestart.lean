@@ -521,7 +521,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `isBackend` names the apply protocol's batch lock), over the image's data `D`, the stopped
     -- file; (2026-11-03, the whole-`bootOk` review) `N + 7` write-back tokens and the open token
     -- (`bootLeft`, A), the batch lock's resource `lateWBR` (T1-B); and what `bootstrap` adds: the
-    -- store's registration right, `keySized`
+    -- store's registration right
     "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => lateWBR d.gx γB)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- [R2c] the file is the image (`srvDiskImage`), at the consistent index `i`
@@ -530,9 +530,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0 ∧ γA.m0.1 = i⌝ ∗
-    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
-    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
-    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
+    -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
     "Hlate" ∷ mvcc.lateReg d.gx ∗
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else

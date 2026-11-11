@@ -4,7 +4,8 @@
 200 reads and 8 watchers, over a backend in the file `mvccrand.db`. **It returns** (every check of
 mvcc passes; 2026-11-08, for the closed theorem). The premises are `Run`'s at that configuration:
 the file `mvccrand.db` fresh (`fileHolds … ∅`), the thread and receipt bounds, `ckptEffectsOk`,
-`keySized`, `dbOpenOk`, `dbCloseOk`, `ETCD_VERIFY` off.
+`dbOpenOk`, `dbCloseOk`, `ETCD_VERIFY` off (until premise fixes 5, 2026-11-10, also `keySized`, now
+proved: `mvcc.keySized_all`).
 -/
 module
 
@@ -33,7 +34,6 @@ abbrev Main.spec : Prop :=
   ckptEffectsOk → backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds go!"mvccrand.db" ∅ ∗
-      □ (∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc), keySized γB P b) ∗
       threadTok ∗ envVerifyOff }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Main)) (Val #()))
   {{ RET #(); True }}

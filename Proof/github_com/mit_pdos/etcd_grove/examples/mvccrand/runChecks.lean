@@ -75,7 +75,7 @@ theorem runChecks.wp_proof
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
-  wp_start as ⟨Hfile, #Hks, Htok, #Hvoff⟩
+  wp_start as ⟨Hfile, Htok, #Hvoff⟩
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨ThreadBoundLe.le_of (2 ^ 28) (by omega)⟩
   wp_auto
   wp_apply wp_NewNop as %lg #Hlgz
@@ -112,8 +112,8 @@ theorem runChecks.wp_proof
     have : sint.nat cfg.Ops' = (sint.Z cfg.Ops').toNat := rfl
     omega
   imod rc_open hfresh hopen hrest hCR γB b gx bc.BatchLimit' (sint.nat cfg.Ops' + 2) hm
-    $$ [Hks Hreg Hnew] with Hbk
-  · iframe Hks Hreg Hnew
+    $$ [Hreg Hnew] with Hbk
+  · iframe Hreg Hnew
   iunfold rcBk at Hbk
   icases Hbk with ⟨Hsf, #Hisb, Hhk, Hrbo, Hoh, Hor, Hrt, Hwm, #Hsc, Hcen⟩
   icases ownToks_add_1 2 (sint.nat cfg.Ops') γB.wb $$ Hwm with ⟨Hwops, Hw2⟩
@@ -132,22 +132,31 @@ theorem runChecks.wp_proof
     wp_apply wp_Version as %v %Hv
     iapply HΦ'
     ileft; ipureintro; exact Hv
+  -- (mvccfull's Freeze, 2026-11-10) `NewLessor.spec` over a bucket of records, at none: the fresh
+  -- file's `Lease` bucket is empty
+  have hLe : ((backend.rbData (rcP bc.BatchLimit') ∅).lookup go!"lease").getD ∅ = ∅ := rfl
+  have hrecs : backend.bktEnts (((backend.rbData (rcP bc.BatchLimit') ∅).lookup go!"lease").getD ∅) =
+      ([] : List (w64 × w64 × w64)).map lease.leaseRecEnc := by
+    rw [hLe]; simp [backend.bktEnts]
   wp_apply (wp_NewLessor lg _ _ (rcKB γB b gx bc.BatchLimit') (mvccW gx) iprop(True) (1 : Qp).half
-      (fun _ => iprop(True)) (fun _ => True) (backend.rbData (rcP bc.BatchLimit') ∅) false trivial
-      (rcP_lease _)) $$ [Hoh Hw1 Hrbo]
-    as %l ⟨Hoh, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, #Hexp, #Hguard, Hlrds, Hlown, Hever,
-      Hrvk, Hrdo, #Hckpt, Hbeon, #Happly, Hstop, #Hlookup⟩
+      (fun _ => iprop(True)) (fun _ => True) (backend.rbData (rcP bc.BatchLimit') ∅) false
+      [] (fun _ => W64 0) [] trivial (rcP_lease _) hrecs (by simp) (List.Perm.refl _))
+    $$ [Hoh Hw1 Hrbo]
+    as %l ⟨Hoh, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, #Hexp, #Hguard, Hlrds, Hlown, Hever,
+      Hrvk, Hrdo, #Hckpt, Hbeon, #Happly, Hstop, -, -, #Hlookup⟩
   · rw [rcKB_P, rcKB_γB, rcKB_be]
     iframe Hcl Hisb Hoh Hw1
     isplitr
-    · ipureintro; exact Hlg
+    · iright; iexact Hlgz
     isplitr
     · ipureintro; exact hckpt
     isplitr
     · ipureintro; simp only; exact Int.le_refl _
     isplitl [Hrbo]
     · iunfold backend.rbOwn at Hrbo; iexact Hrbo
-    ipureintro; rfl
+    imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+  try rw [hLe]
+  rw [List.map_nil]
   (try wp_auto)
   subst Hl
   -- two of the lessor's reader slots: the store's, the writer's
@@ -169,10 +178,19 @@ theorem runChecks.wp_proof
       W64 0 from rfl]
     unfold mvcc.batchLimitOk mvcc.rangeLimitMax
     exact ⟨by decide, by decide⟩
+  -- (mvccfull's Freeze, 2026-11-10) `New.spec` on any image, here the fresh one: the lessor's
+  -- owner part (`Hlown`, no lease) lent and given back
   wp_apply (wp_mNew lg _ _ (etcdStorage (rcKB γB b gx bc.BatchLimit')) iprop(True) γl func.nil
-      hbl) $$ [Hsf Hlrd1 Hrdo]
-    as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, %rd, Hrdo, Hdel⟩
-  · iframe Hsf Hlrd1 HisL Hrdo
+      mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True) iprop(True)
+      iprop(True)) $$ [Hsf Hlrd1 Hrdo Hlown]
+    as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, ⟨%rd, Hrdo, Hdel⟩, Hlown, -, -⟩
+  · iframe Hsf Hlrd1 HisL Hrdo Hlown
+    isplitr
+    · ipureintro; exact ⟨hbl, .start, rfl⟩
+    isplitr
+    · ipureintro; intro it lid hl; rw [pendItems_mvccStart] at hl; cases hl
+    simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
   (try wp_auto)
   rw [etcdStorage_val]
   (try wp_auto)
