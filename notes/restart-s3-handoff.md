@@ -1,9 +1,10 @@
 # Restart S3 handoff (2026-11-11, branch `restart-s3`, from `lean` `47d7b2f2cd`)
 
-Phase: **implementation, steps 1-2 and items 1, 5, 6 done; next: items 4, 7, 8, then the build and
-checks** (the third agent stopped at its context budget, 2026-11-11, after one full build of the
-items so far). The decisions D1-D5 are in `questions.md`; the forms the agents decided are there too
-("Restart S3 implementation"), with etcd-grove-81's acceptance of the first four.
+Phase: **implementation done (steps 1-2, items 1, 4-8); checks after items 4, 7, 8 (fourth agent,
+2026-11-11): see below; next: STOP before `etc/land.sh`** (the coordinator says when lean is free).
+The decisions D1-D5 are in `questions.md`; the forms the agents decided are there too ("Restart S3
+implementation"), with etcd-grove-81's acceptance of the first four and of items 5, 6 and the step-1
+link wrappers.
 
 For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coordinator's decision).
 
@@ -63,22 +64,30 @@ For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coo
   `etc/goose.py --check --project etcd --src etcd=/shared/tmp/restart-s3/etcd-src` up to date.
   Closed statements: none changed (`Results.lean`, `NewServer.lean`, `NodeStartSpec` untouched).
 
+## Done (the fourth agent, 2026-11-11)
+
+- `07789c4277` item 7 (review 5): `isRaftNode` gains `"#Hrok" ∷ rnRestartOk γ`; `rnCfgAt γ L := rnView
+  γ L` (the name kept); `rnLoopTok_restartOk`, `rnCfgAt_restartOk`, `rnCfgAt_restart` deleted;
+  `rn_ready_recv`, `rnCfgAt_normal`, `rnCfgAt_back_false` take `rnRestartOk γ`, `rnCfgAt_back_true` no
+  longer; `isRaftNode_of_rnParts` takes it (`raftNode_of_StartNode`: the first disjunct, from the
+  names). Files: `InvRaftNode`, `InvRaftLoop`, `NodeBridge`, `raftNode__start`, `NodeStart`. The start
+  and stop specs were already generic in the start log: "at `P`" is only the tokens' instance.
+- `07789c4277` item 4 (minimal): `InvWal.rnDur_alloc_view` (records `σ` at a view `v`, `ViewOk v σ`,
+  nothing pending, with `walSnapCert`; `rnDur_alloc` is its `walView0` instance) and `viewOk_restart`.
+- `f7a3a78890` item 8: `NodeStartSpecR` and its proof `raftNode_of_RestartNode` (`NodeStart.lean`, not
+  linked or exported; S6 consumes it), with `rnToks_of_restart` (beside `rnToks_of_start`),
+  `srvFrozenTerms_restart`, `restart_lastTerm`. Premises and post: `questions.md`, the fourth agent's
+  item 8 entry. `NodeStartSpec`, `NewServer.lean` untouched.
+
 ## Next, in order
 
-1. Item 4 (InvWal restart AU, minimal: W4 rebases on S3), item 7 (`rnRestartOk` into `isRaftNode`,
-   `rnCfgAt := rnView`, start/stop at `P`, Q34 (a); `InvRaftNode.lean` has 1047 importers: one full
-   build), item 8 (`NodeStartSpecR`, separate, over `bootstrappedRaft.newRaftNode.spec … (.restart …)`
-   with `srvMem_restartStorage` giving `rnBootPre`'s `restartStorage` and `walSnapCS_valid` its
-   validity; the tokens at `P` need a `rnToks_of_restart` beside `rnToks_of_start`; `NewServer.lean`
-   untouched; the exported `server_raft_node_start` restated in Link/Results only if `NodeStartSpec`
-   changes, which D5 avoids).
-2. Full build under the lock and the 64G cap; `etc/tcb-report.py --check` (the opaque
-   `memStorRestarted` is gone: trusted text change allowed by D2 (b)), collections,
-   `etc/gen-interface.py etc/api/raft.txt` (the `ApplySnapshot` spec: interface diff), `etc/gen-init.py
-   --check`, `etc/goose.py --check --project etcd` (needs the pin's source, see pitfalls); STATUS; STOP
-   before `etc/land.sh` with the changed frozen and exported statements and the tcb diff.
-3. Before landing: delete the untracked `Scratch/S3Probe.lean` (the first S3 session's probe; the copy
+1. STOP before `etc/land.sh` with the changed frozen/exported statements and the tcb diff (the
+   coordinator's go; merge `lean` first, then rerun the checks the merge touches).
+2. Before landing: delete the untracked `Scratch/S3Probe.lean` (the first S3 session's probe; the copy
    stays in `/shared/tmp/restart-s3/`).
+3. After S3: W4 rebases on S3 (the restart's `walRecs σ` for `rnDur_alloc_view`, `walRead_wf`); S6
+   instantiates `NodeStartSpecR` from the restart image (`srvDiskImage`, `bootOkR`) and discharges
+   `hcs`/`hcsb`/`hterm`, `W64 0 ∉ cfg`, and the installer's `rnSnapTermAbove` (row 4, until batch 8).
 
 ## Done (probe, the first session)
 
