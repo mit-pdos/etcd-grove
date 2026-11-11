@@ -21,35 +21,39 @@ W4a so far:
    Forms decided (questions.md): `WalDur.meta` → `metadata` (`meta` is a Lean keyword); the steps'
    operation/mark/position chosen by the step (only `#dir`/`#md` passed), the axioms say which.
 
-**Stopped at Q-W4a-1 (questions.md):** the Draft makes `walDisk` the extension's points-to and
-`walRecs`/`isWalStorage`/`wal.bootOk` definitions over it, but does not say how the server (generic
-in `GooseExts`, no `HasExt absDiskExt`) sees it, nor where `wal.bootOk`'s `walDisk dir []` comes
-from: minted by a trusted slot it contradicts the extension's own `localStart` ownership (two
-points-to for one directory, so `False`) in any closure that includes `absDiskExt`.
+**Q-W4a-1 decided: option B** (etcd-grove-81, user's delegation, 2026-11-11; questions.md). The
+server's `walRecs`/`walFiles`/`isWalStorage`/`wal.bootOk` stay as today; W4a adds the extension,
+the reader and the axioms for the tester only. The tcb diff is the new axioms only (≈ +13, none
+removed; report it exactly). The Freeze package must say: until C6 the WAL has two parallel models
+(the server's `walRecs`, the extension's `walDisk`) with nothing linking them, and no closed etcd
+theorem uses the new axioms.
 
-## Next, in order (after Q-W4a-1)
+**Option A, deferred to C6 (its starting design):** `trivialExts := [idIssueExt, absDiskExt]` (the
+examples' closures gain `AbsDiskGpreS` and `HasExt absDiskExt`); `walDisk`/`walAbsent` defined
+without the instance, as `idIssueFragD` (`if h : HasExt absDiskExt then <points-to> else False`), so
+server definitions take no `HasExt`; the sealed slot `wal.bootRes` takes `walAbsent
+(config.walDirOf dd "")` (and `wal.bootRes_intro` gains it), each example's start passing it from
+the extension's `localStart`, so no trusted slot mints a points-to (else two points-to for one
+directory, `False`); then `walRecs`/`walFiles` become definitions over `walDisk` (−2 axioms), the five
+laws re-proved, `isWalStorage` restated (Draft §2-§3). Same for the restart (`walFiles` carries
+`walDisk`, consumed, not minted).
 
-4. `GooseLang/Ext/AbsDisk/Specs.lean`: ghost state (one auth map, per-directory fragments; marks
-   `walSyncedLb` as mono-nat per directory), `ExtInterp`, the specs of the steps, `ExtCrashInterp`
-   (`walDisk_crash`), durableExt's `ExtCrashInterp` (identity).
-5. walpb/fileutil names-only in the etcd project (`TouchDirAll`; walpb types for `walSnapAt`), then
-   the 13 specs of Draft §1.4-1.5 as axioms (`Spec/.../storage/wal/*.lean`, `Proof/...` axioms).
-6. `walRecs`/`walFiles` as definitions, the five laws re-proved, `isWalStorage` restated, per the
-   answer to Q-W4a-1; split WalRecs's pure model out if `WalHist` ↔ `WalRecs` would cycle.
-7. Checks (full build, tcb `--check --update` expect +12 −2, collections, interfaces, gen-init,
-   goose), Freeze package `/shared/tmp/wal-spec/w4/freeze-w4a.md`; STOP before land.sh.
+## Next, in order
 
-## The Draft in one paragraph
-
-The trusted core is a local Goose extension `absDiskExt` (`GooseLang/Ext/AbsDisk/`, shared with
-rung 3's bbolt arm) whose state maps a WAL directory to `WalDur` (history `H`, synced mark, purge
-positions `unl`/`pur`/`cut`, metadata, `named`, `sized`) and whose crash relation is `walCrash`
-(`walImg` per directory). The WAL stays names-only: one axiom per wal function the tester calls (11),
-`TouchDirAll`, and the purge law (the tester's `purgeRound`, `trusted`, modelled by the extension's
-purge step). The reader is the relaxed `walReadCut I k` (`walRead` at `k = 0`, `walReadFrom` with a
-header correction at `k ≥ 1`). `walRecs`/`walFiles` become definitions (−2 axioms), the five laws keep
-their statements; `walFiles` now means "the restart reads σ or a compaction of it" (C-W2). The closed
-theorem is over `goose_crash_adequacy` with `[durableExt, absDiskExt]`.
+4. `GooseLang/Ext/AbsDisk/Specs.lean`: ghost state (one auth map of `Option WalDur` per directory with
+   exclusive per-directory fragments, `walSyncedLb` a mono-nat per directory, `dirDurable` persistent),
+   `ExtInterp` (localStart: the whole map, as `durableOwn`), WP specs of the steps, `ExtCrashInterp`
+   (`walDisk_crash`, Draft §1.2); durableExt's `ExtCrashInterp` (identity; precedent:
+   `examples/osfs/crashlog`, Perennial `GooseLang/CrashAdequacy.lean`).
+5. walpb (types) and `client/pkg/v3/fileutil` names-only in the etcd goose project (`Code/**.toml`,
+   `etc/goose.py` package list), then the 13 specs of Draft §1.4-1.5 as axioms
+   (`Spec/go_etcd_io/etcd/server/v3/storage/wal/*.lean`, axioms in `Proof/...`; TouchDirAll under
+   `client/pkg/v3/fileutil`; the purge model's `purgeRound.impl` comes with the tester in W4c, so in
+   W4a its law is stated over the extension's step: decide the form, report it).
+6. Checks: full build (lock + 64G), `tcb-report --check --update` (report the exact diff),
+   collections, `gen-interface --check` (new APIs?), `gen-init --check`, `goose --check`;
+   notes/decisions.md "WAL W4a" + STATUS entry (oldest to status-history, append-only);
+   Freeze package `/shared/tmp/wal-spec/w4/freeze-w4a.md`; STOP before land.sh.
 
 ## After W4a
 
