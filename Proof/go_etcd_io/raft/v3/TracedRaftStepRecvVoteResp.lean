@@ -144,7 +144,7 @@ theorem stepBundle_traced_candVoteRespPending :
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .voteResp m ents).NumsBelow traceNumBound := hok .voteResp hmty hreT htrd
+      have hnb : (absMsg .voteResp m ents).NumsBelow traceNumBound := (hok .voteResp hmty hreT htrd).1
       have hps := phaseStepR_voteRespCand id c s m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hterm hrole
         hnb hma
       have hnb' := recvEvTy_notBoot hev
