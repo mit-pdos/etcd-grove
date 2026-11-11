@@ -24,6 +24,54 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 
 ---
 
+## Probe B (2026-11-11): what the proofs found
+
+Branch `trace-check-probeB`, from `trace-check` at `31058ad33c` (§8's Probe B; `notes/decisions.md`,
+"Probe B (the escrow)"). Proved, no `sorry`, no axiom: the escrow and its lemmas in
+`Proof/go_etcd_io/raft/v3/TracedEscrow.lean` (items 1-4), the strengthened `RawNode.Advance.spec`
+(item 5). Not proved: item 6. Mismatches, each fixed in the text where marked:
+
+- **P1 (the deposit; fixed in §3.2 items 2-4).** With the exclusive `np` and a Boolean `pend`, `run`
+  holds nothing of the escrow between the `readyc` commit and its deposit, so it can learn neither that
+  a deposit is pending nor which messages the pending key records (it gave the element away). Fix:
+  `np` and `pend` become one agreement variable in halves, `pk : Option (List QMsg)` (`run`'s half in
+  its loop invariant, lent at `RcvPending` exactly as `np` was); `some ms` while key `|L| - 1`'s
+  tokens, for `ms`, are pending. The rest of the design (the allocation bound, both orders, the
+  claim-less and stale drivers) goes through unchanged on it.
+- **P2 (`handshake_send_au_fupd`, §3.2 item 3).** Not new: `run`'s `readyc` arm already runs a
+  `|={⊤}=>` prefix (`sendAu_fupd`, `InvNodeRun.lean:413`, for `ownRawNodeReady_handout ⊤`); the
+  lemma is that composed with `handshake_send_au_upd` (4 lines). A `select` firing another case never
+  runs the AU (`wp_select_blocking`'s clauses are a `[∧list]`, each with `run`'s whole state).
+- **P3 (the import order).** `rtkInv` goes into `isNodeChan` (`InvNodeChan.lean`), but its slots'
+  `TrSent` reads `TrNetTy`, defined in `TracedRawNode.lean`, which imports `InvNodeChan`. At threading
+  `TrNetTy`, `TrSent` and `trTokR` move below it (next to `recvTokOf`, `TracedRecvTok.lean`): a
+  public change to a module nearly all of raft imports. The ghost map's values need `Pos.Countable`
+  instances for `MessageM`, `MsgSt`, `QMsg` (new, `TracedEscrow.lean`).
+- **P4 (`trTok`'s relation).** `trTok γ := trTokR γ.raft` cannot be written outside `InvNode.lean`
+  (`Cluster` is sealed there); the bridge is `trTokR_trTok` under `Cluster.trace γ = ρ.reTrace`
+  (from `NodeOk`).
+- **P5 (the gate).** The escrow needs no gate for soundness (an untraced slot holds `True`); gating
+  `rtkInv`/`run`'s half only keeps today's untraced `run` proof untouched. The probe's escrow is
+  ungated.
+- **P6 (item 6, N1's cost; §3.6's file list incomplete).** Not proved. The flag's only record is the
+  exclusive `simBoot`; `simInv` relates it to `booted L` of a trace held as a `ghostVar` (no lower
+  bound), `stepLastEv` says only `o.isSome`, and the last event cannot witness it (`BecomeFollower` and
+  `ApplyConfChange` are bootstrap names): so no lemma outside the statements gives `bt' = true`, and
+  N1's statement change is needed. It is larger than "one more conjunct per close": the broadcasting
+  families' `lineF` (`TracedPin.lean:222`) carries `∃ b` per iteration, entered from the idle
+  capability at `bt` (`lineF_recv`) and closed by `iexists b` at five sites
+  (`TracedRaftStepPropBundle.lean:592`, `TracedRaftStepHup.lean:662`,
+  `TracedRaftStepRecvLeadAccGates.lean:257`, `TracedRaftStepRecvVoteRespWon.lean:681`,
+  `TracedRaftStepRecvLeadSend.lean:157`), so `lineF` must carry `⌜bt = true → b = true⌝` (with
+  `trFam` and its laws), besides the 27 paths' closes.
+- **P7 (item 5).** Proved as designed (`RawNode__Advance.lean`, `ownStepGhost_applied_le` from
+  `RInv.applied_cidx`); one pattern in `node__run.lean`. `RawNode.Advance.spec` is untraced only
+  (`γ.reTrace = none`): the traced `RawNode.Advance` re-proves the conjunct through the same lemma.
+- **Observed, no change:** the `advancec` rendezvous needs nothing of who enters `SndPending` (S1's
+  point): the driver's payload is persistent, so both orders hold whichever thread runs the AU.
+
+---
+
 ## Revision 3 (2026-11-11): what each finding of `design-r3.md` changed
 
 All raft-internal; the direction of N1-N3 and of the second-tier fixes taken by the coordinator as the
@@ -634,12 +682,18 @@ specs it cites today, plus `raft.Step.spec` with the proved `stepBundle_traced` 
    (item 4). Its slots hold `trTok`'s traced body over `γn.raft.reTrace` (`Cluster.trace γ =
    γ.raft.reTrace`, `InvNode.lean:84`, and `NodeOk γ γn` gives `γn.raft = γ.raft`, so the driver's
    `trTok γ q.st` is the slot's content):
+   **Corrected by Probe B** (see "Probe B" above; proved in `TracedEscrow.lean`, `rtkBody`): `np` and
+   `pend` are replaced by one agreement variable in halves, `pk : Option (List QMsg)`, the
+   invariant's half and `run`'s (`rtkRun`); `some ms` while the last key's tokens, for `ms`, are not
+   in. With an exclusive `np` `run` held nothing of the escrow after the commit, so at the deposit it
+   could learn neither that a deposit was pending nor the pending key's messages.
    ```
-   rtkInv γn := inv rtkN (∃ (M : GMap Nat (List QMsg)) (a : Nat) (pend : Bool),
-     ghostMapAuth γn.rtk 1 M ∗ ⌜dom M = [0, a)⌝ ∗ (if pend then own γn.np (Excl ()) else True) ∗
-     monoNatAuth γn.al a ∗                                   -- revision 2 (A1)
-     monoNatAuth γn.dep (if pend then a - 1 else a) ∗
-     [∗map] j ↦ ms ∈ M, ⌜j < (if pend then a - 1 else a)⌝ -∗
+   rtkInv γn := inv rtkN (∃ (L : List (List QMsg)) (M : GMap Nat (List QMsg)) (p : Option (List QMsg)),
+     ghostMapAuth γn.rtk 1 M ∗ ⌜∀ j, M !! j = L[j]?⌝ ∗          -- key j at position j, a = |L|
+     dghostVar γn.pk (1/2) p ∗ ⌜∀ ms, p = some ms → L.getLast? = some ms⌝ ∗
+     monoNatAuth γn.al |L| ∗                                   -- revision 2 (A1)
+     monoNatAuth γn.dep (depCount L p) ∗                       -- |L|, or |L| - 1 while p = some _
+     [∗list] j ↦ ms ∈ L, ⌜j < depCount L p⌝ -∗
         (([∗list] q ∈ ms, trTokR γn.raft q.st) ∨ ghostMapElem γn.rtk j (DFrac.own 1) ms))
    ```
    (`trTokR ρ st` is `trTok`'s body at `ρ.reTrace`; `trTok γ st := trTokR γ.raft st`.)
@@ -649,7 +703,8 @@ specs it cites today, plus `raft.Step.spec` with the proved `stepBundle_traced` 
    `readyTok`'s body gains `TrSent`, §9's order); `run`'s deposit turns `acceptReady`'s `readyTok`s,
    whose traced body becomes the same, §3.6, into them.) The claim, traced: §3.1's `readyToksClaim`
    (`⌜ms = []⌝`, or the element `j ↦ ms` with `monoNatLb γn.al (j + 1)`).
-   `run`'s loop invariant holds `own γn.np (Excl ())` whenever no deposit is pending (idle and busy).
+   `run`'s loop invariant holds its half of `pk` at `none` whenever no deposit is pending (idle and
+   busy), at `some ms` between the `readyc` commit and the deposit (Probe B: `rtkRun`).
 3. **`readyc` commit** (`readyP`, the `readyc` payload). `readyc` is a Perennial handshake
    (Perennial's `Chan/Idioms/Handshake.lean:46`, `inv nroot`): inside its AU the mask is `⊤ ∖ ↑nroot`, under which no namespaced
    invariant opens, and today's `handshake_send_au_upd` (`InvNodeChan.lean:1429`) takes a basic update
@@ -660,11 +715,16 @@ specs it cites today, plus `raft.Step.spec` with the proved `stepBundle_traced` 
    (`Chan/AuSpec/ChanAuRecv.lean:227-262`), so a `select` that fires another case allocates nothing. In that
    prefix `run` opens `rtkInv`, inserts the fresh key
    `a ↦ ms` (the `Ready`'s handed-out messages), raises `al` to `a + 1` and takes
-   `monoNatLb γn.al (a + 1)`, sets `pend := true` by putting `np` in, and puts the element `a ↦ ms` with
+   `monoNatLb γn.al (a + 1)`, sets both halves of `pk` to `some ms` (Probe B; was: `pend := true`, `np` in), and puts the element `a ↦ ms` with
    that bound (the claim's right disjunct) into `readyP`. **After `acceptReady`** (same arm, before
-   `advancec` is armed, `node.go:436-438`): `run` opens `rtkInv` with `acceptReady`'s `"Htoks"`, takes
-   `np` back, sets `pend := false`: key `a`'s tokens are now deposited (`dep` raised to `a + 1`).
-4. **`advInv`** (the `advancec` protocol). `run` lends `np` at the rendezvous: `advDep` (run first,
+   `advancec` is armed, `node.go:436-438`): `run` opens `rtkInv` with `acceptReady`'s `"Htoks"`; its
+   half `some ms` tells it the pending key's messages, which are `acceptReady`'s (the same `ms`); it
+   sets `pk` to `none` (Probe B; was: takes `np` back, `pend := false`): key `a`'s tokens are now
+   deposited (`dep` raised to `a + 1`). (Probe B: `run` already allocates in a `|={⊤}=>` prefix of this
+   send AU today, `sendAu_fupd`, `InvNodeRun.lean:413`, for `ownRawNodeReady_handout ⊤`, so
+   `handshake_send_au_fupd` is that lemma composed with `handshake_send_au_upd`.)
+4. **`advInv`** (the `advancec` protocol). `run` lends `np` (Probe B: its half of `pk`, at `none`; read
+   `np` below as that half) at the rendezvous: `advDep` (run first,
    `RcvPending`) and the `SndPending → RcvCommit` step (driver first) carry it. The driver's request
    `γ.req` (fixed name; `AdvReq` gains `Option Nat`) records its claim's key `j`, or `none` (untraced, or
    the claim's left disjunct `ms = []`).
@@ -972,7 +1032,8 @@ theorem OutTyStep.of_none (h : s.gh.tr = none) : OutTyStep s s'
   pre's flag `bt` and gives `∃ bt', ⌜bt = true → bt' = true⌝ ∗ …` (it closes at `true`: the implication
   is `fun _ => rfl`), and the pure conjunct (one line each). A path closes at `true` when it logs a
   line (the fire laws set the flag) and at `bt` when it logs none; either way the implication holds.
-  The tick specs (`raft__tickElection.lean:59`, `raft__tickHeartbeat.lean:51`) take `Gout` as a
+  (Probe B, P6: the broadcasting families' `lineF` also forgets the flag per iteration; it must carry
+  the implication too.) The tick specs (`raft__tickElection.lean:59`, `raft__tickHeartbeat.lean:51`) take `Gout` as a
   parameter: their text does not change; `RawNode.Tick.traced` instantiates it.
 - **The carrier, for the broadcasting paths (revision 3, S2; L1 closed).** The path families already
   carry `⌜OutOk s o⌝` indexed by the outbox (`lineF`, `TracedPin.lean:220`; `OutOk s o := ∀ x ∈ o, x ∈
@@ -1449,7 +1510,7 @@ into `msgPtsC … ⟨…, []⟩` (S1's correction); `trTok` against `stepIn_intr
 through each round; the `ConfChangeV2` arm's `Membership.applyChange` from `m.isJoint`; `startDone`
 into the end law.
 
-**Probe B (node level; hard, chosen by its invariant).** The new invariant is the escrow `rtkInv` with
+**Probe B (node level; hard, chosen by its invariant).** (Run 2026-11-11: "Probe B" at the top.) The new invariant is the escrow `rtkInv` with
 `run`'s lent `np` and the allocation bound (§3.2, 2.-4.), plus `stepP`'s gated token and type (§3.6).
 Prove, for one node:
 1. `run`'s `readyc` arm: the key allocated (`pend := true`, `np` in, `al` raised, its lower bound

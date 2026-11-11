@@ -125,7 +125,11 @@ abbrev RawNode.Advance.spec : Prop :=
       -- snapshot `Ready`, dynamically, to the snapshot's index (`StepR.applySnap`)
       ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
         (∀ l, rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
-        (rs.mode = .static → ca = rs.capplied)⌝ }}
+        (rs.mode = .static → ca = rs.capplied)⌝ ∗
+      -- (2026-11-11, trace-check design revision 3's N2, Probe B item 5) after a `Ready` without a
+      -- snapshot, dynamically, the configuration index installed is exactly up to the committed log
+      -- handed out (`StepR.advance`'s `cidx := max r.cidx a`): so `applied ≤ capplied` after (lemma (ii))
+      ⌜rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length⌝ }}
 
 end spec
 

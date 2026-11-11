@@ -2697,6 +2697,16 @@ off `run`'s path. The escrow at `nroot.@"raft_rtk"`, its key allocated in a `|={
 full: G3 (a1)'s minting update to locate, (a2)'s `CfgAt` over the bootstrap prefix to check, at
 threading. Next: a fourth review round, or Probe A/B.
 
+**Probe B (2026-11-11, branch `trace-check-probeB`): the escrow proved for one node** (`notes/decisions.md`,
+"Probe B (the escrow)"; the design's "Probe B" section). `Proof/go_etcd_io/raft/v3/TracedEscrow.lean` proves
+the escrow's arm-level lemmas: the key allocated in the `readyc` send AU's `|={⊤}=>` prefix, the deposit
+after `acceptReady`, the `advancec` rendezvous in both orders (with the allocation bound, a claim-less
+driver and a stale claim) inside the channel's invariant, and the receiver's gated split to
+`raft.Step.tracedTriple`'s premises; `RawNode.Advance.spec`'s post has N2's conjunct, proved. Found: the
+escrow as designed could not do its deposit (`np`/`pend` replaced by a halved `pk : Option (List QMsg)`,
+P1); `TrNetTy` must move below `InvNodeChan` (P3); item 6 needs N1's statement change, which also changes
+the families' `lineF` (P6), not proved. Next: Probe A, then step 2 with P6's wider file list.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and
