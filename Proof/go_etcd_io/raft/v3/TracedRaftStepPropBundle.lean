@@ -251,6 +251,84 @@ theorem propGate_rep (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
     (fun h => by cases h)
   iframe Htl Hf Hch
 
+omit [GooseSemantics] [GooseInterp] go_gctx [StorageModel GF] sem package_sem in
+theorem logLast_eq_plastIndex (s : NState) : logLast s.logst = plastIndex (toPState s) := by
+  simp only [plastIndex, plogLastIndexZ, logLast, toPState, List.length_append]
+  congr 1; push_cast; omega
+
+/-- **The self-acknowledgement's gate on `PropLead`'s family** (`leaderGates`' `"Hgpack"`): the pinned
+share after the `Replicate` lines is the idle server's of the appended state (`propK_full`); the
+`SendAppendEntriesResponse` line fired (`phaseStepB_selfAck`, `fxPres_selfAck`), the share unpinned at
+the outbox with the acknowledgement. -/
+theorem propGate_ack (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (ents : List EntryM) (Λ : Option TraceEv → Prop) (cs : List (Option ConfChangeIM))
+    (htr : s.gh.tr = some γd) (hlead : s.role = .leader)
+    (hnorm : ∀ e ∈ ents, e.Type' = EntryNormal)
+    (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
+    (ccEntsOk ents cs ∗ (propR (GF := GF) true γ md c r id s ents Λ).Gp1 : IProp GF) ⊢
+      HookGateOpt s.gh.tr r
+        (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgAppResp
+          [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])
+        ((propR (GF := GF) true γ md c r id s ents Λ).Gp2
+          (s.outbox ++ [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])) := by
+  have hnc := noConf_of_normal ents hnorm
+  iintro ⟨#Hcc, Hp1⟩
+  icases ccEntsOk_types ents cs $$ Hcc with %hct
+  have hlp : leaderPropConf s ents cs c.joint = (ents, s.pci) := propConf_noConf' _ _ _ _ ents cs hct hnc
+  rw [hlp, sendOutGate_selfAck]
+  dsimp only [propR]
+  unfold propF
+  rw [htr]
+  icases Hp1 with ⟨%C0, %cs0, %P0, %hidC, Hgh, Hc⟩
+  iapply hookGateOpt_fupd
+  imod ownStepGhost_traceBound (GF := GF) γ md c id (proposed id s ents) hfit $$ Hgh with ⟨%Hb, Hgh⟩
+  icases trCapB_logger γd γ r id c true _ _ $$ Hc with ⟨%tl, #Htl, Hc⟩
+  have hrole1 : (propAppended s ents).role = .leader := hlead
+  have hpl : plastIndex (toPState (propAppended s ents)) = plastIndex (toPState (proposed id s ents)) := rfl
+  have hcm : (propAppended s ents).logst.committed = (proposed id s ents).logst.committed := rfl
+  have hTn : uint.nat (propAppended s ents).term < traceNumBound := by
+    show uint.nat s.term < traceNumBound; word
+  have hcn : uint.nat (propAppended s ents).logst.committed < traceNumBound := by rw [hcm]; exact Hb.1
+  have hln : uint.nat (plastIndex (toPState (propAppended s ents))) < traceNumBound := by rw [hpl]; exact Hb.2
+  have hok : (selfAck id (propAppended s ents)).TrOk :=
+    selfAck_trOk id _ (by word) (by rw [logLast_eq_plastIndex]; word)
+  obtain ⟨ma0, hma⟩ : ∃ ma0, TraceSim.msgAbs C0 C0.length (selfAck id (propAppended s ents)) = some ma0 :=
+    ⟨_, rfl⟩
+  ihave Hc := trCapB_mono (some γd) γ r id c true _
+    (PinAt (propAppended s ents) C0 (repCN cs0 ents.length) P0 s.outbox) (stepLastEv Λ)
+    (fun C cs P h => by simp only [RepPin, propK_full] at h; exact h) $$ Hc
+  ihave #Hfx := fxPres_selfAck (GF := GF) γ id
+    (SendEvOf (W64 11) id (propAppended s ents) c (selfAck id (propAppended s ents))) (propAppended s ents)
+    (PinAt (propAppended s ents) C0 (repCN cs0 ents.length) P0 s.outbox)
+    (PinAt (propAppended s ents) C0 (repCN cs0 ents.length) (P0 ++ [ma0]) (s.outbox ++ [selfAck id (propAppended s ents)]))
+    C0 ma0 hma hrole1 (fun C cs P h => ⟨h.1, h.1 ▸ hidC, h.2.2.2.1⟩)
+    (pinAt_step (propAppended s ents) C0 (repCN cs0 ents.length) P0 s.outbox _ ma0)
+  ihave Hfx := fxPres_upd γ id _ _ _ $$ Hfx
+  imodintro
+  iapply hookGateOpt_mono (some γd) r _
+    iprop(trCapB (some γd) γ r id c true (PinAt (propAppended s ents) C0 (repCN cs0 ents.length) (P0 ++ [ma0])
+      (s.outbox ++ [selfAck id (propAppended s ents)])) (stepLastEv Λ) ∗ emp)
+  isplitl [Hgh]
+  · iintro ⟨Hc, -⟩
+    isplitr
+    · ipureintro; simp
+    iframe Hgh
+    isplitl [Hc]
+    · iexists true
+      iapply trFam_unpin (some γd) γ r id c true _ (stepLastEv Λ) C0 (repCN cs0 ents.length) (P0 ++ [ma0])
+      iexact Hc
+    ipureintro
+    exact outOk_snoc (outOk_self s) hok
+  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ true
+    (PinAt (propAppended s ents) C0 (repCN cs0 ents.length) P0 s.outbox) _ (stepLastEv Λ) (stepLastEv Λ)
+    iprop(emp) (phaseStepB_selfAck id c (propAppended s ents) s.outbox C0 (repCN cs0 ents.length) P0 ma0 hma hrole1)
+    (fun e he => sendEvOf_notBoot he (by decide) (by decide) (by decide))
+    (fun e _ => .inr rfl)
+    (fun _ e he => sendEvOf_ok (W64 11) id _ c _ e _ he (by decide) hTn hcn hln (hok rfl).1 (Nat.le_refl _))
+    (fun h => by cases h)
+  simp only [FxPresUT]
+  iframe Htl Hc Hfx
+
 end families
 
 end EtcdGrove
