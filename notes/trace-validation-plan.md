@@ -1064,6 +1064,43 @@ Checked (branch at `trace-check` `27da747ae6` plus this slice and a one-line mer
 unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module
 touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 25n), 2026-11-11 (branch `trace-check-q8s25n`): the node holds the capability;
+traced `RawNode.Step` and the proposal step done; the rest of the node API not started, two questions
+(Q25, Q26).** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 25n)"); all raft-internal.
+Done: `rnTrace` (`InvRawnode.lean`), a conjunct of `ownRawNode`, `ownRawNodeIdle` and `ownRawNodeReady`:
+`emp` untraced; traced, pre-vote off, no learners, the struct's `checkQuorum` field `↦□ false`,
+`TrNoSnap`, and `∃ b, trCapB … b (SimIdle C s)`. `ownRawNode_intro` keeps its arguments with an
+auto-premise `γ.reTrace = none`; `ownRawNode_intro_tr` takes the capability (the same-state lemmas and
+`ownRawNodeIdle_ownRawNode` use it; `rnTrace_congr` carries it across a state reading the same).
+Found: `raft.Step.spec` does not say check-quorum is unchanged (`NetFrame` has `prevote`, not `cq`), so
+`raftOwn`'s `checkQuorum` field is now persistent (never written after `newRaft`, as `id`, `logger`,
+`stepDownOnRemoval`; `ownRaftPhysC_cq`), and the capability holds the field, not `s.cq`.
+`TracedRawNode.lean`: `RawNode.Step.traced` (a message of the six traced network types, `TrNetTy`, with
+its `isRaftMsg` and token, over `stepBundle_traced.on (fun _ m => TrNetTy m.Type')`), and
+`wp_rn_raft_Step_prop_traced` (`node.run`'s `propc` arm: `node.Propose`'s and forwarded proposals;
+`RawNode.Propose` is not on the node API's path; over `stepBundle_traced.onG PropAny`). Not done: the
+traced `RawNode.Tick` (Q25: a leader's `r.tick` is not known to be `tickHeartbeat`), `Ready`/`Advance`
+(Q26: the self-addressed messages' tokens between them), `ApplyConfChange` (the booted line's gate under
+`AccIdle`), `node.run` and the node API's statements, traced `newRaft`/`Bootstrap`.
+
+- **Q25 (2026-11-11, slice 25n): a traced tick at a leader.** `raft.tickElection.tracedTriple` asks
+  `s.role ≠ .leader` (the bundle's `MsgHup` premise: `hupGates` asks the `BecomeCandidate` gate whatever
+  the role), but `ownRaftPhysC` ties `r.tick` to no role (`TickFnOk`: either function), so the traced
+  `RawNode.Tick` cannot rule out `tickElection` at a leader. Options: (a) `raft.hup.spec` asks the
+  `BecomeCandidate` gate only off a leader (`hup` returns before any line at a leader), and the bundle
+  drops the premise; (b) `ownRaftPhysC`'s `Htick` gains `s.stepfn = stepFuncOf s.role → (r.tick =
+  tickHeartbeat ↔ s.role = .leader)` (vacuous mid-`becomeX`, which assign `step` before `state`), each
+  `becomeX` and the stores of `step`/`tick`/`state` proving it. Recommended: (a) (a spec relaxation in
+  the path files' statement, no invariant).
+- **Q26 (2026-11-11, slice 25n): the self-addressed messages' tokens from `Ready` to `Advance`.**
+  `trCap_fire_ready` hands out the tokens of all the share's messages, the self-addressed ones
+  (`Pending.self`, a vote or append response to itself) included, which `Advance` steps; the queue's
+  messages are existential inside `pendList` (`∃ st, msgIn l □ st ∗ pendingRel …`), so a token can be
+  tied to its message only there. Options: (a) `pendList` (or `pendingRel`'s `.self` arm) carries
+  `recvTokOf` of the message at a traced node (gated on `γ.reTrace`, `True` untraced); (b) `rnTrace`
+  carries a list of tokens with the messages' records, matched to the queue by a new pure clause.
+  Recommended: (a).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
