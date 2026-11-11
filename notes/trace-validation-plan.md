@@ -1064,6 +1064,18 @@ Checked (branch at `trace-check` `27da747ae6` plus this slice and a one-line mer
 unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module
 touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 25b), 2026-11-11 (branch `trace-check-q8s25b`): a candidate's won vote, raft's side
+done; the won path not done.** Slice 24b's design taken by the coordinator, its form the agent's
+(`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). Done: the win's ghost update in three phases
+(`Protocol/Refinement.lean` additions `winPend`, `ownRaftGhost_step_win_reg`, `ownRaftGhost_step_win_entry`;
+`ownRaftGhost_step_win` their composition); the receipt through `stepCandidate.spec` (`#Hrc`, the win's
+guarded `"Hgrep"`) and `candidateGates` (the loan `StepG.Tw`, `winLend`); `CloseMid`'s won case and
+`Step`'s `MsgVoteResp` arm split (`raft__Step/VoteWin.lean`); the family's ghost step `ghost_stepWin_reg`,
+`ghost_stepWin_entry` (`TracedWinGhost.lean`). Left (each item in the decisions entry): the `BecomeLeader`
+line's phase step (a leader phase carrying `reset`'s `Progress`; `hc` as the path's hypothesis until A6)
+and `FxPresU` (`specInv_becomeLeader` from `becomeLeader_hyps`, the term log inside it), the empty entry's
+`Replicate` line, the self-acknowledgement, the broadcast appends, the close and the bundle.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

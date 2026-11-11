@@ -585,7 +585,7 @@ theorem propClose (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
         iexists proposed id s ents
         iframe Hgh
         ipureintro
-        exact ⟨hp.1, hp.2.1, noConf_of_normal ents hp.2.2.2.1, rfl, rfl⟩
+        exact CloseMid.prop ⟨hp.1, hp.2.1, noConf_of_normal ents hp.2.2.2.1, rfl, rfl⟩
       isplitl [Hc]
       · iexists b; iexact Hc
       ipureintro; exact outTrStep_of_outOk Hok

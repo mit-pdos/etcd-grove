@@ -35747,3 +35747,76 @@ allocation already has); then `stepBundle_traced.on_of_onRB` discharges both bun
   by `uint.Z s.term ≤ uint.Z m.term` and the old log's certificate moved up, the request's facts kept at
   `m.term`).
 - The bootstrap positions' question above (then `.on_of_onRB`).
+
+## Q8 stage 1 (slice 25b): the won vote's ghost update in three phases, its receipt through `stepCandidate`, `Step`'s `MsgVoteResp` arm split, the family's ghost step (`ghost_stepWin`); the won path not done (2026-11-11 · trace-check, Q8 stage 1 slice 25b; slice 24b's design taken by the coordinator, its form the agent's under the user's delegation · branch `trace-check-q8s25b`; DRAFT until trace-check's Freeze)
+
+Raft-internal but for three additions to `Protocol/Refinement.lean` (importable: an interface addition, as
+slice 24b proposed); no axiom, no `sorry`, nothing frozen (`TracedCap.lean`, `TracedHooksDraft.lean`,
+`TracedApiDraft.lean` untouched), no client-visible statement changed.
+
+**The win's ghost update in three phases** (`Protocol/Refinement.lean`, additions only):
+- `winPend γ id s md`: the last phase pending, the wand `∀ mt ms n, ⌜Step.win's remaining premises⌝ -∗ ⧖ n
+  ==∗ ownRaftGhost γ id (won state) md` (a *basic* update: the entry's record, the acknowledgements,
+  `lcmOwn_win`, `rdOwn_win`; slice 24b proposed `|={⊤∖raftRegN}=>`, which it does not need). `c` is not a
+  parameter (the last phase reads no configuration: the dynamic mode's I1 is read in the first).
+- `ownRaftGhost_step_win_reg` (`s.role = .candidate → JQuorum c (granted s.votes) → ⊢ dynEnv -∗
+  ownRaftGhost s ={⊤∖raftRegN}=∗ isLeader γ id s.term ∗ ∃ fp, ⌜FullOk s.base fp⌝ ∗ isCamp (fp ++ s.log) ∗
+  logRecs base0 (fp ++ s.log) ∗ ∃ γm terms, ⌜γ.reTerms !! id = some γm ∧ terms !! s.term = none⌝ ∗
+  ghostMapAuth γm 1 terms ∗ (ghostMapAuth γm 1 terms ==∗ leadFull γ s.term (fp ++ s.log) ∗ winPend …)`):
+  the registration (the winners' table, the campaign record, `win_register`), then the authority lent
+  out; its wand allocates the term log with the empty entry's fragment already in it (the allocation needs
+  no receipt) and gives the new term's full log at the *candidate's* log (`leadPrefix` with `l0 = l`, its
+  fragments vacuous; `lpfull` with `F0 = fp ++ s.log`), which the `BecomeLeader` line's `srvFacts` need.
+- `ownRaftGhost_step_win_entry`: `winPend`'s elimination. `ownRaftGhost_step_win` (statement unchanged) is
+  re-proved as the composition; its body moved into the three, not duplicated.
+
+**The receipt through `stepCandidate`.** `stepCandidate.spec` takes `(k0 : Nat)`, `"#Hrc" ∷ ⧖ k0` (passed
+to `becomeLeader`) and its `"Hgrep"` guarded by the win (`⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+JQuorum …⌝ -∗ ⧖ (k0 + 1) -∗ G1 -∗ …`; guarded so that a caller off the win needs no receipt to
+convert its gates). `candidateGates` takes a loan `Tw` in that place, `StepG.Tw` (default `emp`), set by
+`ghostIn` to `winLend γ s` (traced: `⧖ (lastIndex − boot + 1)`, untraced `emp`); conversions
+`candidateGates_tw` (given `⌜won⌝ -∗ Tw' -∗ Tw`) and `candidateGates_tw_ne` (off the win, at `⧖ (k0+1)`).
+`wp_Step_MsgVoteResp` takes `"HTw" ∷ (⧖ (k0 + 1) -∗ R.Tw)`, which `Step` gives from the raised receipt;
+its candidate case passes `k0` to `stepCandidate`. Every other `stepCandidate` caller passes `⧖ 0`
+mechanically (`gates_cand` converts and allocates `#Hrc00`; the untraced instance likewise);
+`stepGates_none` takes `Tw`.
+
+**`CloseMid`'s won case and `Step`'s split.** `CloseMid` is now a disjunction: the proposal's case
+(`CloseMid.prop` builds it; `CloseMid.ty` gives `MsgProp ∨ MsgVoteResp`, `CloseMid.not_of` refutes it by
+type) or a candidate's vote response of its term with `s1 = { becomeLeader id (votes recorded) with
+prvals := pvs }`, `prvalsMatch pvs = resetMatched …` and `s1.logst = s'.logst`. `gate_close_g` takes `∀ s1,
+¬ CloseMid …` (`gate_close` gives it by type). `Step`'s `MsgVoteResp` arm closes by `gate_close_mid`: at
+`s` as before (`finish_branchB`), or at the won state, where `voteWin_end` reads the end state off
+`StepEnd` (the log the won state's, so won: the broadcast `ms`, `reset`'s `Match`), and
+`finish_branch_mid` steps the broadcast alone (`stepCD_won_sendApps`, from `stepCD_sendApps`) with the
+whole step's witness (`stepOut_of_stepCD_vote`, the mode unchanged, `stepOut_vote_md`;
+`raft__Step/VoteWin.lean`). The dynamic mode's facts at `s` are read off before the gates
+(`ghostRest_dynFacts`), as for `MsgProp`.
+
+**The family's ghost step** (`TracedWinGhost.lean`): `ghost_stepWin_reg` (at the `BecomeLeader` gate: the
+vote's record from the response's `isMessage`, then the registration at `⊤`, `dynEnv` from `ghostRest`:
+static, or the invariant after `StepR.recordVote` and `ownRaftGhostR_env`) giving `isLeader`, the campaign
+log and the lent authority whose return gives `leadFull` and `winGhost` (`winPend` ∗ `ghostRest` at `s`);
+`ghost_stepWin_entry` (at the `Replicate` gate, with `winLend`'s receipt: `ownStepGhost` at `wonStateW id
+s m pvs` for any `pvs` of `reset`'s `Match`, given the self-acknowledgement's `MsgTrOk`; `ghostRest` from the
+whole step `stepCD_wonW`: `leadW_stepC`, `NsLink` with the new message, the dynamic invariant by
+`RInv_stepR`), both modes, no `£`.
+
+**Not done: the won path** (`TracedRaftStepRecvVoteRespWon.lean`, task 4), exact remaining items:
+1. The `BecomeLeader` line's phase step: from the receive line's pinned idle phase at the tally state to a
+   leader phase at `{ becomeLeaderPre id sv with prvals := pvs }` (`lineEffect_becomeLeader` with
+   `sim_becomeLeader`, the guard by `tallyGranted_quorum` with its `hc : ∀ k w, votes !! k = some w →
+   idAbs k ∈ confAbs C` as the path lemma's explicit hypothesis until A6). The existing `IdlePin`/`PinAt`
+   phases do not fit as they are: `SimServerR` at a leader reads `Match` from the state's `Progress`, which
+   the event's state (`becomeLeaderPre`, before `reset`'s `Progress`) does not carry: the phase needs the
+   state with `reset`'s `Progress` (`LeaderMatchOk`), or a pin quantified over it.
+2. The line's `FxPresU`: `simFx` across the specification's `BecomeLeader` (`specInv_becomeLeader` from
+   `becomeLeader_hyps`, which takes the registration's outputs; the new leader's `srvFacts` from
+   `leadFull`; `QuorumLogF`, messages and `AppSlices` (`appSlices_becomeLeader`) unchanged), with the term
+   log's allocation inside it (the registration's wand) and the lent authority returned.
+3. The empty entry's `Replicate` line (slice 24a's `Replicate` pieces, at the won state's pending entry:
+   `srvFacts`' `pend = [e]` with `isCamp` of the campaign log), the entry's record by `ghost_stepWin_entry`
+   in the gate; the self-acknowledgement's send line (`phaseStepB_selfAck`); the broadcast appends
+   (`fxPres_app`, `app_lead`, the gates' `rejecthint`).
+4. The close at `CloseMid`'s won case (`wonStateW` with the final `pvs`, the capability's idle phase at the
+   end state) and the bundle `stepBundle_traced.onC CandVoteRespWon`.
