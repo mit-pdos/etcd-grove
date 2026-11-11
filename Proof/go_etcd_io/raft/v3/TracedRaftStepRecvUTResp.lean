@@ -264,7 +264,7 @@ theorem stepBundle_traced_utResp : stepBundle_traced.on (GF := GF) (hG := hG) UT
       icases ownRaftGhost_logFacts γ id (toPState s) hs0.1 $$ Hg with ⟨Hg, ⟨#HL, #Hcm, #Hci⟩, %Hwr⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg ty m ents).NumsBelow traceNumBound := hok ty hmty hreT htrd
+      have hnb : (absMsg ty m ents).NumsBelow traceNumBound := (hok ty hmty hreT htrd).1
       have hps := phaseStepR_utResp id c s ty m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hresp hgt hnpc
         hnb hma
       have hnb' := recvEvTy_notBoot hev

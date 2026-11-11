@@ -312,7 +312,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
       imod Hgl with ⟨%Hlok, Hg⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hreT htrd
+      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hreT htrd).1
       have hRA : ∀ a, SimServerR tn.voters tn.voters.length (toPState s) a →
           RecvAt tn.voters (idAbs id) (utSrv a (uint.Z m.Term')) { utSrv a (uint.Z m.Term') with lead := idAbs m.From' }
             ma (fun b => b.without ma) (fun b' => b'.with (utAppResp b id m.From' (utSrv a (uint.Z m.Term')))) := by
@@ -458,7 +458,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
           imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
           imodintro
           have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-          have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hreT htrd
+          have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hreT htrd).1
           have hn : (appResp id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
                 lead := m.From' } m.From' (!b) (if b then s.logst.committed else m.Index')
                 (if b then W64 0 else ht) (if b then W64 0 else hint)).NumsBelow traceNumBound := by
@@ -553,7 +553,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       have hre : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hre htrd
+      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hre htrd).1
       have hout : OutTrStep s (sendMsgs { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
           lead := m.From' } [appResp id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
             lead := m.From' } m.From' (!b) (if b then s.logst.committed else m.Index')
@@ -562,7 +562,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
         simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx
         rcases hx with hx | rfl
         · exact .inl hx
-        · refine .inr (fun _ => ?_)
+        · refine .inr (Msg.trOk_of_nums (by intro h; cases h) (by intro h; cases h) (fun _ => ?_))
           cases b with
           | true => exact appRespU_nums id _ m.From' s.logst.committed hmT Hb.2
           | false => exact appRespRejU_nums id _ m.From' m.Index' ht hint m.LogTerm' hmT hnb.2.2.2.1 hnb.2.2.1 hht hhi

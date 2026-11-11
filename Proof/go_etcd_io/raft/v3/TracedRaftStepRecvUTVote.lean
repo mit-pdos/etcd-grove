@@ -227,7 +227,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
       icases ownRaftGhost_logFacts γ id (toPState s) hs0.1 $$ Hg with ⟨Hg, ⟨#HL, #Hcm, #Hci⟩, %Hwr⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .vote m ents).NumsBelow traceNumBound := hok .vote hmty hreT htrd
+      have hnb : (absMsg .vote m ents).NumsBelow traceNumBound := (hok .vote hmty hreT htrd).1
       have hps := phaseStepR_utVote id c s m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hgt hnpc hnb hma
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .vote m ents) e → TraceEv.Ok (elements c.incoming).length e :=
@@ -345,11 +345,11 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
       · simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx
         rcases hx with hx | rfl
         · exact .inl hx
-        · exact .inr (fun _ => vresp_nums_ut id s m pvs false hmT)
+        · exact .inr (Msg.trOk_of_nums (by unfold vrespMsgOf; split <;> (intro h; cases h)) (by unfold vrespMsgOf; split <;> (intro h; cases h)) (fun _ => vresp_nums_ut id s m pvs false hmT))
       · simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx
         rcases hx with hx | rfl
         · exact .inl hx
-        · exact .inr (fun _ => vresp_nums_ut id s m pvs true hmT)
+        · exact .inr (Msg.trOk_of_nums (by unfold vrespMsgOf; split <;> (intro h; cases h)) (by unfold vrespMsgOf; split <;> (intro h; cases h)) (fun _ => vresp_nums_ut id s m pvs true hmT))
     have hlast : ∀ o, RecvLast evt id s c (absMsg .vote m ents) o → stepLastEv Λ o := by
       rintro o ⟨e0, rfl, -⟩; exact .inr rfl
     unfold stepOut

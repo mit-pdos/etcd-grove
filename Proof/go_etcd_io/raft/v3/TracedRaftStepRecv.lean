@@ -1162,7 +1162,7 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg ty m ents).NumsBelow traceNumBound := hok ty hmty hreT htrd
+      have hnb : (absMsg ty m ents).NumsBelow traceNumBound := (hok ty hmty hreT htrd).1
       have hps := phaseStepR_stale id c s ty m ents evt tn.voters cs0 P0 ma hev hto' hst.2 hnpc hnb hma
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg ty m ents) e → TraceEv.Ok (elements c.incoming).length e :=
@@ -1327,7 +1327,7 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg ty m ents).NumsBelow traceNumBound := hok ty hmty hreT htrd
+      have hnb : (absMsg ty m ents).NumsBelow traceNumBound := (hok ty hmty hreT htrd).1
       have hps := phaseStepR_ignResp id c s ty m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hresp hterm
         hnpc hc hl hnb hma
       have hnb' := recvEvTy_notBoot hev
@@ -1545,7 +1545,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .vote m ents).NumsBelow traceNumBound := hok .vote hmty hreT htrd
+      have hnb : (absMsg .vote m ents).NumsBelow traceNumBound := (hok .vote hmty hreT htrd).1
       have hps := phaseStepR_voteReq id c s m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hterm hnpc hnb hma
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .vote m ents) e → TraceEv.Ok (elements c.incoming).length e :=
@@ -1627,7 +1627,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
       rcases hve with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;>
         (simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx; rcases hx with hx | rfl
          · exact .inl hx
-         · exact .inr (fun _ => vresp_nums id s m _ hT hmT))
+         · exact .inr (Msg.trOk_of_nums (by unfold vrespMsgOf; split <;> (intro h; cases h)) (by unfold vrespMsgOf; split <;> (intro h; cases h)) (fun _ => vresp_nums id s m _ hT hmT)))
     have hmono : ∀ C cs P, VPin tn.voters (toC (confAbs tn.voters) (vrSrv a0 (idAbs m.From') ma))
         (P0 ++ [vrResp a0 (idAbs id) (idAbs m.From') ma]) C cs P → SimIdle C s' cs P := by
       rintro C cs P ⟨rfl, rfl, rfl⟩; exact hI

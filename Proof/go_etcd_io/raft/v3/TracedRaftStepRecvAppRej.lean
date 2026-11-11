@@ -227,7 +227,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hreT htrd
+      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hreT htrd).1
       have hps := phaseStepR_appRej id c s m ents evt tn.voters cs0 P0 a0 ha0 ma hev hto' hterm hrole
         hmt0 hlt0 hnb hma
       have hnb' := recvEvTy_notBoot hev
@@ -305,7 +305,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
           imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
           imodintro
           have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-          have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hreT htrd
+          have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hreT htrd).1
           have hn := appRespRej_nums id { s with lead := m.From' } m.From' m.Index' ht hint m.LogTerm' hT
             hnb.2.2.2.1 hnb.2.2.1 hht hhi
           have ht2 : uint.nat s.term < traceNumBound := by word
@@ -382,9 +382,9 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
         simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx
         rcases hx with hx | rfl
         · exact .inl hx
-        · have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hre htrd
-          exact .inr (fun _ => appRespRej_nums id _ m.From' m.Index' ht hint m.LogTerm' hT hnb.2.2.2.1
-            hnb.2.2.1 hht hhi)
+        · have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hre htrd).1
+          exact .inr (Msg.trOk_of_nums (by intro h; cases h) (by intro h; cases h) (fun _ => appRespRej_nums id _ m.From' m.Index' ht hint m.LogTerm' hT hnb.2.2.2.1
+            hnb.2.2.1 hht hhi))
 
 end paths
 
