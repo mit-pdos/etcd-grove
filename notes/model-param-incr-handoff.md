@@ -16,12 +16,18 @@ of plan, 2026-11-11) profile and optimize `etc/ModelParamCheck.lean`, a fine-gra
 - The judging's `code_line_ok` memoized (144k satax lines, 988 distinct): minutes -> 6s.
 - `etc/model-param-check.py` caches each Lean run (per root group) in `/shared/tmp/model-param-cache/`,
   keyed by a SHA-256 of all its inputs (docstring); `--no-cache`.
-- `etc/gates.sh`: steps 2-9 run in parallel after the build, output in order (uncommitted until
-  measured).
+- `etc/gates.sh`: steps 2-9 run in parallel after the build, output printed in order, any failure
+  fails (planted-failure harness test: exit 1). reader-slot-check moved into the goose section (it
+  reads `.lake/goose`, which goose.py maintains). Full gates, no-op build, model-param cached:
+  693s sequential -> 462s parallel (tcb is the critical path); same output but reader-slot's place.
+- Cache verification: cold (cache empty) 235s, warm 17s (5/5 cached), both JSON-identical to the old
+  script's full run (6954s, under load); a scratch axiom in PorcupineDag's Results re-ran only that
+  group (4/5 cached, 791 statements); a planted rule-1 violation there failed (also from the cache);
+  reverted, rebuilt: 5/5 cached again (byte-identical .oleans).
 
 ## Next
 
-- Verification of the cache (warm, changed group, planted violation), gates timing; report.
+- Report to etcd-grove-81 (done at e8631aac6f+1); wait for the landing slot.
 - The fine-grained (per-statement) cache: recommended against now that the whole run is minutes
   (report to etcd-grove-81 for a decision).
 
