@@ -265,7 +265,7 @@ def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isRWMutexGuard (structFieldRef v3compactor.Periodic go!"mu" pc) (perPausedInv pc))
 
-set_option synthInstance.maxSize 512 in
+set_option synthInstance.maxSize 1024 in
 instance isPeriodic_persistent (pc : Loc) (E : CompactEnv GF) (period : Int) :
     Persistent (isPeriodic (GF := GF) pc E period) := by
   unfold isPeriodic; infer_instance
@@ -301,7 +301,7 @@ def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
     context.cancelSpec cancel γctx iprop(True) ∗
     sync.isMutex (structFieldRef v3compactor.Revision go!"mu" rc) (revPausedInv rc))
 
-set_option synthInstance.maxSize 512 in
+set_option synthInstance.maxSize 1024 in
 instance isRevision_persistent (rc : Loc) (E : CompactEnv GF) (ret : Int) :
     Persistent (isRevision (GF := GF) rc E ret) := by
   unfold isRevision; infer_instance
