@@ -269,13 +269,13 @@ theorem fxPresR_appAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Trac
 state unchanged. -/
 theorem ownStepGhost_appAccFacts (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (m : Msg)
     (lastnewi : w64) (es' : List EntryM)
-    (Hty : m.ty = .app) (Hterm : m.term = s.term) (Hbase : (toPState s).base = base0)
+    (Hty : m.ty = .app) (Hterm : uint.Z s.term ≤ uint.Z m.term) (Hbase : (toPState s).base = base0)
     (Hcidx : uint.Z s.logst.committed ≤ uint.Z m.index)
     (Happ : plogMaybeAppend base0 (toPState s).log (entryID.mk m.logterm m.index) m.entries = some (lastnewi, es'))
     (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
     isMessage (GF := GF) γ m ∗ ownStepGhost γ md c id s ⊢ |={⊤}=> ownStepGhost γ md c id s ∗
       (logRecs γ base0 (toPState s).log ∗ logRecs γ base0 es' ∗
-        commitIn γ es' (accCommit (toPState s).commit m.commit lastnewi) (toPState s).term ∗
+        commitIn γ es' (accCommit (toPState s).commit m.commit lastnewi) m.term ∗
         isCommitted γ (es'.take (uint.Z (accCommit (toPState s).commit m.commit lastnewi)).toNat)) ∗
       ⌜PlogWfR base0 (toPState s).log ∧ PlogWfR base0 es' ∧ PlogWf base0 es' ∧
         uint.Z s.logst.committed ≤ (toPState s).log.length ∧
@@ -529,7 +529,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
       iapply hookGateOpt_fupd_recv
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hterm hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
         $$ [$Hm $Hgh] with ⟨Hgh, ⟨#HL, #HN, #Hci, #Hcm⟩, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       imodintro
@@ -559,8 +559,8 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
           all_goals omega
         have hW1 : W64 (uint.Z (accCommit (toPState s).commit m.Commit' lastnewi)) =
             accCommit (toPState s).commit m.Commit' lastnewi := by word
-        have hW2 : W64 (uint.Z s.term) = (toPState s).term := by
-          show W64 (uint.Z s.term) = s.term; word
+        have hW2 : W64 (uint.Z s.term) = (absMsg .app m ents ctx).term := by
+          show W64 (uint.Z s.term) = m.Term'; rw [hterm]; word
         have hBN' : (es'.length : Int) < 2 ^ 63 := by
           have : traceNumBound = 2 ^ 61 := rfl
           omega
@@ -631,7 +631,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
           rw [htr]
           iapply hookGateOpt_fupd_recv
           icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hterm hbase hge happ hfit
+          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
             $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
           obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
           imodintro
@@ -724,7 +724,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
     · exact h.elim
     all_goals
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl hterm hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
         $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       have hre : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
