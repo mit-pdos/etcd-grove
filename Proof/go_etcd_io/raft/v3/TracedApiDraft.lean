@@ -44,15 +44,17 @@ needs 0011's trace logging in the verified raft); `AsyncStorageWrites` is off fo
 already. -/
 def TracedConfigOk (cv : Config) : Prop := cv.PreVote' = false ∧ cv.CheckQuorum' = false
 
-/-- **Raft's ghost names of a cluster** (amendment A4): sealed, as `Cluster.trace` (`Cluster`'s
-names are the package's; the package's proofs `import all` this file). -/
+/-- **Raft's ghost names of a cluster** (amendment A4; for the package's own statements here):
+sealed, as `Cluster.trace` (`Cluster`'s names are the package's; the package's proofs `import all`
+this file). -/
 @[no_expose] def Cluster.raftNames (γ : Cluster) : RaftNames := ApiImpl.Cluster.raft γ
 
-/-- **The simulation's invariant of a traced cluster** (amendment A4, Q20 (a)): the one the
-capability holds (`trCapB`), in raft's namespace (`simNS`: `N .@ "raft" .@ "tracesim"` for the
-cluster's `N`, `isCluster`) with the specification state's facts (`simFx`), shared by the cluster's
-nodes. -/
-def Cluster.traceSimInv (γ : Cluster) (vs : List w64) (tn : TraceNames) : IProp GF :=
+/-- **The simulation's invariant of a traced cluster `γ`**, the voters `vs`, the trace's names `tn`
+(amendment A4, Q20 (a)): the invariant the capability holds (`trCapB`), shared by the cluster's nodes,
+inside the cluster's namespace. Sealed (a4-r1's S1: its body is raft's internals, the simulation's
+namespace and the specification state's facts `simFx`); a client has its laws: persistent, allocated
+at the start (`Cluster.traceSimInv_alloc`). -/
+@[no_expose] def Cluster.traceSimInv (γ : Cluster) (vs : List w64) (tn : TraceNames) : IProp GF :=
   inv (simNS γ.raftNames) (simInv vs tn (simFx γ.raftNames vs))
 
 instance Cluster.traceSimInv_persistent (γ : Cluster) (vs : List w64) (tn : TraceNames) :
@@ -60,23 +62,25 @@ instance Cluster.traceSimInv_persistent (γ : Cluster) (vs : List w64) (tn : Tra
   unfold Cluster.traceSimInv; infer_instance
 
 /-- What a node brings of the trace to `StartNode`: in an untraced cluster, no logger; in a traced
-one, the configuration's premise, the logger's contract for the trace, the simulation's invariant
-(`Cluster.traceSimInv`, of the voters the trace's names record), the node's share at the bootstrap
-state (`simInit`, nothing pending) and its `booted` flag unset with no event yet (`simBoot`):
-(amendment A4, Q20 (a)) what `trCapB_intro` makes the capability of, beside what `newRaft` has
-(`startTrace_trCapB`), the logger not nil (the capability's: a traced node logs every line). -/
+one, the configuration's premise, the voters the trace's names record and fewer than `2^40` of them
+(the bootstrap lines' log, `TraceEv.OkBoot`: raft's bootstrap log has one entry per voter), a logger
+that is not nil with the logger's contract for the trace, the simulation's invariant
+(`Cluster.traceSimInv`), the node's share at the bootstrap state (`simInit`, nothing pending) and its
+`booted` flag unset with no event yet (`simBoot`). (Amendment A4, Q20 (a).) With `nodeBoot` and
+`newRaft`'s logger field, these are what `trCapB_intro` makes the capability of
+(`startTrace_trCapB`). -/
 def startTrace (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
   match Cluster.trace γ with
   | none => iprop(⌜cv.TraceLogger' = interface.nil⌝)
   | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗
-      ⌜TracedConfigOk cv ∧ tn.voters = vs ∧ cv.TraceLogger' ≠ interface.nil⌝ ∗
+      ⌜TracedConfigOk cv ∧ tn.voters = vs ∧ vs.length < 2 ^ 40 ∧ cv.TraceLogger' ≠ interface.nil⌝ ∗
       isTraceLogger tn.tr cv.TraceLogger' ∗ Cluster.traceSimInv γ vs tn ∗
       simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [] ∗
       simBoot tn cv.ID' false none)
 
-/-- **`StartNode`, gated** (Q6 item 1): `StartNode.spec` with its premise `TraceLoggerOk
-cv.TraceLogger'` replaced by `startTrace` in the precondition (an untraced cluster's is the same
-premise). -/
+/-- **`StartNode`, gated** (Q6 item 1): `StartNode.spec` with its premises `TraceLoggerOk
+cv.TraceLogger'` and `Cluster.trace γ = none` replaced by `startTrace` in the precondition (an
+untraced cluster's is the first premise, `startTrace_untraced`). -/
 abbrev StartNode.gatedSpec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF)
@@ -135,7 +139,7 @@ theorem startTrace_trCapB (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs :
     Cluster.traceSimInv Cluster.raftNames
   rw [htr]
   iintro ⟨⟨%tn, #Hdir, %Hp, #Hlog, #Hinv, Hnode, Hboot⟩, Hb, #Htl⟩
-  obtain ⟨-, hv, hnil⟩ := Hp
+  obtain ⟨-, hv, -, hnil⟩ := Hp
   icases Hb with ⟨⟨-, ⟨-, ⟨#Hli, -⟩, -⟩, -⟩, %Hpb, -⟩
   iapply trCapB_intro γd tn vs cv.TraceLogger' _ [] none (ApiImpl.Cluster.raft γ) r cv.ID' c Φ Λ
     ⟨hv, hc.1, hc.2, Hpb.1⟩ hnil hΦ hΛ
