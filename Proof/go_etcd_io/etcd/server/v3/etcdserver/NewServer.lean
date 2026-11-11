@@ -2015,7 +2015,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · isplitl [HltI]
     · iexact HltI
     · iexact HRDI
-  imod threadPool.initL srvRevokeInnerN 1
+  imod threadPool.initL srvRevokeInnerN 2
       iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ RD) _ srvRevokePoolN
       (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HIp with ⟨%γI, #HIp⟩
   -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)

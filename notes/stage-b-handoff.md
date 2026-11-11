@@ -112,11 +112,39 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
   - Link lists: `grpc_Server__Serve: model_Serve`, `model_Serve: model_acceptRun …` and the four
     leaves in `etc/link-lean-first-{common,cluster3}.txt`; both `Link.lean` regenerated.
 
+- **B2, started** (2026-11-11):
+  - Lease pools at level 0 (r5 §2.6): `lease.lessorLvl`/`leaseLvl` (`abbrev … := 0`, so `levelTok 0`
+    from `threadTok_level0` unifies); `lessorRdPool`, `isLeaseObj`'s two pools `isThreadPoolL`;
+    `initL`/`borrowL`/`giveBackL`; specs `threadTok` → `levelTok lessorLvl/leaseLvl` (pre and post):
+    `Lease.Remaining`, `leasesByExpiry.Less`, `lessor.Leases`, `Lease.Keys`' `.reader` (`keysPre`),
+    the trusted `lessor.Renew` and `EtcdServer.leaseTimeToLive` (axioms; Freeze §2.2),
+    `checkLease{Renew,TimeToLive,Leases}`, `EtcdServer.Lease{TimeToLive,Leases,Renew}`. Callers with
+    a whole `threadTok` split it (`ServerLeaseRead`, mvccfull `runner__checkLeases`); handler `S`
+    in `InvLeaseRead`/`InvLeaseKeepAlive` still says `threadTok` (B3: `E.RD ∗ levelTok 0`). D3
+    census: no nesting; the apply thread uses `Keys .owner` only (sub-agent report). Note for the
+    Freeze review: the two axioms now claim level 0 suffices (Renew's checkpointer path and a
+    follower's `leaseTimeToLive` HTTP path are not run by closed results).
+  - Inner pool `I` at level 2 (`RevokeCtx.lean`: pools, borrow/give-back laws, header table;
+    `revokeExpiredLeases`' inner goroutine splits levels 1 and 2; `NewServer`'s `initL … 2`).
+  - `srvLevelK := srvRevokeK` (`RevokeLevels.lean`); `srvLevels : Prop := srvLevelK ≤ threadBound GF`,
+    `srvLevels_iff` (`Iff.rfl` with `srvRevokeLevels`, kept a def, not an abbreviation: `word`
+    proofs unfold it), `srvLevels_of_max` (`RevokeCtx.lean`).
+  - Built with `lake build` (0 errors): the lease package, the server's lease specs, `NewServer`,
+    `revokeExpiredLeases`, v3rpc `ServerLeaseRead`/`InvLeaseKeepAlive`, mvccfull/mvccrand Links.
+
 ## Next, in order
 
-1. **B2** (CP2): the owner pools and `NewServer`, per r5 §4.2 (additive: the raw stocks beside the
-   64-stocks; lease pools leveled; `srvLevelK`/`srvLevels` in `RevokeLevels.lean`; `memberUp`'s run
-   pool; adequacy with `srvLevelK`).
+1. **B2, rest** (CP2), per r5 §4.2/§3.2: `srvServeStock` in `InvServe.lean` (raw stock `P =
+   srvRevokePoolN` of `mvccReaders E.γ 1 ∗ srvBemuReader s`, the counted Start stock) in
+   `NewServer`'s post beside `srvServeBuilt` (keep counts symbolic: the 80 GB compile; pair lists at
+   their elements' own forms, as at `NewServer.lean:2010`); `srvKeepRdN := mvccReaderN - P - 130`
+   (`InvRestart.lean:325`), `srvKeepRdN_total` (`StopShutdown.lean:392`), `StopReaders.lean`;
+   `EtcdServer__start.lean`'s `readMu` raw stock `P` beside `B` (`:572-588`); a narrow run-borrow
+   law for `I` at level 2 (as `srvRevokeCtx_innerBorrow`, from what `memberUp` holds); `memberUp`
+   (`etcdstart/Defs.lean:307-423`) builds the run pool (`initL` level 3, of `mvccReaders 1 ∗
+   srvReadReader ∗ srvBemuReader`) and gives its handle; adequacy lemmas with `srvLevelK`
+   (`etcdstart/Adequacy.lean:161,215`, `AdequacyMembers.lean:63,93`); k8s
+   `k8s/etcd3/Adequacy.lean:160,217` (`max (n + 2) srvLevelK`, `realThreadsBelow_mono`).
 2. **B3**: the callers in `/shared/tmp/stageB/b1b/boundary.txt` (+ `ServeFromStart`, `cluster3/Defs`
    become checkable), `Watch` made exact, the 64-stocks removed, `srvLevels` where used; the chain
    consumers of `srvChainWP_of_ok` (`client/v3/Results`' `etcdIcRs` …) pass the lent `Rs` to the

@@ -2,8 +2,9 @@
 **The server's lease reads meet the handlers' contract** (the lease rows at the gRPC level,
 `notes/lease-grpc-plan.md`): `raftLeaseRead s E γl S R` (`InvLeaseRead.lean`) from the server's
 proved `EtcdServer.LeaseTimeToLive.spec` and `EtcdServer.LeaseLeases.spec`, at the per-call
-resources `S := E.RD ∗ threadTok` (the thread token the lessor's reader pool `lessorRdPool γl`
-borrows from, a premise: the lease-src plan, 2026-11-02) and the revision reader
+resources `S := E.RD ∗ threadTok` (the thread token, whose level 0 the lessor's reader pool
+`lessorRdPool γl` and the leases' pools, leveled pools at level 0, borrow from: split off around
+each call; a premise: the lease-src plan, 2026-11-02) and the revision reader
 `R := mvcc.api.mvccReaders E.γ 1` (`srvKVAns`'s `revR`, so that the handlers' `A.revR` is it;
 `LeaseLeases`' `newHeader()` reads the store's revision with it; `lean`'s store reader). The
 two specs' bounds premises are this theorem's. Lean-first (no Rocq counterpart).
@@ -55,18 +56,25 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
   isplitr
   · iunfold lessorTTLOk
     iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hlib, #Hpub, #Hllb, Hr⟩ HΦ
+    -- the call takes the level-0 token of the lessor's and the leases' pools
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩
     wp_apply (hTTL hP s E ρ γr γl ci cd r dq v n m) $$ [HRD Htok Hr]
       as %resp %err ⟨HRD, Htok, Hr, Hans⟩
     · iframe; iframe #; ipureintro; exact hT
+    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Htok Htok1]
+    · iframe Htok Htok1
     iapply HΦ
     iframe
     iunfold ttlAns
     iexact Hans
   · iunfold lessorLeasesOk
     iintro %ci %cd %r %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hlib, #Hpub, #Hllb⟩ HΦ
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩
     wp_apply (hLs s E γr γl ci cd r ms cs n m) $$ [HRD Htok HR]
       as %resp %err ⟨Htok, HR, HRD, Hans⟩
     · iframe; iframe #; ipureintro; exact ⟨hT, hR⟩
+    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Htok Htok1]
+    · iframe Htok Htok1
     iapply HΦ
     iframe
     iunfold leasesAns
@@ -123,9 +131,13 @@ theorem raftLeaseRenew_of_server (hRn : EtcdServer.LeaseRenew.spec (GF := GF) (h
   iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpool, #Hpr⟩
   iunfold raftLeaseRenew
   iintro %ci %cd %id %n %m !> %Φ ⟨⟨HRD, Htok, Hlg, Hrr⟩, #Hctx, #Hlib, #Hpub, #Hllb⟩ HΦ
+  -- the call takes the level-0 token of the lessor's and the leases' pools
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩
   wp_apply (hRn s E ρ γr γl ci cd id n m) $$ [HRD Htok Hlg Hrr]
     as %ttl %err ⟨HRD, Htok, Hlg, Hrr, Hans⟩
   · iframe; iframe #; ipureintro; exact hT
+  ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Htok Htok1]
+  · iframe Htok Htok1
   iapply HΦ
   iframe
   iunfold renewAns

@@ -37,9 +37,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 /-- What `leasesByExpiry`, a sorter over the slice `sl`, holds: the pointers of `l`, a permutation
-of `ls0`, and a thread token (for `Less`'s `Remaining()`). -/
+of `ls0`, and the level-0 token of the leases' pools (for `Less`'s `Remaining()`). -/
 def lease.sorterR (sl : GoSlice) (ls0 : List (Loc × w64)) (l : List (Loc × w64)) : IProp GF :=
-  iprop(sl ↦* l.map Prod.fst ∗ threadTok ∗ ⌜l.Perm ls0⌝)
+  iprop(sl ↦* l.map Prod.fst ∗ levelTok leaseLvl ∗ ⌜l.Perm ls0⌝)
 
 /-- `leasesByExpiry` over the slice `sl` permutes the (pointer, id) list `ls0` of leases. -/
 theorem lease.sorter_byExpiry
