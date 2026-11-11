@@ -239,6 +239,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
       isplitr
       · iapply fxPresR_leadReply γ id ma _ s tn.voters cs0 _ P0 _ (fun a => rjResp a (idAbs id) ma.source)
           hmd (fun _ => by simp [rjResp]) (fun _ => rfl) (fun _ => by simp [rjResp, canonMsg])
+          (fun _ h => absurd h.2.1 (by simp [rjResp]))
         · intro a ha
           have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
           have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0

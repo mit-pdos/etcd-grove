@@ -479,7 +479,17 @@ theorem simFx_resp (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : Et
     exact hsub x hx
   isplitl
   · iapply quorumLogF_congr γ C σ (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) rfl
-      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) $$ Hq
+      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
+      (fun x hx _ => withNode_acks_without σ i _ ma x hx)
+      (withNode_leaders σ i _ _ _ (fun hl' => by
+        obtain ⟨-, -, h3, h4, -, -⟩ := respSrv_fields (σ.s i) ma
+        have hl0 : (σ.s i).state = Etcdraft.leader := by rw [← h4]; exact hl'
+        refine ⟨hl0, h3, fun _ _ => ?_⟩
+        have hv : ma.type = .requestVoteResponse := by
+          rcases hl with h | h
+          · exact absurd hl0 h
+          · exact h
+        unfold respSrv; rw [if_pos hv])) $$ Hq
   ipureintro
   refine ⟨specInv_respSrv σ i ma hsi hc hl,
     msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
@@ -722,7 +732,16 @@ theorem simFx_voteReq (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j
     · iapply msgFacts_plain γ C _ hxq hxe
   isplitl
   · iapply quorumLogF_congr γ C σ σ1 (by rw [hσ1]; rfl) (fun k => (hF k).1) (fun k => (hF k).2.1)
-      (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) $$ Hq
+      (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
+      (fun x hx hxa => by
+        rcases hsub x hx with hx | rfl
+        · exact hx
+        · exact absurd hxa.1 (by unfold vrResp; simp))
+      (by
+        rw [hσ1]
+        exact withNode_leaders σ i _ _ _ (fun hl => by
+          obtain ⟨-, -, h3, h4, -⟩ := vrSrv_fields (σ.s i) j ma
+          exact ⟨by rw [← h4]; exact hl, h3, fun _ _ => by unfold vrSrv; split <;> rfl⟩)) $$ Hq
   ipureintro
   refine ⟨hsi', by rw [hσ1]; exact hu', by rw [hσ1]; exact hsh', ?_⟩
   intro m hm hty k hk hlk htk hs k' e he

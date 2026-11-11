@@ -227,8 +227,25 @@ theorem simFx_simInit (E : CoPset) (γ : RaftNames) (C : List w64) (hE : ↑(raf
     rw [msgs_simInit] at hm
     cases hm
   isplitr
-  · -- (amendment A5) every committed prefix kept from term `0`, its certificate the bootstrap log's
+  · -- (amendment A5) every committed prefix kept from term `0`, its certificate the bootstrap log's;
+    -- (amendment A6) no acknowledgement in flight, every match index `0`
     iunfold QuorumLogF
+    isplitr
+    rotate_left
+    · iunfold AckHists
+      isplitr
+      · imodintro
+        iintro %x %hx
+        exfalso
+        have := hx.1
+        rw [msgs_simInit] at this
+        cases this
+      · imodintro
+        iintro %i %k %h
+        exfalso
+        have := h.2.2.2.2
+        simp [simInit] at this
+    iunfold QuorumKept
     imodintro
     iintro %i %_
     iexists 0

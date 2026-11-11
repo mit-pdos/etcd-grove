@@ -228,7 +228,9 @@ theorem simFx_rtf (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j : E
     iapply Hmf; ipureintro; exact hx
   isplitl
   · iapply quorumLogF_congr γ C σ (withNode σ i (rtfSrv (σ.s i) j) _root_.id _root_.id) rfl
-      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) $$ Hq
+      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
+      (fun x hx _ => hx)
+      (withNode_leaders σ i _ _ _ (fun hl => absurd hl (by simp [rtfSrv]; exact hfl))) $$ Hq
   ipureintro
   refine ⟨specInv_rtf hsi hi, hu, hsh, ?_⟩
   intro m hm hty k hk hlk htk hs k' e he

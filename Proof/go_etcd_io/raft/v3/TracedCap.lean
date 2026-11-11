@@ -796,16 +796,80 @@ instance commitCert_timeless (γ : RaftNames) (C : List w64) (P : List Etcdraft.
     Timeless (CommitCert (GF := GF) γ C P t) := by
   unfold CommitCert; infer_instance
 
-/-- **`QuorumLogInv`'s fact** (amended, A5, Q21; until then the bare `QuorumLogInv` over `σ`, which a
-truncating receiver at a lower term than the commit's could not be shown to keep): every server's
-committed prefix is kept from some term `t` on (`KeptFrom`), `t` a term it was committed at or after
-(`CommitCert`). `QuorumLogInv` follows (`quorumLogF_quorumLogS`). (Draft: a leader's `Commit` line's new
-prefix takes `t` the leader's term and its certificate raft's commit quorum; its quorum of holders at
-terms `≥ t` needs the acknowledgement-history copy of the notes' table, raft's `hist` over each
-member's current log, not yet in `simFx`: a further amendment, `notes/decisions.md`, "Amendment A5
-(Q21)".) -/
-def QuorumLogF (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
+/-- (Amendment A5, Q21) **The committed prefixes, kept**: every server's committed prefix is kept from
+some term `t` on (`KeptFrom`), `t` a term it was committed at or after (`CommitCert`). `QuorumLogInv`
+follows (`quorumLogF_quorumLogS`). (Until amendment A6 this was all of `QuorumLogF`.) -/
+def QuorumKept (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(□ ∀ i, ⌜i ∈ σ.server⌝ → ∃ t, ⌜KeptFrom σ (committedL σ i) t⌝ ∗ CommitCert γ C (committedL σ i) t)
+
+instance quorumKept_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Persistent (QuorumKept (GF := GF) γ C σ) := by
+  unfold QuorumKept; infer_instance
+
+instance quorumKept_timeless (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Timeless (QuorumKept (GF := GF) γ C σ) := by
+  unfold QuorumKept; infer_instance
+
+/-- (Amendment A6, Q22) **An acknowledgement in flight**: a successful append response to another
+server with a positive match index (the specification's `HandleAppendEntriesResponse` raises its
+destination's match index for its source to it, `respSrv`). A leader's response to itself
+(`AppendEntriesToSelf`) is not one: a leader's own log needs no history. -/
+def AckMsg (x : Etcdraft.Msg) : Prop :=
+  x.type = .appendEntriesResponse ∧ x.success = true ∧ x.source ≠ x.dest ∧ 0 < x.matchIndex
+
+/-- (Amendment A6, Q22) **Server `k`'s acknowledgement of index `m` at term `T`, with its history over
+`k`'s current log**: `k` is at a term at least `T`, and every raft log `F` that `k`'s log abstracts
+(`logAbs`, its bootstrap entries of term 1) has raft's history of the acknowledgement `(T, m)`
+(`hist`, `Protocol/Ghost.lean`, for leaders of terms below some bound): at every index `j ≤ m`, `F` has
+the term some `okL` log has there (a full log of a leader of a term `≥ T`, a committed log of an
+earlier term, or the bootstrap log), or two such logs already disagree at or below `j`. It is raft's
+`histsOk` (`GhostState.lean`), kept by the simulation over the specification's log rather than raft's,
+and keyed on the specification's acknowledgements (`AckHists`) rather than raft's acknowledgement maps:
+raft mints those at a batch's *enter*, outside any line, and a receive line moves `k`'s log before raft
+does (`notes/decisions.md`, "Amendment A6 (Q22)"). -/
+def AckHist (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : Etcdraft.ID) (T m : Int) : IProp GF :=
+  iprop(⌜0 ≤ T ∧ T ≤ (σ.s k).currentTerm ∧ T < 2 ^ 63 ∧ m < 2 ^ 63⌝ ∗
+    □ ∀ F : List EntryM, ⌜(σ.s k).log = logAbs C C.length 1 F ∧ BootTerms C.length 1 F⌝ →
+      ∃ B : Int, hist γ F (W64 T) (W64 m) B)
+
+instance ackHist_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : Etcdraft.ID) (T m : Int) :
+    Persistent (AckHist (GF := GF) γ C σ k T m) := by
+  unfold AckHist; infer_instance
+
+instance ackHist_timeless (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : Etcdraft.ID) (T m : Int) :
+    Timeless (AckHist (GF := GF) γ C σ k T m) := by
+  unfold AckHist; infer_instance
+
+/-- (Amendment A6, Q22) **The acknowledgements' histories** (the notes' acknowledgement-history copy):
+every acknowledgement in flight from a server (`AckMsg`), and every positive match index a leader holds
+for another server, at the leader's term, is its server's acknowledgement with its history (`AckHist`).
+A leader's `Commit` line reads it (`quorumLogF_commit`, `TracedQuorumLog.lean`): the members of its
+match-index quorum hold the newly committed prefix at terms at least the leader's (their histories
+agree with the leader's log there, by raft's leader completeness from the commit certificate), so the
+prefix is kept from the leader's term (`KeptFrom`). -/
+def AckHists (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
+  iprop((□ ∀ x, ⌜x ∈ σ.messages.domain ++ σ.pendingMessages.domain ∧ AckMsg x ∧ x.source ∈ σ.server⌝ →
+      AckHist γ C σ x.source x.term x.matchIndex) ∗
+    □ ∀ i k, ⌜i ∈ σ.server ∧ k ∈ σ.server ∧ (σ.s i).state = Etcdraft.leader ∧ k ≠ i ∧
+        0 < (σ.s i).matchIndex k⌝ →
+      AckHist γ C σ k (σ.s i).currentTerm ((σ.s i).matchIndex k))
+
+instance ackHists_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Persistent (AckHists (GF := GF) γ C σ) := by
+  unfold AckHists; infer_instance
+
+instance ackHists_timeless (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Timeless (AckHists (GF := GF) γ C σ) := by
+  unfold AckHists; infer_instance
+
+/-- **`QuorumLogInv`'s fact** (amended, A5, Q21; until then the bare `QuorumLogInv` over `σ`, which a
+truncating receiver at a lower term than the commit's could not be shown to keep; amended again, A6,
+Q22): every server's committed prefix is kept from some term `t` on, `t` a term it was committed at or
+after (`QuorumKept`), and the acknowledgements carry their histories (`AckHists`), which a leader's
+`Commit` line needs to show its new prefix kept from its term. `QuorumLogInv` follows
+(`quorumLogF_quorumLogS`). -/
+def QuorumLogF (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
+  iprop(QuorumKept γ C σ ∗ AckHists γ C σ)
 
 instance quorumLogF_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (QuorumLogF (GF := GF) γ C σ) := by
@@ -834,6 +898,8 @@ theorem quorumLogF_quorumLogS (γ : RaftNames) (C : List w64) (σ : Etcdraft.Sta
     QuorumLogF (GF := GF) γ C σ ⊢ ⌜TraceSpecInv.QuorumLogS σ⌝ := by
   iintro #H
   iunfold QuorumLogF at H
+  icases H with ⟨#H, -⟩
+  iunfold QuorumKept at H
   by_cases hc : ∀ i ∈ σ.server, ∃ t, KeptFrom σ (committedL σ i) t
   · ipureintro; exact quorumLogS_of_keptFrom σ hcf hc
   simp only [Classical.not_forall, not_exists] at hc

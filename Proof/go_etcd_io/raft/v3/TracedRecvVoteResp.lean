@@ -126,7 +126,11 @@ theorem simFx_respCand (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i 
     exact hsub x hx
   isplitl
   · iapply quorumLogF_congr γ C σ (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) rfl
-      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) $$ Hq
+      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
+      (fun x hx _ => hsub x hx)
+      (withNode_leaders σ i _ _ _ (fun hl => by
+        obtain ⟨-, -, h3, h4, -, -⟩ := respSrv_fields (σ.s i) ma
+        exact ⟨by rw [← h4]; exact hl, h3, fun _ _ => by unfold respSrv; rw [if_pos hty]⟩)) $$ Hq
   ipureintro
   refine ⟨specInv_respCand σ i ma hsi hi hm hd hty ht,
     msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩

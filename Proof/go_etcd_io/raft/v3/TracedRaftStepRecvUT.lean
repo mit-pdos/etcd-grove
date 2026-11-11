@@ -272,7 +272,9 @@ theorem simFx_ut (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : w64)
     iintro %x %hx
     iapply Hmf; ipureintro; rw [hW] at hx; exact hx
   isplitl
-  · iapply quorumLogF_congr γ C σ W (by rw [hW]; rfl) (fun j => (hF j).1) (fun j => (hF j).2.1) ?_ $$ Hq
+  · iapply quorumLogF_congr γ C σ W (by rw [hW]; rfl) (fun j => (hF j).1) (fun j => (hF j).2.1) ?_
+      (fun x hx _ => by rw [hW] at hx; exact hx)
+      (by rw [hW]; exact withNode_leaders σ _ _ _ _ (fun hl => absurd hl (by simp [utSrv]; decide))) $$ Hq
     intro j; rw [hWs]; split
     · rename_i hj; subst hj; simp only [utSrv]; omega
     · exact Int.le_refl _

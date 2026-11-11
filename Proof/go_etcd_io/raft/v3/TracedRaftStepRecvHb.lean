@@ -350,9 +350,16 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     · iapply Hmf; ipureintro; exact hx
     · iapply msgFacts_plain γ C _ hxq rfl
   isplitl
-  · iapply quorumLogF_mono γ C σ W hWsrv hPW ?_ $$ Hq
-    intro P t h
-    exact keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) h
+  · iapply quorumLogF_mono γ C σ W hWsrv hPW ?_ ?_ ?_
+      (fun k T m => ackHist_congr γ C σ W k T m (hF k).1 (by rw [(hF k).2.1]; exact Int.le_refl _)) $$ Hq
+    · intro P t h
+      exact keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) h
+    · intro x hx hxa
+      rcases hsub' x hx with hx | rfl
+      · exact hx
+      · exact absurd hxa.2.2.2 (by simp [hbResp])
+    · rw [hW]
+      exact withNode_leaders σ ma.dest _ _ _ (fun hl => absurd hl (by simp [hbSrv, hf]; decide))
   ipureintro
   refine ⟨hsi', by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he

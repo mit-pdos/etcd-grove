@@ -717,16 +717,16 @@ theorem commitCert_prefix (γ : RaftNames) (C : List w64) (P P' : List Etcdraft.
   ipureintro
   exact ⟨hp.trans Hp.1, Hp.2⟩
 
-/-- **`QuorumLogF` carried to another state** (the general form): the same servers, every committed
-prefix after a prefix of one before (`hP`: its own, or, at a raised commit index, its source's), and
-every `KeptFrom` carried over (`hK`). -/
-theorem quorumLogF_mono (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
+/-- **`QuorumKept` carried to another state** (the general form; A5's `quorumLogF_mono`): the same
+servers, every committed prefix after a prefix of one before (`hP`: its own, or, at a raised commit
+index, its source's), and every `KeptFrom` carried over (`hK`). -/
+theorem quorumKept_mono (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
     (hP : ∀ i ∈ σ.server, ∃ k ∈ σ.server, committedL σ' i <+: committedL σ k)
     (hK : ∀ P t, KeptFrom σ P t → KeptFrom σ' P t) :
-    QuorumLogF (GF := GF) γ C σ ⊢ QuorumLogF γ C σ' := by
+    QuorumKept (GF := GF) γ C σ ⊢ QuorumKept γ C σ' := by
   iintro #H
-  iunfold QuorumLogF at H
-  iunfold QuorumLogF
+  iunfold QuorumKept at H
+  iunfold QuorumKept
   imodintro
   iintro %i %hi
   rw [hsrv] at hi
@@ -738,15 +738,251 @@ theorem quorumLogF_mono (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State
   · ipureintro; exact hK _ _ (keptFrom_prefix hp hKt)
   iapply commitCert_prefix γ C _ _ t hp $$ Hc
 
+/-- (Amendment A6) **An acknowledgement's history carried** to a state where its server's log is the
+same and its term no lower. -/
+theorem ackHist_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (k : Etcdraft.ID) (T m : Int)
+    (hL : (σ'.s k).log = (σ.s k).log) (hT : (σ.s k).currentTerm ≤ (σ'.s k).currentTerm) :
+    AckHist (GF := GF) γ C σ k T m ⊢ AckHist γ C σ' k T m := by
+  iintro H
+  iunfold AckHist at H
+  icases H with ⟨%hp, #H⟩
+  iunfold AckHist
+  isplitr
+  · ipureintro; exact ⟨hp.1, Int.le_trans hp.2.1 hT, hp.2.2⟩
+  rw [hL]; iexact H
+
+/-- (Amendment A6) **The acknowledgements' histories carried to another state** (the general form):
+the same servers, every acknowledgement in flight after one before (`hM`), every leader after one
+before at the same term and match indices (`hLd`), and every acknowledgement's history carried, given
+persistent facts `R` (`hA`). -/
+theorem ackHists_mono (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (R : IProp GF) [Persistent R]
+    (hsrv : σ'.server = σ.server)
+    (hM : ∀ x ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, AckMsg x →
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain)
+    (hLd : ∀ i, (σ'.s i).state = Etcdraft.leader → (σ.s i).state = Etcdraft.leader ∧
+      (σ'.s i).currentTerm = (σ.s i).currentTerm ∧ ∀ k ∈ σ.server, (σ'.s i).matchIndex k = (σ.s i).matchIndex k)
+    (hA : ∀ k T m, R ∗ AckHist γ C σ k T m ⊢ AckHist γ C σ' k T m) :
+    R ∗ AckHists (GF := GF) γ C σ ⊢ AckHists γ C σ' := by
+  iintro ⟨#HR, #H⟩
+  iunfold AckHists at H
+  icases H with ⟨#Hm, #Hl⟩
+  iunfold AckHists
+  isplitl
+  · imodintro
+    iintro %x %hx
+    obtain ⟨hx1, hx2, hx3⟩ := hx
+    iapply hA x.source x.term x.matchIndex
+    isplitr; · iexact HR
+    iapply Hm $$ %x
+    ipureintro; exact ⟨hM x hx1 hx2, hx2, by rw [← hsrv]; exact hx3⟩
+  · imodintro
+    iintro %i %k %h
+    obtain ⟨hi, hk, hl, hki, hm⟩ := h
+    obtain ⟨hl0, ht0, hm0⟩ := hLd i hl
+    have hk' : k ∈ σ.server := by rw [← hsrv]; exact hk
+    rw [hm0 k hk'] at hm
+    rw [ht0, hm0 k hk']
+    iapply hA k (σ.s i).currentTerm ((σ.s i).matchIndex k)
+    isplitr; · iexact HR
+    iapply Hl $$ %i %k
+    ipureintro; exact ⟨by rw [← hsrv]; exact hi, by rw [← hsrv]; exact hk, hl0, hki, hm⟩
+
+/-- (Amendment A6) **The acknowledgements' histories carried to a state with the same logs**, terms
+that do not decrease, no new acknowledgement in flight and no new leader or match index. -/
+theorem ackHists_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
+    (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm)
+    (hM : ∀ x ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, AckMsg x →
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain)
+    (hLd : ∀ i, (σ'.s i).state = Etcdraft.leader → (σ.s i).state = Etcdraft.leader ∧
+      (σ'.s i).currentTerm = (σ.s i).currentTerm ∧ ∀ k ∈ σ.server, (σ'.s i).matchIndex k = (σ.s i).matchIndex k) :
+    AckHists (GF := GF) γ C σ ⊢ AckHists γ C σ' := by
+  iintro #H
+  iapply ackHists_mono γ C σ σ' iprop(True) hsrv hM hLd
+    (fun k T m => by iintro ⟨-, #H⟩; iapply ackHist_congr γ C σ σ' k T m (hL k) (hT k) $$ H)
+  iframe H
+
+/-- **`QuorumLogF` carried to another state** (the general form): `QuorumKept`'s (`quorumKept_mono`)
+and `AckHists`' (`ackHists_mono`, the histories carried by `hA`). -/
+theorem quorumLogF_mono (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
+    (hP : ∀ i ∈ σ.server, ∃ k ∈ σ.server, committedL σ' i <+: committedL σ k)
+    (hK : ∀ P t, KeptFrom σ P t → KeptFrom σ' P t)
+    (hM : ∀ x ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, AckMsg x →
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain)
+    (hLd : ∀ i, (σ'.s i).state = Etcdraft.leader → (σ.s i).state = Etcdraft.leader ∧
+      (σ'.s i).currentTerm = (σ.s i).currentTerm ∧ ∀ k ∈ σ.server, (σ'.s i).matchIndex k = (σ.s i).matchIndex k)
+    (hA : ∀ k T m, AckHist (GF := GF) γ C σ k T m ⊢ AckHist γ C σ' k T m) :
+    QuorumLogF (GF := GF) γ C σ ⊢ QuorumLogF γ C σ' := by
+  iintro #H
+  iunfold QuorumLogF at H
+  icases H with ⟨#Hq, #Ha⟩
+  iunfold QuorumLogF
+  isplitl
+  · iapply quorumKept_mono γ C σ σ' hsrv hP hK $$ Hq
+  · iapply ackHists_mono γ C σ σ' iprop(True) hsrv hM hLd
+      (fun k T m => by iintro ⟨-, #H⟩; iapply hA k T m $$ H)
+    iframe Ha
+
 /-- **`QuorumLogF` carried to a state with the same servers, logs and commit indices**, terms that do
-not decrease (`keptFrom_congr`). -/
+not decrease (`keptFrom_congr`), and (amendment A6) no new acknowledgement in flight and no new leader
+or match index (`ackHists_congr`). -/
 theorem quorumLogF_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
     (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex)
-    (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm) :
+    (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm)
+    (hM : ∀ x ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, AckMsg x →
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain)
+    (hLd : ∀ i, (σ'.s i).state = Etcdraft.leader → (σ.s i).state = Etcdraft.leader ∧
+      (σ'.s i).currentTerm = (σ.s i).currentTerm ∧ ∀ k ∈ σ.server, (σ'.s i).matchIndex k = (σ.s i).matchIndex k) :
     QuorumLogF (GF := GF) γ C σ ⊢ QuorumLogF γ C σ' :=
   quorumLogF_mono γ C σ σ' hsrv
     (fun i hi => ⟨i, hi, by unfold committedL; rw [hL, hC]; exact List.prefix_refl _⟩)
-    (fun _ _ h => keptFrom_congr hsrv hL hT h)
+    (fun _ _ h => keptFrom_congr hsrv hL hT h) hM hLd
+    (fun k T m => ackHist_congr γ C σ σ' k T m (hL k) (hT k))
+
+/-- (Amendment A6) **Two raft logs the same abstract log reads** (their bootstrap entries of term 1)
+have the same terms. -/
+theorem plogTermAt_logAbs_eq (C : List w64) (F1 F2 : List EntryM)
+    (hl : logAbs C C.length 1 F1 = logAbs C C.length 1 F2)
+    (hb1 : BootTerms C.length 1 F1) (hb2 : BootTerms C.length 1 F2) (j : w64) :
+    plogTermAt base0 F1 j = plogTermAt base0 F2 j := by
+  have hlen : F1.length = F2.length := by
+    have := congrArg List.length hl; rwa [logAbs_length, logAbs_length] at this
+  by_cases hj : uint.Z j = 0
+  · unfold plogTermAt; simp [base0_index, hj]
+  have hj0 : 0 < uint.Z j := by have := uint_Z_nonneg j; omega
+  rw [show (base0 : entryID) = entryID.mk (W64 0) (W64 0) from rfl, plogTermAt_base0 F1 j hj0,
+    plogTermAt_base0 F2 j hj0]
+  by_cases hn : uint.nat j - 1 < F1.length
+  · exact terms_of_absTerms C F1 F2 hb1 hb2 _ hn (by omega) (by rw [hl])
+  · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
+
+/-- (Amendment A6) **A history over one raft log is one over any with the same abstract log.** -/
+theorem hist_logAbs (γ : RaftNames) (C : List w64) (F1 F2 : List EntryM)
+    (hl : logAbs C C.length 1 F1 = logAbs C C.length 1 F2)
+    (hb1 : BootTerms C.length 1 F1) (hb2 : BootTerms C.length 1 F2) (t i : w64) (B : Int) :
+    hist (GF := GF) γ F1 t i B ⊢ hist γ F2 t i B := by
+  iintro H
+  iapply hist_keep γ F1 F2 t i B (fun j _ _ => (plogTermAt_logAbs_eq C F1 F2 hl hb1 hb2 j).symm) $$ H
+
+/-- (Amendment A6) **An acknowledgement's history from one raft log** its server's log abstracts. -/
+theorem ackHist_intro (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : Etcdraft.ID) (T m : Int)
+    (F0 : List EntryM) (B : Int) (hlog : (σ.s k).log = logAbs C C.length 1 F0)
+    (hb : BootTerms C.length 1 F0) (hr : 0 ≤ T ∧ T ≤ (σ.s k).currentTerm ∧ T < 2 ^ 63 ∧ m < 2 ^ 63) :
+    hist (GF := GF) γ F0 (W64 T) (W64 m) B ⊢ AckHist γ C σ k T m := by
+  iintro #H
+  iunfold AckHist
+  isplitr
+  · ipureintro; exact hr
+  imodintro
+  iintro %F %hF
+  iexists B
+  iapply hist_logAbs γ C F0 F (by rw [← hlog, hF.1]) hb hF.2 $$ H
+
+/-- (Amendment A6) **A voter acknowledges its commit index at its term** (the stale append's response,
+`AppendEntriesAlreadyDone` below the commit index): raft's commit certificate gives the history
+(`hist_of_commit`). -/
+theorem ackHist_commit (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (w : w64) :
+    srvFacts (GF := GF) γ C w (σ.s (idAbs w)) ⊢
+      AckHist γ C σ (idAbs w) (σ.s (idAbs w)).currentTerm (σ.s (idAbs w)).commitIndex := by
+  iintro #Hf
+  iunfold srvFacts at Hf
+  icases Hf with ⟨%es, %pend, %Hp, #Hr, -, -, #Hc⟩
+  obtain ⟨hlog, hboot, hwf, hlen, hc0, hcle, ht0, ht1, -, -⟩ := Hp
+  rw [List.length_append] at hlen
+  have hw : PlogWf base0 es :=
+    PlogWfR_wf _ _ (PlogWfR_append_left _ _ _ hwf) (by unfold plogLastIndexZ; rw [base0_index]; simp; omega)
+  have htW : uint.Z (W64 (σ.s (idAbs w)).currentTerm) = (σ.s (idAbs w)).currentTerm := by word
+  ihave #Hh := hist_of_commit γ es (W64 (σ.s (idAbs w)).commitIndex) (W64 (σ.s (idAbs w)).currentTerm)
+    ((σ.s (idAbs w)).currentTerm + 1) hw (by rw [htW]; omega) $$ Hr Hc
+  have hcW : uint.Z (W64 (σ.s (idAbs w)).commitIndex) = (σ.s (idAbs w)).commitIndex := by word
+  iapply ackHist_intro γ C σ (idAbs w) _ _ (es ++ pend) ((σ.s (idAbs w)).currentTerm + 1) hlog hboot
+    ⟨ht0, Int.le_refl _, ht1, by omega⟩
+  iapply hist_keep γ es (es ++ pend) _ _ _
+    (fun j _ hs => plogTermAt_prefix base0 es (es ++ pend) j (List.prefix_append _ _) hs) $$ Hh
+
+/-- (Amendment A6) **`AckHists` carried with one new message `x`**: as `ackHists_congr`, every other
+acknowledgement in flight one before, and `x`'s history given when it is an acknowledgement. -/
+theorem ackHists_congrW (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (x : Etcdraft.Msg)
+    (hsrv : σ'.server = σ.server)
+    (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm)
+    (hM : ∀ y ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, AckMsg y →
+      y ∈ σ.messages.domain ++ σ.pendingMessages.domain ∨ y = x)
+    (hLd : ∀ i, (σ'.s i).state = Etcdraft.leader → (σ.s i).state = Etcdraft.leader ∧
+      (σ'.s i).currentTerm = (σ.s i).currentTerm ∧ ∀ k ∈ σ.server, (σ'.s i).matchIndex k = (σ.s i).matchIndex k) :
+    AckHists (GF := GF) γ C σ ∗
+      □ (⌜AckMsg x ∧ x.source ∈ σ'.server⌝ → AckHist γ C σ' x.source x.term x.matchIndex) ⊢
+    AckHists γ C σ' := by
+  iintro ⟨#H, #Hx⟩
+  iunfold AckHists at H
+  icases H with ⟨#Hm, #Hl⟩
+  iunfold AckHists
+  isplitl
+  · imodintro
+    iintro %y %hy
+    obtain ⟨hy1, hy2, hy3⟩ := hy
+    rcases hM y hy1 hy2 with hy1 | rfl
+    · iapply ackHist_congr γ C σ σ' _ _ _ (hL _) (hT _)
+      iapply Hm $$ %y
+      ipureintro; exact ⟨hy1, hy2, by rw [← hsrv]; exact hy3⟩
+    · iapply Hx; ipureintro; exact ⟨hy2, hy3⟩
+  · imodintro
+    iintro %i %k %h
+    obtain ⟨hi, hk, hl, hki, hm⟩ := h
+    obtain ⟨hl0, ht0, hm0⟩ := hLd i hl
+    have hk' : k ∈ σ.server := by rw [← hsrv]; exact hk
+    rw [hm0 k hk'] at hm
+    rw [ht0, hm0 k hk']
+    iapply ackHist_congr γ C σ σ' _ _ _ (hL _) (hT _)
+    iapply Hl $$ %i %k
+    ipureintro; exact ⟨by rw [← hsrv]; exact hi, by rw [← hsrv]; exact hk, hl0, hki, hm⟩
+
+/-- (Amendment A6) **`QuorumLogF` carried with one new message `x`** (`quorumLogF_congr` and
+`ackHists_congrW`). -/
+theorem quorumLogF_congrW (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (x : Etcdraft.Msg)
+    (hsrv : σ'.server = σ.server)
+    (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex)
+    (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm)
+    (hM : ∀ y ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, AckMsg y →
+      y ∈ σ.messages.domain ++ σ.pendingMessages.domain ∨ y = x)
+    (hLd : ∀ i, (σ'.s i).state = Etcdraft.leader → (σ.s i).state = Etcdraft.leader ∧
+      (σ'.s i).currentTerm = (σ.s i).currentTerm ∧ ∀ k ∈ σ.server, (σ'.s i).matchIndex k = (σ.s i).matchIndex k) :
+    QuorumLogF (GF := GF) γ C σ ∗
+      □ (⌜AckMsg x ∧ x.source ∈ σ'.server⌝ → AckHist γ C σ' x.source x.term x.matchIndex) ⊢
+    QuorumLogF γ C σ' := by
+  iintro ⟨#H, #Hx⟩
+  iunfold QuorumLogF at H
+  icases H with ⟨#Hq, #Ha⟩
+  iunfold QuorumLogF
+  isplitl
+  · iapply quorumKept_mono γ C σ σ' hsrv
+      (fun i hi => ⟨i, hi, by unfold committedL; rw [hL, hC]; exact List.prefix_refl _⟩)
+      (fun _ _ h => keptFrom_congr hsrv hL hT h) $$ Hq
+  · iapply ackHists_congrW γ C σ σ' x hsrv hL hT hM hLd
+    iframe Ha Hx
+
+/-- (Amendment A6) **A server update's leaders**: `withNode σ i a'` has a new leader, term or match
+index only if `a'` does (`hLd` of `ackHists_congr` from the updated server's). -/
+theorem withNode_leaders (σ : Etcdraft.State) (i : Etcdraft.ID) (a' : Etcdraft.Server) (fM fP : Etcdraft.Bag → Etcdraft.Bag)
+    (h : a'.state = Etcdraft.leader → (σ.s i).state = Etcdraft.leader ∧ a'.currentTerm = (σ.s i).currentTerm ∧
+      ∀ k ∈ σ.server, a'.matchIndex k = (σ.s i).matchIndex k) (k : Etcdraft.ID)
+    (hk : ((withNode σ i a' fM fP).s k).state = Etcdraft.leader) :
+    (σ.s k).state = Etcdraft.leader ∧ ((withNode σ i a' fM fP).s k).currentTerm = (σ.s k).currentTerm ∧
+      ∀ j ∈ σ.server, ((withNode σ i a' fM fP).s k).matchIndex j = (σ.s k).matchIndex j := by
+  have hs : (withNode σ i a' fM fP).s k = if k = i then a' else σ.s k := rfl
+  rw [hs] at hk ⊢
+  by_cases hki : k = i
+  · rw [if_pos hki] at hk ⊢; subst hki; exact h hk
+  · rw [if_neg hki] at hk ⊢; exact ⟨hk, rfl, fun _ _ => rfl⟩
+
+/-- (Amendment A6) **The acknowledgements in flight after a consumed message** (and pending messages
+kept) were in flight before. -/
+theorem withNode_acks_without (σ : Etcdraft.State) (i : Etcdraft.ID) (a' : Etcdraft.Server) (m : Etcdraft.Msg)
+    (x : Etcdraft.Msg)
+    (hx : x ∈ (withNode σ i a' (fun b => b.without m) _root_.id).messages.domain ++
+      (withNode σ i a' (fun b => b.without m) _root_.id).pendingMessages.domain) :
+    x ∈ σ.messages.domain ++ σ.pendingMessages.domain := by
+  rcases List.mem_append.mp hx with hx | hx
+  · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
+  · exact List.mem_append_right _ hx
 
 theorem ready_msgs_sub (σ : Etcdraft.State) (i : Etcdraft.ID) :
     ∀ x ∈ (σ.ready i).messages.domain ++ (σ.ready i).pendingMessages.domain,
@@ -794,7 +1030,13 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   · iapply quorumLogF_congr γ C σ (σ.ready (idAbs id)) rfl
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
-      (fun k => by rw [ready_s]; split <;> subst_vars <;> exact Int.le_refl _) $$ Hq
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> exact Int.le_refl _)
+      (fun x hx _ => ready_msgs_sub σ (idAbs id) x hx)
+      (fun k hk => by
+        rw [ready_s] at hk ⊢
+        by_cases h : k = idAbs id
+        · rw [if_pos h] at hk ⊢; subst h; exact ⟨hk, rfl, fun _ _ => rfl⟩
+        · rw [if_neg h] at hk ⊢; exact ⟨hk, rfl, fun _ _ => rfl⟩) $$ Hq
   ipureintro
   refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_⟩
   · intro ln m1 m2 h1 h2 hp1 hp2
