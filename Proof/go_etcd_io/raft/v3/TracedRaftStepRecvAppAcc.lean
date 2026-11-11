@@ -549,7 +549,7 @@ theorem quorumLogF_appLog (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.Sta
       (fun i => by
         iintro ⟨Htbl, ⟨%t, %hK, #Hc⟩, #Hp, #Hf⟩
         by_cases ht : t ≤ m.term
-        · icases keep_pure (commitCert_app γ C (committedL σ i) t src T bL l fp ents idx lt m
+        · icases trKeep_pure (commitCert_app γ C (committedL σ i) t src T bL l fp ents idx lt m
               (by rw [← hTm]; exact ht) hin hsl hidx1 hidx hents) $$ [$Htbl $Hc $Hp $Hf]
             with ⟨⟨Htbl, -⟩, %hag⟩
           iframe Htbl
