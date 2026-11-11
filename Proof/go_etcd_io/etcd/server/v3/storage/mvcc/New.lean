@@ -45,7 +45,7 @@ theorem mvcc.New.wp_proof
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
   intro _ lg b le cfg d γb γl P rd0 γi γok γtag M Perm R r Ls hk Pre Q Post X Y dq
-  wp_start as ⟨%Hpre, #Hpkg, Hsess, Hbtr, Hkcr, Hreg, Himg, Hrcpt, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd,
+  wp_start as ⟨%Hpre, #Hzl, #Hpkg, Hsess, Hbtr, Hkcr, Hreg, Himg, Hrcpt, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd,
     #Hlessor, Hro, Hlo, %Hpend, Hifresh, Hok0, Hcert0, Hfin, Hcrv, Hres, Hsup⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

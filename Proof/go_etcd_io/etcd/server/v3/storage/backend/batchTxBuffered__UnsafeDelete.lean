@@ -32,7 +32,7 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
   intro γ P W Pk b t st bk bi key kb dk own Hhas Hp Hhk Hfk Hsb
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, Hrbp, Hdlp⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   unfold batchLocked batchLockedAt batchPhys
   icases Hl with ⟨%t', %db, #Ht', Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb', Hwtx, #Htxdb, Hmu⟩,

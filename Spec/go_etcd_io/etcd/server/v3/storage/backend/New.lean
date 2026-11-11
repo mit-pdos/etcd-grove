@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Perennial.ProgramLogic.Bounds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -34,6 +35,8 @@ abbrev backend.New.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : BackendConfig) (P : BParams) (D : Data)
     (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      -- (premise fixes 6, D2a) the logger nil (replaced by `zap.NewNop()`) or a zap logger
+      zapLoggerOrNil cfg.Logger' ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
       -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)

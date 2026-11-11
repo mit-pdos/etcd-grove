@@ -28,7 +28,7 @@ theorem traceutil.Trace.updateFieldIfExist.wp_proof :
   intro t e f
   wp_start as ⟨Ht, %Hwf⟩
   iunfold traceutil.ownTrace at Ht
-  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He⟩
+  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He, #Hlz⟩
   iunfold traceutil.ownFields at Hfs
   icases Hfs with ⟨%ffs, Hffs, Hfcap, %Hfwf⟩
   ihave %Hfl := ownSlice_len $$ Hffs
@@ -72,6 +72,7 @@ theorem traceutil.Trace.updateFieldIfExist.wp_proof :
       iexists _, _
       (try simp only)
       iframe
+      (try iframe Hlz)
       ipureintro; exact He
     · (try wp_auto)
       wp_for_post
@@ -91,6 +92,7 @@ theorem traceutil.Trace.updateFieldIfExist.wp_proof :
     iexists _, _
     (try simp only)
     iframe
+    (try iframe Hlz)
     ipureintro; exact He
 
 end proof

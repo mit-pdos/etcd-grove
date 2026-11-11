@@ -138,10 +138,10 @@ private theorem unlock_core
   intro γ P W Pk b t st Q Hhw Hroom
   wp_start as ⟨#Hb, #Ht, Hl, Htok, Hcase⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t2, %rt, %db1, %lg2, #-, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
+    ⟨%t2, %rt, %db1, %lg2, #-, #Hrt, #-, #-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   ihave Hl := batchLocked_W γ P b st $$ Hl
   unfold batchLockedW batchGhostW
   simp only [Bool.false_eq_true, ↓reduceIte]

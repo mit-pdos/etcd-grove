@@ -50,6 +50,7 @@ theorem mvcc.treeIndex.Put.wp_proof
   obtain ⟨Hrev, Hilog, Hpend, Hwf'⟩ := Hpre
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.idxWriter at Hw
   icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, #Hrc⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf

@@ -83,11 +83,16 @@ theorem runChecks.wp_proof
   (try wp_auto)
   wp_apply wp_DefaultBackendConfig as %bc %Hbc
   (try wp_auto)
-  obtain ⟨hlim, hhooks⟩ := Hbc
+  obtain ⟨hlim, hhooks, hlgc⟩ := Hbc
+  -- (premise fixes 6) the logger `NewNop`'s, a zap logger, for `backend.New` and `mvcc.New`
+  ihave #Hlgo : zapLoggerOrNil lg $$ []
+  · iapply zapLoggerOk_orNil; iexact Hlgz
+  ihave #Hblgo : zapLoggerOrNil bc.Logger' $$ []
+  · rw [hlgc]; iexact Hlgo
   imod halloc with ⟨%gx, Hreg, HW⟩
   wp_apply (wp_bNew _ (rcP bc.BatchLimit') ∅ (fun _ => mvccW gx) (fun _ => iprop(True))
       backend.bFresh) $$ [Hfile HW Htok] as %r Hr
-  · iframe Hfile Htok Hvoff
+  · iframe Hfile Htok Hvoff Hblgo
     isplitr
     · ipureintro
       refine ⟨rcP_wf _ (by rw [hlim]; decide) (by rw [hlim]; decide), rfl⟩
@@ -184,7 +189,7 @@ theorem runChecks.wp_proof
       mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True) iprop(True)
       iprop(True)) $$ [Hsf Hlrd1 Hrdo Hlown]
     as %wsl ⟨%γk, %Hγl, #Hkv, Hσ, Hopn, Hmb, Hrdrs, ⟨%rd, Hrdo, Hdel⟩, Hlown, -, -⟩
-  · iframe Hsf Hlrd1 HisL Hrdo Hlown
+  · iframe Hsf Hlrd1 HisL Hrdo Hlown Hlgo
     isplitr
     · ipureintro; exact ⟨hbl, .start, rfl⟩
     isplitr

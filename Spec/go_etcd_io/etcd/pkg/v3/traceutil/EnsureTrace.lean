@@ -39,12 +39,13 @@ or not as `e`), the fields owned: a context like `ctx` (an `isContext` of `ctx` 
 carrying the trace `t` returned, owned, not empty: the caller's if not empty, else a new one; and
 (2026-10-28, the auth plan's E3zb) `ctx`'s incoming gRPC metadata (`metadata.incomingOf`: `ctx`
 itself, or a `context.WithValue` of it); and (R8, 2026-11-07) `ctx`'s span fact
-(`trace.spanCtxOk`: `WithValue` at `TraceKey{}`, not otel's key, delegates otel's key to `ctx`). -/
+(`trace.spanCtxOk`: `WithValue` at `TraceKey{}`, not otel's key, delegates otel's key to `ctx`).
+(Premise fixes 6) The logger nil or a zap logger: a new trace keeps it (`ownTrace`). -/
 abbrev traceutil.EnsureTrace.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (o : Option Loc) (e : Bool)
     (lg : Loc) (op : GoString) (fields : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx o ∗
-      traceutil.ownTraceOpt o e ∗ traceutil.ownFields fields }}
+      traceutil.ownTraceOpt o e ∗ traceutil.ownFields fields ∗ zapLoggerOrNil lg }}
     (App (App (App (App (Val (@! traceutil.EnsureTrace)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #op)) (Val #fields))
   {{ (ctx' : GoInterfaceOk) (t : Loc), RET (PairV #(GoInterface.ok ctx') #t);

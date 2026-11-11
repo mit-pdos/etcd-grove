@@ -41,7 +41,7 @@ theorem backend.backend.run.wp_proof
   intro γ P W Pk b sc dc γsc γdc u d
   wp_start as ⟨#Hb, #Hsc, #Hbi, Hdcp, Hrt, Hq, Hus⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, %Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
+    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, #Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
   unfold isStopChansAt
   icases Hsc with ⟨#Hscf, #Hdcf, #Hscb, #Hdcb, #Hinv⟩
   ihave #Hscc := ownBroadcastChan_is_chan _ _ _ _ $$ Hscb

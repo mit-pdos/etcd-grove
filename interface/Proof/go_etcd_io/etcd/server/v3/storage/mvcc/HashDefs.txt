@@ -9,7 +9,7 @@ def mvcc.hashStorageOk (h : Loc) : IProp GF :=
   iprop(∃ lg,
       typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage go!"lg" h) lg
           DFrac.discard ∗
-        ⌜lg ≠ null⌝)
+        zapLoggerOk lg)
 
 def (sealed) mvcc.kvHasherOk : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher → Prop
 

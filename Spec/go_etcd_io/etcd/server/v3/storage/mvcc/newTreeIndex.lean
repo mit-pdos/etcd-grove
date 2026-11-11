@@ -3,6 +3,7 @@
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
@@ -22,7 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `newTreeIndex(lg)` (a non-nil logger): a fresh tree index (as the `index` interface), private
+/-- `newTreeIndex(lg)` (a zap logger, `zapLoggerOk`: `treeIndex.Compact` logs through it; premise
+fixes 6, until then a non-nil logger): a fresh tree index (as the `index` interface), private
 (`ownIdxPriv`: its `RWMutex` not yet a lock, the restore plan's R3 design point: `restore` rebuilds
 it outside any lock and makes the lock, `idx_publish`), with the lock's ghost part (`idxLockG γ n`)
 and the compactor's token (`idxCompactor`, no compaction yet: what `treeIndex.Compact` takes).
@@ -34,7 +36,7 @@ R5d: `store.Restore`'s new index keeps the store's history, committed-log and co
 etcd server chooses them before `newRaftNode`). -/
 abbrev mvcc.newTreeIndex.spec : Prop :=
   ∀ (γ : mvcc.IdxNames) (lg : Loc) (n : Nat) (log₀ : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ zapLoggerOk lg ∗
       monoNatAuthOwn γ.nev 1 n ∗ ghostVar γ.cmp 1 ((-1 : Int), ([] : List Loc)) ∗
       mvcc.crevLb γ (-1) ∗ monoListLbOwn γ.log log₀ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex)) (Val #lg))

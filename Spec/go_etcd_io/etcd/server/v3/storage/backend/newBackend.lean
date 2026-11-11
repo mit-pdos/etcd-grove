@@ -6,7 +6,8 @@ transactions), the hooks set, the periodic committer `run` started on a goroutin
 (no Rocq counterpart); 2026-10-17, branch `construct` (`notes/STATUS.md`, "Item 6").
 
 The pre: the backend package's facts, `boltOpenOptions` (a package fact not yet in
-`backendInit`: `BboltOptions.lean`), the database file's contents `D` (`fileHolds`; a new member's
+`backendInit`: `BboltOptions.lean`), the configuration's logger nil (Go replaces it by
+`zap.NewNop()`) or a zap logger (`zapLoggerOrNil`), the database file's contents `D` (`fileHolds`; a new member's
 file: `D = ∅`), the parameters `P` (`P.Wf`, the configuration's batch limit), the hooks'
 contract of the configuration's hooks (`hooksOk`: given the backend later; `hooksOk_nil` for no
 hooks), and the creator's batch-lock resources `W γ`, `Pk γ`, made from the client's half of the
@@ -19,6 +20,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Perennial.ProgramLogic.Bounds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -45,6 +47,8 @@ abbrev backend.newBackend.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : BackendConfig) (P : BParams) (D : Data)
     (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      -- (premise fixes 6, D2a) the logger nil (replaced by `zap.NewNop()`) or a zap logger
+      zapLoggerOrNil cfg.Logger' ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
       -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)

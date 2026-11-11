@@ -369,17 +369,19 @@ theorem backend_defaults :
   iframe #
 
 open go_etcd_io.etcd.server.v3.storage.backend in
-/-- **`DefaultBackendConfig(lg)`**: its configuration has the default batch limit and no hooks. -/
+/-- **`DefaultBackendConfig(lg)`**: its configuration has the default batch limit, no hooks and the
+logger `lg`. -/
 theorem wp_DefaultBackendConfig (lg : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.DefaultBackendConfig)) (Val #lg))
-    {{ (c : BackendConfig), RET #c; ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil⌝ }} := by
+    {{ (c : BackendConfig), RET #c;
+        ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil ∧ c.Logger' = lg⌝ }} := by
   wp_start as #Hpkg
   ihave ⟨#Hbi, #Hbl, #Hms⟩ := backend_defaults $$ Hpkg
   wp_auto
   iapply HΦ
   ipureintro
-  exact ⟨rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl⟩
 
 end config
 

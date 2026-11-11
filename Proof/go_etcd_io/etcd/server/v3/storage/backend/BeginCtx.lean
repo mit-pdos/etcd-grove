@@ -41,11 +41,10 @@ instance beginCtx_persistent (b : Loc) : Persistent (beginCtx (GF := GF) b) := b
 theorem isBackend_beginCtx (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     isBackend γ P W Pk b ⊢ beginCtx b := by
   iintro #Hb
-  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t, %rt, %db, %lg, #-, #-, #Hlg, %Hlgn, #Hmi, #-⟩
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t, %rt, %db, %lg, #-, #-, #Hlg, #Hlgn, #Hmi, #-⟩
   unfold beginCtx
   iexists lg
   iframe #
-  ipureintro; exact Hlgn
 
 end preds
 

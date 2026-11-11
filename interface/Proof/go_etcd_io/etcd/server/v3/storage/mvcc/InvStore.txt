@@ -1130,7 +1130,7 @@ def mvcc.isStore (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
           "#Hlg" ∷
               typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"lg" s) lg
                 DFrac.discard ∗
-            "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗
+            "#Hlgnn" ∷ zapLoggerOk lg ∗
               "#Hmu" ∷ sync.isRWMutexGuard (mvcc.muAddr s) (mvcc.muInv s γ) ∗
                 "#HrevMu" ∷ sync.isRWMutexGuard (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗
                   "#Hcfg" ∷

@@ -30,7 +30,7 @@ theorem backend.batchTx.lock.wp_proof :
   intro γ P W Pk b t qo
   wp_start as ⟨#Hb, #Ht, Ho⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
+    ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   wp_auto
   wp_apply sync.Mutex.wp_Lock $$ [$Hm] as ⟨Hown, Hfree⟩

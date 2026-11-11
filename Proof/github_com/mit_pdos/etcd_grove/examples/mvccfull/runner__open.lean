@@ -179,6 +179,8 @@ theorem runner.open.wp_proof
     simp only [hW0, hb, decide_true, decide_false] <;> wp_auto
   all_goals
     -- `m.kv = mvcc.New(x.lg, m.be, m.le, scfg)`
+    -- (premise fixes 6) the runner's logger, a zap logger
+    ihave #Hlgo := zapLoggerOk_orNil lg $$ Hlgn
     rw [show (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #bnb : GoInterface) = storageVal (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg))) by
         rw [etcdStorage_val, mvccrand.rcKB_be]]

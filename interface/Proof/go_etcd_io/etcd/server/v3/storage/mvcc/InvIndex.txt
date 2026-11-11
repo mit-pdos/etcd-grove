@@ -92,7 +92,7 @@ def mvcc.isTreeIndex (ti : Loc) (γ : mvcc.IdxNames) : IProp GF :=
         "#Hlg" ∷
             typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex go!"lg" ti) lg
               DFrac.discard ∗
-          "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗ "#Hmu" ∷ sync.isRWMutexGuard (mvcc.idxMuAddr ti) (mvcc.idxLockInv t γ))
+          "#Hlgnn" ∷ zapLoggerOk lg ∗ "#Hmu" ∷ sync.isRWMutexGuard (mvcc.idxMuAddr ti) (mvcc.idxLockInv t γ))
 
 def mvcc.Rev.countable : Pos.Countable mvcc.Rev :=
   Pos.Countable.ofInjective (fun r => Pos.Countable.encode r.enc) mvcc.Rev.countable._proof_1

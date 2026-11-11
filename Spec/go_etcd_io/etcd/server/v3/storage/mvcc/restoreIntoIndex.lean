@@ -4,6 +4,7 @@ Rocq counterpart); see `InvRestore.lean` and `IdxPriv.lean`.
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRestore
 
 @[expose] public section
@@ -22,7 +23,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `restoreIntoIndex(lg, idx)` (a non-nil logger, `idx` an empty tree index no one else can
+/-- `restoreIntoIndex(lg, idx)` (a zap logger, `zapLoggerOk`: it logs a `Warn`; premise fixes 6,
+until then a non-nil logger; `idx` an empty tree index no one else can
 reach, `ownIdxPriv`; the restore plan, R3) for the bucket entries `ents` (`RestoreEntsOk`: in
 increasing revision order, as `restore` reads them), whose keys the goroutine reads through `Rd`
 under its own token `Tok`: returns `rkvc` and `revc` and starts the goroutine that rebuilds the
@@ -33,7 +35,7 @@ token and a time receipt per entry. -/
 abbrev mvcc.restoreIntoIndex.spec : Prop :=
   ∀ (lg ti : Loc) (ents : List mvcc.KvEnt) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF)
     (e0 : GoInterfaceOk),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ zapLoggerOk lg ∗
       mvcc.ownIdxPriv ti [] ∗ mvcc.rdCap Rd Tok ∗ Tok ∗ ⌜mvcc.RestoreEntsOk ents⌝ ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e0 }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex)) (Val #lg))

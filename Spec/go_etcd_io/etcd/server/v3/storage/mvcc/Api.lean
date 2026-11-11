@@ -102,6 +102,7 @@ backend is one storage, `mvcc/EtcdBackend.lean`): `MvccStorage`, `storageVal`, `
 -/
 module
 
+public import Spec.go_uber_org.zap.Defs
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
@@ -924,7 +925,9 @@ abbrev txnReadWrite.End.spec : Prop := ∀ t : Loc, Txn.End.contract (GF := GF) 
 abbrev watchStream.Watch.spec : Prop := ∀ w : Loc, WatchStream.Watch.contract (GF := GF) PWS #w
 -- (and likewise `Chan`, `RequestProgress`, `RequestProgressAll`, `Cancel`, `Close`, `Rev`)
 
-/-- **`mvcc.New(lg, be, le, cfg)`** over a storage `B` holding the history `σ.log` compacted at
+/-- **`mvcc.New(lg, be, le, cfg)`**, the logger nil (Go replaces it by `zap.NewNop()`) or a zap logger
+(`zapLoggerOrNil`; premise fixes 6, D2b, the user's approval 2026-11-11: until then any logger, and
+a zero `zap.Logger` reached `s.lg.Info`), over a storage `B` holding the history `σ.log` compacted at
 `σ.crev`, recording an unfinished compaction iff `u` (`mvccStorageFor`, from the storage's
 provider: `etcdStorage_open.law` at an image, a fresh file's `mvccImage_fresh.law` or a stopped
 store's `mvccImage_stop.law`): the watchable store at the state `σ` (nothing pending, reachable),
@@ -954,6 +957,8 @@ abbrev New.spec : Prop :=
     (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      -- (premise fixes 6, D2b) the logger nil (replaced by `zap.NewNop()`) or a zap logger
+      zapLoggerOrNil lg ∗
       mvccStorageFor B Pk σ.log σ.crev u ∗
       ⌜batchLimitOk cfg.CompactionBatchLimit' ∧ MvccReachable σ ∧ σ.pending = none⌝ ∗
       lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗
@@ -982,6 +987,8 @@ abbrev NewStore.spec : Prop :=
     (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
   {{ pkgInit ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      -- (premise fixes 6, D2b) the logger nil (replaced by `zap.NewNop()`) or a zap logger
+      zapLoggerOrNil lg ∗
       mvccStorageFor B Pk σ.log σ.crev u ∗
       ⌜batchLimitOk cfg.CompactionBatchLimit' ∧ MvccReachable σ ∧ σ.pending = none⌝ ∗
       lease.lessorRdOf γl ∗ isLessor le γl ∗ lease.rdOwn γl rd0 ∗

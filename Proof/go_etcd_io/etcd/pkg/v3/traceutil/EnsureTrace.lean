@@ -75,7 +75,7 @@ theorem traceutil.EnsureTrace.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG)) :
     traceutil.EnsureTrace.spec (GF := GF) (hG := hG) := by
   intro ctx cd o e lg op fields
-  wp_start as ⟨#Hctr, #Hctx, Ho, Hf⟩
+  wp_start as ⟨#Hctr, #Hctx, Ho, Hf, #Hlz⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto

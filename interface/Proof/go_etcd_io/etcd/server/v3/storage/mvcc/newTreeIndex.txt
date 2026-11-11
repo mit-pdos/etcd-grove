@@ -16,7 +16,7 @@ theorem mvcc.newTreeIndex.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (wp_bt
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            ⌜lg ≠ null⌝ ∗
+            zapLoggerOk lg ∗
               monoNatAuthOwn γ.nev 1 n ∗ ghostVar γ.cmp 1 (-1, []) ∗ mvcc.crevLb γ (-1) ∗ monoListLbOwn γ.log log₀ -∗
           (▷
               ∀ ti,

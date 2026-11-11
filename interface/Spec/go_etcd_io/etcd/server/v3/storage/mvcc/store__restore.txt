@@ -43,7 +43,7 @@ def mvcc.store.restore.spec : Prop :=
                                                 (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
                                                   go!"lg" s)
                                                 lg DFrac.discard ∗
-                                              ⌜lg ≠ null⌝ ∗
+                                              zapLoggerOk lg ∗
                                                 typedPointsto
                                                     (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
                                                       go!"currentRev"

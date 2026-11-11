@@ -43,9 +43,9 @@ theorem backend.batchTx.commit.wp_proof
   intro γ P W Pk b t db st stop
   wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
-  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db1, %lg', #-, #-, #-, %-, #Hmi, #-⟩
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db1, %lg', #-, #-, #-, #-, #Hmi, #-⟩
   ihave #Hbc := isBackend_beginCtx γ P W Pk b $$ Hb
   ihave Hi : (backendInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -112,7 +112,7 @@ theorem backend.batchTx.commit.wp_proof
         try iintro %_ ⟨_, -⟩
         try wp_auto
         wp_apply hFatal lg $$ [] as %v Hf
-        · ipureintro; exact Hlgn
+        · iexact Hlgn
         iexfalso
         iexact Hf
       · exact absurd rfl Herr
@@ -171,7 +171,7 @@ theorem backend.batchTx.commit.wp_proof
         try iintro %_ ⟨_, -⟩
         try wp_auto
         wp_apply hFatal lg $$ [] as %v Hf
-        · ipureintro; exact Hlgn
+        · iexact Hlgn
         iexfalso
         iexact Hf
       · exact absurd rfl Herr

@@ -42,10 +42,10 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq⟩
   obtain ⟨Hroom, Hp0, HWe⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
+    ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t2, %rt2, %db1, %lg2, #-, #Hrt2, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
+    ⟨%t2, %rt2, %db1, %lg2, #-, #Hrt2, #-, #-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   ihave #Hbc := isBackend_beginCtx γ P W Pk b $$ Hb
   icombine Hrt Hrt2 gives %Heq
   subst Heq

@@ -366,22 +366,23 @@ def mvcc.api.NewStore.spec : Prop :=
         (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
               isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-                mvcc.api.mvccStorageFor B Pk σ.log σ.crev u ∗
-                  ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.api.MvccReachable σ ∧ σ.pending = none⌝ ∗
-                    lease.lessorRdOf γl ∗
-                      mvcc.isLessor le γl ∗
-                        lease.rdOwn γl rd0 ∗
-                          lease.leaseOwn γl Ls ∅ ∗
-                            ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
-                                  mvcc.pendItems σ.log [] !! it = some lid →
-                                    lid ∈ Ls ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
-                              if u = true then
-                                mvcc.api.storageHook B dq f ∗
-                                  ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
-                                    Pre ∗
-                                      mvcc.api.hookRun Pk f Pre Q' ∗
-                                        (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ mvcc.api.storageReq B Pk X Y
-                              else True) -∗
+                zapLoggerOrNil lg ∗
+                  mvcc.api.mvccStorageFor B Pk σ.log σ.crev u ∗
+                    ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.api.MvccReachable σ ∧ σ.pending = none⌝ ∗
+                      lease.lessorRdOf γl ∗
+                        mvcc.isLessor le γl ∗
+                          lease.rdOwn γl rd0 ∗
+                            lease.leaseOwn γl Ls ∅ ∗
+                              ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
+                                    mvcc.pendItems σ.log [] !! it = some lid →
+                                      lid ∈ Ls ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
+                                if u = true then
+                                  mvcc.api.storageHook B dq f ∗
+                                    ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+                                      Pre ∗
+                                        mvcc.api.hookRun Pk f Pre Q' ∗
+                                          (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ mvcc.api.storageReq B Pk X Y
+                                else True) -∗
           (▷
               ∀ s,
                 (∃ γ,
@@ -894,22 +895,23 @@ def mvcc.api.New.spec : Prop :=
         (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
               isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-                mvcc.api.mvccStorageFor B Pk σ.log σ.crev u ∗
-                  ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.api.MvccReachable σ ∧ σ.pending = none⌝ ∗
-                    lease.lessorRdOf γl ∗
-                      mvcc.isLessor le γl ∗
-                        lease.rdOwn γl rd0 ∗
-                          lease.leaseOwn γl Ls ∅ ∗
-                            ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
-                                  mvcc.pendItems σ.log [] !! it = some lid →
-                                    lid ∈ Ls ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
-                              if u = true then
-                                mvcc.api.storageHook B dq f ∗
-                                  ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
-                                    Pre ∗
-                                      mvcc.api.hookRun Pk f Pre Q' ∗
-                                        (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ mvcc.api.storageReq B Pk X Y
-                              else True) -∗
+                zapLoggerOrNil lg ∗
+                  mvcc.api.mvccStorageFor B Pk σ.log σ.crev u ∗
+                    ⌜mvcc.batchLimitOk cfg.CompactionBatchLimit' ∧ mvcc.api.MvccReachable σ ∧ σ.pending = none⌝ ∗
+                      lease.lessorRdOf γl ∗
+                        mvcc.isLessor le γl ∗
+                          lease.rdOwn γl rd0 ∗
+                            lease.leaseOwn γl Ls ∅ ∗
+                              ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
+                                    mvcc.pendItems σ.log [] !! it = some lid →
+                                      lid ∈ Ls ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
+                                if u = true then
+                                  mvcc.api.storageHook B dq f ∗
+                                    ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+                                      Pre ∗
+                                        mvcc.api.hookRun Pk f Pre Q' ∗
+                                          (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ mvcc.api.storageReq B Pk X Y
+                                else True) -∗
           (▷
               ∀ ws,
                 (∃ γ,
