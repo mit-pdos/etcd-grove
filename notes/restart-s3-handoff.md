@@ -1,9 +1,9 @@
 # Restart S3 handoff (2026-11-11, branch `restart-s3`, from `lean` `47d7b2f2cd`)
 
-Phase: **implementation, steps 1-2 done (and item 1, `memStorRestarted` defined); next: items 6, 5,
-7, 8, then the build and checks** (the second agent stopped at its context budget, 2026-11-11). The
-decisions D1-D5 are in `questions.md`; the forms this agent decided are there too ("Restart S3
-implementation").
+Phase: **implementation, steps 1-2 and items 1, 5, 6 done; next: items 4, 7, 8, then the build and
+checks** (the third agent stopped at its context budget, 2026-11-11, after one full build of the
+items so far). The decisions D1-D5 are in `questions.md`; the forms the agents decided are there too
+("Restart S3 implementation"), with etcd-grove-81's acceptance of the first four.
 
 For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coordinator's decision).
 
@@ -30,25 +30,47 @@ For W4/C3: the enter-at-durability pitfall below goes into the W4 brief (the coo
   importer (the raft spec change and the `Code` change rebuild most of the tree): the next build
   must cover them (`etc/importers.py --leaves`).
 
+## Done (the third agent, 2026-11-11)
+
+- `1fad9b8e22` step 1: the targeted build of the six `.1` callers and raft's `Link`/`Results` passed;
+  the server's `Link.lean` failed (raft's linked `NewMemoryStorage`/`SetHardState`/`Append` need a
+  `StorageModel`): now linked through `srvApi_wp_NewMemoryStorage`, `srvApi_wp_MemSetHardState` (new,
+  `NodeApiLink.lean`) and `srvApi_wp_MemAppend` (`=` entries in `etc/link-lean-first-server.txt`).
+- `251fe8eafb` item 6: `newRaftNode.spec`'s binders `a0 t0 L₀ commit0 snap0`, premise `⌜L₀ <+: a0⌝`,
+  post `γ.a0 = a0 ∧ γ.t0 = t0 ∧ γ.commit0 = commit0 ∧ γ.snap0 = snap0`, `rnBuilt E γ r cv L₀`
+  (`cum` at `[L₀]`) -- r2db §4.1's frozen form. **Frozen statement changed.**
+- `1201a3c69c` item 5: `bootstrappedRaft.newRaftNode.spec` over the boot sum (Q35 (a)): new binder
+  `bt : RNBoot`; `"%Hraft"` keeps only the heartbeat and the WAL read; the fresh premises (with
+  `rnStartCfg`) moved verbatim into `rnBootPre … .fresh`, the restart's are `RestartNode.spec`'s
+  (`rnBootPre … (.restart σ cs S a m A₀)`: `rnRestartCfg` (new structure, `pv = []`, `Applied = 0`),
+  `σ.b ≤ a ≤ σ.commit`, `bootLen ≤ σ.commit`, `confStateIs cs m`, `StorageHolds S σ`,
+  `restartStorage … σ cs 0 Q`, `isCluster`, `readyFits`, `nodeVacant`, `raftState S`, `confAt a m`);
+  the post's node part is `rnBootPost` (fresh: today's four conjuncts; restart: the committed log of
+  length `σ.b`, the driver at `⟨…, l, σ.hs, none, K, S, StateFollower⟩`, `raftState S`,
+  `nodeConfig ⟨a, m⟩`), names `γw.a0 = bt.a0` etc., `rnBuilt … bt.P` (`A₀.take σ.b` at a restart).
+  Proved (both branches, `wp_join` after the `if`); `RestartNode` linked (`srvApi_wp_RestartNode`).
+  `raftNode_of_StartNode` instantiates `.fresh`: `NodeStartSpec` (exported) and `NewServer.lean` are
+  unchanged. Not a frozen statement by name in r2db, but Q35 (a) restates it: list it at the STOP.
+  Definitions in `InvNodeStart.lean`: `rnRestartCfg`, `RNBoot` (`a0`, `t0`, `commit0`, `snap0`, `P`,
+  `P_prefix`), `rnBootPre`, `rnBootPost`.
+- Checked with `etc/lean-check.py -a` (kernel): `InvNodeStart`, both `newRaftNode` files, both
+  `bootstrappedRaft__newRaftNode` files, `NodeStart`, `NodeApiLink`. Full build: see "Build" below.
+
 ## Next, in order
 
-1. Targeted build of the changed callers first (cheap check of the `.1` edits):
-   `Proof/github_com/mit_pdos/etcd_grove/examples/raft/{kv/KVStorageInstance,kvreconf/KvrStorageApi,
-   kvdurable/openStorage,kvdurable/Replica__run}.lean`, `raftNode__start.lean`, the server's and raft's
-   `Link.lean` (under the 64G cap; it rebuilds raft's importers up to them).
-2. Item 6: `newRaftNode`'s binders `a0 t0 L₀ commit0 snap0` (review 4, frozen form).
-3. Item 5: `bootstrappedRaft.newRaftNode`'s `RestartNode` branch (Q35 (a), the boot sum), using
-   `srvMem_restartStorage` (its `snapshotValid` disjunct from `walSnapCS_valid`; `hterm`, the base
-   term and the entries' numbering from W4's `walRead_wf`; `σ.b ≤ σ.commit` from `StorageHolds`).
-4. Item 4 (InvWal restart AU, minimal: W4 rebases on S3), item 7 (`rnRestartOk` into `isRaftNode`;
-   start/stop at `P`), item 8 (`NodeStartSpecR`, separate; `NewServer.lean` untouched; exported
-   `server_raft_node_start` restated in Link/Results).
-5. Full build under the lock and the 64G cap; `etc/tcb-report.py --check` (the opaque
+1. Item 4 (InvWal restart AU, minimal: W4 rebases on S3), item 7 (`rnRestartOk` into `isRaftNode`,
+   `rnCfgAt := rnView`, start/stop at `P`, Q34 (a); `InvRaftNode.lean` has 1047 importers: one full
+   build), item 8 (`NodeStartSpecR`, separate, over `bootstrappedRaft.newRaftNode.spec … (.restart …)`
+   with `srvMem_restartStorage` giving `rnBootPre`'s `restartStorage` and `walSnapCS_valid` its
+   validity; the tokens at `P` need a `rnToks_of_restart` beside `rnToks_of_start`; `NewServer.lean`
+   untouched; the exported `server_raft_node_start` restated in Link/Results only if `NodeStartSpec`
+   changes, which D5 avoids).
+2. Full build under the lock and the 64G cap; `etc/tcb-report.py --check` (the opaque
    `memStorRestarted` is gone: trusted text change allowed by D2 (b)), collections,
    `etc/gen-interface.py etc/api/raft.txt` (the `ApplySnapshot` spec: interface diff), `etc/gen-init.py
    --check`, `etc/goose.py --check --project etcd` (needs the pin's source, see pitfalls); STATUS; STOP
    before `etc/land.sh` with the changed frozen and exported statements and the tcb diff.
-6. Before landing: delete the untracked `Scratch/S3Probe.lean` (the first S3 session's probe; the copy
+3. Before landing: delete the untracked `Scratch/S3Probe.lean` (the first S3 session's probe; the copy
    stays in `/shared/tmp/restart-s3/`).
 
 ## Done (probe, the first session)
@@ -224,6 +246,14 @@ Total about 1200-1350 lines. Two targeted builds per round; one full build at th
   goal rewrites the whole Iris context, or restate with `ihave H' : … $$ [H]`. Two `match`es from
   different files are different auxiliary functions: `cases o` before `iexact`. A `wp_join … with
   [hyps]` sees only the listed hypotheses: include the pointer cells the branches load.
+- (third agent) `iframe` fails on a conjunct of a definition unfolded by `simp only [rnBootPre]`
+  whose body has `letI := srvStor γr` (the instance is not syntactically the context's): split with
+  `isplitl`/`isplitr` and close each by `iExactEq H; rfl`. `simp only [f] at H` does not reach an
+  Iris hypothesis: `simp only [rnBootPost, RNBoot.P]` on the goal rewrites the whole context.
+  `raftState` is not timeless: for an AU with `▷ raftState`, put `Hrst` under a later before
+  `iauintro` (`ihave Hrst : ▷ … $$ [Hrst]; · imodintro; iexact Hrst`), so the abort can give it back.
+  A `wp_join`'s invariant cannot name a hypothesis: write a struct field cell as
+  `b.[bootstrappedRaft, go!"config"] ↦{dq} bv.config'`.
 - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
   --packages=/shared/tmp/manifest-ddc.json build <targets>`.
 
