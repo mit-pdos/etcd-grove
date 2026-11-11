@@ -53,13 +53,26 @@ third is `SentMsgShape`'s (`sentMsgShape_fromTo`). -/
 theorem trRecvShape_of_trOk (γ : RaftNames) (m : MessageM) (ents : List EntryM) (ctx : List w8)
     (hre : γ.reTrace.isSome)
     (htr : ∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx))
-    (hft : m.Type' = MsgVote ∨ m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat → m.From' ≠ m.To') :
+    (hft : m.Type' = MsgVote ∨ m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat → m.From' ≠ m.To')
+    (htm : ∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.Term' ≠ W64 0) :
     TrRecvShape m ents := by
-  refine ⟨fun h => ?_, fun h => ?_, hft⟩
+  refine ⟨fun h => ?_, fun h => ?_, hft, htm⟩
   · have := (htr .heartbeat (by rw [h]; rfl) hre rfl).2.1 rfl
     simpa [absMsg, absMsgFrom, Msg.mkV] using this
   · have := (htr .heartbeatResp (by rw [h]; rfl) hre rfl).2.2 rfl
     simpa [absMsg, absMsgFrom, Msg.mkV] using this
+
+/-- (2026-11-11, slice 30c, plan Q28 (c)) **`TrRecvShape`'s term clause from `SentMsgShape`**: a traced
+type is none of the unstamped ones (`MsgProp`, `MsgReadIndex`, `MsgTransferLeader`), so its term is not
+`0`. -/
+theorem sentMsgShape_term {st : MsgSt} (H : SentMsgShape st) :
+    ∀ ty, mtypeOf st.msg.Type' = some ty → ty.traced = true → st.msg.Term' ≠ W64 0 := by
+  intro ty hty htr
+  apply H.2.2.2.1
+  rintro (h | h | h) <;> rw [h] at hty
+  · rw [mtypeOf_MsgProp] at hty; cases hty; simp [MsgType.traced] at htr
+  · rw [mtypeOf_MsgReadIndex] at hty; cases hty; simp [MsgType.traced] at htr
+  · rw [show mtypeOf MsgTransferLeader = none from rfl] at hty; cases hty
 
 /-- **What `stepBundle_traced.on` takes of the received message, from `isRaftMsg`**: its raft facts
 for a traced type (`isMessageC` of `absMsg`: a traced type is not a snapshot, whose abstraction is
@@ -109,6 +122,7 @@ theorem isRaftMsg_trRecv (γ : RaftNames) (id : w64) (st : MsgSt) :
   · ipureintro; exact sentMsgShape_fromTo Hsh
   ipureintro
   exact fun hre => trRecvShape_of_trOk γ st.msg st.ents st.ctx hre Htr (sentMsgShape_fromTo Hsh)
+    (sentMsgShape_term Hsh)
 
 end recv
 

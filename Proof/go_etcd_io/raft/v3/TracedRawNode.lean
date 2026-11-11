@@ -426,7 +426,8 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
       Hfit Hscope.2 Hsub
       (fun h => by have := Hpcd h; rw [Hscope.1] at this; cases this)
       ⟨fun h => absurd h (by prop_ne), fun h => absurd h (by prop_ne),
-        fun h => by rcases h with h | h | h <;> exact absurd h (by prop_ne)⟩
+        fun h => by rcases h with h | h | h <;> exact absurd h (by prop_ne),
+        fun ty h1 h2 => by rw [Hpu ty h1] at h2; cases h2⟩
       (fun _ => Hboot) $$ Hpre
     with ⟨%R, HG, Hgates, Hclose⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp R

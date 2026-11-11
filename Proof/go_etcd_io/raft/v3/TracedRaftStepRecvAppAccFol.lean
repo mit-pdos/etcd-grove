@@ -452,7 +452,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
   have htrd : MsgType.traced .app = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .app m ents hmty htrd hsh
   have hto' : m.To' = id := hto .app hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inl hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inl hTy)) (by rw [hto', h])
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
   have hns : ¬ StaleMsg s m := fun h => absurd h.2 (by rw [hterm]; omega)
@@ -691,7 +691,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨ls', hse, hprev', hes', hcm'⟩ : ∃ ls' : LogState,
         s' = sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
           [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧

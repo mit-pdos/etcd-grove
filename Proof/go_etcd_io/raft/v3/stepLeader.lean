@@ -132,7 +132,8 @@ theorem stepLeader.wp_proof
       ipureintro; exact ⟨Hp, by first | trivial | rfl⟩
     · iright; iright; iright
       iframe HGr
-      ipureintro; exact ⟨Hncq, fun h => absurd h.2 (by simp)⟩
+      ipureintro; exact ⟨Hncq, fun h => absurd h.2 (by simp),
+        fun h => absurd (Hp.symm.trans h.1) (by simp [MsgProp, MsgAppResp])⟩
   ihave HΦ' : iprop(▷ ∀ (err : GoInterface) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
       ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗
@@ -140,7 +141,9 @@ theorem stepLeader.wp_proof
        (∃ (b : Bool) (N : w64), ⌜m.Type' = MsgAppResp ∧ m.Reject' = false ∧
           ∃ pvs : GMap w64 Progress, prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
             maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨
-       (⌜¬ (m.Type' = MsgCheckQuorum ∧ s'.role = .follower)⌝ ∗ G s'.outbox)) -∗ Φ #err) $$ [HΦ]
+       (⌜¬ (m.Type' = MsgCheckQuorum ∧ s'.role = .follower) ∧
+          ¬ (m.Type' = MsgAppResp ∧ m.Reject' = false ∧ AppRespRan s m.From' m.Index')⌝ ∗
+        G s'.outbox)) -∗ Φ #err) $$ [HΦ]
   · inext
     iintro %err %s' ⟨Hphys, %Herr, %Hres, HR⟩
     iapply HΦ $$ %err %s' %false
@@ -160,7 +163,7 @@ theorem stepLeader.wp_proof
     · iright; iright; ileft; iexact HR
     · iright; iright; iright
       iframe HG
-      ipureintro; exact ⟨h, fun h' => Hp h'.1⟩
+      ipureintro; exact ⟨h.1, fun h' => Hp h'.1, h.2⟩
   by_cases Hcq : m.Type' = MsgCheckQuorum
   · -- (2026-10-17) `MsgCheckQuorum`
     ispecialize Hgcq $$ %Hcq
@@ -182,6 +185,7 @@ theorem stepLeader.wp_proof
       iright; iright
       iframe HG
       ipureintro
+      refine ⟨?_, fun h => absurd (Hcq.symm.trans h.1) (by simp [MsgCheckQuorum, MsgAppResp])⟩
       rintro ⟨_, h⟩
       rw [Hlead] at h; exact absurd h (by decide)
     · obtain ⟨pvs, rfl⟩ := Hs
@@ -196,7 +200,8 @@ theorem stepLeader.wp_proof
         ownRaftPhysCV c c.voters r id s' ∗
         ((∃ (b : Bool) (N : w64), ⌜m.Reject' = false ∧
             ∃ pvs : GMap w64 Progress, prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
-              maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨ G s'.outbox) ∗
+              maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨
+          (⌜¬ (m.Reject' = false ∧ AppRespRan s m.From' m.Index')⌝ ∗ G s'.outbox)) ∗
         ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦ']
     · inext
@@ -207,14 +212,14 @@ theorem stepLeader.wp_proof
       · ipureintro; exact Herr
       isplitr [HR]
       · ipureintro; exact Hres
-      icases HR with (⟨%b, %N, %Hb, HGc⟩ | HG)
+      icases HR with (⟨%b, %N, %Hb, HGc⟩ | ⟨%Hn, HG⟩)
       · iright; ileft
         iexists b, N
         iframe HGc
         ipureintro; exact ⟨Hty, Hb⟩
       · iright; iright
         iframe HG
-        ipureintro; exact fun h => Hcq h.1
+        ipureintro; exact ⟨fun h => Hcq h.1, fun h => Hn h.2⟩
     iapply wp_stepLeader_appresp c wp_raft_sendAppend wp_raft_maybeSendAppend
       wp_raft_bcastAppend wp_raft_maybeCommit wp_releasePendingReadIndexMessages
       wp_Progress_MaybeUpdate wp_Progress_MaybeDecrTo wp_Progress_BecomeProbe
@@ -243,7 +248,7 @@ theorem stepLeader.wp_proof
     iright; iright
     iframe HG
     ipureintro
-    exact fun h => Hcq h.1
+    exact ⟨fun h => Hcq h.1, fun h => Har h.1⟩
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
     Hty | Hty | Hty
   rotate_right 7

@@ -36731,3 +36731,77 @@ the claim agreeing (`advInv`'s `RcvCommit` arm already hands the sender `run`'s 
    `AckEnd` close, then `Advance` itself; a hypothesis until then), the traced `applyConfChange` (2.); the
    `recvc` payload (`netP`) carrying `trTok` from `node.Step`; Found 4's claim and `advancec` deposit.
 5. The node API's traced statements (Found 4's), proved from 4.
+
+## Q8 stage 1 (slice 30c): Q30 (a)'s guard; `LeadAcc` over `.on`; Q28 (c); `AckEnd` and the storage acknowledgements' bundle; the assembly `stepBundle_traced` and `raft.Step.traced` (2026-11-11 · trace-check, Q8 stage 1 slice 30c; Q28 (c), Q30 (a) and slice 28n's `AckEnd` taken by the coordinator, raft-internal, their form the agent's under the user's delegation · branch `trace-check-q8s30c`; DRAFT until trace-check's Freeze)
+
+All raft-internal; no axiom, no `sorry`; no module on `etc/api/raft.txt` changed; nothing frozen
+(`TracedCap.lean`, `TracedHooksDraft.lean`, `TracedApiDraft.lean`) touched; untraced client-visible
+statements unchanged.
+
+**Done.**
+- *Q30 (a)*: `LeadRan m s` (`LemmasStepGates.lean`: an accepted `MsgAppResp` of a leader's term with
+  `AppRespRan`); `stepOutG`'s `G0`/`G1` guard is `¬ CandHooked c m s ∧ ¬ LeadRan m s`;
+  `stepLeader.spec`'s `G` arm gains `¬ (m.Type' = MsgAppResp ∧ m.Reject' = false ∧ AppRespRan s m.From'
+  m.Index')` (its proof: `wp_stepLeader_appresp`'s `G` result guarded at the join, `RanCond` false; the
+  rejected and untracked-sender exits by `Reject'`/the `Progress` lookup); `wp_Step_MsgAppResp(_eq)` return
+  `stepOutG` (`stepOutG_leader`, `stepOutG_of_not`); `stepOutG_of_not`/`_or` take `¬ LeadRan`,
+  `stepOutG_of_ne` the type `≠ MsgAppResp`. `interface/.../stepLeader.txt` differs by the guard (an internal
+  function's unfolded spec).
+- *`LeadAcc` over `.on`*: `stepBundle_traced_leadAcc` (`LeadAccNC`, `leadAccNC_committed` gone); `G0`/`G1`'s
+  close at `¬ AppRespRan` (`leadAcc_notRan` from the guard), `n = committed` by `AppRespAcceptedC`.
+- *Q28 (c)*: `TrRecvShape`'s fourth clause (a traced message's term not `0`); the node API's
+  `isRaftMsg_trRecv` gives it from `SentMsgShape` (`sentMsgShape_term`); readers of the third clause
+  `hsh.2.2` → `hsh.2.2.1` (mechanical).
+- *`AckEnd` (slice 28n's design)*: `stepClose`/`stepCloseAt` gain `⌜s.gh.tr.isSome → AckEnd m s s'⌝`
+  (`AckTy`: `MsgStorageAppendResp`, `MsgStorageApplyResp`; `AckEnd`: then `toPState s' = toPState s`).
+  `wp_Step_MsgStorageAppendResp_none` returns `toPState s' = toPState s` (`toPState_logStableTo`);
+  `wp_Step_MsgStorageApplyResp` returns it at a traced node (the leave branch refuted by its
+  `autoLeave → tr = none` premise); `gate_close`/`_g`/`_mid` take it, `raft.Step`'s other sites by type
+  (`ack_ty`); every close intro one more `%_`.
+- *`stepBundle_traced_storAck`* (`TracedRaftStepBundle.lean`) over `stepBundle_traced.onA StorAck`: not
+  `.on`, whose `StepEndTy` premise the acknowledgements fail (a bundle over `.on` would be vacuous);
+  `.onA` is `.on`'s premises with `AckTy`. `localR`'s resources, no hook logs, close at `s`
+  (`simIdleS_congr`).
+- *The assembly* `stepBundle_traced : stepBundle_traced.statement`, from slice 27d's coverage table with 27b's
+  won vote, 27n's `MsgUnreachable`, `LeadAcc` and `StorAck`; `MsgHup` at any role by `stepBundle_hup_R`;
+  `γ.reBoot ≠ []` from the capability (`trCapB_reBoot`: `id ∈ C`, `C.length ≤ γ.reBoot.length`).
+- *`raft.Step.traced : raft.Step.tracedTriple`* (from `raft.Step.spec` and the assembly).
+- For the node API: `stepBundle_traced.on_of_statement`, `.onG_of_statement`.
+
+**Form: `.on` keeps its premises (the per-path form); `stepBundle_traced.statement` is its own premise
+list** (until now `.on (fun _ _ => True)`). Rejected: changing `.on`'s premise list, which would have
+edited every path lemma's binders and the node API's three applications (`RawNode.Step.traced`, the
+proposal, `ReportUnreachable`, 25n/27n/28n's files) with no gain: the paths keep the premises they use,
+the statement drops those the assembly derives.
+
+**The final premise list** (`stepBundle_traced.statement`) and where the node API supplies each:
+`s.gh.tr = some γd` (`ownRawNode`'s trace field at a traced cluster); `s.prevote = false`, `s.cq = false`
+(`rnTrace`'s scope, its `checkQuorum ↦□ false` with `ownRaftPhysC_cq`); `StepEndTy m.Type' ∨ AckTy m.Type'`
+(the caller's type: `TrNetTy`, the ticks', `Propose`'s, `ReportUnreachable`'s, `Advance`'s); `NStateWf s`
+(`ownRawNode`); `MsgHup`/`MsgBeat`/`MsgProp`/`MsgUnreachable`/`MsgStorageApplyResp` at term `0` (the
+messages' constructors); `MsgStorageAppendResp → Term ≤ s.term` (`raft.Step.spec`'s own premise, which
+`Advance` already supplies); a traced message to `id` (`NetMsgOk`); `s.term + 1`, `m.Term` below
+`traceNumBound` (the ceiling's premise, `RNPv`); `MsgTrOk` (`isRaftMsg_trRecv`); the receipts' fit (the
+traced triples' premise); no learners (`rnTrace`'s scope); `domSet s.progress ⊆ voters ∪ learners`
+(`ownRaftPhysC_dom`); not a pre-candidate (`ownRaftPhysC_precand`); `TrRecvShape` (`isRaftMsg_trRecv`;
+vacuous clauses for local types); a proposal's batch non-empty of normal entries (`Propose`'s one normal
+entry); `StepNodeOk s m`: `PrvalsOk s` (`ownRaftPhysC_prvals_ok`), `domSet s.prvals = domSet s.progress`
+(`ownTrackerC_prvals_dom`), `MsgAppResp → m.From' ∈ domSet s.progress` (`RawNode.Step`'s third guard,
+`ErrStepPeerNotFound`). Dropped from `.on`'s: the path, `MsgHup → s.role ≠ .leader`, `MsgHeartbeat ∨
+MsgApp → γ.reBoot ≠ []`. `raft.Step.tracedTriple` adds `raft.Step.spec`'s premises and, for the two that read
+`s.gh.tr`, `MsgStorageAppendResp → sn = none` and `MsgStorageApplyResp → ents ≠ [] → c.autoLeave = false`.
+
+**The node API's hypotheses** (slice 28n's and later): take `hb : stepBundle_traced.statement` and either
+apply it or derive their `.on`/`.onG` form by `on_of_statement`/`onG_of_statement`, adding `StepNodeOk` to
+the path (`RawNode.Step.traced`: `TrNetTy m.Type' ∧ StepNodeOk s m`, its `MsgAppResp` clause from the
+`Progress` lookup the third guard does; the proposal: `PropAny ∧ StepNodeOk`; `ReportUnreachable`:
+`UnreachPath ∧ StepNodeOk`); `Advance` applies the statement with `.inr` of `AckTy`.
+
+**Left**: the node API on the statement (`RawNode.Step.traced`'s `StepNodeOk`, the traced `Advance`,
+`ApplyConfChange`, gated `node.run`); `newRaft`/`Bootstrap` (A7).
+
+**Checked** (branch at `trace-check` `409da4cb23` plus this slice): full `lake build` green (13856 jobs);
+`#print axioms` of `stepBundle_traced` and `raft.Step.traced`: the existing type axioms, no `sorryAx`;
+`etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`,
+none updated; `interface/` differs in `stepLeader.txt` only (the `G` arm's guard); `--check --layout` 0
+new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` and `--tracecheck` unchanged.

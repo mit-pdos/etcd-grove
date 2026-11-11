@@ -1313,6 +1313,20 @@ full pattern on the report case of `LeaderNonpropResultC` gains a `-`). `stepBun
 `readyToks_queues` (`TracedReadyToks.lean`: `trCap_fire_ready`'s tokens as one `recvTokOf` per queued
 message, `outboxRelP`). Remaining, with designs, in the decisions entry.
 
+**Q8 stage 1 (slice 30c), 2026-11-11 (branch `trace-check-q8s30c`): Q30 (a), Q28 (c) and slice 28n's
+`AckEnd` done; `raft.Step`'s traced bundle assembled (`stepBundle_traced`) and its traced triple
+(`raft.Step.traced`) proved.** Decided by the coordinator (Q28 (c), Q30 (a), `AckEnd`; raft-internal), the
+form the agent's (`notes/decisions.md`, "Q8 stage 1 (slice 30c)"). `stepLeader.spec`'s `G` arm and
+`stepOutG`'s `G0`/`G1` guarded off `LeadRan` (an accepted `MsgAppResp` that reaches `maybeCommit`);
+`stepBundle_traced_leadAcc` over `.on LeadAcc`; `TrRecvShape`'s term clause (from `SentMsgShape`);
+`stepClose`'s `AckEnd` premise (the storage acknowledgements' end state, proved by `raft.Step`'s two
+arms) and `stepBundle_traced_storAck`. `stepBundle_traced.statement` is now its own premise list (the
+per-path `.on` unchanged): `.on`'s but the path, `MsgHup → ¬ leader` and the bootstrap-log premise (from the
+capability), with the acknowledgements admitted, a proposal's batch of normal entries and `StepNodeOk`
+(`PrvalsOk`, the `Progress` values' domain, an append response's sender tracked). The premise list with its
+sources is in the decisions entry. Left: the node API on the statement (`RawNode.Step.traced`'s
+`StepNodeOk`, the traced `Advance`, `ApplyConfChange`, `node.run`).
+
 **Q8 stage 1 (slice 28n), 2026-11-11 (branch `trace-check-q8s28n`): `acceptReady` one spec for both
 modes and the traced `RawNode.Ready` done; `Advance` designed, not done; `ApplyConfChange`, `node.run`
 not started.** Slice 27n's designs taken by the coordinator, their form the agent's (`notes/decisions.md`,

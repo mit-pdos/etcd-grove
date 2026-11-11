@@ -549,7 +549,7 @@ theorem propClose (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
     ⊢ stepClose (GF := GF) γ md c id m ents ctx s (propR bt γ md c r id s ents Λ)
         (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) := by
   iunfold stepClose
-  iintro %s' %B %recv %_ %hend Hout
+  iintro %s' %B %recv %_ %hend %_ Hout
   have hE := propLead_end (c := c) (id := id) (ctx := ctx) hp hT0 (hend (by rw [htr]; rfl))
   have hlong : ∀ (ms : List Msg) (pvs : GMap w64 Progress),
       s.outbox.length < ({ sendMsgs (proposed id s ents) ms with prvals := pvs } : NState).outbox.length := by

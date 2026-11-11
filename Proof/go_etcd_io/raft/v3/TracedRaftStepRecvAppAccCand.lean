@@ -271,7 +271,7 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
   have hev10 : evt = W64 10 := by
     rcases hev with ⟨-, h⟩ | ⟨h, -, -⟩ | ⟨h, -⟩ | (⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -, -⟩) <;> first | exact h | cases h
   have hto' : m.To' = id := hto .app hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inl hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inl hTy)) (by rw [hto', h])
   obtain ⟨hnH, hnV, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnVR, hnHR, hnAR, hnPV, hnHup, hnS⟩ := app_ne hTy
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
@@ -543,7 +543,7 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, ls', hse, hprev', hes', hcm'⟩ : ∃ (pvs : GMap w64 Progress) (ls' : LogState),
         s' = sendMsgs { ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) with logst := ls' }
           [appResp id ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) m.From' false
