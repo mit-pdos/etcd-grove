@@ -121,7 +121,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝ ∗
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
-            bv.storage' st bv.heartbeat' GoInterface.nil) ∗
+            bv.storage' st bv.heartbeat' GoInterface.nil) [] ∗
         -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
         -- it gave it back) the peers' slice
         b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗

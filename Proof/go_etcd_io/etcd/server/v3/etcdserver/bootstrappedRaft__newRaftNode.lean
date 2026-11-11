@@ -122,9 +122,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs K ν
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
-      bv.heartbeat' GoInterface.nil)) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
+      bv.heartbeat' GoInterface.nil) [] (W64 0) [] 0 0) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
-    ipureintro; exact Hhb
+    ipureintro; exact ⟨Hhb, List.prefix_refl _⟩
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn

@@ -229,10 +229,12 @@ instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :
 value `rv`, owned whole at `r` (to be copied), with `cfg`'s fields as the caller gave them
 (`raftNodeConfig' = cv`, so `transport` is `cv`'s, nil), its `tickMu` a fresh `RWMutex` (the
 guard over `latestTickTs` is made where the struct finally lives, `isRaftNode_of_rnParts`), the
-components' predicates (`rnParts`), `applyc`'s two halves with `cum` at `[[]]` (the loop's and
+components' predicates (`rnParts`), `applyc`'s two halves with `cum` at `[L₀]` (restart S3 item 6:
+the start log `L₀`, `[]` at a first start; until then `[[]]`) (the loop's and
 the apply side's ghost state, `rnLoopTok`/`rnApplyTok`), the right to close `done`, and the
 claim on the stop's escrow (`rnStopClaim`). -/
-def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) : IProp GF :=
+def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) (L₀ : List EntryModel) :
+    IProp GF :=
   iprop(∃ rv : raftNode,
     "Hr" ∷ r ↦ rv ∗
     "%Hrv" ∷ ⌜rv.lg' = cv.lg' ∧ rv.raftNodeConfig' = cv⌝ ∗
@@ -240,8 +242,8 @@ def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) : IPro
     "#Hparts" ∷ rnParts E γ rv ∗
     "Hprod" ∷ sspscProducer γ.ap ([] : List toApply) ∗
     "Hcons" ∷ sspscConsumer γ.ap ([] : List toApply) ∗
-    "Hcum" ∷ monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
-    "Hcum0" ∷ monoListIdxOwn γ.cum 0 ([] : List EntryModel) ∗
+    "Hcum" ∷ monoListAuthOwn γ.cum 1 [L₀] ∗
+    "Hcum0" ∷ monoListIdxOwn γ.cum 0 L₀ ∗
     "Hdtok" ∷ ownBroadcastChan rv.done' γ.done
       (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Pending ∗
     -- (2026-11-03, R2b-3b) the claim on the stop's escrow
