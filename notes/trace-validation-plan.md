@@ -1298,8 +1298,9 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   of term `1`. Raft's facts put the batch past `|γ.reBoot|` (the commit index covers the bootstrap log), and
   `|C| = |γ.reBoot|` (`BootLogOk`) holds where the capability's invariant is allocated, but no clause of the
   capability, `SimIdle`, `simFx` or `stepBundle_traced.on`'s premises carries it. Options: (a) `trCapB`'s
-  pure clause gains `C.length ≤ γ.reBoot.length` (frozen `TracedCap.lean`; established by
-  `startTrace_trCapB`, every law mechanically); (b) `SimIdle` gains `C.length ≤ committed` (every close
+  pure clause gains `C.length ≤ γ.reBoot.length` (frozen `TracedCap.lean`; established where the
+  capability is made, `startTrace_trCapB`, from `BootLogOk` as `Cluster.traceSimInv_alloc` has it, or a
+  length fact in `startTrace`'s pure clause; every law mechanically); (b) `SimIdle` gains `C.length ≤ committed` (every close
   re-proved); (c) a bundle premise (needs the capability's names). **Recommended: (a).** Until then
   `stepBundle_traced_folAppAcc`/`_candAppAcc` are `stepBundle_traced.onRB`, which
   `stepBundle_traced.on_of_onRB` turns into `.on` given (a)'s law (`notes/decisions.md`, "Q8 stage 1

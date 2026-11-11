@@ -35586,9 +35586,10 @@ overlap positions in `(|γ.reBoot|, |C|]` with a term `≥ 2`. The bundles are t
 `stepBundle_traced.onRB` (the statement of `stepBundle_traced.on` with the capability's phase
 `SimIdle C s ∧ C.length ≤ γ.reBoot.length`), and `stepBundle_traced.on_of_onRB` gives `.on` from a law of
 the capability that yields the fit. Options (each a frozen-statement change): (a) the capability's pure
-clause (`trCapB`, `TracedCap.lean`) gains `C.length ≤ γ.reBoot.length` (or `= `), established by
-`startTrace_trCapB` from the same `BootLogOk` and kept by every law mechanically (the clause is read by
-`trCapB_pinDir` and rebuilt by each law); (b) `SimIdle` gains `C.length ≤ committed` (re-proved at every
+clause (`trCapB`, `TracedCap.lean`) gains `C.length ≤ γ.reBoot.length` (or `= `), established where the
+capability is made (`startTrace_trCapB`; `BootLogOk C γ.reBoot` is what `Cluster.traceSimInv_alloc` reads,
+to be passed on to it, or the length fact added to `startTrace`'s pure clause) and kept by every law
+mechanically (the clause is read by `trCapB_pinDir` and rebuilt by each law); (b) `SimIdle` gains `C.length ≤ committed` (re-proved at every
 close: the commit index only grows); (c) a premise of `stepBundle_traced.on` (it does not name `C`: needs
 the capability's names). Recommended: (a), the lightest (one conjunct, no path re-proved, the fact the
 allocation already has); then `stepBundle_traced.on_of_onRB` discharges both bundles.
