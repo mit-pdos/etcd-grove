@@ -1690,8 +1690,9 @@ theorem watch_streamHandlerOk (p : Loc) (R : WSrv GF) (W : SrvW GF) :
     iframe #
     ipureintro; exact Htb
   inext
-  iintro %err -
+  iintro %err ⟨#Hse, -⟩
   iapply HΦ
+  iexact Hse
 
 /-- **The generated handler meets the registration's contract** (`grpcStreamMethodOk`) for the
 `*watchServer` `p` (its type implements `WatchServer`: a method-set fact), under the server's
@@ -1723,7 +1724,8 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (W : SrvW GF) (ics : List GoF
     pbWatchResponseT_reg (watchUp R) Dn γs ci cd
     (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
-    (@! etcdserverpb._Watch_Watch_Handler) (fun _ => iprop(True)))
+    (@! etcdserverpb._Watch_Watch_Handler)
+    (fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err)))
   simp only [pbWatchRequestT, pbWatchResponseT]
   iframe #
   iframe HRs
@@ -1739,14 +1741,22 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (W : SrvW GF) (ics : List GoF
       iexists _
       iexact Hl
     inext
-    iintro %err -
+    iintro %err #Hse
     iexists err
     isplitr
     · ipureintro; rfl
+    iframe Hse
     iintro -
-    itrivial
-  · iintro - %err -
-    itrivial
+    iexists err
+    isplitr
+    · ipureintro; rfl
+    iexact Hse
+  · iintro - %err - #Hse
+    iexists err
+    isplitr
+    · ipureintro; rfl
+    iexact Hse
+
 
 /-- **The watch service is served** (unit W-W; as `etcd_kv_served` for the KV service): a gRPC
 server at `addr` built with the stream interceptors `ics` (transparent, with the resources `Rs`)

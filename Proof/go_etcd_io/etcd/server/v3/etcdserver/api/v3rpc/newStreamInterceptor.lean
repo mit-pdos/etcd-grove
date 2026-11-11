@@ -44,9 +44,10 @@ local macro "handler_tail" : tactic => `(tactic| (
   iunfold streamHandlerCall at Hk;
   wp_bind (App (App (Val #h) _) _);
   iapply (wp_wand (Φ := fun v =>
-    iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ (True -∗ Ψ v))))
+    iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+      (True -∗ Ψ v))))
     $$ Hk;
-  iintro %v ⟨%err, %Hv, HΨ⟩;
+  iintro %v ⟨%err, %Hv, -, HΨ⟩;
   subst Hv;
   wp_auto;
   iapply HΨ;
@@ -54,11 +55,13 @@ local macro "handler_tail" : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- An early `return err` of the interceptor, from the error continuation of `Hk`. -/
-local macro "error_return" e:term : tactic => `(tactic| (
+local macro "error_return" e:term "with" S:ident : tactic => `(tactic| (
   icases Hk with ⟨-, Hk⟩;
   iapply Hk $$ [] %(GoInterface.ok $e);
   · itrivial
-  ipureintro; intro h; cases h))
+  · ipureintro; intro h; cases h
+  iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk;
+  iexact $S))
 
 theorem v3rpc.newStreamInterceptor.wp_proof
     (wp_monitorLeader : v3rpc.monitorLeader.spec (GF := GF) (hG := hG))
@@ -104,15 +107,17 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   icases Hinfo with ⟨%fm, %cs, %sss, #Hfm, -, -⟩
   cases b
   · wp_auto
-    error_return eNC
+    error_return eNC with SeNC
   wp_auto
   ipersist info
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       ((∀ (st' : GoInterface) (cd' : context.ContextDesc (IProp GF)),
           srvRawStreamIs st' γ Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd' -∗
           WP (streamHandlerCall #h #srv #st')
-            {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (True -∗ Ψ v) }}) ∧
-        (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err))) ∨
+            {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+              (True -∗ Ψ v) }}) ∧
+        (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
+          go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ #err))) ∨
       ∃ e : GoInterface, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ e ∗ Ψ #e)) at next
       with [Hk «$res0»]
   · wp_apply wp_MemberID s mid $$ []
@@ -134,7 +139,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
     · iright
       iexists (GoInterface.ok eNL)
       iframe «$res0»
-      error_return eNL
+      error_return eNL with SeNL
   rename_i v
   iintro (⟨%Hv, «$res0», Hk⟩ | ⟨%e, %Hv, «$res0», HΨ⟩)
   rotate_left
@@ -193,7 +198,8 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   wp_apply wp_ValidString as %bv %Hbv
   cases bv
   · wp_auto
-    error_return eIV
+    error_return eIV with SeIV
+
   wp_auto
   wp_apply wp_slice_literal (V := GoString) [go!"stream", ver]
   isplitr

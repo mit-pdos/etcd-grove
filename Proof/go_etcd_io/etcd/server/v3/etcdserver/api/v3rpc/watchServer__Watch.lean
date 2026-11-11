@@ -17,6 +17,7 @@ public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.Error
 public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -39,7 +40,8 @@ local macro "watch_tail" : tactic => `(tactic| (
     $$ [Hcl Hcc Hadd]
   · iframe #; iframe
   iapply HΦ
-  iframe Hspec))
+  iframe Hspec
+  first | iexact HsvW | iexact HsvE | iexact HsvC))
 
 set_option hygiene false in
 /-- `errors.Is(err, context.Canceled)` on a context's error `err` (`context.isCtxErr`), then the
@@ -205,7 +207,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
   wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %errc %γe ⟨#Herrc, %-, Hoe⟩
   · ipureintro; decide
   let PE : Int → GoInterface → IProp GF := fun _ e =>
-    iprop(v3rpc.streamErr e ∗ ∃ sent : List Loc, spscProducer γctrl sent)
+    iprop(v3rpc.streamErr e ∗ go_etcd_io.etcd.cache.v3.statusErrOk e ∗
+      ∃ sent : List Loc, spscProducer γctrl sent)
   imod start_spsc errc PE (fun _ => iprop(False)) γe $$ Herrc [Hoe]
     with ⟨%γerr, #HspscE, HprodE, HconsE⟩
   · iright; iexact Hoe
@@ -216,7 +219,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
       as %rerr ⟨#Hrerr, Htt, -, %sent', Hprod⟩
     · iframe #
     rcases rerr with ei | _
-    · icases Hrerr with (%h | #Hse)
+    · icases Hrerr with (%h | ⟨#Hse, #Hso⟩)
       · cases h
       wp_auto
       rw [Hsi]
@@ -255,6 +258,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
         · iframe #
           isplitr
           · iexact Hse
+          isplitr
+          · iexact Hso
           iexists _; iexact Hprod
         iframe Htt; try (ipureintro; rfl)
       · wp_apply hZE as %f -
@@ -270,6 +275,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
         · iframe #
           isplitr
           · iexact Hse
+          isplitr
+          · iexact Hso
           iexists _; iexact Hprod
         iframe Htt; try (ipureintro; rfl)
     · wp_auto
@@ -278,6 +285,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
   icases Hcanc with ⟨%eC, #HeC, %HeCp⟩
   iunfold v3rpc.msgErrVar at HmWC
   icases HmWC with ⟨%eWC, #HeWC, #HeWCm⟩
+  ihave #HsvW : go_etcd_io.etcd.cache.v3.srvErrOk (GF := GF) (GoInterface.ok eWC) $$ []
+  · sorry
+  ihave #Pes : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
+  ihave #HCtxE := applyErrIs_of_isCtxErr $$ Pes
   rw [Hsi]
   wp_auto
   wp_bind (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
@@ -305,7 +317,8 @@ theorem v3rpc.watchServer.Watch.wp_proof
     cases okE <;> simp only [Bool.false_eq_true, if_true, if_false]
     · icases Hv with ⟨Hf, -⟩
       iexfalso; iexact Hf
-    icases Hv with ⟨⟨#HseE, %sentE, HprodC⟩, -⟩
+    icases Hv with ⟨⟨#HseE, #HsoE, %sentE, HprodC⟩, -⟩
+    ihave #HsvE := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ HsoE
     wp_auto
     -- `errors.Is(err, context.Canceled)` over the stream error's tree (`streamErr`; `Canceled`'s
     -- value is a pointer error), then the assignment of `ErrGRPCWatchCanceled` when it holds
@@ -340,6 +353,9 @@ theorem v3rpc.watchServer.Watch.wp_proof
     iintro !> -
     wp_auto
     wp_apply +noauto HErrDone $$ [$HCC] as %cerr %- #HcE
+    ihave #HsvC := applyErrIs_srvErrOk $$ [HCtxE HcE]
+    · iapply HCtxE $$ HcE
+
     wp_auto
     canceled_check cerr
     all_goals watch_tail

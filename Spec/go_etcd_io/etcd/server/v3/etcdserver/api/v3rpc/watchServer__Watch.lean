@@ -34,7 +34,10 @@ tokens at the empty queues), whose content of the responses sent down is the wat
 the client's content of its requests restricted with (G2's freeze) the client's bound per create
 request (`upOk`), the stream's auxiliary name (set to the run's ghost names, `auxOf`; the watch
 slice's unit W-C) and the run's resources (the auth store's reader resource and the thread bound):
-it returns, with the stream specification. The specification is at the token of the run's context
+it returns an error grpc's `status` takes (`srvErrOk`, premise fixes 7: `processStreamingRPC` and
+the prometheus interceptor call `status.FromError` on it): the receive loop's (a status error,
+`Recv`'s), `ErrGRPCWatchCanceled` (a `*status.Error`) or the context's (`isCtxErr`), with the
+stream specification. The specification is at the token of the run's context
 `ci` (`auth.ctxTokenOf`; G2, 2026-10-30): each create's check passed for it (`watchAuthed`). The
 mvcc API migration (2026-11-05, the draft `notes/mvcc-api-clients/WatchSpecs.lean` §6): the
 server's side of the watch path (`srvWOk`, with v3rpc's namespace); no watch token per create and no
@@ -58,8 +61,9 @@ abbrev v3rpc.watchServer.Watch.spec : Prop :=
       v3rpc.streamAuxTok γs ∗ R.E.RD ∗ ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
       mvcc.api.mvccReaders W.γm 2 }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; go_etcd_io.etcd.cache.v3.srvErrOk err ∗
       v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}
+
 
 end spec
 

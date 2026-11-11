@@ -43,7 +43,9 @@ and `RequestProgressAll` take one, as `lean`'s store reader slot); the auth stor
 `r.srv.E.RD` (`isWatchPermitted`).
 Returns the control stream's producer token, and an error that is `nil` or the stream's
 (`streamErr`: `Recv`'s error, with the error tree `Watch`'s `errors.Is(err, context.Canceled)`
-needs; premise-fixes-6, 2026-11-11, in place of only a typed error). -/
+needs; premise-fixes-6, 2026-11-11, in place of only a typed error), a status error (`statusErrOk`,
+the stream end's: `Watch` returns it, premise fixes 7). -/
+
 abbrev v3rpc.serverWatchStream.recvLoop.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
@@ -53,7 +55,8 @@ abbrev v3rpc.serverWatchStream.recvLoop.spec : Prop :=
       spscProducer r.γctrl sent ∗ v3rpc.ansPool r.γa L.length ∗ r.srv.E.RD ∗ threadTok ∗
       mvcc.api.mvccReaders r.W.γm 1 }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"recvLoop")) (Val #()))
-  {{ (err : GoInterface), RET #err; (⌜err = GoInterface.nil⌝ ∨ v3rpc.streamErr err) ∗
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∨ v3rpc.streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err) ∗
       threadTok ∗ mvcc.api.mvccReaders r.W.γm 1 ∗ ∃ sent' : List Loc, spscProducer r.γctrl sent' }}
 
 end spec

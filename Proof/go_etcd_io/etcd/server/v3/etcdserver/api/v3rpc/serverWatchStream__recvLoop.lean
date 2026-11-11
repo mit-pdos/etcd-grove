@@ -251,7 +251,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   wp_for Hinv
   rw [Hsi]
   wp_apply HRecv $$ Hrt as %req %err Hrr
-  icases Hrr with (⟨%Herr, %m, Hreq, HUp, Hrt⟩ | ⟨#Heofi, %Hne, Hrt, #Hcl⟩ | ⟨%Hne, #Hse, Hrt⟩)
+  icases Hrr with (⟨%Herr, %m, Hreq, HUp, Hrt⟩ | ⟨#Heofi, %Hne, Hrt, #Hcl⟩ |
+    ⟨%Hne, #Hse, #Hso, Hrt⟩)
   · -- a request
     subst Herr
     imod v3rpc.ansPool_mint_snoc r.γa L m $$ Hpool with ⟨Hpool, Hans⟩
@@ -854,7 +855,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_for_post
       iapply HΦ
       isplitr
-      · iright; iexact Hse0
+      · iright; iframe Hse0 Hso
+
       iframe Htt Hrdr
       iexists _; iexact Hprod
     · exact absurd rfl Hne
