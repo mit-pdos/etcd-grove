@@ -122,13 +122,14 @@ theorem phaseStepB_becomeCandidate (id : w64) (c : CfgM) (s : NState) (o : List 
 theorem campMsg_trOk (id T y : w64) (e : entryID) (cl : List w8) (ht : uint.nat T < traceNumBound)
     (hi : uint.nat e.index' < traceNumBound) (hl : uint.nat e.term' < traceNumBound) :
     (campMsg false id T e cl y).TrOk := by
-  intro _
   have h0 : uint.nat (W64 0) = 0 := rfl
   have hb : (0 : Nat) < traceNumBound := by unfold traceNumBound; omega
   unfold campMsg
   split
-  · refine ⟨ht, ?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Msg.plain, List.length_nil, h0] <;> exact hb
-  · refine ⟨ht, ?_, hl, hi, ?_, ?_⟩ <;> simp only [campReq, List.length_nil, h0] <;> exact hb
+  · refine Msg.trOk_of_nums (by intro h; cases h) (by intro h; cases h) (fun _ => ?_)
+    refine ⟨ht, ?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Msg.plain, List.length_nil, h0] <;> exact hb
+  · refine Msg.trOk_of_nums (by intro h; cases h) (by intro h; cases h) (fun _ => ?_)
+    refine ⟨ht, ?_, hl, hi, ?_, ?_⟩ <;> simp only [campReq, List.length_nil, h0] <;> exact hb
 
 /-- **A vote request's or the self-vote's phase step, pinned** (`phaseStepB_send_pin` with
 `lineEffect_requestVote`, `lineEffect_selfVote`), at the campaign's state `s1` (a candidate with no votes
@@ -613,7 +614,7 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
   iapply trCapB_hookGateOpt (some γd) γ r id c tl _ bt _ _ (stepLastEv Λ) (stepLastEv Λ) iprop(emp) hps
     (fun e he => sendEvOf_notBoot he hevt.1 hevt.2.1 hevt.2.2.2)
     (fun e _ => .inr rfl)
-    (fun _ e he => sendEvOf_ok _ id _ c _ e _ he ⟨hevt.1, hevt.2.2.1⟩ hTn Hb.1 Hb.2 (hmok hty) (Nat.le_refl _))
+    (fun _ e he => sendEvOf_ok _ id _ c _ e _ he ⟨hevt.1, hevt.2.2.1⟩ hTn Hb.1 Hb.2 (hmok hty).1 (Nat.le_refl _))
     (fun h => by cases h)
   simp only [FxPresUT]
   iframe Htl Hf Hfx

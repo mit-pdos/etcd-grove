@@ -35342,3 +35342,48 @@ line (`TracedRaftStepRecvLead.lean`); the rest of their pieces (the appends' pin
 `phaseStepB_send_pin` with `lineEffect_msgApp`, their facts `fxPres_app` with `app_lead`/`pinAt_step`
 and `msgFacts` from raft's ghost: `ownRaftGhost_isLeader`, `ownRaftGhost_logFacts` with `FullOk_take`/
 `logRecs_drop` and a take at a general base) are mechanical once (a) is in.
+
+## Amendment A4 (Q20) and Q18: `startTrace` hands `StartNode` the capability's pieces; a heartbeat's shape in `Msg.TrOk` (2026-11-11 · trace-check, Q20 (a) and Q18 (b) taken by the coordinator pending the user's veto; the forms the agent's · branch `trace-check-a4`; amends the frozen Draft, tag `trace-check-frozen-a3`, in `startTrace`/`StartNode.gatedSpec` only; DRAFT until the re-freeze)
+
+**A4 (Q20 (a)).** `TracedApiDraft.lean`'s `startTrace` (traced branch) was `∃ tn, traceDir γd tn ∗
+⌜TracedConfigOk cv⌝ ∗ isTraceLogger tn.tr cv.TraceLogger' ∗ inv (simN N) (simInv vs tn (fun _ => True)) ∗
+simNode tn cv.ID' (simInit's share) []`; it is now `∃ tn, traceDir γd tn ∗ ⌜TracedConfigOk cv ∧ tn.voters =
+vs ∧ vs.length < 2 ^ 40 ∧ cv.TraceLogger' ≠ interface.nil⌝ ∗ isTraceLogger tn.tr cv.TraceLogger' ∗
+Cluster.traceSimInv γ vs tn ∗ simNode tn cv.ID' (simInit's share) [] ∗ simBoot tn cv.ID' false none`, where
+`Cluster.traceSimInv γ vs tn` (sealed, `@[no_expose]`, as `Cluster.trace`) is `inv (simNS γ.raft) (simInv
+vs tn (simFx γ.raft vs))`, the capability's own invariant. `startTrace` loses its namespace argument
+(`simN` deleted: `simNS γ.raft` is `N .@ "raft" .@ "tracesim"` by `isCluster`). The untraced branch is
+unchanged (`startTrace_untraced`). Checked first:
+- the invariant's other users take any `Fx` (`simInv_end`, `simRun_runAccepted`, `simInv_main`), and
+  nothing imports `TracedApiDraft`;
+- the pieces `trCapB_intro` needs beside `newRaft`'s logger field: `startTrace` lacked, besides the
+  invariant and the flag (Q20), `tn.voters = vs` (the capability's `C` is the names' voters) and a
+  non-nil logger (`isTraceLogger` admits nil, the capability does not); a4-r1's F1 added the voters'
+  bound (`Bootstrap`'s `ApplyConfChange` lines log one entry per voter, their gate asks
+  `TraceEv.OkBoot`'s `logSize < 2^40`, `nodeBoot` bounds the voters by `2^62` only). Proved:
+  `startTrace_trCapB` (with `nodeBoot`'s raft log invariant and membership, the capability, unbooted,
+  at the bootstrap share);
+- `Main`'s order: the trace's names and directory first (they depend on the voters only), the traced
+  cluster with `reTrace := some γd` (Q6 item 8, S7), then the one shared invariant from any voter's
+  `nodeBoot` (raft's commit invariant, the bootstrap log), then the `StartNode`s. Proved:
+  `Cluster.traceSimInv_alloc` (the shares' and flags' maps at the start, the bag empty, `simFx` at
+  `simInit` by `simFx_simInit`), and the sealed invariant's opening law for `Main`'s end of run,
+  `Cluster.traceSimInv_end` (a4-r2's S1). Left to S7: the traced `cluster_alloc` and the law allocating
+  the names (handing out the shares and flags; `_alloc` takes the raw ghost maps).
+Rejected: (b) (the capability needs the struct's logger field, which does not exist before `newRaft`);
+(c) (one invariant per node; the cluster needs one).
+
+**Q18 (b).** `Msg.TrOk` (`Protocol/Model.lean`, importable) gains, for a traced type, `(m.ty = .heartbeat →
+m.entries = []) ∧ (m.ty = .heartbeatResp → m.reject = false)` beside the numbers; it is read only through
+`MsgTrOk γ` (gated on `γ.reTrace.isSome`: vacuous for every untraced client) and `OutTr`/`OutTrStep`/
+`OutOk`. Established where raft queues a message: the heartbeat's (`heartbeat_trOk`, `bcastHeartbeat`:
+`[]` entries), the heartbeat responses' (`Msg.trOk_of_nums_hbresp`, `handleHeartbeat`: `Reject` false; in
+slice 20b's `TracedRaftStepRecvHb`/`Cand`/`UTHb`), every other send by `Msg.trOk_of_nums` (the clauses
+vacuous); the receive paths read the numbers as `.1` (`Msg.TrOk.nums`). Forced, minimal edits in slice 20b's
+path files (`TracedRaftStepRecv*.lean`: the `.1`s and the send sites), none to the bundle's statement.
+`isRaftMsg_trRecv` (`TracedNodeRecv.lean`) now also gives `γ.reTrace.isSome → TrRecvShape st.msg st.ents`
+(`trRecvShape_of_trOk`). Client-visible: `interface/Proof/go_etcd_io/raft/v3/Protocol/Model.txt` only
+(`Msg.TrOk`'s body, the lemmas `Msg.TrOk.nums`, `Msg.trOk_of_nums`, `Msg.trOk_of_nums_hbresp`).
+
+No axiom, no `sorry`; among frozen statements only `startTrace`/`StartNode.gatedSpec` changed. Reviews
+`notes/trace-validation-reviews/a4-r1.md`, `a4-r2.md`.

@@ -242,13 +242,32 @@ def MsgType.traced : MsgType → Bool
 
 /-- (Q8 stage 1 slice 10) **What a traced cluster's message carries of its numbers**: of a traced
 type, every number its traced form reads below `traceNumBound` (what a receive line's
-`TraceEv.Ok` needs of the message, `sendEvOf_ok`). -/
+`TraceEv.Ok` needs of the message, `sendEvOf_ok`); and (trace-check Q18 (b), 2026-11-11) a
+heartbeat carries no entries and a heartbeat response does not reject (raft's `bcastHeartbeat`
+attaches none, `handleHeartbeat` never rejects): what a receive line reads of the physical message
+beyond its specification message (`TrRecvShape`'s first two clauses), the specification's heartbeat
+having no entries and its response being a success. -/
 def Msg.TrOk (m : Msg) : Prop :=
-  m.ty.traced = true → m.NumsBelow traceNumBound
+  m.ty.traced = true → m.NumsBelow traceNumBound ∧ (m.ty = .heartbeat → m.entries = []) ∧
+    (m.ty = .heartbeatResp → m.reject = false)
 
 /-- A message of an untraced type is `TrOk`. -/
 theorem Msg.trOk_of_untraced {m : Msg} (h : m.ty.traced = false) : m.TrOk :=
   fun h' => absurd (h.symm.trans h') (by decide)
+
+/-- A `TrOk` message's numbers (Q18: `TrOk`'s first clause). -/
+theorem Msg.TrOk.nums {m : Msg} (h : m.TrOk) (ht : m.ty.traced = true) : m.NumsBelow traceNumBound :=
+  (h ht).1
+
+/-- A `TrOk` message of a type other than the heartbeat's and its response's: its numbers only. -/
+theorem Msg.trOk_of_nums {m : Msg} (hh : m.ty ≠ .heartbeat) (hr : m.ty ≠ .heartbeatResp)
+    (hn : m.ty.traced = true → m.NumsBelow traceNumBound) : m.TrOk :=
+  fun ht => ⟨hn ht, fun e => absurd e hh, fun e => absurd e hr⟩
+
+/-- A `TrOk` heartbeat response: its numbers, not rejecting. -/
+theorem Msg.trOk_of_nums_hbresp {m : Msg} (hty : m.ty = .heartbeatResp) (hrj : m.reject = false)
+    (hn : m.ty.traced = true → m.NumsBelow traceNumBound) : m.TrOk :=
+  fun ht => ⟨hn ht, fun e => absurd (hty.symm.trans e) (by decide), fun _ => hrj⟩
 
 end msgs
 

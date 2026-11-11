@@ -466,7 +466,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
         (by show uint.Z s.term ≤ uint.Z m.Term'; rw [hterm]; exact Int.le_refl _) hs0.1 hwB hstl $$ Hm Hg with ⟨Hg, %Hmt0⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := hok .app hmty hreT htrd
+      have hnb : (absMsg .app m ents).NumsBelow traceNumBound := (hok .app hmty hreT htrd).1
       have hmt0 : PlogMatches (entryID.mk (W64 0) (W64 0)) (toPState s).log
           (entryID.mk m.LogTerm' (W64 (uint.nat m.Index'))) := by
         unfold PlogMatches
@@ -635,7 +635,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
         simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx
         rcases hx with hx | rfl
         · exact .inl hx
-        · exact .inr (fun _ => appResp_nums id _ m.From' s.logst.committed hT Hb.2)
+        · exact .inr (Msg.trOk_of_nums (by intro h; cases h) (by intro h; cases h) (fun _ => appResp_nums id _ m.From' s.logst.committed hT Hb.2))
 
 end paths
 
