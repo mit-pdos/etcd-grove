@@ -1157,7 +1157,7 @@ theorem node.run.wp_proof
     ihave #Hfr' : durFrags γ.raft id rs1.bw $$ []
     · rw [← Hgid]; iexact Hfr
     wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1
-      HtrG $$ [$Hrn $Hlr $HA1 $Hfr'] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+      HtrG $$ [$Hrn $Hlr $HA1 $Hfr'] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca, -⟩
     ihave Hcfg := runCfg_advance γ rs1 t ca Hca $$ HA1 Hcfg
     -- (D22 S-d4) the node after `Advance` (`advRS`): nothing queued, unpersisted or lent, the
     -- committed log handed out the driver's

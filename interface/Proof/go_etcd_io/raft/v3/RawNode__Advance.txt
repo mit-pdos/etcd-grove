@@ -32,8 +32,9 @@ theorem RawNode.Advance.wp_proof [package_sem : Assumptions] (wp_raft_Step : raf
                           ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
                             ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
                               ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
-                                  (∀ (l : SnapLoan), rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
-                                    (rs.mode = RNMode.static → ca = rs.capplied)⌝ -∗
+                                    (∀ (l : SnapLoan), rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
+                                      (rs.mode = RNMode.static → ca = rs.capplied)⌝ ∗
+                                ⌜rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length⌝ -∗
                         Φ (intoVal ())) -∗
                   WP
                     ((intoVal

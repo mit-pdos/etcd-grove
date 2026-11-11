@@ -37257,3 +37257,47 @@ probe proves only that a committed `ConfChange` is at one).
 `ccDecode`; `pbMessage`'s fields through its `simp` lemmas (rafthttp's, moving to raft, B4). Candidates
 for laws: `sentMsg_resps` (`sentMsg ⊢ ⌜st.resps = []⌝`) and a `readyEnter` elimination lemma; the rest
 are definitions clients are meant to read.
+
+## Probe B (the escrow): the per-node token escrow proved for one node; `np`/`pend` replaced by a halved `pk`; `RawNode.Advance.spec`'s post strengthened; the booted flag not provable without N1, whose cost is larger (2026-11-11 · trace-check, §8's Probe B of `notes/trace-check-design.md`, decided by the agent under the user's delegation (raft-internal, intermediate statements) · branch `trace-check-probeB`)
+
+**Context.** `notes/spec-first-plan.md`'s Probe: the hard proof chosen by its invariant. The design's
+riskiest new invariant is the per-node escrow `rtkInv` (§3.2 items 2-4), which carries the handed-out
+messages' tokens from `run`'s `readyc` commit to the driver's `Advance`, in both rendezvous orders.
+
+**Done** (`Proof/go_etcd_io/raft/v3/TracedEscrow.lean`, raft-internal, not threaded): the escrow's
+definitions (`rtkBody`, `rtkInv`, `rtkRun`, `rtkClaim`, `trTokR`, `TrSent`, `rtkN`) and the arm-level
+lemmas the gated `run` and the traced `node.Advance` will call: allocation (`rtk_alloc`); the
+`readyc` commit in the send AU's `|={⊤}=>` prefix (`readyc_send_rtk`, `handshake_send_au_fupd`); the
+deposit (`rtk_deposit`, from `acceptReady`'s `readyTok`s by `readyTok_trTokR`); the `advancec`
+rendezvous over `escInv`, the escrow's part of `advInv` per channel state, in both orders
+(`esc_recv_au`, `esc_send_au`, opening `rtkInv` at `⊤ ∖ ↑advN`, `rtkN_sub_advN`), with the claim-less
+driver (`ms = []`) and, through `rtk_depLb`/`rtk_take`, any key below the allocated count (a stale
+claim; `rtk_scenario` swaps one while a newer key is pending); the receiver's split of the token into
+the gated `fwdP`/`netP` clauses and `raft.Step.tracedTriple`'s type and token premises
+(`trTokR_fwd`, `trTokR_net`, `netGate_step`). `RawNode.Advance.spec`'s post gains N2's conjunct
+`rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length`, proved
+(`ownStepGhost_applied_le`), its one caller (`node__run.lean`) re-checked.
+
+**Decision: `pk : Option (List QMsg)` in halves replaces `np` and `pend`.** The design's `run` held the
+exclusive `np` only while idle; after the commit it held nothing of the escrow, so at the deposit it
+could not show a deposit pending nor that the pending key's slot records `acceptReady`'s `ms`. An
+agreement variable whose halves are the invariant's and `run`'s carries both facts, and is lent at
+`RcvPending` exactly as `np` was. Rejected: keeping `np` and adding a `run`-held fragment of the key
+(two names for one fact).
+
+**Not done: item 6 (clause 1(a) through a step).** No lemma outside the bundle's statements gives
+`bt' = true` (the flag's only record is the exclusive `simBoot`; the trace is a `ghostVar`, without a
+lower bound; the last event cannot witness `booted`, `BecomeFollower` and `ApplyConfChange` being
+bootstrap names). N1's statement change is needed, and it also changes the broadcasting families'
+`lineF` (`TracedPin.lean:222`), which re-quantifies the flag at each iteration (five `iexists b` sites):
+not "small", so left to step 2.
+
+**Found** (the design's "Probe B" section, P1-P7): P1 above; `handshake_send_au_fupd` is `sendAu_fupd`
+(existing) composed; `TrNetTy` sits above `InvNodeChan` and must move down with `TrSent`/`trTokR` at
+threading; the escrow needs no gate for soundness; N1's cost. The rendezvous needs nothing of which
+thread enters `SndPending`.
+
+**Probe record** (`notes/spec-first-plan.md`): about 1h30 (22:22-23:52 UTC; the proofs about 1h, the full build and the checks the rest). Spec
+problems found that three review rounds had not: P1 (the escrow as designed could not do its own
+deposit), P3 (the escrow's import position), P6 (N1's scope). No `sorry`, no axiom, no client-visible
+statement changed (the interface of `RawNode.Advance`'s proof file changes by the new conjunct).

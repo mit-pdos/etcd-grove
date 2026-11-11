@@ -477,6 +477,20 @@ private theorem ownStepGhost_rinv (γ : RaftNames) (dec : CCDec) (c0 : CCState) 
   iframe Hfr HM
   ipureintro; exact HC
 
+/-- (2026-11-11, trace-check revision 3's N2, Probe B item 5) Dynamically, `applied` is within the
+configuration index (`RInv`'s `applied_cidx`). -/
+private theorem ownStepGhost_applied_le (γ : RaftNames) (md : RNMode) (g : RGh) (c : CfgM) (id : w64)
+    (s : NState) :
+    ownStepGhost (GF := GF) γ (md.toG g) c id s ⊢
+      ⌜md.isDyn = true → uint.nat s.logst.applied ≤ g.cidx⌝ ∗ ownStepGhost γ (md.toG g) c id s := by
+  cases md with
+  | static => iintro H; iframe H; ipureintro; intro h; cases h
+  | dyn dec c0 h0 h1 =>
+    simp only [RNMode.toG]
+    iintro H
+    icases ownStepGhost_rinv γ dec c0 h0 g c id s $$ H with ⟨%HI, H⟩
+    iframe H; ipureintro; intro _; exact HI.applied_cidx
+
 /-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s acknowledgement** through `Step`'s spec, its receipt
 absorbed: the storage at the pending snapshot (`sat`), in the `sapp` window, where its `stableTo`
 moves stable only what the storage holds (`stableOk_of_stored_ls`), or (D22 S-d3b) after a
@@ -1702,7 +1716,8 @@ theorem RawNode.Advance.wp_proof
         rw [Hpvoff.2.1, ← Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.1]
         exact Hti1.2.2.2.1
       ipureintro
-      refine ⟨(fun h => by rw [hsl] at h; cases h), fun l' h hd => ?_, fun hm => ?_⟩
+      refine ⟨⟨(fun h => by rw [hsl] at h; cases h), fun l' h hd => ?_, fun hm => ?_⟩,
+        fun h => by rw [hsl] at h; cases h⟩
       · rw [hsl] at h; cases h; rw [HCA, if_pos hd]
       · rw [HCA, if_neg (by rw [hm]; exact Bool.false_ne_true)]
   -- no snapshot `Ready`: the queue holds no snapshot acknowledgement, a non-empty one no restore
@@ -2023,6 +2038,23 @@ theorem RawNode.Advance.wp_proof
         fun _ _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h), HcapA⟩
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hs1.2.2.1) $$ Hsloc
     icases ownRaftPhysC_sn cf rnv.raft' id s1 $$ Hphys with ⟨%Hsn1, Hphys⟩
+    -- (trace-check revision 3's N2, Probe B item 5) dynamically the configuration index is at least
+    -- `applied` (`RInv`'s `applied_cidx`), which is at least `applying`, the committed log handed out
+    icases ownStepGhost_applied_le γ rs.mode ⟨ca, rs.cfg, fp, ds⟩ cf id s1 $$ Hghost with ⟨%Hap, Hghost⟩
+    have Hcmax : rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length := fun hd => by
+      have h1 := Hap hd
+      have h2 := Hca.1
+      have h3 := Hca.2.1
+      have h4 : (uint.nat s1.logst.applied : Int) = uint.Z s1.logst.applied := uint_nat_eq _
+      have h5 := uint_Z_nonneg s.logst.applying
+      have h6 := Hge
+      have h7 : (rs.delivered.length : Int) = uint.Z s.logst.applying := by
+        rw [Hdlen, Int.toNat_of_nonneg h5]
+      have h1' : (uint.nat s1.logst.applied : Int) ≤ (ca : Int) := by exact_mod_cast h1
+      rw [h4] at h1'
+      have h8 : (rs.delivered.length : Int) ≤ (ca : Int) := by omega
+      have h8' : rs.delivered.length ≤ ca := by exact_mod_cast h8
+      omega
     iapply HΦ $$ %s1.term %ca
     rw [advRS_none s1.term ca hsl]
     isplitl
@@ -2052,8 +2084,8 @@ theorem RawNode.Advance.wp_proof
       rw [Hpvoff.2.1]
       exact Hti1.2.2.2.1
     ipureintro
-    exact ⟨fun _ => ⟨Hca.1, Hca.2.1⟩, (fun l (h : rs.slent = some l) => by rw [hsl] at h; cases h),
-      Hca.2.2⟩
+    exact ⟨⟨fun _ => ⟨Hca.1, Hca.2.1⟩, (fun l (h : rs.slent = some l) => by rw [hsl] at h; cases h),
+      Hca.2.2⟩, fun _ => Hcmax⟩
 
 end proof
 
