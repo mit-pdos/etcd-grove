@@ -84,11 +84,11 @@ theorem runOk_of_sim (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
 /-- **The bootstrap facts of a run whose voters' bootstrap is complete** (amendment A8, Q36 (a): since
 `simInit` gives every id outside the voters the server `newTraceWith` builds for it, `bootJunk`): once
 every voter's bootstrap segment is raft's and complete (`BootSegs`, `BootDone`), `BootFacts` holds
-(`newTrace_bootInit`). (Before A8 it was false of every such run, A7's `not_bootFacts`.) -/
+(`newTrace_simInit`). (Before A8 it was false of every such run, A7's `not_bootFacts`.) -/
 theorem bootFacts_of_bootDone (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
     (hCl : C.length < 2 ^ 40) (hrun : SimRun C L σ) (hev : SimEvents C.length L) (hseg : BootSegs C L)
     (hdone : ∀ i ∈ C, BootDone C L i) : BootFacts C L := by
-  obtain ⟨t, hnt, hsrv, hisrv, hinit⟩ := newTrace_bootInit C L σ hC0 hCl hrun hev hseg hdone
+  obtain ⟨t, hnt, hsrv, hisrv, hinit⟩ := newTrace_simInit C L σ hC0 hCl hrun hev hseg hdone
   exact ⟨t, hnt, hinit, hsrv, hisrv⟩
 
 open Iris.BI Iris.ProofMode in

@@ -164,7 +164,7 @@ the `|C|` bootstrap entries (0010's incremental configurations), all committed, 
 `C`, `matchIndex` 0, its durable state its own; no message. Every other id (the transcription's `s`
 is total, TLA+'s is over `Server`) is `bootJunk`, the server `newTraceWith` builds for it (amendment
 A8, Q36 (a)): so `simInit C` is the initial state `newTrace` computes of a trace whose voters'
-bootstrap segments are raft's and complete (`newTrace_bootInit`), the one TLC starts from. -/
+bootstrap segments are raft's and complete (`newTrace_simInit`), the one TLC starts from. -/
 def simInit (C : List w64) : Etcdraft.State :=
   let srv := confAbs C
   let v : Etcdraft.Server :=

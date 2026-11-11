@@ -150,7 +150,7 @@ theorem simIdle_boot (C : List w64) (id : w64) (hid : id ∈ C) (s : NState) (es
   · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, rfl, rfl, ?_, ?_⟩
     · show (1 : Int) = uint.Z (toPState s).term
       simp only [toPState, hterm]; rfl
-    · simp only [toPState, hrole, proleRole, roleAbs]; try rfl
+    · simp only [toPState, hrole, proleRole, roleAbs]
     · simp only [toPState, hvote]; rfl
     · simp only [toPState, hrole, hlead]; rfl
     · simp only [toPState, hprev]; rfl

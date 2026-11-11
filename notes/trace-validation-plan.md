@@ -1256,6 +1256,7 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   definition: for the coordinator or the user.
   **Taken by the coordinator (an intermediate statement; the user reviews only the top level): (a)**, amend
   `simInit` so that non-voters get `bootJunk`, in the design pass's amendment A8.
+  **Done (A8, 2026-11-11, branch `trace-check-a8`):** `bootInit_eq`, `bootFacts_of_bootDone`; `not_bootFacts` deleted.
 - **Q38 (2026-11-11, design review design-r1 F1): the closed theorem's step bound and the corollary's form
   (the user's: the closed statement).** The harness's network wait group `c.net` gets `Add(1)` per
   message (`concurrent.go:351`) with no bound, Go panics past `2^31`, and the proof bounds the counter
@@ -1287,6 +1288,8 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   or the node API). A frozen structure: for the coordinator or the user.
   **Taken by the coordinator: the recommended option** (a new ghost name in `TraceNames` for persistent
   `bootDone tn i` tokens, returned by `StartNode`), in amendment A8.
+  **Done (A8, 2026-11-11, branch `trace-check-a8`)** but the minting in `setupNode`, which waits on the traced
+  `newRaft`/`Bootstrap`: `trCapB_bootDone`, `startDone`, `Cluster.traceSim_bootEnd`, `HarnessEnd`'s `bootEnd`.
 - **Q30 (2026-11-11, slice 29c): a leader's accepted `MsgAppResp` whose `maybeCommit` commits: `Step`'s
   result before `"Hgcommit"` unguarded.** `stepClose` hands the closing wand `stepOutG`, whose `G0`/`G1`
   disjuncts are guarded by `¬ CandHooked` only, and `stepLeader.spec` returns its `G` on an accepted

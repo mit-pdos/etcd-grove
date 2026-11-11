@@ -15,10 +15,9 @@ events ASCII, in scope (`ScopeOk`), the bootstrap lines' logs (`BootLogsOk`), th
 `traceNumBound`, their configuration lists within the voters' number), and `simRun_runAccepted`, `mainPure`'s
 `RunAccepted L` from it and the bootstrap facts. `tracecheck/MainSim.lean` combines them with
 `mainPure`. Not here: the event count (`L.length < numBound`), bounded by the run's steps
-(the recorder's, outside the simulation). (Amendment A7, Q29) The bootstrap segments: `simInv_end_boot`
-also gives `BootSegs`, and `newTrace_bootInit` what `NewTrace` computes of complete segments
-(`bootInit C`, which is `simInit C` since amendment A8 gives `simInit` `bootJunk` outside the voters:
-the plan's Q36 (a), `bootInit_eq`). (Amendment A8, Q37) `simInv_end_bootDone`: with every voter's
+(the recorder's, outside the simulation). (Amendments A7, A8) `newTrace_simInit`: what `NewTrace` computes
+of complete bootstrap segments, `simInit C` (A8 gives `simInit` `bootJunk` outside the voters: the plan's
+Q36 (a)). (Amendment A8, Q37) `simInv_end_bootDone`: with every voter's
 `bootDone` witness, the run's end gives `NewTrace`'s success at the voters' initial state and servers.
 -/
 module
@@ -110,29 +109,6 @@ theorem simInv_end (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IPr
   obtain ⟨hrun, hsrv, -, -, -, -, -, -, -, -, hasc, -, -⟩ := Hp
   exact ⟨σ, hrun, hsrv, hasc⟩
 
-open Iris.BI Iris.ProofMode in
-/-- **`simInv_end` with the bootstrap segments** (amendment A7, Q29): also the voters' bootstrap
-segments are raft's (`BootSegs`, what `NewTrace` reads of the bootstrap lines). -/
-theorem simInv_end_boot (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) (L : List TraceEv) :
-    traceAuth tn.tr L ∗ simInv C tn Fx ⊢
-      traceAuth tn.tr L ∗ simInv C tn Fx ∗
-        ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧ SimEvents C.length L ∧ BootSegs C L⌝ := by
-  iintro ⟨Ha, Hi⟩
-  iunfold simInv at Hi
-  icases Hi with ⟨%L', %σ, %A, %B, %phP, %phM, %Bt, %Dn, HL, HA, HB, HBt, HDn, Hfx, %Hp⟩
-  icases trace_agree_keep tn.tr L L' $$ [Ha HL] with ⟨⟨Ha, HL⟩, %hLL⟩
-  · iframe
-  subst hLL
-  isplitl [Ha]; · iexact Ha
-  isplitl [HL HA HB HBt HDn Hfx]
-  · iunfold simInv
-    iexists L, σ, A, B, phP, phM, Bt, Dn
-    iframe HL HA HB HBt HDn Hfx
-    ipureintro; exact Hp
-  ipureintro
-  obtain ⟨hrun, hsrv, -, -, -, -, -, -, -, -, hasc, hseg, -⟩ := Hp
-  exact ⟨σ, hrun, hsrv, hasc, hseg⟩
-
 end ghost
 
 /-! ## What `NewTrace` reads of complete bootstrap segments (amendment A7, Q29) -/
@@ -140,36 +116,26 @@ end ghost
 section boot
 variable [GooseExts]
 
-/-- **The initial state `newTrace` computes of the traced cluster's trace**: `simInit C` at the voters,
-`bootJunk` at every other id (the transcription's `s` is total; TLA+'s is over `Server`). Since
-amendment A8 (Q36 (a)) it is `simInit C` (`bootInit_eq`). -/
-def bootInit (C : List w64) : Etcdraft.State :=
-  { simInit C with s := fun i => if i ∈ confAbs C then (simInit C).s i else bootJunk }
-
-/-- `bootInit C` is `simInit C` (amendment A8, Q36 (a): `simInit` gives every id outside the voters
-`bootJunk`). -/
-theorem bootInit_eq (C : List w64) : bootInit C = simInit C := by
-  have hs : (fun i => if i ∈ confAbs C then (simInit C).s i else bootJunk) = (simInit C).s := by
-    funext i
-    by_cases hi : i ∈ confAbs C
-    · simp only [hi, ↓reduceIte]
-    · simp only [hi, ↓reduceIte]
-      exact (simInit_s_nonvoter C i hi).symm
-  unfold bootInit
-  rw [hs]
-
 /-- **`newTrace` of a trace whose voters' bootstrap segments are raft's and complete** (amendment A7,
-Q29): it succeeds, its servers and initial servers are the voters', its initial state `bootInit C`, which
-is `simInit C` (amendment A8, `bootInit_eq`). -/
-theorem newTrace_bootInit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
+Q29): it succeeds, its servers and initial servers are the voters', and its initial state is `simInit C`
+(amendment A8, Q36 (a): `newTraceWith` builds an id outside the servers from the trace's first line, an
+`InitState`, which is `bootJunk`, `simInit`'s server there). -/
+theorem newTrace_simInit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
     (hCl : C.length < 2 ^ 40) (hrun : SimRun C L σ) (hev : SimEvents C.length L) (hseg : BootSegs C L)
     (hdone : ∀ i ∈ C, BootDone C L i) :
     ∃ t, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.server = confAbs C ∧ t.initSrv = confAbs C ∧
       t.init = simInit C := by
   obtain ⟨t, hnt, hs, hi, hinit⟩ := newTrace_of_bootDone C L σ hC0 hCl hrun hev hseg hdone
   refine ⟨t, hnt, hs, hi, ?_⟩
+  have hs' : (fun i => if i ∈ confAbs C then (simInit C).s i else bootJunk) = (simInit C).s := by
+    funext i
+    by_cases hi : i ∈ confAbs C
+    · simp only [hi, ↓reduceIte]
+    · simp only [hi, ↓reduceIte]
+      exact (simInit_s_nonvoter C i hi).symm
   rw [hinit]
-  exact bootInit_eq C
+  show { simInit C with s := fun i => if i ∈ confAbs C then (simInit C).s i else bootJunk } = simInit C
+  rw [hs']
 
 end boot
 
@@ -248,7 +214,7 @@ theorem simInv_end_bootDone (C : List w64) (tn : TraceNames) (Fx : Etcdraft.Stat
   ipureintro
   obtain ⟨hrun, -, -, -, -, -, -, -, -, -, hev, hseg, hdn⟩ := Hp
   obtain ⟨t, hnt, hsrv, hisrv, hinit⟩ :=
-    newTrace_bootInit C L σ hC0 hCl hrun hev hseg (fun i hi => hdn i (hin i hi))
+    newTrace_simInit C L σ hC0 hCl hrun hev hseg (fun i hi => hdn i (hin i hi))
   exact ⟨t, hnt, hinit, hsrv, hisrv⟩
 
 end done
