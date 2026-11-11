@@ -98,3 +98,9 @@ spec-thread ^Spec/k8s_io/apiserver/pkg/storage/etcd3/(New|store__GetList|store__
 # `GetList` (`Main` takes it from the adequacy theorem's constants, as before); they go once the store's
 # `isStore` holds it (the follow-up above).
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/(call|Apply|Check)\.lean$  # the driver passes the store's list-path bound on (7e-4; follow-up above)
+
+# The receive loop's levels (per-type stage B3, 2026-11-11): `watchServer.Watch`'s goroutine splits its
+# thread token into levels and borrows the inner pool `I` (level 2) and the gRPC run pool (level 3),
+# so its spec takes `⌜4 ≤ threadBound⌝` (`srvLevelK`), beside the reader bound it had; the served
+# theorems discharge it from `srvLevels`, which adequacy fixes (`srvLevels_of_max`).
+spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/watchServer__Watch\.lean$
