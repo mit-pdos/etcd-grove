@@ -626,7 +626,8 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
       osBytes (L := L) d.ino off.toNat (DFrac.own 1) xs -∗
       mcellsAny m.maps off.toNat (off.toNat + data.length) -∗
       (∀ t : Nat, ∀ n : Nat, ⌜(∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n) ∧
-          ∀ b c, m.size ≤ b → m.pc b = some c → ∀ q ∈ c, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
+          (∀ b c, m.size ≤ b → m.pc b = some c → ∀ q ∈ c, q.2 < n) ∧ 0 < n⌝ -∗
+        osFd (L := L) fd dq d -∗
         pwTok t d.ino off.toNat data m xs n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "PWriteStart" (Val (PairV (#fd) (PairV (#off) (#data))))) @ s; E
         {{ Φ }} := by
@@ -781,7 +782,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
     rw [hxs k hk] at hq
     exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq), fun b c hb hc q hq => by
     rw [← hmo.pc_cand b c (by rw [← hmo.size]; exact hb) hc] at hq
-    exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq)⟩) Hfd
+    exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq), Nat.succ_pos _⟩) Hfd
   unfold pwTok osTok
   iframe Ht; ipureintro; exact ⟨hgap, hd, hlen⟩
 

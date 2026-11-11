@@ -66,7 +66,7 @@ structure CSt where
 candidate of the bytes it announces: those it takes below the size, those `m` knows past it. -/
 def PwFresh (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) (n : Nat) : Prop :=
   (∀ x ∈ cfRange m bs off data.length, ∀ q ∈ x.2, q.2 < n) ∧
-    ∀ b c, m.size ≤ b → m.pc b = some c → ∀ q ∈ c, q.2 < n
+    (∀ b c, m.size ≤ b → m.pc b = some c → ∀ q ∈ c, q.2 < n) ∧ 0 < n
 
 /-- The candidates `zs` a write reports of the bytes it grew the file over (from `m.size`) are
 those `m` knew. -/
