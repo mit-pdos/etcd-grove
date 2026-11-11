@@ -1266,6 +1266,9 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   (`notes/trace-check-design.md` §1.3, a triple: `RunConcurrent(defaultCConfig)` then `Events` returns a
   trace with `TraceAccepts`). **Recommended: (a)**; the design revision assumes it, and nothing lands
   on the closed statement until the user decides.
+  **Decided by the user (2026-11-11): (a), the tighter bound** (`n + 2 ≤ 2^31`, `[ThreadBoundLe GF (2^31)]` in
+  the corollary), **and the corollary's form as in `notes/trace-check-design.md` §1.3** (a triple:
+  `RunConcurrent(defaultCConfig)`, then `Events` returns a trace with `TraceAccepts`).
 - **Q37 (2026-11-11, A7): the per-voter "bootstrap complete" fact has no ghost anchor.** `newTrace`'s
   initial state needs every voter's segment complete at the end of the run (`BootDone`). Raft logs a
   voter's whole bootstrap inside `StartNode` (`setupNode`, before `go n.run()`), so `StartNode`'s post is
