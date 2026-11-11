@@ -101,7 +101,7 @@ theorem ownStepGhost_leadLast (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64
 end ghost
 
 section pure
-variable [GooseExts]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **`MsgProp` at a leader**, a non-empty batch of normal entries, in a cluster with a bootstrap log
 (see the header). -/
@@ -131,6 +131,52 @@ theorem propK_zero (s : NState) (es : List EntryM) : propK s es 0 = s := by
 
 theorem propK_full (s : NState) (es : List EntryM) : propK s es es.length = propAppended s es := by
   simp [propK]
+
+/-- The proposed state's log is past `s`'s (`raft__Step/MsgProp.lean`'s `proposed_logst_ne`). -/
+theorem proposed_logst_ne' (id : w64) (s : NState) (ents : List EntryM) (hne : ents ≠ []) :
+    (proposed id s ents).logst ≠ s.logst := by
+  intro h
+  have h1 := congrArg (fun l => l.uents.length) h
+  simp only [proposed, sendMsgs, logAppend, List.length_append, List.length_mapIdx] at h1
+  exact hne (List.eq_nil_of_length_eq_zero (by omega))
+
+theorem msgProp_ne_hup : MsgProp ≠ MsgHup := by simp only [MsgProp, MsgHup, ne_eq]; exact of_decide_eq_true rfl
+theorem msgProp_ne_vote : MsgProp ≠ MsgVote := by simp only [MsgProp, MsgVote, ne_eq]; exact of_decide_eq_true rfl
+
+/-- **The end state of a `PropLead` path** (`StepEnd`, traced): dropped, the log and the outbox `s`'s
+(only `pendingConfIndex` may move, which the idle relation does not read); appended, the proposed
+state's broadcast, the `Match` values unchanged. -/
+theorem propLead_end {γ : RaftNames} {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hp : PropLead γ ents s m) (hT0 : m.Term' = W64 0)
+    (h : StepEnd c id m ents ctx s s') :
+    (s'.logst = s.logst ∧ s'.outbox = s.outbox ∧ ∀ C, SimIdleS C s = SimIdleS C s') ∨
+    (∃ (ms : List Msg) (pvs : GMap w64 Progress), s' = { sendMsgs (proposed id s ents) ms with prvals := pvs } ∧
+      prvalsMatch pvs = prvalsMatch s.prvals) := by
+  obtain ⟨hty, hlead, hne, hnorm, -⟩ := hp
+  have hnc := noConf_of_normal ents hnorm
+  have hnbf : ¬ PreBF m s := by
+    unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
+  have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
+  have hns : ¬ StaleMsg s m := fun h => h.1 hT0
+  have hte : StepEndTy m.Type' := by unfold StepEndTy; simp [hty]
+  obtain ⟨pvs, hfn⟩ := (h hte).2.2.2 hns (by rw [hty]; exact msgProp_ne_hup) (by rw [hty]; exact msgProp_ne_vote)
+  rw [hpre pvs] at hfn
+  obtain ⟨d, hres⟩ := hfn.2.2 hlead
+  unfold LeaderStepResultC at hres
+  rw [if_pos hty] at hres
+  obtain ⟨cs, hct, -, hres⟩ := hres
+  have hlp : leaderPropConf s ents cs c.joint = (ents, s.pci) := propConf_noConf' _ _ _ _ ents cs hct hnc
+  rw [hlp] at hres
+  simp only at hres
+  cases d with
+  | true =>
+    simp only [↓reduceIte, or_self] at hres
+    subst hres
+    exact .inl ⟨rfl, rfl, fun _ => rfl⟩
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte] at hres
+    obtain ⟨ms, pvs', hs', -, hm⟩ := hres
+    exact .inr ⟨ms, pvs', hs', hm⟩
 
 end pure
 
@@ -194,14 +240,14 @@ theorem repChain (γd : GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop
 to the proposed state with what `Step` lends (`ghost_stepProp`, `propLend`), the share pinned
 (`trFam_pin`), the lines fired (`trCapB_hookGateN`: `phaseStepB_replicate`, `fxPres_replicate`). -/
 theorem propGate_rep (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (ents : List EntryM) (Λ : Option TraceEv → Prop) (cs : List (Option ConfChangeIM))
+    (ents : List EntryM) (Λ : Option TraceEv → Prop) (bt : Bool) (cs : List (Option ConfChangeIM))
     (htr : s.gh.tr = some γd) (hlead : s.role = .leader) (hne : ents ≠ [])
     (hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (hboot : γ.reBoot ≠ [])
     (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
     (ccEntsOk ents cs ∗ propLend γ s ents ∗
         lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox : IProp GF) ⊢
       HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount (leaderPropConf s ents cs c.joint).1)
-        (propR (GF := GF) true γ md c r id s ents Λ).Gp1 := by
+        (propR (GF := GF) bt γ md c r id s ents Λ).Gp1 := by
   have hnc := noConf_of_normal ents hnorm
   iintro ⟨#Hcc, HTp, Hlf⟩
   icases ccEntsOk_types ents cs $$ Hcc with %hct
@@ -262,15 +308,15 @@ share after the `Replicate` lines is the idle server's of the appended state (`p
 `SendAppendEntriesResponse` line fired (`phaseStepB_selfAck`, `fxPres_selfAck`), the share unpinned at
 the outbox with the acknowledgement. -/
 theorem propGate_ack (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (ents : List EntryM) (Λ : Option TraceEv → Prop) (cs : List (Option ConfChangeIM))
+    (ents : List EntryM) (Λ : Option TraceEv → Prop) (bt : Bool) (cs : List (Option ConfChangeIM))
     (htr : s.gh.tr = some γd) (hlead : s.role = .leader)
     (hnorm : ∀ e ∈ ents, e.Type' = EntryNormal)
     (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
-    (ccEntsOk ents cs ∗ (propR (GF := GF) true γ md c r id s ents Λ).Gp1 : IProp GF) ⊢
+    (ccEntsOk ents cs ∗ (propR (GF := GF) bt γ md c r id s ents Λ).Gp1 : IProp GF) ⊢
       HookGateOpt s.gh.tr r
         (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgAppResp
           [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])
-        ((propR (GF := GF) true γ md c r id s ents Λ).Gp2
+        ((propR (GF := GF) bt γ md c r id s ents Λ).Gp2
           (s.outbox ++ [selfAck id (propAppended s (leaderPropConf s ents cs c.joint).1)])) := by
   have hnc := noConf_of_normal ents hnorm
   iintro ⟨#Hcc, Hp1⟩
@@ -381,17 +427,17 @@ theorem ownStepGhost_appFacts (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64
 request's facts from raft's ghost state at the proposed state, `msgFacts_app_of_log`), the share
 unpinned at the outbox with the request. -/
 theorem propGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (ents : List EntryM) (Λ : Option TraceEv → Prop) (cs : List (Option ConfChangeIM)) (to : w64) (mm : Msg)
+    (ents : List EntryM) (Λ : Option TraceEv → Prop) (bt : Bool) (cs : List (Option ConfChangeIM)) (to : w64) (mm : Msg)
     (o : List Msg) (htr : s.gh.tr = some γd) (hlead : s.role = .leader)
     (hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (hlrn : c.learners = ∅)
     (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound)
     (hdom : to ∈ c.voters ∪ c.learners)
     (happ : AppOk id (toPState (propAppended s ents)) mm ∧ mm.commit = s.logst.committed ∧ mm.dst = to ∧
       uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z mm.index ∧ mm.rejecthint = W64 0) :
-    (ccEntsOk ents cs ∗ (propR (GF := GF) true γ md c r id s ents Λ).Gp2 o : IProp GF) ⊢
+    (ccEntsOk ents cs ∗ (propR (GF := GF) bt γ md c r id s ents Λ).Gp2 o : IProp GF) ⊢
       HookGateOpt s.gh.tr r
         (sendOutGate id (propAppended s (leaderPropConf s ents cs c.joint).1) c MsgApp [mm])
-        ((propR (GF := GF) true γ md c r id s ents Λ).Gp2 (o ++ [mm])) := by
+        ((propR (GF := GF) bt γ md c r id s ents Λ).Gp2 (o ++ [mm])) := by
   have hnc := noConf_of_normal ents hnorm
   obtain ⟨hok, hcm, hdst, hmatch, hrh⟩ := happ
   iintro ⟨#Hcc, Hp2⟩
