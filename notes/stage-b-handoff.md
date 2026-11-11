@@ -236,6 +236,39 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     Next: Watch (3), then check client `Results`; then the callers (`AuthnServedOn`, `LeaseReadServed`,
     `LeaseGrantServed`, `ServeFromStart`, `cache/v3/Results`, etcdstart `ServedLease`/`Served`,
     `watch/Served`, `auth/MainServe` (calls `grpc.start` directly), cluster3), then (3)-(8) below.
+  - **B3, third agent** (2026-11-11; the second agent's forms accepted by etcd-grove-81, recorded in
+    `questions.md`). Done, `etc/lean-check.py -a` 0 errors (commits `caddf7c80e`, `42fbb4c75c`):
+    - **Watch exact** (step 3; form decided by the agent, see `questions.md`): `serverWatchStream.recvLoop`
+      loses its (unused) `threadTok` and gives back `r.srv.E.RD`; `serverWatchStream.close`'s post is
+      `▷ P` (the wait's deposit); `watchServer.Watch` takes `∀ N₂ N₃ γ₂ γ₃ F₂ F₃`, pre
+      `⌜threadBound ≤ actualMaxReaders ∧ 4 ≤ threadBound⌝ ∗ isThreadPoolL N₂ 2 γ₂ (F₂ ∗ R.E.RD) ∗
+      isThreadPoolL N₃ 3 γ₃ (mvccReaders W.γm 1 ∗ F₃) ∗ mvccReaders W.γm 1` (was `R.E.RD ∗ ⌜tb⌝ ∗
+      mvccReaders 2`), post `+ mvccReaders W.γm 1`. The proof: the send loop's reader goes back through
+      the wait group (`wp_Add (mvccReaders W.γm 1)`, `close` returns it); the receive loop's goroutine
+      (`wp_fork_tok_upd`, its `£ 1`) splits its token into levels, borrows `I` (2) and the run pool (3),
+      runs `recvLoop`, gives both back and reassembles its token.
+    - `v3rpc/Results` watch section: `watch_streamHandlerOk` at the slot `mvccReaders W.γm 1` with the
+      two pool handles; `etcd_watchMethodOk` at any slot `S` with `h1 : S ⊢ (mvccReaders W.γm 1 ∗
+      [∗list] Rs) ∗ F`/`h2`; **restated (exported, CP3 freeze list)**: `etcd_watch_served` (drops `n`,
+      `replicate`; takes `γ γr F h1 h2` over `srvRunBundle R.s R.E γr`, `hγ : W.γm = R.E.γ`, `Htb`,
+      `srvLevels`, `grpcStreamServerAt … γ ∗ srvRevokeBuilt R.s R.E ∗ srvRunPool R.s R.E γr`; sregs over
+      `GoFunc`, `hreg` at `functions _Watch_Watch_Handler []`), `etcd_watch_served_chain` (same, with
+      `srvRunBundle_watchSlot` for the `[True, True]` chain), `etcd_watch_served_etcd_chain` (post wand
+      over the pools). `watchRunSlot` (InvWatch.lean:498) is now unused by v3rpc: delete it when the
+      callers (`ServeFromStart.watchRunSlots_of`, the examples) are moved.
+    - client `Results` checked: `quotaRd_lent`/`etcdGrpcSlot_bundle` (a `[∗list]` over a literal list is
+      `.rfl` to its `∗`-chain: `simp` does not unfold it), the Compact method via
+      `grpcHandlerOwnOk_slot` from `etcdRunSlot` to `(etcdKVSlot ∗ bemu) ∗ [∗list] etcdIcRs`, the slot
+      lemmas with explicit slots, new `srvRunOks_of_slot` (generic list form, used by
+      `etcd_lease_served`).
+    - Pitfalls found: `grpcHandlerOkMd_slot _ _ S' F _ h1 h2` fails when `S` is `_` (h1 elaborates
+      first): give `S`; an `ihave … $$ [H]` of a premise whose hypotheses are persistent still needs its
+      `· iframe #` bullet; `change … (grpcRunOkMd (Req := …) _ _ _ _)` with holes keeps the record
+      projections: write the arguments in full, or avoid splitting lists (`srvRunOks_of_slot`).
+    Next: the callers (step 3 of the brief): `AuthnServedOn`, `LeaseReadServed`, `LeaseGrantServed`,
+    `ServeFromStart` (`watchRunSlots_of`, `etcdGrpcSlots_of_started` go), `cache/v3/Results`, etcdstart
+    `ServedLease`/`Served`/`WatchSrv`, `watch/Served`+`Main`, `auth/MainServe`+`Main` (calls `grpc.start`
+    directly), cache/compactwatch/k8s-compactor `Main`, `cluster3/StartMember`; then (4)-(8) below.
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
