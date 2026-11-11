@@ -256,13 +256,24 @@ fi
 # ... and its positive control (the k8s 7e Freeze review): the same harness with grpc's tracing on,
 # which keeps the reply, must FAIL under -race with a data race (TestTracingRace, gated by
 # K8S_KVSOWN_CONTROL=1), so that a passing TestDefaultNoRace means something
-if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off go test -race -count=1 -timeout 10m \
-    -run '^TestTracingRace$' . > "$tmp/kvc.log" 2>&1); then
-  echo "k8s owned reply Kvs control: FAILED (no race detected with tracing on)"; tail -20 "$tmp/kvc.log"; fail=1
-elif grep -q 'WARNING: DATA RACE' "$tmp/kvc.log"; then
-  echo "k8s owned reply Kvs control: ok (race detected with tracing on)"
+# A run may miss the race under the gates' parallel load (it did once, 2026-11-11): retry a run
+# that misses it, up to 3 attempts; pass once one attempt fails with a data race reported.
+kvc_ok=0; kvc_miss=""
+for kvc_try in 1 2 3; do
+  if (cd examples/k8s/etcd3 && K8S_KVSOWN_CONTROL=1 GOWORK=off go test -race -count=1 -timeout 10m \
+      -run '^TestTracingRace$' . > "$tmp/kvc.$kvc_try.log" 2>&1); then
+    kvc_miss="$kvc_miss attempt $kvc_try: passed (no race detected);"
+  elif grep -q 'WARNING: DATA RACE' "$tmp/kvc.$kvc_try.log"; then
+    kvc_ok=1; break
+  else
+    kvc_miss="$kvc_miss attempt $kvc_try: failed without a data race;"
+  fi
+done
+if [ "$kvc_ok" = 1 ]; then
+  echo "k8s owned reply Kvs control: ok (race detected with tracing on, attempt $kvc_try of 3${kvc_miss:+;$kvc_miss})"
 else
-  echo "k8s owned reply Kvs control: FAILED (failed without a data race)"; tail -20 "$tmp/kvc.log"; fail=1
+  echo "k8s owned reply Kvs control: FAILED (all 3 attempts missed the race with tracing on:$kvc_miss)"
+  tail -20 "$tmp/kvc.3.log"; fail=1
 fi
 return $fail
 }
