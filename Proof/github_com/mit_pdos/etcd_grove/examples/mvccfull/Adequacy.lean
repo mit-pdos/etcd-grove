@@ -13,7 +13,14 @@ streams per member running concurrently, every result of mvcc checked against th
 and read in full, and closed -- started from a fresh state (no package initialized, one thread):
 for every real execution of `n` steps, the main thread's result, if it has one, is `#()`, no thread
 is stuck, and no thread has ended in a panic. So no check of the tester fails, in any
-interleaving.
+interleaving, within the executions it covers.
+
+**What it covers: each prefix of fewer than `2 ^ 28` steps** (finding mvcc-r3-1, round 3,
+2026-11-11). The execution's length is bounded by the hypothesis `n + 2 ≤ 2 ^ 28` (the thread
+bound), and a full-size run of `Main` (12000 writer steps, with readers and watch streams on two
+members, each over a bbolt-backed store) takes more steps than that. The theorem therefore says no
+check fails in the first `2 ^ 28 - 2` steps of any interleaving. It says nothing about a run's later
+steps, and in particular it does not say that a complete run of `Main` returns.
 
 As `mvccrand_adequate` (`examples/mvccrand/Adequacy.lean`; `notes/decisions.md`, "mvccrand's closed
 theorem"): from `goose_adequacy_start_files` (`Proof/runtime/Start.lean`), with the trivial

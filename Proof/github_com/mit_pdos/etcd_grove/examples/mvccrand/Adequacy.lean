@@ -10,7 +10,14 @@ watch stream's registrar and receiver running concurrently, every result of mvcc
 the tester's model (a failed check panics), then the store, the lessor and the backend closed --
 started from a fresh state (no package initialized, one thread): for every real execution of `n`
 steps, the main thread's result, if it has one, is `#()`, no thread is stuck, and no thread has
-ended in a panic. So no check of the tester fails, in any interleaving.
+ended in a panic. So no check of the tester fails, in any interleaving, within the executions it
+covers.
+
+**What it covers: each prefix of fewer than `2 ^ 28` steps** (as `mvccfull_adequate`, finding
+mvcc-r3-1, round 3, 2026-11-11). The execution's length is bounded by the hypothesis
+`n + 2 ≤ 2 ^ 28` (the thread bound). The theorem says no check fails in the first `2 ^ 28 - 2`
+steps of any interleaving, and nothing about later steps. Whether a complete run of `Main` fits
+under the bound has not been measured; `mvccfull`'s does not.
 
 It follows from `goose_adequacy_start_files` (`Proof/runtime/Start.lean`: Perennial's
 `goose_adequacy` whose WP proof also receives program start's rights, here `ETCD_VERIFY` off and the

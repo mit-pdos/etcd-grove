@@ -1580,8 +1580,10 @@ func Run(cfg Config) Report {
 		Restores: x.restores.Load(), Restarts: x.restarts.Load()}
 }
 
-// Main runs the tester with MainConfig (config.go), the members' files mvccfull-0-0.db,
-// mvccfull-1-0.db, ... in the current directory (which must not exist).
+// Main runs the tester with MainConfig (config.go). Its files are in the current directory:
+// mvccfull-0.db and mvccfull-1.db (the two members') and mvccfull-b1.db, ..., mvccfull-b12000.db
+// (one per possible snapshot install, at most one per writer step), FilePaths(MainConfig("mvccfull")).
+// None of them may exist at the start.
 func Main() {
 	Run(MainConfig("mvccfull"))
 }

@@ -43,6 +43,20 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 * (until 2026-10-20 also two marked hypotheses, false under the then Perennial pin,
   `EofFromIoInit` and `ClosedchanFromContextInit`: `io.EOF` and `context`'s `closedchan` now come
   from their packages' facts, `v3rpc.eofVar_of_init` and `context.isClosedchanInit_of_init`).
+
+**Why the opaque premises hold of this program** (finding k8s-misc-3, round 3, 2026-11-11; an
+argument from the Go program `examples/etcd/compactwatch/compactkv.go`, not a proof):
+* `ckptEffectsOk`: no lease is granted (the program `Put`s, `Compact`s, `Get`s and `Watch`es only),
+  and the member's feature gate is etcd's default (`LeaseCheckpoint` off). It holds vacuously.
+* `authRecordsFit`: no request touches auth, so the auth store has no record.
+* `apply.backendUnderQuota`: the default 2 GiB quota against five puts of `k1`..`k5` with the value
+  `"v"`, under compaction (the auto-compactor at retention 1, and the client's compactions).
+* `grpcRepliesFit`: the replies are `Put`/`Compact` headers, point `Get`s of one short key, and the
+  final watch of `k5`, which delivers at most the rounds' few revisions or a compaction error. All
+  are a few hundred bytes.
+* `storage.diskOk`: an environment premise. It holds of a working local disk with the data directory
+  `compactkv.etcd` used by this process alone (as `dataDirsAbsent` requires); nothing in the program
+  makes it false.
 -/
 module
 

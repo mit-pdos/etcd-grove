@@ -15,6 +15,8 @@ the trust base of each printed in the build log (`#print axioms`). Lean-first (n
   execution of `n` steps of `mvccfull`'s initialization followed by `Main()`, from a fresh state
   with one thread: the main thread's result, if any, is `#()`, no thread is stuck, none has
   panicked; under mvccrand's hypotheses but `sort.Slice.spec` (see `Adequacy.lean`'s header).
+  Executions of fewer than `2 ^ 28` steps only (`n + 2 ≤ 2 ^ 28`), and a full-size run of `Main`
+  is longer: the theorem covers each prefix of a run of that length, not a complete run (mvcc-r3-1).
 -/
 module
 

@@ -14,7 +14,8 @@ counterpart).
   succeeding; 2026-11-08: until then `runChecks`' result, which admitted `backend.New`'s panic)
   (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/Main.lean`), and the hypothesis
   `sort.Slice.spec` (`Spec/sort/Slice.lean`: specified, neither proved nor assumed). The closed
-  theorem over it is `Adequacy.lean`'s `mvccrand_adequate`.
+  theorem over it is `Adequacy.lean`'s `mvccrand_adequate`, about executions of fewer than `2 ^ 28`
+  steps: each prefix of a run up to that length, not necessarily a complete run (mvcc-r3-1).
 -/
 module
 

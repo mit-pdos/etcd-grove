@@ -31,6 +31,39 @@ writer and the five API servers each with a client of the three bridges. Its hyp
 `examples/etcd/partition`'s at `clusterCfg` (the member ids and bootstrap log, `cluster3.BootFacts`;
 the nine addresses unclaimed; the three data directories distinct and fresh; `cluster3.premises`)
 with this example's (`clock.RealClock.After`, the registry allocated as above).
+
+**Why the opaque premises hold of this program** (finding k8s-misc-3, round 3, 2026-11-11; an
+argument from the Go program, not a proof). Both theorems take five opaque workload or environment
+premises. For `Main` (one member, `etcdstart.StartCompactingServer` with retention 0) and for
+`MainPartition` (three members, `cluster3.StartCluster` at `clusterCfg`, behind bridges):
+* `ckptEffectsOk` (`InvBoot.lean`): it has content only with a lease in a lessor and the
+  `LeaseCheckpoint` feature on. Neither program grants a lease: the writer only `Put`s, and the API
+  servers' compactors (`k8s.io/apiserver` `storage/etcd3/compact.go`) only `Get`, `Txn`, `Compact` and
+  `Watch`. The members' feature gate is etcd's default (`NewDefaultServerFeatureGate`;
+  `LeaseCheckpoint` defaults to off), so `le.cp` stays nil. It holds vacuously.
+* `authRecordsFit` (`InvBoot.lean`): no request touches auth (no user, role or grant is created,
+  auth is never enabled), so the auth store has no record to exceed bbolt's `MaxValueSize`.
+* `apply.backendUnderQuota` (`apply/Contracts.lean`): the members use etcd's default quota (2 GiB:
+  `QuotaBackendBytes` is unset in `etcdstart`'s configuration). The data written is the writer's
+  400 puts of `/registry/objs/w` with values `"0"`..`"399"`, and one put of `compact_rev_key` (a
+  decimal revision) per successful compactor round. Each compactor round also compacts the history
+  below its revision, so a real run's backend stays a few MiB at most, far below the quota. In the
+  theorem's executions, which go on after `Main` returns but have fewer than `2 ^ 28` steps, each
+  write costs many thousands of steps (gRPC, raft, apply, a bbolt commit), so the writes stay far
+  too few to approach 2 GiB.
+* `grpcRepliesFit` (`InvGrpcServer.lean`): every reply a member marshals is small. `Put`'s and
+  `Compact`'s replies are a header. `Get`s are of the single key `compact_rev_key` (the readiness
+  check, `check`'s reads). The compactor's `Txn` replies with one put or a one-key range. The
+  compactor's watch loop follows `compact_rev_key` alone, so a watch reply batches at most 1000
+  revisions (`watchBatchMaxRevs`) of one short key each. All are at most tens of kilobytes, far
+  below `grpcReplyMax`. (The `Status` calls of `CheckClient`'s goroutines are not modeled at all:
+  `notes/audit.md`, the k8s feature-initializer row's caveat, k8s-misc-1.) Under partitions, the
+  bridges forward the same replies; raft's peer traffic is HTTP (rafthttp), not a gRPC reply.
+* `storage.diskOk` (`InvOpen.lean`): an environment premise. It holds of a working local disk on
+  which bbolt's and the WAL's file operations succeed, with the data directory (`k8scompactor.etcd`;
+  for `MainPartition` the three directories of `k8scompactorPDataDirs`) used by this process alone,
+  as `dataDirsAbsent` also requires. Nothing in the program makes it false; a full disk or an I/O
+  error does.
 -/
 module
 

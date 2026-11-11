@@ -5727,10 +5727,12 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "cfg") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Report.ty))) (Var "$res0")))))
 
-/-- Main runs the tester with MainConfig (config.go), the members' files mvccfull-0-0.db,
-    mvccfull-1-0.db, ... in the current directory (which must not exist).
+/-- Main runs the tester with MainConfig (config.go). Its files are in the current directory:
+    mvccfull-0.db and mvccfull-1.db (the two members') and mvccfull-b1.db, ..., mvccfull-b12000.db
+    (one per possible snapshot install, at most one per writer step), FilePaths(MainConfig("mvccfull")).
+    None of them may exist at the start.
 
-    go: mvccfull.go:1585:6 -/
+    go: mvccfull.go:1587:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
