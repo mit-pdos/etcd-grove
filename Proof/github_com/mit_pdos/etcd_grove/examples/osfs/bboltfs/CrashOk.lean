@@ -92,7 +92,8 @@ theorem _root_.Perennial.CSt.runs_mem (s : CSt) (b : Nat) (hb : b < s.bs.length)
 
 /-- **The candidates the client knows are the file's**, at the crash `CrashSeenR` records. -/
 theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Option OsFile}
-    (hwf : s.Wf) (hbz : BusyOk s) (h : CrashSeenR Q i s.vmeta s.vruns (s.toks i) fo) :
+    (hwf : s.Wf) (hcut0 : s.m.cut = none) (hbz : BusyOk s)
+    (h : CrashSeenR Q i s.vmeta s.vruns (s.toks i) fo) :
     ∃ (st st' : OsState) (f : OsFile), OsCrash st st' ∧ Q st st' ∧ st'.fs.files !! i = fo ∧
       st.fs.files !! i = some f ∧ ∀ b c, s.kc b = some c → f.cand b = c := by
   obtain ⟨st, st', Γb, Γm, Γf, Γt, hwfs, hcoh, hcr, hQ, hfo, hm, hrs, -, hts⟩ := h
@@ -104,7 +105,7 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
   have hrun : ∀ r ∈ s.vruns, ∀ k (hk : k < r.2.2.length), f.cand (r.1 + k) = (r.2.2[k]).2 := by
     intro r hr k hk
     have hcut : cutOf Γm i = none := by
-      simp only [cutOf, hm, Option.bind_some]; exact s.vmeta_cut ▸ hwf.2.2.2.2
+      simp only [cutOf, hm, Option.bind_some]; exact s.vmeta_cut ▸ hcut0
     obtain ⟨f1, hf1, -, hx⟩ := coh_byte_exact hcoh hcut (hrs r hr k hk)
     have : f1 = f := by
       have h1 : st.fs.files !! i = some f1 := hf1
@@ -187,7 +188,7 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
         simp only [CSt.vmeta, hbs, cfMeta]
         exact announce_pc_out _ _ _ _ _ _ hr (by omega) hc
   · -- a growing truncate
-    have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2.1; simp only [hbs] at this; exact this
+    have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2; simp only [hbs] at this; exact this
     split at hc
     · rename_i hr
       simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, Nat.min_eq_left hgrow,
@@ -225,11 +226,12 @@ structure CrashImg (s : CSt) (f : OsFile) : Prop where
     ∃ n, ∀ k < 64, ∀ c, s.kc (4096 * j + 16 + k) = some c → f.cache (4096 * j + 16 + k) = valAt c n
 
 /-- A crash's file, as `CrashImg` says it. -/
-theorem crashImg_of {i : Ino} {s : CSt} {f : OsFile} (hwf : s.Wf) (hbz : BusyOk s)
+theorem crashImg_of {i : Ino} {s : CSt} {f : OsFile} (hwf : s.Wf) (hcut : s.m.cut = none)
+    (hbz : BusyOk s)
     (hfc : FileCrashedR s.vmeta s.vruns (some f))
     (h : CrashSeenR P1 i s.vmeta s.vruns (s.toks i) (some f)) : CrashImg s f := by
   obtain ⟨hdisk, hlo, hhi, -, -⟩ := hfc f rfl
-  obtain ⟨st, st', f0, hcr, hQ, hfo, hf0, hkc⟩ := kc_cand hwf hbz h
+  obtain ⟨st, st', f0, hcr, hQ, hfo, hf0, hkc⟩ := kc_cand hwf hcut hbz h
   -- the crash's file
   have hn : Named st'.fs.treeDur i := by
     apply Classical.byContradiction; intro hn
@@ -250,8 +252,8 @@ theorem crashImg_of {i : Ino} {s : CSt} {f : OsFile} (hwf : s.Wf) (hbz : BusyOk 
 the state `s` is `Good` if every file `CrashImg` allows is (`Good` of a file on disk). -/
 theorem fileOkS_of {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
     (H : ∀ f, CrashImg s f → goodImg f.contents ∧ RawOk f) : FileOkS P1 Good i s :=
-  fun f hfc hseen =>
-    let hI := crashImg_of hwf hbz hfc hseen
+  fun hcut f hfc hseen =>
+    let hI := crashImg_of hwf hcut hbz hfc hseen
     let h := H f hI
     ⟨h.1, h.2, let ⟨img, he⟩ := hI.disk; ⟨img, f.size, he⟩⟩
 

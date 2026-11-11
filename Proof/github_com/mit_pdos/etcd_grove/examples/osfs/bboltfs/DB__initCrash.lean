@@ -621,7 +621,7 @@ theorem DB.init.wp_proof_crash (wp_initPages : initPages.spec (GF := GF) (hG := 
   (try wp_auto)
   rw [hsyn, hfst3]
   have hm3 : m3.synced = initDoneMeta m :=
-    synced_eq _ _ (by rw [hm3s, hM2s]) (by rw [hm3m, hmaps]) (by subst_vars; simp_all [pwPost, pwPostK, OsMeta.synced, initDoneMeta])
+    synced_eq _ _ (by rw [hm3s, hM2s]) (by rw [hm3m, hmaps]) (by rw [hR3.cut, ← hM2]; show m2.cut = _; rw [hR2.cut, ← hM1]; show m1.cut = _; rw [hR1.cut])
   have hfin : (initBytes ++ (xs.map Prod.fst).drop 16384).map durB = initFile xs := rfl
   rw [hm3, hfin]
   have hsz64 : sint.Z (W64 (m.size : Int)) = m.size := by
