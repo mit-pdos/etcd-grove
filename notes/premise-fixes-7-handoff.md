@@ -49,7 +49,7 @@ isReqAuth*, Invoke/NewStream), the perRPCCredential docstring fix).
   `--check` and errdesc-check ok; interfaces: only raft's `Changer__apply.txt` (item 3)
   regenerated. Go tests `premisefix/{ctxvalue,k8sctx}` pass.
 
-## STOP (waiting for etcd-grove-81): D5 and FromOutgoingContext ripple
+## Q2 decided (etcd-grove-81): D5 and FromOutgoingContext go to premise-fixes-8
 
 `watchCtx` gaining `outgoingCtxOk` (D5) forces it into the client's watch contracts
 `isEtcdWatcher` (cache) and `isEtcdRangeWatcher` (concurrency Mutex/Election, leasing, recipes,
@@ -63,10 +63,8 @@ for premise-fixes-8 with `Invoke`/`NewStream` (same key, same contexts). Untouch
 
 ## Next, in order
 
-1. After the decision: either pf8 takes D5/FromOutgoingContext, or this stage does the ripple.
-2. Checkpoint (b): full build (flock, 64G), tcb `--check --update` (-1 axiom expected),
-   collections, interfaces, gen-init `--check`; notes (decisions entry, STATUS); STOP before
-   land.sh.
+1. Notes written (decisions "Premise fixes 7", STATUS); land with `etc/land.sh` (lean reserved by
+   etcd-grove-81).
 
 ## Build command
 

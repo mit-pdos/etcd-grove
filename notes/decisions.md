@@ -34380,3 +34380,97 @@ and `fmt.fmtDirectives`' examples against the verbs Go formats each argument wit
 Follow-up: raft confchange's `"unexpected conf type %d"` of a `ConfChangeType` is now admitted by
 the integer disjunct, so `Changer.apply.wp_proof`'s hypothesis `raftpb.ConfChangeType.String.spec`
 is unused; it stays (dropping it changes raft's approved proof interface), for a later cleanup.
+
+## Premise fixes 7: contexts' `Value` (client and k8s side), the stream handler's error, raft `Changer.apply` (2026-11-11 · the Scope approved by etcd-grove-81, `/shared/tmp/premise-fixes-7/scope.md`; Q1 and Q2 decided by etcd-grove-81 under the user's delegation · branch `premise-fixes-7`)
+
+The Scope's three parts, split by its D1: this stage did C, B and the client/k8s half of A; the auth
+path and the outgoing-metadata readers go to premise-fixes-8 (below).
+
+### C. raft `Changer.apply` drops `ConfChangeType.String` (D3)
+
+Since premise fixes 6's part D, `"unexpected conf type %d"` admits a `ConfChangeType` by the integer
+disjunct, so `Changer.apply.wp_proof` no longer takes `raftpb.ConfChangeType.String.spec` (both
+trees); the links are regenerated and the four `ConfChangeType__String` files (spec and axiom, main
+and witness) and their interface files deleted. Trust base: -1 axiom (865, 5 sorries).
+
+### B. The stream handler's error (HS-6 for streams)
+
+`InvGrpcStream.lean`: `srvRawStreamIs`/`srvStreamIs` give `statusErrOk` of `Recv`'s error;
+`srvStreamInterceptorOk`, `grpcStreamHandlerOk` and `grpcStreamMethodOk(R)` require `srvErrOk` of
+the handler's error, as the unary contracts do since HS-6; `srvStreamChainWP_of_ok` restated.
+Proofs: `newStreamInterceptor`, `_Watch_Watch_Handler` (post `srvErrOk`), `recvLoop` (post
+`streamErr ∗ statusErrOk`), `watchServer.Watch` (post `srvErrOk`; the context error through
+`applyErrIs_of_isCtxErr`/`applyErrIs_srvErrOk`), v3rpc `Results` (`watch_streamHandlerOk`,
+`etcd_watchMethodOk`).
+
+**Q1** (etcd-grove-81, under the user's delegation): `rpctypes.ErrGRPCWatchCanceled_init`'s post
+gains `statusErrOk (GoInterface.ok e)`, as the HS-6 `ErrGRPC*` posts (true of Go:
+`status.Error(codes.Canceled, …)`), through `etc/gen-init.py`'s `_RWERRS`; `rpctypesInit` and
+`watchPkgVars` (new internal `v3rpc.statusMsgErrVar`) carry it. A restated trusted text, no count
+change; errdesc-check covers it by its `rpctypes/Init.lean:*` entry.
+
+### A. Contexts whose `Value` the axioms read (client and k8s side)
+
+Vocabulary (D4, approved): `Proof/context/LibKeys.lean`, `context.valueAt` (what `ctx.Value(k)`
+returns, persistently) and five opaque "made by the library" predicates, each with a docstring
+naming the Go code that makes its values: `metadata.transportMD`, `metadata.builtRawMD`,
+`peer.transportPeer`, `trace.otelSpan`, and `utiltrace.builtTrace`
+(`Proof/k8s_io/apiserver/pkg/audit/CtxKeys.lean`); over them `incomingCtxOk`, `outgoingCtxOk`,
+`peerCtxOk`, `spanValOk`, `spanValOkNil`, `libCtxOk` and `k8sctx.k8sCtxOk`/`k8sctx.spanCtx`, with
+laws for the producers (`_of_nil`, `_of_ctxValueNil`, `_background`, `_todo`, `_bgFrom`,
+`_of_valueWand`). `channelContext.Value` is proved (returns nil), with `chanCtx_valueNil`/
+`chanCtx_libCtxOk` (not linked yet: for premise-fixes-8).
+
+Restated (trusted text; the axiom count unchanged): `grpcRunCtx` (+ `libCtxOk`),
+`logUnaryRequestStats` (`ctx : GoInterfaceOk`, `peerCtxOk`), `metadata.AppendToOutgoingContext`
+(pre/post `outgoingCtxOk`), `clientv3.WithRequireLeader` (inner post `libCtxOk ctx'`),
+`WithTimeoutBackgroundMd` (post `libCtxOk ctx'`), `GetAuditIDTruncated` (`GoInterfaceOk`,
+`valueAt auditKey`), k8s `tracing.SpanFromContext` (`GoInterfaceOk`, `spanValOk` at the trace key),
+`tracing.Start` (pre/post `k8sCtxOk`), `kmetrics.HistogramVec.WithContext` (pre `spanValOkNil ctx`).
+`perRPCCredential.GetRequestMetadata` is true as stated: only its docstring and
+`notes/axiom-review/ctxok-done.md` were corrected. Callers (premises on proved internal specs,
+discharged in the branch): the k8s store's `Get`/`Create`/`GetList`/`GuaranteedUpdate`
+(+ `k8sCtxOk ci`), the cacher chain (+ `k8sctx.spanCtx ctx`), `newLogUnaryInterceptor`, the auth
+example (`reqCtx`, `Work`, `SetUp`), `TimeoutCtx`, `NewLeaseFromLeaseClient`, k8s `call.lean`
+(`k8sCtxOk_background`). No closed theorem's text changed: their contexts come from `TODO`,
+`Background`, `WithCancel`/`WithTimeout` of those, `chanCtx` or `grpcRunCtx`, which the laws cover.
+
+**A smaller finding**: `tracing.Span.End` and `Span.AddEvent` (k8s, names-only) take only
+`⌜sp ≠ null⌝`, which is true only of a `*Span` wrapping an otel span the library built (an
+arbitrary span's `End` may panic, `notes/axiom-review/otel-spanfromcontext-todo.md`). Their text is
+unchanged, but the spans they receive are now backed: the only producers, the restated
+`SpanFromContext` (`spanValOk`) and `Start` (pre/post `k8sCtxOk`), give spans built from contexts
+whose span key holds an `otelSpan`.
+
+**Forms** (decided by the agent, accepted by etcd-grove-81): `HistogramVec.WithContext`'s premise is
+`spanValOkNil ctx` (nil allowed: Go's `SpanFromContext(nil)` returns the no-op span, the Go test's
+finding) instead of `ctx : GoInterfaceOk ∗ spanValOk`; the cacher chain keeps `ctx : GoInterface`
+with premise `k8sctx.spanCtx ctx`; `v3rpc.statusMsgErrVar` for Q1's clause.
+
+**Q2** (etcd-grove-81, under the user's delegation): D5 (the outgoing-metadata clause in
+`watchCtx`), `streamKeyFromCtx`'s margin and `FromOutgoingContext` move to premise-fixes-8. They
+read the same key and take the same contexts as `Invoke`/`NewStream`, and need the same producers
+through `ctxOk`: D5 forces the clause into the client watch contracts `isEtcdWatcher` (cache) and
+`isEtcdRangeWatcher` (concurrency's Mutex/Election, leasing, recipes, the server's
+v3lock/v3election through `NewSession`), and `FromOutgoingContext`'s premise into
+`kaCtxOk`/`lessor.KeepAlive`/`isEtcdLease` (exported `client_lessor_isEtcdLease`) and `NewSession`,
+whose contexts come from `client.Ctx()` = `WithCancel(TODO())`, the trusted `WithCancelTodo`, whose
+post has no `Value` fact. The attempts were reverted; this branch leaves `watchCtx`,
+`streamKeyFromCtx` and `FromOutgoingContext` as they were.
+
+**premise-fixes-8 scope**:
+- `metadata.FromIncomingContext`;
+- `credentials.AuthInfoFromTLS` (the peer's `AuthInfo`);
+- `isReqAuth`/`isReqAuthBound` (false when `ClientCertAuthEnabled`);
+- `grpc.ClientConn.Invoke`/`NewStream`'s `ctx.Value(mdOutgoingKey{})` (through `ctxOk`'s producers:
+  `ctxQuiet_todo`, `ctxQuiet_background`, `chanCtx_ok`, `quiet_ctx`, `ctxErrClient_quiet`,
+  `withVersion`'s and `WithRequireLeader`'s posts);
+- `metadata.FromOutgoingContext`;
+- `watchCtx`'s outgoing-metadata clause (D5);
+- `streamKeyFromCtx`'s margin;
+- `context.WithCancelTodo`'s missing `Value` fact (a trusted text).
+
+Go tests: `examples/premisefix/ctxvalue` (examples module) and `examples/premisefix/k8sctx` (its own
+`go.mod`, the k8s pins of `examples/k8s/etcd3`). Interfaces: only raft's `Changer__apply.txt`
+changed (and the two `ConfChangeType__String.txt` deleted). Handoff:
+`notes/premise-fixes-7-handoff.md`.
