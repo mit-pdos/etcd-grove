@@ -2681,6 +2681,22 @@ re-opened triples (B1); L3 about 25 call sites in 20 files with `storBnd`'s clie
 full: L1 narrowed (a broadcasting path's sent types at its close), two locating tasks of L2. Next: a
 third review round on the document.
 
+**The design pass, revision 3 (2026-11-11, branch `trace-check-design4`): the review round `design-r3`
+answered** (`notes/trace-validation-reviews/design-r3.md`; the document's "Revision 3" header,
+`notes/decisions.md`, "Design pass, revision 3"). §1 unchanged. The booted flag made monotone in the
+bundle's end resource beside `OutTyStep`, so `rnTrace` 1(a) survives a step (N1); lemma (ii)'s source
+corrected to the configuration index `RawNode.Advance` installs (`StepR.advance`'s `cidx := max`), with
+`RawNode.Advance.spec`'s post strengthened to `ca = max capplied delivered.length` (no loan, dynamic),
+re-proved in step 2 (N2); the order of work repaired (N3): the physical half lands whole with clause
+1(b) in step 3 (found: `sendTimeoutNow` sends through `raft.send`, so the review's split of it does not
+build), its `lt` premise only at `MsgAppResp` (S3), and step 3 re-opens the three traced RawNode triples
+off `run`'s path. The escrow at `nroot.@"raft_rtk"`, its key allocated in a `|={⊤}=>` prefix of `run`'s
+`readyc` send AU (S1); L1 closed by strengthening the families' `OutOk` (S2); G3 (a)'s empty
+`ConfChangeV2` case from the existing `ev2Rec`, so (a) no longer needs (b) (S4); 1(d) only
+`autoLeave = false` (S5); §4's no-snapshot source (S6); §5.3 restated to A8 as frozen. Not argued in
+full: G3 (a1)'s minting update to locate, (a2)'s `CfgAt` over the bootstrap prefix to check, at
+threading. Next: a fourth review round, or Probe A/B.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and

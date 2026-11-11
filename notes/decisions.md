@@ -37157,3 +37157,56 @@ and `simInv_end_bootDone`). `HarnessEnd.lean`'s hypothesis `BootEnd D` is now th
 itself (minting the witness at the end of `setupNode` by `trCapB_bootDone` at `Λ_end`).
 
 No axiom, no `sorry`, no closed statement changed. Reviews `notes/trace-validation-reviews/a8-r1.md` (no first-tier finding), `a8-r2.md`.
+
+## Design pass, revision 3: the review round `design-r3` answered; the booted flag monotone in the bundle's end resource; lemma (ii) from the installed configuration index, `RawNode.Advance.spec`'s post strengthened; the physical half lands with clause 1(b); the escrow at a fixed namespace; L1 closed by `OutOk`; G3 (a) from `ev2Rec` (2026-11-11 · trace-check, N1-N3's direction and the second-tier fixes decided by the coordinator as the review suggests (raft-internal, intermediate statements), their form by the agent under the user's delegation · branch `trace-check-design4`; DRAFT, for review)
+
+**What.** `notes/trace-check-design.md` revised against `notes/trace-validation-reviews/design-r3.md`
+(N1-N3, S1-S8); its "Revision 3" header lists each finding and the change. §1 (the closed statements)
+unchanged. Nothing threaded, no Lean run, no axiom.
+
+**Decided (the form; the coordinator gave the direction):**
+- *N1, clause 1(a) across a step*: `stepBundle_traced.statement`'s end resource `Gout` gives the flag
+  back as `∃ bt', ⌜bt = true → bt' = true⌝ ∗ trCapB … bt' …` (beside A2's `OutTyStep`, the same 27 path
+  files and 4 consumers); `stepClose_anyB` takes the pre's flag. The tick specs keep their text (their
+  `Gout` is a parameter); `RawNode.Tick.traced` instantiates it. Rejected: a persistent "booted"
+  witness at the `Ready` line (new ghost state for one clause).
+- *N2, lemma (ii)'s source*: not the driver's `ca` (the last applied conf index, which moves only at
+  `ApplyConfChange`) but the configuration index `RawNode.Advance` installs, `StepR.advance`'s
+  `cidx := max r.cidx a`. `RawNode.Advance.spec`'s post gains the separate pure conjunct
+  `rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length`, provable at the
+  existing `iapply HΦ` site from `ownStepGhost_rinv`'s `RInv.applied_cidx` (the ghost's `cidx` is
+  `ca`) and the final `applied = applying = delivered.length`; re-proved in step 2 (`node__run.lean`
+  names one more conjunct). Clause 1(e) is gated on `rs.mode.isDyn` (every node API node is dynamic).
+- *N3, the order of work*: the physical half moves **whole** to step 3, with clause 1(b). Found while
+  checking the review's split (keep the `send`/`sendTimeoutNow`/`MsgTransferLeader`/`XfOk` part in
+  step 2): `sendTimeoutNow` is `r.send(…MsgTimeoutNow…)`, so `raft.send.spec`'s strengthened premise
+  needs `sendTimeoutNow`'s `s.gh.tr = none`, which `stepLeader`'s `MsgAppResp` branch
+  (`From == leadTransferee`) discharges only from `lt = 0`; nothing in step 2 reads the physical half.
+  The `lt` premise is `m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0` (S3), so the tick specs
+  and the non-`MsgAppResp` traced callers discharge it vacuously. Step 3 also re-proves
+  `RawNode.Step.traced`, `RawNode.Ready.traced`, `RawNode.ReportUnreachable.traced` (kept, not deleted:
+  one re-proof each, and the models of the `recvc` arm).
+- *S1*: `rtkN := nroot.@"raft_rtk"` (`isNodeChan` has no `N`), the slots over `γn.raft.reTrace`
+  (`trTokR`, `trTok γ := trTokR γ.raft`); at `readyc` (a Perennial handshake, `inv nroot`) the key is
+  allocated in a `|={⊤}=>` prefix of `run`'s send AU, a new raft-internal `handshake_send_au_fupd`
+  beside `handshake_send_au_upd`; at `advancec` inside `advInv`'s AU at `⊤ ∖ ↑advN`. The driver's
+  offer may come while `pend = true`; its logical `SndPending` is entered by `run` at the rendezvous.
+- *S2, L1 closed*: `OutOk s o := ∀ x ∈ o, x ∈ s.outbox ∨ (x.TrOk ∧ (TrScope s → TrOutMsg x))`;
+  `outOk_snoc` takes the guarded fact, `outTyStep_of_outOk` gives `OutTyStep` at the close. The guard
+  departs from the review's unguarded form so that `lineF_untraced` (the read-index response) proves it
+  by refuting `TrScope s` from a new premise `¬ ReadIdle X` its caller has.
+- *S4/S5, G3*: (a) split: (a1) the term logs' gated clause only for non-empty conf entries (the
+  automatic leave, an empty `ConfChangeV2`, admitted), (a2) the empty `ConfChangeV2` excluded by
+  `isEntryR`'s existing `ev2Rec` and induction on positions (the fold of the bootstrap prefix is
+  simple). (a) no longer needs (b); 1(d) is `c.autoLeave = false` only (`outgoing = ∅` is `trCapB`'s).
+- *S6-S8*: §4's no-snapshot source (no `MsgSnap` stepped at a traced node); `readyToksClaim`'s
+  docstring names its departure from "No disjunction of alternative specs"; positions/indices
+  convention; "type 1 is never a filler".
+- §5.3 restated to A8 as frozen (`trace-check-frozen-a8`): the mono list's statements, `bootInit`
+  deleted, `newTrace_simInit`.
+
+**Not argued in full:** G3 (a1)'s minting update and its callers (to locate at threading); (a2)'s
+`CfgAt` over the bootstrap prefix being the fold from the simple base whatever the recorded decisions
+(the review's uncertain point, to check at threading).
+
+No axiom, no `sorry`, no Lean file changed. Nothing for the user (§1 unchanged).
