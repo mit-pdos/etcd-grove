@@ -36307,6 +36307,7 @@ at `wonStateW … wonPvs` (`CloseMid`'s second case, `wonPvs_reset`), the capabi
 
 Not done: the paths' assembly into `stepBundle_traced.on` (`.onC` for this path, as the lost and pending
 ones).
+
 ## S7 (part 1): `Main` over its callees, the harness's spec, the event count by time receipts, adequacy at `n + 4 ≤ 2^61`, `Results.lean` as a reduction; the bootstrap facts not derivable (Q29) (2026-11-11 · trace-check, S7 part 1; decided by the agent under the user's delegation · branch `trace-check-s7a`; DRAFT until trace-check's Freeze of layer D)
 
 **What `RunConcurrent.spec` promises.** Its post is `runOver c`: the cluster's `rec` field, the recorder
