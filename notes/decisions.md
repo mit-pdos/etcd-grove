@@ -36511,3 +36511,72 @@ once the harness is proved.
 `etc/gates.sh` checks the mode from `gen-link.py`'s usage line; the TCB collection
 `etc/tcb-collections/tracecheck.txt` now also selects the Link's roots (`roots
 …/tracecheck/etcdraft/Link\.lean$`), which rest on no axiom or `sorry` of this repository.
+
+## S7 (part 2): the traced `cluster_alloc`, the client's traced node API (`TracedNodeApi`), the harness's allocation and end, `below` and `replica`; `RunConcurrent`'s proof blocked on four gaps (2026-11-11 · trace-check, S7 part 2; decided by the agent under the user's delegation · branch `trace-check-s7b`; DRAFT until trace-check's Freeze of layer D)
+
+**Done** (no axiom, no `sorry`; no existing statement changed; the closed statement untouched):
+- *The traced allocation* (Q6 item 8, revision 2): `cluster_alloc_traced` (`InvNodeRule.lean`, an API
+  module: a new law, `cluster_alloc` unchanged), `cluster_alloc` at a bootstrap log with the trace mode
+  `Cluster.trace γ = some γd` (the caller's directory). Revision 2's premises: a bootstrap log (the
+  `BootLog` premise; `StartNode` is a traced cluster's only constructor); no voter bound, `dup` free.
+  Raft-side: `ownRaftGhost_alloc_core_reg_tr` (`Protocol/Facts.lean`, the core with the trace mode
+  `tr`; the old name its instance at `none`, statement unchanged), `cluster_alloc_boot_impl_tr`
+  (`InvApiBoot.lean`, likewise). Rejected: a `tr` argument on `cluster_alloc` itself (Q6 item 8's
+  first form): every client's statement and proof would change; a separate law changes none.
+- *The client's traced node API* (`TracedNodeApi.lean`, new, on `etc/api/raft.txt`). **Found:** the
+  frozen Draft (`TracedApiDraft.lean`) cannot be imported by the harness: it publicly imports
+  `TracedCap`, which publicly imports `InvRaftPhys`, `TraceSimFacts`, `TraceSimSpecInv` (raft's
+  internals; `etc/api-check.py` refuses a listed module with an unlisted public import). Options: (a)
+  list the Draft and that chain (exposes raft's physical state); (b) edit the frozen file (`import`
+  `TracedCap` privately, move `startTrace_trCapB` out); (c) a new API module importing the Draft
+  privately and re-sealing what a client needs. Taken: (c) (no frozen file touched, no internal
+  exposed): `Cluster.traceSim` (`@[no_expose]`, the Draft's `Cluster.traceSimInv`) with its two laws
+  (`Cluster.traceSim_alloc`, `_end`, by the Draft's), `startTraceC` (the Draft's `startTrace`, word for
+  word over `Cluster.traceSim`; `startTraceC_eq` in the internal `TracedNodeApiBridge.lean`), and the
+  three traced statements the harness takes as hypotheses until the node-API slices prove them:
+  `StartNode.tracedSpec D` (`StartNode.gatedSpec` over `startTraceC`, its post giving `startDone γ D
+  cv.ID'`: A7's per-voter completion fact, Q31, as a parameter; `StartNode.tracedSpec_of_gated`
+  gives it at `D := True` from the Draft's), `isReadyChan_recvAu.tracedSpec` (the law with
+  `readyGotT`: `readyGot` plus each handed-out message's token `trTok`), `node.Step.tracedSpec`
+  (`node.Step.spec` at `stepIn_intro`'s premises plus `trTok`). `trTok γ st` (`@[no_expose]`): `True`
+  untraced (`trTok_untraced`), `recvTokOf` traced (slice 28n's `readyTok` at the node level). Why not
+  restate `stepIn`/`stepIn_intro` with the token: `stepIn_intro` is an existing law, true of every
+  cluster today; a token inside `stepIn` would make it false traced. The node API's other functions
+  the harness calls keep their statements (their traced content is `node.run`'s).
+- *The harness's allocation* (`tracecheck/HarnessAlloc.lean`): `ghostMap_alloc_list`,
+  `traceNames_alloc` (the shares at the bootstrap servers, the empty bag, the flags unset, the
+  directory, from the recorder's trace `γt`), `harness_alloc` (names, `cluster_alloc_traced`,
+  `Cluster.traceSim_alloc` from the first voter's `nodeBoot`; each voter's `voterStart`), and
+  `startTraceC_intro`.
+- *The end* (`tracecheck/HarnessEnd.lean`): `BootEnd D` (A7's bootstrap facts at the end, from every
+  voter's `D tn i`, a hypothesis until A7 lands; with Q30 (a) `BootFacts` keeps its statement),
+  `runOk_at_end` (`Cluster.traceSim_end`, `BootEnd`, `runOk_of_sim`), `runOver_intro` (the post).
+- *Two harness functions*: `below` (`0 < n`: `% 0` panics) and `(*Cluster).replica` (over
+  `replicasRO`), specified and proved.
+
+**`RunConcurrent`'s proof: the design, and what blocks it.** The harness (`concurrent.go`) read
+exactly: `RunConcurrent` allocates the cluster, the recorder and `stop`; three `StartNode`s (each
+`NewMemoryStorage`, a `Config` with the recorder as `TraceLogger`, `quietLogger` as `Logger`); one `app`
+goroutine per replica (`c.apps`); three drivers (`drivers`): the isolations (`time.Sleep`,
+`isolated.Store(1 + below(3))`), the proposer (`context.WithTimeout`, `strconv.Itoa`, `node.Propose`,
+`cancel`, `Proposed.Add`), the configuration changes (at `ConfChanges = 0` its loop's first conjunct is
+false: `ConfChanges.Load()` only, which needs the counter's value persistent at `0`); then `Sleep`,
+`close(stop)`, `apps.Wait`, each `node.Stop` (`nodeRunning 1`, given back by the app goroutines through
+`apps`), `net.Wait`. `app`: a ticker (`time.NewTicker`), a `select` over `stop`, `ticker.C` (`Tick`)
+and the `Ready` channel (`isReadyChan_recvAu.tracedSpec`), `handleReady` (the storage: `Append`,
+`SetHardState`, the bootstrap conf entries applied, `proto.Unmarshal`, `node.ApplyConfChange` with the
+decisions authority shared: `confPolicy`, as kvreconf), `Advance`, then one `send` per message
+(`proto.Clone`, `below`). `send`: `net.Add(1)`, a goroutine: `Sleep`, `replica(m.To)`, the isolation
+`Load`, `node.Step.tracedSpec` (the token from the `Ready`), `cancel`, `Dropped`/`Delivered.Add`,
+`ReportUnreachable`, `ReportSnapshot` (their untraced specs: `isNode` only). The blockers,
+each a question (the plan, Q32-Q35):
+1. *`bootMarshal`* (Q32): `cluster_alloc`/`cluster_alloc_traced` take `proto.Marshal`'s bytes of the
+   bootstrap conf changes as a premise (`bootMarshal`: each call returns the given log's bytes), which
+   no closed theorem has discharged (the etcd examples keep it as a premise); `proto.MarshalConfChange`'s
+   spec (an axiom) gives bytes decoding to the change, not fixed ones, and the three `StartNode`s must
+   produce one log.
+2. *`strconv.Itoa`* (Q33): no spec in Perennial (the proposer's data `"v"+strconv.Itoa(k)`).
+3. *`c.net`'s wait group* (Q34): added to by the three `app` goroutines concurrently, once per message
+   (unboundedly many), waited on once at the end: Perennial's thread-token joins (`tokJoin`,
+   `tokJoinL`) have one exclusive adder (`ownAdder`).
+4. *`Workload`* (Q35): `time.NewTicker` needs `0 < Tick`, which `Workload` does not state.

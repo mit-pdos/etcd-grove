@@ -2431,6 +2431,52 @@ mode `etc/gen-link.py --tracecheck` (`etc/link-lean-first-tracecheck.txt`) write
 `etc/tcb-collections/tracecheck.txt` selects the Link's roots too. Left for S7: `RunConcurrent`'s
 proof, then the closed statements.
 
+**S7 (part 2) (2026-11-11, branch `trace-check-s7b`): the traced allocation, the client's traced node
+API, the harness's allocation and end; `RunConcurrent`'s proof not started, four questions (Q32-Q35).**
+Done (`notes/decisions.md`, "S7 (part 2)"; no axiom, no `sorry`, no existing statement changed):
+`cluster_alloc_traced` (Q6 item 8: a new law beside `cluster_alloc`); `TracedNodeApi.lean`, a new API
+module (the frozen Draft publicly imports raft's internals, so a client cannot import it): the
+Draft's invariant and `startTrace` re-sealed (`Cluster.traceSim`, `startTraceC`) with their laws, and
+the traced statements the harness takes as hypotheses (`StartNode.tracedSpec D`,
+`isReadyChan_recvAu.tracedSpec`, `node.Step.tracedSpec`, the token `trTok`);
+`StartNode.tracedSpec_of_gated` (from the Draft's, `D := True`); the harness's ghost allocation
+(`harness_alloc`) and end (`runOver_intro` from `BootEnd D`, A7's bootstrap facts as a hypothesis);
+`below` and `(*Cluster).replica` proved. Left: `RunConcurrent`, `app`, `handleReady`, `send`'s proofs
+(the design in the decisions entry), blocked on:
+
+- **Q32 (2026-11-11, S7 part 2): the bootstrap log's bytes (`bootMarshal`).** `cluster_alloc` with a
+  bootstrap log, traced or not, takes `bootMarshal vs ctxs log`: each `proto.Marshal` of a voter's
+  `AddNode` returns the given log's bytes. The three `StartNode`s marshal independently and raft's
+  proof needs one committed log, but `proto.MarshalConfChange.spec` (an axiom) gives only bytes that
+  decode to the change. No closed theorem discharges it (the etcd examples keep it a premise of their
+  `Main` specs). Options: (a) strengthen the trust boundary: `proto.MarshalConfChange.spec` returns
+  `ccEncodeV1 m` for a fixed (unspecified) function `ccEncodeV1` with `ccDecodeV1 (ccEncodeV1 m) = some
+  m` (deterministic marshalling of a message without maps, which protobuf-go is within one binary);
+  `bootMarshal` then follows for the log of those bytes; (b) raft's bootstrap proved for per-node
+  bytes (each node's log its own bytes, equal up to decoding): a redesign of the committed log's
+  equality; (c) the harness bootstraps without `Bootstrap` (`RestartNode` on storage the harness
+  fills): excluded today (P1, traced restart). **Recommended: (a)** (a trust-base change: the user's).
+- **Q33 (2026-11-11, S7 part 2): `strconv.Itoa` has no spec.** The proposer's data
+  `"v"+strconv.Itoa(k)` needs a spec (any string suffices). Options: (a) a Perennial change: a spec of
+  `strconv.Itoa` (proved from the translated `strconv`, or its result's bytes unconstrained); (b) the
+  harness proposes fixed data (a Go change, weaker workload). **Recommended: (a)**, as an independent
+  Perennial change (`notes/perennial-changes.md`).
+- **Q34 (2026-11-11, S7 part 2): a wait group added to concurrently, without bound.** `c.net` counts
+  the message goroutines: each `send` (from any of the three `app` goroutines) calls `net.Add(1)`, the
+  goroutine `Done`, and `RunConcurrent` waits once at the end, after the `app`s. Perennial's
+  thread-token joins (`sync.tokJoin`, `sync.tokJoinL`) bound the counter by thread tokens but have one
+  exclusive adder (`ownAdder`). Options: (a) a Perennial change: a join with a shared adder (fractions of
+  `ownAdder`, `Wait` with the whole), its counter backed by thread tokens as `tokJoin`'s; (b) the same
+  protocol proved locally in the harness over `WaitGroup`'s raw specs; (c) a Go change: one adder (a
+  per-replica wait group, or the sends counted by the `app` goroutine). **Recommended: (a)** (general;
+  `CLAUDE.md`'s rule for Perennial limitations: record, work around locally (b) if it blocks, propose
+  (a)).
+- **Q35 (2026-11-11, S7 part 2): `Workload` lacks the ticker's premise.** `app`'s `time.NewTicker(Tick)`
+  needs `0 < Tick` (`time.NewTicker.spec`); `Workload` (layer D's, not frozen) does not state it.
+  Options: (a) add `0 < sint.Z cfg.Tick'` to `Workload` (`DefaultCConfig`'s 10ms meets it; `Main`'s proof
+  gains one `decide`); (b) none other: the premise is real (Go panics on a non-positive ticker).
+  **Recommended: (a)**, with `RunConcurrent`'s proof (not changed before a proof needs it).
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and
