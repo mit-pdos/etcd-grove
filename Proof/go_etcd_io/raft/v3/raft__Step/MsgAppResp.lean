@@ -76,20 +76,32 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R s'.outbox }} := by
+        -- (2026-11-11, slice 30c, plan Q30 (a)) guarded: on an accepted response of a leader's term
+        -- that reaches `maybeCommit` the step ends past its gate
+        "HG" ∷ stepOutG c m s R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hrej Hwf
   wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
       $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
     try phys_out
+    ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
+      (fun h => absurd h.2.2.1 (fun he => by rw [he] at Hgt; omega)) $$ HG
     iapply HΦ $$ %err %s'
     iframe Hphys HG
     ipureintro
     exact ⟨Hend, Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
       Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl Hty) Hterm Hlt Hwf $$ [$Hpkg $Hphys $Hm $HG $Hgates] HΦ
+    · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl Hty) Hterm Hlt Hwf)
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hresp, %Hfr, %Htm, HG⟩
+      try phys_out
+      ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
+        (fun h => absurd h.2.2.1 (fun he => by rw [he] at Hlt; omega)) $$ HG
+      iapply HΦ $$ %err %s'
+      iframe Hphys HG
+      ipureintro
+      exact ⟨Hend, Hwf', Href, Herr, Hresp, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
       wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)

@@ -218,7 +218,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
   have htrd : MsgType.traced .app = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .app m ents hmty htrd hsh
   have hto' : m.To' = id := hto .app hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inl hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inl hTy)) (by rw [hto', h])
   obtain ⟨hnH, hnV, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnVR, hnHR, hnAR, hnPV, hnHup, hnS⟩ := app_ne hTy
   have hbf : PreBF m s := ⟨hgt, hnPV, fun h => hnPVR h.1⟩
   have hleadF : preLead m = m.From' := by unfold preLead; rw [if_pos (.inl hTy)]

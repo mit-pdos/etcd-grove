@@ -661,8 +661,8 @@ theorem stepBundle_traced_candVoteRespWon :
     unfold stepOutG
     dsimp only [vrWonR]
     icases Hout with (⟨%hn, -⟩ | ⟨%hn, -⟩ | H | %h | ⟨%b, %N, %h⟩)
-    · exact (hn hhook).elim
-    · exact (hn hhook).elim
+    · exact (hn.1 hhook).elim
+    · exact (hn.1 hhook).elim
     · unfold wonGE
       icases H with ⟨%hlen, %Hid, Hgh, ⟨%b, Hf⟩, %Hok⟩
       obtain ⟨ms, pvs, hse, hpm⟩ := wonEnd hTy hrole hterm hlen (hend (by rw [htr]; rfl))

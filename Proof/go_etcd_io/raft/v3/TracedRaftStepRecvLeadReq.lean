@@ -62,7 +62,7 @@ theorem stepBundle_traced_leadReq : stepBundle_traced.on (GF := GF) (hG := hG) L
     · exact ⟨.heartbeat, by rw [h]; rfl, .inr rfl⟩
   have htrd : ty.traced = true := by rcases hty2 with rfl | rfl <;> rfl
   have hto' : m.To' = id := hto ty hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (by
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (by
     rcases hTy with h' | h'
     · exact .inr (.inl h')
     · exact .inr (.inr h')) (by rw [hto', h])

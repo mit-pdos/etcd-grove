@@ -175,7 +175,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
   have htrd : MsgType.traced .app = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .app m ents hmty htrd hsh
   have hto' : m.To' = id := hto .app hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inl hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inl hTy)) (by rw [hto', h])
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
   have hns : ¬ StaleMsg s m := fun h => absurd h.2 (by rw [hterm]; omega)

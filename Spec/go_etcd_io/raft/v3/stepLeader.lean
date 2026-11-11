@@ -556,13 +556,17 @@ abbrev stepLeader.spec : Prop :=
        else ⌜err = interface.nil⌝) ∗
       -- `G'` after a quorum check's step-down; (slice 9) `Gp2` after an appended proposal; `Gc b N`
       -- when an accepted `MsgAppResp` reached `maybeCommit`, with its outcome; else `G`
+      -- ((2026-11-11, slice 30c, plan Q30 (a)) and then not on an accepted `MsgAppResp` that reached
+      -- `maybeCommit`, `AppRespRan`: the code runs `"Hgcommit"` exactly then)
       ((⌜m.Type' = MsgCheckQuorum ∧ s'.role = .follower⌝ ∗ G' s'.outbox) ∨
        (⌜m.Type' = MsgProp ∧ dropped = false⌝ ∗ Gp2 s'.outbox) ∨
        (∃ (b : Bool) (N : w64), ⌜m.Type' = MsgAppResp ∧ m.Reject' = false ∧
           ∃ pvs : GMap w64 Progress, prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
             maybeCommitOut c { s with prvals := pvs } b N⌝ ∗ Gc b N s'.outbox) ∨
        (⌜¬ (m.Type' = MsgCheckQuorum ∧ s'.role = .follower) ∧
-          ¬ (m.Type' = MsgProp ∧ dropped = false)⌝ ∗ G s'.outbox)) }}
+          ¬ (m.Type' = MsgProp ∧ dropped = false) ∧
+          ¬ (m.Type' = MsgAppResp ∧ m.Reject' = false ∧ AppRespRan s m.From' m.Index')⌝ ∗
+        G s'.outbox)) }}
 
 
 end spec

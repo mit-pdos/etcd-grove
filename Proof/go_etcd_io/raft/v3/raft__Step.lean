@@ -338,8 +338,8 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
   wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hlrd Hack Hty Hto Hterm Hfnz Hrej Hwf)
     $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-  -- (slice 28c) the ghost state back at `s`, or past `maybeCommit` (`CloseMid`'s third case)
-  ihave HGo := stepOutG_of_ne c m s _ (by rw [Hty]; w32_ne) $$ HGo
+  -- (slice 28c) the ghost state back at `s`, or past `maybeCommit` (`CloseMid`'s third case); (slice
+  -- 30c) the branch's result guarded (`stepOutG`: `G0`/`G1` only off `LeadRan`)
   imod gate_close_mid γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv
       (fun _ => Hstep) (fun _ => Hend) $$ Hclose HGo
     with ⟨Hgh, HGq, %Hot⟩
@@ -841,7 +841,7 @@ theorem raft.Step.wp_proof
       $$ [$Hphys $Hmi $Hcc $Hrc0 $HG $Hgates HTp] as %err %s' %B ⟨Hphys, HGo, %HBb, Hrcb, %Hend, %Hwf', %Hfr, -, %Hpk, %Hlead, %Hst, Herr⟩
     · dsimp only [ghostIn]; iexact HTp
     obtain ⟨recv, Hrecv, Hrl, Hstep⟩ := Hst
-    ihave HGo := stepOutG_of_ne c m s _ (by rw [Hty]; w32_ne) $$ HGo
+    ihave HGo := stepOutG_of_ne c m s _ (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) $$ HGo
     imod gate_close_mid γ md c id m ents ctx s R Gout s' B recv (fun _ => Hstep) (fun _ => Hend) $$ Hclose HGo
       with ⟨Hgh, HGq, %Hot⟩
     have Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage := Hfr.1.nsst

@@ -1554,7 +1554,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
   have htrd : MsgType.traced .vote = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .vote m ents hmty htrd hsh
   have hto' : m.To' = id := hto .vote hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inl hTy) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inl hTy) (by rw [hto', h])
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
   have hns : ¬ StaleMsg s m := fun h => absurd h.2 (by rw [hterm]; omega)

@@ -599,7 +599,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
   have htrd : MsgType.traced .heartbeat = true := rfl
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of .heartbeat m ents hmty htrd hsh
   have hto' : m.To' = id := hto .heartbeat hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inr hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inr hTy)) (by rw [hto', h])
   have hents : ents = [] := hsh.1 hTy
   have hb0 : γ.reBoot ≠ [] := hboot (.inl hTy)
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)

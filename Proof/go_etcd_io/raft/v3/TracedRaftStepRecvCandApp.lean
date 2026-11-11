@@ -236,7 +236,7 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
   have hev10 : evt = W64 10 := by
     rcases hev with ⟨-, h⟩ | ⟨h, -, -⟩ | ⟨h, -⟩ | (⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -, -⟩) <;> first | exact h | cases h
   have hto' : m.To' = id := hto .app hmty htrd
-  have hne : id ≠ m.From' := fun h => hsh.2.2 (.inr (.inl hTy)) (by rw [hto', h])
+  have hne : id ≠ m.From' := fun h => hsh.2.2.1 (.inr (.inl hTy)) (by rw [hto', h])
   obtain ⟨hnH, hnV, hnP, hnRI, hnTL, hnTN, hnB, hnCQ, hnPVR, hnVR, hnHR, hnAR, hnPV, hnHup, hnS⟩ := app_ne hTy
   have hnbf : ¬ PreBF m s := fun h => absurd h.1 (by rw [hterm]; omega)
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]

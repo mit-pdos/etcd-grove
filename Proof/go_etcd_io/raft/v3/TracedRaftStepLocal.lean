@@ -428,8 +428,8 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
         simp only [MsgHup, MsgBeat]; exact of_decide_eq_true rfl))
       (fun ty h => by rw [hmt] at h; cases h) (by rw [hT2]; exact hT) (by simp; unfold traceNumBound; omega)
       (fun ty h => by rw [hmt] at h; cases h) hfit hlrn (by rw [hpr2]; exact Hsub) (by rw [hrole]; nofun)
-      (by refine ⟨fun h => ?_, fun h => ?_, fun h => ?_⟩ <;> rw [hb] at h <;>
-            simp [MsgBeat, MsgHeartbeat, MsgHeartbeatResp, MsgVote, MsgApp] at h)
+      (by refine ⟨fun h => ?_, fun h => ?_, fun h => ?_, fun ty h => by rw [hmt] at h; cases h⟩ <;>
+            rw [hb] at h <;> simp [MsgBeat, MsgHeartbeat, MsgHeartbeatResp, MsgVote, MsgApp] at h)
       (fun h => by rw [hb] at h; simp [MsgBeat, MsgHeartbeat, MsgApp] at h)
     rw [hS2, hgh, hls2] at hgo
     iapply hgo

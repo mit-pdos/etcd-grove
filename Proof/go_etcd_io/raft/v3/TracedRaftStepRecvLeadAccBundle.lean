@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart). **`raft.Step`'s traced bundle on a leader's accepted `MsgAppResp` of its
-term whose `maybeCommit` does not commit** (2026-11-11, trace-check Q8 stage 1 slice 29c,
-`notes/decisions.md`, "Q8 stage 1 (slice 29c)").
+term** (2026-11-11, trace-check Q8 stage 1 slice 29c, `notes/decisions.md`, "Q8 stage 1 (slice 29c)";
+slice 30c, "Q8 stage 1 (slice 30c)": the path `LeadAcc` whole, after plan Q30 (a)).
 
 The family (`leadAccR`): the receive line (slice 27c's `phaseStepR_leadAcc`, `fxPresR_leadAcc`) into
 `G0`/`G1` (raft's ghost state at `s`, the capability at the receive line's result `AccPin`, the outbox
@@ -11,14 +11,11 @@ The family (`leadAccR`): the receive line (slice 27c's `phaseStepR_leadAcc`, `fx
 outcome unique, `maybeCommitOut_unique`, so the end state's commit index is the family's), at `s`
 otherwise (`CloseAt.of_traced`).
 
-**The path** (`LeadAccNC c s m`): `LeadAcc` (a leader of the message's term, accepted, the sender tracked,
-`PrvalsOk`) and **no outcome of `maybeCommit` that commits**. Why the second: `Step`'s result at `G0`/`G1`
-(no gate past the receive line) does not say that `maybeCommit` did not run: `stepLeader.spec` returns its
-`G` on an accepted response whatever `AppRespRan`, and `stepOutG` guards `G0`/`G1` only by `CandHooked`; so
-the close given `G1` must take the end state's commit index as the outcome's, which commits past the
-recorded server's when the outcome commits, with no `Commit` line logged. On this path the end state's
-commit index is the node's (`leadAcc_end`), so the close at `s` holds. The committing case needs a guard
-on `G0`/`G1` (plan Q30).
+**The path** (`LeadAcc s m`): a leader of the message's term, accepted, the sender tracked, `PrvalsOk`.
+(Slice 29c's path was `LeadAccNC`, `LeadAcc` and no outcome of `maybeCommit` that commits: `Step`'s result
+at `G0`/`G1` did not say that `maybeCommit` had not run. Since slice 30c, plan Q30 (a), it does: `stepOutG`
+guards `G0`/`G1` by `¬ LeadRan`, from `stepLeader.spec`'s guard on its `G` arm; so the close given `G0`/`G1`
+is at `¬ AppRespRan`, where the end state's commit index is the node's, `AppRespAcceptedC`.)
 -/
 module
 
@@ -37,24 +34,11 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 TraceSim
 section pure
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- **A leader's accepted `MsgAppResp` of its term whose `maybeCommit` does not commit** (see the
-header). -/
-def LeadAccNC (c : CfgM) (s : NState) (m : MessageM) : Prop :=
-  LeadAcc s m ∧ ∀ (pvs : GMap w64 Progress) (N : w64), prvalsMatch pvs = appRespMatch s m.From' m.Index' →
-    ¬ maybeCommitOut c { s with prvals := pvs } true N
-
-/-- On `LeadAccNC` the end state's commit index is the node's. -/
-theorem leadAccNC_committed {c : CfgM} {s : NState} {m : MessageM} {pvs : GMap w64 Progress} {n : w64}
-    (hp : LeadAccNC c s m) (hpvs : prvalsMatch pvs = appRespMatch s m.From' m.Index')
-    (hran : AppRespRan s m.From' m.Index' → ∃ (b : Bool) (N : w64),
-      maybeCommitOut c { s with prvals := pvs } b N ∧ n = (commitAt s b N).logst.committed)
-    (hnran : ¬ AppRespRan s m.From' m.Index' → n = s.logst.committed) : n = s.logst.committed := by
-  by_cases h : AppRespRan s m.From' m.Index'
-  · obtain ⟨b, N, ho, hn⟩ := hran h
-    cases b
-    · exact hn
-    · exact absurd ho (hp.2 pvs N hpvs)
-  · exact hnran h
+/-- (slice 30c) Off `LeadRan` (`stepOutG`'s guard on `G0`/`G1`) an accepted response of the leader's term
+did not reach `maybeCommit`. -/
+theorem leadAcc_notRan {s : NState} {m : MessageM} (hp : LeadAcc s m) (h : ¬ LeadRan m s) :
+    ¬ AppRespRan s m.From' m.Index' :=
+  fun hr => h ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1, hr⟩
 
 end pure
 
@@ -110,12 +94,11 @@ theorem leadAcc_closeAt (γd : GName) (γ : RaftNames) (c : CfgM) (r : Loc) (id 
   iexists true
   iapply trCapB_monoΛ (some γd) γ r id c true _ _ _ (fun o h => .inr h) $$ Hc
 
-/-- **`raft.Step`'s traced bundle on a leader's accepted `MsgAppResp` of its term whose `maybeCommit`
-does not commit** (see the header). -/
-theorem stepBundle_traced_leadAccNC : stepBundle_traced.onC (GF := GF) (hG := hG) LeadAccNC := by
+/-- **`raft.Step`'s traced bundle on a leader's accepted `MsgAppResp` of its term** (see the header). -/
+theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) LeadAcc := by
   intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
-  have hp0 := hp.1
+  have hp0 := hp
   obtain ⟨hTy, hrej, hterm, hrole, hfp, hfv, hpok⟩ := hp0
   have hmty : mtypeOf m.Type' = some .appResp := by rw [hTy]; rfl
   have htrd : MsgType.traced .appResp = true := rfl
@@ -248,7 +231,7 @@ theorem stepBundle_traced_leadAccNC : stepBundle_traced.onC (GF := GF) (hG := hG
         · -- `"Hgcommit"`: raft's ghost state past the commit, the `Commit` line
           iintro %_ %Hran %pvs' %b %N %Hpvs %Hout Hlc ⟨-, Hgh, Hc⟩
           rw [htr]
-          iapply leadAccGate_commit γd γ md c r id s m ents Λ tn.voters _ P0 pvs' b N htr hp.1 hto' Hran Hpvs
+          iapply leadAccGate_commit γd γ md c r id s m ents Λ tn.voters _ P0 pvs' b N htr hp hto' Hran Hpvs
             Hout hT hfit
           iframe Hlc Hm Hgh Hc
         isplitr
@@ -285,10 +268,10 @@ theorem stepBundle_traced_leadAccNC : stepBundle_traced.onC (GF := GF) (hG := hG
         ∀ C, SimIdleS C s' = SimIdleS C { s with logst := { s.logst with committed := n }, prvals := pvs } := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
-      exact leadAcc_end hp.1 h
+      exact leadAcc_end hp h
     unfold stepOutG
     dsimp only [leadAccR]
-    icases Hout with (⟨-, ⟨%ho, Hgh, Hc⟩⟩ | ⟨-, ⟨%ho, Hgh, Hc⟩⟩ | %h | %h | ⟨%b, %N, H⟩)
+    icases Hout with (⟨%hg, ⟨%ho, Hgh, Hc⟩⟩ | ⟨%hg, ⟨%ho, Hgh, Hc⟩⟩ | %h | %h | ⟨%b, %N, H⟩)
     rotate_right 3
     · exact h.elim
     · exact h.elim
@@ -324,8 +307,8 @@ theorem stepBundle_traced_leadAccNC : stepBundle_traced.onC (GF := GF) (hG := hG
       ipureintro
       cases b <;> exact Hot
     all_goals
-      -- `maybeCommit` not past its gate: the close at `s`
-      have hn := leadAccNC_committed hp hpvsE hranE hnranE
+      -- `maybeCommit` not run (`stepOutG`'s guard, slice 30c): the close at `s`
+      have hn := hnranE (leadAcc_notRan hp hg.2)
       have hS : ∀ C, SimIdleS C s' = SimIdleS C { s with prvals := pvsE } := by
         intro C; rw [hSE C, hn]
       imod leadAcc_closeAt γd γ c r id s s' m Λ tn.voters _ P0 pvsE hpvsE hS ho $$ Hc with Hc

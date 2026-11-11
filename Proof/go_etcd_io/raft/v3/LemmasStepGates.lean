@@ -124,6 +124,17 @@ def CandHooked (c : CfgM) (m : MessageM) (s : NState) : Prop :=
 theorem CandHooked.of_ne {c : CfgM} {m : MessageM} {s : NState} (h : m.Type' ≠ MsgVoteResp) :
     ¬ CandHooked c m s := fun h' => h h'.1
 
+/-- (2026-11-11, slice 30c, plan Q30 (a)) **A leader's accepted `MsgAppResp` of its term that reaches
+`maybeCommit`** (`AppRespRan`, the code's own run condition at the sender's `Progress` before the step):
+`stepLeader` then runs its `"Hgcommit"` gate, so the step ends past it (at `Gc`), never at `G0` or `G1`;
+`stepLeader.spec`'s `G` arm says so (its guard), and the closing wand reads it (`stepOutG`). -/
+def LeadRan (m : MessageM) (s : NState) : Prop :=
+  m.Type' = MsgAppResp ∧ m.Reject' = false ∧ m.Term' = s.term ∧ s.role = .leader ∧
+    AppRespRan s m.From' m.Index'
+
+theorem LeadRan.of_ne {m : MessageM} {s : NState} (h : m.Type' ≠ MsgAppResp) : ¬ LeadRan m s :=
+  fun h' => h h'.1
+
 /-- A stale message (`Step`'s `m.Term < r.Term` arm). -/
 def StaleMsg (s : NState) (m : MessageM) : Prop := m.Term' ≠ W64 0 ∧ uint.Z m.Term' < uint.Z s.term
 
@@ -285,9 +296,11 @@ def stepOut (R : StepG GF) (o : List Msg) : IProp GF :=
 with the resources before the type switch's last gate (`G0`, `G1`) guarded by `¬ CandHooked`, the
 outcome `stepCandidate` tags them with: on a candidate's deciding vote response the step ends past
 `"Hgbl"` or `"Hglost"`, never at `G0` or `G1`. Only the close reads it; every other user has `stepOut`
-(`stepOutG_stepOut`, `stepOutG_of_ne`). -/
+(`stepOutG_stepOut`, `stepOutG_of_ne`). (2026-11-11, slice 30c, plan Q30 (a)) And by `¬ LeadRan`: on a
+leader's accepted `MsgAppResp` that reaches `maybeCommit` the step ends past `"Hgcommit"`. -/
 def stepOutG (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) (o : List Msg) : IProp GF :=
-  iprop((⌜¬ CandHooked c m s⌝ ∗ R.G0 o) ∨ (⌜¬ CandHooked c m s⌝ ∗ R.G1 o) ∨ R.GE o ∨ R.Gp2 o ∨
+  iprop((⌜¬ CandHooked c m s ∧ ¬ LeadRan m s⌝ ∗ R.G0 o) ∨
+    (⌜¬ CandHooked c m s ∧ ¬ LeadRan m s⌝ ∗ R.G1 o) ∨ R.GE o ∨ R.Gp2 o ∨
     ∃ (b : Bool) (N : w64), R.Gc b N o)
 
 /-- (2026-11-10, slice 14) **What the callees ask of the indexed resources**: untraced, those reaching
@@ -542,20 +555,21 @@ theorem stepOutG_stepOut (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {
   · unfold stepOut; iright; iright; iright; ileft; iexact H
   · unfold stepOut; iright; iright; iright; iright; iexists b, N; iexact H
 
-/-- (slice 24b) A result off a deciding vote response is a guarded one. -/
+/-- (slice 24b) A result off a deciding vote response (slice 30c: and off a leader's accepted
+`MsgAppResp` reaching `maybeCommit`) is a guarded one. -/
 theorem stepOutG_of_not (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg}
-    (h : ¬ CandHooked c m s) : stepOut R o ⊢ stepOutG c m s R o := by
+    (h : ¬ CandHooked c m s) (hl : ¬ LeadRan m s) : stepOut R o ⊢ stepOutG c m s R o := by
   unfold stepOut stepOutG
   iintro (H | H | H | H | ⟨%b, %N, H⟩)
-  · ileft; iframe H; ipureintro; exact h
-  · iright; ileft; iframe H; ipureintro; exact h
+  · ileft; iframe H; ipureintro; exact ⟨h, hl⟩
+  · iright; ileft; iframe H; ipureintro; exact ⟨h, hl⟩
   · iright; iright; ileft; iexact H
   · iright; iright; iright; ileft; iexact H
   · iright; iright; iright; iright; iexists b, N; iexact H
 
 theorem stepOutG_of_ne (c : CfgM) (m : MessageM) (s : NState) (R : StepG GF) {o : List Msg}
-    (h : m.Type' ≠ MsgVoteResp) : stepOut R o ⊢ stepOutG c m s R o :=
-  stepOutG_of_not c m s R (CandHooked.of_ne h)
+    (h : m.Type' ≠ MsgVoteResp) (ha : m.Type' ≠ MsgAppResp) : stepOut R o ⊢ stepOutG c m s R o :=
+  stepOutG_of_not c m s R (CandHooked.of_ne h) (LeadRan.of_ne ha)
 
 end outg
 
