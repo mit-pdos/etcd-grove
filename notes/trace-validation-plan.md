@@ -1013,6 +1013,23 @@ self-acknowledgement's facts, the appends' gates (unblocked now by the `RejectHi
 the vote's loss (a guarded `stepOut` for the close) and win (the win's ghost update split, its receipt
 through `becomeLeader`), each recorded with its design in the decisions entry. Checked (branch at `trace-check` `98618b5dfa` plus this slice): full `lake build` green (13813 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in six function proof interfaces (`raft__appendEntry`, `stepLeader`: the receipt in the `Replicate` gate; those, `raft__maybeSendAppend`, `raft__sendAppend`, `raft__bcastAppend`, `stepCandidate`: `mm.rejecthint = W64 0`); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 24a), 2026-11-11 (branch `trace-check-q8s24a`): `MsgProp` at a leader done.**
+Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 24a)"); new modules only
+(`TracedRaftStepProp.lean`, `TracedRaftStepPropRep.lean`, `TracedRaftStepPropBundle.lean`), no existing
+statement changed. `ghost_stepProp` (the family's propose update with what `Step` lends, no `£`, run
+inside `"Hgprep"` before the lines); the `Replicate` lines' pinned phase steps (`phaseStepB_replicate`,
+`RepPin`) and facts (`fxPres_replicate`: `ClientRequest`, the new entries among the leader's pending
+entries, `appSlices_extend`, `quorumLogF_grow`); the self-acknowledgement's facts (`fxPres_selfAck`); the
+appends' gate (`propGate_app`, the request's facts from raft's ghost state, `msgFacts_app_of_log`); the
+bundle `stepBundle_traced_prop` with its close by the outbox's length. Stated over
+`stepBundle_traced.onG` (a path reading the names and the batch, as slice 22b's `.onC`): `PropLead` asks a
+non-empty batch of normal entries and a cluster with a bootstrap log (the appended entry past the
+bootstrap entries), the node API's; the paths' assembly adds them to `stepBundle_traced.on`. Checked
+(branch at `trace-check` `2c7c285f55` plus this slice): full `lake build` green (13816 jobs);
+`etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`,
+none updated; `interface/` unchanged (no listed module touched); `--check --layout` 0 new;
+`etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

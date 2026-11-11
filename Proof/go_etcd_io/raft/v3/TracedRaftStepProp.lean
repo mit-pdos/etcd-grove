@@ -9,9 +9,9 @@ then one `SendAppendEntriesRequest` per peer (`"#Hgpapp"`). This file has the li
 - **the self-acknowledgement's** (`phaseStepB_selfAck`: `phaseStepB_send_pin` with
   `lineEffect_selfAck`, at a leader's state, `selfAck` being the protocol's `pselfAck`).
 
-Not here yet (the decisions entry has the exact list): the `Replicate` lines' phase steps and facts
-(the facts create the entries' records, raft's ghost state moving to the proposal's appended state),
-`stepClose` relaxed to take that state back, and the bundle.
+(2026-11-11, slice 24a, `notes/decisions.md`, "Q8 stage 1 (slice 24a)") And **the family's propose
+update** (`ghost_stepProp`). The `Replicate` lines' phase steps and facts are in
+`TracedRaftStepPropRep.lean`, the gates and the bundle in `TracedRaftStepPropBundle.lean`.
 -/
 module
 

@@ -35544,3 +35544,73 @@ raft's `leadPrefix`/`lpfull` of the request and the vote table, used once per se
 `votesTbl_forall_list`), `quorumLogF_noConflict`, `quorumLogF_alreadyDone`; a leader's log growth,
 `quorumLogF_grow`. If the acknowledgement-history copy later gives `QuorumLogInv` directly, `KeptFrom` and
 these lemmas may lose their users. Reviews `a5-r1.md`, `a5-r2.md` (round 2's first-tier finding, a build break, repaired; the full build confirms).
+
+## Q8 stage 1 (slice 24a): `MsgProp` at a leader, done: the family's propose update, the `Replicate` lines, the self-acknowledgement, the appends, the bundle (2026-11-11 · trace-check, Q8 stage 1 slice 24a; decided by the agent under the user's delegation · branch `trace-check-q8s24a`; DRAFT until trace-check's Freeze)
+
+All raft-internal and new modules (`TracedRaftStepProp.lean`, `TracedRaftStepPropRep.lean`,
+`TracedRaftStepPropBundle.lean`), none on `etc/api/raft.txt`; no existing statement changed (nothing
+frozen, no path file, `stepBundle_traced.on` untouched). No axiom, no `sorry`.
+
+**Done.**
+- *The family's propose update* (`ghost_stepProp`): `ownRaftGhost_step_propose` (a basic update) with
+  what `Step` lends (`propLend`: data, tickets, the receipt; the empty-`ConfChangeV2` clause vacuous for a
+  batch of no conf-change entry), and in the dynamic mode `RInv_propose` (pure: `propBatch` is the batch,
+  `pendingConfIndex` kept, `propConf_noConf'`); `NsLink`'s `OutTr` for the queued self-acknowledgement from
+  the receipt's bound (`preceipt_lt`, `selfAck_trOk`). No `£` in either mode; the mode is kept. Run inside
+  `"Hgprep"` before the lines (`propGate_rep`), so the lines' facts and the appends' read raft's ghost
+  state at the proposed state.
+- *The `Replicate` lines' phase steps* (`phaseStepB_replicate`, at pinned phases `RepPin`: the voters and
+  list pinned, the server `repCN cs0 k` after `k` lines, the idle relation at `propK s es k =
+  propAppended s (es.take k)`): `lineEffect_replicate`, the abstract log grown by the stamped entry's
+  `entAbs` (`simServerR_append`), `LogShapeOk` (`logShapeOk_append`) and the `2^63` bounds at the appended
+  state. **Past the bootstrap entries**: the new entry is a value entry only if the log reaches past the
+  `|C|` bootstrap positions `logAbs` maps to configuration entries; raft's campaign record gives the
+  leader's last entry of its term (`ownStepGhost_leadLast`, `campOwn`), the bootstrap entries are of term 1
+  (`LogShapeOk`), and the term is `≥ 2` in a cluster with a bootstrap log (`isCamp_boot`):
+  `bl_le_of_last`. (`ownStepGhost_bootCommit` alone does not do: it bounds the commit by `γ.reBoot`'s
+  length, which nothing in the capability ties to `C`'s.)
+- *The `Replicate` lines' facts* (`fxPres_replicate`, `simFx_replicate`): the specification's
+  `ClientRequest` (`specInv_clientRequest`), `QuorumLogF` (`quorumLogF_grow` with `CommitOk`), `AppSlices`
+  (`appSlices_extend`), the bags unchanged; the leader's server facts with the new entry among its
+  **pending entries** (`srvFacts`' `pend`, review finding A9; `srvFacts_rep`): no record is created in a
+  line's facts (raft's records exist from `ghost_stepProp` on, so a later line that needs the entries as
+  records, a leader's `Commit` or step-down, rebuilds the leader's facts from raft's ghost state). With no
+  pending entry before, the campaign clause comes from the full log's (`leadFull_camp`, `isLeader_unique`)
+  and its last entry of the term from the abstract log's (`last_term_of_abs`). Rejected: the facts at
+  `es` the recorded log with the new entries' records (`leadFull` of a prefix of the term log, a new lemma
+  about `leadPrefix`, for nothing the pending form lacks).
+- *The self-acknowledgement's facts* (`fxPres_selfAck`): `AppendEntriesToSelf` (`appendEntriesToSelf_send`,
+  `specInv_appendEntriesToSelf`) through `simFx_sendS` (`simFx_send` with the step's `SpecInv` in place of
+  `MsgOk`); the message plain, canonical, pinning nothing.
+- *The appends' gate* (`propGate_app`, `"#Hgpapp"`): `phaseStepB_msgApp_pin` (pinned `phaseStepB_msgApp`),
+  `fxPres_app` with `app_lead` and the request's facts from raft's ghost state at the proposed state
+  (`msgFacts_app_of_log`: `ownStepGhost_appFacts`' `isLeader` and records, `logRecs_drop` of the full log
+  at `FullOk_take`'s base, then `logRecs_take_gen`, a take at a general base), the numbers from the
+  receipts' bound and `TermsLe`.
+- *The bundle* (`stepBundle_traced_prop`, `propR`): `G0`/`G1` the local path's family at `s` with
+  `⌜o = s.outbox⌝`, `Gp1` after the lines (ghost at the proposed state, the capability at `RepPin s ents
+  s.outbox C0 cs0 P0 |ents|`), `Gp2` after the acknowledgement with `⌜|s.outbox| < |o|⌝` (`propF`: ghost at
+  the proposed state, the family at the appended state's idle server). The close (`propClose`) by the
+  outbox's length against `StepEnd`'s `LeaderProposeResult` (`propLead_end`): dropped, `CloseAt` (the batch
+  not appended, `proposed_logst_ne'`) with the ghost state at `s`; appended, `CloseMid` at `proposed id s
+  ents`, the capability by `trFam_idle` (`simIdleS_prvals`, the idle relation reading neither the outbox
+  nor `Progress` beyond `Match`).
+
+**The path's premises** (`PropLead γ ents s m`: `MsgProp`, a leader, a non-empty batch of normal entries,
+`γ.reBoot ≠ []`) read the cluster's names and the batch, which `stepBundle_traced.on`'s `Path` does not
+see: the bundle is stated over **`stepBundle_traced.onG`** (`.on` with a path reading `γ` and `ents`, as
+slice 22b's `.onC`; `.on_of_onG` for the others). Why each: a conf-change entry, or an entry of another
+type, makes the `Replicate` lines fewer than the appended entries (`normalCount`) and the propose update's
+conf-change clause live (the specification has no configuration change, P3); a non-empty batch is what
+`CloseAt` reads on a dropped proposal (and `stepLeader`'s premise); the bootstrap log, above. Each is the
+node API's (`raft.Step`'s `Hp3` and `Hne`; `γ.reBoot ≠ []` already a premise of `.on` for `MsgHeartbeat`
+and `MsgApp`). Rejected: adding them to `stepBundle_traced.on` now (every path file's `intro`, files
+slices 24b/24c edit concurrently); the assembly of the paths into `stepBundle_traced.statement` adds them
+there (`m.Type' = MsgProp → ents ≠ [] ∧ ∀ e ∈ ents, e.Type' = EntryNormal`, and `MsgProp` among the
+types needing `γ.reBoot ≠ []`).
+
+**Copies.** `toPState_proposed'`, `propConf_noConf_fold'`/`propConf_noConf'`, `proposed_logst_ne'` restate
+`raft__Step/MsgProp.lean`'s (a module only `raft__Step` may import); a later cleanup may move both to a
+shared lemma file.
+
+**Left for `MsgProp`**: nothing but the assembly premises above.
