@@ -765,33 +765,23 @@ servers, those whose log does not extend `P` or whose term is below `t`. -/
 def lackingAt (σ : Etcdraft.State) (P : List Etcdraft.Entry) (t : Int) : List Etcdraft.ID :=
   σ.server.filter (fun j => or (!Etcdraft.isPrefix P (σ.s j).log) (decide ((σ.s j).currentTerm < t)))
 
-/-- (Amendment A5) An append request **agrees with `P`** at every position both have an entry (its
-`k`-th entry at index `prevLogIndex + k + 1`, as `AppSlices` reads it). -/
-def AppAgrees (P : List Etcdraft.Entry) (m : Etcdraft.Msg) : Prop :=
-  ∀ (k : Nat) (e : Etcdraft.Entry), m.entries[k]? = some e → m.prevLogIndex.toNat + k < P.length →
-    P[m.prevLogIndex.toNat + k]? = some e
-
 /-- (Amendment A5, Q21) **`P` is kept from term `t` on**: the servers that hold `P` at a term at least
-`t` are a quorum of the servers (those that lack `P` or are below `t` are none), every append request in
-flight of a term at least `t` agrees with `P`, and every leader of a term at least `t` holds `P`. A
-server at a term at least `t` holding `P` therefore never loses it: an accepted append request is of the
-receiver's term, so it agrees with `P` and its first conflict is past `P` (`ConflictAppendEntriesRequest`
-drops entries past it only); a snapshot shorter than `P` agrees with it, so the receiver keeps its log.
-It is the inductive form of `QuorumLogInv`'s fact (`quorumLogF_quorumLogS`): a server below `t` may
-hold `P` by coincidence and truncate it (`notes/decisions.md`, "Q8 stage 1 (slice 22b)"), but it is not
-counted. -/
+`t` are a quorum of the servers (those that lack it or are below `t` are none). With `t` a term `P` was
+committed at or after (`CommitCert`), such a server never loses `P`: it truncates only on accepting an
+append request of its own term, so of a term at least `t`, from that term's leader, whose log raft's
+leader completeness (`lc_core`) puts the commit quorum's log, so `P`, in; the request agrees with `P` and
+its first conflict is past `P` (the receiver's raft facts of the request, `commitCert_app` and
+`quorumLogF_conflict`, `TracedQuorumLog.lean`). It is the inductive form of `QuorumLogInv`'s fact
+(`quorumLogF_quorumLogS`): a server below `t` may hold `P` by coincidence and truncate it
+(`notes/decisions.md`, "Q8 stage 1 (slice 22b)"), but it is not counted. -/
 def KeptFrom (σ : Etcdraft.State) (P : List Etcdraft.Entry) (t : Int) : Prop :=
-  Etcdraft.isQuorum (lackingAt σ P t) σ.server = false ∧
-  (∀ m ∈ σ.messages.domain ++ σ.pendingMessages.domain, m.type = .appendEntriesRequest → t ≤ m.term →
-    AppAgrees P m) ∧
-  (∀ l ∈ σ.server, (σ.s l).state = Etcdraft.leader → t ≤ (σ.s l).currentTerm → P <+: (σ.s l).log)
+  Etcdraft.isQuorum (lackingAt σ P t) σ.server = false
 
 /-- (Amendment A5, Q21) **`P` is committed at a term at most `t`**: `P` is a prefix of a log `es`
 (read by `logAbs`, with its records) up to an index `c` that raft's commit justification covers at a
 term at most `t` (`commitJ`: within the bootstrap log, or a commit quorum `cq` of a term `≤ t` whose log
-has `es`'s term at `c`). This is what keeps `KeptFrom`'s leader clause at a `BecomeLeader` line of a term
-`T ≥ t`: raft's leader completeness (`lc_core`) puts the commit quorum's log, so `P`, in the new leader's
-campaign log (`commitCert_camp`, `TracedQuorumLog.lean`). -/
+has `es`'s term at `c`). With it the log of any leader of a term `T ≥ t` agrees with `P` (`lc_core`), so
+does an append request of `T` (`commitCert_app`, `TracedQuorumLog.lean`). -/
 def CommitCert (γ : RaftNames) (C : List w64) (P : List Etcdraft.Entry) (t : Int) : IProp GF :=
   iprop(∃ (es : List EntryM) (c : w64),
     ⌜P <+: logAbs C C.length 1 (es.take (uint.nat c)) ∧ PlogWf base0 es ∧ uint.Z c ≤ es.length ∧
@@ -809,9 +799,10 @@ instance commitCert_timeless (γ : RaftNames) (C : List w64) (P : List Etcdraft.
 /-- **`QuorumLogInv`'s fact** (amended, A5, Q21; until then the bare `QuorumLogInv` over `σ`, which a
 truncating receiver at a lower term than the commit's could not be shown to keep): every server's
 committed prefix is kept from some term `t` on (`KeptFrom`), `t` a term it was committed at or after
-(`CommitCert`). `QuorumLogInv` follows (`quorumLogF_quorumLogS`). (Draft: the `Commit` line's new
-prefix will take `t` its leader's term, the quorum from the acknowledgement-history copy of the
-notes' table.) -/
+(`CommitCert`). `QuorumLogInv` follows (`quorumLogF_quorumLogS`). (Draft: a leader's `Commit` line's new
+prefix takes `t` the leader's term and its certificate raft's commit quorum; its quorum of holders at
+terms `≥ t` needs the acknowledgement-history copy of the notes' table, not yet in `simFx`: a further
+amendment, `notes/decisions.md`, "Amendment A5 (Q21)".) -/
 def QuorumLogF (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(□ ∀ i, ⌜i ∈ σ.server⌝ → ∃ t, ⌜KeptFrom σ (committedL σ i) t⌝ ∗ CommitCert γ C (committedL σ i) t)
 
@@ -828,7 +819,7 @@ known to keep it, and every configuration is the server set (`CfgFixed`). -/
 theorem quorumLogS_of_keptFrom (σ : Etcdraft.State) (hcf : TraceSpecInv.CfgFixed σ)
     (h : ∀ i ∈ σ.server, ∃ t, KeptFrom σ (committedL σ i) t) : TraceSpecInv.QuorumLogS σ := by
   intro i hi
-  obtain ⟨t, hK, -, -⟩ := h i hi
+  obtain ⟨t, hK⟩ := h i hi
   have hcfg : σ.getConfig i = σ.server := by simp only [Etcdraft.State.getConfig, hcf i hi]
   rw [hcfg]
   refine TraceSpecInv.isQuorum_filter_mono (fun j hj hp => ?_) hK

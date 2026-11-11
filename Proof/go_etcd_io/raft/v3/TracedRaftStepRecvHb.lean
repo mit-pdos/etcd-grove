@@ -321,12 +321,12 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     by_cases hkd : k = ma.dest
     · subst hkd
       rcases committedL_raise_prefix (σ := σ) (W := W) (src := ma.source) (c := ma.commitIndex)
-          (hF _).1 (by rw [(hF _).2.2.2.2, if_pos rfl])
-          (fun k hk => by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, if_neg hk])
+          (hF _).1 (by rw [(hF _).2.2.2.2, ite_eq_left_of_eq_true _ _ (eq_true rfl)])
+          (fun k hk => by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, ite_eq_right_of_eq_false _ _ (eq_false hk)])
           hcS (Hco ma.source hsrcS).2 hcmp with h | h
       · exact ⟨_, hk, h⟩
       · exact ⟨ma.source, hsrcS, h⟩
-    · exact ⟨k, hk, by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, if_neg hkd]; exact List.prefix_refl _⟩
+    · exact ⟨k, hk, by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, ite_eq_right_of_eq_false _ _ (eq_false hkd)]; exact List.prefix_refl _⟩
   -- uniqueness and shape: after the discard, the response sent
   have hxq : (hbResp (σ.s ma.dest) ma.dest ma.source).type ≠ .appendEntriesRequest := by simp [hbResp]
   have hx0 : canonMsg (hbResp (σ.s ma.dest) ma.dest ma.source) = hbResp (σ.s ma.dest) ma.dest ma.source := by
@@ -352,12 +352,7 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
   isplitl
   · iapply quorumLogF_mono γ C σ W hWsrv hPW ?_ $$ Hq
     intro P t h
-    refine keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _)
-      (fun k h => ⟨by rw [← (hF k).2.2.1]; exact h, (hF k).2.1⟩) ?_ h
-    intro x hx hty'
-    rcases hsub' x hx with hx | rfl
-    · exact hx
-    · exact absurd hty' hxq
+    exact keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) h
   ipureintro
   refine ⟨hsi', by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he

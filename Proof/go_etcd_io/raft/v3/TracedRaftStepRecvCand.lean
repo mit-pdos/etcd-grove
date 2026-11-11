@@ -228,11 +228,7 @@ theorem simFx_rtf (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j : E
     iapply Hmf; ipureintro; exact hx
   isplitl
   · iapply quorumLogF_congr γ C σ (withNode σ i (rtfSrv (σ.s i) j) _root_.id _root_.id) rfl
-      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) ?_
-      (fun m hm _ => hm) $$ Hq
-    intro k hl; rw [hWs] at hl ⊢; split at hl
-    · simp [rtfSrv] at hl; exact absurd hl hfl
-    · rename_i hki; rw [if_neg hki]; exact ⟨hl, rfl⟩
+      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) $$ Hq
   ipureintro
   refine ⟨specInv_rtf hsi hi, hu, hsh, ?_⟩
   intro m hm hty k hk hlk htk hs k' e he

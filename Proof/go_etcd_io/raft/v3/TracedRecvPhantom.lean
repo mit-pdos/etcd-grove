@@ -275,28 +275,6 @@ theorem appSlices_send (σ : Etcdraft.State) (x : Etcdraft.Msg) (h : AppSlices �
   · exact h m g
   · rw [e]; exact hx
 
-/-- (Amendment A5) A message with no entries, or from a leader of its term, the sender of an append
-request's entries. -/
-def AppFromLeader (σ : Etcdraft.State) (m : Etcdraft.Msg) : Prop :=
-  m.entries = [] ∨ ∃ i ∈ σ.server, (σ.s i).state = Etcdraft.leader ∧ (σ.s i).currentTerm = m.term ∧ m.source = i
-
-/-- **Sending keeps `KeptFrom`** (amendment A5) when the new message, an append request with entries,
-is a slice of its leading sender's log: a leader of a term at least `t` holds `P`. -/
-theorem keptFrom_send (σ : Etcdraft.State) (x : Etcdraft.Msg) (P : List Etcdraft.Entry) (t : Int)
-    (hxs : AppSliceOf σ x) (hxl : AppFromLeader σ x) (h : KeptFrom σ P t) : KeptFrom (σ.send x) P t := by
-  have hl := h.2.2
-  refine keptFrom_of (σ := σ) (σ' := σ.send x) rfl (fun _ _ h1 h2 => ⟨h1, h2⟩) (fun _ _ h1 h2 => ⟨h1, h2, id⟩) ?_ h
-  intro m hm hty ht
-  rcases TraceSpecInv.mem_msgs_send σ x m hm with g | rfl
-  · exact .inl g
-  · right
-    intro k e he hk
-    rcases hxl with he0 | ⟨i, hi, hli, hti, hsi⟩
-    · rw [he0] at he; simp at he
-    · have hp := hl i hi hli (by rw [hti]; exact ht)
-      rw [prefix_getElem?_of_lt hp hk]
-      exact hxs hty i hi hli hti hsi k e he
-
 /-- **A leader's new `"app"` request, a slice of its log, pins every in-flight message** (`AppSlices`:
 an in-flight request of the leader's term from it is a slice of the same log). -/
 theorem pinned_of_slices (σ : Etcdraft.State) (p : Etcdraft.Msg) (i : Etcdraft.ID) (hi : i ∈ σ.server)
@@ -388,8 +366,7 @@ theorem simFx_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (h
     ipureintro
     exact hsub x hx
   isplitl
-  · iapply quorumLogF_congr γ C σ σ' hsrv hL hC (fun k => by rw [hT]; exact Int.le_refl _)
-      (fun k h => ⟨by rw [← hS]; exact h, hT k⟩) (fun x hx _ => hsub x hx) $$ Hq
+  · iapply quorumLogF_congr γ C σ σ' hsrv hL hC (fun k => by rw [hT]; exact Int.le_refl _) $$ Hq
   ipureintro
   refine ⟨specInv_congr_srv hsi hsrv hm hp hT hS hL hD hV hC hM hG,
     msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
@@ -421,20 +398,18 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
     iapply Hmf
     ipureintro; exact hsub x hx
   isplitl
-  · iapply quorumLogF_congr γ C σ (σ.discard m) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _)
-      (fun _ h => ⟨h, rfl⟩) (fun x hx _ => hsub x hx) $$ Hq
+  · iapply quorumLogF_congr γ C σ (σ.discard m) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _) $$ Hq
   ipureintro
   exact ⟨TraceSpecInv.specInv_discard m hsi, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx),
     fun x hx => has x (hsub x hx)⟩
 
 /-- **Sending a message keeps the facts** when it is fine to send (`MsgOk`), has its facts (`msgFacts`),
 is canonical, pins every in-flight message (`PinnedBy`) and, an append request, is a slice of its
-leading sender's log (`AppSliceOf`), from a leader of its term if it has entries (`AppFromLeader`,
-amendment A5: `QuorumLogF`'s `KeptFrom`, `keptFrom_send`). -/
+leading sender's log (`AppSliceOf`). -/
 theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Etcdraft.Msg)
     (hok : TraceSpecInv.MsgOk σ x) (hx0 : canonMsg x = x)
     (hxk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y x)
-    (hxs : AppSliceOf σ x) (hxl : AppFromLeader σ x) :
+    (hxs : AppSliceOf σ x) :
     (simFx (GF := GF) γ C σ ∗ msgFacts γ C x) ⊢ simFx γ C (σ.send x) := by
   iintro ⟨Hfx, #Hx⟩
   iunfold simFx at Hfx
@@ -451,8 +426,7 @@ theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Et
     · iapply Hmf; ipureintro; exact hy
     · iexact Hx
   isplitl
-  · iapply quorumLogF_mono γ C σ (σ.send x) rfl (fun i hi => ⟨i, hi, List.prefix_refl _⟩)
-      (fun P t h => keptFrom_send σ x P t hxs hxl h) $$ Hq
+  · iapply quorumLogF_congr γ C σ (σ.send x) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _) $$ Hq
   ipureintro
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxk
   exact ⟨TraceSpecInv.specInv_send hsi hok, hu', hsh', appSlices_send σ x has hxs⟩
@@ -491,7 +465,7 @@ theorem fxPresR_staleReq (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : Tra
     (TraceSpecInv.msgOk_plain _ _ phe phq phs phv
       (by rw [pht, phsrc, hdst]; show a.currentTerm ≤ (σ.s (idAbs id)).currentTerm; rw [hσa]; exact Int.le_refl _))
     (phantomOf_canon a m) (fun y _ => ContentLogged.pinned (fun h => absurd h phq) y)
-    (appSliceOf_nil _ _ phe) (.inl phe) $$ [$H1 $Hpf]
+    (appSliceOf_nil _ _ phe) $$ [$H1 $Hpf]
   have hs : ∀ j, toC ((σ.discard m).send (phantomOf a m)).server
       ((withNode σ (idAbs id) a' (fun b => b.without m)
         (fun b => ([] ++ recvPhantoms m a).foldl Etcdraft.Bag.with b)).s j) =
@@ -595,7 +569,7 @@ theorem fxPres_heartbeat (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     · unfold logRecs; iapply Iris.BI.BigSepL.bigSepL_nil.2; iempintro
   ihave #H2 := simFx_send γ C σ p
     (msgOk_heartbeat σ p (idAbs id) Hp0.1 h1 hi hl hpt hpe.1 hpe.2 hsrc ht hcm)
-    hp0 (fun _ _ _ => .inl hps) (appSliceOf_nil σ p hpe.1) (.inl hpe.1) $$ [$Hfx $Hpf]
+    hp0 (fun _ _ _ => .inl hps) (appSliceOf_nil σ p hpe.1) $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by
@@ -686,8 +660,7 @@ theorem fxPres_app (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     rw [hsrc] at hsj; subst hsj; exact hsl k e he
   ihave #H2 := simFx_send γ C σ p
     (msgOk_app σ p (idAbs id) Hp0.1 h1 hi hl hpt hsrc ht hcm hpi hlen hsl)
-    hp0 (pinned_of_slices σ p (idAbs id) hi hl ht.symm hsrc hps hsl Hp0.2.2.2) hslice
-    (.inr ⟨_, hi, hl, ht.symm, hsrc⟩) $$ [$Hfx $Hpf]
+    hp0 (pinned_of_slices σ p (idAbs id) hi hl ht.symm hsrc hps hsl Hp0.2.2.2) hslice $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by

@@ -506,7 +506,7 @@ theorem unbooted_nid (L : List TraceEv) (e : TraceEv) (id : w64) (hnid : e.nid =
 
 /-! ### `QuorumLogF`'s preservation (amendment A5, Q21) -/
 
-theorem prefix_getElem?_of_lt {P P' : List Etcdraft.Entry} (hp : P' <+: P) {n : Nat} (hn : n < P'.length) :
+theorem prefix_getElem?_of_lt {α : Type _} {P P' : List α} (hp : P' <+: P) {n : Nat} (hn : n < P'.length) :
     P'[n]? = P[n]? := by
   obtain ⟨r, rfl⟩ := hp
   rw [List.getElem?_append_left hn]
@@ -514,73 +514,42 @@ theorem prefix_getElem?_of_lt {P P' : List Etcdraft.Entry} (hp : P' <+: P) {n : 
 /-- `KeptFrom` of a prefix. -/
 theorem keptFrom_prefix {σ : Etcdraft.State} {P P' : List Etcdraft.Entry} {t : Int} (hp : P' <+: P)
     (h : KeptFrom σ P t) : KeptFrom σ P' t := by
-  obtain ⟨hq, hm, hl⟩ := h
-  refine ⟨?_, ?_, fun l hl1 hl2 hl3 => hp.trans (hl l hl1 hl2 hl3)⟩
-  · refine TraceSpecInv.isQuorum_filter_mono (fun j _ hj => ?_) hq
-    simp only [Bool.or_eq_true, Bool.not_eq_true'] at hj ⊢
-    rcases hj with hj | hj
-    · left
-      cases hb : Etcdraft.isPrefix P (σ.s j).log
-      · rfl
-      · rw [isPrefix_of_prefix _ _ (hp.trans (TraceSpecInv.prefix_of_isPrefix hb))] at hj; cases hj
-    · exact Or.inr hj
-  · intro m hm' hty ht k e he hk
-    rw [prefix_getElem?_of_lt hp hk]
-    exact hm m hm' hty ht k e he (Nat.lt_of_lt_of_le hk hp.length_le)
+  refine TraceSpecInv.isQuorum_filter_mono (fun j _ hj => ?_) h
+  simp only [Bool.or_eq_true, Bool.not_eq_true'] at hj ⊢
+  rcases hj with hj | hj
+  · left
+    cases hb : Etcdraft.isPrefix P (σ.s j).log
+    · rfl
+    · rw [isPrefix_of_prefix _ _ (hp.trans (TraceSpecInv.prefix_of_isPrefix hb))] at hj; cases hj
+  · exact Or.inr hj
 
-/-- **`KeptFrom` carried to another state** (the general form): the same servers; a server keeping `P`
-at a term at least `t` still does (`hkeep`); a leader of a term at least `t` was one and its log keeps
-`P` (`hlead`); an append request in flight of a term at least `t` was in flight or agrees with `P`
-(`hmsg`). -/
+/-- **`KeptFrom` carried to another state** (the general form): the same servers, and a server
+keeping `P` at a term at least `t` still does. -/
 theorem keptFrom_of {σ σ' : Etcdraft.State} {P : List Etcdraft.Entry} {t : Int} (hsrv : σ'.server = σ.server)
     (hkeep : ∀ j ∈ σ.server, P <+: (σ.s j).log → t ≤ (σ.s j).currentTerm →
       P <+: (σ'.s j).log ∧ t ≤ (σ'.s j).currentTerm)
-    (hlead : ∀ l ∈ σ.server, (σ'.s l).state = Etcdraft.leader → t ≤ (σ'.s l).currentTerm →
-      (σ.s l).state = Etcdraft.leader ∧ t ≤ (σ.s l).currentTerm ∧ (P <+: (σ.s l).log → P <+: (σ'.s l).log))
-    (hmsg : ∀ m ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, m.type = .appendEntriesRequest →
-      t ≤ m.term → m ∈ σ.messages.domain ++ σ.pendingMessages.domain ∨ AppAgrees P m)
     (h : KeptFrom σ P t) : KeptFrom σ' P t := by
-  obtain ⟨hq, hm, hl⟩ := h
-  refine ⟨?_, ?_, ?_⟩
-  · unfold lackingAt at hq ⊢
-    rw [hsrv]
-    refine TraceSpecInv.isQuorum_filter_mono (fun j hj hp => ?_) hq
-    simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hp ⊢
-    apply Classical.byContradiction; intro hn
-    simp only [not_or, Int.not_lt] at hn
-    obtain ⟨hn1, hn2⟩ := hn
-    have hpj : P <+: (σ.s j).log := TraceSpecInv.prefix_of_isPrefix (by
-      cases hb : Etcdraft.isPrefix P (σ.s j).log
-      · exact absurd hb hn1
-      · rfl)
-    obtain ⟨hk1, hk2⟩ := hkeep j hj hpj hn2
-    rcases hp with hp | hp
-    · rw [isPrefix_of_prefix _ _ hk1] at hp; cases hp
-    · omega
-  · intro m hm' hty ht
-    rcases hmsg m hm' hty ht with hm' | ha
-    · exact hm m hm' hty ht
-    · exact ha
-  · intro l hl' hll hlt
-    rw [hsrv] at hl'
-    obtain ⟨h1, h2, h3⟩ := hlead l hl' hll hlt
-    exact h3 (hl l hl' h1 h2)
+  unfold KeptFrom lackingAt at h ⊢
+  rw [hsrv]
+  refine TraceSpecInv.isQuorum_filter_mono (fun j hj hp => ?_) h
+  simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hp ⊢
+  apply Classical.byContradiction; intro hn
+  simp only [not_or, Int.not_lt] at hn
+  obtain ⟨hn1, hn2⟩ := hn
+  have hpj : P <+: (σ.s j).log := TraceSpecInv.prefix_of_isPrefix (by
+    cases hb : Etcdraft.isPrefix P (σ.s j).log
+    · exact absurd hb hn1
+    · rfl)
+  obtain ⟨hk1, hk2⟩ := hkeep j hj hpj hn2
+  rcases hp with hp | hp
+  · rw [isPrefix_of_prefix _ _ hk1] at hp; cases hp
+  · omega
 
-/-- **`KeptFrom` carried to a state with the same servers and logs**, terms that do not decrease, no
-new leader, and no new append request. -/
+/-- **`KeptFrom` carried to a state with the same servers and logs**, terms that do not decrease. -/
 theorem keptFrom_congr {σ σ' : Etcdraft.State} {P : List Etcdraft.Entry} {t : Int} (hsrv : σ'.server = σ.server)
     (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm)
-    (hLd : ∀ k, (σ'.s k).state = Etcdraft.leader →
-      (σ.s k).state = Etcdraft.leader ∧ (σ'.s k).currentTerm = (σ.s k).currentTerm)
-    (hM : ∀ m ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, m.type = .appendEntriesRequest →
-      m ∈ σ.messages.domain ++ σ.pendingMessages.domain)
-    (h : KeptFrom σ P t) : KeptFrom σ' P t := by
-  refine keptFrom_of hsrv (fun j _ h1 h2 => ⟨by rw [hL]; exact h1, Int.le_trans h2 (hT j)⟩) ?_
-    (fun m hm hty _ => .inl (hM m hm hty)) h
-  intro l _ hll hlt
-  obtain ⟨h1, h2⟩ := hLd l hll
-  exact ⟨h1, by rw [← h2]; exact hlt, fun hp => by rw [hL]; exact hp⟩
-
+    (h : KeptFrom σ P t) : KeptFrom σ' P t :=
+  keptFrom_of hsrv (fun j _ h1 h2 => ⟨by rw [hL]; exact h1, Int.le_trans h2 (hT j)⟩) h
 
 /-- **A commit index raised to `c`, within a server `src`'s** (the receiver of `src`'s append request
 or heartbeat, `ReqCommitC`), its committed prefix comparable with `src`'s (`LogInv`): its new committed
@@ -770,18 +739,14 @@ theorem quorumLogF_mono (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State
   iapply commitCert_prefix γ C _ _ t hp $$ Hc
 
 /-- **`QuorumLogF` carried to a state with the same servers, logs and commit indices**, terms that do
-not decrease, no new leader, and no new append request (`keptFrom_congr`). -/
+not decrease (`keptFrom_congr`). -/
 theorem quorumLogF_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
     (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex)
-    (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm)
-    (hLd : ∀ k, (σ'.s k).state = Etcdraft.leader →
-      (σ.s k).state = Etcdraft.leader ∧ (σ'.s k).currentTerm = (σ.s k).currentTerm)
-    (hM : ∀ m ∈ σ'.messages.domain ++ σ'.pendingMessages.domain, m.type = .appendEntriesRequest →
-      m ∈ σ.messages.domain ++ σ.pendingMessages.domain) :
+    (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm) :
     QuorumLogF (GF := GF) γ C σ ⊢ QuorumLogF γ C σ' :=
   quorumLogF_mono γ C σ σ' hsrv
     (fun i hi => ⟨i, hi, by unfold committedL; rw [hL, hC]; exact List.prefix_refl _⟩)
-    (fun _ _ h => keptFrom_congr hsrv hL hT hLd hM h)
+    (fun _ _ h => keptFrom_congr hsrv hL hT h)
 
 theorem ready_msgs_sub (σ : Etcdraft.State) (i : Etcdraft.ID) :
     ∀ x ∈ (σ.ready i).messages.domain ++ (σ.ready i).pendingMessages.domain,
@@ -829,9 +794,7 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   · iapply quorumLogF_congr γ C σ (σ.ready (idAbs id)) rfl
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
       (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
-      (fun k => by rw [ready_s]; split <;> subst_vars <;> exact Int.le_refl _)
-      (fun k h => by rw [ready_s] at h ⊢; split <;> split at h <;> simp_all)
-      (fun m hm _ => ready_msgs_sub σ _ m hm) $$ Hq
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> exact Int.le_refl _) $$ Hq
   ipureintro
   refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_⟩
   · intro ln m1 m2 h1 h2 hp1 hp2

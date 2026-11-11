@@ -479,8 +479,7 @@ theorem simFx_resp (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : Et
     exact hsub x hx
   isplitl
   · iapply quorumLogF_congr γ C σ (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) rfl
-      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
-      (fun k h => ⟨by rw [← (hF k).2.2.2.1]; exact h, (hF k).2.2.1⟩) (fun x hx _ => hsub x hx) $$ Hq
+      (fun k => (hF k).1) (fun k => (hF k).2.1) (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) $$ Hq
   ipureintro
   refine ⟨specInv_respSrv σ i ma hsi hc hl,
     msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
@@ -723,12 +722,7 @@ theorem simFx_voteReq (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j
     · iapply msgFacts_plain γ C _ hxq hxe
   isplitl
   · iapply quorumLogF_congr γ C σ σ1 (by rw [hσ1]; rfl) (fun k => (hF k).1) (fun k => (hF k).2.1)
-      (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _)
-      (fun k h => ⟨by rw [← (hF k).2.2.2.1]; exact h, (hF k).2.2.1⟩) ?_ $$ Hq
-    intro x hx hty
-    rcases hsub x hx with hx | rfl
-    · exact hx
-    · exact absurd hty hxq
+      (fun k => by rw [(hF k).2.2.1]; exact Int.le_refl _) $$ Hq
   ipureintro
   refine ⟨hsi', by rw [hσ1]; exact hu', by rw [hσ1]; exact hsh', ?_⟩
   intro m hm hty k hk hlk htk hs k' e he

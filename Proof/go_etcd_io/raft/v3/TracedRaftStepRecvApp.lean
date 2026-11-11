@@ -225,12 +225,7 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     · iapply msgFacts_plain γ C _ hrq hre
   isplitl
   · iapply quorumLogF_congr γ C σ W hWsrv (fun k => (hF k).1) (fun k => (hF k).2.2.2.2)
-      (fun k => by rw [(hF k).2.1]; exact Int.le_refl _)
-      (fun k h => ⟨by rw [← (hF k).2.2.1]; exact h, (hF k).2.1⟩) ?_ $$ Hq
-    intro x hx hty
-    rcases hsub' x hx with hx | rfl
-    · exact hx
-    · exact absurd hty hrq
+      (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) $$ Hq
   ipureintro
   refine ⟨hsi' hsi, by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he
