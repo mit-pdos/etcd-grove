@@ -1147,6 +1147,21 @@ acknowledgements' close), the rest as slice 25n listed.
   (b) the capability framed around `raft.Step` with vacuous gates, and a new `Step` postcondition clause
   for `MsgUnreachable`. Recommended: (a).
   **Taken by the coordinator (raft-internal): (a)** (`MsgUnreachable` in `StepEndTy`/`StepEnd`).
+**Q8 stage 1 (slice 27c), 2026-11-11 (branch `trace-check-q8s27c`): a leader's rejected `MsgAppResp`
+and `MsgHeartbeatResp` of its term done; the accepted `MsgAppResp`'s receive line done, the rest of it
+not.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 27c)"); new modules
+`TracedRaftStepRecvLead{Send,NA,Acc}.lean`, slice 22b's receive line's phase now carrying the sender among
+the voters (the receive law's premise), which the catch-up append needs. Done:
+**`stepBundle_traced_leadRespNA`** (`.on`, path `LeadRespNA`: the receive line, the probe's or
+flow control's append by `lineF_app`, the read-index responses by `lineF_untraced`, the close at `s`; the
+read path proved, not premised); the accepted response's receive line (`phaseStepR_leadAcc`,
+`fxPresR_leadAcc`: the share's server at `MaybeUpdate`'s `Match` values, `AccIdle`; `simFx_respLead` by
+`ackHists_resp` and `specInv_respLead`). Not done, with its design in the decisions entry: the accepted
+response past its receive line, which needs raft's ghost state moved past the commit inside `"Hgcommit"`
+(a `CloseMid` case for `MsgAppResp`, `Step`'s arm split) and, for the close to know the commit's outcome,
+a raft-internal `stepLeader.spec` change (`"Hgcommit"` given the code's run condition, `AppRespAcceptedC`
+tied to `maybeCommit`'s outcome); the `Commit` line's `AdvancesTo` bridge from `maybeCommitOut`; a path
+premise that the sender has a `Progress` (`RawNode.Step`'s check). Checked (branch at `trace-check` `0627a67e4c` plus this slice): full `lake build` green (13827 jobs); `#print axioms` of the bundle and the receive-line lemmas: no `sorryAx`; `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 **Q8 stage 1 (slice 27d), 2026-11-11 (branch `trace-check-q8s27d`): a higher-term accepted `MsgApp`
 done; the coverage check of `raft.Step`'s traced paths; two paths it found added; one premise left.**
 Decided by the agent under the user's delegation (`notes/decisions.md`, "Q8 stage 1 (slice 27d)"); all
@@ -1161,7 +1176,8 @@ as `utResp`'s, `respSrv` at a follower); `TracedRaftStepRecvLeadReq.lean` (`step
 a `MsgApp` or `MsgHeartbeat` of a leader's own term, refuted in the receive gate by `isLeader_unique`).
 **Coverage** (paths of `stepBundle_traced.on`'s premises: `StepEndTy`, pre-vote and check-quorum off, no
 pre-candidate, a local message at term 0, `MsgHup` not at a leader): every path has a proved lemma but
-(i) slice 27b's won vote, (ii) slice 27c's leader's `MsgAppResp`/`MsgHeartbeatResp` of its term, (iii)
+(i) slice 27b's won vote, (ii) a leader's accepted `MsgAppResp` of its term (slice 27c proved the
+rejected one and `MsgHeartbeatResp`, `stepBundle_traced_leadRespNA`, and the accepted one's receive line), (iii)
 `MsgProp` at a leader outside `PropLead` (an empty batch, a non-normal entry, no bootstrap log: slice
 24a's premises for the assembly) and (iv) a traced message of term `0` at a node of a positive term
 (raft handles it as of the node's term, no lemma; the node API knows `m.Term ≠ 0`, `InvRawnode`'s
