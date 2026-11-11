@@ -24,27 +24,34 @@ S1 (request path gains `context.libCtxOk ctx`, no trust change) then S2 (the fli
   LeaseTimeToLive, RemoveMember, MemberList, kvServer.Compact, authMaintenanceServer.{isPermitted,
   requireAuthInfo}.
 
-## BLOCKED (STOP reported to etcd-grove-81)
+## Q1 decided (etcd-grove-81, under the user's delegation; questions.md, untracked by .gitignore)
 
-`traceutil.Tracer.Start` (an axiom, `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Tracer__Start.lean`)
-returns the context the request path then passes (after `WithValue(StartTimeKey)`) to
-`raftRequest`/`doSerialize`/`AuthInfoFromCtx`. Its post carries `spanCtxOk`/`startTimeOk`
-preservation but nothing for `libCtxOk`, so Put, DeleteRange, Txn, Range, Compact, LeaseGrant,
-LeaseRevoke, LeaseRenew cannot discharge the new premise. Proposed trusted change:
-post `+ □ (context.libCtxOk ctx -∗ context.libCtxOk ctx')`.
+`traceutil.Tracer.Start`'s post gains `□ (context.libCtxOk ctx -∗ context.libCtxOk ctx')` (done).
+Go test `examples/premisefix/tracerctx` (gated, examples module; noop + SDK tracers): passes.
+Forms accepted: isWatchPermitted unchanged; stronger posts of `EnsureTrace` and
+`traceutil.wp_WithCancelBackground_noTrace` (both `libCtxOk`).
 
-## Next, in order (after the decision)
+## Done after Q1
 
-1. Tracer.Start post (if approved) + extend `examples/sweeprepairs/tracer` (Value at grpc's keys
-   delegates; the span key answers an otel span or ctx's).
-2. Finish the level-2 proofs (Put, DeleteRange, Txn, Range, Compact, LeaseGrant, LeaseRevoke,
-   LeaseRenew (WithTimeout: law `libCtxOk_from`), Authenticate, AuthnOn).
-   `EnsureTrace` (proved) may need a stronger post (`libCtxOk` through `WithValue(TraceKey)`).
-3. Upward: v3rpc bundles (`srvCall`, InvLease, InvLeaseRead, AuthService, InvAuthAdmin, InvWatch*),
-   auth-admin methods' callers, revokeExpiredLeases/RevokeCtx, publishV3, monitorClusterVersions
-   (`traceutil.wp_WithCancelBackground_noTrace`: strengthen its post with `libCtxOk`),
-   LeaseCheck, NoRefusal, apply/Contracts, Results, client served results, examples.
-4. Go tests (Scope §4), full build (flock, 64G), tcb --check, collections, interfaces, gen-init.
+- `Tracer.Start` post, `EnsureTrace` post+proof, `wp_WithCancelBackground_noTrace` post+proof.
+- Tactic `context_libKeys_ne [T.ty]` (LibKeys.lean): the side condition of
+  `context.libCtxOk_of_valueWand` at a named key type (`WithValue(StartTimeKey)` etc.).
+- Level-2 proofs: Put/Txn (`libCtxOk_of_valueWand` at StartTimeKey), DeleteRange, Range, Compact,
+  LeaseGrant, LeaseRevoke, LeaseRenew, Authenticate, AuthnOn (`authnRaft_on`).
+- Bundles: `srvCall` (+ `libCtxOk ci`; producers `ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc` beside
+  each `spanCtxOk_of_runCtx`), `lessorTTLOk`/`lessorLeasesOk` (InvLeaseRead), `raftLeaseRenew`
+  (InvLeaseKeepAlive), `srvRevokeCtx` (RevokeCtx, from start's `#Hclib`); v3rpc
+  `LeaseServer.{LeaseTimeToLive,LeaseLeases}` and `authMaintenanceServer.*` specs.
+
+## Next, in order
+
+1. The first full build after these (log `/shared/tmp/premise-fixes-8/s1/build1.log`): fix what it
+   reports (expected: publishV3/monitorClusterVersions, auth-admin callers (AuthService,
+   InvAuthAdmin), keep-alive, Results files, client served results, examples).
+2. Go tests (Scope §4: S1 has only tracerctx; TestAuthInfoFromTLSReal is S2's).
+3. Full build clean, `etc/tcb-report.py --check` (expect no change: Tracer.Start's text changes, not the
+   axiom count; the collections `--check --update` only if the hash of trusted text is tracked),
+   collections, `etc/gen-interface.py` for changed packages, `etc/gen-init.py --check`. STOP before land.sh.
 
 ## Build / check
 
