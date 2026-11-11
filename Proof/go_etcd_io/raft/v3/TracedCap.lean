@@ -28,6 +28,12 @@ configuration `c` is always the voters', raft's own whenever raft's tracker hold
 while it grows from empty in `newRaft` and `Bootstrap` (A1's second repair, a docstring; the bootstrap
 lines' gate takes the two apart, `trCapB_hookGate_bf`). The Draft's traced statements on the capability
 (`TracedHooksDraft.lean`) take the same premise; no other statement here changed.
+
+**Amended (A5, Q21; A6, Q22, 2026-11-11):** `simFx`'s `QuorumLogF` clause, now `QuorumKept` (A5: every
+committed prefix kept from a term with raft's commit justification) with `AckHists` (A6: the
+acknowledgements' histories, raft's `hist` over each acknowledging server's current log, keyed on the
+specification's acknowledgements and leaders' match indices), so that a leader's `Commit` line keeps it
+(`quorumLogF_commit`, `TracedQuorumLog.lean`; `notes/decisions.md`, "Amendment A6 (Q22)").
 -/
 module
 

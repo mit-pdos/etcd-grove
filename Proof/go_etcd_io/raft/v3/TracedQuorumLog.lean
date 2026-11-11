@@ -24,6 +24,17 @@ request's term:
   receiver's new committed prefix is a prefix of the sender's, whose witness it takes.
 
 Besides, a leader's log growing (`Replicate`, `ClientRequest`): `quorumLogF_grow`.
+
+**Amendment A6 (Q22, 2026-11-11): the acknowledgement histories and a leader's `Commit` line.**
+`QuorumLogF` is now `QuorumKept` (A5's clause) with `AckHists` (`TracedCap.lean`): every acknowledgement
+in flight and every positive match index a leader holds carries raft's `hist` over the acknowledging
+server's current log. The lemmas above keep it too: a truncation (`ackHist_conflict`, `hist_trunc`: past
+the conflict the history's disagreement disjunct serves), an append and a growing log (`ackHist_prefix`),
+a reply's new acknowledgement (`NewAckHists`, `newAckHists_reply`; its history from the stale request's
+commit, `ackHist_commit`, or from the receiver's agreement with its leader's log, `ackHist_ofAgree`), and
+a recorded response (`ackHists_resp`). **A leader's `Commit` line** (`quorumLogF_commit`): the new
+committed prefix is kept from the leader's term, its match-index quorum's members holding it
+(`hist_commitAgree`, `prefix_of_termAt`), its certificate raft's after `maybeCommit`.
 -/
 module
 
@@ -1217,6 +1228,129 @@ theorem quorumLogF_commit (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.Sta
     iframe Hc
     ipureintro
     exact keptFrom_congr (σ := σ) (σ' := σ.commitTo i c) rfl (fun k => (hF k).1) hT hKt
+
+/-- (Amendment A6) An append response's record (`respSrv`): the match index for its source raised to the
+response's when it succeeds. -/
+theorem respSrv_matchIndex (v : Etcdraft.Server) (ma : Etcdraft.Msg) (hty : ma.type = .appendEntriesResponse)
+    (k : Etcdraft.ID) :
+    (respSrv v ma).matchIndex k =
+      if ma.success = true ∧ k = ma.source then max (v.matchIndex k) ma.matchIndex else v.matchIndex k := by
+  unfold respSrv
+  rw [if_neg (by rw [hty]; decide)]
+  by_cases hs : ma.success = true
+  · rw [if_pos hs]
+    by_cases hk : k = ma.source
+    · subst hk; simp [hs]
+    · simp [hk]
+  · rw [if_neg hs]; simp [hs]
+
+/-- (Amendment A6) **A recorded acknowledgement keeps `AckHists`** (`HandleAppendEntriesResponse` at the
+response's destination `i`, of its term): the match index for the source becomes the response's at most,
+whose history the response carries (`AckHists`' message clause: a success to another server). -/
+theorem ackHists_resp (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : Etcdraft.ID) (ma : Etcdraft.Msg)
+    (hm : ma ∈ σ.messages.domain) (hd : ma.dest = i) (hty : ma.type = .appendEntriesResponse)
+    (ht : ma.term = (σ.s i).currentTerm) :
+    AckHists (GF := GF) γ C σ ⊢ AckHists γ C (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) := by
+  obtain ⟨W, hW⟩ : ∃ W, W = withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id := ⟨_, rfl⟩
+  rw [← hW]
+  have hs : ∀ j, W.s j = if j = i then respSrv (σ.s i) ma else σ.s j := fun j => by rw [hW]; rfl
+  have h1 : (respSrv (σ.s i) ma).log = (σ.s i).log := by
+    unfold respSrv; split
+    · rfl
+    · split <;> rfl
+  have h3 : (respSrv (σ.s i) ma).currentTerm = (σ.s i).currentTerm := by
+    unfold respSrv; split
+    · rfl
+    · split <;> rfl
+  have h4 : (respSrv (σ.s i) ma).state = (σ.s i).state := by
+    unfold respSrv; split
+    · rfl
+    · split <;> rfl
+  have hL : ∀ j, (W.s j).log = (σ.s j).log := fun j => by
+    rw [hs]; split
+    · rename_i h; subst h; exact h1
+    · rfl
+  have hT : ∀ j, (σ.s j).currentTerm ≤ (W.s j).currentTerm := fun j => by
+    rw [hs]; split
+    · rename_i h; subst h; rw [h3]; exact Int.le_refl _
+    · exact Int.le_refl _
+  have hsrv : W.server = σ.server := by rw [hW]; rfl
+  iintro #H
+  iunfold AckHists at H
+  icases H with ⟨#Hm, #Hl⟩
+  iunfold AckHists
+  isplitl
+  · imodintro
+    iintro %x %hx
+    obtain ⟨hx1, hx2, hx3⟩ := hx
+    iapply ackHist_congr γ C σ W _ _ _ (hL _) (hT _)
+    iapply Hm $$ %x
+    ipureintro
+    exact ⟨withNode_acks_without σ i _ ma x (by rw [← hW]; exact hx1), hx2, by rw [← hsrv]; exact hx3⟩
+  · imodintro
+    iintro %j %k %h
+    obtain ⟨hj, hk, hlj, hkj, hmk⟩ := h
+    rw [hsrv] at hj hk
+    iapply ackHist_congr γ C σ W _ _ _ (hL _) (hT _)
+    by_cases hji : j = i
+    · subst hji
+      rw [hs, if_pos rfl] at hlj hmk ⊢
+      rw [h4] at hlj
+      rw [h3]
+      rw [respSrv_matchIndex _ _ hty] at hmk ⊢
+      by_cases hc : ma.success = true ∧ k = ma.source
+      · rw [if_pos hc] at hmk ⊢
+        by_cases hle : ma.matchIndex ≤ (σ.s j).matchIndex k
+        · rw [Int.max_eq_left hle] at hmk ⊢
+          iapply Hl $$ %j %k
+          ipureintro; exact ⟨hj, hk, hlj, hkj, hmk⟩
+        · rw [Int.max_eq_right (by omega)] at hmk ⊢
+          obtain ⟨hsu, hks⟩ := hc
+          subst hks
+          rw [← ht]
+          iapply Hm $$ %ma
+          ipureintro
+          exact ⟨List.mem_append_left _ hm, ⟨hty, hsu, by rw [hd]; exact hkj, hmk⟩, hk⟩
+      · rw [if_neg hc] at hmk ⊢
+        iapply Hl $$ %j %k
+        ipureintro; exact ⟨hj, hk, hlj, hkj, hmk⟩
+    · rw [hs, if_neg hji] at hlj hmk ⊢
+      iapply Hl $$ %j %k
+      ipureintro; exact ⟨hj, hk, hlj, hkj, hmk⟩
+
+/-- (Amendment A6) **A follower's acknowledgement from its agreement with its leader's log** (an accepted
+append request's reply, `AppendEntriesAlreadyDone` past the commit index, its match index `mi` the
+request's last index): the receiver's recorded log `es` (its facts, a follower's: no pending entries)
+has at `mi` the term of the full log `Y` of the leader of its term `T` (the request's entries a slice of
+`Y`, `leadPrefix`/`lpfull`, matched by `HasNoConflict`, or its previous entry by `logOk`), so it has the
+history of `(T, mi)` (`hist_of_agree`, `Y` an `okL` log of `T`). -/
+theorem ackHist_ofAgree (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (w : w64) (Tw : w64) (Y : List EntryM)
+    (mi : Int) (hf : (σ.s (idAbs w)).state ≠ Etcdraft.leader) (hT : (σ.s (idAbs w)).currentTerm = uint.Z Tw)
+    (hmi : mi < 2 ^ 63)
+    (hag : ∀ es : List EntryM, (σ.s (idAbs w)).log = logAbs C C.length 1 es → BootTerms C.length 1 es →
+      (plogTermAt base0 Y (W64 mi)).isSome ∧ plogTermAt base0 Y (W64 mi) = plogTermAt base0 es (W64 mi)) :
+    srvFacts (GF := GF) γ C w (σ.s (idAbs w)) ∗ leadFull γ Tw Y ⊢
+      AckHist γ C σ (idAbs w) (σ.s (idAbs w)).currentTerm mi := by
+  iintro ⟨#Hs, #HY⟩
+  iunfold srvFacts at Hs
+  icases Hs with ⟨%es, %pend, %Hp, #Hr, -⟩
+  obtain ⟨hlog, hboot, hwf, hlen, -, -, ht0, ht1, hpl, -⟩ := Hp
+  have hp : pend = [] := hpl hf
+  subst hp
+  rw [List.append_nil] at hlog hboot hwf hlen
+  have hw : PlogWf base0 es :=
+    PlogWfR_wf _ _ hwf (by unfold plogLastIndexZ; rw [base0_index]; simp; omega)
+  obtain ⟨hs, he⟩ := hag es hlog hboot
+  have hTW : W64 (σ.s (idAbs w)).currentTerm = Tw := by rw [hT]; word
+  ihave #Hh := hist_of_agree γ es Y (W64 (σ.s (idAbs w)).currentTerm) (W64 mi) (uint.Z Tw + 1) hw hs he $$ Hr []
+  · unfold okL
+    ileft; iexists Tw
+    isplitr; · ipureintro; rw [hTW]; omega
+    iexact HY
+  iapply ackHist_intro γ C σ (idAbs w) _ _ (es ++ []) (uint.Z Tw + 1) (by rw [List.append_nil]; exact hlog)
+    (by rw [List.append_nil]; exact hboot) ⟨ht0, Int.le_refl _, ht1, hmi⟩
+  rw [List.append_nil]
+  iexact Hh
 
 end ghost
 
