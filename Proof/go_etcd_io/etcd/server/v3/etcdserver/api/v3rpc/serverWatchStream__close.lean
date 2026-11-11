@@ -55,9 +55,9 @@ theorem v3rpc.serverWatchStream.close.wp_proof
   · iframe #
   wp_apply wp_broadcast_chan_close r.cc r.γcc iprop(True) $$ [$Hcc] as -
   · iintro !>; itrivial
-  wp_apply sync.join.WaitGroup.wp_Wait P n (v3rpc.swsF sws go!"wg") $$ [$Hadd] as -
+  wp_apply sync.join.WaitGroup.wp_Wait P n (v3rpc.swsF sws go!"wg") $$ [$Hadd] as ⟨HP, -⟩
   iapply HΦ
-  itrivial
+  iexact HP
 
 end proof
 

@@ -36,11 +36,14 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 set_option hygiene false in
 /-- `Watch`'s end, after the `select`: `sws.close()`, then `return err`. -/
 local macro "watch_tail" : tactic => `(tactic| (
-  wp_apply hClose sws_ptr r Up Dn _ ci cd (W32 0 + W32 1) iprop(True ∗ True)
-    $$ [Hcl Hcc Hadd]
+  iapply wp_fupd
+  wp_apply hClose sws_ptr r Up Dn _ ci cd (W32 0 + W32 1)
+    iprop(True ∗ mvcc.api.mvccReaders W.γm 1) $$ [Hcl Hcc Hadd] as HP
   · iframe #; iframe
+  icases HP with ⟨-, HrdS⟩
+  imodintro
   iapply HΦ
-  iframe Hspec
+  iframe Hspec HrdS
   first | iexact HsvW | iexact HsvE | iexact HsvC))
 
 set_option hygiene false in
@@ -77,14 +80,14 @@ theorem v3rpc.watchServer.Watch.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) := by
-  intro p R W st γs Up Dn ci cd
+  intro p R W st γs Up Dn ci cd N₂ N₃ γ₂ γ₃ F₂ F₃
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ kv γ, Persistent (mvcc.api.isMvcc (GF := GF) kv γ) := hP.1
   have := v3rpc.srvWOk_persistent hP W R.wsl v3rpc.wsN
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Hrdr⟩
-  ihave ⟨HrdS, HrdR⟩ : mvcc.api.mvccReaders W.γm 1 ∗ mvcc.api.mvccReaders W.γm 1 $$ [Hrdr]
-  · iapply (hRS W.γm 1 1).1; iexact Hrdr
+  have : ∀ γ n, Timeless (mvcc.api.mvccReaders (GF := GF) γ n) := hP.2.2.2.2.2.2.2.1
+  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, %Htb4, #Hp2, #Hp3, HrdS⟩
+  obtain ⟨Htb, HT4⟩ := Htb4
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
   icases HWS' with ⟨%Hnn, #Hzl, #Plg, #Pcid, #Pmid, #Pmrb, #Psg, #Pwa, #Pag, #Hsrv⟩
@@ -170,18 +173,19 @@ theorem v3rpc.watchServer.Watch.wp_proof
     isplitr
     · ipureintro; exact Hswsn
     simp only [r, v3rpc.auxOf]; iexact HauxIs
-  wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)
-    $$ [$Hadd] as ⟨Hadd, Hdone⟩
+  wp_apply sync.join.WaitGroup.wp_Add (mvcc.api.mvccReaders W.γm 1) (v3rpc.swsF sws_ptr go!"wg")
+    iprop(True) (W32 0) $$ [$Hadd] as ⟨Hadd, Hdone⟩
   · iframe #; ipureintro; decide
   -- (2026-10-20, watchkv) the send loop's goroutine with its thread token, which
   -- `GetProgressReportInterval` lends to the interval's pool
   wp_apply wp_fork_tok_body $$ [Hst Hcons' Hrcv HA Hmutok Hdone HrdS]
   · iintro Htt
     wp_apply hSend sws_ptr r Up Dn st ci cd $$ [$Hst $Hcons' $Hrcv $HA $Hmutok $Htt $HrdS]
-      as ⟨Htt, -⟩
+      as ⟨Htt, HrdS⟩
     · iframe #; ipureintro; exact Htb
-    wp_apply sync.join.WaitGroup.wp_Done iprop(True) (v3rpc.swsF sws_ptr go!"wg") $$ [$Hdone]
-    · iframe #; itrivial
+    wp_apply sync.join.WaitGroup.wp_Done (mvcc.api.mvccReaders W.γm 1) (v3rpc.swsF sws_ptr go!"wg")
+      $$ [$Hdone $HrdS]
+    · iframe #; try iexact Htt
   -- the stream's methods and its context
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
@@ -213,11 +217,44 @@ theorem v3rpc.watchServer.Watch.wp_proof
     with ⟨%γerr, #HspscE, HprodE, HconsE⟩
   · iright; iexact Hoe
   ipersist errc
-  wp_apply wp_fork_tok_body $$ [Hrt Hprod HPool HRD HprodE HrdR]
-  · iintro Htt
-    wp_apply hRecv sws_ptr r Up Dn st ci cd [] [] $$ [$Hrt $Hprod $HPool $HRD $Htt $HrdR]
-      as %rerr ⟨#Hrerr, Htt, -, %sent', Hprod⟩
+  -- the receive loop's goroutine borrows the auth reader (level 2) and a store reader token
+  -- (level 3) with its own thread token, and gives them back when the loop returns
+  wp_apply wp_fork_tok_upd
+  iintro Htt Hlc1r
+  icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Ht0, Htt⟩
+  icases (threadTokFrom_succ (GF := GF) 1 (by omega)).1 $$ Htt with ⟨Ht1, Htt⟩
+  icases (threadTokFrom_succ (GF := GF) 2 (by omega)).1 $$ Htt with ⟨Ht2, Htt⟩
+  icases (threadTokFrom_succ (GF := GF) 3 (by omega)).1 $$ Htt with ⟨Ht3, Ht4⟩
+  imod threadPool.borrowL N₂ 2 γ₂ iprop(F₂ ∗ R.E.RD) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 Ht2]
+    with ⟨HB2, Hl2⟩
+  · iframe; iframe #
+  imod threadPool.borrowL N₃ 3 γ₃ iprop(mvcc.api.mvccReaders W.γm 1 ∗ F₃) ⊤
+    (fun _ _ => CoPset.mem_full) $$ [Hp3 Ht3] with ⟨HB3, Hl3⟩
+  · iframe; iframe #
+  ihave HB : iprop(▷ ((F₂ ∗ R.E.RD) ∗ (mvcc.api.mvccReaders W.γm 1 ∗ F₃))) $$ [HB2 HB3]
+  · inext; iframe
+  imod lc_fupd_elim_later (E := ⊤) $$ Hlc1r HB with ⟨⟨HF2, HRD⟩, ⟨HrdR, HF3⟩⟩
+  imodintro
+  isplitl [Hrt Hprod HPool HprodE HF2 HRD HrdR HF3 Hl2 Hl3 Ht0 Ht1 Ht4]
+  · iapply wp_fupd
+    wp_apply hRecv sws_ptr r Up Dn st ci cd [] [] $$ [$Hrt $Hprod $HPool $HRD $HrdR]
+      as %rerr ⟨#Hrerr, HrdR, HRD, %sent', Hprod⟩
     · iframe #
+    imod threadPool.giveBackL N₂ 2 γ₂ iprop(F₂ ∗ R.E.RD) ⊤ (fun _ _ => CoPset.mem_full)
+      $$ [Hp2 Hl2 HF2 HRD] with Ht2
+    · iframe; iframe #
+    imod threadPool.giveBackL N₃ 3 γ₃ iprop(mvcc.api.mvccReaders W.γm 1 ∗ F₃) ⊤
+      (fun _ _ => CoPset.mem_full) $$ [Hp3 Hl3 HrdR HF3] with Ht3
+    · iframe; iframe #
+    ihave Htt : iprop(threadTok) $$ [Ht0 Ht1 Ht2 Ht3 Ht4]
+    · iapply (threadTok_level0 (GF := GF)).2
+      iframe Ht0
+      iapply (threadTokFrom_succ (GF := GF) 1 (by omega)).2
+      iframe Ht1
+      iapply (threadTokFrom_succ (GF := GF) 2 (by omega)).2
+      iframe Ht2
+      iapply (threadTokFrom_succ (GF := GF) 3 (by omega)).2
+      iframe
     rcases rerr with ei | _
     · icases Hrerr with (%h | ⟨#Hse, #Hso⟩)
       · cases h
@@ -261,7 +298,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
           isplitr
           · iexact Hso
           iexists _; iexact Hprod
-        iframe Htt; try (ipureintro; rfl)
+        iframe Htt; imodintro; ipureintro; exact isPanic_intoVal _
       · wp_apply hZE as %f -
         wp_apply wp_slice_literal (l := [f])
         isplitr
@@ -278,9 +315,9 @@ theorem v3rpc.watchServer.Watch.wp_proof
           isplitr
           · iexact Hso
           iexists _; iexact Hprod
-        iframe Htt; try (ipureintro; rfl)
+        iframe Htt; imodintro; ipureintro; exact isPanic_intoVal _
     · wp_auto
-      iframe Htt; try (ipureintro; rfl)
+      iframe Htt; imodintro; ipureintro; exact isPanic_intoVal _
   iunfold v3rpc.ctxCanceledPtr at Hcanc
   icases Hcanc with ⟨%eC, #HeC, %HeCp⟩
   iunfold v3rpc.statusMsgErrVar at HmWC
