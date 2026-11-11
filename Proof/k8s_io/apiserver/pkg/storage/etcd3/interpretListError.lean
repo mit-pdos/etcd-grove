@@ -38,7 +38,7 @@ theorem interpretListError.wp_proof
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Prt
   icases Hri with ⟨-, ⟨%eCP, #HeCP, -, -, %HtCP⟩, -⟩
-  obtain ⟨x, hx⟩ := HtCP
+  obtain ⟨-, x, hx⟩ := HtCP
   ihave #Herr' := Herr
   iunfold kClientErr at Herr'
   icases Herr' with ⟨%hce, -, -⟩

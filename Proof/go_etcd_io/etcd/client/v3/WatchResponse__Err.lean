@@ -67,7 +67,7 @@ theorem WatchResponse.Err.wp_proof
       iframe
       isplitl []
       · ipureintro; simp_all
-      imodintro; iintro -; iapply errStrOk_ok _ FCP; iexact HeCPs
+      imodintro; iintro -; iapply errStrOk_ok _ FCP.1; iexact HeCPs
     cases hca : resp.Canceled'
     · wp_auto
       iapply HΦ
@@ -83,7 +83,7 @@ theorem WatchResponse.Err.wp_proof
         iframe
         isplitl []
         · ipureintro; simp
-        imodintro; iintro -; iapply errStrOk_ok _ FFR; iexact HeFRs
+        imodintro; iintro -; iapply errStrOk_ok _ FFR.1; iexact HeFRs
       · -- a cancel reason: `rpctypes.Error(status.Error(codes.FailedPrecondition, reason))`
         wp_apply wp_status_Error as %e1 ⟨%He1, #He1s, -⟩
         · ipureintro

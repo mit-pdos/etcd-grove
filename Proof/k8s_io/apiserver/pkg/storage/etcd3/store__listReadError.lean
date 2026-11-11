@@ -45,7 +45,7 @@ theorem store.listReadError.wp_proof
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Prt
   icases Hri with ⟨⟨%eFR, #HeFR, %HdFR, %HtFR⟩, -⟩
-  obtain ⟨x, hx⟩ := HtFR
+  obtain ⟨-, x, hx⟩ := HtFR
   iunfold readErrIs at Herr
   icases Herr with ⟨#Hke, #Hfut⟩
   ihave #Hke' := Hke
