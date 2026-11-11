@@ -801,8 +801,9 @@ truncating receiver at a lower term than the commit's could not be shown to keep
 committed prefix is kept from some term `t` on (`KeptFrom`), `t` a term it was committed at or after
 (`CommitCert`). `QuorumLogInv` follows (`quorumLogF_quorumLogS`). (Draft: a leader's `Commit` line's new
 prefix takes `t` the leader's term and its certificate raft's commit quorum; its quorum of holders at
-terms `≥ t` needs the acknowledgement-history copy of the notes' table, not yet in `simFx`: a further
-amendment, `notes/decisions.md`, "Amendment A5 (Q21)".) -/
+terms `≥ t` needs the acknowledgement-history copy of the notes' table, raft's `hist` over each
+member's current log, not yet in `simFx`: a further amendment, `notes/decisions.md`, "Amendment A5
+(Q21)".) -/
 def QuorumLogF (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(□ ∀ i, ⌜i ∈ σ.server⌝ → ∃ t, ⌜KeptFrom σ (committedL σ i) t⌝ ∗ CommitCert γ C (committedL σ i) t)
 

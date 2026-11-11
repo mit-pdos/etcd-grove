@@ -74,16 +74,15 @@ theorem committedL_simInit (C : List w64) (i : Etcdraft.ID) :
   exact List.take_of_length_le (by simp)
 
 /-- **`QuorumLogF`'s `KeptFrom` at the bootstrap state** (amendment A5), from term `0`: every server
-holds every server's committed prefix, its whole log, the same for all; no leader, no message. -/
+holds every server's committed prefix (its whole log, the same for all), at a term at least `0`. -/
 theorem keptFrom_simInit (C : List w64) (i : Etcdraft.ID) : KeptFrom (simInit C) (committedL (simInit C) i) 0 := by
-  refine ⟨?_, fun m hm => by simp [msgs_simInit] at hm, fun l _ h => by
-    rw [simInit_state] at h; exact absurd h (by decide)⟩
   have hf : lackingAt (simInit C) (committedL (simInit C) i) 0 = [] := by
     apply List.filter_eq_nil_iff.2
     intro j _
     rw [committedL_simInit]
     simp only [simInit, Etcdraft.isPrefix]
     simp [List.take_of_length_le]
+  unfold KeptFrom
   rw [hf]
   simp [Etcdraft.isQuorum]
 

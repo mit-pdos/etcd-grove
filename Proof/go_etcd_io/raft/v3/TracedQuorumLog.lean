@@ -22,6 +22,8 @@ request's term:
 - the append (`NoConflictAppendEntriesRequest`), `quorumLogF_noConflict`;
 - the reply with the raised commit index (`AppendEntriesAlreadyDone`), `quorumLogF_alreadyDone`: the
   receiver's new committed prefix is a prefix of the sender's, whose witness it takes.
+
+Besides, a leader's log growing (`Replicate`, `ClientRequest`): `quorumLogF_grow`.
 -/
 module
 
@@ -276,6 +278,21 @@ theorem quorumLogF_commitReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.St
   · intro P t h
     exact keptFrom_congr (σ := σ) (σ' := (σ.commitTo r c).reply x q) rfl (fun k => (hF k).1)
       (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) h
+
+/-- **Logs that only grow keep `QuorumLogF`** (a leader's `Replicate` and `ClientRequest`, the same
+servers, commit indices and terms that do not fall): a server holding `P` still does, and every
+committed prefix is within the old log (`CommitOk`), so unchanged. -/
+theorem quorumLogF_grow (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
+    (hL : ∀ k, (σ.s k).log <+: (σ'.s k).log) (hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex)
+    (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm) (hco : TraceSim.CommitOk σ) :
+    QuorumLogF (GF := GF) γ C σ ⊢ QuorumLogF γ C σ' := by
+  refine quorumLogF_mono γ C σ σ' hsrv (fun i hi => ⟨i, hi, ?_⟩)
+    (fun _ _ h => keptFrom_of hsrv (fun j _ h1 h2 => ⟨h1.trans (hL j), Int.le_trans h2 (hT j)⟩) h)
+  obtain ⟨r, hr⟩ := hL i
+  have hc := hco i hi
+  unfold committedL
+  rw [hC, ← hr, List.take_append_of_le_length (by omega)]
+  exact List.prefix_refl _
 
 /-- **The reply round keeps `QuorumLogF`** (`AppendEntriesAlreadyDone`, the receiver's commit index
 raised to at most the request's, within its sender's: `ReqCommitC`; `quorumLogF_commitReply`), given

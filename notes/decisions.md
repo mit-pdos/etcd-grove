@@ -35388,7 +35388,7 @@ path files (`TracedRaftStepRecv*.lean`: the `.1`s and the send sites), none to t
 No axiom, no `sorry`; among frozen statements only `startTrace`/`StartNode.gatedSpec` changed. Reviews
 `notes/trace-validation-reviews/a4-r1.md`, `a4-r2.md`.
 
-## Amendment A5 (Q21): `QuorumLogF` in an inductive form, kept from the commit's term with raft's commit justification (2026-11-11 · trace-check, Q21 (a) taken by the coordinator pending the user's veto; the form the agent's · branch `trace-check-a5`; amends the frozen Draft, tag `trace-check-frozen-a3`, in `simFx`'s `QuorumLogF` clause only; DRAFT until the re-freeze)
+## Amendment A5 (Q21): `QuorumLogF` in an inductive form, kept from the commit's term with raft's commit justification (2026-11-11 · trace-check, Q21 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-a5`; amends the frozen Draft, tag `trace-check-frozen-a3`, in `simFx`'s `QuorumLogF` clause only; DRAFT until the re-freeze)
 
 **The problem** ("Q8 stage 1 (slice 22b)", Question 2): `QuorumLogF` was `QuorumLogInv` over `σ` (the
 servers lacking a server's committed prefix are no quorum). It is true of reachable states, but not
@@ -35421,13 +35421,19 @@ commit index are never cut):
   `committedL_raise_prefix`), whose witness and certificate it takes (`quorumLogF_mono`); an append
   (`quorumLogF_noConflict`); a truncation (`quorumLogF_conflict`, with the receiver's raft facts of the
   request and the vote table); the bootstrap state (`t = 0`, `commitJ`'s bootstrap arm, `simFx_simInit`);
-  `BecomeLeader` and `Replicate` (no log shortens, no term falls). Restarts (`InitState` past the
+  `BecomeLeader` (no log or term moves, `quorumLogF_congr`); `Replicate`/`ClientRequest` (a leader's log
+  grows; `quorumLogF_grow`, with `CommitOk`). None of these lines' paths is proved yet but those listed
+  in "Users re-proved". Restarts (`InitState` past the
   bootstrap) are out of scope (P1); a restart could lower a term (`durable`) and would need a durable
   copy of the clause.
 - *A leader's `Commit` line* (not yet proved; it was blocked on the acknowledgement-history copy of the
   notes' table already): its new prefix takes `t` the leader's term and its certificate raft's new
-  commit quorum (`commitJ`'s right arm); its quorum of holders at terms `≥ t` comes from that copy (the
-  match-index quorum's members' acknowledgements at `t`, their logs from `histsOk`), which is not in
+  commit quorum (`commitJ`'s right arm); its quorum of holders at terms `≥ t` comes from that copy: the
+  match-index quorum's members acknowledged at `t` (so are at terms `≥ t`), and a copy of raft's `hist`
+  over each member's *current* σ log (`histsOk`, `GhostState.lean`; each position agrees with a leader's
+  `okL` log of a term in `[t, …)`, which `commitJ_leadFull`-style agreement ties to the new prefix) gives
+  that they hold it now — a copy at acknowledgement time would not (a member may truncate before the
+  `Commit` line, while no certificate exists yet). That copy is not in
   `simFx`: **a further amendment of `simFx`**, as planned (the copy may then make the quorum clause
   derivable directly, `QuorumLogInv` from `histsOk` without induction; A5 stays sound either way).
 
@@ -35463,5 +35469,6 @@ not fall; the heartbeat's raised commit by `quorumLogF_mono`). `quorumLog_commit
 **Sufficiency** (`TracedQuorumLog.lean`, lemma level, no path caller yet): an accepted `MsgApp`'s
 receive line at a server of its term, round by round: `quorumLogF_conflict` (the truncation, given
 raft's `leadPrefix`/`lpfull` of the request and the vote table, used once per server,
-`votesTbl_forall_list`), `quorumLogF_noConflict`, `quorumLogF_alreadyDone`. Reviews `a5-r1.md`,
-`a5-r2.md`.
+`votesTbl_forall_list`), `quorumLogF_noConflict`, `quorumLogF_alreadyDone`; a leader's log growth,
+`quorumLogF_grow`. If the acknowledgement-history copy later gives `QuorumLogInv` directly, `KeptFrom` and
+these lemmas may lose their users. Reviews `a5-r1.md`, `a5-r2.md`, `a5-r3.md`.

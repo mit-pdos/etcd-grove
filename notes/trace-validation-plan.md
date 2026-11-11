@@ -233,7 +233,8 @@ becomes `CommitInDurable` (within the leader's durable log; `CommitWithinLeader`
 `ReqCommit` bounds by the durable log. `CommitInSenderDurable` is gone: `CommitInDurable` gives it.
 In exchange `UpdateTerm`/`Timeout` take `LeaderComplete` (`allFacts_commitOk` and
 `allFacts_leaderCompleteness`'s entry-level statement, not the commit index within the leader's log
-length, which cannot give the durable bound). `QuorumLogS` (= `QuorumLogF`, `QuorumLogF_eq`) is kept
+length, which cannot give the durable bound). (Superseded by amendment A5: `QuorumLogF_eq` and
+`quorumLog_appendEntriesAlreadyDone` are gone, `QuorumLogF` is `KeptFrom` with `CommitCert`.) `QuorumLogS` (= `QuorumLogF`, `QuorumLogF_eq`) is kept
 by `AppendEntriesAlreadyDone` (`quorumLog_appendEntriesAlreadyDone`, both of its `CommitTo`s, the
 heartbeat's included), given `CommitOk` (`allFacts_commitOk`), `i` and the sender of one
 configuration (`SimServerR`), and the two committed prefixes comparable in the new state
