@@ -36696,3 +36696,9 @@ the path (`RawNode.Step.traced`: `TrNetTy m.Type' ∧ StepNodeOk s m`, its `MsgA
 
 **Left**: the node API on the statement (`RawNode.Step.traced`'s `StepNodeOk`, the traced `Advance`,
 `ApplyConfChange`, gated `node.run`); `newRaft`/`Bootstrap` (A7).
+
+**Checked** (branch at `trace-check` `409da4cb23` plus this slice): full `lake build` green (13856 jobs);
+`#print axioms` of `stepBundle_traced` and `raft.Step.traced`: the existing type axioms, no `sorryAx`;
+`etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 54 collections `--reuse --check`,
+none updated; `interface/` differs in `stepLeader.txt` only (the `G` arm's guard); `--check --layout` 0
+new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` and `--tracecheck` unchanged.
