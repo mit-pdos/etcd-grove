@@ -357,6 +357,59 @@ theorem srvMem_bootStorage
     iapply memLog_nil
   iapply memStorEnd_of ms γs 1 $$ Hreg He
 
+/-- (restart S3, 2026-11-11; Q39) **Every committed index's configuration is the boot one**: with
+the server's raft-log invariant, a configuration recorded at an index `k` within a committed log is
+`simple cfg` (`srv_confAt_simple` and `confAt_agree`). -/
+theorem srv_confAt_eq_simple (γ : ServerRaftNames) (l : List LogEntry) (k : Nat) (m : Membership)
+    (hk : k ≤ l.length) (E : CoPset) (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E) :
+    srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl l ∗
+      (letI := srvStor (GF := GF) γ.raft; confAt γ.raft.cl k m) ⊢
+      |={E}=> ⌜m = Membership.simple γ.raft.cfg⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro ⟨#Hinv, #Hl, #Hm⟩
+  imod srv_confAt_simple γ l k hk E hC hL $$ [$Hinv $Hl] with #Hs
+  ihave %H := confAt_agree γ.raft.cl k m (Membership.simple γ.raft.cfg) $$ [Hm Hs]
+  · iframe Hm Hs
+  imodintro; ipureintro; exact H
+
+/-- (restart S3, 2026-11-11; D4) **The restarted storage's snapshot is valid**: from the records'
+certificate (`walSnapCert`: base `0`, or a valid snapshot of no data at the base), the snapshot
+`bootstrap` applies (`walSnapCS σ cs`: the base's index and term, the backend's conf state `cs`) is
+valid at a base past `0`: the same committed log and data; its configuration is the boot one
+(`srv_confAt_eq_simple`), which `cs` states (`hcs`, S6's from the backend's members, H10), within
+raft's bounds (`hcsb`); the term the records' (`hterm`: the snapshot record's is the base's). -/
+theorem walSnapCS_valid (γ : ServerRaftNames) (σ : StorContents) (cs : ConfStateM) (E : CoPset)
+    (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E)
+    (hterm : ∀ m : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m) → m.Term' = σ.base.term')
+    (hcs : confStateIs cs (Membership.simple γ.raft.cfg))
+    (hcsb : (cs.Voters'.length + cs.Learners'.length + cs.VotersOutgoing'.length +
+      cs.LearnersNext'.length : Int) ≤ 2 ^ 62) :
+    srvRaftLogInv (GF := GF) γ ∗ walSnapCert γ.raft.cl σ ⊢
+      |={E}=> (⌜σ.b = 0⌝ ∨ (letI := srvStor (GF := GF) γ.raft;
+        snapshotValid γ.raft.cl (walSnapCS σ cs))) := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro ⟨#Hinv, #Hc⟩
+  iunfold walSnapCert at Hc
+  icases Hc with (%H0 | ⟨%m, %Hsm, #Hv⟩)
+  · imodintro; ileft; ipureintro; exact H0
+  obtain ⟨Hsnap, Hidx⟩ := Hsm
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %mem, #Hl, #Hca, #Hmade, %Hp⟩
+  imod srv_confAt_eq_simple γ l l.length mem (Nat.le_refl _) E hC hL $$ [$Hinv $Hl $Hca] with %Hm
+  subst Hm
+  imodintro
+  iright
+  iunfold snapshotValid
+  iexists l, Membership.simple γ.raft.cfg
+  iframe Hl Hca
+  isplitr
+  · iExactEq Hmade; rfl
+  ipureintro
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hp
+  refine ⟨?_, h2, ?_, hcs, h5, hcsb⟩
+  · rw [h1]; exact Hidx
+  · rw [h3]; exact congrArg some (hterm m Hsnap)
+
 /-- **The storage a restart rebuilds restarts a node** (restart S3, 2026-11-11; generalizing
 `srvMem_bootStorage`, as kvdurable's `kd_restartStorage`): `bootstrappedWAL.MemoryStorage`'s
 `memStorRestarted` (the WAL's records `σ`, the backend's conf state `cs`) is `RestartNode`'s
