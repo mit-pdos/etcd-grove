@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -45,7 +46,7 @@ def btW (γ : BNames) (t : Loc) (st : BSess) : IProp GF :=
 nil), the batch limit, the hooks, the batch lock, bbolt's database. -/
 theorem isBackend_bt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
     isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
-      ∃ (db lg : Loc) (h : GoInterface), beOf t ↦□ b ∗ bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗
+      ∃ (db lg : Loc) (h : GoInterface), beOf t ↦□ b ∗ bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗
         bF go!"batchLimit" b ↦□ P.limit ∗ bF go!"hooks" b ↦□ h ∗ hooksSpec γ P Pk b t h ∗
         sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗ isDB db ∗ ⌜P.Wf⌝ := by
   iintro ⟨#Hb, #Ht⟩
@@ -78,7 +79,7 @@ transaction and the read transaction. -/
 theorem isBackend_b (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     isBackend γ P W Pk b ⊢
       ∃ (t rt db lg : Loc), bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗
-        bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ metricsInv b ∗ beOf t ↦□ b ∗
+        bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ metricsInv b ∗ beOf t ↦□ b ∗
         sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
         sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
         sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗

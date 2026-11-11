@@ -325,6 +325,14 @@ holds (`Logger`). Not persistent. -/
 def srvLgReader (s : Loc) : IProp GF :=
   iprop(∃ mu : Loc, srvLgMuAddr s ↦□ mu ∗ sync.ownRWMutex mu (fun _ => iprop(True)))
 
+/-- **The server's logger is a zap logger** (persistent; premise fixes 6): `s.lg`, which never
+changes, holds a logger as zap's constructors build it (`zapLoggerOk`; `NewServer` stores
+`cfg.Logger`). What the family axioms that log through `s.Logger()` ask of `s`. -/
+def srvLoggerOk (s : Loc) : IProp GF := iprop(∃ lg : Loc, srvLgAddr s ↦□ lg ∗ zapLoggerOk lg)
+
+instance srvLoggerOk_persistent (s : Loc) : Persistent (srvLoggerOk (GF := GF) s) := by
+  unfold srvLoggerOk; infer_instance
+
 /-- The values of the server's fields the apply thread reads, and the post-lock hook. -/
 structure SrvFields where
   lg : Loc

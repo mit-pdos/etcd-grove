@@ -55,6 +55,7 @@ public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.TokSet
 public import Perennial.Proof.sync
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -1357,7 +1358,7 @@ instance metricsInv_persistent (b : Loc) : Persistent (metricsInv (GF := GF) b) 
 def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF :=
   iprop(□ ∃ (t rt tm db lg : Loc) (h : GoInterface),
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
-    bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
+    bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
     rtmuOf (baseOf rt) ↦□ tm ∗ hooksSpec γ P Pk b t h ∗
     sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
     sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗

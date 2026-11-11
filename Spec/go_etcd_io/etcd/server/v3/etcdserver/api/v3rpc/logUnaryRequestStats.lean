@@ -6,6 +6,7 @@ P3b). Lean-first (no Rocq counterpart); the vocabulary is
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -41,7 +42,7 @@ abbrev v3rpc.logUnaryRequestStats.spec : Prop :=
   ∀ (ctx : GoInterface) (lg : Loc) (warn : w64) (info : Loc) (start : time.Time)
     (req resp : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      ⌜lg ≠ null⌝ ∗ srvInfoIs info }}
+      zapLoggerOk lg ∗ srvInfoIs info }}
     (App (App (App (App (App (App (App (Val (@! v3rpc.logUnaryRequestStats)) (Val #ctx))
       (Val #lg)) (Val #warn)) (Val #info)) (Val #start)) (Val #req)) (Val #resp))
   {{ RET #(); True }}

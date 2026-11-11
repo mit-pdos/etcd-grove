@@ -5,6 +5,7 @@ attaches). Lean-first (the request path's unit 4c).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -26,10 +27,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `MaxWALFiles > 0`). (Sweep repairs 1, R1-3, 2026-11-08: the fork's `purgeFile` no longer purges
 `.snap.db` files, a4d2bb172, `nonissues/etcd-purge-snapdb-unopened.md`; until then it removed the
 oldest beyond five, `.snap.db` files `snapDirInv` keeps, and this triple was false next to it. The
-WAL purge's right, `walPurgeRight`, is sweep repairs 1's W1, not yet here.) -/
+WAL purge's right, `walPurgeRight`, is sweep repairs 1's W1, not yet here.) It reads `s.Logger()` and logs through it (`PurgeFileWithoutFlock`'s
+`lg.Info`), and `s.stopping`: its premise is the server's read-side fields (`isServerReadM`, whose
+`srvReadFieldsAtM` holds `zapLoggerOk` of `s.lg`; premise fixes 6, family axiom #23: until then
+nothing on `s`). -/
 abbrev EtcdServer.purgeFile.spec : Prop :=
-  ∀ (s : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}
+  ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReadM on s E γr }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"purgeFile")) (Val #()))
   {{ RET #(); True }}
 

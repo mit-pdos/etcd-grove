@@ -73,6 +73,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -1224,7 +1225,7 @@ atomic `revision`'s invariant, the read-only `lg` (not nil) and `tokenProvider` 
 and the guards of its three locks (`beMu`'s holds `be` with its contract in the mode). -/
 def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (revInv st M) ∗
-    (∃ lg : Loc, aF go!"lg" st ↦□ lg ∗ ⌜lg ≠ null⌝) ∗
+    (∃ lg : Loc, aF go!"lg" st ↦□ lg ∗ zapLoggerOk lg) ∗
     sync.isRWMutexGuard (aF go!"beMu" st) (beP st R M) ∗
     (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp M) ∗
     sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st M) ∗

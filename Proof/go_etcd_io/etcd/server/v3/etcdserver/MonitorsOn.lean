@@ -64,10 +64,11 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The monitors' permission in the auth mode `on`** (persistent): the request view in the mode,
-the server's id field `lid` (read-only; 2026-11-02, the cluster-rows stage), and the proposal
+the server's logger (`srvLoggerOk`; premise fixes 6), the server's id field `lid` (read-only;
+2026-11-02, the cluster-rows stage), and the proposal
 permission in the mode (`reqPropOkM`, with a trivial result) for the monitors' requests naming it. -/
 def srvMonitorPermitM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(isServerReqM on s E ρ ∗ ∃ lid : w64, srvMemberIDAddr s ↦□ lid ∗
+  iprop(isServerReqM on s E ρ ∗ srvLoggerOk s ∗ ∃ lid : w64, srvMemberIDAddr s ↦□ lid ∗
     □ ∀ (rq : apply.IRRModel) (Gb : apply.HeaderModel → IProp GF), ⌜monitorReq lid rq⌝ -∗
       reqPropOkM on ρ.raft ρ.kv Gb rq (fun _ _ => iprop(True)))
 
@@ -76,10 +77,11 @@ that the id is a voter of raft's configuration (`isServerBuilt`'s, at `Start`; 2
 cluster-rows stage). -/
 theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (lid : w64)
     (hl : lid ∈ ρ.raft.raft.cfg) :
-    isServerReqM (GF := GF) on s E ρ ∗ srvMemberIDAddr s ↦□ lid ⊢ srvMonitorPermitM on s E ρ := by
-  iintro ⟨#H, #Hid⟩
+    isServerReqM (GF := GF) on s E ρ ∗ srvLoggerOk s ∗ srvMemberIDAddr s ↦□ lid ⊢
+      srvMonitorPermitM on s E ρ := by
+  iintro ⟨#H, #Hlg, #Hid⟩
   iunfold srvMonitorPermitM
-  iframe H
+  iframe H Hlg
   iexists lid
   iframe Hid
   iintro !> %rq %Gb %hrq

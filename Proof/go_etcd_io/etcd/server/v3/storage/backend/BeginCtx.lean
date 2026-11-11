@@ -8,6 +8,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -31,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- What `begin`/`unsafeBegin` read of the backend `b`: its logger (not nil: `unsafeBegin`'s
 `Fatal`) and its metrics (`begin` stores the sizes) (persistent). -/
 def beginCtx (b : Loc) : IProp GF :=
-  iprop(∃ lg : Loc, bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ metricsInv b)
+  iprop(∃ lg : Loc, bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ metricsInv b)
 
 instance beginCtx_persistent (b : Loc) : Persistent (beginCtx (GF := GF) b) := by
   unfold beginCtx; infer_instance
