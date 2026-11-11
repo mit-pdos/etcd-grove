@@ -466,10 +466,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`G0`) raft's ghost state and the capability at the pinned share with the receive event last (`Λr`);
 after the preamble (`G1`) the same with `Λ1` (`Λr` when the preamble logs nothing); after the step-down
 (`Gf`) and the response's skipped send line (`GE`) with an event last; `False` at the others. -/
-def bfR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
+def bfR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
     (tn : TraceNames) (cs0 cs1 : ServerC) (P0 P1 : List Etcdraft.Msg) (Λ Λr Λ1 : Option TraceEv → Prop)
     (k : Nat) (ma : Etcdraft.Msg) : StepG GF where
-  G := iprop(trCapB (some γd) γ r id c true (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
+  G := iprop(trCapB (some γd) γ r id c bt (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
   G0 := fun _ => iprop(ownStepGhost γ md c id s ∗ trCapB (some γd) γ r id c true (VPin tn.voters cs1 P1) Λr)
   G1 := fun _ => iprop(ownStepGhost γ md c id s ∗ trCapB (some γd) γ r id c true (VPin tn.voters cs1 P1) Λ1)
   GE := fun _ => iprop(ownStepGhost γ md c id s ∗
@@ -492,7 +492,7 @@ with the certificates the heartbeat's raft facts give, `ownRaftGhost_hbFacts`), 
 line (skipped: `bfCond` reads the receive line), then the response's send line, which the specification
 skips; the end state is `heartbeatResult`'s at the step-down (`hbEnd_simIdle` with `simServerR_bf`). -/
 theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) CandHb := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
   obtain ⟨hTy, hterm, hrole⟩ := hp
   have hmty : mtypeOf m.Type' = some .heartbeat := by rw [hTy]; rfl
@@ -517,7 +517,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
   ihave #Hm := isMessageC_isMessage γ _ $$ Hmc
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
@@ -536,7 +536,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
   have hcs1 : (toC (confAbs tn.voters) (hbSrv (rtfSrv a0 (idAbs m.From')) (idAbs m.From') ma.commitIndex)).state =
       Etcdraft.follower := rfl
   imodintro
-  iexists bfR γ md c r id s γd tn cs0
+  iexists bfR bfl γ md c r id s γd tn cs0
     (toC (confAbs tn.voters) (hbSrv (rtfSrv a0 (idAbs m.From')) (idAbs m.From') ma.commitIndex)) P0
     (P0 ++ [hbResp (rtfSrv a0 (idAbs m.From')) (idAbs id) (idAbs m.From')]) Λ
     (RecvLast evt id s c (absMsg .heartbeat m ents)) (RecvLast evt id s c (absMsg .heartbeat m ents)) k ma
@@ -568,7 +568,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .heartbeat m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs .heartbeat evt true k ma _
+      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs .heartbeat evt bfl k ma _
         (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       isplitl [Hg Hr]
       · iunfold ownStepGhost; iframe Hg Hr
@@ -686,6 +686,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and heartbeat handling, the specification's
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,

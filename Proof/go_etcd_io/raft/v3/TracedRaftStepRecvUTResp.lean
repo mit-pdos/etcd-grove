@@ -203,7 +203,7 @@ the response recorded at the follower), the preamble's `BecomeFollower` line (sk
 the receive line), nothing else (a follower ignores a response). The resources are `bfR`'s with the
 receive event last after the receive line and an event last after the step-down. -/
 theorem stepBundle_traced_utResp : stepBundle_traced.on (GF := GF) (hG := hG) UTResp := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
   obtain ⟨hTy, hgt⟩ := hp
   obtain ⟨ty, hmty, hresp⟩ : ∃ ty, mtypeOf m.Type' = some ty ∧ (ty = .appResp ∨ ty = .heartbeatResp) := by
@@ -231,7 +231,7 @@ theorem stepBundle_traced_utResp : stepBundle_traced.on (GF := GF) (hG := hG) UT
   icases Htok $$ %ty %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
@@ -246,7 +246,7 @@ theorem stepBundle_traced_utResp : stepBundle_traced.on (GF := GF) (hG := hG) UT
     show (respSrv (utSrv a0 (uint.Z m.Term')) ma).state = _
     rw [(respSrv_fields _ _).2.2.2.1]; rfl
   imodintro
-  iexists bfR γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (respSrv (utSrv a0 (uint.Z m.Term')) ma)) P0 P0
+  iexists bfR bfl γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (respSrv (utSrv a0 (uint.Z m.Term')) ma)) P0 P0
     Λ (RecvLast evt id s c (absMsg ty m ents)) (fun o => o.isSome = true) k ma
   isplitl [Hcap Htok]
   · dsimp only [bfR]; iframe Hcap Htok
@@ -270,7 +270,7 @@ theorem stepBundle_traced_utResp : stepBundle_traced.on (GF := GF) (hG := hG) UT
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg ty m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs ty evt true k ma _
+      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs ty evt bfl k ma _
         (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       isplitl [Hg Hr]
       · iunfold ownStepGhost; iframe Hg Hr
@@ -342,6 +342,7 @@ theorem stepBundle_traced_utResp : stepBundle_traced.on (GF := GF) (hG := hG) UT
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down, the response ignored
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { becomeFollower s m.Term' (W64 0) with prvals := pvs } := by
