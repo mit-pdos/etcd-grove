@@ -27,6 +27,10 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     B1a must make the `Serve` model's leaves count as assumed.
   - Statements touching B's names: `/shared/tmp/stageB/stmt/stmtlist.md` (script `stmtlist.py`).
 
+  - Full build clean (retry after one exit 143 while queued; 2nd run exit 0); `etc/tcb-report.py
+    --check` matches the baseline (865 axioms, 5 sorries). Reach: 74 of 5179 roots rest on
+    `grpc.serve`/`grpc.serveStream`, 18 of them `*_safe`.
+
 ## Next, in order
 
 1. (done)
