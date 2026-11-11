@@ -1,5 +1,5 @@
 /-
-`MainWatch(nw, nops, sched)` (`examples/etcd/partition/etcd_partition.go`; W4 of `notes/watch-cut-plan.md`,
+`MainWatch(nw, nops, sched)` (`examples/etcd/partition/linkv3p.go`; W4 of `notes/watch-cut-plan.md`,
 2026-10-22): watchkv's workload over linkv3p's cluster under partitions. The writers' `nw * nops`
 puts picked (`genAll`); the cluster started (`startCluster`: three members, a bridge to each,
 three clients each of every bridge); a prefix watch on `wk/` from revision `1` through the first

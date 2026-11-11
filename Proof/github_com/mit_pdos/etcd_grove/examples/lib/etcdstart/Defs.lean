@@ -197,7 +197,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
 
 /-- **The premises shared by the members** (see the file header). -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     v3rpc.runsNoRequireLeader)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by

@@ -30,7 +30,7 @@ theorem mvcc.store.setupMetricsReporter.wp_proof :
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    -, -, -, -, -, -, -, -, -, -, #G0, #G1, #G2, #G3, #G4⟩
+    -, -, -, -, -, -, -, -, -, -, #G0, #G1, #G2, #G3, #G4, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto

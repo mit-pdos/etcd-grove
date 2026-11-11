@@ -262,6 +262,8 @@ isHardStateEqual: raftpb_HardState__GetTerm raftpb_HardState__GetVote raftpb_Har
 IsEmptyHardState: isHardStateEqual
 MustSync: raftpb_HardState__GetVote raftpb_HardState__GetTerm
 IsEmptySnap: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+# (premise-fixes-4, 2026-11-10) the package logger, under `raftLoggerMu` (`isInitialized`)
+SetLogger:
 assertConfStatesEquivalent: raftpb_ConfState__Equivalent
 raft__hardState:
 raft__loadState: raftLog__lastIndex raftpb_HardState__GetCommit raftpb_HardState__GetTerm raftpb_HardState__GetVote

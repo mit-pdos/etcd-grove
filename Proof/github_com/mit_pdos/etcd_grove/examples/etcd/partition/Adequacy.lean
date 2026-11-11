@@ -13,14 +13,16 @@ sched)`: the links between members cut and mended, in both directions, with etcd
 `CutPeer`/`MendPeer`, and the links between each client and its member blackholed, unblackholed or
 dropped, with the bridge's `Blackhole`/`Unblackhole`/`DropConnections`, as its steps say;
 `notes/client-cut-plan.md`),
-linkvtxn's workload with each operation through a random member (`Check(clis, clients, ops,
+linkvtxn's workload with each operation through one of the clients, to the member grpc's balancer
+picks (`Check(clis, clients, ops,
 0)`: `clients` clients of `ops` random operations each -- gets, lists, puts, deletes,
 transactions and compare-and-sets, robustness's KV traffic without leases and stale reads --
 the history checked by porcupine against the model of etcd's KV, `linkvtxn/TxnModel.lean`; until
 2026-10-20 linkv's Puts and Gets, `notes/linkv3p-txn-plan.md`), and a panic ("linkv3p: porcupine found the history not linearizable") if
 porcupine answers `Illegal` -- started from a fresh state (no package initialized, one thread):
 for every real execution of `n` steps, the main thread's result, if it has one, is `Ok` or
-`Unknown`, no thread is stuck, and no thread has ended in a panic.
+`Unknown`, no thread is stuck, and no thread has ended in a panic (a process exit, zap's `Fatal`'s
+`os.Exit`, is not a panic: `Results.lean`, "What "no panic" does not cover").
 
 **The schedule is any list of steps** (`steps`, each a delay, a kind -- a peer cut or mend, a
 client blackhole, unblackhole or drop -- and member indices): the program builds it as a slice literal (`schedLit`, what a Go caller of `Main` would
@@ -141,7 +143,6 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
-    -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)

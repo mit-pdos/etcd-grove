@@ -166,9 +166,10 @@ theorem conditionalProgressRequestor.run.wp_proof
               isplitr
               · ipureintro; rfl
               iintro %sl ⟨Hsl, -⟩
+              ihave ⟨#HeS0, %HeF⟩ := Herr $$ %e %rfl
               ihave #HeS : EtcdGrove.fmt.stringMethodSpec e go!"Error" $$ []
               · rw [show EtcdGrove.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
-                iapply Herr; ipureintro; rfl
+                iexact HeS0
               wp_apply wp_Printf $$ [$Hfmt $Hsl] as %nb %e2 -
               · fmt_args_ok
               wp_for_post

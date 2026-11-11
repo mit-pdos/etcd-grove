@@ -5,13 +5,16 @@ used directly, as `raftNode.tick`'s proof does) and (2026-11-03, until then the 
 `rnTickerOk` in the spec's precondition) `time.NewTicker` and the ticker's `Stop`, Perennial's
 proved specs, taken as callee specs (`isRNTicker_of_time`; linked to Perennial's results,
 `etc/link-lean-first-server.txt`): `time.Now` predates the layout's callee-spec convention and is
-left as it was; the rest are the contracts the spec takes (`InvNodeStart.lean`).
+left as it was; (premise-fixes-4, 2026-11-10; until then the contract `rnSetLoggerOk`, false in the
+model) raft's `SetLogger`, raft's proved spec (linked in raft's `Link.lean`); the rest are the
+contracts the spec takes (`InvNodeStart.lean`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Perennial.Proof.time
 public import Perennial.Spec.time.NewTicker
+public import Spec.go_etcd_io.raft.v3.SetLogger
 
 @[expose] public section
 
@@ -44,13 +47,13 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
 
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof
+    (wp_SetLogger : SetLogger.spec (GF := GF) (hG := hG))
     (wp_NewTicker : time.NewTicker.spec (GF := GF) (hG := hG))
     (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E node id nl pre ms γs key wal cv
-  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, %Hlg, %Hhb⟩
+  wp_start as ⟨#Hzap, #Htdok, %Hlg, %Hhb⟩
   iunfold rnLoggerZapOk at Hzap
-  iunfold rnSetLoggerOk at Hsetlg
   iunfold rnTimeoutDetectorOk at Htdok
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -66,7 +69,7 @@ theorem newRaftNode.wp_proof
   · ipureintro; exact Hlg
   (try wp_auto)
   -- `raft.SetLogger(lg)`
-  wp_apply Hsetlg $$ %l []
+  wp_apply wp_SetLogger l $$ Hraft
   (try wp_auto)
   -- the struct's components: `new(sync.RWMutex)`, `time.Now()`, the detector, the channels
   wp_apply time.wp_Now as %t -

@@ -723,18 +723,36 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
+  -- (mvccfull's Freeze, 2026-11-10) `NewLessor.spec` over a bucket of records, at none: the fresh
+  -- file's `Lease` bucket is empty
+  have hLe : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅ := hDl go!"lease" (by decide)
+  have hrecs : backend.bktEnts (((backend.rbData d.P D).lookup go!"lease").getD ∅) =
+      ([] : List (w64 × w64 × w64)).map lease.leaseRecEnc := by
+    rw [hLe]; simp [backend.bktEnts]
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
-      trivial HlP)
+      [] (fun _ => W64 0) [] trivial HlP hrecs (by simp) (List.Perm.refl _))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, #Hlexp, #Hlgd, Hlrd, Hlown, HlEv, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, Hlstop, #Hllk'⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlEv, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, Hlstop, -, -, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
     -- lessor gives the boot its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
-    ipureintro; exact ⟨Hlgnn, Hckok, by simp, hDl go!"lease" (by decide)⟩
+    isplitr; · iright; iexact Hzlg
+    isplitr; · ipureintro; exact Hckok
+    isplitr; · ipureintro; simp
+    imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
+  rw [List.map_nil]
+  ihave Hrbo : backend.rbOwnIn d.γB (fun _ => True) ((backend.rbData d.P D).insert go!"lease" ∅)
+    $$ [Hrbo]
+  · iExactEq Hrbo
+    first
+    | exact congrArg (fun v => backend.rbOwnIn (GF := GF) d.γB (fun _ => True)
+        ((backend.rbData d.P D).insert go!"lease" v)) hLe
+    | exact (congrArg (fun v => backend.rbOwnIn (GF := GF) d.γB (fun _ => True)
+        ((backend.rbData d.P D).insert go!"lease" v)) hLe).symm
   -- (the lease-grant stage, 2.13) the lessor's live set's ghost variable at `[]`: one half to the
   -- boot's `leasesLive`, the other to the apply thread's image (`srvRest`'s leased arm, 3b)
   imod (ghostVar_alloc (GF := GF) ([] : List w64)) with ⟨%γlt, Hlt⟩
@@ -846,13 +864,22 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   have hsv : mvcc.api.storageVal (mvcc.api.etcdStorage ({ d with cm := true } : mvcc.KBReal)) =
       srvBeIface d.be := mvcc.api.etcdStorage_val _
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨by omega⟩
+  -- (mvccfull's Freeze, 2026-11-10) `New.spec` on any image, here the fresh one (`mvccStart`, no
+  -- unfinished compaction): the lessor's owner part (`Hlown`, no lease) lent and given back
   have hNew := fun c r0 => h26 cfg.Logger' (lease.lessorIface lp) c
     (mvcc.api.etcdStorage ({ d with cm := true } : mvcc.KBReal)) (batchLockInv γA (metaTM d.γB d.P))
-    γl r0
+    γl r0 mvcc.api.mvccStart false [] (DFrac.own 1) func.nil iprop(True) iprop(True) iprop(True)
+    iprop(True) iprop(True)
   simp only [hsv] at hNew
-  wp_apply (hNew _ _ Hcbl) $$ [HstoF Hlrd Hro]
-    as %ws ⟨%γm, %Hγl, #HisKV, Hst0, Hopn, HmB, Hrds, Hrdat⟩
-  · iframe #; iframe HstoF Hlrd Hro
+  wp_apply (hNew _ _) $$ [HstoF Hlrd Hro Hlown]
+    as %ws ⟨%γm, %Hγl, #HisKV, Hst0, Hopn, HmB, Hrds, Hrdat, Hlown, -, -⟩
+  · iframe #; iframe HstoF Hlrd Hro Hlown
+    isplitr
+    · ipureintro; exact ⟨Hcbl, .start, rfl⟩
+    isplitr
+    · ipureintro; intro it lid hl; rw [mvcc.api.pendItems_mvccStart] at hl; cases hl
+    simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  first | rw [mvcc.api.pendItems_mvccStart] | rw [show mvcc.pendItems [[], []] [] = ∅ from mvcc.api.pendItems_mvccStart]
   clear hNew hsv
   -- (R8) the store invariant at the boot (`bootStore_holds`): the store's state at `mvccStart`,
   -- the server's store names fresh, raft's committed log's empty floor

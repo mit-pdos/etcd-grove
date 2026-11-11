@@ -21,11 +21,6 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes Perennial.EtcdGrove.New
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes Perennial.EtcdGrove.mvcc.NewRevBytes.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.NewStore.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.NewStore.wp_proof  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.cmpOk_fresh  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.cmpTrack_fresh  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.ownToks_ones  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.slot_take  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.storeReaders_of_slots  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.ReportEventReceived.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.mvcc.ReportEventReceived.wp_proof  # exposed by a proof file (axiom)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes Perennial.EtcdGrove.RevToBytes.wp_proof  # missing: a proof file proves its spec

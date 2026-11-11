@@ -13,7 +13,8 @@ the highest successful put's revision and checked against the writes (a panic if
 exactly the writes: every put at revisions `2, 3, ...`, no gap or repeat, each attempted, each
 successful put at its revision) -- started from a fresh state (no package initialized, one thread):
 for every real execution of `n` steps, the main thread's result, if it has one, is `WatchOk`,
-`WatchFailed` or `WatchEnded`, no thread is stuck, and no thread has ended in a panic. The watch
+`WatchFailed` or `WatchEnded`, no thread is stuck, and no thread has ended in a panic (a process exit
+is not one: `Results.lean`, "What "no panic" does not cover"). The watch
 resumes across members (the client watcher's reconnection, at any member of its connection, D32)
 and its events are the cluster's committed history's (`etcdModelOfHistory`).
 
@@ -68,7 +69,6 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
-    -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))

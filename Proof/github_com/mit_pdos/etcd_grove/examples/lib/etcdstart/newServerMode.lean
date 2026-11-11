@@ -51,7 +51,7 @@ theorem newServerMode.wp_proof
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Htd, #Hns, #Hnrl⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩

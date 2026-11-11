@@ -7,17 +7,20 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
 * **The contracts** on the names-only callees and on what Perennial does not model, persistent
   triples the specs take in their preconditions (as `isServerBuilt` takes the names-only parts'
   contracts, `clusterVersionOk`): `NewRaftLoggerZap` (`zap_raft.go`, names-only: some logger
-  interface, `rnLoggerZapOk`); raft's `SetLogger` (translated with its body, but its globals
-  `raftLogger`/`raftLoggerMu` are allocated by raft's package initializer and their ownership
-  dropped, `Init.lean`, so the write is not provable: `rnSetLoggerOk`); `contention.NewTimeoutDetector`
+  interface, `rnLoggerZapOk`); (until premise-fixes-4, 2026-11-10, raft's `SetLogger` too,
+  `rnSetLoggerOk`, false in the model: raft's initializer dropped its globals; since, raft keeps
+  `raftLoggerMu` owning `raftLogger` in `isInitialized` and proves `SetLogger.spec`, a callee of
+  `newRaftNode`'s proof); `contention.NewTimeoutDetector`
   (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`;
   since 2026-11-03 no contract: Perennial's proved specs of `NewTicker` and `Ticker.Stop` are
   callees of `newRaftNode`'s proof, `isRNTicker_of_time`; until then `rnTickerOk`); the server's package
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
   package facts `srvRaftInit`, which hold the metrics only: `rnRaftStatusOk`, the mutex's
   invariant owning the function); `serverstorage.NewStorage` (names-only: the WAL, `isRNWal`,
-  `rnNewStorageOk`); `membership.RaftCluster.IsIDRemoved` (names-only: some boolean,
-  `rnClusterOk`, from which the `isIDRemoved` closure meets `isRNIDRemoved`).
+  `rnNewStorageOk`); `membership.RaftCluster.IsIDRemoved` (translated and proved,
+  `membership.RaftCluster.IsIDRemoved.spec_static`; here as some boolean, `rnClusterOk`, from which
+  the `isIDRemoved` closure meets `isRNIDRemoved`; `bootstrapContract`'s post gives it, a
+  consequence of its `isRaftCluster`).
 * **`rnBuilt E γ r cv`**: the wrapper as `newRaftNode(cv)` leaves it, before `NewServer` copies
   it into `EtcdServer.r` (`r: *b.raft.newRaftNode(...)`, by value), sets its `transport` and
   `start` runs it: the struct value owned whole at `r`, with the components `newRaftNode` alone
@@ -113,15 +116,6 @@ def rnLoggerZapOk : IProp GF :=
 instance rnLoggerZapOk_persistent : Persistent (rnLoggerZapOk (GF := GF)) := by
   unfold rnLoggerZapOk; infer_instance
 
-/-- **raft's `SetLogger(l)`** (a contract: the ownership of its globals is not kept by raft's
-package initializer). -/
-def rnSetLoggerOk : IProp GF :=
-  iprop(□ ∀ l : GoInterface, {{ True }} (App (Val (@! go_etcd_io.raft.v3.SetLogger)) (Val #l))
-    {{ RET #(); True }})
-
-instance rnSetLoggerOk_persistent : Persistent (rnSetLoggerOk (GF := GF)) := by
-  unfold rnSetLoggerOk; infer_instance
-
 /-- **`contention.NewTimeoutDetector(d)`** (names-only): a detector meeting `isRNTimeoutDetector`. -/
 def rnTimeoutDetectorOk : IProp GF :=
   iprop(□ ∀ d : time.Duration, {{ True }}
@@ -186,8 +180,10 @@ def rnNewStorageOk : IProp GF :=
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance
 
-/-- **`cl.IsIDRemoved(id)`** of the cluster `cl` (`membership.RaftCluster`, names-only): some
-boolean. -/
+/-- **`cl.IsIDRemoved(id)`** of the cluster `cl` (`membership.RaftCluster`): some boolean.
+(premise-fixes-4: until then this said names-only; `IsIDRemoved` is translated and proved, and this
+triple follows from its spec, `membership.RaftCluster.IsIDRemoved.spec_static`, under the cluster's
+`isRaftCluster`.) -/
 def rnClusterOk (cl : Loc) : IProp GF :=
   iprop(□ ∀ id : w64, {{ True }}
     (App (Val (cl @!! go.GoType.PointerType api.membership.RaftCluster.ty @!! go!"IsIDRemoved"))

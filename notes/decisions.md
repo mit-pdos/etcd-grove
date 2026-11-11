@@ -7777,7 +7777,8 @@ and `PreVote` settings stay premises.
   premise: the server holds no `ownMemoryStorage` once raft owns the storage, and
   `MemoryStorage.Snapshot`'s spec does not state the clone's pointers non-nil. (viii) Raft's
   `SetLogger` is a contract (`rnSetLoggerOk`): raft's package initializer drops the logger
-  globals' ownership. D12's risk 3 did not materialize.
+  globals' ownership. (*Superseded* 2026-11-10, "Premise fixes 4": that made the contract false in
+  the model; the initializer now keeps the globals and `SetLogger` is proved.) D12's risk 3 did not materialize.
 - **Staging.** R8b-A (the protocol: `reBoot`'s arms, the three conjuncts, leader completeness's
   boot cases, `ownRaftGhost_alloc_boot`) and R8b-B (raft: `Restore`/`newRaft`/`NewRawNode` at an
   empty conf state, `ownRaftLog_setCommitted`, `Bootstrap`, `setupNode`, `StartNode`) in
@@ -34051,6 +34052,58 @@ the other examples', and decided its shape:
   (`stop_census_open`) over the store's `mvccClosed` with every reader token (the goroutines give
   theirs back through the wait group) and the open token's shares `rc_open` used to drop.
 
+## mvccfull's proof: two stages, B3 taken here, crc32 as a local axiom (2026-11-09 · the user · branch `worktree-mvcc-full-tester`)
+
+**What it was.** The Scope of proving `examples/mvccfull` adequate (`notes/mvccfull-proof-plan.md`)
+found two missing pieces: hashing (`HashByRev`/`Hashes` untranslated, no crc32 model, no
+`UnsafeForEach` spec, the compaction job's hash "any"; 3-4 weeks est.) and `mvcc.New` on a backend
+with data (the restart plan's B3, R2d'b, not started; every restart and `Run`'s final reopen need
+it). **Decisions (the user, the three recommendations):** (1) two stages: F1 proves `Run.spec` for
+every config whose `Mix.Read` never picks the hash read (a scope premise on `Config`), F2 adds
+hashing and lifts it; (2) B3 is done in mvccfull's F1, one spec of `New`'s restoring case serving the
+tester and the restart plan (`notes/restart-plan.md`'s B3 row says so); (3) crc32 enters F2 as a
+marked local trust-boundary spec (`Sum32` an opaque function of the bytes written), attacked with
+the `axiom` skill, and proposed to Perennial's standard library.
+
+## mvccfull F1's Freeze: the five-row list as drafted, the receipt kept, the lease part lent (2026-11-10 · the user · branch `worktree-mvcc-full-tester`)
+
+**What it was.** After Draft, two review rounds, Probe (every named risk proved) and the axiom attack
+on `NewLessor.specR` (`notes/axiom-review/mvccfull-newlessor-specR.md`), the Freeze list of
+`notes/mvccfull-proof-plan.md` ("The Freeze list so far") was put to the user with two open
+questions. **Decision (the user: "Go ahead and do this", taken as the recommended options):** freeze
+the list as drafted: (1) `mvcc.New`/`NewStore` on any image (`New.specR`/`NewStore.specR` replace
+`New.spec`/`NewStore.spec`; the internal chain likewise); (2) `lease.NewLessor.specR` replaces
+`NewLessor.spec` (one axiom), **keeping the receipt `⧖ |recs|` in the post** (option (a): its source
+is the proved `initAndRecover.spec`'s post; the axiom adds only `newLessor`'s names-only wrapper);
+(3) `errVars2.law` replaces `errVars.law`; (4) `pick.specW` (the tester's); (5) `Watch.contractR`
+replaces `Watch.contract`. **`New`'s spec lends the lessor's owner part** `lease.leaseOwn γl [] ∅`
+(given back), so `server_kv_backend`, `server_kv_watchable`, `server_kv_backend_hooks` and
+`mvccApi_New`/`NewStore_wp_proof` gain it in pre and post (the conditional-lease alternative not
+taken). Not taken: the backend strengthening `rtHeldDlsLaw` (`backend/RtHeldDls.lean`, kept as a
+prototype). The API `NewStore.specR`'s glue (review round 2's S3/S4) is written in Prove: that spec
+is frozen pending it. Proving `NewLessor`/`Stop` is a separate, later track (it changes nothing in
+the tester's proof).
+
+## mvccfull F1, Prove: the post-Freeze changes (2026-11-10 · the coordinator, under the minor-fix rule · branch `worktree-mvcc-full-tester`)
+
+**What it was.** Proving the frozen specs found gaps, each closed by the smallest change that is true
+of the Go code; none adds client-visible ghost state or weakens a guarantee to a client, so none went
+to the user (memory: minor spec fixes are fixed and logged). Full list with causes:
+`notes/mvccfull-prove-writer.md`, "Post-Freeze spec changes". **The tester's own specs:**
+`pending.del` takes sorted keys (a repeated key was counted twice: the spec was false);
+`writeSub` takes keys shorter than `2^63 - 1` (`Txn.Put`'s premise); `gen` assumes `1 ≤ s.rev` and
+its post says a grant advances `nextLease`; `writerCtrs` bounds `nextLease ≤ |ops|`; `writerCtx` and
+`Run.spec`'s `runCfgOk` bound the keys `< 2^60` (was `≤ 2^62`); `checkLeases`/`apply` take the
+caller's `threadTok` and the bound classes, and `lessorW` the lessor's reader pool (for
+`Leases.spec`). **Additive API laws (no exported statement changed):** mvcc's `compactChan.law`
+(`ApiCompactChan.lean`: `Compact`'s channel is not nil and its receive is a pair; `kvstore.go:200`,
+`:235`), lease's `leaseOwn_leases` (`LeaseOwnLeases.lean`: the owner's live set is what a later
+`Leases()` lists). **Internal invariants** (the coordinator's, `notes/mvccfull-prove-*.md`): `isInc`
+records a watchable store's handle; `streamInv` takes the closed stream's receiver,
+`regOk'` "every cancelled id is registered", `regLock` the registry's fragments. **Local
+workarounds of Perennial gaps**, proposed there (`notes/perennial-changes.md`):
+`init_RWMutex_wlocked` (a lock made by its holder, B3) and `AtomicLoad` (a `Load` whose fraction is
+chosen inside the atomic update, `inBounds`).
 ## Premise fixes 1: closed theorems' premises false of Go or of Perennial (2026-11-10 · etcd-grove-81's stage, from the read-only premise attack · branch `premise-fixes-1`)
 
 A read-only attack on `etcd_putget_safe`'s premises (each finding confirmed by an independent
@@ -34138,3 +34191,66 @@ independent review).
 Trust base: `ErrTransactionConflict_init` → `metrics.errorsNewVarsInit`, `value_typed_pointsto` →
 `value_intoVal_inj`; count unchanged. Gates: step 9 (premise-fixes-1's text, skipped when the
 examples module holds no premisefix package) and 9b (each Go module under `examples/premisefix`).
+
+## Premise fixes 4: raft keeps its logger globals; the mux's redirects; paths; `fmt`'s method choice (2026-11-10 · decided by etcd-grove-81 under the user's delegation · branch `premise-fixes-4`)
+
+From the round-2 premise attack on `etcd_partition_safe` (`/shared/tmp/coord-81/round2/findings.json`).
+
+- **`rnSetLoggerOk` (critical).** A premise of every etcd closed theorem (`etcdstart.commonPremises`)
+  stated `{{ True }} raft.SetLogger l {{ True }}`, a triple about a translated body (lock
+  `raftLoggerMu`, store `raftLogger`) whose globals raft's initializer allocated and dropped: no
+  heap instance satisfies it, so every theorem taking it was vacuous (R8b-C's item (viii), above,
+  chose the contract for that reason). Decision: prove it. Raft's `isInitialized` gains
+  `"#HloggerMu" ∷ sync.isMutex (globalAddr raftLoggerMu) (∃ l, globalAddr raftLogger ↦ l)` (a
+  named conjunct, no new existential, so the many destructurings stand); raft's `Init.lean`
+  (hand-written: raft is `etc/gen-init.py`'s `RAFT_INIT`, outside the script) makes the mutex from
+  the two allocations; `SetLogger.spec` is `{{ isPkgInit raft }} SetLogger l {{ True }}`, in raft's
+  API and Link; `newRaftNode`'s proof takes it as a callee. The closed theorems lose a premise. Not
+  done: merely adding `isPkgInit` to the contract (still unproved trust). `getLogger` unspecified
+  (nothing verified calls it).
+- **The sweep** of every bag (by a read-only subagent) found no other triple of a translated
+  function or global the model cannot satisfy. Open, to a later stage or settled separately:
+  `mvcc.keySized` (possibly refutable: nothing in `rtHeld` bounds the bucket), `ContextReadErrs`
+  /`ContextErrsClient`, `bootstrapContract`'s `#Hmembers`, bboltfs's `Hinit_wp`
+  (`notes/STATUS.md`, "Premise fixes 4").
+- **`http.mux_handlerOk_spec`.** Go 1.27's `ServeMux` answers `307`, not `301`, and runs no handler
+  for a path it redirects: the trailing-slash redirect (`p` no pattern, `p/` one) and, but for
+  `CONNECT`, a path not in clean form. `muxRoute pats R` (none for those, `route` otherwise; with
+  `cleanPath`, `slashRedir`) replaces `route` in `handlerFor` and in the mux's own responses. No
+  premise on request paths: the statement is of Go for literal patterns. `probing.NewHandler.spec`
+  keeps `route` in its premises (stronger than needed, still true).
+- **`NewRequest_spec`** takes `path.head? = some '/'`: Go sends `""` as `/` and `"a"` as `/a`,
+  which `reqAt` (the server sees the client's path) denied. rafthttp's callers' paths are constants.
+- **`fmt.argOk`.** Its `Error()` disjunct requires no `Format` method, its `String()` disjunct no
+  `Format` and no `Error` (Go calls `Format` in place of either, and `Error` in place of `String`).
+  Its callers (option A, approved): `http.errStrOk`, cache's `errStrOk`, `statusErrOk` and
+  `isEtcdProgressNotifier`'s error clause carry `⌜methodSet _.ty !! go!"Format" = none⌝`, and so does
+  `errLeaf` (a fifth conjunct). Producers prove it from the method sets (`fmt.methodSet_none`, tactic
+  `fmt_method_none`), from Perennial's `context.isInit` (`ContextReadErrs.errs_strong`; the premise
+  `ContextReadErrs` itself unchanged, over `errVarLeafW`/`ctxDeadlineLeafW`), or by stepping into
+  Perennial's `errors.New`/`fmt.Errorf`. Three trusted statements gain it, minimal form (not
+  `e.ty = EtcdError.ty`, which k8s-7e's 7e-2 brings): the posts of `rpctypes.ErrCompacted_init` and
+  `ErrFutureRev_init` (through `etc/gen-init.py`) with `rpctypesInit`'s two conjuncts, and
+  `bcrypt.GenerateFromPassword.spec`'s error clause. The Go test `examples/premisefix/fmtarg`'s
+  `TestNoFormatter` checks that none of those errors (the std errors, grpc's `*status.Error`,
+  `rpctypes.EtcdError`, the context errors, bcrypt's two) implements `fmt.Formatter`.
+- **Go tests** first, each passing at go1.27.3: `examples/premisefix/{httpmux,httppath,fmtarg}`, run
+  by gates step 9.
+
+## The lessor's logger: nil or a zap logger (`NewLessor`, `lessorCfg`) (2026-11-10 · the user's decision of 2026-11-07, via etcd-grove-82 · landed directly on `lean`, `dbe4904326`)
+
+Sweep B3-2 (`notes/axiom-review/lessor-methods.md`) refuted `lessor.Promote` and
+`lessor.scheduleCheckpointIfNeeded` on the Go side: `NewLessor.spec` asked only `⌜lg ≠ null⌝` and
+`lessorCfg` kept `lg` unconstrained, so a lessor over a non-nil zero `&zap.Logger{}` passed the
+premises, and a scheduled checkpoint's `le.lg.Debug` (`lessor.go:760`) panicked in zap's
+`Logger.check` (`logger.go:331`), reached through the proved `Grant` and `Checkpoint` and through
+`Promote`. The user's decision (`notes/STATUS.md`, "Axiom sweep batch 3", the decisions list):
+`NewLessor`'s pre and `lessorCfg` carry `⌜lg = null⌝ ∨ zapLoggerOk lg`. Every use of `le.lg` in
+`lessor.go` is under `le.lg != nil` (`:759`, `:797`; `newLessor` only stores it, `:240`), so a nil
+logger is safe and the disjunction is the exact condition; the two axioms' statements are unchanged
+and now true of the code (their docstrings say why). The callers already had `zapLoggerOk` of
+their logger: mvccrand's `runChecks` and mvccfull's `Run` from `zap.NewNop()`'s spec (mvccfull's
+`writerCtx` now keeps `zapLoggerOk lg` in place of `lg ≠ null`), the server's `NewServer` from its
+pre's `#Hzlg : zapLoggerOk cfg.Logger'`; so no exported result gains a premise. zap's own
+`Logger.{Debug,Info,...}` axioms still ask only `l ≠ null` (sweep repairs 1's zap-zero repair,
+still open); the lessor's two axioms are names-only and do not go through them.

@@ -1,5 +1,5 @@
 /-
-The partitioned three-member instance's results (`examples/etcd/partition/etcd_partition.go`; the partition
+The partitioned three-member instance's results (`examples/etcd/partition/linkv3p.go`; the partition
 plan, `notes/partition-plan.md`), restated, with the trust base of each printed in the build log
 (`#print axioms`). Lean-first (no Rocq counterpart).
 
@@ -12,7 +12,8 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   the links between each client and its member blackholed, unblackholed or dropped, with the
   bridge's `Blackhole`/`Unblackhole`/`DropConnections`, as its steps say), linkvtxn's `Check` (gets, lists, puts, deletes, transactions and
   compare-and-sets against the model of etcd's KV; linkv's Puts and Gets until 2026-10-20) with
-  each operation through a random member, and a panic if porcupine answers `Illegal` -- does
+  each operation through one of the three clients (each attempt to the member grpc's balancer
+  picks, D27), and a panic if porcupine answers `Illegal` -- does
   not panic and returns `Ok` or `Unknown`, **for every schedule** (`sched ↦*□ steps`, any
   `steps`). From `isPkgInit linkv3p`, the right to listen on
   the nine addresses, the main thread's token and `Main`'s named premises
@@ -22,7 +23,8 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   the schedule built as a slice literal of any list of steps, from a fresh state with one
   thread, has no stuck thread, no thread ended in a panic (so never "linkv3p: porcupine found
   the history not linearizable"), and the main thread's result, if any, is `Ok` or `Unknown`;
-  under linkv3's hypotheses (`linkv3_safe`) at linkv3p's configuration, v3rpc's method sets as
+  under the hypotheses its signature lists (until 2026-10-22 linkv3's, `linkv3_safe`, retired by
+  D34): at linkv3p's configuration, v3rpc's method sets as
   an instance, `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s, as `linkvtxn_safe`'s)
   and the schedule's length below `2^63`; executions of `n + 2 ≤ 2^28` steps (the server's bound,
   since J8a-6, 2026-11-01: the transport's thread pool; from 2026-10-21 `2^29`, watchkv's: a
@@ -109,7 +111,6 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
-    -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
@@ -151,7 +152,6 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
-    -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))

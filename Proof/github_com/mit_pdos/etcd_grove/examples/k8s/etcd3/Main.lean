@@ -89,7 +89,7 @@ theorem Main.wp_proof
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (k8setcd3Dir id) go!"k8setcd3" go!"k8setcd3"
       (etcdstart.urls1 go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896") id cfgOk urlsOk

@@ -97,6 +97,10 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'k8s_io.client_go.listers.core.v1']
 # (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
+# (F1 Draft, 2026-11-09) mvcc's full tester (examples/mvccfull): no package variables, its fact
+# `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
+# theorem
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -1181,14 +1185,17 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
          '  leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩',
          '  noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none',
          '  noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none',
+         '  /-- (premise-fixes-4) nor a `Format` method (`fmt` prints it with its `Error`). -/',
+         '  noFormat : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none',
          '',
          'instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]',
          '    [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :',
          '    EtcdGrove.RpctypesEtcdErrorMethods := by',
          '  have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m',
          '  have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"',
-         '  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs',
-         '  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs⟩',
+         '  have hF := h go!"Format"',
+         '  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs hF',
+         '  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs, hF⟩',
          '',
          '/-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target',
          '`errors.As` accepts. -/',
@@ -1199,12 +1206,12 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
          ''],
     imports=['Perennial.Golang.Theory.TypeSet'],
     custom={
-        'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`\'s (k8s etcd3 7c). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝',
-                             pat='⟨%e@, H@, #S@, %D@⟩'),
-        'ErrCompacted': dict(doc='/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`\'s (k8s etcd3 7c). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝',
-                             pat='⟨%e@, H@, #S@, %D@⟩'),
+        'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`\'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`\'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝',
+                             pat='⟨%e@, H@, #S@, %D@, %F@⟩'),
+        'ErrCompacted': dict(doc='/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`\'s (k8s etcd3 7c), with no `Format` method (an `EtcdError`\'s method set is `{Code, Error}`: `fmt` prints it through `Error()`; premise-fixes-4). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝ ∗ ⌜methodSet e.ty !! go!"Format" = none⌝',
+                             pat='⟨%e@, H@, #S@, %D@, %F@⟩'),
         # (k8s etcd3 7c) the server-side read errors `togRPCError` maps mvcc's to
         'ErrGRPCFutureRev': dict(doc='/-- `ErrGRPCFutureRev = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision is a future revision")` (`error.go`): with that description (k8s etcd3 7c). -/',
                              post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCFutureRev ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝',
@@ -1252,7 +1259,7 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
             'ipureintro',
             'repeat\' (first',
             '  | assumption',
-            '  | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩',
+            '  | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat⟩',
             '  | constructor)'],
 )
 
@@ -1332,8 +1339,11 @@ runs their translated initializers.''',
            _cacheErrVar('ErrKeyRangeInvalid', 'KR', 'cache: invalid or out‑of‑range key range')[1:] +
            ['iintro !> %e #He', 'icombine HErrUnsupportedRequest He gives %Heq',
             'simp only [interface.mkOk, GoInterface.ok.injEq] at Heq', 'subst Heq',
-            'iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")',
-            'iexact MUR'],
+            # (premise-fixes-4) and its type has no `Format` method (`fmt.argOk`)
+            'isplitr',
+            '· iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")',
+            '  iexact MUR',
+            '· ipureintro; fmt_method_none'],
 )
 
 _AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist', 'ErrUserEmpty',
@@ -1596,8 +1606,12 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
     before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
-            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
-                       for t in ['WNE', 'EWR', 'WDI']]},
+            # (mvccfull's Freeze, 2026-11-10) `ErrWatcherNotExist`'s and `ErrEmptyWatcherRange`'s
+            # message cells too, for `errVars.law`'s apartness (`mvccInit`'s last conjunct)
+            '$inits': [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
+                       for t in ['WNE', 'EWR']] +
+                      [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
+                       for t in ['WDI']]},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
@@ -1609,6 +1623,10 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
              '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP',
              'ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR',
+             'ihave #VEWR : (EtcdGrove.errVarCell ErrEmptyWatcherRange go!"mvcc: watcher range is empty" : IProp GF) $$ []',
+             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrEmptyWatcherRange CEWR',
+             'ihave #VWNE : (EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist" : IProp GF) $$ []',
+             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrWatcherNotExist CWNE',
              '-- (R2) the metrics reporters\' locks, each over its reporter (any closure)'] +
             [l for i, x in enumerate(_MV_REPORT) for l in [
                 f'imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP {x}) (globalAddr {x}Mu) (E := ⊤)) $$ [H{x}] H{x}Mu with HRP{i}',
@@ -1848,7 +1866,7 @@ names) and the four
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
              'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
-             'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs $$ Hd1', 'ihave #HCD := EtcdGrove.ContextReadErrs.descs $$ Hd1',
+             'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1', 'ihave #HCD := EtcdGrove.ContextReadErrs.descs $$ Hd1',
              'ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗',
              '    ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []',
              '· iunfold EtcdGrove.errVarLeaf at HCL', '  icases HCL with ⟨%e, #He, %Hl, -⟩',
@@ -1940,16 +1958,57 @@ _RD_CTX_PRE = [
     '(`v3rpc`\'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.) -/',
     'class EtcdGrove.ContextReadErrs : Prop where',
     '  errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
-    '    EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗',
-    '      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeaf',
+    '    EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗',
+    '      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW',
     '  /-- The two errors\' gRPC descriptions (k8s etcd3 7c-2 part 2, S1, HS-2): neither is a status',
     '  error, so `errDesc` is its `Error()`, `"context canceled"` and `"context deadline exceeded"`',
-    '  (`context.go`). -/',
+    "  (`context.go`). How to read it (premise-fixes-4, the round-2 premise attack's H1): as a hypothesis",
+    '  for every `hG`, at the unit resource, the entailment is of every resource satisfying `isPkgInit',
+    '  context`, and `isPkgInit` is persistent fragments only, valid at any location; so it holds only if',
+    '  `errDesc` of `*errorString` at every location whose `s` is `"context canceled"` is that string',
+    "  (and likewise of `deadlineExceededError`), not only at the location this run's initializer",
+    '  allocates. That is the per-execution claim Go makes of the values themselves (`errDesc` is opaque:',
+    '  `status.FromError` of a non-status error is its `Error()`); this repository neither proves nor',
+    '  refutes it (`notes/STATUS.md`, the unproved bag items). -/',
     '  descs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
     '    (∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗',
     '        ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗',
     '      (∃ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d ∗',
     '        ⌜go_etcd_io.etcd.cache.v3.errDesc d = go!"context deadline exceeded"⌝)',
+    '',
+    '/-- `ContextReadErrs.errs` with the two errors\' `Format` facts (premise-fixes-4: `errVarLeaf`,',
+    '`ctxDeadlineLeaf`): neither has a `Format` method, from Perennial\'s `context.isInit` (`Canceled`\'s',
+    'value is a `*errors.errorString`, `EtcdGrove.ErrorStringLeaf`; `DeadlineExceeded`\'s a',
+    '`deadlineExceededError`, whose method set goose emits). -/',
+    'theorem EtcdGrove.ContextReadErrs.errs_strong [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]',
+    '    [_root_.Perennial.context.Assumptions] [_root_.Perennial.errors.Assumptions] :',
+    '    isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
+    '      EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗',
+    '        go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeaf := by',
+    '  iintro #Hp',
+    '  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs $$ Hp',
+    '  ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []',
+    '  · iapply _root_.Perennial.context.isInit_access $$ Hp',
+    '  iNamed Hci',
+    '  icases HCanceledCell with ⟨%x, #Hx, -⟩',
+    '  iunfold EtcdGrove.errVarLeafW at HC',
+    '  icases HC with ⟨%e, #He, %Hl, #Hm⟩',
+    '  icombine He Hx gives %Heq',
+    '  icases HD with ⟨%d, #Hd, %Hdl, #Hdm⟩',
+    '  icombine Hd HDeadlineExceededTy gives %Heq2',
+    '  have hF : methodSet e.ty !! go!"Format" = none := by',
+    '    cases Heq; exact EtcdGrove.ErrorStringLeaf.noFormat',
+    '  have hF2 : methodSet d.ty !! go!"Format" = none := by',
+    '    cases Heq2',
+    '    have h := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Format"',
+    '    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h',
+    '    exact h',
+    '  isplitl',
+    '  · iunfold EtcdGrove.errVarLeaf',
+    '    iexists e; iframe He Hm',
+    '    ipureintro; exact ⟨Hl.1, Hl.2.1, Hl.2.2.1, Hl.2.2.2, hF⟩',
+    '  · iexists d; iframe Hd Hdm',
+    '    ipureintro; exact ⟨Hdl.1, Hdl.2.1, Hdl.2.2.1, Hdl.2.2.2.1, Hdl.2.2.2.2, hF2⟩',
     '',
     'end ctxFacts',
     '']
@@ -2002,7 +2061,7 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
              'icases Hri with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, Hrr⟩',
              'iNamed Hrr',
              'ihave #LRS := EtcdGrove.errVarLeaf_of_newVar _ _ $$ ErrStoppedNew',
-             'ihave ⟨#LCC, #LDL⟩ := EtcdGrove.ContextReadErrs.errs $$ {Hd:context}'] +
+             'ihave ⟨#LCC, #LDL⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ {Hd:context}'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold readInit', 'iframe #']),
 )
@@ -2542,6 +2601,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
+# (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

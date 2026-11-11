@@ -23,12 +23,13 @@ variable [sem : go.Semantics]
 /-- **`createPostRequest`** of a plain URL `u` and a body reader of `bs`: a `POST` to `u`'s host
 at `path` with that body (and some headers): `NewRequest` does not fail (`http.NewRequest_spec`),
 so its `lg.Panic` is dead; `X-Server-From` the sender's id, and (D22 J-T, W8) `X-PeerURLs` the
-transport's URLs' strings (`setPeerURLsHeader`). -/
+transport's URLs' strings (`setPeerURLsHeader`). (premise-fixes-4) Of a path starting with `/`
+(`http.NewRequest_spec`'s; the callers' are constants). -/
 abbrev rafthttp.createPostRequest.spec : Prop :=
   ∀ (lg : Loc) (u : net.url.URL) (path : GoString) (body : GoInterface) (K : http.Body)
     (ct : GoString) (urls : GoSlice) (uvs : List net.url.URL)
     (fr cid : go_etcd_io.etcd.client.pkg.v3.types.ID),
-  lg ≠ null → urlPlain u →
+  lg ≠ null → urlPlain u → path.head? = some (W8 47) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       http.bodyHas body K ∗ urls ↦*□ uvs }}
     (App (App (App (App (App (App (App (App (Val (@! rafthttp.createPostRequest)) (Val #lg))

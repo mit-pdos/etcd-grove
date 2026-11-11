@@ -234,9 +234,9 @@ theorem pipe_handlerFor (hServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF :=
     iexact Hreq0
   ihave Hbody := http.reqBody_fixed (raftHttpNet Rh) a R γk rd (fun h => by
     simp only [raftHttpNet, raftProto, snapStreamed] at h
-    rw [http.route_raft _ _ Hr.2] at h
+    rw [http.route_raft _ _ (http.route_of_muxRoute Hr.2)] at h
     exact absurd h.2 (by decide)) $$ Hbody
-  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_raft _ _ Hr.2)) $$ Hpkg Hh Hra Hreq Htk
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_raft _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq Htk
     Hbody Hw Hhd %Hfl HRs
 
 /-- **A stream handler is a handler of what is routed to the stream prefix.** -/
@@ -258,8 +258,8 @@ theorem stream_handlerFor (hServe : rafthttp.streamHandler.ServeHTTP.spec (GF :=
     iexact Hreq0
   ihave Hbody := http.reqBody_fixed (raftHttpNet Rh) a R γk rd (fun h => by
     simp only [raftHttpNet, raftProto, snapStreamed] at h
-    exact http.route_stream_snap _ _ Hr.2 h.2) $$ Hbody
-  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream _ _ Hr.2)) $$ Hpkg Hh Hra Hreq
+    exact http.route_stream_snap _ _ (http.route_of_muxRoute Hr.2) h.2) $$ Hbody
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq
     Htk Hbody Hw Hhd %Hfl HRs
 
 /-- **A snapshot handler is a handler of what is routed to the snapshot path** (stage 7e). -/
@@ -279,7 +279,7 @@ theorem snap_handlerFor (hServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF :=
   ihave #Hreq : (raftProto Rh).req R γk $$ []
   · rw [show (raftProto Rh).req R γk = ((raftHttpNet Rh).proto a).req R γk from rfl]
     iexact Hreq0
-  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_snap _ _ Hr.2)) $$ Hpkg Hh Hra Hreq Htk
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_snap _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq Htk
     Hbody Hw Hhd HRs
 
 set_option maxRecDepth 8000 in
@@ -400,7 +400,7 @@ theorem rafthttp.Transport.Handler_core
         exact verHdrOk_nil
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  · -- the mux's own `404` and `301`
+  · -- the mux's own `404` and `307`
     iintro !> %R' %γk %w %_ -
     rw [show (raftHttpNet Rh).proto a = raftProto Rh from rfl]
     isplitr

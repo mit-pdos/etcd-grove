@@ -218,6 +218,8 @@ SnapshotMetadata__GetIndex: @
 isHardStateEqual: @
 IsEmptyHardState: @
 IsEmptySnap: @
+# (premise-fixes-4, 2026-11-10) raft's `SetLogger`, `newRaftNode`'s callee (until then a contract)
+SetLogger: @
 zap_Duration:
 zap_Logger__Fatal:
 # (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
@@ -611,7 +613,7 @@ auth_authStore__GenTokenPrefix:
 # (D17d, 2026-10-18) `NewServer` reads `run`'s snapshot contract off the storage's application
 # token through `MemoryStorage.Snapshot`'s application triple (`rnSnapOnce_of_tok`).
 MemoryStorage__Snapshot: @
-newRaftNode: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop
+newRaftNode: SetLogger =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop
 bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode newRaftNode
 # The server's construction (server.go's `NewServer`; the server-construction unit, stage N0,
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).

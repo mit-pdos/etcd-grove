@@ -160,14 +160,53 @@ theorem backendRest_open.law_holds : backendRest_open.law (GF := GF) := by
   unfold backendRest
   exact .rfl
 
-/-- **`errVars.law`** (the tester's migration, 2026-11-06, G2): the error variables' facts of the
-package's initialization (`mvccInit`). -/
+/-- **`errVars.law`** (the tester's migration, 2026-11-06, G2; mvccfull's Freeze, 2026-11-10): the
+error variables' facts of the package's initialization (`mvccInit`: conjuncts 31-33 and 35-36, and
+the last), and two different variables apart: their message cells, and their messages differ
+(`errVarApart_of`). -/
 theorem errVars.law_holds : errVars.law (GF := GF) := by
   iintro #Hpkg
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, H1, H2, H3, -⟩
-  iframe H1 H2 H3
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, -, #N1, #N2, #N3, -, #C1, #C2, -, -, -, -, -, -, ⟨#N4, #C3, #C4⟩⟩
+  iframe N1 N2 N3 N4
+  imodintro
+  iintro %X %Y %hm
+  obtain ⟨hX, hY, hne⟩ := hm
+  -- the messages, the proof's: each variable's cell, and two different variables' messages differ
+  let ms : List (GoString × GoString) :=
+    [(ErrCompacted, go!"mvcc: required revision has been compacted"),
+     (ErrFutureRev, go!"mvcc: required revision is a future revision"),
+     (ErrEmptyWatcherRange, go!"mvcc: watcher range is empty"),
+     (ErrWatcherNotExist, go!"mvcc: watcher does not exist")]
+  have key : ∃ m m' : GoString, (X, m) ∈ ms ∧ (Y, m') ∈ ms ∧ m ≠ m' := by
+    simp only [errVarNames, List.mem_cons, List.not_mem_nil, or_false] at hX hY
+    rcases hX with rfl | rfl | rfl | rfl <;> rcases hY with rfl | rfl | rfl | rfl <;>
+      first
+      | exact absurd rfl hne
+      | exact ⟨_, _,
+          by first
+            | exact List.mem_cons_self
+            | exact List.mem_cons_of_mem _ List.mem_cons_self
+            | exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)
+            | exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+                (List.mem_cons_of_mem _ List.mem_cons_self)),
+          by first
+            | exact List.mem_cons_self
+            | exact List.mem_cons_of_mem _ List.mem_cons_self
+            | exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self)
+            | exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+                (List.mem_cons_of_mem _ List.mem_cons_self)),
+          by decide⟩
+  obtain ⟨m, m', hXm, hYm, hmm⟩ := key
+  ihave #Hcells : (EtcdGrove.errVarCells ms : IProp GF) $$ []
+  · unfold EtcdGrove.errVarCells EtcdGrove.errVarCells EtcdGrove.errVarCells EtcdGrove.errVarCells
+      EtcdGrove.errVarCells
+    iframe C1 C2 C3 C4
+  ihave #HX := EtcdGrove.errVarCells_mem (GF := GF) hXm $$ Hcells
+  ihave #HY := EtcdGrove.errVarCells_mem (GF := GF) hYm $$ Hcells
+  iapply EtcdGrove.errVarApart_of X Y m m' hmm $$ HX HY
 
 end laws
 

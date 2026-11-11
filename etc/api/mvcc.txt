@@ -24,6 +24,13 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 # mvcc over etcd's backend (the design "mvcc's API over its storage abstraction", approved by the
 # user, 2026-11-06): etcd's backend as one storage, its open, image and snapshot
 importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
+# (mvccfull's Probe, 2026-11-09) the laws of `hookRun` and `mvccDeleter` for clients (vocabulary:
+# no function's spec file, `etc/gen-interface.py --layout` skips it)
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
+vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
+# (mvccfull's Prove, 2026-11-10) `Compact`'s channel made: `compactChan.law` (no function's spec)
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
+vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
 
 ## The API's vocabulary, still in the internals (to move to a vocabulary module)
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Model
@@ -88,6 +95,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftIndex
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftRestore
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M2StorageDraftSealed
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.PlainRWMutex
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStoreSess
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCut

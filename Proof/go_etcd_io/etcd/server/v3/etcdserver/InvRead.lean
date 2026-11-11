@@ -348,8 +348,8 @@ theorem applyErrIs_of_isCtxErr :
   · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
     icombine Hcv HeD gives %Hce
     subst Hce
-    obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
-    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
+    obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
+    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
 
 /-- **`rangeKeys`' context error (and its `%w` wrappings) is one the gRPC layer can take**
 (`applyErrIs`; errorf-wrap, 2026-11-06, in place of `applyErrIs_errorf`, which learnt from

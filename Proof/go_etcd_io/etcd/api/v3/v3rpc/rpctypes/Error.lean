@@ -58,12 +58,14 @@ theorem rpctypes_etcdError_statusErrOk
     iexact HΦ
   isplitr
   · ipureintro; exact hty.1 #x
+  isplitr
   · unfold grpcErrMethodsOk
     isplitl
     · iintro %h
       simp [hty.2.1] at h
     · iintro %h
-      simp [hty.2.2] at h
+      simp [hty.2.2.1] at h
+  · ipureintro; exact hty.2.2.2
 
 /-- An `EtcdError` value is a client error, if any client error exists (`clientErr`'s first
 conjunct, `errors.AsTarget` of `EtcdError`, is about the type alone). -/
