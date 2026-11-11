@@ -196,7 +196,7 @@ theorem ownRaftGhost_appAccFacts (γ : RaftNames) (id : w64) (s : PState) (m : M
         commitIn γ es' (accCommit s.commit m.commit lastnewi) s.term ∗
         isCommitted γ (es'.take (uint.Z (accCommit s.commit m.commit lastnewi)).toNat)) ∗
       ⌜PlogWfR base0 s.log ∧ PlogWfR base0 es' ∧ uint.Z s.commit ≤ s.log.length ∧
-        uint.Z lastnewi = uint.Z m.index + (m.entries.length : Int)⌝ := by
+        uint.Z lastnewi = uint.Z m.index + (m.entries.length : Int) ∧ PlogWf base0 es'⌝ := by
   iintro #Hm Hg
   ihave %Hok := ownRaftGhost_logOk γ id s $$ Hg
   icases persistent_entails_right (wand_entails (ownRaftGhost_lastRec (GF := GF) (md := md) γ id s)) $$ Hg
@@ -345,7 +345,7 @@ theorem ownRaftGhost_appAccFacts (γ : RaftNames) (id : w64) (s : PState) (m : M
       · ihave %Htk := full_take_eq γ s.log es' s.commit Hw Hwl' HcS (Hlow s.commit Hcidx).symm $$ Hrecs Hrecs'
         rw [← Htk]; iexact Hcm0
   · ipureintro
-    exact ⟨Hwf, Hwf', Hcl, Hli⟩
+    exact ⟨Hwf, Hwf', Hcl, Hli, Hwl'⟩
 
 end ghost
 
@@ -730,7 +730,7 @@ theorem simFx_appDone (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma 
 
 
 /-- **A log with records has a record at its last index** (`lastRec`: `0`, or its last entry's). -/
-theorem logRecs_lastRec (γ : RaftNames) (F : List EntryM) (hw : PlogWf base0 F) (hl : F.length < 2 ^ 63) :
+theorem logRecs_lastRec (γ : RaftNames) (F : List EntryM) (hw : PlogWf base0 F) (hl : F.length < 2 ^ 64) :
     logRecs (GF := GF) γ base0 F ⊢ lastRec γ (F.length : Int) := by
   iintro #H
   unfold lastRec
@@ -764,7 +764,7 @@ theorem ownRaftGhost_bootLe (γ : RaftNames) (id : w64) (s : PState) {md : Bool}
 
 /-- **The new log's length is within the trace's number bound** (its last index's time receipt,
 `lastRec_receipt`, below the receipts' bound past the bootstrap log). -/
-theorem logRecs_traceBound (γ : RaftNames) (F : List EntryM) (hw : PlogWf base0 F) (hl : F.length < 2 ^ 63)
+theorem logRecs_traceBound (γ : RaftNames) (F : List EntryM) (hw : PlogWf base0 F) (hl : F.length < 2 ^ 64)
     (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
     logRecs (GF := GF) γ base0 F ⊢ |==> ⌜(F.length : Int) < traceNumBound⌝ := by
   iintro #H

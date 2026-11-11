@@ -262,6 +262,104 @@ theorem fxPresR_appAcc (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Trac
       · rfl
     iexact Hv'
 
+
+/-- **Raft's facts of an accepted append request at the node's step ghost** (`ownRaftGhost_appAccFacts`,
+`ownRaftGhost_bootLe`, and the new log's length within the trace's bound, `logRecs_traceBound`); the ghost
+state unchanged. -/
+theorem ownStepGhost_appAccFacts (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) (m : Msg)
+    (lastnewi : w64) (es' : List EntryM)
+    (Hty : m.ty = .app) (Hterm : m.term = s.term) (Hbase : (toPState s).base = base0)
+    (Hcidx : uint.Z s.logst.committed ≤ uint.Z m.index)
+    (Happ : plogMaybeAppend base0 (toPState s).log (entryID.mk m.logterm m.index) m.entries = some (lastnewi, es'))
+    (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
+    isMessage (GF := GF) γ m ∗ ownStepGhost γ md c id s ⊢ |={⊤}=> ownStepGhost γ md c id s ∗
+      (logRecs γ base0 (toPState s).log ∗ logRecs γ base0 es' ∗
+        commitIn γ es' (accCommit (toPState s).commit m.commit lastnewi) (toPState s).term ∗
+        isCommitted γ (es'.take (uint.Z (accCommit (toPState s).commit m.commit lastnewi)).toNat)) ∗
+      ⌜PlogWfR base0 (toPState s).log ∧ PlogWfR base0 es' ∧ PlogWf base0 es' ∧
+        uint.Z s.logst.committed ≤ (toPState s).log.length ∧
+        uint.Z lastnewi = uint.Z m.index + (m.entries.length : Int) ∧
+        (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed ∧ (es'.length : Int) < traceNumBound⌝ := by
+  iintro ⟨#Hm, Hgh⟩
+  iunfold ownStepGhost at Hgh
+  icases Hgh with ⟨Hg, Hr⟩
+  icases ownRaftGhost_appAccFacts γ id (toPState s) m lastnewi es' Hty Hterm Hbase Hcidx Happ $$ Hm Hg with
+    ⟨Hg, ⟨#HL, -, -, #HN, #Hci, #Hcm⟩, %Hp⟩
+  obtain ⟨hwr, hwr', hcl, hli, hwN⟩ := Hp
+  icases ownRaftGhost_bootLe γ id (toPState s) $$ Hg with ⟨Hg, %Hbt⟩
+  have hlN : es'.length < 2 ^ 64 := by
+    rcases Nat.eq_zero_or_pos es'.length with h0 | hpos
+    · omega
+    · obtain ⟨e, he⟩ : ∃ e, es'[es'.length - 1]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      have hi := hwN _ e he
+      rw [base0_index] at hi
+      have := uint_Z_lt e.Index'
+      omega
+  imod logRecs_traceBound γ es' hwN hlN Hfit $$ HN with %HB
+  imodintro
+  isplitl [Hg Hr]
+  · iunfold ownStepGhost; iframe Hg Hr
+  iframe HL HN Hci Hcm
+  ipureintro
+  exact ⟨hwr, hwr', hwN, hcl, hli, Hbt, HB⟩
+
+/-- **The idle relation after an accepted append request at a follower of its term**: raft's end state
+(the leader adopted, the new log and commit index, the response queued) is related to the
+specification's (`doneSrv`, `doneResp`). -/
+theorem accEnd_simIdle (C : List w64) (id : w64) (s : NState) (m : MessageM) (a0 : Etcdraft.Server)
+    (ma : Etcdraft.Msg) (ls' : LogState) (es' : List EntryM) (lastnewi : w64) (p k : Nat)
+    (hR : SimServerR C C.length (toPState s) a0) (hs : LogShapeOk C.length (toPState s))
+    (bt : uint.Z s.term < 2 ^ 63) (hrole : s.role = .follower)
+    (hprev : ls'.prev = s.logst.prev) (hes : ls'.sents ++ ls'.uents = es')
+    (hcm : ls'.committed = accCommit s.logst.committed m.Commit' lastnewi)
+    (hbN : BootTerms C.length 1 es') (hwN : PlogWf base0 es') (hB : (es'.length : Int) < traceNumBound)
+    (hli : uint.Z lastnewi = (p : Int) + k) (hlast : uint.Z lastnewi ≤ es'.length)
+    (hcp : uint.Z s.logst.committed ≤ p)
+    (hmc : ma.commitIndex = uint.Z m.Commit') (hmsub : ma.subtype = "app") (hmd : ma.dest = idAbs id)
+    (hms : ma.source = idAbs m.From') :
+    SimIdle C (sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
+        [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)])
+      (toC (confAbs C) (doneSrv a0 (logAbs C C.length 1 es') (idAbs m.From') (min ma.commitIndex ((p : Int) + k))))
+      (pendAbs C s.outbox ++ [doneResp a0 ma p k]) := by
+  obtain ⟨hT, hSt, hV, hL, hB0, hLog, hCm, hCfg, hPc, -, -⟩ := hR
+  have hb : traceNumBound = 2 ^ 61 := rfl
+  have hcmZ : uint.Z ls'.committed = max a0.commitIndex (min ma.commitIndex ((p : Int) + k)) := by
+    rw [hcm, hCm, hmc, ← hli]
+    unfold accCommit plogCommitTo
+    show _ = max (uint.Z (toPState s).commit) _
+    simp only [toPState]
+    repeat' split
+    all_goals omega
+  have hcl : uint.Z ls'.committed ≤ es'.length := by
+    rw [hcmZ, hCm]; simp only [toPState]; omega
+  have hB61 : (es'.length : Int) < 2 ^ 61 := by have := hB; rw [hb] at this; exact this
+  refine ⟨_, rfl, ?_, ?_, ?_, bt, by show uint.Z ls'.committed < 2 ^ 63; omega, ?_⟩
+  · refine ⟨by simp only [doneSrv]; rw [hT]; rfl, ?_, by simp only [doneSrv]; rw [hV]; rfl, ?_, ?_, ?_, ?_,
+      by simp only [doneSrv]; exact hCfg, by simp only [doneSrv]; exact hPc, ?_, ?_⟩
+    · simp only [doneSrv]; rw [hSt]; simp [toPState, sendMsgs, hrole]
+    · simp [toPState, sendMsgs, hrole, doneSrv]
+    · rw [← hB0]; simp [toPState, sendMsgs, hprev]
+    · simp [toPState, sendMsgs, doneSrv, hes]
+    · simp only [doneSrv]; rw [← hcmZ]; simp [toPState, sendMsgs]
+    · intro h; simp [toPState, sendMsgs, hrole, proleRole] at h
+    · intro h; simp [toPState, sendMsgs, hrole, proleRole] at h
+  · obtain ⟨hs1, -, -⟩ := hs
+    refine ⟨?_, ?_, ?_⟩
+    · simp only [toPState, sendMsgs, hprev]; exact hs1
+    · simp only [toPState, sendMsgs, hprev, hes]; rw [show s.logst.prev = base0 from hs1]; exact hwN
+    · intro k e hk he
+      simp only [toPState, sendMsgs, hes] at he
+      exact hbN k e (by omega) he
+  · show _ = pendAbs C (s.outbox ++ _)
+    rw [pendAbs_append]
+    simp [pendAbs, TraceSim.msgAbs, appResp, doneResp, hT, hmsub, hmd, hms, hli, toPState]
+  · have h0 : (toPState (sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
+        [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)])).base = base0 := by
+      simp only [toPState, sendMsgs, hprev]; exact hs.1
+    unfold plastIndex plogLastIndexZ
+    rw [h0, base0_index]
+    simp only [toPState, sendMsgs, hes]
+    word
 end fx
 
 end EtcdGrove
