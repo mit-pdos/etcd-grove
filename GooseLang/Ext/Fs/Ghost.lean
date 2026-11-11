@@ -260,6 +260,34 @@ structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
 
 end derived
 
+/-- The candidates `m` knows of byte `b` at or past the size: `tc`'s, or the zero, stamped 0, from
+`zf` on. -/
+def OsMeta.pc (m : OsMeta) (b : Nat) : Option Cands :=
+  match m.tc !! b with
+  | some c => some c
+  | none => match m.zf with
+    | some z => if z ≤ b then some [(0, 0)] else none
+    | none => none
+
+theorem OsMeta.pc_some {m : OsMeta} {b : Nat} {c : Cands} (h : m.pc b = some c) :
+    m.tc !! b = some c ∨ ∃ z, m.zf = some z ∧ z ≤ b ∧ c = [(0, 0)] := by
+  unfold OsMeta.pc at h
+  split at h
+  · rename_i c' hc'; cases h; exact .inl hc'
+  · split at h
+    · rename_i z hz
+      by_cases hzb : z ≤ b
+      · rw [if_pos hzb] at h; cases h; exact .inr ⟨z, hz, hzb, rfl⟩
+      · rw [if_neg hzb] at h; cases h
+    · cases h
+
+/-- What `pc` knows is the file's candidates. -/
+theorem MetaOk.pc_cand {st : OsState} {i : Ino} {m : OsMeta} {f : OsFile} (h : MetaOk st i m f)
+    (b : Nat) (c : Cands) (hb : f.size ≤ b) (hc : m.pc b = some c) : f.cand b = c := by
+  rcases OsMeta.pc_some hc with ht | ⟨z, hz, hzb, rfl⟩
+  · exact h.tail b c hb ht
+  · exact (h.zf z hz).2 b hzb
+
 /-- The tree is well formed: the roots are; every prefix of the log replayed on the durable tree is
 a tree over the roots, whose files are files of `files` and whose inodes are below `nextIno`; a
 directory fd is on a directory of the tree now; no fd number is both a file's and a directory's;

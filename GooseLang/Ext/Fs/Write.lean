@@ -626,7 +626,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
       osBytes (L := L) d.ino off.toNat (DFrac.own 1) xs -∗
       mcellsAny m.maps off.toNat (off.toNat + data.length) -∗
       (∀ t : Nat, ∀ n : Nat, ⌜(∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n) ∧
-          ∀ b c, m.size ≤ b → m.tc !! b = some c → ∀ q ∈ c, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
+          ∀ b c, m.size ≤ b → m.pc b = some c → ∀ q ∈ c, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
         pwTok t d.ino off.toNat data m xs n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "PWriteStart" (Val (PairV (#fd) (PairV (#off) (#data))))) @ s; E
         {{ Φ }} := by
@@ -780,7 +780,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hx
     rw [hxs k hk] at hq
     exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq), fun b c hb hc q hq => by
-    rw [← hmo.tail b c (by rw [← hmo.size]; exact hb) hc] at hq
+    rw [← hmo.pc_cand b c (by rw [← hmo.size]; exact hb) hc] at hq
     exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq)⟩) Hfd
   unfold pwTok osTok
   iframe Ht; ipureintro; exact ⟨hgap, hd, hlen⟩
@@ -890,20 +890,19 @@ announced as change `n`: each byte of its range past the old size with the data'
 candidate, stamped `n`; the rest of the range unknown; the other bytes as before. -/
 def pwTail (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) : GMap Nat Cands :=
   ⟨fun b => if inRange off (off + data.length) b then
-      (if m.size ≤ b then (m.tc !! b).map (· ++ [(data.getD (b - off) 0, n)]) else none)
+      (if m.size ≤ b then (m.pc b).map (· ++ [(data.getD (b - off) 0, n)]) else none)
     else m.tc !! b,
    by
     obtain ⟨l, hl⟩ := m.tc.finite
-    refine ⟨l, fun b h => hl b ?_⟩
+    refine ⟨l ++ List.range (off + data.length), fun b h => ?_⟩
     by_cases h1 : inRange off (off + data.length) b = true
-    · by_cases h2 : m.size ≤ b
-      · simp only [h1, h2, if_true] at h; cases e : m.tc !! b <;> simp_all
-      · simp [h1, h2] at h
-    · simp only [h1] at h; simpa using h⟩
+    · simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at h1
+      exact List.mem_append_right _ (List.mem_range.2 h1.2)
+    · simp only [h1] at h; exact List.mem_append_left _ (hl b (by simpa using h))⟩
 
 theorem pwTail_lookup (m : OsMeta) (off : Nat) (data : List w8) (n b : Nat) :
     pwTail m off data n !! b = if inRange off (off + data.length) b then
-      (if m.size ≤ b then (m.tc !! b).map (· ++ [(data.getD (b - off) 0, n)]) else none)
+      (if m.size ≤ b then (m.pc b).map (· ++ [(data.getD (b - off) 0, n)]) else none)
     else m.tc !! b := rfl
 
 /-- `pwPost`, and, if `keep`, the candidates past the size the write leaves (`pwTail`). -/
@@ -990,7 +989,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
         ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
           zs.length = pwSize m.size off k - m.size ∧
           ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
-        ⌜∀ j c, m.tc !! (m.size + j) = some c → j < zs.length → zs[j]? = some c⌝ -∗
+        ⌜∀ j c, m.pc (m.size + j) = some c → j < zs.length → zs[j]? = some c⌝ -∗
         osMeta (L := L) p (DFrac.own 1) (pwPostK keep m off data k n) -∗
         osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
         mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
@@ -1149,10 +1148,14 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
             · rename_i hms
               obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hc
               simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hr
-              obtain ⟨c0, hc0, -, htc⟩ := hcand b
+              obtain ⟨c0, hc0, hz0, htc⟩ := hcand b
                 (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
               rw [if_pos hr.1] at hc0
-              rw [hc0, htc c1 hms hc1]
+              rw [hc0]
+              congr 1
+              rcases OsMeta.pc_some hc1 with ht | ⟨z, hz, hzb, rfl⟩
+              · exact htc c1 hms ht
+              · exact hz0 z hz hzb
             · cases hc
           · rename_i hr
             exact hmo.tail b cs hfb (by rw [announce_tc, if_neg hr]; exact hc)
@@ -1388,12 +1391,15 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
   iapply wp_value'
   unfold osMeta osBytes
   subst hys0
-  have hzstc : ∀ j c, m.tc !! (m.size + j) = some c → j < zs.length → zs[j]? = some c := by
+  have hzstc : ∀ j c, m.pc (m.size + j) = some c → j < zs.length → zs[j]? = some c := by
     intro j c hc hj
     rw [hzsl] at hj
     have hjb := (hpsz (f.size + j)).1 (by omega)
-    obtain ⟨c0, hc0, -, htc⟩ := hcandI (f.size + j) (by omega) (by omega)
-    have := htc c (by omega) (by rw [← hmsz]; exact hc)
+    obtain ⟨c0, hc0, hz0, htc⟩ := hcandI (f.size + j) (by omega) (by omega)
+    have : c0 = c := by
+      rcases OsMeta.pc_some hc with ht | ⟨z, hz, hzb, rfl⟩
+      · exact htc c (by omega) (by rw [← hmsz]; exact ht)
+      · exact hz0 z hz (by rw [← hmsz]; exact hzb)
     simp only [hzs0, List.getElem?_map, List.getElem?_range hj, hc0, this, Option.map_some]
     simp
   iapply HΦ $$ %k %e %zs %(⟨hk, hke, by rw [hzsl, hmsz], hzsfact⟩) %hzstc Hm Hbs

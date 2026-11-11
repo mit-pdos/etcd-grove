@@ -37,7 +37,7 @@ def BusyOk (s : CSt) : Prop :=
 /-- The candidates of byte `b` of the state `s` before its change in flight: its own below the
 size, the `OsMeta`'s past it. -/
 def _root_.Perennial.CSt.baseC (s : CSt) (b : Nat) : Option Cands :=
-  if b < s.m.size then (s.bs[b]?).map Prod.snd else s.m.tc !! b
+  if b < s.m.size then (s.bs[b]?).map Prod.snd else s.m.pc b
 
 /-- **The candidates of byte `b` a crash of the state `s` picks from**, as far as the client knows
 them: `baseC`, with the value the change in flight announced over its range, stamped with its
@@ -58,6 +58,29 @@ variable [GooseExts]
 
 theorem _root_.Perennial.CSt.vmeta_size (s : CSt) : s.vmeta.size = s.m.size := by
   unfold CSt.vmeta; split <;> simp [cfMeta]
+
+/-- An announce does not change what `pc` knows past the range it announces. -/
+theorem announce_pc_out (m : OsMeta) (lo hi tg b : Nat) (c : Cands)
+    (hr : ¬ (inRange lo hi b = true)) (hlo : lo ≤ b) (h : m.pc b = some c) :
+    (m.announce lo hi tg).pc b = some c := by
+  have hb : hi ≤ b := by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hr; omega
+  unfold OsMeta.pc at h ⊢
+  rw [announce_tc, if_neg hr]
+  cases ht : m.tc !! b with
+  | some c' => rw [ht] at h; exact h
+  | none =>
+    rw [ht] at h
+    simp only [announce_zf]
+    cases hz : m.zf with
+    | none => rw [hz] at h; cases h
+    | some z =>
+      rw [hz] at h
+      simp only [Option.map_some]
+      dsimp only at h ⊢
+      by_cases hzb : z ≤ b
+      · rw [if_pos hzb] at h
+        rw [if_pos (by split <;> omega)]; exact h
+      · rw [if_neg hzb] at h; cases h
 
 /-- A byte below the size that no write in flight took, from the runs. -/
 theorem _root_.Perennial.CSt.runs_mem (s : CSt) (b : Nat) (hb : b < s.bs.length) (ht : s.taken b = false) :
@@ -97,18 +120,21 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
     simp only [Option.map_some, Option.some.injEq] at hc
     exact hc
   -- a byte past the size, out of the change in flight's range
-  have hpast : ∀ b, s.m.size ≤ b → ∀ c, s.vmeta.tc !! b = some c → f.cand b = c := by
+  have hpast : ∀ b, s.m.size ≤ b → ∀ c, s.vmeta.pc b = some c → f.cand b = c := by
     intro b hb c hc
-    exact hmo.tail b c (by omega) hc
+    exact hmo.pc_cand b c (by omega) hc
   -- the change in flight's token
   have htok : ∀ t ti, (t, ti) ∈ s.toks i → ∃ f1, st.fs.files !! ti.ino = some f1 ∧
       ∀ b, inRange ti.lo ti.hi b = true → ∃ c0, f1.cand b = c0 ++ [(ti.val b, ti.n)] ∧
-        ∀ c, ti.m0.size ≤ b → ti.m0.tc !! b = some c → c0 = c := by
+        ∀ c, ti.m0.size ≤ b → ti.m0.pc b = some c → c0 = c := by
     intro t ti hti
     obtain ⟨f1, hf1, hc⟩ := hcoh.tok_cand t ti (hts _ hti)
     exact ⟨f1, hf1, fun b hb => by
-      obtain ⟨c0, h1, -, h3⟩ := hc b hb
-      exact ⟨c0, h1, h3⟩⟩
+      obtain ⟨c0, h1, h2, h3⟩ := hc b hb
+      refine ⟨c0, h1, fun c hb' hpc => ?_⟩
+      rcases OsMeta.pc_some hpc with ht | ⟨z, hz, hzb, rfl⟩
+      · exact h3 c hb' ht
+      · exact h2 z hz hzb⟩
   intro b c hc
   rcases hbs : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩ <;> simp only [CSt.kc, hbs] at hc
   · -- idle
@@ -157,7 +183,7 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
       · unfold CSt.baseC at hc; rw [if_neg hb] at hc
         refine hpast b (by omega) c ?_
         simp only [CSt.vmeta, hbs, cfMeta]
-        rw [announce_tc, if_neg hr]; exact hc
+        exact announce_pc_out _ _ _ _ _ _ hr (by omega) hc
   · -- a growing truncate
     have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2; simp only [hbs] at this; exact this
     split at hc
@@ -181,7 +207,7 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
       · unfold CSt.baseC at hc; rw [if_neg hb] at hc
         refine hpast b (by omega) c ?_
         simp only [CSt.vmeta, hbs]
-        rw [announce_tc, if_neg hr]; exact hc
+        exact announce_pc_out _ _ _ _ _ _ hr (by omega) hc
 
 /-- **What a crash of the state `s` leaves** (`f`): a file on disk, within the size bounds, each
 byte in a page that holds one of the file (the size's last page included) one of its known
