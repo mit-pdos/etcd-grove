@@ -48,14 +48,15 @@ theorem NewKV.wp_proof
   · iPkgInit
   ihave #Hcl' := Hcl
   iunfold isLeasingEtcdClient at Hcl'
-  icases Hcl' with ⟨%kv, %cctx, %ccs, #HKV, #HDo, #HTxn, #HLC, #Hcctxf, #Hcctx, #Hccc⟩
+  icases Hcl' with ⟨%kv, %cctx, %ccs, #HKV, #HDo, #HTxn, #HLC, #Hcctxf, #Hcctx, #Hccc, #HcctxC⟩
   ihave #HLC' := HLC
   iunfold isLeasingClient at HLC'
   icases HLC' with ⟨#HKVf, -⟩
   (try wp_auto)
   wp_apply hCtx cl (GoInterface.ok cctx) $$ [$Hv3 $Hcctxf]
   wp_apply context.wp_WithCancel iprop(True) cctx ccs $$ [$Hctxp $Hcctx $Hccc]
-    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hicc, -⟩
+    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hicc, #Hifrom⟩
+  ihave #HictxC := metadata.outgoingCtxOkC_from cctx ictx $$ [$Hifrom $HcctxC]
   ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
   (try wp_auto)
   wp_apply (wp_map_make1 (K := GoString) (V := time.Time) go.string time.Time.ty) as %rm Hrm

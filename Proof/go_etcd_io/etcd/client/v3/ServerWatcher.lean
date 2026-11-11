@@ -87,7 +87,7 @@ theorem isEtcdProgressNotifier_of_watcher
     isEtcdProgressNotifier (watcherIfaceOf w) := by
   iintro ⟨#P1, #P2, #P3, #Hw⟩
   unfold isEtcdProgressNotifier
-  iintro !> %ctx %cs %Φ !> #Hctx HΦ
+  iintro !> %ctx %cs %Φ !> ⟨#Hctx, #HctxO⟩ HΦ
   iapply (wp_RP V w ctx cs) $$ [] [HΦ]
   · iframe #
   inext

@@ -723,7 +723,7 @@ theorem Main.wp_proof
     wp_apply context.wp_Background
     (try wp_auto)
     wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
-      as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, #Hgic⟩
+      as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, #Hgic, #HgC⟩
     (try wp_auto)
     -- the Get's options: the prefix at revision `r`
     wp_apply wp_WithPrefix as %g1 #Hg1

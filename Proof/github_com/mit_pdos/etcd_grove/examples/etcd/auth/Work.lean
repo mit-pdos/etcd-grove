@@ -645,12 +645,14 @@ theorem Work.wp_proof
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-    as %wc %wcd %wcancel ⟨#Hwcancel, -, -, #Hwctx, %Hwnone, #Hwlib⟩
+    as %wc %wcd %wcancel ⟨#Hwcancel, #HwOk, -, #Hwctx, %Hwnone, #Hwlib⟩
+  ihave #HwC := ctxOk_outgoingC wc wcd $$ HwOk
   (try wp_auto)
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
       ∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
         wctx_ptr ↦ GoInterface.ok ci ∗ context.isContext ci cd ∗ metadata.outgoingCtxOk ci ∗
+        metadata.outgoingCtxOkC ci ∗
         ⌜metadata.outgoingOf (GoInterface.ok ci) = akOut who⌝))) $$ [wctx]
   · wp_if_destruct
     · ihave #Pmd : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata $$ []
@@ -666,7 +668,7 @@ theorem Work.wp_proof
       ihave #Hwout0 := context.outgoingCtxOk_of_libCtxOk wc $$ Hwlib
       wp_apply wp_Append wc wcd _ (DFrac.own 1) go!"token" badToken
           (by unfold metadata.lowerKey; decide) $$ [Hksl]
-        as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', -, %Hmd, -⟩
+        as %c' ⟨%ci, %vs, %Hc', #Hctx', #Hout', #HoutC', %Hmd, -⟩
       · iframe; iframe #
       subst Hc'
       (try wp_auto)
@@ -674,19 +676,19 @@ theorem Work.wp_proof
       isplitr
       · ipureintro; rfl
       iexists { wcd with Values := vs }
-      iframe Hctx' Hout'
+      iframe Hctx' Hout' HoutC'
       ipureintro
       exact reqCtx_out _ _ (GoInterface.ok wc) Hwnone (by rw [_root_.if_pos rfl]; exact Hmd)
     · (try wp_auto)
       iframe
       iexists wcd
-      iframe Hwctx
+      iframe Hwctx HwC
       isplitl []
       · ihave #Hwout1 := context.outgoingCtxOk_of_libCtxOk wc $$ Hwlib
         iexact Hwout1
       ipureintro
       exact reqCtx_out _ _ (GoInterface.ok wc) Hwnone (by simp only [Hif, ↓reduceIte])
-  iintro %v ⟨%hv, %wci, %wcd', wctx, #Hwctx', #Hwoutc, %Hwout⟩
+  iintro %v ⟨%hv, %wci, %wcd', wctx, #Hwctx', #Hwoutc, #HwoutC, %Hwout⟩
   subst hv
   (try wp_auto)
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -719,7 +721,7 @@ theorem Work.wp_proof
     isplitr
     · ipureintro; exact hVk
     isplitr
-    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro; exact ⟨watch_c_ok.1.1, watch_c_ok.1.2, by decide⟩
     iintro !> %_

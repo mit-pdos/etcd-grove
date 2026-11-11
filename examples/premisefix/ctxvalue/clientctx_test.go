@@ -15,6 +15,7 @@ package ctxvalue
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -53,6 +54,27 @@ func (errsCancelKeyPanic) Err() error                  { return nil }
 func (errsCancelKeyPanic) Value(k any) any {
 	if _, ok := k.(*int); ok {
 		panic("Value(&cancelCtxKey)")
+	}
+	return nil
+}
+
+// errsNilCancelCtx: as errsCancelKeyPanic, but Value returns, at a *int key, a nil *cancelCtx
+// (reflect.Zero of a real one's type): Value returns, yet parentCancelCtx dereferences it. So the
+// clause must say that Value(&cancelCtxKey) is not a *cancelCtx, not only that it returns.
+type errsNilCancelCtx struct{ ch chan struct{} }
+
+var nilCancelCtx = func() any {
+	c, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	return reflect.Zero(reflect.TypeOf(c)).Interface()
+}()
+
+func (errsNilCancelCtx) Deadline() (time.Time, bool) { return time.Time{}, false }
+func (c errsNilCancelCtx) Done() <-chan struct{}     { return c.ch }
+func (errsNilCancelCtx) Err() error                  { return nil }
+func (errsNilCancelCtx) Value(k any) any {
+	if _, ok := k.(*int); ok {
+		return nilCancelCtx
 	}
 	return nil
 }
@@ -101,6 +123,7 @@ func TestClientCallCtxPanics(t *testing.T) {
 		"quietValuePanic (item 3)": quietValuePanic{},
 		"quietDeadlinePanic (N1)":  quietDeadlinePanic{},
 		"errsCancelKeyPanic (N2)":  errsCancelKeyPanic{ch: make(chan struct{})},
+		"errsNilCancelCtx (N2)":    errsNilCancelCtx{ch: make(chan struct{})},
 		"errsAfterFuncPanic (N3)":  errsAfterFuncPanic{ch: make(chan struct{})},
 	} {
 		if !panics(func() { _ = cc.Invoke(ctx, "/t.S/U", new(emptypb.Empty), new(emptypb.Empty)) }) {

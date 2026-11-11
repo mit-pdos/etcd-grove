@@ -46,6 +46,7 @@ module
 public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 public import Proof.go_etcd_io.etcd.cache.v3.EtcdModel
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
+public import Proof.context.LibKeysChain
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Ghost.MonoList
 
@@ -945,7 +946,8 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
+        etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ opSizeOk (opGetModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
@@ -969,7 +971,8 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
+        etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact ∧
           (opGetModel key gs).base.sortSet = false ∧
           (opGetModel key gs).base.serializable = false ∧ opSizeOk (opGetModel key gs)⌝ }}
@@ -1131,7 +1134,7 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
         ⌜(opWatchModel key gs).isPrefixWatch pfx rev = true ∧ ¬ opWatchPanics key gs ∧
           0 < sint.Z rev ∧ watchSizeOk (opWatchModel key gs)⌝ ∗ etcdRead (rev - W64 1) }}
       (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
@@ -1154,7 +1157,7 @@ up on the watch streams, where it is already modelled (a progress response of `w
 definition, like `isEtcdWatcher`. -/
 def isEtcdProgressNotifier (w : GoInterfaceOk) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
-    {{ context.isContext ctx cs }}
+    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
       (App (Val #(methods w.ty go!"RequestProgress" w.v)) (Val #(GoInterface.ok ctx)))
     {{ (err : GoInterface), RET #err;
         □ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →

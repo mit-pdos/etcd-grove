@@ -286,7 +286,8 @@ theorem MainWatch.wp_proof
   -- `wctx, cancel := context.WithCancel(context.Background())`
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %wctx %γc %cancel ⟨#Hcancel, #Hwctx, -⟩
+    as %wctx %γc %cancel ⟨#Hcancel, #Hwctx, -, #Hwfrom⟩
+  ihave #HwC := metadata.outgoingCtxOkC_bgFrom wctx $$ Hwfrom
   (try wp_auto)
   -- the watch's options (the cache's `watchEvents`')
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -355,7 +356,7 @@ theorem MainWatch.wp_proof
       List (OpFull → OpFull))
     %(W64 1)
   wp_apply HW $$ [] as %wch %γw ⟨#Hwch, Hcons⟩
-  · iframe Hwctx Hopts
+  · iframe Hwctx HwC Hopts
     isplitl []
     · ipureintro
       exact ⟨(watchEvents_opts wkPfx (W64 1)).1, (watchEvents_opts wkPfx (W64 1)).2, by decide⟩

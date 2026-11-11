@@ -39,10 +39,10 @@ theorem lessor.KeepAlive.wp_proof
     (wp_deadlineLoop : lessor.deadlineLoop.spec (GF := GF) (hG := hG)) :
     lessor.KeepAlive.spec (GF := GF) (hG := hG) := by
   intro l addr ctx cd id
-  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hctx⟩
+  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hctx, #HctxO⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -118,6 +118,13 @@ theorem lessor.KeepAlive.wp_proof
       · iintro %hne; exact absurd rfl hne
       · itrivial
       · iexact HΦ'
+    -- (premise fixes 8) the stored context's outgoing metadata is `ctx`'s (another key)
+    ihave #HoK' : metadata.outgoingCtxOk c' $$ []
+    · ihave #Ho := metadata.outgoingCtxOk_of_C ctx $$ [Hctxp HctxO]
+      · iframe Hctxp HctxO
+      iapply metadata.outgoingCtxOk_of_valueWand ctx c' _ _
+        (by simp [google_golang_org.grpc.metadata.mdOutgoingKey.ty,
+          go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty]) $$ HVk Ho
     (try wp_auto)
     -- register the pair `(ch, c')` at `&ctx` (the variable is not written again)
     imod lessorReg_register ⊤ γr ctx_ptr ch (GoInterface.ok c') $$ [$Hreg $ctx] with ⟨Hreg, #Hkr, #ctx⟩

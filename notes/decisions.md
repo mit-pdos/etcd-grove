@@ -34502,3 +34502,75 @@ Also decided at CP1a: handlers typed `GoFunc` (`GrpcSrvCfg`, `grpcSrvStreamChain
 `descRegs`/`descSRegs`/`grpcSrvNew` in B1b), since `h : val` admitted a panic value for which the
 stream chain fact is false; `axiom-tok` entries name the findings they accept.
 
+## Restart S1: R2d'a's rows 2-3 by the loop fact (Q31 (a), F1 form) (2026-11-11 · S1's frozen-post package approved by etcd-grove-81; the crash model is power loss, the user's decision · branch `restart-s1`)
+
+**Problem.** R2d'a's restart triple (`run.spec` through `isServerRunC`'s restart form) carried two
+restart-only premises in `rnRestartOk`'s restart disjunct: row 2, `rnWinInstallAbove` (a snapshot a
+`Ready` installs is above `|a0|`), true of Go but not derivable, and row 3, `rnWalCommitAbove` (every
+`σ` with `StorageHolds S σ` has `|a0| ≤ σ.commit`), **false at the start of almost every restart**
+(`StorageHolds` allows `σ.commit = S.wcommit`, below what the apply thread reached after a
+commit-only `Ready`; "R2d'a's disclosure corrected (2026-11-07)"). So the triple's restart meaning
+was vacuous.
+
+**Decision** (`/shared/tmp/restart-scope/s1-plan.md`):
+- `RNNames` gains `commit0`, `snap0`: the restart point's WAL commit (raft's restored commit) and
+  snapshot index, names fixed when the node is built (Q40, F1); `0` at a first start
+  (`newRaftNode.spec`'s and `bootstrappedRaft.newRaftNode.spec`'s posts gain `commit0 = 0 ∧ snap0 = 0`).
+- `rnRestartOk`: first disjunct `a0 = [] ∧ t0 = 0 ∧ commit0 = 0 ∧ snap0 = 0`; restart disjunct
+  `⌜pre = [] ∧ snap0 ≤ |a0| ≤ commit0⌝ ∗ srvRLogLb γ.srv a0 ∗ rnSnapTermAbove γ` (rows 2-3 deleted).
+- The loop's token `rnLoopTokP` carries the **loop fact** `commit0 ≤ p.Commit'` (proved at every
+  `Ready`: `rn_ready_recv`'s post gains `readyRest_commit_mono`'s `p.Commit' ≤ p'.Commit'`) and
+  `isCommittedLogLb γ.node.cl (srvLE γ.srv L)` (the handed log committed, from `deliveredLogLb`; the
+  implementer's choice the plan left open, so that every `onStop` exit has it whether or not the
+  driver is busy).
+- Row 2 derived: `rnRestartOk_winAbove` takes the loop fact and concludes `commit0 < snapIdx` (the
+  crash-proof form, unused in S1, kept for R6) and `a0 = [] ∨ |a0| < snapIdx` (`readyRest_snap`).
+- The stop's image: `rnDur_take` returns `σ.hs = v.hs ∧ DurAgrees v.S v.l`; `raftNode.onStop.spec`
+  takes `|a0| ≤ p.Commit'` and the committed handed log from its caller; `rnStopImage`, `rn_esc_take`
+  and **`raftNode.stop.spec`** (frozen; approved) add `|a0| ≤ σ.commit` and
+  `∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ |l'| ∧ DurAgrees S l'⌝` (r2db §4.1's final text). `run`
+  takes `|A₀| ≤ σ.commit` from the stop's post (`rnRestartOk_commit` and `run`'s read of the restart
+  data, `rnLoopTok_restartOk`, gone from `run`; `raftNode.start` reads it instead).
+
+**Crash-readiness** (crash-design §4.2): the loop fact needs no graceful fact and holds after a power
+loss (raft's restored commit is the synced `HardState`'s, and only grows); `|a0| ≤ commit0` is
+graceful-only (the backend can be ahead of the WAL's synced commit) and stays one conjunct of
+`rnRestartOk`, so R6 weakens that conjunct instead of reproving the loop.
+
+**Not changed.** Row 1 (`Hwpend`, false on a class; S7 deletes it) and row 4 (`rnSnapTermAbove`,
+true of Go). No axiom, `sorry` or trusted text. `NewServer.lean` needed no edit (its `Hrnames` comes
+from `NodeStartSpec`, whose post is unchanged; the plan's file 9 was not needed).
+
+## Premise fixes 8, part C3: `ctxOk` restated (N1-N3, the outgoing metadata) (2026-11-11 · the Scope approved by etcd-grove-81, `/shared/tmp/premise-fixes-8/scope.md`; C3's trusted texts approved by etcd-grove-81 under the user's delegation, `/shared/tmp/premise-fixes-8c/c3-trusted.md` · branch `premise-fixes-8c`)
+
+**Problem.** grpc's client reads more of a call's context than `ctxOk`'s arms stated (Scope §0):
+`Deadline()` on every call (N1); and, once `Done()` is not nil, Go's `propagateCancel` calls
+`parent.Value(&cancelCtxKey)` (N2) and `parent.(afterFuncer).AfterFunc` (N3); grpc and etcd's
+`withVersion` read `Value(mdOutgoingKey{})` (item 3). `Invoke`, `NewStream`, `withVersion` and
+`waitRetryBackoff` were false of contexts meeting `ctxQuiet`/`ctxErrs` that panic there
+(`examples/premisefix/ctxvalue/clientctx_test.go`, `TestClientCallCtxPanics`).
+
+**Decision.**
+- `ctxOk` = `(isContext ∨ ctxQuiet ∨ ctxErrs) ∗ metadata.outgoingCtxOkC ci` (the chain form, D3).
+- `ctxQuiet` and `ctxErrs` gain `ctxDeadline` (`Deadline()` returns any `(t, b)`: grpc only compares
+  it with the clock, and a past deadline is a status error, as for an `isContext`).
+- `ctxErrs` gains `ctxWithCancelOk`: `Value(&cancelCtxKey)` returns something that is not a
+  `*cancelCtx`, and `go.typeSetContains ci.ty context.afterFuncer.ty = false` ("no `AfterFunc`": exactly
+  the condition under which Goose's `parent.(afterFuncer)` fails; `go_type_set` proves it from the
+  type's method set).
+- **Correction to Scope D4.** D4 asked for "`Value` at every `*int` key returns". That is still false:
+  a context whose `Value(&cancelCtxKey)` returns a nil `*cancelCtx` (`reflect.Zero` of a real one's
+  type) returns fine, but `parentCancelCtx` dereferences it (Go case `errsNilCancelCtx`). Only package
+  `context` calls `Value` with a `*int` key on this path, so the clause is stated at `&cancelCtxKey`,
+  with the result not a `*cancelCtx` (approved by etcd-grove-81).
+- `metadata.FromOutgoingContext.spec` takes `metadata.outgoingCtxOk ctx` (its margin gone);
+  `context.watchCtx` carries `outgoingCtxOkC` (`"#HOut"`, D5), which `streamKeyFromCtx` (margins gone
+  from its docstring) and `WithCancelValCtx` (whose post now gives `outgoingCtxOkC ctx'`) read;
+  `kaCtxOk` carries `outgoingCtxOk` (`closeRequireLeader`).
+- Producers: `ctxQuiet_todo`/`_background` (`emptyCtx.Deadline`), `chanCtx_ok` (now takes
+  `channelContext.Deadline`/`Value`'s specs: the k8s compactor's two proofs take them, linked),
+  `chanCtx_watch` (`Value`), `ctxOk_of_isContext`/`_errs`/`_quiet`, `watchCtx_of_isContext` (each takes
+  `outgoingCtxOkC`), `lessor.KeepAlive` (+ `outgoingCtxOkC ctx`, law
+  `metadata.outgoingCtxOk_of_valueWand`), `watcher.RequestProgress` (+ `outgoingCtxOkC ctx`).
+
+No axiom or `sorry` added or removed.

@@ -683,7 +683,8 @@ theorem Main.wp_proof
     -- `wctx, wcancel := context.WithCancel(context.Background())`
     wp_apply context.wp_Background
     wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-      as %wctx %γctx %wcancel ⟨#Hwcancel, #Hwctx, -⟩
+      as %wctx %γctx %wcancel ⟨#Hwcancel, #Hwctx, -, #wctxFrom⟩
+    ihave #wctxO := metadata.outgoingCtxOkC_bgFrom wctx $$ wctxFrom
     (try wp_auto)
     -- the watch's option, `WithRev(2)`
     wp_apply wp_WithRev (W64 2) as %f2 #Hf2
@@ -719,7 +720,7 @@ theorem Main.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+      · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
       isplitr
       · ipureintro
         refine ⟨?_, ?_, by decide, ?_⟩

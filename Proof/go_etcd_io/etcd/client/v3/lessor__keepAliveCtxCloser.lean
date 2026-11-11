@@ -35,7 +35,7 @@ theorem lessor.keepAliveCtxCloser.wp_proof
   intro l addr ctx cd id kd γkd
   wp_start as ⟨#Hl, #Hctx, #Hka, #Hkd⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -125,7 +125,7 @@ theorem lessor.keepAliveCtxCloser.wp_proof
         (try wp_auto)
         ihave #Hco := BigSepL.bigSepL_lookup (Φ := fun _ c => kaCtxOk (GF := GF) c) Hc $$ Hctxok
         iunfold kaCtxOk at Hco
-        icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci, #Hkai⟩
+        icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci, #Hkai, -⟩
         rw [Hcieq]
         (try wp_auto)
         wp_apply wp_Value ci $$ [$Hkai] as %v1 %Hv1

@@ -44,7 +44,7 @@ theorem txnLeasing.guardKeys.wp_proof
   ihave #HLKV' := HLKV
   unfold isLeasingKV
   icases HLKV' with ⟨%cl, %kv, %ctx, %cs, %cancel, %osl, %Hpfx, -, -, #Hpfxf, -, -, -, -, -, -, -, -,
-    -, #Hcache, -⟩
+    -, -, #Hcache, -⟩
   ihave #Hops' := (opsAt_listRel sl os).1 $$ Hops
   icases Hops' with ⟨%vs, #Hvs, #Hrel⟩
   ihave #Hrel' := Hrel

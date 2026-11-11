@@ -348,7 +348,7 @@ restart point `rp` (`applyResStopR`: the ghost rows at the ghost log `ghostOf rp
 (`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
 (`raftNode.stop.spec`'s post; R6, 2026-11-07, the `lean` merge: the serving readers as mvcc's
 reader tokens, until then 128 of mvcc's `storeReader`s) with the records' stored commit at least the ghost log (inside the
-window `|A₀|`, from the restart data, `rnRestartOk_commit`), the member's image at the stopped
+window `|A₀|`, from `raftNode.stop`'s post since S1, until then the restart data's `rnRestartOk_commit`), the member's image at the stopped
 incarnation's names, of the ghost log (inside the window the backend's `A₀`: both committed and of
 one length, so equal; past it Go's `A`). Scope (the stop request's, `srvStop.scope`): `ai₀ = 0`,
 `pre = []`, auth off, no compactor (R2c-2: from no compaction mode, `srvStop.census_readers`; until

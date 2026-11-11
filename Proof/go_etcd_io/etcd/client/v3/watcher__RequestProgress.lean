@@ -38,7 +38,7 @@ theorem watcher.RequestProgress.wp_proof
     watcher.RequestProgress.spec (GF := GF) (hG := hG) := by
   intro V w ctx cs
   iloeb as IH
-  wp_start as ⟨#Hw, #Hctx⟩
+  wp_start as ⟨#Hw, #Hctx, #HctxO⟩
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
   icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, #Hlgok, %Hlgb⟩
@@ -50,7 +50,8 @@ theorem watcher.RequestProgress.wp_proof
   iunfold ctxErrClientAllW at HcA
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce
-  ihave #Hwctx := EtcdGrove.context.watchCtx_of_isContext ctx cs $$ Hctx
+  ihave #Hwctx := EtcdGrove.context.watchCtx_of_isContext ctx cs $$ [Hctx HctxO]
+  · iframe Hctx HctxO
   wp_auto
   wp_apply wp_key ctx cs $$ []
   · iframe #

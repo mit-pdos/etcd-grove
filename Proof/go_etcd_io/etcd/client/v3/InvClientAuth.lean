@@ -234,7 +234,8 @@ def lessorAtS (l conn : Loc) : IProp GF :=
       (scd : context.ContextDesc (IProp GF)) (lg : Loc) (d : time.Duration) (γr : GName)
       (rlc : Loc) (sl : GoSlice),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
-    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗ context.isContext sc scd ∗
+    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗
+    (context.isContext sc scd ∗ metadata.outgoingCtxOkC sc) ∗
     lsF go!"lg" l ↦□ lg ∗ zapLoggerOk lg ∗
     lsF go!"firstKeepAliveTimeout" l ↦□ d ∗
     structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l ↦□
@@ -465,7 +466,7 @@ theorem ctxErrClient_quiet (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.r
     simp at Hag
   | _ =>
     iunfold ctxQuiet at Hq
-    icases Hq with ⟨-, #Hq⟩
+    icases Hq with ⟨-, #Hq, -⟩
     iapply Hq
     inext
     iapply HΦ
@@ -480,18 +481,16 @@ theorem ctxErrClient_quiet (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.r
 token fetch calls `Authenticate` with a quiet caller's context at it). -/
 theorem quiet_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (ci : GoInterfaceOk) :
-    ctxQuiet (GF := GF) ci ⊢ |==> ∃ cd : context.ContextDesc (IProp GF),
+    ctxQuiet (GF := GF) ci ∗ metadata.outgoingCtxOkC ci ⊢ |==> ∃ cd : context.ContextDesc (IProp GF),
       ctxOk ci cd ∗ ctxErrClient ci cd := by
-  iintro #Hq
+  iintro ⟨#Hq, #Ho⟩
   imod dghostVar_alloc (GF := GF) false with ⟨%γc, Hc⟩
   imod dghostVar_persist γc 1 false $$ Hc with #Hc
   imodintro
   iexists (quietCd ⟨γc, γc⟩)
   isplitl []
-  · unfold ctxOk
-    iright
-    ileft
-    iexact Hq
+  · iapply ctxOk_of_quiet
+    iframe Hq Ho
   iapply ctxErrClient_quiet hAs ci ⟨γc, γc⟩
   iframe #
 

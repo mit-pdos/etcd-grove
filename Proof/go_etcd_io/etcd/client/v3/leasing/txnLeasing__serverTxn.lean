@@ -55,7 +55,7 @@ theorem txnLeasing.serverTxn.wp_proof
   intro txn lkv γ pfx ctx cs b lo
   wp_start as ⟨Htxn, Hrd, #Hcc, #Hlo, %Hsz⟩
   unfold ownTxnLeasing
-  icases Htxn with ⟨%t0, %B0, %csl, %tsl, %esl, %tops, %eops, -, -, -, Hl, #Hlkv, Hc, #Hctx,
+  icases Htxn with ⟨%t0, %B0, %csl, %tsl, %esl, %tops, %eops, -, -, -, Hl, #Hlkv, Hc, #Hctx, #HctxC,
     Hcs, Hcso, Hts, Htso, Hes, Heso, %Hops⟩
   obtain ⟨Ht, He⟩ := Hops
   unfold cmpsOwn opsOwn
@@ -114,7 +114,7 @@ theorem txnLeasing.serverTxn.wp_proof
       "Hrd" ∷ lkvReader lkv γ pfx) $$ [Hl Hc Hrd]
   · simp only [named]; iframe
   wp_for IH
-  wp_apply hguard $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $Hcc $Huopsat] as %cmps %gerr ⟨Hl, Hc, Hrd, Hg⟩
+  wp_apply hguard $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Huopsat] as %cmps %gerr ⟨Hl, Hc, Hrd, Hg⟩
   · ipureintro; exact LTxnBuild.sizeOk_ops Hsz
   icases Hg with (%Hgerr | ⟨%Hgerr, %ms, #Hms, %Hmsg⟩)
   · cases gerr with
@@ -139,7 +139,7 @@ theorem txnLeasing.serverTxn.wp_proof
     iintro %usl ⟨Husl, -⟩
     ipersist Husl
     wp_auto
-    wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+    wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
     iunfold txnBuilderSpecO at HBs
     icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit⟩
     wp_apply_raw HIf $$ %TxnBuild.empty %cmps %ms [$HB]
@@ -345,7 +345,7 @@ theorem txnLeasing.serverTxn.wp_proof
             exact runOps_gets_keys r s fos etcdKeyMax Hks x hx) $$ Hops
           with ⟨%kvss, %Hkl, %Hkk, Hro⟩
         wp_auto
-        wp_apply hrfb $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $Hcc $Hps $Hro] as %ferr ⟨Hl, Hc, Hrd⟩
+        wp_apply hrfb $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hps $Hro] as %ferr ⟨Hl, Hc, Hrd⟩
         · ipureintro; exact ⟨Hkl, Hkk⟩
         cases ferr with
         | ok e =>

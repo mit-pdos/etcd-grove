@@ -350,7 +350,8 @@ theorem Main.wp_proof
   -- `wctx, cancel := context.WithCancel(context.Background())`
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %wctx %γctx %cancel ⟨#Hcancel, #Hwctx, -⟩
+    as %wctx %γctx %cancel ⟨#Hcancel, #Hwctx, -, #wctxFrom⟩
+  ihave #wctxO := metadata.outgoingCtxOkC_bgFrom wctx $$ wctxFrom
   (try wp_auto)
   -- the watch's options (the cache's `watchEvents`')
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -404,7 +405,7 @@ theorem Main.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro
       refine ⟨?_, hnp, by decide⟩

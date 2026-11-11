@@ -209,6 +209,27 @@ theorem metadata.outgoingCtxOkC_bgFrom (ctx : GoInterfaceOk) :
   iframe #
   iapply metadata.outgoingCtxOkC_background
 
+/-- **`WithValue` at a key of another type than grpc's keeps the WP form** (premise fixes 8:
+`lessor.KeepAlive`'s `WithValue(ctx, keepAliveCtxKey{}, &ctx)`, `kaCtxOk`). -/
+theorem metadata.outgoingCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v : GoInterface)
+    (hk : google_golang_org.grpc.metadata.mdOutgoingKey.ty ≠ key.ty) :
+    (□ (∀ (k : GoInterface) (R : GoInterface → Prop),
+          ⌜k = GoInterface.ok key ∨ ∀ k' : GoInterfaceOk, k = GoInterface.ok k' → k'.ty ≠ key.ty⌝ -∗
+          ⌜k = GoInterface.ok key → R v⌝ -∗
+          (⌜k ≠ GoInterface.ok key⌝ -∗
+            {{ True }} (App (Val #(methods parent.ty go!"Value" parent.v)) (Val #k))
+            {{ (w : GoInterface), RET #w; ⌜R w⌝ }}) -∗
+          {{ True }} (App (Val #(methods c'.ty go!"Value" c'.v)) (Val #k))
+          {{ (w : GoInterface), RET #w; ⌜R w⌝ }})) -∗
+      metadata.outgoingCtxOk (GF := GF) parent -∗ metadata.outgoingCtxOk c' := by
+  iintro #Hw #Hp
+  unfold metadata.outgoingCtxOk
+  icases Hp with ⟨%vo, %hvo, #Ho⟩
+  iexists vo; iframe %hvo
+  iapply context.valueAt_of_valueWand parent c' key v _ _
+    (by intro k' h; simp only [metadata.mdOutgoingKeyAny, interface.mkOk,
+      GoInterface.ok.injEq] at h; subst h; exact hk) $$ Hw Ho
+
 end laws
 
 end EtcdGrove

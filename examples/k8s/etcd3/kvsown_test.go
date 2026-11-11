@@ -54,13 +54,13 @@ func kvsOwnStart(t *testing.T) *kubernetes.Client {
 	return c
 }
 
-func kvsOwnHammer(t *testing.T, kc *kubernetes.Client, render func()) {
+func kvsOwnHammer(t *testing.T, kc *kubernetes.Client, iters int, render func()) {
 	var wg sync.WaitGroup
 	for g := 0; g < 8; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 50; i++ {
+			for i := 0; i < iters; i++ {
 				resp, err := kc.List(context.Background(), "/k/", kubernetes.ListOptions{})
 				if err != nil {
 					t.Error(err)
@@ -88,7 +88,7 @@ func kvsOwnHammer(t *testing.T, kc *kubernetes.Client, render func()) {
 // touches the array. The bound `grpc.EnableTracing = false` is needed: with tracing on, grpc keeps
 // every reply for /debug/requests (`notes/k8s-7e-1-handoff.md`, TestTracingRace).
 func TestDefaultNoRace(t *testing.T) {
-	kvsOwnHammer(t, kvsOwnStart(t), nil)
+	kvsOwnHammer(t, kvsOwnStart(t), 50, nil)
 }
 
 // TestTracingRace is TestDefaultNoRace's positive control (the Freeze review of k8s 7e, 2026-11-10):
@@ -111,5 +111,7 @@ func TestTracingRace(t *testing.T) {
 		w := httptest.NewRecorder()
 		trace.Render(w, httptest.NewRequest("GET", "/debug/requests?fam=grpc.Sent.etcdserverpb.KV&b=0&exp=1", nil), true)
 	}
-	kvsOwnHammer(t, c, render)
+	// 200 calls per goroutine, not TestDefaultNoRace's 50: one run is more likely to hit the race
+	// under load (gates 9d also retries a run that misses it, up to 3 attempts)
+	kvsOwnHammer(t, c, 200, render)
 }
