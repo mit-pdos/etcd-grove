@@ -64,24 +64,53 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     (`3:E:produced2/consumed1`, `produced∞`, callback hand-off) and stale axioms are reported;
     selftests 30/30 + stale check. **Waiting for pf8c C3 before B1b.**
 
+- **B1b, in progress** (after merging `lean` `47d7b2f2cd`, merge commit `179bbad313`; commits
+  `7eb2d150b4`, `6706577eb1`). Done and checked with `etc/lean-check.py -a` (0 errors):
+  - grpc package restated: the shared vocabulary moved from `InvGrpcRun.lean` to `InvGrpc.lean`
+    (`GrpcSrvCfg`, the axiom constants, `grpcAddrIs`/`grpcSrvCfg` and their agree laws,
+    `grpcRunOkMd`, `isGrpcRpcAt`, `grpcServerAt` as a definition) and `InvGrpcStream.lean`
+    (`grpcStreamRunOk`, `isGrpcStreamAt`, `grpcStreamServerAt`); `isGrpcRpcMd`/`isGrpcStreamMd`
+    over them; `isGrpcRpc := isGrpcRpcMd (GrpcSpec.md _)`; `grpc.serve`/`grpc.serveStream`
+    theorems; `grpcServes*`, `grpcSlotPool`, `grpcStreamMethodOkR`, the `_intro`s and
+    `grpc_serve(Stream)_rpcs` deleted; `grpcStreamMethodOk`/`grpcStreamHandlerOk` return `S`;
+    `GrpcMethod.handler`/`GrpcStreamMethod.handler : GoFunc`.
+  - `InvGrpcServer.lean`: `grpc.start` (joint `Nodup`, new post), `grpcSrvNew`/`descRegs`/
+    `descSRegs` over `GoFunc` with the flag invariant, `grpcServeTok` axiom gone, header fixed;
+    `grpcFullName_inj` and the new `grpcNames_nodup`, `descRegs_names` live here.
+  - `InvGrpcRun.lean`: `grpcServeTok` (renamed), `grpc.start'`, the stream adapter
+    `grpcStreamRunOk_of_pools` (with `srvStreamChainWP_fupd`/`_wand`).
+  - `trusted = ["Server.Serve"]` (`etc/goose.py --project etcd`); the model moved to
+    `TrustedCode/google_golang_org/grpc.lean` with `Server.Serve.impl := model.Serve`;
+    `ManualProof/google_golang_org/grpc.lean`; `grpc.Server.Serve.wp_proof` a theorem over
+    `grpc.model.Serve.spec` (takes `[google_golang_org.grpc.Assumptions]`).
+  - `RegisterService` + the six `Register*Server`: the stream-flag premise; flag facts added to
+    `etcdserverpbDescs` (KV, Lease, `pbDescOk`) and v3rpc's `svcDescsOk`/`descOk` (proved by the
+    generated init; `etc/gen-init.py` updated, `--check` clean); `RegisterHealthServer`'s post;
+    `bridge.New` over `grpcAddrIs`; `Invoke`/`NewStream` docstrings.
+  - Axioms vs `lean` (repository files): +11 (B1a) −10 = **+1**, as frozen.
+
 ## Next, in order
 
-1. Wait for premise-fixes-8c's C3 (edits `InvGrpc.lean`'s `ctxOk`); merge `lean` after it lands.
-2. B1b after pf8c C3: restatement and wiring (r5 §4.1 B1b): `trusted = ["Server.Serve"]` with
-   `Server.Serve.impl := model.Serve`; `grpcServeTokR` → `grpcServeTok`; `grpc.start`/`start'`;
-   `isGrpcRpcMd`/`isGrpcStreamMd` over `isGrpcRpcAt`/`isGrpcStreamAt`; the stream contract returns
-   `S` and the stream adapter `grpcStreamRunOk_of_pools`; delete `grpcSlotPool`, `grpcServes*`,
-   `grpc.serve*`; `RegisterHealthServer`, `srvInterceptorOk`, `bridge.New`; docstrings. Also
-   (freeze-cp1a.md §8.2): `descRegs`/`descSRegs` and `grpcSrvNew`'s `regs`/`sregs` retyped to
-   `GoFunc` handlers (`md.Handler'`), and `RegisterService` (+ the six `Register*Server`) takes
-   `⌜∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝`, discharged in
-   `v3rpc.Server` from the generated descriptors; `RegisterHealthServer`'s post: health `Watch` is
-   `ServerStreams` (a docstring claim, checked by T10b). `grpcSrvNew`'s docstring
-   (`InvGrpcServer.lean:112`) states the flag invariant for every producer.
-3. Before any landing: full build, `etc/tcb-report.py --check --update` (+11 in B1a, net +1 after
-   B1b), delete `Scratch/`.
-4. Gate for CP3: walk `□` callbacks independently (lifts the 15 caps), neutral case through defined
-   handles (the `Dn` transfer), then `--check`.
+1. **The boundary (STOP reported to etcd-grove-81):** B1b cannot build past the grpc package
+   without B2/B3. Pool-dependent: every serve site turns `grpcServerAt … ∗ replicate N S` and
+   `grpcMethodOkMd … S` into registrations, and now needs `□ grpcRunOkMd` per method, i.e. pool
+   handles (`isThreadPoolL` at levels 1-3) from B2 and B3's adapter instances:
+   `client/v3/Results.lean` (`etcd_kv_servedM_with`, lease served), `client/v3/AuthnServedOn.lean`,
+   `v3rpc/Results.lean` (auth served, `etcd_watch_served`), `etcdstart/{Served,ServedLease}.lean`,
+   `examples/etcd/auth/MainServe.lean`, `examples/etcd/watch/Served.lean`, `cache/v3/Results.lean`.
+   Stream `S` return: `_Watch_Watch_Handler` (spec and proof; `watchServer.Watch` keeps its slot:
+   B3's Watch restatement). Per-file list: `/shared/tmp/stageB/b1b/boundary.txt`.
+2. Mechanical B1b work left, not pool-dependent: `v3rpc/InvGrpcStart.lean` (`kvRegs` …
+   `leaseSReg` over `GoFunc`; membership lemmas through `intoVal_inj_func`,
+   `PostLifting.lean:725`); `v3rpc.Server` spec/proof (retype; flag discharge: KV `HkvD.2.2`, Watch
+   from `HwD.2`, Lease `HlD.2.2`, Cluster `HcD.2`, Auth from `asds` names `= []`, Maintenance
+   `HmD.2`; the joint `Nodup` post from `grpcNames_nodup`, ported from the spike's
+   `spike_v3rpc_nodup`); `NoRefusal.lean`, `ServerMetrics__InitializeMetrics` spec, `etcdstart/Defs`,
+   `cluster3/Defs` (bridge relation → `grpcAddrIs`); `srvInterceptorOk`'s lend (r5 §2.5);
+   link lists (`etc/link-lean-first-{common,cluster3}.txt`: `grpc_Server__Serve: model_Serve`,
+   `model_Serve: model_acceptRun model_acceptRunConns model_respond model_finishStream`, leaves).
+3. Then B2, B3; full build, tcb `--check --update` (net +1), collections, interfaces, gen-init,
+   gate; delete `Scratch/`.
 
 ## Pitfalls
 
