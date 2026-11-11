@@ -1365,7 +1365,7 @@ runs their translated initializers.''',
         '    $$ [] as %eNR -',
         '· isplitl',
         '  · iapply ownSlice_nil',
-        '  unfold EtcdGrove.fmt.argsOk; itrivial']},
+        '  fmt_args_intro; itrivial']},
     finish=['ipersist HErrUnsupportedRequest', 'ipersist HErrKeyRangeInvalid',
             'ipersist HErrCacheTimeout', 'ipersist HErrNotReady'] + FIN_PRE[:6] + [
             'imodintro', 'unfold cacheInit',
