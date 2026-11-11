@@ -982,6 +982,20 @@ broadcast. Left: those statement changes (`raft.appendEntry.spec`, `stepLeader.s
 `stepClose`, `gate_close`, `Step`'s `MsgProp` arm, every bundle mechanically), the `Replicate` lines'
 phase steps and facts, the self-acknowledgement's facts, the appends' gates, the bundle.
 
+**Q8 stage 1 (slice 22b), 2026-11-11 (branch `trace-check-q8s22b`): a candidate's stale or rejected
+`MsgApp` and pending vote response done; three statement questions.** Decided by the agent
+(`notes/decisions.md`, "Q8 stage 1 (slice 22b)"). Done: `stepBundle_traced_candAppSR b`
+(`TracedRaftStepRecvCandApp.lean`); `stepBundle_traced.onC` (a path reading the configuration) and
+`stepBundle_traced_candVoteRespPending` (`TracedRaftStepRecvVoteResp.lean`); a leader's rejected
+`MsgAppResp`/`MsgHeartbeatResp` receive line (`phaseStepR_leadResp`, `fxPresR_leadResp`,
+`TracedRaftStepRecvLead.lean`). Questions (each with options there): (1) the vote's loss needs `stepClose`
+to know whether the step-down's gate ran (recommended: `stepOut`'s `G1` guarded by `¬ Hooked`), its win
+the close relaxation slice 19a decided for `MsgProp`; (2) an accepted `MsgApp`'s truncation does not
+preserve the frozen `QuorumLogF` from the facts alone (recommended: an inductive strengthening, after a
+TLC check); (3) no append gate bounds the message's `RejectHint`, which the send line's `TraceEv.Ok`
+reads (recommended: `mm.rejecthint = W64 0` in every append gate's premise, raft-internal). Tasks 3 and 4
+wait on (2) and (3).
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its

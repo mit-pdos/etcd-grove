@@ -44,7 +44,7 @@ vote response's path is `poll`'s outcome, which reads it. The premises and the c
 abbrev stepBundle_traced.onC (Path : CfgM → NState → MessageM → Prop) : Prop :=
   ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
-    (Λ : Option TraceEv → Prop),
+    (Λ : Option TraceEv → Prop) (bt : Bool),
   Path c s m →
   s.gh.tr = some γd →
   s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
@@ -57,14 +57,14 @@ abbrev stepBundle_traced.onC (Path : CfgM → NState → MessageM → Prop) : Pr
   c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
   s.role ≠ .preCandidate → TrRecvShape m ents →
   (m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []) →
-  (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗
+  (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
       (recvTokOf γd m ents ctx ∗
         □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
           isMessageC γ (absMsg ty m ents ctx))) ∗
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R
-        (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ))
+        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
 
 /-- A path that does not read the configuration. -/
 theorem stepBundle_traced.on_of_onC {Path : NState → MessageM → Prop}
@@ -81,10 +81,10 @@ def CandVoteRespPending (c : CfgM) (s : NState) (m : MessageM) : Prop :=
 /-- **The resources of a pending vote response**: after the receive line (`G0`) and the preamble (`G1`)
 raft's ghost state and the capability at the pinned idle phase of the state after `recordVote` (`s1`);
 `False` at the others (no further gate runs). -/
-def vrPendR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s s1 : NState) (γd : GName)
+def vrPendR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s s1 : NState) (γd : GName)
     (tn : TraceNames) (cs0 cs1 : ServerC) (P0 : List Etcdraft.Msg) (Λ : Option TraceEv → Prop) (k : Nat)
     (ma : Etcdraft.Msg) : StepG GF where
-  G := iprop(trCapB (some γd) γ r id c true (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
+  G := iprop(trCapB (some γd) γ r id c bt (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
   G0 := fun _ => iprop(ownStepGhost γ md c id s ∗
     trCapB (some γd) γ r id c true (IdlePin s1 tn.voters cs1 P0) (fun o => o.isSome = true))
   G1 := fun _ => iprop(ownStepGhost γ md c id s ∗
@@ -102,7 +102,7 @@ pending**: the receive line (the specification's `HandleRequestVoteResponse`, am
 more; the end state is raft's after `recordVote`. -/
 theorem stepBundle_traced_candVoteRespPending :
     stepBundle_traced.onC (GF := GF) (hG := hG) CandVoteRespPending := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
   obtain ⟨hTy, hterm, hrole, hnq, hnl⟩ := hp
   have hmty : mtypeOf m.Type' = some .voteResp := by rw [hTy]; rfl
@@ -121,7 +121,7 @@ theorem stepBundle_traced_candVoteRespPending :
   icases Htok $$ %MsgType.voteResp %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
@@ -129,7 +129,7 @@ theorem stepBundle_traced_candVoteRespPending :
   have hmty' : ma.type = .requestVoteResponse := hvr rfl
   have hmd' : ma.dest = idAbs id := by rw [hmd]; exact congrArg idAbs hto'
   imodintro
-  iexists vrPendR γ md c r id s { s with votes := recordVote s.votes m.From' (!m.Reject') } γd tn cs0
+  iexists vrPendR bfl γ md c r id s { s with votes := recordVote s.votes m.From' (!m.Reject') } γd tn cs0
     (toC (confAbs tn.voters) (respSrv a0 ma)) P0 Λ k ma
   isplitl [Hcap Htok]
   · dsimp only [vrPendR]; iframe Hcap Htok
@@ -150,7 +150,7 @@ theorem stepBundle_traced_candVoteRespPending :
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .voteResp m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .voteResp evt true k ma (fun _ => False)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .voteResp evt bfl k ma (fun _ => False)
         (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       iframe Hgh Hc
       isplitr
@@ -198,6 +198,7 @@ theorem stepBundle_traced_candVoteRespPending :
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's tally recorded, nothing more
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,

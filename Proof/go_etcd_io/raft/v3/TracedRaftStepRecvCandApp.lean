@@ -224,7 +224,7 @@ receive line (`ReturnToFollowerState`, then the specification's stale or rejecti
 `BecomeFollower` line (skipped: `bfCond` reads the receive line), then the response's send line, which the
 specification skips. -/
 theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (hG := hG) (CandAppSR b) := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
   obtain ⟨hTy, hterm, hrole, hstl, hrjc⟩ := hp
   have hmty : mtypeOf m.Type' = some .app := by rw [hTy]; rfl
@@ -249,7 +249,7 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
   icases isMessage_app_index0 γ (absMsg .app m ents ctx) rfl $$ Hm with %Hi0
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
@@ -284,7 +284,7 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
   have hcs1 : (toC (confAbs tn.voters) { rtfSrv a0 (idAbs m.From') with lead := idAbs m.From' }).state =
       Etcdraft.follower := rfl
   imodintro
-  iexists bfR γ md c r id s γd tn cs0
+  iexists bfR bfl γ md c r id s γd tn cs0
     (toC (confAbs tn.voters) { rtfSrv a0 (idAbs m.From') with lead := idAbs m.From' }) P0
     (P0 ++ [utAppResp b id m.From' (rtfSrv a0 (idAbs m.From'))]) Λ
     (RecvLast evt id s c (absMsg .app m ents)) (RecvLast evt id s c (absMsg .app m ents)) k ma
@@ -355,7 +355,7 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .app m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs .app evt true k ma _
+      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs .app evt bfl k ma _
         (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       isplitl [Hg Hr]
       · iunfold ownStepGhost; iframe Hg Hr
@@ -514,6 +514,7 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and stale or rejecting handling, the specification's
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨pvs, ht, hint, hhi, hht, hse⟩ : ∃ (pvs : GMap w64 Progress) (ht hint : w64),
