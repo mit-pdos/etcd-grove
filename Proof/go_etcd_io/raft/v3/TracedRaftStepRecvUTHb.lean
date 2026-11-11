@@ -283,7 +283,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
         hgt $$ Hg Hm with ⟨Hg, %Hcz⟩
       imodintro
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-      have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := hok .heartbeat hmty hreT htrd
+      have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := (hok .heartbeat hmty hreT htrd).1
       have hc1 : 1 ≤ uint.Z (toPState s).commit := by
         have : (1 : Int) ≤ γ.reBoot.length := by
           have := List.length_pos_iff.mpr hb0; omega
@@ -362,7 +362,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
           imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
           imodintro
           have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl
-          have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := hok .heartbeat hmty hreT htrd
+          have hnb : (absMsg .heartbeat m ents).NumsBelow traceNumBound := (hok .heartbeat hmty hreT htrd).1
           have hn := hbresp_nums' id m.Term' m.From' ctx hmT
           have hcm : uint.nat (plogCommitTo s.logst.committed m.Commit') < traceNumBound := by
             unfold plogCommitTo; split
@@ -421,7 +421,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
           lead := m.From' } m ctx) cs P := by
       intro hre
       rintro C cs P ⟨rfl, rfl, rfl⟩
-      have hnb := hok .heartbeat hmty hre htrd
+      have hnb := (hok .heartbeat hmty hre htrd).1
       have hmc63 : uint.Z m.Commit' < 2 ^ 63 := (numsBelow_63 hnb).2.2.2.2
       have hP0' : P0 = pendAbs tn.voters s.outbox := hP0
       rw [hP0']
@@ -435,7 +435,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
       simp only [heartbeatResult, sendMsgs, List.mem_append, List.mem_singleton] at hx
       rcases hx with hx | rfl
       · exact .inl hx
-      · exact .inr (fun _ => hbresp_nums' id m.Term' m.From' ctx hmT)
+      · exact .inr (Msg.trOk_of_nums_hbresp rfl rfl (fun _ => hbresp_nums' id m.Term' m.From' ctx hmT))
     unfold stepOut
     dsimp only [bfR]
     icases Hout with (⟨Hgh, Hc⟩ | ⟨Hgh, Hc⟩ | ⟨Hgh, Hc, -⟩ | %h | ⟨%b, %N, %h⟩)

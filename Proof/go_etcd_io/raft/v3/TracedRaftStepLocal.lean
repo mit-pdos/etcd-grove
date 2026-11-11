@@ -56,6 +56,8 @@ theorem heartbeat_trOk (id to tm cm : w64) (cl : List w8) (ht : uint.nat tm < tr
     (hc : uint.nat cm < traceNumBound) :
     (Msg.mkV .heartbeat id to tm false (W64 0) (W64 0) cm (W64 0) [] [] cl).TrOk := by
   intro _
+  -- (Q18) a heartbeat without entries
+  refine ⟨?_, fun _ => rfl, fun h => by cases h⟩
   have h0 : uint.nat (W64 0) = 0 := rfl
   have hb : (0 : Nat) < traceNumBound := by unfold traceNumBound; omega
   refine ⟨ht, ?_, ?_, ?_, hc, ?_⟩ <;> simp only [List.length_nil, h0] <;> exact hb
@@ -150,7 +152,7 @@ theorem lineF_heartbeat (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (
     (fun e he => sendEvOf_notBoot he (by decide) (by decide) (by decide))
     (fun e _ => .inr rfl)
     (fun _ e he => sendEvOf_ok (W64 9) id s c _ e _ he (by decide) hTn Hb.1 Hb.2
-      (heartbeat_trOk id to s.term cm cl hTn hcn rfl) (Nat.le_refl _))
+      (heartbeat_trOk id to s.term cm cl hTn hcn rfl).1 (Nat.le_refl _))
     (fun h => by cases h)
   simp only [FxPresUT]
   iframe Htl Hf Hfx
