@@ -185,16 +185,6 @@ def RdOk (cfg : GSet w64) (rd : RdState) : Prop :=
 
 -- `CfgM.joint` (`alreadyJoint`) is in `Protocol/StepC.lean` since stage B3.
 
-/-- (2026-11-11, trace-check Q8 stage 1 slice 28c) **Whether an accepted `MsgAppResp` from `src` at
-`index` reaches `maybeCommit`**: the code's own test, `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index
-&& pr.State == StateProbe && pr.Next == pr.Match+1)`, at the sender's `Progress` `p` before the step
-(`MaybeUpdate` raises `Match` exactly when it is below `index`, and leaves `p` as it is otherwise).
-False when the sender has no `Progress` (no gate runs). -/
-def AppRespRan (s : NState) (src index : w64) : Prop :=
-  ∃ p : Progress, s.prvals !! src = some p ∧
-    (uint.Z p.matched < uint.Z index ∨
-      (p.matched = index ∧ p.state = .probe ∧ p.next = p.matched + W64 1))
-
 /-- `MsgAppResp` accepted from `src` at `index`: `s'` is `s` with the sender's `Match`
 raised as `MaybeUpdate` raises it (the `Progress` values are otherwise unconstrained:
 `pvs`), `committed` at `n` -- unchanged, or a `CommitOkC` index (a joint quorum) judged

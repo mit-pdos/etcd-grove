@@ -36311,7 +36311,7 @@ ones).
 ## Q8 stage 1 (slice 28c): a leader's accepted `MsgAppResp`, raft's side: `"Hgcommit"` given the run condition and a later credit, `CloseMid`'s third case, `Step`'s arm split, the family's ghost step; the lines not done (2026-11-11 · trace-check, Q8 stage 1 slice 28c; slice 27c's question taken by the coordinator as option (a), raft-internal, its form the agent's under the user's delegation · branch `trace-check-q8s28c`; DRAFT until trace-check's Freeze)
 
 **Done** (no axiom, no `sorry`, no frozen or client-visible statement changed; raft-internal):
-- *`stepLeader.spec`* (`Spec/go_etcd_io/raft/v3/stepLeader.lean`): `AppRespRan s src idx` (new), the code's
+- *`stepLeader.spec`* (`Spec/go_etcd_io/raft/v3/stepLeader.lean`): `AppRespRan s src idx` (new, in `LemmasStepLeader.lean` beside `appRespMatch`: a spec file exposes only its spec), the code's
   own test `pr.MaybeUpdate(m.Index) || (pr.Match == m.Index && pr.State == StateProbe && pr.Next ==
   pr.Match+1)` at the sender's `Progress` before the step. `"Hgcommit"` takes `⌜AppRespRan s m.From'
   m.Index'⌝` and `£ 1`; `AppRespAcceptedC` gains `(AppRespRan → ∃ b N, maybeCommitOut c { s with prvals :=
