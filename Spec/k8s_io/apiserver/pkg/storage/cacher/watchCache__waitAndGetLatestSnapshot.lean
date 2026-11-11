@@ -8,6 +8,7 @@ error; or an error (the wait timed out). Lean-first (no Rocq counterpart).
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.DefsWC
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -31,7 +32,8 @@ variable [btree_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 abbrev watchCache.waitAndGetLatestSnapshot.spec : Prop :=
   ∀ (wc : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) (ctx : GoInterface) (minRV : w64)
     (mv : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗ isWC wc γ Ψ ∗ sync.ownRWMutex (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗ isWC wc γ Ψ ∗ sync.ownRWMutex (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) ∗
+      k8sctx.spanCtx ctx }}
     (App (App (App (App (Val (wc @!! go.GoType.PointerType watchCache.ty @!! go!"waitAndGetLatestSnapshot")) (Val #ctx)) (Val #false)) (Val #minRV))
       (Val #mv))
   {{ (snap : GoInterface) (rv : w64) (idx : GoString) (err : GoInterface),

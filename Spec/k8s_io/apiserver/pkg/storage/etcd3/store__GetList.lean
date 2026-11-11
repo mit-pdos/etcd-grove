@@ -15,6 +15,8 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ListDefs
 public import Proof.k8s_io.apiserver.pkg.storage.SelDefs
 
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
+
 @[expose] public section
 
 noncomputable section
@@ -52,7 +54,7 @@ abbrev store.GetList.spec : Prop :=
         opts.Predicate'.Continue' = [] ∧ uint.Z n < 2 ^ 63 ∧
         0 ≤ sint.Z opts.Predicate'.Limit'⌝ ∗
       selPredOk c.S opts.Predicate' sel emp ∗ listContractOk c L ∗ rangeStreamOff ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ ctxNeverDone (GoInterface.ok ci) ∗ threadTok ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ ctxNeverDone (GoInterface.ok ci) ∗ threadTok ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       L.listAt lx [] rv0 cont0 rem0 ∗
       (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) ∗

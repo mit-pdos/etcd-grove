@@ -62,7 +62,7 @@ theorem store.Get.wp_proof
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k n Q hQ
-  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, Hout, Hau⟩
+  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, Hau⟩
   obtain ⟨hk, hkl, hrv⟩ := Hpre
   ihave #Hst0 := Hst
   iunfold isStore at Hst
@@ -97,7 +97,11 @@ theorem store.Get.wp_proof
   rw [hk] at Hpk
   obtain ⟨rfl, rfl⟩ := Hpk
   (try wp_auto)
-  wp_apply wp_GetAuditIDTruncated as %aid -
+  ihave #Hk8a := Hk8
+  iunfold k8sctx.k8sCtxOk at Hk8a
+  icases Hk8a with ⟨#Haud, -, -⟩
+  wp_apply wp_GetAuditIDTruncated ci $$ [] as %aid -
+  · iframe #
   wp_apply wp_String as %kv0 -
   wp_apply wp_String as %kv1 -
   (try wp_auto)

@@ -375,7 +375,7 @@ theorem store.GuaranteedUpdate.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GuaranteedUpdate.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd key dest o0 rv0 ign pp pr cx ca f uf W _ Φu k
-  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, Hout, #Hpp, Hca, HW, #Hau, #Hup⟩
+  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, #Hpp, Hca, HW, #Hau, #Hup⟩
   obtain ⟨hk, hkl, hfsz, hzsz, hcsz, hD1⟩ := Hpre
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -421,7 +421,11 @@ theorem store.GuaranteedUpdate.wp_proof
   rw [hk] at Hpk
   obtain ⟨rfl, rfl⟩ := Hpk
   (try wp_auto)
-  wp_apply wp_GetAuditIDTruncated as %aid -
+  ihave #Hk8a := Hk8
+  iunfold k8sctx.k8sCtxOk at Hk8a
+  icases Hk8a with ⟨#Haud, -, -⟩
+  wp_apply wp_GetAuditIDTruncated ci $$ [] as %aid -
+  · iframe #
   wp_apply wp_String as %kv0 -
   wp_apply wp_String as %kv1 -
   (try wp_auto)

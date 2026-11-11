@@ -10,6 +10,7 @@ module
 
 public import Spec.context.WithTimeoutBackground
 public import Proof.google_golang_org.grpc.metadata.Outgoing
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -33,7 +34,8 @@ variable [package_sem : context.Assumptions]
 context's outgoing metadata is none. Go: grpc stores outgoing metadata under its own unexported key
 (`mdOutgoingKey{}`, `metadata.NewOutgoingContext`/`AppendToOutgoingContext`), `Background()` holds
 no value, and `WithTimeout` adds none (a `*timerCtx` whose `Value` defers to its parent), so
-`FromOutgoingContext` of it finds nothing. -/
+`FromOutgoingContext` of it finds nothing. (premise-fixes-7) Its library values are well formed
+(`context.libCtxOk ctx'`): it answers every library key with `Background()`'s `nil`. -/
 abbrev context.WithTimeoutBackgroundMd.spec : Prop :=
   ∀ (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.isClosedchanInit }}
@@ -43,7 +45,8 @@ abbrev context.WithTimeoutBackgroundMd.spec : Prop :=
       RET (PairV #(interface.ok ctx') #cancel);
       □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
         WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
-      context.isContext ctx' cd ∗ ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ }}
+      context.isContext ctx' cd ∗ ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ ∗
+      context.libCtxOk ctx' }}
 
 end spec
 

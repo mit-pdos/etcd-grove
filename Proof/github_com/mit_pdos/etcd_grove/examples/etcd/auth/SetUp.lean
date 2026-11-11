@@ -177,7 +177,7 @@ theorem SetUp.wp_proof
     wp_apply context.wp_Background
     (try wp_auto)
     wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout⟩
+      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout, -⟩
     ihave #Hx : setupCtx s conn (GoInterface.ok cctx) $$ []
     · iunfold setupCtx; iframe Hctok Htls; ipureintro; exact Hout
     (try wp_auto)

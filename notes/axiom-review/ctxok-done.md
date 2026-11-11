@@ -66,3 +66,10 @@ context whose `Value` panics would refute them the same way:
 `kmetrics.HistogramVec.WithContext`, `tracing.SpanFromContext`. Their callers pass grpc's server
 contexts or contexts from the model; the repair is a predicate whose `Value` clause is weaker than
 `isContext`'s, to design on its own (decided by etcd-grove-81, 2026-11-10: not this stage).
+
+(premise-fixes-7, 2026-11-11) Correction: `perRPCCredential.GetRequestMetadata` does not read `ctx`
+(`client/v3/credentials/credentials.go:69-77`); its axiom is true as stated, and its docstring now
+says so. The other six are repaired by premise-fixes-7 (`logUnaryRequestStats`,
+`GetAuditIDTruncated`, `HistogramVec.WithContext`, `tracing.SpanFromContext`: `Proof/context/LibKeys.lean`,
+`Proof/k8s_io/apiserver/pkg/audit/CtxKeys.lean`) and premise-fixes-8 (`FromIncomingContext`,
+`AuthInfoFromTLS`).

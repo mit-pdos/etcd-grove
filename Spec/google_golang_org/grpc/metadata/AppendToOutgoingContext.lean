@@ -31,17 +31,21 @@ appended to `added`): the same `Deadline`, `Done` and `Err`, and `Value` at the 
 own key (a `valueCtx` delegates them to its parent: `isContext` with `ctx`'s descriptor, its values
 changed, as `withVersion`'s), and outgoing metadata `ctx`'s with `v` appended to the values of `k`
 (a key with no upper-case letter: grpc lower-cases it, and `FromOutgoingContext` and the transport
-merge `added` after `md`). Its panic on an odd number of arguments is unreachable (two). -/
+merge `added` after `md`). Its panic on an odd number of arguments is unreachable (two).
+(premise-fixes-7) It reads `ctx.Value(mdOutgoingKey{})` (`metadata.go:254`), so it takes
+`metadata.outgoingCtxOk ctx`, and the context it returns has it too: its `Value` at that key is the
+new `rawMD` (`builtRawMD`). -/
 abbrev metadata.AppendToOutgoingContext.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
     (k v : GoString),
   metadata.lowerKey k →
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗
-      context.isContext ctx cd ∗ sl ↦*{dq} [k, v] }}
+      context.isContext ctx cd ∗ metadata.outgoingCtxOk ctx ∗ sl ↦*{dq} [k, v] }}
     (App (App (Val (@! google_golang_org.grpc.metadata.AppendToOutgoingContext))
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (c' : GoInterface), RET #c'; ∃ (ci : GoInterfaceOk) (vs : GMap GoInterface GoInterface),
       ⌜c' = GoInterface.ok ci⌝ ∗ context.isContext ci { cd with Values := vs } ∗
+      metadata.outgoingCtxOk ci ∗
       ⌜metadata.outgoingOf c' = metadata.mdAdd (metadata.outgoingOf (GoInterface.ok ctx)) k v⌝ ∗
       sl ↦*{dq} [k, v] }}
 

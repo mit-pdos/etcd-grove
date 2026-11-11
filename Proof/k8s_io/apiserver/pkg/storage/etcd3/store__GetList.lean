@@ -108,7 +108,7 @@ theorem store.GetList.wp_proof
     store.GetList.spec (GF := GF) (hG := hG) := by
   have hKind : go.IsStrictlyComparable _root_.Perennial.reflect.Kind.underlying w64 := wp_KindCompare
   intro _ _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP hnr
-  wp_start as ⟨#Hst, %Hpre, #Hsel, #Hlc, #Hrs, #Hctx, #Hce, #Hnd, Htt, %htb, Hlx, HQ, #HP⟩
+  wp_start as ⟨#Hst, %Hpre, #Hsel, #Hlc, #Hrs, #Hctx, #Hce, #Hk8, #Hnd, Htt, %htb, Hlx, HQ, #HP⟩
   obtain ⟨hk, hkl, hrv, hmatch, hcont, hn63, hlim⟩ := Hpre
   ihave #Hst0 := Hst
   iunfold isStore at Hst
@@ -164,7 +164,11 @@ theorem store.GetList.wp_proof
     · exact Or.inr (Or.inl rfl)))
     $$ [$Hfsl] as %fname -
   (try wp_auto)
-  wp_apply wp_GetAuditIDTruncated as %aid -
+  ihave #Hk8a := Hk8
+  iunfold k8sctx.k8sCtxOk at Hk8a
+  icases Hk8a with ⟨#Haud, -, -⟩
+  wp_apply wp_GetAuditIDTruncated ci $$ [] as %aid -
+  · iframe #
   wp_apply wp_String as %kv0 -
   wp_apply wp_String as %kv1 -
   (try wp_auto)
@@ -179,7 +183,7 @@ theorem store.GetList.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', #Hnd'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -, #Hnd'⟩
   · iframe #
   ihave #Hnd2 := Hnd' $$ Hnd
   iunfold ListSpec.listAt at Hlx

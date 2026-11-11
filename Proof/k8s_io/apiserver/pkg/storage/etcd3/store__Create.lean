@@ -68,7 +68,7 @@ theorem store.Create.wp_proof
     (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
     store.Create.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hobj, Hout, Hau⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, #Hk8, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
     #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
@@ -106,7 +106,11 @@ theorem store.Create.wp_proof
   rw [hk] at Hpk
   obtain ⟨rfl, rfl⟩ := Hpk
   (try wp_auto)
-  wp_apply wp_GetAuditIDTruncated as %aid -
+  ihave #Hk8a := Hk8
+  iunfold k8sctx.k8sCtxOk at Hk8a
+  icases Hk8a with ⟨#Haud, -, -⟩
+  wp_apply wp_GetAuditIDTruncated ci $$ [] as %aid -
+  · iframe #
   wp_apply wp_String as %kv0 -
   wp_apply wp_String as %kv1 -
   (try wp_auto)

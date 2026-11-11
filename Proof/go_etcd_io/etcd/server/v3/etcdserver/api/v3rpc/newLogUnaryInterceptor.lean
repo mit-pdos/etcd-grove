@@ -62,6 +62,9 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   · iframe; iframe #
   wp_if_destruct
   · exact absurd rfl Hlgnn
+  ihave #Hlib := libCtxOk_of_runCtx ci $$ Hrc
+  iunfold context.libCtxOk at Hlib
+  icases Hlib with ⟨-, -, #Hpeer, -⟩
   wp_apply wp_log $$ []
   · iframe #
   iapply HΨ

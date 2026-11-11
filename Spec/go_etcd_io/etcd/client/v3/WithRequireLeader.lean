@@ -28,7 +28,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 the `hasleader` metadata): a context `c` that is never done (its `Done()` is `Background()`'s,
 `nil`), so that `context.WithCancel(c)` is a cancellable context done only when cancelled
 (`propagateCancel` returns at once: `c.Done()` is `nil`), as `context.WithCancelTodo` says of
-`TODO()`. -/
+`TODO()`. (premise-fixes-7) Its library values are well formed (`context.libCtxOk ctx'`): it
+answers grpc's outgoing-metadata key with the `rawMD` `NewOutgoingContext` stored (`builtRawMD`),
+and the other library keys with `Background()`'s `nil`. -/
 abbrev WithRequireLeader.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (@! go_etcd_io.etcd.client.v3.WithRequireLeader))
@@ -40,7 +42,8 @@ abbrev WithRequireLeader.spec : Prop :=
           RET (PairV #(interface.ok ctx') #cancel);
           context.cancelSpec cancel γ' iprop(True) ∗
           context.isContext ctx'
-            { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } }}) }}
+            { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
+          context.libCtxOk ctx' }}) }}
 
 end spec
 

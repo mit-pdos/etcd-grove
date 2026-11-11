@@ -58,6 +58,7 @@ module
 
 public import Perennial.Proof.context
 public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
@@ -184,13 +185,18 @@ unexported key of otel's `trace` package, set only by `trace.ContextWithSpan`), 
 interceptors; otelgrpc's stats handler (`otelgrpc.NewServerHandler`, `TagRPC`) stores the span
 its tracer's `Start` returns (an SDK span, or the no-op tracer's `Span`, over the remote parent
 `ContextWithRemoteSpanContext` stores, a `nonRecordingSpan`), each a span whose `End`,
-`AddEvent` and `RecordError` return. -/
+`AddEvent` and `RecordError` return. And (premise-fixes-7, 2026-11-11) its library values are
+well formed (`context.libCtxOk`, `Proof/context/LibKeys.lean`): grpc's server stores under
+`mdIncomingKey{}` the `MD` its transport read from the stream's headers (`transportMD`), under
+`peerKey{}` the transport's `*Peer` (`transportPeer`), nothing under `mdOutgoingKey{}` (only
+`NewOutgoingContext`/`AppendToOutgoingContext` store there, which no server code here calls on a
+run's context), and under otel's `currentSpanKey` nothing or otelgrpc's span (`otelSpan`). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
   iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
     ▷ Φ #GoInterface.nil -∗
     WP (App (Val #(methods ci.ty go!"Value" ci.v))
       (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }}) ∗
-    trace.spanCtxOk ci)
+    trace.spanCtxOk ci ∗ context.libCtxOk ci)
 
 instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF := GF) ci) := by
   unfold grpcRunCtx; infer_instance
@@ -201,7 +207,15 @@ theorem spanCtxOk_of_runCtx (ci : GoInterfaceOk) :
     grpcRunCtx (GF := GF) ci ⊢ trace.spanCtxOk ci := by
   iintro #H
   iunfold grpcRunCtx at H
-  icases H with ⟨-, #H⟩
+  icases H with ⟨-, #H, -⟩
+  iexact H
+
+/-- **A run's context's library values are well formed** (`grpcRunCtx`'s third part). -/
+theorem libCtxOk_of_runCtx (ci : GoInterfaceOk) :
+    grpcRunCtx (GF := GF) ci ⊢ context.libCtxOk ci := by
+  iintro #H
+  iunfold grpcRunCtx at H
+  icases H with ⟨-, -, #H⟩
   iexact H
 
 /-- **A service method `h` meets `Spec` with the per-run resource `S`** (persistent; see the file

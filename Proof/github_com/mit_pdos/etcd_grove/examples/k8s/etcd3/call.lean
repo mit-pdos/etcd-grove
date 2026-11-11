@@ -325,6 +325,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     have hpre : c.pathPrefix = go!"/registry" := by
       unfold mkeyL at hpp; exact List.append_cancel_right hpp
     have hkk := prepareKeyM_eq _ _ _ _ hk
+    ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
+    · iapply k8sctx.k8sCtxOk_background; iPkgInit
     wp_apply (wp_GetList DObj sp c driverListSpec context.backgroundCtxVal cd x.ListKey' (listOptsV x)
         _ 0 [] none k n (selD x) (predEmptyL x) QL PL hQL hQLP hnr) $$ [Hlist Htt HQm] as %err0 ⟨Htt, Hres⟩
     · rw [hc]
@@ -423,6 +425,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · rw [hmk 0]; unfold crObjL; iexact Hp1
     ihave Hout := hob _ dzero 0 $$ [Hr0]
     · rw [← hz]; iexact Hr0
+    ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
+    · iapply k8sctx.k8sCtxOk_background; iPkgInit
     wp_apply (wp_Create DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #p1) (mkObj x) (rvStr 0)
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0) (storeKeyL x.Key')
@@ -618,6 +622,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         refine ⟨?_, fun _ => rfl⟩
         simp [kpreOf, hD1 hu h2]
       · cases h
+    ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
+    · iapply k8sctx.k8sCtxOk_background; iPkgInit
     wp_apply (wp_Update DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0)
         x.IgnoreNotFound' pp (kpreOf x) cx (caOf x) (updD eU x) uf W Φu (storeKeyL x.Key'))
@@ -678,6 +684,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       obtain ⟨n, hn, -⟩ := hx.2.2.2.2.1
       show parseRVD x.MinRV' = some (minOf x)
       unfold minOf; rw [hn]; rfl
+    ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
+    · iapply k8sctx.k8sCtxOk_background; iPkgInit
     wp_apply (wp_Get DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         ⟨x.IgnoreNotFound', x.MinRV'⟩ (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr»)
         dzero (rvStr 0) (storeKeyL x.Key') (minOf x) Q hQ) $$ [Hout Hpre] as %err0 Hres

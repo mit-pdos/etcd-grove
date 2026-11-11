@@ -19,6 +19,8 @@ public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Perennial.Proof.context.NewErrorString
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -168,6 +170,39 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
   rw [ctxErrClient_eq_errs]; iexact He
 
 end proofs
+
+section valueLaws
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A `channelContext` answers `nil` at every key** (premise-fixes-7). -/
+theorem chanCtx_valueNil (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
+    (sc : GoChan) (k : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ⊢
+      context.valueAt (chanCtxVal sc) k (· = GoInterface.nil) := by
+  iintro #Pw
+  unfold context.valueAt
+  iintro !> %Φ HΦ
+  iapply (wp_Value sc k) $$ [Pw]
+  · iexact Pw
+  inext
+  iintro -
+  iapply HΦ
+  ipureintro; rfl
+
+/-- **A `channelContext`'s library values are well formed** (`nil` at each key). -/
+theorem chanCtx_libCtxOk (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
+    (sc : GoChan) :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ⊢
+      context.libCtxOk (chanCtxVal sc) := by
+  iintro #Pw
+  iapply context.libCtxOk_of_nil
+  iintro !> %k -
+  iapply chanCtx_valueNil wp_Value sc k $$ Pw
+
+end valueLaws
 
 end EtcdGrove
 end Perennial

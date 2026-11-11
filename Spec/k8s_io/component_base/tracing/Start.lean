@@ -11,12 +11,20 @@ A context whose `Done()` is `nil` gives one too (k8s 7e-2, blocker B2, decided b
 checked at the pin by `examples/k8s7e2attack`'s `TestTracingStartDoneNil` (from
 `context.Background()`, noop tracer) and `TestTracingStartDoneNilSDK` (an SDK tracer provider's span
 in the context).
+
+(premise-fixes-7, 2026-11-11) It calls `trace.SpanFromContext(ctx).TracerProvider().Tracer(...)
+.Start(ctx, ...)` and `utiltrace.FromContext(ctx).Nest(...)`, so it takes the context's k8s values
+well formed (`k8sctx.k8sCtxOk`: a span whose `TracerProvider` panics, or a misbehaving `Value`,
+panics, `examples/premisefix/k8sctx`), and the context it returns has them too: otel's new span
+(`otelSpan`) under `currentSpanKey`, `utiltrace`'s nested trace (`builtTrace`) under
+`ContextTraceKey{}`, the parent's answer at every other key (`context.WithValue`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.k8s_io.component_base.tracing.Defs
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -37,11 +45,11 @@ variable [sem : go.Semantics]
 abbrev tracing.Start.spec : Prop :=
   ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString) (attrs : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing ∗ ctxOk ci cd ∗
-      ctxErrClient ci cd }}
+      ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci }}
     (App (App (App (Val (@! k8s_io.component_base.tracing.Start)) (Val #(GoInterface.ok ci)))
       (Val #name)) (Val #attrs))
   {{ (ci' : GoInterfaceOk) (sp : Loc), RET (PairV #(GoInterface.ok ci') #sp);
-      ⌜sp ≠ null⌝ ∗ ctxOk ci' cd ∗ ctxErrClient ci' cd ∗
+      ⌜sp ≠ null⌝ ∗ ctxOk ci' cd ∗ ctxErrClient ci' cd ∗ k8sctx.k8sCtxOk ci' ∗
       □ (ctxNeverDone (GoInterface.ok ci) -∗ ctxNeverDone (GoInterface.ok ci')) }}
 
 end spec

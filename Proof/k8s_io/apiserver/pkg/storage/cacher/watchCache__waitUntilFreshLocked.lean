@@ -49,7 +49,7 @@ theorem watchCache.waitUntilFreshLocked.wp_proof
   intro wc γ Ψ ctx rv
   -- `time.Duration`'s methods resolve (its underlying `int64` is not an interface)
   haveI : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
-  wp_start as ⟨#Hwc, Hrl, HP⟩
+  wp_start as ⟨#Hwc, Hrl, HP, #Hsvn⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold isWC

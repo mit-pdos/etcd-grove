@@ -39,6 +39,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Steps
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -77,7 +78,7 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
           c.S.storedSizeOk o') ∧
         -- the cached object's scope premise (D1; `issues/k8s-etcd3-cached-noop-skips-preconditions.md`)
         (∀ o r, ca = some (o, r) → pr.rv = none ∧ ∀ n, f o n = f o (uint.nat r))⌝ ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt dest o0 rv0 ∗ preAt pp pr ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt dest o0 rv0 ∗ preAt pp pr ∗
       cachedOk c (c.pathPrefix ++ k) cx ca ∗ W ∗
       ([∗list] x ∈ c.ms,
         k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preOk pr) f) W Φ) ∗

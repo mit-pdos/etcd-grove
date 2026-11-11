@@ -24,6 +24,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys
 
 @[expose] public section
 
@@ -54,7 +55,7 @@ abbrev store.Get.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ⌜prepareKeyM c.resourcePrefix key false = some k ∧ (c.pathPrefix ++ k).length ≤ opKeyMax ∧
         c.S.parseRV opts.ResourceVersion' = some n⌝ ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt out o0 rv0 ∗
       (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
         kvReadAu x.γr.kv (Q R m)) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType

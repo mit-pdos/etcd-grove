@@ -83,14 +83,14 @@ theorem wp_WithTimeout_bgMd (hWT : context.WithTimeoutBackgroundMd.spec (GF := G
         □ (∀ Φ : val → IProp GF, True -∗ ▷ (True -∗ Φ #()) -∗
           WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
         ctxOk ctx' cd ∗ ctxErrClient ctx' cd ∗ _root_.Perennial.context.isContext ctx' cd ∗
-        ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ }} := by
+        ⌜metadata.outgoingOf (GoInterface.ok ctx') = none⌝ ∗ context.libCtxOk ctx' }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci : _root_.Perennial.context.isClosedchanInit (GF := GF) $$ []
   · iapply _root_.Perennial.context.isClosedchanInit_of_init
     iexact Hpkg
   ihave #Hall := ctxErrClientAllW_of wp_ErrAny hAs $$ Hpkg
   iunfold ctxErrClientAllW at Hall
-  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd⟩
+  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd, #Hlib⟩
   · iframe #
   iapply HΦ
   iframe #
