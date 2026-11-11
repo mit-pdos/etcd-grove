@@ -72,6 +72,9 @@ def instDecidableEqMsgType : DecidableEq MsgType :=
 
 theorem psendMsgs.proj_votes (s : PState) (ms : List Msg) : (psendMsgs s ms).votes = s.votes
 
+theorem Msg.trOk_of_nums_hbresp {m : Msg} (hty : m.ty = MsgType.heartbeatResp) (hrj : m.reject =
+    false) (hn : m.ty.traced = true → Msg.NumsBelow traceNumBound m) : m.TrOk
+
 theorem padoptLeader.proj_outbox (s : PState) (src : w64) : (padoptLeader s src).outbox = s.outbox
 
 def pwinState (id : w64) (s : PState) (mt : GMap w64 w64) : PState :=
@@ -117,7 +120,9 @@ inductive MsgType : Type
   | MsgType.readIndexResp : MsgType
 
 def Msg.TrOk (m : Msg) : Prop :=
-  m.ty.traced = true → Msg.NumsBelow traceNumBound m
+  m.ty.traced = true →
+    Msg.NumsBelow traceNumBound m ∧
+      (m.ty = MsgType.heartbeat → m.entries = []) ∧ (m.ty = MsgType.heartbeatResp → m.reject = false)
 
 theorem PlogWf_wfR (b : entryID) (es : List EntryM) : PlogWf b es → PlogWfR b es
 
@@ -440,6 +445,9 @@ theorem plogMaybeAppend_batch (b : entryID) (es : List EntryM) (prev : entryID) 
     prev.index' ≤ uint.Z j → uint.Z j ≤ uint.Z prev.index' + ↑ents.length → plogTermAt b es' j =
     plogTermAt prev ents j
 
+theorem Msg.TrOk.nums {m : Msg} (h : m.TrOk) (ht : m.ty.traced = true) : Msg.NumsBelow traceNumBound
+    m
+
 def HbCtxOk (r : ReadOnly) (ctx : List w8) : Prop :=
   ctx = [] ∨ ∃ q, ctx = u64Le q ∧ uint.nat q ≤ uint.nat r.confirmed + r.pending.length
 
@@ -636,6 +644,9 @@ theorem HbCtxOk_release (r : ReadOnly) (id c : w64) (l : List (MessageM × List 
 
 def pvoteReq (id dst term : w64) (last : entryID) (cl : List w8 := []) : Msg :=
   Msg.mkV MsgType.vote id dst term false last.index' last.term' (W64 0) (W64 0) [] [] cl
+
+theorem Msg.trOk_of_nums {m : Msg} (hh : m.ty ≠ MsgType.heartbeat) (hr : m.ty ≠
+    MsgType.heartbeatResp) (hn : m.ty.traced = true → Msg.NumsBelow traceNumBound m) : m.TrOk
 
 theorem firstOcc_append_prefix (a b : List (Option (List w8))) : firstOcc a <+: firstOcc (a ++ b)
 
