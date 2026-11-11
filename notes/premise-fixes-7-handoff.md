@@ -44,6 +44,11 @@ isReqAuth*, Invoke/NewStream), the perRPCCredential docstring fix).
   `spanValOkNil ctx`), `newLogUnaryInterceptor`, auth example (`reqCtx`, `Work`, `SetUp`),
   `TimeoutCtx`, `NewLeaseFromLeaseClient`, k8s `call.lean` (`k8sCtxOk_background`).
 
+- Checkpoint data (after b95a5598b9): full build clean (flock, 64G); `tcb --check`: only
+  `raftpb.ConfChangeType.String.wp_proof` gone (baseline and 21 collections updated); gen-init
+  `--check` and errdesc-check ok; interfaces: only raft's `Changer__apply.txt` (item 3)
+  regenerated. Go tests `premisefix/{ctxvalue,k8sctx}` pass.
+
 ## STOP (waiting for etcd-grove-81): D5 and FromOutgoingContext ripple
 
 `watchCtx` gaining `outgoingCtxOk` (D5) forces it into the client's watch contracts

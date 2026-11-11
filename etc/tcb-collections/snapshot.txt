@@ -146,7 +146,6 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
-axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
