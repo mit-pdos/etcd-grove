@@ -502,7 +502,7 @@ theorem wp_absDisk_step (op : String) (v : val) (P : AbsDiskState → Prop)
     (Hdet : ∀ h s g e' h' s' g', AbsDiskStep op v h s g e' h' s' g' →
       h' = h ∧ e' = Val #() ∧ s' = f s) (Φ : val → IProp GF) :
     (|={E,∅}=> ∀ s, absDiskCtx (gooseAbsDiskGS (L := L)) s ==∗ ⌜P s⌝ ∗
-        absDiskCtx (gooseAbsDiskGS (L := L)) (f s) ∗ |={∅,E}=> Φ #())
+        absDiskCtx (gooseAbsDiskGS (L := L)) (f s) ∗ ▷ |={∅,E}=> Φ #())
     ⊢ WP (ExternalOp absDiskExt.name op (Val v)) @ st; E {{ Φ }} := by
   iintro HAU
   iapply wp_extStep op v Φ hv
@@ -536,7 +536,7 @@ theorem wp_absDisk_walStep (op : String) (v : val) (dir : GoString) (upd : WalDu
     (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
       (walDiskAt (L := L) dir (upd d) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some (upd d)⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some (upd d)⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name op (Val v)) @ st; E {{ Φ }} := by
   unfold walDiskAt walDirIs
   iintro HAU
@@ -565,7 +565,7 @@ theorem wp_absDisk_walStep (op : String) (v : val) (dir : GoString) (upd : WalDu
 theorem wp_WalAppend (dir : GoString) (o : WalOpG WalEnt) (d : WalDur) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
       (walDiskAt (L := L) dir { d with H := d.H ++ [o] } -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some { d with H := d.H ++ [o] }⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some { d with H := d.H ++ [o] }⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalAppend" (Val (PairV (#dir) (#(walCode o))))) @ st; E
       {{ Φ }} := by
   refine wp_absDisk_walStep "WalAppend" _ dir (fun d => { d with H := d.H ++ [o] }) (fun _ => True)
@@ -584,7 +584,7 @@ theorem wp_WalAppend (dir : GoString) (o : WalOpG WalEnt) (d : WalDur) (Φ : val
 theorem wp_WalNamed (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
       (walDiskAt (L := L) dir ({ d with named := true }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with named := true })⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some ({ d with named := true })⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalNamed" (Val (#dir))) @ st; E {{ Φ }} := by
   refine wp_absDisk_walStep "WalNamed" _ dir (fun d => { d with named := true }) (fun d => True)
     (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, fun _ => rfl⟩) ?_ ?_ d trivial Φ
@@ -600,7 +600,7 @@ theorem wp_WalNamed (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
 theorem wp_WalSync (dir : GoString) (n : Nat) (d : WalDur) (Hn : n ≤ d.H.length) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
       (walDiskAt (L := L) dir ({ d with m := max d.m n }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with m := max d.m n })⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some ({ d with m := max d.m n })⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalSync" (Val (PairV (#dir) (#(walCode n))))) @ st; E {{ Φ }} := by
   refine wp_absDisk_walStep "WalSync" _ dir (fun d => { d with m := max d.m n }) (fun d => n ≤ d.H.length)
     (by simp [val.isPanic]) (fun d => ⟨Nat.le_max_left _ _, Nat.le_refl _, id⟩) ?_ ?_ d Hn Φ
@@ -618,7 +618,7 @@ theorem wp_WalSync (dir : GoString) (n : Nat) (d : WalDur) (Hn : n ≤ d.H.lengt
 theorem wp_WalUnlock (dir : GoString) (p : Nat) (d : WalDur) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
       (walDiskAt (L := L) dir ({ d with unl := max d.unl p }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with unl := max d.unl p })⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some ({ d with unl := max d.unl p })⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode p))))) @ st; E {{ Φ }} := by
   refine wp_absDisk_walStep "WalUnlock" _ dir (fun d => { d with unl := max d.unl p }) (fun d => True)
     (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩) ?_ ?_ d trivial Φ
@@ -636,7 +636,7 @@ theorem wp_WalUnlock (dir : GoString) (p : Nat) (d : WalDur) (Φ : val → IProp
 theorem wp_WalPurge (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
       (walDiskAt (L := L) dir ({ d with pur := max d.pur d.unl }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with pur := max d.pur d.unl })⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some ({ d with pur := max d.pur d.unl })⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalPurge" (Val (#dir))) @ st; E {{ Φ }} := by
   refine wp_absDisk_walStep "WalPurge" _ dir (fun d => { d with pur := max d.pur d.unl }) (fun d => True)
     (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩) ?_ ?_ d trivial Φ
@@ -652,7 +652,7 @@ theorem wp_WalPurge (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
 theorem wp_WalUnsize (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
       (walDiskAt (L := L) dir ({ d with sized := false }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with sized := false })⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some ({ d with sized := false })⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalUnsize" (Val (#dir))) @ st; E {{ Φ }} := by
   refine wp_absDisk_walStep "WalUnsize" _ dir (fun d => { d with sized := false }) (fun d => True)
     (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩) ?_ ?_ d trivial Φ
@@ -669,7 +669,7 @@ theorem wp_WalUnsize (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
 theorem wp_WalCreate (dir : GoString) (md : List w8) (Φ : val → IProp GF) :
     (|={E,∅}=> walAbsent (L := L) dir ∗
       (walDiskAt (L := L) dir (walDurFresh md) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some (walDurFresh md)⌝ -∗ |={∅,E}=> Φ #())))
+        ⌜s'.wal !! dir = some (walDurFresh md)⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalCreate" (Val (PairV (#dir) (#md)))) @ st; E {{ Φ }} := by
   unfold walAbsent walDiskAt walDirIs
   iintro HAU
@@ -709,7 +709,7 @@ theorem wp_WalCreate (dir : GoString) (md : List w8) (Φ : val → IProp GF) :
 
 /-- `"DirDurable"` of `d`: `d`'s entry and its ancestors' durable (no WAL map needed). -/
 theorem wp_DirDurable (d : GoString) (Φ : val → IProp GF) :
-    (|={E,∅}=> dirDurable (L := L) d ={∅,E}=∗ Φ #())
+    (|={E,∅}=> dirDurable (L := L) d -∗ ▷ |={∅,E}=> Φ #())
     ⊢ WP (ExternalOp absDiskExt.name "DirDurable" (Val (#d))) @ st; E {{ Φ }} := by
   iintro HAU
   iapply wp_absDisk_step "DirDurable" _ (fun _ => True)
