@@ -349,5 +349,385 @@ theorem ownRaftGhost_appAccFacts (γ : RaftNames) (id : w64) (s : PState) (m : M
 
 end ghost
 
+
+section fx
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **A receiver's new log keeps `QuorumLogF`** (amendment A5's `quorumLogF_conflict`, for any new log
+of the receiver `r` at the request's term that keeps its committed prefix and every prefix the request
+agrees with, `hkeep`: a truncation to a length past the first conflict, `maybeAppend`'s new log): each
+committed prefix, kept from a term `t ≤` the request's with its certificate, agrees with the request
+(`commitCert_app`, with the receiver's raft facts of the request and the vote table), so `r` still holds
+it; no other server changes. -/
+theorem quorumLogF_appLog (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (r : Etcdraft.ID)
+    (m : Etcdraft.Msg) (hterm : m.term = (σ.s r).currentTerm) (hsrv : σ'.server = σ.server)
+    (hs : ∀ k, k ≠ r → σ'.s k = σ.s k) (hT : (σ'.s r).currentTerm = (σ.s r).currentTerm)
+    (hcm : committedL σ' r = committedL σ r)
+    (hkeep : ∀ P, P <+: (σ.s r).log → AppAgrees P m → P <+: (σ'.s r).log)
+    (src T : w64) (bL : entryID) (l fp ents : List EntryM) (idx lt : w64)
+    (hTm : m.term = uint.Z T) (hin : plogTermAt bL l idx = some lt)
+    (hsl : ents <+: plogFrom bL l (idx + W64 1)) (hidx1 : uint.Z idx + 1 < 2 ^ 64)
+    (hidx : m.prevLogIndex = uint.Z idx) (hents : m.entries = logAbs C C.length (uint.nat idx + 1) ents) :
+    votesTbl (GF := GF) γ ∗ QuorumLogF γ C σ ∗ leadPrefix γ src T bL l ∗ lpfull γ src T bL l fp ⊢
+      votesTbl γ ∗ QuorumLogF γ C σ' := by
+  have hcmA : ∀ k, committedL σ' k = committedL σ k := by
+    intro k; by_cases hk : k = r
+    · subst hk; exact hcm
+    · unfold committedL; rw [hs k hk]
+  iintro ⟨Htbl, #Hq, #Hp, #Hf⟩
+  iunfold QuorumLogF at Hq
+  ihave #HA : □ ∀ i, ⌜i ∈ σ.server⌝ → ((∃ t, ⌜KeptFrom σ (committedL σ i) t⌝ ∗
+      CommitCert γ C (committedL σ i) t) ∗ leadPrefix γ src T bL l ∗ lpfull γ src T bL l fp) $$ []
+  · imodintro
+    iintro %i %hi
+    iframe Hp Hf
+    iapply Hq $$ %i %hi
+  icases votesTbl_forall_list γ
+      (fun i => iprop((∃ t, ⌜KeptFrom σ (committedL σ i) t⌝ ∗ CommitCert γ C (committedL σ i) t) ∗
+        leadPrefix γ src T bL l ∗ lpfull γ src T bL l fp))
+      (fun i => iprop(∃ t, ⌜KeptFrom σ (committedL σ i) t ∧ (t ≤ m.term → AppAgrees (committedL σ i) m)⌝ ∗
+        CommitCert γ C (committedL σ i) t))
+      (fun i => by
+        iintro ⟨Htbl, ⟨%t, %hK, #Hc⟩, #Hp, #Hf⟩
+        by_cases ht : t ≤ m.term
+        · icases keep_pure (commitCert_app γ C (committedL σ i) t src T bL l fp ents idx lt m
+              (by rw [← hTm]; exact ht) hin hsl hidx1 hidx hents) $$ [$Htbl $Hc $Hp $Hf]
+            with ⟨⟨Htbl, -⟩, %hag⟩
+          iframe Htbl
+          iexists t
+          iframe Hc
+          ipureintro
+          exact ⟨hK, fun _ => hag⟩
+        · iframe Htbl
+          iexists t
+          iframe Hc
+          ipureintro
+          exact ⟨hK, fun h => absurd h ht⟩)
+      σ.server $$ [$Htbl $HA] with ⟨Htbl, #Hb⟩
+  iframe Htbl
+  iunfold QuorumLogF
+  imodintro
+  iintro %i %hi
+  rw [hsrv] at hi
+  ihave Hi := Hb $$ %i %hi
+  icases Hi with ⟨%t, %hK, #Hc⟩
+  iexists t
+  rw [hcmA i]
+  iframe Hc
+  ipureintro
+  refine keptFrom_of hsrv ?_ hK.1
+  intro k _ hpk htk
+  by_cases hkr : k = r
+  · subst hkr
+    refine ⟨hkeep _ hpk (hK.2 (by rw [hterm]; exact htk)), by rw [hT]; exact htk⟩
+  · rw [hs k hkr]; exact ⟨hpk, htk⟩
+
+/-- **The facts at an accepted append request's intermediate state** (`appMid`): the receiver `i`, a
+follower of the request's term, with raft's log `L`, its log replaced by `L'` (and the leader
+adopted), the bags unchanged. `L'` keeps the committed prefix (`htk`), its entries are the old log's or
+the request's (`hent`, for `SpecInv`), and it keeps every prefix the request agrees with (`hkeep`, for
+`QuorumLogF`, with the receiver's raft facts of the request); its records are raft's (`logRecs`). -/
+theorem simFx_appLog (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i : w64) (ma : Etcdraft.Msg)
+    (L L' : List EntryM) (j : Etcdraft.ID)
+    (hsrv : σ.server = confAbs C) (hiC : i ∈ C) (hdst : ma.dest = idAbs i)
+    (hf : (σ.s (idAbs i)).state = Etcdraft.follower)
+    (hterm : ma.term = (σ.s (idAbs i)).currentTerm) (hmem : ma ∈ σ.messages.domain)
+    (hlog : (σ.s (idAbs i)).log = logAbs C C.length 1 L) (hbL : BootTerms C.length 1 L) (hwL : PlogWf base0 L)
+    (hbL' : BootTerms C.length 1 L') (hwr' : PlogWfR base0 L') (hln' : L'.length < 2 ^ 63)
+    (hcl' : (σ.s (idAbs i)).commitIndex ≤ L'.length)
+    (htk : L'.take (σ.s (idAbs i)).commitIndex.toNat = L.take (σ.s (idAbs i)).commitIndex.toNat)
+    (hent : ∀ k e, (logAbs C C.length 1 L')[k]? = some e → (logAbs C C.length 1 L)[k]? = some e ∨
+        ∃ q, ma.entries[q]? = some e ∧ k = ma.prevLogIndex.toNat + q)
+    (hkeep : ∀ P, P <+: logAbs C C.length 1 L → AppAgrees P ma → P <+: logAbs C C.length 1 L')
+    (src T : w64) (bL : entryID) (l fp ents : List EntryM) (idx lt : w64)
+    (hTm : ma.term = uint.Z T) (hin : plogTermAt bL l idx = some lt)
+    (hsl : ents <+: plogFrom bL l (idx + W64 1)) (hidx1 : uint.Z idx + 1 < 2 ^ 64)
+    (hidx : ma.prevLogIndex = uint.Z idx) (hents : ma.entries = logAbs C C.length (uint.nat idx + 1) ents) :
+    votesTbl (GF := GF) γ ∗ simFx γ C σ ∗ logRecs γ base0 L ∗ logRecs γ base0 L' ∗
+        leadPrefix γ src T bL l ∗ lpfull γ src T bL l fp ⊢
+      votesTbl γ ∗ simFx γ C (withNode σ (idAbs i)
+        { σ.s (idAbs i) with log := logAbs C C.length 1 L', lead := j } _root_.id _root_.id) := by
+  obtain ⟨W, hW⟩ : ∃ W, W = withNode σ (idAbs i)
+      { σ.s (idAbs i) with log := logAbs C C.length 1 L', lead := j } _root_.id _root_.id := ⟨_, rfl⟩
+  rw [← hW]
+  have hWs : ∀ k, W.s k = if k = idAbs i then
+      { σ.s (idAbs i) with log := logAbs C C.length 1 L', lead := j } else σ.s k := by
+    intro k; rw [hW]; rfl
+  have hWo : ∀ k, k ≠ idAbs i → W.s k = σ.s k := by
+    intro k hk; rw [hWs, ite_eq_right_of_eq_false _ _ (eq_false hk)]
+  have hWi : W.s (idAbs i) = { σ.s (idAbs i) with log := logAbs C C.length 1 L', lead := j } := by
+    rw [hWs, ite_eq_left_of_eq_true _ _ (eq_true rfl)]
+  have hWsrv : W.server = σ.server := by rw [hW]; rfl
+  have hWm : W.messages = σ.messages := by rw [hW]; rfl
+  have hWp : W.pendingMessages = σ.pendingMessages := by rw [hW]; rfl
+  have hiS : idAbs i ∈ σ.server := by rw [hsrv, mem_confAbs]; exact hiC
+  iintro ⟨Htbl, Hfx, #HL, #HL', #Hp, #Hf⟩
+  iunfold simFx at Hfx
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hpure⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hpure
+  -- the receiver's facts
+  ihave #Hal1 : allFacts γ C W $$ []
+  · iunfold allFacts at Hal
+    iunfold allFacts
+    imodintro
+    iintro %k %hk
+    by_cases hki : idAbs k = idAbs i
+    · ihave #Hk := Hal $$ %k %hk
+      rw [hki, hWi]
+      iunfold srvFacts at Hk
+      icases Hk with ⟨%es, %pend, %Hpk, #Hrec, #Hcm, -, #Hci⟩
+      obtain ⟨hlg, hbt, hwr, hln, hc0, hcl, ht0, ht1, hpn, hpt⟩ := Hpk
+      have hpend : pend = [] := hpn (by rw [hf]; exact TraceSpecInv.follower_ne_leader)
+      subst hpend
+      simp only [List.append_nil] at hlg hbt hwr hln
+      have hwe : PlogWf base0 es := PlogWfR_wf _ _ hwr (by unfold plogLastIndexZ; rw [base0_index]; omega)
+      icases log_eq_of_abs γ C es L hbt hbL (hlg.symm.trans hlog) hwe hwL hln $$ [$Hrec $HL] with %HeL
+      subst HeL
+      have hwL' : PlogWf base0 L' := PlogWfR_wf _ _ hwr' (by unfold plogLastIndexZ; rw [base0_index]; omega)
+      have hcW : uint.Z (W64 (σ.s (idAbs i)).commitIndex) = (σ.s (idAbs i)).commitIndex := by word
+      have hS : (plogTermAt base0 es (W64 (σ.s (idAbs i)).commitIndex)).isSome :=
+        plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _, by
+          unfold plogLastIndexZ; rw [base0_index, hcW]; simp; omega⟩
+      have hE : plogTermAt base0 L' (W64 (σ.s (idAbs i)).commitIndex) =
+          plogTermAt base0 es (W64 (σ.s (idAbs i)).commitIndex) := by
+        rw [← plogTermAt_take_full L' (σ.s (idAbs i)).commitIndex.toNat _ (by rw [hcW]; omega), htk,
+          plogTermAt_take_full es _ _ (by rw [hcW]; omega)]
+      iunfold srvFacts
+      iexists L', []
+      simp only [List.append_nil]
+      have hst : ({ σ.s (idAbs i) with log := logAbs C C.length 1 L', lead := j } : Etcdraft.Server).state ≠
+          Etcdraft.leader := by
+        simp only [hf]; exact TraceSpecInv.follower_ne_leader
+      simp only [hst, ↓reduceIte]
+      iframe HL'
+      isplitr
+      · ipureintro
+        exact ⟨trivial, hbL', hwr', by omega, hc0, hcl', ht0, ht1, fun _ => trivial, fun e he => by simp at he⟩
+      isplitr
+      · rw [htk]; iexact Hcm
+      isplitr
+      · itrivial
+      · iapply commitIn_move γ es L' _ _ _ (Int.le_refl _) hwe hwL' hS hE $$ Hrec HL' Hci
+    · rw [hWo _ hki]
+      iapply Hal $$ %k %hk
+  -- `SpecInv`: a follower's new log of entries of the old log or of the request
+  have hupd : W = σ.upd (idAbs i) (fun v => { v with log := logAbs C C.length 1 L', lead := j }) := by
+    rw [hW, upd_eq_withNode]
+  have hmm : ma ∈ TraceSpecInv.msgs σ := List.mem_append_left _ hmem
+  have hsi' : TraceSpecInv.SpecInv W := by
+    rw [hupd]
+    apply TraceSpecInv.specInv_upd_followerLog hsi hf rfl rfl rfl rfl rfl rfl rfl
+    · intro k e he l hl hll ht
+      rcases hent k e he with he | ⟨q, hq, rfl⟩
+      · rw [← hlog] at he
+        exact (hsi.1 l hl hll).1 (idAbs i) hiS k e he ht
+      · exact (hsi.1 l hl hll).2 ma hmm q e hq ht
+    · intro e he
+      obtain ⟨k, hk, hke⟩ := List.mem_iff_getElem.mp he
+      rcases hent k e (by rw [List.getElem?_eq_getElem hk, hke]) with he' | ⟨q, hq, -⟩
+      · rw [← hlog] at he'
+        exact hsi.logTermsLe.1 (idAbs i) hiS e (List.mem_of_getElem? he')
+      · rw [← hterm]; exact hsi.logTermsLe.2 ma hmm e (List.mem_of_getElem? hq)
+  -- `QuorumLogF`
+  have hcmL : committedL W (idAbs i) = committedL σ (idAbs i) := by
+    unfold committedL; rw [hWi]; simp only
+    rw [hlog, logAbs_take, logAbs_take, htk]
+  icases quorumLogF_appLog γ C σ W (idAbs i) ma hterm hWsrv hWo
+      (by rw [hWi]) hcmL
+      (fun P hP hag => by rw [hWi]; simp only; rw [hlog] at hP; exact hkeep P hP hag)
+      src T bL l fp ents idx lt hTm hin hsl hidx1 hidx hents $$ [$Htbl $Hq $Hp $Hf] with ⟨Htbl, #Hq'⟩
+  iframe Htbl
+  iunfold simFx
+  iframe Hal1 Hq'
+  isplitl
+  · imodintro
+    iintro %x %hx
+    rw [hWm, hWp] at hx
+    iapply Hmf; ipureintro; exact hx
+  ipureintro
+  refine ⟨hsi', ?_, ?_, ?_⟩
+  · intro ln m1 m2 h1 h2 r1 r2
+    rw [hWm, hWp] at h1 h2
+    exact hu ln m1 m2 h1 h2 r1 r2
+  · intro x hx; rw [hWm, hWp] at hx; exact hsh x hx
+  · intro m hm hty' k hk hlk htk' hs k' e he
+    rw [hWm, hWp] at hm
+    rw [hWsrv] at hk
+    have hkr : k ≠ idAbs i := by
+      rintro rfl; rw [hWi] at hlk; simp only [hf] at hlk; exact TraceSpecInv.follower_ne_leader hlk
+    rw [hWo k hkr] at hlk htk' ⊢
+    exact has m hm hty' k hk hlk htk' hs k' e he
+
+
+/-- **The facts after `AppendEntriesAlreadyDone` of an accepted append request** (the line's last
+round, from the state with the new log `L`): the commit index raised to `cc = min(m.commitIndex, p + k)`
+at most, the leader adopted, the success response pending. The raised commit index's certificate and
+committed prefix are raft's (`ownRaftGhost_appAccFacts`), `QuorumLogF` by the sender's committed prefix
+(`committedL_raise_prefix`, as the heartbeat's `simFx_hb`). -/
+theorem simFx_appDone (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etcdraft.Msg) (L ents : List EntryM)
+    (i : w64) (p : Nat) (hsrv : σ.server = confAbs C) (hiC : i ∈ C) (hdst : ma.dest = idAbs i)
+    (hf : (σ.s ma.dest).state = Etcdraft.follower) (hty : ma.type = .appendEntriesRequest)
+    (hterm : ma.term = (σ.s ma.dest).currentTerm) (hsub : ma.subtype = "app")
+    (hmem : ma ∈ σ.messages.domain)
+    (hlog : (σ.s ma.dest).log = logAbs C C.length 1 L) (hbL : BootTerms C.length 1 L) (hwL : PlogWf base0 L)
+    (hents : ma.entries = logAbs C C.length (p + 1) ents) (hprev : ma.prevLogIndex = p)
+    (hq : p + ents.length ≤ L.length) (hc : (σ.s ma.dest).commitIndex < (p : Int) + 1)
+    (hbe : BootTerms C.length (p + 1) ents)
+    (hnc : ∀ k e, ents[k]? = some e → p + k < L.length → (L[p + k]?).map EntryM.Term' = some e.Term')
+    (cc : Int) (hcc : cc = max (σ.s ma.dest).commitIndex (min ma.commitIndex ((p : Int) + ents.length)))
+    (hccl : cc ≤ L.length) :
+    simFx (GF := GF) γ C σ ∗ logRecs γ base0 L ∗
+      commitIn γ L (W64 cc) (W64 (σ.s ma.dest).currentTerm) ∗ isCommitted γ (L.take cc.toNat) ⊢
+      simFx γ C (withNode σ ma.dest (doneSrv (σ.s ma.dest) (σ.s ma.dest).log ma.source
+          (min ma.commitIndex ((p : Int) + ents.length)))
+        (fun b => b.without ma) (fun b => b.with (doneResp (σ.s ma.dest) ma p ents.length))) := by
+  obtain ⟨W, hW⟩ : ∃ W, W = withNode σ ma.dest (doneSrv (σ.s ma.dest) (σ.s ma.dest).log ma.source
+      (min ma.commitIndex ((p : Int) + ents.length)))
+      (fun b => b.without ma) (fun b => b.with (doneResp (σ.s ma.dest) ma p ents.length)) := ⟨_, rfl⟩
+  rw [← hW]
+  have hWs : ∀ k, W.s k = if k = ma.dest then doneSrv (σ.s ma.dest) (σ.s ma.dest).log ma.source
+      (min ma.commitIndex ((p : Int) + ents.length)) else σ.s k := by
+    intro k; rw [hW]; rfl
+  have hF : ∀ k, (W.s k).log = (σ.s k).log ∧ (W.s k).currentTerm = (σ.s k).currentTerm ∧
+      (W.s k).state = (σ.s k).state ∧ (W.s k).config = (σ.s k).config ∧
+      (W.s k).commitIndex = (if k = ma.dest then max (σ.s k).commitIndex
+        (min ma.commitIndex ((p : Int) + ents.length)) else (σ.s k).commitIndex) := by
+    intro k; rw [hWs]
+    split
+    · rename_i hk; subst hk; simp [doneSrv]
+    · simp_all
+  have hsub' : ∀ x ∈ W.messages.domain ++ W.pendingMessages.domain,
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain ∨ x = doneResp (σ.s ma.dest) ma p ents.length := by
+    intro x hx
+    have hx' : x ∈ ((σ.discard ma).send (doneResp (σ.s ma.dest) ma p ents.length)).messages.domain ++
+        ((σ.discard ma).send (doneResp (σ.s ma.dest) ma p ents.length)).pendingMessages.domain := by
+      rw [hW] at hx; exact hx
+    rcases TraceSpecInv.mem_msgs_send _ _ x hx' with hx | rfl
+    · left
+      rcases List.mem_append.mp hx with hx | hx
+      · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
+      · exact List.mem_append_right _ hx
+    · right; rfl
+  have hWsrv : W.server = σ.server := by rw [hW]; rfl
+  iintro ⟨Hfx, #HL, #Hci', #Hcm'⟩
+  iunfold simFx at Hfx
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
+  -- the receiver's facts
+  ihave #Hal1 : allFacts γ C W $$ []
+  · iunfold allFacts at Hal
+    iunfold allFacts
+    imodintro
+    iintro %k %hk
+    by_cases hki : idAbs k = ma.dest
+    · ihave #Hk := Hal $$ %k %hk
+      rw [hki]
+      simp only [hWs, ↓reduceIte]
+      iunfold srvFacts at Hk
+      icases Hk with ⟨%es, %pend, %Hpk, #Hrec, -, -, -⟩
+      obtain ⟨hlg, hbt, hwr, hln, hc0, hcl, ht0, ht1, hpn, hpt⟩ := Hpk
+      have hpend : pend = [] := hpn (by rw [hf]; exact TraceSpecInv.follower_ne_leader)
+      subst hpend
+      simp only [List.append_nil] at hlg hbt hwr hln
+      have hwe : PlogWf base0 es := PlogWfR_wf _ _ hwr (by unfold plogLastIndexZ; rw [base0_index]; omega)
+      icases log_eq_of_abs γ C es L hbt hbL (hlg.symm.trans hlog) hwe hwL hln $$ [$Hrec $HL] with %HeL
+      subst HeL
+      iunfold srvFacts
+      iexists es, []
+      simp only [List.append_nil]
+      have hst : (doneSrv (σ.s ma.dest) (σ.s ma.dest).log ma.source
+          (min ma.commitIndex ((p : Int) + ents.length))).state ≠ Etcdraft.leader := by
+        simp only [doneSrv, hf]; exact TraceSpecInv.follower_ne_leader
+      simp only [hst, ↓reduceIte]
+      have hmx : (doneSrv (σ.s ma.dest) (σ.s ma.dest).log ma.source
+          (min ma.commitIndex ((p : Int) + ents.length))).commitIndex = cc := by
+        simp only [doneSrv]; rw [hcc]
+      have hlx : (doneSrv (σ.s ma.dest) (σ.s ma.dest).log ma.source
+          (min ma.commitIndex ((p : Int) + ents.length))).log = logAbs C C.length 1 es := by
+        simp only [doneSrv]; exact hlg
+      have htx : (doneSrv (σ.s ma.dest) (σ.s ma.dest).log ma.source
+          (min ma.commitIndex ((p : Int) + ents.length))).currentTerm = (σ.s ma.dest).currentTerm := by
+        simp only [doneSrv]
+      rw [hmx, htx, hlx]
+      iframe HL Hci' Hcm'
+      ipureintro
+      exact ⟨rfl, hbt, hwr, hln, by rw [hcc]; omega, hccl, ht0, ht1, fun _ => trivial, fun e he => by simp at he⟩
+    · rw [hWs, ite_eq_right_of_eq_false _ _ (eq_false hki)]
+      iapply Hal $$ %k %hk
+  -- the pure facts
+  have hmmem : ma ∈ σ.messages.domain ++ σ.pendingMessages.domain := List.mem_append_left _ hmem
+  obtain ⟨hsrcS, hcS⟩ := hsi.reqCommitC ma hmmem hty
+  have hiS : ma.dest ∈ σ.server := by rw [hdst, hsrv, mem_confAbs]; exact hiC
+  have hstep := alreadyDone_any σ ma.dest ma.source ma C C.length p L ents hlog hents hprev hq hc
+    (by rw [hsub]; decide) hbL hbe hnc
+  have hsiX := TraceSpecInv.specInv_appendEntriesAlreadyDone hsi hiS hmem rfl hty hterm hf
+    (by rw [hprev]) hstep
+  have hsi' : TraceSpecInv.SpecInv W := by
+    have h2 := TraceSpecInv.specInv_upd_frame (i := ma.dest) (f := fun w => { w with lead := ma.source }) hsiX
+      rfl rfl rfl rfl rfl rfl rfl rfl
+    have h3 : TraceSpecInv.SpecInv (withLead ((σ.commitTo ma.dest (min ma.commitIndex ((p : Int) + ents.length))).reply
+        { type := .appendEntriesResponse, subtype := ma.subtype, term := (σ.s ma.dest).currentTerm,
+          success := true, matchIndex := (p : Int) + ents.length, source := ma.dest, dest := ma.source } ma)
+        ma.dest ma.source) := h2
+    unfold Etcdraft.State.commitTo at h3
+    rw [withLead_reply_upd] at h3
+    rw [hW]
+    exact h3
+  icases allFacts_logInv γ C W (by rw [hWsrv, hsrv]) $$ Hal1 with %HlogInv
+  icases allFacts_commitOk γ C σ hsrv $$ Hal with %Hco
+  have hcmp := HlogInv ma.dest (by rw [hWsrv]; exact hiS) ma.source (by rw [hWsrv]; exact hsrcS)
+  have hPW : ∀ k ∈ σ.server, ∃ k' ∈ σ.server, committedL W k <+: committedL σ k' := by
+    intro k hk
+    by_cases hkd : k = ma.dest
+    · subst hkd
+      rcases committedL_raise_prefix (σ := σ) (W := W) (src := ma.source)
+          (c := min ma.commitIndex ((p : Int) + ents.length))
+          (hF _).1 (by rw [(hF _).2.2.2.2, ite_eq_left_of_eq_true _ _ (eq_true rfl)])
+          (fun k hk => by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, ite_eq_right_of_eq_false _ _ (eq_false hk)])
+          (Int.le_trans (Int.min_le_left _ _) hcS) (Hco ma.source hsrcS).2 hcmp with h | h
+      · exact ⟨_, hk, h⟩
+      · exact ⟨ma.source, hsrcS, h⟩
+    · exact ⟨k, hk, by unfold committedL; rw [(hF k).1, (hF k).2.2.2.2, ite_eq_right_of_eq_false _ _ (eq_false hkd)]; exact List.prefix_refl _⟩
+  -- uniqueness and shape: after the discard, the response sent
+  have hxq : (doneResp (σ.s ma.dest) ma p ents.length).type ≠ .appendEntriesRequest := by simp [doneResp]
+  have hx0 : canonMsg (doneResp (σ.s ma.dest) ma p ents.length) = doneResp (σ.s ma.dest) ma p ents.length := by
+    unfold doneResp canonMsg; simp [hsub]
+  have hud : MsgsUniq (σ.discard ma) := msgsUniq_mono (fun x hx => by
+    rcases List.mem_append.mp hx with hx | hx
+    · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
+    · exact List.mem_append_right _ hx) hu
+  have hshd : MsgsShape (σ.discard ma) := fun x hx => hsh x (by
+    rcases List.mem_append.mp hx with hx | hx
+    · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
+    · exact List.mem_append_right _ hx)
+  obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon (σ.discard ma) _ hud hshd hx0
+    (fun y _ => ContentLogged.pinned (fun h => absurd h hxq) y)
+  iunfold simFx
+  iframe Hal1
+  isplitl
+  · imodintro
+    iintro %x %hx
+    rcases hsub' x hx with hx | rfl
+    · iapply Hmf; ipureintro; exact hx
+    · iapply msgFacts_plain γ C _ hxq rfl
+  isplitl
+  · iapply quorumLogF_mono γ C σ W hWsrv hPW ?_ $$ Hq
+    intro P t h
+    exact keptFrom_congr hWsrv (fun k => (hF k).1) (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) h
+  ipureintro
+  refine ⟨hsi', by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
+  intro m hm hty' k hk hlk htk hs k' e he
+  have hk' : k ∈ σ.server := by rw [hWsrv] at hk; exact hk
+  rcases hsub' m hm with hm | rfl
+  · rw [(hF k).1]
+    rw [(hF k).2.2.1] at hlk; rw [(hF k).2.1] at htk
+    exact has m hm hty' k hk' hlk htk hs k' e he
+  · exact absurd hty' hxq
+
+end fx
 end EtcdGrove
 end Perennial
