@@ -1182,7 +1182,11 @@ rejected one and `MsgHeartbeatResp`, `stepBundle_traced_leadRespNA`, and the acc
 24a's premises for the assembly) and (iv) a traced message of term `0` at a node of a positive term
 (raft handles it as of the node's term, no lemma; the node API knows `m.Term ≠ 0`, `InvRawnode`'s
 `NetMsgOk`, so the assembly needs it as a premise of `stepBundle_traced.on`, a frozen statement: Q28).
-The table is the decisions entry's.
+The table is the decisions entry's. Checked (branch at `trace-check` `1b8bba4556` plus this slice): full
+`lake build` green (13830 jobs); `#print axioms` of the three new bundles: the set of
+`stepBundle_traced_folAppAcc_on`'s, no `sorryAx`; `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s,
+unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module
+touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
 - **Q28 (2026-11-11, slice 27d): a traced message of term `0`.** `stepBundle_traced.on` admits a traced
   message with `m.Term' = 0` at a node of term `≥ 1`: not `StaleMsg` (which needs `m.Term' ≠ 0`), not of
