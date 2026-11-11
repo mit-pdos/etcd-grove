@@ -2,14 +2,14 @@
 Lean-first (no Rocq counterpart). Trace-check's amendment A7 (Q29, 2026-11-11): what `NewTrace`
 computes of a trace whose voters' bootstrap segments are raft's and complete (`BootSegs`, `BootDone`,
 `TraceSimGhost.lean`). Raft-internal; its result is restated in `TraceSimEnd.lean`
-(`newTrace_bootInit`).
+(`newTrace_simInit`, which is `simInit C` since amendment A8).
 
 - `bootstrapOf_eq`: `bootstrapOf`'s `find?`/`foldl` computation, for a server whose lines up to an
   index `c` are bootstrap-named and whose line at `c` (if any) is not: the flagged lines are its lines
   below `c`, the last one is their last;
 - `newTrace_of_bootDone`: `newTrace` succeeds, its servers and initial servers are the voters', each
   voter's initial server the bootstrap state's (`simInit`), every other id's the server
-  `newTraceWith` builds from the trace's first line (an `InitState`): `bootInit C`.
+  `newTraceWith` builds from the trace's first line (an `InitState`), `bootJunk`.
 -/
 module
 

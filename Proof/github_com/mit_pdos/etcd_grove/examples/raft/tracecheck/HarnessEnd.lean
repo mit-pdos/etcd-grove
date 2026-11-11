@@ -4,11 +4,9 @@ Lean-first (no Rocq counterpart). Trace-check's layer D, S7 (part 2) (2026-11-11
 invariant and the voters' bootstrap facts.
 
 `RunOk L` (`MainPure.lean`) at the recorder's half of the trace `L` is `runOk_of_sim`'s: the run and the
-events' facts from `Cluster.traceSim_end`, the bootstrap facts (`BootFacts`) from amendment A7, which is
-in progress: its form is the hypothesis `BootEnd D` (the simulation's invariant, every voter's
-completion fact `D tn i` that `StartNode` returns, `StartNode.tracedSpec D`, and the trace's half give
-`BootFacts`). Q36 (A7: `BootFacts` false as `simInit` stands) and Q37 (no anchor for the completion fact)
-decide `D` and whether `BootFacts` keeps its statement; the harness's proof uses only `BootEnd D`.
+events' facts from `Cluster.traceSim_end`, the bootstrap facts (`BootFacts`) from the voters' completion
+witnesses (`startDone`, each voter's `StartNode.tracedSpec`) by `Cluster.traceSim_bootEnd` (amendment
+A8, Q36 (a), Q37 (a)): `bootEnd`.
 -/
 module
 
@@ -35,26 +33,37 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The bootstrap facts at the end of a run** (amendment A7's, a hypothesis of the harness until A7
-lands): with a voter's `nodeBoot`, the simulation's invariant, every voter's completion fact `D tn i`
-(`StartNode.tracedSpec D`'s `startDone`) and the trace's half `L`, the bootstrap facts of `L`. -/
-def BootEnd (D : TraceNames → w64 → IProp GF) : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (id : w64) (tn : TraceNames)
-    (L : List TraceEv) (E : CoPset), ↑N ⊆ E →
-  ⊢ nodeBoot (GF := GF) γ N vs ctxs id -∗ Cluster.traceSim γ vs tn -∗ ([∗list] i ∈ vs, D tn i) -∗
-    traceAuth tn.tr L ={E}=∗ traceAuth tn.tr L ∗ ⌜BootFacts vs L⌝
+/-- **The bootstrap facts at the end of a run** (amendment A8.4; A7's hypothesis `BootEnd`, now proved):
+in the traced cluster of the directory `γd`, with a voter's `nodeBoot`, the trace's names, the
+simulation's invariant, every voter's completion witness (`startDone`, from its `StartNode`) and the
+trace's half `L`, the bootstrap facts of `L`. -/
+theorem bootEnd (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (id : w64)
+    (γd : GName) (tn : TraceNames) (L : List TraceEv) (E : CoPset) (hE : ↑N ⊆ E)
+    (htr : Cluster.trace γ = some γd) (hne : vs ≠ []) (hlen : vs.length < 2 ^ 40) :
+    ⊢ nodeBoot (GF := GF) γ N vs ctxs id -∗ traceDir γd tn -∗ Cluster.traceSim γ vs tn -∗
+      □ ([∗list] i ∈ vs, startDone γ i) -∗ traceAuth tn.tr L ={E}=∗ traceAuth tn.tr L ∗ ⌜BootFacts vs L⌝ := by
+  iintro #Hb #Hd #Hinv #Hs Ha
+  imod Cluster.traceSim_bootEnd (GF := GF) γ N vs ctxs id γd tn L E hE htr hne hlen $$ [Ha]
+    with ⟨Ha, %Hbf⟩
+  · iframe Hb Hd Hinv Hs Ha
+  imodintro
+  iframe Ha
+  ipureintro
+  obtain ⟨t, hnt, hinit, hsrv, hisrv⟩ := Hbf
+  exact ⟨t, hnt, hinit, hsrv, hisrv⟩
 
 /-- **The run's end** (the recorder's half `L`): `RunOk L`, from `Cluster.traceSim_end` and the
-bootstrap facts (`runOk_of_sim`), for fewer voters than `numBound`. -/
-theorem runOk_at_end (D : TraceNames → w64 → IProp GF) (HD : BootEnd D) (γ : Cluster) (N : Namespace)
-    (vs : List w64) (ctxs : List (List w8)) (id : w64) (tn : TraceNames) (L : List TraceEv)
-    (E : CoPset) (hE : ↑N ⊆ E) (hC : (vs.length : Int) < Etcdraft.numBound) :
-    ⊢ nodeBoot (GF := GF) γ N vs ctxs id -∗ Cluster.traceSim γ vs tn -∗ □ ([∗list] i ∈ vs, D tn i) -∗
-      traceAuth tn.tr L ={E}=∗ traceAuth tn.tr L ∗ ⌜RunOk L⌝ := by
-  iintro #Hb #Hinv #HD Ha
+bootstrap facts (`bootEnd`, `runOk_of_sim`), for fewer voters than `numBound`. -/
+theorem runOk_at_end (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (id : w64)
+    (γd : GName) (tn : TraceNames) (L : List TraceEv) (E : CoPset) (hE : ↑N ⊆ E)
+    (htr : Cluster.trace γ = some γd) (hne : vs ≠ []) (hlen : vs.length < 2 ^ 40)
+    (hC : (vs.length : Int) < Etcdraft.numBound) :
+    ⊢ nodeBoot (GF := GF) γ N vs ctxs id -∗ traceDir γd tn -∗ Cluster.traceSim γ vs tn -∗
+      □ ([∗list] i ∈ vs, startDone γ i) -∗ traceAuth tn.tr L ={E}=∗ traceAuth tn.tr L ∗ ⌜RunOk L⌝ := by
+  iintro #Hb #Hd #Hinv #Hs Ha
   imod Cluster.traceSim_end (GF := GF) γ N vs ctxs id tn L E hE $$ [Ha] with ⟨Ha, %Hsim⟩
   · iframe Hb Hinv Ha
-  imod HD γ N vs ctxs id tn L E hE $$ Hb Hinv HD Ha with ⟨Ha, %Hbf⟩
+  imod bootEnd γ N vs ctxs id γd tn L E hE htr hne hlen $$ Hb Hd Hinv Hs Ha with ⟨Ha, %Hbf⟩
   imodintro
   iframe Ha
   ipureintro
@@ -63,18 +72,19 @@ theorem runOk_at_end (D : TraceNames → w64 → IProp GF) (HD : BootEnd D) (γ 
 
 /-- **`RunConcurrent`'s post from the end of the run**: the cluster's recorder field, the recorder of
 the trace `tn.tr`, and the persistent facts `runOk_at_end` needs give `runOver c`. -/
-theorem runOver_intro (D : TraceNames → w64 → IProp GF) (HD : BootEnd D) (c r : Loc) (γ : Cluster)
-    (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (id : w64) (tn : TraceNames)
-    (hC : (vs.length : Int) < Etcdraft.numBound) :
+theorem runOver_intro (c r : Loc) (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (id : w64) (γd : GName) (tn : TraceNames) (htr : Cluster.trace γ = some γd) (hne : vs ≠ [])
+    (hlen : vs.length < 2 ^ 40) (hC : (vs.length : Int) < Etcdraft.numBound) :
     ⊢ c.[G.Cluster, go!"rec"] ↦□ r -∗ isSyncRecorder (GF := GF) tn.tr r -∗
-      nodeBoot γ N vs ctxs id -∗ Cluster.traceSim γ vs tn -∗ □ ([∗list] i ∈ vs, D tn i) -∗
-      runOver c := by
-  iintro #Hc #Hr #Hb #Hinv #HDs
+      nodeBoot γ N vs ctxs id -∗ traceDir γd tn -∗ Cluster.traceSim γ vs tn -∗
+      □ ([∗list] i ∈ vs, startDone γ i) -∗ runOver c := by
+  iintro #Hc #Hr #Hb #Hd #Hinv #Hs
   iunfold runOver
   iexists tn.tr, r
   iframe Hc Hr
   iintro %L Ha
-  iapply runOk_at_end D HD γ N vs ctxs id tn L ⊤ (fun _ _ => CoPset.mem_full) hC $$ Hb Hinv HDs Ha
+  iapply runOk_at_end γ N vs ctxs id γd tn L ⊤ (fun _ _ => CoPset.mem_full) htr hne hlen hC
+    $$ Hb Hd Hinv Hs Ha
 
 end ghost
 

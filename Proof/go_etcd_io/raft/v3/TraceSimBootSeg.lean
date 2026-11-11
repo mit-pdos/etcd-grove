@@ -272,6 +272,88 @@ theorem bootNext_some (C : List w64) (i : w64) (x e : TraceEv) (k : Nat) (hx : B
   rw [← bootEvAt_unique C i x k k' hx hk']
   exact he
 
+/-! ## Complete segments (amendment A8, Q37) -/
+
+/-- The events of node `i` in `L`, filtered by its id's string. -/
+abbrev evsOf (L : List TraceEv) (i : w64) : List TraceEv := L.filter (fun x => decide (x.nid = decStr i))
+
+/-- **A complete segment stays complete**: a line after it cannot extend it (it would be raft's
+`|C| + 5`-th bootstrap line, and `BootEvAt` has none past `|C| + 3`). The `simInv` clause of the
+completed voters (`Dn`) is kept by every law that keeps `BootSegs`. -/
+theorem bootDone_snoc (C : List w64) (L : List TraceEv) (e : TraceEv) (i : w64)
+    (hs : BootSegs C (L ++ [e])) (hd : BootDone C L i) : BootDone C (L ++ [e]) i := by
+  unfold BootDone at hd ⊢
+  by_cases hn : e.nid = decStr i
+  · have hiC : i ∈ C := by
+      have hpos : 0 < (bootSeg L i).length := by omega
+      have hy : (bootSeg L i)[0] ∈ evsOf L i := List.takeWhile_subset _ (List.getElem_mem hpos)
+      obtain ⟨hyL, hyn⟩ := List.mem_filter.1 hy
+      obtain ⟨j, hj, hyj⟩ := hs.1 _ (List.mem_append_left _ hyL)
+      have hyn' : (bootSeg L i)[0].nid = decStr i := by simpa using hyn
+      have hij : decStr i = decStr j := by rw [← hyj, hyn']
+      rw [decStr_inj hij]; exact hj
+    have hF : bootSeg (L ++ [e]) i =
+        (evsOf L i ++ [e]).takeWhile (fun x => Etcdraft.isBootstrapName (gsStr x.name)) := by
+      unfold bootSeg; simp [List.filter_append, hn]
+    have hcases : bootSeg (L ++ [e]) i = bootSeg L i ∨ bootSeg (L ++ [e]) i = bootSeg L i ++ [e] := by
+      rw [hF, takeWhile_snoc]
+      by_cases hall : (evsOf L i).all (fun x => Etcdraft.isBootstrapName (gsStr x.name)) = true
+      · have hb : bootSeg L i = evsOf L i := takeWhile_all _ _ hall
+        simp only [hall, ↓reduceIte]
+        rw [← hb]
+        cases hpe : Etcdraft.isBootstrapName (gsStr e.name)
+        · left; simp [hpe]
+        · right; simp [hpe]
+      · left; simp only [hall, Bool.false_eq_true, ↓reduceIte]; rfl
+    rcases hcases with h | h
+    · rw [h]; exact hd
+    · exfalso
+      have hlen : (bootSeg (L ++ [e]) i).length = C.length + 5 := by rw [h]; simp [hd]
+      have := hs.2 i hiC (C.length + 4) (by omega)
+      exact Nat.lt_irrefl _ this.1
+  · rw [bootSeg_snoc_ne L e i hn]; exact hd
+
+/-- **A node whose last event is raft's last bootstrap event has a complete segment**: unbooted, its
+events are all bootstrap-named (they parse: `simRun_parse`), so its segment is all of them, the last
+one `x` (`LastOf`); `BootSegs` puts `x` at the segment's last position, `BootEvAt` at `|C| + 3`, and a
+bootstrap event holds one position (`bootEvAt_unique`). -/
+theorem bootDone_of_last (C : List w64) (L : List TraceEv) (id : w64) (x : TraceEv) (hC : id ∈ C)
+    (hs : BootSegs C L) (hparse : ∀ x ∈ L, ∃ ln, Etcdraft.parseLine 0 (evConv x) = .ok ln)
+    (hun : ¬ booted L (idAbs id)) (hlast : LastOf L (decStr id) (some x))
+    (hx : BootEvAt C id (C.length + 3) x) : BootDone C L id := by
+  have hall : (evsOf L id).all (fun x => Etcdraft.isBootstrapName (gsStr x.name)) = true := by
+    rw [List.all_eq_true]
+    intro y hy
+    obtain ⟨hy, hyn⟩ := List.mem_filter.1 hy
+    have hyn : y.nid = decStr id := by simpa using hyn
+    cases hyb : Etcdraft.isBootstrapName (gsStr y.name)
+    · exfalso; apply hun
+      obtain ⟨ln, hp⟩ := hparse y hy
+      exact ⟨y, hy, ln, hp, parseLine_nid_decStr y id ln hyn hp, by rw [parseLine_ev' _ _ _ hp]; exact hyb⟩
+    · rfl
+  have hb : bootSeg L id = evsOf L id := takeWhile_all _ _ hall
+  obtain ⟨L1, L2, hL, hxn, hL2⟩ := hlast
+  have hF : evsOf L id = evsOf L1 id ++ [x] := by
+    simp only [evsOf, hL, List.filter_append, List.filter_cons]
+    have : L2.filter (fun x => decide (x.nid = decStr id)) = [] := by
+      rw [List.filter_eq_nil_iff]; intro y hy; simpa using hL2 y hy
+    simp [hxn, this]
+  have hlen : (bootSeg L id).length = (evsOf L1 id).length + 1 := by rw [hb, hF]; simp
+  have hk := hs.2 id hC (evsOf L1 id).length (by omega)
+  have hxF : (bootSeg L id)[(evsOf L1 id).length]'(by omega) = x := by
+    simp only [hb, hF, List.getElem_append_right (Nat.le_refl _), Nat.sub_self]
+    rfl
+  rw [hxF] at hk
+  have := bootEvAt_unique C id x _ _ hk hx
+  unfold BootDone
+  omega
+
+/-- **The completed voters' clause after a line** (`simInv`'s `Dn`, amendment A8), with the segments. -/
+theorem bootDn_snoc (C : List w64) (L : List TraceEv) (e : TraceEv) (Dn : List w64)
+    (hs : BootSegs C (L ++ [e])) (hd : ∀ i ∈ Dn, BootDone C L i) :
+    BootSegs C (L ++ [e]) ∧ ∀ i ∈ Dn, BootDone C (L ++ [e]) i :=
+  ⟨hs, fun i hi => bootDone_snoc C L e i hs (hd i hi)⟩
+
 end TraceSim
 
 end EtcdGrove

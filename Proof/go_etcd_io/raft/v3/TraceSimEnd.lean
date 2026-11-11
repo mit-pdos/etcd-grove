@@ -15,9 +15,10 @@ events ASCII, in scope (`ScopeOk`), the bootstrap lines' logs (`BootLogsOk`), th
 `traceNumBound`, their configuration lists within the voters' number), and `simRun_runAccepted`, `mainPure`'s
 `RunAccepted L` from it and the bootstrap facts. `tracecheck/MainSim.lean` combines them with
 `mainPure`. Not here: the event count (`L.length < numBound`), bounded by the run's steps
-(the recorder's, outside the simulation). (Amendment A7, Q29) The bootstrap segments: `simInv_end_boot`
-also gives `BootSegs`, and `newTrace_bootInit` what `NewTrace` computes of complete segments
-(`bootInit C`, which is `simInit C` at the voters only: the plan's Q36).
+(the recorder's, outside the simulation). (Amendments A7, A8) `newTrace_simInit`: what `NewTrace` computes
+of complete bootstrap segments, `simInit C` (A8 gives `simInit` `bootJunk` outside the voters: the plan's
+Q36 (a)). (Amendment A8, Q37) `simInv_end_bootDone`: with every voter's
+`bootDone` witness, the run's end gives `NewTrace`'s success at the voters' initial state and servers.
 -/
 module
 
@@ -94,42 +95,19 @@ theorem simInv_end (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IPr
         ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧ SimEvents C.length L⌝ := by
   iintro ⟨Ha, Hi⟩
   iunfold simInv at Hi
-  icases Hi with ⟨%L', %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, Hfx, %Hp⟩
+  icases Hi with ⟨%L', %σ, %A, %B, %phP, %phM, %Bt, %Dn, HL, HA, HB, HBt, HDn, Hfx, %Hp⟩
   icases trace_agree_keep tn.tr L L' $$ [Ha HL] with ⟨⟨Ha, HL⟩, %hLL⟩
   · iframe
   subst hLL
   isplitl [Ha]; · iexact Ha
-  isplitl [HL HA HB HBt Hfx]
+  isplitl [HL HA HB HBt HDn Hfx]
   · iunfold simInv
-    iexists L, σ, A, B, phP, phM, Bt
-    iframe HL HA HB HBt Hfx
+    iexists L, σ, A, B, phP, phM, Bt, Dn
+    iframe HL HA HB HBt HDn Hfx
     ipureintro; exact Hp
   ipureintro
-  obtain ⟨hrun, hsrv, -, -, -, -, -, -, -, -, hasc, -⟩ := Hp
+  obtain ⟨hrun, hsrv, -, -, -, -, -, -, -, -, hasc, -, -⟩ := Hp
   exact ⟨σ, hrun, hsrv, hasc⟩
-
-open Iris.BI Iris.ProofMode in
-/-- **`simInv_end` with the bootstrap segments** (amendment A7, Q29): also the voters' bootstrap
-segments are raft's (`BootSegs`, what `NewTrace` reads of the bootstrap lines). -/
-theorem simInv_end_boot (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) (L : List TraceEv) :
-    traceAuth tn.tr L ∗ simInv C tn Fx ⊢
-      traceAuth tn.tr L ∗ simInv C tn Fx ∗
-        ⌜∃ σ, SimRun C L σ ∧ σ.server = confAbs C ∧ SimEvents C.length L ∧ BootSegs C L⌝ := by
-  iintro ⟨Ha, Hi⟩
-  iunfold simInv at Hi
-  icases Hi with ⟨%L', %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, Hfx, %Hp⟩
-  icases trace_agree_keep tn.tr L L' $$ [Ha HL] with ⟨⟨Ha, HL⟩, %hLL⟩
-  · iframe
-  subst hLL
-  isplitl [Ha]; · iexact Ha
-  isplitl [HL HA HB HBt Hfx]
-  · iunfold simInv
-    iexists L, σ, A, B, phP, phM, Bt
-    iframe HL HA HB HBt Hfx
-    ipureintro; exact Hp
-  ipureintro
-  obtain ⟨hrun, hsrv, -, -, -, -, -, -, -, -, hasc, hseg⟩ := Hp
-  exact ⟨σ, hrun, hsrv, hasc, hseg⟩
 
 end ghost
 
@@ -138,60 +116,108 @@ end ghost
 section boot
 variable [GooseExts]
 
-/-- The server `newTraceWith` builds for an id outside the trace's servers: its term, role, vote, log
-size and commit are the trace's first line's (`lines.getD (0 - 1)`, an `InitState`: term 0, a follower,
-no vote, an empty log, nothing committed), its configuration empty (no configuration is computed for a
-non-server). -/
-def bootJunk : Etcdraft.Server :=
-  let v : Etcdraft.Server :=
-    { currentTerm := 0, state := Etcdraft.follower, votedFor := Etcdraft.nil, lead := Etcdraft.nil,
-      log := [], commitIndex := 0, votesResponded := [], votesGranted := [], matchIndex := fun _ => 0,
-      pendingConfChangeIndex := 0, config := { incoming := [], outgoing := [], learners := [] },
-      durable := default }
-  { v with durable := Etcdraft.durableOf v }
-
-/-- **The initial state `newTrace` computes of the traced cluster's trace**: `simInit C` at the voters,
-`bootJunk` at every other id (the transcription's `s` is total; TLA+'s is over `Server`). -/
-def bootInit (C : List w64) : Etcdraft.State :=
-  { simInit C with s := fun i => if i ∈ confAbs C then (simInit C).s i else bootJunk }
-
 /-- **`newTrace` of a trace whose voters' bootstrap segments are raft's and complete** (amendment A7,
-Q29): it succeeds, its servers and initial servers are the voters', its initial state `bootInit C`. -/
-theorem newTrace_bootInit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
+Q29): it succeeds, its servers and initial servers are the voters', and its initial state is `simInit C`
+(amendment A8, Q36 (a): `newTraceWith` builds an id outside the servers from the trace's first line, an
+`InitState`, which is `bootJunk`, `simInit`'s server there). -/
+theorem newTrace_simInit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
     (hCl : C.length < 2 ^ 40) (hrun : SimRun C L σ) (hev : SimEvents C.length L) (hseg : BootSegs C L)
     (hdone : ∀ i ∈ C, BootDone C L i) :
     ∃ t, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.server = confAbs C ∧ t.initSrv = confAbs C ∧
-      t.init = bootInit C :=
-  newTrace_of_bootDone C L σ hC0 hCl hrun hev hseg hdone
-
-/-- `bootInit C` is not `simInit C` (they differ outside the voters). -/
-theorem bootInit_ne_simInit (C : List w64) : bootInit C ≠ simInit C := by
-  intro h
-  obtain ⟨i, hidef⟩ : ∃ i : Etcdraft.ID, i = ((confAbs C).foldl (· + ·) 0) + 1 := ⟨_, rfl⟩
-  have hi : i ∉ confAbs C := by
-    have : ∀ (l : List Nat) (a : Nat), ∀ x ∈ l, x ≤ l.foldl (· + ·) a := by
-      intro l
-      induction l with
-      | nil => simp
-      | cons y l ih =>
-        intro a x hx
-        simp only [List.foldl_cons]
-        rcases List.mem_cons.1 hx with rfl | hx
-        · have : ∀ (l : List Nat) (b : Nat), b ≤ l.foldl (· + ·) b := by
-            intro l; induction l with
-            | nil => simp
-            | cons z l ih' => intro b; simp only [List.foldl_cons]; exact Nat.le_trans (Nat.le_add_right _ _) (ih' _)
-          exact Nat.le_trans (Nat.le_add_left _ _) (this l _)
-        · exact ih _ x hx
-    intro hm
-    have h2 := this _ 0 i hm
-    rw [hidef] at h2
-    exact Nat.not_succ_le_self _ h2
-  have := congrArg (fun st : Etcdraft.State => (st.s i).currentTerm) h
-  simp only [bootInit, simInit, hi, ↓reduceIte, bootJunk] at this
-  cases this
+      t.init = simInit C := by
+  obtain ⟨t, hnt, hs, hi, hinit⟩ := newTrace_of_bootDone C L σ hC0 hCl hrun hev hseg hdone
+  refine ⟨t, hnt, hs, hi, ?_⟩
+  have hs' : (fun i => if i ∈ confAbs C then (simInit C).s i else bootJunk) = (simInit C).s := by
+    funext i
+    by_cases hi : i ∈ confAbs C
+    · simp only [hi, ↓reduceIte]
+    · simp only [hi, ↓reduceIte]
+      exact (simInit_s_nonvoter C i hi).symm
+  rw [hinit]
+  show { simInit C with s := fun i => if i ∈ confAbs C then (simInit C).s i else bootJunk } = simInit C
+  rw [hs']
 
 end boot
+
+/-! ## The completion witnesses at the end of the run (amendment A8, Q37) -/
+
+section done
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+open Iris.BI Iris.ProofMode in
+/-- A completion witness names a member of the completed voters' list, kept. -/
+theorem bootDone_mem_keep (tn : TraceNames) (Dn : List w64) (i : w64) :
+    (monoListAuthOwn tn.dn 1 Dn ∗ bootDone tn i : IProp GF) ⊢
+      (monoListAuthOwn tn.dn 1 Dn ∗ bootDone tn i) ∗ ⌜i ∈ Dn⌝ := by
+  refine (and_intro .rfl ?_).trans persistent_and_sep.1
+  iintro ⟨Ha, Hd⟩
+  iunfold bootDone at Hd
+  icases Hd with ⟨%k, Hd⟩
+  icases mono_list_auth_idx_lookup tn.dn 1 Dn k i $$ Ha Hd with %h
+  ipureintro
+  exact List.mem_of_getElem? h
+
+open Iris.BI Iris.ProofMode in
+/-- Completion witnesses of the voters `C` name members of the completed voters' list. -/
+theorem bootDones_mem (tn : TraceNames) (Dn : List w64) :
+    ∀ C : List w64, (monoListAuthOwn tn.dn 1 Dn ∗ ([∗list] i ∈ C, bootDone tn i) : IProp GF) ⊢
+      monoListAuthOwn tn.dn 1 Dn ∗ ⌜∀ i ∈ C, i ∈ Dn⌝ := by
+  intro C
+  induction C with
+  | nil =>
+    iintro ⟨Ha, -⟩
+    iframe Ha
+    ipureintro
+    intro i hi; cases hi
+  | cons x C ih =>
+    iintro ⟨Ha, Hs⟩
+    icases (BigSepL.bigSepL_cons (Φ := fun _ i => bootDone (GF := GF) tn i)).1 $$ Hs with ⟨Hx, Hs⟩
+    icases ih $$ [Ha Hs] with ⟨Ha, %h⟩
+    · iframe Ha Hs
+    icases bootDone_mem_keep tn Dn x $$ [Ha Hx] with ⟨⟨Ha, -⟩, %hx⟩
+    · iframe Ha Hx
+    iframe Ha
+    ipureintro
+    intro i hi
+    rcases List.mem_cons.1 hi with rfl | hi
+    · exact hx
+    · exact h i hi
+
+open Iris.BI Iris.ProofMode in
+/-- **The simulation's invariant at the end of a run, every voter's bootstrap complete** (amendment A8,
+Q37): with the recorder's half of the trace `L` and every voter's completion witness (`bootDone`),
+`newTrace` of the run's events succeeds, its initial state the simulation's `simInit C` and its servers
+and initial servers the voters' (what `simRun_runAccepted` needs). -/
+theorem simInv_end_bootDone (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
+    (L : List TraceEv) (hC0 : C ≠ []) (hCl : C.length < 2 ^ 40) :
+    traceAuth tn.tr L ∗ simInv C tn Fx ∗ ([∗list] i ∈ C, bootDone tn i) ⊢
+      traceAuth tn.tr L ∗ simInv C tn Fx ∗
+        ⌜∃ t, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.init = simInit C ∧ t.server = confAbs C ∧
+          t.initSrv = confAbs C⌝ := by
+  iintro ⟨Ha, Hi, Hs⟩
+  iunfold simInv at Hi
+  icases Hi with ⟨%L', %σ, %A, %B, %phP, %phM, %Bt, %Dn, HL, HA, HB, HBt, HDn, Hfx, %Hp⟩
+  icases trace_agree_keep tn.tr L L' $$ [Ha HL] with ⟨⟨Ha, HL⟩, %hLL⟩
+  · iframe
+  subst hLL
+  icases bootDones_mem tn Dn C $$ [HDn Hs] with ⟨HDn, %hin⟩
+  · iframe HDn Hs
+  isplitl [Ha]; · iexact Ha
+  isplitl [HL HA HB HBt HDn Hfx]
+  · iunfold simInv
+    iexists L, σ, A, B, phP, phM, Bt, Dn
+    iframe HL HA HB HBt HDn Hfx
+    ipureintro; exact Hp
+  ipureintro
+  obtain ⟨hrun, -, -, -, -, -, -, -, -, -, hev, hseg, hdn⟩ := Hp
+  obtain ⟨t, hnt, hsrv, hisrv, hinit⟩ :=
+    newTrace_simInit C L σ hC0 hCl hrun hev hseg (fun i hi => hdn i (hin i hi))
+  exact ⟨t, hnt, hinit, hsrv, hisrv⟩
+
+end done
 
 end TraceSim
 

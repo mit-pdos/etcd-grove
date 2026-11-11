@@ -50,7 +50,7 @@ theorem Cluster.traceSim_alloc [package_sem : Assumptions] (γ : Cluster) (N : N
     ((TraceSim.simInit vs).s (TraceSim.idAbs i)), [])) (hA' : ∀ (i : w64), ¬i ∈ vs → A !! i = none)
     (hBt : ∀ (i : w64), i ∈ vs → Bt !! i = some (false, none)) : ⊢ nodeBoot γ N vs ctxs id ∗
     traceFrag tn.tr [] ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 ∅ ∗ ghostMapAuth tn.bt 1 Bt
-    ={E}=∗ γ.traceSim vs tn
+    ∗ monoListAuthOwn tn.dn 1 [] ={E}=∗ γ.traceSim vs tn
 
 def isReadyChan_recvAu.tracedSpec : Prop :=
   ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (Φ : Ready → Bool → IProp GF),
@@ -72,12 +72,17 @@ def (sealed) trTok (γ : Cluster) (st : MsgSt) : IProp GF
 
 def (sealed) Cluster.traceSim (γ : Cluster) (vs : List w64) (tn : TraceSim.TraceNames) : IProp GF
 
-def startDone (γ : Cluster) (D : TraceSim.TraceNames → w64 → IProp GF) (id : w64) : IProp GF :=
-  match γ.trace with
-  | none => iprop(True)
-  | some γd => iprop(∃ tn, TraceSim.traceDir γd tn ∗ D tn id)
+def (sealed) startDone (γ : Cluster) (id : w64) : IProp GF
 
 theorem traceSim_bagRep_nil : TraceSim.BagRep [] []
+
+theorem Cluster.traceSim_bootEnd [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (vs :
+    List w64) (ctxs : List (List w8)) (id : w64) (γd : GName) (tn : TraceSim.TraceNames) (L : List
+    TraceEv) (E : CoPset) (hE : ↑N ⊆ E) (htr : γ.trace = some γd) (hne : vs ≠ []) (hlen : vs.length
+    < 2 ^ 40) : ⊢ nodeBoot γ N vs ctxs id ∗ TraceSim.traceDir γd tn ∗ γ.traceSim vs tn ∗ (□ [∗list]
+    i ∈ vs, startDone γ i) ∗ traceAuth tn.tr L ={E}=∗ traceAuth tn.tr L ∗ ⌜∃ t, Etcdraft.newTrace
+    (List.map TraceSim.evConv L) = Except.ok t ∧ t.init = TraceSim.simInit vs ∧ t.server =
+    TraceSim.confAbs vs ∧ t.initSrv = TraceSim.confAbs vs⌝
 
 def startTraceC (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
   match γ.trace with
@@ -93,7 +98,9 @@ def startTraceC (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
                     (TraceSim.toC (TraceSim.confAbs vs) ((TraceSim.simInit vs).s (TraceSim.idAbs cv.ID'))) [] ∗
                   TraceSim.simBoot tn cv.ID' false none)
 
-def StartNode.tracedSpec (D : TraceSim.TraceNames → w64 → IProp GF) : Prop :=
+theorem startDone_persistent (γ : Cluster) (id : w64) : Persistent (startDone γ id)
+
+def StartNode.tracedSpec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer),
     ConfigValid cv →
@@ -137,6 +144,6 @@ def StartNode.tracedSpec (D : TraceSim.TraceNames → w64 → IProp GF) : Prop :
                                                                 { applied := 0,
                                                                   membership := Membership.simple (listToSet vs) } ∗
                                                               nodeRunning n γ N 1 ∗
-                                                                Q ∗ F K ∗ ownSlice peers pv dq ∗ startDone γ D cv.ID') -∗
+                                                                Q ∗ F K ∗ ownSlice peers pv dq ∗ startDone γ cv.ID') -∗
                                                   Φ (intoVal nd)) -∗
                                             WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers)) {{ Φ }}

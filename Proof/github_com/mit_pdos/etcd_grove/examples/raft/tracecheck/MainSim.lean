@@ -9,8 +9,9 @@ number of voters), which
 simulation (hypotheses here):
 
 - that `newTrace` succeeds on the converted events, with the voters' initial state and servers (it
-  reads them from the bootstrap lines: layer B's bootstrap clause, owed; `SimRun` alone does not
-  give it, a prefix's lines being read with the voters');
+  reads them from the bootstrap lines; `SimRun` alone does not give it, a prefix's lines being read
+  with the voters'): `BootFacts`, from complete bootstrap segments (`bootFacts_of_bootDone`; at the end
+  of the run, the voters' completion witnesses: `Cluster.traceSim_bootEnd`, amendment A8);
 - the number of voters below `numBound` (the cluster's: at most three);
 - the event count, `L.length < numBound`: the trace is the recorder's, and each event a Go step of
   the run, so the adequacy theorem's step bound (`n < 2^61`) bounds it, through the recorder (which
@@ -80,19 +81,15 @@ theorem runOk_of_sim (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
   obtain ⟨t, hnt, hinit, hsrv, hisrv⟩ := hb
   exact ⟨C.length, hC, simRun_runAccepted C L σ t hrun hnt hinit hsrv hisrv, hev⟩
 
-/-- **`BootFacts` is false of the traced cluster's runs** (amendment A7's check, Q36): once every
-voter's bootstrap segment is raft's and complete (`BootSegs`, `BootDone`), `newTrace`'s initial state
-is `bootInit C`, which is `simInit C` at the voters only (`newTrace_bootInit`, `bootInit_ne_simInit`):
-`newTraceWith` builds the server of an id outside the trace's servers from the trace's first line,
-`simInit` gives it a voter's. So `runOk_of_sim`'s hypothesis cannot be discharged as stated. -/
-theorem not_bootFacts (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
+/-- **The bootstrap facts of a run whose voters' bootstrap is complete** (amendment A8, Q36 (a): since
+`simInit` gives every id outside the voters the server `newTraceWith` builds for it, `bootJunk`): once
+every voter's bootstrap segment is raft's and complete (`BootSegs`, `BootDone`), `BootFacts` holds
+(`newTrace_simInit`). (Before A8 it was false of every such run, A7's `not_bootFacts`.) -/
+theorem bootFacts_of_bootDone (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠ [])
     (hCl : C.length < 2 ^ 40) (hrun : SimRun C L σ) (hev : SimEvents C.length L) (hseg : BootSegs C L)
-    (hdone : ∀ i ∈ C, BootDone C L i) : ¬ BootFacts C L := by
-  rintro ⟨t, hnt, hinit, -, -⟩
-  obtain ⟨t', hnt', -, -, hinit'⟩ := newTrace_bootInit C L σ hC0 hCl hrun hev hseg hdone
-  rw [hnt] at hnt'
-  cases hnt'
-  exact bootInit_ne_simInit C (hinit'.symm.trans hinit)
+    (hdone : ∀ i ∈ C, BootDone C L i) : BootFacts C L := by
+  obtain ⟨t, hnt, hsrv, hisrv, hinit⟩ := newTrace_simInit C L σ hC0 hCl hrun hev hseg hdone
+  exact ⟨t, hnt, hinit, hsrv, hisrv⟩
 
 open Iris.BI Iris.ProofMode in
 /-- **`Main`'s pure obligations at the end of the run** (`simInv_end` and `mainPure_of_sim`): with the

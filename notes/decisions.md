@@ -37099,3 +37099,61 @@ send gates must record them); L2's two locating tasks (lemma (ii)'s `ca ≥` app
 Probe B; the term logs' minting update and its callers, at threading).
 
 No axiom, no `sorry`, no Lean file changed. Nothing for the user (§1 unchanged).
+
+## Amendment A8 (Q36, Q37): `simInit` with `bootJunk` outside the voters, so `BootFacts` holds; the voters' completion witnesses `bootDone` (a new ghost name, a `simInv` clause, `trCapB_bootDone`), returned by `StartNode` and turned into `BootFacts` at the end (2026-11-11 · trace-check, Q36 (a) and Q37 (a) taken by the coordinator (intermediate statements), their form the agent's under the user's delegation · branch `trace-check-a8`; amends the frozen Draft (tag `trace-check-frozen-a6`, as A7 amended it) in `simInit`, `TraceNames`, `simInv` and `StartNode.gatedSpec`'s post; DRAFT until the re-freeze)
+
+**Checked first (Q36).** `newTraceWith` (`etcdraft/Tla/Trace.lean`) builds `s i` for every id: at a server
+from its last bootstrap line, at any other id from `lines.getD (0 - 1)`, the trace's first line (a voter's
+`InitState`, `BootEvAt _ _ 0`): term 0, a follower, no vote, an empty log, nothing committed, an empty
+configuration, which is `bootJunk`. A7's `newTrace_of_bootDone` computes exactly this. So with `simInit C`'s
+`s i := if i ∈ confAbs C then <the voter's bootstrap server> else bootJunk`, `newTrace`'s initial state is
+`simInit C` (propositionally: function extensionality and the `if`): `newTrace_simInit` (A7's
+`newTrace_bootInit`, renamed, concluding `t.init = simInit C`). The readers of `simInit` read it at servers only, and the change is checked by
+re-proving them: `SimRun`/`linesTrace` and their first step (`TraceSimRun.lean`, `TraceSimMatch.lean`)
+compiled unchanged; `TracedNodeBoot.lean`'s facts at the bootstrap state needed the membership where a
+lemma had stated a fact of every id that was true only at voters (`simInit_log`, `srvFacts_simInit`,
+`simIdle_boot` gain `i ∈ confAbs C` / `j ∈ C` / `id ∈ C`; all their callers have it), and case splits
+where the fact holds of `bootJunk` too (`simInit_state`, `committedL_simInit`, `keptFrom_simInit`,
+`specInv_simInit`'s entries' terms, `msgsShape_simInit`, `AckHists`); `cfgFixed_simInit` reads servers.
+`bootJunk` moved to `TraceSimGhost.lean`, body unchanged; `simInit_s_voter`/`_nonvoter` are its two cases.
+`bootInit_ne_simInit` and `MainSim.lean`'s `not_bootFacts` (false now) are deleted; `not_bootFacts` is
+restated positively as `bootFacts_of_bootDone` (complete segments give `BootFacts`). Per review a8-r1 (its
+first second-tier finding) `bootInit` itself (a name raft's `InvBoot.bootInit` already has) and the unused
+`simInv_end_boot` are deleted rather than kept beside an equation, the design's other option.
+
+**Q37: the witness.** `TraceNames` gains `dn`; `bootDone tn i := ∃ k, monoListIdxOwn tn.dn k i`
+(persistent); `simInv` gains `∃ Dn : List w64, monoListAuthOwn tn.dn 1 Dn` and the pure clause
+`∀ i ∈ Dn, BootDone C L i` (last). **Deviation from the design's ghost map** (`notes/trace-check-design.md`
+A8.2): a ghost map's authority cannot hand out an element for a key already present, so a law minting a
+witness for a node already in `Dn` (applied twice, or by two callers) could not be proved without a
+precondition the capability does not carry; a mono list's authority gives a persistent index witness of any
+member, and appending a duplicate is harmless, so `trCapB_bootDone` appends `id` unconditionally. Each law
+that re-establishes `simInv` keeps the clause through `bootDn_snoc` (`bootDone_snoc`: a line after a
+complete segment cannot extend it, `BootEvAt` having no position `|C| + 4`): `trCap_fire`, `_recv`, `_ready`,
+`_boot`, `_bf`, `_booted` (`_any` and `trCap_fireN` through them), and (review design-r1's S11)
+`trCapB_perm`, re-proved with `Dn` unchanged; `Cluster.traceSimInv_alloc`/`traceSim_alloc` take
+`monoListAuthOwn tn.dn 1 []`, allocated in `traceNames_alloc`.
+
+**The law** `trCapB_bootDone.statement` (`TracedCap.lean`, beside `trCap_fire_boot`; proved in
+`TracedHooksGlobal.lean`): an unbooted capability whose `Λ` pins the last event at raft's last bootstrap
+position (`∀ C cs P o, Φ C cs P → Λ o → ∃ x, o = some x ∧ BootEvAt C id (|C| + 3) x`; the voters come
+through `Φ`, review design-r1's S4: a caller's `Λ` is written at its `vs`, `Φ` pinning `C = vs`) gives
+`∃ tn, traceDir γd tn ∗ bootDone tn id`, the capability kept. Proof: the flag unset, the node's events are
+all bootstrap-named (they parse), so its segment is all of them, the last `x` (`LastOf`); `BootSegs` puts
+`x` at the segment's last position, `hΛ` at `|C| + 3`, and `bootEvAt_unique` (A7's; review S2: no copy)
+makes the length `|C| + 4` (`bootDone_of_last`).
+
+**`StartNode` and the end.** `StartNode.gatedSpec`'s post gains `startDoneB γ cv.ID'` (untraced `True`);
+the client API's `startDone γ id` (sealed, persistent; the old `D` parameter gone) is it
+(`startDone_eq`), and `StartNode.tracedSpec_of_gated` loses its parameter. The end law, per review
+design-r1's S3, takes what the client holds: `Cluster.traceSim_bootEnd`, in a traced cluster
+(`Cluster.trace γ = some γd`), from a voter's `nodeBoot`, `traceDir γd tn`, the invariant,
+`□ [∗list] i ∈ vs, startDone γ i` and the trace's half, with `vs ≠ []` and `|vs| < 2^40`, gives
+`newTrace`'s success at `simInit vs` and `confAbs vs` (through the Draft's `Cluster.traceSimInv_bootEnd`
+and `simInv_end_bootDone`). `HarnessEnd.lean`'s hypothesis `BootEnd D` is now the theorem `bootEnd`;
+`runOk_at_end`/`runOver_intro` take the directory and the trace mode instead of `D`/`HD`.
+
+**Not proved here (waits on the traced `newRaft`/`Bootstrap`, a later slice):** `StartNode.gatedSpec`
+itself (minting the witness at the end of `setupNode` by `trCapB_bootDone` at `Λ_end`).
+
+No axiom, no `sorry`, no closed statement changed. Reviews `notes/trace-validation-reviews/a8-r1.md` (no first-tier finding), `a8-r2.md`.
