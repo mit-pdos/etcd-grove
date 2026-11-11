@@ -245,13 +245,13 @@ private theorem wp_step_pending
          uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress⌝ }} := by
   -- (2026-11-10, Q8 stage 1 slice 11) `Step`'s untraced instance (`TracedUntracedRaftStep.lean`)
   have wp_raft_Step := raft.Step.untraced wp_raft_Step
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc, #Hfrg⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, Hp, Hlc, #Hfrg⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
   | self pv t =>
     rcases st with ⟨m, ents, sn, ctx, rsp⟩
     unfold pendingRel
-    icases Hp with ⟨%Hsm, #Hmsg0⟩
+    icases Hp with ⟨%Hsm, #Hmsg0, -⟩
     ihave #Hmsg := Hmsg0 $$ Hfrg
     obtain ⟨⟨Hty, Hfr, Hto, Hnz, Hen, Hcn, Hrj⟩, rfl, rfl⟩ := Hsm
     simp only at Hty Hfr Hto Hnz Hen Hcn Hrj ⊢
@@ -1202,7 +1202,7 @@ theorem RawNode.Advance.wp_proof
       rw [drop_cons_of_lookup Hp_lookup] at Hok1 Hsb1 Hti1
       rw [drop_cons_of_lookup Hmm_lookup, drop_cons_of_lookup Hp_lookup]
       icases (BigSepL2.bigSepL2_cons (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-          pendingRel γ id rs.bw st p))).1 $$ Hpend with ⟨⟨%st, Hmin, #Hpm⟩, Hpend⟩
+          pendingRel γ id rs.bw st p))).1 $$ Hpend with ⟨⟨%st, Hmin, Hpm⟩, Hpend⟩
       have HnS : sint.nat n + 1 = sint.nat (n + W64 1) := by word
       rw [HnS] at Hok1 Hsb1 Hti1 ⊢
       obtain ⟨Hpok, Hrest⟩ := stepsOk_cons _ _ _ Hok1
@@ -1810,7 +1810,7 @@ theorem RawNode.Advance.wp_proof
     rw [drop_cons_of_lookup Hp_lookup] at Hok1 Hsb1 Hti1 Hfl1
     rw [drop_cons_of_lookup Hmm_lookup, drop_cons_of_lookup Hp_lookup]
     icases (BigSepL2.bigSepL2_cons (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id rs.bw st p))).1 $$ Hpend with ⟨⟨%st, Hmin, #Hpm⟩, Hpend⟩
+        pendingRel γ id rs.bw st p))).1 $$ Hpend with ⟨⟨%st, Hmin, Hpm⟩, Hpend⟩
     have HnS : sint.nat n + 1 = sint.nat (n + W64 1) := by word
     rw [HnS] at Hok1 Hsb1 Hti1 Hfl1 ⊢
     obtain ⟨Hpok, Hrest⟩ := stepsOk_cons _ _ _ Hok1

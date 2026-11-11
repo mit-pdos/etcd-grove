@@ -727,7 +727,9 @@ theorem RawNode.acceptReady.wp_proof
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
   ihave Hps := self_pending γ id s.term { s with outbox := [] } s.outbox ms1 ms2 Houtbox ms2 Hsub2
     HmsgsAA_ok.1 Hnsout (Hxf.of_fields rfl rfl rfl) (fun x _ => MsgTrOk.of_none HtrG x) rs.bw
-    $$ Hout Hqc Hxw Hself
+    $$ Hout Hqc Hxw Hself []
+  · -- (slice 26n) the tokens, untraced: nothing
+    iapply selfToks_none γ QMsg.st _ HtrG
   -- (D22 S-d3a) the log after the `Ready`: what it keeps of `ls0` and `s.logst`
   have Haf := accept_fields ls0 ce sz
   have Hsip00 : s.logst.sip = false := by
