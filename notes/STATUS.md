@@ -198,6 +198,21 @@ set a flag, so no result's program is affected, but the axiom claims more than G
 one. B1b replaces it with the trusted `Serve` model under `RegisterService`'s stream-flag premise,
 carried in `grpcSrvNew`'s docstring (`notes/decisions.md`, "Stage B: the stream-flag premise").
 
+**Known overclaim (recorded 2026-11-11, stage B3; CP2 decision 2 of etcd-grove-81).** Since stage B2
+the trust-boundary `lease.lessor.Renew.spec` and `EtcdServer.leaseTimeToLive.spec` take and return only
+the level-0 token (`levelTok lessorLvl`), where they took a whole `threadTok`. On the paths the
+docstrings argue (the lessor's and the leases' locks: level 0 is what their pools lend) that is enough.
+Two paths are not argued and may need more: `Renew`'s call of the checkpointer when `le.cp ≠ nil`
+(its `raftRequest` takes `srvLeadTimeReader s ∗ E.RD`, which only the level-2 pool `I` lends), and a
+follower's `leasehttp.TimeToLiveHTTP` path of `leaseTimeToLive`. Neither runs in a closed result: every
+example leaves the `LeaseCheckpoint` feature off (`examples/lib/etcdstart/common.go:96`), so `cp` is
+`nil`, and the forwarded path runs only under `leaseTTLRow` (one member, its own leader). Go has no
+levels: the real risk is only a reader-count overflow, which `⌜threadBound GF ≤ 2 ^ 30 - 1⌝` bounds as
+long as no goroutine nests two read locks of one mutex, and on the checkpointer path `Renew` holds none
+of its locks (it unlocks `le.mu` before calling `cp`). Reach: the results resting on either axiom
+(`etc/tcb-report.py --roots`, CP3 report). To close it: state the scope in the two specs (a premise
+`cp = nil` / the leader path), or restate them over the run's bundle.
+
 ## Axiom sweep batch 3: start tokens, the lessor, the snapshot stream, membership (2026-11-07, etcd-grove-56; repairs decided, not started)
 
 Batch 3 of the sweep, plus two follow-ups: the alias attack on start tokens other than the WAL's, and

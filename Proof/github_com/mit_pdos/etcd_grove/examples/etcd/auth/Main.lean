@@ -108,7 +108,7 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
@@ -164,7 +164,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUpOn_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd0,
-    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, #Htls, #HBF⟩
+    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, #Htls, #HBF⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   -- `Serve(s, clientAddr)`, with the ghost steps `ak_served_kv` (the KV methods with auth on, the
   -- Auth service's admin methods and `Authenticate` at the address) and `ak_served_watch` (the
@@ -184,7 +184,7 @@ theorem Main.wp_proof
         setupAuthServed go!"127.0.0.1:23916" srv E { ρ with wait := γw } ∗
         isGrpcRpc go!"127.0.0.1:23916" authnMethod (client.etcdAuthenticateSpec γa) ∗
         watchAddrFacts (akV R) ∗ auth.modeTag R.tag E.authMode)))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, by rw [HEo]; simp⟩
@@ -193,38 +193,16 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_true _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
-      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs,
+      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -,
       Hlis⟩
-    obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
-    icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
-    icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
-    ihave Hslots := client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-        etcdstart.memberReadN 64 (by omega) (by omega)
-        etcdstart.one_le_memberReadN
-        (by omega)
-        $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
-    · iframe
-    -- one watch run slot: two of the watchable store's readers, one of the request path's (the
-    -- runs share a pool, `grpc.serveStream`)
-    icases (hRS E.γ 2 62).1 $$ HWRs with ⟨HWR2, -⟩
-    ihave Hwslots := client.watchRunSlots_of hRS R (etcdstart.srvWOf R.E ρ.rd true) 1 1 (Nat.le_refl _)
-        $$ [HWR2 Hrd1]
-    · simp only [etcdstart.srvWOf, Nat.mul_one]
-      rw [hRE]
-      iframe HWR2
-      isplitl [Hrd1]
-      · simp only [List.replicate]
-        iapply BigSepL.bigSepL_cons.2
-        iframe Hrd1
-        iapply BigSepL.bigSepL_nil.2; itrivial
-      ipureintro
-      rw [sync.rwmutex.actualMaxReaders_unseal]
-      omega
+    obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
+    -- (per-type stage B3) the gRPC run pools, from the serving stocks
+    imod (etcdstart.kvServeStocks_pools srv E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     imod (ak_served_kv go!"127.0.0.1:23916" gs q p pa srv lis E { ρ with wait := γw } cid mid C.n
-        il im iu ims is svcs regs sregs 1 γa HEo Hregs1 HregsA wp_BcryptCost Hrf)
-      $$ [Hgsn Hlis Hslots] with ⟨Hserv, Hss, #HKV, #HSA, #HAu⟩
+        il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
+      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu⟩
     · iframe; iframe #
       iintro !>
       imodintro
@@ -237,12 +215,15 @@ theorem Main.wp_proof
     · rw [hRw, hRE]
       iapply (etcdstart.srvWOk_of_readOn hP hR srv E ρ.rd C.wsl hkv (by omega))
       rw [← hon]; iexact Hrd0
-    imod (ak_served_watch hP (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs 1 rfl hRE
-        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl rfl rfl)
-      $$ [Hss Hwslots HWok] with ⟨#HWF, #Htag⟩
+    imod (ak_served_watch hP (akV R) go!"127.0.0.1:23916" pw srv E ρ.rd ims is sregs γ rfl hRE hRs rfl
+        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl rfl rfl
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
+      $$ [HWok] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     imodintro
-    iframe Hserv HKV HSA HAu HWF Htag
+    iframe HKV HSA HAu HWF Htag
+    isplitl [Hserv]
+    · iexists γ; iexact Hserv
     ipureintro; exact ⟨hRE, hRs⟩
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag⟩⟩)
   · cases serr with
