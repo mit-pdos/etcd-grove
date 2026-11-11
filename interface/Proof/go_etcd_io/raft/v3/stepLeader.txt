@@ -150,9 +150,10 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                         mm.commit = (toPState s).commit ∧
                                                                           mm.dst = m.From' ∧
                                                                             uint.Z
-                                                                                ((prvalsMatch s.prvals !! m.From').getD
-                                                                                  (W64 0)) ≤
-                                                                              uint.Z mm.index⌝ -∗
+                                                                                  ((prvalsMatch s.prvals !! m.From').getD
+                                                                                    (W64 0)) ≤
+                                                                                uint.Z mm.index ∧
+                                                                              mm.rejecthint = W64 0⌝ -∗
                                                                     G o -∗
                                                                       HookGateOpt s.gh.tr r
                                                                         (sendOutGate id
@@ -180,11 +181,13 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                     (⌜m.Type' = MsgProp⌝ -∗
                                                                       ∀ cs,
                                                                         ccEntsOk ents cs -∗
-                                                                          G s.outbox -∗
-                                                                            HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c)
-                                                                              (normalCount
-                                                                                (leaderPropConf s ents cs c.joint).fst)
-                                                                              Gp1) ∗
+                                                                          ⧖(k0 + ents.length) -∗
+                                                                            G s.outbox -∗
+                                                                              HookGateN s.gh.tr r
+                                                                                (NodeEvOf (W64 5) id s c)
+                                                                                (normalCount
+                                                                                  (leaderPropConf s ents cs c.joint).fst)
+                                                                                Gp1) ∗
                                                                   "Hgpack" ∷
                                                                       (⌜m.Type' = MsgProp⌝ -∗
                                                                         ∀ cs,
@@ -221,10 +224,12 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                                         mm.commit = s.logst.committed ∧
                                                                                           mm.dst = to ∧
                                                                                             uint.Z
-                                                                                                ((prvalsMatch s.prvals !!
-                                                                                                      to).getD
-                                                                                                  (W64 0)) ≤
-                                                                                              uint.Z mm.index⌝ -∗
+                                                                                                  ((prvalsMatch
+                                                                                                          s.prvals !!
+                                                                                                        to).getD
+                                                                                                    (W64 0)) ≤
+                                                                                                uint.Z mm.index ∧
+                                                                                              mm.rejecthint = W64 0⌝ -∗
                                                                                     Gp2 o -∗
                                                                                       HookGateOpt s.gh.tr r
                                                                                         (sendOutGate id
@@ -242,10 +247,11 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                                     mm.commit = s.logst.committed ∧
                                                                                       mm.dst = m.From' ∧
                                                                                         uint.Z
-                                                                                            ((prvalsMatch s.prvals !!
-                                                                                                  m.From').getD
-                                                                                              (W64 0)) ≤
-                                                                                          uint.Z mm.index⌝ -∗
+                                                                                              ((prvalsMatch s.prvals !!
+                                                                                                    m.From').getD
+                                                                                                (W64 0)) ≤
+                                                                                            uint.Z mm.index ∧
+                                                                                          mm.rejecthint = W64 0⌝ -∗
                                                                                 G o -∗
                                                                                   HookGateOpt s.gh.tr r
                                                                                     (sendOutGate id s c MsgApp [mm])
@@ -365,13 +371,16 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                                                                                                             N).logst.committed ∧
                                                                                                     mm.dst = to ∧
                                                                                                       uint.Z
-                                                                                                          ((appRespMatch s
-                                                                                                                  m.From'
-                                                                                                                  m.Index' !!
-                                                                                                                to).getD
-                                                                                                            (W64 0)) ≤
-                                                                                                        uint.Z
-                                                                                                          mm.index⌝ -∗
+                                                                                                            ((appRespMatch
+                                                                                                                    s
+                                                                                                                    m.From'
+                                                                                                                    m.Index' !!
+                                                                                                                  to).getD
+                                                                                                              (W64 0)) ≤
+                                                                                                          uint.Z
+                                                                                                            mm.index ∧
+                                                                                                        mm.rejecthint =
+                                                                                                          W64 0⌝ -∗
                                                                                               Gc b N o -∗
                                                                                                 HookGateOpt s.gh.tr r
                                                                                                   (sendOutGate id

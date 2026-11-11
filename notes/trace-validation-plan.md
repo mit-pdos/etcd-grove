@@ -1010,7 +1010,7 @@ changed mechanically (`stepClose_of_at` with a `CloseAt` proof, then `stepCloseA
 (the family's propose update, no `£`), the `Replicate` lines' phase steps and facts, the
 self-acknowledgement's facts, the appends' gates (unblocked now by the `RejectHint` premise), the bundle;
 the vote's loss (a guarded `stepOut` for the close) and win (the win's ghost update split, its receipt
-through `becomeLeader`), each recorded with its design in the decisions entry.
+through `becomeLeader`), each recorded with its design in the decisions entry. Checked (branch at `trace-check` `98618b5dfa` plus this slice): full `lake build` green (13813 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in six function proof interfaces (`raft__appendEntry`, `stepLeader`: the receipt in the `Replicate` gate; those, `raft__maybeSendAppend`, `raft__sendAppend`, `raft__bcastAppend`, `stepCandidate`: `mm.rejecthint = W64 0`); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)

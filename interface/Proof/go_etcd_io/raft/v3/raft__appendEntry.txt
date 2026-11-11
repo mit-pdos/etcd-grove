@@ -19,7 +19,9 @@ theorem raft.appendEntry.wp_proof [package_sem : Assumptions] (wp_raftLog_lastIn
                   "Hes" ∷ entsPts es dq ents ∗
                     "#Hrc" ∷ ⧖m ∗
                       "HG" ∷ G ∗
-                        "Hgrep" ∷ (G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G1) ∗
+                        "Hgrep" ∷
+                            (⧖(m + ents.length) -∗
+                              G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G1) ∗
                           "Hgack" ∷
                             (G1 -∗
                               HookGateOpt s.gh.tr r

@@ -35345,7 +35345,10 @@ and `msgFacts` from raft's ghost: `ownRaftGhost_isLeader`, `ownRaftGhost_logFact
 
 ## Q8 stage 1 (slice 23a): `MsgProp`'s close relaxation, the loan to the `Replicate` gate, `Step`'s ghost step split; every append gate's `RejectHint`; the vote's win and loss not done (2026-11-11 · trace-check, Q8 stage 1 slice 23a; slice 22a's three additions and 22b's question 3 (a) taken by the coordinator, their form decided by the agent under the user's delegation · branch `trace-check-q8s23a`; DRAFT until trace-check's Freeze)
 
-All raft-internal: none of the changed modules is on `etc/api/raft.txt` (`interface/` unchanged), nothing
+All raft-internal: none of the changed modules is on `etc/api/raft.txt`; `interface/` differs only in six
+functions' proof interfaces (their specs: `raft__appendEntry` and `stepLeader`, the receipt in the
+`Replicate` gate; those and `raft__maybeSendAppend`, `raft__sendAppend`, `raft__bcastAppend`,
+`stepCandidate`, the append gates' `mm.rejecthint = W64 0`); nothing
 frozen (`TracedCap.lean` untouched), `raft.Step.untraced`, the `RawNode`, node and tick statements
 and `Link.lean` unchanged. No axiom, no `sorry`.
 
