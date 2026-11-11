@@ -71,14 +71,15 @@ theorem bootLogOk_noEmptyV2 {ps : List w64} {L : List EntryM} (H : BootLogOk ps 
   revert this; decide
 
 /-- **A new cluster of client decisions with a bootstrap log**, of the voters `vs` (`InvNodeRule`'s
-`cluster_alloc` at a non-empty `boot`). -/
-theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
+`cluster_alloc` at a non-empty `boot`), (2026-11-11, trace-check S7 part 2) of the trace mode `tr`
+(`cluster_alloc_traced`; `cluster_alloc_boot_impl` is this at `none`). -/
+theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (tr : Option GName) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     BootLog vs ctxs boot →
     ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
         ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length ∧
-          γ.raft.reTrace = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+          γ.raft.reTrace = tr⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         isCommittedLogLb γ boot ∗
@@ -102,11 +103,11 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   let dc := DynCfg.ofFold noDec (stOf c0) Hv.1
   ihave Hcl := api_alloc_client (GF := GF) N E (GMap.listToSet vs) vs ctxs boot bud md tab
     (some (DynCfg.all dc)) HB
-  imod ownRaftGhost_alloc_core_reg E (GMap.listToSet vs) (GMap.listToSet vs) (some (DynCfg.all dc))
+  imod ownRaftGhost_alloc_core_reg_tr E (GMap.listToSet vs) (GMap.listToSet vs) (some (DynCfg.all dc))
     (fun _ _ => True) (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud md tab) none
     (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) sl
-    (N .@ "raft") N (some g) (some gd) dup Hcne Hnz' Hwf
+    (N .@ "raft") N (some g) (some gd) dup tr Hcne Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0⟩ := Hγ
@@ -198,6 +199,23 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
   iframe Hdc Hg Hc0 Hm Hbinv Htlb Ht Htlb0
   ipureintro
   exact ⟨Hin, Hnd, Hnz, Hlen, Hcfg, ⟨gd, Hmr⟩, Hok⟩
+
+
+/-- **A new cluster of client decisions with a bootstrap log**, untraced (`cluster_alloc_boot_impl_tr`
+at `none`). -/
+theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    BootLog vs ctxs boot →
+    ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
+        ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length ∧
+          γ.raft.reTrace = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+        ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
+        confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
+        isCommittedLogLb γ boot ∗
+        [∗list] id ∈ vs, nodeBootU γ N vs ctxs id ∗ raftStateU γ id RaftState.init ∗
+          nodeVacantU γ id :=
+  cluster_alloc_boot_impl_tr N vs ctxs boot dup sl none E
 
 
 end boot

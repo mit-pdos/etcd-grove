@@ -62,6 +62,15 @@ theorem snapMade_elem [package_sem : Assumptions] (γ : Cluster) (S : List SnapR
 
 theorem snapMade_persistent (γ : Cluster) (s : SnapRec) : Persistent (snapMade γ s)
 
+theorem cluster_alloc_traced [package_sem : Assumptions] (N : Namespace) (vs : List w64) (ctxs :
+    List (List w8)) (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (γd : GName) (E :
+    CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62
+    → BootLog vs ctxs boot → ⊢ bootMarshal vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, ⌜γ.dup =
+    dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length⌝ ∗ ⌜γ.trace = some γd⌝ ∗ ownCommittedOps γ boot ∗
+    ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple
+    (listToSet vs)) ∗ ownSnapsMade γ [] ∗ ([∗list] id ∈ vs, iprop(raftState γ id RaftState.init ∗
+    nodeVacant γ id)) ∗ isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id
+
 def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
   iprop(∃ l m,
       isCommittedLogLb γ l ∗

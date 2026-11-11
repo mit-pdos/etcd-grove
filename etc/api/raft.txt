@@ -152,6 +152,11 @@ importable Proof.go_etcd_io.raft.v3.TraceSimEnd
 importable Proof.go_etcd_io.raft.v3.TraceSimGhost
 importable Proof.go_etcd_io.raft.v3.TraceSimBag
 importable Proof.go_etcd_io.raft.v3.TraceSimLemmas
+# (S7 part 2, 2026-11-11) the traced node API as the harness sees it: the frozen Draft's invariant
+# and `StartNode` precondition re-sealed (the Draft publicly imports raft's internals), and the traced
+# statements not yet proved (`StartNode.tracedSpec`, `isReadyChan_recvAu.tracedSpec`,
+# `node.Step.tracedSpec`), which the harness takes as hypotheses
+importable Proof.go_etcd_io.raft.v3.TracedNodeApi
 
 ## Debt: proof internals clients reach today (take them out of the list)
 # tactics and lemma files the server, the examples or other packages' specs import
