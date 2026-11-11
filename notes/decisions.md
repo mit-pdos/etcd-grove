@@ -35844,15 +35844,16 @@ in flight is between servers.
 **The amendment**: `MsgsShape σ` (a `simFx` clause, A2), old `∀ x ∈ bags, canonMsg x = x`, new
 `(∀ x ∈ bags, canonMsg x = x ∧ MsgEnds σ x) ∧ VotesIn σ`: every message in flight between servers
 (`MsgEnds`: `x.source ∈ σ.server ∧ x.dest ∈ σ.server`) and every server's tally of servers (`VotesIn`:
-`∀ i ∈ σ.server, ∀ k ∈ (σ.s i).votesResponded, k ∈ σ.server`; a tally is reset by `Timeout` and grows
-only by a received vote response's source, a server by `MsgEnds`). The receive law's premise
+`∀ i ∈ σ.server, ∀ k ∈ (σ.s i).votesResponded, k ∈ σ.server`; a tally is reset by `Timeout`, `PreTimeout` and `Restart`,
+grown only by a received vote or pre-vote response's source, a server by `MsgEnds`; pre-vote and restarts are
+out of scope). The receive law's premise
 `PhaseStepR` changes, old vs new: its hypothesis on the share `(elements c.incoming).Perm C ∧
 c.outgoing = ∅ ∧ id ∈ C` becomes `… ∧ id ∈ C ∧ m.source ∈ confAbs C ∧ (∀ k ∈ cs.votesResponded, k ∈
 confAbs C)`; `trCap_fire_recv` supplies both from `MsgsShape` (the message is in flight, its token's; the
 share is the node's server's). The second conjunct is review a6-r2's F1: the tally the winning call
 starts from was recorded in earlier `Step` calls, and the frozen idle phase between calls (`SimIdle`,
 `SimServerR`) ties the responded voters to raft's tally's keys but not to the configuration.
-No other frozen statement changed. Users: every `PhaseStepR` proof's pattern (`⟨hin, hout, hC, -⟩`,
+No other frozen statement changed. Users: every `PhaseStepR` proof's pattern (`⟨hin, hout, hC, -, -⟩`,
 twelve files, mechanical); the send lemmas' new ends premise (`simFx_send`, `msgsUniq_send_canon`;
 `fxPres_plain`'s `hpE`, `fxPres_heartbeat`/`fxPres_app`'s `hdC`, `fxPres_heartbeat_pin`'s `hto`, from
 the capability's configuration, `trCapB_pinPerm`); the replies' ends from their request's
@@ -35869,6 +35870,17 @@ configured sender), and `wonVote_quorum`: at a won `MsgVoteResp`'s receive line,
 must hand the guard's fact to the `BecomeLeader` line's phase in the same `Step` call (`PhaseStepB` has no
 message premise); `phaseStepR_voteRespCand` does not use the new premises yet. Not done: `AckHists`'
 guard `x.source ∈ σ.server` is now implied by `MsgEnds` (harmless; may be dropped at the re-freeze).
+
+**Slice 24c's accepted `MsgApp`, adapted** (merged into this branch): the receiver keeps its
+acknowledgement histories across every state of the line, from the request's leader's full log `fp ++ l`
+(`ents_in_lead`): a truncation `L.take k` past the first conflict (`hist_cutConflict`, `hist_trunc`),
+`maybeAppend`'s new log (`hist_newLog`: the cut, then `hist_keep` for the append; raft's own move is one
+`hist_replace`); the reply's acknowledgement of `p + |ents|` (`hist_appReply`, `hist_of_agree`; with no
+entries, the matched previous entry). `quorumLogF_appLog` takes the receiver's old and new logs and the
+history transfer; `simFx_appLog` the transfer, `simFx_appDone` the reply's history; `simFx_appAccMid`/`End`
+prove them (new premises `ents0 = ents`, `uint.nat idx = p`, `lt0 = lt`, `rfl` at the callers of
+`fxPresR_*AppAcc`). `ackHist_ofAgree` is now unused. Reviews `a6-r1.md` … `a6-r4.md` (round 2's F1 repaired
+by `VotesIn`; round 3's F-HEAD by this adaptation; no first-tier finding left).
 
 ### Q24: the capability's voters fit the bootstrap log
 

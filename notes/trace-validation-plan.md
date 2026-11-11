@@ -2553,6 +2553,7 @@ which `trCap_fire_recv` supplies): sufficiency `wonVote_quorum` (`tallyGranted_q
 `PhaseStepR` proof's premise pattern gains two components, a new send its ends. (Q24) `trCapB`'s pure
 clause gains `C.length ≤ γ.reBoot.length` (fixed for the cluster; from `BootLogOk` in
 `startTrace_trCapB`), which `trCapB_bootFit` hands to a phase: slice 24c's accepted-`MsgApp` bundles
-become `stepBundle_traced.on` (`stepBundle_traced_folAppAcc_on`, `_candAppAcc_on`). Reviews `a6-r1.md`,
-`a6-r2.md`, `a6-r3.md`
+become `stepBundle_traced.on` (`stepBundle_traced_folAppAcc_on`, `_candAppAcc_on`). Slice 24c's accepted-`MsgApp` files adapted
+(the receiver's histories across the line, `hist_cutConflict`/`hist_newLog`/`hist_appReply`). Reviews
+`a6-r1.md` … `a6-r4.md` (no first-tier finding left)
 (`notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").
