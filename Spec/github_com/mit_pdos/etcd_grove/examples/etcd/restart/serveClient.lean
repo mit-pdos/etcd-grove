@@ -34,9 +34,10 @@ abbrev serveClient.spec : Prop :=
     (m s : Loc) (pl : GoInterface) (addr : GoString) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (Q : w64 → w64 → v3rpc.WSrv GF → IProp GF),
-  cfg.Logger' ≠ null → cfg.TracerOptions' = slice.nil → cfg.WatchProgressNotifyInterval' = 0 →
+  cfg.TracerOptions' = slice.nil → cfg.WatchProgressNotifyInterval' = 0 →
   v3rpc.ServerMethodSets → apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
+      zapLoggerOk cfg.Logger' ∗
       m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk s pl) ∗
       netAddrFree (GF := GF) addr ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗ srvWatchReaders s E 64 ∗

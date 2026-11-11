@@ -176,6 +176,8 @@ theorem Main.wp_proof
       client.srvWL (etcdstart.srvWOf R.E ρ.rd true), fun _ => (go!"127.0.0.1:23916", R), 1, ρ.rd.kv,
       etcdstart.srvWOf R.E ρ.rd true, fun _ => etcdstart.srvWOf R.E ρ.rd true⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗
         akKVOn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid ∗
@@ -185,7 +187,7 @@ theorem Main.wp_proof
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, by rw [HEo]; simp⟩
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, by rw [HEo]; simp⟩
     iintro %gs %lis %cid %mid %R Hg
     rw [hon]
     ihave Hg := etcdstart.grpcUpM_true _ _ _ _ _ _ _ _ _ _ $$ Hg

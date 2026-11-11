@@ -54,8 +54,8 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 file header). -/
 theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
-    (hlg : cfg.Logger' ≠ null) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ zapLoggerOk cfg.Logger' ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
         srvWatchBuilt s E ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -63,7 +63,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         cfg.TracerOptions' ↦*□ tos ⊢
       |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
-  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  iintro ⟨#Hpkg, #Hzlg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
   imod (auth.modeTag_alloc (GF := GF) E.authMode) with ⟨%tag, #Htag⟩
   ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
@@ -90,7 +90,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iunfold isServerRead at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
-  icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
+  icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, #Hlgn, -, -, -, -, -, -, -,
     -, -, -, #Hstp, #Hstc, #Hrb⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
@@ -111,10 +111,6 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       rw [← Hae]
       iexact HisReq
     isplitr
-    · ipureintro; exact hlg
-    isplitr
-    · ipureintro; exact Hlgn
-    isplitr
     · ipureintro; exact Hmto
     isplitr
     · iunfold srvLeadInv
@@ -129,8 +125,8 @@ stage 5; `Start.spec`'s views in the mode, `isServerReqM on`, `isServerReadM on`
 `A` the server's contract holds at (`raftKV s A`; `raftKV_serverM`'s at the mode's answers). -/
 theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
-    (hlg : cfg.Logger' ≠ null) (K : Nat) (on : Bool) (A : v3rpc.KVAns GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    (K : Nat) (on : Bool) (A : v3rpc.KVAns GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ zapLoggerOk cfg.Logger' ∗
         isServerReqM on s E ρ ∗ isServerReadM on s E γr ∗ srvAuthLb s E ∗ v3rpc.raftKV s A ∗
         srvServeFacts s E cfg ∗ srvWatchReaders s E K ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -138,7 +134,7 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         cfg.TracerOptions' ↦*□ tos ⊢
       |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗ ⌜C.A = A ∧ C.E = E⌝ ∗
         mvcc.api.mvccReaders E.γ K := by
-  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hlb, #Hkv, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  iintro ⟨#Hpkg, #Hzlg, #Hsrv, #Hsrd, #Hlb, #Hkv, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
   imod (auth.modeTag_alloc (GF := GF) E.authMode) with ⟨%tag, #Htag⟩
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
   · iframe #
@@ -164,7 +160,7 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
+  icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, #Hlgn, -, -, -, -, -, -, -,
     -, -, -, #Hstp, #Hstc, #Hrb⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
@@ -185,10 +181,6 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       rw [← Hae]
       iexact HisReq
     isplitr
-    · ipureintro; exact hlg
-    isplitr
-    · ipureintro; exact Hlgn
-    isplitr
     · ipureintro; exact Hmto
     isplitr
     · iunfold srvLeadInv
@@ -205,8 +197,8 @@ theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
 configuration's watchable store (`C.wsl`, `C.γ`: the watch server's, `v3rpc.Server`'s `R`). -/
 theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
-    (hlg : cfg.Logger' ≠ null) (K : Nat) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    (K : Nat) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ zapLoggerOk cfg.Logger' ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
         srvWatchReaders s E K ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -215,12 +207,12 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
       |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ ∗
         mvcc.api.mvccReaders E.γ K := by
-  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  iintro ⟨#Hpkg, #Hzlg, #Hsrv, #Hsrd, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hsrv
   ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
   · iframe #
-  iapply (grpcCfgOk_of_startedM s E ρ γr cfg tos hlg K E.authOn
+  iapply (grpcCfgOk_of_startedM s E ρ γr cfg tos K E.authOn
     (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none))
   rw [hon, isServerReqM_false, isServerReadM_false]
   iframe; iframe #

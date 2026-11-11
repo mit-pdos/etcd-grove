@@ -44,8 +44,8 @@ theorem Serve.wp_proof
     (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     Serve.spec (GF := GF) (hG := hG) := by
   intro CS s addr E ρ γr cfg Q
-  wp_start as ⟨%Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, HG⟩
-  obtain ⟨Hlg, Htos, Hwpi, Hms, Hbuq, Hany⟩ := Hpure
+  wp_start as ⟨#Hzlg, %Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, HG⟩
+  obtain ⟨Htos, Hwpi, Hms, Hbuq, Hany⟩ := Hpure
   ihave #Hwp := srvServeFacts_interval s E cfg $$ Hsf
   -- `io.EOF`, from its package's fact; the imports' package facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
@@ -61,7 +61,7 @@ theorem Serve.wp_proof
   -- KV answers in the server's mode
   ihave #Hkv := v3rpc.raftKV_serverM s E ρ γr (W64 0) [] .none 0 none $$ []
   · iframe #; ipureintro; exact Hany
-  imod (client.grpcCfgOk_of_startedM s E ρ γr cfg [] Hlg 64 E.authOn
+  imod (client.grpcCfgOk_of_startedM s E ρ γr cfg [] 64 E.authOn
       (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)) $$ [HWR]
     with ⟨%C, #Hgc, %HC, HWRs⟩
   · iframe; iframe #

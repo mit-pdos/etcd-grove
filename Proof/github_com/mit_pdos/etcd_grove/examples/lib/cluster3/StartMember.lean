@@ -167,8 +167,9 @@ theorem StartMember.wp_proof
     #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hctl, #HLR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s
-  imod (EtcdGrove.client.grpcCfgOk_of_started_w srv E { ρ with wait := γw } ρ.rd cfg []
-      (by rw [HElg]; exact Hlg) 64) $$ [HWR] with ⟨%C, #Hgc, %HC, HWRs⟩
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hzlg
+  imod (EtcdGrove.client.grpcCfgOk_of_started_w srv E { ρ with wait := γw } ρ.rd cfg [] 64) $$ [HWR] with ⟨%C, #Hgc, %HC, HWRs⟩
   · iframe; iframe #
     rw [HEtr]
     iapply ownSlice_nil

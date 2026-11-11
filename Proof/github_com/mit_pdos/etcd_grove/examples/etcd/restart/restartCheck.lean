@@ -148,9 +148,11 @@ theorem restartCheck.wp_proof
   -- `serveClient(mR, client)`, with etcd's KV calls registered at the address
   haveI := Hms
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient mR sR plR caddr E' { ρ' with wait := γw } ρ'.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt caddr E' { ρ' with wait := γw } ρ'.rd cid mid)
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq)
     $$ [HmR Hca Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid' %mid' %R Hg

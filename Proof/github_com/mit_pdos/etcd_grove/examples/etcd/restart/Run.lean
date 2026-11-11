@@ -338,9 +338,11 @@ theorem Run.wp_proof
   haveI := Hms
   iunfold memberStop at Hst₁
   icases Hst₁ with ⟨Hm₁, -, -, -⟩
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient m₁ s₁ pl₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid)
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq)
     $$ [Hm₁ Hac₁ Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
