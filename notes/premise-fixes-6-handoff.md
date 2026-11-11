@@ -18,6 +18,12 @@ etcd-grove-81's separate brief.
 - Notes: `decisions.md` "Premise fixes 6, part B", `axiom-review/isctxerr.md` "Repaired",
   `audit.md` rows, STATUS.
 
+## Verified (checkpoint (a), 2026-11-11)
+
+Full build (lock, 64G cap) clean at the part-B commit; `tcb-report --check` matches the baseline
+(843 axioms, 5 sorries); all 54 collections `--check` ok; `gen-init --check`, `api-check` and
+`gen-interface --check` (backend, bbolt, etcdstart, mvcc, raft) ok; `go test ./premisefix/isctxerr` passes.
+
 ## Next
 
 - Checkpoint (a): report to etcd-grove-81, stop before `etc/land.sh`; merge lean (pf5) first.
