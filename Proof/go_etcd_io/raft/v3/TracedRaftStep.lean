@@ -28,6 +28,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.TracedRecvGate
 public import Proof.go_etcd_io.raft.v3.LemmasStepGates
+public import Proof.go_etcd_io.raft.v3.TracedRecvTok
 
 @[expose] public section
 
@@ -61,13 +62,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The received message's token, traced** (the node API's, from the transport): for a message of a
-traced type, its specification message (`msgAbs` at the cluster's voters) in flight under some token
-`k` (`inFlight`, which the receive line consumes: `trCapB_hookGateRecv`); nothing for another type. -/
-def recvTokOf (γd : GName) (m : MessageM) (ents : List EntryM) (ctx : List w8) : IProp GF :=
-  iprop(∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
-    ∃ (tn : TraceNames) (k : Nat) (ma : Etcdraft.Msg), traceDir γd tn ∗
-      ⌜TraceSim.msgAbs tn.voters tn.voters.length (absMsg ty m ents ctx) = some ma⌝ ∗ inFlight tn k ma)
+-- (2026-11-11, slice 26n) `recvTokOf` moved to `TracedRecvTok.lean` (imported by `InvRawnode.lean`).
 
 /-- (2026-11-10, slice 15) **The node's last event after `Step`**: the one before (`Λ`, no line logged) or
 one of the step's lines. Until slice 15 the statement gave back `Λ` itself, which a path logging a line

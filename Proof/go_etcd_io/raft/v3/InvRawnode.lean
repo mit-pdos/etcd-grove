@@ -95,6 +95,8 @@ public import Proof.go_etcd_io.raft.v3.CCApply
 -- (D22l) `phsWit`, `phsNext`
 public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 public import Proof.go_etcd_io.raft.v3.Protocol.Term0
+-- (2026-11-11, trace-check Q8 stage 1 slice 26n) a self-addressed message's token (`selfTok`)
+public import Proof.go_etcd_io.raft.v3.TracedRecvTok
 
 @[expose] public section
 
@@ -1207,6 +1209,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (2026-11-11, slice 26n, plan Q26 (a)) **A self-addressed message's token**, at a traced cluster
+(`recvTokOf` at no entries and no context, the abstraction `pendingRel` reads); nothing untraced. -/
+def selfTok (γ : RaftNames) (st : MsgSt) : IProp GF :=
+  match γ.reTrace with
+  | none => iprop(True)
+  | some γd => recvTokOf γd st.msg [] []
+
+theorem selfTok_none (γ : RaftNames) (st : MsgSt) (h : γ.reTrace = none) : ⊢ selfTok (GF := GF) γ st := by
+  unfold selfTok; rw [h]; exact BI.true_intro
+
+/-- `selfTok` untraced, of every message of a list. -/
+theorem selfToks_none {A : Type} (γ : RaftNames) (f : A → MsgSt) (l : List A) (h : γ.reTrace = none) :
+    ⊢ [∗list] x ∈ l, selfTok (GF := GF) γ (f x) := by
+  induction l with
+  | nil => exact BigSepL.bigSepL_nil.2
+  | cons x l ih =>
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iapply selfTok_none γ (f x) h
+    · iapply ih
+
 /-- The message queued for a pending step. A self-addressed response
 (2026-10-10): `SelfMsgOk`, its term and type as `Pending.self` records them, and its
 abstraction legitimately sent (`isMessage`, from the outbox `Ready` drained) -- what
@@ -1214,19 +1237,19 @@ abstraction legitimately sent (`isMessage`, from the outbox `Ready` drained) -- 
 context, so the abstraction is at `[]`, `[]`. (Until 2026-10-10 `msgAbs m a ∗ ⌜m.To' = id⌝`,
 which `Step`'s spec could not use.) (2026-10-16, stage R5: on the message's state `st`, whose
 pointer `ownRawNode` holds (`msgIn`); the pure part is `pendSt`; the apply acknowledgement's
-entries are `st.ents`, read through `msgIn`, rather than a slice `sl ↦*□ ents`.) -/
+entries are `st.ents`, read through `msgIn`, rather than a slice `sl ↦*□ ents`.) (2026-11-11,
+trace-check Q8 stage 1 slice 26n, plan Q26 (a)) A self-addressed message also carries its token at a
+traced cluster (`selfTok`: `True` untraced), which the `Ready` line hands out with the others' and
+`Advance`'s step of it consumes; so the relation is no longer persistent (`pendingRel_pure`,
+`pendingRel_msg` read its persistent parts). -/
 def pendingRel (γ : RaftNames) (id : w64) (W : DurMaps) (st : MsgSt) (p : Pending) : IProp GF :=
   iprop(⌜pendSt id st p⌝ ∗
     match p with
     -- (2026-11-01, durability stage II (k), fix C) behind the fragments of the maps `W` of the
     -- batch the `Ready` cut (`RNState.bw`): a response is legitimate once its promise is entered
     | .self _ _ => iprop(□ (durFrags γ id W -∗ ∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
-        isMessage γ (absMsg ty st.msg [] [])))
+        isMessage γ (absMsg ty st.msg [] [])) ∗ selfTok γ st)
     | _ => iprop(True))
-
-instance pendingRel_pers (γ : RaftNames) (id : w64) (W : DurMaps) (st : MsgSt) (p : Pending) :
-    Persistent (pendingRel (GF := GF) γ id W st p) := by
-  cases p <;> unfold pendingRel <;> infer_instance
 
 -- (2026-10-26, raft's signature, stage 1) `msgDat` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 

@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart). **`raft.Step`'s traced bundle on `MsgHup` at a follower or
 candidate** (2026-11-10, trace-check Q8 stage 1 slice 19a, `notes/decisions.md`, "Q8 stage 1 (slice
-19a)"): the campaign's lines.
+19a)"): the campaign's lines. (2026-11-11, slice 26n, Q25 (a)) Also at a leader, where `hup` does
+nothing: the bundle and `raft.tickElection.tracedTriple` at any role.
 
 - **The `BecomeCandidate` line**: its phase step (`phaseStepB_becomeCandidate`: the idle server of `s`
   to that of `becomeCandidate id s`, the share's server `candC`, `candOf`'s) and its facts
@@ -406,8 +407,19 @@ theorem msgHup_ne :
   · simp only [MsgHup, MsgPreVote, ne_eq]; exact of_decide_eq_true rfl
   · simp only [MsgHup, MsgBeat, ne_eq]; exact of_decide_eq_true rfl
 
-/-- **`MsgHup` at a follower or candidate** (the campaign). -/
-def LocalHup (s : NState) (m : MessageM) : Prop := m.Type' = MsgHup ∧ s.role ≠ .leader
+/-- `MsgHup` is none of the other types `stepLeader`'s gates name (2026-11-11, slice 26n). -/
+theorem msgHup_neL : MsgHup ≠ MsgCheckQuorum ∧ MsgHup ≠ MsgHeartbeatResp ∧ MsgHup ≠ MsgAppResp := by
+  refine ⟨?_, ?_, ?_⟩
+  · simp only [MsgHup, MsgCheckQuorum, ne_eq]; exact of_decide_eq_true rfl
+  · simp only [MsgHup, MsgHeartbeatResp, ne_eq]; exact of_decide_eq_true rfl
+  · simp only [MsgHup, MsgAppResp, ne_eq]; exact of_decide_eq_true rfl
+
+/-- **`MsgHup`, at any role** (2026-11-11, slice 26n, Q25 (a)): a follower's or candidate's campaign, or
+nothing at a leader, which `hup` leaves at once (`hup`'s `"Hgbc"` is asked only under `HupCampaigns`,
+which a leader fails, and `HupGuard` then says nothing was done). Until slice 26n `m.Type' = MsgHup ∧
+s.role ≠ .leader`, so that a traced tick at a leader (whose `r.tick` `ownRaftPhysC` does not tie to the
+role) had no bundle. -/
+def LocalHup (_s : NState) (m : MessageM) : Prop := m.Type' = MsgHup
 
 /-- A campaign's end state's outbox is longer than the outbox it started from. -/
 theorem campaignState_outbox_ne (id : w64) (s : NState) (pre : Bool) (peers : List w64) (cl : List w8)
@@ -653,8 +665,8 @@ def hupR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w6
   Gp2 := fun _ => iprop(⌜False⌝)
   Gc := fun _ _ _ => iprop(⌜False⌝)
 
-/-- **`raft.Step`'s traced bundle on `MsgHup` at a follower or candidate** (the campaign, pre-vote
-off): the `BecomeCandidate` line (`lineF_becomeCandidate`), then each vote message's line
+/-- **`raft.Step`'s traced bundle on `MsgHup`** (at a follower or candidate the campaign, pre-vote
+off; at a leader nothing, slice 26n): the `BecomeCandidate` line (`lineF_becomeCandidate`), then each vote message's line
 (`lineF_campSend`); the close tells nothing done (`G1`, the outbox `s`'s) from the campaign (`GE`, the
 campaign's conditions) by `hup`'s exclusive result (`HupGuard`). -/
 theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
@@ -673,7 +685,17 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
   have hns : ¬ StaleMsg s m := fun h => h.1 hT0
   have hsome : s.gh.tr ≠ none := by rw [htr]; simp
   have hne := msgHup_ne
-  have nX : ∀ x : w32, MsgHup ≠ x → m.Type' ≠ x := fun x hx h => hx (hp.1.symm.trans h)
+  replace hp : m.Type' = MsgHup := hp
+  have nX : ∀ x : w32, MsgHup ≠ x → m.Type' ≠ x := fun x hx h => hx (hp.symm.trans h)
+  -- (slice 26n) the types `stepLeader`'s gates name
+  have hneL := msgHup_neL
+  have nL1 := nX _ hne.2.2.2.2.2.2.2.2.2.2
+  have nL2 := nX _ hne.2.2.2.1
+  have nL3 := nX _ hne.2.2.2.2.1
+  have nL4 := nX _ hneL.1
+  have nL5 := nX _ hne.2.2.1
+  have nL6 := nX _ hneL.2.1
+  have nL7 := nX _ hneL.2.2
   have hde : decide (campaignElection = campaignPreElection) = false := by
     simp (config := {decide := true}) [campaignElection, campaignPreElection]
   have hcne : campaignElection ≠ campaignPreElection := by simpa using hde
@@ -692,7 +714,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
         apply recvGate_none_of
         intro ty hty'
         have hm1 : mtypeOf MsgHup = none := rfl
-        simp only [hp.1, hm1] at hty'; cases hty'
+        simp only [hp, hm1] at hty'; cases hty'
       rw [hrg]
       iapply hookGateOpt_mono s.gh.tr r none (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox)
       isplitr [Hgh Hc]
@@ -723,7 +745,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
         isplitr [HG]
         · iintro H; isplitr; · ipureintro; exact hc
           iexact H
-        iapply lineF_becomeCandidate γd γ md c r id s Λ htr hp.2 hT hfit
+        iapply lineF_becomeCandidate γd γ md c r id s Λ htr hc.1 hT hfit
         iexact HG
       · imodintro
         iintro %pvs %y %o %hy ⟨%hc, HG⟩
@@ -781,7 +803,16 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
         · iintro %h
           exact (h.1.elim (fun h => nX _ hne.2.2.2.2.2.2.1 h.1)
             (fun h => nX _ hne.2.2.2.2.2.2.2.1 h.1)).elim
-      · iintro %hr; exact (hp.2 hr).elim
+      · -- (slice 26n, Q25 (a)) a leader: `MsgHup` reaches none of `stepLeader`'s gates
+        iintro %_
+        unfold leaderGates
+        repeat (isplitr; · first
+          | iexact Hnosnap
+          | (iintro %h; exfalso; simp only [nL1, nL2, nL3, nL4, nL5, nL6, nL7, false_and, false_or,
+              or_false] at h)
+          | (imodintro; iintro %h; exfalso; simp only [nL1, nL2, nL3, nL4, nL5, nL6, nL7, false_and,
+              false_or, or_false] at h))
+        imodintro; iintro %h; exfalso; simp only [nL7, false_and] at h
     · ipureintro
       refine ⟨?_, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
@@ -790,10 +821,10 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
       rw [lineF_permInv γ md c r id s _ _ o o' h]
   · -- the closing wand: nothing done (`G0`, `G1`) or the campaign (`GE`), by `HupGuard`
     -- (slice 23a) a close at `s`
-    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_notLeader hp.2)
+    iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne (nX _ hne.2.2.1))
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend Hout
-    have hok' : HupOkC c id s s' := (hend (by rw [htr]; rfl) hty).2.1 hns hp.1
+    have hok' : HupOkC c id s s' := (hend (by rw [htr]; rfl) hty).2.1 hns hp
     obtain ⟨-, -, ⟨-, -, -, hpv', -⟩, -, hg⟩ := hok'
     unfold stepOut
     dsimp only [hupR]
@@ -821,28 +852,29 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
     · exact hf.elim
     · exact hf.elim
 
-/-- **`raft.Step`'s traced bundle on `MsgHup` at a follower or candidate** (`stepBundle_hup_R`, the
-resources `hupR`). -/
+/-- **`raft.Step`'s traced bundle on `MsgHup`**, at any role (`stepBundle_hup_R`, the resources
+`hupR`). -/
 theorem stepBundle_traced_hup : stepBundle_traced.on (GF := GF) (hG := hG) LocalHup := by
   intro γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub _ _ _
   iintro ⟨Hcap, -, #Hnosnap⟩
-  imod stepBundle_hup_R γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hty (hloc (.inl hp.1)) hT hfit hlrn
+  imod stepBundle_hup_R γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hty (hloc (.inl hp)) hT hfit hlrn
     $$ [$Hcap $Hnosnap] with ⟨HG, Hgates, Hclose⟩
   imodintro
   iexists hupR bt γ md c r id s Λ
   iframe HG Hgates Hclose
 
-/-- **`raft.tickElection` at a traced follower or candidate** (pre-vote and check-quorum off): the
+/-- **`raft.tickElection` at a traced node** (pre-vote and check-quorum off): the
 capability idle at `s` in, idle at the end state out (`stepBundle_traced_hup` for the campaign's `Step`;
 with no campaign the capability as it was). What a traced node API supplies: the capability and
 `TrNoSnap`, the term's and the receipts' bounds, no learners. (2026-11-11, slice 22a, Q19) The
 capability with any `booted` flag in, some flag out (a tick may come before the node's first `Ready`
-line; `BecomeCandidate` is not bootstrap-named). -/
+line; `BecomeCandidate` is not bootstrap-named). (2026-11-11, slice 26n, Q25 (a)) At any role (until
+then `s.role ≠ .leader`): `RawNode.Tick` cannot tell which tick function `r.tick` is at a leader. -/
 abbrev raft.tickElection.tracedTriple : Prop :=
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (γd : GName)
     (Λ : Option TraceEv → Prop) (bt : Bool),
   NStateWf s → md.Guard s → uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
-  s.gh.tr = some γd → s.prevote = false → s.cq = false → s.role ≠ .leader →
+  s.gh.tr = some γd → s.prevote = false → s.cq = false →
   uint.Z s.term + 1 < traceNumBound → receiptBound GF + γ.reBoot.length ≤ traceNumBound →
   c.learners = ∅ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -863,12 +895,12 @@ abbrev raft.tickElection.tracedTriple : Prop :=
 /-- `raft.tickElection.spec`'s traced instance (see `raft.tickElection.tracedTriple`). -/
 theorem raft.tickElection.traced (h : raft.tickElection.spec (GF := GF) (hG := hG)) :
     raft.tickElection.tracedTriple (GF := GF) (hG := hG) := by
-  intro c md γ r id s γd Λ bt Hwf Hpc Hfla htr hpv hcq hnl hT hfit hlrn
+  intro c md γ r id s γd Λ bt Hwf Hpc Hfla htr hpv hcq hT hfit hlrn
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hcap, #Hnosnap⟩ HΦ
   have hb : (tickMsg MsgHup id).Type' = MsgHup := rfl
   have hmt : mtypeOf (tickMsg MsgHup id).Type' = none := rfl
   imod stepBundle_hup_R (GF := GF) (hG := hG) γ md c r id s (tickMsg MsgHup id) [] none [] [] γd Λ bt
-    ⟨hb, hnl⟩ htr hpv (by unfold StepEndTy; simp [hb]) rfl hT hfit hlrn
+    hb htr hpv (by unfold StepEndTy; simp [hb]) rfl hT hfit hlrn
     $$ [$Hcap $Hnosnap] with ⟨HG, Hgates, Hclose⟩
   iapply h c md γ r id s (hupR bt γ md c r id s Λ)
     (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))

@@ -35879,3 +35879,66 @@ whole step `stepCD_wonW`: `leadW_stepC`, `NsLink` with the new message, the dyna
    (`fxPres_app`, `app_lead`, the gates' `rejecthint`).
 4. The close at `CloseMid`'s won case (`wonStateW` with the final `pvs`, the capability's idle phase at the
    end state) and the bundle `stepBundle_traced.onC CandVoteRespWon`.
+
+## Q8 stage 1 (slice 26n): Q25 (a) and the traced `RawNode.Tick`; Q26 (a)'s ghost change; the rest of the node API not started (2026-11-11 · trace-check, Q8 stage 1 slice 26n; Q25 (a) and Q26 (a) taken by the coordinator, their form the agent's · branch `trace-check-q8s26n`; DRAFT until trace-check's Freeze)
+
+All raft-internal (no module on `etc/api/raft.txt` changed its interface; nothing frozen); no axiom, no
+`sorry`; every untraced statement unchanged.
+
+**Q25 (a): `MsgHup` at any role.** Found: `raft.hup.spec` and `hupGates` already ask the
+`BecomeCandidate` gate only under `HupCampaigns`, whose first clause is `s.role ≠ .leader` (slice 19a);
+what excluded a leader was the hup bundle's path `LocalHup` (`m.Type' = MsgHup ∧ s.role ≠ .leader`) and
+`raft.tickElection.tracedTriple`'s premise. So no spec changed: `LocalHup` is `m.Type' = MsgHup`, and
+`stepBundle_hup_R` at a leader gives `stepLeader`'s gates vacuously (each is guarded by a type `MsgHup`
+is not, `msgHup_neL`, or is `TrNoSnap`), takes the `BecomeCandidate` line's non-leader from
+`HupCampaigns`, and closes at `s` through `CloseAt.of_ne` (not a proposal) and `HupGuard`'s first
+disjunct. `raft.tickElection.tracedTriple` drops `s.role ≠ .leader`. `stepBundle_traced.on` keeps its
+premise `m.Type' = MsgHup → s.role ≠ .leader` (now unused by the hup path; the assembly may drop it: a
+positional premise of every path proof, edited by concurrent slices, so left).
+
+**Traced `RawNode.Tick`** (`TracedRawNode.lean`, `RawNode.Tick.tracedTriple`/`.traced`): the untraced
+spec's triple with `γ.reTrace = some γd` for `= none`, and the premises `uint.Z rs.tc + 1 <
+traceNumBound`, `receiptBound GF + γ.reBoot.length ≤ traceNumBound` (as `RawNode.Step.tracedTriple`'s);
+the proof is `RawNode.Tick.wp_proof`'s over the two ticks' traced instances, the capability opened from
+`rnTrace` and closed at the end state (`TickStep`'s frame) as in `RawNode.Step.traced`. Hypotheses:
+`raft.tickElection.spec`, `raft.tickHeartbeat.spec` (no bundle hypothesis: both tick bundles are proved).
+
+**Q26 (a): the self-addressed messages' tokens in the queue.** `recvTokOf` moved from
+`TracedRaftStep.lean` to a new module `TracedRecvTok.lean` (imported by `InvRawnode.lean` and
+`TracedRaftStep.lean`; its signature loses the unused instance arguments `StorageModel`, the package's
+`Assumptions`). `selfTok γ st` (`InvRawnode.lean`): `True` untraced, `recvTokOf γd st.msg [] []` at
+`γ.reTrace = some γd` (the abstraction `pendingRel` reads, no entries, no context). `pendingRel`'s
+`.self` arm is `□ (durFrags … -∗ isMessage …) ∗ selfTok γ st`, so it is no longer persistent
+(`pendingRel_pers` removed: its users destructured it with `#`, now with the token dropped:
+`RawNode__Advance.lean`'s `wp_step_pending` and its two queue reads). `self_pending` (`LemmasReadyR.lean`)
+takes the tokens of the self-addressed messages (`[∗list] q ∈ selfmsgs id l, selfTok γ q.st`), which
+`acceptReady`'s untraced proof supplies by `selfToks_none`. Rejected: the tokens as a list in `rnTrace`
+(Q26 (b)): a new pure clause matching it to the queue.
+
+**Not done, exact.**
+- `RawNode.Ready` traced: a traced triple, `RawNode.Ready.spec`'s with each handed-out message's
+  `recvTokOf` (its `ms`). Design: `RawNode.acceptReady.spec` one spec for both modes (raft-internal: its
+  premise `γ.reTrace = none` dropped, its postcondition gaining `[∗list] q ∈ ms, rdTok γ q.st`, `True`
+  untraced), proved from the same body with, at `traceReady`, `trCap_fire_ready` at the phase
+  `SimIdle C s` (`ownRawNodeReady`'s capability, at the state whose outbox the `Ready` cut) to
+  `SimIdle C s'` (`s'` the accepted state, outbox empty: `SimServerR` does not read `durable`); its tokens
+  (`[∗map] Bn, inFlight`, `Bn`'s values a permutation of `pendAbs C s.outbox`) distributed over
+  `outboxRelP o ms1 ms2` (each message of a traced type has its abstraction among them; `MsgsUniq`
+  not needed: a permutation of the filter-map), the self-addressed ones to `self_pending`, the rest to
+  the handed-out `ms`; `RawNode.Ready`'s traced triple then copies its 87-line proof.
+- `RawNode.Advance` traced: `wp_step_pending` traced for `.self` (the token from `pendingRel`, the step
+  over `stepBundle_traced.on` of the response types: `MsgAppResp`, `MsgVoteResp`, `MsgHeartbeatResp` to
+  itself, `TrNetTy`'s), and the storage acknowledgements (untraced types, no line) over a bundle for
+  `MsgStorageAppendResp`/`MsgStorageApplyResp` (not in `StepEndTy`: needs `StepEnd` for them, or the
+  close from `LocalStepOk`'s frame).
+- `RawNode.ReportUnreachable` traced: found to need more than "the capability kept": `MsgUnreachable`
+  is not a `StepEndTy`, so a bundle's close cannot learn the end state, and raft.Step's other
+  postconditions (`NetFrame`, the model step) do not give `SimIdle C s' = SimIdle C s` (the leader's
+  `BecomeProbe`). Options: (a) add `MsgUnreachable` to `StepEndTy`/`StepEnd` (`s'` is `s` but its
+  `Progress` values, `prvalsMatch` unchanged; raft.Step's `MsgUnreachable` arms prove it; every bundle's
+  case analysis on `StepEndTy` gains a vacuous case); (b) resources outside the bundle (the capability
+  framed around `raft.Step`, the gates at `True` resources, all vacuous for this type) and the end
+  state's `SimIdle` from a new `Step` postcondition clause for `MsgUnreachable`. Recommended: (a).
+- `RawNode.ApplyConfChange` (the booted node's line under `AccIdle`, `switchToConfig`'s hook), gated
+  `node.run` and the node API statements (`recvTokOf` from `node.Ready` to `node.Step`), traced
+  `newRaft`/`Bootstrap` (`startTrace_trCapB`, a unified `traceConfChangeEvent.spec`): not started.
