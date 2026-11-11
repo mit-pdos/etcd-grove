@@ -171,7 +171,8 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
       (withNode σ i { σ.s i with lead := j } (fun b => b.without ma) (fun b => b.with r)))
     (hrq : r.type ≠ .appendEntriesRequest) (hre : r.entries = []) (hr0 : canonMsg r = r)
     (hsrv : σ.server = confAbs C)
-    (hra : AckMsg r → r.source = i ∧ r.term = (σ.s i).currentTerm ∧ r.matchIndex = (σ.s i).commitIndex) :
+    (hra : AckMsg r → r.source = i ∧ r.term = (σ.s i).currentTerm ∧ r.matchIndex = (σ.s i).commitIndex)
+    (hmem : ma ∈ σ.messages.domain) (hrsd : r.source = ma.dest ∧ r.dest = ma.source) :
     simFx (GF := GF) γ C σ ⊢
       simFx γ C (withNode σ i { σ.s i with lead := j } (fun b => b.without ma) (fun b => b.with r)) := by
   obtain ⟨W, hW⟩ : ∃ W, W = withNode σ i { σ.s i with lead := j } (fun b => b.without ma)
@@ -209,7 +210,10 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
     · exact List.mem_append_right _ hx)
+  -- (amendment A6, Q23) the reply's ends, the request's reversed
+  have hme := (hsh ma (List.mem_append_left _ hmem)).2
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon (σ.discard ma) _ hud hshd hr0
+    ⟨by rw [hrsd.1]; exact hme.2, by rw [hrsd.2]; exact hme.1⟩
     (fun y _ => ContentLogged.pinned (fun h => absurd h hrq) y)
   iunfold simFx
   isplitl
@@ -261,6 +265,7 @@ theorem fxPresR_leadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : T
     (hr0 : ∀ a, canonMsg (R a) = R a)
     (hra : ∀ a, AckMsg (R a) → (R a).source = ma.dest ∧ (R a).term = a.currentTerm ∧
       (R a).matchIndex = a.commitIndex)
+    (hrsd : ∀ a, (R a).source = ma.dest ∧ (R a).dest = ma.source)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 →
       cs1 = toC (confAbs C0) { a with lead := ma.source } ∧ r1 = R a ∧ ¬ ma.term < a.currentTerm)
     (hspec : ∀ σ : Etcdraft.State, σ.server = confAbs C0 → σ.preVote = false → σ.checkQuorum = false →
@@ -279,7 +284,7 @@ theorem fxPresR_leadReply (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : T
   have hph : recvPhantoms ma a = [] := recvPhantoms_nolow ma a hnl
   have hσd : σ.s ma.dest = a := by rw [hdst]; exact hσa
   ihave #H1 := simFx_leadReply γ C σ ma (R (σ.s ma.dest)) ma.dest ma.source
-    (hspec σ hsrv hpv hcq hmem (by rw [hσd]; exact hcs)) (hrq _) (hre _) (hr0 _) hsrv (hra _) $$ Hfx
+    (hspec σ hsrv hpv hcq hmem (by rw [hσd]; exact hcs)) (hrq _) (hre _) (hr0 _) hsrv (hra _) hmem (hrsd _) $$ Hfx
   iframe Htbl
   isplitl
   · iapply simFx_congr γ C (withNode σ ma.dest { σ.s ma.dest with lead := ma.source } (fun b => b.without ma)
@@ -314,7 +319,7 @@ theorem phaseStepR_appStale (id : w64) (c : CfgM) (s : NState) (m : MessageM) (e
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { a0 with lead := idAbs m.From' })
         (P0 ++ [stResp a0 (idAbs id) (idAbs m.From') "app"])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by
@@ -510,7 +515,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
       isplitr
       · iapply fxPresR_leadReply γ id ma _ s tn.voters cs0 _ P0 _ (fun a => stResp a (idAbs id) ma.source "app")
           hmd (fun _ => by simp [stResp]) (fun _ => rfl) (fun _ => by simp [stResp, canonMsg])
-          (fun _ _ => ⟨hmd.symm, rfl, rfl⟩)
+          (fun _ _ => ⟨hmd.symm, rfl, rfl⟩) (fun _ => ⟨hmd.symm, rfl⟩)
         · intro a ha
           have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
           have hRa : SimServerR tn.voters tn.voters.length (toPState s) a := simServerR_toC hcx hR0

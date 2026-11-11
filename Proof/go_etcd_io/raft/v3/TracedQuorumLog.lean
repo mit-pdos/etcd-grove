@@ -324,6 +324,42 @@ theorem prefix_of_termAt (C : List w64) (σ : Etcdraft.State) (i k : Etcdraft.ID
   · rw [show c - 1 + 1 = c by omega] at h
     rw [h]; exact List.take_prefix _ _
 
+/-! ### A won vote's quorum (amendment A6, Q23) -/
+
+/-- (Amendment A6, Q23) **Raft's tally keeps its voters configured** when a recorded vote's sender is
+(`recordVote` records any sender: the receive law's phase step gives the message's source among the
+voters, `PhaseStepR`, from `simFx`'s `MsgsShape`). -/
+theorem votesIn_recordVote (C : List w64) (votes : GMap w64 Bool) (src : w64) (v : Bool)
+    (hv : ∀ k w, votes !! k = some w → idAbs k ∈ confAbs C) (hs : idAbs src ∈ confAbs C) :
+    ∀ k w, (recordVote votes src v) !! k = some w → idAbs k ∈ confAbs C := by
+  intro k w h
+  unfold recordVote at h
+  split at h
+  · exact hv k w h
+  · by_cases hk : src = k
+    · subst hk; exact hs
+    · rw [GMap.lookup_insert_ne _ _ hk] at h; exact hv k w h
+
+/-- (Amendment A6, Q23) An empty tally's voters are configured (a fresh campaign's, before its
+self-vote, which `votesIn_recordVote` adds at a configured node). -/
+theorem votesIn_empty (C : List w64) : ∀ k w, ((∅ : GMap w64 Bool) !! k) = some w → idAbs k ∈ confAbs C := by
+  intro k w h; rw [GMap.lookup_empty] at h; cases h
+
+/-- (Amendment A6, Q23) **A won vote's quorum** (the sufficiency of Q23): at a candidate's receive
+line of a `MsgVoteResp` (abstracted as `ma`, its source raft's sender `src`), whose source the receive
+law gives among the voters (`PhaseStepR`'s new premise), raft's tally after `recordVote`, its voters
+configured before (a phase fact), has its voters configured after (`tallyGranted_quorum`'s `hc`), so a
+won tally is the specification's quorum (`isQuorum votesGranted`, the `BecomeLeader` guard). -/
+theorem wonVote_quorum (C : List w64) (votes : GMap w64 Bool) (src : w64) (v : Bool) (ma : Etcdraft.Msg)
+    (g : Etcdraft.SetIds) (hms : ma.source = idAbs src) (hsrcC : ma.source ∈ confAbs C)
+    (hv : ∀ k w, votes !! k = some w → idAbs k ∈ confAbs C)
+    (hT : TallyGranted (recordVote votes src v) g)
+    (hq : Etcdraft.isQuorum (Etcdraft.SetIds.mk ((((GMap.toList (recordVote votes src v)).filter
+      (fun p => p.2)).map (fun p => idAbs p.1)))) (confAbs C) = true) :
+    Etcdraft.isQuorum g (confAbs C) = true :=
+  tallyGranted_quorum _ g (confAbs C) hT
+    (votesIn_recordVote C votes src v hv (by rw [← hms]; exact hsrcC)) hq
+
 end pure
 
 section ghost

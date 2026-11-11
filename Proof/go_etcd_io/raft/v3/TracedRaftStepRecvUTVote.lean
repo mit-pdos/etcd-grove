@@ -41,7 +41,7 @@ theorem phaseStepR_utVote (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ent
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) (vrSrv (utSrv a0 (uint.Z m.Term')) (idAbs m.From') ma))
         (P0 ++ [vrResp (utSrv a0 (uint.Z m.Term')) (idAbs id) (idAbs m.From') ma])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .vote m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .vote m ents).dst s c (absMsg .vote m ents) e := by rw [hdst]; exact he
@@ -100,7 +100,7 @@ theorem fxPresR_utVote (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Trac
   rw [← hσu]
   have hσud : σu.s (idAbs id) = utSrv a T := by rw [hσu]; simp [withNode, hσa]
   ihave #H1 := simFx_voteReq γ C σu (idAbs id) ma.source ma (by rw [hσud, hmT]; exact Int.le_refl _) rfl
-    (by rw [hσu]; exact hmem) $$ Hu
+    (by rw [hσu]; exact hmem) hdst $$ Hu
   iframe Htbl
   isplitl
   · have hs : ∀ k, toC (withNode σu (idAbs id) (vrSrv (σu.s (idAbs id)) ma.source ma) (fun b => b.without ma)

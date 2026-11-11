@@ -290,7 +290,7 @@ theorem phaseStepR_stale (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m : 
     (hma : TraceSim.msgAbs C0 C0.length (absMsg ty m ents) = some ma) :
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg ty m ents)) (fun _ => False) (recvPhantoms ma)
       (IdlePin s C0 cs0 P0) (IdlePin s C0 cs0 P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a0, ha0, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg ty m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg ty m ents).dst s c (absMsg ty m ents) e := by rw [hdst]; exact he
@@ -556,7 +556,7 @@ theorem phaseStepR_ignResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m 
     (hma : TraceSim.msgAbs C0 C0.length (absMsg ty m ents) = some ma) :
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg ty m ents)) (fun _ => False) (recvPhantoms ma)
       (IdlePin s C0 cs0 P0) (IdlePin s C0 (toC (confAbs C0) (respSrv a0 ma)) P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg ty m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg ty m ents).dst s c (absMsg ty m ents) e := by rw [hdst]; exact he
@@ -665,7 +665,8 @@ theorem handleRV_some (σ : Etcdraft.State) (i j : Etcdraft.ID) (m : Etcdraft.Ms
 /-- **The facts after the specification's handling of a vote request of the node's term**: the
 request consumed, the vote recorded, the response pending. -/
 theorem simFx_voteReq (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j : Etcdraft.ID) (ma : Etcdraft.Msg)
-    (hle : ma.term ≤ (σ.s i).currentTerm) (hsrc : ma.source = j) (hmem : ma ∈ σ.messages.domain) :
+    (hle : ma.term ≤ (σ.s i).currentTerm) (hsrc : ma.source = j) (hmem : ma ∈ σ.messages.domain)
+    (hdi : ma.dest = i) :
     simFx (GF := GF) γ C σ ⊢
       simFx γ C (withNode σ i (vrSrv (σ.s i) j ma) (fun b => b.without ma) (fun b => b.with (vrResp (σ.s i) i j ma))) := by
   have heq := voteReqResult_eq σ i j ma hle
@@ -713,7 +714,10 @@ theorem simFx_voteReq (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
     · exact List.mem_append_right _ hx)
+  -- (amendment A6, Q23) the response's ends, the request's reversed
+  have hme := (hsh ma (List.mem_append_left _ hmem)).2
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon (σ.discard ma) _ hud hshd hx0
+    ⟨by unfold vrResp; rw [← hdi]; exact hme.2, by unfold vrResp; rw [← hsrc]; exact hme.1⟩
     (fun y _ => ContentLogged.pinned (fun h => absurd h hxq) y)
   iunfold simFx
   isplitl
@@ -778,7 +782,7 @@ theorem phaseStepR_voteReq (id : w64) (c : CfgM) (s : NState) (m : MessageM) (en
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) (vrSrv a0 (idAbs m.From') ma))
         (P0 ++ [vrResp a0 (idAbs id) (idAbs m.From') ma])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .vote m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .vote m ents).dst s c (absMsg .vote m ents) e := by rw [hdst]; exact he
@@ -808,7 +812,7 @@ theorem phaseStepR_voteReq (id : w64) (c : CfgM) (s : NState) (m : MessageM) (en
 `recvPhantoms m`, none): the specification's handling (`simFx_voteReq`) at the pinned phases. -/
 theorem fxPresR_voteReq (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : TraceEv → Prop) (s : NState)
     (C0 : List w64) (cs0 cs1 : ServerC) (P0 : List Etcdraft.Msg) (r1 : Etcdraft.Msg) (j : Etcdraft.ID)
-    (hsrc : ma.source = j)
+    (hsrc : ma.source = j) (hdst : ma.dest = idAbs id)
     (hpin : ∀ a, toC (confAbs C0) a = cs0 → cs1 = toC (confAbs C0) (vrSrv a j ma) ∧
       r1 = vrResp a (idAbs id) j ma ∧ ma.term = a.currentTerm) :
     ⊢ FxPresR (GF := GF) γ id ma E (fun _ => False) (recvPhantoms ma) (IdlePin s C0 cs0 P0)
@@ -821,7 +825,7 @@ theorem fxPresR_voteReq (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : Tra
   subst hP'
   obtain ⟨hc1, hr1, hle⟩ := hpin a hcs
   have hph : recvPhantoms ma a = [] := recvPhantoms_nolow ma a (by rw [hle]; exact Int.lt_irrefl _)
-  ihave #H1 := simFx_voteReq γ C σ (idAbs id) j ma (by rw [hσa, hle]; exact Int.le_refl _) hsrc hmem $$ Hfx
+  ihave #H1 := simFx_voteReq γ C σ (idAbs id) j ma (by rw [hσa, hle]; exact Int.le_refl _) hsrc hmem hdst $$ Hfx
   have hs : ∀ k, toC (withNode σ (idAbs id) (vrSrv (σ.s (idAbs id)) j ma) (fun b => b.without ma)
         (fun b => b.with (vrResp (σ.s (idAbs id)) (idAbs id) j ma))).server
       ((withNode σ (idAbs id) a' (fun b => b.without ma)
@@ -1584,8 +1588,9 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
         _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       iframe Hgh Hc
       isplitr
-      · obtain ⟨hmt, -, hms, -⟩ := msgAbs_recvTy hev hma
+      · obtain ⟨hmt, hmdd, hms, -⟩ := msgAbs_recvTy hev hma
         iapply fxPresR_voteReq γ id ma _ s tn.voters cs0 _ P0 _ (idAbs m.From') hms
+          (by rw [hmdd]; show idAbs m.To' = _; rw [hto'])
         intro a ha
         have hcx : toC (confAbs tn.voters) a0 = toC (confAbs tn.voters) a := ha0.trans ha.symm
         refine ⟨toC_vrSrv _ _ _ _ _ hcx, vrResp_toC _ _ _ _ _ _ hcx, ?_⟩

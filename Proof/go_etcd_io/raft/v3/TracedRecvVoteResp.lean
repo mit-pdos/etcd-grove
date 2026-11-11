@@ -197,7 +197,7 @@ theorem phaseStepR_voteRespCand (id : w64) (c : CfgM) (s : NState) (m : MessageM
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg .voteResp m ents)) (fun _ => False) (recvPhantoms ma)
       (IdlePin s C0 cs0 P0)
       (IdlePin { s with votes := recordVote s.votes m.From' (!m.Reject') } C0 (toC (confAbs C0) (respSrv a0 ma)) P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hpre : s.role ≠ .preCandidate := by rw [hc]; decide
   have hdst : (absMsg .voteResp m ents).dst = id := hto

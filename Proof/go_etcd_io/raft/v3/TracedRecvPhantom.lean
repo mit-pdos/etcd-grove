@@ -58,6 +58,11 @@ theorem phantomOf_facts (a : Etcdraft.Server) (m : Etcdraft.Msg) :
   unfold phantomOf
   split <;> simp
 
+/-- (Amendment A6, Q23) A phantom reply goes back to its request's source. -/
+theorem phantomOf_dest (a : Etcdraft.Server) (m : Etcdraft.Msg) : (phantomOf a m).dest = m.source := by
+  unfold phantomOf
+  split <;> rfl
+
 /-- **The bags' uniqueness reads only the bags' domains.** -/
 theorem msgsUniq_mono {σ σ' : Etcdraft.State}
     (hsub : ∀ x ∈ σ'.messages.domain ++ σ'.pendingMessages.domain,
@@ -239,20 +244,20 @@ theorem recvPred_canon_eq (ln : Etcdraft.Line) (y p : Etcdraft.Msg) (hy0 : canon
 /-- **The uniqueness and the shape after sending a canonical message `p` that pins every in-flight
 message** (`PinnedBy`). -/
 theorem msgsUniq_send_canon (σ : Etcdraft.State) (p : Etcdraft.Msg) (hu : MsgsUniq σ) (hc : MsgsShape σ)
-    (hp0 : canonMsg p = p) (hpk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y p) :
+    (hp0 : canonMsg p = p) (hpe : MsgEnds σ p) (hpk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y p) :
     MsgsUniq (σ.send p) ∧ MsgsShape (σ.send p) := by
   constructor
   · intro ln m1 m2 h1 h2 r1 r2
     rcases TraceSpecInv.mem_msgs_send σ p m1 h1 with g1 | e1 <;>
       rcases TraceSpecInv.mem_msgs_send σ p m2 h2 with g2 | e2
     · exact hu ln m1 m2 g1 g2 r1 r2
-    · subst e2; exact recvPred_canon_eq ln m1 m2 (hc m1 g1) hp0 (hpk m1 g1) r1 r2
-    · subst e1; exact (recvPred_canon_eq ln m2 m1 (hc m2 g2) hp0 (hpk m2 g2) r2 r1).symm
+    · subst e2; exact recvPred_canon_eq ln m1 m2 (hc m1 g1).1 hp0 (hpk m1 g1) r1 r2
+    · subst e1; exact (recvPred_canon_eq ln m2 m1 (hc m2 g2).1 hp0 (hpk m2 g2) r2 r1).symm
     · rw [e1, e2]
   · intro x hx
     rcases TraceSpecInv.mem_msgs_send σ p x hx with g | e
     · exact hc x g
-    · rw [e]; exact hp0
+    · rw [e]; exact ⟨hp0, hpe⟩
 
 /-- `AppSlices`' clause for one message. -/
 def AppSliceOf (σ : Etcdraft.State) (m : Etcdraft.Msg) : Prop :=
@@ -371,7 +376,8 @@ theorem simFx_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (h
       (fun i hi => by rw [hS] at hi; exact ⟨hi, hT i, hM i⟩) $$ Hq
   ipureintro
   refine ⟨specInv_congr_srv hsi hsrv hm hp hT hS hL hD hV hC hM hG,
-    msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
+    msgsUniq_mono hsub hu,
+    fun x hx => ⟨(hsh x (hsub x hx)).1, by unfold MsgEnds; rw [hsrv]; exact (hsh x (hsub x hx)).2⟩, ?_⟩
   intro m hm hty i hi hl ht hs k e he
   rw [hL]
   rw [hsrv] at hi; rw [hS] at hl; rw [hT] at ht
@@ -412,7 +418,7 @@ leading sender's log (`AppSliceOf`). -/
 theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Etcdraft.Msg)
     (hok : TraceSpecInv.MsgOk σ x) (hx0 : canonMsg x = x)
     (hxk : ∀ y ∈ σ.messages.domain ++ σ.pendingMessages.domain, PinnedBy y x)
-    (hxs : AppSliceOf σ x) (hxa : ¬ AckMsg x) :
+    (hxs : AppSliceOf σ x) (hxa : ¬ AckMsg x) (hxe : MsgEnds σ x) :
     (simFx (GF := GF) γ C σ ∗ msgFacts γ C x) ⊢ simFx γ C (σ.send x) := by
   iintro ⟨Hfx, #Hx⟩
   iunfold simFx at Hfx
@@ -436,7 +442,7 @@ theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Et
         · exact absurd hya hxa)
       (fun _ hi => ⟨hi, rfl, fun _ _ => rfl⟩) $$ Hq
   ipureintro
-  obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxk
+  obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxe hxk
   exact ⟨TraceSpecInv.specInv_send hsi hok, hu', hsh', appSlices_send σ x has hxs⟩
 
 /-- A message that is not an append request has the facts `⌜entries = []⌝`. -/
@@ -457,7 +463,7 @@ theorem fxPresR_staleReq (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : Tra
   iunfold FxPresR
   imodintro
   iintro %C %cs %P %e %a %a' %P' %σ %hpre Htbl #Hfx
-  obtain ⟨hΦ, -, hcs, hΦ1, -, hsrv, hσa, -, -, -, -⟩ := hpre
+  obtain ⟨hΦ, -, hcs, hΦ1, -, hsrv, hσa, -, -, -, hmem⟩ := hpre
   obtain ⟨hcs', hP'⟩ := hΦ' C cs P _ P' hΦ hΦ1
   subst hP'
   have hph : recvPhantoms m a = [phantomOf a m] :=
@@ -466,6 +472,12 @@ theorem fxPresR_staleReq (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : Tra
       have h2 : (toC (confAbs C) a).currentTerm = a.currentTerm := rfl
       rw [hcs] at h2; rw [← h2]; exact h1)
   obtain ⟨phe, phq, phs, phv, pht, phsrc⟩ := phantomOf_facts a m
+  -- (amendment A6, Q23) the phantom's ends, the request's reversed
+  ihave %hme : ⌜MsgEnds σ m⌝ $$ []
+  · ihave #Hf2 := Hfx
+    iunfold simFx at Hf2
+    icases Hf2 with ⟨-, -, -, %Hp2⟩
+    ipureintro; exact (Hp2.2.2.1 m (List.mem_append_left _ hmem)).2
   -- the request consumed, the phantom sent, then the line's result (the same up to `toC`)
   ihave #H1 := simFx_discard γ C σ m $$ Hfx
   ihave #Hpf := msgFacts_plain (GF := GF) γ C (phantomOf a m) phq phe
@@ -473,7 +485,8 @@ theorem fxPresR_staleReq (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : Tra
     (TraceSpecInv.msgOk_plain _ _ phe phq phs phv
       (by rw [pht, phsrc, hdst]; show a.currentTerm ≤ (σ.s (idAbs id)).currentTerm; rw [hσa]; exact Int.le_refl _))
     (phantomOf_canon a m) (fun y _ => ContentLogged.pinned (fun h => absurd h phq) y)
-    (appSliceOf_nil _ _ phe) (fun h => by have := phs h.1; rw [h.2.1] at this; cases this) $$ [$H1 $Hpf]
+    (appSliceOf_nil _ _ phe) (fun h => by have := phs h.1; rw [h.2.1] at this; cases this)
+    ⟨by rw [phsrc]; exact hme.2, by rw [phantomOf_dest]; exact hme.1⟩ $$ [$H1 $Hpf]
   have hs : ∀ j, toC ((σ.discard m).send (phantomOf a m)).server
       ((withNode σ (idAbs id) a' (fun b => b.without m)
         (fun b => ([] ++ recvPhantoms m a).foldl Etcdraft.Bag.with b)).s j) =
@@ -538,7 +551,7 @@ theorem fxPres_heartbeat (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (p : Etcdraft.Msg)
     (hp0 : canonMsg p = p) (hpt : p.type = .appendEntriesRequest) (hps : p.subtype = "heartbeat")
     (hsrc : p.source = idAbs id)
-    (hC : ∀ C cs P, Φ C cs P → id ∈ C)
+    (hC : ∀ C cs P, Φ C cs P → id ∈ C) (hdC : ∀ C cs P, Φ C cs P → p.dest ∈ confAbs C)
     (hlead : ∀ C cs P, Φ C cs P →
       cs.state = Etcdraft.leader ∧ p.term = cs.currentTerm ∧ p.commitIndex ≤ cs.commitIndex)
     (hΦ' : ∀ C cs P cs' P', Φ C cs P → Φ' C cs' (P ++ P') → cs' = cs ∧ P' = [p]) :
@@ -577,7 +590,8 @@ theorem fxPres_heartbeat (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     · unfold logRecs; iapply Iris.BI.BigSepL.bigSepL_nil.2; iempintro
   ihave #H2 := simFx_send γ C σ p
     (msgOk_heartbeat σ p (idAbs id) Hp0.1 h1 hi hl hpt hpe.1 hpe.2 hsrc ht hcm)
-    hp0 (fun _ _ _ => .inl hps) (appSliceOf_nil σ p hpe.1) (fun h => by have := h.1; rw [hpt] at this; cases this) $$ [$Hfx $Hpf]
+    hp0 (fun _ _ _ => .inl hps) (appSliceOf_nil σ p hpe.1) (fun h => by have := h.1; rw [hpt] at this; cases this)
+    ⟨by rw [hsrc]; exact hi, by rw [hsrv]; exact hdC C cs P hΦ⟩ $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by
@@ -638,7 +652,7 @@ theorem fxPres_app (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (p : Etcdraft.Msg)
     (hp0 : canonMsg p = p) (hpt : p.type = .appendEntriesRequest) (hps : p.subtype = "app")
     (hsrc : p.source = idAbs id)
-    (hC : ∀ C cs P, Φ C cs P → id ∈ C)
+    (hC : ∀ C cs P, Φ C cs P → id ∈ C) (hdC : ∀ C cs P, Φ C cs P → p.dest ∈ confAbs C)
     (hlead : ∀ C cs P, Φ C cs P →
       cs.state = Etcdraft.leader ∧ p.term = cs.currentTerm ∧ p.commitIndex ≤ cs.commitIndex ∧
       0 ≤ p.prevLogIndex ∧ p.prevLogIndex + p.entries.length ≤ cs.log.length ∧
@@ -669,7 +683,8 @@ theorem fxPres_app (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   ihave #H2 := simFx_send γ C σ p
     (msgOk_app σ p (idAbs id) Hp0.1 h1 hi hl hpt hsrc ht hcm hpi hlen hsl)
     hp0 (pinned_of_slices σ p (idAbs id) hi hl ht.symm hsrc hps hsl Hp0.2.2.2) hslice
-    (fun h => by have := h.1; rw [hpt] at this; cases this) $$ [$Hfx $Hpf]
+    (fun h => by have := h.1; rw [hpt] at this; cases this)
+    ⟨by rw [hsrc]; exact hi, by rw [hsrv]; exact hdC C cs P hΦ⟩ $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by

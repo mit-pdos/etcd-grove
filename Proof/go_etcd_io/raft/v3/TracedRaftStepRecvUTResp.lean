@@ -73,7 +73,7 @@ theorem phaseStepR_utResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m :
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg ty m ents))
       (fun v => toC (confAbs C0) v = toC (confAbs C0) (utSrv a0 (uint.Z m.Term'))) (recvPhantoms ma)
       (IdlePin s C0 cs0 P0) (VPin C0 (toC (confAbs C0) (respSrv (utSrv a0 (uint.Z m.Term')) ma)) P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg ty m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg ty m ents).dst s c (absMsg ty m ents) e := by rw [hdst]; exact he

@@ -826,7 +826,8 @@ def AckMsg (x : Etcdraft.Msg) : Prop :=
 /-- (Amendment A6, Q22) **Server `k`'s acknowledgement of index `m` at term `T`, with its history over
 `k`'s current log**: `k` is at a term at least `T`, and every raft log `F` that `k`'s log abstracts
 (`logAbs`, its bootstrap entries of term 1) has raft's history of the acknowledgement `(T, m)`
-(`hist`, `Protocol/Ghost.lean`, for leaders of terms below some bound): at every index `j ≤ m`, `F` has
+(`hist`, `Protocol/Ghost.lean`; its bound on the leaders' terms is immaterial, `hist_mono`, so left to
+each establishing lemma): at every index `j ≤ m`, `F` has
 the term some `okL` log has there (a full log of a leader of a term `≥ T`, a committed log of an
 earlier term, or the bootstrap log), or two such logs already disagree at or below `j`. It is raft's
 `histsOk` (`GhostState.lean`), kept by the simulation over the specification's log rather than raft's,
@@ -954,11 +955,19 @@ def canonMsg (x : Etcdraft.Msg) : Etcdraft.Msg :=
       matchIndex := if x.success && x.subtype != "heartbeat" then x.matchIndex else 0,
       source := x.source, dest := x.dest }
 
+/-- (Amendment A6, Q23) **A message's ends are servers**: its source and its destination. -/
+def MsgEnds (σ : Etcdraft.State) (x : Etcdraft.Msg) : Prop :=
+  x.source ∈ σ.server ∧ x.dest ∈ σ.server
+
 /-- **Every message in flight in its canonical form** (amendment A2, Q15; the notes' `MsgsDet`, "the
 other fields constant"): with it, two messages a line matches are equal (`MsgsUniq`) once the fields it
-logs agree, which a new message's line can then re-establish. -/
+logs agree, which a new message's line can then re-establish. (Amendment A6, Q23) and between servers
+(`MsgEnds`: a server sends only as itself, to a server of its configuration, and a reply, phantom or
+not, goes from its request's destination back to its source), so that the receive law can give a
+receive line's phase step its message's source among the voters (`PhaseStepR`; a won vote's quorum is
+counted over the configuration, `tallyGranted_quorum`'s `hc`). -/
 def MsgsShape (σ : Etcdraft.State) : Prop :=
-  ∀ x ∈ σ.messages.domain ++ σ.pendingMessages.domain, canonMsg x = x
+  ∀ x ∈ σ.messages.domain ++ σ.pendingMessages.domain, canonMsg x = x ∧ MsgEnds σ x
 
 /-- **A leader's append requests of its term are slices of its log** (amendment A2, Q16; the notes'
 `AppSlices`): while server `i` leads term `T`, every append request in flight of term `T` from `i`
@@ -1004,8 +1013,10 @@ instance msgFacts_timeless (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
 specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 `ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
 stated), `QuorumLogInv`'s fact (amendment A5, Q21: in its inductive form, with raft's commit
-justification, `QuorumLogF`), the bags' uniqueness and (amendment A2, Q15, Q16) every message in flight
-canonical (`MsgsShape`) and a leader's append requests of its term slices of its log (`AppSlices`). -/
+justification, `QuorumKept`; amendment A6, Q22: with the acknowledgements' histories, `AckHists`, which
+a leader's `Commit` line needs: together `QuorumLogF`), the bags' uniqueness and (amendment A2, Q15, Q16)
+every message in flight canonical (`MsgsShape`; amendment A6, Q23: between servers) and a leader's
+append requests of its term slices of its log (`AppSlices`). -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(allFacts γ C σ ∗ (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
     QuorumLogF γ C σ ∗ ⌜TraceSpecInv.SpecInv σ ∧ MsgsUniq σ ∧ MsgsShape σ ∧ AppSlices σ⌝)
@@ -1150,11 +1161,14 @@ allows is a line matching `m` (its parse's `recvPred`), not bootstrap-named, wit
 the node's share, the phantoms `ph a` (the specification's replies raft does not send, review round
 2's A6; a function of the receiving server before the line, amendment A2, chosen by the caller: the
 intended instance is `recvPhantoms m` (`TracedRecvPhantom.lean`), `phantomOf` for a lower-term request and none otherwise) among
-the phantoms, through intermediate states of the shape `Mid`. -/
+the phantoms, through intermediate states of the shape `Mid`. (Amendment A6, Q23: the step may assume
+the message's source a voter, `m.source ∈ confAbs C`, which the receive law gives from `simFx`'s
+`MsgsShape`: a candidate's phase can then record that every voter it heard from is configured.) -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C → ∀ e, E e →
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C ∧ m.source ∈ confAbs C →
+    ∀ e, E e →
     e.nid = decStr id ∧ Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧
     ∀ a : Etcdraft.Server, toC (confAbs C) a = cs →

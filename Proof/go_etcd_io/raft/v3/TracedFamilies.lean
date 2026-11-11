@@ -277,6 +277,25 @@ theorem trCapB_pinMem (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : C
   isplitr; · ipureintro; exact Hnn
   ipureintro; exact ⟨rfl, rfl, rfl, HΦ⟩
 
+/-- (Amendment A6, Q23) **A pinned capability's voters are its configuration's** (up to order): a peer
+raft sends to is one of them. -/
+theorem trCapB_pinPerm (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) (C0 : List w64)
+    (hΦ : ∀ C cs P, Φ C cs P → C = C0) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢
+      ⌜(elements c.incoming).Perm C0⌝ ∗ trCapB (some γd) γ r id c b Φ Λ := by
+  iintro H
+  iunfold trCapB at H
+  icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, #Hlg, %Hnn, #Hinv, #Hrinv, Hnode, Hbt, %HΦ⟩
+  isplitr
+  · ipureintro; rw [← hΦ C cs P HΦ]; exact Hpf.2.1
+  iunfold trCapB
+  iexists tn, C, tl, cs, P
+  iframe Hdir Htl Hlg Hinv Hrinv Hnode Hbt
+  isplitr; · ipureintro; exact Hpf
+  isplitr; · ipureintro; exact Hnn
+  ipureintro; exact HΦ
+
 /-- **The traced family**: the capability (booted `b`) in the phase `Φs` of the server, its share's
 pending list the outbox's traced messages up to order (`PhaseAt`). -/
 def trFam (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)

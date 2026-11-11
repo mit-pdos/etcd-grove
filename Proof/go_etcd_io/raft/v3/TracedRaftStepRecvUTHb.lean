@@ -83,7 +83,7 @@ theorem phaseStepR_utHb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents 
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) (hbSrv (utSrv a0 (uint.Z m.Term')) (idAbs m.From') ma.commitIndex))
         (P0 ++ [hbResp (utSrv a0 (uint.Z m.Term')) (idAbs id) (idAbs m.From')])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .heartbeat m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .heartbeat m ents).dst s c (absMsg .heartbeat m ents) e := by

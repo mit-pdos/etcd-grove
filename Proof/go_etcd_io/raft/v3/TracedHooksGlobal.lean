@@ -1233,8 +1233,6 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     rw [HAid] at hQ
     simp only [Option.some.injEq, Prod.mk.injEq] at hQ
     obtain ⟨hcs, hQP⟩ := hQ
-    obtain ⟨hnid, hname, hmatch, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC⟩ e HE
-    obtain ⟨a', P', hΦ', hsrcP, hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
     iunfold inFlight at Htok
     icases ghost_map_lookup $$ HB Htok with %HBk
     icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv0⟩
@@ -1242,6 +1240,15 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
       have hml : m ∈ (GMap.toList B).map Prod.snd ++ phM :=
         List.mem_append_left _ (List.mem_map.2 ⟨(k, m), (GMap.mem_toList B k m).2 HBk, rfl⟩)
       exact bag_mem_domain_of_count _ _ (by rw [hMb.2.2 m]; exact List.count_pos_iff.2 hml)
+    -- (amendment A6, Q23) the message's source is a voter (`MsgsShape`'s `MsgEnds`)
+    ihave %hsrcm : ⌜m.source ∈ confAbs C⌝ $$ []
+    · ihave #Hf2 := Hfσ
+      iunfold simFx at Hf2
+      icases Hf2 with ⟨-, -, -, %Hp2⟩
+      ipureintro
+      rw [← hsrv]; exact (Hp2.2.2.1 m (List.mem_append_left _ hmd)).2.1
+    obtain ⟨hnid, hname, hmatch, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC, hsrcm⟩ e HE
+    obtain ⟨a', P', hΦ', hsrcP, hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
     have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
         LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' (some m) (fun b => b.without m)
           (fun b => List.foldl Etcdraft.Bag.with b (P' ++ (ph (σ.s (idAbs id))))) Mid ∧

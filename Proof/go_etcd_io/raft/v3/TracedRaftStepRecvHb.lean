@@ -339,7 +339,10 @@ theorem simFx_hb (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (ma : Etc
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
     · exact List.mem_append_right _ hx)
+  -- (amendment A6, Q23) the response's ends, the heartbeat's reversed
+  have hme := (hsh ma (List.mem_append_left _ hmem)).2
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon (σ.discard ma) _ hud hshd hx0
+    ⟨by unfold hbResp; exact hme.2, by unfold hbResp; exact hme.1⟩
     (fun y _ => ContentLogged.pinned (fun h => absurd h hxq) y)
   iunfold simFx
   iframe Hal1
@@ -384,7 +387,7 @@ theorem phaseStepR_hb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents : 
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) (hbSrv a0 (idAbs m.From') ma.commitIndex))
         (P0 ++ [hbResp a0 (idAbs id) (idAbs m.From')])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .heartbeat m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .heartbeat m ents).dst s c (absMsg .heartbeat m ents) e := by
