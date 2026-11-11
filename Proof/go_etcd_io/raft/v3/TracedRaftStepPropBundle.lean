@@ -536,7 +536,236 @@ theorem propGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
   simp only [FxPresUT]
   iframe Htl Hf Hfx
 
+/-- **`PropLead`'s close**: by the outbox's length (`G0`/`G1` at `s`'s, `Gp2` at a longer one) against
+`StepEnd`'s two outcomes (`propLead_end`): dropped, raft's ghost state back at `s` (`CloseAt`: the batch
+not appended, `proposed_logst_ne'`) and the idle capability at the end state (`lineF_close`); appended,
+the ghost state at the proposed state (`CloseMid`) and the capability from the appended state's family
+(`trFam_idle`: the idle relation reads neither the outbox nor the `Progress` values beyond `Match`). -/
+theorem propClose (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (m : MessageM) (ents : List EntryM) (ctx : List w8) (Λ : Option TraceEv → Prop) (bt : Bool)
+    (htr : s.gh.tr = some γd) (hp : PropLead γ ents s m) (hT0 : m.Term' = W64 0) :
+    ⊢ stepClose (GF := GF) γ md c id m ents ctx s (propR bt γ md c r id s ents Λ)
+        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) := by
+  iunfold stepClose
+  iintro %s' %B %recv %_ %hend Hout
+  have hE := propLead_end (c := c) (id := id) (ctx := ctx) hp hT0 (hend (by rw [htr]; rfl))
+  have hlong : ∀ (ms : List Msg) (pvs : GMap w64 Progress),
+      s.outbox.length < ({ sendMsgs (proposed id s ents) ms with prvals := pvs } : NState).outbox.length := by
+    intro ms pvs; simp [proposed, sendMsgs]
+  unfold stepOut
+  dsimp only [propR]
+  icases Hout with (⟨%ho, H⟩ | ⟨%ho, H⟩ | %hf | ⟨%hlen, H⟩ | ⟨%b, %N, %hf⟩)
+  · rcases hE with ⟨hl, -, hS⟩ | ⟨ms, pvs, rfl, -⟩
+    · imod lineF_close γ md c r id s s' (stepLastEv Λ) hS $$ H with ⟨Hgh, Hc, %Hot⟩
+      imodintro
+      isplitl [Hgh]
+      · ileft; iframe Hgh; ipureintro; intro _ _ _ _; rw [hl]; exact proposed_logst_ne' id s ents hp.2.2.1
+      iframe Hc; ipureintro; exact Hot
+    · exfalso; have := hlong ms pvs; rw [ho] at this; omega
+  · rcases hE with ⟨hl, -, hS⟩ | ⟨ms, pvs, rfl, -⟩
+    · imod lineF_close γ md c r id s s' (stepLastEv Λ) hS $$ H with ⟨Hgh, Hc, %Hot⟩
+      imodintro
+      isplitl [Hgh]
+      · ileft; iframe Hgh; ipureintro; intro _ _ _ _; rw [hl]; exact proposed_logst_ne' id s ents hp.2.2.1
+      iframe Hc; ipureintro; exact Hot
+    · exfalso; have := hlong ms pvs; rw [ho] at this; omega
+  · exact hf.elim
+  · rcases hE with ⟨-, hob, -⟩ | ⟨ms, pvs, rfl, hm⟩
+    · exfalso; rw [hob] at hlen; omega
+    · unfold propF
+      icases H with ⟨Hgh, ⟨%b, Hf⟩, %Hok⟩
+      have hS : ∀ C, SimIdleS C (propAppended s ents) =
+          SimIdleS C ({ sendMsgs (proposed id s ents) ms with prvals := pvs } : NState) := fun C =>
+        (simIdleS_prvals C (proposed id s ents) ms pvs hm).symm
+      imod trFam_idle s.gh.tr γ r id c b (propAppended s ents) _ (stepLastEv Λ) hS $$ Hf with Hc
+      imodintro
+      isplitl [Hgh]
+      · iright
+        iexists proposed id s ents
+        iframe Hgh
+        ipureintro
+        exact ⟨hp.1, hp.2.1, noConf_of_normal ents hp.2.2.2.1, rfl, rfl⟩
+      isplitl [Hc]
+      · iexists b; iexact Hc
+      ipureintro; exact outTrStep_of_outOk Hok
+  · exact hf.elim
+
 end families
+
+section bundle
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **`stepBundle_traced.on` with a path that reads the cluster's names and the batch** (`PropLead`'s:
+a batch of normal entries, a cluster with a bootstrap log). The premises and the conclusion are
+`stepBundle_traced.on`'s verbatim (as `stepBundle_traced.onC`'s). -/
+abbrev stepBundle_traced.onG (Path : RaftNames → List EntryM → NState → MessageM → Prop) : Prop :=
+  ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
+    (Λ : Option TraceEv → Prop) (bt : Bool),
+  Path γ ents s m →
+  s.gh.tr = some γd →
+  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
+  (m.Type' = MsgHup → s.role ≠ .leader) →
+  (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
+  uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
+  (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
+  receiptBound GF + γ.reBoot.length ≤ traceNumBound →
+  c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
+  s.role ≠ .preCandidate → TrRecvShape m ents →
+  (m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []) →
+  (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
+      (recvTokOf γd m ents ctx ∗
+        □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
+          isMessageC γ (absMsg ty m ents ctx))) ∗
+      TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
+    |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      stepClose γ md c id m ents ctx s R
+        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+
+/-- A path that reads neither the names nor the batch. -/
+theorem stepBundle_traced.on_of_onG {Path : NState → MessageM → Prop}
+    (h : stepBundle_traced.onG (GF := GF) (hG := hG) (fun _ _ => Path)) :
+    stepBundle_traced.on (GF := GF) (hG := hG) Path := h
+
+/-- **`raft.Step`'s traced bundle on `MsgProp` at a leader** (see the header). -/
+theorem stepBundle_traced_prop : stepBundle_traced.onG (GF := GF) (hG := hG) PropLead := by
+  intro γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub _ _ _
+  have hT0 : m.Term' = W64 0 := hloc (.inr (.inr hp.1))
+  have hnbf : ¬ PreBF m s := by
+    unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
+  have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
+  have hsome : s.gh.tr ≠ none := by rw [htr]; simp
+  have nB : m.Type' ≠ MsgBeat := by rw [hp.1]; simp only [MsgProp, MsgBeat, ne_eq]; exact of_decide_eq_true rfl
+  have nRI : m.Type' ≠ MsgReadIndex := by
+    rw [hp.1]; simp only [MsgProp, MsgReadIndex, ne_eq]; exact of_decide_eq_true rfl
+  have nTL : m.Type' ≠ MsgTransferLeader := by
+    rw [hp.1]; simp only [MsgProp, MsgTransferLeader, ne_eq]; exact of_decide_eq_true rfl
+  have nCQ : m.Type' ≠ MsgCheckQuorum := by
+    rw [hp.1]; simp only [MsgProp, MsgCheckQuorum, ne_eq]; exact of_decide_eq_true rfl
+  have nHR : m.Type' ≠ MsgHeartbeatResp := by
+    rw [hp.1]; simp only [MsgProp, MsgHeartbeatResp, ne_eq]; exact of_decide_eq_true rfl
+  have nAR : m.Type' ≠ MsgAppResp := by
+    rw [hp.1]; simp only [MsgProp, MsgAppResp, ne_eq]; exact of_decide_eq_true rfl
+  have nH : m.Type' ≠ MsgHup := by rw [hp.1]; exact msgProp_ne_hup
+  have nV : m.Type' ≠ MsgVote := by rw [hp.1]; exact msgProp_ne_vote
+  have nPV : m.Type' ≠ MsgPreVote := by
+    rw [hp.1]; simp only [MsgProp, MsgPreVote, ne_eq]; exact of_decide_eq_true rfl
+  iintro ⟨Hcap, -, #Hnosnap⟩
+  imodintro
+  iexists propR bt γ md c r id s ents Λ
+  isplitl [Hcap]
+  · dsimp only [propR]; iexact Hcap
+  isplitr
+  · iunfold stepGates
+    dsimp only [ghostIn, propR]
+    isplitr
+    · -- the receive hook: no line for `MsgProp`
+      iintro ⟨Hgh, Hc⟩
+      have hrg : recvGate id s c ⟨m, ents, sn, ctx, rs⟩ = none := by
+        apply recvGate_none_of
+        intro ty hty'
+        have hm2 : mtypeOf MsgProp = some .propose := rfl
+        simp only [hp.1, hm2] at hty'
+        cases hty'; rfl
+      rw [hrg]
+      iapply hookGateOpt_mono s.gh.tr r none
+        (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox)
+      isplitr
+      · iintro H; iframe H; ipureintro; rfl
+      iapply lineF_recv γd γ md c r id s Λ bt htr
+      iframe Hgh Hc
+    isplitr
+    · unfold preGate
+      iintro %_ HG0
+      rw [if_neg hnbf]
+      imodintro
+      iexact HG0
+    isplitr
+    · iintro %h; exact (h.1 hT0).elim
+    isplitr
+    · iintro %h
+      exact (h.elim nV nPV).elim
+    isplitr
+    · iintro %h; exact (nH h).elim
+    isplitr
+    · unfold stepFnGates
+      iintro %pvs
+      rw [hpre pvs]
+      dsimp only
+      isplit
+      · iintro %hr; rw [hp.2.1] at hr; cases hr
+      isplit
+      · iintro %hr; rcases hr with hr | hr <;> rw [hp.2.1] at hr <;> cases hr
+      · iintro %_
+        unfold leaderGates
+        isplitr
+        · imodintro; iintro %h; exact (nB h).elim
+        isplitr
+        · iintro %h; exact (nRI h).elim
+        isplitr
+        · imodintro; iintro %h; exact (nRI h).elim
+        isplitr
+        · iintro %h; exact (nTL h).elim
+        isplitr
+        · iintro %h; exact (nTL h).elim
+        isplitr
+        · iexact Hnosnap
+        isplitr
+        · iintro %h; exact (nCQ h).elim
+        isplitr
+        · -- the `Replicate` lines
+          iintro %_ %cs #Hcc HTp ⟨%_, Hlf⟩
+          have h := propGate_rep (GF := GF) γd γ md c r id s ents Λ bt cs htr hp.2.1 hp.2.2.1 hp.2.2.2.1
+            hp.2.2.2.2 hT hfit
+          dsimp only [propR] at h
+          iapply h
+          iframe Hcc HTp Hlf
+        isplitr
+        · -- the self-acknowledgement
+          iintro %_ %cs #Hcc HG
+          have h := propGate_ack (GF := GF) γd γ md c r id s ents Λ bt cs htr hp.2.1 hp.2.2.2.1 hT hfit
+          dsimp only [propR] at h
+          dsimp only
+          iapply h
+          iframe Hcc HG
+        isplitr
+        · -- the appends
+          imodintro
+          iintro %_ %cs %to %mm %o #Hcc %Hto %Happ HG
+          icases ccEntsOk_types ents cs $$ Hcc with %hct
+          have hlp : leaderPropConf s ents cs c.joint = (ents, s.pci) :=
+            propConf_noConf' _ _ _ _ ents cs hct (noConf_of_normal ents hp.2.2.2.1)
+          rw [hlp] at Happ
+          have h := propGate_app (GF := GF) γd γ md c r id s ents Λ bt cs to mm o htr hp.2.1 hp.2.2.2.1 hlrn
+            hT hfit ((GMap.elem_of_subseteq _ _).1 hsub _ Hto.2) Happ
+          dsimp only [propR] at h
+          dsimp only
+          iapply h
+          iframe Hcc HG
+        isplitr
+        · iintro %h; exact (h.elim nHR (fun h => nAR h.1)).elim
+        isplitr
+        · imodintro; iintro %h; exact (nHR h).elim
+        isplitr
+        · iintro %h; exact (nAR h.1).elim
+        isplitr
+        · imodintro; iintro %h; exact (nAR h.1).elim
+        isplitr
+        · imodintro; iintro %h; exact (nAR h.1).elim
+        isplitr
+        · imodintro; iintro %h; exact (nAR h.1).elim
+        · imodintro; iintro %h; exact (nAR h.1).elim
+    · ipureintro
+      exact ⟨PermInv.const _, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
+        IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
+  · iapply propClose γd γ md c r id s m ents ctx Λ bt htr hp hT0
+
+end bundle
 
 end EtcdGrove
 end Perennial
