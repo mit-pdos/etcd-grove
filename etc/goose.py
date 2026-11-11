@@ -257,11 +257,18 @@ PROJECTS = [
         # Then (sweep repairs 1, R1-3, 2026-11-08) a4d2bb172 on `goose-lean`: `purgeFile` no longer
         # purges `.snap.db` files (`ReleaseSnapDBs` removes the ones below an opened or taken
         # snapshot; nonissues/etcd-purge-snapdb-unopened.md, the user's option A via etcd-grove-82).
+        # Then (the WAL crash spec's W3, 2026-11-11) branch `goose-lean-walsync` (on a4d2bb172): the
+        # WAL's three power-loss fixes the user approved, for the bare fsync(2) contract:
+        # `ReadAll` fdatasyncs the tail it zeroed (41fddbc2d,
+        # nonissues/etcd-wal-readall-zero-unsynced.md), `Create` fsyncs `<dir>.tmp` before renaming
+        # it (161796636, nonissues/etcd-wal-create-dir-entry-unsynced.md), and `TouchDirAll` fsyncs
+        # the parent of each directory it creates (71f99a4bf,
+        # nonissues/etcd-fileutil-touchdirall-parent-unsynced.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="a4d2bb1720b9ab0c44919b5c032f3a8cc7511692",
+        rev="71f99a4bf417cccffec491dbb540586e26c3468b",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

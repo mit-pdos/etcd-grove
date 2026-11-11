@@ -275,6 +275,9 @@ noncomputable def Create [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def createNewWALFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.createNewWALFile"
 
+noncomputable def syncDir [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/wal.syncDir"
+
 noncomputable def Open [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Open"
 
