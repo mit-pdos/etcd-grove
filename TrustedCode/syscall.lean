@@ -155,11 +155,12 @@ does nothing: the changed limit and `origRlimitNofile` are observable only throu
 model the limit: the Linux file extension's `Open` (`GooseLang/Ext/Fs/Impl.lean`) may fail with
 any errno, `EMFILE` included, whatever the limit. Running out is not only an errno in Go, though:
 the first file `os` opens starts the runtime's netpoller, and if its `epoll_create1` or `eventfd`
-fails (`ulimit -n` of 5 or 6, soft = hard, so this raise does not help) Go dies with `fatal error:
-runtime: netpollinit failed`, which ends the process: under the file extension's restart
-assumption (`GooseLang/Ext/Fs/Impl.lean`'s header, "Restarts") a process that dies is a machine
-crash: the crash results cover it; a Hoare triple, which has no crashes, does not, and the gap is the
-`Open` model's, recorded in that header). (The
+fails (a hard `ulimit -n` of 4 or 5; measured, `notes/axiom-review/fs-lean-merge/netpoll/`) Go
+dies with `fatal error: runtime: netpollinit failed`, after `open(2)` created the file: a run of
+the model's (`Open`'s step) that the process ends. A Hoare triple is partial correctness, so a
+process that stops after a prefix of a model run contradicts none (as `os.Exit` does not); under
+the file extension's restart assumption (`GooseLang/Ext/Fs/Impl.lean`'s header, "Restarts") the
+death is a machine crash, which the crash results cover. So it is not a gap. (The
 user's decision, Perennial fix-semantics Case 33: "P1: (ii)", 2026-11-04.) -/
 def init.«0».impl : val :=
   λ: <>, #()

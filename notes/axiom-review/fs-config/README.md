@@ -11,7 +11,7 @@ checked against (the flip-flops of rounds 1-4: `fs-v2-r4.md`).
 | Kernel | Linux 7.0 (7.0.0-38-generic, Ubuntu), x86-64, 4 KiB pages, no swap |
 | Filesystem | one local ext4, `mkfs.ext4` defaults (e2fsprogs 1.47: 4 KiB blocks, extents, `has_journal`, `metadata_csum`, `orphan_file`; no `bigalloc`, `fast_commit`, `casefold`, `inline_data`) |
 | Mount | ext4's default options: `data=ordered`, `delalloc`, `dioread_nolock`, barriers; any `commit=` interval; not `journal_async_commit`, `nobarrier`, `data=journal`/`writeback`, `nodelalloc`, `dioread_lock`, read-only |
-| Process | `RLIMIT_FSIZE` unlimited; Go 1.27.3 (the pinned toolchain) |
+| Process | `RLIMIT_FSIZE` unlimited; Go 1.27.3 (the pinned toolchain); every page of a `pwrite`'s source can be faulted in (no memory-cgroup OOM failing a kernel-mode fault: it gives `EFAULT` after progress, mid-page) and no allocation fails in the write path (an `ENOMEM` in `write_begin` after a short copy stops mid-page): both assumed, from the kernel source, for the page-cut rule (`GooseLang/Ext/Fs/Impl.lean`'s header) |
 | Device | honours cache flushes, writes 512-byte sectors atomically, no media errors |
 
 Why this configuration: it is a reasonable etcd deployment. etcd's hardware guide recommends

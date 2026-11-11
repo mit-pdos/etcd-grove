@@ -55,11 +55,20 @@ meaning: a step on any other path is stuck.
   errno, a `pwrite` (`PWriteFinish`) landed nothing, all of its data, or a prefix ending on a
   4096-byte page boundary of the file. On C, a write's loop (`generic_perform_write`) stops only
   before a folio (`write_begin` failing: `ENOSPC`, `EDQUOT`; the cut at `s_maxbytes`, page-aligned
-  with 4 KiB blocks), and folios are page-aligned; the two ways to cut inside a page are excluded:
-  a limited `RLIMIT_FSIZE` (C has it unlimited) and an unreadable source buffer (a Go slice is
-  readable). Measured on C (`notes/axiom-review/bbolt-port-plan-review/`: 19 of 19 short counts on a
-  page boundary, 20 of 20 errors with a page cut landed, `ENOSPC` swept over free-block counts and
-  `EFBIG` at `s_maxbytes`; both contrasts outside C cut mid-page). It is a rule of the step's
+  with 4 KiB blocks), and folios are page-aligned. The ways to cut inside a page are excluded by
+  C and by the environment: a limited `RLIMIT_FSIZE` (C has it unlimited); a source page that
+  cannot be faulted in (**every page of a `pwrite`'s source can be faulted in**, an environment
+  assumption: a memory-cgroup OOM that fails a kernel-mode fault gives `EFAULT` after progress,
+  mid-page; every client's source is a heap buffer, and a mapping's page needs a read that cannot
+  fail); and an allocation failure in the write path after a short copy (**no allocation failure
+  in the write path**, an environment assumption beside "no failed writeback": a short copy
+  during a page migration followed by `ENOMEM` in the next `write_begin` stops mid-page with
+  errno 0; from the kernel source, not measured). Measured on C
+  (`notes/axiom-review/bbolt-port-plan-review/`): 20 of 20 `pwrite(2)` errno returns landed
+  nothing; 19 of 19 short counts ended on a page boundary; at the Go level, 19 `(0, err)` results
+  of `WriteAt` had a page-cut prefix landed (`ENOSPC` swept over free-block counts, `EFBIG` at
+  `s_maxbytes`); both contrasts outside C (a limited `RLIMIT_FSIZE`, an unreadable source page)
+  cut mid-page. It is a rule of the step's
   result only: a write in flight at a crash leaves, byte by byte, any candidates (the crash rule),
   as a process killed in mid-copy leaves a mid-page prefix in the page cache.
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`, and `O_TRUNC`

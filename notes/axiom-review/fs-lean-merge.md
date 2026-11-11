@@ -47,3 +47,22 @@ measurement, except finding 4.
   finding 2.
 
 Not tried: a memory-cgroup OOM run (finding 2's `EFAULT` path), and the `ENOMEM` paths.
+
+## Dispositions (2026-11-12, fork BX)
+
+1. `Proof/os/Rename.lean`'s docstring says the axiom is no longer names-only, that it sits beside
+   `Rename.impl`, that it must be replaced by a proof from the model when the server moves onto the
+   extension, and that until then no theorem may take `pathOwn` with `osInv`; `notes/STATUS.md`,
+   "Known limitations", records it.
+2. The page-cut rule's conditions are stated precisely in the `Impl.lean` header and
+   `examples/osfs/semantics/data_short_io.go`: every page of the source can be faulted in, and no
+   allocation fails in the write path, both added to configuration C's environment
+   (`fs-config/README.md`, Process row) as assumptions from the kernel source, with the two
+   mechanisms; STATUS "Known limitations".
+3. The header's measurement sentence now reads: 20 of 20 errno returns landed nothing; 19 of 19
+   short counts on a page boundary; 19 Go-level `(0, err)` with a page-cut prefix.
+   `Code/go_etcd_io/bbolt.toml`'s comment names `fsExt` (a comment of the configuration, not copied
+   into the translation).
+4. The `netpollinit` note (`TrustedCode/syscall.lean`, `init.0`) is reworded per the measurement:
+   the death comes after `open(2)` created the file, a prefix of a model run, which no Hoare
+   triple (partial correctness) contradicts and the restart assumption makes a crash; not a gap.

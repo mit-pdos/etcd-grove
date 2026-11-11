@@ -35,11 +35,18 @@ import (
 // than count"). Page cuts: measured on configuration C
 // (notes/axiom-review/bbolt-port-plan-review/: under ENOSPC on a nearly full
 // filesystem, swept over free-block counts, and EFBIG at s_maxbytes, 19 of 19
-// short counts ended on a page boundary and every error had landed a page
-// cut); from the source, ext4's write loop stops only before a folio, and
-// folios are page-aligned. Only two things cut inside a page, both outside
-// C or a Go program: a limited RLIMIT_FSIZE (C: unlimited) and an unreadable
-// source buffer (a Go slice is readable); both measured as mid-page cuts.
+// short counts ended on a page boundary, 20 of 20 errno returns landed
+// nothing, and 19 Go-level (0, err) results had a page-cut prefix landed);
+// from the source, ext4's write loop stops only before a folio, and folios
+// are page-aligned. What cuts inside a page is excluded: a limited
+// RLIMIT_FSIZE (C: unlimited; measured mid-page), a source page that cannot
+// be faulted in (assumed: every page of the source can be faulted in; a
+// memory-cgroup OOM gives EFAULT after progress, measured mid-page with an
+// unreadable source page; every client's source is a heap buffer), and an
+// allocation failure in the write path after a short copy (assumed: no
+// allocation failure in the write path; a short copy during a page migration
+// then ENOMEM in write_begin stops mid-page; from the kernel source, not
+// measured).
 // This is a rule of the call's result: a process killed during the copy can
 // leave a mid-page prefix in the page cache, which a crash's per-byte rule
 // covers. Go's File.ReadAt and File.WriteAt loop over short counts, which is
