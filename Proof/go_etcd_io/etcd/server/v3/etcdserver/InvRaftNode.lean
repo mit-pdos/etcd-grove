@@ -112,6 +112,11 @@ structure RNNames [GooseExts] where
   -- term `T₀` (`RestartNode`'s, R2d'b), which bounds this incarnation's `MsgSnap`s from below
   -- (`rnSnapMsg`) and `Hwpend`'s guard; `W64 0` at a first start (`newRaftNode`'s)
   t0 : w64
+  -- (R2d'b F1 / S1, Q40, 2026-11-11) the restart point's WAL commit `σ.commit` (raft's restored
+  -- commit, from which the loop's commit never drops: `rnLoopTokP`) and snapshot index `σ.b`; `0`
+  -- at a first start (`newRaftNode`'s)
+  commit0 : Nat
+  snap0 : Nat
 
 /-- The `MemoryStorage` registry's name: the cluster's (2026-10-27; until then a field). -/
 abbrev RNNames.reg [GooseExts] (γ : RNNames) : GName := γ.node.reg
@@ -415,61 +420,11 @@ while the replay window is open; at a first start it is the view after `pre ++ L
 def rnView (γ : RNNames) (L : List EntryModel) : IProp GF :=
   srvCfgView γ.srv γ.nl [] (rnGhost γ L)
 
-/-- (R2d'a A10 item 3, Q27 (i), 2026-11-06; DRAFT, approved by the user; a restart-only premise)
-**The WAL's stored commit is never below the restart point's backend log**: whatever durable state
-`S` the node has, records `σ` holding it (`StorageHolds S σ`) have a stored commit at least `|a0|`.
-**False at the start of almost every restart after a quiet stop** (corrected 2026-11-07,
-`notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)"): `σ` is any records
-`StorageHolds` allows, down to `σ.commit = S.wcommit`, and a commit-only `Ready` leaves `wcommit`
-below the index the apply thread then reaches, so the start's `raftState S` refutes it. R2d'b
-restates it (Q31), as a fact about the restored records' commit. At a first start it is not needed
-(`rnRestartOk`'s first disjunct, `a0 = []`).
-The stop's image takes the bound (`rnRestartOk_commit`). -/
-def rnWalCommitAbove (γ : RNNames) : IProp GF :=
-  iprop(□ ∀ (S : RaftState) (σ : StorContents), raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗
-    raftState γ.node.cl γ.id S ∗ ⌜γ.a0.length ≤ σ.commit⌝)
-
-instance rnWalCommitAbove_persistent (γ : RNNames) :
-    Persistent (rnWalCommitAbove (GF := GF) γ) := by
-  unfold rnWalCommitAbove; infer_instance
-
 /-- The driver's state at the committed log `L` handed out and the hard state `p`, idle, at the
 storage's key `γ.key`, the durable state `S` and the role `r` (2026-11-01, durability layer 4). -/
 def rnDrvSt (γ : RNNames) (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType) :
     NodeDriverState :=
   ⟨memStorIface γ.ms, srvLE γ.srv L, p, none, γ.key, S, r⟩
-
-/-- (R2d'a A6, 2026-11-06; DRAFT; R2d'a's A8, a restart-only assumption; A10 item 5, approved by 82:
-strict, until then `≤`; task 4, 2026-11-06, approved by 82 as a hub decision: anchored at the
-receive's `readyRest`, until then on the busy `nodeDriver`, which the raft loop holds only after it
-has sent the payload on `applyc`) **No snapshot at or below the restart point**: every snapshot
-`Ready` this incarnation's node hands its driver (`readyRest` at the driver's idle state `rnDrvSt γ …`,
-this incarnation's storage and key, as `rnSnapTermAbove`) is strictly above the backend's log `a0`
-(`|a0| < snapIdx`). Why `<` is true of Go: **raft's commit at restart is `≥ |a0|`, and `restore`
-rejects a snapshot at or below committed** (raft v3.7.0 `raft.go:1861`; the fork `565c2bd`'s
-`raft.go:1877`). The restored `HardState`'s commit is `σ.commit ≥ |a0|` (`wal.stopImage`'s
-`i ≤ σ.commit`, the fact `rnWalCommitAbove` states), and raft's commit only grows, so every snapshot
-raft installs has `snapIdx > |a0|`. A snapshot that matches a local entry's term is not installed
-either: raft fast-forwards its commit and returns (v3.7.0 `raft.go:1912-1918`, the fork's
-`raft.go:1928-1934`). The snapshot a
-`Ready` carries is the one the driver installs (etcd at `673da07c8`).
-
-Raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (b): "a snapshot's index
-is above the receiver's commit"). R2d'b's obligation for it: `RestartNode` supplies raft's commit at
-the start `≥ |a0|` (the same restart fact as `rnWalCommitAbove`), from which this follows with H5
-(b). R2e's closed theorem must not carry it. -/
-def rnWinInstallAbove (γ : RNNames) : IProp GF :=
-  letI := srvStor (GF := GF) γ.node
-  iprop(□ ∀ (rd : Ready) (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType)
-      (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (Lo : Option SnapLoan)
-      (ms : List QMsg) (ss : Option (w64 × StateType)),
-    readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗
-      readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss ∗
-      ⌜∀ l, Lo = some l → γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝)
-
-instance rnWinInstallAbove_persistent (γ : RNNames) :
-    Persistent (rnWinInstallAbove (GF := GF) γ) := by
-  unfold rnWinInstallAbove; infer_instance
 
 /-- (R2d'a A10 item 5, Q29 (d), 2026-11-06; DRAFT, approved by 82 as hub owner; a restart-only
 premise) **This incarnation's `MsgSnap`s are above its start term**: every `MsgSnap` in a `Ready`
@@ -499,35 +454,40 @@ instance rnSnapTermAbove_persistent (γ : RNNames) :
   unfold rnSnapTermAbove; infer_instance
 
 /-- (R2d'a A6, 2026-11-06; DRAFT) **The restart data** (persistent): a first start (`a0 = []`, and
-(A10 item 5, Q28 (i)) the start term `t0 = 0`), or a restart before the WAL's first snapshot
-(`pre = []`, R2d'a's `σ.b = 0` restriction) whose backend log `a0` is committed (`srvRLogLb`), with
-R2d'a's A8 (`rnWinInstallAbove`), (A10 item 3, Q27 (i)) the WAL's stored commit above `a0`
-(`rnWalCommitAbove`) and (A10 item 5, Q29 (d)) this incarnation's `MsgSnap`s above `t0`
-(`rnSnapTermAbove`). Of the eight restart-only premises (`notes/restart-plan.md`, "R2d'a
-restart-only premises"), the restart disjunct carries four: `rnWinInstallAbove` (2),
-`rnWalCommitAbove` (3), `rnSnapTermAbove` (4) and `srvRLogLb γ.srv γ.a0` (8); R2d'b produces 3,
-4 and 8, and 2 is R2s's or raft's API's (with R2d'b's raft commit at the start, row 5). -/
+(A10 item 5, Q28 (i)) the start term `t0 = 0`; (S1, 2026-11-11) the restart point's WAL commit and
+snapshot index `commit0 = snap0 = 0`), or a restart before the WAL's first snapshot (`pre = []`,
+R2d'a's `σ.b = 0` restriction) whose backend log `a0` is committed (`srvRLogLb`), between the
+restored records' snapshot index and commit (`snap0 ≤ |a0| ≤ commit0`), with (A10 item 5, Q29 (d))
+this incarnation's `MsgSnap`s above `t0` (`rnSnapTermAbove`).
+
+(S1, Q31 (a), Q40 F1, 2026-11-11; until then the restart disjunct carried R2d'a's A8,
+`rnWinInstallAbove`, row 2, and `rnWalCommitAbove`, row 3, which was false at the start of almost
+every restart) Row 2 is now derived (`rnRestartOk_winAbove`), from `|a0| ≤ commit0` and the loop's
+fact `commit0 ≤ p.Commit'` (`rnLoopTokP`); row 3 is gone. Of the restart-only premises
+(`notes/restart-plan.md`, "R2d'a restart-only premises") the restart disjunct carries
+`rnSnapTermAbove` (4) and `srvRLogLb γ.srv γ.a0` (8). `snap0 ≤ |a0| ≤ commit0` is a fact of the names
+fixed when the node is built, true of every graceful stop's image (`raftNode.stop.spec`'s post);
+`|a0| ≤ commit0` is **graceful-only** (after a power loss the backend's consistent index can be above
+the WAL's synced commit: crash-design §2.3), so it stays this one conjunct, and nothing that does not
+need it (the loop's fact, row 2's `commit0 < snapIdx`) is stated with it. -/
 def rnRestartOk (γ : RNNames) : IProp GF :=
-  iprop(⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝ ∨
-    (⌜γ.pre = []⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnWinInstallAbove γ ∗ rnWalCommitAbove γ ∗
+  iprop(⌜γ.a0 = [] ∧ γ.t0 = W64 0 ∧ γ.commit0 = 0 ∧ γ.snap0 = 0⌝ ∨
+    (⌜γ.pre = [] ∧ γ.snap0 ≤ γ.a0.length ∧ γ.a0.length ≤ γ.commit0⌝ ∗ srvRLogLb γ.srv γ.a0 ∗
       rnSnapTermAbove γ))
 
 instance rnRestartOk_persistent (γ : RNNames) : Persistent (rnRestartOk (GF := GF) γ) := by
   unfold rnRestartOk; infer_instance
 
-/-- (R2d'a A10 item 3, Q27 (i)) **The stop's records are at or above the restart point**: from the
-restart data, records `σ` holding the node's durable state have a stored commit at least `|a0|`;
-at a first start (`a0 = []`) trivially. -/
-theorem rnRestartOk_commit (γ : RNNames) (S : RaftState) (σ : StorContents)
-    (h : StorageHolds S σ) :
-    rnRestartOk (GF := GF) γ ⊢ raftState γ.node.cl γ.id S -∗
-      raftState γ.node.cl γ.id S ∗ ⌜γ.a0.length ≤ σ.commit⌝ := by
+/-- (S1, 2026-11-11) **The restart point's backend log at or below raft's commit**: from the restart
+data and the loop's fact `commit0 ≤ c` (`rnLoopTokP`), `|a0| ≤ c`; at a first start (`a0 = []`)
+trivially. (Until S1 `rnRestartOk_commit`, from the false row 3.) -/
+theorem rnRestartOk_a0_le (γ : RNNames) (c : Nat) (hc : γ.commit0 ≤ c) :
+    rnRestartOk (GF := GF) γ ⊢ ⌜γ.a0.length ≤ c⌝ := by
   unfold rnRestartOk
-  iintro #Hr HS
-  icases Hr with (%Ha | ⟨-, -, -, #Hc, -⟩)
-  · iframe HS; ipureintro; rw [Ha.1]; exact Nat.zero_le _
-  · iunfold rnWalCommitAbove at Hc
-    iapply Hc $$ HS %h
+  iintro #Hr
+  icases Hr with (%Ha | ⟨%Ha, -, -⟩)
+  · ipureintro; rw [Ha.1]; exact Nat.zero_le _
+  · ipureintro; exact Nat.le_trans Ha.2.2 hc
 
 /-- (R2d'a A10 item 5, Q29 (d)) **A `Ready`'s `MsgSnap`s within this incarnation's terms**: from the
 restart data, at a first start `t0 = 0`, at a restart `rnSnapTermAbove`. -/
@@ -543,31 +503,44 @@ theorem rnRestartOk_snapTerm (γ : RNNames) (L : List EntryModel) (p : HardState
   letI := srvStor (GF := GF) γ.node
   unfold rnRestartOk
   iintro #Hr H
-  icases Hr with (%Ha | ⟨-, -, -, -, #Hs⟩)
-  · iframe H; ipureintro; exact Or.inl Ha.2
+  icases Hr with (%Ha | ⟨-, -, #Hs⟩)
+  · iframe H; ipureintro; exact Or.inl Ha.2.1
   · iunfold rnSnapTermAbove at Hs
     ihave ⟨H, %hb⟩ := Hs $$ %rd %L %p %S %r %ce %es %h %Lo %ms %ss H
     iframe H; ipureintro; exact Or.inr hb
 
-/-- (R2d'a task 4) **A `Ready`'s snapshot above the restart point**: from the restart data, at a
-first start `a0 = []`, at a restart `rnWinInstallAbove`. -/
+/-- (R2d'a task 4; S1, 2026-11-11: derived, until then R2d'a's A8 `rnWinInstallAbove`, a premise)
+**A `Ready`'s snapshot above the restart point**: a snapshot a `Ready` hands the driver at the hard
+state `p` is above `p`'s commit (`readyRest_snap`: raft's `restore` rejects one at or below its
+commit), so, with the loop's fact `commit0 ≤ p.Commit'` (`rnLoopTokP`), above the restart point's
+WAL commit `commit0` (the crash-proof form, which needs no graceful fact); and, from the restart data
+(`|a0| ≤ commit0` at a restart, graceful-only), above the backend's log `a0`, or `a0 = []` (a first
+start). -/
 theorem rnRestartOk_winAbove (γ : RNNames) (L : List EntryModel) (p : HardStateM) (S : RaftState)
     (r : StateType) (rd : Ready) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
-    (Lo : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
+    (Lo : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType))
+    (hc : γ.commit0 ≤ uint.nat p.Commit') :
     rnRestartOk (GF := GF) γ ⊢
       (letI := srvStor (GF := GF) γ.node;
         readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) -∗
       (letI := srvStor (GF := GF) γ.node;
         readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) ∗
-      ⌜γ.a0 = [] ∨ ∀ l, Lo = some l → γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝ := by
+      ⌜(∀ l, Lo = some l → γ.commit0 < uint.nat l.snap.Metadata'.Index') ∧
+        (γ.a0 = [] ∨ ∀ l, Lo = some l → γ.a0.length < uint.nat l.snap.Metadata'.Index')⌝ := by
   letI := srvStor (GF := GF) γ.node
-  unfold rnRestartOk
   iintro #Hr H
-  icases Hr with (%Ha | ⟨-, -, #Hw, -, -⟩)
-  · iframe H; ipureintro; exact Or.inl Ha.1
-  · iunfold rnWinInstallAbove at Hw
-    ihave ⟨H, %hb⟩ := Hw $$ %rd %L %p %S %r %ce %es %h %Lo %ms %ss H
-    iframe H; ipureintro; exact Or.inr hb
+  ihave %Ha0 := rnRestartOk_a0_le γ _ hc $$ Hr
+  cases Lo with
+  | none =>
+    iframe H; ipureintro
+    refine ⟨fun l hl => ?_, Or.inr (fun l hl => ?_)⟩ <;> cases hl
+  | some l =>
+    ihave ⟨H, %Hs⟩ := readyRest_snap γ.node.cl srvClusterN γ.id rd _ ce es h l ms ss $$ H
+    iframe H; ipureintro
+    have hlt : uint.nat p.Commit' < uint.nat l.snap.Metadata'.Index' := Hs.1
+    refine ⟨fun l' hl => ?_, Or.inr (fun l' hl => ?_)⟩
+    · cases hl; omega
+    · cases hl; omega
 
 /-- **The driver's view of the configuration after the committed log `L`** (D43 M3; 2026-10-30,
 the repair: raft's one mode, the old dynamic one's; R2d'a A6, 2026-11-06, DRAFT: over the ghost
@@ -884,7 +857,7 @@ def rnBusyS (γ : RNNames) (d A' es : List EntryModel) (p : HardStateM) (l : Sna
     ⌜srvLE γ.srv A' = strip l.dlv ∧ srvLE γ.srv d <+: strip l.dlv ∧
       l.dlv.length = uint.nat l.snap.Metadata'.Index' ∧
       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
-      -- (R2d'a task 4) the snapshot above the restart point (A8, `rnWinInstallAbove`)
+      -- (R2d'a task 4) the snapshot above the restart point (A8; S1: derived, `rnRestartOk_winAbove`)
       (γ.a0 = [] ∨ γ.a0.length < uint.nat l.snap.Metadata'.Index')⌝)
 
 /-- (2026-11-03, R2b-3) The busy state after a snapshot `Ready`. -/
@@ -901,7 +874,7 @@ def rnBusySP (γ : RNNames) (d A' es : List EntryModel) (p p' : HardStateM) (l :
     ⌜srvLE γ.srv A' = strip l.dlv ∧ srvLE γ.srv d <+: strip l.dlv ∧
       l.dlv.length = uint.nat l.snap.Metadata'.Index' ∧
       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
-      -- (R2d'a task 4) the snapshot above the restart point (A8, `rnWinInstallAbove`)
+      -- (R2d'a task 4) the snapshot above the restart point (A8; S1: derived, `rnRestartOk_winAbove`)
       (γ.a0 = [] ∨ γ.a0.length < uint.nat l.snap.Metadata'.Index')⌝)
 
 /-- (2026-11-03, R2b-3) **Firing *enter* after a snapshot `Ready`'s `Save`** (`rn_enter`'s): the busy
@@ -1207,7 +1180,7 @@ raw (`rnRawMsgs`), and the hard state's committed fact comes from the receive (`
 then *enter* was applied here, with the loop's half of the running token.) -/
 theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames)
     (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType) (rd : Ready)
-    (HLi : srvIdxOkW E.γr.raft.ai0 L) :
+    (HLi : srvIdxOkW E.γr.raft.ai0 L) (Hc0 : γ.commit0 ≤ uint.nat p.Commit') :
     letI := srvStor (GF := GF) γ.node
     rnEnvOk E γ -∗ rnReadStateBridge E γ -∗ rnCfgAt γ L -∗
       raftState γ.node.cl γ.id S -∗
@@ -1216,13 +1189,15 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         rnBusyP γ L ce' es' p p' S S' r r' ms ∗
         deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (L ++ ce')) ∗
         rnHsC γ p' (L ++ ce') ∗
-        ⌜srvIdxOkW E.γr.raft.ai0 (L ++ ce')⌝) ∨
+        ⌜srvIdxOkW E.γr.raft.ai0 (L ++ ce')⌝ ∗
+        -- (S1) raft's commit never drops (`readyRest_commit_mono`), for the loop's fact
+        ⌜uint.nat p.Commit' ≤ uint.nat p'.Commit'⌝) ∨
       -- (2026-10-30, the repair: snapshots allowed) a `Ready` with a snapshot
       (∃ (es' A' : List EntryModel) (p' : HardStateM) (l : SnapLoan) (S' : RaftState)
           (r' : StateType) (ms : List QMsg),
         rnReadySnap E γ rd L es' A' p p' l S S' r r' ms ∗ rnBusySP γ L A' es' p p' l S S' r r' ms ∗
         rnHsC γ p' A' ∗
-        ⌜srvIdxOkW E.γr.raft.ai0 A'⌝)) := by
+        ⌜srvIdxOkW E.γr.raft.ai0 A'⌝ ∗ ⌜uint.nat p.Commit' ≤ uint.nat p'.Commit'⌝)) := by
   letI := srvStor (GF := GF) γ.node
   iintro #Henv #Hbr Hcfg HrS Hgot
   iunfold readyGot at Hgot
@@ -1231,8 +1206,13 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   -- (R2d'a A10 item 5, Q29 (d)) the `MsgSnap`s' terms, from the restart data
   ihave ⟨Hcfg, #Hrok⟩ := rnCfgAt_restartOk γ L $$ Hcfg
   ihave ⟨Hrest, %Hsb⟩ := rnRestartOk_snapTerm γ L p S r rd ce es h Lo ms ss $$ Hrok Hrest
-  -- (R2d'a task 4) a snapshot's index above the restart point (A8)
-  ihave ⟨Hrest, %Hwa⟩ := rnRestartOk_winAbove γ L p S r rd ce es h Lo ms ss $$ Hrok Hrest
+  -- (R2d'a task 4) a snapshot's index above the restart point (A8; S1: derived, from the loop's fact)
+  ihave ⟨Hrest, %Hwa2⟩ := rnRestartOk_winAbove γ L p S r rd ce es h Lo ms ss Hc0 $$ Hrok Hrest
+  have Hwa := Hwa2.2
+  -- (S1) raft's commit never drops
+  ihave ⟨Hrest, %Hcm⟩ := readyRest_commit_mono γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r)
+    ce es h Lo ms ss $$ Hrest
+  simp only [rnDrvSt] at Hcm
   iunfold readyLeaderMsgs at Hlead
   simp only [committedEntriesAt, rnDrvSt]
   ihave #Henv' := Henv
@@ -1425,7 +1405,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       icases Hhsc with (%Hz | ⟨#Hc, %Hle⟩)
       · ileft; ipureintro; exact Hz
       · iright; iframe Hc; ipureintro; rw [hA']; simpa only [strip, List.length_map] using Hle
-    ipureintro; exact HLiW
+    ipureintro; exact ⟨HLiW, Hcm⟩
   | none =>
   simp only [NodeDriverState.afterReady]
   ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
@@ -1573,7 +1553,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     icases Hhsc with (%Hz | ⟨#Hc, %Hle⟩)
     · ileft; ipureintro; exact Hz
     · iright; iframe Hc; ipureintro; rw [Hdel]; simpa only [List.length_append] using Hle
-  ipureintro; exact HLiW
+  ipureintro; exact ⟨HLiW, Hcm⟩
 
 /-! ## The other components -/
 
@@ -1929,9 +1909,10 @@ theorem NoConfChangeIn_prefix (l r : List LogEntry) (lo : Nat)
 /-- (R2d'a A6, 2026-11-06) **At a first start (`a0 = []`) the view, what goes along with a batch and
 what comes back are today's texts** (until A6: `rnCfgAt γ L := srvCfgView γ.srv γ.nl γ.pre L`,
 `rnApR`'s and `rnApGive`'s over it). (A10 item 5, Q28 (i)) The view's part takes the start term
-`t0 = 0` too (`rnRestartOk`'s first disjunct). -/
+`t0 = 0` too (`rnRestartOk`'s first disjunct; S1: and `commit0 = snap0 = 0`). -/
 theorem rnView_first (γ : RNNames) (h : γ.a0 = []) :
-    (γ.t0 = W64 0 → ∀ L, rnCfgAt (GF := GF) γ L ⊣⊢ srvCfgView γ.srv γ.nl γ.pre L) ∧
+    (γ.t0 = W64 0 ∧ γ.commit0 = 0 ∧ γ.snap0 = 0 →
+      ∀ L, rnCfgAt (GF := GF) γ L ⊣⊢ srvCfgView γ.srv γ.nl γ.pre L) ∧
     (∀ F ce, rnApR (GF := GF) γ F ce =
       if rnHands γ ce then srvCfgView γ.srv γ.nl γ.pre (F ++ ce) else iprop(True)) ∧
     (∀ F ce, rnApGive (GF := GF) γ F ce =
@@ -2097,7 +2078,13 @@ def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) (b : Bool) 
     -- (2026-10-27) the log's indices consecutive from the start's (`rn_ready_recv`'s premise)
     ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝ ∗
     -- (2026-10-31, the snapshot track: #11's S3) the log handed out so far frozen, with its terms
-    srvFrozenTerms γ.γs (γ.pre.length + 1) L)
+    srvFrozenTerms γ.γs (γ.pre.length + 1) L ∗
+    -- (S1, Q31, 2026-11-11) raft's commit never below the restart point's (`RestartNode` starts the
+    -- driver at the restored hard state, whose commit is `commit0`; `readyRest_commit_mono` keeps
+    -- it); `0` at a first start. Crash-proof: it needs no graceful fact.
+    ⌜γ.commit0 ≤ uint.nat p.Commit'⌝ ∗
+    -- (S1) the log handed out committed (`deliveredLogLb_committed`), for the stop's image
+    isCommittedLogLb γ.node.cl (srvLE γ.srv L))
 
 /-- The loop's ghost state at some `prevHardSt` (D22l: `rnLoopTokP`, the loop keeps it tied to
 the raft term it records). -/
@@ -2105,8 +2092,8 @@ def rnLoopTok (γ : RNNames) (L : List EntryModel) : IProp GF :=
   iprop(∃ p : HardStateM, rnLoopTokP γ L p false)
 
 /-- (R2d'a A10 item 3) **The loop's token carries the restart data** (persistent, in its view,
-`rnCfgAt`): `run` reads it before handing the token to `raftNode.start`, for the stop's bound
-(`rnRestartOk_commit`). -/
+`rnCfgAt`): `raftNode.start` reads it before its loop, for the stop's bound (`rnRestartOk_a0_le`;
+until S1 `run` read it, for `rnRestartOk_commit`). -/
 theorem rnLoopTok_restartOk (γ : RNNames) (L : List EntryModel) :
     rnLoopTok (GF := GF) γ L ⊢ rnLoopTok γ L ∗ rnRestartOk γ := by
   iintro H
@@ -2179,9 +2166,14 @@ def rnStopImage (γ : RNNames) (w : Loc) : IProp GF :=
     ∃ (S : RaftState) (σ : StorContents) (sent : List toApply) (L : List EntryModel),
       raftState γ.node.cl γ.id S ∗ rnWalClosedW γ w σ ∗
       sspscProducer γ.ap sent ∗ monoListIdxOwn γ.cum sent.length L ∗
-      ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ L).length ∧ (γ.pre ++ L).length ≤ σ.commit⌝ ∗
+      ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ L).length ∧ (γ.pre ++ L).length ≤ σ.commit ∧
+        -- (S1) the restart point's backend log at or below the records' commit (`rnRestartOk_a0_le`)
+        γ.a0.length ≤ σ.commit⌝ ∗
       -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate (`rnDur_take`'s)
-      walSnapCert γ.node.cl σ)
+      walSnapCert γ.node.cl σ ∗
+      -- (S1, r2db §4.1) a committed log reaching the records' base, which their durable state's log
+      -- agrees with (`rnDur_take`'s `DurAgrees`): for the restart's `wal.restartOk` (S2)
+      (∃ l', isCommittedLogLb γ.node.cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝))
 
 /-- **`done`'s close announces the stop's escrow** (persistent, R2b-3b; until then `True`): the stop
 image, or the claim (`rnStopClaim`) once its holder took the image. `onStop` allocates it with the
@@ -2257,8 +2249,10 @@ theorem rn_esc_take (E : RNEnv GF) (γ : RNNames) (c w : Loc) (A : List EntryMod
     ⊢ isRNApplyc E γ c -∗ rnDoneEsc γ w -∗ rnStopClaim γ -∗ rnApplyTok γ A -∗ £ 1 -∗ £ 1 ={⊤}=∗
       nodeVacant γ.node.cl γ.id ∗ ∃ (S : RaftState) (σ : StorContents),
         raftState γ.node.cl γ.id S ∗ rnWalClosedW γ w σ ∗
-        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit⌝ ∗
-        walSnapCert γ.node.cl σ := by
+        ⌜StorageHolds S σ ∧ σ.b ≤ (γ.pre ++ A).length ∧ (γ.pre ++ A).length ≤ σ.commit ∧
+          γ.a0.length ≤ σ.commit⌝ ∗
+        walSnapCert γ.node.cl σ ∗
+        (∃ l', isCommittedLogLb γ.node.cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝) := by
   iintro #Hapc #Hesc Hsc Happ Hlc1 Hlc2
   iunfold rnStopClaim at Hsc
   iunfold rnDoneEsc at Hesc
@@ -2270,7 +2264,7 @@ theorem rn_esc_take (E : RNEnv GF) (γ : RNNames) (c w : Loc) (A : List EntryMod
   imod Hclose $$ [Hsc] with -
   · inext; iright; iexact Hsc
   iunfold rnStopImage at Himg
-  icases Himg with ⟨Hvac, %S, %σ, %sent, %L, HrS, Hcl, Hprod, #Hidx, %Hord, #Hσc⟩
+  icases Himg with ⟨Hvac, %S, %σ, %sent, %L, HrS, Hcl, Hprod, #Hidx, %Hord, #Hσc, #Hl'⟩
   iunfold rnApplyTok at Happ
   icases Happ with ⟨%rcv, Hcons, #HidxA⟩
   iunfold isRNApplyc at Hapc
@@ -2281,7 +2275,7 @@ theorem rn_esc_take (E : RNEnv GF) (γ : RNNames) (c w : Loc) (A : List EntryMod
   imodintro
   iframe Hvac
   iexists S, σ
-  iframe HrS Hcl Hσc
+  iframe HrS Hcl Hσc Hl'
   ipureintro; exact Hord
 
 end defs

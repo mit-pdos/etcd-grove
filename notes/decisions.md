@@ -34474,3 +34474,42 @@ Go tests: `examples/premisefix/ctxvalue` (examples module) and `examples/premise
 `go.mod`, the k8s pins of `examples/k8s/etcd3`). Interfaces: only raft's `Changer__apply.txt`
 changed (and the two `ConfChangeType__String.txt` deleted). Handoff:
 `notes/premise-fixes-7-handoff.md`.
+
+## Restart S1: R2d'a's rows 2-3 by the loop fact (Q31 (a), F1 form) (2026-11-11 · S1's frozen-post package approved by etcd-grove-81; the crash model is power loss, the user's decision · branch `restart-s1`)
+
+**Problem.** R2d'a's restart triple (`run.spec` through `isServerRunC`'s restart form) carried two
+restart-only premises in `rnRestartOk`'s restart disjunct: row 2, `rnWinInstallAbove` (a snapshot a
+`Ready` installs is above `|a0|`), true of Go but not derivable, and row 3, `rnWalCommitAbove` (every
+`σ` with `StorageHolds S σ` has `|a0| ≤ σ.commit`), **false at the start of almost every restart**
+(`StorageHolds` allows `σ.commit = S.wcommit`, below what the apply thread reached after a
+commit-only `Ready`; "R2d'a's disclosure corrected (2026-11-07)"). So the triple's restart meaning
+was vacuous.
+
+**Decision** (`/shared/tmp/restart-scope/s1-plan.md`):
+- `RNNames` gains `commit0`, `snap0`: the restart point's WAL commit (raft's restored commit) and
+  snapshot index, names fixed when the node is built (Q40, F1); `0` at a first start
+  (`newRaftNode.spec`'s and `bootstrappedRaft.newRaftNode.spec`'s posts gain `commit0 = 0 ∧ snap0 = 0`).
+- `rnRestartOk`: first disjunct `a0 = [] ∧ t0 = 0 ∧ commit0 = 0 ∧ snap0 = 0`; restart disjunct
+  `⌜pre = [] ∧ snap0 ≤ |a0| ≤ commit0⌝ ∗ srvRLogLb γ.srv a0 ∗ rnSnapTermAbove γ` (rows 2-3 deleted).
+- The loop's token `rnLoopTokP` carries the **loop fact** `commit0 ≤ p.Commit'` (proved at every
+  `Ready`: `rn_ready_recv`'s post gains `readyRest_commit_mono`'s `p.Commit' ≤ p'.Commit'`) and
+  `isCommittedLogLb γ.node.cl (srvLE γ.srv L)` (the handed log committed, from `deliveredLogLb`; the
+  implementer's choice the plan left open, so that every `onStop` exit has it whether or not the
+  driver is busy).
+- Row 2 derived: `rnRestartOk_winAbove` takes the loop fact and concludes `commit0 < snapIdx` (the
+  crash-proof form, unused in S1, kept for R6) and `a0 = [] ∨ |a0| < snapIdx` (`readyRest_snap`).
+- The stop's image: `rnDur_take` returns `σ.hs = v.hs ∧ DurAgrees v.S v.l`; `raftNode.onStop.spec`
+  takes `|a0| ≤ p.Commit'` and the committed handed log from its caller; `rnStopImage`, `rn_esc_take`
+  and **`raftNode.stop.spec`** (frozen; approved) add `|a0| ≤ σ.commit` and
+  `∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ |l'| ∧ DurAgrees S l'⌝` (r2db §4.1's final text). `run`
+  takes `|A₀| ≤ σ.commit` from the stop's post (`rnRestartOk_commit` and `run`'s read of the restart
+  data, `rnLoopTok_restartOk`, gone from `run`; `raftNode.start` reads it instead).
+
+**Crash-readiness** (crash-design §4.2): the loop fact needs no graceful fact and holds after a power
+loss (raft's restored commit is the synced `HardState`'s, and only grows); `|a0| ≤ commit0` is
+graceful-only (the backend can be ahead of the WAL's synced commit) and stays one conjunct of
+`rnRestartOk`, so R6 weakens that conjunct instead of reproving the loop.
+
+**Not changed.** Row 1 (`Hwpend`, false on a class; S7 deletes it) and row 4 (`rnSnapTermAbove`,
+true of Go). No axiom, `sorry` or trusted text. `NewServer.lean` needed no edit (its `Hrnames` comes
+from `NodeStartSpec`, whose post is unchanged; the plan's file 9 was not needed).

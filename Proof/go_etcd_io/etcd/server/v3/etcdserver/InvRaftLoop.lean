@@ -235,7 +235,8 @@ theorem rnCfgAt_normal (γ : RNNames) (γs : ServerRaftNames) (L ce : List Entry
     simp only [List.drop_nil, List.append_nil]
     rw [← List.append_assoc]
     iapply srvCfgView_nil_normal γ.srv γ.nl ce h $$ Hv
-  · have hγs : γs = γ.srv := by
+  · replace Hp := Hp.1
+    have hγs : γs = γ.srv := by
       obtain ⟨h1, h2, h3⟩ := hnm
       rw [Hp] at h2 h3
       simp only [List.length_nil] at h3

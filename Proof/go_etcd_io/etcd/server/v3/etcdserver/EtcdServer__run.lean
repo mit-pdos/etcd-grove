@@ -1109,9 +1109,6 @@ theorem EtcdServer.run.wp_proofG
   ihave #Hmsinv0 : (letI : MemStorReg GF := ⟨γn.reg⟩; memStorInv γn.ms γn.γs γn.node.cl γn.key)
     $$ []
   · iExactEq Hmsinv; rw [← Hmsγ]
-  -- (R2d'a A10 item 3) the restart data, read from the loop's token before the start (the stop's
-  -- bound, `rnRestartOk_commit`)
-  ihave ⟨Hloop, #Hrok⟩ := rnLoopTok_restartOk γn [] $$ Hloop
   wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c) Hdisk.2.2.1 Hdisk.2.2.2.1
     $$ [Hloop Hrdone Hcomm Hsend Hwtl]
   · rw [HEγr]; iframe Hrh Hrn Hmsinv0 Hslb0; iframe
@@ -1267,7 +1264,7 @@ theorem EtcdServer.run.wp_proofG
       have hp0 : γn.pre = [] := Hc0a.2.1
       have ha0 : uint.nat ai₀ = 0 := by rw [Hc0a.2.2]; rfl
       -- the snapshot above the ghost log: past the window Go's `|A| < |A'|`; inside it A8's bound
-      -- (`rnWinInstallAbove`, recorded at the `Ready`'s receive, carried by `rnApSnap`)
+      -- (S1: derived, `rnRestartOk_winAbove`, recorded at the `Ready`'s receive, carried by `rnApSnap`)
       have hwin : (ghostOf ⟨0, A₀⟩ A).length < A'.length := by
         by_cases hw : A₀.length ≤ A.length
         · rw [ghostOf_past ⟨0, A₀⟩ A hw]; exact hlt
@@ -1613,10 +1610,9 @@ theorem EtcdServer.run.wp_proofG
     rw [← hST]
     (try wp_auto)
     wp_apply hRStop Er γn (srvRAddr s) A $$ [$Hpkg $Hrn $HST $Hrunh $Hwta $Hsc $Happly]
-      as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert⟩
-    -- the records' commit at least the ghost log: `|A₀|` from the restart data
-    -- (`rnRestartOk_commit`), `|A|` from `raftNode.stop`
-    ihave ⟨HrS, %Hcm⟩ := rnRestartOk_commit γn S σ Hsh.1 $$ Hrok HrS
+      as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert, -⟩
+    -- the records' commit at least the ghost log: `|A₀|` and `|A|` from `raftNode.stop` (S1: until
+    -- then `|A₀|` from the restart data's false row 3, `rnRestartOk_commit`)
     ihave Hrst : iprop(∃ (S : RaftState) (σ : StorContents), raftState γn.node.cl γn.id S ∗
         rnWalClosed γn (srvRAddr s) σ ∗
         ⌜StorageHolds S σ ∧ σ.b ≤ (γn.pre ++ A).length ∧
@@ -1626,8 +1622,8 @@ theorem EtcdServer.run.wp_proofG
       iframe HrS Hwc Hwcert
       ipureintro
       have hp0 : γn.pre = [] := Hc0a.2.1
-      have hc1 := Hsh.2.2
-      have hc2 : A₀.length ≤ σ.commit := by rw [← Ha0]; exact Hcm
+      have hc1 := Hsh.2.2.1
+      have hc2 : A₀.length ≤ σ.commit := by rw [← Ha0]; exact Hsh.2.2.2
       refine ⟨Hsh.1, Hsh.2.1, ?_⟩
       simp only [ghostOf, hp0, List.nil_append, List.length_append, List.length_drop] at hc1 ⊢
       omega

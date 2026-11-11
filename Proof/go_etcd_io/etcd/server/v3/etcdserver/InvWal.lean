@@ -930,7 +930,9 @@ theorem rnDur_take (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (hp : 
     rnDurInv (GF := GF) cl ν w -∗ token ν.stop -∗ token ν.app -∗
       ghostVar ν.view (1 : Qp).half v -∗ token ν.ok ={⊤}=∗
       ∃ σ : StorContents, walRecs w σ ∗
-        ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit⌝ ∗
+        ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
+          -- (S1) the records' hard state the view's, and the durable log agreeing with the handed log
+          σ.hs = v.hs ∧ DurAgrees v.S v.l⌝ ∗
         -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate
         walSnapCert cl σ := by
   iintro #Hinv Hs Ha Hv Hok
@@ -953,8 +955,8 @@ theorem rnDur_take (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (hp : 
   rw [hr]
   iframe Hr Hc
   ipureintro
-  obtain ⟨Hh, -, Hb, Hc, -, -⟩ := Hok0
-  exact ⟨Hh, Hb, Hc⟩
+  obtain ⟨Hh, Hhs, Hb, Hc, Hag, -⟩ := Hok0
+  exact ⟨Hh, Hb, Hc, Hhs, Hag⟩
 
 end defs
 
