@@ -8,7 +8,7 @@ Lean notes:
 * All proofs are filled in. The helper lemmas they use (Lean additions, all `private`:
   big-op and message plumbing, `ownRaftGhost_step_stale` for `Step.appStale`/`Step.snapStale`,
   `logRecs_intro`/`logRecs_elem`, the `…_leader`/`…_cand` unfoldings of role-indexed
-  definitions) are between the `BEGIN/END HELPERS` markers before `ownRaftGhost_step_win`.
+  definitions) are between the `BEGIN/END HELPERS` markers before `winPend` (`ownRaftGhost_step_win`'s phases).
 * `own_raft_ghost_step_<rule>` is `ownRaftGhost_step_<rule>` (the rule part kept in
   Rocq's snake_case: `ownRaftGhost_step_app_accept`). Rocq `Local Lemma`s are public.
 * `Forall P ms` is `∀ m ∈ ms, P m`; `s <| f := v |>` is `{ s with f := v }`; `imap` is
@@ -862,40 +862,43 @@ private theorem campOwn_cand (γ : RaftNames) (id : w64) (camps : GMap w64 (List
 
 -- END HELPERS (Lean addition)
 
-/-- `Step.win`: allocate the term log -- recording the candidate's base and log, and
-holding the leader's entry -- and acknowledge the old and the new last index. -/
-theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
-    (s : PState) (mt : GMap w64 w64) (ms : List Msg) (n : Nat) :
+/-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **A won election's last phase, pending**: from the
+candidate `s` whose win is registered and whose term log is allocated (`ownRaftGhost_step_win_reg`,
+then its wand), given `Step.win`'s remaining premises (the matched map, the broadcast `ms`) and the
+receipt `⧖ n` covering the empty entry's index, a basic update to the won state's ghost
+(`notes/decisions.md`, "Q8 stage 1 (slice 25b)"): the entry's record (`isEntryR`, the receipt's only
+use), the acknowledgements, the commit bound and the read registry of the new term. -/
+def winPend (γ : RaftNames) (id : w64) (s : PState) (md : Bool) : IProp GF :=
+  iprop(∀ (mt : GMap w64 w64) (ms : List Msg) (n : Nat),
+    ⌜plogLastIndexZ s.base s.log + 1 < 2 ^ 64 ∧ LeaderMatchOk id s mt ∧
+      (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) ∧
+      (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq (pwinState id s mt) m) ∧
+      (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) ∧
+      plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length⌝ -∗
+    ⧖ n ==∗
+      ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md)
+
+/-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **`Step.win` in three phases, the first**: the
+win's registration (`win_register`, election safety: the commit invariant's registry half open), the
+winners' table and the campaign record; it gives the new leader's `isLeader`, its campaign log
+`fp ++ s.log` with its records, and its term map's authority, with no term log of its term, lent
+out; the authority given back, a basic update (the second phase: the term log allocated, with the
+empty entry's fragment) gives the full log `leadFull` of the new term at the candidate's log and the
+last phase (`winPend`). A traced caller registers before the `BecomeLeader` line, allocates inside
+its `FxPresU` (after the line read the freshness), and records the entry at its `Replicate` line,
+with the receipt `appendEntry` raised (`notes/decisions.md`, "Q8 stage 1 (slice 25b)"). -/
+theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PState) :
     s.role = .candidate →
     JQuorum c (granted s.votes) →
-    plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
-    LeaderMatchOk id s mt →
-    (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
-    -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp` carries the commit index
-    (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq (pwinState id s mt) m) →
-    -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
-    (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
-    -- (2026-10-18, D19b stage 5) the new entry's index is covered by the receipt `⧖ n`
-    plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
-    ⊢ ⧖ n -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-      ownRaftGhost γ id (psendMsgs (pwinState id s mt)
-                           ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
-  intro Hrole Hq Hnw Hmt Hms Hce Htr Hrb
-  obtain ⟨Hmid, Hmoth⟩ := Hmt
-  have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
-  have Hs2out : (pwinState id s mt).outbox = s.outbox := rfl
-  have Hs2term : (pwinState id s mt).term = s.term := rfl
-  have Hs2vote : (pwinState id s mt).vote = s.vote := rfl
-  have Hs2votes : (pwinState id s mt).votes = ∅ := rfl
-  have Hs2role : (pwinState id s mt).role = .leader := rfl
-  have Hs2commit : (pwinState id s mt).commit = s.commit := rfl
-  have Hs2base : (pwinState id s mt).base = s.base := rfl
-  have Hs2matched : (pwinState id s mt).matched = mt := rfl
-  have Hs2rd : (pwinState id s mt).rd = rdNL s.rd := rfl
-  generalize pwinState id s mt = s2 at Hs2log Hs2out Hs2term Hs2vote Hs2votes Hs2role Hs2commit Hs2base Hs2matched Hs2rd Hms Hce ⊢
-  have Hcnt := rdCount_replOk id s2 ms Hms
-  have Hpo := propsOf_replOk id s2 ms Hms
-  iintro #Hrcpt #Henv Hown
+    ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      isLeader γ id s.term ∗
+      ∃ fp : List EntryM, ⌜FullOk s.base fp⌝ ∗ isCamp γ id s.term (fp ++ s.log) ∗
+        logRecs γ base0 (fp ++ s.log) ∗
+        ∃ (γm : GName) (terms : GMap w64 TermRec),
+          ⌜γ.reTerms !! id = some γm ∧ terms !! s.term = none⌝ ∗ ghostMapAuth γm 1 terms ∗
+          (ghostMapAuth γm 1 terms ==∗ leadFull γ s.term (fp ++ s.log) ∗ winPend γ id s md) := by
+  intro Hrole Hq
+  iintro #Henv Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
@@ -981,22 +984,25 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       rcases Hterms_ok s.term (by rw [Ht]; rfl) with Hlt | ⟨-, Hr⟩
       · omega
       · exact absurd Hrole Hr
-  generalize HL : plogLastIndexZ s.base s.log = L at Hnw Hcl Hrb
-  have HL0 : 0 ≤ L := by rw [← HL]; exact plogLastIndexZ_nonneg _ _
-  have HLF : plogLastIndexZ base0 (fp ++ s.log) = L := by rw [← HL]; exact full_last_index _ _ _ Hfp
-  have HlastF : plogLast base0 (fp ++ s.log) = plogLast s.base s.log := full_last _ _ _ Hfp
-  have Heidx : uint.Z (pleaderEntry s).Index' = L + 1 := by
-    have := stamp_index_eq L 0 HL0 (by omega)
-    unfold pleaderEntry stamp plastIndex
-    rw [HL]; dsimp only
-    rw [this]; omega
-  have Hpt0 : uint.Z (plogLast s.base s.log).term' < uint.Z s.term := by
-    have Hlt := plogTermAt_last base0 (fp ++ s.log) HwF
-    rw [HlastF] at Hlt
-    exact (Htle _ _ Hlt).2 Hrole
-  generalize He : pleaderEntry s = e at Heidx Hs2log
-  have Heterm : e.Term' = s.term := by rw [← He]; rfl
-  generalize Hpt : (plogLast s.base s.log).term' = pt0 at Hpt0
+  imodintro
+  isplitr
+  · iexact Hnewlead
+  iexists fp
+  isplitr
+  · ipureintro; exact Hfp
+  isplitr
+  · iexact Hcown
+  isplitr
+  · iapply logRecs_full γ s.base fp s.log Hfp $$ Hfrecs Hrecs
+  iexists γm, terms
+  isplitr
+  · ipureintro; exact ⟨Htname, Hfree⟩
+  isplitl [Hterms]
+  · iexact Hterms
+  -- the second phase: the term log, holding the leader's entry
+  iintro Hterms
+  obtain ⟨e, He⟩ : ∃ e, pleaderEntry s = e := ⟨_, rfl⟩
+  obtain ⟨pt0, Hpt⟩ : ∃ pt0, (plogLast s.base s.log).term' = pt0 := ⟨_, rfl⟩
   imod ghost_map_alloc (GF := GF) ({[e.Index' := (e, pt0)]} : GMap w64 (EntryM × w64)) with
     ⟨%γt, Htauth, Htel⟩
   ihave Htel := BigSepM.bigSepM_lookup (Φ := fun i (x : EntryM × w64) => iprop(i ↪[γt] x))
@@ -1007,6 +1013,67 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
   · unfold isTermLog; iexists γm; isplitr
     · ipureintro; exact Htname
     · iexact Htnew
+  -- the full log of the new term, at the candidate's log
+  ihave #Hp1 : leadPrefix γ id s.term s.base s.log $$ []
+  · unfold leadPrefix
+    isplitr
+    · iexact Hnewlead
+    iexists γt, s.log
+    iframe Htl Hrecs
+    isplitr
+    · ipureintro; exact ⟨PlogWf_wfR _ _ Hwl, List.prefix_refl _⟩
+    · unfold leadFrags
+      iapply BigSepL.bigSepL_forall_elim
+      iintro %k %x Hk
+      ipure Hk
+      have : ¬ s.log.length ≤ k := by have := (List.getElem?_eq_some_iff.mp Hk).1; omega
+      simp only [this, ↓reduceIte]
+      itrivial
+  ihave #Hpf1 : lpfull γ id s.term s.base s.log fp $$ []
+  · unfold lpfull
+    iexists (fp ++ s.log)
+    iframe Hcown Hfrecs
+    ipureintro
+    exact ⟨Hfp, List.prefix_refl _, Hwl, fun j x Hx => (Htle j x Hx).1⟩
+  ihave #Hfull1 := leadFull_intro $$ Hp1 Hpf1
+  imodintro
+  isplitr
+  · iexact Hfull1
+  -- the last phase: the entry's record, with the receipt
+  iunfold winPend
+  iintro %mt %ms %n %Hpre #Hrcpt
+  obtain ⟨Hnw, Hmt, Hms, Hce, Htr, Hrb⟩ := Hpre
+  obtain ⟨Hmid, Hmoth⟩ := Hmt
+  have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
+  have Hs2out : (pwinState id s mt).outbox = s.outbox := rfl
+  have Hs2term : (pwinState id s mt).term = s.term := rfl
+  have Hs2vote : (pwinState id s mt).vote = s.vote := rfl
+  have Hs2votes : (pwinState id s mt).votes = ∅ := rfl
+  have Hs2role : (pwinState id s mt).role = .leader := rfl
+  have Hs2commit : (pwinState id s mt).commit = s.commit := rfl
+  have Hs2base : (pwinState id s mt).base = s.base := rfl
+  have Hs2matched : (pwinState id s mt).matched = mt := rfl
+  have Hs2rd : (pwinState id s mt).rd = rdNL s.rd := rfl
+  rw [He] at Hs2log
+  generalize pwinState id s mt = s2 at Hs2log Hs2out Hs2term Hs2vote Hs2votes Hs2role Hs2commit Hs2base Hs2matched Hs2rd Hms Hce ⊢
+  have Hcnt := rdCount_replOk id s2 ms Hms
+  have Hpo := propsOf_replOk id s2 ms Hms
+  generalize HL : plogLastIndexZ s.base s.log = L at Hnw Hcl Hrb
+  have HL0 : 0 ≤ L := by rw [← HL]; exact plogLastIndexZ_nonneg _ _
+  have HLF : plogLastIndexZ base0 (fp ++ s.log) = L := by rw [← HL]; exact full_last_index _ _ _ Hfp
+  have HlastF : plogLast base0 (fp ++ s.log) = plogLast s.base s.log := full_last _ _ _ Hfp
+  have Heidx : uint.Z e.Index' = L + 1 := by
+    rw [← He]
+    have := stamp_index_eq L 0 HL0 (by omega)
+    unfold pleaderEntry stamp plastIndex
+    rw [HL]; dsimp only
+    rw [this]; omega
+  have Hpt0 : uint.Z pt0 < uint.Z s.term := by
+    rw [← Hpt]
+    have Hlt := plogTermAt_last base0 (fp ++ s.log) HwF
+    rw [HlastF] at Hlt
+    exact (Htle _ _ Hlt).2 Hrole
+  have Heterm : e.Term' = s.term := by rw [← He]; rfl
   ihave #He : isEntryR γ e pt0 $$ []
   · unfold isEntryR
     ileft
@@ -1405,6 +1472,55 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       rw [Hs2role] at h'; cases h'
   · lcm_mono
   · iexact Hrd
+
+/-- (2026-11-11, trace-check Q8 stage 1 slice 25b) **The last phase of a win, taken**: `winPend`'s
+elimination, at the matched map `mt`, the broadcast `ms` and the receipt `⧖ n` covering the empty
+entry's index (a traced caller's, at the empty entry's `Replicate` line, with `appendEntry`'s receipt). -/
+theorem ownRaftGhost_step_win_entry (γ : RaftNames) (id : w64) (s : PState) (mt : GMap w64 w64)
+    (ms : List Msg) (n : Nat) :
+    plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
+    LeaderMatchOk id s mt →
+    (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
+    (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq (pwinState id s mt) m) →
+    (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
+    plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
+    ⊢ ⧖ n -∗ winPend (GF := GF) γ id s md ==∗
+      ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
+  intro Hnw Hmt Hms Hce Htr Hrb
+  have Hpre := And.intro Hnw (And.intro Hmt (And.intro Hms (And.intro Hce (And.intro Htr Hrb))))
+  iintro #Hrcpt Hp
+  iunfold winPend at Hp
+  iapply Hp $$ %mt %ms %n %Hpre Hrcpt
+
+/-- `Step.win`: allocate the term log -- recording the candidate's base and log, and
+holding the leader's entry -- and acknowledge the old and the new last index. (2026-11-11, trace-check
+Q8 stage 1 slice 25b) The composition of its three phases: the registration
+(`ownRaftGhost_step_win_reg`), the term log (its wand) and the entry's record
+(`ownRaftGhost_step_win_entry`). -/
+theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
+    (s : PState) (mt : GMap w64 w64) (ms : List Msg) (n : Nat) :
+    s.role = .candidate →
+    JQuorum c (granted s.votes) →
+    plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
+    LeaderMatchOk id s mt →
+    (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
+    -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp` carries the commit index
+    (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq (pwinState id s mt) m) →
+    -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
+    (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
+    -- (2026-10-18, D19b stage 5) the new entry's index is covered by the receipt `⧖ n`
+    plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
+    ⊢ ⧖ n -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
+      ownRaftGhost γ id (psendMsgs (pwinState id s mt)
+                           ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
+  intro Hrole Hq Hnw Hmt Hms Hce Htr Hrb
+  iintro #Hrcpt #Henv Hown
+  imod ownRaftGhost_step_win_reg γ c id s Hrole Hq $$ Henv Hown with
+    ⟨-, %fp, -, -, -, %γm, %terms, -, Ha, Hw⟩
+  imod Hw $$ Ha with ⟨-, Hp⟩
+  imod ownRaftGhost_step_win_entry γ id s mt ms n Hnw Hmt Hms Hce Htr Hrb $$ Hrcpt Hp with Hg
+  imodintro
+  iexact Hg
 
 /-- `Step.beat`: a heartbeat carries the leadership, a commit index the leader has, and
 the `Match` it is bounded by. -/
