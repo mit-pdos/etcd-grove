@@ -1,11 +1,13 @@
 /-
 **grpc's runs on real forks** (per-type stage B, B1a, 2026-11-11; Scope r5 §2.1-2.2,
 `/shared/tmp/stageB/scope-r5.md`; Lean-first, no Rocq counterpart). The vocabulary of the trusted
-`Serve` model (`TrustedCode/google_golang_org/grpc.lean`) and of its leaves' axioms
-(`Spec/google_golang_org/grpc/model/`), which replace `grpc.serve`/`grpc.serveStream`'s
-caller-chosen run resource and count (`axiom/grpc-serve-pool`, `1ad2cc63a0`) in B1b. B1a adds these
-names beside the old ones; nothing outside this file, the model, its leaves and the `Serve` theorem
-uses them yet.
+`Serve` model (`TrustedCode/google_golang_org/grpc.lean`, `Server.Serve.impl`) and of its leaves'
+axioms (`Spec/google_golang_org/grpc/model/`), which replace `grpc.serve`/`grpc.serveStream`'s
+caller-chosen run resource and count (`axiom/grpc-serve-pool`, `1ad2cc63a0`). B1b moved the shared
+vocabulary (`GrpcSrvCfg`, the trusted predicates and their laws, the run contracts, `isGrpcRpcAt`,
+`isGrpcStreamAt`) to `InvGrpc.lean`/`InvGrpcStream.lean`, where the client side and `grpc.serve`
+use it; this file keeps what only the model, its leaves and the start use (`grpcReplyTo`,
+`grpcAccepted`, `grpcSrvStreamChain`, `grpcServeTok`, `grpc.start'`) and the adapters.
 
 **Go's configuration as a trusted fact.** `grpc.start` (restated in B1b) emits, from the server
 being built (`grpcSrvNew gs ics sics svcs regs sregs`), a persistent `grpcSrvCfg γ c`: the chains and
@@ -376,33 +378,6 @@ theorem grpc_sregs_unique (regs sregs : List (GoString × GoFunc × GoInterface)
   have := grpc_inj_of_nodup_map Prod.fst sregs Hnd' _ H1 _ H2 rfl
   simp only [Prod.mk.injEq, true_and] at this
   exact this
-
-theorem grpc_sep_inj {α : Type} (c : α) : ∀ (a a' b b' : List α), c ∉ a → c ∉ a' →
-    a ++ c :: b = a' ++ c :: b' → a = a' ∧ b = b'
-  | [], [], b, b', _, _, h => by simpa using h
-  | [], x :: a', b, b', _, h2, h => by
-    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
-    exact absurd (h.1 ▸ List.mem_cons_self) h2
-  | x :: a, [], b, b', h1, _, h => by
-    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
-    exact absurd (h.1.symm ▸ List.mem_cons_self) h1
-  | x :: a, y :: a', b, b', h1, h2, h => by
-    simp only [List.cons_append, List.cons.injEq] at h
-    obtain ⟨rfl, h⟩ := h
-    have := grpc_sep_inj c a a' b b' (fun hm => h1 (List.mem_cons_of_mem _ hm))
-      (fun hm => h2 (List.mem_cons_of_mem _ hm)) h
-    exact ⟨by rw [this.1], this.2⟩
-
-theorem grpc_go_slash : (go!"/" : GoString) = [(47 : w8)] := rfl
-
-/-- **Slash-free service names are recovered from full names** (`grpcFullName sn mn =
-"/" ++ sn ++ "/" ++ mn`): what separates the services of `v3rpc.Server` in B2's joint `Nodup`. -/
-theorem grpcFullName_inj (sn sn' mn mn' : GoString) (h1 : (47 : w8) ∉ sn) (h2 : (47 : w8) ∉ sn')
-    (h : grpcFullName sn mn = grpcFullName sn' mn') : sn = sn' ∧ mn = mn' := by
-  unfold grpcFullName at h
-  rw [grpc_go_slash] at h
-  simp only [List.cons_append, List.nil_append, List.append_assoc, List.cons.injEq, true_and] at h
-  exact grpc_sep_inj (47 : w8) sn sn' mn mn' h1 h2 h
 
 end pure
 

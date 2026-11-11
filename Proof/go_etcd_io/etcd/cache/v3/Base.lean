@@ -195,7 +195,7 @@ stream names. -/
 def pbDescOk (sd : Loc) (sn : GoString) (T : go.GoType) : IProp GF :=
   iprop(∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
     pbDescIs sd sn (interface.mkOk (go.GoType.PointerType T) #(null : Loc)) mds sds ∗
-    ⌜(mds.map (·.MethodName') ++ sds.map (·.StreamName')).Nodup⌝)
+    ⌜(mds.map (·.MethodName') ++ sds.map (·.StreamName')).Nodup ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝)
 
 instance pbDescOk_persistent (sd : Loc) (sn : GoString) (T : go.GoType) :
     Persistent (pbDescOk (GF := GF) sd sn T) := by
@@ -207,7 +207,8 @@ handler types and distinct method and stream names; the KV service's methods and
 service's stream exactly ((the auth plan's E3zb) the Auth service's methods too; (the lease-src plan, 2026-11-02) the Lease
 service's methods and stream; 2026-10-18: the Watch stream a client stream, `ClientStreams`, which
 `grpc.ClientConn.NewStream`'s spec asks of its descriptor; and the Lease service's stream, the client
-lease's keep-alive). -/
+lease's keep-alive; per-type stage B, B1b: every stream descriptor of KV, Lease, Cluster and
+Maintenance sets `ClientStreams` or `ServerStreams`, what `RegisterService` asks). -/
 abbrev etcdserverpbDescs : IProp GF :=
   iprop((∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
@@ -216,7 +217,7 @@ abbrev etcdserverpbDescs : IProp GF :=
           [(go!"Range", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler), (go!"Put", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler),
            (go!"DeleteRange", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler),
            (go!"Txn", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler), (go!"Compact", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Compact_Handler)] ∧
-        sds.map (·.StreamName') = [go!"RangeStream"]⌝) ∗
+        sds.map (·.StreamName') = [go!"RangeStream"] ∧ ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
     (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty) #(null : Loc)) mds sds ∗
@@ -234,7 +235,8 @@ abbrev etcdserverpbDescs : IProp GF :=
            (go!"LeaseTimeToLive", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler),
            (go!"LeaseLeases", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler)] ∧
         sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
-          [(go!"LeaseKeepAlive", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseKeepAlive_Handler)]⌝) ∗
+          [(go!"LeaseKeepAlive", @! go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseKeepAlive_Handler)] ∧
+        ∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝) ∗
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster" go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty ∗
     -- (the auth plan's E3zb) the Auth service's methods exactly, with their generated handlers
     (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),

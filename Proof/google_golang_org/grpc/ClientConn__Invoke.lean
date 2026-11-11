@@ -28,7 +28,12 @@ variable [peer_sem : google_golang_org.grpc.peer.Assumptions]
 through grpc's `ClientConn` is its interceptor chain (`chainWP`, as `chainUnaryClientInterceptors`
 composes it) over grpc's `invoke`, which makes one attempt (`grpcInvokerOk`: the network, grpc's
 client and server, the protobuf codec, the server's runtime; a run of the handler served for the
-method on a copy of the request, whose reply the client receives as a copy, or an error). -/
+method on a copy of the request, whose reply the client receives as a copy, or an error). Since
+per-type stage B (B1b) the handler runs on a goroutine of the server's (`Server.Serve`'s trusted
+model, `acceptRun`), paired with this call as `InvGrpcRun.lean`'s header, "The pair", states: the
+attempt's deposit (the registration `isGrpcRpcAt` at the address's server and the spec's
+precondition) goes to at most one run, and the reply's `Φ` comes back only through that run's
+`respond`; an error can return while the run is still pending or running (test T2). -/
 axiom grpc.ClientConn.Invoke.wp_proof : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)
 
 end proof

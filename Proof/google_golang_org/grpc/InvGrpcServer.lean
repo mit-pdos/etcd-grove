@@ -167,6 +167,80 @@ def descNames (mds : List google_golang_org.grpc.MethodDesc)
     (sds : List google_golang_org.grpc.StreamDesc) : List GoString :=
   mds.map (·.MethodName') ++ sds.map (·.StreamName')
 
+theorem grpc_sep_inj {α : Type} (c : α) : ∀ (a a' b b' : List α), c ∉ a → c ∉ a' →
+    a ++ c :: b = a' ++ c :: b' → a = a' ∧ b = b'
+  | [], [], b, b', _, _, h => by simpa using h
+  | [], x :: a', b, b', _, h2, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (h.1 ▸ List.mem_cons_self) h2
+  | x :: a, [], b, b', h1, _, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (h.1.symm ▸ List.mem_cons_self) h1
+  | x :: a, y :: a', b, b', h1, h2, h => by
+    simp only [List.cons_append, List.cons.injEq] at h
+    obtain ⟨rfl, h⟩ := h
+    have := grpc_sep_inj c a a' b b' (fun hm => h1 (List.mem_cons_of_mem _ hm))
+      (fun hm => h2 (List.mem_cons_of_mem _ hm)) h
+    exact ⟨by rw [this.1], this.2⟩
+
+theorem grpc_go_slash : (go!"/" : GoString) = [(47 : w8)] := rfl
+
+/-- **Slash-free service names are recovered from full names** (`grpcFullName sn mn =
+"/" ++ sn ++ "/" ++ mn`): what separates the services of `v3rpc.Server` in B2's joint `Nodup`. -/
+theorem grpcFullName_inj (sn sn' mn mn' : GoString) (h1 : (47 : w8) ∉ sn) (h2 : (47 : w8) ∉ sn')
+    (h : grpcFullName sn mn = grpcFullName sn' mn') : sn = sn' ∧ mn = mn' := by
+  unfold grpcFullName at h
+  rw [grpc_go_slash] at h
+  simp only [List.cons_append, List.nil_append, List.append_assoc, List.cons.injEq, true_and] at h
+  exact grpc_sep_inj (47 : w8) sn sn' mn mn' h1 h2 h
+
+
+theorem grpc_nodup_map_on {α β : Type} (f : α → β) : ∀ (l : List α),
+    (∀ x ∈ l, ∀ y ∈ l, f x = f y → x = y) → l.Nodup → (l.map f).Nodup
+  | [], _, _ => List.nodup_nil
+  | a :: l, hinj, hnd => by
+    rw [List.nodup_cons] at hnd
+    rw [List.map_cons, List.nodup_cons]
+    refine ⟨fun hm => ?_, grpc_nodup_map_on f l
+      (fun x hx y hy => hinj x (List.mem_cons_of_mem _ hx) y (List.mem_cons_of_mem _ hy)) hnd.2⟩
+    obtain ⟨b, hb, hfb⟩ := List.mem_map.mp hm
+    exact hnd.1 (hinj b (List.mem_cons_of_mem _ hb) a List.mem_cons_self hfb ▸ hb)
+
+/-- The full names of services: service `s.1`'s methods `s.2.1` and streams `s.2.2`. -/
+def grpcNames (S : List (GoString × List GoString × List GoString)) : List GoString :=
+  S.flatMap fun s => (s.2.1 ++ s.2.2).map (grpcFullName s.1)
+
+/-- Distinct slash-free services with per-service distinct names have distinct full names. -/
+theorem grpcNames_nodup (S : List (GoString × List GoString × List GoString))
+    (hS : ∀ s ∈ S, (47 : w8) ∉ s.1 ∧ (s.2.1 ++ s.2.2).Nodup) (hsn : (S.map (·.1)).Nodup) :
+    (grpcNames S).Nodup := by
+  induction S with
+  | nil => simp [grpcNames]
+  | cons s S ih =>
+    simp only [grpcNames, List.flatMap_cons, List.map_cons, List.nodup_cons] at hsn ⊢
+    have hs := hS s List.mem_cons_self
+    refine List.nodup_append.mpr ⟨?_, ih (fun t ht => hS t (List.mem_cons_of_mem _ ht)) hsn.2, ?_⟩
+    · refine grpc_nodup_map_on _ _ ?_ hs.2
+      intro x _ y _ hxy
+      exact (grpcFullName_inj s.1 s.1 x y hs.1 hs.1 hxy).2
+    · intro a ha b hb hab
+      subst hab
+      obtain ⟨x, _, rfl⟩ := List.mem_map.mp ha
+      obtain ⟨t, ht, hb⟩ := List.mem_flatMap.mp hb
+      obtain ⟨y, _, hy⟩ := List.mem_map.mp hb
+      have := (grpcFullName_inj s.1 t.1 x y hs.1 (hS t (List.mem_cons_of_mem _ ht)).1 hy.symm).1
+      exact hsn.1 (this ▸ List.mem_map_of_mem ht)
+
+theorem descRegs_names (sn : GoString) (mds : List google_golang_org.grpc.MethodDesc)
+    (ss : GoInterface) :
+    (descRegs sn mds ss).map Prod.fst = (mds.map (·.MethodName')).map (grpcFullName sn) := by
+  simp [descRegs, List.map_map, Function.comp_def]
+
+theorem descSRegs_names (sn : GoString) (sds : List google_golang_org.grpc.StreamDesc)
+    (ss : GoInterface) :
+    (descSRegs sn sds ss).map Prod.fst = (sds.map (·.StreamName')).map (grpcFullName sn) := by
+  simp [descSRegs, List.map_map, Function.comp_def]
+
 /-- **The service value `ss` implements the handler type `ht`** (grpc's `RegisterService` check,
 `reflect.TypeOf(ss).Implements(reflect.TypeOf(ht).Elem())`): `ht` is a nil pointer to an
 interface type `T` (the generated `(*KVServer)(nil)`), `ss` a non-nil value whose type is in
