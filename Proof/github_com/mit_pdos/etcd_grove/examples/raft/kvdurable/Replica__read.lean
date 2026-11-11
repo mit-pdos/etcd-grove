@@ -106,7 +106,7 @@ theorem Replica.read.wp_proof
   try wp_auto
   wp_apply context.wp_Background
   try wp_auto
-  wp_apply hWT tmo $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx⟩
+  wp_apply hWT tmo $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
   try wp_auto
   wp_apply wp_readCtx id seq key Hkey $$ [$Hpkg] as %b ⟨Hb, -⟩
   imod ownSlice_persist b _ _ $$ Hb with #Hb
