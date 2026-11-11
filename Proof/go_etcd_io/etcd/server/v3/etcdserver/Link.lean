@@ -2769,7 +2769,7 @@ theorem bootstrappedServer.wp_Close :
 
 theorem bootstrappedWAL.wp_MemoryStorage :
     bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
-  bootstrappedWAL.MemoryStorage.wp_proof wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_SetHardState MemoryStorage.wp_Append
+  bootstrappedWAL.MemoryStorage.wp_proof srvApi_wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot srvApi_wp_MemSetHardState srvApi_wp_MemAppend
 
 theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=

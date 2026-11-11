@@ -105,6 +105,15 @@ entries: raft's linked result at the server's any-storage model, as above. -/
 theorem srvApi_wp_MemAppend : MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
   letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_Append
 
+/-- (restart S3, D2 (b), 2026-11-11) `NewMemoryStorage` and `MemoryStorage.SetHardState`, which the
+restarted storage's `bootstrappedWAL.MemoryStorage` runs: raft's linked results at the server's
+any-storage model, as above. -/
+theorem srvApi_wp_NewMemoryStorage : NewMemoryStorage.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact wp_NewMemoryStorage
+
+theorem srvApi_wp_MemSetHardState : MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) := by
+  letI := srvAnyStor (GF := GF); exact MemoryStorage.wp_SetHardState
+
 end links
 
 end EtcdGrove
