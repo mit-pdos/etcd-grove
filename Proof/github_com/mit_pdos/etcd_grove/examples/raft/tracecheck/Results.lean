@@ -9,24 +9,22 @@ hypothesis, no `sorry`:
 * **`raft_tracecheck_safe_of`**: the closed theorem's statement (`tracecheck_adequate_of`'s, the
   plan's shape, as `raft_kv_porcupine_safe`: for executions of `n + 4 ≤ 2^61` steps, no stuck
   thread, no panic, the main thread's result `#()`), given
-  `TcOpen`:
-  - the harness's spec (`Spec/.../tracecheck/RunConcurrent.lean`): the run over
-    the traced node API, whose traced statements are being finished (Q8, slice 27n), with
-    layer B's bootstrap facts (`MainSim.lean`, `BootFacts`) at its end;
-  - the checker's specs `Main` reaches through `NewTrace` and `CheckTrace` (`NewTraceWith`,
-    `Trace.Init`, `Trace.Len`, `Trace.StepLine`, `indexOf`, `State.Violated`): proved
-    (`etcdraft/*.lean`, over their own callees' specs), not yet linked (the checker has no
-    `Link.lean`).
-  Everything else `Main` calls is proved here: `Main` (`Main.lean`), `DefaultCConfig`,
+  `TcOpen`, the harness's spec (`Spec/.../tracecheck/RunConcurrent.lean`): the run over the
+  traced node API, whose traced statements are being finished (Q8, slice 27n), with layer B's
+  bootstrap facts (`MainSim.lean`, `BootFacts`) at its end.
+  Everything else `Main` calls is proved: `Main` (`Main.lean`), `DefaultCConfig`,
   `(*Cluster).Events` and the recorder's `Events` (the recorder's time receipts bound the event
-  count), `ConvertEvents`, `NewTrace`, `CheckTrace`, `Result.TLCOK`, the package initialization
-  (`Init.lean`, `PkgTable.lean`) and the adequacy (`Adequacy.lean`).
+  count), `ConvertEvents`, the package initialization (`Init.lean`, `PkgTable.lean`), the
+  adequacy (`Adequacy.lean`), and the checker's `NewTrace`, `CheckTrace` and `Result.TLCOK`,
+  linked over every checker function they reach (`etcdraft/Link.lean`, `etc/gen-link.py
+  --tracecheck`; until the checker's link, S7, 2026-11-11, `TcOpen` also held the six checker
+  specs `NewTrace`'s and `CheckTrace`'s proofs take).
 * **`tracecheck_Events_traceAccepts`**: the corollary's core, proved with no hypothesis: once a run
   is over (`runOver c`, `RunConcurrent.spec`'s post), `c.Events()` returns a trace `L` whose
   converted events satisfy `TraceAccepts` (the Lean transcription's acceptance, TLC's verdict with
   the invariants of `Traceetcdraft.cfg`).
 
-When `h_RunConcurrent` is proved and the checker linked, `raft_tracecheck_safe` is
+When `h_RunConcurrent` is proved, `raft_tracecheck_safe` is
 `raft_tracecheck_safe_of` with them filled in, and the corollary is `RunConcurrent.spec` composed
 with `tracecheck_Events_traceAccepts`.
 -/
@@ -38,9 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Defa
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster__Events
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder__Events
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.ConvertEvents
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.NewTrace
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.CheckTrace
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Result__TLCOK
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Link
 public import Perennial.Proof.sync.Link
 
 @[expose] public section
@@ -99,30 +95,21 @@ section closed
 attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
-/-- **The open obligations** (see the file header), at `tcGF`, for every `HeapGS`, semantics and
-package assumptions (as `tcMainSpec`): the harness's `RunConcurrent` and the checker's specs not yet
-linked. -/
+/-- **The open obligation** (see the file header), at `tcGF`, for every `HeapGS`, semantics and
+package assumptions (as `tcMainSpec`): the harness's `RunConcurrent`. (The checker's specs are
+linked, `etcdraft/Link.lean`.) -/
 abbrev TcOpen : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC tcGF] [go.Semantics]
     [github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions],
-    RunConcurrent.spec (GF := tcGF) (hG := hG) ∧
-    Etcdraft.NewTraceWith.spec (GF := tcGF) (hG := hG) ∧
-    Etcdraft.Trace.Init.spec (GF := tcGF) (hG := hG) ∧
-    Etcdraft.Trace.Len.spec (GF := tcGF) (hG := hG) ∧
-    Etcdraft.Trace.StepLine.spec (GF := tcGF) (hG := hG) ∧
-    Etcdraft.indexOf.spec (GF := tcGF) (hG := hG) ∧
-    Etcdraft.State.Violated.spec (GF := tcGF) (hG := hG)
+    RunConcurrent.spec (GF := tcGF) (hG := hG)
 
-/-- **`Main`'s spec at `tcGF`, from the open obligations**; the rest of `Main`'s callees are
-proved. -/
+/-- **`Main`'s spec at `tcGF`, from the open obligation**; the rest of `Main`'s callees are
+proved, the checker's linked. -/
 theorem tcMainSpec_of (h : TcOpen) : tcMainSpec := by
   intro hG _ _
-  obtain ⟨h_RunConcurrent, h_NewTraceWith, h_Init, h_Len, h_StepLine, h_indexOf, h_Violated⟩ := h
-  exact Main.wp_proof DefaultCConfig.wp_proof h_RunConcurrent
+  exact Main.wp_proof DefaultCConfig.wp_proof h
     (Cluster.Events.wp_proof (SyncRecorder.Events.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock))
-    ConvertEvents.wp_proof (Etcdraft.NewTrace.wp_proof h_NewTraceWith)
-    (Etcdraft.CheckTrace.wp_proof h_Init h_Len h_StepLine h_indexOf h_Violated)
-    Etcdraft.Result.TLCOK.wp_proof
+    ConvertEvents.wp_proof Etcdraft.wp_NewTrace Etcdraft.wp_CheckTrace Etcdraft.Result.wp_TLCOK
 
 /-- **The trace check never fails, from the open obligations** (`raft_tracecheck_safe`'s statement,
 `tracecheck_adequate_of`, given `TcOpen`): every real execution of `tracecheckProgram` -- the

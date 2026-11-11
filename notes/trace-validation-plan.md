@@ -1298,6 +1298,18 @@ API's, read off `ownRaftPhysC`); the bundle **`stepBundle_traced_leadAccNC`** ov
 (`LeadAcc` and no committing outcome). The committing outcome needs a guard on `G0`/`G1` (Q30). Left:
 Q30's guard and the bundle on `.on LeadAcc` (the close given `G1` then at `¬ AppRespRan`); the assembly.
 
+**Q8 stage 1 (slice 27n), 2026-11-11 (branch `trace-check-q8s27n`): Q27 (a) done; the report's bundle
+path and the traced `RawNode.ReportUnreachable` done; a `Ready` line's tokens over the queues done;
+`acceptReady`/`Ready`, `Advance`, `ApplyConfChange`, `node.run`, `newRaft`/`Bootstrap` not done.**
+Decided by the coordinator (Q27 (a)) and the agent (its form) (`notes/decisions.md`, "Q8 stage 1 (slice
+27n)"); all raft-internal. `StepEndTy` gains `MsgUnreachable`; `StepEnd` keeps its shape (the fourth
+clause covers it), made exact by `LeaderNonpropResultC`'s report case gaining `m.Type' = MsgUnreachable
+→ lt' = s.lt ∧ ms = []` (`stepLeader/Rest.lean`) and `wp_Step_MsgLocal` returning `StepEnd`
+(`StepEnd.localRep`). Other slices' new path files add nothing (they build `StepEndTy` by `simp`; only a
+full pattern on the report case of `LeaderNonpropResultC` gains a `-`). `stepBundle_traced_unreach`
+(`TracedRaftStepUnreach.lean`), `RawNode.ReportUnreachable.traced` (`TracedRawNodeRep.lean`),
+`readyToks_queues` (`TracedReadyToks.lean`: `trCap_fire_ready`'s tokens as one `recvTokOf` per queued
+message, `outboxRelP`). Remaining, with designs, in the decisions entry.
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -2443,6 +2455,17 @@ some γd`, `Cluster.traceSimInv_alloc`, three `StartNode`s with `startTrace`, th
 application goroutines over the traced node API of slice 27n, `Cluster.traceSimInv_end` and
 `BootFacts` at the end); the checker's `Link.lean` (a link mode for `etcdraft`); then
 `raft_tracecheck_safe` and `TraceAccepts` as closed statements and a TCB collection.
+
+**S7 (the checker's link) (2026-11-11, branch `trace-check-link`): the checker linked; `TcOpen` is
+`RunConcurrent.spec` alone.** Done (`notes/decisions.md`, "S7 (the checker's link)"): a Lean-first
+mode `etc/gen-link.py --tracecheck` (`etc/link-lean-first-tracecheck.txt`) writes
+`etcdraft/Link.lean`, linking all 144 proved checker functions over their callees' results (no
+`sorry`, no axiom, no pending or external callee; every `Spec/.../etcdraft/` spec has its proof).
+`Results.lean`'s `tcMainSpec_of` takes `Etcdraft.wp_NewTrace`, `Etcdraft.wp_CheckTrace` and
+`Etcdraft.Result.wp_TLCOK` from the Link, so `TcOpen` no longer holds `NewTraceWith`, `Trace.Init`,
+`Trace.Len`, `Trace.StepLine`, `indexOf`, `State.Violated`. The TCB collection
+`etc/tcb-collections/tracecheck.txt` selects the Link's roots too. Left for S7: `RunConcurrent`'s
+proof, then the closed statements.
 
 ## Order of work
 

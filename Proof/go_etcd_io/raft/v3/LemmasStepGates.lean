@@ -103,11 +103,13 @@ Each is what the callee's spec gives (`FollowerStepResultC`, `CandidateStepResul
 `LeaderStepResultC`, `HupOkC`), so as exact as the code's specs: the messages a broadcast queues
 (`ReplSends`' `ms`) are existential there (`notes/decisions.md`, "Q8 stage 1 (slice 13)"). -/
 
-/-- The message types `StepEnd` describes: the six traced types and the three local ones a traced
-node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s `MsgProp`). -/
+/-- The message types `StepEnd` describes: the six traced types and the four local ones a traced
+node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s `MsgProp`, and
+(2026-11-11, slice 27n, Q27 (a)) `ReportUnreachable`'s `MsgUnreachable`, whose end state is `s` but
+for `Progress` values of the same `Match`: `LeaderNonpropResultC`'s report case queues nothing). -/
 def StepEndTy (ty : w32) : Prop :=
   ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
-    ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp
+    ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp ∨ ty = MsgUnreachable
 
 /-- (2026-11-11, slice 24b) **A candidate's vote response that decides its election**: a `MsgVoteResp`
 of the candidate's term whose recorded tally is won (`JQuorum`) or lost (`JLost`) at `c`, so that
@@ -212,6 +214,32 @@ theorem StepFnEnd.leader {c : CfgM} {id : w64} {s1 : NState} {m : MessageM} {ent
   refine ⟨?_, ?_, fun _ => ⟨d, h⟩⟩
   · intro h'; rw [hr] at h'; cases h'
   · intro h'; rcases h' with h' | h' <;> rw [hr] at h' <;> cases h'
+
+/-- (2026-11-11, slice 27n, Q27 (a)) **`StepEnd` of a local report** (`MsgForgetLeader`,
+`MsgUnreachable`, `MsgSnapStatus`, term zero, no preamble): the step function's result at `s` for
+`MsgUnreachable`, the one of the three `StepEnd` describes. -/
+theorem StepEnd.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState}
+    (hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)
+    (hT0 : m.Term' = W64 0) (hnbf : ¬ PreBF m s)
+    (h : m.Type' = MsgUnreachable → StepFnEnd c id s m ents ctx s') :
+    StepEnd c id m ents ctx s s' := by
+  by_cases hu : m.Type' = MsgUnreachable
+  · have hpre : preState s m s.prvals = s := by simp [preState, hnbf]
+    have hh : m.Type' ≠ MsgHup := fun e => absurd (hu.symm.trans e)
+      (by simp only [MsgUnreachable, MsgHup, ne_eq]; first | exact of_decide_eq_true rfl | word)
+    have hv : m.Type' ≠ MsgVote := fun e => absurd (hu.symm.trans e)
+      (by simp only [MsgUnreachable, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word)
+    have hns : ¬ StaleMsg s m := fun h' => h'.1 hT0
+    have hfn : StepFnEnd c id (preState s m s.prvals) m ents ctx s' := by rw [hpre]; exact h hu
+    exact StepEnd.fn hns hh hv s.prvals hfn
+  · apply StepEnd.of_ty
+    have hnf : ¬ StepEndTy MsgForgetLeader := by unfold StepEndTy; decide
+    have hns : ¬ StepEndTy MsgSnapStatus := by unfold StepEndTy; decide
+    rcases hty with h' | h' | h'
+    · rw [h']; exact hnf
+    · exact absurd h' hu
+    · rw [h']; exact hns
 
 end pure
 

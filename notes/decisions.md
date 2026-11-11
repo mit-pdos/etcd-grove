@@ -36483,3 +36483,96 @@ m.Index')` on `G0`/`G1` (`stepLeader.spec`'s `G` arm, `stepOutG`, `Step`'s `MsgA
 `AppRespAcceptedC`), the committing outcome closed past `maybeCommit` as now. Then the assembly of the
 paths (`LeadAcc` among them; its premises `m.From' ∈ domSet s.prvals` and `PrvalsOk s` added to the
 assembly's list).
+
+## Q8 stage 1 (slice 27n): Q27 (a), `MsgUnreachable` in `StepEndTy`; the report's bundle path and the traced `RawNode.ReportUnreachable`; a `Ready` line's tokens over the queues; the rest of the node API not done (2026-11-11 · trace-check, Q8 stage 1 slice 27n; Q27 (a) taken by the coordinator, its form the agent's · branch `trace-check-q8s27n`; DRAFT until trace-check's Freeze)
+
+All raft-internal: no module on `etc/api/raft.txt` changed; nothing frozen (`TracedCap.lean`,
+`TracedHooksDraft.lean`, `TracedApiDraft.lean` untouched); no axiom, no `sorry`; every untraced and
+client-visible statement unchanged.
+
+**Q27 (a), its form.** `StepEndTy` gains `MsgUnreachable` (`LemmasStepGates.lean`). `StepEnd` keeps its
+shape: its fourth clause (the step function's result at the state after the preamble, `StepFnEnd`)
+already covers a non-stale type that is neither `MsgHup` nor `MsgVote`, and `MsgUnreachable` has term
+zero (no preamble). What it lacked was precision at a leader: `LeaderNonpropResultC`'s report case
+(`MsgForgetLeader`/`MsgTimeoutNow`/`MsgUnreachable`/`MsgSnapStatus`/`MsgTransferLeader` together) let a
+leader queue `ReplSends` and move the transferee. That case gains a last conjunct
+`m.Type' = MsgUnreachable → lt' = s.lt ∧ ms = []` (`Spec/stepLeader.lean`; proved in
+`stepLeader/Rest.lean`, where `rest_res` takes it: `pr.BecomeProbe()` only). `wp_Step_MsgLocal`
+(`raft__Step/MsgRest.lean`) now returns `"%Hend" ∷ ⌜StepEnd …⌝` (`StepEnd.localRep`: the role's result
+for `MsgUnreachable`, vacuous for the other two local reports), which `raft.Step`'s local arm passes to
+`gate_close` in place of `end_ty`. Rejected: a new fifth `StepEnd` clause for `MsgUnreachable` (every
+path file reads the fourth clause as `.2.2.2`: a fifth would shift the projections).
+
+**What other slices' new files must add: nothing**, unless they (1) destructure `StepEndTy` itself
+(only `raft__Step.lean`'s `end_ty` macro did: now ten alternatives) or (2) destructure
+`LeaderNonpropResultC`'s report case with a full anonymous pattern (`⟨-, lt', ms, pvs, rfl, Hms, Hpm⟩`
+becomes `⟨-, lt', ms, pvs, rfl, Hms, Hpm, -⟩`; a trailing `-` or `⟨Hc, -⟩` is unaffected) or construct it
+(one more component). The path files build `StepEndTy` by `unfold StepEndTy; simp [h]`, which still
+works. No path file gains a case.
+
+**The report's bundle path** (`TracedRaftStepUnreach.lean`, new): `UnreachPath s m := m.Type' =
+MsgUnreachable ∧ m.Term' = W64 0`, `stepBundle_traced_unreach : stepBundle_traced.on UnreachPath`, over
+`TracedRaftStepPaths.lean`'s `localR` (no line at any role: the receive gate is `none`, the preamble an
+update, every step-function gate guarded by another type); the close reads `unreach_end` (the end state
+`{ sendMsgs s [] with prvals := pvs }`, `Match` unchanged) and `simIdleS_prvals`.
+
+**`RawNode.ReportUnreachable.traced`** (`TracedRawNodeRep.lean`, new): the untraced triple at
+`γ.reTrace = some γd`, with `uint.Z rs.tc + 1 < traceNumBound` and `receiptBound GF + γ.reBoot.length ≤
+traceNumBound`; hypotheses `raft.Step.spec`, `MessageType.Enum.spec`, `stepBundle_traced.on
+UnreachPath`. Note: the harness's `node.ReportUnreachable` reaches `raft.Step` through `node.run`'s
+`recvc` arm, not `RawNode.ReportUnreachable`; the gated `node.run` uses the same bundle path.
+
+**A `Ready` line's tokens** (`TracedReadyToks.lean`, new): `readyToks_queues` turns
+`trCap_fire_ready`'s `[∗map] k ↦ m ∈ Bn, inFlight tn k m` (`Bn`'s values a permutation of `P = pendAbs
+tn.voters o`) into one `recvTokOf` per message of the queues `ms1 ++ ms2` (`outboxRelP o ms1 ms2`), by a
+permutation-of-filter-map split (`bigSepL_pairs_split`, no `MsgsUniq`), the queues' contributions
+(`pendAbs_outboxRelP`) and `optTok_recvTok`.
+
+**Not done, exact** (designs as slice 26n's, refined):
+- `RawNode.acceptReady.spec` unified: drop `γ.reTrace = none`; postcondition gains `[∗list] q ∈ ms,
+  rdTok γ q.st` (`True` untraced, `recvTokOf` traced). Proof at `traceReady`: `rnTrace` of
+  `ownRawNodeReady` (at the cut state `s0`) gives `∃ b, trCapB … b (SimIdle C s0)` = `trCap`; fire
+  `trCap_fire_ready` with `E := NodeEvOf (W64 8) id s c`, `PhaseStepReady` from `SimIdle C s0` to
+  `SimIdle C s` (`toPState_ready`; `SimServerR` does not read `durable`), `TraceEv.Ok` of the event;
+  then `readyToks_queues` (its `P` from the fired `⌜∃ cs, SimIdle tn.voters s0 cs P⌝`, `tn.voters = C`
+  from the capability) split into `selfmsgs` (to `self_pending`, whose `selfTok` reads `[] []`: a self
+  response's `AAMsgOk` empty entries and context) and the handed-out `ms`. Callers (`RawNode.Ready`,
+  `node.run`) drop the premise and the tokens untraced.
+- `RawNode.Advance` traced (`wp_step_pending`'s `.self` over `stepBundle_traced.on` of the response
+  types with `selfTok`; the storage acknowledgements need a close: they are not `StepEndTy`).
+- `RawNode.ApplyConfChange` (a booted node's line under `AccIdle`, `lineEffect_applyCC`;
+  `switchToConfig`'s hook), gated `node.run` and the node API's statements (`recvTokOf` from
+  `node.Ready` to `node.Step`; the `recvc` arm's `MsgUnreachable` over `UnreachPath`), traced
+  `newRaft`/`Bootstrap` (`startTrace_trCapB`, a unified `traceConfChangeEvent.spec`).
+
+## S7 (the checker's link): `etc/gen-link.py --tracecheck`, every checker proof linked; `TcOpen` is `RunConcurrent.spec` alone (2026-11-11 · trace-check, S7; decided by the agent under the user's delegation · branch `trace-check-link`; DRAFT until trace-check's Freeze of layer D)
+
+**What.** The checker (`examples/raft/tracecheck/etcdraft`, layer C) gets a `Link.lean`
+(`Proof/.../tracecheck/etcdraft/Link.lean`), generated by a new Lean-first mode of `etc/gen-link.py`,
+`--tracecheck`, from `etc/link-lean-first-tracecheck.txt`: the 144 functions with a proof in
+`etcdraft/`, each with its callees in the order of its `wp_proof`'s hypotheses (read off the binders,
+`(wp_X : X.spec (GF := GF) (hG := hG))`). No proof takes a non-spec premise or another package's spec
+(the standard library's operations they use are Perennial's primitives), none is a `sorry`, and every
+spec file of `Spec/.../etcdraft/` has its proof: no `@`, `?` or `=` callee, no pending section. The
+results are `Etcdraft.<T>.wp_<M>` (the specs' own namespace), at any `HasLC`, under the checker's
+package assumptions.
+
+**Why all of them, not only the closure of `NewTrace`/`CheckTrace`/`Result.TLCOK`** (135 functions): a
+Link links every proof of its package (as the other modes); the nine others (`Bag.Len`, `Set.Remove`,
+`State.MessageTermsLtCurrentTerm`, `State.MoreUpToDateCorrectInv`, `Trace.Event`,
+`Trace.changeConfIfLogged`, `Trace.restartIfLogged`, `Trace.sendSnapshotIfLogged`,
+`line.confChange`) are proved Go functions whose specs no proof in that closure takes, and
+`etc/verified-code.py` counts a function verified only when a root links it.
+
+**`Results.lean`.** `TcOpen` keeps its shape (`∀ [HeapGS HasLC.hasLC tcGF] [go.Semantics]
+[Assumptions], …`) with one conjunct, `RunConcurrent.spec`; `tcMainSpec_of` passes the Link's
+`Etcdraft.wp_NewTrace`, `Etcdraft.wp_CheckTrace` and `Etcdraft.Result.wp_TLCOK` to `Main.wp_proof`
+(before: the proofs applied to the six hypotheses). `raft_tracecheck_safe_of`'s statement is
+unchanged but for what `TcOpen` unfolds to. The abbreviation is kept (rather than inlining
+`RunConcurrent.spec` into `raft_tracecheck_safe_of`) so that the closed theorem is one substitution
+once the harness is proved.
+
+**Checks.** The Link is a root for `etc/proof_roots.py` by its name (every `Link.lean` under `Proof/`);
+`etc/gates.sh` checks the mode from `gen-link.py`'s usage line; the TCB collection
+`etc/tcb-collections/tracecheck.txt` now also selects the Link's roots (`roots
+…/tracecheck/etcdraft/Link\.lean$`), which rest on no axiom or `sorry` of this repository.
