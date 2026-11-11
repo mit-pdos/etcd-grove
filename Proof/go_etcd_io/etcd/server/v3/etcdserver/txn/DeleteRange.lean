@@ -37,7 +37,7 @@ theorem txn.DeleteRange.wp_proof
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro ctx cd nd lg kv γ dr o q B P Pre Q Post f ot te L I R
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hdr, Hown, #Hctx, #Hct, Hto, #Hnd, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hdr, Hown, #Hctx, #Hct, Hto, #Hnd, #Hlg, Hbk, Hcs, Hau⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -61,7 +61,7 @@ theorem txn.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, Hfslc⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto Hfsl Hfslc]
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto $Hlg Hfsl Hfslc]
     as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iunfold traceutil.ownFields
     iexists _

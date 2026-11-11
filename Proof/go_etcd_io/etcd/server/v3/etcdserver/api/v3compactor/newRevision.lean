@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 theorem v3compactor.newRevision.wp_proof :
     v3compactor.newRevision.spec (GF := GF) (hG := hG) := by
   intro lg clk ret E
-  wp_start as ⟨%Hlgnn, #Hclk⟩
+  wp_start as ⟨#Hlgnn, #Hclk⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -60,8 +60,6 @@ theorem v3compactor.newRevision.wp_proof :
     γctx, cancel
   iframe
   iframe #
-  isplitr
-  · ipureintro; exact Hlgnn
   ipureintro; rfl
 
 end proof

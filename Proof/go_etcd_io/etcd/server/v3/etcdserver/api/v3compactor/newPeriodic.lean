@@ -31,7 +31,7 @@ theorem v3compactor.newPeriodic.wp_proof
     (hPeriodic_getRetentions : v3compactor.Periodic.getRetentions.spec (GF := GF) (hG := hG)) :
     v3compactor.newPeriodic.spec (GF := GF) (hG := hG) := by
   intro lg clk h E H10
-  wp_start as ⟨%Hlgnn, #Hclk⟩
+  wp_start as ⟨#Hlgnn, #Hclk⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -77,7 +77,7 @@ theorem v3compactor.newPeriodic.wp_proof
     iframe
     iframe #
     ipureintro
-    exact ⟨Hlgnn, rfl, H10⟩
+    exact ⟨rfl, H10⟩
   · iexists γf
     unfold periodicRunTok firstUnset
     iframe

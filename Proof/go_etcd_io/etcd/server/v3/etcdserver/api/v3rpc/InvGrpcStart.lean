@@ -329,7 +329,7 @@ recursion limit (`v3rpc.maxTxnOpsOk`, `NewServer`'s configuration premise). -/
 def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
   iprop(v3rpc.raftKV s C.A ∗ v3rpc.watchSrvOk s C.E C.tag ∗
     srvKVAddr s ↦□ v3rpc.wsIface C.wsl ∗ v3rpc.srvIdsOk s ∗
-    srvCfgFieldAddr s go!"Logger" ↦□ C.lg0 ∗ ⌜C.lg0 ≠ null⌝ ∗ srvLgAddr s ↦□ C.lg ∗ ⌜C.lg ≠ null⌝ ∗
+    srvCfgFieldAddr s go!"Logger" ↦□ C.lg0 ∗ zapLoggerOk C.lg0 ∗ srvLgAddr s ↦□ C.lg ∗ zapLoggerOk C.lg ∗
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ C.qb ∗ srvMemberIDAddr s ↦□ C.mid ∗
     srvCfgFieldAddr s go!"MaxTxnOps" ↦□ C.n ∗ ⌜v3rpc.maxTxnOpsOk (sint.Z C.n)⌝ ∗
     srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ C.wd ∗

@@ -85,7 +85,7 @@ theorem txn.Txn_sole
     txn.Txn.specSole (GF := GF) (hG := hG) := by
   intro ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, Hcs, Hau, Hwand⟩
+  wp_start as ⟨#Hkv, Hrd, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hlg, #Hknown, Hu, %Hpre, Hcs, Hau, Hwand⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -96,7 +96,7 @@ theorem txn.Txn_sole
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto $Hlg]
     as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
@@ -201,7 +201,7 @@ theorem txn.Txn_sole
     · isplitl []; · itrivial
       isplitl []; · ileft; itrivial
       ipureintro
-      exact ⟨Hreachr, (by simp), hoks, fun _ => hro, fun h => absurd h (by simp)⟩
+      exact ⟨⟨Hreachr, (by simp), hoks, fun _ => hro, fun h => absurd h (by simp)⟩, trivial⟩
     icases Hres with (⟨⟨%Herr, %Hch⟩, Hro, #Hresp, Hhdr, -, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -275,7 +275,7 @@ theorem txn.Txn_sole
     · isplitl [Hown]
       · iright; iexact Hown
       ipureintro
-      exact ⟨Hreachw.1, fun _ => Hreachw.2, hoks, fun h => h.elim, fun h => absurd h (by simp)⟩
+      exact ⟨⟨Hreachw.1, fun _ => Hreachw.2, hoks, fun h => h.elim, fun h => absurd h (by simp)⟩, trivial⟩
     icases Hres with (⟨⟨%Herr, -⟩, Htw, #Hresp, Hhdr, #Hk2, Hown⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -345,15 +345,16 @@ theorem txn.Txn_read
     txn.Txn.specRead (GF := GF) (hG := hG) := by
   intro ctx cd lg rt shared kv le skip γ t ot te Q
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hle, #Hrt, #Hctx, #Hct, Hto, %Hpre, Hau⟩
-  obtain ⟨Hlg, hro, hgets⟩ := Hpre
+  wp_start as ⟨#Hkv, Hrd, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hlg0, %Hpre, Hau⟩
+  ihave #Hlg := zapLoggerOk_orNil _ $$ Hlg0
+  obtain ⟨hro, hgets⟩ := Hpre
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, hReadC, -⟩ := Hsh
   ihave Hau := txn.readAU_reach hpers hreach _ γ Q $$ Hkv Hau
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto $Hlg]
     as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
@@ -437,8 +438,10 @@ theorem txn.Txn_read
     $$ [$Hro $Htrc $Hctx' $Hct' $Hrt $Hsl $Hleases] as %resp %err ⟨Htrc, Hres⟩
   · isplitl []; · itrivial
     isplitl []; · ileft; itrivial
-    ipureintro
-    exact ⟨Hreachr, (by simp), hoks, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
+    isplitr
+    · ipureintro
+      exact ⟨Hreachr, (by simp), hoks, fun _ => hro, fun _ => trivial⟩
+    iexact Hlg0
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨Hro, #Hshell, Hout⟩ : (mvcc.api.mvccTxn (interface.mkOk wty wv) γ trace (.read σr) ∗
       txnRespShell resp ∗

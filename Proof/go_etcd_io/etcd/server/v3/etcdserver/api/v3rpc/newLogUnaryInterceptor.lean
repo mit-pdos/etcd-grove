@@ -33,7 +33,8 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
     (wp_log : v3rpc.logUnaryRequestStats.spec (GF := GF) (hG := hG)) :
     v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) := by
   intro s lg wd
-  wp_start as ⟨#Hlg, %Hlgn, #Hwd⟩
+  wp_start as ⟨#Hlg, #Hlgn, #Hwd⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgn
   wp_pures
   wp_alloc_auto
   wp_pures
@@ -58,11 +59,11 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   subst Hv
   wp_auto
   wp_apply wp_Logger s lg $$ [HR] as ⟨-, HR⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #; ipureintro; exact Hlgnn
   wp_if_destruct
-  · exact absurd rfl Hlgn
+  · exact absurd rfl Hlgnn
   wp_apply wp_log $$ []
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   iapply HΨ
   iexact HR
 

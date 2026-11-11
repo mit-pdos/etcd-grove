@@ -85,7 +85,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   · iapply (hRS W.γm 1 1).1; iexact Hrdr
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
-  icases HWS' with ⟨%Hnn, #Plg, #Pcid, #Pmid, #Pmrb, #Psg, #Pwa, #Pag, #Hsrv⟩
+  icases HWS' with ⟨%Hnn, #Hzl, #Plg, #Pcid, #Pmid, #Pmrb, #Psg, #Pwa, #Pag, #Hsrv⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
   icases Hsrv' with ⟨-, -, #Hvars, -⟩
@@ -166,7 +166,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
     rw [hP]
     iframe #
     isplitr
-    · ipureintro; exact ⟨Hswsn, Hnn.2⟩
+    · ipureintro; exact Hswsn
     simp only [r, v3rpc.auxOf]; iexact HauxIs
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)
     $$ [$Hadd] as ⟨Hadd, Hdone⟩
@@ -237,7 +237,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
         iintro %fs -
         wp_auto
         wp_apply hZW R.lg _ _ $$ []
-        · iframe #; ipureintro; exact Hnn.2
+        · iframe #
         wp_apply wp_slice_literal (V := GoString) [go!"receive", go!"watch"]
         isplitr
         · ipureintro; rfl
@@ -264,7 +264,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
         iintro %fs -
         wp_auto
         wp_apply hZD R.lg _ _ $$ []
-        · iframe #; ipureintro; exact Hnn.2
+        · iframe #
         wp_apply wp_spsc_send γerr errc PE (fun _ => iprop(False)) [] (GoInterface.ok ei) $$ [$HprodE Hprod]
           as -
         · iframe #

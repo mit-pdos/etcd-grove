@@ -30,13 +30,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`NewQuotaLeaseServer(s)`** returns a new `*quotaLeaseServer` as a `LeaseServer` (over
 `NewLeaseServer(s)`, with the alarmer `{s, "lease"}`; as `NewQuotaKVServer`, since D22g (A));
-`quotaLeaseServerAt` over `leaseServerAt` (the client lease's stage (c)). -/
+`quotaLeaseServerAt` over `leaseServerAt` (the client lease's stage (c)). The configuration's logger nil or a
+zap logger, the server's a zap logger (premise fixes 6). -/
 abbrev v3rpc.NewQuotaLeaseServer.spec : Prop :=
   ∀ (s : Loc) (A : v3rpc.KVAns GF) (lg0 lg : Loc) (qb : w64),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.raftKV s A ∗ srvCfgFieldAddr s go!"Logger" ↦□ lg0 ∗
-      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb }}
+      zapLoggerOrNil lg0 ∗ srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb }}
     (App (Val (@! v3rpc.NewQuotaLeaseServer)) (Val #s))
   {{ (v : GoInterface), RET #v; ∃ (q p : Loc) (cid mid' : w64),
       ⌜v = interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q⌝ ∗

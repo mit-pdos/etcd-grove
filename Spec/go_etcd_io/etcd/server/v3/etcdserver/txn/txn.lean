@@ -36,7 +36,8 @@ set_option linter.iris.dupNamespace false in
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. The pending premise only for a write
 transaction, `ro = false → σ.pending = none`, decided by the coordinator, 2026-11-05: a read
-transaction's state may have a pending revision.) -/
+transaction's state may have a pending revision.) At a context that may be canceled (read-only),
+a zap logger: `txn` logs the error through it (premise fixes 6). -/
 abbrev txn.txn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (γ : MvccName) (trace : Loc) (te : Bool) (tw : GoInterface) (ro : Bool) (σ : MvccState)
@@ -53,7 +54,8 @@ abbrev txn.txn.spec : Prop :=
       ⌜txn.Reach σ ∧ (ro = false → σ.pending = none) ∧
         txn.OpsOk false (mvcc.stateAfter σ.log) (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log)
           (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t)) ∧
-        (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true ∧ lg ≠ null)⌝ }}
+        (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true)⌝ ∗
+      (if nd then iprop(True) else zapLoggerOk lg) }}
     (App (App (App (App (App (App (App (Val (@! txn.txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #tw)) (Val #rt)) (Val #(!ro))) (Val #pl)) (Val #skip))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); traceutil.ownTrace trace te ∗

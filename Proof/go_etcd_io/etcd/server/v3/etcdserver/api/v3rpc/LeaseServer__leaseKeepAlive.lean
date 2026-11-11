@@ -67,7 +67,7 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
       iintro %fs -
       wp_auto
       wp_apply hZW lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       wp_apply wp_slice_literal (V := GoString) [$lbl, go!"lease-keepalive"]
       isplitr
       · ipureintro; rfl
@@ -90,7 +90,7 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
       iintro %fs -
       wp_auto
       wp_apply hZD lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       wp_for_post
       iapply HΦ
       iframe; iframe #))
@@ -162,7 +162,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
-  icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, %Hlg, #Hlgf⟩
+  icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
   ihave #Hst' := Hst
   iunfold srvStreamIs at Hst'
   icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩

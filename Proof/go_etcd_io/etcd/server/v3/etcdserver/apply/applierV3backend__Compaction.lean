@@ -59,7 +59,7 @@ theorem apply.applierV3backend.Compaction.wp_proof
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   ihave #Hok' := Hok
   iunfold apply.backendOptsOk at Hok'
-  icases Hok' with ⟨%Hlg, #Hkv, %HkvE, #Haus, -⟩
+  icases Hok' with ⟨#Hlg, #Hkv, %HkvE, #Haus, -⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨⟨%cr0, Hw⟩, Hll, Hrd, -, %B, Hbk, #Hhk, Htie, Hcs⟩
   iunfold apply.cmpOwn at Hc
@@ -83,7 +83,8 @@ theorem apply.applierV3backend.Compaction.wp_proof
   wp_auto
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
-  wp_apply hEnsure todoCtxVal mvcc.neverCd none false opts.Logger' _ _ $$ [Hfl Hflc]
+  ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
+  wp_apply hEnsure todoCtxVal mvcc.neverCd none false opts.Logger' _ _ $$ [Hfl Hflc $HlgN]
     as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Htrc, #Hct2, -, %vs2, #Hctx2t, -⟩
   · isplitr
     · iapply mvcc.txnCtx_todo

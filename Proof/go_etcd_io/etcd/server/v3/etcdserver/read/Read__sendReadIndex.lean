@@ -75,7 +75,7 @@ theorem read.Read.sendReadIndex.wp_proof
   · cases err with
     | ok ei =>
       wp_auto
-      wp_apply HLg $$ [HLR] as %lg ⟨%Hlg, HLR⟩
+      wp_apply HLg $$ [HLR] as %lg ⟨#Hlg, HLR⟩
       · iexact HLR
       wp_apply hZE as %f -
       wp_apply wp_slice_literal
@@ -84,7 +84,7 @@ theorem read.Read.sendReadIndex.wp_proof
       iintro %fs ⟨-, -⟩
       (try wp_auto)
       wp_apply hW lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · iframe #
       iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at HcFs
       icases HcFs with ⟨#HInc, -⟩
       (try wp_auto)

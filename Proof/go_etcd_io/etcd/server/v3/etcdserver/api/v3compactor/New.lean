@@ -54,7 +54,7 @@ theorem v3compactor.New.wp_proof
     (hRevision_Resume : v3compactor.Revision.Resume.spec (GF := GF) (hG := hG)) :
     v3compactor.New.spec (GF := GF) (hG := hG) := by
   intro lg mode ret E Hper
-  wp_start as -
+  wp_start as #Hlg0
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Pclk : isPkgInit (PROP := IProp GF) pkg_id.github_com.jonboulle.clockwork $$ []
@@ -63,22 +63,22 @@ theorem v3compactor.New.wp_proof
   · iPkgInit
   wp_auto
   -- `if lg == nil { lg = zap.NewNop() }`
-  wp_join iprop(∃ l : Loc, "lg" ∷ lg_ptr ↦ l ∗ ⌜l ≠ null⌝) at next with [lg] as ⟨%l, lg, %Hl⟩
+  wp_join iprop(∃ l : Loc, "lg" ∷ lg_ptr ↦ l ∗ zapLoggerOk l) at next with [lg] as ⟨%l, lg, #Hl⟩
   · wp_if_destruct
     · wp_apply hNewNop as %l #Hlz
-      ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
       (try wp_auto)
       wp_join_done
-      iexists l; iframe; ipureintro; exact Hl
+      iexists l; iframe; iexact Hlz
     · wp_join_done
-      iexists lg; iframe; ipureintro; exact Hif
+      iexists lg; iframe
+      iapply zapLoggerOrNil_ok _ Hif; iexact Hlg0
   (try wp_auto)
   wp_if_destruct
   · -- `periodic`
     wp_apply hNewRealClock as %clk #Hclk
     (try wp_auto)
     wp_apply (hnewPeriodic l clk ret E (Hper rfl)) $$ [] as %pc ⟨#Hpc, %γf, Htok⟩
-    · iframe #; ipureintro; exact Hl
+    · iframe #
     (try wp_auto)
     iapply HΦ
     ileft
@@ -115,7 +115,7 @@ theorem v3compactor.New.wp_proof
       wp_apply hNewRealClock as %clk #Hclk
       (try wp_auto)
       wp_apply (hnewRevision l clk ret E) $$ [] as %rc #Hrc
-      · iframe #; ipureintro; exact Hl
+      · iframe #
       (try wp_auto)
       iapply HΦ
       ileft

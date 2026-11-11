@@ -39,7 +39,7 @@ theorem v3rpc.serverWatchStream.close.wp_proof
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
-  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, -, #Hwstream,
+  icases Hsws' with ⟨%Hnn, -, -, -, -, -, -, -, -, -, #Fws, -, -, -, -, #Fcc, -, -, -, -, -, #Hwstream,
     #Hinv, -⟩
   ihave %Hsh := hShapes.2.2.2 r.ws r.W.γm r.ι $$ Hwstream
   obtain ⟨ty, v, hws, -, -, -, -, -, hClose, -⟩ := Hsh

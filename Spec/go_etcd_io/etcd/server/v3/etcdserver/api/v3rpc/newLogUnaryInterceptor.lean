@@ -30,13 +30,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`newLogUnaryInterceptor(s)`** returns a transparent interceptor (`srvInterceptorOk`, for any
 requests), whose run holds a reader slot of `s.lgMu` (`s.Logger()`, after the handler): it calls
-the handler and, the logger being non-nil, logs the call in a deferred `logUnaryRequestStats`
+the handler and, the logger a zap logger (premise fixes 6), logs the call in a deferred `logUnaryRequestStats`
 with `s.Cfg.WarningUnaryRequestDuration`. -/
 abbrev v3rpc.newLogUnaryInterceptor.spec : Prop :=
   ∀ (s lg : Loc) (wd : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗
       srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ wd }}
     (App (Val (@! v3rpc.newLogUnaryInterceptor)) (Val #s))
   {{ (ic : GoFunc), RET #ic; □ ∀ Q : GoInterface → IProp GF,

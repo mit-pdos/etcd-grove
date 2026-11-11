@@ -73,7 +73,7 @@ abbrev apply.Apply.specRec : Prop :=
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log) (rs : apply.RestM)
     (T U : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
       apply.bkToks v3 E Pre Q Post ∗ Pre ∗
       apply.applyKV E ua x ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
@@ -145,7 +145,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.specRec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs T U
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Htoks, HPre, Hkv, #Hcp, %Hprem, #Hcpr,
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Htoks, HPre, Hkv, #Hcp, %Hprem, #Hcpr,
     #Hgp, HLt, HEv, #HGf, Hrv, Htt, #HF, HFS, HSp, HRO⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk, Hca, Hrr⟩ := Hprem
   ihave #Hpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
@@ -177,8 +177,6 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
         apply.applyAuthRes E.authMode x.chain rq v3 out)))
       $$ [HRD HK Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv] as %ar %id' ⟨HRD, %Hid', Hout⟩
   · iframe # HRD HK Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv
-    isplitr
-    · ipureintro; exact Hlg
     isplitr
     · ipureintro; exact ⟨Hdec, Hid⟩
     iexists ⟨go.GoType.PointerType uberApplier.ty, #p⟩

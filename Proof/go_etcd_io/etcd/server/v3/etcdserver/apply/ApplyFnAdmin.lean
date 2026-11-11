@@ -64,7 +64,7 @@ abbrev apply.Apply.adminSpec : Prop :=
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (W : IProp GF)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (Own : auth.AuthNames → List auth.AuthState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.uberAuthSteps ua E W Own ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      apply.uberAuthSteps ua E W Own ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
       (∃ p : Loc, ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
         apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.cmpOwn E x.crev) ∗
       apply.applyTok E ∗
@@ -160,7 +160,7 @@ theorem apply.Apply.wp_admin
     (hUA : apply.uberApplier.Apply.adminSpec (GF := GF) (hG := hG)) :
     apply.Apply.adminSpec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot W γa hs Own
-  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hkv, Htt, %Hprem, Ho, Hrc, HW, Hx⟩
+  wp_start as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, Htt, %Hprem, Ho, Hrc, HW, Hx⟩
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hmode, Hrb⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -178,7 +178,7 @@ theorem apply.Apply.wp_admin
   iintro %fsl -
   wp_auto
   wp_apply hDbg
-  · ipureintro; exact Hlg
+  · iexact Hlg
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hpn, #HID, ⟨%lh, #FH, #Hh⟩, -, -, -, ⟨%lt, #FT, #Ht⟩, -⟩

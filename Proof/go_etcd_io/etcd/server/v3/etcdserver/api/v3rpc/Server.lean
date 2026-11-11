@@ -146,9 +146,10 @@ theorem v3rpc.Server.wp_proof
   intro s C d gsl gvs Hbuq
   wp_start as ⟨#Hc, Hlr, Hbr, Hgo, #Hd, %Hdb, #Hgvs, %Hgn⟩
   iunfold v3rpc.grpcCfgOk at Hc
-  icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, %Hlg0n, #Hlg, %Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
+  icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, #Hlg0n, #Hlg, #Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
     #Htos, #Hmcs, #Hnrl⟩
+  ihave #Hlg0o := zapLoggerOk_orNil _ $$ Hlg0n
   -- the six `ServiceDesc`s: `v3rpc`'s package fact (item 8)
   ihave #Hdescs : (v3rpc.svcDescsOk : IProp GF) $$ []
   · ihave #Pv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
@@ -181,10 +182,10 @@ theorem v3rpc.Server.wp_proof
   · iframe #; iframe
   (try wp_auto)
   wp_apply (hMetrics C.mt C.lg0) as %pm #Hpm
-  · iframe #; ipureintro; exact Hlg0n
+  · iframe #
   (try wp_auto)
   wp_apply (hLogIc s C.lg C.wd) as %il #Hil
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   (try wp_auto)
   wp_apply (hPromU pm) as %im #Him
   · iframe #
@@ -339,7 +340,7 @@ theorem v3rpc.Server.wp_proof
   ihave #HdM := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdM
   wp_apply (hNewKV s C.A C.n C.lg C.qb Hbuq Hmx) $$ []
     as %kv ⟨%q, %p, %cid, %mid', %Hkv, #Hq, #Hp⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   subst Hkv
   (try wp_auto)
   wp_apply (hRegKV gs _ _ _ [] [] [] _ _ kmds ksds) $$ [Hgs] as Hgs
@@ -362,7 +363,7 @@ theorem v3rpc.Server.wp_proof
     exact v3rpc.ServerMethodSets.watch_impl
   (try wp_auto)
   wp_apply (hNewL s C.A C.lg0 C.lg C.qb Hbuq) $$ [] as %lv ⟨%ql, %lp, %lcid, %lmid, %Hlv, #Hql, #Hlps⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   subst Hlv
   (try wp_auto)
   wp_apply (hRegL gs _ _ _ _ _ _ _ _ lmds lsds) $$ [Hgs] as Hgs
@@ -395,7 +396,7 @@ theorem v3rpc.Server.wp_proof
   wp_apply hHealth as %hs ⟨%Hhs, #Hhsrv⟩
   (try wp_auto)
   wp_apply (hNotif hs s C.lg C.fg) $$ [Hlr] as %hn Hlr
-  · iframe; iframe #; ipureintro; exact ⟨Hhs, Hlgn⟩
+  · iframe; iframe #; ipureintro; exact Hhs
   (try wp_auto)
   wp_apply (hRegH gs hs) $$ [Hgs] as ⟨%rs, %srs, Hgs, %Hrs⟩
   · iframe; iframe #; ipureintro; decide

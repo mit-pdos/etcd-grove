@@ -52,7 +52,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   intro sws r Up Dn st ci cd wcr ks es k e dk de n
   wp_start as ⟨Hs, HRD, #HaLb, #Hpub, Hk, #Hks, He, #Hes, %Hkl⟩
   iunfold v3rpc.swsIs at Hs
-  icases Hs with ⟨%Hnn, -, -, -, -, -, -, #Hag, #Hst, -, -, -, -, -, -, #Hok, #Hstr, -⟩
+  icases Hs with ⟨%Hnn, -, -, -, -, -, -, -, #Hag, #Hst, -, -, -, -, -, -, #Hok, #Hstr, -⟩
   iunfold v3rpc.watchSrvOk at Hok
   icases Hok with ⟨-, ⟨%sta, %cca, %P, %f, %BT, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
   iunfold v3rpc.srvStreamIs at Hstr

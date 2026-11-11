@@ -145,7 +145,7 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
   iintro ⟨#Ppb, #Pv, #Hrd, #Hws, #HW, #Hims, #His, Hss, Hwslots, #Heof⟩
   ihave #Htag : auth.modeTag V.R.tag E.authMode $$ []
   · iunfold v3rpc.isWatchServer at Hws
-    icases Hws with ⟨-, -, -, -, -, -, -, -, #Hok⟩
+    icases Hws with ⟨-, -, -, -, -, -, -, -, -, #Hok⟩
     iunfold v3rpc.watchSrvOk at Hok
     icases Hok with ⟨-, -, -, #Ht, -⟩
     rw [← hE]; iexact Ht

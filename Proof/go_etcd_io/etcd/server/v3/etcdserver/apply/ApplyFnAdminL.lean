@@ -102,7 +102,7 @@ abbrev apply.Apply.adminSpecL : Prop :=
     (L : List auth.AuthState → IProp GF),
   (∀ h, Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.uberAdmC ua E W Own L ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      apply.uberAdmC ua E W Own L ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
       (∃ p : Loc, ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
         apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.cmpOwn E x.crev) ∗
       apply.applyTok E ∗
@@ -161,7 +161,7 @@ theorem apply.uberAdmC_of (hUA : apply.uberApplier.Apply.adminSpecL (GF := GF) (
 theorem apply.Apply.wp_adminL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.adminSpecL (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot W γa hs Own L hsplit
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hkv, Htt, %Hprem, %Hch, Ho, Hrc, HW, Hx⟩
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, Htt, %Hprem, %Hch, Ho, Hrc, HW, Hx⟩
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hmode, Hrb⟩ := Hprem
   iunfold apply.uberAdmC at Hfor
   icases Hfor with ⟨%p, %Hua, #Htr⟩
@@ -182,8 +182,6 @@ theorem apply.Apply.wp_adminL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
         apply.adminOut Own γa E.authMode hs rq v3 ar out ∗ apply.adminRejErr ar out)))
       $$ [HRD HK Hown Hkv Htt Ho Hrc HW Hx] as %ar %id' ⟨HRD, %Hid', Hout⟩
   · iframe # HRD HK Hown Hkv Htt Ho Hrc HW Hx
-    isplitr
-    · ipureintro; exact Hlg
     isplitr
     · ipureintro; exact ⟨Hdec, Hid⟩
     iexists ⟨go.GoType.PointerType uberApplier.ty, #p⟩

@@ -28,12 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`newApplierV3(opts)`**: the base chain (`authApplierV3` over `quotaApplierV3` over
 `applierV3backend`) over the options `opts`, whose contracts hold in `E` (2026-11-01, J8a: no reader
-resource `E.RD`, which the auth layer's `Apply` borrows from its caller; until then its mutex took one). -/
+resource `E.RD`, which the auth layer's `Apply` borrows from its caller; until then its mutex took one).
+The options' logger a zap logger (the quota's `NewBackendQuota` logs through it; premise fixes 6). -/
 abbrev apply.newApplierV3.spec : Prop :=
   ∀ (opts : ApplierOptions),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ zapLoggerOk opts.Logger' }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
   {{ (a : GoInterface), RET #a;
       -- (the auth plan's E2m) its shape: auth over quota over the backend with `opts`

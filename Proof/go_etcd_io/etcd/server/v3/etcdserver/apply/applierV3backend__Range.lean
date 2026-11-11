@@ -45,7 +45,7 @@ theorem apply.applierV3backend.Range.wp_proof
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, -⟩
+  icases Hok with ⟨#Hlg, #Hkv, -, #Haus, -⟩
   iunfold apply.envAus at Haus
   icases Haus with ⟨-, #HauR, -⟩
   iunfold apply.isApplyKV at Hkv
@@ -68,7 +68,9 @@ theorem apply.applierV3backend.Range.wp_proof
     · simp only [traceutil.ownTraceOpt]; itrivial
     isplitr
     · simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
-    ipureintro; exact ⟨Hlg, hsort⟩
+    isplitr
+    · ihave #Hlg' := zapLoggerOk_orNil _ $$ Hlg; iexact Hlg'
+    ipureintro; exact hsort
   subst Hσ
   have h2 := txn.reach_len (srvApi.stAt log c) Hreach.1
   simp only [srvApi.stAt] at h2

@@ -52,7 +52,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlgn, -, -, -, #Hle, -⟩
+  icases Hok with ⟨-, -, -, -, #Hle, -⟩
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨-, %li, %Hli, #HGrant, -⟩
   ihave #Hr' := Hr

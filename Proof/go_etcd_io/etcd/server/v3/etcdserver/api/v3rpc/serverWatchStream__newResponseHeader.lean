@@ -34,7 +34,7 @@ theorem v3rpc.serverWatchStream.newResponseHeader.wp_proof :
   wp_start as Hs
   iapply wp_fupd
   iunfold v3rpc.swsIs at Hs
-  icases Hs with ⟨%Hnn, -, #Hcid, #Hmid, -, #Hsg, -, -, -, -, -, -, -, -, -, #Hok, -⟩
+  icases Hs with ⟨%Hnn, -, -, #Hcid, #Hmid, -, #Hsg, -, -, -, -, -, -, -, -, -, #Hok, -⟩
   iunfold v3rpc.watchSrvOk at Hok
   icases Hok with ⟨#Hrs, -⟩
   iunfold v3rpc.raftStatusOk at Hrs

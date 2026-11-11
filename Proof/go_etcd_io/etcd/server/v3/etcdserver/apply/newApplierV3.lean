@@ -34,10 +34,10 @@ theorem apply.newApplierV3.wp_proof
     (hA : apply.newAuthApplierV3.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3.spec (GF := GF) (hG := hG) := by
   intro opts Hbuq
-  wp_start as -
+  wp_start as #Hlg
   wp_auto
   wp_apply (hB opts) $$ [] as %b ⟨⟨%pb, %Hpb, #Hpbo⟩, #Hb⟩
-  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ []
+  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ [$Hlg]
     as %q ⟨⟨%pq, %Hpq, #Hpqf⟩, #Hq⟩
   wp_apply (hA opts.AuthStore' q opts.Lessor') $$ [] as %p ⟨#Hpaf, #Hpas, #Hple, #HpA, #Hp⟩
   iapply HΦ

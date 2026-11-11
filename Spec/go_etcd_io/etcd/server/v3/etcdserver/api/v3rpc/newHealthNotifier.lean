@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 set the health server's status to serving; the logger's reader slot comes back. -/
 abbrev v3rpc.newHealthNotifier.spec : Prop :=
   ∀ (hs s lg : Loc) (fg : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ ⌜hs ≠ null⌝ ∗ grpcHealthSrv hs ∗ srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ ⌜hs ≠ null⌝ ∗ grpcHealthSrv hs ∗ srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
       srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg }}
     (App (App (Val (@! v3rpc.newHealthNotifier)) (Val #hs)) (Val #s))
   {{ (n : GoInterface), RET #n; srvLgReader s }}

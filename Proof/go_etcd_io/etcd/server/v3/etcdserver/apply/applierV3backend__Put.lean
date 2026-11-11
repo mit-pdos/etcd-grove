@@ -71,7 +71,7 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, #Hle, -⟩
+  icases Hok with ⟨#Hlg, #Hkv, -, #Haus, #Hle, -⟩
   iunfold apply.envAus at Haus
   icases Haus with ⟨#HauB, -, #HauE, -, #Hfacts, #Hfloor⟩
   iunfold apply.isApplyKV at Hkv
@@ -136,9 +136,10 @@ theorem apply.applierV3backend.Put.wp_proof
   iStructNamed Hopts
   wp_auto
   wp_apply hTODO
+  ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV' E.γ r o 1 B (E.Pk B)
       Pre Q Post E.f L (mvcc.leaseItemsOf (mvcc.stateAfter log)) none false _)
-      $$ [$Hkv $Hmr $Hle $Hu $Hr $Hkb $Hcs $Hau]
+      $$ [$Hkv $Hmr $Hle $Hu $Hr $HlgN $Hkb $Hcs $Hau]
     as %resp %trace %err ⟨Hmr, Hkb, %Htrn, ⟨%te', Htrc⟩, -, Hout⟩
   · isplitr
     · iapply mvcc.txnCtx_todo

@@ -207,7 +207,7 @@ structure WSrv (GF : BundledGFunctors) where
 
 /-- **The `*watchServer` `p`** (persistent): its fields, the server's contract. -/
 def isWatchServer (p : Loc) (R : WSrv GF) : IProp GF :=
-  iprop(⌜p ≠ null ∧ R.lg ≠ null⌝ ∗
+  iprop(⌜p ≠ null⌝ ∗ zapLoggerOk R.lg ∗
     structFieldRef watchServer go!"lg" p ↦□ R.lg ∗
     structFieldRef watchServer go!"clusterID" p ↦□ R.cid ∗
     structFieldRef watchServer go!"memberID" p ↦□ R.mid ∗
@@ -451,7 +451,7 @@ side (`srvWOk`), the control stream, `closec`, `mu`. -/
 def swsIs (sws : Loc) (r : WRun GF) (Up : Nat → WatchReqM → IProp GF)
     (Dn : Nat → WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(⌜sws ≠ null ∧ r.srv.lg ≠ null⌝ ∗
+  iprop(⌜sws ≠ null⌝ ∗ zapLoggerOk r.srv.lg ∗
     swsF sws go!"lg" ↦□ r.srv.lg ∗
     swsF sws go!"clusterID" ↦□ r.srv.cid ∗
     swsF sws go!"memberID" ↦□ r.srv.mid ∗

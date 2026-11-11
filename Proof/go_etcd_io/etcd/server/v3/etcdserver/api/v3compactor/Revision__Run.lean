@@ -46,7 +46,7 @@ local macro "rev_ok" : tactic => `(tactic| (
   try iintro %_ ⟨_, -⟩
   try wp_auto
   wp_apply hLogger_Info $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   wp_for_post
   iframe
@@ -65,7 +65,7 @@ local macro "rev_fail" : tactic => `(tactic| (
   try iintro %_ ⟨_, -⟩
   try wp_auto
   wp_apply hLogger_Warn $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   wp_for_post
   iframe
@@ -82,7 +82,7 @@ theorem v3compactor.Revision.Run.wp_proof
   intro rc E ret
   wp_start as ⟨#Hrc, Hpre⟩
   iunfold isRevision at Hrc
-  icases Hrc with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt,
+  icases Hrc with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, #Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt,
     #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hspc, #Hcancelf, #Hcs, #Hmu⟩
   iunfold runPre at Hpre
   icases Hpre with ⟨#HRev, #HCompact, HR, #HLb0⟩
@@ -191,7 +191,7 @@ theorem v3compactor.Revision.Run.wp_proof
       try iintro %_ ⟨_, -⟩
       try wp_auto
       wp_apply hLogger_Info $$ []
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       -- `rc.c.Compact(rc.ctx, &pb.CompactionRequest{Revision: rev})`, at C1's revision permit
       ihave #HCompact' := HCompact

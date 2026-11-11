@@ -249,7 +249,7 @@ the clock's contract, the mutex's writer guard. -/
 def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
   iprop(∃ (lg : Loc) (clk : GoInterface) (pd : time.Duration) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (γctx : context.ContextNames) (cancel : GoFunc),
-    structFieldRef v3compactor.Periodic go!"lg" pc ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    structFieldRef v3compactor.Periodic go!"lg" pc ↦□ lg ∗ zapLoggerOk lg ∗
     structFieldRef v3compactor.Periodic go!"clock" pc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Periodic go!"period" pc ↦□ pd ∗ ⌜sint.Z pd = period ∧ 10 ≤ period⌝ ∗
@@ -285,7 +285,7 @@ def revPausedInv (rc : Loc) : IProp GF :=
 def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
   iprop(∃ (lg : Loc) (clk : GoInterface) (rt : w64) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (γctx : context.ContextNames) (cancel : GoFunc),
-    structFieldRef v3compactor.Revision go!"lg" rc ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    structFieldRef v3compactor.Revision go!"lg" rc ↦□ lg ∗ zapLoggerOk lg ∗
     structFieldRef v3compactor.Revision go!"clock" rc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Revision go!"retention" rc ↦□ rt ∗ ⌜sint.Z rt = ret⌝ ∗

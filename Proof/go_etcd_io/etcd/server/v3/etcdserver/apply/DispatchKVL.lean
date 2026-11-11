@@ -271,7 +271,7 @@ local macro "ok_path" : tactic => `(tactic| (
   wp_auto
   wp_apply hWER $$ [Hs1]
   · isplitr
-    · ipureintro; exact HlgN
+    · iexact HlgN
     iexists s1, _
     iframe Hs1
     ipureintro; exact ⟨rfl, Hipn⟩))
@@ -283,7 +283,7 @@ local macro "wfr_step" : tactic => `(tactic| (
   wp_auto
   wp_apply hWFR $$ [Hs2]
   · isplitr
-    · ipureintro; exact HlgN
+    · iexact HlgN
     iexists s2, _
     iframe Hs2
     ipureintro; exact ⟨rfl, Hipn⟩))
@@ -304,7 +304,7 @@ local macro "err_path" : tactic => `(tactic| (
   wp_auto
   wp_apply hWER $$ [Hs1]
   · isplitr
-    · ipureintro; exact HlgN
+    · iexact HlgN
     iexists s1, _
     iframe Hs1
     ipureintro; exact ⟨rfl, Hipn⟩
@@ -430,7 +430,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
   ihave #Hopts' := Hopts
   iunfold apply.backendOptsOk at Hopts'
-  icases Hopts' with ⟨%HlgN, -⟩
+  icases Hopts' with ⟨#HlgN, -⟩
   ihave #Hw' := Hw
   iunfold apply.irrWrapperIs at Hw'
   icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩

@@ -2049,12 +2049,12 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 
 /-! ## The layers' structs -/
 
-/-- **The backend's options** `opts` in the environment `E` (strict M1, 2026-11-05): a logger, the
+/-- **The backend's options** `opts` in the environment `E` (strict M1, 2026-11-05): a zap logger, the
 KV (a store handle of mvcc's API, `E.kv`, with the server's builders `envAus E`), and the
 components with their contracts at the batch lock `E.Pk B` of the current backend (tied by
 `E.BkTie`) and the hook `E.f`. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
-  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.γ ∗ ⌜opts.KV' = E.kv⌝ ∗ envAus E ∗
+  iprop(zapLoggerOk opts.Logger' ∗ isApplyKV opts.KV' E.γ ∗ ⌜opts.KV' = E.kv⌝ ∗ envAus E ∗
     isApplyLessor opts.Lessor' E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
     isAuthStore opts.AuthStore' E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
     isAlarmStore opts.AlarmStore' E.Pk E.f E.BkTie E.RW ∗

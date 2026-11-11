@@ -45,7 +45,7 @@ abbrev apply.Apply.spec : Prop :=
     (RD : IProp GF) (K G : Option GName → w64 → IProp GF) (ot : Option GName)
     (P : IProp GF) (Q : Bool → Loc → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗
       (∃ ui : GoInterfaceOk, ⌜ua = GoInterface.ok ui⌝ ∗
         □ ∀ (r : Loc) (sk : Bool),

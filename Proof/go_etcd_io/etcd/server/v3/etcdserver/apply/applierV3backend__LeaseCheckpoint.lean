@@ -37,7 +37,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, -, -, -, #Hle, -⟩
+  icases Hok with ⟨#Hlg, -, -, -, #Hle, -⟩
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨-, %li, %Hli, -, -, #HCk, -⟩
   iunfold apply.leaseCheckpointIs at Hr

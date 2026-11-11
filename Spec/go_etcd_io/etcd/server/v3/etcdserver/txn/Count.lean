@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
 
 /-- **`Count(ctx, lg, kv, key, rangeEnd, revision)`**: as today, at the state of the caller's
-update.
+update. The logger nil or a zap logger (`Range`'s; premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
@@ -41,7 +41,7 @@ abbrev txn.Count.spec : Prop :=
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       key ↦*□ k ∗ rangeEnd ↦*□ e ∗
       mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-      ⌜lg ≠ null⌝ ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ txn.readAU γ Q }}
+      zapLoggerOrNil lg ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ txn.readAU γ Q }}
     (App (App (App (App (App (App (Val (@! txn.Count)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);

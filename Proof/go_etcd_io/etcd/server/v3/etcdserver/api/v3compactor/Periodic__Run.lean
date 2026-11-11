@@ -52,7 +52,7 @@ local macro "per_ok" : tactic => `(tactic| (
   try iintro %_ ⟨_, -⟩
   try wp_auto
   wp_apply hLogger_Info $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   wp_apply +noauto HNow as %t4 -
   (try wp_auto)
@@ -77,7 +77,7 @@ local macro "per_fail" : tactic => `(tactic| (
   try iintro %_ ⟨_, -⟩
   try wp_auto
   wp_apply hLogger_Warn $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   wp_for_post
   iframe
@@ -101,7 +101,7 @@ theorem v3compactor.Periodic.Run.wp_proof
   intro pc E period γf
   wp_start as ⟨#Hpc, Htok, Hpre⟩
   iunfold isPeriodic at Hpc
-  icases Hpc with ⟨%lg, %clk, %pd, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hpdf,
+  icases Hpc with ⟨%lg, %clk, %pd, %ctx, %cd, %γctx, %cancel, #Hlg, #Hlgnn, #Hclkf, #Hclk, #Hpdf,
     %Hpd, #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hspc, #Hcancelf, #Hcs, #Hguard⟩
   obtain ⟨Hpd, H10⟩ := Hpd
   -- (one `word` in this declaration: several shared a cached proof the kernel rejected,
@@ -359,7 +359,7 @@ theorem v3compactor.Periodic.Run.wp_proof
         try iintro %_ ⟨_, -⟩
         try wp_auto
         wp_apply hLogger_Info $$ []
-        · ipureintro; exact Hlgnn
+        · iexact Hlgnn
         (try wp_auto)
         wp_apply +noauto HNow as %t2 -
         (try wp_auto)

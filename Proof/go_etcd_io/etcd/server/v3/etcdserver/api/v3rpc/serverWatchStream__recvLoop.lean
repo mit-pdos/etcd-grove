@@ -200,7 +200,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   have := v3rpc.srvWOk_persistent hP r.W r.srv.wsl v3rpc.wsN
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
-  icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
+  icases Hsws' with ⟨%Hnn, #Hzl, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
     #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hinv, #HW, #Hspsc, #Hcc,
     #Hmu⟩
   iunfold v3rpc.wsInv at Hinv
@@ -680,7 +680,6 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           wp_auto
           wp_apply hZErr $$ []
           · iframe #
-            ipureintro; exact Hnn.2
           err_msg eDen HeDenm
           wp_auto
           wp_join_done

@@ -32,7 +32,9 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 /-- **`Range(ctx, lg, kv, r, withTotalCount)`**: a read transaction at the state `σ` of the
 caller's update (`Q σ`), and `rangeResult` there (the sort's premise from `Txn.Range`'s
 `stateOk`). Callers: the apply thread (its `Q` pins `σ.log`
-to its log), the server's read path (its `Q` gives the floor and its model of `σ.log`).
+to its log), the server's read path (its `Q` gives the floor and its model of `σ.log`). The logger
+nil or a zap logger (`EnsureTrace`'s; the sort's `lg.Panic` is unreachable at a valid sort target;
+premise fixes 6, for `lg ≠ null`).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
@@ -43,7 +45,7 @@ abbrev txn.Range.spec : Prop :=
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-      (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜txn.validSortTarget o⌝ ∗
+      (if nd then mvcc.neverDone cd else iprop(True)) ∗ zapLoggerOrNil lg ∗ ⌜txn.validSortTarget o⌝ ∗
       txn.readAU γ Q }}
     (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv))
       (Val #r)) (Val #withTotal))

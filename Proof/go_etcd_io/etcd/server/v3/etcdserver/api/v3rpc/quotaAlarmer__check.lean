@@ -35,13 +35,13 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   iunfold v3rpc.quotaAlarmerAt at Hqa
-  icases Hqa with ⟨%name, %lg, %qb, #Hs, #Hname, #Hlg, %Hlgn, #Hqb, %Hbuq⟩
+  icases Hqa with ⟨%name, %lg, %qb, #Hs, #Hname, #Hlg, #Hlgn, #Hqb, %Hbuq⟩
   iunfold v3rpc.quotaRd at Hrd
   icases Hrd with ⟨Hlr, Hbr⟩
   wp_auto
   -- (D22g (A)) the quota of the backend current at the check
   wp_apply wp_newBackendQuota s lg qb name Hbuq $$ [Hlr Hbr] as %qv ⟨#Hiq, Hlr, Hbr⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   iunfold apply.isQuota at Hiq
   icases Hiq with ⟨%qi, %Hqi, #HAv, -⟩
   subst Hqi

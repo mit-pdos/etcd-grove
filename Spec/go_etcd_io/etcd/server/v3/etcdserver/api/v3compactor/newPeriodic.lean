@@ -23,11 +23,11 @@ variable [sem : go.Semantics]
 
 /-- `newPeriodic(lg, clock, h, rg, c)`: a periodic compactor of period `h` (at least `10ns`) over the
 real clock, the revision getter and the compactable, whose `Compact` takes C1's periodic permit;
-with the run token. -/
+with the run token. A zap logger (`Run` logs through it; premise fixes 6). -/
 abbrev v3compactor.newPeriodic.spec : Prop :=
   ∀ (lg : Loc) (clk : GoInterface) (h : time.Duration) (E : CompactEnv GF),
   10 ≤ sint.Z h →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ ⌜lg ≠ null⌝ ∗ clockwork.clockOk clockwork.realClock clk }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ zapLoggerOk lg ∗ clockwork.clockOk clockwork.realClock clk }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newPeriodic)) (Val #lg)) (Val #clk)) (Val #h)) (Val #E.rg)) (Val #E.c))
   {{ (pc : Loc), RET #pc; isPeriodic pc E (sint.Z h) ∗ ∃ γf : GName, periodicRunTok pc γf }}
 
