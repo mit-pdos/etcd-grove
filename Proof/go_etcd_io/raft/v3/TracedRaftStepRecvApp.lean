@@ -197,8 +197,8 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
   have hWsrv : W.server = σ.server := by rw [hW]; rfl
   iintro Hfx
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   have hud : MsgsUniq (σ.discard ma) := msgsUniq_mono (fun x hx => by
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
@@ -223,9 +223,11 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     rcases hsub' x hx with hx | rfl
     · iapply Hmf; ipureintro; exact hx
     · iapply msgFacts_plain γ C _ hrq hre
+  isplitl
+  · iapply quorumLogF_congr γ C σ W hWsrv (fun k => (hF k).1) (fun k => (hF k).2.2.2.2)
+      (fun k => by rw [(hF k).2.1]; exact Int.le_refl _) $$ Hq
   ipureintro
-  refine ⟨hsi' hsi, quorumLogF_congr σ W hWsrv (fun k => (hF k).1) (fun k => (hF k).2.2.2.2)
-    (fun k => (hF k).2.2.2.1) hq, by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
+  refine ⟨hsi' hsi, by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he
   have hk' : k ∈ σ.server := by rw [hWsrv] at hk; exact hk
   rcases hsub' m hm with hm | rfl

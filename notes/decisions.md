@@ -35459,3 +35459,88 @@ update and a pure fact): `ghost_stepProp` is not written yet (below).
    lemmas in `Protocol/Refinement.lean` (importable: an interface addition), a `CloseMid` disjunct at the
    won state (`becomeLeaderLog` with the self-acknowledgement), and `Step`'s `MsgVoteResp` arm split like
    `MsgProp`'s. `tallyGranted_quorum`'s `hc` not looked at.
+
+## Amendment A5 (Q21): `QuorumLogF` in an inductive form, kept from the commit's term with raft's commit justification (2026-11-11 · trace-check, Q21 (a) taken by the coordinator pending the user's veto, its form decided by the agent · branch `trace-check-a5`; amends the frozen Draft, tag `trace-check-frozen-a3`, in `simFx`'s `QuorumLogF` clause only; DRAFT until the re-freeze)
+
+**The problem** ("Q8 stage 1 (slice 22b)", Question 2): `QuorumLogF` was `QuorumLogInv` over `σ` (the
+servers lacking a server's committed prefix are no quorum). It is true of reachable states, but not
+inductive under an accepted append request's truncation: a receiver at the request's term `T` may hold,
+by coincidence, a prefix a quorum committed at a term above `T`, and truncate it; the clause does not
+say who committed it, so the lacking set may grow into a quorum as far as the proof can tell.
+
+**Checked first, against the transcription** (`Tla/Spec.lean`; restart, snapshot, duplicate, drop and
+reconfiguration out of scope, `TraceSimSpecInv.lean`'s header, so terms never decrease and logs below a
+commit index are never cut):
+- *Who reads it*: only `simFx_violated` (`QuorumLogInv` is a checked invariant of the trace's states),
+  and the clause's own preservation. So (b), a weaker clause, is not possible: the readers need
+  `QuorumLogInv` itself.
+- *(a), the strengthening*: `QuorumLogF γ C σ` (now an `IProp`, the clause moved out of `simFx`'s pure
+  conjunct) says that every server's committed prefix `P` has a term `t` with `KeptFrom σ P t` — the
+  servers holding `P` at a term `≥ t` are a quorum of the servers (`lackingAt`, the others, is none) —
+  and `CommitCert γ C P t`: `P` a prefix of a log `es`, with its records, up to an index `c` that raft's
+  `commitJ` covers at `t` (the bootstrap log, or a commit quorum `cq` of a term `≤ t`). `QuorumLogInv`
+  follows (`quorumLogF_quorumLogS`, with `CfgFixed`).
+- *Why the term*: a server at a term `≥ t` holding `P` never loses it. It truncates only on accepting
+  an append request of its own term `T ≥ t`; the request's entries are a slice of `T`'s leader's full log
+  (raft's `isMessage`: `leadPrefix`, `lpfull`), which raft's leader completeness (`lc_core`, from the
+  certificate's commit quorum at a term `≤ t ≤ T`; the same term: two full logs agree) makes agree with
+  `es` up to `c` (`commitJ_leadFull`), so the request agrees with `P` (`commitCert_app`) and its first
+  conflict is past `P`; the specification drops one last entry per round while a conflict remains, so
+  never one of `P`'s (`keptFrom_conflict`). A server below `t` is not counted.
+- *Preserved by*: terms that rise (`UpdateTerm`, `Timeout`), role changes, messages sent or consumed,
+  `Ready`, the phantom replies: nothing it reads moves (`quorumLogF_congr`); a follower's raised commit
+  index: its new committed prefix is a prefix of the sender's (`ReqCommitC`, `LogInv` after the step,
+  `committedL_raise_prefix`), whose witness and certificate it takes (`quorumLogF_mono`); an append
+  (`quorumLogF_noConflict`); a truncation (`quorumLogF_conflict`, with the receiver's raft facts of the
+  request and the vote table); the bootstrap state (`t = 0`, `commitJ`'s bootstrap arm, `simFx_simInit`);
+  `BecomeLeader` (no log or term moves, `quorumLogF_congr`); `Replicate`/`ClientRequest` (a leader's log
+  grows; `quorumLogF_grow`, with `CommitOk`). None of these lines' paths is proved yet but those listed
+  in "Users re-proved". Restarts (`InitState` past the
+  bootstrap) are out of scope (P1); a restart could lower a term (`durable`) and would need a durable
+  copy of the clause.
+- *A leader's `Commit` line* (not yet proved; it was blocked on the acknowledgement-history copy of the
+  notes' table already): its new prefix takes `t` the leader's term and its certificate raft's new
+  commit quorum (`commitJ`'s right arm); its quorum of holders at terms `≥ t` comes from that copy: the
+  match-index quorum's members acknowledged at `t` (so are at terms `≥ t`), and a copy of raft's `hist`
+  over each member's *current* σ log (`histsOk`, `GhostState.lean`; each position agrees with a leader's
+  `okL` log of a term in `[t, …)`, which `commitJ_leadFull`-style agreement ties to the new prefix) gives
+  that they hold it now — a copy at acknowledgement time would not (a member may truncate before the
+  `Commit` line, while no certificate exists yet). That copy is not in
+  `simFx`: **a further amendment of `simFx`**, as planned (the copy may then make the quorum clause
+  derivable directly, `QuorumLogInv` from `histsOk` without induction; A5 stays sound either way).
+
+**The first form, three clauses, found insufficient by review** (a5-r1's F2): `KeptFrom` also asked that
+every append request in flight of a term `≥ t` agree with `P` and every leader of a term `≥ t` hold it.
+These made the truncation a pure step and were kept at send lines (a leader's slice) and `BecomeLeader`
+(`lc_core` on the campaign log), but a `Commit` line cannot establish the message clause for its new
+prefix: a request of a later term from a leader that has since stepped down is covered by no fact of
+`simFx` (`msgFacts` has `isLeader` and records only; `AppSlices` lapses at the step-down). So the
+agreement is derived where it is used, at the receiver, which holds raft's full facts of the request;
+the two clauses, `commitCert_camp`, `AppFromLeader` and `keptFrom_send` are gone.
+
+**The slice-22b scenario** (five servers A–E; three acks commit): A leads term 2 and appends `x` at
+index `k`, replicated to B only; C wins term 3 with C, D, E (lacking `x`), appends `y` at `k` and sends
+B `MsgApp(3, [y])`, delayed; B, at term 3 after C's vote request, still holds `x`. A wins term 4 with
+A, D, E, appends `z`, replicates `[x, z]` to D and E and commits; D's commit index is `k` (a heartbeat's
+`min`), so `P_D = [.., x]`, certified by A's commit quorum at 4. Old clause: the servers lacking `P_D`
+are `{C}`; when B accepts `MsgApp(3)` and truncates `x` they are `{B, C}`, two of five — still no quorum,
+but nothing in the clause told the proof that B was not one of the three it needed (with two lacking
+before, B's truncation would make a quorum). New clause: `P_D`'s witness is `t = 4`; the counted
+holders are A, D, E (term 4); B, at term 3, is in `lackingAt` already, so its truncation changes
+nothing counted. Had B been at term 4 or above, the request it accepted would be of that term, its
+leader's log holding `P_D` (`lc_core` from A's quorum), so its conflict would be past `P_D`.
+
+**Users re-proved**: `simFx_violated`; `fxPresReady`; `simFx_congr`, `simFx_discard`, `simFx_send`
+(unchanged statement); `simFx_simInit`; the path files' `simFx_*` (`_ut`, `_rtf`, `_resp`, `_voteReq`,
+`_leadReply`, `_hb`, `_respCand`, `fxPres_timeout`), mechanically (`quorumLogF_congr` given terms that do
+not fall; the heartbeat's raised commit by `quorumLogF_mono`). `quorumLog_commitTo` and
+`quorumLog_appendEntriesAlreadyDone` (over the old clause) deleted, no user left. No axiom, no
+`sorry`, no client-visible statement changed (`simFx`'s body only; `TracedCap` is not on
+`etc/api/raft.txt`).
+
+**Sufficiency** (`TracedQuorumLog.lean`, lemma level, no path caller yet): an accepted `MsgApp`'s
+receive line at a server of its term, round by round: `quorumLogF_conflict` (the truncation, given
+raft's `leadPrefix`/`lpfull` of the request and the vote table, used once per server,
+`votesTbl_forall_list`), `quorumLogF_noConflict`, `quorumLogF_alreadyDone`; a leader's log growth,
+`quorumLogF_grow`. If the acknowledgement-history copy later gives `QuorumLogInv` directly, `KeptFrom` and
+these lemmas may lose their users. Reviews `a5-r1.md`, `a5-r2.md` (round 2's first-tier finding, a build break, repaired; the full build confirms).

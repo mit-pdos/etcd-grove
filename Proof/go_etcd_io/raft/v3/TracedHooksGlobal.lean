@@ -504,6 +504,76 @@ theorem unbooted_nid (L : List TraceEv) (e : TraceEv) (id : w64) (hnid : e.nid =
   cases hi
   exact unbooted_of_not_booted L _ hb
 
+/-! ### `QuorumLogF`'s preservation (amendment A5, Q21) -/
+
+theorem prefix_getElem?_of_lt {α : Type _} {P P' : List α} (hp : P' <+: P) {n : Nat} (hn : n < P'.length) :
+    P'[n]? = P[n]? := by
+  obtain ⟨r, rfl⟩ := hp
+  rw [List.getElem?_append_left hn]
+
+/-- `KeptFrom` of a prefix. -/
+theorem keptFrom_prefix {σ : Etcdraft.State} {P P' : List Etcdraft.Entry} {t : Int} (hp : P' <+: P)
+    (h : KeptFrom σ P t) : KeptFrom σ P' t := by
+  refine TraceSpecInv.isQuorum_filter_mono (fun j _ hj => ?_) h
+  simp only [Bool.or_eq_true, Bool.not_eq_true'] at hj ⊢
+  rcases hj with hj | hj
+  · left
+    cases hb : Etcdraft.isPrefix P (σ.s j).log
+    · rfl
+    · rw [isPrefix_of_prefix _ _ (hp.trans (TraceSpecInv.prefix_of_isPrefix hb))] at hj; cases hj
+  · exact Or.inr hj
+
+/-- **`KeptFrom` carried to another state** (the general form): the same servers, and a server
+keeping `P` at a term at least `t` still does. -/
+theorem keptFrom_of {σ σ' : Etcdraft.State} {P : List Etcdraft.Entry} {t : Int} (hsrv : σ'.server = σ.server)
+    (hkeep : ∀ j ∈ σ.server, P <+: (σ.s j).log → t ≤ (σ.s j).currentTerm →
+      P <+: (σ'.s j).log ∧ t ≤ (σ'.s j).currentTerm)
+    (h : KeptFrom σ P t) : KeptFrom σ' P t := by
+  unfold KeptFrom lackingAt at h ⊢
+  rw [hsrv]
+  refine TraceSpecInv.isQuorum_filter_mono (fun j hj hp => ?_) h
+  simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hp ⊢
+  apply Classical.byContradiction; intro hn
+  simp only [not_or, Int.not_lt] at hn
+  obtain ⟨hn1, hn2⟩ := hn
+  have hpj : P <+: (σ.s j).log := TraceSpecInv.prefix_of_isPrefix (by
+    cases hb : Etcdraft.isPrefix P (σ.s j).log
+    · exact absurd hb hn1
+    · rfl)
+  obtain ⟨hk1, hk2⟩ := hkeep j hj hpj hn2
+  rcases hp with hp | hp
+  · rw [isPrefix_of_prefix _ _ hk1] at hp; cases hp
+  · omega
+
+/-- **`KeptFrom` carried to a state with the same servers and logs**, terms that do not decrease. -/
+theorem keptFrom_congr {σ σ' : Etcdraft.State} {P : List Etcdraft.Entry} {t : Int} (hsrv : σ'.server = σ.server)
+    (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm)
+    (h : KeptFrom σ P t) : KeptFrom σ' P t :=
+  keptFrom_of hsrv (fun j _ h1 h2 => ⟨by rw [hL]; exact h1, Int.le_trans h2 (hT j)⟩) h
+
+/-- **A commit index raised to `c`, within a server `src`'s** (the receiver of `src`'s append request
+or heartbeat, `ReqCommitC`), its committed prefix comparable with `src`'s (`LogInv`): its new committed
+prefix is its old one's prefix, or `src`'s. -/
+theorem committedL_raise_prefix {σ W : Etcdraft.State} {i src : Etcdraft.ID} {c : Int}
+    (hlog : (W.s i).log = (σ.s i).log) (hci : (W.s i).commitIndex = max (σ.s i).commitIndex c)
+    (hsrc : ∀ k, k ≠ i → committedL W k = committedL σ k)
+    (hc : c ≤ (σ.s src).commitIndex) (hsl : (σ.s src).commitIndex ≤ (σ.s src).log.length)
+    (hcmp : (or (Etcdraft.isPrefix (committedL W i) (committedL W src))
+      (Etcdraft.isPrefix (committedL W src) (committedL W i))) = true) :
+    committedL W i <+: committedL σ i ∨ committedL W i <+: committedL σ src := by
+  by_cases hle : c ≤ (σ.s i).commitIndex
+  · left; unfold committedL; rw [hlog, hci, Int.max_eq_left hle]; exact List.prefix_refl _
+  · right
+    have hne : src ≠ i := by rintro rfl; omega
+    rw [hsrc src hne] at hcmp
+    have hlA : (committedL W i).length ≤ (committedL σ src).length := by
+      unfold committedL; rw [hlog, hci, List.length_take, List.length_take]; omega
+    rcases Bool.or_eq_true_iff.mp hcmp with hp | hp
+    · exact TraceSpecInv.prefix_of_isPrefix hp
+    · have hp := TraceSpecInv.prefix_of_isPrefix hp
+      rw [hp.eq_of_length (Nat.le_antisymm hp.length_le hlA)]
+      exact List.prefix_refl _
+
 end pure
 
 end EtcdGrove
@@ -635,14 +705,48 @@ theorem trCap_fire : trCap_fire.statement (GF := GF) := by
 
 /-! ## `FxPresReady` holds of every `Ready` line (review round 3's C1) -/
 
-theorem quorumLogF_congr (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
-    (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex)
-    (hK : ∀ k, (σ'.s k).config = (σ.s k).config) (h : QuorumLogF σ) : QuorumLogF σ' := by
-  intro i hi
+/-- A commit certificate of `P` is one of its prefixes'. -/
+theorem commitCert_prefix (γ : RaftNames) (C : List w64) (P P' : List Etcdraft.Entry) (t : Int)
+    (hp : P' <+: P) : CommitCert (GF := GF) γ C P t ⊢ CommitCert γ C P' t := by
+  iintro H
+  iunfold CommitCert at H
+  iunfold CommitCert
+  icases H with ⟨%es, %c, %Hp, #Hr, #Hj⟩
+  iexists es, c
+  iframe Hr Hj
+  ipureintro
+  exact ⟨hp.trans Hp.1, Hp.2⟩
+
+/-- **`QuorumLogF` carried to another state** (the general form): the same servers, every committed
+prefix after a prefix of one before (`hP`: its own, or, at a raised commit index, its source's), and
+every `KeptFrom` carried over (`hK`). -/
+theorem quorumLogF_mono (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
+    (hP : ∀ i ∈ σ.server, ∃ k ∈ σ.server, committedL σ' i <+: committedL σ k)
+    (hK : ∀ P t, KeptFrom σ P t → KeptFrom σ' P t) :
+    QuorumLogF (GF := GF) γ C σ ⊢ QuorumLogF γ C σ' := by
+  iintro #H
+  iunfold QuorumLogF at H
+  iunfold QuorumLogF
+  imodintro
+  iintro %i %hi
   rw [hsrv] at hi
-  have := h i hi
-  simp only [Etcdraft.State.getConfig, committedL, hL, hC, hK, hsrv] at this ⊢
-  exact this
+  obtain ⟨k, hk, hp⟩ := hP i hi
+  ihave Hk := H $$ %k %hk
+  icases Hk with ⟨%t, %hKt, #Hc⟩
+  iexists t
+  isplitr
+  · ipureintro; exact hK _ _ (keptFrom_prefix hp hKt)
+  iapply commitCert_prefix γ C _ _ t hp $$ Hc
+
+/-- **`QuorumLogF` carried to a state with the same servers, logs and commit indices**, terms that do
+not decrease (`keptFrom_congr`). -/
+theorem quorumLogF_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (hsrv : σ'.server = σ.server)
+    (hL : ∀ k, (σ'.s k).log = (σ.s k).log) (hC : ∀ k, (σ'.s k).commitIndex = (σ.s k).commitIndex)
+    (hT : ∀ k, (σ.s k).currentTerm ≤ (σ'.s k).currentTerm) :
+    QuorumLogF (GF := GF) γ C σ ⊢ QuorumLogF γ C σ' :=
+  quorumLogF_mono γ C σ σ' hsrv
+    (fun i hi => ⟨i, hi, by unfold committedL; rw [hL, hC]; exact List.prefix_refl _⟩)
+    (fun _ _ h => keptFrom_congr hsrv hL hT h)
 
 theorem ready_msgs_sub (σ : Etcdraft.State) (i : Etcdraft.ID) :
     ∀ x ∈ (σ.ready i).messages.domain ++ (σ.ready i).pendingMessages.domain,
@@ -669,8 +773,8 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   iintro !> %C %cs %P %e %σ %hpre Htbl #Hfx
   iframe Htbl
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hall, #Hm, %hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := hp
+  icases Hfx with ⟨#Hall, #Hm, #Hq, %hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := hp
   iunfold simFx
   isplitl []
   · iunfold allFacts at Hall
@@ -686,12 +790,13 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   isplitl []
   · iintro !> %m %hm
     iapply Hm $$ %m %(ready_msgs_sub σ (idAbs id) m hm)
+  isplitl []
+  · iapply quorumLogF_congr γ C σ (σ.ready (idAbs id)) rfl
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> exact Int.le_refl _) $$ Hq
   ipureintro
-  refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_, ?_⟩
-  · exact quorumLogF_congr σ _ rfl
-      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
-      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl)
-      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl) hq
+  refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_⟩
   · intro ln m1 m2 h1 h2 hp1 hp2
     exact hu ln m1 m2 (ready_msgs_sub σ _ m1 h1) (ready_msgs_sub σ _ m2 h2) hp1 hp2
   · intro x hx
@@ -904,8 +1009,8 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
     icases Hfx $$ %C %cs %P %e %(σ.s (idAbs id)) %a' %P' %σ %hpre Htbl Hfσ with ⟨Htbl, #Hfσ', #Hmid⟩
     ihave #Hfσc := Hfσ
     iunfold simFx at Hfσc
-    icases Hfσc with ⟨-, -, %hfx⟩
-    have huq : MsgsUniq σ := hfx.2.2.1
+    icases Hfσc with ⟨-, -, -, %hfx⟩
+    have huq : MsgsUniq σ := hfx.2.1
     icases keep_pure (simFx_violated γ C σ hsrv) $$ [$Htbl $Hfσ] with ⟨⟨Htbl, -⟩, %hv⟩
     have hsrv' : (withNode σ (idAbs id) a' (fun b => b.without m) (fun b => List.foldl Etcdraft.Bag.with b (P' ++ (ph (σ.s (idAbs id)))))).server =
         confAbs C := hsrv

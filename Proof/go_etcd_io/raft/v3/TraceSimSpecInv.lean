@@ -41,10 +41,11 @@ The hypotheses the simulation supplies:
 `AppendEntriesAlreadyDone` needs none: the acknowledged commit index is within the leader's durable
 log by `CommitInDurable` (review round 3's B6(b)).
 
-`QuorumLogS` restates `TracedHooksDraft`'s `QuorumLogF` (equal by `rfl`: `QuorumLogF_eq` there);
-`quorumLog_appendEntriesAlreadyDone` re-establishes it when a follower's commit index rises (review
-round 3's B6(a)), from `ReqCommitC`, `CfgFixed` (the sender's quorum condition is over the
-receiver's configuration) and the post-state's committed prefixes (`allFacts_logInv`).
+`QuorumLogS` is `QuorumLogInv`'s fact over `σ` alone, which `TracedCap`'s `QuorumLogF` gives
+(`quorumLogF_quorumLogS`; until amendment A5 it was that clause, not inductive under a truncation at a
+lower term than the commit's: `notes/decisions.md`, "Amendment A5 (Q21)");
+its preservation at a follower's raised commit index (review round 3's B6(a), from `ReqCommitC` and the
+post-state's committed prefixes) is now `QuorumLogF`'s (`committedL_raise_prefix`, `TracedHooksGlobal.lean`).
 -/
 module
 
@@ -1905,10 +1906,10 @@ theorem specInv_handleAppendEntriesRequest {σ : State} {i j : ID} {m : Etcdraft
         exact specInv_upd_frame (hout _ t ht) rfl rfl rfl rfl rfl rfl rfl rfl
       · exact hout _
 
-/-! ## `QuorumLogInv`'s fact at a follower's raised commit index (review round 3's B6(a)) -/
+/-! ## `QuorumLogInv`'s fact -/
 
-/-- **`QuorumLogInv`'s fact**: `TracedHooksDraft`'s `QuorumLogF`, restated here (which that file
-imports; `QuorumLogF_eq` there says they are equal). -/
+/-- **`QuorumLogInv`'s fact** over `σ` (`InvFacts.quorumLog`), which `TracedCap`'s `QuorumLogF` (amendment
+A5) gives (`quorumLogF_quorumLogS`). -/
 def QuorumLogS (σ : State) : Prop :=
   ∀ i ∈ σ.server, isQuorum ((σ.getConfig i).filter (fun j =>
     or (!σ.server.contains j) (!isPrefix (TraceSim.committedL σ i) (σ.s j).log))) (σ.getConfig i) = false
@@ -1935,99 +1936,6 @@ theorem prefix_of_isPrefix {s t : List Entry} (h : isPrefix s t = true) : s <+: 
   unfold isPrefix at h
   simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at h
   rw [← h.2]; exact List.take_prefix _ _
-
-/-- **`CommitTo(i, c)` keeps `QuorumLogInv`'s fact**, for `c` within the commit index of a server `src`
-(`hc`, `hsl`: `src`'s committed prefix is `c` long at least) whose committed prefix is comparable with
-`i`'s new one (`hcmp`): `i`'s new committed prefix is then a prefix of `src`'s, and every log
-extending `src`'s extends it. `src`'s quorum condition is over `i`'s configuration: every server's is
-the fixed one (`CfgFixed`). -/
-theorem quorumLog_commitTo {σ : State} {i src : ID} {c : Int} (hq : QuorumLogS σ) (hsrc : src ∈ σ.server)
-    (hc : c ≤ (σ.s src).commitIndex) (hsl : (σ.s src).commitIndex ≤ (σ.s src).log.length)
-    (hcf : CfgFixed σ) (hcmp : CommittedCmp (σ.commitTo i c) i src) :
-    QuorumLogS (σ.commitTo i c) := by
-  have hs : ∀ k, (σ.commitTo i c).s k =
-      if k = i then { σ.s i with commitIndex := max (σ.s i).commitIndex c } else σ.s k := fun _ => rfl
-  have hlog : ∀ k, ((σ.commitTo i c).s k).log = (σ.s k).log := by
-    intro k; rw [hs]; split <;> subst_vars <;> rfl
-  have hcfg' : ∀ k, (σ.commitTo i c).getConfig k = σ.getConfig k := by
-    intro k; unfold State.getConfig; rw [hs]; split <;> subst_vars <;> rfl
-  have hsrv : (σ.commitTo i c).server = σ.server := rfl
-  -- the committed prefixes: `k`'s kept unless `k` is `i` and its commit index rises
-  have hcl : ∀ k, (k ≠ i ∨ c ≤ (σ.s i).commitIndex) →
-      TraceSim.committedL (σ.commitTo i c) k = TraceSim.committedL σ k := by
-    intro k hk
-    unfold TraceSim.committedL; rw [hs]
-    split
-    · subst_vars
-      rcases hk with hk | hk
-      · exact absurd rfl hk
-      · simp only; rw [Int.max_eq_left hk]
-    · rfl
-  intro k hk
-  rw [hsrv] at hk
-  simp only [hsrv, hcfg', hlog]
-  by_cases hki : k ≠ i ∨ c ≤ (σ.s i).commitIndex
-  · rw [hcl k hki]; exact hq k hk
-  · simp only [not_or, Classical.not_not] at hki
-    obtain ⟨rfl, hlt⟩ := hki
-    have hsi : src ≠ k := by rintro rfl; omega
-    have hB : TraceSim.committedL (σ.commitTo k c) src = TraceSim.committedL σ src := hcl src (Or.inl hsi)
-    -- `k`'s new committed prefix is a prefix of `src`'s
-    have hAB : TraceSim.committedL (σ.commitTo k c) k <+: TraceSim.committedL σ src := by
-      have hlA : (TraceSim.committedL (σ.commitTo k c) k).length ≤ (TraceSim.committedL σ src).length := by
-        unfold TraceSim.committedL; rw [hs]; simp only [↓reduceIte, List.length_take]; omega
-      unfold CommittedCmp at hcmp; rw [hB] at hcmp
-      rcases Bool.or_eq_true_iff.mp hcmp with hp | hp
-      · exact prefix_of_isPrefix hp
-      · have hp := prefix_of_isPrefix hp
-        rw [hp.eq_of_length (Nat.le_antisymm hp.length_le hlA)]
-        exact List.prefix_refl _
-    have hcfg : σ.getConfig k = σ.getConfig src := by
-      simp only [State.getConfig, hcf k hk, hcf src hsrc]
-    rw [hcfg]
-    refine isQuorum_filter_mono (fun j _ hp => ?_) (hq src hsrc)
-    simp only [Bool.or_eq_true, Bool.not_eq_true'] at hp ⊢
-    rcases hp with hp | hp
-    · exact Or.inl hp
-    · right
-      cases hBj : isPrefix (TraceSim.committedL σ src) (σ.s j).log
-      · rfl
-      · rw [isPrefix_of_prefix _ _ (hAB.trans (prefix_of_isPrefix hBj))] at hp; cases hp
-
-/-- A reply reads no server. -/
-theorem quorumLog_reply (st : State) (r q : Etcdraft.Msg) : QuorumLogS (st.reply r q) = QuorumLogS st := rfl
-
-theorem committedCmp_reply (st : State) (r q : Etcdraft.Msg) (a b : ID) :
-    CommittedCmp (st.reply r q) a b = CommittedCmp st a b := rfl
-
-/-- **`AppendEntriesAlreadyDone(i, j, index, m)` keeps `QuorumLogInv`'s fact** (with a heartbeat's
-`CommitTo`, and an accepted or stale append's): `i`'s commit index rises to at most `m`'s, which is
-within its sender's (`ReqCommitC`). What the simulation supplies: `hco`, `CommitOk` of the state
-(`allFacts_commitOk`); `hcmp`, the committed prefixes of `i` and `m`'s sender in the new state
-comparable (`allFacts_logInv` of the new state; review round 4's D4: the receipt's facts are due at
-`Step`'s entry, before any handler, so the follower's raised commit index's `isCommitted`/`commitIn`
-come from raft's own message facts, which `raft.Step` receives with the message (`#Hmsg`, carried
-over with `commitIn_move`; review round 5's E2), not from raft's later update). -/
-theorem quorumLog_appendEntriesAlreadyDone {σ σ' : State} {i j : ID} {index : Int} {m : Etcdraft.Msg}
-    (h : SpecInv σ) (hq : QuorumLogS σ) (hm : m ∈ σ.messages.domain)
-    (hty : m.type = .appendEntriesRequest) (hco : TraceSim.CommitOk σ)
-    (hstep : σ.appendEntriesAlreadyDone i j index m = some σ') (hcmp : CommittedCmp σ' i m.source) :
-    QuorumLogS σ' := by
-  obtain ⟨hsrc, hcs⟩ := h.reqCommitC m (List.mem_append_left _ hm) hty
-  have hsl := (hco m.source hsrc).2
-  unfold State.appendEntriesAlreadyDone at hstep; dsimp only at hstep
-  split at hstep
-  · cases hstep
-  · cases hstep
-    rw [quorumLog_reply]; rw [committedCmp_reply] at hcmp
-    split
-    · rename_i h1; simp only [h1, ↓reduceIte] at hcmp
-      split
-      · rename_i h2; simp only [h2, ↓reduceIte] at hcmp
-        exact quorumLog_commitTo hq hsrc hcs hsl h.cfgFixed hcmp
-      · exact hq
-    · rename_i h1; simp only [h1, ↓reduceIte] at hcmp
-      exact quorumLog_commitTo hq hsrc (Int.le_trans (Int.min_le_left _ _) hcs) hsl h.cfgFixed hcmp
 
 /-! ## `DurInv` itself is not preserved -/
 

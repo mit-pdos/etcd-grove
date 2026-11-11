@@ -350,8 +350,8 @@ theorem simFx_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (h
   iintro Hfx
   iunfold simFx at Hfx
   iunfold simFx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   isplitl
   · iunfold allFacts at Hal
     iunfold allFacts
@@ -365,9 +365,11 @@ theorem simFx_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (h
     iapply Hmf
     ipureintro
     exact hsub x hx
+  isplitl
+  · iapply quorumLogF_congr γ C σ σ' hsrv hL hC (fun k => by rw [hT]; exact Int.le_refl _) $$ Hq
   ipureintro
   refine ⟨specInv_congr_srv hsi hsrv hm hp hT hS hL hD hV hC hM hG,
-    quorumLogF_congr σ σ' hsrv hL hC hG hq, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
+    msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
   intro m hm hty i hi hl ht hs k e he
   rw [hL]
   rw [hsrv] at hi; rw [hS] at hl; rw [hT] at ht
@@ -385,8 +387,8 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
   iintro Hfx
   iunfold simFx at Hfx
   iunfold simFx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hq, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   isplitl
   · iapply allFacts_congr_s γ C σ (σ.discard m) rfl
     iexact Hal
@@ -395,8 +397,10 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
     iintro %x %hx
     iapply Hmf
     ipureintro; exact hsub x hx
+  isplitl
+  · iapply quorumLogF_congr γ C σ (σ.discard m) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _) $$ Hq
   ipureintro
-  exact ⟨TraceSpecInv.specInv_discard m hsi, hq, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx),
+  exact ⟨TraceSpecInv.specInv_discard m hsi, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx),
     fun x hx => has x (hsub x hx)⟩
 
 /-- **Sending a message keeps the facts** when it is fine to send (`MsgOk`), has its facts (`msgFacts`),
@@ -410,8 +414,8 @@ theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Et
   iintro ⟨Hfx, #Hx⟩
   iunfold simFx at Hfx
   iunfold simFx
-  icases Hfx with ⟨#Hal, #Hmf, %Hp⟩
-  obtain ⟨hsi, hql, hu, hsh, has⟩ := Hp
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
   isplitl
   · iapply allFacts_congr_s γ C σ (σ.send x) rfl
     iexact Hal
@@ -421,9 +425,11 @@ theorem simFx_send (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (x : Et
     rcases TraceSpecInv.mem_msgs_send σ x y hy with hy | rfl
     · iapply Hmf; ipureintro; exact hy
     · iexact Hx
+  isplitl
+  · iapply quorumLogF_congr γ C σ (σ.send x) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _) $$ Hq
   ipureintro
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon σ x hu hsh hx0 hxk
-  exact ⟨TraceSpecInv.specInv_send hsi hok, hql, hu', hsh', appSlices_send σ x has hxs⟩
+  exact ⟨TraceSpecInv.specInv_send hsi hok, hu', hsh', appSlices_send σ x has hxs⟩
 
 /-- A message that is not an append request has the facts `⌜entries = []⌝`. -/
 theorem msgFacts_plain (γ : RaftNames) (C : List w64) (x : Etcdraft.Msg) (hq : x.type ≠ .appendEntriesRequest)
@@ -545,7 +551,7 @@ theorem fxPres_heartbeat (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     rw [← hp0]; unfold canonMsg; rw [hpt]; simp [hps]
   ihave #Hfx0 := Hfx
   iunfold simFx at Hfx0
-  icases Hfx0 with ⟨#Hal, -, %Hp0⟩
+  icases Hfx0 with ⟨#Hal, -, -, %Hp0⟩
   icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1
   -- the heartbeat's facts: the node leads its term
   rw [← hσa] at hl ht hcm
@@ -646,7 +652,7 @@ theorem fxPres_app (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   have hi : idAbs id ∈ σ.server := by rw [hsrv]; exact (mem_confAbs C id).2 hidC
   ihave #Hfx0 := Hfx
   iunfold simFx at Hfx0
-  icases Hfx0 with ⟨#Hal, -, %Hp0⟩
+  icases Hfx0 with ⟨#Hal, -, -, %Hp0⟩
   icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1
   ihave #Hpf := Hmf $$ %C %cs %P %hΦ
   have hslice : AppSliceOf σ p := by
@@ -654,7 +660,7 @@ theorem fxPres_app (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
     rw [hsrc] at hsj; subst hsj; exact hsl k e he
   ihave #H2 := simFx_send γ C σ p
     (msgOk_app σ p (idAbs id) Hp0.1 h1 hi hl hpt hsrc ht hcm hpi hlen hsl)
-    hp0 (pinned_of_slices σ p (idAbs id) hi hl ht.symm hsrc hps hsl Hp0.2.2.2.2) hslice $$ [$Hfx $Hpf]
+    hp0 (pinned_of_slices σ p (idAbs id) hi hl ht.symm hsrc hps hsl Hp0.2.2.2) hslice $$ [$Hfx $Hpf]
   have hs : ∀ j, toC (σ.send p).server
       ((withNode σ (idAbs id) a' _root_.id (fun b => [p].foldl Etcdraft.Bag.with b)).s j) =
       toC (σ.send p).server ((σ.send p).s j) := by

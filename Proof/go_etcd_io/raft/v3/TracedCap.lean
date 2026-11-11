@@ -760,15 +760,87 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The simulation's invariant's namespace, beside raft's commit invariant's (`raftLogN`, `raftRegN`). -/
 def simNS (γ : RaftNames) : Namespace := (raftN γ).@"tracesim"
 
-/-- `QuorumLogInv`'s fact (Draft: to come from the acknowledgement-history copy of the notes' table;
-until then a clause of its own). -/
-def QuorumLogF (σ : Etcdraft.State) : Prop :=
-  ∀ i ∈ σ.server, Etcdraft.isQuorum ((σ.getConfig i).filter (fun j =>
-    or (!σ.server.contains j) (!Etcdraft.isPrefix (committedL σ i) (σ.s j).log))) (σ.getConfig i) = false
+/-- (Amendment A5, Q21) **The servers not known to keep `P` from term `t` on**: of the state's
+servers, those whose log does not extend `P` or whose term is below `t`. -/
+def lackingAt (σ : Etcdraft.State) (P : List Etcdraft.Entry) (t : Int) : List Etcdraft.ID :=
+  σ.server.filter (fun j => or (!Etcdraft.isPrefix P (σ.s j).log) (decide ((σ.s j).currentTerm < t)))
 
-/-- `QuorumLogF` is `TraceSimSpecInv`'s `QuorumLogS` (its restatement there, where
-`quorumLog_appendEntriesAlreadyDone` re-establishes it at a follower's raised commit index). -/
-theorem QuorumLogF_eq : QuorumLogF = TraceSpecInv.QuorumLogS := rfl
+/-- (Amendment A5, Q21) **`P` is kept from term `t` on**: the servers that hold `P` at a term at least
+`t` are a quorum of the servers (those that lack it or are below `t` are none). With `t` a term `P` was
+committed at or after (`CommitCert`), such a server never loses `P`: it truncates only on accepting an
+append request of its own term, so of a term at least `t`, from that term's leader, whose log raft's
+leader completeness (`lc_core`) puts the commit quorum's log, so `P`, in; the request agrees with `P` and
+its first conflict is past `P` (the receiver's raft facts of the request, `commitCert_app` and
+`quorumLogF_conflict`, `TracedQuorumLog.lean`). It is the inductive form of `QuorumLogInv`'s fact
+(`quorumLogF_quorumLogS`): a server below `t` may hold `P` by coincidence and truncate it
+(`notes/decisions.md`, "Q8 stage 1 (slice 22b)"), but it is not counted. -/
+def KeptFrom (σ : Etcdraft.State) (P : List Etcdraft.Entry) (t : Int) : Prop :=
+  Etcdraft.isQuorum (lackingAt σ P t) σ.server = false
+
+/-- (Amendment A5, Q21) **`P` is committed at a term at most `t`**: `P` is a prefix of a log `es`
+(read by `logAbs`, with its records) up to an index `c` that raft's commit justification covers at a
+term at most `t` (`commitJ`: within the bootstrap log, or a commit quorum `cq` of a term `≤ t` whose log
+has `es`'s term at `c`). With it the log of any leader of a term `T ≥ t` agrees with `P` (`lc_core`), so
+does an append request of `T` (`commitCert_app`, `TracedQuorumLog.lean`). -/
+def CommitCert (γ : RaftNames) (C : List w64) (P : List Etcdraft.Entry) (t : Int) : IProp GF :=
+  iprop(∃ (es : List EntryM) (c : w64),
+    ⌜P <+: logAbs C C.length 1 (es.take (uint.nat c)) ∧ PlogWf base0 es ∧ uint.Z c ≤ es.length ∧
+      es.length < 2 ^ 63 ∧ 0 ≤ t ∧ t < 2 ^ 63⌝ ∗
+    logRecs γ base0 es ∗ commitJ γ es c (W64 t))
+
+instance commitCert_persistent (γ : RaftNames) (C : List w64) (P : List Etcdraft.Entry) (t : Int) :
+    Persistent (CommitCert (GF := GF) γ C P t) := by
+  unfold CommitCert; infer_instance
+
+instance commitCert_timeless (γ : RaftNames) (C : List w64) (P : List Etcdraft.Entry) (t : Int) :
+    Timeless (CommitCert (GF := GF) γ C P t) := by
+  unfold CommitCert; infer_instance
+
+/-- **`QuorumLogInv`'s fact** (amended, A5, Q21; until then the bare `QuorumLogInv` over `σ`, which a
+truncating receiver at a lower term than the commit's could not be shown to keep): every server's
+committed prefix is kept from some term `t` on (`KeptFrom`), `t` a term it was committed at or after
+(`CommitCert`). `QuorumLogInv` follows (`quorumLogF_quorumLogS`). (Draft: a leader's `Commit` line's new
+prefix takes `t` the leader's term and its certificate raft's commit quorum; its quorum of holders at
+terms `≥ t` needs the acknowledgement-history copy of the notes' table, raft's `hist` over each
+member's current log, not yet in `simFx`: a further amendment, `notes/decisions.md`, "Amendment A5
+(Q21)".) -/
+def QuorumLogF (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
+  iprop(□ ∀ i, ⌜i ∈ σ.server⌝ → ∃ t, ⌜KeptFrom σ (committedL σ i) t⌝ ∗ CommitCert γ C (committedL σ i) t)
+
+instance quorumLogF_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Persistent (QuorumLogF (GF := GF) γ C σ) := by
+  unfold QuorumLogF; infer_instance
+
+instance quorumLogF_timeless (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
+    Timeless (QuorumLogF (GF := GF) γ C σ) := by
+  unfold QuorumLogF; infer_instance
+
+/-- `KeptFrom` gives `QuorumLogInv`'s fact for `P`: the servers lacking `P` are among those not
+known to keep it, and every configuration is the server set (`CfgFixed`). -/
+theorem quorumLogS_of_keptFrom (σ : Etcdraft.State) (hcf : TraceSpecInv.CfgFixed σ)
+    (h : ∀ i ∈ σ.server, ∃ t, KeptFrom σ (committedL σ i) t) : TraceSpecInv.QuorumLogS σ := by
+  intro i hi
+  obtain ⟨t, hK⟩ := h i hi
+  have hcfg : σ.getConfig i = σ.server := by simp only [Etcdraft.State.getConfig, hcf i hi]
+  rw [hcfg]
+  refine TraceSpecInv.isQuorum_filter_mono (fun j hj hp => ?_) hK
+  have hc : σ.server.contains j = true := List.elem_iff.2 hj
+  simp only [hc, Bool.not_true, Bool.false_or] at hp
+  simp [hp]
+
+/-- **`QuorumLogInv`'s fact from the amended clause** (with `SpecInv`'s `CfgFixed`). -/
+theorem quorumLogF_quorumLogS (γ : RaftNames) (C : List w64) (σ : Etcdraft.State)
+    (hcf : TraceSpecInv.CfgFixed σ) :
+    QuorumLogF (GF := GF) γ C σ ⊢ ⌜TraceSpecInv.QuorumLogS σ⌝ := by
+  iintro #H
+  iunfold QuorumLogF at H
+  by_cases hc : ∀ i ∈ σ.server, ∃ t, KeptFrom σ (committedL σ i) t
+  · ipureintro; exact quorumLogS_of_keptFrom σ hcf hc
+  simp only [Classical.not_forall, not_exists] at hc
+  obtain ⟨i, hi, hn⟩ := hc
+  ihave Hi := H $$ %i %hi
+  icases Hi with ⟨%t, %hK, -⟩
+  exact absurd hK (hn t)
 
 /-- `SpecInv`'s `CfgFixed` holds at the bootstrap state: every server's configuration is the voters'
 `confAbs C`, the server set (review round 4's D1). -/
@@ -859,11 +931,12 @@ instance msgFacts_timeless (γ : RaftNames) (C : List w64) (m : Etcdraft.Msg) :
 `Replicate` lines announced before raft appends them: `srvFacts`, review finding A9), the
 specification invariant `SpecInv` (`TraceSimSpecInv.lean`: with it
 `ElectionSafetyInv`, `CommittedIsDurableInv`, `CommitWithinLeader`; it replaces `DurInv`, false as
-stated), `QuorumLogInv`'s fact, the bags' uniqueness and (amendment A2, Q15, Q16) every message in flight
+stated), `QuorumLogInv`'s fact (amendment A5, Q21: in its inductive form, with raft's commit
+justification, `QuorumLogF`), the bags' uniqueness and (amendment A2, Q15, Q16) every message in flight
 canonical (`MsgsShape`) and a leader's append requests of its term slices of its log (`AppSlices`). -/
 def simFx (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) : IProp GF :=
   iprop(allFacts γ C σ ∗ (□ ∀ m, ⌜m ∈ σ.messages.domain ++ σ.pendingMessages.domain⌝ → msgFacts γ C m) ∗
-    ⌜TraceSpecInv.SpecInv σ ∧ QuorumLogF σ ∧ MsgsUniq σ ∧ MsgsShape σ ∧ AppSlices σ⌝)
+    QuorumLogF γ C σ ∗ ⌜TraceSpecInv.SpecInv σ ∧ MsgsUniq σ ∧ MsgsShape σ ∧ AppSlices σ⌝)
 
 instance simFx_persistent (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) :
     Persistent (simFx (GF := GF) γ C σ) := by
@@ -878,8 +951,9 @@ theorem simFx_violated (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (hs
     votesTbl (GF := GF) γ ∗ simFx γ C σ ⊢ ⌜σ.violated = .ok none⌝ := by
   iintro ⟨Htbl, Hfx⟩
   iunfold simFx at Hfx
-  icases Hfx with ⟨#Hal, -, %Hp⟩
-  obtain ⟨hsi, hq, -⟩ := Hp
+  icases Hfx with ⟨#Hal, -, #Hq, %Hp⟩
+  obtain ⟨hsi, -⟩ := Hp
+  icases quorumLogF_quorumLogS γ C σ hsi.cfgFixed $$ Hq with %hq
   have hcw := hsi.commitWithinLeader
   icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1
   icases allFacts_logInv γ C σ hsrv $$ Hal with %h2
