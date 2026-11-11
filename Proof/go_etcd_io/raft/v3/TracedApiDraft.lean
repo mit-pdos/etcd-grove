@@ -15,6 +15,13 @@ module
 
 public import Spec.go_etcd_io.raft.v3.StartNode
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
+public import Proof.go_etcd_io.raft.v3.TracedCap
+import Proof.go_etcd_io.raft.v3.TracedNodeBoot
+import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeRule
+import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.InvApiDec
+import Proof.go_etcd_io.raft.v3.InvApiBoot
 
 @[expose] public section
 
@@ -32,23 +39,40 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The namespace of the simulation's invariant (inside the cluster's). -/
-def simN (N : Namespace) : Namespace := N .@ "tracesim"
-
 /-- A traced node's configuration (Q6 revision 2, P7): pre-vote and check-quorum off (lifting it
 needs 0011's trace logging in the verified raft); `AsyncStorageWrites` is off for every node
 already. -/
 def TracedConfigOk (cv : Config) : Prop := cv.PreVote' = false ∧ cv.CheckQuorum' = false
 
+/-- **Raft's ghost names of a cluster** (amendment A4): sealed, as `Cluster.trace` (`Cluster`'s
+names are the package's; the package's proofs `import all` this file). -/
+@[no_expose] def Cluster.raftNames (γ : Cluster) : RaftNames := ApiImpl.Cluster.raft γ
+
+/-- **The simulation's invariant of a traced cluster** (amendment A4, Q20 (a)): the one the
+capability holds (`trCapB`), in raft's namespace (`simNS`: `N .@ "raft" .@ "tracesim"` for the
+cluster's `N`, `isCluster`) with the specification state's facts (`simFx`), shared by the cluster's
+nodes. -/
+def Cluster.traceSimInv (γ : Cluster) (vs : List w64) (tn : TraceNames) : IProp GF :=
+  inv (simNS γ.raftNames) (simInv vs tn (simFx γ.raftNames vs))
+
+instance Cluster.traceSimInv_persistent (γ : Cluster) (vs : List w64) (tn : TraceNames) :
+    Persistent (Cluster.traceSimInv (GF := GF) γ vs tn) := by
+  unfold Cluster.traceSimInv; infer_instance
+
 /-- What a node brings of the trace to `StartNode`: in an untraced cluster, no logger; in a traced
-one, the configuration's premise, the logger's contract for the trace, the simulation's
-invariant, and the node's share at the bootstrap state (`simInit`, nothing pending). -/
-def startTrace (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config) : IProp GF :=
+one, the configuration's premise, the logger's contract for the trace, the simulation's invariant
+(`Cluster.traceSimInv`, of the voters the trace's names record), the node's share at the bootstrap
+state (`simInit`, nothing pending) and its `booted` flag unset with no event yet (`simBoot`):
+(amendment A4, Q20 (a)) what `trCapB_intro` makes the capability of, beside what `newRaft` has
+(`startTrace_trCapB`), the logger not nil (the capability's: a traced node logs every line). -/
+def startTrace (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
   match Cluster.trace γ with
   | none => iprop(⌜cv.TraceLogger' = interface.nil⌝)
-  | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ ⌜TracedConfigOk cv⌝ ∗
-      isTraceLogger tn.tr cv.TraceLogger' ∗ inv (simN N) (simInv vs tn (fun _ => iprop(True))) ∗
-      simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [])
+  | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗
+      ⌜TracedConfigOk cv ∧ tn.voters = vs ∧ cv.TraceLogger' ≠ interface.nil⌝ ∗
+      isTraceLogger tn.tr cv.TraceLogger' ∗ Cluster.traceSimInv γ vs tn ∗
+      simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [] ∗
+      simBoot tn cv.ID' false none)
 
 /-- **`StartNode`, gated** (Q6 item 1): `StartNode.spec` with its premise `TraceLoggerOk
 cv.TraceLogger'` replaced by `startTrace` in the precondition (an untraced cluster's is the same
@@ -75,7 +99,7 @@ abbrev StartNode.gatedSpec : Prop :=
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q }> ∗
       restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F ∗
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTrace γ N vs cv }}
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTrace γ vs cv }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
@@ -86,12 +110,89 @@ abbrev StartNode.gatedSpec : Prop :=
 
 /-- For an untraced cluster, the gated statement is `StartNode.spec`'s: the gate's only content is
 the nil logger, `StartNode.spec`'s premise. -/
-theorem startTrace_untraced (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config)
+theorem startTrace_untraced (γ : Cluster) (vs : List w64) (cv : Config)
     (h : Cluster.trace γ = none) :
-    startTrace (GF := GF) γ N vs cv ⊣⊢ iprop(⌜TraceLoggerOk cv.TraceLogger'⌝) := by
+    startTrace (GF := GF) γ vs cv ⊣⊢ iprop(⌜TraceLoggerOk cv.TraceLogger'⌝) := by
   unfold startTrace TraceLoggerOk
   rw [h]
   exact .rfl
+
+/-! ## Sufficiency (amendment A4): the capability from `startTrace`, the invariant at the start -/
+
+/-- **`StartNode`'s capability** (amendment A4's check of Q20 (a)): `startTrace` of a traced cluster,
+the node's `nodeBoot` (raft's commit log invariant, the node a voter) and `newRaft`'s logger field make
+the capability `newRaft` starts with (`trCapB_intro`), unbooted, at the bootstrap share in any phase
+`Φ` it satisfies, any `Λ` of no event, for raft's configuration `c` once it holds the voters. -/
+theorem startTrace_trCapB (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (cv : Config) (γd : GName) (r : Loc) (c : CfgM)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop)
+    (htr : Cluster.trace γ = some γd) (hc : (elements c.incoming).Perm vs ∧ c.outgoing = ∅)
+    (hΦ : Φ vs (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) []) (hΛ : Λ none) :
+    (startTrace γ vs cv ∗ nodeBoot γ N vs ctxs cv.ID' ∗ r.[raft, go!"traceLogger"] ↦□ cv.TraceLogger' :
+        IProp GF) ⊢
+      trCapB (some γd) γ.raftNames r cv.ID' c false Φ Λ := by
+  unfold startTrace nodeBoot ApiImpl.nodeBootU ApiImpl.isClusterU ApiImpl.clusterInv raftCommitInv
+    Cluster.traceSimInv Cluster.raftNames
+  rw [htr]
+  iintro ⟨⟨%tn, #Hdir, %Hp, #Hlog, #Hinv, Hnode, Hboot⟩, Hb, #Htl⟩
+  obtain ⟨-, hv, hnil⟩ := Hp
+  icases Hb with ⟨⟨-, ⟨-, ⟨#Hli, -⟩, -⟩, -⟩, %Hpb, -⟩
+  iapply trCapB_intro γd tn vs cv.TraceLogger' _ [] none (ApiImpl.Cluster.raft γ) r cv.ID' c Φ Λ
+    ⟨hv, hc.1, hc.2, Hpb.1⟩ hnil hΦ hΛ
+  iframe Hdir Htl Hlog Hinv Hli Hnode Hboot
+
+omit [StorageModel GF] sem package_sem in
+/-- The empty bag represents the empty list. -/
+theorem bagRep_nil : BagRep [] [] :=
+  ⟨List.nodup_nil, fun _ h => by simp at h, fun _ => rfl⟩
+
+/-- **The simulation's invariant at the start** (amendment A4's check of Q20 (a): `Main`'s allocation,
+S7): once the cluster is allocated (any voter's `nodeBoot`: raft's commit invariant, the bootstrap
+log), the trace's fragment, the shares' map at the bootstrap servers with nothing pending, no message
+handed out and every voter's flag unset go into `Cluster.traceSimInv`, the facts `simFx` at `simInit`
+from raft's commit invariant (`simFx_simInit`). -/
+theorem Cluster.traceSimInv_alloc (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (id : w64) (tn : TraceNames) (A : GMap w64 (ServerC × List Etcdraft.Msg))
+    (Bt : GMap w64 (Bool × Option TraceEv)) (E : CoPset) (hE : ↑N ⊆ E)
+    (hA : ∀ i ∈ vs, A !! i = some (toC (confAbs vs) ((simInit vs).s (idAbs i)), []))
+    (hA' : ∀ i, i ∉ vs → A !! i = none) (hBt : ∀ i ∈ vs, Bt !! i = some (false, none)) :
+    (nodeBoot γ N vs ctxs id ∗ traceFrag tn.tr [] ∗ ghostMapAuth tn.st 1 A ∗
+        ghostMapAuth tn.bag 1 (∅ : GMap Nat Etcdraft.Msg) ∗ ghostMapAuth tn.bt 1 Bt : IProp GF) ={E}=∗
+      Cluster.traceSimInv γ vs tn := by
+  unfold nodeBoot ApiImpl.nodeBootU ApiImpl.isClusterU ApiImpl.clusterInv raftCommitInv
+    Cluster.traceSimInv Cluster.raftNames
+  iintro ⟨Hb, Hfr, HA, HB, HBt⟩
+  icases Hb with ⟨⟨-, ⟨%HNs, ⟨#Hli, #Hri⟩, -⟩, -⟩, %Hpb, -⟩
+  have hN : ↑(raftN (ApiImpl.Cluster.raft γ)) ⊆ E := by
+    intro p hp
+    unfold raftN at hp; rw [HNs] at hp
+    exact hE p (nclose_subseteq N "raft" p hp)
+  imod simFx_simInit E (ApiImpl.Cluster.raft γ) vs hN Hpb.2.2.2.2.2.2 $$ [Hli Hri] with #Hfx
+  · unfold raftCommitInv; iframe Hli Hri
+  iapply inv_alloc
+  inext
+  iunfold simInv
+  iexists [], simInit vs, A, (∅ : GMap Nat Etcdraft.Msg), [], [], Bt
+  iframe Hfr HA HB HBt Hfx
+  ipureintro
+  refine ⟨.inl ⟨rfl, rfl⟩, rfl, fun i hi => ⟨[], hA i hi⟩, hA', ?_, ?_, rfl, rfl, ?_, ?_,
+    simEvents_nil _⟩
+  · have hfl : vs.flatMap (fun i => ((A !! i).map Prod.snd).getD []) = [] := by
+      rw [List.flatMap_eq_nil_iff]
+      intro i hi
+      rw [hA i hi]
+      rfl
+    rw [hfl]
+    exact bagRep_nil
+  · simp only [GMap.toList_empty, List.map_nil, List.append_nil]
+    exact bagRep_nil
+  · intro i hi x hx
+    rw [hA i hi] at hx
+    simp at hx
+  · intro i hi
+    refine ⟨false, none, hBt i hi, ?_, ?_, fun h => by simp at h⟩
+    · simp [booted]
+    · simp [LastOf]
 
 end spec
 
