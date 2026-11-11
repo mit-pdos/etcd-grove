@@ -256,6 +256,34 @@ def outboxRelP (o : List Msg) (ms1 ms2 : List QMsg) : Prop :=
 /-- `msgsAfterAppend`'s messages to the node itself, which `acceptReady` queues. -/
 def isSelfQ (id : w64) (q : QMsg) : Bool := decide (q.st.msg.To' = id)
 
+/-- (2026-11-11, trace-check Q8 stage 1 slice 28n) **The messages handed out and the self-addressed
+ones are among the queues** (`ownRaftPhysReady`'s `Hmslen`, until then only `ms.length ≤
+ms1.length + ms2.length`): `readyWithoutAccept` hands out `ms1` and `msgsAfterAppend`'s messages to
+others, and `acceptReady` keeps those to itself; a stale `Ready` hands out none. A traced `Ready`'s
+tokens, one per queued message, are split along it (`acceptReady`). -/
+def MsSub (id : w64) (ms ms1 ms2 : List QMsg) : Prop :=
+  (ms ++ ms2.filter (fun q => isSelfQ id q)).Subperm (ms1 ++ ms2)
+
+theorem MsSub.length_le {id : w64} {ms ms1 ms2 : List QMsg} (h : MsSub id ms ms1 ms2) :
+    ms.length ≤ ms1.length + ms2.length := by
+  unfold MsSub at h
+  have h' : (ms ++ ms2.filter (fun q => isSelfQ id q)).length ≤ (ms1 ++ ms2).length :=
+    _root_.List.Subperm.length_le h
+  simp only [List.length_append] at h'
+  omega
+
+theorem MsSub.nil (id : w64) (ms1 ms2 : List QMsg) : MsSub id [] ms1 ms2 := by
+  unfold MsSub
+  rw [List.nil_append]
+  exact ((List.filter_sublist).trans (List.sublist_append_right ms1 ms2)).subperm
+
+theorem MsSub.ready (id : w64) (ms1 ms2 : List QMsg) :
+    MsSub id (ms1 ++ ms2.filter (fun q => !isSelfQ id q)) ms1 ms2 := by
+  unfold MsSub
+  rw [List.append_assoc]
+  refine (List.Perm.append_left ms1 ?_).subperm
+  exact (List.perm_append_comm.trans (List.filter_append_perm (fun q => isSelfQ id q) ms2))
+
 /-- (D22 S-d3a, 2026-10-21) The log of a computed `Ready`: as it was, or once handed out (`h`) the
 batch recorded as the application's (`logHanded`) and, with a snapshot (`lt`), the storage lent
 (`ownRaftLog_lend`); (U8 v2) and the terms of the committed log handed out certified up to `dk`
@@ -293,6 +321,64 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (2026-11-11, trace-check Q8 stage 1 slice 28n) **The trace logger, in either mode**, before a
+`Ready` opens the struct (`ownRaftPhysReady`'s `Hf_traceLogger`): untraced, the struct's nil logger
+(`ownRaftPhysC_traceLogger`); traced, the capability's field (`rnTrace`), whose contract
+`TraceLoggerOkS` does not constrain. -/
+theorem ownRaftPhysC_traceLoggerS (γ : RaftNames) (c : CfgM) {V : GSet w64} (r : Loc) (id : w64)
+    (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ rnTrace γ r id c s -∗
+      ∃ tl : GoInterface, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOkS s.gh.tr tl⌝ ∗
+        ownRaftPhysCV c V r id s ∗ rnTrace γ r id c s := by
+  cases htr : s.gh.tr with
+  | none =>
+    iintro Hphys Htr
+    icases ownRaftPhysC_traceLogger (c := c) (V := V) r id s htr $$ Hphys with ⟨%tl, #Htl, %Hok, Hphys⟩
+    iexists tl
+    iframe Htl Hphys Htr
+    ipureintro; exact Hok
+  | some γd =>
+    iintro Hphys Htr
+    iunfold rnTrace at Htr
+    rw [htr]
+    simp only []
+    icases Htr with ⟨%Hpv, #Hcq, #Hns, %b, Hcap⟩
+    iunfold trCapB at Hcap
+    icases Hcap with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, Hrest⟩
+    iexists tl
+    iframe Htl Hphys
+    isplitr
+    · ipureintro; trivial
+    iunfold rnTrace
+    rw [htr]
+    simp only []
+    iframe Hcq Hns
+    isplitr
+    · ipureintro; exact Hpv
+    iexists b
+    iunfold trCapB
+    iexists tn, C, tl, cs, P
+    iframe Hdir Htl Hrest
+    ipureintro; exact Hpf
+
+/-- (2026-11-11, trace-check Q8 stage 1 slice 28n) **A message a `Ready` hands out, its token**
+(`RawNode.acceptReady.spec`'s post): nothing untraced; at a traced cluster the receiver's `recvTokOf`
+(the `Ready` line's, `trCap_fire_ready`), which the node API passes to the message's `Step`. -/
+def readyTok (γ : RaftNames) (st : MsgSt) : IProp GF :=
+  match γ.reTrace with
+  | none => iprop(True)
+  | some γd => recvTokOf γd st.msg st.ents st.ctx
+
+theorem readyToks_none {A : Type} (γ : RaftNames) (f : A → MsgSt) (l : List A) (h : γ.reTrace = none) :
+    ⊢ [∗list] x ∈ l, readyTok (GF := GF) γ (f x) := by
+  induction l with
+  | nil => exact BigSepL.bigSepL_nil.2
+  | cons x l ih =>
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · unfold readyTok; rw [h]; itrivial
+    · iapply ih
 
 /-- (U8 v2, 2026-10-29) **Raft's certified terms of the entries `L` at the indices `n+1, n+2, …`**
 (persistent; raft-final, 2026-10-29: moved here from `ApiVocab.lean`, internal): the key of `sn.gd` at each index is its entry's term (`raftDL`'s first reading). -/
@@ -898,7 +984,9 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
   iprop(∃ (rsl sl1 sl2 : GoSlice) (ms1 ms2 : List QMsg),
     "#Hf_id" ∷ r.[raft, go!"id"] ↦□ id ∗
     -- (2026-11-08) the trace logger, shared (`traceReady` reads it with the struct open)
-    "#Hf_traceLogger" ∷ (∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝) ∗
+    -- (2026-11-11, slice 28n) the mode's contract (`TraceLoggerOkS`; until then `TraceLoggerOk`, a
+    -- nil logger, which a traced node's is not)
+    "#Hf_traceLogger" ∷ (∃ tl, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOkS s.gh.tr tl⌝) ∗
     "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
     "Hf_Vote" ∷ r.[raft, go!"Vote"] ↦ s.vote ∗
     "Hf_readStates" ∷ r.[raft, go!"readStates"] ↦ rsl ∗
@@ -922,7 +1010,8 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "%Hxf" ∷ ⌜XfOk id s (ms1 ++ ms2)⌝ ∗
     -- (D22 S-b′3) the queues' certificates' source (`ownRaftPhys`'s `Hscert`)
     "#Hscert" ∷ qSrcs s.gh.sn (ms1 ++ ms2) ∗
-    "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
+    -- (2026-11-11, slice 28n) with the self-addressed ones, among the queues (`MsSub`)
+    "%Hmslen" ∷ ⌜MsSub id ms ms1 ms2⌝ ∗
     "Hundo" ∷ (msl ↦* ms.map QMsg.loc -∗ ownSliceCap Loc msl (DFrac.own 1) -∗
                ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
                sl1 ↦* ms1.map QMsg.loc ∗ ownSliceCap Loc sl1 (DFrac.own 1) ∗
@@ -1345,6 +1434,10 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`,
   -- `NsLink`): what the handed-out messages' `isRaftMsg` says
   "%Hnsout" ∷ ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝ ∗
+  -- (2026-11-11, trace-check Q8 stage 1 slice 28n) in a traced cluster, the outbox's messages'
+  -- numbers (`NsLink`'s `OutTr`, of the state before the cut): what `acceptReady`'s self-addressed
+  -- responses' `isRaftMsg` needs once the ghost state is at the drained outbox
+  "%Houttr" ∷ ⌜OutTr γ s⌝ ∗
   -- (2026-10-26, D22 J2, R-loc) as `ownRawNode`'s: the pending snapshot's receiver-local fact
   "#Hsloc" ∷ snapLocOk γ id s.logst.snap ∗
   -- (2026-10-28, stage U4a) the record of the storage's terms
@@ -1506,7 +1599,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   iexists ms1.length + ms2.length, decide (nextUnstable s.logst ≠ []), s.logst.committed
   isplitr
   · ipureintro
-    refine ⟨Hmslen, fun h => by rw [Hes] at h; exact decide_eq_true h, fun e He => ?_⟩
+    refine ⟨Hmslen.length_le, fun h => by rw [Hes] at h; exact decide_eq_true h, fun e He => ?_⟩
     obtain ⟨-, H2, H3⟩ := Hceok e He
     refine ⟨H2, ?_⟩
     rw [H3, Hdlen]
@@ -2444,7 +2537,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs, by tr_keep⟩
+      Hrs_clb, Hrnfl, Hceok, Hcepre, Hes, Hrdc, Hprc, Hnsout, Houttr, Hsdt, Hrole, Hpst, Hphs, by tr_keep⟩
   isplitl [Hout]
   · rw [Hstor.2]; iexact Hout
   iframe Hcef
@@ -2658,8 +2751,9 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     · exact h
     · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.1.2.2.1 (.inl h))
   icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
-  icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  ihave #Hf_traceLogger : iprop(∃ tl, rnv.raft'.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOk tl⌝)
+  icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
+  icases ownRaftPhysC_traceLoggerS γ cf rnv.raft' id s $$ Hphys Hrntr with ⟨%tl, #Htl, %Htlok, Hphys, Hrntr⟩
+  ihave #Hf_traceLogger : iprop(∃ tl, rnv.raft'.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOkS s.gh.tr tl⌝)
     $$ []
   · iexists tl; iframe Htl; ipureintro; exact Htlok
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
@@ -2732,7 +2826,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     isplitr
     · iexact Hscert
     isplitr
-    · ipureintro; simp
+    · ipureintro; exact MsSub.nil id ms1 ms2
     isplitl [Hmsgs Hmsgs_cap Hown1 Hhalf]
     · iintro - - -
       iframe Hmsgs Hmsgs_cap Hown1 Hhalf
@@ -2747,7 +2841,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-    fun e He => ?_, fun h => absurd rfl h, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hsdt,
+    fun e He => ?_, fun h => absurd rfl h, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hnl.2.2, Hsdt,
     Hrole, Hpst, Hphs, Hgtr, Hglq⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
