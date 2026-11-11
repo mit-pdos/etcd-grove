@@ -86,6 +86,8 @@ Done at `659ca87f10` + this commit (lean unmoved since `a259c0efd1`, no merge ne
   `gen/review-items.md` (the six flagged items, [FREEZE-1..6]), `gen/axioms-section.md`, the tcb
   section; `gen/assemble.py`).
 
+Also in the package: a note (not one of the six) that the extension keys directories by path string, so aliasing paths (`/d/./x`, symlinks) are distinct keys; the author sees no derivation today (`walDirIs` hides the map behind an existential), hardening options listed.
+
 Next: the coordinator's independent adversarial Freeze review; then `etc/land.sh` when told.
 
 ## After W4a
