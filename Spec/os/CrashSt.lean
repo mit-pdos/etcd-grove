@@ -9,18 +9,17 @@ Lean-first (no Rocq counterpart).
 * `os.OpenFile.specCrashS`: `P = d/b`, `d` a directory; absent or idle, to `csOpenSt` of it
   (created, its `create` logged, if absent); on failure maybe.
 * `os.File.WriteAt.specCrashS`: idle, the write starting inside the file, to an idle state the
-  loop reached (`WReach C`: each attempt writes a prefix of the rest of the data, of a length the
-  semantics allows, `PwCut C`, from the `nn` bytes a short write left written), with the data written on success. The caller shows `Ok` of
-  every state the loop may pass through: each `WReach` state idle, and with the next attempt in
+  loop reached (`WReach`: each attempt writes a prefix of the rest of the data, from the `nn` bytes
+  a short write left written, `finBytes`), with the data written on success. The caller shows `Ok`
+  of every state the loop may pass through: each `WReach` state idle, and with the next attempt in
   flight. The write misses the frozen bytes, and the mapped cells of its range are passed through
   (`mcellsAny`).
-* `os.File.Truncate.specCrashS`: idle, growing: to grown (`csGrownOwn`: by bytes `zs`, zeros if the
-  file's `OsMeta` says so), or on failure maybe not (`ftFail`); `Ok` of each `TReach` state, idle
+* `os.File.Truncate.specCrashS`: idle, growing: to grown (`csGrownOwn`: the new bytes zeros), or on
+  failure maybe not (the `OsMeta` as the resize announced it); `Ok` of each `TReach` state, idle
   and with a truncate in flight.
 * `syscall.Fdatasync.specCrashS` and `os.File.Sync.specCrashS`: idle `H ++ (F ++ T)` (`F` the
-  frozen bytes) to `csSynced hd` (the bytes after the frozen ones synced, keeping the ones before
-  them, shown clean, among the durable bytes known; or, `hd`, the ones before them), which the
-  caller shows `Ok`; on failure `ok` is lost.
+  frozen bytes, durable) to `csSynced` (every byte durable), which the caller shows `Ok`; on
+  failure nothing changes.
 * `golang_org.x.sys.unix.Mmap.specCrashS`/`Munmap.specCrashS`: the mappings change.
 -/
 module
@@ -38,37 +37,44 @@ namespace Perennial
 open Fs
 
 /-- The states a `WriteAt` of `data` at `off` reaches from `m`, `bs`, `nn` of the data's bytes
-written: each attempt writes a prefix of the rest of the data (from `off + nn`) of a length `k` the
-semantics allows (`C (off + nn) len k e` of an attempt of `len` bytes and its errno `e`: `PwCut C`);
+written: each attempt (of the rest of the data, from `off + nn`, its change number `n`) lands a
+prefix of `k` bytes (`finBytes`, the bytes it reached past the old end with the candidates `zs`);
 the next attempt starts from `nn + k`, or, after an errno (`EINTR`), from `nn` again. -/
-inductive WReach (C : Nat → Nat → Nat → w64 → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (off : Nat)
-    (data : List w8) : Nat → OsMeta → List (w8 × Bool) → Prop
-  | refl : WReach C m bs off data 0 m bs
-  | step {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)} (k nn' : Nat) (e : w64) :
-      WReach C m bs off data nn m' bs' → nn < data.length → k ≤ data.length - nn →
-      ((data.drop nn).length < 2 ^ 64 → C (off + nn) (data.drop nn).length k e) →
-      (nn' = nn + k ∨ (e ≠ 0 ∧ nn' = nn)) →
-      WReach C m bs off data nn'
-        (finMeta m' (off + nn) (data.drop nn) k) (finBytes m' bs' (off + nn) (data.drop nn) k)
+inductive WReach (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) :
+    Nat → OsMeta → List ByteG → Prop
+  | refl : WReach m bs off data 0 m bs
+  | step {nn : Nat} {m' : OsMeta} {bs' : List ByteG} (k nn' n : Nat) (zs : List Cands) :
+      WReach m bs off data nn m' bs' → nn < data.length → k ≤ data.length - nn →
+      (nn' = nn + k ∨ nn' = nn) →
+      WReach m bs off data nn'
+        (pwPost m' (off + nn) (data.drop nn).length k) (finBytes m' bs' (off + nn) (data.drop nn) k n zs)
 
-theorem WReach.narrow {C : Nat → Nat → Nat → w64 → Prop} {m : OsMeta} {bs : List (w8 × Bool)} {off : Nat}
-    {data : List w8} {nn : Nat} {m' : OsMeta} {bs' : List (w8 × Bool)}
-    (h : WReach C m bs off data nn m' bs')
-    (hl : bs.length = m.size) (hoff : off ≤ m.size) : Narrow m bs off data m' bs' := by
+/-- **A state the loop reached is one the write may pass through** (`WIn`), and the bytes written
+so far are inside it. -/
+theorem WReach.wIn {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
+    {m' : OsMeta} {bs' : List ByteG} (h : WReach m bs off data nn m' bs')
+    (hl : bs.length = m.size) (hoff : off ≤ m.size) :
+    WIn m bs off data m' bs' ∧ off + nn ≤ m'.size ∧ nn ≤ data.length := by
   induction h with
-  | refl => exact narrow_refl off data hl
-  | step k nn' e _ hnn hk _ _ ih =>
-    exact narrow_fin ih hoff _ (Nat.le_of_lt hnn) (by rw [List.length_drop]; exact hk)
+  | refl => exact ⟨wIn_refl off data hl, by simp; omega, Nat.zero_le _⟩
+  | @step nn0 m0 bs0 k nn' n zs _ hnn hk hn' ih =>
+    obtain ⟨hW, hS, -⟩ := ih
+    have hne : data.drop nn0 ≠ [] := by
+      intro h; have := congrArg List.length h; simp at this; omega
+    refine ⟨wIn_fin hW hl (by omega) (by rw [List.length_drop]; omega)
+      (by rw [show off + nn0 - off = nn0 by omega]) hne hS (by rw [List.length_drop]; exact hk), ?_, ?_⟩
+    · show off + nn' ≤ pwSize m0.size (off + nn0) k
+      unfold pwSize; split <;> omega
+    · omega
 
-/-- The states a growing `Truncate` to `sz` reaches from `m`, `bs`: unchanged, the size bound
-widened and the versions known forgotten (a failed attempt), grown (by bytes `zs`, zeros if the file's `OsMeta` says so). -/
-inductive TReach (m : OsMeta) (bs : List (w8 × Bool)) (sz : Nat) :
-    OsMeta → List (w8 × Bool) → Prop
+/-- The states a growing `Truncate` to `sz` reaches from `m`, `bs`: unchanged, its `OsMeta` as an
+attempt announced it (a failed attempt), or grown (the new bytes zeros, with the candidates `zs`
+they had, then the zero an attempt numbered `n` announced). -/
+inductive TReach (m : OsMeta) (bs : List ByteG) (sz : Nat) : OsMeta → List ByteG → Prop
   | refl : TReach m bs sz m bs
-  | ft : TReach m bs sz (ftFail m sz) bs
-  | grown (zs : List w8) : zs.length = sz - m.size →
-      zs = List.replicate (sz - m.size) 0 →
-      TReach m bs sz (m.grown sz) (bs ++ zs.map (·, false))
+  | ann : TReach m bs sz (m.announce (min m.size sz) (max m.size sz) sz) bs
+  | grown (n : Nat) (zs : List Cands) : zs.length = sz - m.size →
+      TReach m bs sz (rsPost m sz sz) (bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])))
 
 namespace EtcdGrove
 
@@ -104,13 +110,13 @@ abbrev os.File.WriteAt.specCrashS : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : GoString) (R : Roots)
     (γ : GName) (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta)
-    (bs : List (w8 × Bool)) (fa fb : Nat) (C : Nat → Nat → Nat → w64 → Prop), PwCut C →
+    (bs : List ByteG) (fa fb : Nat),
   d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
   0 < data.length → data.length ≤ 0x40000000 →
   ↑osN ⊆ (⊤ : CoPset) \ ↑N → (off.toNat + data.length ≤ fa ∨ fb ≤ off.toNat) →
-  (∀ nn m' bs', WReach C m bs off.toNat data nn m' bs' →
-    Ok (some (d.ino, ⟨m', bs', fa, fb, .idle⟩)) ∧ (nn < data.length → ∀ t,
-      Ok (some (d.ino, ⟨m', bs', fa, fb, .write t (off.toNat + nn) (data.drop nn)⟩)))) →
+  (∀ nn m' bs', WReach m bs off.toNat data nn m' bs' →
+    Ok (some (d.ino, ⟨m', bs', fa, fb, .idle⟩)) ∧ (nn < data.length → ∀ t n,
+      Ok (some (d.ino, ⟨m', bs', fa, fb, .write t (off.toNat + nn) (data.drop nn) n⟩)))) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
       sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗
       csOwnF (GF := GF) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)) ∗
@@ -120,8 +126,8 @@ abbrev os.File.WriteAt.specCrashS : Prop :=
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
       mcellsAny m.maps off.toNat (off.toNat + data.length) ∗
-      ∃ (nn : Nat) (m' : OsMeta) (bs' : List (w8 × Bool)),
-        ⌜WReach C m bs off.toNat data nn m' bs' ∧
+      ∃ (nn : Nat) (m' : OsMeta) (bs' : List ByteG),
+        ⌜WReach m bs off.toNat data nn m' bs' ∧
           ((n = W64 data.length ∧ err = interface.nil ∧ off.toNat + data.length ≤ m'.size ∧
               ∀ i < data.length, (bs'[off.toNat + i]?).map Prod.fst = data[i]?) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
@@ -132,64 +138,65 @@ variable [os.Assumptions] in
 abbrev os.File.Truncate.specCrashS : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64) (dq : DFrac) (d : OsFd)
     (N : Namespace) (P : GoString) (R : Roots) (γ : GName) (Good : Option OsFile → Prop)
-    (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool)) (fa fb hi : Nat),
-  0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.size ≤ sz.toNat → MapsBelow m.maps hi →
+    (Ok : CState → Prop) (m : OsMeta) (bs : List ByteG) (fa fb : Nat),
+  0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.size ≤ sz.toNat →
   ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   (∀ m' bs', TReach m bs sz.toNat m' bs' →
     Ok (some (d.ino, ⟨m', bs', fa, fb, .idle⟩)) ∧
-      ∀ t, Ok (some (d.ino, ⟨m', bs', fa, fb, .trunc t sz.toNat⟩))) →
+      ∀ t n, Ok (some (d.ino, ⟨m', bs', fa, fb, .trunc t sz.toNat n⟩))) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
       osFd (GF := GF) fd dq d ∗ csOwnF (GF := GF) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)) ∗
-      mcellsAny (GF := GF) m.maps m.size hi }}
+      mcellsAny (GF := GF) m.maps m.size sz.toNat }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ((⌜err = interface.nil⌝ ∗ csGrownOwn d.ino γ m bs fa fb sz.toNat hi) ∨
+      ((⌜err = interface.nil⌝ ∗ ∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat⌝ ∗
+          csGrownOwn d.ino γ m0 bs fa fb sz.toNat n) ∨
        (⌜err ≠ interface.nil⌝ ∗
-         (csGrownOwn d.ino γ m bs fa fb sz.toNat hi ∨
-          (csOwnF γ (some (d.ino, ⟨ftFail m sz.toNat, bs, fa, fb, .idle⟩)) ∗
-            mcellsAny m.maps m.size hi)))) }}
+         ((∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat⌝ ∗
+          csGrownOwn d.ino γ m0 bs fa fb sz.toNat n) ∨
+          (csOwnF γ (some (d.ino, ⟨m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat,
+              bs, fa, fb, .idle⟩)) ∗
+            mcellsAny m.maps m.size sz.toNat)))) }}
 
 variable [os.Assumptions] in
 /-- See the file header. -/
 abbrev os.File.Sync.specCrashS : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (N : Namespace)
     (P : GoString) (R : Roots) (γ : GName) (Good : Option OsFile → Prop) (Ok : CState → Prop)
-    (m : OsMeta) (H F T : List (w8 × Bool)) (fa fb : Nat) (hd : Bool),
-  H.length = fa → fa + F.length = fb → (hd = false → ∀ y ∈ H, y.2 = true) →
-  ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (some (d.ino, csSynced hd m H F T fa fb)) →
-  Ok (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)) →
+    (m : OsMeta) (H F T : List ByteG) (fa fb : Nat),
+  H.length = fa → fa + F.length = fb → (∀ y ∈ F, y = durB y.1) →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (some (d.ino, csSynced m H F T fa fb)) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
       osFd (GF := GF) fd dq d ∗
       csOwnF (GF := GF) γ (some (d.ino, ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)) }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ((⌜err = interface.nil⌝ ∗ csOwnF γ (some (d.ino, csSynced hd m H F T fa fb))) ∨
+      ((⌜err = interface.nil⌝ ∗ csOwnF γ (some (d.ino, csSynced m H F T fa fb))) ∨
        (⌜err ≠ interface.nil⌝ ∗
-         csOwnF γ (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
+         csOwnF γ (some (d.ino, ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
 
 variable [syscall.Assumptions] in
 /-- See the file header. -/
 abbrev syscall.Fdatasync.specCrashS : Prop :=
   ∀ (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
-    (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (H F T : List (w8 × Bool))
-    (fa fb : Nat) (hd : Bool),
-  H.length = fa → fa + F.length = fb → (hd = false → ∀ y ∈ H, y.2 = true) →
-  ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (some (d.ino, csSynced hd m H F T fa fb)) →
-  Ok (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)) →
+    (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (H F T : List ByteG)
+    (fa fb : Nat),
+  H.length = fa → fa + F.length = fb → (∀ y ∈ F, y = durB y.1) →
+  ↑osN ⊆ (⊤ : CoPset) \ ↑N → Ok (some (d.ino, csSynced m H F T fa fb)) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ osFd (GF := GF) fd dq d ∗
       csOwnF (GF := GF) γ (some (d.ino, ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)) }}
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
-      ((⌜e = 0⌝ ∗ csOwnF γ (some (d.ino, csSynced hd m H F T fa fb))) ∨
+      ((⌜e = 0⌝ ∗ csOwnF γ (some (d.ino, csSynced m H F T fa fb))) ∨
        (⌜e ≠ 0⌝ ∗
-         csOwnF γ (some (d.ino, ⟨{ m with ok := false }, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
+         csOwnF γ (some (d.ino, ⟨m, H ++ (F ++ T), fa, fb, .idle⟩)))) }}
 
 variable [golang_org.x.sys.unix.Assumptions] in
 /-- See the file header. -/
 abbrev golang_org.x.sys.unix.Mmap.specCrashS : Prop :=
   ∀ (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (P : GoString) (R : Roots)
     (γ : GName) (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta)
-    (bs : List (w8 × Bool)) (fa fb : Nat),
+    (bs : List ByteG) (fa fb : Nat),
   d.readable = true → off = 0 → 0 < len.toInt → prot.toNat = PROT_READ →
   (fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   (∀ base : Loc,
@@ -210,7 +217,7 @@ variable [golang_org.x.sys.unix.Assumptions] in
 /-- See the file header. -/
 abbrev golang_org.x.sys.unix.Munmap.specCrashS : Prop :=
   ∀ (base : Loc) (len : w64) (i : Ino) (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
-    (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (bs : List (w8 × Bool))
+    (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (bs : List ByteG)
     (fa fb : Nat) (vf : Nat → val),
   0 < len.toInt → m.maps !! base = some len.toNat → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   Ok (some (i, ⟨{ m with maps := GMap.delete base m.maps }, bs, fa, fb, .idle⟩)) →
