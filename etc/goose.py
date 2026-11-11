@@ -382,6 +382,10 @@ PROJECTS = [
             # `bootstrappedRaft.newRaftNode` wraps)
             "go.etcd.io/etcd/client/pkg/v3/logutil",
             "go.etcd.io/etcd/server/v3/storage/wal",
+            # types and names only (WAL W4a, 2026-11-11): the WAL's record types (`walpb.Snapshot`,
+            # which the read path's specs name) and `fileutil` (`TouchDirAll`, the WAL tester's call)
+            "go.etcd.io/etcd/server/v3/storage/wal/walpb",
+            "go.etcd.io/etcd/client/pkg/v3/fileutil",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
