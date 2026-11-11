@@ -30,9 +30,10 @@ variable [os.Assumptions] [os.file.FieldAssumptions]
 def os.ownOff (f : Loc) (o : w64) : IProp GF :=
   iprop(∃ inner : Loc, f ↦□ (os.File.mk inner) ∗ structFieldRef os.file go!"off" inner ↦ o)
 
-/-- `f.Seek(off, io.SeekStart)`, `0 ≤ off < 2^62`: the offset becomes `off`. -/
+/-- `f.Seek(off, io.SeekStart)` on an open fd, `0 ≤ off`, at most ext4's maximum (`seekMax`): the
+offset becomes `off`. -/
 theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (o off : w64)
-    (h0 : 0 ≤ off.toInt) (hmax : off.toInt < 2 ^ 62) :
+    (hfd : 0 ≤ fd.toInt) (h0 : 0 ≤ off.toInt) (hmax : off.toInt ≤ 0xffffffff000) :
     {{ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o }}
       (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Seek")) (Val #off))
         (Val #(W64 0)))
@@ -46,7 +47,12 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, show W64 0 + off = off from BitVec.zero_add off]
+  have hfd' : ¬ sint.Z fd < sint.Z (W64 0) := by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
+  rw [decide_eq_false hfd']
+  wp_auto
+  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, show os.model.seekMax = W64 0xffffffff000 from rfl]
+  try rw [show W64 0 + off = off from BitVec.zero_add off]
   have hz : sint.Z (W64 0) = 0 := rfl
   have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
   try rw [decide_eq_false (show ¬ sint.Z off < sint.Z (W64 0) by simp only [sint.Z] at *; omega)]
@@ -59,14 +65,18 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
   try rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z off by
     rw [hm]; simp only [sint.Z]; omega)]
   try wp_auto
+  try rw [decide_eq_false (show ¬ sint.Z (W64 0xffffffff000) < sint.Z off by
+    rw [show sint.Z (W64 0xffffffff000) = 0xffffffff000 from rfl]; simp only [sint.Z]; omega)]
+  try wp_auto
   iapply HΦ
   isplitl [Hfd]
   · iexists inner; iframe; isplitl [] <;> iassumption
   · iexists inner; iframe; iassumption
 
-/-- `f.Seek(0, io.SeekCurrent)`, the offset `0 ≤ o < 2^62`: `o`, unchanged. -/
+/-- `f.Seek(0, io.SeekCurrent)` on an open fd, the offset `0 ≤ o`, at most ext4's maximum: `o`,
+unchanged. -/
 theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (o : w64)
-    (h0 : 0 ≤ o.toInt) (hmax : o.toInt < 2 ^ 62) :
+    (hfd : 0 ≤ fd.toInt) (h0 : 0 ≤ o.toInt) (hmax : o.toInt ≤ 0xffffffff000) :
     {{ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o }}
       (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Seek")) (Val #(W64 0)))
         (Val #(W64 1)))
@@ -80,7 +90,11 @@ theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl]
+  have hfd' : ¬ sint.Z fd < sint.Z (W64 0) := by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
+  rw [decide_eq_false hfd']
+  wp_auto
+  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, show os.model.seekMax = W64 0xffffffff000 from rfl]
   have hz : sint.Z (W64 0) = 0 := rfl
   have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
   try rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by simp only [sint.Z] at *; omega)]
@@ -96,15 +110,18 @@ theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   try wp_auto
   try rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (W64 0) by rw [hm, hz]; omega)]
   try wp_auto
+  try rw [decide_eq_false (show ¬ sint.Z (W64 0xffffffff000) < sint.Z o by
+    rw [show sint.Z (W64 0xffffffff000) = 0xffffffff000 from rfl]; simp only [sint.Z]; omega)]
+  try wp_auto
   iapply HΦ
   isplitl [Hfd]
   · iexists inner; iframe; isplitl [] <;> iassumption
   · iexists inner; iframe; iassumption
 
-/-- `f.Seek(0, io.SeekEnd)` of a file of size below `2^62`, with a fraction of its `OsMeta`: the
-size, the offset set to it; or an error, the offset unchanged. -/
+/-- `f.Seek(0, io.SeekEnd)` on an open fd of a file of size at most ext4's maximum, with a fraction
+of its `OsMeta`: the size, the offset set to it; or an error, the offset unchanged. -/
 theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (o : w64)
-    (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hsz : m.size < 2 ^ 62) :
+    (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hfd : 0 ≤ fd.toInt) (hsz : m.size ≤ 0xffffffff000) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
         osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino dqm m }}
       (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Seek")) (Val #(W64 0)))
@@ -122,13 +139,17 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
+  have hfd' : ¬ sint.Z fd < sint.Z (W64 0) := by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
+  rw [decide_eq_false hfd']
+  wp_auto
   wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
   rcases hr with ⟨rfl, rfl⟩ | ⟨he, rfl⟩
   · rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]
     wp_auto
-    rw [show os.model.offMax = W64 0x4000000000000000 from rfl,
-      show W64 m.size + W64 0 = W64 m.size from BitVec.add_zero _]
+    rw [show os.model.offMax = W64 0x4000000000000000 from rfl, show os.model.seekMax = W64 0xffffffff000 from rfl]
+    try rw [show W64 m.size + W64 0 = W64 m.size from BitVec.add_zero _]
     have hz : sint.Z (W64 0) = 0 := rfl
     have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
     have hs : sint.Z (W64 (m.size : Int)) = m.size := by
@@ -143,6 +164,9 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
       rw [hm, hs]; omega)]
     try wp_auto
     try rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (W64 0) by rw [hm, hz]; omega)]
+    try wp_auto
+    try rw [decide_eq_false (show ¬ sint.Z (W64 0xffffffff000) < sint.Z (W64 (m.size : Int)) by
+      rw [hs, show sint.Z (W64 0xffffffff000) = 0xffffffff000 from rfl]; omega)]
     try wp_auto
     iapply HΦ
     iframe Hosfd Hm
@@ -165,30 +189,28 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
       · ipureintro; intro h; cases h
       iexists inner; iframe; iassumption
 
-/-- `f.Write(b)` at the offset `o` (`0 ≤ o ≤ size`, `o + len(b) < 2^62`), over `WriteAt`'s spec at `o`:
-`WriteAt`'s state; on success `len(b)` and the offset past `b`; on an error any count (Go's is the
-bytes written before it) and an unknown offset (-1). -/
+/-- `f.Write(b)` on an open fd at the offset `o` (`0 ≤ o ≤ size`, `o + len(b) < 2^62`), over
+`WriteAt`'s spec at `o`: `WriteAt`'s state; on success `len(b)` and the offset past `b`; on an
+error any count (Go's is the bytes written before it) and an unknown offset (-1). -/
 theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
-    (dqs : DFrac) (o : w64) (dq : DFrac) (d : OsFd) (q : Qp) (m : OsMeta) (xs : List (w8 × Bool))
-    (hwr : d.writable = true) (h0 : 0 ≤ o.toInt) (hle : o.toNat ≤ m.size) (hn : 0 < data.length)
-    (hn2 : data.length ≤ 0x40000000)
+    (dqs : DFrac) (o : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
+    (hfd : 0 ≤ fd.toInt) (hwr : d.writable = true) (h0 : 0 ≤ o.toInt) (hle : o.toNat ≤ m.size)
+    (hn : 0 < data.length) (hn2 : data.length ≤ 0x40000000)
     (hxs : xs.length = min (o.toNat + data.length) m.size - o.toNat)
-    (hq : m.size < o.toNat + data.length → q = 1) (hvk : q = 1 ∨ m.vk = none)
     (hmax : o.toInt + data.length < 2 ^ 62) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
-        sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own q) m ∗
+        sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
         osBytes (GF := GF) d.ino o.toNat (DFrac.own 1) xs ∗
         mcellsAny (GF := GF) m.maps o.toNat (o.toNat + data.length) }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Write")) (Val #sl))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-        (∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)),
-          ⌜j ≤ data.length ∧ (m.vk = none → v = none) ∧
-            ys.map Prod.fst = (pwBytes m.size o.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
+        (∃ (j : Nat) (ys : List ByteG),
+          ⌜j ≤ data.length ∧ os.PwOut m o.toNat data j xs ys ∧
             ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
              err ≠ interface.nil)⌝ ∗
-          osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size o.toNat j, hi := h, vk := v }) ∗
+          osMeta d.ino (DFrac.own 1) (pwPost m o.toNat data.length j) ∗
           osBytes d.ino o.toNat (DFrac.own 1) ys ∗
           mcellsAny m.maps o.toNat (o.toNat + data.length)) ∗
         ((⌜err = interface.nil⌝ ∗ os.ownOff f (o + W64 data.length)) ∨
@@ -200,9 +222,21 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   ihave #Hf2 := Hfi
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
+  iunfold os.ownFile at Hf
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
+  icombine Hfi Hf0 gives %hin0
+  cases hin0
   wp_auto
   have hsl : sl.len = W64 data.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
+  rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
+  wp_auto
+  rw [decide_eq_false (show ¬ sl.len = W64 0 by
+    rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
+  wp_auto
+  ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
+  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   wp_auto
@@ -215,8 +249,8 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   wp_auto
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
-  wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d q m xs hwr h0 hle h63 hn hn2 hxs hq hvk
-    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %h, %v, %Hres, Hm, Hbs, Hmc⟩
+  wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d m xs hwr h0 hle h63 hn hn2 hxs
+    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %Hres, Hm, Hbs, Hmc⟩
   · iframe; iexact Hinv
   cases err with
   | nil =>
@@ -224,11 +258,11 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
-    · iexists j, ys, h, v
+    · iexists j, ys
       iframe
       ipureintro
-      obtain ⟨h1, h2, h3, h4, h5⟩ := Hres
-      exact ⟨h1, h2, h3, h4, h5.imp_right (fun h => h.2)⟩
+      obtain ⟨h1, h2, h5⟩ := Hres
+      exact ⟨h1, h2, h5.imp_right (fun h => h.2)⟩
     ileft
     isplitr
     · ipureintro; rfl
@@ -239,23 +273,23 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
-    · iexists j, ys, h, v
+    · iexists j, ys
       iframe
       ipureintro
-      obtain ⟨h1, h2, h3, h4, -⟩ := Hres
-      exact ⟨h1, h2, h3, h4, .inr (fun h => by cases h)⟩
+      obtain ⟨h1, h2, -⟩ := Hres
+      exact ⟨h1, h2, .inr (fun h => by cases h)⟩
     iright
     isplitr
     · ipureintro; intro h; cases h
     iexists inner; iframe; iassumption
 
-/-- `f.Read(b)` at the offset `o` of a non-empty `b` of at most `maxRW` bytes inside the file
+/-- `f.Read(b)` on an open fd at the offset `o` of a non-empty `b` of at most `maxRW` bytes inside the file
 (`o + len(b) ≤ size`, `< 2^62`), the bytes held at any fractions: a non-empty prefix of `b` (one
 `read(2)`, which may be short) filled with the first of them and the offset moved past it; or an
 error, the offset unchanged. -/
 theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
-    (vs : List w8) (o : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (xs : List (w8 × Bool))
-    (hrd : d.readable = true) (h0 : 0 ≤ o.toInt) (hn : 0 < vs.length) (hn2 : vs.length ≤ 0x40000000)
+    (vs : List w8) (o : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
+    (hfd : 0 ≤ fd.toInt) (hrd : d.readable = true) (h0 : 0 ≤ o.toInt) (hn : 0 < vs.length) (hn2 : vs.length ≤ 0x40000000)
     (hin : o.toNat + vs.length ≤ m.size) (hxl : xs.length = vs.length)
     (hmax : o.toInt + vs.length < 2 ^ 62) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
@@ -282,6 +316,9 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
   have hslz : sint.Z sl.len = vs.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
+  wp_auto
+  rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
   wp_auto
   have hl0 : ¬ sl.len = W64 0 := by
     intro h; rw [h, show sint.Z (W64 0) = 0 from rfl] at hslz; omega

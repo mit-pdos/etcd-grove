@@ -3,17 +3,18 @@
 non-negative offset and a non-empty `b` of at most `maxRW` (1 GiB) bytes, so that Go's
 `poll.FD.Pwrite` makes one `pwrite(2)` per attempt (retried on `EINTR`). The model
 (`TrustedCode/os.lean`) makes the extension's two steps per attempt (`wp_osPWriteStart`,
-`wp_osPWriteFinish`), so the spec takes what they take: the fd, writable; a fraction `q` of the
-file's `OsMeta` `m`, all of it if the write may extend the file; the bytes the write may change
+`wp_osPWriteFinish`), so the spec takes what they take: the fd, writable; the whole of the
+file's `OsMeta` `m`; the bytes the write may change
 below the size, `[min off size, min (off + n) size)`, whole; and the client's halves of the cells
 of every mapping over `[min off size, off + n)`.
 
-After it, the file is as a write of the first `j` bytes of `b` left it (each attempt rewrites
-from the start, and a failed one may have written a prefix): its size `pwSize m.size off j`, the
-bytes of the range `pwBytes` (the zero gap past the old end, then `b`'s first `j` bytes, then the
-old bytes), not clean; the sectors known to have at most two versions (`vk`) are what the attempts'
-`vkHit`s left (unknown if they were: a fraction `q < 1` needs `m.vk = none`). On success `j = n` and the result is `(n, nil)`; on failure, `(0, err)`
-with a non-nil `err`. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
+After it, the file is as a write of the first `j` bytes of `b` left it (an attempt that wrote
+short is followed by one from where it stopped, and a failed one may have written a prefix): its
+`OsMeta` as the write announced it (`pwPost`: the size `pwSize m.size off j`, the range not
+durable, a crash bound to the end of the write), and the bytes of the range (`os.PwOut`): their
+values, the zero gap past the old end, then `b`'s first `j` bytes, then the old bytes; their
+candidates, the old ones, then the data's byte (once per attempt that announced it). On success
+`j = n` and the result is `(n, nil)`; on failure, `(0, err)` with a non-nil `err`. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -39,26 +40,23 @@ variable [os.Assumptions]
 /-- See the file header. -/
 abbrev os.File.WriteAt.spec : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
-    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (q : Qp) (m : OsMeta)
-    (xs : List (w8 × Bool)),
+    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG),
   d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
   0 < data.length → data.length ≤ 0x40000000 →
   xs.length = min (off.toNat + data.length) m.size - off.toNat →
-  (m.size < off.toNat + data.length → q = 1) → (q = 1 ∨ m.vk = none) →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
-      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own q) m ∗
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
       osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
       mcellsAny (GF := GF) m.maps (off.toNat) (off.toNat + data.length) }}
     (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      ∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat) (v : Option (List Nat)),
-        ⌜j ≤ data.length ∧ (m.vk = none → v = none) ∧
-          ys.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
+      ∃ (j : Nat) (ys : List ByteG),
+        ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-        osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h, vk := v }) ∗
+        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length j) ∗
         osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
         mcellsAny m.maps (off.toNat) (off.toNat + data.length) }}
 

@@ -1,7 +1,7 @@
 /-
 The proof of `Spec/os/File__WriteAt.lean`: one attempt (`PWriteStart`, `PWriteFinish`) per
 iteration of the model's loop, which retries only on `EINTR`, by Löb induction; the invariant is
-the file as a write of the first `j` bytes left it (`pwBytes_retry`).
+the file as a write of the first `j` bytes left it (`pwPost_step`, `pwOut_step`).
 -/
 module
 
@@ -37,92 +37,151 @@ theorem pwSize_from (sz off j nn k : Nat) (hnn : nn ≤ j) :
     · subst hk; simp [hj, Nat.max_eq_left hnn]
     · rw [if_neg hk, if_neg hj, if_neg (by omega)]; omega
 
-/-- A write's next attempt, after a short write left `nn ≤ j` of its bytes written: the rest of
-the data at `off + nn`, over the file as the first `j` bytes left it, leaves it as the first
-`max j (nn + k)` bytes would (the write starts inside the file, `off ≤ sz`). -/
-theorem pwBytes_from (sz off nn : Nat) (data : List w8) (j k : Nat) (xs ys : List (w8 × Bool))
-    (hoff : off ≤ sz) (hnn : nn ≤ j) (hj : j ≤ data.length) (hk : k ≤ data.length - nn)
-    (hlen : xs.length = min (off + data.length) sz - off)
-    (hys : ys.map Prod.fst = (pwBytes sz off data j xs).map Prod.fst) :
-    (ys.take nn ++ pwBytes (pwSize sz off j) (off + nn) (data.drop nn) k (ys.drop nn)).map
-        Prod.fst = (pwBytes sz off data (max j (nn + k)) xs).map Prod.fst := by
-  have hmin : min off sz = off := Nat.min_eq_left hoff
-  have hyl : ys.length = min (off + data.length) (pwSize sz off j) - off := by
-    have := congrArg List.length hys
-    simp only [List.length_map, pwBytes_length, hmin] at this; exact this
-  have hS : off + nn ≤ pwSize sz off j := by
-    unfold pwSize; split
-    · have : nn = 0 := by omega
-      omega
-    · omega
-  have hminS : min (off + nn) (pwSize sz off j) = off + nn := Nat.min_eq_left hS
-  have hnny : nn ≤ ys.length := by rw [hyl]; omega
-  have hval : ∀ i (hi : i < ys.length), ys[i].1 = pwByte off data j off xs (off + i) := by
-    intro i hi
-    have := congrArg (·[i]?) hys
-    simp only [List.getElem?_map, List.getElem?_eq_getElem hi,
-      List.getElem?_eq_getElem (show i < (pwBytes sz off data j xs).length by
-        rw [pwBytes_length, hmin]; omega), Option.map_some, Option.some.injEq] at this
-    rw [this, pwBytes_getElem, hmin]
-  apply List.ext_getElem
-  · simp only [List.length_map, List.length_append, List.length_take, pwBytes_length, hyl,
-      List.length_drop, hminS, hmin]
-    have : off + nn + (data.length - nn) = off + data.length := by omega
-    rw [this, pwSize_from sz off j nn k hnn]
-    have hP : off + nn ≤ pwSize sz off (max j (nn + k)) := by
-      rw [← pwSize_from sz off j nn k hnn]; exact Nat.le_trans hS (pwSize_ge _ _ _)
+theorem pwSize_le (sz off k n : Nat) (hk : k ≤ n) : pwSize sz off k ≤ max sz (off + n) := by
+  unfold pwSize; split <;> omega
+
+theorem pwSize_off (sz off j nn : Nat) (hoff : off ≤ sz) (hnn : nn ≤ j) :
+    off + nn ≤ pwSize sz off j := by
+  unfold pwSize; split
+  · have : nn = 0 := by omega
     omega
-  · intro i h1 h2
-    simp only [List.getElem_map]
-    rw [pwBytes_getElem _ _ _ _ _ _ (by simpa using h2), hmin]
-    have h2' : i < min (off + data.length) (pwSize sz off (max j (nn + k))) - off := by
-      simpa [pwBytes_length, hmin] using h2
-    rw [List.getElem_append]
-    split
-    · rename_i hlt
-      simp only [List.length_take] at hlt
-      rw [List.getElem_take, hval i (by omega)]
-      have c1 : ¬ off + i < off := by omega
-      have c2 : off + i < off + j := by omega
-      have c3 : off + i < off + max j (nn + k) := by omega
+  · omega
+
+@[simp] theorem pwPost_size (m : OsMeta) (off n k : Nat) :
+    (pwPost m off n k).size = pwSize m.size off k := rfl
+
+/-- A write's next attempt, from where a short one stopped, announces nothing new: the `OsMeta`
+it leaves is the first attempt's, with the size the two leave. -/
+theorem pwPost_step (m : OsMeta) (off n nn j k : Nat) (hoff : off ≤ m.size) (hnn : nn ≤ j)
+    (hj : j ≤ n) (hnl : nn < n) (hk : k ≤ n - nn) :
+    pwPost (pwPost m off n j) (off + nn) (n - nn) k = pwPost m off n (max j (nn + k)) := by
+  have hS := pwSize_off m.size off j nn hoff hnn
+  have hS2 := pwSize_le m.size off j n hj
+  have hS3 := pwSize_ge m.size off j
+  have hm1 : min off m.size = off := Nat.min_eq_left hoff
+  apply os.osMeta_eq
+  · exact pwSize_from _ _ _ _ _ hnn
+  · simp only [pwPost, announce_lo]; omega
+  · simp only [pwPost, announce_hi]; omega
+  · simp only [pwPost, announce_maps]
+  · simp only [pwPost, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi, hm1]
+    by_cases h3 : m.dhi ≤ m.dlo <;>
+      simp only [h3, if_true, if_false, show ¬ off + n ≤ off by omega] <;> (repeat' split) <;> omega
+  · simp only [pwPost, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi, hm1]
+    by_cases h3 : m.dhi ≤ m.dlo <;>
+      simp only [h3, if_true, if_false, show ¬ off + n ≤ off by omega] <;> (repeat' split) <;> omega
+  · simp only [pwPost, announce_zf, Option.map_map, hm1]
+    cases m.zf with
+    | none => rfl
+    | some z =>
+      simp only [Option.map_some, Function.comp, Option.some.injEq,
+        show off < off + n by omega, if_true, show off + nn + (n - nn) = off + n by omega]
+      (repeat' split) <;> omega
+
+/-- The bytes after a write's next attempt, from `nn ≤ j` (where a short attempt stopped), over
+the bytes as the first `j` bytes left them: as the first `max j (nn + k)` bytes leave them. -/
+theorem pwOut_step (m : OsMeta) (off nn : Nat) (data : List w8) (j k nst : Nat)
+    (xs ys : List ByteG) (zs : List Cands)
+    (hoff : off ≤ m.size) (hnn : nn ≤ j) (hj : j ≤ data.length) (hk : k ≤ data.length - nn)
+    (hlen : xs.length = min (off + data.length) m.size - off)
+    (hinv : (j = 0 ∧ nn = 0 ∧ ys = xs) ∨ os.PwOut m off data j xs ys) :
+    os.PwOut m off data (max j (nn + k)) xs
+      (ys.take nn ++ pwBytes (pwSize m.size off j) (off + nn) (data.drop nn) k nst (ys.drop nn) zs) := by
+  have hyl : ys.length = min (off + data.length) (pwSize m.size off j) - off := by
+    rcases hinv with ⟨rfl, -, rfl⟩ | h
+    · simp [pwSize, hlen]
+    · exact h.1
+  have hval : ∀ i (hi : i < ys.length), ys[i].1 = pwByte off data j xs (off + i) := by
+    rcases hinv with ⟨rfl, -, rfl⟩ | h
+    · intro i hi
+      simp only [pwByte, Nat.add_zero, show ¬ off + i < off by omega, if_false,
+        show off + i - off = i by omega, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi,
+        Option.getD_some]
+    · exact fun i hi => (h.2 i hi).1
+  have hcand : ∀ i (hi : i < ys.length), ∃ c0 extra, ys[i].2 = c0 ++ extra ∧
+      (∀ q ∈ extra, q.1 = data.getD i 0) ∧ ∀ (h : i < xs.length), c0 = xs[i].2 := by
+    rcases hinv with ⟨rfl, -, rfl⟩ | h
+    · intro i hi
+      exact ⟨ys[i].2, [], by simp, fun q hq => (by simp at hq), fun _ => rfl⟩
+    · intro i hi
+      obtain ⟨c0, extra, h1, -, h3, h4⟩ := (h.2 i hi).2
+      exact ⟨c0, extra, h1, h3, h4⟩
+  have hxy : xs.length ≤ ys.length := by
+    rw [hyl, hlen]; have := pwSize_ge m.size off j; omega
+  have hS := pwSize_off m.size off j nn hoff hnn
+  have hnny : nn ≤ ys.length := by rw [hyl]; omega
+  have hjy : j ≤ ys.length := by
+    rw [hyl]; unfold pwSize; split <;> omega
+  have hminS : min (off + nn) (pwSize m.size off j) = off + nn := Nat.min_eq_left hS
+  have hend : off + nn + (data.drop nn).length = off + data.length := by
+    rw [List.length_drop]; omega
+  have hpw := pwSize_from m.size off j nn k hnn
+  have hlenT : (ys.take nn ++ pwBytes (pwSize m.size off j) (off + nn) (data.drop nn) k nst
+      (ys.drop nn) zs).length = min (off + data.length) (pwSize m.size off (max j (nn + k))) - off := by
+    simp only [List.length_append, List.length_take, Nat.min_eq_left hnny, pwBytes_length, hend, hpw]
+    have : off + nn ≤ pwSize m.size off (max j (nn + k)) := by
+      rw [← hpw]; exact Nat.le_trans hS (pwSize_ge _ _ _)
+    omega
+  refine ⟨hlenT, fun i hi => ?_⟩
+  rw [List.getElem_append]
+  split
+  · rename_i hlt
+    simp only [List.length_take, Nat.min_eq_left hnny] at hlt
+    rw [List.getElem_take]
+    refine ⟨?_, ?_⟩
+    · rw [hval i (by omega)]
       unfold pwByte
-      simp only [if_neg c1, if_pos c2, if_pos c3]
-    · rename_i hlt
-      simp only [List.length_take, Nat.not_lt, Nat.min_eq_left hnny] at hlt
-      simp only [List.length_take, Nat.min_eq_left hnny]
-      have hlen2 : i - nn < (pwBytes (pwSize sz off j) (off + nn) (data.drop nn) k (ys.drop nn)).length := by
-        rw [pwBytes_length, hminS, List.length_drop,
-          show off + nn + (data.length - nn) = off + data.length by omega, pwSize_from sz off j nn k hnn]
-        omega
-      rw [pwBytes_getElem _ _ _ _ _ _ hlen2, hminS]
-      rw [show off + nn + (i - nn) = off + i by omega]
-      have c1 : ¬ off + i < off + nn := by omega
-      have c1' : ¬ off + i < off := by omega
+      rw [if_pos (show off + i < off + j by omega), if_pos (show off + i < off + max j (nn + k) by omega)]
+    · rcases hinv with ⟨-, rfl, -⟩ | h
+      · omega
+      · exact (h.2 i (by omega)).2
+  · rename_i hlt
+    simp only [List.length_take, Nat.min_eq_left hnny, Nat.not_lt] at hlt
+    have hi2 : i - nn < (pwBytes (pwSize m.size off j) (off + nn) (data.drop nn) k nst (ys.drop nn) zs).length := by
+      simp only [pwBytes_length, hend, hpw]
+      have : off + nn ≤ pwSize m.size off (max j (nn + k)) := by
+        rw [← hpw]; exact Nat.le_trans hS (pwSize_ge _ _ _)
+      rw [hlenT] at hi
+      omega
+    try simp only [List.length_take, Nat.min_eq_left hnny]
+    have hdi : (data.drop nn).getD (i - nn) 0 = data.getD i 0 := by
+      rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_drop,
+        show nn + (i - nn) = i by omega]
+    refine ⟨?_, ?_⟩
+    · rw [pwBytes_getElem _ _ _ _ _ _ _ _ hi2, show off + nn + (i - nn) = off + i by omega]
       unfold pwByte
-      rw [if_neg c1, if_neg c1']
       by_cases c2 : off + i < off + nn + k
-      · have c3 : off + i < off + max j (nn + k) := by omega
-        rw [if_pos c2, if_pos c3, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
-          List.getElem?_drop, show nn + (off + i - (off + nn)) = off + i - off by omega]
-      · rw [if_neg c2]
-        have hi : i < ys.length := by
-          rw [hyl]
-          have := pwSize_from sz off j nn k hnn
-          have hge : pwSize sz off (max j (nn + k)) ≤ max (pwSize sz off j) (off + nn + k) := by
-            rw [← this]; unfold pwSize; split <;> omega
-          omega
-        rw [List.getD_eq_getElem?_getD, List.getElem?_drop,
-          show nn + (off + i - (off + nn)) = i by omega, List.getElem?_eq_getElem hi]
-        simp only [Option.getD_some]
-        rw [hval i hi]
-        unfold pwByte
-        rw [if_neg c1']
-        by_cases c3 : off + i < off + j
-        · rw [if_pos c3, if_pos (show off + i < off + max j (nn + k) by omega)]
-        · rw [if_neg c3, if_neg (show ¬ off + i < off + max j (nn + k) by omega)]
+      · rw [if_pos c2, if_pos (show off + i < off + max j (nn + k) by omega),
+          show off + i - (off + nn) = i - nn by omega, hdi, show off + i - off = i by omega]
+      · rw [if_neg c2, show off + i - (off + nn) = i - nn by omega, List.getD_eq_getElem?_getD,
+          List.getElem?_drop, show nn + (i - nn) = i by omega]
+        by_cases hiy : i < ys.length
+        · rw [List.getElem?_eq_getElem hiy, Option.getD_some, hval i hiy]
+          unfold pwByte
+          by_cases c3 : off + i < off + j
+          · rw [if_pos c3, if_pos (show off + i < off + max j (nn + k) by omega)]
+          · rw [if_neg c3, if_neg (show ¬ off + i < off + max j (nn + k) by omega)]
+        · rw [List.getElem?_eq_none (by omega), Option.getD_none]
+          rw [if_neg (show ¬ off + i < off + max j (nn + k) by omega), show off + i - off = i by omega,
+            List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega), Option.getD_none]
+    · simp only [pwBytes, List.getElem_map, List.getElem_range, List.length_drop]
+      rw [show (data.drop nn).getD (i - nn) 0 = data.getD i 0 from hdi]
+      by_cases hiy : i < ys.length
+      · rw [if_pos (show i - nn < ys.length - nn by omega), List.getD_eq_getElem?_getD,
+          List.getElem?_drop, show nn + (i - nn) = i by omega, List.getElem?_eq_getElem hiy,
+          Option.getD_some]
+        obtain ⟨c0, extra, h1, h3, h4⟩ := hcand i hiy
+        refine ⟨c0, extra ++ [(data.getD i 0, nst)], by rw [h1, List.append_assoc], by simp, ?_, h4⟩
+        intro q hq
+        rcases List.mem_append.1 hq with hq | hq
+        · exact h3 q hq
+        · rw [List.mem_singleton] at hq; subst hq; rfl
+      · rw [if_neg (show ¬ i - nn < ys.length - nn by omega)]
+        refine ⟨_, [(data.getD i 0, nst)], rfl, by simp, fun q hq => by
+          rw [List.mem_singleton] at hq; subst hq; rfl, fun h => absurd h (by omega)⟩
 
 theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl data dqs off dq d q m xs hwr hoff hgap hbig hn hn2 hxl hq hvk
+  intro f fd name dqf sl data dqs off dq d m xs hwr hoff hgap hbig hn hn2 hxl
   have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
@@ -146,37 +205,25 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     have h1 := Hlen.1; have h2 := Hlen.2
     simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
   -- the invariant: the file as a write of the first `j` bytes left it, `nn ≤ j` of them written
-  have hm0 : m = { m with size := pwSize m.size off.toNat 0, hi := m.hi, vk := m.vk } := by
-    simp [pwSize]
   obtain ⟨nnv, hnnv⟩ : ∃ nnv : w64, nnv = W64 0 := ⟨_, rfl⟩
   conv in (occs := 4) (#(W64 0) : val) => rw [← hnnv]
-  generalize hj0 : (0 : Nat) = j
-  have hj : j ≤ data.length := by omega
-  have hnn : nnv.toNat ≤ j := by subst hnnv; rw [← hj0]; decide
-  have hys : xs.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst := by
-    rw [← hj0, pwBytes_zero _ _ _ _ (by rw [hmin0]; exact hxl)]
-  have hh : m.hi ≤ m.hi := by omega
-  ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own q) m ⊢
-    osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := m.hi, vk := m.vk }) by
-      rw [← hj0, ← hm0]) $$ Hm
-  clear hm0
+  obtain ⟨mj, hmj⟩ : ∃ mj, mj = m := ⟨_, rfl⟩
+  ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own 1) m ⊢ osMeta d.ino (DFrac.own 1) mj by
+    rw [hmj]) $$ Hm
   obtain ⟨ys, hy⟩ : ∃ ys, ys = xs := ⟨_, rfl⟩
   ihave Hbs := (show osBytes (GF := GF) d.ino off.toNat (DFrac.own 1) xs ⊢
     osBytes d.ino off.toNat (DFrac.own 1) ys by rw [hy]) $$ Hbs
-  replace hys : ys.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst := by
-    rw [hy]; exact hys
-  clear hy
-  obtain ⟨h, hhe⟩ : ∃ h, h = m.hi := ⟨_, rfl⟩
-  obtain ⟨v, hve⟩ : ∃ v, v = m.vk := ⟨_, rfl⟩
-  ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own q)
-      ({ m with size := pwSize m.size off.toNat j, hi := m.hi, vk := m.vk }) ⊢
-    osMeta d.ino (DFrac.own q) ({ m with size := pwSize m.size off.toNat j, hi := h, vk := v })
-      by rw [hhe, hve]) $$ Hm
-  replace hh : m.hi ≤ h := by omega
-  have hv1 : q = 1 ∨ v = none := by rw [hve]; exact hvk
-  have hv2 : m.vk = none → v = none := fun h0 => by rw [hve, h0]
-  clear hhe hj0 hnnv hve
-  iloeb as IH generalizing %j %nnv %hnn %ys %h %v %hj %hys %hh %hv1 %hv2 Hm Hbs Hc Hosfd Hsl Hfd HΦ
+  generalize hj0 : (0 : Nat) = j
+  have hj : j ≤ data.length := by omega
+  have hnn : nnv.toNat ≤ j := by subst hnnv; rw [← hj0]; decide
+  have hnl : nnv.toNat < data.length := by
+    subst hnnv; have : (W64 0).toNat = 0 := rfl
+    omega
+  have hinv : (j = 0 ∧ nnv.toNat = 0 ∧ mj = m ∧ ys = xs) ∨
+      (mj = pwPost m off.toNat data.length j ∧ os.PwOut m off.toNat data j xs ys) :=
+    .inl ⟨hj0.symm, by subst hnnv; rfl, hmj, hy⟩
+  clear hmj hy hj0 hnnv
+  iloeb as IH generalizing %j %nnv %mj %ys %hnn %hnl %hj %hinv Hm Hbs Hc Hosfd Hsl Hfd HΦ
   -- one attempt, from `nn`
   have hnnz : sint.Z nnv = nnv.toNat := by
     simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
@@ -199,15 +246,17 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   ihave Hsl := (ownSlice_split_all nnv sl dqs data ⟨by omega, by omega⟩).2 $$ [Hsl1 Hsl2]
   · rw [hnnn]; iframe
   -- the bytes and cells this attempt takes
+  have hmsz : mj.size = pwSize m.size off.toNat j := by
+    rcases hinv with ⟨rfl, -, rfl, -⟩ | ⟨rfl, -⟩
+    · simp [pwSize]
+    · rfl
+  have hmaps : mj.maps = m.maps := by
+    rcases hinv with ⟨-, -, rfl, -⟩ | ⟨rfl, -⟩ <;> simp [pwPost]
   have hyl : ys.length = min (off.toNat + data.length) (pwSize m.size off.toNat j) - off.toNat := by
-    have := congrArg List.length hys
-    simp only [List.length_map, pwBytes_length, hmin0] at this; exact this
-  have hsz : m.size ≤ pwSize m.size off.toNat j := by unfold pwSize; split <;> omega
-  have hS : off.toNat + nnv.toNat ≤ pwSize m.size off.toNat j := by
-    unfold pwSize; split
-    · have : nnv.toNat = 0 := by omega
-      omega
-    · omega
+    rcases hinv with ⟨rfl, -, -, rfl⟩ | ⟨-, h⟩
+    · simp [pwSize, hxl]
+    · exact h.1
+  have hS := pwSize_off m.size off.toNat j nnv.toNat hgap hnn
   have hnny : nnv.toNat ≤ ys.length := by rw [hyl]; omega
   ihave ⟨Hbs1, Hbs2⟩ := (show osBytes (GF := GF) d.ino off.toNat (DFrac.own 1) ys ⊢
       osBytes d.ino off.toNat (DFrac.own 1) (ys.take nnv.toNat) ∗
@@ -225,42 +274,38 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   have hminS : min (off.toNat + nnv.toNat) (pwSize m.size off.toNat j) = off.toNat + nnv.toNat :=
     Nat.min_eq_left hS
   have hdl : (data.drop nnv.toNat).length = data.length - nnv.toNat := List.length_drop
-  wp_apply wp_osPWriteStart fd (off + nnv) (data.drop nnv.toNat) dq d q
-    { m with size := pwSize m.size off.toNat j, hi := h, vk := v } (ys.drop nnv.toNat)
-    CoPset.subseteq_top hwr hoffv' (by rw [hoffv]; exact hS)
-    (by rw [hoffv, hminS, hdl, List.length_drop, hyl]; simp only; omega)
-    (fun hr => hq (by simp only [hoffv, hdl] at hr; omega))
-    $$ Hinv Hosfd Hm [Hbs2] [Hc2] as %t Hosfd Ht
-  · rw [hoffv, hminS]; iexact Hbs2
-  · rw [hoffv, hminS, hdl, show off.toNat + nnv.toNat + (data.length - nnv.toNat) =
-      off.toNat + data.length by omega]; iexact Hc2
-  wp_apply wp_osPWriteFinish t d.ino (off + nnv).toNat (data.drop nnv.toNat) q
-    { m with size := pwSize m.size off.toNat j, hi := h, vk := v } (ys.drop nnv.toNat)
-    hv1 CoPset.subseteq_top $$ Hinv Ht as %k %e %hke Hm Hbs2 Hc2
-  obtain ⟨hk, hke⟩ := hke
+  have hdne : data.drop nnv.toNat ≠ [] := by
+    intro h; have := congrArg List.length h; rw [hdl] at this; simp at this; omega
+  have hend : off.toNat + nnv.toNat + (data.length - nnv.toNat) = off.toNat + data.length := by
+    omega
+  wp_apply wp_osPWriteStart fd (off + nnv) (data.drop nnv.toNat) dq d mj (ys.drop nnv.toNat)
+    CoPset.subseteq_top hwr hoffv' (by rw [hoffv, hmsz]; exact hS) hdne
+    (by rw [hoffv, hdl, List.length_drop, hyl, hmsz, hend]; omega)
+    $$ Hinv Hosfd Hm [Hbs2] [Hc2] as %t %nst %- Hosfd Ht
+  · rw [hoffv]; iexact Hbs2
+  · rw [hoffv, hdl, hend, hmaps]; iexact Hc2
+  wp_apply wp_osPWriteFinish t d.ino (off + nnv).toNat (data.drop nnv.toNat) mj
+    (ys.drop nnv.toNat) nst CoPset.subseteq_top $$ Hinv Ht as %k %e %zs %hke Hm Hbs2 Hc2
+  obtain ⟨hk, hke, -, -⟩ := hke
   rw [hdl] at hk
   -- the file as a write of the first `max j (nn + k)` bytes left it
-  have hpw : pwSize (pwSize m.size off.toNat j) (off.toNat + nnv.toNat) k =
-      pwSize m.size off.toNat (max j (nnv.toNat + k)) := pwSize_from _ _ _ _ _ hnn
-  ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own q)
-      (pwPost { m with size := pwSize m.size off.toNat j, hi := h, vk := v } (off + nnv).toNat
-          (data.drop nnv.toNat).length k) ⊢
-    osMeta d.ino (DFrac.own q)
-      ({ m with size := pwSize m.size off.toNat (max j (nnv.toNat + k)),
-                hi := max h (off.toNat + data.length),
-                vk := vkHit v (off.toNat + nnv.toNat) (off.toNat + nnv.toNat + k) })
-      by
-        unfold pwPost; rw [hoffv, hpw, hdl, hminS]; simp only [pwMeta]
-        rw [show off.toNat + nnv.toNat + (data.length - nnv.toNat) = off.toNat + data.length by omega]
-        ) $$ Hm
+  have hmeta : pwPost mj (off + nnv).toNat (data.drop nnv.toNat).length k =
+      pwPost m off.toNat data.length (max j (nnv.toNat + k)) := by
+    rw [hoffv, hdl]
+    rcases hinv with ⟨rfl, h0, rfl, -⟩ | ⟨rfl, -⟩
+    · rw [h0]; simp
+    · exact pwPost_step m off.toNat data.length nnv.toNat j k hgap hnn hj hnl hk
+  ihave Hm := (show osMeta (GF := GF) d.ino (DFrac.own 1)
+      (pwPost mj (off + nnv).toNat (data.drop nnv.toNat).length k) ⊢
+    osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length (max j (nnv.toNat + k)))
+      by rw [hmeta]) $$ Hm
   ihave Hbs := (show osBytes (GF := GF) d.ino off.toNat (DFrac.own 1) (ys.take nnv.toNat) ∗
-      osBytes d.ino (min (off + nnv).toNat (pwSize m.size off.toNat j)) (DFrac.own 1)
-        (pwBytes (pwSize m.size off.toNat j) (off + nnv).toNat (data.drop nnv.toNat) k
-          (ys.drop nnv.toNat)) ⊢
+      osBytes d.ino (off + nnv).toNat (DFrac.own 1)
+        (pwBytes mj.size (off + nnv).toNat (data.drop nnv.toNat) k nst (ys.drop nnv.toNat) zs) ⊢
       osBytes d.ino off.toNat (DFrac.own 1)
         (ys.take nnv.toNat ++ pwBytes (pwSize m.size off.toNat j) (off.toNat + nnv.toNat)
-          (data.drop nnv.toNat) k (ys.drop nnv.toNat)) by
-    rw [hoffv, hminS]
+          (data.drop nnv.toNat) k nst (ys.drop nnv.toNat) zs) by
+    rw [hoffv, hmsz]
     unfold osBytes
     refine BIBase.Entails.trans ?_ (bytesG_append _ _ _ _ _ _).2
     rw [List.length_take, Nat.min_eq_left hnny]) $$ [Hbs1 Hbs2]
@@ -268,18 +313,12 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   ihave Hc2 := mcells_any _ _ _ _ $$ Hc2
   ihave Hc := mcellsAny_merge m.maps off.toNat (off.toNat + nnv.toNat) (off.toNat + data.length)
     (by omega) (by omega) $$ [Hc1 Hc2]
-  · rw [hoffv, hminS, hdl, show off.toNat + nnv.toNat + (data.length - nnv.toNat) =
-      off.toNat + data.length by omega]; iframe
-  have hv1' : q = 1 ∨ vkHit v (off.toNat + nnv.toNat) (off.toNat + nnv.toNat + k) = none := by
-    rcases hv1 with h1 | h1
-    · exact .inl h1
-    · exact .inr (by rw [h1]; rfl)
-  have hv2' : m.vk = none → vkHit v (off.toNat + nnv.toNat) (off.toNat + nnv.toNat + k) = none :=
-    fun h0 => by rw [hv2 h0]; rfl
-  have hys' := pwBytes_from m.size off.toNat nnv.toNat data j k xs ys hgap hnn hj hk
-    hxl hys
+  · rw [hoffv, hdl, hend, hmaps]; iframe
+  have hys' := pwOut_step m off.toNat nnv.toNat data j k nst xs ys zs hgap hnn hj hk hxl
+    (by rcases hinv with ⟨h1, h2, -, h3⟩ | ⟨-, h⟩
+        · exact .inl ⟨h1, h2, h3⟩
+        · exact .inr h)
   have hj' : max j (nnv.toNat + k) ≤ data.length := by omega
-  have hh' : m.hi ≤ max h (off.toNat + data.length) := by omega
   have hsln : sl.len = W64 data.length := by
     apply BitVec.eq_of_toInt_eq
     simp only [sint.Z] at hslz
@@ -287,8 +326,8 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %(max j (nnv.toNat + k)) %nnv %(by omega) %_ %(max h (off.toNat + data.length))
-      %_ %hj' %hys' %hh' %hv1' %hv2' Hm Hbs Hc Hosfd Hsl Hfd HΦ
+    iapply IH $$ %(max j (nnv.toNat + k)) %nnv %_ %_ %(by omega) %hnl %hj' %(.inr ⟨rfl, hys'⟩)
+      Hm Hbs Hc Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
     have hWk : (W64 k).toNat = k := by
@@ -309,7 +348,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hv2', hys', hh', .inl ⟨by omega, hsln, rfl⟩⟩
+          exact ⟨hj', hys', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false he0]
         wp_auto
         simp only [decide_eq_false he0, Bool.not_false]
@@ -320,7 +359,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hv2', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
       wp_auto
       by_cases he0 : e = W64 0
@@ -336,9 +375,14 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
             omega
           · exact hkk
           · exact absurd he0 hne
-        iapply IH $$ %(max j (nnv.toNat + k)) %(nnv + W64 k) %(by rw [hnk]; omega) %_
-          %(max h (off.toNat + data.length)) %_ %hj' %hys'
-          %hh' %hv1' %hv2' [Hm] [Hbs] [Hc] Hosfd Hsl Hfd HΦ
+        have hnl' : (nnv + W64 k).toNat < data.length := by
+          rw [hnk]
+          have : nnv.toNat + k ≠ data.length := by
+            intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
+            rw [hnk, hsln]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+          omega
+        iapply IH $$ %(max j (nnv.toNat + k)) %(nnv + W64 k) %_ %_ %(by rw [hnk]; omega) %hnl'
+          %hj' %(.inr ⟨rfl, hys'⟩) [Hm] [Hbs] [Hc] Hosfd Hsl Hfd HΦ
         · iexact Hm
         · iexact Hbs
         · iexact Hc
@@ -351,7 +395,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hv2', hys', hh', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', .inr ⟨rfl, by intro h; cases h⟩⟩
 
 end proof
 

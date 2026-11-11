@@ -31,7 +31,7 @@ variable [os.Assumptions]
 /-- See the file header. -/
 abbrev os.File.ReadAt.spec : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
-    (off : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (xs : List (w8 × Bool)),
+    (off : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG),
   d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
   off.toNat + vs.length ≤ m.size → xs.length = vs.length →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
@@ -58,7 +58,7 @@ they reach every held byte inside `[off, off + len(b))`. A failure is a `*PathEr
 offset (an `int64`) would wrap, and `pread` take a negative one. -/
 abbrev os.File.ReadAt.specRacy : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
-    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List (w8 × Bool)))
+    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List ByteG))
     (eof : GoInterface),
   d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗

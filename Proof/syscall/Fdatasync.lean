@@ -23,9 +23,9 @@ variable [sem : go.Semantics]
 variable [syscall.Assumptions]
 
 theorem syscall.Fdatasync.wp_proof : syscall.Fdatasync.spec (GF := GF) (hG := hG) := by
-  intro fd dq d m lo xs
+  intro fd dq d m lo xs hcov
   wp_start as ⟨#Hinv, Hfd, Hm, Hbs⟩
-  wp_apply wp_osFsync fd dq d m lo xs CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
+  wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
   iapply wp_errno
   iapply HΦ
   iframe

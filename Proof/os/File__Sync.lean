@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
-  intro f fd name dqf dq d m lo xs
+  intro f fd name dqf dq d m lo xs hcov
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hbs⟩
   unfold os.model.inner
@@ -33,7 +33,7 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   iStructNamed Hf2
   wp_auto
   wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
-  wp_apply wp_osFsync fd dq d m lo xs CoPset.subseteq_top $$ Hinv Hosfd Hm Hbs as %e Hr Hosfd
+  wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hosfd Hm Hbs as %e Hr Hosfd
   by_cases he4 : e = W64 4
   · icases Hr with (⟨%he, -, -⟩ | ⟨%he, -, -⟩)
     · exact absurd (he4 ▸ he) (by decide)

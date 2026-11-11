@@ -1,7 +1,7 @@
 /-
 Specs of `golang.org/x/sys/unix`'s trusted models of `Fallocate` (mode 0, growing the file, and
 `FALLOC_FL_KEEP_SIZE`) and `FcntlFlock` (the commands that set a lock), over the extension's
-(`GooseLang/Ext/OsFs/Falloc.lean`). Lean-first (no Rocq counterpart).
+(`GooseLang/Ext/Fs/Falloc.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -26,25 +26,33 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [golang_org.x.sys.unix.Assumptions]
 
-/-- `unix.Fallocate(fd, 0, off, len)`, with the file's `OsMeta` whole: on success the file is grown
-to `max size (off + len)`; on failure the client keeps the fd only. -/
+/-- `unix.Fallocate(fd, 0, off, len)`, with the file's `OsMeta` whole and the client's halves of
+the mapped cells over the bytes it grows the file over: a resize to `tg := max size (off + len)`
+(`Falloc.lean`), its change number `n`. On success the file is grown to `tg`, the new bytes zeros
+(`rsDone`); on failure nothing landed (`rsUndone`) or a prefix of the growth did (`rsDone` at its
+end). -/
 theorem golang_org.x.sys.unix.Fallocate.wp_grow (fd off len : w64) (dq : DFrac) (d : OsFd)
-    (m : OsMeta) (hi : Nat) (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt)
-    (hhi : MapsBelow m.maps hi) :
+    (m : OsMeta) (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt) :
     {{ osInv (GF := GF) ∗ osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
-        mcellsAny (GF := GF) m.maps m.size hi }}
+        mcellsAny (GF := GF) m.maps m.size (max m.size (off.toNat + len.toNat)) }}
       (App (App (App (App (Val (@! golang_org.x.sys.unix.Fallocate)) (Val #fd)) (Val #(W32 0)))
         (Val #off)) (Val #len))
-    {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
-        ((⌜e = 0⌝ ∗ osGrown d.ino m (max m.size (off.toNat + len.toNat)) hi) ∨ ⌜e ≠ 0⌝) }} := by
+    {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗ ∃ n : Nat,
+        ((⌜e = 0⌝ ∗ rsDone d.ino (max m.size (off.toNat + len.toNat))
+            (max m.size (off.toNat + len.toNat)) m n) ∨
+         (⌜e ≠ 0⌝ ∗ (rsUndone d.ino (max m.size (off.toNat + len.toNat)) m [] n ∨
+           ∃ w, ⌜m.size ≤ w ∧ w ≤ max m.size (off.toNat + len.toNat)⌝ ∗
+             rsDone d.ino (max m.size (off.toNat + len.toNat)) w m n))) }} := by
   wp_start as ⟨#Hinv, Hfd, Hm, Hc⟩
-  wp_apply wp_osFallocStart fd off len dq d m hi CoPset.subseteq_top hwr hoff hlen hhi
-    $$ Hinv Hfd Hm Hc as %t Hfd Ht
-  wp_apply wp_osFallocFinish t d.ino _ m hi CoPset.subseteq_top (Nat.le_max_left _ _) hhi
+  wp_apply wp_osFallocStart fd off len dq d m CoPset.subseteq_top hwr hoff hlen
+    $$ Hinv Hfd Hm Hc as %t %n Hfd Ht
+  wp_apply wp_osFallocFinish t d.ino _ m n (Nat.le_max_left _ _) CoPset.subseteq_top
     $$ Hinv Ht as %e Hr
   iapply wp_errno
   iapply HΦ
-  iframe
+  iframe Hfd
+  iexists n
+  iexact Hr
 
 /-- `unix.Fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: no visible change, any errno. -/
 theorem golang_org.x.sys.unix.Fallocate.wp_keep (fd off len : w64) (dq : DFrac) (d : OsFd)
