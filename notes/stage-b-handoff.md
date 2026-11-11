@@ -41,14 +41,30 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `/shared/tmp/stageB/gate/report.txt`. Memory: 8.68 GiB peak, 334 s. Rerun on the fresh
     `.lake/tcb.json` is a cheap follow-up (`--json .lake/tcb.json`).
 
+- **B1a** (after CP0; additive, nothing landed): commits `bcc4e72331`, `97feddd906`.
+  - Gate triage: no soundness finding; every rule-3/7 hit but the bug is an artefact, entries with
+    reasons in `etc/axiom-tok-allow.txt`; `axiom-tok-check.py` recomputes rule 5 with the entries
+    (`retaint`). Fresh run: `/shared/tmp/stageB/gate2/`; new texts: `/shared/tmp/stageB/gate4/`.
+  - `Proof/google_golang_org/grpc/InvGrpcRun.lean` (vocabulary, 5 axiom constants, 2 agree axioms,
+    run contracts, `grpcAccepted`, `grpcServeTokR`, unary adapter, `grpcFullName_inj`);
+    `TrustedCode/google_golang_org/grpcServeModel.lean` (the model); four leaves
+    `Spec|Proof/google_golang_org/grpc/model/{acceptRun,acceptRunConns,respond,finishStream}.lean`;
+    `grpc.model.Serve.wp_proof` proved (`Proof/google_golang_org/grpc/model/Serve.lean`).
+  - `etc/verified-code.py`: `ASSUMED_MODELS`, model-only names skipped.
+  - **CP1a Freeze package: `/shared/tmp/stageB/freeze-cp1a.md`. STOPPED for review.**
+
 ## Next, in order
 
-1. (done)
-2. Gate report-only (`etc/AxiomTokCheck.lean`, `etc/axiom-tok-check.py`), import-all memory probe,
-   fresh `tcb.json` (a subagent was on it).
-3. goose `trusted = ["Server.Serve"]` dry run (a subagent was on it).
-4. stmtdiff list of exported statements (`/shared/tmp/ptm-cp3/stmtdiff.py`).
-5. CP0 report; STOP. B1a waits for the coordinator's go.
+1. CP1a review (etcd-grove-81): §7 of the package (the `isPanic` conjunct, the forms, `Dn`).
+2. B1b after pf8c C3: restatement and wiring (r5 §4.1 B1b): `trusted = ["Server.Serve"]` with
+   `Server.Serve.impl := model.Serve`; `grpcServeTokR` → `grpcServeTok`; `grpc.start`/`start'`;
+   `isGrpcRpcMd`/`isGrpcStreamMd` over `isGrpcRpcAt`/`isGrpcStreamAt`; the stream contract returns
+   `S` and the stream adapter `grpcStreamRunOk_of_pools`; delete `grpcSlotPool`, `grpcServes*`,
+   `grpc.serve*`; `RegisterHealthServer`, `srvInterceptorOk`, `bridge.New`; docstrings.
+3. Before any landing: full build, `etc/tcb-report.py --check --update` (+11 in B1a, net +1 after
+   B1b), delete `Scratch/`.
+4. Gate for CP3: walk `□` callbacks independently (lifts the 15 caps), neutral case through defined
+   handles (the `Dn` transfer), then `--check`.
 
 ## Pitfalls
 
@@ -56,4 +72,8 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
   `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G`
   (`/shared/tmp/stageB/fullbuild.sh`).
 - `Scratch/` is a lean-check-only directory; delete it before any landing.
+- GooseLang steps `App f (Val v)` and a `let:` of `v` only if `v.isPanic = false`: a raw `val`
+  (a handler `mh`) needs the fact (`grpcAccepted`'s stream arm has it); `#x` has it by
+  `isPanic_intoVal`. `#mh` with `mh : val` is NOT `mh` (`intoVal` is abstract).
+- `--goal L` of `etc/lean-check.py` shows the state before line L's tactic.
 - The examples pin etcd at `a4d2bb1720b9` (not `673da07c8f` as the brief said).
