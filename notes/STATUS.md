@@ -209,8 +209,8 @@ example leaves the `LeaseCheckpoint` feature off (`examples/lib/etcdstart/common
 `nil`, and the forwarded path runs only under `leaseTTLRow` (one member, its own leader). Go has no
 levels: the real risk is only a reader-count overflow, which `⌜threadBound GF ≤ 2 ^ 30 - 1⌝` bounds as
 long as no goroutine nests two read locks of one mutex, and on the checkpointer path `Renew` holds none
-of its locks (it unlocks `le.mu` before calling `cp`). Reach: the results resting on either axiom
-(`etc/tcb-report.py --roots`, CP3 report). To close it: state the scope in the two specs (a premise
+of its locks (it unlocks `le.mu` before calling `cp`). Reach (`etc/tcb-report.py --roots`, at stage B's CP3): `leaseTimeToLive` 34 roots, 9 of them `*_safe`;
+`lessor.Renew` 3 roots, no `*_safe`. To close it: state the scope in the two specs (a premise
 `cp = nil` / the leader path), or restate them over the run's bundle.
 
 ## Axiom sweep batch 3: start tokens, the lessor, the snapshot stream, membership (2026-11-07, etcd-grove-56; repairs decided, not started)

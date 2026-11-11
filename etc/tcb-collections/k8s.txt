@@ -61,15 +61,13 @@ axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
+axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcDialOptIs
 axiom grpcPeerOpt
 axiom grpcResolverAt
-axiom grpcServes
-axiom grpcServesStream
-axiom grpcServesStream_persistent
-axiom grpcServes_persistent
+axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom insecure.NewCredentials.wp_proof
 axiom k8sfeature.featureOff_persistent
