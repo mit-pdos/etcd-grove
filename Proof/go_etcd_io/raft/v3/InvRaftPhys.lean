@@ -567,7 +567,10 @@ def raftOwn (l : Loc) (v : raft) : IProp GF :=
     "H_readOnly" ∷ l.[raft, go!"readOnly"] ↦ v.readOnly' ∗
     "H_electionElapsed" ∷ l.[raft, go!"electionElapsed"] ↦ v.electionElapsed' ∗
     "H_heartbeatElapsed" ∷ l.[raft, go!"heartbeatElapsed"] ↦ v.heartbeatElapsed' ∗
-    "H_checkQuorum" ∷ l.[raft, go!"checkQuorum"] ↦ v.checkQuorum' ∗
+    -- (2026-11-11, Q8 stage 1 slice 25n) never written after `newRaft`: persistent, so that a later
+    -- state of the same struct has the same `cq` (`ownRaftPhysC_cq`: a traced node keeps check-quorum
+    -- off, `rnTrace`)
+    "#H_checkQuorum" ∷ l.[raft, go!"checkQuorum"] ↦□ v.checkQuorum' ∗
     "H_preVote" ∷ l.[raft, go!"preVote"] ↦ v.preVote' ∗
     "H_heartbeatTimeout" ∷ l.[raft, go!"heartbeatTimeout"] ↦ v.heartbeatTimeout' ∗
     "H_electionTimeout" ∷ l.[raft, go!"electionTimeout"] ↦ v.electionTimeout' ∗
@@ -593,6 +596,7 @@ theorem raftOwn_of_pts (l : Loc) (v : raft) :
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hf
   ipersist id
+  ipersist checkQuorum
   ipersist logger
   ipersist stepDownOnRemoval
   ipersist traceLogger
@@ -605,6 +609,10 @@ theorem raftOwn_of_pts (l : Loc) (v : raft) :
 theorem raftOwn_id (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"id"] ↦□ v.id' := by
   iintro H; unfold raftOwn; iNamed H; iexact H_id
+
+theorem raftOwn_cq (l : Loc) (v : raft) :
+    ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"checkQuorum"] ↦□ v.checkQuorum' := by
+  iintro H; unfold raftOwn; iNamed H; iexact H_checkQuorum
 
 theorem raftOwn_sdr (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"stepDownOnRemoval"] ↦□ v.stepDownOnRemoval' := by
@@ -755,11 +763,6 @@ theorem raftOwn_access_store_heartbeatElapsed (l : Loc) (v : raft) (x : w64) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"heartbeatElapsed"] ↦ v.heartbeatElapsed') (l.[raft, go!"heartbeatElapsed"] ↦ x)
       (raftOwn l v) (raftOwn l { v with heartbeatElapsed' := x }) := by
   raftOwn_access H_heartbeatElapsed
-
-theorem raftOwn_access_load_checkQuorum (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"checkQuorum"] ↦ v.checkQuorum') (l.[raft, go!"checkQuorum"] ↦ v.checkQuorum')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_checkQuorum
 
 theorem raftOwn_access_load_preVote (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"preVote"] ↦ v.preVote') (l.[raft, go!"preVote"] ↦ v.preVote')
@@ -1939,8 +1942,21 @@ theorem raft.wp_load_checkQuorumC (r : Loc) (id : w64) (s : NState) :
     {{ RET #s.cq; ownRaftPhysCV c V r id s }} := by
   iintro %Φ H HΦ
   iNamed_physC H
-  wp_apply wp_load_access _ rv.checkQuorum' _ (raftOwn_access_load_checkQuorum _ _) $$ Hr as Hr
+  ihave #Hf := raftOwn_cq _ _ $$ Hr
+  wp_apply wp_load_pers _ rv.checkQuorum' $$ Hf
   rw [HnoCheckQuorum]; iapply HΦ; resealC c s
+
+/-- (2026-11-11, Q8 stage 1 slice 25n) The field `checkQuorum`, persistent at `s.cq`: nobody writes it
+after `newRaft`, so a later state of the same struct has the same `cq` (as `ownRaftPhysC_sdr`). -/
+theorem ownRaftPhysC_cq (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      r.[raft, go!"checkQuorum"] ↦□ s.cq ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  ihave #Hf := raftOwn_cq _ _ $$ Hr
+  isplitr
+  · rw [← HnoCheckQuorum]; iexact Hf
+  resealC c s
 
 theorem raft.wp_load_preVoteC (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}

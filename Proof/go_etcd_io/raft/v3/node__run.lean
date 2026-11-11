@@ -537,7 +537,7 @@ theorem node.run.wp_proof
       have Hgm := Hn.1
       have Hn := Hn.2
       -- `_, okBefore := r.trk.Progress[r.id]`: the node is a voter
-      icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic $$ Hrn Hrnraft
+      icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic HtrG $$ Hrn Hrnraft
         with ⟨%s, %Hin, Hphys, Hback⟩
       icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htb⟩
       icases ownTrackerC_progress_map _ _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
@@ -556,7 +556,7 @@ theorem node.run.wp_proof
         Hstatic Hn
         HtrG $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %ls ⟨Hrn, -, Hcsp, %Hcs⟩
       -- `_, okAfter := r.trk.Progress[r.id]`: still a voter
-      icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic $$ Hrn Hrnraft
+      icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic HtrG $$ Hrn Hrnraft
         with ⟨%s2, %Hin2, Hphys, Hback⟩
       try wp_auto
       icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Htb⟩
