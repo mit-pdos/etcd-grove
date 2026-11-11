@@ -90,7 +90,7 @@ theorem wp_WithTimeout_bgMd (hWT : context.WithTimeoutBackgroundMd.spec (GF := G
     iexact Hpkg
   ihave #Hall := ctxErrClientAllW_of wp_ErrAny hAs $$ Hpkg
   iunfold ctxErrClientAllW at Hall
-  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd, #Hlib⟩
+  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd, #Hlib, -⟩
   · iframe #
   iapply HΦ
   iframe #

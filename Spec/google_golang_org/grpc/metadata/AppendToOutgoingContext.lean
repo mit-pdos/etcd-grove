@@ -7,6 +7,7 @@ module
 
 public import Proof.google_golang_org.grpc.metadata.Outgoing
 public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.context.LibKeysChain
 
 @[expose] public section
 
@@ -34,7 +35,10 @@ changed, as `withVersion`'s), and outgoing metadata `ctx`'s with `v` appended to
 merge `added` after `md`). Its panic on an odd number of arguments is unreachable (two).
 (premise-fixes-7) It reads `ctx.Value(mdOutgoingKey{})` (`metadata.go:254`), so it takes
 `metadata.outgoingCtxOk ctx`, and the context it returns has it too: its `Value` at that key is the
-new `rawMD` (`builtRawMD`). -/
+new `rawMD` (`builtRawMD`). (premise-fixes-8, C1) So does Perennial's chain
+(`metadata.outgoingCtxOkC ci`): `ci` is the `*valueCtx` `WithValue` made (fields never written),
+whose key is grpc's `mdOutgoingKey{}` and whose value is that `rawMD`; the chain stops there, so
+it holds whatever `ctx` is. -/
 abbrev metadata.AppendToOutgoingContext.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
     (k v : GoString),
@@ -45,7 +49,7 @@ abbrev metadata.AppendToOutgoingContext.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (c' : GoInterface), RET #c'; ∃ (ci : GoInterfaceOk) (vs : GMap GoInterface GoInterface),
       ⌜c' = GoInterface.ok ci⌝ ∗ context.isContext ci { cd with Values := vs } ∗
-      metadata.outgoingCtxOk ci ∗
+      metadata.outgoingCtxOk ci ∗ metadata.outgoingCtxOkC ci ∗
       ⌜metadata.outgoingOf c' = metadata.mdAdd (metadata.outgoingOf (GoInterface.ok ctx)) k v⌝ ∗
       sl ↦*{dq} [k, v] }}
 
