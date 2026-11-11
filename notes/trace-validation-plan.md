@@ -1256,6 +1256,16 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   definition: for the coordinator or the user.
   **Taken by the coordinator (an intermediate statement; the user reviews only the top level): (a)**, amend
   `simInit` so that non-voters get `bootJunk`, in the design pass's amendment A8.
+- **Q38 (2026-11-11, design review design-r1 F1): the closed theorem's step bound and the corollary's form
+  (the user's: the closed statement).** The harness's network wait group `c.net` gets `Add(1)` per
+  message (`concurrent.go:351`) with no bound, Go panics past `2^31`, and the proof bounds the counter
+  only by live threads, `threadBound GF = n + 2` at adequacy. Options: (a) `n + 2 ≤ 2^31` in
+  `raft_tracecheck_safe` (it implies the bootstrap's `n + 4 ≤ 2^61`; `etcd_putget_safe` has `n + 2 ≤ 2^28`),
+  and `[ThreadBoundLe GF (2^31)]` in the corollary; (b) keep `2^61` by changing the harness (a bound on
+  in-flight sends), a change to the program under the theorem. Also the user's: the corollary's form
+  (`notes/trace-check-design.md` §1.3, a triple: `RunConcurrent(defaultCConfig)` then `Events` returns a
+  trace with `TraceAccepts`). **Recommended: (a)**; the design revision assumes it, and nothing lands
+  on the closed statement until the user decides.
 - **Q37 (2026-11-11, A7): the per-voter "bootstrap complete" fact has no ghost anchor.** `newTrace`'s
   initial state needs every voter's segment complete at the end of the run (`BootDone`). Raft logs a
   voter's whole bootstrap inside `StartNode` (`setupNode`, before `go n.run()`), so `StartNode`'s post is
