@@ -311,7 +311,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- The `*stmOptions` `p` holds `o` (owned): its level, its prefetch keys (an owned slice, with
-its capacity: `WithPrefetch` appends), and some context. -/
+its capacity: `WithPrefetch` appends), and some context.
+The context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def stmOptionsOwn (p : Loc) (o : STMOpts) : IProp GF :=
   iprop(∃ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (sl : GoSlice),
     p ↦ ({ iso' := o.iso, ctx' := GoInterface.ok ctx, prefetch' := sl } : stmOptions) ∗
@@ -341,7 +342,8 @@ instance stmOptsAt_persistent (sl : GoSlice) (gs : List (STMOpts → STMOpts)) :
 
 /-- **The client, as an STM uses it** (persistent): its `KV` answers transactions
 (`isEtcdTxnKV`, the commit) and read transactions (`isEtcdReadTxnKV`, the gets), for the prefix
-`pfx`; its `ctx` field holds a context (`client.Ctx()`, `NewSTM`'s default). -/
+`pfx`; its `ctx` field holds a context (`client.Ctx()`, `NewSTM`'s default).
+The context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isEtcdSTMClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ isEtcdTxnKV kv pfx ∗ isEtcdReadTxnKV kv pfx ∗
@@ -434,7 +436,8 @@ instance writesAt_persistent (pfx : GoString) (wsMap : GMap GoString stmPut)
 /-! ## The fields of an STM -/
 
 /-- The `stm` (struct) at `b`: its client and context (read-only), the client's contract for
-`pfx` (persistent). -/
+`pfx` (persistent).
+The context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def stmEnv (pfx : GoString) (b : Loc) : IProp GF :=
   iprop(∃ (c : Loc) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
     structFieldRef stm go!"client" b ↦□ c ∗ isEtcdSTMClient c pfx ∗

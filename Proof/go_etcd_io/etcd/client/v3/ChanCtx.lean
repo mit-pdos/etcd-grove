@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Perennial.Proof.context.NewErrorString
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
 public import Proof.context.LibKeys
+public import Proof.context.LibKeysChain
 
 @[expose] public section
 
@@ -201,6 +202,24 @@ theorem chanCtx_libCtxOk (wp_Value : wait.channelContext.Value.spec (GF := GF) (
   iapply context.libCtxOk_of_nil
   iintro !> %k -
   iapply chanCtx_valueNil wp_Value sc k $$ Pw
+
+/-- **A `channelContext` has no outgoing metadata, in the chain form** (`metadata.outgoingCtxOkC`):
+its `Value` is its own method (not one of the `context` package's types), so the WP form gives
+it. -/
+theorem chanCtx_outgoingCtxOkC [_root_.Perennial.context.Assumptions]
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
+    (sc : GoChan) :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ⊢
+      metadata.outgoingCtxOkC (chanCtxVal sc) := by
+  iintro #Pw
+  iapply metadata.outgoingCtxOkC_raw
+  · simp [_root_.Perennial.context.valueSpecialTypes,
+      k8s_io.apimachinery.pkg.util.wait.channelContext.ty,
+      _root_.Perennial.context.valueCtx.ty, _root_.Perennial.context.cancelCtx.ty,
+      _root_.Perennial.context.withoutCancelCtx.ty, _root_.Perennial.context.timerCtx.ty,
+      _root_.Perennial.context.backgroundCtx.ty, _root_.Perennial.context.todoCtx.ty]
+  iapply context.outgoingCtxOk_of_libCtxOk
+  iapply chanCtx_libCtxOk wp_Value sc $$ Pw
 
 end valueLaws
 

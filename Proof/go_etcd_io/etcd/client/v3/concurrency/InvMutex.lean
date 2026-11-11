@@ -144,7 +144,9 @@ theorem lockedAt_exclusion (pfx k1 k2 : GoString) (c1 c2 R1 R2 a : w64) (s : Lis
 /-- **The client, as a mutex (and an election) uses it** (persistent; see the module docstring): for the prefix
 `pfx`, gets, transactions and deletes through its `KV`, range watches (a key, a sub-prefix) through its `Watcher`,
 and a context in its `ctx` field. The trust boundary about the client (definitions, as
-`isEtcdClient`). -/
+`isEtcdClient`).
+The context has no outgoing metadata (`metadata.outgoingCtxOkC`, the chain form the contracts
+take). -/
 def isEtcdMutexClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv w cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ clientWatcherAddr client ↦□ GoInterface.ok w ∗

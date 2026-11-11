@@ -216,7 +216,8 @@ def leasingWgRunningOwed (γ : LeasingNames) : IProp GF := ownToks γ.wo 1
 
 /-- **What the monitors (unit 5) use of the client** `cl` (persistent): its `KV` field is `kv`, its
 `Watcher` a range watcher of the whole keyspace, its `Lease` a lease client, and it is a session
-client whose session options (`sessionOpts` `osl`) give a cancelable context. -/
+client whose session options (`sessionOpts` `osl`) give a cancelable context.
+The session options' context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isLeasingClient (cl : Loc) (kv : GoInterfaceOk) (osl : GoSlice) : IProp GF :=
   iprop(structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok kv ∗
     (∃ w : GoInterfaceOk, structFieldRef go_etcd_io.etcd.client.v3.Client go!"Watcher" cl ↦□
@@ -244,7 +245,8 @@ abbrev lkvReader (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
 that the prefixed key fits beside the user's key in leasing's requests ("Leasing's sizes"). -/
 @[word_unfold] def leasingPfxMax : Nat := 2 ^ 26
 
-/-- **The leasing KV** `lkv` of the lease prefix `pfx` (persistent; see the module docstring). -/
+/-- **The leasing KV** `lkv` of the lease prefix `pfx` (persistent; see the module docstring).
+Its context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
   iprop(∃ (cl : Loc) (kv : GoInterfaceOk) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
       (cancel : GoFunc) (osl : GoSlice),
@@ -292,7 +294,8 @@ instance isLeasingCancel_persistent (lkv : Loc) : Persistent (isLeasingCancel (G
 trust boundary about the client, as the cache's `isEtcdClient`): its `KV` field's gets, `Do`s of a
 get and transactions over the whole keyspace, what the monitors use (`isLeasingClient`: the
 watcher, the leases, a session client whose options give a cancelable context), and its context
-(the `ctx` field `cl.Ctx()` returns) a cancelable one (`newClient` makes it with `WithCancel`). -/
+(the `ctx` field `cl.Ctx()` returns) a cancelable one (`newClient` makes it with `WithCancel`).
+The client's context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def isLeasingEtcdClient (cl : Loc) (osl : GoSlice) : IProp GF :=
   iprop(∃ (kv : GoInterfaceOk) (cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
     isEtcdKV kv [] ∗ isEtcdDoKV kv [] ∗ isEtcdTxnKVO kv [] ∗ isLeasingClient cl kv osl ∗
@@ -387,7 +390,8 @@ def opsOwn (sl : GoSlice) (os : List OpFull) : IProp GF :=
 
 /-- **A `*txnLeasing` being built** (see the module docstring): `txn` of the leasing KV `lkv`,
 with the context `ctx`, has been given `b`; its inner client builder `t` (state `B`) has the same
-comparisons and the operations' `TxnOp`s. -/
+comparisons and the operations' `TxnOp`s.
+Its context has no outgoing metadata (`metadata.outgoingCtxOkC`). -/
 def ownTxnLeasing (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (b : LTxnBuild) : IProp GF :=
   iprop(∃ (t : GoInterfaceOk) (B : TxnBuild → IProp GF) (csl tsl esl : GoSlice)

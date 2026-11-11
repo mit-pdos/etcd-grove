@@ -202,7 +202,9 @@ instance sessionDoneChan_persistent (donec : GoChan) (γ : SessionNames) :
   unfold sessionDoneChan; infer_instance
 
 /-- **The session** `s` of the client `client` with the lease `id` (persistent; see the module
-docstring). -/
+docstring).
+Its options' context and its own (`WithCancel` of it) have no outgoing metadata
+(`metadata.outgoingCtxOkC`). -/
 def isSession (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) : IProp GF :=
   iprop(∃ (ops : Loc) (o : SessionOpts) (octx : GoInterfaceOk)
       (ocs : context.ContextDesc (IProp GF)) (ctx : GoInterfaceOk)
