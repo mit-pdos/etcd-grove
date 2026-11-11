@@ -2652,6 +2652,17 @@ so the leader is excluded instead (argued from `hup` and A1, not checked); five 
 traced node. Not argued in full: L1-L4 (the document's §9). Next: a review round on the document, then
 Probe A (client glue) and Probe B (the node's claim and deposit), then A8 and the plumbing.
 
+**The design pass, revision 1 (2026-11-11, branch `trace-check-design2`): the review round `design-r1`
+answered** (`notes/trace-validation-reviews/design-r1.md`; the document's "Revision 1" header,
+`notes/decisions.md`, "Design pass, revision 1"). §1 settled: Q38 (a), decided by the user
+(`n + 2 ≤ 2^31`, `[ThreadBoundLe GF (2^31)]`, the corollary's form), checked end to end from
+`init_adequate`'s thread bound to `WaitGroup.Add`'s. `node.Step.spec` and `node.Advance.spec` keep their
+text and hold for every `γ`: the `Step` gate sits in `stepIn`'s body with `stepIn_intro` taking `trTok`
+(four call sites, each discharging it); the tokens reach `Advance` through a per-node escrow that `run`
+never needs back. Call sites counted (L3: about 21 in 16 files, none for `Advance`). Found: G3 (no conf
+entry past the bootstrap log, for the leader exclusion) and L5 (`TrNoSnap`'s source, Q6's gated
+`storBnd`). Not argued in full: L1, L2, L5. Next: a second review round on the document.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and
