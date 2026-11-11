@@ -619,3 +619,11 @@ land.sh only on 81's go.
 - **Waiting** (etcd-grove-81, 2026-11-10): the fixes are accepted; the sync is not on lean yet. On 81's
   word: merge lean (and premise-fixes-5 if landed), full build, tcb `--check --update` + collections,
   interfaces, full gates (with 9d's control, 9e, 9f), Freeze §3 counts redone; stop before land.sh.
+- `22998fcb4f`: lean `2b96923406` (the mvccfull F1 sync) merged textually: only notes conflicted
+  (perennial-changes both; status-history lean's plus our move, append only; STATUS k8s 7e entry first,
+  the oldest, per-type stage A, moved). `etc/gen-init.py --check` and every `gen-link` mode clean. NOT
+  built (etcd-grove-81: one full build after premise-fixes-5).
+- **Next (on 81's word that pf5 landed):** merge lean; full build (flock + 64G cap); tcb `--check --update`
+  (baseline and collections; expect our +22 plus whatever pf5 changes); interfaces (all five `etc/api`
+  packages); Freeze doc §3 counts against that lean; then, on 81's go, `etc/land.sh` directly (it runs
+  the gates; do not run gates.sh separately).
