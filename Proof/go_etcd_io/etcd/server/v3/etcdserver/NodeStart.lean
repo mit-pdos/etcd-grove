@@ -677,14 +677,27 @@ theorem raftNode_of_StartNode
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
   wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
-      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))))
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh)
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
-  · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
-    ipureintro
-    exact ⟨Hcfg, Hhb, Hwal⟩
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hsfresh, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
+  · iframe #; iframe Hb Hc Hpeers
+    isplitr
+    · ipureintro; exact ⟨Hhb, Hwal⟩
+    simp only [rnBootPre]
+    isplitr
+    · ipureintro; exact Hcfg
+    isplitl [Hbs]
+    · iExactEq Hbs; rfl
+    isplitr
+    · iExactEq Hnboot; rfl
+    isplitl [Hvac]
+    · iExactEq Hvac; rfl
+    iExactEq HrS; rfl
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
+  simp only [rnBootPost, RNBoot.P]
+  icases Hbpost with ⟨#Hsfresh, Hdrv, HrS, Hncfg⟩
+  simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt

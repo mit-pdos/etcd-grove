@@ -96,6 +96,68 @@ structure rnStartCfg (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk)
   peers : ps = pv.map Peer.ID'
   peersNe : ps ≠ []
 
+/-- (restart S3 item 5, Q35 (a), 2026-11-11) **The raft configuration a restarted node boots with**
+(pure): `rnStartCfg`'s conjuncts on the logger and `b.config` (`RestartNode.spec`'s `NewRawNode`
+premises, `Applied` zero: `raftConfig` leaves it unset, `bootstrap.go:580-592` at the pin
+`a4d2bb172`), and no peers (`len(b.peers) == 0`: `RestartNode`'s branch, `bootstrap.go:596`;
+`bootstrapRaftFromWAL` sets none, `:570-578`). -/
+structure rnRestartCfg (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (pv : List Peer) :
+    Prop where
+  lg : bv.lg' ≠ null
+  valid : ConfigValid cv
+  logger : cv.Logger' = interface.ok lok
+  storage : cv.Storage' = memStorIface bv.storage'
+  inflight : sint.Z cv.MaxInflightMsgs' < 2 ^ 62
+  noForwarding : cv.DisableProposalForwarding' = false
+  readOnly : cv.ReadOnlyOption' = W64 0
+  ccValidation : cv.DisableConfChangeValidation' = false
+  sizes : cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0
+  maxMsg : uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20
+  noAsync : cv.AsyncStorageWrites' = false
+  applied : cv.Applied' = W64 0
+  peersNil : pv = []
+
+/-- (restart S3 item 5, Q35 (a), r2db §4.3, 2026-11-11) **How the raft node boots** (the boot sum):
+a new cluster's node (`fresh`, `StartNode`), or a restart (`restart`, `RestartNode`) from the storage
+contents `σ` with the conf state `cs` (the backend's), the client's durable state `S`, the
+configuration `m` after the first `a` committed entries, and the restart point's backend log `A₀`
+(the wrapper's labels). -/
+inductive RNBoot where
+  | fresh
+  | restart (σ : StorContents) (cs : ConfStateM) (S : RaftState) (a : Nat) (m : Membership)
+      (A₀ : List EntryModel)
+
+/-- The wrapper's restart point's backend log (`RNNames.a0`): `[]` fresh, `A₀` at a restart. -/
+def RNBoot.a0 : RNBoot → List EntryModel
+  | .fresh => []
+  | .restart _ _ _ _ _ A₀ => A₀
+
+/-- The restart point's start term (`RNNames.t0`): `0` fresh, the restored hard state's term. -/
+def RNBoot.t0 : RNBoot → w64
+  | .fresh => W64 0
+  | .restart σ _ _ _ _ _ => σ.hs.Term'
+
+/-- The restart point's WAL commit (`RNNames.commit0`): `0` fresh, the restored commit. -/
+def RNBoot.commit0 : RNBoot → Nat
+  | .fresh => 0
+  | .restart σ _ _ _ _ _ => σ.commit
+
+/-- The restart point's snapshot index (`RNNames.snap0`): `0` fresh, the restored base. -/
+def RNBoot.snap0 : RNBoot → Nat
+  | .fresh => 0
+  | .restart σ _ _ _ _ _ => σ.b
+
+/-- The log the wrapper's tokens start at (`newRaftNode`'s `L₀`; Q34 (a), `P`): `[]` fresh, the
+backend log up to the restored base at a restart (`A₀.take σ.b`). -/
+def RNBoot.P : RNBoot → List EntryModel
+  | .fresh => []
+  | .restart σ _ _ _ _ A₀ => A₀.take σ.b
+
+theorem RNBoot.P_prefix (bt : RNBoot) : bt.P <+: bt.a0 := by
+  cases bt with
+  | fresh => exact List.prefix_refl _
+  | restart σ _ _ _ _ A₀ => exact List.take_prefix _ _
+
 end pure
 
 section defs
@@ -248,6 +310,56 @@ def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) (L₀ 
       (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Pending ∗
     -- (2026-11-03, R2b-3b) the claim on the stop's escrow
     "Hsc" ∷ rnStopClaim γ)
+
+/-- (restart S3 item 5, Q35 (a), r2db §4.3, 2026-11-11) **What `bootstrappedRaft.newRaftNode` needs of
+the boot `bt`**, for the server's raft names `γr`, the receiver's value `bv`, the config `cv` and the
+peers: at `fresh`, `StartNode`'s (the configuration and the peers, `rnStartCfg`; the storage as
+`StartNode` boots it, `restartStorage` at the empty contents with the frame `Q`; this node's boot
+token, its id vacant, its durable state at `RaftState.init`: until then the spec's own conjuncts);
+at `restart σ cs S a m A₀`, `RestartNode`'s (the configuration, `rnRestartCfg`, no peers; the
+configuration point `a` between the restored base and commit, the bootstrap log within the commit,
+`cs` reporting `m`, the storage holding `S`; the storage as `RestartNode` reads it, `restartStorage`
+at `σ`, `cs` and `Applied = 0`, with the frame `Q`; the cluster, its receipts' bound, the id vacant,
+the durable state `S`, the configuration `m` at `a`). -/
+def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk)
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF) :
+    RNBoot → IProp GF
+  | .fresh =>
+    letI := srvStor (GF := GF) γr
+    iprop(⌜rnStartCfg bv cv lok pv ps⌝ ∗
+      restartStorage γr.cl (memStorIface bv.storage')
+        ⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩
+        memSnapEmpty.Metadata'.ConfState' 0 Q ∗
+      nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ nodeVacant γr.cl cv.ID' ∗
+      raftState γr.cl cv.ID' RaftState.init)
+  | .restart σ cs S a m _ =>
+    letI := srvStor (GF := GF) γr
+    iprop(⌜rnRestartCfg bv cv lok pv ∧ σ.b ≤ a ∧ a ≤ σ.commit ∧ γr.cl.bootLen ≤ σ.commit ∧
+        confStateIs cs m ∧ StorageHolds S σ⌝ ∗
+      restartStorage γr.cl (memStorIface bv.storage') σ cs 0 Q ∗
+      isCluster γr.cl srvClusterN ∗ readyFits γr.cl srvClusterN ∗ nodeVacant γr.cl cv.ID' ∗
+      raftState γr.cl cv.ID' S ∗ confAt γr.cl a m)
+
+/-- (restart S3 item 5, Q35 (a), r2db §4.3, 2026-11-11) **What the node's start gives of the boot
+`bt`**, for the node `n` and the storage's key `K`: at `fresh`, `StartNode`'s (made by `StartNode`,
+`nodeStartedFresh`; the driver at its start; the durable state at `RaftState.init`; the view at the
+peers' membership: until then the spec's own conjuncts); at `restart σ cs S a m A₀`, `RestartNode`'s
+(the committed log `l` of the restored base, the driver at it with the restored hard state, the
+durable state `S` and the follower's role; the view at `(a, m)`). -/
+def rnBootPost (γr : SrvRaft) (n : Loc) (K : GName) (bv : bootstrappedRaft) (cv : Config)
+    (ps : List w64) (ctxs : List (List w8)) : RNBoot → IProp GF
+  | .fresh =>
+    letI := srvStor (GF := GF) γr
+    iprop(nodeStartedFresh n γr.cl srvClusterN ps ctxs cv.ID' ∗
+      nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage') K) ∗
+      raftState γr.cl cv.ID' RaftState.init ∗
+      nodeConfig n γr.cl srvClusterN ⟨0, Membership.simple (GMap.listToSet ps)⟩)
+  | .restart σ _ S a m _ =>
+    letI := srvStor (GF := GF) γr
+    iprop(∃ l : List LogEntry, isCommittedLogLb γr.cl l ∗ ⌜l.length = σ.b⌝ ∗
+      nodeDriver n γr.cl srvClusterN ⟨memStorIface bv.storage', l, σ.hs, none, K, S, StateFollower⟩ ∗
+      raftState γr.cl cv.ID' S ∗
+      nodeConfig n γr.cl srvClusterN ⟨a, m⟩)
 
 end defs
 

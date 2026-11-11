@@ -35,6 +35,12 @@ theorem srvApi_wp_StartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
     StartNode.spec (GF := GF) (hG := hG) := fun γr => by
   letI := srvStor (GF := GF) γr; exact wp_StartNode
 
+/-- (restart S3 item 5, 2026-11-11) raft's `RestartNode`, `bootstrappedRaft.newRaftNode`'s restart
+branch, at the server's storage model. -/
+theorem srvApi_wp_RestartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+    RestartNode.spec (GF := GF) (hG := hG) := fun γr => by
+  letI := srvStor (GF := GF) γr; exact wp_RestartNode
+
 /-- (2026-10-30, the repair) raft's `node.Stop` (its whole running token to `nodeStopped`), the
 `Stop` clause of `isRaftNodeIfc` (until then the premise `rnStopOk`). -/
 theorem srvApi_wp_Stop : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;

@@ -614,7 +614,7 @@ auth_authStore__GenTokenPrefix:
 # token through `MemoryStorage.Snapshot`'s application triple (`rnSnapOnce_of_tok`).
 MemoryStorage__Snapshot: @
 newRaftNode: SetLogger =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop
-bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode newRaftNode
+bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRaftNode
 # The server's construction (server.go's `NewServer`; the server-construction unit, stage N0,
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
