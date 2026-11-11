@@ -183,10 +183,13 @@ theorem stepCandidate.wp_proof
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
       ispecialize Hgbl $$ %(⟨trivial, Hwin.2⟩)
+      -- (2026-11-11, slice 24b) `becomeLeader`'s receipt: the least one (the spec's `"Hgrep"` takes none)
+      imod (preceipt_zero (GF := GF)) with #Hrc00
       wp_apply wp_raft_becomeLeader c r id _ (G s.outbox) G1 G2
-          (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])) (by simp only [Hrole]; decide)
-          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $HG $Hgbl $Hgrep $Hgack]
+          (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])) 0 (by simp only [Hrole]; decide)
+          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $Hrc00 $HG $Hgbl Hgrep $Hgack]
         as %pvs1 ⟨Hphys, %Hmb, HG⟩
+      · iintro - HG; iapply Hgrep $$ HG
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
       ihave #Hgc := Hgcast $$ %(⟨trivial, Hwin.2⟩)
