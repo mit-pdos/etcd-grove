@@ -61,6 +61,17 @@ under the 64G cap; full log `/shared/tmp/premise-fixes-8c/lb.log`). Do not run s
 `etc/lean-check.py` files at once on a cold import tree: parallel `lake setup-file`s raced and lost
 `.olean`s (`BaseApply.olean` missing); `lb.sh` is reliable.
 
+## C3 (the flip): STOP 1 pending
+
+Trusted texts written, old -> new: `/shared/tmp/premise-fixes-8c/c3-trusted.md` (awaiting etcd-grove-81).
+No Lean changed yet. Commit `78fe100e76`: Go case `errsNilCancelCtx` (the Scope's "`Value` at `*int`
+keys returns" is false; the clause is "at `&cancelCtxKey`, not a `*cancelCtx`"). Next, after approval:
+InvGrpc's `ctxDeadline`/`ctxWithCancelOk`, `ctxQuiet`/`ctxErrs`/`ctxOk`, `FromOutgoingContext`,
+`watchCtx`, `WithCancelValCtx`, `kaCtxOk`; producers (`ctxQuiet_todo`/`_background`, `chanCtx_ok`,
+`ctxOk_of_isContext`, `watchCtx_of_isContext`) and the destructuring proofs (`getToken`,
+`unaryClientInterceptor`, `quiet_ctx`, `ctxErrClient_quiet`). Stage B waits on C3; keep InvGrpc edits
+to the ctxOk section.
+
 ## Pitfalls
 
 - Adding a conjunct to an axiom's post breaks `icases` patterns of its users: grep for the
