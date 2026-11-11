@@ -227,7 +227,10 @@ def simBoot (tn : TraceNames) (i : w64) (b : Bool) (o : Option TraceEv) : IProp 
 `Bootstrap`'s `becomeFollower(1, None)` (term 1) and, the `|C|` configuration entries appended and
 committed, one `applyConfChange` per voter, the `k`-th (from 1) with the new voters `C`'s first `k`
 (`Slice()`'s order, a permutation of them), at term 1, no vote, the commit index and the log size
-`|C|`, a follower. No `k ≥ |C| + 4`. -/
+`|C|`, a follower. No `k ≥ |C| + 4`. Position 1's `newconf` is pinned empty (`ConvertEvents` then drops
+it, so `NewTrace`'s list of bootstrap configurations starts at position 4); the `conf` pair is pinned
+nowhere: `NewTrace` reads it only when a server's last bootstrap line is not an `ApplyConfChange`,
+which a complete segment's is not. Positions are told apart by the event (`bootEvAt_unique`). -/
 def BootEvAt (C : List w64) (i : w64) : Nat → TraceEv → Prop
   | 0, e => e.nid = decStr i ∧ gsStr e.name = "InitState" ∧ e.term = W64 0 ∧ e.vote = decStr (W64 0) ∧
       e.commit = W64 0 ∧ e.logSize = W64 0 ∧ gsStr e.role = "StateFollower"

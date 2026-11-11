@@ -213,6 +213,65 @@ theorem bootSegs_snoc_boot (C : List w64) (L : List TraceEv) (e : TraceEv) (id :
   · rw [bootSeg_snoc_ne L e i (by rw [hnid]; exact fun h => hii (decStr_inj h).symm)]
     exact hs.2 i hi
 
+/-- **A bootstrap event holds one position** (`BootEvAt` tells the positions apart by name, term and the
+new configuration's size): what a hook's caller needs to discharge `BootNext` from its `Λ`. -/
+theorem bootEvAt_unique (C : List w64) (i : w64) (x : TraceEv) :
+    ∀ k k', BootEvAt C i k x → BootEvAt C i k' x → k = k' := by
+  intro k k' h h'
+  match k, k', h, h' with
+  | 0, 0, _, _ => rfl
+  | 1, 1, _, _ => rfl
+  | 2, 2, _, _ => rfl
+  | 3, 3, _, _ => rfl
+  | 0, 1, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 0, 2, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 0, 3, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 0, _ + 4, h, h' => exact absurd (h.2.1.symm.trans h'.2.2.1) (by decide)
+  | 1, 0, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 1, 2, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 1, 3, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 1, q + 4, h, h' =>
+    exfalso
+    obtain ⟨hq, -, -, -, -, -, -, -, ns, hns, hcc⟩ := h'
+    rw [h.2.2.2] at hcc
+    have := congrArg (fun c : Option TraceCC => c.map (fun c => c.newconf.length)) hcc
+    simp at this
+    have := hns.length_eq; simp at this; omega
+  | 2, 0, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 2, 1, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 2, 3, h, h' => exact absurd (h.2.2.symm.trans h'.2.2) (by decide)
+  | 2, _ + 4, h, h' => exact absurd (h.2.1.symm.trans h'.2.2.1) (by decide)
+  | 3, 0, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 3, 1, h, h' => exact absurd (h.2.1.symm.trans h'.2.1) (by decide)
+  | 3, 2, h, h' => exact absurd (h.2.2.symm.trans h'.2.2) (by decide)
+  | 3, _ + 4, h, h' => exact absurd (h.2.1.symm.trans h'.2.2.1) (by decide)
+  | _ + 4, 0, h, h' => exact absurd (h.2.2.1.symm.trans h'.2.1) (by decide)
+  | q + 4, 1, h, h' =>
+    exfalso
+    obtain ⟨hq, -, -, -, -, -, -, -, ns, hns, hcc⟩ := h
+    rw [h'.2.2.2] at hcc
+    have := congrArg (fun c : Option TraceCC => c.map (fun c => c.newconf.length)) hcc
+    simp at this
+    have := hns.length_eq; simp at this; omega
+  | _ + 4, 2, h, h' => exact absurd (h.2.2.1.symm.trans h'.2.1) (by decide)
+  | _ + 4, 3, h, h' => exact absurd (h.2.2.1.symm.trans h'.2.1) (by decide)
+  | q + 4, q' + 4, h, h' =>
+    obtain ⟨hq, -, -, -, -, -, -, -, ns, hns, hcc⟩ := h
+    obtain ⟨hq', -, -, -, -, -, -, -, ns', hns', hcc'⟩ := h'
+    rw [hcc] at hcc'
+    have := congrArg (fun c : Option TraceCC => c.map (fun c => c.newconf.length)) hcc'
+    simp at this
+    have h1 := hns.length_eq; have h2 := hns'.length_eq
+    simp at h1 h2; omega
+
+/-- **`BootNext` from the position of the last event** (the callers' discharge: `x` at position `k`, the
+event at `k + 1`). -/
+theorem bootNext_some (C : List w64) (i : w64) (x e : TraceEv) (k : Nat) (hx : BootEvAt C i k x)
+    (he : BootEvAt C i (k + 1) e) : BootNext C i (some x) e := by
+  intro k' hk'
+  rw [← bootEvAt_unique C i x k k' hx hk']
+  exact he
+
 end TraceSim
 
 end EtcdGrove
