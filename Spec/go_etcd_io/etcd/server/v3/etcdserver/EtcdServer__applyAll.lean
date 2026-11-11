@@ -180,8 +180,9 @@ mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), an
 (R2d'a swap batch 2, 2026-11-06, the restart form; review F1, the swap the user approved) The
 applied index split, as inside a restart window: Go's `ai` (`ep.appliedi`, `srvSnapState`,
 `srvSnapOwn`) at most the ghost index `g` (`srvAppliedOwn`, `appliedLogAt`, the ghost log `A` with
-`uint.Z g = |A|`), the snapshot strictly above `g` (A8's `rnWinInstallAbove`), the consistent index
-at most `g`, and the rest buckets at an image `r0` whose members have the model's ids (`srvRestRp`;
+`uint.Z g = |A|`), the snapshot strictly above `g` (A8, derived since S1:
+`rnRestartOk_winAbove`), the consistent index at most `g`, and the rest buckets at an image `r0`
+whose members have the model's ids (`srvRestRp`;
 inside the window the replay's, `restReplay_memKeys`). The post is unchanged: past the snapshot
 every index is its. At `g = ai`, `r0` the model of `A` (`hids` by `rfl`, `srvRestRp_model`) it is
 the statement before the swap (a first start's). -/
@@ -199,7 +200,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   E.authMode ≠ .any →
   -- the snapshot past the applied index, below `2^61`, at least the boot log
   -- (R2d'a task 4) Go's applied index at most the ghost one, the snapshot strictly above the ghost
-  -- one (A8's `rnWinInstallAbove`)
+  -- one (A8, derived since S1: `rnRestartOk_winAbove`)
   uint.Z ai ≤ uint.Z g → uint.Z g < uint.Z sv.Metadata'.Index' →
   uint.Z sv.Metadata'.Index' < 2 ^ 61 →
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →

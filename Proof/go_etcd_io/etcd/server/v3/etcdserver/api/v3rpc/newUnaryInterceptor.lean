@@ -169,7 +169,10 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     iexact HΨ
   subst Hv
   wp_auto
-  wp_apply wp_FromIncoming as %md %ok Hmd
+  ihave #Hlibu := libCtxOk_of_runCtx ci $$ Hrc
+  iunfold context.libCtxOk at Hlibu
+  icases Hlibu with ⟨#Hincu, -, -, -⟩
+  wp_apply (wp_FromIncoming ci) $$ [$Hincu] as %md %ok Hmd
   cases ok
   · iclear Hmd
     wp_auto

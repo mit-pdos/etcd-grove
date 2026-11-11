@@ -73,10 +73,31 @@ Forms accepted: isWatchPermitted unchanged; stronger posts of `EnsureTrace` and
   `txn_readonly`, `txn_applied` (pre + `context.libCtxOk ctx`); v3rpc `Results.lean`'s put/deleteRange/
   range/txn results through `v3rpc.srvCall` (its definition gained `context.libCtxOk ci`).
 
+## S2 (the flip): done so far
+
+- Text approved as written (`/shared/tmp/premise-fixes-8/s2-text.md`; etcd-grove-81 under D2,
+  questions.md). Commit be80351ad1: `metadata.FromIncomingContext.spec` (+`weakSpec`),
+  `auth.authStore.AuthInfoFromTLS.spec`, `isReqAuth`/`isReqAuthBound`, `authStore.AuthInfoFromCtx.spec`.
+- Form (decided by the agent): `Proof/context/LibKeys.lean`'s `defs` section generic in `hlc : HasLC`
+  (the metadata/auth specs are; the defs were fixed at `HasLC.hasLC`); `InvRequest` imports LibKeys.
+- Re-proved: `authStore.AuthInfoFromCtx` (`#Hinc` from the pre), `AuthReqDerive` (`libCtxOk` unfolded
+  for `incomingCtxOk`/`peerCtxOk`; `isReqAuthBound_ctx`/`isReqAuth_ctxM` clauses gain `libCtxOk`),
+  `newUnaryInterceptor` (`libCtxOk_of_runCtx ci $$ Hrc`). Server and v3rpc links built clean.
+- Go: `examples/premisefix/ctxvalue/authtls_test.go` (`TestAuthInfoFromTLSReal`, gated by the
+  premisefix gate) passes; comments of `TestBadContextPanics`/`TestContradictions` point to S2.
+
+## Checks (S2)
+
+- Full build clean (`/shared/tmp/premise-fixes-8/s2-build1.log`, build 20261111-142522-1097340).
+- `etc/tcb-report.py --check`: matches (865 axioms, 5 sorries); every collection `--check` matches
+  (`/shared/tmp/premise-fixes-8/s2/coll-*.log`); `gen-interface --check` on every `etc/api/*.txt`: no diff;
+  `gen-init --check`: up to date. STATUS entry added (the oldest to status-history, append only).
+
 ## Next, in order
 
-1. S1 accepted by etcd-grove-81 (incl. the srvCall change of meaning); lean f808e61706 merged, STATUS entry added; landing via `etc/land.sh`.
-2. S2 after S1 lands (Scope S.2; D2), with the old → new text STOP first.
+1. STOP before land.sh (report to etcd-grove-81). On go: merge lean, rebuild if it touches these files,
+   `etc/land.sh` with `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc`.
+2. After S2: the server half is done (C2/C3 are the client half, `/shared/etcd-grove-pf8c`).
 
 ## Pitfalls
 

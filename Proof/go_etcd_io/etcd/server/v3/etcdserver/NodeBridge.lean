@@ -605,7 +605,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     iunfold rnCfgAt at Hcv
     icases Hcv with ⟨Hcv, #Hrok⟩
     -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
-    -- `rnWinInstallAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
+    -- derived since S1, `rnRestartOk_winAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
     have Hab : γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index' :=
       hwa.imp_right Nat.le_of_lt
     iunfold rnView at Hcv
