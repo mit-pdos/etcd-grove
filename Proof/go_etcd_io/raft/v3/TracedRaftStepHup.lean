@@ -303,7 +303,12 @@ theorem fxPres_timeout (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
         · subst hk'; rw [TraceSpecInv.upd_s_self] at hk; simp [candOf] at hk; exact absurd hk (by decide)
         · rw [TraceSpecInv.upd_s_ne _ _ _ _ hk'] at hk ⊢; exact ⟨hk, rfl, fun _ _ => rfl⟩
     ipureintro
-    refine ⟨hsi', hu, hsh, ?_⟩
+    refine ⟨hsi', hu, ⟨hsh.1, ?_⟩, ?_⟩
+    · -- (amendment A6, Q23) the new candidate's tally is empty
+      intro j hj k hk
+      by_cases hjk : j = idAbs id
+      · subst hjk; rw [TraceSpecInv.upd_s_self] at hk; simp [candOf] at hk
+      · rw [TraceSpecInv.upd_s_ne _ _ _ _ hjk] at hk; exact hsh.2 j hj k hk
     · refine appSlices_mono σ (σ.upd (idAbs id) (candOf (idAbs id))) has rfl (fun m hm => hm) ?_
       intro j _ hl
       by_cases hk : j = idAbs id

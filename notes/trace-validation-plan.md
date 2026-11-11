@@ -2492,8 +2492,12 @@ level): `quorumLogF_commit`, a leader's `Commit` line keeps `QuorumLogF` from ra
 Left: the `Commit` line's path, the accepted reply's agreement fact (slice 24c). Nothing else frozen
 changed for Q22. (Q23) `MsgsShape` now also says every message in flight is between servers (`MsgEnds`:
 a server sends as itself to a server; replies and phantoms reverse their request's ends; checked against
-the transcription), and the receive law's `PhaseStepR` may assume its message's source a voter (its
-premise tuple gains `m.source ∈ confAbs C`, which `trCap_fire_recv` supplies): sufficiency
-`wonVote_quorum` (`tallyGranted_quorum`'s `hc` at a won `MsgVoteResp`, from `votesIn_recordVote`). No
-axiom, no `sorry`, no client-visible change. Reviews `a6-r1.md`, `a6-r2.md`
+the transcription) and every server's tally of servers (`VotesIn`, review a6-r2's F1), and the
+receive law's `PhaseStepR` may assume its message's source a voter and the share's responded voters
+configured (its premise tuple gains `m.source ∈ confAbs C ∧ ∀ k ∈ cs.votesResponded, k ∈ confAbs C`,
+which `trCap_fire_recv` supplies): sufficiency `wonVote_quorum` (`tallyGranted_quorum`'s `hc` at a won
+`MsgVoteResp`, from `votesIn_of_responded` and `votesIn_recordVote`; the won path must hand it to the
+`BecomeLeader` line's phase). No axiom, no `sorry`, no client-visible change. Concurrent slices: a new
+`PhaseStepR` proof's premise pattern gains two components, a new send its ends. Reviews `a6-r1.md`,
+`a6-r2.md`, `a6-r3.md`
 (`notes/decisions.md`, "Amendment A6 (Q22, Q23)").

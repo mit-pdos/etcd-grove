@@ -251,12 +251,12 @@ theorem msgsUniq_send_canon (σ : Etcdraft.State) (p : Etcdraft.Msg) (hu : MsgsU
     rcases TraceSpecInv.mem_msgs_send σ p m1 h1 with g1 | e1 <;>
       rcases TraceSpecInv.mem_msgs_send σ p m2 h2 with g2 | e2
     · exact hu ln m1 m2 g1 g2 r1 r2
-    · subst e2; exact recvPred_canon_eq ln m1 m2 (hc m1 g1).1 hp0 (hpk m1 g1) r1 r2
-    · subst e1; exact (recvPred_canon_eq ln m2 m1 (hc m2 g2).1 hp0 (hpk m2 g2) r2 r1).symm
+    · subst e2; exact recvPred_canon_eq ln m1 m2 (hc.1 m1 g1).1 hp0 (hpk m1 g1) r1 r2
+    · subst e1; exact (recvPred_canon_eq ln m2 m1 (hc.1 m2 g2).1 hp0 (hpk m2 g2) r2 r1).symm
     · rw [e1, e2]
-  · intro x hx
+  · refine ⟨fun x hx => ?_, hc.2⟩
     rcases TraceSpecInv.mem_msgs_send σ p x hx with g | e
-    · exact hc x g
+    · exact hc.1 x g
     · rw [e]; exact ⟨hp0, hpe⟩
 
 /-- `AppSlices`' clause for one message. -/
@@ -377,7 +377,7 @@ theorem simFx_congr (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (h
   ipureintro
   refine ⟨specInv_congr_srv hsi hsrv hm hp hT hS hL hD hV hC hM hG,
     msgsUniq_mono hsub hu,
-    fun x hx => ⟨(hsh x (hsub x hx)).1, by unfold MsgEnds; rw [hsrv]; exact (hsh x (hsub x hx)).2⟩, ?_⟩
+    msgsShape_of hsrv hsub (fun j => congrArg ServerC.votesResponded (hs j)) hsh, ?_⟩
   intro m hm hty i hi hl ht hs k e he
   rw [hL]
   rw [hsrv] at hi; rw [hS] at hl; rw [hT] at ht
@@ -409,7 +409,7 @@ theorem simFx_discard (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m :
   · iapply quorumLogF_congr γ C σ (σ.discard m) rfl (fun _ => rfl) (fun _ => rfl) (fun _ => Int.le_refl _)
       (fun x hx _ => hsub x hx) (fun _ hi => ⟨hi, rfl, fun _ _ => rfl⟩) $$ Hq
   ipureintro
-  exact ⟨TraceSpecInv.specInv_discard m hsi, msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx),
+  exact ⟨TraceSpecInv.specInv_discard m hsi, msgsUniq_mono hsub hu, msgsShape_of (σ := σ) rfl hsub (fun _ => rfl) hsh,
     fun x hx => has x (hsub x hx)⟩
 
 /-- **Sending a message keeps the facts** when it is fine to send (`MsgOk`), has its facts (`msgFacts`),
@@ -477,7 +477,7 @@ theorem fxPresR_staleReq (γ : RaftNames) (id : w64) (m : Etcdraft.Msg) (E : Tra
   · ihave #Hf2 := Hfx
     iunfold simFx at Hf2
     icases Hf2 with ⟨-, -, -, %Hp2⟩
-    ipureintro; exact (Hp2.2.2.1 m (List.mem_append_left _ hmem)).2
+    ipureintro; exact (Hp2.2.2.1.1 m (List.mem_append_left _ hmem)).2
   -- the request consumed, the phantom sent, then the line's result (the same up to `toC`)
   ihave #H1 := simFx_discard γ C σ m $$ Hfx
   ihave #Hpf := msgFacts_plain (GF := GF) γ C (phantomOf a m) phq phe

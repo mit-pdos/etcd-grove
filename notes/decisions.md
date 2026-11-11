@@ -35498,7 +35498,8 @@ commit index are never cut):
   in "Users re-proved". Restarts (`InitState` past the
   bootstrap) are out of scope (P1); a restart could lower a term (`durable`) and would need a durable
   copy of the clause.
-- *A leader's `Commit` line* (not yet proved; it was blocked on the acknowledgement-history copy of the
+- *(Superseded by "Amendment A6 (Q22, Q23)": the `Commit` line is kept by `quorumLogF_commit`, and
+  `BecomeLeader` needs `ackHists_becomeLeader`, not `quorumLogF_congr` alone.)* *A leader's `Commit` line* (not yet proved; it was blocked on the acknowledgement-history copy of the
   notes' table already): its new prefix takes `t` the leader's term and its certificate raft's new
   commit quorum (`commitJ`'s right arm); its quorum of holders at terms `≥ t` comes from that copy: the
   match-index quorum's members acknowledged at `t` (so are at terms `≥ t`), and a copy of raft's `hist`
@@ -35710,21 +35711,31 @@ request's destination to its source, and so does a phantom (`phantomOf`); `Appen
 server to itself; `Ready` moves messages between the bags; the initial state has none. So every message
 in flight is between servers.
 
-**The amendment**: `MsgsShape σ` (a `simFx` clause, A2) now says every message in flight is canonical
-**and** `MsgEnds σ x` (`x.source ∈ σ.server ∧ x.dest ∈ σ.server`). The receive law's premise
+**The amendment**: `MsgsShape σ` (a `simFx` clause, A2), old `∀ x ∈ bags, canonMsg x = x`, new
+`(∀ x ∈ bags, canonMsg x = x ∧ MsgEnds σ x) ∧ VotesIn σ`: every message in flight between servers
+(`MsgEnds`: `x.source ∈ σ.server ∧ x.dest ∈ σ.server`) and every server's tally of servers (`VotesIn`:
+`∀ i ∈ σ.server, ∀ k ∈ (σ.s i).votesResponded, k ∈ σ.server`; a tally is reset by `Timeout` and grows
+only by a received vote response's source, a server by `MsgEnds`). The receive law's premise
 `PhaseStepR` changes, old vs new: its hypothesis on the share `(elements c.incoming).Perm C ∧
-c.outgoing = ∅ ∧ id ∈ C` becomes `… ∧ id ∈ C ∧ m.source ∈ confAbs C` (the step may assume its message's
-source a voter); `trCap_fire_recv` supplies it from `MsgsShape` (the message is in flight, its token's).
+c.outgoing = ∅ ∧ id ∈ C` becomes `… ∧ id ∈ C ∧ m.source ∈ confAbs C ∧ (∀ k ∈ cs.votesResponded, k ∈
+confAbs C)`; `trCap_fire_recv` supplies both from `MsgsShape` (the message is in flight, its token's; the
+share is the node's server's). The second conjunct is review a6-r2's F1: the tally the winning call
+starts from was recorded in earlier `Step` calls, and the frozen idle phase between calls (`SimIdle`,
+`SimServerR`) ties the responded voters to raft's tally's keys but not to the configuration.
 No other frozen statement changed. Users: every `PhaseStepR` proof's pattern (`⟨hin, hout, hC, -⟩`,
 twelve files, mechanical); the send lemmas' new ends premise (`simFx_send`, `msgsUniq_send_canon`;
 `fxPres_plain`'s `hpE`, `fxPres_heartbeat`/`fxPres_app`'s `hdC`, `fxPres_heartbeat_pin`'s `hto`, from
 the capability's configuration, `trCapB_pinPerm`); the replies' ends from their request's
 (`simFx_leadReply`'s `hmem`/`hrsd` and its three wrappers, `simFx_voteReq`'s `hdi`, `simFx_hb`,
-`fxPresR_staleReq`'s phantom, `phantomOf_dest`); `simFx_congr` (`MsgEnds` across equal server sets).
+`fxPresR_staleReq`'s phantom, `phantomOf_dest`); `simFx_congr` and the other congruences (`msgsShape_of`:
+the same servers and tallies); a recorded response (`msgsShape_resp`: a vote response adds its source);
+`Timeout` (the new candidate's empty tally); the bootstrap state.
 Concurrent slices' new `PhaseStepR` proofs and send sites need the same two mechanical changes.
 
-**Sufficiency** (`TracedQuorumLog.lean`): `votesIn_recordVote` (a tally whose voters are configured keeps
-that after recording a configured sender), `votesIn_empty`, and `wonVote_quorum`: at a won `MsgVoteResp`,
-the phase's voters-configured fact and the receive law's source premise give `tallyGranted_quorum`'s
-`hc`, so the won tally is the specification's quorum. Left to the won path (slice 24b's successor): its
-phase carries the voters-configured fact from the campaign (raft's self-vote at a configured node) on.
+**Sufficiency** (`TracedQuorumLog.lean`): `votesIn_of_responded` (raft's tally's voters configured, from
+`SimServerR`'s candidate clause and the law's tally premise), `votesIn_recordVote` (kept by recording a
+configured sender), and `wonVote_quorum`: at a won `MsgVoteResp`'s receive line, `tallyGranted_quorum`'s
+`hc`, so the won tally is the specification's quorum. Left to the won path: its receive line's phase step
+must hand the guard's fact to the `BecomeLeader` line's phase in the same `Step` call (`PhaseStepB` has no
+message premise); `phaseStepR_voteRespCand` does not use the new premises yet. Not done: `AckHists`'
+guard `x.source ∈ σ.server` is now implied by `MsgEnds` (harmless; may be dropped at the re-freeze).

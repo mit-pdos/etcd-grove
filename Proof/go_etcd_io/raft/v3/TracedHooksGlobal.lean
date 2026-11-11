@@ -984,6 +984,33 @@ theorem withNode_acks_without (σ : Etcdraft.State) (i : Etcdraft.ID) (a' : Etcd
   · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
   · exact List.mem_append_right _ hx
 
+/-- (Amendment A6, Q23) **A recorded response keeps `MsgsShape`**: its source, which a vote response's
+record adds to the tally, is a server (`MsgEnds`). -/
+theorem msgsShape_resp (σ : Etcdraft.State) (i : Etcdraft.ID) (ma : Etcdraft.Msg) (hm : ma ∈ σ.messages.domain)
+    (h : MsgsShape σ) : MsgsShape (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id) := by
+  refine ⟨fun x hx => ?_, fun j hj k hk => ?_⟩
+  · have hx' : x ∈ σ.messages.domain ++ σ.pendingMessages.domain := by
+      rcases List.mem_append.mp hx with hx | hx
+      · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
+      · exact List.mem_append_right _ hx
+    exact h.1 x hx'
+  · have hs : (withNode σ i (respSrv (σ.s i) ma) (fun b => b.without ma) _root_.id).s j =
+        if j = i then respSrv (σ.s i) ma else σ.s j := rfl
+    rw [hs] at hk
+    show k ∈ σ.server
+    split at hk
+    · rename_i hji
+      subst hji
+      unfold respSrv at hk
+      split at hk
+      · simp only [Etcdraft.SetIds.add, Etcdraft.SetIds.union, setIds_mk_mem, List.mem_append,
+          List.mem_singleton] at hk
+        rcases hk with hk | rfl
+        · exact h.2 j hj k hk
+        · exact (h.1 ma (List.mem_append_left _ hm)).2.1
+      · split at hk <;> exact h.2 j hj k hk
+    · exact h.2 j hj k hk
+
 theorem ready_msgs_sub (σ : Etcdraft.State) (i : Etcdraft.ID) :
     ∀ x ∈ (σ.ready i).messages.domain ++ (σ.ready i).pendingMessages.domain,
       x ∈ σ.messages.domain ++ σ.pendingMessages.domain := by
@@ -1041,8 +1068,8 @@ theorem fxPresReady (γ : RaftNames) (id : w64) (E : TraceEv → Prop)
   refine ⟨TraceSpecInv.specInv_ready hsi, ?_, ?_, ?_⟩
   · intro ln m1 m2 h1 h2 hp1 hp2
     exact hu ln m1 m2 (ready_msgs_sub σ _ m1 h1) (ready_msgs_sub σ _ m2 h2) hp1 hp2
-  · intro x hx
-    exact hsh x (ready_msgs_sub σ _ x hx)
+  · exact msgsShape_of (σ := σ) (σ' := σ.ready (idAbs id)) rfl (ready_msgs_sub σ _)
+      (fun k => by rw [ready_s]; split <;> subst_vars <;> rfl) hsh
   · intro x hx hty j hj hl ht hs k e he
     rw [ready_s] at hl ht ⊢
     by_cases hji : j = idAbs id
@@ -1246,8 +1273,18 @@ theorem trCap_fire_recv : trCap_fire_recv.statement (GF := GF) := by
       iunfold simFx at Hf2
       icases Hf2 with ⟨-, -, -, %Hp2⟩
       ipureintro
-      rw [← hsrv]; exact (Hp2.2.2.1 m (List.mem_append_left _ hmd)).2.1
-    obtain ⟨hnid, hname, hmatch, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC, hsrcm⟩ e HE
+      rw [← hsrv]; exact (Hp2.2.2.1.1 m (List.mem_append_left _ hmd)).2.1
+    -- (amendment A6, Q23) the share's tally holds voters (`MsgsShape`'s `VotesIn`)
+    ihave %hvin : ⌜∀ k ∈ cs.votesResponded, k ∈ confAbs C⌝ $$ []
+    · ihave #Hf2 := Hfσ
+      iunfold simFx at Hf2
+      icases Hf2 with ⟨-, -, -, %Hp2⟩
+      ipureintro
+      intro k hk
+      rw [hcs] at hk
+      have hi : idAbs id ∈ σ.server := by rw [hsrv]; exact (mem_confAbs C id).2 hC
+      rw [← hsrv]; exact Hp2.2.2.1.2 _ hi k hk
+    obtain ⟨hnid, hname, hmatch, hall⟩ := hps C cs P HΦ ⟨hperm, hout, hC, hsrcm, hvin⟩ e HE
     obtain ⟨a', P', hΦ', hsrcP, hle⟩ := hall (σ.s (idAbs id)) (by rw [hcs, hsrv])
     have hpre : Φ C cs P ∧ E e ∧ toC (confAbs C) (σ.s (idAbs id)) = cs ∧ Φ' C (toC (confAbs C) a') (P ++ P') ∧
         LineEffect C false e (idAbs id) (σ.s (idAbs id)) a' (some m) (fun b => b.without m)

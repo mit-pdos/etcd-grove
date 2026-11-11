@@ -133,7 +133,7 @@ theorem simFx_respCand (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i 
         exact ⟨by rw [← h4]; exact hl, h3, fun _ _ => by unfold respSrv; rw [if_pos hty]⟩)) $$ Hq
   ipureintro
   refine ⟨specInv_respCand σ i ma hsi hi hm hd hty ht,
-    msgsUniq_mono hsub hu, fun x hx => hsh x (hsub x hx), ?_⟩
+    msgsUniq_mono hsub hu, msgsShape_resp σ i ma hm hsh, ?_⟩
   intro m hm' hty' j hj hlj htj hs k e he
   rw [(hF j).1]
   rw [(hF j).2.2.2.1] at hlj; rw [(hF j).2.2.1] at htj
@@ -197,7 +197,7 @@ theorem phaseStepR_voteRespCand (id : w64) (c : CfgM) (s : NState) (m : MessageM
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg .voteResp m ents)) (fun _ => False) (recvPhantoms ma)
       (IdlePin s C0 cs0 P0)
       (IdlePin { s with votes := recordVote s.votes m.From' (!m.Reject') } C0 (toC (confAbs C0) (respSrv a0 ma)) P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hpre : s.role ≠ .preCandidate := by rw [hc]; decide
   have hdst : (absMsg .voteResp m ents).dst = id := hto

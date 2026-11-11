@@ -91,7 +91,9 @@ theorem msgsUniq_simInit (C : List w64) : MsgsUniq (simInit C) := by
   intro _ m1 _ h1; simp [msgs_simInit] at h1
 
 theorem msgsShape_simInit (C : List w64) : MsgsShape (simInit C) := by
-  intro x hx; simp [msgs_simInit] at hx
+  refine ⟨fun x hx => ?_, fun i _ k hk => ?_⟩
+  · simp [msgs_simInit] at hx
+  · simp [simInit] at hk
 
 theorem appSlices_simInit (C : List w64) : AppSlices (simInit C) := by
   intro m hm; simp [msgs_simInit] at hm

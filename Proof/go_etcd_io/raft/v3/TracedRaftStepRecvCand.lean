@@ -232,7 +232,7 @@ theorem simFx_rtf (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (i j : E
       (fun x hx _ => hx)
       (withNode_leaders σ i _ _ _ (fun hl => absurd hl (by simp [rtfSrv]; exact hfl))) $$ Hq
   ipureintro
-  refine ⟨specInv_rtf hsi hi, hu, hsh, ?_⟩
+  refine ⟨specInv_rtf hsi hi, hu, msgsShape_of (σ := σ) rfl (fun x hx => hx) (fun j => by show Etcdraft.Server.votesResponded (if j = _ then _ else _) = _; split <;> (try subst_vars) <;> rfl) hsh, ?_⟩
   intro m hm hty k hk hlk htk hs k' e he
   rw [hWs] at hlk htk ⊢
   split at hlk
@@ -264,7 +264,7 @@ theorem phaseStepR_candHb (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ent
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) (hbSrv (rtfSrv a0 (idAbs m.From')) (idAbs m.From') ma.commitIndex))
         (P0 ++ [hbResp (rtfSrv a0 (idAbs m.From')) (idAbs id) (idAbs m.From')])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .heartbeat m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .heartbeat m ents).dst s c (absMsg .heartbeat m ents) e := by

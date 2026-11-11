@@ -959,15 +959,32 @@ def canonMsg (x : Etcdraft.Msg) : Etcdraft.Msg :=
 def MsgEnds (σ : Etcdraft.State) (x : Etcdraft.Msg) : Prop :=
   x.source ∈ σ.server ∧ x.dest ∈ σ.server
 
+/-- (Amendment A6, Q23) **Every server's tally holds servers only**: the voters it has heard from
+(`votesResponded`, which `SimServerR` ties to raft's tally's keys) are servers (a vote response's
+source is, `MsgEnds`), so that a won tally is counted over the configuration
+(`tallyGranted_quorum`'s `hc`, `wonVote_quorum`). -/
+def VotesIn (σ : Etcdraft.State) : Prop :=
+  ∀ i ∈ σ.server, ∀ k ∈ (σ.s i).votesResponded, k ∈ σ.server
+
 /-- **Every message in flight in its canonical form** (amendment A2, Q15; the notes' `MsgsDet`, "the
 other fields constant"): with it, two messages a line matches are equal (`MsgsUniq`) once the fields it
 logs agree, which a new message's line can then re-establish. (Amendment A6, Q23) and between servers
 (`MsgEnds`: a server sends only as itself, to a server of its configuration, and a reply, phantom or
 not, goes from its request's destination back to its source), so that the receive law can give a
 receive line's phase step its message's source among the voters (`PhaseStepR`; a won vote's quorum is
-counted over the configuration, `tallyGranted_quorum`'s `hc`). -/
+counted over the configuration, `tallyGranted_quorum`'s `hc`); and every server's tally of servers
+(`VotesIn`), which the receive law also gives the phase step. -/
 def MsgsShape (σ : Etcdraft.State) : Prop :=
-  ∀ x ∈ σ.messages.domain ++ σ.pendingMessages.domain, canonMsg x = x ∧ MsgEnds σ x
+  (∀ x ∈ σ.messages.domain ++ σ.pendingMessages.domain, canonMsg x = x ∧ MsgEnds σ x) ∧ VotesIn σ
+
+/-- **`MsgsShape` carried** to a state with the same servers and tallies, whose messages in flight
+were in flight (each canonical between servers). -/
+theorem msgsShape_of {σ σ' : Etcdraft.State} (hsrv : σ'.server = σ.server)
+    (hsub : ∀ x ∈ σ'.messages.domain ++ σ'.pendingMessages.domain,
+      x ∈ σ.messages.domain ++ σ.pendingMessages.domain)
+    (hV : ∀ i, (σ'.s i).votesResponded = (σ.s i).votesResponded) (h : MsgsShape σ) : MsgsShape σ' :=
+  ⟨fun x hx => ⟨(h.1 x (hsub x hx)).1, by unfold MsgEnds; rw [hsrv]; exact (h.1 x (hsub x hx)).2⟩,
+    fun i hi k hk => by rw [hsrv] at hi ⊢; rw [hV] at hk; exact h.2 i hi k hk⟩
 
 /-- **A leader's append requests of its term are slices of its log** (amendment A2, Q16; the notes'
 `AppSlices`): while server `i` leads term `T`, every append request in flight of term `T` from `i`
@@ -1162,12 +1179,14 @@ the node's share, the phantoms `ph a` (the specification's replies raft does not
 2's A6; a function of the receiving server before the line, amendment A2, chosen by the caller: the
 intended instance is `recvPhantoms m` (`TracedRecvPhantom.lean`), `phantomOf` for a lower-term request and none otherwise) among
 the phantoms, through intermediate states of the shape `Mid`. (Amendment A6, Q23: the step may assume
-the message's source a voter, `m.source ∈ confAbs C`, which the receive law gives from `simFx`'s
-`MsgsShape`: a candidate's phase can then record that every voter it heard from is configured.) -/
+the message's source a voter, `m.source ∈ confAbs C`, and the share's tally of voters, which the
+receive law gives from `simFx`'s `MsgsShape`: with them a won tally is counted over the
+configuration, `wonVote_quorum`.) -/
 def PhaseStepR (id : w64) (c : CfgM) (m : Etcdraft.Msg) (E : TraceEv → Prop) (Mid : Etcdraft.Server → Prop)
     (ph : Etcdraft.Server → List Etcdraft.Msg)
     (Φ Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) : Prop :=
-  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C ∧ m.source ∈ confAbs C →
+  ∀ C cs P, Φ C cs P → (elements c.incoming).Perm C ∧ c.outgoing = ∅ ∧ id ∈ C ∧ m.source ∈ confAbs C ∧
+      (∀ k ∈ cs.votesResponded, k ∈ confAbs C) →
     ∀ e, E e →
     e.nid = decStr id ∧ Etcdraft.isBootstrapName (gsStr e.name) = false ∧
     (∀ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln → recvPred ln m = true) ∧

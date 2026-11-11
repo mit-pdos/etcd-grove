@@ -206,12 +206,12 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
     · exact List.mem_append_right _ hx) hu
-  have hshd : MsgsShape (σ.discard ma) := fun x hx => hsh x (by
+  have hshd : MsgsShape (σ.discard ma) := msgsShape_of (σ := σ) rfl (fun x hx => by
     rcases List.mem_append.mp hx with hx | hx
     · exact List.mem_append_left _ (TraceSpecInv.mem_without _ _ _ hx)
-    · exact List.mem_append_right _ hx)
+    · exact List.mem_append_right _ hx) (fun _ => rfl) hsh
   -- (amendment A6, Q23) the reply's ends, the request's reversed
-  have hme := (hsh ma (List.mem_append_left _ hmem)).2
+  have hme := (hsh.1 ma (List.mem_append_left _ hmem)).2
   obtain ⟨hu', hsh'⟩ := msgsUniq_send_canon (σ.discard ma) _ hud hshd hr0
     ⟨by rw [hrsd.1]; exact hme.2, by rw [hrsd.2]; exact hme.1⟩
     (fun y _ => ContentLogged.pinned (fun h => absurd h hrq) y)
@@ -247,7 +247,7 @@ theorem simFx_leadReply (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (m
     iunfold allFacts at Hal
     iapply Hal $$ %w %hw
   ipureintro
-  refine ⟨hsi' hsi, by rw [hW]; exact hu', by rw [hW]; exact hsh', ?_⟩
+  refine ⟨hsi' hsi, by rw [hW]; exact hu', by rw [hW]; exact msgsShape_of (σ := (σ.discard ma).send r) rfl (fun x hx => hx) (fun j => by show Etcdraft.Server.votesResponded (if j = _ then _ else _) = _; split <;> (try subst_vars) <;> rfl) hsh', ?_⟩
   intro m hm hty' k hk hlk htk hs k' e he
   have hk' : k ∈ σ.server := by rw [hWsrv] at hk; exact hk
   rcases hsub' m hm with hm | rfl
@@ -319,7 +319,7 @@ theorem phaseStepR_appStale (id : w64) (c : CfgM) (s : NState) (m : MessageM) (e
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { a0 with lead := idAbs m.From' })
         (P0 ++ [stResp a0 (idAbs id) (idAbs m.From') "app"])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by

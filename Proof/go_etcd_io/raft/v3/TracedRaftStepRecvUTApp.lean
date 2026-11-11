@@ -77,7 +77,7 @@ theorem phaseStepR_utApp (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ents
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { utSrv a0 (uint.Z m.Term') with lead := idAbs m.From' })
         (P0 ++ [R (utSrv a0 (uint.Z m.Term'))])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by rw [hdst]; exact he

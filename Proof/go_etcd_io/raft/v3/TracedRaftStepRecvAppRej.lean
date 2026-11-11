@@ -84,7 +84,7 @@ theorem phaseStepR_appRej (id : w64) (c : CfgM) (s : NState) (m : MessageM) (ent
       (IdlePin s C0 cs0 P0)
       (VPin C0 (toC (confAbs C0) { a0 with lead := idAbs m.From' })
         (P0 ++ [rjResp a0 (idAbs id) (idAbs m.From')])) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -⟩ e he
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI
   have hdst : (absMsg .app m ents).dst = id := hto
   have he' : SendEvOf evt (absMsg .app m ents).dst s c (absMsg .app m ents) e := by

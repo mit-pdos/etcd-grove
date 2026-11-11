@@ -279,7 +279,7 @@ theorem simFx_ut (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : w64)
     · rename_i hj; subst hj; simp only [utSrv]; omega
     · exact Int.le_refl _
   ipureintro
-  refine ⟨hsi', by rw [hW]; exact hu, by rw [hW]; exact hsh, ?_⟩
+  refine ⟨hsi', by rw [hW]; exact hu, by rw [hW]; exact msgsShape_of (σ := σ) rfl (fun x hx => hx) (fun j => by show Etcdraft.Server.votesResponded (if j = _ then _ else _) = _; split <;> (try subst_vars) <;> rfl) hsh, ?_⟩
   intro m hm hty j hj hlj htj hs j' e he
   have hm' : m ∈ σ.messages.domain ++ σ.pendingMessages.domain := by rw [hW] at hm; exact hm
   have hj' : j ∈ σ.server := by rw [hW] at hj; exact hj

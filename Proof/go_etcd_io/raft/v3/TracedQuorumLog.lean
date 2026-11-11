@@ -345,11 +345,26 @@ self-vote, which `votesIn_recordVote` adds at a configured node). -/
 theorem votesIn_empty (C : List w64) : ∀ k w, ((∅ : GMap w64 Bool) !! k) = some w → idAbs k ∈ confAbs C := by
   intro k w h; rw [GMap.lookup_empty] at h; cases h
 
+/-- (Amendment A6, Q23) **A candidate's tally holds configured voters**: its server's responded voters
+(`SimServerR`'s candidate clause: raft's tally's keys) are voters, which the receive law gives the phase
+step (`PhaseStepR`, from `simFx`'s `VotesIn`). -/
+theorem votesIn_of_responded (C : List w64) (votes : GMap w64 Bool) (R : Etcdraft.SetIds)
+    (hR : R = Etcdraft.SetIds.mk ((GMap.toList votes).map (fun p => idAbs p.1)))
+    (hin : ∀ k ∈ R, k ∈ confAbs C) : ∀ k w, votes !! k = some w → idAbs k ∈ confAbs C := by
+  intro k w h
+  apply hin
+  rw [hR, setIds_mk_mem, List.mem_map]
+  exact ⟨(k, w), (GMap.mem_toList votes k w).2 h, rfl⟩
+
 /-- (Amendment A6, Q23) **A won vote's quorum** (the sufficiency of Q23): at a candidate's receive
-line of a `MsgVoteResp` (abstracted as `ma`, its source raft's sender `src`), whose source the receive
-law gives among the voters (`PhaseStepR`'s new premise), raft's tally after `recordVote`, its voters
-configured before (a phase fact), has its voters configured after (`tallyGranted_quorum`'s `hc`), so a
-won tally is the specification's quorum (`isQuorum votesGranted`, the `BecomeLeader` guard). -/
+line of a `MsgVoteResp` (abstracted as `ma`, its source raft's sender `src`), the receive law gives
+`PhaseStepR` the source among the voters and the share's responded voters among them (from `simFx`'s
+`MsgsShape`: `MsgEnds`, `VotesIn`); raft's tally before the response then has configured voters
+(`votesIn_of_responded`, `SimServerR`'s candidate clause), so after `recordVote` too
+(`tallyGranted_quorum`'s `hc`), and a won tally is the specification's quorum (`isQuorum
+votesGranted`, the `BecomeLeader` guard). The receive line's phase step is where this is available:
+it must hand the guard's fact (or the configured tally) to the `BecomeLeader` line's phase of the same
+`Step` call, which has no message premise. -/
 theorem wonVote_quorum (C : List w64) (votes : GMap w64 Bool) (src : w64) (v : Bool) (ma : Etcdraft.Msg)
     (g : Etcdraft.SetIds) (hms : ma.source = idAbs src) (hsrcC : ma.source ∈ confAbs C)
     (hv : ∀ k w, votes !! k = some w → idAbs k ∈ confAbs C)
