@@ -47,6 +47,18 @@ Two findings:
    lean's baseline), collections, interfaces, gates (`timeout 14000`).
 2. Checkpoint (b) report. Stop before land.sh.
 
+## Done since (second agent, 2026-11-11)
+
+- lean `2b96923406` merged (`6025d1d443`): conflicts only in etcdserver `Results.lean` (both sides:
+  `keySized_at`, lean's `lease.leaseOwn`), STATUS (one copy of each entry; lean's oldest, per-type
+  models A, appended to status-history.md, 19138 lines), status-history (lean's side). mvccfull took
+  `keySized` (Main/Run/5 runner specs, `inc_open_backend`, `mvccfull_adequate`/`_safe`'s `Hks`):
+  dropped, `inc_open_backend` uses `mvcc.keySized_all`.
+- Full build green (13846 jobs, `full4.log`; the first try hit the 64G cap). tcb `--check`: baseline
+  matches (844 axioms, 5 sorries; lean's + `rtxSnap_size`); collections 53 match, mvccfull updated
+  (+`rtxSnap_size`). Interfaces unchanged; gen-init 224 up to date.
+- Next: `etc/land.sh` (log `land.log`).
+
 ## Build command
 
 ```
