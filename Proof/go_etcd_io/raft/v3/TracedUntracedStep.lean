@@ -256,13 +256,14 @@ theorem stepCandidate.untraced (h : stepCandidate.spec (GF := GF) (hG := hG)) :
   intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap htr
   iintro %Φ ⟨#Hpkg, Hphys, Hm, #Hcert⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  imod (preceipt_zero (GF := GF)) with #Hrc00
   iapply h c scfg r id s ml m ents sn rs sv cl (fun _ => iprop(emp)) (fun _ => iprop(emp)) iprop(emp)
-    iprop(emp) iprop(emp)
+    iprop(emp) iprop(emp) 0
     Hty Hterm Hrole Happ Hhb Hpvnw
     (fun hs => let ⟨a, b, c', d, e⟩ := Hsnap hs; ⟨a, b, c', d, e, htr⟩)
     (PermInv.const _) (IdxFree.const _ _) (IdxFree.const _ _) $$ [Hphys Hm]
   · dsimp only
-    iframe Hpkg Hphys Hm Hcert
+    iframe Hpkg Hphys Hrc00 Hm Hcert
     rw [htr]
     isplitr
     · iempintro
@@ -283,7 +284,7 @@ theorem stepCandidate.untraced (h : stepCandidate.spec (GF := GF) (hG := hG)) :
       iapply hookGate_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro -
+    · iintro %_ - -
       iapply hookGateN_none r _ 1 tl iprop(emp) Htlok
       iframe Htl
     isplitr

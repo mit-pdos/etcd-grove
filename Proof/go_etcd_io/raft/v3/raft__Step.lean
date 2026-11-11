@@ -39,6 +39,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHup
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVote
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVoteResp
+public import Proof.go_etcd_io.raft.v3.raft__Step.VoteWin
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgProp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgApp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat
@@ -852,7 +853,8 @@ theorem raft.Step.wp_proof
         iexact Htks
       · -- (slice 23a) the ghost state back at the proposed state: the broadcast from there, the mode
         -- unchanged (a proposal moves no ghost part), the whole step the model's witness
-        obtain ⟨-, hrole, hnc, rfl, hlog⟩ := Hmid
+        obtain ⟨-, hrole, hnc, rfl, hlog⟩ :=
+          Hmid.resolve_right (fun h => absurd (Hty.symm.trans h.1) (by w32_ne))
         obtain ⟨Hst2, Hbnd⟩ := (Hlead hrole hnc).1 hlog
         iunfold ownStepGhost at Hgs
         icases Hgs with ⟨Hghost, Hrest⟩
@@ -1333,23 +1335,59 @@ theorem raft.Step.wp_proof
     -- in the step for a win's entry
     ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
     imod lastRec_receipt γ _ $$ Hlr with #Hrc0
+    -- (2026-11-11, slice 25b) the dynamic mode's facts at `s`, for a won election's whole step
+    icases ghostRest_dynFacts γ md c id s $$ Hrest with ⟨%Hdyn0, Hrest⟩
     ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
     wp_apply (wp_Step_MsgVoteResp P PB c r id s ml m ents (ghostIn γ md c id s R) sn ctx rs _ Hty Hto Hterm Hwf HL)
       $$ [$Hphys $Hmi $Hrc0 $HG $Hgates]
       as %err %s' %B ⟨Hphys, %HBb, #Hrcb, %Hend, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
+    · -- (2026-11-11, slice 25b) the loan to a win's `Replicate` gate: the raised receipt
+      dsimp only [ghostIn]
+      iintro #Hr
+      unfold winLend
+      split
+      · iexact Hr
+      · iempintro
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-    -- (2026-11-11, slice 24b) the branch's result is guarded (`stepOutG`)
-    imod gate_close_g γ md c id m ents ctx s R Gout s' B recv (fun _ => Hstep) (fun _ => Hend) (by rw [Hty]; w32_ne) $$ Hclose HGo
-      with ⟨Hghost, Hrest, HGq, %Hot⟩
-    iapply finish_branchB γ md c r id s s' m _ recv err Gout Φ B HBb.2.2 (Hot := Hot) (Hdh s') Hwf' Hrecv Hstep
-      (fun _ => Hfr) (fun _ => Htm) Hresp Hfr.nsst $$ [] Hm' Hghost Hrest Hphys [] HGq HΦ
-    · have Hpl : plogLastIndexZ (toPState s).base (toPState s).log =
-          plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) := rfl
-      iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
-        ((plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)).toNat
-          - γ.reBoot.length) + 1 by omega))
-      iexact Hrcb
-    ileft; ipureintro; exact Herr
+    -- (2026-11-11, slice 24b) the branch's result is guarded (`stepOutG`); (slice 25b) the ghost state
+    -- back at `s`, or at the won state (`CloseMid`)
+    imod gate_close_mid γ md c id m ents ctx s R Gout s' B recv (fun _ => Hstep) (fun _ => Hend) $$ Hclose HGo
+      with ⟨Hgh, HGq, %Hot⟩
+    icases Hgh with (⟨-, Hgs⟩ | ⟨%s1, %Hmid, Hgs⟩)
+    · iunfold ownStepGhost at Hgs
+      icases Hgs with ⟨Hghost, Hrest⟩
+      iapply finish_branchB γ md c r id s s' m _ recv err Gout Φ B HBb.2.2 (Hot := Hot) (Hdh s') Hwf' Hrecv Hstep
+        (fun _ => Hfr) (fun _ => Htm) Hresp Hfr.nsst $$ [] Hm' Hghost Hrest Hphys [] HGq HΦ
+      · have Hpl : plogLastIndexZ (toPState s).base (toPState s).log =
+            plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) := rfl
+        iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+          ((plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)).toNat
+            - γ.reBoot.length) + 1 by omega))
+        iexact Hrcb
+      ileft; ipureintro; exact Herr
+    · -- (slice 25b) a won election, the ghost state at the won state: the broadcast from there, the
+      -- mode unchanged (a win moves no ghost part), the whole step the model's witness
+      iunfold ownStepGhost at Hgs
+      icases Hgs with ⟨Hghost, Hrest⟩
+      obtain ⟨-, hrole, hterm', pvs1, Hpm1, rfl, hlog⟩ :=
+        Hmid.resolve_left (fun h => absurd (Hty.symm.trans h.1) (by w32_ne))
+      obtain ⟨lost, ms, pvs, rfl, -, Hms, Hpm⟩ := StepProof.voteWin_end pvs1 Hty hrole hterm' Hend hlog
+      icases ownRaftPhysC_dom c r id _ $$ Hphys with ⟨%Hpc, Hphys⟩
+      have Hng := Hfr.nsst
+      iapply StepProof.finish_branch_mid γ md c r id s (StepProof.wonState id s m pvs1) _ m err Gout Φ
+        (fun _ _ _ _ hmd _ HI => (StepProof.gmodePre_vote (md := md) (ents := ents) Hty
+            (by rw [StepProof.wonState_role]; decide)).dynHyp
+          (fun h => absurd (Hty.symm.trans h) (by w32_ne))
+          (fun h => absurd (Hty.symm.trans h) (by w32_ne)) hmd HI)
+        Hwf' (StepProof.stepCD_won_sendApps c id _ m s pvs1 pvs lost ms Hms (Hpm.trans Hpm1.symm) Hpc)
+        (fun _ => Hfr) (fun _ => Htm) Hresp
+        ⟨Hng.1.trans (StepProof.wonState_gh id s m pvs1).symm,
+          Hng.2.trans (StepProof.wonState_storage id s m pvs1).symm⟩
+        (StepProof.outTrStep_won id s m pvs1 _ Hot) (fun _ h => StepProof.stepOut_vote_md Hty h)
+        (StepProof.stepOut_of_stepCD_vote Hstep Hty (fun dec c0 h0 g hmd =>
+          ⟨(Hdyn0 dec c0 h0 g hmd).1, Hdh _ dec c0 h0 g hmd _ (Hdyn0 dec c0 h0 g hmd).2⟩))
+        $$ Hghost Hrest Hphys [] HGq HΦ
+      ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgPreVote
   · -- MsgPreVote (2026-10-04): answered with a free `MsgPreVoteResp`; nothing
     -- received, nothing recorded.

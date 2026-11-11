@@ -576,7 +576,7 @@ macro "prevote_resp_dispatch" : tactic =>
       ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
       · iapply rcvSrc_ne; notsnap_tac
       gates_cand
-      wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2
+      wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
@@ -587,7 +587,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-      · iframe Hphys Hsrc0 HG Hcg; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hrc00 Hsrc0 HG Hcg; rw [ite_eq_right Hnp]; iexact Hm
       ihave HG := stepOut_or R _ _ $$ HGo
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inl Hrole)
@@ -639,7 +639,7 @@ macro "prevote_resp_dispatch" : tactic =>
       ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
       · iapply rcvSrc_ne; notsnap_tac
       gates_cand
-      wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2
+      wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
@@ -650,7 +650,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
-      · iframe Hphys Hsrc0 HG Hcg; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hrc00 Hsrc0 HG Hcg; rw [ite_eq_right Hnp]; iexact Hm
       ihave HG := stepOut_or R _ _ $$ HGo
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inr Hrole)

@@ -244,7 +244,7 @@ theorem stepFnGates_candidate (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : 
     (ents : List EntryM) (ctx : List w8) (R : StepG GF) (pvs : GMap w64 Progress) (s1 : NState)
     (hs : preState s m pvs = s1) (hr : s1.role = .candidate ∨ s1.role = .preCandidate) :
     stepFnGates c r id s m ents ctx R ⊢
-      candidateGates c r id s1 m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 := by
+      candidateGates c r id s1 m ents ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 R.Tw := by
   iintro H
   unfold stepFnGates
   ispecialize H $$ %pvs
@@ -280,6 +280,34 @@ theorem leaderGates_tp (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Message
   iintro %h %cs #Hcc Ht HG
   iapply Hgprep $$ %h %cs Hcc [HW Ht] HG
   iapply HW $$ %h Ht
+
+/-- (2026-11-11, slice 25b) **`stepCandidate`'s gates at another loan** for the win's `Replicate` gate
+(`candidateGates`' `"Hgrep"`), given the conversion on the win. -/
+theorem candidateGates_tw (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 Tw Tw' : IProp GF) :
+    iprop((⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ Tw' -∗ Tw) ∗
+        candidateGates c r id s m ents cl G G' Gf G1 G2 Tw) ⊢
+      candidateGates c r id s m ents cl G G' Gf G1 G2 Tw' := by
+  iintro ⟨HW, H⟩
+  unfold candidateGates
+  iNamed H
+  iframe Hgbf Hgapp Hghb Hgbl Hgack Hgcast Hnosnap Hgcamp Hgvote Hglost
+  iintro %h Ht HG
+  iapply Hgrep $$ %h [HW Ht] HG
+  iapply HW $$ %h Ht
+
+/-- ... off a win (the guard refuted), at `stepCandidate`'s receipt `⧖ (k0 + 1)`. -/
+theorem candidateGates_tw_ne (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
+    (cl : List w8) (G G' : List Msg → IProp GF) (Gf G1 G2 Tw : IProp GF) (k0 : Nat)
+    (h : ¬ (m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))))) :
+    candidateGates c r id s m ents cl G G' Gf G1 G2 Tw ⊢
+      candidateGates c r id s m ents cl G G' Gf G1 G2 iprop(⧖ (k0 + 1)) := by
+  iintro H
+  iapply candidateGates_tw c r id s m ents cl G G' Gf G1 G2 Tw
+  iframe H
+  iintro %h'; exact absurd h' h
 
 /-- ... on a message that is no proposal, at `stepLeader`'s loan (the receipt `⧖ (k0 + |ents|)`). -/
 theorem leaderGates_tp_rc (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
@@ -414,7 +442,8 @@ theorem gate_close_g [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id
     (h : s.gh.tr.isSome → StepCD c id B m s recv s')
     (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
     -- (2026-11-11, slice 23a) a close of another type than `MsgProp`: the ghost state back at `s`
-    (hnp : m.Type' ≠ MsgProp) :
+    -- ((slice 25b) nor a candidate's won vote)
+    (hnp : ∀ s1, ¬ CloseMid id m ents s s1 s') :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOutG c m s (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout s' ∗
@@ -429,7 +458,7 @@ theorem gate_close_g [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id
     imodintro
     iframe Hg Hr HG
     ipureintro; exact Hot
-  · exact absurd Hmid.ty hnp
+  · exact absurd Hmid (hnp s1)
 
 /-- ... from `stepOut`, off a candidate's vote response (2026-11-11, slice 24b: `stepOutG_of_ne`). -/
 theorem gate_close [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
@@ -444,7 +473,7 @@ theorem gate_close [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id :
         ⌜OutTrStep s s'⌝ := by
   iintro Hc Ho
   ihave Ho := stepOutG_of_ne c m s _ hnv $$ Ho
-  iapply gate_close_g γ md c id m ents ctx s R Gout s' B recv h he hnp $$ Hc Ho
+  iapply gate_close_g γ md c id m ents ctx s R Gout s' B recv h he (fun _ => CloseMid.not_of hnp hnv) $$ Hc Ho
 
 /-- (2026-11-11, slice 23a) **The ghost state back at `s` or past it** (`CloseMid`), on a proposal. -/
 theorem gate_close_mid [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
@@ -547,7 +576,7 @@ theorem stepGates_xw (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
 
 /-- `stepOut` at one resource (constant families). -/
 theorem stepOut_const (G X : IProp GF) (o : List Msg) (Tp : List EntryM → IProp GF := fun _ => iprop(emp)) :
-    stepOut ⟨G, fun _ => X, fun _ => X, fun _ => X, X, X, X, X, fun _ => X, fun _ _ _ => X, Tp⟩ o ⊢ X := by
+    stepOut ⟨G, fun _ => X, fun _ => X, fun _ => X, X, X, X, X, fun _ => X, fun _ _ _ => X, Tp, iprop(emp)⟩ o ⊢ X := by
   unfold stepOut
   dsimp only
   iintro (H | H | H | H | ⟨%b, %N, H⟩) <;> iexact H
@@ -601,10 +630,10 @@ theorem followerGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Mes
     iframe Htl HX
 
 theorem candidateGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
-    (ents : List EntryM) (cl : List w8) (tl : GoInterface) (X : IProp GF) (htr : s.gh.tr = none)
-    (Htlok : TraceLoggerOk tl) :
+    (ents : List EntryM) (cl : List w8) (tl : GoInterface) (X : IProp GF) (Tw : IProp GF)
+    (htr : s.gh.tr = none) (Htlok : TraceLoggerOk tl) :
     (r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
-      candidateGates c r id s m ents cl (fun _ => X) (fun _ => X) X X X := by
+      candidateGates c r id s m ents cl (fun _ => X) (fun _ => X) X X X Tw := by
   iintro #Htl
   unfold candidateGates
   dsimp only
@@ -626,7 +655,7 @@ theorem candidateGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Me
     iapply hookGate_none r _ tl X Htlok
     iframe Htl HX
   isplitr
-  · iintro HX
+  · iintro %_ - HX
     iapply hookGateN_none r _ 1 tl X Htlok
     iframe Htl HX
   isplitr
@@ -741,10 +770,11 @@ caller's first one `G` gives. -/
 theorem stepGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
     (tl : GoInterface) (G X : IProp GF) (hGX : G ⊢ X) (htr : s.gh.tr = none)
-    (Htlok : TraceLoggerOk tl) (Tp : List EntryM → IProp GF := fun _ => iprop(emp)) :
+    (Htlok : TraceLoggerOk tl) (Tp : List EntryM → IProp GF := fun _ => iprop(emp))
+    (Tw : IProp GF := iprop(emp)) :
     (r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
       stepGates c r id s m ents sn ctx rs
-        ⟨G, fun _ => X, fun _ => X, fun _ => X, X, X, X, X, fun _ => X, fun _ _ _ => X, Tp⟩ := by
+        ⟨G, fun _ => X, fun _ => X, fun _ => X, X, X, X, X, fun _ => X, fun _ _ _ => X, Tp, Tw⟩ := by
   iintro #Htl
   have hgh : ∀ pvs, (preState s m pvs).gh.tr = none := fun pvs => by rw [preState_gh]; exact htr
   unfold stepGates
@@ -790,7 +820,7 @@ theorem stepGates_none (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : Message
     iexact Htl
   isplit
   · iintro %_
-    iapply candidateGates_none c r id (preState s m pvs) m ents ctx tl X (hgh pvs) Htlok
+    iapply candidateGates_none c r id (preState s m pvs) m ents ctx tl X _ (hgh pvs) Htlok
     iexact Htl
   · iintro %_
     iapply leaderGates_none c r id (preState s m pvs) m ents tl X (hgh pvs) Htlok _

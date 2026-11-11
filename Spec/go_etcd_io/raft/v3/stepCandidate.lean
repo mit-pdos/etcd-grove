@@ -178,14 +178,16 @@ arm that runs, each conditioned on its arm (`notes/decisions.md`, "Q8 stage 1 (s
   messages', `G'` to `G'`);
 - a loss of either count: `becomeFollower`'s gate (`G` to `G'`).
 It gives back `G'` exactly when one of these ran (the tally's outcome is `poll`'s, an `iff`: the
-win's converse), else `G`. A `MsgSnap` only untraced (`handleSnapshot`'s premise; a traced node
+win's converse), else `G`. (2026-11-11, Q8 stage 1 slice 25b) The caller's time receipt `⧖ k0` goes to
+`becomeLeader`, whose `appendEntry` raises it by one before the empty entry's `Replicate` line; the
+win's `"Hgrep"` takes that (`⧖ (k0 + 1)`: a traced caller records the entry there). A `MsgSnap` only untraced (`handleSnapshot`'s premise; a traced node
 receives no snapshot, the Draft's P2). The untraced instance is `stepCandidate.untraced`
 (`TracedUntracedStep.lean`).
 -/
 abbrev stepCandidate.spec : Prop :=
   ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8)
-    (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF),
+    (G G' : List Msg → IProp GF) (Gf G1 G2 : IProp GF) (k0 : Nat),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
@@ -229,6 +231,8 @@ abbrev stepCandidate.spec : Prop :=
   PermInv G' → IdxFree s.gh.tr G' → IdxFree s.gh.tr G →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (2026-11-11, Q8 stage 1 slice 25b) the caller's time receipt (passed to `becomeLeader`)
+      "#Hrc" ∷ ⧖ k0 ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the
       -- response to a heartbeat carries)
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
@@ -261,8 +265,11 @@ abbrev stepCandidate.spec : Prop :=
       "Hgbl" ∷ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
           JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ G s.outbox -∗
         HookGate s.gh.tr r (NodeEvOf (W64 3) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) G1) ∗
-      -- ... its empty entry's `Replicate` gate and its self-acknowledgement's ...
-      "Hgrep" ∷ (G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) 1 G2) ∗
+      -- ... its empty entry's `Replicate` gate ((2026-11-11, slice 25b) on the win, with the receipt
+      -- `becomeLeader`'s `appendEntry` raised) and its self-acknowledgement's ...
+      "Hgrep" ∷ (⌜m.Type' = MsgVoteResp ∧ s.role = .candidate ∧
+          JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))⌝ -∗ ⧖ (k0 + 1) -∗
+        G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c) 1 G2) ∗
       "Hgack" ∷ (G2 -∗ HookGateOpt s.gh.tr r (sendOutGate id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') }) c MsgAppResp
           [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])
         (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })]))) ∗

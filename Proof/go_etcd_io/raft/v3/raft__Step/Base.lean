@@ -148,6 +148,13 @@ set_option hygiene false in
 macro "gates_cand" : tactic => `(tactic| (
   ihave Hcg := Perennial.EtcdGrove.stepFnGates_candidate c r id s m _ _ R ∅ s
     (Perennial.EtcdGrove.preState_nobf hnbf ∅) (by rw [Hrole]; simp) $$ Hgstep
+  -- (2026-11-11, slice 25b) off a win: `stepCandidate`'s receipt (`⧖ 0`) for `Step`'s loan
+  ihave Hcg := Perennial.EtcdGrove.candidateGates_tw_ne c r id s m _ _ _ _ _ _ _ _ 0
+    (fun h => by first
+      | (refine absurd h.1 ?_; rw [Hty]; w32_ne)
+      | (refine absurd h.2.1 ?_; rw [Hrole]; decide)
+      | (rcases Hty3 with Hty | Hty | Hty <;> (refine absurd h.1 ?_; rw [Hty]; w32_ne))) $$ Hcg
+  imod (preceipt_zero (GF := GF)) with #Hrc00
   iunfold Perennial.EtcdGrove.candidateGates at Hcg))
 
 set_option hygiene false in

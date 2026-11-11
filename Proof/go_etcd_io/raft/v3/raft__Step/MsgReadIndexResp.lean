@@ -224,7 +224,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
         · iapply rcvSrc_ne; notsnap_tac
         gates_cand
-        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2
+        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
@@ -234,7 +234,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
         ihave HG := stepOut_or R _ _ $$ HGo
         obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inr Hty) Hres
@@ -295,7 +295,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
         · iapply rcvSrc_ne; notsnap_tac
         gates_cand
-        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2
+        wp_apply _P.stepCandidate c ∅ r id s ml m [e] sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
@@ -305,7 +305,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+          Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
         ihave HG := stepOut_or R _ _ $$ HGo
         obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inr Hty) Hres

@@ -767,7 +767,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
         isplitr
         · iintro %h; exact (nX _ hne.2.2.2.2.2.2.1 h.1).elim
         isplitr
-        · iintro %h; exact h.elim
+        · iintro %h; exact (nX _ hne.2.2.2.2.2.2.1 h.1).elim
         isplitr
         · iintro %h; exact h.elim
         isplitr

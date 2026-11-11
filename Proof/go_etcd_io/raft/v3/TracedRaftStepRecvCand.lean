@@ -673,7 +673,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
             tn.voters _ _ (ownStepGhost γ md c id s) rfl (by simp only [Msg.plain]; exact hne) hOkR
           iframe Hgh Hc
         isplitr; · iintro %hg; exact (hnVR hg.1).elim
-        isplitr; · iintro %hg; exact hg.elim
+        isplitr; · iintro %hg; exact (hnVR hg.1).elim
         isplitr; · iintro %hg; exact hg.elim
         isplitr; · imodintro; iintro %hg; exact (hnVR hg.1).elim
         isplitr; · rw [htr]; iexact Hnosnap
