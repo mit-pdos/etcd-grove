@@ -75,8 +75,17 @@ Forms accepted: isWatchPermitted unchanged; stronger posts of `EnsureTrace` and
 
 ## Next, in order
 
-1. S1 accepted by etcd-grove-81 (incl. the srvCall change of meaning); lean f808e61706 merged, STATUS entry added; landing via `etc/land.sh`.
-2. S2 after S1 lands (Scope S.2; D2), with the old → new text STOP first.
+S1 landed: lean 5fde200c15 (2026-11-11; first land.sh run failed on the stray
+`examples/premisefix/ctxvalue/invoke_scratch_test.go`, removed in 5fde200c15).
+
+1. S2 (Scope S.2, D2): the exact old -> new text is `/shared/tmp/premise-fixes-8/s2-text.md`,
+   a STOP for etcd-grove-81's review. No Lean edits for S2 until it is approved.
+2. On approval: flip `FromIncomingContext` (+`weakSpec`/`weaken`), `AuthInfoFromTLS`, `isReqAuth`,
+   `isReqAuthBound`, `authStore.AuthInfoFromCtx`; re-prove `EtcdServer.AuthInfoFromCtx` (uses S1's
+   `#Hlib`), `AuthReqDerive`, `AuthSrv`, `AuthBound`, `AuthApplyOn`, `AuthGuard`, `LeaseCheckLemmas`,
+   `InvProposer`, `ServerOnDefs`; Go test `TestAuthInfoFromTLSReal`; update `TestBadContextPanics`/
+   `TestContradictions` comments; full build, tcb `--check --update` (texts only, count unchanged),
+   collections, interfaces, gen-init; STOP before land.sh.
 
 ## Pitfalls
 
