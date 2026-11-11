@@ -990,6 +990,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
         ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
           zs.length = pwSize m.size off k - m.size ∧
           ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
+        ⌜∀ j c, m.tc !! (m.size + j) = some c → j < zs.length → zs[j]? = some c⌝ -∗
         osMeta (L := L) p (DFrac.own 1) (pwPostK keep m off data k n) -∗
         osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
         mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
@@ -1053,11 +1054,12 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
       simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, hclo, hchi]; exact ⟨h1, h2⟩
     rw [hcval b hin, if_pos h1]
   have hcandI : ∀ b, off ≤ b → b < off + data.length → ∃ c0, f.cand b = c0 ++ [(data.getD (b - off) 0, n)] ∧
-      ∀ z, m.zf = some z → z ≤ b → c0 = [(0, 0)] := by
+      (∀ z, m.zf = some z → z ≤ b → c0 = [(0, 0)]) ∧
+      ∀ c, m.size ≤ b → m.tc !! b = some c → c0 = c := by
     intro b h1 h2
-    obtain ⟨c0, hc0, hz, -⟩ := hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
+    obtain ⟨c0, hc0, hz, htc⟩ := hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
     rw [if_pos h1] at hc0
-    exact ⟨c0, hc0, hz⟩
+    exact ⟨c0, hc0, hz, htc⟩
   have Hh : ∀ l, Mapped st l → (h !! l).isSome := by
     intro l hm
     obtain ⟨x, hx⟩ := cellView_isSome hwf hm
@@ -1374,7 +1376,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
     intro j z hz hzj hj
     rw [hzsl] at hj
     have hjb := (hpsz (f.size + j)).1 (by omega)
-    obtain ⟨c0, hc0, hz0⟩ := hcandI (f.size + j) (by omega) (by omega)
+    obtain ⟨c0, hc0, hz0, -⟩ := hcandI (f.size + j) (by omega) (by omega)
     have := hz0 z hz (by rw [← hmsz]; exact hzj)
     simp only [hzs0, List.getElem?_map, List.getElem?_range hj, hc0, this, Option.map_some]
     simp
@@ -1386,7 +1388,15 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
   iapply wp_value'
   unfold osMeta osBytes
   subst hys0
-  iapply HΦ $$ %k %e %zs %(⟨hk, hke, by rw [hzsl, hmsz], hzsfact⟩) Hm Hbs
+  have hzstc : ∀ j c, m.tc !! (m.size + j) = some c → j < zs.length → zs[j]? = some c := by
+    intro j c hc hj
+    rw [hzsl] at hj
+    have hjb := (hpsz (f.size + j)).1 (by omega)
+    obtain ⟨c0, hc0, -, htc⟩ := hcandI (f.size + j) (by omega) (by omega)
+    have := htc c (by omega) (by rw [← hmsz]; exact hc)
+    simp only [hzs0, List.getElem?_map, List.getElem?_range hj, hc0, this, Option.map_some]
+    simp
+  iapply HΦ $$ %k %e %zs %(⟨hk, hke, by rw [hzsl, hmsz], hzsfact⟩) %hzstc Hm Hbs
   unfold mcells
   iapply (BigSepM.bigSepM_toList (Φ := fun (b : Loc) (len : Nat) =>
     cellsR b (min off len) (min (off + data.length) len - min off len)
@@ -1407,8 +1417,12 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
         osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
         mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
         Φ (PairV (#(W64 k)) (#e))) -∗
-      WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} :=
-  wp_osPWriteFinishK false t p off data m xs n hE Φ
+      WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
+  iintro #Hinv Ht HΦ
+  iapply wp_osPWriteFinishK false t p off data m xs n hE Φ $$ Hinv Ht
+  iintro %k %e %zs %h %- Hm Hbs Hc
+  rw [pwPostK_false]
+  iapply HΦ $$ %k %e %zs %h Hm Hbs Hc
 
 end specs2
 

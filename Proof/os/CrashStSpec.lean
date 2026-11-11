@@ -379,14 +379,15 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   wp_apply wp_osPWriteStart_cs fd (off + nnv) (data.drop nnv.toNat) dq d N P R γ Good Ok m' bs' fa fb
     hN hwr hoffv' hgap' hdne hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t %nst Hosfd Hown
   have hW2 : ∀ k (zs : List Cands), k ≤ (data.drop nnv.toNat).length → (off + nnv).toNat ≤ m'.size →
+      ZsOk m' zs →
       Ok (some (d.ino,
       ⟨pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst,
         finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs, fa, fb, .idle⟩)) := by
-    intro k zs hk _; rw [hoffv]
-    exact (hW _ _ _ (hR.step k _ nst zs hnn (by rw [hdl] at hk; exact hk) (.inl rfl))).1
+    intro k zs hk _ hz; rw [hoffv]
+    exact (hW _ _ _ (hR.step k _ nst zs hnn (by rw [hdl] at hk; exact hk) (.inl rfl) hz)).1
   wp_apply wp_osPWriteFinish_cs t d.ino (off + nnv).toNat (data.drop nnv.toNat) nst N P R γ Good Ok m'
     bs' fa fb hN hW2 $$ Hos Hinv Hown as %k %e %zs %hke Hown Hc2
-  obtain ⟨hk, hke, -⟩ := hke
+  obtain ⟨hk, hke, -, hzt⟩ := hke
   rw [hdl] at hk
   have hv := fin_vals (n := nst) (zs := zs) hNar.len hS (Nat.le_refl _) (by omega) hk hpre
   rw [← hoffv, Nat.max_eq_right (Nat.le_add_right _ _)] at hv
@@ -394,7 +395,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   have hRs : ∀ nn', (nn' = nnv.toNat + k ∨ nn' = nnv.toNat) →
       WReach m bs off.toNat data nn' (pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst)
         (finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs) := by
-    intro nn' h; rw [hoffv]; exact hR.step k nn' nst zs hnn hk h
+    intro nn' h; rw [hoffv]; exact hR.step k nn' nst zs hnn hk h hzt
   -- the cells back
   ihave Hc2 := mcells_any _ _ _ _ $$ Hc2
   ihave Hc2 := (show mcellsAny (GF := GF) m'.maps (cfLo m' (off + nnv).toNat)
