@@ -46,7 +46,7 @@ theorem Cache.Get.wp_proof
     (wp_store_Get : store.Get.spec (GF := GF) (hG := hG)) :
     Cache.Get.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap r0 ctx s key sl gs
-  wp_start as ⟨#Hc, #Hctx, #Hopts, %Hnp, Hrd, #Hlb⟩
+  wp_start as ⟨#Hc, #Hctx, #HoC, #Hopts, %Hnp, Hrd, #Hlb⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Hc' := Hc
@@ -133,7 +133,7 @@ theorem Cache.Get.wp_proof
         -- linearizable: catch up with etcd's current revision first
         simp only [Bool.not_false]
         wp_auto
-        wp_apply wp_serverRevision c cf γr γd cap ctx s $$ [$Hc $Hctx] as %srev %serr Hsr
+        wp_apply wp_serverRevision c cf γr γd cap ctx s $$ [$Hc $Hctx $HoC] as %srev %serr Hsr
         icases Hsr with (⟨%Hsn, #Hm'⟩ | %Hsne)
         rotate_left
         · -- the client's error

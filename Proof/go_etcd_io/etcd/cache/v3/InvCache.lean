@@ -1467,7 +1467,8 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#HisWatcher" ∷ isEtcdWatcher cf.watcher cf.pfx ∗
     "#Hictx" ∷ cacheICtxAddr c ↦□ GoInterface.ok cf.ictx ∗
     "#HisICtx" ∷ (∃ ics : context.ContextDesc (IProp GF),
-      context.isContext cf.ictx ics ∗ context.isCancelCtxCtx cf.ictx ics) ∗
+      context.isContext cf.ictx ics ∗ metadata.outgoingCtxOkC cf.ictx ∗
+        context.isCancelCtxCtx cf.ictx ics) ∗
     "#Hclock" ∷ cacheClockAddr c ↦□ GoInterface.ok cf.clock ∗
     "#HisClock" ∷ isClock cf.clock ∗
     "#HisWg" ∷ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
