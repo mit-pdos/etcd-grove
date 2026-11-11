@@ -228,6 +228,91 @@ theorem appAgrees_of_terms (C : List w64) (P : List Etcdraft.Entry) (es G' ents 
   rw [show 1 + (idx + k) = idx + 1 + k by omega]
   exact entAbs_eq C C.length _ _ _ hTq.symm
 
+/-- (Amendment A6) **`AdvanceCommitIndex`'s outcome**: at a leader, the commit index raised to `c`, either
+not past the old one or a positive index within the log that a quorum of the configuration's match
+indices reaches (`maxAgree_spec`). -/
+theorem advanceCommitIndex_cases {σ σ' : Etcdraft.State} {i : Etcdraft.ID}
+    (h : σ.advanceCommitIndex i = some σ') :
+    (σ.s i).state = Etcdraft.leader ∧ ∃ c : Int, σ' = σ.commitTo i c ∧
+      (c ≤ (σ.s i).commitIndex ∨ (0 < c ∧ c ≤ (σ.s i).log.length ∧
+        Etcdraft.isQuorum ((σ.getConfig i).filter (fun k => decide ((σ.s i).matchIndex k ≥ c)))
+          (σ.getConfig i) = true)) := by
+  unfold Etcdraft.State.advanceCommitIndex at h; dsimp only at h
+  split at h
+  · cases h
+  · rename_i hl
+    have hl : (σ.s i).state = Etcdraft.leader := by simpa using hl
+    cases h
+    refine ⟨hl, _, rfl, ?_⟩
+    obtain ⟨h1, -⟩ := maxAgree_spec (fun n => Etcdraft.isQuorum ((σ.getConfig i).filter
+      (fun k => decide ((σ.s i).matchIndex k ≥ ((n : Nat) : Int))))
+      (σ.getConfig i)) (σ.s i).log.length
+    split
+    · rename_i hc
+      right
+      rcases h1 with h0 | ⟨ha, hb, hq⟩
+      · exfalso
+        simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
+        exact absurd hc.1 (by rw [h0]; omega)
+      · exact ⟨by omega, by omega, hq⟩
+    · left; exact Int.le_refl _
+
+/-- (Amendment A6) A quorum's complement in the configuration is no quorum. -/
+theorem isQuorum_filter_not {c : Etcdraft.SetIds} {p : Etcdraft.ID → Bool}
+    (h : Etcdraft.isQuorum (c.filter p) c = true) : Etcdraft.isQuorum (c.filter (fun j => !p j)) c = false := by
+  unfold Etcdraft.isQuorum at h ⊢
+  have hs : ∀ r : Etcdraft.ID → Bool, Etcdraft.SetIds.subset (c.filter r) c = true := by
+    intro r; unfold Etcdraft.SetIds.subset; rw [List.all_eq_true]
+    intro x hx; simpa using (List.mem_filter.mp hx).1
+  rw [hs] at h ⊢
+  simp only [Bool.true_and, decide_eq_true_eq, decide_eq_false_iff_not] at h ⊢
+  have hl := List.length_eq_countP_add_countP p (l := c)
+  rw [List.countP_eq_length_filter, List.countP_eq_length_filter] at hl
+  have : (c.filter (fun a => decide ¬ p a = true)) = c.filter (fun j => !p j) := by
+    apply List.filter_congr; intro x _; cases p x <;> rfl
+  rw [this] at hl
+  omega
+
+/-- (Amendment A6) **A prefix from one agreeing term** (`LogMatchingInv`): server `k`'s log, read from a
+raft log `Fk`, has at index `c` (past nothing, within both) the raft term the leader `i`'s recorded log
+`es` has there, so it extends `i`'s log up to `c`. -/
+theorem prefix_of_termAt (C : List w64) (σ : Etcdraft.State) (i k : Etcdraft.ID) (hi : i ∈ σ.server)
+    (hk : k ∈ σ.server) (hlm : σ.logMatchingInv = true) (es pend Fk : List EntryM) (c : Nat)
+    (hli : (σ.s i).log = logAbs C C.length 1 (es ++ pend)) (hlk : (σ.s k).log = logAbs C C.length 1 Fk)
+    (hc0 : 0 < c) (hce : c ≤ es.length) (hc63 : (c : Int) < 2 ^ 63)
+    (hag : plogTermAt base0 Fk (W64 (c : Int)) = plogTermAt base0 es (W64 (c : Int))) :
+    (σ.s i).log.take c <+: (σ.s k).log := by
+  have hc1 : ((c - 1 : Nat) : Int) + 1 = c := by omega
+  have hFk := plogTermAt_succ Fk (c - 1) (by omega)
+  have hes := plogTermAt_succ es (c - 1) (by omega)
+  rw [hc1] at hFk hes
+  rw [hFk, hes, List.getElem?_eq_getElem (by omega : c - 1 < es.length)] at hag
+  obtain ⟨y, hy, hyt⟩ : ∃ y, Fk[c - 1]? = some y ∧ y.Term' = es[c - 1].Term' := by
+    cases h : Fk[c - 1]? with
+    | none => rw [h] at hag; cases hag
+    | some y => rw [h] at hag; exact ⟨y, rfl, Option.some.inj hag⟩
+  have hkl : c - 1 < (σ.s k).log.length := by
+    rw [hlk, logAbs_length]; exact (List.getElem?_eq_some_iff.mp hy).1
+  have hil : c - 1 < (σ.s i).log.length := by rw [hli, logAbs_length, List.length_append]; omega
+  have hterm : ((σ.s i).log[c - 1]?).map Etcdraft.Entry.term = ((σ.s k).log[c - 1]?).map Etcdraft.Entry.term := by
+    rw [hli, hlk, logAbs_getElem?, logAbs_getElem?, hy, List.getElem?_append_left (by omega),
+      List.getElem?_eq_getElem (by omega : c - 1 < es.length)]
+    simp only [Option.map_some, Option.some.injEq]
+    unfold entAbs
+    split
+    · rfl
+    · simp [hyt]
+  unfold Etcdraft.State.logMatchingInv at hlm
+  rw [List.all_eq_true] at hlm
+  have h2 := hlm i hi
+  rw [List.all_eq_true] at h2
+  have h3 := h2 k hk
+  simp only [List.all_eq_true, List.mem_range, Bool.or_eq_true, bne_iff_ne, ne_eq, beq_iff_eq] at h3
+  rcases h3 (c - 1) (by omega) with h | h
+  · exact absurd hterm h
+  · rw [show c - 1 + 1 = c by omega] at h
+    rw [h]; exact List.take_prefix _ _
+
 end pure
 
 section ghost
@@ -695,7 +780,7 @@ theorem ackHist_conflict (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.Stat
     (hT : m.term = uint.Z T) (hin : plogTermAt bL l idx = some lt)
     (hsl : ents <+: plogFrom bL l (idx + W64 1)) (hidx1 : uint.Z idx + 1 < 2 ^ 64)
     (hidx : m.prevLogIndex = uint.Z idx) (hents : m.entries = logAbs C C.length (uint.nat idx + 1) ents)
-    (w : w64) (hw : r = idAbs w) (Tk mk : Int) :
+    (w : w64) (Tk mk : Int) :
     leadPrefix (GF := GF) γ src T bL l ∗ lpfull γ src T bL l fp ∗ srvFacts γ C w (σ.s r) ∗
       AckHist γ C σ r Tk mk ⊢ AckHist γ C σ' r Tk mk := by
   obtain ⟨-, hnc, hσ'⟩ := conflictRound_eq hstep
@@ -866,13 +951,272 @@ theorem quorumLogF_conflict (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.S
         · rw [hkr]
           iintro ⟨⟨#H1, #H2, #H3⟩, #H4⟩
           iapply ackHist_conflict (GF := GF) γ C σ σ' r m hterm hp0 hple hstep src T bL l fp ents idx lt hT hin
-            hsl hidx1 hidx hents w hwr Tk mk
+            hsl hidx1 hidx hents w Tk mk
           iframe H1 H2 H3 H4
         · iintro ⟨-, H⟩
           iapply ackHist_congr γ C σ σ' k Tk mk (by rw [hs, if_neg hkr]) (by rw [hs, if_neg hkr]; exact Int.le_refl _) $$ H)
     iframe Hp Hf Ha
     rw [hwr]
     iexact Hsw
+
+/-! ### A leader's `Commit` line (amendment A6, Q22) -/
+
+/-- (Amendment A6) **Every `okL` log agrees with a commit-certified leader log below the commit index**:
+`es`, a full log of the leader of `T` with raft's commit justification `commitJ γ es c T`, and any log
+`okL` names for acknowledgements of `T` have the same term at every index `j ≤ c` the latter reaches: a
+leader's full log of a term `≥ T` (`commitJ_leadFull`), a commit quorum's log of an earlier term at an
+index within its quorum index (`commitJ_leadFull` the other way, at `T`'s leader), the bootstrap log
+(`logRecs_boot_termAt`). -/
+theorem okL_commitAgree (γ : RaftNames) (es X : List EntryM) (c T : w64) (B : Int) (j : w64)
+    (hw : PlogWf base0 es) (hc : uint.Z c ≤ es.length) (hj : uint.Z j ≤ uint.Z c)
+    (hs : (plogTermAt base0 X j).isSome) :
+    votesTbl (GF := GF) γ ∗ logRecs γ base0 es ∗ commitJ γ es c T ∗ leadFull γ T es ∗ okL γ T B j X ⊢
+      votesTbl γ ∗ ⌜plogTermAt base0 X j = plogTermAt base0 es j⌝ := by
+  have hjX : uint.Z j ≤ X.length := by
+    obtain ⟨x, hx⟩ := Option.isSome_iff_exists.mp hs
+    have := (plogTermAt_some_range _ _ _ _ hx).2
+    unfold plogLastIndexZ at this; rw [base0_index] at this; omega
+  iintro ⟨Htbl, #Hr, #Hcj, #HL, #Hok⟩
+  unfold okL
+  icases Hok with (⟨%t'', %Ht, #Hf⟩ | ⟨%t'', %n'', %Ht, #Hq⟩ | %Hb)
+  · icases keep_pure (commitJ_leadFull γ es X c T t'' hw hc Ht.1) $$ [$Htbl $Hr $Hcj $Hf]
+      with ⟨⟨Htbl, -⟩, %hag⟩
+    iframe Htbl; ipureintro; exact hag j hj hjX
+  · icases cq_full γ t'' n'' X $$ Hq with ⟨%hwX, #HrX⟩
+    icases cq_base γ t'' n'' X $$ Hq with ⟨%hXn, -⟩
+    have hnX : uint.Z n'' ≤ X.length := by
+      have := (plogTermAt_some_range _ _ _ _ hXn).2
+      unfold plogLastIndexZ at this; rw [base0_index] at this; omega
+    ihave #HcjX : commitJ γ X n'' t'' $$ []
+    · unfold commitJ
+      iright; iexists t'', n'', X
+      iframe Hq
+      ipureintro; exact ⟨Int.le_refl _, Int.le_refl _, rfl⟩
+    icases keep_pure (commitJ_leadFull γ X es n'' t'' T hwX hnX (by omega)) $$ [$Htbl $HrX $HcjX $HL]
+      with ⟨⟨Htbl, -⟩, %hag⟩
+    iframe Htbl; ipureintro; exact (hag j Ht.2 (by omega)).symm
+  · obtain ⟨hjb, rfl⟩ := Hb
+    icases logRecs_boot_termAt γ es hw $$ Hr with %Hbe
+    iframe Htbl; ipureintro; exact Hbe j hjb (by omega)
+
+/-- (Amendment A6) **An acknowledgement's history at a commit-certified index**: a log with the history
+of an acknowledgement `(T, mi)` of the leader's term, `mi ≥ c`, has at `c` the term of the leader's
+commit-certified log `es` (every `okL` log does, `okL_commitAgree`, so no two disagree). -/
+theorem hist_commitAgree (γ : RaftNames) (F es : List EntryM) (c T mi : w64) (B : Int)
+    (hw : PlogWf base0 es) (hc : uint.Z c ≤ es.length) (hc0 : 0 < uint.Z c) (hcm : uint.Z c ≤ uint.Z mi) :
+    votesTbl (GF := GF) γ ∗ logRecs γ base0 es ∗ commitJ γ es c T ∗ leadFull γ T es ∗ hist γ F T mi B ⊢
+      votesTbl γ ∗ ⌜plogTermAt base0 F c = plogTermAt base0 es c⌝ := by
+  iintro ⟨Htbl, #Hr, #Hcj, #HL, #Hh⟩
+  unfold hist
+  icases Hh $$ %c %(⟨hc0, hcm⟩ : 0 < uint.Z c ∧ uint.Z c ≤ uint.Z mi)
+    with (⟨%X, #HX, %Hs⟩ | ⟨%j', %X1, %X2, %Hj', #H1, #H2, %Hd⟩)
+  · icases okL_commitAgree γ es X c T B c hw hc (Int.le_refl _) Hs.1 $$ [$Htbl $Hr $Hcj $HL $HX]
+      with ⟨Htbl, %h⟩
+    iframe Htbl; ipureintro; rw [← Hs.2, h]
+  · icases okL_commitAgree γ es X1 c T B j' hw hc Hj' Hd.1 $$ [$Htbl $Hr $Hcj $HL $H1] with ⟨Htbl, %h1⟩
+    icases okL_commitAgree γ es X2 c T B j' hw hc Hj' Hd.2.1 $$ [$Htbl $Hr $Hcj $HL $H2] with ⟨Htbl, %h2⟩
+    exact absurd (h1.trans h2.symm) Hd.2.2
+
+/-- (Amendment A6, Q22) **A leader's `Commit` line keeps `QuorumLogF`** (the sufficiency of A6): the
+specification's `AdvanceCommitIndex` at a leader `i` of term `T` (`advanceCommitIndex_cases`) raises its
+commit index to `c`, agreed by a quorum `Q` of its match indices. The new committed prefix `P` (its log up
+to `c`) takes the witness `T`: its certificate is raft's own after `maybeCommit` (the leader's facts at
+the new state, `allFacts γ C σ'`: `commitIn` at `c` and term `T`, `CommitCert`); every member `k ≠ i` of
+`Q` has its acknowledgement of `matchIndex k ≥ c` at `T` with its history over its current log
+(`AckHists`), which has at `c` the leader's term there (`hist_commitAgree`), so `k` holds `P`
+(`prefix_of_termAt`, `LogMatchingInv`) at a term `≥ T`; the leader holds it at `T`; so the servers
+lacking it are within `Q`'s complement, no quorum (`KeptFrom`). Nothing else moves. -/
+theorem quorumLogF_commit (γ : RaftNames) (C : List w64) (σ σ' : Etcdraft.State) (i : Etcdraft.ID)
+    (hsrv : σ.server = confAbs C) (hi : i ∈ σ.server) (hsi : TraceSpecInv.SpecInv σ)
+    (hstep : σ.advanceCommitIndex i = some σ') :
+    votesTbl (GF := GF) γ ∗ allFacts γ C σ' ∗ QuorumLogF γ C σ ⊢ votesTbl γ ∗ QuorumLogF γ C σ' := by
+  obtain ⟨hl, c, rfl, hc⟩ := advanceCommitIndex_cases hstep
+  have hs : ∀ k, (σ.commitTo i c).s k =
+      if k = i then { σ.s i with commitIndex := max (σ.s i).commitIndex c } else σ.s k := fun k => rfl
+  have hF : ∀ k, ((σ.commitTo i c).s k).log = (σ.s k).log ∧
+      ((σ.commitTo i c).s k).currentTerm = (σ.s k).currentTerm ∧
+      ((σ.commitTo i c).s k).state = (σ.s k).state ∧
+      ((σ.commitTo i c).s k).matchIndex = (σ.s k).matchIndex := by
+    intro k; rw [hs]; split
+    · rename_i h; subst h; exact ⟨rfl, rfl, rfl, rfl⟩
+    · exact ⟨rfl, rfl, rfl, rfl⟩
+  have hT : ∀ k, (σ.s k).currentTerm ≤ ((σ.commitTo i c).s k).currentTerm := fun k => by
+    rw [(hF k).2.1]; exact Int.le_refl _
+  have hLd : ∀ j, ((σ.commitTo i c).s j).state = Etcdraft.leader → (σ.s j).state = Etcdraft.leader ∧
+      ((σ.commitTo i c).s j).currentTerm = (σ.s j).currentTerm ∧
+      ∀ k ∈ σ.server, ((σ.commitTo i c).s j).matchIndex k = (σ.s j).matchIndex k :=
+    fun j h => ⟨by rw [← (hF j).2.2.1]; exact h, (hF j).2.1, fun k _ => by rw [(hF j).2.2.2]⟩
+  have hcf : (σ.getConfig i) = σ.server := by
+    simp only [Etcdraft.State.getConfig, hsi.cfgFixed i hi]
+  iintro ⟨Htbl, #Hal', #H⟩
+  iunfold QuorumLogF at H
+  icases H with ⟨#Hq, #Ha⟩
+  ihave #Ha' : AckHists γ C (σ.commitTo i c) $$ []
+  · iapply ackHists_congr γ C σ (σ.commitTo i c) rfl (fun k => (hF k).1) hT (fun x hx _ => hx) hLd $$ Ha
+  -- the other servers' committed prefixes and their witnesses are unchanged
+  have hKold : ∀ k, k ≠ i ∨ c ≤ (σ.s i).commitIndex → committedL (σ.commitTo i c) k = committedL σ k := by
+    intro k hk
+    unfold committedL; rw [hs]; split
+    · rename_i h; subst h
+      rcases hk with hk | hk
+      · exact absurd rfl hk
+      · simp only; rw [Int.max_eq_left hk]
+    · rfl
+  by_cases hraise : c ≤ (σ.s i).commitIndex
+  · iframe Htbl
+    iunfold QuorumLogF
+    iframe Ha'
+    iapply quorumKept_mono γ C σ (σ.commitTo i c) rfl
+      (fun k hk => ⟨k, hk, by rw [hKold k (.inr hraise)]; exact List.prefix_refl _⟩)
+      (fun _ _ h => keptFrom_congr (σ := σ) (σ' := σ.commitTo i c) rfl (fun k => (hF k).1) hT h) $$ Hq
+  rcases hc with hc | ⟨hc0, hcl, hq⟩
+  · exact absurd hc hraise
+  -- the leader's facts at the new state: its recorded log `es`, the commit certificate at `c` and `T`
+  have hiC : i ∈ confAbs C := by rw [← hsrv]; exact hi
+  obtain ⟨wi, hwiC, hwi⟩ := mem_confAbs_inv C i hiC
+  ihave #Hal'' := Hal'
+  iunfold allFacts at Hal''
+  ihave #Hsi : srvFacts γ C wi ((σ.commitTo i c).s i) $$ []
+  · have hse : (σ.commitTo i c).s i = (σ.commitTo i c).s (idAbs wi) := by rw [← hwi]
+    rw [hse]
+    iapply Hal'' $$ %wi %hwiC
+  iunfold srvFacts at Hsi
+  icases Hsi with ⟨%es, %pend, %Hpi, #Hri, -, #Hld, #Hci⟩
+  obtain ⟨hli, hbi, hwfi, hleni, hci0, hcie, hti0, hti1, -, -⟩ := Hpi
+  have hst : ((σ.commitTo i c).s i).state = Etcdraft.leader := by rw [(hF i).2.2.1]; exact hl
+  simp only [hst, ↓reduceIte]
+  icases Hld with ⟨-, #HLi, -⟩
+  have hcnew : ((σ.commitTo i c).s i).commitIndex = c := by
+    rw [hs, if_pos rfl]; exact Int.max_eq_right (by omega)
+  rw [hcnew] at hcie
+  rw [(hF i).2.1] at hti0 hti1
+  simp only [hcnew, (hF i).2.1]
+  rw [(hF i).1] at hli
+  rw [List.length_append] at hleni
+  have hwe : PlogWf base0 es :=
+    PlogWfR_wf _ _ (PlogWfR_append_left _ _ _ hwfi) (by unfold plogLastIndexZ; rw [base0_index]; simp; omega)
+  ihave #Hcj := commitIn_j γ es (W64 c) (W64 (σ.s i).currentTerm) $$ Hci
+  have hcW : uint.Z (W64 c) = c := by word
+  have hcN : ((c.toNat : Nat) : Int) = c := by omega
+  -- every member of the quorum but the leader holds the new prefix at a term at least `T`
+  icases allFacts_logMatching γ C (σ.commitTo i c) hsrv $$ Hal' with %hlm
+  have hlm' : σ.logMatchingInv = true := by
+    have h := hlm
+    unfold Etcdraft.State.logMatchingInv at h ⊢
+    simp only [fun k => (hF k).1] at h
+    exact h
+  ihave #HA : □ ∀ w, ⌜w ∈ C⌝ →
+      ((⌜idAbs w ≠ i ∧ c ≤ (σ.s i).matchIndex (idAbs w)⌝ →
+          AckHist γ C σ (idAbs w) (σ.s i).currentTerm ((σ.s i).matchIndex (idAbs w))) ∗
+        srvFacts γ C w ((σ.commitTo i c).s (idAbs w)) ∗ logRecs γ base0 es ∗
+        commitJ γ es (W64 c) (W64 (σ.s i).currentTerm) ∗ leadFull γ (W64 (σ.s i).currentTerm) es) $$ []
+  · imodintro
+    iintro %w %hw
+    iframe Hri Hcj HLi
+    isplitl
+    · iintro %h
+      iunfold AckHists at Ha
+      icases Ha with ⟨-, #Hl⟩
+      iapply Hl $$ %i %(idAbs w)
+      ipureintro
+      exact ⟨hi, by rw [hsrv]; exact (mem_confAbs C w).2 hw, hl, h.1, by omega⟩
+    · iapply Hal'' $$ %w %hw
+  icases votesTbl_forall_list γ
+      (fun w => iprop((⌜idAbs w ≠ i ∧ c ≤ (σ.s i).matchIndex (idAbs w)⌝ →
+          AckHist γ C σ (idAbs w) (σ.s i).currentTerm ((σ.s i).matchIndex (idAbs w))) ∗
+        srvFacts γ C w ((σ.commitTo i c).s (idAbs w)) ∗ logRecs γ base0 es ∗
+        commitJ γ es (W64 c) (W64 (σ.s i).currentTerm) ∗ leadFull γ (W64 (σ.s i).currentTerm) es))
+      (fun w => iprop(⌜idAbs w ∈ σ.server → idAbs w ≠ i ∧ c ≤ (σ.s i).matchIndex (idAbs w) →
+        (σ.s i).log.take c.toNat <+: (σ.s (idAbs w)).log ∧ (σ.s i).currentTerm ≤ (σ.s (idAbs w)).currentTerm⌝))
+      (fun w => by
+        iintro ⟨Htbl, #Hak, #Hsw, #Hr, #Hcj, #HL⟩
+        by_cases hcond : idAbs w ≠ i ∧ c ≤ (σ.s i).matchIndex (idAbs w)
+        · ihave #Hak' : AckHist γ C σ (idAbs w) (σ.s i).currentTerm ((σ.s i).matchIndex (idAbs w)) $$ []
+          · iapply Hak; ipureintro; exact hcond
+          iunfold AckHist at Hak'
+          icases Hak' with ⟨%hpa, #Hak'⟩
+          iunfold srvFacts at Hsw
+          icases Hsw with ⟨%esk, %pk, %Hpk, -⟩
+          obtain ⟨hlk, hbk, -⟩ := Hpk
+          rw [(hF _).1] at hlk
+          ihave Hh : ∃ B, hist γ (esk ++ pk) (W64 (σ.s i).currentTerm) (W64 ((σ.s i).matchIndex (idAbs w))) B $$ []
+          · iapply Hak'; ipureintro; exact ⟨hlk, hbk⟩
+          icases Hh with ⟨%B, #Hh⟩
+          have hmW : uint.Z (W64 ((σ.s i).matchIndex (idAbs w))) = (σ.s i).matchIndex (idAbs w) := by
+            have := hpa.2.2.2; word
+          icases hist_commitAgree γ (esk ++ pk) es (W64 c) (W64 (σ.s i).currentTerm)
+              (W64 ((σ.s i).matchIndex (idAbs w))) B hwe (by rw [hcW]; omega) (by rw [hcW]; omega)
+              (by rw [hcW, hmW]; exact hcond.2) $$ [$Htbl $Hr $Hcj $HL $Hh] with ⟨Htbl, %hag⟩
+          iframe Htbl
+          ipureintro
+          intro hwS _
+          refine ⟨?_, hpa.2.1⟩
+          exact prefix_of_termAt C σ i (idAbs w) hi hwS hlm' es pend (esk ++ pk) c.toNat hli hlk
+            (by omega) (by omega) (by omega) (by rw [hcN]; exact hag)
+        · iframe Htbl; ipureintro; intro _ h; exact absurd h hcond)
+      C $$ [$Htbl $HA] with ⟨Htbl, #Hb⟩
+  ihave %hB : ⌜∀ w ∈ C, idAbs w ∈ σ.server → idAbs w ≠ i ∧ c ≤ (σ.s i).matchIndex (idAbs w) →
+      (σ.s i).log.take c.toNat <+: (σ.s (idAbs w)).log ∧
+        (σ.s i).currentTerm ≤ (σ.s (idAbs w)).currentTerm⌝ $$ []
+  · by_cases hc' : ∀ w ∈ C, idAbs w ∈ σ.server → idAbs w ≠ i ∧ c ≤ (σ.s i).matchIndex (idAbs w) →
+        (σ.s i).log.take c.toNat <+: (σ.s (idAbs w)).log ∧ (σ.s i).currentTerm ≤ (σ.s (idAbs w)).currentTerm
+    · ipureintro; exact hc'
+    · obtain ⟨w, hn⟩ := Classical.not_forall.mp hc'
+      obtain ⟨hw, hn2⟩ := Classical.not_imp.mp hn
+      ihave %hw' := Hb $$ %w %hw
+      exact absurd hw' hn2
+  iframe Htbl
+  iunfold QuorumLogF
+  iframe Ha'
+  iunfold QuorumKept at Hq
+  iunfold QuorumKept
+  imodintro
+  iintro %k %hk
+  by_cases hki : k = i
+  · subst hki
+    iexists (σ.s k).currentTerm
+    have hP : committedL (σ.commitTo k c) k = (σ.s k).log.take c.toNat := by
+      unfold committedL; rw [(hF k).1, hcnew]
+    rw [hP]
+    isplitr
+    · ipureintro
+      -- the servers lacking the prefix are within the quorum's complement
+      unfold KeptFrom lackingAt
+      rw [hcf] at hq
+      refine TraceSpecInv.isQuorum_filter_mono (fun j hj hp => ?_) (isQuorum_filter_not hq)
+      simp only [Bool.not_eq_true', decide_eq_false_iff_not, Int.not_le]
+      apply Classical.byContradiction; intro hn
+      have hjc : c ≤ (σ.s k).matchIndex j := by omega
+      simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hp
+      by_cases hjk : j = k
+      · subst hjk
+        rcases hp with hp | hp
+        · rw [(hF j).1, isPrefix_of_prefix _ _ (List.take_prefix _ _)] at hp; cases hp
+        · rw [(hF j).2.1] at hp; omega
+      · have hjS : j ∈ σ.server := hj
+        have hj' : j ∈ confAbs C := by rw [← hsrv]; exact hj
+        obtain ⟨w, hw, rfl⟩ := mem_confAbs_inv C j hj'
+        obtain ⟨h1, h2⟩ := hB w hw hjS ⟨hjk, hjc⟩
+        rcases hp with hp | hp
+        · rw [(hF _).1, isPrefix_of_prefix _ _ h1] at hp; cases hp
+        · rw [(hF _).2.1] at hp; omega
+    · iunfold CommitCert
+      iexists es, W64 c
+      iframe Hri Hcj
+      ipureintro
+      refine ⟨?_, hwe, by rw [hcW]; omega, by omega, hti0, hti1⟩
+      have hn : uint.nat (W64 c) = c.toNat := by
+        have : uint.nat (W64 c) = (uint.Z (W64 c)).toNat := rfl
+        rw [this, hcW]
+      rw [hn, hli, logAbs_take, List.take_append_of_le_length (by omega)]
+      exact List.prefix_refl _
+  · ihave Hk := Hq $$ %k %hk
+    icases Hk with ⟨%t, %hKt, #Hc⟩
+    iexists t
+    rw [hKold k (.inl hki)]
+    iframe Hc
+    ipureintro
+    exact keptFrom_congr (σ := σ) (σ' := σ.commitTo i c) rfl (fun k => (hF k).1) hT hKt
 
 end ghost
 
