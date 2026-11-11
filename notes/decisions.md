@@ -35689,6 +35689,66 @@ shared lemma file.
 
 **Left for `MsgProp`**: nothing but the assembly premises above.
 
+## Q8 stage 1 (slice 24c): an accepted `MsgApp` at a follower and at a candidate of its term; the bootstrap positions' question (2026-11-11 · trace-check, Q8 stage 1 slice 24c; decided by the agent under the user's delegation · branch `trace-check-q8s24c`; DRAFT until trace-check's Freeze)
+
+**Done** (new modules, none on `etc/api/raft.txt`; no axiom, no `sorry`, no frozen or client-visible
+statement changed):
+- `TracedRaftStepRecvAppAcc.lean`, the line's facts, generic in the receiving server: **raft's facts of the
+  new log** (`ownRaftGhost_appAccFacts`: `ownRaftGhost_step_app_accept`'s records of `maybeAppend`'s new log
+  `es'` — the kept prefix's, the request's leader's above the cut — its commit certificate at the raised
+  index `accCommit` by `commitIn_move`, its committed prefix; the ghost state unchanged, no step), the
+  commit index past the bootstrap log (`ownRaftGhost_bootLe`), the new log's length within the trace's bound
+  (`logRecs_traceBound`: its last entry's receipt, `lastRec_receipt`); **`QuorumLogF` for any new receiver
+  log** that keeps the committed prefix and every prefix the request agrees with (`quorumLogF_appLog`,
+  amendment A5's `quorumLogF_conflict` generalized: one step from the line's first state to any `appMid`
+  state, instead of round by round), with the kept prefixes `prefix_take_of_conflict` (a truncation past
+  a conflict) and `prefix_newLog` (`maybeAppend`'s new log); **the intermediate states' facts**
+  (`simFx_appLog`/`simFx_appAccMid`: `SpecInv` by `specInv_upd_followerLog`, the new log's entries the old
+  log's or the request's, `newLog_entries`) and **the end state's** (`simFx_appDone`/`simFx_appAccEnd`:
+  `AppendEntriesAlreadyDone` from the new log, `alreadyDone_any`, `specInv_appendEntriesAlreadyDone`,
+  `QuorumLogF` by the sender's committed prefix as the heartbeat's `simFx_hb`).
+- `TracedRaftStepRecvAppAccFol.lean`: `phaseStepR_appAcc` (`lineEffect_appRecv`, its `appMid` weakened to
+  `AccMid` up to `toC`), `fxPresR_appAcc` (each intermediate state's facts drawn with the vote table before
+  the line's end, `votesTbl_forall_list` over `accLogs`: `FxPresR`'s intermediate wand has no vote table),
+  `accEnd_simIdle` (the close: `SimServerR` at `doneSrv`, the new log's `LogShapeOk` from `newLog_pure`, its
+  length bound), the send line skipped (`skipGate_appresp`, `lastnewi` bounded by the new log's length),
+  and **`stepBundle_traced_folAppAcc`**.
+- `TracedRaftStepRecvAppAccCand.lean`: **`stepBundle_traced_candAppAcc`** (`ReturnToFollowerState`, then the
+  accepted handling at `rtfSrv`, `lineEffect_appRecvU` with `firstRound_rtf`; the facts `simFx_rtf` then
+  the follower's at the step-down's state; the `BecomeFollower` line skipped; the close by
+  `accEnd_simIdle` at `bfState`).
+
+**The bootstrap positions (a question; the bundles are proved for a strengthened capability).** The
+specification's abstract log fixes its first `|C|` entries (the voters' configuration entries, term `1`,
+`entAbs`), so the line's correspondence (`lineEffect_appRecv`'s `hbe`) and the new log's `srvFacts` and
+`LogShapeOk` need the request's entries at positions `≤ |C|` to be of term `1` (`BootTerms`). Raft's facts
+give its commit index past the bootstrap log (`|γ.reBoot| ≤ committed ≤ m.Index`), so the batch is past
+`|γ.reBoot|`; `|C| ≤ |γ.reBoot|` (the bootstrap log has one entry per voter, `BootLogOk C γ.reBoot`, known
+where the capability's invariant is allocated, `Cluster.traceSimInv_alloc`/`simFx_simInit`) is carried by
+no clause of the capability, `SimIdle`, `simFx` or the bundle's premises, and without it the batch may
+overlap positions in `(|γ.reBoot|, |C|]` with a term `≥ 2`. The bundles are therefore proved as
+`stepBundle_traced.onRB` (the statement of `stepBundle_traced.on` with the capability's phase
+`SimIdle C s ∧ C.length ≤ γ.reBoot.length`), and `stepBundle_traced.on_of_onRB` gives `.on` from a law of
+the capability that yields the fit. Options (each a frozen-statement change): (a) the capability's pure
+clause (`trCapB`, `TracedCap.lean`) gains `C.length ≤ γ.reBoot.length` (or `= `), established where the
+capability is made (`startTrace_trCapB`; `BootLogOk C γ.reBoot` is what `Cluster.traceSimInv_alloc` reads,
+to be passed on to it, or the length fact added to `startTrace`'s pure clause) and kept by every law
+mechanically (the clause is read by `trCapB_pinDir` and rebuilt by each law); (b) `SimIdle` gains `C.length ≤ committed` (re-proved at every
+close: the commit index only grows); (c) a premise of `stepBundle_traced.on` (it does not name `C`: needs
+the capability's names). Recommended: (a), the lightest (one conjunct, no path re-proved, the fact the
+allocation already has); then `stepBundle_traced.on_of_onRB` discharges both bundles.
+
+**Not done (exact).**
+- **A higher-term accepted `MsgApp`** (`UpdateTerm` first, as `stepBundle_traced_utAppSR`): its pieces are
+  this slice's at `utSrv` — `lineEffect_appRecvU` with `firstRound_updateTerm` (as `lineEffect_ut`), the
+  facts `simFx_ut` then `simFx_appAccMid`/`simFx_appAccEnd` at the step-down's state (as
+  `fxPresR_candAppAcc` with `simFx_rtf` replaced), the close by `accEnd_simIdle` at the step-down's state;
+  one change: `ownRaftGhost_appAccFacts` takes `m.term = s.term` and gives the certificate at `s.term`,
+  while at a higher term it must give it at `m.term` (`commitIn_move` allows a higher term: replace `Hterm`
+  by `uint.Z s.term ≤ uint.Z m.term` and the old log's certificate moved up, the request's facts kept at
+  `m.term`).
+- The bootstrap positions' question above (then `.on_of_onRB`).
+
 ## Amendment A6 (Q22, Q23): the acknowledgement histories in `QuorumLogF`, for a leader's `Commit` line; messages between servers, for a won vote's quorum (2026-11-11 · trace-check, Q22 (a) and Q23 (a) taken by the coordinator pending the user's veto, their forms decided by the agent · branch `trace-check-a6`; amends the frozen Draft (A5 merged, not yet re-frozen) in `simFx`'s `QuorumLogF` and `MsgsShape` clauses and the receive law's `PhaseStepR`; DRAFT until the re-freeze)
 
 **The problem** (A5's open item, "Amendment A5 (Q21)"): a leader's `Commit` line (`AdvanceCommitIndex`)

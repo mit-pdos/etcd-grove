@@ -1045,6 +1045,25 @@ bootstrap entries), the node API's; the paths' assembly adds them to `stepBundle
 none updated; `interface/` unchanged (no listed module touched); `--check --layout` 0 new;
 `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 24c), 2026-11-11 (branch `trace-check-q8s24c`): an accepted `MsgApp` at a follower
+and at a candidate of its term, for a capability whose voters fit the bootstrap log; the higher-term one
+not done; Q24.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 24c)"); all raft-internal,
+no frozen statement changed. Done (new modules `TracedRaftStepRecvAppAcc{,Fol,Cand}.lean`): raft's facts of
+`maybeAppend`'s new log without the step (`ownRaftGhost_appAccFacts`: records, the raised commit's
+certificate by `commitIn_move`, the committed prefix), the line's facts at every `appMid` state
+(`simFx_appAccMid`, with `quorumLogF_appLog`, amendment A5's truncation lemma generalized to any new log
+keeping the prefixes the request agrees with) and at the end (`simFx_appAccEnd`), the new log's length
+bound (`logRecs_traceBound`, its last entry's receipt), the close (`accEnd_simIdle`, the new log's
+`LogShapeOk`), the response's skipped send line; **`stepBundle_traced_folAppAcc`** and
+**`stepBundle_traced_candAppAcc`**, proved as `stepBundle_traced.onRB` (the capability's phase
+strengthened by `|C| ≤ |γ.reBoot|`, which the request's bootstrap positions need and nothing carries: Q24;
+`stepBundle_traced.on_of_onRB` gives `.on` once it is carried). Left: the higher-term accepted `MsgApp`
+(its pieces in place; `ownRaftGhost_appAccFacts` to state its certificate at the request's term), Q24.
+Checked (branch at `trace-check` `27da747ae6` plus this slice and a one-line merge fix in `TracedRaftStepPropBundle`, its close reading slice 24b's `stepOutG` through `stepOutG_stepOut`): full `lake build` green (13820 jobs);
+`#print axioms` of both bundles: no `sorryAx`; `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s,
+unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module
+touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
+
 **Q6's acceptance test (the user's, 2026-11-08):** the gating as Q6 proposes; done only when
 every existing closed theorem (`raft_kv_porcupine_safe`, kvreconf's, kvdurable's, the server's)
 keeps its statement word for word and stays proved, `etc/tcb-report.py --check` (and its
@@ -1321,9 +1340,23 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   configuration: a frozen-statement change; (b) a traced message's source scoped in `MsgTrOk`
   (`Protocol/Model.lean`, client-visible body, gated). **Taken by the coordinator (the freeze being
   delegated to it), pending the user's veto: (a)**, folded into amendment A6 (checked against the
-  specification first, one review round with Q22). **Done** on branch `trace-check-a6` (`MsgEnds` in
-  `MsgsShape`; `PhaseStepR`'s source premise; `wonVote_quorum`; `notes/decisions.md`, "Amendment A6 (Q22,
-  Q23)").
+  specification first, one review round with Q22). **Done** on branch `trace-check-a6` (`MsgEnds` and
+  `VotesIn` in `MsgsShape`; `PhaseStepR`'s source and tally premises; `wonVote_quorum`;
+  `notes/decisions.md`, "Amendment A6 (Q22, Q23, Q24)").
+- **Q24 (2026-11-11, Q8 stage 1 slice 24c): an accepted `MsgApp`'s bootstrap positions.** The
+  specification's log fixes its first `|C|` entries (term `1`); the accepted request's entries there must be
+  of term `1`. Raft's facts put the batch past `|γ.reBoot|` (the commit index covers the bootstrap log), and
+  `|C| = |γ.reBoot|` (`BootLogOk`) holds where the capability's invariant is allocated, but no clause of the
+  capability, `SimIdle`, `simFx` or `stepBundle_traced.on`'s premises carries it. Options: (a) `trCapB`'s
+  pure clause gains `C.length ≤ γ.reBoot.length` (frozen `TracedCap.lean`; established where the
+  capability is made, `startTrace_trCapB`, from `BootLogOk` as `Cluster.traceSimInv_alloc` has it, or a
+  length fact in `startTrace`'s pure clause; every law mechanically); (b) `SimIdle` gains `C.length ≤ committed` (every close
+  re-proved); (c) a bundle premise (needs the capability's names). **Recommended: (a).** Until then
+  `stepBundle_traced_folAppAcc`/`_candAppAcc` are `stepBundle_traced.onRB`, which
+  `stepBundle_traced.on_of_onRB` turns into `.on` given (a)'s law (`notes/decisions.md`, "Q8 stage 1
+  (slice 24c)").
+  **Taken by the coordinator (the freeze being delegated to it), pending the user's veto: (a)**, folded
+  into amendment A6 (one review round with Q22 and Q23).
 - **Q22 (2026-11-11, amendment A5's open item): what a leader's `Commit` line needs to keep
   `QuorumLogF`.** A5's `QuorumLogF` (`KeptFrom` with `CommitCert`) is kept by every line but a leader's
   `Commit` (the specification's `AdvanceCommitIndex`): its new committed prefix `P`, of the leader's term
