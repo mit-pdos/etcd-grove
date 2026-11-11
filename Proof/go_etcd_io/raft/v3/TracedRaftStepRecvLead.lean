@@ -76,7 +76,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A leader's rejected append response or heartbeat response of its term: the receive line's phase
 step** (the pinned idle phase kept: `respSrv` changes no match index the share reads,
-`toC_respSrv_keep`; `lineEffect_resp`). -/
+`toC_respSrv_keep`; `lineEffect_resp`). (Slice 27c) With the sender among the voters (the receive law's
+premise, amendment A6's `MsgEnds`), which the catch-up append's send line needs (`"Hgsapp"` does not
+give it). -/
 theorem phaseStepR_leadResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m : MessageM)
     (ents : List EntryM) (evt : w64) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg)
     (ma : Etcdraft.Msg) (hev : RecvEvTy (absMsg ty m ents) evt) (hto : m.To' = id)
@@ -85,8 +87,8 @@ theorem phaseStepR_leadResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m
     (hb : (absMsg ty m ents).NumsBelow traceNumBound)
     (hma : TraceSim.msgAbs C0 C0.length (absMsg ty m ents) = some ma) :
     PhaseStepR id c ma (SendEvOf evt id s c (absMsg ty m ents)) (fun _ => False) (recvPhantoms ma)
-      (IdlePin s C0 cs0 P0) (IdlePin s C0 cs0 P0) := by
-  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, -, -⟩ e he
+      (IdlePin s C0 cs0 P0) (fun C cs P => IdlePin s C0 cs0 P0 C cs P ∧ m.From' ∈ C) := by
+  rintro C cs P ⟨rfl, rfl, rfl, hI⟩ ⟨hin, hout, hC, hsrcC, -⟩ e he
   have hI' := hI
   obtain ⟨a1, ha1, hR0, hs, hP, bt, bc, bl⟩ := hI'
   have hpre : s.role ≠ .preCandidate := by rw [hlead]; decide
@@ -120,8 +122,11 @@ theorem phaseStepR_leadResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m
     · rcases hty' with ⟨h', -⟩ | h' <;> rw [h'] at h <;> cases h
     · rcases hty' with ⟨h', -⟩ | h' <;> rw [h'] at h <;> cases h
     · exact h
-  refine ⟨respSrv a ma, [], ⟨rfl, by rw [hkeep]; exact ha, by rw [List.append_nil], by rw [hkeep, ha, List.append_nil]; exact hI⟩,
-    fun x hx => by simp at hx, ?_⟩
+  have hfrom : m.From' ∈ C := by
+    rw [msgAbs_source hma] at hsrcC
+    exact (mem_confAbs C _).1 hsrcC
+  refine ⟨respSrv a ma, [], ⟨⟨rfl, by rw [hkeep]; exact ha, by rw [List.append_nil], by rw [hkeep, ha, List.append_nil]; exact hI⟩,
+    hfrom⟩, fun x hx => by simp at hx, ?_⟩
   rw [← hdst]
   simp only [List.nil_append, hph, List.foldl_nil]
   exact lineEffect_resp C e s c _ evt a ma _ hrev he' hin hout hC' hR hs hpre hterm bt bc bl bi hma
@@ -129,10 +134,12 @@ theorem phaseStepR_leadResp (id : w64) (c : CfgM) (s : NState) (ty : MsgType) (m
 /-- **Its facts** (`FxPresR` at `recvPhantoms m`, none for a response): a dropped response's, the pinned
 phase kept (`fxPresR_staleResp`). -/
 theorem fxPresR_leadResp (γ : RaftNames) (id : w64) (ma : Etcdraft.Msg) (E : TraceEv → Prop) (s : NState)
-    (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (hty : ma.type = .appendEntriesResponse) :
-    ⊢ FxPresR (GF := GF) γ id ma E (fun _ => False) (recvPhantoms ma) (IdlePin s C0 cs0 P0) (IdlePin s C0 cs0 P0) :=
+    (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (hty : ma.type = .appendEntriesResponse)
+    (f : w64) :
+    ⊢ FxPresR (GF := GF) γ id ma E (fun _ => False) (recvPhantoms ma) (IdlePin s C0 cs0 P0)
+      (fun C cs P => IdlePin s C0 cs0 P0 C cs P ∧ f ∈ C) :=
   fxPresR_staleResp γ id ma E _ _ (.inl hty) (by
-    rintro C cs P cs' P' ⟨-, rfl, rfl, -⟩ ⟨-, rfl, hP, -⟩
+    rintro C cs P cs' P' ⟨-, rfl, rfl, -⟩ ⟨⟨-, rfl, hP, -⟩, -⟩
     exact ⟨rfl, by simpa using hP.symm⟩)
 
 end steps
