@@ -70,14 +70,15 @@ def modOf (env : Environment) (n : Name) : Name :=
   | some i => env.header.moduleNames[i.toNat]!
   | none => env.mainModule
 
+def isProjectMod (parts : List Name) (m : Name) : Bool :=
+  let r := m.getRoot
+  r == `Spec || r == `Proof ||
+    parts.any fun p => (p ++ `Spec).isPrefixOf m || (p ++ `Proof).isPrefixOf m
+
 def isProject (parts : List Name) (env : Environment) (n : Name) : Bool :=
   match env.getModuleIdxFor? n with
   | none => true  -- the selftests' scratch declarations
-  | some _ =>
-    let m := modOf env n
-    let r := m.getRoot
-    r == `Spec || r == `Proof ||
-      parts.any fun p => (p ++ `Spec).isPrefixOf m || (p ++ `Proof).isPrefixOf m
+  | some _ => isProjectMod parts (modOf env n)
 
 def REGISTRIES : List Name :=
   [`Perennial.EtcdGrove.pbModelOf, `Perennial.EtcdGrove.grpcReqModelOf,
@@ -644,8 +645,13 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
   let mut st : St := {}
   let mut regs : Array (Name × Name × Name × Name × Name) := #[]  -- axiom, registry, key, value, module
   let consts := env.constants.map₁.toList ++ env.constants.map₂.toList
+  -- `isProject`, by module, computed once per module rather than once per constant
+  let projMod : Array Bool := env.header.moduleNames.map (isProjectMod parts)
   for (n, ci) in consts do
-    if !isProject parts env n then continue
+    let proj := match env.getModuleIdxFor? n with
+      | none => true
+      | some i => projMod[i.toNat]!
+    if !proj then continue
     let isAx := ci matches .axiomInfo _
     -- with `onlyNew` (the selftests) only the scratch declarations are walked; every
     -- registration is still collected, for rule 3
@@ -702,16 +708,30 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
       bad := bad + 1
       emit s!"\{\"t\":\"reg\",\"name\":{jstr n.toString},\"bad\":{jstr s!"a second registration of {kc} in {r} (first: {m})"}}"
     else seen := seen.insert (r, kv) n
-  -- rule 7: the `Sat` theorem (and a request's `wireLen` witness) in the registration's module
+  -- rule 7: the `Sat` theorem (and a request's `wireLen` witness) in the registration's module.
+  -- The theorems of the registrations' modules, in `consts` order, gathered in one pass (a pass
+  -- over every constant per registration took most of the run: 25s each on the main group)
+  let mods7 : NameSet := regs.foldl (init := {}) fun acc (n, _, _, _, mod) =>
+    if onlyNew && (env.getModuleIdxFor? n).isSome then acc else acc.insert mod
+  let mut thmsOf : Std.HashMap Name (Array (Name × ConstantInfo)) := {}
+  if !mods7.isEmpty then
+    let want : Array Bool := env.header.moduleNames.map mods7.contains
+    let wantMain := mods7.contains env.mainModule
+    for (m, ci) in consts do
+      unless ci matches .thmInfo _ do continue
+      let w := match env.getModuleIdxFor? m with
+        | some i => want[i.toNat]!
+        | none => wantMain
+      unless w do continue
+      let mm := modOf env m
+      thmsOf := thmsOf.alter mm fun o => some ((o.getD #[]).push (m, ci))
   for (n, r, _, vc, mod) in regs do
     if onlyNew && (env.getModuleIdxFor? n).isSome then continue
     let target := if r == `Perennial.EtcdGrove.pbModelOf then (dataConst env vc).getD vc else vc
     let sat := satName r
     let mut satThm : Option Name := none
     let mut wlThm : Option Name := none
-    for (m, ci) in consts do
-      unless ci matches .thmInfo _ do continue
-      unless modOf env m == mod do continue
+    for (m, ci) in thmsOf.getD mod #[] do
       let (bs, body) := stripBinders ci.type
       let body := body.consumeMData
       -- binders by type: only the R0 instance binders, `{GF}`/`{hlc}`, and an instance of a
