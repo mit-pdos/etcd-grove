@@ -99,5 +99,159 @@ theorem ownStepGhost_leadLast (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64
 
 end ghost
 
+section pure
+variable [GooseExts]
+
+/-- **`MsgProp` at a leader**, a non-empty batch of normal entries, in a cluster with a bootstrap log
+(see the header). -/
+def PropLead (γ : RaftNames) (ents : List EntryM) (s : NState) (m : MessageM) : Prop :=
+  m.Type' = MsgProp ∧ s.role = .leader ∧ ents ≠ [] ∧ (∀ e ∈ ents, e.Type' = EntryNormal) ∧ γ.reBoot ≠ []
+
+theorem normalCount_all (ents : List EntryM) (h : ∀ e ∈ ents, e.Type' = EntryNormal) :
+    normalCount ents = ents.length := by
+  unfold normalCount
+  rw [List.filter_eq_self.2 (fun e he => decide_eq_true (h e he))]
+
+theorem noConf_of_normal (ents : List EntryM) (h : ∀ e ∈ ents, e.Type' = EntryNormal) :
+    ∀ e ∈ ents, ¬ IsConfEnt e := by
+  intro e he hc
+  have := h e he
+  unfold IsConfEnt at hc
+  rw [this] at hc
+  simp only [EntryNormal] at hc
+  rcases hc with hc | hc
+  · have : (W32 0 : w32) ≠ W32 1 := by simp only [ne_eq]; exact of_decide_eq_true rfl
+    exact this hc
+  · have : (W32 0 : w32) ≠ W32 2 := by simp only [ne_eq]; exact of_decide_eq_true rfl
+    exact this hc
+
+theorem propK_zero (s : NState) (es : List EntryM) : propK s es 0 = s := by
+  simp [propK, propAppended, logAppend]
+
+theorem propK_full (s : NState) (es : List EntryM) : propK s es es.length = propAppended s es := by
+  simp [propK]
+
+end pure
+
+section families
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The family after the self-acknowledgement**: raft's ghost state at the proposed state, the traced
+family at the idle server of the appended state, the outbox's new messages' numbers. -/
+def propF (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (ents : List EntryM)
+    (Λ : Option TraceEv → Prop) (o : List Msg) : IProp GF :=
+  iprop(ownStepGhost γ md c id (proposed id s ents) ∗
+    (∃ b : Bool, trFam s.gh.tr γ r id c b (fun C => SimIdleS C (propAppended s ents)) Λ o) ∗ ⌜OutOk s o⌝)
+
+/-- `PropLead`'s resources (see the header). -/
+def propR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (ents : List EntryM) (Λ : Option TraceEv → Prop) : StepG GF where
+  G := trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ
+  G0 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
+  G1 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
+  GE := fun _ => iprop(⌜False⌝)
+  Gf := iprop(⌜False⌝)
+  Gb1 := iprop(⌜False⌝)
+  Gb2 := iprop(⌜False⌝)
+  Gp1 := iprop(∃ (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg), ⌜id ∈ C0⌝ ∗
+    ownStepGhost γ md c id (proposed id s ents) ∗
+    trCapB s.gh.tr γ r id c true (RepPin s ents s.outbox C0 cs0 P0 ents.length) (stepLastEv Λ))
+  Gp2 := fun o => iprop(⌜s.outbox.length < o.length⌝ ∗ propF γ md c r id s ents (stepLastEv Λ) o)
+  Gc := fun _ _ _ => iprop(⌜False⌝)
+
+/-- `HookGateN` under an update. -/
+theorem hookGateN_fupd (tr : Option GName) (r : Loc) (E : TraceEv → Prop) (n : Nat) (Q : IProp GF) :
+    iprop(|={⊤}=> HookGateN tr r E n Q) ⊢ HookGateN tr r E n Q := by
+  iintro H
+  iunfold HookGateN at H
+  iunfold HookGateN
+  imod H with H
+  iexact H
+
+/-- The `Replicate` lines' chained facts (`fxPres_replicate`, no resource). -/
+theorem repChain (γd : GName) (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s : NState) (ents : List EntryM)
+    (o : List Msg) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (hidC : id ∈ C0)
+    (hlead : s.role = .leader)
+    (hlast : ∃ x, (toPState s).log.getLast? = some x ∧ x.Term' = s.term) (hT2 : 2 ≤ uint.Z s.term)
+    (hbnd : plogLastIndexZ (toPState s).base (toPState s).log + ents.length < 2 ^ 63) :
+    ⊢ [∗list] k ∈ List.range ents.length, (iprop(emp) -∗
+        FxPresUT (GF := GF) (some γd) γ id E (RepPin s ents o C0 cs0 P0 k) (RepPin s ents o C0 cs0 P0 (k + 1))
+          iprop(emp)) := by
+  apply BigSepL.bigSepL_intro
+  intro k x hx
+  have hk : x < ents.length := List.mem_range.1 (List.mem_of_getElem? hx)
+  iintro - -
+  simp only [FxPresUT]
+  iapply fxPres_upd
+  iapply fxPres_replicate γ id E s ents o C0 cs0 P0 hidC x hk hlead hlast hT2 hbnd
+
+/-- **The `Replicate` gate on `PropLead`'s family** (`leaderGates`' `"Hgprep"`): raft's ghost state moved
+to the proposed state with what `Step` lends (`ghost_stepProp`, `propLend`), the share pinned
+(`trFam_pin`), the lines fired (`trCapB_hookGateN`: `phaseStepB_replicate`, `fxPres_replicate`). -/
+theorem propGate_rep (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (ents : List EntryM) (Λ : Option TraceEv → Prop) (cs : List (Option ConfChangeIM))
+    (htr : s.gh.tr = some γd) (hlead : s.role = .leader) (hne : ents ≠ [])
+    (hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (hboot : γ.reBoot ≠ [])
+    (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
+    (ccEntsOk ents cs ∗ propLend γ s ents ∗
+        lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox : IProp GF) ⊢
+      HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount (leaderPropConf s ents cs c.joint).1)
+        (propR (GF := GF) true γ md c r id s ents Λ).Gp1 := by
+  have hnc := noConf_of_normal ents hnorm
+  iintro ⟨#Hcc, HTp, Hlf⟩
+  icases ccEntsOk_types ents cs $$ Hcc with %hct
+  have hlp : leaderPropConf s ents cs c.joint = (ents, s.pci) := propConf_noConf' _ _ _ _ ents cs hct hnc
+  rw [hlp, normalCount_all ents hnorm]
+  dsimp only [propR]
+  unfold propLend lineF
+  rw [htr]
+  simp only [Option.isSome_some, ↓reduceIte]
+  icases HTp with ⟨Hd, Htk, #Hrc⟩
+  iapply hookGateN_fupd
+  icases Hlf with ⟨Hgh, ⟨%b, Hf⟩, %Hok⟩
+  imod ownStepGhost_traceBound (GF := GF) γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
+  icases trFam_pin γd γ r id c b _ (stepLastEv Λ) s.outbox $$ Hf with ⟨%C0, %cs0, %P0, %Hph, Hf⟩
+  obtain ⟨⟨⟨a0, -, -, hs0, -⟩, -⟩, hidC⟩ := Hph
+  have hb0 : s.logst.prev = base0 := hs0.1
+  icases ownStepGhost_leadLast γ md c id s hlead hb0 $$ Hgh with ⟨%HL, Hgh⟩
+  imod ghost_stepProp γ md c id s ents cs hlead hct hnc hT hfit $$ [$Hd $Htk $Hrc $Hgh] with ⟨%hB, Hgh⟩
+  icases trCapB_logger γd γ r id c b _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  ihave Hf := trCapB_mono (some γd) γ r id c b _ (RepPin s ents s.outbox C0 cs0 P0 0) (stepLastEv Λ)
+    (fun C cs P h => by simp only [RepPin, propK_zero, repCN]; exact h) $$ Hf
+  have hT2 : 2 ≤ uint.Z s.term := HL.2 hboot
+  have hb : traceNumBound = 2 ^ 61 := rfl
+  have hbnd : plogLastIndexZ (toPState s).base (toPState s).log + ents.length < 2 ^ 63 := by omega
+  have hn0 : ents.length ≠ 0 := fun h => hne (List.eq_nil_of_length_eq_zero h)
+  imodintro
+  iapply hookGateN_mono (some γd) r _ _
+    iprop(trCapB (some γd) γ r id c (if ents.length = 0 then b else true)
+      (RepPin s ents s.outbox C0 cs0 P0 ents.length)
+      (if ents.length = 0 then stepLastEv Λ else stepLastEv Λ) ∗ emp)
+  isplitl [Hgh]
+  · iintro ⟨Hc, -⟩
+    simp only [hn0, ↓reduceIte]
+    iexists C0, cs0, P0
+    iframe Hgh Hc
+    ipureintro; exact hidC
+  ihave Hch := repChain (GF := GF) γd γ id (NodeEvOf (W64 5) id s c) s ents s.outbox C0 cs0 P0 hidC hlead HL.1 hT2
+    hbnd
+  iapply trCapB_hookGateN (some γd) γ r id c tl _ b (RepPin s ents s.outbox C0 cs0 P0) (stepLastEv Λ)
+    (stepLastEv Λ) (fun _ => iprop(emp)) ents.length
+    (fun k hk => by
+      obtain ⟨e, he⟩ : ∃ e, ents[k]? = some e := ⟨_, List.getElem?_eq_getElem hk⟩
+      exact phaseStepB_replicate id c s ents s.outbox C0 cs0 P0 k e he hlead HL.1 hT2 hbnd)
+    (fun e he => nodeEvOf_notBoot he (by decide) (by decide) (by decide))
+    (fun e _ => .inr rfl)
+    (fun _ e he => nodeEvOf_ok (W64 5) id s c e _ he (by decide)
+      (by have := Hb; word) (by have := Hb.1; word) (by have := Hb.2; word) (Nat.le_refl _))
+    (fun h => by cases h)
+  iframe Htl Hf Hch
+
+end families
+
 end EtcdGrove
 end Perennial
