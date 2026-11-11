@@ -587,7 +587,7 @@ facts give, `ownRaftGhost_hbFacts`), then the response's send line, which the sp
 end state is `heartbeatResult`'s (`hbEnd_simIdle`). The resources are `voteR`'s (one pinned phase after
 the receive line). -/
 theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) FolHb := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
   obtain ⟨hTy, hterm, hrole⟩ := hp
   have hmty : mtypeOf m.Type' = some .heartbeat := by rw [hTy]; rfl
@@ -611,7 +611,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
   ihave #Hm := isMessageC_isMessage γ _ $$ Hmc
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
@@ -628,7 +628,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
   have hwB : PlogWf base0 (toPState s).log := by have h := hs0.2.1; rw [hs0.1] at h; exact h
   have hbL : BootTerms tn.voters.length 1 (toPState s).log := fun k e hk he => hs0.2.2 k e (by omega) he
   imodintro
-  iexists voteR γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (hbSrv a0 (idAbs m.From') ma.commitIndex)) P0
+  iexists voteR bfl γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (hbSrv a0 (idAbs m.From') ma.commitIndex)) P0
     (P0 ++ [hbResp a0 (idAbs id) (idAbs m.From')]) Λ k ma
   isplitl [Hcap Htok]
   · dsimp only [voteR]; iframe Hcap Htok
@@ -657,7 +657,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .heartbeat m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .heartbeat evt true k ma (fun _ => False)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .heartbeat evt bfl k ma (fun _ => False)
         (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       isplitl [Hg Hr]
       · iunfold ownStepGhost; iframe Hg Hr
@@ -748,6 +748,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's heartbeat handling, the specification's
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by

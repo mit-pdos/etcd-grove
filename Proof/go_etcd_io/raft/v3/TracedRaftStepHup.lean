@@ -447,11 +447,11 @@ theorem lineF_becomeCandidate (γd : GName) (γ : RaftNames) (md : GMode) (c : C
         (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) s.outbox) := by
   unfold lineF trFam
   rw [htr]
-  iintro ⟨Hgh, Hf, %Hok⟩
+  iintro ⟨Hgh, ⟨%bt, Hf⟩, %Hok⟩
   iapply hookGate_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
-  icases trCapB_pinMem γd γ r id c true _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
-  icases trCapB_logger γd γ r id c true _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  icases trCapB_pinMem γd γ r id c bt _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
+  icases trCapB_logger γd γ r id c bt _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
   have hT63 : uint.Z s.term + 1 < 2 ^ 63 := by unfold traceNumBound at hT; omega
   have hTn : uint.nat (s.term + W64 1) < traceNumBound := by unfold traceNumBound at hT ⊢; word
   ihave #Hfx := fxPres_timeout (GF := GF) γ id (NodeEvOf (W64 1) id (becomeCandidate id s) c)
@@ -483,11 +483,12 @@ theorem lineF_becomeCandidate (γd : GName) (γ : RaftNames) (md : GMode) (c : C
   · iintro ⟨Hc, -⟩
     iframe Hgh
     isplitl [Hc]
-    · iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
+    · iexists true
+      iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro; exact Hok
-  iapply trCapB_hookGate (some γd) γ r id c tl _ true (PinAt s C0 cs0 P0 s.outbox) _ (stepLastEv Λ) (stepLastEv Λ)
+  iapply trCapB_hookGate (some γd) γ r id c tl _ bt (PinAt s C0 cs0 P0 s.outbox) _ (stepLastEv Λ) (stepLastEv Λ)
     iprop(emp) (phaseStepB_becomeCandidate id c s s.outbox C0 cs0 P0 hnl hT63)
-    (fun h => by cases h) (fun e _ => .inr rfl)
+    (fun _ e he => by rw [nodeEvOf_name_candidate he]; rfl) (fun e _ => .inr rfl)
     (fun _ e he => nodeEvOf_ok (W64 1) id _ c e _ he (by decide) hTn Hb.1 Hb.2 (Nat.le_refl _))
     (fun h => by cases h)
   simp only [FxPresUT]
@@ -518,13 +519,13 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
     split <;> decide
   unfold lineF trFam
   rw [htr, hgate]
-  iintro ⟨Hgh, Hf, %Hok⟩
+  iintro ⟨Hgh, ⟨%bt, Hf⟩, %Hok⟩
   iapply hookGateOpt_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
   icases ownStepGhost_termsLe γ md c id s $$ Hgh with ⟨%Hterms, Hgh⟩
-  icases trCapB_out γd γ r id c true _ _ $$ Hf with ⟨%Hout, Hf⟩
-  icases trCapB_pinMem γd γ r id c true _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
-  icases trCapB_logger γd γ r id c true _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  icases trCapB_out γd γ r id c bt _ _ $$ Hf with ⟨%Hout, Hf⟩
+  icases trCapB_pinMem γd γ r id c bt _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
+  icases trCapB_logger γd γ r id c bt _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
   obtain ⟨⟨a0, -, -, hs0, -⟩, -⟩ := HΦ0.1
   have hwf : PlogWf (toPState s).base (toPState s).log := hs0.2.1
   have hlt : uint.Z (plogLast (toPState s).base (toPState s).log).term' ≤ uint.Z s.term :=
@@ -604,10 +605,11 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
   · iintro ⟨Hc, -⟩
     iframe Hgh
     isplitl [Hc]
-    · iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
+    · iexists true
+      iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro
     exact outOk_snoc Hok hmok
-  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ true _ _ (stepLastEv Λ) (stepLastEv Λ) iprop(emp) hps
+  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ bt _ _ (stepLastEv Λ) (stepLastEv Λ) iprop(emp) hps
     (fun e he => sendEvOf_notBoot he hevt.1 hevt.2.1 hevt.2.2.2)
     (fun e _ => .inr rfl)
     (fun _ e he => sendEvOf_ok _ id _ c _ e _ he ⟨hevt.1, hevt.2.2.1⟩ hTn Hb.1 Hb.2 (hmok hty) (Nat.le_refl _))
@@ -620,22 +622,24 @@ whose server part the end state `s'` has): `lineF_close` at the phase of `s1`. -
 theorem lineF_closeAt (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s s1 s' : NState)
     (Λ : Option TraceEv → Prop) (hS : ∀ C, SimIdleS C s1 = SimIdleS C s') :
     lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s1) Λ s'.outbox ⊢
-      |={⊤}=> ownStepGhost γ md c id s ∗ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') Λ ∗
+      |={⊤}=> ownStepGhost γ md c id s ∗ (∃ b : Bool, trCapB s.gh.tr γ r id c b (fun C => SimIdle C s') Λ) ∗
         ⌜OutTrStep s s'⌝ := by
   unfold lineF
-  iintro ⟨Hgh, H, %Hok⟩
-  imod trFam_idle s.gh.tr γ r id c true s1 s' Λ hS $$ H with H
+  iintro ⟨Hgh, ⟨%b, H⟩, %Hok⟩
+  imod trFam_idle s.gh.tr γ r id c b s1 s' Λ hS $$ H with H
   imodintro
-  iframe Hgh H
+  iframe Hgh
+  isplitl [H]
+  · iexists b; iexact H
   ipureintro; exact outTrStep_of_outOk Hok
 
 /-- `LocalHup`'s resources: before the campaign's first line, the family at the idle server of `s`
 with the outbox `s`'s (`G0`, `G1`: what tells nothing done from a campaign at the close); after it,
 the family at the candidate's idle server with the campaign's conditions (`GE`: what tells a campaign
 from nothing done, `HupGuard` being exclusive); `False` where no path here goes. -/
-def hupR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+def hupR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Λ : Option TraceEv → Prop) : StepG GF where
-  G := trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ
+  G := trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ
   G0 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
   G1 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
   GE := fun o => iprop(⌜HupCampaigns c id s⌝ ∗
@@ -653,13 +657,14 @@ off): the `BecomeCandidate` line (`lineF_becomeCandidate`), then each vote messa
 campaign's conditions) by `hup`'s exclusive result (`HupGuard`). -/
 theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
-    (Λ : Option TraceEv → Prop) (hp : LocalHup s m) (htr : s.gh.tr = some γd) (hpv : s.prevote = false)
+    (Λ : Option TraceEv → Prop) (bt : Bool) (hp : LocalHup s m) (htr : s.gh.tr = some γd) (hpv : s.prevote = false)
     (hty : StepEndTy m.Type') (hT0 : m.Term' = W64 0) (hT : uint.Z s.term + 1 < traceNumBound)
     (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) (hlrn : c.learners = ∅) :
-    (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗ TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
-      |={⊤}=> (hupR γ md c r id s Λ).G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s (hupR γ md c r id s Λ)) ∗
-        stepClose γ md c id m ents ctx s (hupR γ md c r id s Λ)
-          (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ)) := by
+    (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗ TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
+      |={⊤}=> (hupR bt γ md c r id s Λ).G ∗
+        stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s (hupR bt γ md c r id s Λ)) ∗
+        stepClose γ md c id m ents ctx s (hupR bt γ md c r id s Λ)
+          (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) := by
   have hnbf : ¬ PreBF m s := by
     unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
@@ -691,7 +696,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
       isplitr [Hgh Hc]
       · iintro H; isplitr; · ipureintro; rfl
         iexact H
-      iapply lineF_recv γd γ md c r id s Λ htr
+      iapply lineF_recv γd γ md c r id s Λ bt htr
       iframe Hgh Hc
     isplitr
     · unfold preGate
@@ -815,21 +820,23 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
 /-- **`raft.Step`'s traced bundle on `MsgHup` at a follower or candidate** (`stepBundle_hup_R`, the
 resources `hupR`). -/
 theorem stepBundle_traced_hup : stepBundle_traced.on (GF := GF) (hG := hG) LocalHup := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub _ _ _
+  intro γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hsub _ _ _
   iintro ⟨Hcap, -, #Hnosnap⟩
-  imod stepBundle_hup_R γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hty (hloc (.inl hp.1)) hT hfit hlrn
+  imod stepBundle_hup_R γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hty (hloc (.inl hp.1)) hT hfit hlrn
     $$ [$Hcap $Hnosnap] with ⟨HG, Hgates, Hclose⟩
   imodintro
-  iexists hupR γ md c r id s Λ
+  iexists hupR bt γ md c r id s Λ
   iframe HG Hgates Hclose
 
 /-- **`raft.tickElection` at a traced follower or candidate** (pre-vote and check-quorum off): the
 capability idle at `s` in, idle at the end state out (`stepBundle_traced_hup` for the campaign's `Step`;
 with no campaign the capability as it was). What a traced node API supplies: the capability and
-`TrNoSnap`, the term's and the receipts' bounds, no learners. -/
+`TrNoSnap`, the term's and the receipts' bounds, no learners. (2026-11-11, slice 22a, Q19) The
+capability with any `booted` flag in, some flag out (a tick may come before the node's first `Ready`
+line; `BecomeCandidate` is not bootstrap-named). -/
 abbrev raft.tickElection.tracedTriple : Prop :=
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (γd : GName)
-    (Λ : Option TraceEv → Prop),
+    (Λ : Option TraceEv → Prop) (bt : Bool),
   NStateWf s → md.Guard s → uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
   s.gh.tr = some γd → s.prevote = false → s.cq = false → s.role ≠ .leader →
   uint.Z s.term + 1 < traceNumBound → receiptBound GF + γ.reBoot.length ≤ traceNumBound →
@@ -837,7 +844,7 @@ abbrev raft.tickElection.tracedTriple : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗
-      "Hcap" ∷ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗
+      "Hcap" ∷ trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
       "#Hnosnap" ∷ TrNoSnap s.gh.tr s.logst }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"tickElection")) (Val #()))
   {{ (s' : NState), RET #();
@@ -847,20 +854,20 @@ abbrev raft.tickElection.tracedTriple : Prop :=
       "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
         PVoteLe (toPState s) (toPState s')⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ ∗
-      "Hcap" ∷ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ) }}
+      "Hcap" ∷ ∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) }}
 
 /-- `raft.tickElection.spec`'s traced instance (see `raft.tickElection.tracedTriple`). -/
 theorem raft.tickElection.traced (h : raft.tickElection.spec (GF := GF) (hG := hG)) :
     raft.tickElection.tracedTriple (GF := GF) (hG := hG) := by
-  intro c md γ r id s γd Λ Hwf Hpc Hfla htr hpv hcq hnl hT hfit hlrn
+  intro c md γ r id s γd Λ bt Hwf Hpc Hfla htr hpv hcq hnl hT hfit hlrn
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hcap, #Hnosnap⟩ HΦ
   have hb : (tickMsg MsgHup id).Type' = MsgHup := rfl
   have hmt : mtypeOf (tickMsg MsgHup id).Type' = none := rfl
-  imod stepBundle_hup_R (GF := GF) (hG := hG) γ md c r id s (tickMsg MsgHup id) [] none [] [] γd Λ
+  imod stepBundle_hup_R (GF := GF) (hG := hG) γ md c r id s (tickMsg MsgHup id) [] none [] [] γd Λ bt
     ⟨hb, hnl⟩ htr hpv (by unfold StepEndTy; simp [hb]) rfl hT hfit hlrn
     $$ [$Hcap $Hnosnap] with ⟨HG, Hgates, Hclose⟩
-  iapply h c md γ r id s (hupR γ md c r id s Λ)
-    (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ))
+  iapply h c md γ r id s (hupR bt γ md c r id s Λ)
+    (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
     (by unfold traceNumBound at hT; omega) (fun h => by rw [hpv] at h; cases h) Hwf Hfla Hpc
     $$ [Hphys Hghost HG Hgates Hclose]
   · iframe Hinit Hphys Hghost HG Hgates Hclose
@@ -878,7 +885,8 @@ theorem raft.tickElection.traced (h : raft.tickElection.spec (GF := GF) (hG := h
   icases HG with (⟨%Hs, Hc⟩ | Hc)
   · subst s'
     dsimp only [hupR]
-    iapply trCapB_monoΛ s.gh.tr γ r id c true _ Λ (stepLastEv Λ) (fun o h => .inl h) $$ Hc
+    iexists bt
+    iapply trCapB_monoΛ s.gh.tr γ r id c bt _ Λ (stepLastEv Λ) (fun o h => .inl h) $$ Hc
   · iexact Hc
 
 end gates

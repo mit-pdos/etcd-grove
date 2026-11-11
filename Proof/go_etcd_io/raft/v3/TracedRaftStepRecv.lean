@@ -1098,10 +1098,10 @@ def StaleRecv (s : NState) (m : MessageM) : Prop :=
 
 /-- `StaleRecv`'s resources: after the receive line, raft's ghost state and the capability at the
 pinned idle phase (`G0`, where `Step` ends); `False` at every other resource (no other hook runs). -/
-def staleR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
+def staleR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
     (tn : TraceNames) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (Λ : Option TraceEv → Prop) (k : Nat)
     (ma : Etcdraft.Msg) : StepG GF where
-  G := iprop(trCapB (some γd) γ r id c true (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
+  G := iprop(trCapB (some γd) γ r id c bt (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
   G0 := fun _ => iprop(ownStepGhost γ md c id s ∗
     trCapB (some γd) γ r id c true (IdlePin s tn.voters cs0 P0) (fun o => o.isSome = true))
   G1 := fun _ => iprop(⌜False⌝)
@@ -1128,7 +1128,7 @@ theorem idlePin_term (s : NState) (C0 : List w64) (cs0 : ServerC) (P0 : List Etc
 /-- **`raft.Step`'s traced bundle on the stale messages of a traced type**: the receive line (the
 specification's phantom refusal of a request, the drop of a response), nothing else. -/
 theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG) StaleRecv := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
   obtain ⟨hst, ty, hmty, htrd⟩ := hp
   obtain ⟨evt, hevt, hev⟩ := recvEvTy_of ty m ents hmty htrd hsh
   have hto' : m.To' = id := hto ty hmty htrd
@@ -1144,11 +1144,11 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
   icases Htok $$ %ty %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   imodintro
-  iexists staleR γ md c r id s γd tn cs0 P0 Λ k ma
+  iexists staleR bfl γ md c r id s γd tn cs0 P0 Λ k ma
   isplitl [Hcap Htok]
   · dsimp only [staleR]; iframe Hcap Htok
   isplitr
@@ -1167,7 +1167,7 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg ty m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_traced γd γ r id c s m ents sn ctx rs ty evt true k ma (fun _ => False) (recvPhantoms ma)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs ty evt bfl k ma (fun _ => False) (recvPhantoms ma)
         (IdlePin s tn.voters cs0 P0) (IdlePin s tn.voters cs0 P0) Λ (ownStepGhost γ md c id s) htr hmty hevt
         hps hOk
       iframe Hgh Hc
@@ -1229,6 +1229,7 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the end state is `s`
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     have hs' : s' = s := by
@@ -1253,10 +1254,10 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
 /-- `IgnResp`'s resources: after the receive line, raft's ghost state and the capability at the
 pinned phase with the recorded server (`G0`, `G1`, `GE`: no further hook runs); `False` at the
 others. -/
-def ignR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
+def ignR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
     (tn : TraceNames) (cs0 cs1 : ServerC) (P0 : List Etcdraft.Msg) (Λ : Option TraceEv → Prop) (k : Nat)
     (ma : Etcdraft.Msg) : StepG GF where
-  G := iprop(trCapB (some γd) γ r id c true (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
+  G := iprop(trCapB (some γd) γ r id c bt (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
   G0 := fun _ => iprop(ownStepGhost γ md c id s ∗
     trCapB (some γd) γ r id c true (IdlePin s tn.voters cs1 P0) (fun o => o.isSome = true))
   G1 := fun _ => iprop(ownStepGhost γ md c id s ∗
@@ -1273,7 +1274,7 @@ def ignR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NSta
 /-- **`raft.Step`'s traced bundle on a response a role does not handle, at the node's term**: the
 receive line (the specification records it, `respSrv`), nothing else. -/
 theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) IgnResp := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
   have hp' := hp
   obtain ⟨hterm, ty, hmty, hresp, hrole⟩ := hp'
   have htrd : ty.traced = true := by rcases hresp with rfl | rfl | rfl <;> rfl
@@ -1297,12 +1298,12 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
   icases Htok $$ %ty %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, -⟩, -⟩ := hI0
   imodintro
-  iexists ignR γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (respSrv a0 ma)) P0 Λ k ma
+  iexists ignR bfl γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (respSrv a0 ma)) P0 Λ k ma
   isplitl [Hcap Htok]
   · dsimp only [ignR]; iframe Hcap Htok
   -- the roles, as the specification's
@@ -1333,7 +1334,7 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg ty m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_traced γd γ r id c s m ents sn ctx rs ty evt true k ma (fun _ => False) (recvPhantoms ma)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs ty evt bfl k ma (fun _ => False) (recvPhantoms ma)
         (IdlePin s tn.voters cs0 P0) (IdlePin s tn.voters (toC (confAbs tn.voters) (respSrv a0 ma)) P0) Λ
         (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       iframe Hgh Hc
@@ -1416,6 +1417,7 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the end state is `s`
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     have hs' : s' = s := by
@@ -1485,10 +1487,10 @@ def VoteReq (s : NState) (m : MessageM) : Prop := m.Type' = MsgVote ∧ m.Term' 
 /-- `VoteReq`'s resources: after the receive line, raft's ghost state and the capability at the pinned
 phase of the specification's handling (`G0`, `G1`); after the answer's send line (`GE`) the same; `False`
 at the others. -/
-def voteR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
+def voteR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (γd : GName)
     (tn : TraceNames) (cs0 cs1 : ServerC) (P0 P1 : List Etcdraft.Msg) (Λ : Option TraceEv → Prop) (k : Nat)
     (ma : Etcdraft.Msg) : StepG GF where
-  G := iprop(trCapB (some γd) γ r id c true (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
+  G := iprop(trCapB (some γd) γ r id c bt (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
   G0 := fun _ => iprop(ownStepGhost γ md c id s ∗
     trCapB (some γd) γ r id c true (VPin tn.voters cs1 P1) (fun o => o.isSome = true))
   G1 := fun _ => iprop(ownStepGhost γ md c id s ∗
@@ -1506,7 +1508,7 @@ def voteR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NSt
 specification's grant decision, `HandleRequestVoteRequest`), then the answer's send line, which the
 specification skips; raft's decision is the specification's (`voteEnd_simIdle`). -/
 theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) VoteReq := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom hnpc hsh hboot
   obtain ⟨hTy, hterm⟩ := hp
   have hmty : mtypeOf m.Type' = some .vote := by rw [hTy]; rfl
   have htrd : MsgType.traced .vote = true := rfl
@@ -1525,12 +1527,12 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
   icases Htok $$ %MsgType.vote %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, -⟩ := hI0
   imodintro
-  iexists voteR γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (vrSrv a0 (idAbs m.From') ma)) P0
+  iexists voteR bfl γ md c r id s γd tn cs0 (toC (confAbs tn.voters) (vrSrv a0 (idAbs m.From') ma)) P0
     (P0 ++ [vrResp a0 (idAbs id) (idAbs m.From') ma]) Λ k ma
   isplitl [Hcap Htok]
   · dsimp only [voteR]; iframe Hcap Htok
@@ -1550,7 +1552,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .vote m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .vote evt true k ma (fun _ => False) (recvPhantoms ma)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .vote evt bfl k ma (fun _ => False) (recvPhantoms ma)
         _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       iframe Hgh Hc
       isplitr
@@ -1613,6 +1615,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's vote, the specification's
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     have hve : VoteEnd id s m s' := by

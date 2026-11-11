@@ -171,7 +171,7 @@ def UTVote (s : NState) (m : MessageM) : Prop :=
 then the grant decision), the preamble's `BecomeFollower` line (skipped), then the answer's send line
 (skipped); raft decides as the specification does (`voteEnd_simIdle` at the step-down). -/
 theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UTVote := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
   obtain ⟨hTy, hgt⟩ := hp
   have hmty : mtypeOf m.Type' = some .vote := by rw [hTy]; rfl
@@ -195,7 +195,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
   icases Htok $$ %MsgType.vote %hmt2 with ⟨%tn, %k, %ma, #Hdir, %hma, Htok⟩
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
@@ -207,7 +207,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
     show (vrSrv (utSrv a0 (uint.Z m.Term')) (idAbs m.From') ma).state = _
     rw [(vrSrv_fields _ _ _).2.2.2.1]; rfl
   imodintro
-  iexists bfR γ md c r id s γd tn cs0
+  iexists bfR bfl γ md c r id s γd tn cs0
     (toC (confAbs tn.voters) (vrSrv (utSrv a0 (uint.Z m.Term')) (idAbs m.From') ma)) P0
     (P0 ++ [vrResp (utSrv a0 (uint.Z m.Term')) (idAbs id) (idAbs m.From') ma]) Λ
     (RecvLast evt id s c (absMsg .vote m ents)) (fun o => o.isSome = true) k ma
@@ -232,7 +232,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .vote m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs .vote evt true k ma _
+      iapply recvGate_tracedL γd γ r id c s m ents sn ctx rs .vote evt bfl k ma _
         (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       isplitl [Hg Hr]
       · iunfold ownStepGhost; iframe Hg Hr
@@ -321,6 +321,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and vote decision, the specification's
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨pvs, hve⟩ : ∃ pvs : GMap w64 Progress,

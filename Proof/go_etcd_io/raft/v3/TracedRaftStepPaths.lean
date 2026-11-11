@@ -361,35 +361,35 @@ theorem trCapB_gateNone (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c :
   iapply trCapB_mono (some γd) γ r id c b Φ Φ' Λ h $$ Hcap
 
 /-- `LocalNoLine`'s family: raft's ghost state at `s` and the capability at the idle server of `s`,
-the share the outbox's traced messages up to order. -/
-def localF (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+the share the outbox's traced messages up to order; the `booted` flag `b` the step's (no line). -/
+def localF (b : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Λ : Option TraceEv → Prop) (o : List Msg) : IProp GF :=
-  iprop(ownStepGhost γ md c id s ∗ trFam s.gh.tr γ r id c true (fun C => SimIdleS C s) Λ o)
+  iprop(ownStepGhost γ md c id s ∗ trFam s.gh.tr γ r id c b (fun C => SimIdleS C s) Λ o)
 
-theorem localF_permInv (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Λ : Option TraceEv → Prop) : PermInv (localF (GF := GF) γ md c r id s Λ) := by
+theorem localF_permInv (b : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (Λ : Option TraceEv → Prop) : PermInv (localF (GF := GF) b γ md c r id s Λ) := by
   intro o o' h
   unfold localF
-  rw [trFam_permInv s.gh.tr γ r id c true (fun C => SimIdleS C s) Λ o o' h]
+  rw [trFam_permInv s.gh.tr γ r id c b (fun C => SimIdleS C s) Λ o o' h]
 
 /-- `LocalNoLine`'s resources: `localF` wherever `Step` may end, `False` between hooks no path here
 reaches. -/
-def localR (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+def localR (b : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Λ : Option TraceEv → Prop) : StepG GF where
-  G := trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ
-  G0 := localF γ md c r id s Λ
-  G1 := localF γ md c r id s Λ
-  GE := localF γ md c r id s Λ
+  G := trCapB s.gh.tr γ r id c b (fun C => SimIdle C s) Λ
+  G0 := localF b γ md c r id s Λ
+  G1 := localF b γ md c r id s Λ
+  GE := localF b γ md c r id s Λ
   Gf := iprop(⌜False⌝)
   Gb1 := iprop(⌜False⌝)
   Gb2 := iprop(⌜False⌝)
   Gp1 := iprop(⌜False⌝)
-  Gp2 := localF γ md c r id s Λ
-  Gc := fun _ _ => localF γ md c r id s Λ
+  Gp2 := localF b γ md c r id s Λ
+  Gc := fun _ _ => localF b γ md c r id s Λ
 
 /-- **`raft.Step`'s traced bundle on the local messages that log no line.** -/
 theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := hG) LocalNoLine := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit _ _ _ _ _
+  intro γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit _ _ _ _ _
   have hT0 : m.Term' = W64 0 := hloc (by rcases hp.1 with h | h <;> simp [h])
   have hnbf : ¬ PreBF m s := by
     unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
@@ -398,7 +398,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
   have hsome : s.gh.tr ≠ none := by rw [htr]; simp
   iintro ⟨Hcap, -, #Hnosnap⟩
   imodintro
-  iexists localR γ md c r id s Λ
+  iexists localR bt γ md c r id s Λ
   isplitl [Hcap]
   · dsimp only [localR]; iexact Hcap
   isplitr
@@ -418,7 +418,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
       rw [hrg]
       unfold localF trFam
       rw [htr]
-      iapply trCapB_gateNone γd γ r id c true _ _ Λ _ (fun C cs P h => simIdle_phaseAt C s cs P h)
+      iapply trCapB_gateNone γd γ r id c bt _ _ Λ _ (fun C cs P h => simIdle_phaseAt C s cs P h)
       iframe Hgh Hc
     isplitr
     · -- the preamble: no step-down at term zero
@@ -451,10 +451,10 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
         · -- a proposal forwarded to the leader: untraced, the family unchanged
           iintro %_ %out %hout HG
           unfold localF
-          rw [trFam_untraced s.gh.tr γ r id c true _ Λ s.outbox out hout]
+          rw [trFam_untraced s.gh.tr γ r id c bt _ Λ s.outbox out hout]
           unfold trFam
           rw [htr]
-          iapply trCapB_gateNone γd γ r id c true _ _ Λ _ (fun _ _ _ h => h)
+          iapply trCapB_gateNone γd γ r id c bt _ _ Λ _ (fun _ _ _ h => h)
           iexact HG
         isplitr
         · iintro %h; exact (localTy_ne hp.1 (by decide) h).elim
@@ -487,7 +487,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
             (fun h => localTy_ne hp.1 (by decide) h.1)).elim
       · iintro %hr; exact (hp.2 hr).elim
     · ipureintro
-      exact ⟨localF_permInv γ md c r id s Λ, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
+      exact ⟨localF_permInv bt γ md c r id s Λ, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the end state unchanged or the forward queued; the share re-ordered
     iunfold stepClose
@@ -505,17 +505,18 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
         rcases hx with hx | rfl
         · exact .inl hx
         · exact .inr (Msg.trOk_of_untraced hf)
-    ihave H : localF (GF := GF) γ md c r id s Λ s'.outbox $$ [Hout]
+    ihave H : localF (GF := GF) bt γ md c r id s Λ s'.outbox $$ [Hout]
     · unfold stepOut
       dsimp only [localR]
       icases Hout with (H | H | H | H | ⟨%b, %N, H⟩) <;> iexact H
     unfold localF
     icases H with ⟨Hgh, H⟩
-    imod trFam_idle s.gh.tr γ r id c true s s' Λ hS $$ H with H
+    imod trFam_idle s.gh.tr γ r id c bt s s' Λ hS $$ H with H
     imodintro
     iframe Hgh
     isplitl [H]
-    · iapply trCapB_monoΛ s.gh.tr γ r id c true _ Λ _ (fun o h => .inl h) $$ H
+    · iexists bt
+      iapply trCapB_monoΛ s.gh.tr γ r id c bt _ Λ _ (fun o h => .inl h) $$ H
     ipureintro; exact hout
 
 /-- **A leader's heartbeat line's facts at the pinned idle phases** (`fxPres_heartbeat` with

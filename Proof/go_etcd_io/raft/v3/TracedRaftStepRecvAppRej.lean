@@ -168,7 +168,7 @@ def FolAppRej (s : NState) (m : MessageM) : Prop :=
 receive line (the specification's `RejectAppendEntriesRequest`), then the rejection's send line, which
 the specification skips. The resources are `voteR`'s. -/
 theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG) FolAppRej := by
-  intro γ md c r id s m ents sn ctx rs γd Λ hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
+  intro γ md c r id s m ents sn ctx rs γd Λ bfl hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit hlrn hdom
     hnpc hsh hboot
   obtain ⟨hTy, hterm, hrole, hge, hnm⟩ := hp
   have hmty : mtypeOf m.Type' = some .app := by rw [hTy]; rfl
@@ -190,7 +190,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
   icases isMessage_app_index0 γ (absMsg .app m ents ctx) rfl $$ Hm with %Hi0
   rw [msgAbs_absMsg_ctx] at hma
   rw [htr]
-  icases trCapB_pinDir γd γ r id c true _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
+  icases trCapB_pinDir γd γ r id c bfl _ Λ $$ Hcap with ⟨%tn', %cs0, %P0, #Hdir', %hI0, Hcap⟩
   icases traceDir_agree γd tn tn' $$ [$Hdir $Hdir'] with %Htn
   subst Htn
   obtain ⟨⟨a0, ha0, hR0, hs0, hP0, bt, bc, bl⟩, hidC⟩ := hI0
@@ -212,7 +212,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
     show PlogMatches (toPState s).base (toPState s).log _
     rw [hb0]; exact h
   imodintro
-  iexists voteR γ md c r id s γd tn cs0 (toC (confAbs tn.voters) { a0 with lead := idAbs m.From' }) P0
+  iexists voteR bfl γ md c r id s γd tn cs0 (toC (confAbs tn.voters) { a0 with lead := idAbs m.From' }) P0
     (P0 ++ [rjResp a0 (idAbs id) (idAbs m.From')]) Λ k ma
   isplitl [Hcap Htok]
   · dsimp only [voteR]; iframe Hcap Htok
@@ -233,7 +233,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
       have hnb' := recvEvTy_notBoot hev
       have hOk : ∀ e, SendEvOf evt id s c (absMsg .app m ents) e → TraceEv.Ok (elements c.incoming).length e :=
         fun e he => sendEvOf_ok evt id s c _ e _ he ⟨hnb'.1, hnb'.2.2.2⟩ (by word) Hb.2 Hb.1 hnb (Nat.le_refl _)
-      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .app evt true k ma (fun _ => False)
+      iapply recvGate_traced γd γ r id c s m ents sn ctx rs .app evt bfl k ma (fun _ => False)
         (recvPhantoms ma) _ _ Λ (ownStepGhost γ md c id s) htr hmty hevt hps hOk
       iframe Hgh Hc
       isplitr
@@ -334,6 +334,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's rejection, the specification's
+    iapply stepClose_anyB
     iunfold stepClose
     iintro %s' %B %recv %_ %hend Hout
     obtain ⟨ht, hint, hhi, hht, hse⟩ : ∃ ht hint : w64, uint.Z hint ≤ uint.Z m.Index' ∧
