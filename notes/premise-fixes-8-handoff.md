@@ -75,8 +75,7 @@ Forms accepted: isWatchPermitted unchanged; stronger posts of `EnsureTrace` and
 
 ## Next, in order
 
-1. STOP before land.sh (report to etcd-grove-81). On go: merge lean, add the STATUS entry (oldest to
-   status-history, append only), `etc/land.sh`.
+1. S1 accepted by etcd-grove-81 (incl. the srvCall change of meaning); lean f808e61706 merged, STATUS entry added; landing via `etc/land.sh`.
 2. S2 after S1 lands (Scope S.2; D2), with the old → new text STOP first.
 
 ## Pitfalls
