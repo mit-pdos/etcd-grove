@@ -627,3 +627,18 @@ land.sh only on 81's go.
   (baseline and collections; expect our +22 plus whatever pf5 changes); interfaces (all five `etc/api`
   packages); Freeze doc §3 counts against that lean; then, on 81's go, `etc/land.sh` directly (it runs
   the gates; do not run gates.sh separately).
+
+## Fifteenth session (2026-11-11): lean 06b1b9c059 merged, built, landing
+
+- `d1bdecc7fe`: lean `06b1b9c059` (premise-fixes-5, model-param-incr, premise-fixes-6 part B) merged.
+  Conflicts: `etc/gates.sh` (our 9c/9e/9f/9d checks became one parallel section `sec_k8s7e`, added to
+  `secs`), notes (status-history lean's, then premise fixes 1 appended; STATUS k8s 7e entry first, the
+  oldest moved). The context predicates merged without conflict.
+- `dacfde97f1`: build fixes from the (previously unbuilt) pf4 merge only: rpctypes' ErrCompacted/
+  ErrFutureRev facts are `(no Format) ∧ (EtcdError value)`, so `WatchResponse.Err`,
+  `interpretListError`, `store.listReadError` take the right conjunct; `decoder.DecodeListItem` gives
+  errStrOk's no-Format fact as `decoder.Decode` does. Proofs only.
+- Full build green (first try killed at 143, retried: `/shared/tmp/k8s7e1/full{4,5,6}.log`); tcb
+  matches; collections: only mvccfull +`DefaultBackoffConfig_init`; interfaces unchanged; gen-init
+  clean; Freeze §3 redone against `06b1b9c059`.
+- Next: `etc/land.sh` (log `/shared/tmp/k8s7e1/land.log`).

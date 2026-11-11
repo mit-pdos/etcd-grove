@@ -138,15 +138,23 @@ restated; pflag: `opaqueInitsOk` new; the driver's `errNoList` initializer gone 
 
 ## 3. TCB diff against lean
 
-`etc/tcb-baseline.txt`: **+22 axioms (exactly §2.1's), −0, sorries unchanged** (848 → 870
-entries; `git diff lean -- etc/tcb-baseline.txt`). Against the 7e-4 package's baseline the only new
-entry is `DefaultBackoffConfig_init` (`etc/tcb-report.py --check` after the merge's build).
+Against lean **`06b1b9c059`** (premise-fixes-5, model-param-incr, premise-fixes-6 part B; merged in
+`d1bdecc7fe`, build fixes `dacfde97f1`, full build green `/shared/tmp/k8s7e1/full6.log`):
+`etc/tcb-baseline.txt`: **+22 axioms (exactly §2.1's), −0, sorries unchanged** (849 → 871 lines;
+`git diff 06b1b9c059 -- etc/tcb-baseline.txt`). `etc/tcb-report.py --check` matched the merged
+baseline as is (866 axioms, 5 sorries).
 
-Collections (`git diff lean --stat -- etc/tcb-collections`), additions only:
+Collections (`git diff 06b1b9c059 --stat -- etc/tcb-collections`), additions only:
 k8setcd3 +22, k8s +16 (7e-2's), k8scompactor +4 (pflag, version, `RawURLEncoding_init`,
-`DefaultBackoffConfig_init`), and +2 (`RawURLEncoding_init`, `DefaultBackoffConfig_init`) in each of
+`DefaultBackoffConfig_init`), +2 (`RawURLEncoding_init`, `DefaultBackoffConfig_init`) in each of
 cachekv, compactkv, leasecatchup, leaseexpiry, leasekv, linkv3p, linkvtxn, m2, putget, putget3,
-watchkv. The other 38 collections unchanged.
+watchkv, and +1 (`DefaultBackoffConfig_init`) in mvccfull (new on lean with the sync; `--check
+--update`). The other 39 collections unchanged. Interfaces (all five `etc/api` packages): no change.
+`etc/gen-init.py --check`: 225 files up to date.
+
+§1 redone against `06b1b9c059`: the six statements are character for character lean's; the reach
+script (`/shared/tmp/k8s7e1/reach2/`) finds 43723 constants, the same six `Code` modules and the same
+11 `Proof` definitions, each identical to lean's text.
 
 ## 4. Changed exported statements
 
