@@ -46,6 +46,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
 public import Proof.go_etcd_io.raft.v3.MemstorageApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseRestartStor
 
 @[expose] public section
 
@@ -355,6 +356,120 @@ theorem srvMem_bootStorage
   · iapply memStorLog_of ms γs 1 (DFrac.own 1) [] $$ Hreg
     iapply memLog_nil
   iapply memStorEnd_of ms γs 1 $$ Hreg He
+
+/-- **The storage a restart rebuilds restarts a node** (restart S3, 2026-11-11; generalizing
+`srvMem_bootStorage`, as kvdurable's `kd_restartStorage`): `bootstrappedWAL.MemoryStorage`'s
+`memStorRestarted` (the WAL's records `σ`, the backend's conf state `cs`) is `RestartNode`'s
+`restartStorage` at `σ` and `cs`, the freeze point the base (nothing frozen above it): `FirstIndex`
+answers the base `+ 1` (detached: compacted at most there), `LastIndex` the last index,
+`InitialState` the hard state and `cs` (`walSnapCS`'s); its continuation attaches the storage at
+raft's key (`memStorInvP_alloc`: compacting up to the base is justified by raft's applied bound at
+the attach, `max σ.b A`; the stored snapshot, at base `0` the empty one's index, else valid,
+`hval`, and delivered, below the stored commit). The base is at most the stored commit (`Hbc`). -/
+theorem srvMem_restartStorage
+    (wp_InitialState : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
+    (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) (A : Nat)
+    (F : GName → IProp GF) (Hbc : σ.b ≤ σ.commit) :
+    letI : MemStorReg GF := ⟨γr.reg⟩
+    letI := srvStor (GF := GF) γr
+    memStorReg ms γs ∗ memStorLock ms γs ∗ memStorRestarted ms γs σ cs ∗
+      (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗
+      (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗ F K) ⊢
+      restartStorage γr.cl (memStorIface ms) σ cs A F := by
+  letI : MemStorReg GF := ⟨γr.reg⟩
+  letI := srvStor (GF := GF) γr
+  iintro ⟨#Hreg, #Hl, Hrest, Hval, HF⟩
+  iunfold memStorRestarted at Hrest
+  icases Hrest with ⟨Hfresh, Hmeta, #Hc, #He0, #Hslb, Hents, Hend⟩
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
+  unfold restartStorage
+  iexists (⟨MemoryStorage.ty.PointerType, intoVal ms⟩ : GoInterfaceOk)
+  iexists iprop(memStorFresh ms γs σ.b (walSnapCS σ cs) ∗ memStorMeta ms γs σ.hs ∗
+    memLog γs (σ.b + 1) (DFrac.own 1) σ.ents ∗ memEnd γs (σ.last + 1) ∗
+    (⌜σ.b = 0⌝ ∨ snapshotValid γr.cl (walSnapCS σ cs)) ∗
+    (∀ K : GName, memStorInv ms γs γr.cl K -∗ memStorMeta ms γs σ.hs -∗ F K))
+  iexists σ.b
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; exact ⟨Nat.le_refl _, Hbc⟩
+  isplitl [Hfresh Hmeta Hents Hend Hval HF]
+  · iframe Hfresh Hmeta Hents Hend Hval HF
+  isplitr
+  · -- FirstIndex: the base plus one (detached: compacted at most at the base)
+    iintro !> %Φ ⟨Hfresh, HR⟩ HΦ
+    wp_apply wp_FirstIndex ms γs σ.b $$ [$Hinit $Hl $Hc] as %fi ⟨%Hfi, #Hc'⟩
+    icases memStorFresh_compacted ms γs _ _ _ $$ [$Hfresh $Hc'] with ⟨%Hle, Hfresh⟩
+    have Hfi' : fi = W64 (σ.b + 1) := by word
+    rw [Hfi']
+    iapply HΦ
+    iframe Hfresh HR
+  isplitr
+  · -- LastIndex: the last index
+    iintro !> %Φ ⟨Hfresh, Hmeta, Hents, Hend, HR⟩ HΦ
+    wp_apply wp_LastIndex ms γs (σ.last + 1) $$ [$Hinit $Hl $Hend] as %li ⟨Hend, %Hli⟩
+    have Hli' : li = W64 σ.last := by word
+    rw [Hli']
+    iapply HΦ
+    iframe Hfresh Hmeta Hents Hend HR
+  -- InitialState: detached; its continuation attaches the storage at raft's key
+  iintro !> %Φ ⟨Hfresh, Hmeta, Hents, Hend, Hval, HF⟩ HΦ
+  wp_apply wp_InitialState ms γs σ.hs σ.b (walSnapCS σ cs) $$ [$Hinit $Hmeta $Hfresh]
+    as %hp %csp ⟨#Hhs, Hmeta, Hfresh, #Hcs⟩
+  iapply HΦ $$ %hp %csp %true
+  iframe Hhs Hcs
+  iintro %K #HA #HD
+  ihave #HB : □ (∀ k, ⌜k ≤ σ.b⌝ -∗ (memStorJ γr.cl K).B k) $$ []
+  · iintro !> %k %hk
+    simp only [memStorJ]
+    iapply nodeAppliedLb_mono γr.cl K _ k (by omega) $$ HA
+  ihave Hsv : (⌜(walSnapCS σ cs).Metadata'.Index' = W64 0⌝ ∨
+      (memStorJ γr.cl K).SV (walSnapCS σ cs) ∗
+        (memStorJ γr.cl K).DL (uint.nat (walSnapCS σ cs).Metadata'.Index')) $$ [Hval]
+  · by_cases h0 : σ.b = 0
+    · ileft; ipureintro
+      unfold StorContents.b at h0
+      show σ.base.index' = W64 0
+      apply BitVec.eq_of_toNat_eq; simpa using h0
+    · icases Hval with (%H | #Hv)
+      · exact absurd H h0
+      iright
+      simp only [memStorJ]
+      isplitr
+      · iexact Hv
+      rw [walSnapCS_index]
+      iapply nodeCommitLb_mono γr.cl K _ _ Hbc $$ HD
+  imod memStorInvP_alloc ms γs (memStorJ γr.cl K) ⊤ σ.b (walSnapCS σ cs) $$ Hl Hfresh HB Hsv
+    with #Hinv
+  ihave #Hinv' : memStorInv ms γs γr.cl K $$ []
+  · unfold memStorInv; iexact Hinv
+  ihave HFK := HF $$ %K Hinv' Hmeta
+  imodintro
+  isplitr
+  · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
+      ms γs γr.cl K $$ Hinv' Hreg
+  iframe HFK
+  iunfold storHolds
+  simp only [Nat.sub_self, List.take_zero, List.drop_zero]
+  iexists memDummy (walSnapCS σ cs)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply memStorCompacted_of ms γs σ.b $$ Hreg Hc
+  isplitr
+  · iapply memStorLog_of ms γs σ.b DFrac.discard _ $$ Hreg He0
+  isplitr
+  · iapply memStorLog_of ms γs (σ.b + 1) DFrac.discard [] $$ Hreg
+    iapply memLog_nil
+  isplitl [Hents]
+  · iapply memStorLog_of ms γs (σ.b + 1) (DFrac.own 1) σ.ents $$ Hreg Hents
+  iapply memStorEnd_of ms γs (σ.last + 1) $$ Hreg Hend
 
 /-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
 server's raft names `γr` and the cluster's storage model `srvStor γr`): for the receiver `b` and the
