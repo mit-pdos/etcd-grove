@@ -90,6 +90,19 @@ Also in the package: a note (not one of the six) that the extension keys directo
 
 Next: the coordinator's independent adversarial Freeze review; then `etc/land.sh` when told.
 
+## W4a revision after the Freeze review (fourth agent, 2026-11-11)
+
+The independent review (two lenses) found W4a NOT READY: 5 blockers, 3 majors, minors (journal
+extracted to `/shared/tmp/wal-spec/w4/review-findings.txt`; reviewer's Go tests in
+`/shared/tmp/coord-81/wal-w4a-review/`). Phase 1 (design stop) done: `/shared/tmp/wal-spec/w4/revision.md`
+(old -> new for every trusted statement; the fixed WAL area + durable one-shot reservation; walReadFailed;
+named kept at a crash, made durable by ReadAll; walReleasePos guard; purge moves cut; M3 options A/B/C;
+nonissue draft; Go tests; W4c effects). **Waiting for etcd-grove-81's review** (decisions: M3 option,
+durable spec generalization, the trusted text). No Lean changed yet.
+
+Next (Phase 2, after approval): revision.md §12, in order. Pitfall: `GooseLang/Ext/Durable` gains an
+import of the new `GooseLang/Ext/AbsDisk/Paths.lean`; kvdurable's call sites take `none trivial`.
+
 ## After W4a
 
 W4b, W4c as the Draft's §8 (Freeze review of W4a first: `spec-reviewer` fresh + the `axiom` skill).
