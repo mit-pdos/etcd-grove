@@ -63,6 +63,11 @@ structure OsMeta where
   has the one candidate 0, stamped 0 (durable zeros: a file created in this generation, `some 0`; a
   file on disk, or after a successful sync, the end of its size's last page). -/
   zf : Option Nat := none
+  /-- Candidates known past the size: `some c` for a byte `b` at or past the size if its
+  candidates are `c` (a file on disk: every byte's, its value on disk at stamp 0, the bytes past
+  the size included, which a crash may have left in the size's last page). A change forgets the
+  bytes it announces; a successful sync forgets all of them (`zf` keeps its zeros). -/
+  tc : GMap Nat Cands := ∅
 
 /-- `[dlo, dhi)` with `[lo, hi)` added: the smallest interval that holds both (an empty interval,
 `dhi ≤ dlo`, holds nothing). -/
@@ -112,7 +117,8 @@ have only the zero candidate; a crash may leave the file with the target size. -
 def OsMeta.announce (m : OsMeta) (lo hi tg : Nat) : OsMeta :=
   { m.touch lo hi with
     zf := m.zf.map (fun z => if lo < hi then max z hi else z),
-    lo := min m.lo tg, hi := max m.hi tg }
+    lo := min m.lo tg, hi := max m.hi tg,
+    tc := m.tc.filter (fun b _ => !inRange lo hi b) }
 
 /-- The `OsMeta` a change holds. -/
 def TokInfo.meta (ti : TokInfo) : OsMeta := ti.m0.announce ti.lo ti.hi ti.target
@@ -124,11 +130,11 @@ def TokInfo.Is (ti : TokInfo) (c : OsChange) : Prop :=
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -227,6 +233,7 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
     m.lo ≤ c.target ∧ c.target ≤ m.hi
   dur : ∀ b, b < f.size → ¬ (m.dlo ≤ b ∧ b < m.dhi) → f.cand b = [(f.cache b, 0)]
   zf : ∀ z, m.zf = some z → f.size ≤ z ∧ ∀ b, z ≤ b → f.cand b = [(0, 0)]
+  tail : ∀ b c, f.size ≤ b → m.tc !! b = some c → f.cand b = c
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
@@ -248,7 +255,8 @@ structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
   before it, the candidates the byte had, which are the zero alone past the zeros known. -/
   tok_cand : ∀ t ti, Γt !! t = some ti → ∃ f, st.file ti.ino = some f ∧
     ∀ b, inRange ti.lo ti.hi b = true → ∃ c0, f.cand b = c0 ++ [(ti.val b, ti.n)] ∧
-      ∀ z, ti.m0.zf = some z → z ≤ b → c0 = [(0, 0)]
+      (∀ z, ti.m0.zf = some z → z ≤ b → c0 = [(0, 0)]) ∧
+      ∀ c, ti.m0.size ≤ b → ti.m0.tc !! b = some c → c0 = c
 
 end derived
 
@@ -730,10 +738,29 @@ end bytes
 
 /-! ## The start -/
 
+/-- The candidates of the bytes of `f` past its size in its size's last page. -/
+def tailMap (f : OsFile) : GMap Nat Cands :=
+  ⟨fun b => if f.size ≤ b ∧ b < pageUp f.size then some (f.cand b) else none,
+   ⟨List.range (pageUp f.size), fun k h => by
+     by_cases hk : f.size ≤ k ∧ k < pageUp f.size
+     · exact List.mem_range.2 hk.2
+     · simp [hk] at h⟩⟩
+
+theorem tailMap_lookup (f : OsFile) (b : Nat) :
+    tailMap f !! b = if f.size ≤ b ∧ b < pageUp f.size then some (f.cand b) else none := rfl
+
+/-- What `tailMap` records is the file's candidates. -/
+theorem tailMap_cand (f : OsFile) (b : Nat) (c : Cands) (h : tailMap f !! b = some c) :
+    f.cand b = c := by
+  rw [tailMap_lookup] at h
+  split at h
+  · cases h; rfl
+  · cases h
+
 /-- The ghost `OsMeta` of a file as on disk: all of it durable, zeros past its last page (durable
-zeros). -/
+zeros), and the candidates of the bytes past its size in its last page (`tailMap`). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageUp f.size)⟩
+  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageUp f.size), tailMap f⟩
 
 /-- The bytes of the files of `st`, each as the state has it. -/
 def bytesMapF (F : GMap Ino OsFile) : GMap (Ino × Nat) ByteG :=
@@ -849,7 +876,8 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
     (hmaps : ∀ b m, st.proc.maps !! b = some m → m.ino ≠ i)
     (hinfl : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i) :
     MetaOk st i (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz) := by
-  refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_⟩
+  refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_,
+    fun b c _ h => tailMap_cand _ b c h⟩
   · intro b len
     simp only [initMeta]
     constructor

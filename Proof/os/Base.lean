@@ -137,8 +137,16 @@ end def_
 /-! ## Resizes -/
 
 theorem osMeta_eq {a b : OsMeta} (h1 : a.size = b.size) (h2 : a.lo = b.lo) (h3 : a.hi = b.hi)
-    (h4 : a.maps = b.maps) (h5 : a.dlo = b.dlo) (h6 : a.dhi = b.dhi) (h7 : a.zf = b.zf) : a = b := by
+    (h4 : a.maps = b.maps) (h5 : a.dlo = b.dlo) (h6 : a.dhi = b.dhi) (h7 : a.zf = b.zf)
+    (h8 : a.tc = b.tc) : a = b := by
   cases a; cases b; simp_all
+
+theorem rsPost_tc (m : OsMeta) (tg sz' b : Nat) :
+    (rsPost m tg sz').tc !! b =
+      if inRange (min m.size tg) (max m.size tg) b then none else m.tc !! b :=
+  announce_tc m _ _ tg b
+
+theorem rsPost_size' (m : OsMeta) (tg sz' : Nat) : (rsPost m tg sz').size = sz' := rfl
 
 theorem touch_dlo (m : OsMeta) (lo hi : Nat) :
     (m.touch lo hi).dlo = if hi ≤ lo then m.dlo else if m.dhi ≤ m.dlo then lo else min m.dlo lo := by
@@ -170,6 +178,9 @@ theorem announce_idem (m : OsMeta) (lo hi tg : Nat) :
     | some z =>
       simp only [Option.map_some, Function.comp_def, Option.some.injEq]
       by_cases hl : lo < hi <;> simp [hl, Nat.max_assoc]
+  · apply GMap.ext; intro b
+    simp only [announce_tc]
+    split <;> rfl
 
 /-- A resize to the size a file has, after one that landed, changes nothing. -/
 theorem rsPost_rsPost (m : OsMeta) (tg : Nat) : rsPost (rsPost m tg tg) tg tg = rsPost m tg tg := by
@@ -181,6 +192,10 @@ theorem rsPost_rsPost (m : OsMeta) (tg : Nat) : rsPost (rsPost m tg tg) tg tg = 
   · simp only [rsPost, announce_dlo]; unfold OsMeta.touch; simp
   · simp only [rsPost, announce_dhi]; unfold OsMeta.touch; simp
   · simp [rsPost, announce_zf, Function.comp_def]
+  · apply GMap.ext; intro b
+    rw [rsPost_tc, rsPost_size']
+    simp only [Nat.min_self, Nat.max_self]
+    rw [if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
 
 theorem announce_rsPost (m : OsMeta) (tg : Nat) :
     (rsPost m tg tg).announce (min (rsPost m tg tg).size tg) (max (rsPost m tg tg).size tg) tg =
@@ -193,6 +208,10 @@ theorem announce_rsPost (m : OsMeta) (tg : Nat) :
   · simp only [rsPost, announce_dlo]; unfold OsMeta.touch; simp
   · simp only [rsPost, announce_dhi]; unfold OsMeta.touch; simp
   · simp [rsPost, announce_zf, Function.comp_def]
+  · apply GMap.ext; intro b
+    rw [announce_tc]
+    simp only [rsPost_size', Nat.min_self, Nat.max_self]
+    rw [if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
 
 theorem rsPost_announce (m : OsMeta) (tg sz' : Nat) :
     rsPost (m.announce (min m.size tg) (max m.size tg) tg) tg sz' = rsPost m tg sz' := by

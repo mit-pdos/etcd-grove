@@ -294,7 +294,9 @@ theorem rsFacts_of {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf
   obtain ⟨f1, hf1, hmo⟩ := coh_meta hcoh Hml
   rw [hf] at hf1; cases hf1
   exact ⟨c, f, ⟨Hti, hct, hcino, hckind, hclo, hchi, hctg, hcval, hf, hm0, hxl,
-    fun b h1 h2 => hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega),
+    fun b h1 h2 => by
+      obtain ⟨c0, h, hz, -⟩ := hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
+      exact ⟨c0, h, hz⟩,
     hmo, Hml⟩⟩
 
 theorem osWorld_unfold {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic val)} :
@@ -396,7 +398,20 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
       refine ⟨rfl, ?_, ?_, fun b len => by
           have h1 := hmo.maps b len; simp only [announce_maps] at h1
           simp only [rsPost, announce_maps]; exact h1,
-        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_⟩
+        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_⟩
+      rotate_right
+      · have hc' : (m.announce (min m.size tg) (max m.size tg) tg).tc !! b = some cs := hc
+        rw [show f2.cand b = f.cand b from rfl]
+        have hr := hc'
+        rw [announce_tc] at hr
+        split at hr
+        · cases hr
+        · rename_i hnr
+          refine hmo.tail b cs ?_ hc'
+          have hb2 : sz' ≤ b := hb
+          simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hnr
+          rw [← hmsz]
+          rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
       · simp only [rsPost, f2, OsFile.land, announce_lo]
         rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
       · simp only [rsPost, f2, OsFile.land, announce_hi]

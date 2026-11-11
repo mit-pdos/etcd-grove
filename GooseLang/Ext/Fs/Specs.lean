@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf⟩
+  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -525,7 +525,8 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
 /-- The `OsMeta` after a successful sync: the size is durable, every byte is durable, zeros from the
 end of the size's last page on (`OsFile.synced`). -/
 def OsMeta.synced (m : OsMeta) : OsMeta :=
-  { m with lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some (pageUp m.size) }
+  { m with
+    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some (pageUp m.size), tc := ∅ }
 
 /-- The `n` bytes from `lo` hold every byte below the size that `m` says may not be durable (those
 in `[dlo, dhi)`). -/
@@ -622,7 +623,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
       · refine ⟨by simp [OsMeta.synced, hmo.size, f', synced_size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size], hmo.maps,
-          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_⟩
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_⟩
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz
@@ -630,6 +631,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
           rw [synced_cand f _ b (hnoI b)]
           simp only [f', OsFile.synced, if_neg (hnoI b)]
           rw [diskByte_past (by rw [← hmo.size]; exact hb)]
+        · intro b c _ hc; simp [OsMeta.synced] at hc
       · intro b x hx
         rw [lookup_insertBytes] at hx
         split at hx

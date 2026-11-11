@@ -130,7 +130,7 @@ theorem setFile_proc (st : OsState) (i : Ino) (f : OsFile) : (st.setFile i f).pr
 theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hm : st'.proc.maps = st.proc.maps) (hin : st'.proc.inflight = st.proc.inflight)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
-  ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, by rw [hin]; exact h.targets, h.dur, h.zf⟩
+  ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, by rw [hin]; exact h.targets, h.dur, h.zf, h.tail⟩
 
 /-- `OsWf` after the file `i` is replaced by `f'` (and the stamp perhaps advanced): the new file's
 sizes in order and its stamps at most the new one. -/
@@ -293,7 +293,7 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
       obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
       rw [he]
       exact ⟨f, hf, ⟨hmo.size, hmo.lo, hmo.hi, by rw [← he]; exact h6, hmo.targets, hmo.dur,
-        hmo.zf⟩⟩
+        hmo.zf, hmo.tail⟩⟩
     tok_meta := htok }
 
 end maps

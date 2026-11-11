@@ -66,6 +66,12 @@ theorem announce_dlo (m : OsMeta) (lo hi tg : Nat) :
 theorem announce_dhi (m : OsMeta) (lo hi tg : Nat) :
     (m.announce lo hi tg).dhi = (m.touch lo hi).dhi := rfl
 
+theorem announce_tc (m : OsMeta) (lo hi tg b : Nat) :
+    (m.announce lo hi tg).tc !! b = if inRange lo hi b then none else m.tc !! b := by
+  show (m.tc.filter (fun b _ => !inRange lo hi b)) !! b = _
+  rw [GMap.lookup_filter]
+  cases h : m.tc !! b <;> by_cases hr : inRange lo hi b <;> simp [hr]
+
 /-- `MetaOk` of the `OsMeta` a change's first step leaves, for the file it leaves, from `MetaOk` of
 the `OsMeta` before: the file's candidates change only in the announced range, its sizes do not. -/
 theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile} {lo hi tg : Nat}
@@ -76,7 +82,7 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     (htg : ∀ t c, st'.proc.inflight !! t = some c → c.ino = i → c.target = tg) :
     MetaOk st' i (m.announce lo hi tg) f' := by
   refine ⟨by simp [hmo.size, hsz.1], by simp; have := hmo.lo; omega,
-    by simp; have := hmo.hi; omega, by simpa using hmaps, fun t c ht hc => ?_, ?_, ?_⟩
+    by simp; have := hmo.hi; omega, by simpa using hmaps, fun t c ht hc => ?_, ?_, ?_, ?_⟩
   · rw [htg t c ht hc]; exact ⟨Nat.min_le_right _ _, Nat.le_max_right _ _⟩
   · intro b hb hn
     rw [announce_dlo, announce_dhi] at hn
@@ -88,6 +94,13 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     obtain ⟨h1, h2⟩ := hmo.zf z0 hz0
     refine ⟨by split <;> omega, fun b hb => ?_⟩
     rw [hcand b (by split at hb <;> omega)]; exact h2 b (by split at hb <;> omega)
+  · intro b c hb hc
+    rw [announce_tc] at hc
+    split at hc
+    · cases hc
+    · rename_i hr
+      rw [hcand b (by simpa [inRange] using hr)]
+      exact hmo.tail b c (by rw [← hsz.1]; exact hb) hc
 
 /-! ## The bytes and the file of a write -/
 
@@ -492,7 +505,7 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, by simp only [startState, OsState.addInflight, OsState.stampFile,
         GMap.lookup_insert_eq_iff, if_neg hne]; exact h1, ?_⟩
-      refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf⟩
+      refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail⟩
       by_cases he : t = t'
       · subst he; simp only [startState, OsState.addInflight, GMap.lookup_insert] at h1'
         cases h1'; exact absurd (hcp.symm.trans h2') hne
@@ -546,9 +559,11 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
   · rw [GMap.lookup_insert_eq_iff] at h
     split at h
     · cases h
-      refine ⟨f', by rw [hfile, hp, if_pos rfl], fun b hb => ⟨f.cand b, ?_, fun z hz hzb => ?_⟩⟩
+      refine ⟨f', by rw [hfile, hp, if_pos rfl], fun b hb => ⟨f.cand b, ?_, fun z hz hzb => ?_,
+        fun c hsz hc => ?_⟩⟩
       · rw [hcand', if_pos (by rw [hlo, hhi]; exact hb), hn, hval b (by rw [hlo, hhi]; exact hb)]
       · rw [hm0] at hz; exact (hmo.zf z hz).2 b hzb
+      · rw [hm0] at hsz hc; exact hmo.tail b c (by rw [← hmo.size]; exact hsz) hc
     · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t' ti' h
       exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t' ti' h))]; exact h1, hrest⟩
 
@@ -780,7 +795,7 @@ theorem MetaOk.mono_infl {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hin : ∀ t c, st'.proc.inflight !! t = some c → st.proc.inflight !! t = some c)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, fun t c ht => h.targets t c (hin t c ht), h.dur,
-    h.zf⟩
+    h.zf, h.tail⟩
 
 theorem doneInflight_sub (st : OsState) (t : Nat) :
     ∀ t' c', (st.doneInflight t).proc.inflight !! t' = some c' → st.proc.inflight !! t' = some c' := by
@@ -1008,7 +1023,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
   have hcandI : ∀ b, off ≤ b → b < off + data.length → ∃ c0, f.cand b = c0 ++ [(data.getD (b - off) 0, n)] ∧
       ∀ z, m.zf = some z → z ≤ b → c0 = [(0, 0)] := by
     intro b h1 h2
-    obtain ⟨c0, hc0, hz⟩ := hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
+    obtain ⟨c0, hc0, hz, -⟩ := hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
     rw [if_pos h1] at hc0
     exact ⟨c0, hc0, hz⟩
   have Hh : ∀ l, Mapped st l → (h !! l).isSome := by
@@ -1080,7 +1095,13 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
         fun b len => by
           have h1 := hmo.maps b len; simp only [announce_maps] at h1; simp only [announce_maps]
           exact h1,
-        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_⟩
+        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_⟩
+      rotate_right
+      · rw [show (pwFile f c off k).cand b = f.cand b from rfl]
+        rw [hsz2] at hb
+        exact hmo.tail b cs (by
+          have : f.size ≤ pwSize f.size off k := by unfold pwSize; split <;> omega
+          omega) hc
       · simp only [pwFile, OsFile.land, announce_lo]; omega
       · simp only [pwFile, OsFile.land, announce_hi]; split <;> omega
       · exfalso
