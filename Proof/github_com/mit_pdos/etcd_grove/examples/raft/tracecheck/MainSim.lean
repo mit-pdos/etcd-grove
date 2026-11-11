@@ -64,6 +64,22 @@ theorem mainPure_of_sim (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) 
   cases hnt'
   exact ⟨h1, h2, h3, h4, h5, h6⟩
 
+/-- **The bootstrap facts** (layer B's bootstrap clause, S7 (part 1): the one input of `RunOk` the
+simulation's invariant does not keep): the whole trace parses, and its initial state and servers,
+which `newTrace` reads from the bootstrap lines, are the voters' (`simInit C`, `confAbs C`). -/
+def BootFacts (C : List w64) (L : List TraceEv) : Prop :=
+  ∃ t, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.init = simInit C ∧ t.server = confAbs C ∧
+    t.initSrv = confAbs C
+
+/-- **The harness's post from the simulation's end** (`Cluster.traceSimInv_end`'s facts): the run
+`SimRun`, the events' facts `SimEvents |C| L`, the bootstrap facts and fewer voters than `numBound`
+give `RunOk L`. -/
+theorem runOk_of_sim (C : List w64) (L : List TraceEv) (σ : Etcdraft.State)
+    (hrun : SimRun C L σ) (hev : SimEvents C.length L) (hb : BootFacts C L)
+    (hC : (C.length : Int) < Etcdraft.numBound) : RunOk L := by
+  obtain ⟨t, hnt, hinit, hsrv, hisrv⟩ := hb
+  exact ⟨C.length, hC, simRun_runAccepted C L σ t hrun hnt hinit hsrv hisrv, hev⟩
+
 open Iris.BI Iris.ProofMode in
 /-- **`Main`'s pure obligations at the end of the run** (`simInv_end` and `mainPure_of_sim`): with the
 recorder's half of the trace `L`, the simulation's invariant gives `NewTrace`'s premises,

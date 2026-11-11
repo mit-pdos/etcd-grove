@@ -15,8 +15,10 @@ to the trace. This file is the recorder's side:
 - `traceEventsRep sl L`: a `[]TracingEvent` holding the trace `L`, read-only (what `Events`
   returns and `ConvertEvents` reads);
 - `isSyncRecorder γt r`: the recorder at `r`, its mutex guarding the recorded slice, which holds
-  the trace, and the logger's half of the trace, `traceAuth γt L` (the simulation holds the other,
-  `traceFrag γt L`);
+  the trace, the logger's half of the trace, `traceAuth γt L` (the simulation holds the other,
+  `traceFrag γt L`), and one time receipt per event (`⧗ L.length`, taken by `TraceEvent` at a step
+  of its own: S7 (part 1), 2026-11-11), which bounds the event count by the adequacy theorem's
+  step bound (`Events`' post, `L.length < receiptBound GF`);
 - the ghost steps: `traceAuth_commit` (the linearization point of `TraceEvent`: the caller's
   update fired against the lock's half), `syncRecorder_alloc` (a fresh recorder and a fresh trace).
 
@@ -93,12 +95,12 @@ instance traceEventsRep_persistent (sl : GoSlice) (L : List TraceEv) :
     Persistent (traceEventsRep (GF := GF) sl L) := by
   unfold traceEventsRep; infer_instance
 
-/-- The recorder's lock invariant: its slice (and its capacity) holding the trace `L`, and the
-logger's half of the trace. -/
+/-- The recorder's lock invariant: its slice (and its capacity) holding the trace `L`, the
+logger's half of the trace, and a time receipt per event (the event count's bound, S7 (part 1)). -/
 def recLockInv (γt : GName) (r : Loc) : IProp GF :=
   iprop(∃ (sl : GoSlice) (L : List TraceEv),
     r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder, go!"events"] ↦ sl ∗
-    traceEventsRep sl L ∗ ownSliceCap TracingEvent sl (DFrac.own 1) ∗ traceAuth γt L)
+    traceEventsRep sl L ∗ ownSliceCap TracingEvent sl (DFrac.own 1) ∗ traceAuth γt L ∗ ⧗ L.length)
 
 /-- The recorder at `r`, logging the trace `γt`. -/
 def isSyncRecorder (γt : GName) (r : Loc) : IProp GF :=
@@ -111,6 +113,10 @@ instance isSyncRecorder_persistent (γt : GName) (r : Loc) :
   unfold isSyncRecorder; infer_instance
 
 /-! ## Ghost steps -/
+
+/-- `n` time receipts bound `n`, kept. -/
+theorem receipt_lt_keep (n : Nat) : ⧗ n ⊢@{IProp GF} ⌜n < receiptBound GF⌝ ∗ ⧗ n :=
+  (persistent_entails_left (receipt_lt n)).trans sep_comm.1
 
 /-- **The linearization point of `TraceEvent`**: the caller's atomic update fired against the
 lock's half of the trace, both halves appended `e`. -/
@@ -146,9 +152,10 @@ theorem syncRecorder_alloc (r : Loc) (E : CoPset) :
   iintro #Hinit Hr
   iStructNamed Hr
   imod trace_alloc (GF := GF) with ⟨%γt, Ha, Hf⟩
+  imod receipt_zero (GF := GF) with Hr0
   ihave Hsl := ownSlice_nil (V := TracingEvent) (GF := GF) DFrac.discard
   ihave Hcap := ownSliceCap_nil (V := TracingEvent) (GF := GF)
-  imod sync.init_Mutex (recLockInv (GF := GF) γt r) E _ $$ mu [events Ha Hsl Hcap] with #Hm
+  imod sync.init_Mutex (recLockInv (GF := GF) γt r) E _ $$ mu [events Ha Hsl Hcap Hr0] with #Hm
   · inext
     unfold recLockInv traceEventsRep
     iexists slice.nil, []

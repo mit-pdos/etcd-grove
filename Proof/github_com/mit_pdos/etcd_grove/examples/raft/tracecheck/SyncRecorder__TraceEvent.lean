@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart). Trace-check's layer D (2026-11-09): the proof 
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder__TraceEvent
+public import Proof.ReceiptTactics
 public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Mutex__Unlock
 
@@ -37,11 +38,14 @@ theorem SyncRecorder.TraceEvent.wp_proof
   icases tracingEventRep_val p e $$ Hev with ⟨%g, #Hp, #Hg⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  wp_auto
+  -- the event's time receipt, at `Lock`'s resolution
+  wp_take_receipt as Hr1
   wp_apply wp_Lock $$ [$Hsync $Hm] as ⟨Hlocked, Hinv⟩
   iunfold recLockInv at Hinv
-  icases Hinv with ⟨%sl, %L, Hevs, #Hrep, Hcap, Ha⟩
-  wp_auto
+  icases Hinv with ⟨%sl, %L, Hevs, #Hrep, Hcap, Ha, Hrs⟩
+  icases receipt_add_one_lt (GF := GF) L.length $$ [Hr1 Hrs] with ⟨-, Hrs⟩
+  · iframe
+  try wp_auto
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
@@ -53,9 +57,10 @@ theorem SyncRecorder.TraceEvent.wp_proof
   · ipureintro; exact DFrac.valid_discard
   try wp_auto
   imod traceAuth_commit γt L e Q $$ Ha Hau with ⟨Ha, HQ⟩
-  wp_apply wp_Unlock _ (recLockInv γt r) $$ [$Hsync $Hm $Hlocked Hevs Ha Hsl' Hcap]
+  wp_apply wp_Unlock _ (recLockInv γt r) $$ [$Hsync $Hm $Hlocked Hevs Ha Hsl' Hcap Hrs]
   · iunfold recLockInv
     iexists sl', L ++ [e]
+    rw [List.length_append, List.length_singleton]
     iframe
     iunfold traceEventsRep
     iexists gs ++ [g]
