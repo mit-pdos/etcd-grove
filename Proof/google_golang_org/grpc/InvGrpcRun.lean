@@ -330,6 +330,79 @@ def grpcServeTokR (gs : Loc) (lis : GoInterface) (γ : GName) : IProp GF :=
 
 end reg
 
+/-! ## The adapters: a handler's bundle from leveled pools -/
+
+section adapt
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- Levels 0 to 3 of a thread token, and the rest. -/
+theorem threadTok_levels0123 (HT : 4 ≤ threadBound GF) :
+    threadTok (GF := GF) ⊣⊢ levelTok 0 ∗ levelTok 1 ∗ levelTok 2 ∗ levelTok 3 ∗ threadTokFrom 4 := by
+  constructor
+  · iintro H
+    icases (threadTok_level0 (GF := GF)).1 $$ H with ⟨H0, H⟩
+    icases (threadTokFrom_succ (GF := GF) 1 (by omega)).1 $$ H with ⟨H1, H⟩
+    icases (threadTokFrom_succ (GF := GF) 2 (by omega)).1 $$ H with ⟨H2, H⟩
+    icases (threadTokFrom_succ (GF := GF) 3 (by omega)).1 $$ H with ⟨H3, H⟩
+    iframe
+  · iintro ⟨H0, H1, H2, H3, H4⟩
+    iapply (threadTok_level0 (GF := GF)).2
+    iframe H0
+    iapply (threadTokFrom_succ (GF := GF) 1 (by omega)).2
+    iframe H1
+    iapply (threadTokFrom_succ (GF := GF) 2 (by omega)).2
+    iframe H2
+    iapply (threadTokFrom_succ (GF := GF) 3 (by omega)).2
+    iframe
+
+/-- **The unary adapter** (Scope r5 §3.4, A4-MAJ-3): a handler proved against `grpcMethodOkMd` at
+a bundle `R₁ ∗ R₂ ∗ R₃` of three leveled pools (levels 1, 2, 3; abstract `IProp`s, not known
+timeless) meets the run contract: the run borrows each pool with its token's level (each loan gives
+`▷ Rᵢ`), strips the joined later with the run's one credit, runs the handler, and gives the loans
+back. Generic in the pools: B2/B3 instantiate it with `raftPool`, `I` and the run pool. -/
+theorem grpcRunOkMd_of_pools {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) (R₁ R₂ R₃ : IProp GF)
+    (N₁ N₂ N₃ : Namespace) (γ₁ γ₂ γ₃ : GName) (HT : 4 ≤ threadBound GF) :
+    □ grpcMethodOkMd mh srv ics iprop(R₁ ∗ R₂ ∗ R₃) Spec ∗
+      threadPool.isThreadPoolL N₁ 1 γ₁ R₁ ∗ threadPool.isThreadPoolL N₂ 2 γ₂ R₂ ∗
+      threadPool.isThreadPoolL N₃ 3 γ₃ R₃ ⊢
+    grpcRunOkMd mh srv ics Spec := by
+  iintro ⟨#Hm, #Hp1, #Hp2, #Hp3⟩
+  iunfold grpcMethodOkMd at Hm
+  unfold grpcRunOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨Htok, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  icases (threadTok_levels0123 (GF := GF) HT).1 $$ Htok with ⟨H0, H1, H2, H3, H4⟩
+  imod threadPool.borrowL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 H1] with ⟨HR1, Hl1⟩
+  · iframe; iframe #
+  imod threadPool.borrowL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 H2] with ⟨HR2, Hl2⟩
+  · iframe; iframe #
+  imod threadPool.borrowL N₃ 3 γ₃ R₃ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp3 H3] with ⟨HR3, Hl3⟩
+  · iframe; iframe #
+  ihave HR : iprop(▷ (R₁ ∗ R₂ ∗ R₃)) $$ [HR1 HR2 HR3]
+  · inext; iframe
+  imod lc_fupd_elim_later (E := ⊤) $$ Hlc HR with HR
+  iapply wp_fupd
+  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HR Hctx Hrc Hd Hch HSpec]
+  · iframe
+  inext
+  iintro %resp %err ⟨⟨HB1, HB2, HB3⟩, Hok, Herr, Hsrv⟩
+  imod threadPool.giveBackL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 Hl1 HB1] with H1
+  · iframe; iframe #
+  imod threadPool.giveBackL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 Hl2 HB2] with H2
+  · iframe; iframe #
+  imod threadPool.giveBackL N₃ 3 γ₃ R₃ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp3 Hl3 HB3] with H3
+  · iframe; iframe #
+  imodintro
+  iapply HΨ
+  iframe
+  iapply (threadTok_levels0123 (GF := GF) HT).2
+  iframe
+
+end adapt
+
 /-! ## Pure facts -/
 
 section pure

@@ -1,0 +1,32 @@
+# The `axiom-tok` gate's declared entries (rule 8) and pairs (rule 7): etc/axiom-tok-check.py,
+# Scope r5 §5.1 (per-type stage B). Each entry says why the finding is not a soundness finding;
+# reviewed at the Freeze (CP1a) and at CP3, when the gate becomes `--check`.
+#
+#   entry NAME  reason        the axiom's findings are accepted, for the reason given
+#   pair NAME PARTNER         a transfer of NAME (rule 7) is matched by PARTNER consuming the type
+
+# --- rule 2: the one token mint ---
+entry Perennial.EtcdGrove.goose_adequacy_start_files  the first thread's token, from `σ.threads = 1` at the start of the run (Proof/runtime/Start.lean); the adequacy theorem's own premise
+
+# --- the grpc pair (Scope r5 §2.2, "The pair"; InvGrpcRun.lean's header) ---
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof
+
+# --- B1a triage of B0's report-only run (2026-11-11; /shared/tmp/stageB/freeze-cp1a.md §1) ---
+# Checker artefacts: a callback the Go code never calls (the pre's handle carries a method contract
+# whose pre the walk counts as produced), an observation callback with a pure conclusion, or an
+# abstract family bound together with the one handle that uses it (rule 7's neutral case, not
+# recognized through a defined, non-opaque handle).
+entry Perennial.EtcdGrove.grpc.NewClient.wp_proof  Q is produced only as `□ Q cm` in the one-credential arm of `connCredsOk`, where the credential's `perRPCCredsOk` (consumed) gives it; with no credential nothing is produced (the walk does not see the `match` on the list)
+entry Perennial.EtcdGrove.heap.Init_.wp_proof  E occurs only in the pre of the `Push` method of the consumed `heapIface`; `heap.Init` never calls `Push` (container/heap/heap.go: `Len`, `down`'s `Less`/`Swap`)
+entry Perennial.EtcdGrove.heap.Pop.wp_proof  as `heap.Init_`: `heap.Pop` never calls `Push`; the post's `E x a` is the `Pop` method's own (consumed `heapPopIface`)
+entry Perennial.EtcdGrove.http.CloseIdleConnections_ok  H.proto's fields occur only in the pre of the `RoundTrip` method of the consumed `roundTripperOk`; `CloseIdleConnections` never calls `RoundTrip`, and the axiom produces only `True` and a pointer equality
+entry Perennial.EtcdGrove.backend.backend.Snapshot.wp_proof  R is passed to the caller's observation function `R -∗ … -∗ ⌜Q …⌝`, whose conclusion is pure (an observation, `R ⊢ R ∗ ⌜Q⌝`); the `∃ Φ` is `dlIs`'s, bound with `dlReg`'s saved predicate at the backend's own name (fixed by the creator; `saved_pred_agree`)
+entry Perennial.EtcdGrove.lease.NewLessor.wp_proof  GA is the caller's: produced (Lookup's post) only for leases in the map, each of which consumed `□ GA id` (here `recs`; later grants consume `leaseGranted`, pinned by `lessorGuard`'s saved predicate); `Lk`/`R` are `leaseBatchTx`'s abstract lock family, bound with its three methods; `∃ Φ` as backend.Snapshot's (`dlIs`)
+entry Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof  Pre is the critical-section contract's (`csContractA`/`hookRun`) handed between the backend's own methods; the axiom's post gives the caller no `Pre`; `∃ Φ` as backend.Snapshot's (`dlIs`)
+entry Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof  the `∃ Φ : Unit -n> IProp` is an atomic update's greatest fixpoint (`atomic_update` = `bi_greatest_fixpoint`), bound with its own coinduction hypothesis, inside the consumed server handle; the post is `True`
+entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle; post `True`)
+entry Perennial.EtcdGrove.etcd_noRefusal  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle)
+entry Perennial.EtcdGrove.io.MultiReader.wp_proof  `∃ Src` is `streamHas`'s representation predicate, bound with the one reader contract (`streamReaderOk`) that uses it and its start `Src []`

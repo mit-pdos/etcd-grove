@@ -126,6 +126,17 @@ TEST_PKG = re.compile(r"(^|/)[^/]*(test|mock)[^/]*(/|$)")
 
 STATES = ["verified", "unfinished", "assumed", "translated", "not translated"]
 
+# Go functions whose spec is proved over a trusted model (a `trusted` declaration of a Goose
+# configuration, `TrustedCode/`) that rests on model-only leaves, axioms standing for Go composites
+# (per-type stage B: grpc's `Server.Serve`, `TrustedCode/google_golang_org/grpcServeModel.lean`,
+# whose leaves are `Spec/google_golang_org/grpc/model/`): what is proved is the model, not the Go
+# code, so they count as assumed, not verified.
+ASSUMED_MODELS = {"grpc.Server.Serve"}
+
+# The name segment of the model-only names (`grpc.model.Serve`, `grpc.model.acceptRun`): they are
+# not Go functions and are not counted.
+MODEL_ONLY_SEGMENTS = {"model"}
+
 
 def read(path):
     with open(path, encoding="utf-8") as f:
@@ -326,7 +337,9 @@ def local_proofs(objs):
         # `strings.Compare.wp_proof` outside the Link's namespace)
         bare = fn.removeprefix(lns) if lns and fn.startswith(lns) else fn
         pend = n.removeprefix(NS).removeprefix(lns) in LINK_PENDING[r["module"]]
-        if f"{NS}{fn}.wp_proof" in axioms or f"{NS}{bare}.wp_proof" in axioms:
+        if any(m in fn.split(".") for m in MODEL_ONLY_SEGMENTS):
+            continue  # a model-only name (`grpc.model.acceptRun`): not a Go function
+        if f"{NS}{fn}.wp_proof" in axioms or f"{NS}{bare}.wp_proof" in axioms or fn in ASSUMED_MODELS:
             state = "assumed"
         elif own or pend:
             state = "unfinished"

@@ -121,6 +121,36 @@ def read_allow(path):
     return entries, pairs, real_pass
 
 
+def retaint(axs, entries):
+    """Rule 5 again, over every group at once and with the entries: an axiom with an entry does not
+    taint what it produces (the Lean runs compute the taint per group, without the entries). The
+    rule-5 findings are replaced; returns the tainted predicates."""
+    def produced(o):
+        return {k[4:] for s in o["scenarios"] for k in s["prod"] if k.startswith("opq:")}
+
+    def fails(o):
+        return any(f["rule"] in ("2", "3") for f in o["findings"])
+
+    tainted, changed = set(), True
+    while changed:
+        changed = False
+        for n, o in axs.items():
+            if n in entries:
+                continue
+            if fails(o) or produced(o) & tainted:
+                new = produced(o) - tainted
+                if new:
+                    tainted |= new
+                    changed = True
+    for n, o in axs.items():
+        o["findings"] = [f for f in o["findings"] if f["rule"] != "5"]
+        if not fails(o):
+            o["findings"] += [{"rule": "5", "why": f"produces the tainted opaque {c}"}
+                              for c in sorted(produced(o) & tainted)]
+        o["ok"] = not o["findings"]
+    return tainted
+
+
 def judge(objs, allow, locs):
     """{name: verdict dict}, with pairs resolved; `objs` from one or more Lean runs."""
     entries, pairs, _ = allow
@@ -132,6 +162,9 @@ def judge(objs, allow, locs):
         # the same name in several groups: keep the one with findings
         if old is None or (old["ok"] and not o["ok"]):
             axs[o["name"]] = o
+    tainted = retaint(axs, entries)
+    objs[:] = [o for o in objs if o["t"] != "tainted"] + [{"t": "tainted", "opq": c}
+                                                         for c in sorted(tainted)]
     for name, o in axs.items():
         left = []
         for f in o["findings"]:
