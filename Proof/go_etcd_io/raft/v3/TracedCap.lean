@@ -917,7 +917,8 @@ theorem quorumLogF_quorumLogS (γ : RaftNames) (C : List w64) (σ : Etcdraft.Sta
 
 /-- `SpecInv`'s `CfgFixed` holds at the bootstrap state: every server's configuration is the voters'
 `confAbs C`, the server set (review round 4's D1). -/
-theorem cfgFixed_simInit (C : List w64) : TraceSpecInv.CfgFixed (simInit C) := fun _ _ => rfl
+theorem cfgFixed_simInit (C : List w64) : TraceSpecInv.CfgFixed (simInit C) := fun i hi => by
+  rw [simInit_s_voter C i hi]; rfl
 
 /-- **The bags' uniqueness** (the notes' `MsgsDet`/`AppSlices`): two messages in flight that a line
 matches are equal, over both bags (so that a `Ready` moving pending messages out keeps it: review
@@ -1283,6 +1284,21 @@ abbrev trCap_fire_boot.statement : Prop :=
   (∀ e, E e → TraceEv.OkBoot (elements c.incoming).length e) →
   (trCapB (some γd) γ r id c false Φ Λ ∗ r.[raft, go!"traceLogger"] ↦□ tl : IProp GF) ⊢
     TraceFire (some γd) tl E (trCapB (some γd) γ r id c false Φ Λ')
+
+/-! ## The completion witness (amendment A8, Q37) -/
+
+/-- **A node's bootstrap complete**: an unbooted capability whose last event is raft's last bootstrap
+event for the voters (`BootEvAt C id (|C| + 3)`, which the caller states through its phase `Φ`, which pins
+the voters, and `Λ`) mints the persistent witness `bootDone tn id` at the cluster's trace names, the
+capability kept. (No line is logged; the witness outlives the capability, for the end of the run:
+`simInv_end_bootDone`.) -/
+abbrev trCapB_bootDone.statement : Prop :=
+  ∀ (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) (E : CoPset),
+  ↑(simNS γ) ⊆ E →
+  (∀ C cs P o, Φ C cs P → Λ o → ∃ x, o = some x ∧ BootEvAt C id (C.length + 3) x) →
+  trCapB (GF := GF) (some γd) γ r id c false Φ Λ ⊢
+    |={E}=> (trCapB (some γd) γ r id c false Φ Λ ∗ ∃ tn, traceDir γd tn ∗ bootDone tn id)
 
 /-! ## The global step of a booted node's bootstrap-named line (Draft, review round 2's A7) -/
 

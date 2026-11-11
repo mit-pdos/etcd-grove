@@ -5,7 +5,8 @@ voter's `StartNode` takes of it.
 
 The order (amendment A4's): the recorder's trace `γt` (`syncRecorder_alloc`, with the simulation's half
 `traceFrag γt []`), then the simulation's names (`traceNames_alloc`: the shares' map at the bootstrap
-servers, the empty bag, the voters' flags unset, the directory `γd` naming them, persistent), then the
+servers, the empty bag, the voters' flags unset, no voter's bootstrap complete, the directory `γd`
+naming them, persistent), then the
 traced cluster (`cluster_alloc_traced` with `γd`), then the shared invariant from a voter's `nodeBoot`
 (`Cluster.traceSim_alloc`); together `harness_alloc`. Each voter's part (`voterStart`): its `nodeBoot`,
 durable state and vacant slot, its share and its flag, which with the recorder as its trace logger and
@@ -92,7 +93,8 @@ abbrev bootShare (vs : List w64) (i : w64) : ServerC × List Etcdraft.Msg :=
   (toC (confAbs vs) ((simInit vs).s (idAbs i)), [])
 
 /-- **The simulation's names**, for the voters `vs` and the recorder's trace `γt`: the shares' map at
-the bootstrap servers, the empty bag, the flags unset (their authorities for
+the bootstrap servers, the empty bag, the flags unset, the empty list of completed voters (amendment
+A8) (their authorities for
 `Cluster.traceSim_alloc`, their elements for the voters' `StartNode`s), and the directory `γd` naming
 them (persistent), before the traced cluster (whose trace mode is `γd`). -/
 theorem traceNames_alloc (γt : GName) (vs : List w64) (Hnd : vs.Nodup) :
@@ -103,13 +105,15 @@ theorem traceNames_alloc (γt : GName) (vs : List w64) (Hnd : vs.Nodup) :
         (∀ i, i ∉ vs → A !! i = none) ∧ (∀ i ∈ vs, Bt !! i = some (false, none))⌝ ∗
       traceDir (GF := GF) γd tn ∗ ghostMapAuth tn.st 1 A ∗
       ghostMapAuth tn.bag 1 (∅ : GMap Nat Etcdraft.Msg) ∗ ghostMapAuth tn.bt 1 Bt ∗
+      monoListAuthOwn tn.dn 1 ([] : List w64) ∗
       [∗list] i ∈ vs, simNode tn i (toC (confAbs vs) ((simInit vs).s (idAbs i))) [] ∗
         simBoot tn i false none := by
   imod ghostMap_alloc_list (GF := GF) (bootShare vs) vs Hnd with ⟨%st, %A, HA, %HAp, HAs⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Etcdraft.Msg) with ⟨%bag, HB⟩
   imod ghostMap_alloc_list (GF := GF) (fun _ => ((false, none) : Bool × Option TraceEv)) vs Hnd
     with ⟨%bt, %Bt, HBt, %HBtp, HBts⟩
-  let tn : TraceNames := ⟨γt, st, bag, vs, bt⟩
+  imod mono_list_own_alloc (GF := GF) ([] : List w64) with ⟨%dn, HDn, -⟩
+  let tn : TraceNames := ⟨γt, st, bag, vs, bt, dn⟩
   imod dghostVar_alloc (GF := GF) tn with ⟨%γd, Hd⟩
   imod dghostVar_persist (GF := GF) γd 1 tn $$ Hd with #Hd
   imodintro
@@ -117,7 +121,7 @@ theorem traceNames_alloc (γt : GName) (vs : List w64) (Hnd : vs.Nodup) :
   isplitr
   · ipureintro
     exact ⟨rfl, rfl, HAp.1, HAp.2, HBtp.1⟩
-  iframe HA HB HBt
+  iframe HA HB HBt HDn
   isplitr
   · unfold traceDir; iexact Hd
   iapply (BigSepL.bigSepL_sep_eqv (Φ := fun _ i => simNode (GF := GF) tn i
@@ -156,7 +160,7 @@ theorem harness_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
         [∗list] i ∈ vs, voterStart γ N vs ctxs tn i := by
   iintro #Hm Hfr
   imod traceNames_alloc (GF := GF) γt vs Hnd
-    with ⟨%γd, %tn, %A, %Bt, %Htn, #Hdir, HA, HB0, HBt, Hsh⟩
+    with ⟨%γd, %tn, %A, %Bt, %Htn, #Hdir, HA, HB0, HBt, HDn, Hsh⟩
   obtain ⟨Htr, Hvs, HA1, HA2, HBt1⟩ := Htn
   subst Htr
   imod cluster_alloc_traced (GF := GF) N vs ctxs boot false (fun _ => none) γd E Hrb Hne Hnd Hnz Hlen
@@ -167,8 +171,8 @@ theorem harness_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
       $$ Hbs with ⟨#H, -⟩
     iexact H
   imod Cluster.traceSim_alloc (GF := GF) γ N (v0 :: vs') ctxs v0 tn A Bt E hE HA1 HA2 HBt1
-    $$ [Hfr HA HB0 HBt] with #Hinv
-  · iframe Hb0 Hfr HA HB0 HBt
+    $$ [Hfr HA HB0 HBt HDn] with #Hinv
+  · iframe Hb0 Hfr HA HB0 HBt HDn
   imodintro
   iexists γ, γd, tn
   isplitr

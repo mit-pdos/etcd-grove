@@ -81,9 +81,19 @@ def startTrace (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
       simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [] ∗
       simBoot tn cv.ID' false none)
 
+/-- **What `StartNode` returns of the trace** (amendment A8.3, Q37 (a)): nothing in an untraced cluster;
+in a traced one, the node's completion witness `bootDone` at the cluster's trace names (raft logs the
+voter's whole bootstrap inside `StartNode`, before `go n.run()`; `trCapB_bootDone` mints the witness at
+the end of `setupNode`). -/
+def startDoneB (γ : Cluster) (id : w64) : IProp GF :=
+  match Cluster.trace γ with
+  | none => iprop(True)
+  | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ bootDone tn id)
+
 /-- **`StartNode`, gated** (Q6 item 1): `StartNode.spec` with its premises `TraceLoggerOk
 cv.TraceLogger'` and `Cluster.trace γ = none` replaced by `startTrace` in the precondition (an
-untraced cluster's is the first premise, `startTrace_untraced`). -/
+untraced cluster's is the first premise, `startTrace_untraced`), its post also giving the node's
+completion witness `startDoneB γ cv.ID'` (amendment A8.3). -/
 abbrev StartNode.gatedSpec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF)
@@ -113,16 +123,21 @@ abbrev StartNode.gatedSpec : Prop :=
         nodeStartedFresh n γ N vs ctxs cv.ID' ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
-        nodeRunning n γ N 1 ∗ Q ∗ F K ∗ peers ↦*{dq} pv }}
+        nodeRunning n γ N 1 ∗ Q ∗ F K ∗ peers ↦*{dq} pv ∗ startDoneB γ cv.ID' }}
 
 /-- For an untraced cluster, the gated statement is `StartNode.spec`'s: the gate's only content is
-the nil logger, `StartNode.spec`'s premise. -/
+the nil logger, `StartNode.spec`'s premise (and the post's `startDoneB` is `True`, `startDoneB_untraced`). -/
 theorem startTrace_untraced (γ : Cluster) (vs : List w64) (cv : Config)
     (h : Cluster.trace γ = none) :
     startTrace (GF := GF) γ vs cv ⊣⊢ iprop(⌜TraceLoggerOk cv.TraceLogger'⌝) := by
   unfold startTrace TraceLoggerOk
   rw [h]
   exact .rfl
+
+/-- An untraced cluster's completion witness is `True`. -/
+theorem startDoneB_untraced (γ : Cluster) (id : w64) (h : Cluster.trace γ = none) :
+    startDoneB (GF := GF) γ id ⊣⊢ iprop(True) := by
+  unfold startDoneB; rw [h]; exact .rfl
 
 /-! ## Sufficiency (amendment A4): the capability from `startTrace`, the invariant at the start -/
 
@@ -156,19 +171,20 @@ theorem bagRep_nil : BagRep [] [] :=
 /-- **The simulation's invariant at the start** (amendment A4's check of Q20 (a): `Main`'s allocation,
 S7): once the cluster is allocated (any voter's `nodeBoot`: raft's commit invariant, the bootstrap
 log), the trace's fragment, the shares' map at the bootstrap servers with nothing pending, no message
-handed out and every voter's flag unset go into `Cluster.traceSimInv`, the facts `simFx` at `simInit`
-from raft's commit invariant (`simFx_simInit`). -/
+handed out, every voter's flag unset and no voter's bootstrap complete (amendment A8) go into
+`Cluster.traceSimInv`, the facts `simFx` at `simInit` from raft's commit invariant (`simFx_simInit`). -/
 theorem Cluster.traceSimInv_alloc (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     (id : w64) (tn : TraceNames) (A : GMap w64 (ServerC × List Etcdraft.Msg))
     (Bt : GMap w64 (Bool × Option TraceEv)) (E : CoPset) (hE : ↑N ⊆ E)
     (hA : ∀ i ∈ vs, A !! i = some (toC (confAbs vs) ((simInit vs).s (idAbs i)), []))
     (hA' : ∀ i, i ∉ vs → A !! i = none) (hBt : ∀ i ∈ vs, Bt !! i = some (false, none)) :
     (nodeBoot γ N vs ctxs id ∗ traceFrag tn.tr [] ∗ ghostMapAuth tn.st 1 A ∗
-        ghostMapAuth tn.bag 1 (∅ : GMap Nat Etcdraft.Msg) ∗ ghostMapAuth tn.bt 1 Bt : IProp GF) ={E}=∗
+        ghostMapAuth tn.bag 1 (∅ : GMap Nat Etcdraft.Msg) ∗ ghostMapAuth tn.bt 1 Bt ∗
+        monoListAuthOwn tn.dn 1 ([] : List w64) : IProp GF) ={E}=∗
       Cluster.traceSimInv γ vs tn := by
   unfold nodeBoot ApiImpl.nodeBootU ApiImpl.isClusterU ApiImpl.clusterInv raftCommitInv
     Cluster.traceSimInv Cluster.raftNames
-  iintro ⟨Hb, Hfr, HA, HB, HBt⟩
+  iintro ⟨Hb, Hfr, HA, HB, HBt, HDn⟩
   icases Hb with ⟨⟨-, ⟨%HNs, ⟨#Hli, #Hri⟩, -⟩, -⟩, %Hpb, -⟩
   have hN : ↑(raftN (ApiImpl.Cluster.raft γ)) ⊆ E := by
     intro p hp
@@ -179,11 +195,11 @@ theorem Cluster.traceSimInv_alloc (γ : Cluster) (N : Namespace) (vs : List w64)
   iapply inv_alloc
   inext
   iunfold simInv
-  iexists [], simInit vs, A, (∅ : GMap Nat Etcdraft.Msg), [], [], Bt
-  iframe Hfr HA HB HBt Hfx
+  iexists [], simInit vs, A, (∅ : GMap Nat Etcdraft.Msg), [], [], Bt, []
+  iframe Hfr HA HB HBt HDn Hfx
   ipureintro
   refine ⟨.inl ⟨rfl, rfl⟩, rfl, fun i hi => ⟨[], hA i hi⟩, hA', ?_, ?_, rfl, rfl, ?_, ?_,
-    simEvents_nil _, bootSegs_nil _⟩
+    simEvents_nil _, bootSegs_nil _, fun _ h => by cases h⟩
   · have hfl : vs.flatMap (fun i => ((A !! i).map Prod.snd).getD []) = [] := by
       rw [List.flatMap_eq_nil_iff]
       intro i hi
@@ -220,6 +236,34 @@ theorem Cluster.traceSimInv_end (γ : Cluster) (N : Namespace) (vs : List w64) (
   iinv Hinv with >Hi Hclose
   icases simInv_end vs tn _ L $$ [Ha Hi] with ⟨Ha, Hi, %Hp⟩
   · iframe Ha Hi
+  imod Hclose $$ [Hi] with -
+  · inext; iexact Hi
+  imodintro
+  iframe Ha
+  ipureintro; exact Hp
+
+/-- **The simulation's invariant at the end of a run, every voter's bootstrap complete** (amendment A8.4,
+the Draft's form of `Cluster.traceSim_bootEnd`): with the recorder's half of the trace `L` and every
+voter's completion witness, `newTrace` of the run's events succeeds at the voters' initial state
+(`simInit vs`) and servers (`simInv_end_bootDone`). -/
+theorem Cluster.traceSimInv_bootEnd (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (id : w64) (tn : TraceNames) (L : List TraceEv) (E : CoPset) (hE : ↑N ⊆ E) (hne : vs ≠ [])
+    (hlen : vs.length < 2 ^ 40) :
+    (nodeBoot γ N vs ctxs id ∗ Cluster.traceSimInv γ vs tn ∗ ([∗list] i ∈ vs, bootDone tn i) ∗
+        traceAuth tn.tr L : IProp GF) ={E}=∗
+      traceAuth tn.tr L ∗ ⌜∃ t, Etcdraft.newTrace (L.map evConv) = .ok t ∧ t.init = simInit vs ∧
+        t.server = confAbs vs ∧ t.initSrv = confAbs vs⌝ := by
+  unfold nodeBoot ApiImpl.nodeBootU ApiImpl.isClusterU ApiImpl.clusterInv
+    Cluster.traceSimInv Cluster.raftNames
+  iintro ⟨Hb, #Hinv, Hs, Ha⟩
+  icases Hb with ⟨⟨-, ⟨%HNs, -⟩, -⟩, -⟩
+  have hsub : ↑(simNS (ApiImpl.Cluster.raft γ)) ⊆ E := by
+    intro p hp
+    unfold simNS raftN at hp; rw [HNs] at hp
+    exact hE p (nclose_subseteq N "raft" p (nclose_subseteq (N .@ "raft") "tracesim" p hp))
+  iinv Hinv with >Hi Hclose
+  icases simInv_end_bootDone vs tn _ L hne hlen $$ [Ha Hi Hs] with ⟨Ha, Hi, %Hp⟩
+  · iframe Ha Hi Hs
   imod Hclose $$ [Hi] with -
   · inext; iexact Hi
   imodintro

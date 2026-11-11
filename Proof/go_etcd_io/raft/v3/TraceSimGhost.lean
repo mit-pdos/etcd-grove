@@ -20,6 +20,7 @@ module
 public import Proof.go_etcd_io.raft.v3.TraceSim
 public import Proof.go_etcd_io.raft.v3.TraceSimBag
 public import Proof.strconv.FormatUintDefs
+public import Perennial.Ghost.MonoList
 
 @[expose] public section
 
@@ -124,10 +125,12 @@ structure TraceNames where
   voters : List w64
   /-- the nodes' `booted` flags (review round 2's A7) -/
   bt : GName
+  /-- the voters whose bootstrap is complete (amendment A8, Q37): `bootDone` -/
+  dn : GName
 
 instance traceNames_countable : Pos.Countable TraceNames :=
-  countableOfLeftInverse (fun n : TraceNames => (n.tr, n.st, n.bag, n.voters, n.bt))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun n : TraceNames => (n.tr, n.st, n.bag, n.voters, n.bt, n.dn))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -143,10 +146,25 @@ instance traceDir_persistent (γd : GName) (tn : TraceNames) : Persistent (trace
 
 /-! ## The initial state and the run -/
 
+/-- The server `newTraceWith` builds for an id outside the trace's servers: its term, role, vote, log
+size and commit are the trace's first line's (`lines.getD (0 - 1)`, an `InitState`: term 0, a follower,
+no vote, an empty log, nothing committed), its configuration empty (no configuration is computed for a
+non-server). (Amendment A8, Q36 (a): moved here from `TraceSimEnd.lean`, body unchanged, for `simInit`.) -/
+def bootJunk : Etcdraft.Server :=
+  let v : Etcdraft.Server :=
+    { currentTerm := 0, state := Etcdraft.follower, votedFor := Etcdraft.nil, lead := Etcdraft.nil,
+      log := [], commitIndex := 0, votesResponded := [], votesGranted := [], matchIndex := fun _ => 0,
+      pendingConfChangeIndex := 0, config := { incoming := [], outgoing := [], learners := [] },
+      durable := default }
+  { v with durable := Etcdraft.durableOf v }
+
 /-- The specification's state after the bootstrap of the voters `C` (`TraceInit` once every voter's
 bootstrap lines are logged): each server at term 1, a follower without a vote or a leader, its log
 the `|C|` bootstrap entries (0010's incremental configurations), all committed, its configuration
-`C`, `matchIndex` 0, its durable state its own; no message. -/
+`C`, `matchIndex` 0, its durable state its own; no message. Every other id (the transcription's `s`
+is total, TLA+'s is over `Server`) is `bootJunk`, the server `newTraceWith` builds for it (amendment
+A8, Q36 (a)): so `simInit C` is the initial state `newTrace` computes of a trace whose voters'
+bootstrap segments are raft's and complete (`newTrace_bootInit`), the one TLC starts from. -/
 def simInit (C : List w64) : Etcdraft.State :=
   let srv := confAbs C
   let v : Etcdraft.Server :=
@@ -156,8 +174,28 @@ def simInit (C : List w64) : Etcdraft.State :=
       commitIndex := C.length, votesResponded := [], votesGranted := [], matchIndex := fun _ => 0,
       pendingConfChangeIndex := 0, config := { incoming := srv, outgoing := [], learners := [] },
       durable := default }
-  { server := srv, s := fun _ => { v with durable := Etcdraft.durableOf v }, messages := [],
-    pendingMessages := [], reconfigCount := 0 }
+  { server := srv, s := fun i => if i ∈ srv then { v with durable := Etcdraft.durableOf v } else bootJunk,
+    messages := [], pendingMessages := [], reconfigCount := 0 }
+
+omit [GooseSemantics] [GooseInterp] go_gctx hG sem in
+/-- **A voter's server at the bootstrap state** (amendment A8: `simInit`'s `s` at a server). -/
+theorem simInit_s_voter (C : List w64) (i : Etcdraft.ID) (h : i ∈ confAbs C) :
+    (simInit C).s i =
+      let v : Etcdraft.Server :=
+        { currentTerm := 1, state := Etcdraft.follower, votedFor := Etcdraft.nil, lead := Etcdraft.nil,
+          log := (List.range C.length).map (fun k =>
+            { term := 1, type := .config, value := .conf (confAbs (C.take (k + 1))) [] }),
+          commitIndex := C.length, votesResponded := [], votesGranted := [], matchIndex := fun _ => 0,
+          pendingConfChangeIndex := 0, config := { incoming := confAbs C, outgoing := [], learners := [] },
+          durable := default }
+      { v with durable := Etcdraft.durableOf v } := by
+  simp only [simInit, h, ↓reduceIte]
+
+omit [GooseSemantics] [GooseInterp] go_gctx hG sem in
+/-- Every other id's server at the bootstrap state is `bootJunk` (amendment A8). -/
+theorem simInit_s_nonvoter (C : List w64) (i : Etcdraft.ID) (h : i ∉ confAbs C) :
+    (simInit C).s i = bootJunk := by
+  simp only [simInit, h, ↓reduceIte]
 
 /-- The events' lines, as `newTraceWith` parses them. -/
 def parseLines (evs : List Etcdraft.Event) : Except Etcdraft.TraceError (List Etcdraft.Line) :=
@@ -269,6 +307,15 @@ has returned). -/
 def BootDone (C : List w64) (L : List TraceEv) (i : w64) : Prop :=
   (bootSeg L i).length = C.length + 4
 
+/-- **Voter `i`'s bootstrap is complete** (amendment A8, Q37): a persistent witness, an entry of the
+list of voters whose bootstrap is complete that the simulation's invariant keeps (`simInv`'s `Dn`, each
+of them `BootDone` of the trace). Minted from an unbooted capability whose last event is raft's last
+bootstrap event (`trCapB_bootDone`); read at the end of the run (`Cluster.traceSim_bootEnd`). -/
+def bootDone (tn : TraceNames) (i : w64) : IProp GF := iprop(∃ k, monoListIdxOwn tn.dn k i)
+
+instance bootDone_persistent (tn : TraceNames) (i : w64) : Persistent (bootDone (GF := GF) tn i) := by
+  unfold bootDone; infer_instance
+
 theorem bootSegs_nil (C : List w64) : BootSegs C [] :=
   ⟨by simp, fun i _ k hk => by simp [bootSeg] at hk⟩
 
@@ -281,8 +328,10 @@ carries (Draft: `TracedHooksDraft`'s `simFx`: the per-server raft facts and the 
 invariants; the relation of the shares to raft's state is the nodes' own, at their hook points). -/
 def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) : IProp GF :=
   iprop(∃ (L : List TraceEv) (σ : Etcdraft.State) (A : GMap w64 (ServerC × List Etcdraft.Msg))
-      (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg) (Bt : GMap w64 (Bool × Option TraceEv)),
-    traceFrag tn.tr L ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 B ∗ ghostMapAuth tn.bt 1 Bt ∗ Fx σ ∗
+      (B : GMap Nat Etcdraft.Msg) (phP phM : List Etcdraft.Msg) (Bt : GMap w64 (Bool × Option TraceEv))
+      (Dn : List w64),
+    traceFrag tn.tr L ∗ ghostMapAuth tn.st 1 A ∗ ghostMapAuth tn.bag 1 B ∗ ghostMapAuth tn.bt 1 Bt ∗
+    monoListAuthOwn tn.dn 1 Dn ∗ Fx σ ∗
     ⌜SimRun C L σ ∧ σ.server = confAbs C ∧
       (∀ i ∈ C, ∃ P, A !! i = some (toC σ.server (σ.s (idAbs i)), P)) ∧
       (∀ i, i ∉ C → A !! i = none) ∧
@@ -295,7 +344,9 @@ def simInv (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF) :
       -- bootstrap lines' logs, the numbers, the configuration lists
       SimEvents C.length L ∧
       -- (amendment A7, Q29) the voters' bootstrap segments are raft's: what `NewTrace` reads of them
-      BootSegs C L⌝)
+      BootSegs C L ∧
+      -- (amendment A8, Q37) the voters with a `bootDone` witness have complete segments
+      (∀ i ∈ Dn, BootDone C L i)⌝)
 
 instance simInv_timeless (C : List w64) (tn : TraceNames) (Fx : Etcdraft.State → IProp GF)
     [hFx : ∀ σ, Timeless (Fx σ)] : Timeless (simInv C tn Fx) := by

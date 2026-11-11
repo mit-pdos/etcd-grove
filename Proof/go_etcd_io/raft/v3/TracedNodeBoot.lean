@@ -47,7 +47,8 @@ theorem msgs_simInit (C : List w64) :
     (simInit C).messages.domain ++ (simInit C).pendingMessages.domain = [] := rfl
 
 /-- Every server of the bootstrap state is a follower. -/
-theorem simInit_state (C : List w64) (i : Etcdraft.ID) : ((simInit C).s i).state = Etcdraft.follower := rfl
+theorem simInit_state (C : List w64) (i : Etcdraft.ID) : ((simInit C).s i).state = Etcdraft.follower := by
+  simp only [simInit]; split <;> rfl
 
 /-- **`SpecInv` at the bootstrap state**: no leader, no candidate, no message; every bootstrap entry
 of term `1`, each server's term. -/
@@ -61,27 +62,42 @@ theorem specInv_simInit (C : List w64) : TraceSpecInv.SpecInv (simInit C) := by
   refine ⟨fun i _ h => absurd h (hl i), fun i _ h => absurd h (hl i), fun m h => absurd h (hm m),
     fun i _ h => absurd h (hc i), fun m h => absurd h (hm m), fun _ _ l _ h => absurd h (hl l),
     fun l _ h => absurd h (hl l), fun m h => absurd h (hm m), fun l _ h => absurd h (hl l),
-    ⟨fun k _ e he => ?_, fun m h => absurd h (hm m)⟩, fun _ _ => rfl⟩
-  simp only [simInit, List.mem_map, List.mem_range] at he
-  obtain ⟨_, _, rfl⟩ := he
-  exact Int.le_refl _
+    ⟨fun k _ e he => ?_, fun m h => absurd h (hm m)⟩, fun i hi => by rw [simInit_s_voter C i hi]; rfl⟩
+  by_cases hk : k ∈ confAbs C
+  · rw [simInit_s_voter C k hk] at he ⊢
+    simp only [List.mem_map, List.mem_range] at he
+    obtain ⟨_, _, rfl⟩ := he
+    exact Int.le_refl _
+  · rw [simInit_s_nonvoter C k hk] at he
+    cases he
 
 /-- Every server's committed prefix at the bootstrap state is its whole log. -/
 theorem committedL_simInit (C : List w64) (i : Etcdraft.ID) :
     committedL (simInit C) i = ((simInit C).s i).log := by
-  simp only [committedL, simInit]
-  rw [Int.toNat_natCast]
-  exact List.take_of_length_le (by simp)
+  unfold committedL
+  by_cases hi : i ∈ confAbs C
+  · rw [simInit_s_voter C i hi]
+    simp only
+    rw [Int.toNat_natCast]
+    exact List.take_of_length_le (by simp)
+  · rw [simInit_s_nonvoter C i hi]
+    rfl
 
 /-- **`QuorumLogF`'s `KeptFrom` at the bootstrap state** (amendment A5), from term `0`: every server
 holds every server's committed prefix (its whole log, the same for all), at a term at least `0`. -/
 theorem keptFrom_simInit (C : List w64) (i : Etcdraft.ID) : KeptFrom (simInit C) (committedL (simInit C) i) 0 := by
   have hf : lackingAt (simInit C) (committedL (simInit C) i) 0 = [] := by
     apply List.filter_eq_nil_iff.2
-    intro j _
+    intro j hj
     rw [committedL_simInit]
-    simp only [simInit, Etcdraft.isPrefix]
-    simp [List.take_of_length_le]
+    have hj' : j ∈ confAbs C := hj
+    rw [simInit_s_voter C j hj']
+    by_cases hi : i ∈ confAbs C
+    · rw [simInit_s_voter C i hi]
+      simp only [Etcdraft.isPrefix]
+      simp [List.take_of_length_le]
+    · rw [simInit_s_nonvoter C i hi]
+      simp [bootJunk, Etcdraft.isPrefix]
   unfold KeptFrom
   rw [hf]
   simp [Etcdraft.isQuorum]
@@ -91,18 +107,21 @@ theorem msgsUniq_simInit (C : List w64) : MsgsUniq (simInit C) := by
   intro _ m1 _ h1; simp [msgs_simInit] at h1
 
 theorem msgsShape_simInit (C : List w64) : MsgsShape (simInit C) := by
-  refine ⟨fun x hx => ?_, fun i _ k hk => ?_⟩
+  refine ⟨fun x hx => ?_, fun i hi k hk => ?_⟩
   · simp [msgs_simInit] at hx
-  · simp [simInit] at hk
+  · rw [simInit_s_voter C i hi] at hk
+    simp at hk
 
 theorem appSlices_simInit (C : List w64) : AppSlices (simInit C) := by
   intro m hm; simp [msgs_simInit] at hm
 
 /-- The bootstrap state's log is raft's bootstrap log read by `logAbs` (any log of the voters' length:
 `entAbs` reads a bootstrap position by its index only). -/
-theorem simInit_log (C : List w64) (es : List EntryM) (hlen : es.length = C.length) (i : Etcdraft.ID) :
+theorem simInit_log (C : List w64) (es : List EntryM) (hlen : es.length = C.length) (i : Etcdraft.ID)
+    (hi : i ∈ confAbs C) :
     ((simInit C).s i).log = logAbs C C.length 1 es := by
-  simp only [simInit, logAbs]
+  rw [simInit_s_voter C i hi]
+  simp only [logAbs]
   apply List.ext_getElem
   · simp [hlen]
   · intro k h1 h2
@@ -115,7 +134,7 @@ storage, then `Bootstrap`'s configuration entries, committed, at term `1`): raft
 term `1` with no vote and no leader whose log is a bootstrap log of the voters' length (`es`, of term
 `1`, from index `1`), all of it committed, and nothing queued, is idle-related to the bootstrap state's
 server with nothing pending (`SimIdle`, the bundle's and the ticks' phase). -/
-theorem simIdle_boot (C : List w64) (id : w64) (s : NState) (es : List EntryM)
+theorem simIdle_boot (C : List w64) (id : w64) (hid : id ∈ C) (s : NState) (es : List EntryM)
     (hterm : s.term = W64 1) (hrole : s.role = .follower) (hvote : s.vote = W64 0)
     (hlead : s.lead = W64 0) (hprev : s.logst.prev = entryID.mk (W64 0) (W64 0))
     (hlog : s.logst.sents ++ s.logst.uents = es) (hlen : es.length = C.length)
@@ -125,15 +144,17 @@ theorem simIdle_boot (C : List w64) (id : w64) (s : NState) (es : List EntryM)
     SimIdle C s (toC (confAbs C) ((simInit C).s (idAbs id))) [] := by
   have hW : uint.Z (W64 (C.length : Int)) = (C.length : Int) := uint_Z_W64 _ (by omega) (by omega)
   have hlog' : (toPState s).log = es := hlog
-  refine ⟨(simInit C).s (idAbs id), rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  have hmem : idAbs id ∈ confAbs C := (mem_confAbs C id).2 hid
+  rw [simInit_s_voter C _ hmem]
+  refine ⟨_, rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, rfl, rfl, ?_, ?_⟩
     · show (1 : Int) = uint.Z (toPState s).term
       simp only [toPState, hterm]; rfl
-    · simp only [toPState, hrole, proleRole, roleAbs]; rfl
+    · simp only [toPState, hrole, proleRole, roleAbs]; try rfl
     · simp only [toPState, hvote]; rfl
     · simp only [toPState, hrole, hlead]; rfl
     · simp only [toPState, hprev]; rfl
-    · rw [hlog']; exact simInit_log C es hlen _
+    · rw [hlog', ← simInit_s_voter C _ hmem]; exact simInit_log C es hlen _ hmem
     · show (C.length : Int) = uint.Z (toPState s).commit
       simp only [toPState, hcom, hW]
     · intro h; simp [toPState, hrole, proleRole] at h
@@ -164,21 +185,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 voters' length, with its records and committed (`boot_facts`), all of it committed at term `1`: its
 commit certificate is `commitJ`'s bootstrap arm, and the configuration witnesses (`witsB`) are
 vacuous below the bootstrap log's length. -/
-theorem srvFacts_simInit (γ : RaftNames) (C : List w64) (j : w64)
+theorem srvFacts_simInit (γ : RaftNames) (C : List w64) (j : w64) (hj : j ∈ C)
     (hlen : γ.reBoot.length = C.length) (hlt : (C.length : Int) < 2 ^ 61)
     (hwf : PlogWf base0 γ.reBoot) (hones : ∀ e ∈ γ.reBoot, e.Term' = W64 1) :
     (isCommitted (GF := GF) γ γ.reBoot ∗ logRecs γ base0 γ.reBoot) ⊢
       srvFacts γ C j ((simInit C).s (idAbs j)) := by
   iintro ⟨#Hc, #Hr⟩
   have hW : uint.Z (W64 (C.length : Int)) = (C.length : Int) := uint_Z_W64 _ (by omega) (by omega)
-  have hcom : ((simInit C).s (idAbs j)).commitIndex = (C.length : Int) := rfl
-  have hterm : ((simInit C).s (idAbs j)).currentTerm = 1 := rfl
+  have hmem : idAbs j ∈ confAbs C := (mem_confAbs C j).2 hj
+  have hcom : ((simInit C).s (idAbs j)).commitIndex = (C.length : Int) := by
+    rw [simInit_s_voter C _ hmem]
+  have hterm : ((simInit C).s (idAbs j)).currentTerm = 1 := by rw [simInit_s_voter C _ hmem]
   iunfold srvFacts
   iexists γ.reBoot, []
   rw [List.append_nil]
   isplitr
   · ipureintro
-    refine ⟨simInit_log C γ.reBoot hlen _, fun k e _ he => hones e (List.mem_of_getElem? he),
+    refine ⟨simInit_log C γ.reBoot hlen _ hmem, fun k e _ he => hones e (List.mem_of_getElem? he),
       PlogWf_wfR _ _ hwf, by omega, by rw [hcom]; omega, by rw [hcom, hlen]; exact Int.le_refl _, by rw [hterm]; decide,
       by rw [hterm]; decide, fun _ => rfl, fun e he => by cases he⟩
   isplitr
@@ -219,8 +242,8 @@ theorem simFx_simInit (E : CoPset) (γ : RaftNames) (C : List w64) (hE : ↑(raf
   isplitr
   · iunfold allFacts
     imodintro
-    iintro %j %_
-    iapply srvFacts_simInit γ C j hlen hlt hwf hones
+    iintro %j %hj
+    iapply srvFacts_simInit γ C j hj hlen hlt hwf hones
     iframe Hc Hr
   isplitr
   · imodintro
@@ -246,10 +269,11 @@ theorem simFx_simInit (E : CoPset) (γ : RaftNames) (C : List w64) (hE : ↑(raf
         iintro %i %k %h
         exfalso
         have := h.2.2.2.2
-        simp [simInit] at this
+        rw [simInit_s_voter C i h.1] at this
+        simp at this
     iunfold QuorumKept
     imodintro
-    iintro %i %_
+    iintro %i %hi
     iexists 0
     isplitr
     · ipureintro; exact keptFrom_simInit C i
@@ -262,7 +286,7 @@ theorem simFx_simInit (E : CoPset) (γ : RaftNames) (C : List w64) (hE : ↑(raf
     isplitr
     · ipureintro
       refine ⟨?_, hwf, by rw [hW, hlen]; exact Int.le_refl _, by rw [hlen]; omega, Int.le_refl _, by decide⟩
-      rw [hWn, List.take_of_length_le (Nat.le_of_eq hlen), committedL_simInit, simInit_log C γ.reBoot hlen]
+      rw [hWn, List.take_of_length_le (Nat.le_of_eq hlen), committedL_simInit, simInit_log C γ.reBoot hlen i hi]
       exact List.prefix_refl _
     isplitr
     · iexact Hr

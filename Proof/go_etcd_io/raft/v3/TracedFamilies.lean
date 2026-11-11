@@ -198,16 +198,16 @@ theorem trCapB_perm (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c
     obtain ⟨P', hperm, hΦ'⟩ := h C cs P HΦ
     iinv Hinv with >Hi Hclose
     iunfold simInv at Hi
-    icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, %Bt, HL, HA, HB, HBt, #Hfσ, %Hp⟩
+    icases Hi with ⟨%L, %σ, %A, %B, %phP, %phM, %Bt, %Dn, HL, HA, HB, HBt, HDn, #Hfσ, %Hp⟩
     iunfold simNode at Hnode
     icases ghost_map_lookup $$ HA Hnode with %HAid
     obtain ⟨hrun, hsrv, hA, hAn, hPb, hMb, hpv, hcq, hsrcA, hbtC, hasc⟩ := Hp
     obtain ⟨hA', hAn', hPb', hsrc'⟩ := sharePerm_pure C σ A phP id cs P P' hperm hA HAid hAn hsrcA hPb
     imod ghost_map_update (cs, P') $$ HA Hnode with ⟨HA, Hnode⟩
-    imod Hclose $$ [HL HA HB HBt] with -
+    imod Hclose $$ [HL HA HB HBt HDn] with -
     · inext; iunfold simInv
-      iexists L, σ, A.insert id (cs, P'), B, phP, phM, Bt
-      iframe HL HA HB HBt Hfσ
+      iexists L, σ, A.insert id (cs, P'), B, phP, phM, Bt, Dn
+      iframe HL HA HB HBt HDn Hfσ
       ipureintro
       exact ⟨hrun, hsrv, hA', hAn', hPb', hMb, hpv, hcq, hsrc', hbtC, hasc⟩
     imodintro
