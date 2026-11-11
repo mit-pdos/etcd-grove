@@ -243,7 +243,7 @@ theorem stepBundle_traced_unreach : stepBundle_traced.on (GF := GF) (hG := hG) U
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _
       (fun _ => CloseAt.of_ne (fun h => False.elim (by unr_absurd)))
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hpm, he⟩ := unreach_end hu hT0 (hend (by rw [htr]; rfl))
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := unreach_simIdleS hpm he
     have hout : OutTrStep s s' :=

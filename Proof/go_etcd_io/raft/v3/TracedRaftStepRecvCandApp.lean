@@ -533,7 +533,7 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, ht, hint, hhi, hht, hse⟩ : ∃ (pvs : GMap w64 Progress) (ht hint : w64),
         uint.Z hint ≤ uint.Z m.Index' ∧ uint.Z ht ≤ uint.Z m.LogTerm' ∧
         s' = sendMsgs ({ becomeFollower s s.term m.From' with prvals := pvs } : NState)

@@ -691,7 +691,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨ls', hse, hprev', hes', hcm'⟩ : ∃ ls' : LogState,
         s' = sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
           [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧

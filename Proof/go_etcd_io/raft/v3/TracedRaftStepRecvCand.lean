@@ -694,7 +694,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
         s' = heartbeatResult id (bfState s m.From' pvs) m ctx := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV

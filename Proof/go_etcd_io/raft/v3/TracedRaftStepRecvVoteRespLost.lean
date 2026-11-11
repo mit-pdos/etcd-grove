@@ -312,7 +312,7 @@ theorem stepBundle_traced_candVoteRespLost :
     -- (`stepOutG`): the election decided, the step ends past `"Hglost"`
     iapply stepClose_anyB
     iunfold stepClose
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { lostState s m with prvals := pvs } := by
       obtain ⟨pvs0, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
       rw [hpre pvs0] at h

@@ -325,7 +325,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hve⟩ : ∃ pvs : GMap w64 Progress,
         VoteEnd id { becomeFollower s m.Term' (W64 0) with prvals := pvs } m s' := by
       rcases ((hend (by rw [htr]; rfl)) hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩

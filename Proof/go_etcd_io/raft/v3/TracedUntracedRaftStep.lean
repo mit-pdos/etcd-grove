@@ -360,7 +360,7 @@ theorem stepBundle_none (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id :
       (by iintro ⟨H, -⟩; iexact H) htr Htlok (propLend γ s) (winLend γ id s)
     iexact Htl
   unfold stepClose untracedR
-  iintro %s' %B %recv %_ %_ Hout
+  iintro %s' %B %recv %_ %_ %_ Hout
   ihave Hout := stepOutG_stepOut c m s _ $$ Hout
   ihave HX := stepOut_const (GF := GF) iprop(emp) (ownStepGhost γ md c id s) s'.outbox $$ Hout
   imodintro
@@ -394,7 +394,7 @@ theorem raft.Step.untraced (h : raft.Step.spec (GF := GF) (hG := hG)) :
     dsimp only
     iframe Hinit Hphys Hghost Hxfer Hm Hcred Hlc Hsnap Hgates
     unfold stepClose
-    iintro %s' %B %recv %_ %_ Hout
+    iintro %s' %B %recv %_ %_ %_ Hout
     ihave Hout := stepOutG_stepOut c m s _ $$ Hout
     ihave HX := stepOut_const (GF := GF) iprop(emp) (ownStepGhost γ md c id s) s'.outbox $$ Hout
     imodintro

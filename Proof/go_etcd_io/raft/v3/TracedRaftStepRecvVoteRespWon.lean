@@ -657,7 +657,7 @@ theorem stepBundle_traced_candVoteRespWon :
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the won state's end (`wonEnd`), raft's ghost state at the won state
     iunfold stepClose
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     unfold stepOutG
     dsimp only [vrWonR]
     icases Hout with (⟨%hn, -⟩ | ⟨%hn, -⟩ | H | %h | ⟨%b, %N, %h⟩)

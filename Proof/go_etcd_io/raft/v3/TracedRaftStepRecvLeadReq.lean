@@ -147,7 +147,7 @@ theorem stepBundle_traced_leadReq : stepBundle_traced.on (GF := GF) (hG := hG) L
     iapply stepClose_anyB
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     unfold stepOut
     dsimp only [refR]
     icases Hout with (%h | %h | %h | %h | ⟨%b, %N, %h⟩)

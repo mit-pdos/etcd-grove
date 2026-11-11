@@ -403,7 +403,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
         s' = heartbeatResult id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
           lead := m.From' } m ctx := by

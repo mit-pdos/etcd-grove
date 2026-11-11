@@ -342,7 +342,7 @@ theorem stepBundle_traced_beat : stepBundle_traced.on (GF := GF) (hG := hG) Loca
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne nP)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨ms, pvs, rfl, hm⟩ := localBeat_end hp hns hpre (hend (by rw [htr]; rfl))
     have hS : ∀ C, SimIdleS C s = SimIdleS C { sendMsgs s ms with prvals := pvs } :=
       fun C => (simIdleS_prvals C s ms pvs hm).symm

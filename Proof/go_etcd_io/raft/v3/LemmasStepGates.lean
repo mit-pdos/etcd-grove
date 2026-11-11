@@ -171,6 +171,17 @@ def StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : Lis
   (¬ StaleMsg s m → m.Type' ≠ MsgHup → m.Type' ≠ MsgVote →
     ∃ pvs : GMap w64 Progress, StepFnEnd c id (preState s m pvs) m ents ctx s')
 
+/-- (2026-11-11, slice 30c; slice 28n's design) **The storage acknowledgements**, which `Advance` steps. -/
+def AckTy (t : w32) : Prop := t = MsgStorageAppendResp ∨ t = MsgStorageApplyResp
+
+/-- (2026-11-11, slice 30c; slice 28n's design) **A storage acknowledgement's end state** (traced): the
+protocol reading unchanged (`stableTo`, `appliedTo`; no snapshot, no automatic leave at a traced node),
+the outbox with it. `StepEnd` says nothing of these types; the closing wand learns this instead. -/
+def AckEnd (m : MessageM) (s s' : NState) : Prop := AckTy m.Type' → toPState s' = toPState s
+
+theorem AckEnd.of_ty {m : MessageM} {s s' : NState} (h : ¬ AckTy m.Type') : AckEnd m s s' :=
+  fun h' => absurd h' h
+
 theorem StepEnd.of_ty {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (h : ¬ StepEndTy m.Type') : StepEnd c id m ents ctx s s' :=
   fun h' => absurd h' h
@@ -699,6 +710,7 @@ def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
     ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
+    ⌜s.gh.tr.isSome → AckEnd m s s'⌝ -∗
     stepOutG c m s R s'.outbox -∗
     |={⊤}=> ((⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost γ md c id s) ∨
         ∃ s1, ⌜CloseMid id m ents s s1 s'⌝ ∗ ownStepGhost γ md c id s1) ∗
@@ -710,6 +722,7 @@ def stepCloseAt (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Message
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
     ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
+    ⌜s.gh.tr.isSome → AckEnd m s s'⌝ -∗
     stepOut R s'.outbox -∗
     |={⊤}=> ownStepGhost γ md c id s ∗ Gout s' ∗ ⌜OutTrStep s s'⌝)
 
@@ -721,9 +734,9 @@ theorem stepClose_of_at (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m :
     stepCloseAt γ md c id m ents ctx s R Gout ⊢ stepClose γ md c id m ents ctx s R Gout := by
   iintro H
   unfold stepClose stepCloseAt
-  iintro %s' %B %recv %h1 %h2 Hout
+  iintro %s' %B %recv %h1 %h2 %h3 Hout
   ihave Hout := stepOutG_stepOut c m s R $$ Hout
-  imod H $$ %s' %B %recv %h1 %h2 Hout with ⟨Hg, HG, %Hot⟩
+  imod H $$ %s' %B %recv %h1 %h2 %h3 Hout with ⟨Hg, HG, %Hot⟩
   imodintro
   iframe HG
   isplitl [Hg]

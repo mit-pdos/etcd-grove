@@ -286,7 +286,7 @@ theorem stepBundle_traced_leadRespNA : stepBundle_traced.on (GF := GF) (hG := hG
   · -- the closing wand: the idle server of the end state is `s`'s
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h

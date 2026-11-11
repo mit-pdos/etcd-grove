@@ -258,7 +258,7 @@ theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) L
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand
     iunfold stepClose
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvsE, n, hpvsE, hranE, hnranE, hlogE, hSE⟩ : ∃ (pvs : GMap w64 Progress) (n : w64),
         prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
         (AppRespRan s m.From' m.Index' → ∃ (b : Bool) (N : w64),

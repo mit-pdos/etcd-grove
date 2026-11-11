@@ -1269,7 +1269,7 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     have hs' : s' = s := by
       have h := ((hend (by rw [htr]; rfl)) hty).1 hst
       rcases h with h | ⟨ty', mm, hlow, -⟩
@@ -1459,7 +1459,7 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => (by obtain ⟨ty, h1, h2, -⟩ := hp.2; rcases h2 with rfl | rfl | rfl <;> exact CloseAt.of_traced h1 rfl))
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     have hs' : s' = s := by
       obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
@@ -1660,7 +1660,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt
-    iintro %s' %B %recv %_ %hend Hout
+    iintro %s' %B %recv %_ %hend %_ Hout
     have hve : VoteEnd id s m s' := by
       rcases ((hend (by rw [htr]; rfl)) hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
       · rw [hcq] at h; cases h

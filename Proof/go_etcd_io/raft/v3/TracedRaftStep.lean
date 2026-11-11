@@ -153,8 +153,8 @@ theorem stepClose_anyB (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : 
   iintro H
   iunfold stepClose at H
   iunfold stepClose
-  iintro %s' %B %recv %h1 %h2 Hout
-  imod H $$ %s' %B %recv %h1 %h2 Hout with ⟨Hgh, Hc, %Ho⟩
+  iintro %s' %B %recv %h1 %h2 %h3 Hout
+  imod H $$ %s' %B %recv %h1 %h2 %h3 Hout with ⟨Hgh, Hc, %Ho⟩
   imodintro
   iframe Hgh
   isplitl [Hc]
@@ -175,8 +175,10 @@ def StepNodeOk (s : NState) (m : MessageM) : Prop :=
 `stepBundle_traced`, `TracedRaftStepBundle.lean`; until then `stepBundle_traced.on (fun _ _ => True)`).
 `stepBundle_traced.on`'s premises (the per-path form), with:
 - no `Path`;
-- `MsgUnreachable` among the local types at term `0` (`ReportUnreachable`'s; slice 27n's path premised
-  it, `UnreachPath`);
+- (slice 30c, slice 28n's design) the storage acknowledgements too (`AckTy`: `Advance`'s), an append
+  acknowledgement at most at the node's term (`raft.Step.spec`'s premise);
+- `MsgUnreachable` (`ReportUnreachable`'s; slice 27n's path premised it, `UnreachPath`) and
+  `MsgStorageApplyResp` among the local types at term `0`;
 - no `MsgHup → s.role ≠ .leader`: `hup` at a leader does nothing (slice 26n, `stepBundle_hup_R` at any
   role);
 - no `m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []`: the capability's `id ∈ C` and
@@ -191,9 +193,10 @@ abbrev stepBundle_traced.statement : Prop :=
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
     (Λ : Option TraceEv → Prop) (bt : Bool),
   s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
-  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgUnreachable →
-    m.Term' = W64 0) →
+  s.prevote = false → s.cq = false → (StepEndTy m.Type' ∨ AckTy m.Type') → NStateWf s →
+  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgUnreachable ∨
+    m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
+  (m.Type' = MsgStorageAppendResp → uint.Z m.Term' ≤ uint.Z s.term) →
   (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
   uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
   (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
