@@ -35544,3 +35544,76 @@ raft's `leadPrefix`/`lpfull` of the request and the vote table, used once per se
 `votesTbl_forall_list`), `quorumLogF_noConflict`, `quorumLogF_alreadyDone`; a leader's log growth,
 `quorumLogF_grow`. If the acknowledgement-history copy later gives `QuorumLogInv` directly, `KeptFrom` and
 these lemmas may lose their users. Reviews `a5-r1.md`, `a5-r2.md` (round 2's first-tier finding, a build break, repaired; the full build confirms).
+
+## Q8 stage 1 (slice 24b): a candidate's lost vote (the close's guarded result, the loss exact); the won vote's receipt through `becomeLeader`; what the win's ghost split needs beyond slice 23a's design (2026-11-11 · trace-check, Q8 stage 1 slice 24b; slice 23a's designs taken by the coordinator, their form and the findings the agent's under the user's delegation · branch `trace-check-q8s24b`; DRAFT until trace-check's Freeze)
+
+All raft-internal: no axiom, no `sorry`, nothing frozen (`TracedCap.lean`, `TracedHooksDraft.lean`,
+`TracedApiDraft.lean` untouched), no client-visible statement changed.
+
+**The lost vote (done).**
+- `CandHooked c m s` (`LemmasStepGates.lean`): a `MsgVoteResp` of a candidate's term whose recorded
+  tally is `JQuorum ∨ JLost` at `c` (the case where `stepCandidate` runs `"Hgbl"` or `"Hglost"`).
+  `stepOutG c m s R o` is `stepOut` with *both* `G0` and `G1` guarded by `⌜¬ CandHooked c m s⌝` (slice
+  23a's sketch guarded `G1` only; a lost path's `G0` is the same resource as its `G1`, the capability at
+  the candidate's share, which no lost end state closes; `Step` returns `G0` only on a stale message,
+  never hooked). Only `stepClose` reads it; `stepCloseAt` keeps `stepOut`, so the close sites of slice
+  23a's mechanical change are untouched (`stepClose_of_at` converts by `stepOutG_stepOut`).
+  `stepOutG_of_not`/`stepOutG_of_ne`/`stepOutG_or` build it.
+- `gate_close` takes `m.Type' ≠ MsgVoteResp` (every `Step` close site but the vote response's, by the
+  same tactic as `MsgProp`'s); `gate_close_g` takes the guarded result; `wp_Step_MsgVoteResp` returns
+  `stepOutG` (the candidate's tag from `stepCandidate`'s `G'`/`G` result, the other roles and terms
+  never hooked); `gate_close_mid` takes `stepOutG` (the `MsgProp` site converts by `stepOutG_of_ne`).
+- `CandVoteRespResultC` gains `won = false → JLost c votes' → lost = true` (`poll`'s outcome is an
+  `iff`: `stepCandidate`'s proof has it), so the close knows the step-down ran.
+- `stepBundle_traced_candVoteRespLost` (`TracedRaftStepRecvVoteRespLost.lean`, path `CandVoteRespLost`:
+  not won, lost): the receive line as the pending election's (amendment A3's), its event kept last
+  (`recvGate_tracedL`); the `BecomeFollower` line not skipped (`bfCond_voteResp`: the receipt is neither
+  of a higher term nor an append request), so the specification's `StepDownToFollower` from the
+  candidate (`phaseStepBF_lost`, `simServerR_lost`, `simIdle_lost`, `bfSrv = rtfSrv · nil`), its facts
+  `fxPresBF_cand` (`simFx_rtf` with no leader); the close refutes `G0`/`G1` by `CandHooked`, closes `GE`
+  at `lostState` with any `Progress` (`simIdleS_prvals_nl`). Raft's line is the specification's
+  `BecomeFollower` line (`StepDownToFollower`), not a `ReturnToFollower` skip.
+
+**The won vote: done.** `raft.becomeLeader.spec` takes the caller's receipt `⧖ k0`, which `appendEntry`
+raises and hands to `"Hgrep"` (`⧖ (k0 + 1) -∗ G1 -∗ …`); `stepCandidate`'s proof passes `⧖ 0` for now and
+its `"Hgrep"` ignores it; the untraced and traced instances (`raft.becomeLeader.untraced`,
+`raft.becomeLeader.traced`) pass `⧖ 0`. Interface: `raft__becomeLeader.txt` only.
+
+**The won vote: not done; what it needs beyond slice 23a's design** (found here):
+1. *Three phases, not two.* The `BecomeLeader` line's facts (`becomeLeader_hyps`) read the term map's
+   authority with no term log of `T` (`ghostMapAuth γm 1 terms`, `terms !! T = none`), and after the
+   line the new leader's `srvFacts` need `leadFull γ T es`, i.e. the term log; `FxPresU`'s update is a
+   *basic* update (`==∗`) while `win_register` opens raft's commit invariant (`={⊤ ∖ raftRegN}=∗`). So:
+   (a) registration before the line (in the gate, `hookGate_fupd`): `isLeader`, the campaign record,
+   the winners' table; handing out the fresh authority; (b) the term log's allocation inside the line's
+   `FxPresU`, after the freshness is read (a basic update: `ghost_map_alloc`, the terms insert),
+   giving `leadFull γ T (fp ++ log)` (`leadPrefix` at the candidate's log, all of whose fragments are
+   below the term log's start); (c) the empty entry's record (`isEntryR`, the only use of the receipt)
+   at `"Hgrep"`, no later than the first broadcast `MsgApp`'s send line (its `msgFacts` carry the entries'
+   `logRecs`). Proposed `Protocol/Refinement.lean` additions: a predicate `winPend γ c id s md` (the
+   wand `∀ mt ms n, ⌜Step.win's premises⌝ -∗ ⧖ n -∗ |={⊤∖raftRegN}=> ownRaftGhost γ id (won state) md`),
+   `ownRaftGhost_step_win_reg` (`dynEnv -∗ ownRaftGhost s ={⊤∖raftRegN}=∗ isLeader ∗ isCamp ∗ logRecs ∗
+   ∃ γm terms, ⌜fresh⌝ ∗ ghostMapAuth γm 1 terms ∗ (ghostMapAuth γm 1 terms ==∗ leadFull … ∗ winPend …)`),
+   `ownRaftGhost_step_win_entry` (`winPend`'s elimination), and `ownRaftGhost_step_win` re-proved as
+   their composition (its body restructured, not duplicated).
+2. *The receipt to the family.* `stepCandidate.spec` must take `"#Hrc" ∷ ⧖ k0` and its `"Hgrep"`
+   `⌜won⌝ -∗ ⧖ (k0 + 1) -∗ …` (passed to `becomeLeader`); `candidateGates`' `"Hgrep"` a `Step` loan
+   (`StepG.Tw`, set by `ghostIn` to `⧖ (lastIndex - boot + 1)` traced, `emp` untraced) with conversions
+   like `leaderGates_tp`/`_tp_rc`; every `stepCandidate` caller (21 files) supplies a receipt
+   (`preceipt_zero` where a branch has none) mechanically.
+3. *`ghostRest` at the won state.* A family closing with the won `CloseMid` disjunct (`s1 = { becomeLeader
+   id {s with votes := …} with prvals := pvs }`, `prvalsMatch pvs = resetMatched …`) hands back
+   `ownStepGhost` there, `ghostRest` included (`leadW`, the dynamic `RInv`'s `pci`): a `ghost_stepWin`
+   (slice 23a's `ghost_stepProp` is not written either); `Step`'s side needs the vote analogues of
+   `stepCD_sendApps` (the broadcast from the won state), `stepOut_of_stepCD_prop`, `stepOut_prop_md`.
+4. *`tallyGranted_quorum`'s `hc`* (every voter raft heard from in the configuration): not derivable
+   where the `BecomeLeader` guard is checked (the pure `PhaseStepB`). No source constrains a vote
+   response's sender: a refusal's `isMessageC` is `True`, `Msg.TrOk`/`MsgTrOk` bound numbers only,
+   `TraceEv.InScope` scopes event names, and `SpecInv` types only append requests' sources (`m.source ∈
+   σ.server`, `TraceSimSpecInv.lean` 146/346). Options: (a) the phase carries `∀ k ∈ dom votes, k ∈ C`,
+   established by the receive line's phase step from a new premise of the receive law that the bag's
+   message's source is a server (`simInv`'s bag typing, a `SpecInv` clause `∀ m ∈ msgs, m.source ∈
+   σ.server`: a frozen `simFx`/law change, an amendment); (b) `MsgTrOk γ` scopes a traced message's
+   source to the cluster's voters (client-visible `Protocol/Model.lean` body change); raft alone cannot
+   (`recordVote` records any sender). Recommended: (a), as an amendment
+   with a TLC check of the clause.

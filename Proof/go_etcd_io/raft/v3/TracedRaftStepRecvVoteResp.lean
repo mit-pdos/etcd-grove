@@ -12,9 +12,8 @@ case of a path not reading it, `stepBundle_traced.on_of_onC`).
 
 **Not here** (`notes/decisions.md`, "Q8 stage 1 (slice 22b)"): the won election (its `BecomeLeader` line's
 facts need the new leader's term log, which raft's ghost step creates, the close's `ownStepGhost` at `s`
-then being stale, as for a leader's `MsgProp`) and the lost one (`stepClose` is handed `stepOut`, which
-does not say whether the step-down's gate ran: the resource left before it, `G1`, at the lost state cannot
-be closed).
+then being stale, as for a leader's `MsgProp`). The lost one is `TracedRaftStepRecvVoteRespLost.lean`
+(slice 24b: the close is handed the guarded `stepOutG`).
 -/
 module
 
@@ -213,7 +212,7 @@ theorem stepBundle_traced_candVoteRespPending :
       rw [if_pos hTy] at hf
       obtain ⟨-, hf⟩ := hf
       rw [if_neg (by rw [hrole]; decide)] at hf
-      obtain ⟨won, lost, ms, pvs, hw, hl, hs'⟩ := hf
+      obtain ⟨won, lost, ms, pvs, hw, hl, -, hs'⟩ := hf
       cases won with
       | true => exact absurd (hw rfl).1 hnq
       | false =>

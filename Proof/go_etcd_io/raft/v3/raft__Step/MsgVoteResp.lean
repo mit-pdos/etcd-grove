@@ -135,7 +135,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
-        "HG" ∷ stepOut R s'.outbox }} := by
+        -- (2026-11-11, slice 24b) guarded: a candidate's deciding vote response ends past its gate
+        "HG" ∷ stepOutG c m s R s'.outbox }} := by
   intro Hty Hto Hterm Hwf HL
   have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; w32_ne
   have Hnprop : m.Type' ≠ MsgProp := by rw [Hty]; w32_ne
@@ -198,6 +199,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · rw [ite_neg Hnprop]; iexact Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    ihave HG := stepOutG_of_not c m s R (fun h => by have := h.2.1; rw [this] at Hgt; omega) $$ HG
     have Hres0 := Hres
     have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold FollowerStepResultC at Hres
@@ -261,6 +263,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       wp_gets
       wp_raft_logC
       ihave HG := stepOut_G0 R $$ HG
+      ihave HG := stepOutG_of_not c m s R (fun h => by have := h.2.1; rw [this] at Hlt; omega) $$ HG
       try phys_out
       iapply HΦ $$ %interface.nil %s %_
       iframe Hphys HG
@@ -302,6 +305,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
         ihave HG := stepOut_or R _ _ $$ HGo
+        ihave HG := stepOutG_of_not c m s R (fun h => absurd (Hrole.symm.trans h.2.2.1) (by decide)) $$ HG
         have Hres0 := Hres
         have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold FollowerStepResultC at Hres
@@ -359,7 +363,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
-        ihave HG := stepOut_or R _ _ $$ HGo
+        ihave HG := stepOutG_or c m s R _ _ $$ HGo
+        ihave HG := HG $$ %(fun hψ hc => hψ (Or.inr (Or.inr ⟨Or.inl ⟨hc.1, by first | exact hc.2.2.1 | rfl⟩, hc.2.2.2⟩)))
         have Hres0 := Hres
         have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold CandidateStepResultC at Hres
@@ -367,7 +372,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         subst Hc1
         wp_gets
         rw [ite_pos Hty, ite_neg (by rw [Hrole]; decide)] at Hres
-        obtain ⟨rfl, won, lost, ms, pvs, Hwon, Hlost, rfl⟩ := Hres
+        obtain ⟨rfl, won, lost, ms, pvs, Hwon, Hlost, -, rfl⟩ := Hres
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
         subst Herrn
@@ -489,6 +494,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s1 %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iframe Hm; iintro %Hc; exact absurd Hc Hnprop
         ihave HG := stepOut_leader R _ _ _ _ $$ HGo
+        ihave HG := stepOutG_of_not c m s R (fun h => absurd (Hrole.symm.trans h.2.2.1) (by decide)) $$ HG
         have Hres0 := Hres
         unfold LeaderStepResultC at Hres
         wp_gets
@@ -532,6 +538,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
         · rw [ite_neg Hnprop]; iexact Hm
         ihave HG := stepOut_or R _ _ $$ HGo
+        ihave HG := stepOutG_of_not c m s R (fun h => absurd (Hrole.symm.trans h.2.2.1) (by decide)) $$ HG
         have Hres0 := Hres
         have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold CandidateStepResultC at Hres

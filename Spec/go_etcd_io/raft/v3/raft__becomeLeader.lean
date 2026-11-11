@@ -43,22 +43,29 @@ state, as the capability's phase): the `BecomeLeader` line's (`HookGate`, of the
 entry appended). A traced caller's `BecomeLeader` gate is where the line's `FxPresU` creates the new
 leader's term log (the plan's round 5, E1: absent before the step, present after), its `Replicate`
 gate where the entry's record is created (round 6, F1). Until slice 6 the premise `s.gh.tr = none`
-(stage 0), now `raft.becomeLeader.untraced`'s (`TracedUntracedSend.lean`). -/
+(stage 0), now `raft.becomeLeader.untraced`'s (`TracedUntracedSend.lean`).
+(2026-11-11, trace-check Q8 stage 1 slice 24b) **The receipt passed through**: a time receipt `⧖ k0`
+from the caller, which `appendEntry` raises by one before the empty entry's `Replicate` line, is handed
+to that line's gate (`"Hgrep"`): a traced caller's win ghost update creates the entry's record there
+(`notes/decisions.md`, "Q8 stage 1 (slice 24b)"). -/
 abbrev raft.becomeLeader.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G G1 G2 G3 : IProp GF),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (G G1 G2 G3 : IProp GF) (k0 : Nat),
   s.role ≠ .follower →
   -- (2026-10-25, T-M M2c) a candidate's (`stepCandidate`): a leader need not be a voter
   s.role ≠ .leader →
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (2026-11-11, slice 24b) the caller's time receipt
+      "#Hrc" ∷ ⧖ k0 ∗
       -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
       -- caller's resource, through the gates below
       "HG" ∷ G ∗
       -- the `BecomeLeader` line's gate, of the state before the empty entry
       "Hgbl" ∷ (G -∗ HookGate s.gh.tr r (NodeEvOf (W64 3) id (becomeLeaderPre id s) c) G1) ∗
-      -- the empty entry's `Replicate` line's gate (`appendEntry`'s)
-      "Hgrep" ∷ (G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id s) c) 1 G2) ∗
+      -- the empty entry's `Replicate` line's gate (`appendEntry`'s), (slice 24b) with the receipt
+      -- `appendEntry` raised
+      "Hgrep" ∷ (⧖ (k0 + 1) -∗ G1 -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id (becomeLeaderPre id s) c) 1 G2) ∗
       -- the self-acknowledgement's gate, at the state with the entry appended (`appendEntry`'s)
       "Hgack" ∷ (G2 -∗ HookGateOpt s.gh.tr r (sendOutGate id (becomeLeaderLog id s) c MsgAppResp
           [selfAck id (becomeLeaderLog id s)]) G3) }}
