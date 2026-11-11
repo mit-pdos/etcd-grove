@@ -119,8 +119,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
         "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R ∗
         -- (2026-11-11, slice 25b) the loan to a win's `Replicate` gate (`StepG.Tw`) from the raised
-        -- receipt
-        "HTw" ∷ (⧖ (k0 + 1) -∗ R.Tw) }}
+        -- receipt (slice 27b: and the node's membership of its own `Progress` map)
+        "HTw" ∷ (⌜id ∈ domSet s.prvals⌝ -∗ ⧖ (k0 + 1) -∗ R.Tw) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (B : Int), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -361,7 +361,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         ihave Hcg := stepFnGates_candidate c r id s m _ _ R ∅ s (preState_nobf hnbf ∅)
           (by rw [Hrole]; simp) $$ Hgstep
         ihave Hcg := candidateGates_tw c r id s m _ _ _ _ _ _ _ R.Tw iprop(⧖ (k0 + 1)) $$ [HTw Hcg]
-        · iframe Hcg; iintro %_ Hr; iapply HTw $$ Hr
+        · iframe Hcg; iintro %_ Hr; iapply HTw $$ %Hid Hr
         ihave #Hrc00 : ⧖ k0 $$ []
         · iapply (preceipt_mono (GF := GF) (show k0 ≤ k0 + 1 by omega)); iexact Hrc
         iunfold candidateGates at Hcg

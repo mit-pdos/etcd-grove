@@ -1343,10 +1343,10 @@ theorem raft.Step.wp_proof
       as %err %s' %B ⟨Hphys, %HBb, #Hrcb, %Hend, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
     · -- (2026-11-11, slice 25b) the loan to a win's `Replicate` gate: the raised receipt
       dsimp only [ghostIn]
-      iintro #Hr
+      iintro %Hid #Hr
       unfold winLend
       split
-      · iexact Hr
+      · iframe Hr; ipureintro; exact Hid
       · iempintro
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     -- (2026-11-11, slice 24b) the branch's result is guarded (`stepOutG`); (slice 25b) the ghost state

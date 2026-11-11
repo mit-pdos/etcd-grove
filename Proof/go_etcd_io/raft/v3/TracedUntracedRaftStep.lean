@@ -352,12 +352,12 @@ theorem stepBundle_none (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id :
       ⟨iprop(ownStepGhost γ md c id s ∗ emp), fun _ => ownStepGhost γ md c id s,
         fun _ => ownStepGhost γ md c id s, fun _ => ownStepGhost γ md c id s, ownStepGhost γ md c id s,
         ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
-        fun _ => ownStepGhost γ md c id s, fun _ _ _ => ownStepGhost γ md c id s, propLend γ s, winLend γ s⟩ := rfl
+        fun _ => ownStepGhost γ md c id s, fun _ _ _ => ownStepGhost γ md c id s, propLend γ s, winLend γ id s⟩ := rfl
   rw [hgi]
   isplitl
   · iapply stepGates_none (GF := GF) c r id s m ents sn ctx rs tl
       iprop(ownStepGhost γ md c id s ∗ emp) (ownStepGhost γ md c id s)
-      (by iintro ⟨H, -⟩; iexact H) htr Htlok (propLend γ s) (winLend γ s)
+      (by iintro ⟨H, -⟩; iexact H) htr Htlok (propLend γ s) (winLend γ id s)
     iexact Htl
   unfold stepClose untracedR
   iintro %s' %B %recv %_ %_ Hout
@@ -378,12 +378,12 @@ theorem raft.Step.untraced (h : raft.Step.spec (GF := GF) (hG := hG)) :
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   ihave Hgates := stepGates_none (GF := GF) c r id s m ents sn ctx rs tl
     iprop(ownStepGhost γ md c id s ∗ emp) (ownStepGhost γ md c id s)
-    (by iintro ⟨H, -⟩; iexact H) htr Htlok (propLend γ s) (winLend γ s) $$ Htl
+    (by iintro ⟨H, -⟩; iexact H) htr Htlok (propLend γ s) (winLend γ id s) $$ Htl
   have hgi : ghostIn γ md c id s (untracedR γ md c id s) =
     ⟨iprop(ownStepGhost γ md c id s ∗ emp), fun _ => ownStepGhost γ md c id s,
       fun _ => ownStepGhost γ md c id s, fun _ => ownStepGhost γ md c id s, ownStepGhost γ md c id s,
       ownStepGhost γ md c id s, ownStepGhost γ md c id s, ownStepGhost γ md c id s,
-      fun _ => ownStepGhost γ md c id s, fun _ _ _ => ownStepGhost γ md c id s, propLend γ s, winLend γ s⟩ := rfl
+      fun _ => ownStepGhost γ md c id s, fun _ _ _ => ownStepGhost γ md c id s, propLend γ s, winLend γ id s⟩ := rfl
   iapply h c md γ r id s ml m ents ctx sn rs (untracedR γ md c id s)
     (fun _ => iprop(emp)) Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
