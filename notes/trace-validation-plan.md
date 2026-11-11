@@ -1230,7 +1230,29 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   re-freeze `trace-check-frozen-a7`). The step bound `n + 4 ≤ 2^61` (S7 part 1) is within the user's
   "unless the proof needs another" (2026-11-08): the traced cluster's three bootstrap entries need
   `receiptBound + 3 ≤ 2^61` for raft's `readyFits`.
+- **Q30 (2026-11-11, slice 29c): a leader's accepted `MsgAppResp` whose `maybeCommit` commits: `Step`'s
+  result before `"Hgcommit"` unguarded.** `stepClose` hands the closing wand `stepOutG`, whose `G0`/`G1`
+  disjuncts are guarded by `¬ CandHooked` only, and `stepLeader.spec` returns its `G` on an accepted
+  `MsgAppResp` whatever `AppRespRan`. So the traced family's close must take `G1` (raft's ghost state at `s`,
+  the capability at the receive line's result) to the idle capability at an end state whose commit index is
+  `maybeCommit`'s outcome's, past the recorded server's, with no `Commit` line logged: unprovable when the
+  outcome commits (nothing in the close refutes it; the outbox may be unchanged). It cannot happen (the
+  code calls `maybeCommit`, hence `"Hgcommit"`, exactly when `AppRespRan`), but no statement says so.
+  Options: (a) **a guard**: `stepLeader.spec`'s `G` arm gains `¬ (m.Type' = MsgAppResp ∧ m.Reject' = false
+  ∧ AppRespRan s m.From' m.Index')` (its proof, `stepLeader/Rest.lean`, has the condition at the join,
+  `RanCond`), `stepOutG`'s `G0`/`G1` guard becomes `¬ CandHooked c m s ∧ ¬ LeadRan m s` (the same condition
+  at a leader of the message's term), `Step`'s `MsgAppResp` arm passes it (`raft__Step/MsgAppResp.lean`,
+  `raft__Step.lean`; elsewhere `stepOutG_of_ne` refutes it by the type), the closes destructuring
+  `stepOutG` one more ignored conjunct; raft-internal, `interface/` unchanged, `stepBundle_traced.on`'s
+  text unchanged but its `stepClose`'s meaning (as slice 28c's `CloseMid`); (b) the same with `CandHooked`
+  widened to the leader's case (fewer binders, a misleading name); (c) keep the path `LeadAccNC` and make
+  the committing case an assembly premise: not acceptable (every commit is on that path). **Recommended:
+  (a).** With it the bundle moves to `.on LeadAcc` mechanically (slice 29c's `leadAccR`, gates and Gc close
+  unchanged; `G1`'s close at `¬ AppRespRan`, `n = committed` by `AppRespAcceptedC`). For the coordinator
+  (the definition `stepClose` reads, under the frozen `stepBundle_traced.on`).
 
+  **Taken by the coordinator (raft-internal): (a)** (`stepBundle_traced.on`, `stepClose` and `stepOutG` were
+  written during Q8, not laws of the frozen Draft).
 **Q8 stage 1 (slice 27b), 2026-11-11 (branch `trace-check-q8s27b`): a candidate's won election done.**
 Slice 25b's remaining list taken by the coordinator, its form the agent's (`notes/decisions.md`, "Q8
 stage 1 (slice 27b)"); all raft-internal. Done (new modules `TracedRaftStepRecvVoteRespWon{Phase,Fx,}.lean`):
@@ -1261,6 +1283,22 @@ Left (each item in the decisions entry): the path premise `m.From' ∈ domSet s.
 `maybeCommitOut`, `fxPres_commit` with the leader's `srvFacts` rebuilt from raft's ghost state), the
 sends after it, the close and the bundle.
 
+**Q8 stage 1 (slice 29c), 2026-11-11 (branch `trace-check-q8s29c`): a leader's accepted `MsgAppResp`: the
+`Commit` line, the sends, the close past `maybeCommit`; the bundle on a non-committing outcome; Q30.**
+Slice 28c's remaining list taken by the coordinator, its form the agent's (`notes/decisions.md`, "Q8 stage
+1 (slice 29c)"); all raft-internal, nothing frozen or client-visible changed. Done (new modules
+`TracedRaftStepRecvLeadAcc{Commit,Gates,Bundle}.lean`): the bridge `advancesTo_of_out` (`maybeCommitOut` with
+no outgoing half to `advanceCommitIndex_eq`/`_noop`); the `Commit` line's pinned phase step
+(`phaseStepB_commitPin`) and facts (`fxPres_commit`: `quorumLogF_commit`, `specInv_advanceCommitIndex`,
+the leader's `srvFacts` rebuilt from raft's ghost state after the commit, `srvFacts_leaderOf`,
+`ownRaftGhost_leadFull`); `"Hgcommit"` (`leadAccGate_commit`: the ghost step, raft's facts, the line);
+`"#Hgaapp"`, `"#Hgrlhb"`, `"#Hgrlresp"`, `"#Hgatnow"` on the family past `maybeCommit` (`leadAccGc`);
+the close past `maybeCommit` (`leadAcc_end`, `maybeCommitOut_unique`, `CloseMid`'s third case); the path
+`LeadAcc` (accepted, of the leader's term, the sender tracked: `m.From' ∈ domSet s.progress` and `∈ domSet
+s.prvals`, and `PrvalsOk s`, the `Match` values within the log that the no-op commit needs: all the node
+API's, read off `ownRaftPhysC`); the bundle **`stepBundle_traced_leadAccNC`** over `.onC LeadAccNC`
+(`LeadAcc` and no committing outcome). The committing outcome needs a guard on `G0`/`G1` (Q30). Left:
+Q30's guard and the bundle on `.on LeadAcc` (the close given `G1` then at `¬ AppRespRan`); the assembly.
 
 **Q8 stage 1 (slice 27n), 2026-11-11 (branch `trace-check-q8s27n`): Q27 (a) done; the report's bundle
 path and the traced `RawNode.ReportUnreachable` done; a `Ready` line's tokens over the queues done;
