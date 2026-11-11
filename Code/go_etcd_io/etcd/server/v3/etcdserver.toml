@@ -83,6 +83,10 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   # (R-D1, 2026-11-04) the record's close on `NewServer`'s error paths (bootstrap.go): until then
   # a trusted triple of `bootOk` (`#Hclose`), false (a second `Close` panics)
   "bootstrappedServer.Close", "bootstrappedStorage.Close", "bootstrappedBackend.Close",
+  # (restart S3, D2 (b), 2026-11-11) the restarted raft storage (bootstrap.go): `MemoryStorage`
+  # rebuilds it from the WAL's records over raft's proved `MemoryStorage` methods, so the restart
+  # contract's `memStorRestarted` is that method's post, not a trusted definition
+  "bootstrappedWAL.MemoryStorage",
   # the client lease (item 1, branch `lease-client`): v3_server.go's lease grant and revoke
   "EtcdServer.LeaseGrant", "EtcdServer.LeaseRevoke", "EtcdServer.requireAuthInfo",
   # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go); their

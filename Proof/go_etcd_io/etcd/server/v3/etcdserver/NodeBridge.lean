@@ -552,7 +552,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     icases Hbusy with ⟨Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
-    icases Hcv with ⟨Hcv, #Hrok⟩
     iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
@@ -585,7 +584,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
-        iframe Hrok
         iunfold rnView
         iunfold srvCfgView
         iexists v
@@ -603,7 +601,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
     obtain ⟨hA', hd, hdl, hpos, h61, hwa⟩ := Hsn
     iunfold rnCfgAt at Hcv
-    icases Hcv with ⟨Hcv, #Hrok⟩
     -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
     -- derived since S1, `rnRestartOk_winAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
     have Hab : γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index' :=
@@ -680,7 +677,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
-        iframe Hrok
         iunfold rnView
         rw [hgA]
         iunfold srvCfgView

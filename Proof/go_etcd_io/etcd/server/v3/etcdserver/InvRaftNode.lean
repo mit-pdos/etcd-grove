@@ -546,16 +546,11 @@ theorem rnRestartOk_winAbove (γ : RNNames) (L : List EntryModel) (p : HardState
 the repair: raft's one mode, the old dynamic one's; R2d'a A6, 2026-11-06, DRAFT: over the ghost
 log, `rnView`, with the restart data `rnRestartOk`; until then the view after `pre ++ L`, which it
 is at a first start, `rnView_first`): every conf entry of the ghost log applied (`srvCfgView`,
-`InvCfgView.lean`); until the repair nothing in a static cluster. -/
+`InvCfgView.lean`); until the repair nothing in a static cluster. (Restart S3 item 7, review 5,
+2026-11-11: the view alone, `rnView`; until then with the restart data `rnRestartOk`, which is now
+`isRaftNode`'s.) -/
 def rnCfgAt (γ : RNNames) (L : List EntryModel) : IProp GF :=
-  iprop(rnView γ L ∗ rnRestartOk γ)
-
-/-- (R2d'a A10 item 5) The view carries the restart data (persistent). -/
-theorem rnCfgAt_restartOk (γ : RNNames) (L : List EntryModel) :
-    rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ L ∗ rnRestartOk γ := by
-  unfold rnCfgAt
-  iintro ⟨Hv, #Hr⟩
-  iframe Hv Hr
+  rnView γ L
 
 /-- The driver, idle, handed the committed log `L` so far: the node API's `nodeDriver` at
 `pre ++ L` (2026-10-27; until then raft's), with the driver's view of the configuration after `L`
@@ -1182,7 +1177,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType) (rd : Ready)
     (HLi : srvIdxOkW E.γr.raft.ai0 L) (Hc0 : γ.commit0 ≤ uint.nat p.Commit') :
     letI := srvStor (GF := GF) γ.node
-    rnEnvOk E γ -∗ rnReadStateBridge E γ -∗ rnCfgAt γ L -∗
+    rnEnvOk E γ -∗ rnReadStateBridge E γ -∗ rnRestartOk γ -∗ rnCfgAt γ L -∗
       raftState γ.node.cl γ.id S -∗
       readyGot γ.nl γ.node.cl srvClusterN γ.id (rnDrvSt γ L p S r) rd ={⊤}=∗
       ((∃ ce' es' p' S' r' ms, rnReadyData E γ rd L ce' es' p p' S S' r r' ms ∗
@@ -1199,12 +1194,11 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         rnHsC γ p' A' ∗
         ⌜srvIdxOkW E.γr.raft.ai0 A'⌝ ∗ ⌜uint.nat p.Commit' ≤ uint.nat p'.Commit'⌝)) := by
   letI := srvStor (GF := GF) γ.node
-  iintro #Henv #Hbr Hcfg HrS Hgot
+  iintro #Henv #Hbr #Hrok Hcfg HrS Hgot
   iunfold readyGot at Hgot
   icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, Hlead,
     Henter, #Hdlb0, #Hhsc⟩
   -- (R2d'a A10 item 5, Q29 (d)) the `MsgSnap`s' terms, from the restart data
-  ihave ⟨Hcfg, #Hrok⟩ := rnCfgAt_restartOk γ L $$ Hcfg
   ihave ⟨Hrest, %Hsb⟩ := rnRestartOk_snapTerm γ L p S r rd ce es h Lo ms ss $$ Hrok Hrest
   -- (R2d'a task 4) a snapshot's index above the restart point (A8; S1: derived, from the loop's fact)
   ihave ⟨Hrest, %Hwa2⟩ := rnRestartOk_winAbove γ L p S r rd ce es h Lo ms ss Hc0 $$ Hrok Hrest
@@ -1926,12 +1920,10 @@ theorem rnView_first (γ : RNNames) (h : γ.a0 = []) :
     unfold rnView rnGhost srvCfgView
     rw [h]
     simp
-  refine ⟨fun ht L => ?_, fun F ce => ?_, fun F ce => ?_⟩
-  · unfold rnCfgAt rnRestartOk
+  refine ⟨fun _ L => ?_, fun F ce => ?_, fun F ce => ?_⟩
+  · unfold rnCfgAt
     rw [hv L]
-    constructor
-    · iintro ⟨H, -⟩; iexact H
-    · iintro H; iframe H; ileft; ipureintro; exact ⟨h, ht⟩
+    exact .rfl
   · unfold rnApR; rw [hv]
   · unfold rnApGive; rw [hv]
 
@@ -2091,33 +2083,6 @@ the raft term it records). -/
 def rnLoopTok (γ : RNNames) (L : List EntryModel) : IProp GF :=
   iprop(∃ p : HardStateM, rnLoopTokP γ L p false)
 
-/-- (R2d'a A10 item 3) **The loop's token carries the restart data** (persistent, in its view,
-`rnCfgAt`): `raftNode.start` reads it before its loop, for the stop's bound (`rnRestartOk_a0_le`;
-until S1 `run` read it, for `rnRestartOk_commit`). -/
-theorem rnLoopTok_restartOk (γ : RNNames) (L : List EntryModel) :
-    rnLoopTok (GF := GF) γ L ⊢ rnLoopTok γ L ∗ rnRestartOk γ := by
-  iintro H
-  iunfold rnLoopTok at H
-  icases H with ⟨%p, H⟩
-  iunfold rnLoopTokP at H
-  icases H with ⟨%sent, %cums, %S, %r, Hdrv, Hrest⟩
-  iunfold rnDrv at Hdrv
-  icases Hdrv with ⟨Hd, HrS, Hcfg⟩
-  iunfold rnCfgAt at Hcfg
-  icases Hcfg with ⟨Hv, #Hr⟩
-  isplitl [Hd HrS Hv Hrest]
-  · iunfold rnLoopTok
-    iexists p
-    iunfold rnLoopTokP
-    iexists sent, cums, S, r
-    isplitl [Hd HrS Hv]
-    · iunfold rnDrv
-      iframe Hd HrS
-      iunfold rnCfgAt
-      iframe Hv Hr
-    iexact Hrest
-  iexact Hr
-
 /-- The apply side's ghost state: `applyc`'s consumer half, and `cum` at the number of
 payloads received, the log `A` forwarded so far. -/
 def rnApplyTok (γ : RNNames) (A : List EntryModel) : IProp GF :=
@@ -2200,6 +2165,9 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
   iprop(∃ (lg mu ms td tk : Loc) (n st tr : GoInterface) (idr : GoFunc)
       (hb : time.Duration) (msc apc rsc stc dnc : GoChan),
     "#Henv" ∷ rnEnvOk E γ ∗ "#Hfits" ∷ rnLogFits γ ∗ "#Hrsb" ∷ rnReadStateBridge E γ ∗
+    -- (restart S3 item 7, review 5, 2026-11-11) the restart data (until then in the loop's view,
+    -- `rnCfgAt`, where `raftNode.stop` could not reach it)
+    "#Hrok" ∷ rnRestartOk γ ∗
     "#Hreg" ∷ memStorReg γ.ms γ.γs ∗
     "#Hlg" ∷ rnLgAddr r ↦□ lg ∗ "#Hlgnn" ∷ zapLoggerOk lg ∗
     "#Hmu" ∷ rnTickMuAddr r ↦□ mu ∗ "#Hmug" ∷ sync.isRWMutexGuard mu (rnTickInv r) ∗

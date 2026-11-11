@@ -232,6 +232,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend__Cl
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Close
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
 public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
@@ -2756,7 +2757,7 @@ theorem wp_newRaftNode :
 
 theorem bootstrappedRaft.wp_newRaftNode :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
-  bootstrappedRaft.newRaftNode.wp_proof srvApi_wp_StartNode EtcdGrove.wp_newRaftNode
+  bootstrappedRaft.newRaftNode.wp_proof srvApi_wp_StartNode srvApi_wp_RestartNode EtcdGrove.wp_newRaftNode
 
 theorem bootstrappedStorage.wp_Close :
     bootstrappedStorage.Close.spec (GF := GF) (hG := hG) :=
@@ -2765,6 +2766,10 @@ theorem bootstrappedStorage.wp_Close :
 theorem bootstrappedServer.wp_Close :
     bootstrappedServer.Close.spec (GF := GF) (hG := hG) :=
   bootstrappedServer.Close.wp_proof bootstrappedStorage.wp_Close
+
+theorem bootstrappedWAL.wp_MemoryStorage :
+    bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.MemoryStorage.wp_proof srvApi_wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot srvApi_wp_MemSetHardState srvApi_wp_MemAppend
 
 theorem clockwork.wp_NewRealClock :
     clockwork.NewRealClock.spec (GF := GF) (hG := hG) :=
