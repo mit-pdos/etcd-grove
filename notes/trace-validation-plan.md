@@ -1278,6 +1278,28 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
+- **Q22 (2026-11-11, amendment A5's open item): what a leader's `Commit` line needs to keep
+  `QuorumLogF`.** A5's `QuorumLogF` (`KeptFrom` with `CommitCert`) is kept by every line but a leader's
+  `Commit` (the specification's `AdvanceCommitIndex`): its new committed prefix `P`, of the leader's term
+  `T`, needs the servers holding `P` at terms `≥ T` to be a quorum, and `simFx` says nothing of the
+  current logs of the match-index quorum's members (raft proves nothing about a quorum's *current* logs
+  either: a member may truncate between its acknowledgement and the `Commit` line, so a copy at
+  acknowledgement time would not do). Options: (a) a copy, in `simFx`, of raft's acknowledgement
+  history (`hist`) over each acknowledging server's *current* log; (a1) keyed on raft's acknowledgement
+  maps (`isAcked`, `histsOk`): rejected, raft mints an acknowledgement's fragment at a batch's *enter*,
+  outside any line, so the simulation's invariant could not be kept, and a receive line moves the
+  server's log before raft does (`traceReceiveMessage` at `Step`'s start); (a2) keyed on the
+  specification's own acknowledgements, the successful append responses in flight and the positive match
+  indices a leader holds (taken); (b) something weaker than `hist` (a single index, or "each acked
+  member's log at its current term extends the acked prefix"): not inductive, the prefix acknowledged at
+  `T` is overwritten by a later term's leader where uncommitted, and only `hist`'s disagreement disjunct
+  survives that, while a single index's history does not give the agreement at the commit index below it
+  (two `okL` logs may disagree between the two); (c) raft's facts passed into the `Commit` line's
+  `FxPres` (the leader's caller holds only its own ghost, not the members'): not possible; (d) a weaker
+  `QuorumLogF` (the readers need `QuorumLogInv` itself, A5's check). **Taken by the coordinator (the
+  freeze being delegated to it), pending the user's veto: (a), as (a2)**, amendment A6 (checked against
+  the specification first, a review round, then the re-freeze). **Done** on branch `trace-check-a6`
+  (`AckHists`; `quorumLogF_commit`; `notes/decisions.md`, "Amendment A6 (Q22)").
 - **Q21 (2026-11-11, Q8 stage 1 slice 22b): an accepted append's truncation and the frozen
   `QuorumLogF`.** A receiver at the request's term may hold, by coincidence, a prefix a quorum
   committed at a higher term, and truncate it; `QuorumLogF` (a clause of the frozen `simFx`) stays
