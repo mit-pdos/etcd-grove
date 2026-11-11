@@ -5,26 +5,16 @@
 theorem TraceSim.trace_agree_keep (γt : GName) (L1 L2 : List TraceEv) : traceAuth γt L1 ∗ traceFrag
     γt L2 ⊢ (traceAuth γt L1 ∗ traceFrag γt L2) ∗ ⌜L1 = L2⌝
 
-def TraceSim.bootJunk : Etcdraft.Server :=
-  have v :=
-    { currentTerm := 0, state := Etcdraft.follower, votedFor := Etcdraft.nil, lead := Etcdraft.nil, log := [],
-      commitIndex := 0, votesResponded := [], votesGranted := [], matchIndex := fun x => 0, pendingConfChangeIndex := 0,
-      config := { incoming := [], outgoing := [], learners := [] }, durable := default };
-  { currentTerm := v.currentTerm, state := v.state, votedFor := v.votedFor, lead := v.lead, log := v.log,
-    commitIndex := v.commitIndex, votesResponded := v.votesResponded, votesGranted := v.votesGranted,
-    matchIndex := v.matchIndex, pendingConfChangeIndex := v.pendingConfChangeIndex, config := v.config,
-    durable := Etcdraft.durableOf v }
+theorem TraceSim.newTrace_simInit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠
+    []) (hCl : C.length < 2 ^ 40) (hrun : TraceSim.SimRun C L σ) (hev : TraceSim.SimEvents C.length
+    L) (hseg : TraceSim.BootSegs C L) (hdone : ∀ (i : w64), i ∈ C → TraceSim.BootDone C L i) : ∃ t,
+    Etcdraft.newTrace (List.map TraceSim.evConv L) = Except.ok t ∧ t.server = TraceSim.confAbs C ∧
+    t.initSrv = TraceSim.confAbs C ∧ t.init = TraceSim.simInit C
 
 theorem TraceSim.simInv_end (C : List w64) (tn : TraceSim.TraceNames) (Fx : Etcdraft.State → IProp
     GF) (L : List TraceEv) : traceAuth tn.tr L ∗ TraceSim.simInv C tn Fx ⊢ traceAuth tn.tr L ∗
     TraceSim.simInv C tn Fx ∗ ⌜∃ σ, TraceSim.SimRun C L σ ∧ σ.server = TraceSim.confAbs C ∧
     TraceSim.SimEvents C.length L⌝
-
-theorem TraceSim.newTrace_bootInit (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (hC0 : C ≠
-    []) (hCl : C.length < 2 ^ 40) (hrun : TraceSim.SimRun C L σ) (hev : TraceSim.SimEvents C.length
-    L) (hseg : TraceSim.BootSegs C L) (hdone : ∀ (i : w64), i ∈ C → TraceSim.BootDone C L i) : ∃ t,
-    Etcdraft.newTrace (List.map TraceSim.evConv L) = Except.ok t ∧ t.server = TraceSim.confAbs C ∧
-    t.initSrv = TraceSim.confAbs C ∧ t.init = TraceSim.bootInit C
 
 theorem TraceSim.simRun_runAccepted (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (t :
     Etcdraft.Trace) (hrun : TraceSim.SimRun C L σ) (hnt : Etcdraft.newTrace (List.map
@@ -37,15 +27,16 @@ theorem TraceSim.simRun_runRel (C : List w64) (L : List TraceEv) (σ : Etcdraft.
     Except.ok t → t.init = TraceSim.simInit C → t.server = TraceSim.confAbs C → t.initSrv =
     TraceSim.confAbs C → ∃ ts, t.RunRel t.len ts
 
-theorem TraceSim.simInv_end_boot (C : List w64) (tn : TraceSim.TraceNames) (Fx : Etcdraft.State →
-    IProp GF) (L : List TraceEv) : traceAuth tn.tr L ∗ TraceSim.simInv C tn Fx ⊢ traceAuth tn.tr L ∗
-    TraceSim.simInv C tn Fx ∗ ⌜∃ σ, TraceSim.SimRun C L σ ∧ σ.server = TraceSim.confAbs C ∧
-    TraceSim.SimEvents C.length L ∧ TraceSim.BootSegs C L⌝
+theorem TraceSim.bootDone_mem_keep (tn : TraceSim.TraceNames) (Dn : List w64) (i : w64) :
+    monoListAuthOwn tn.dn 1 Dn ∗ TraceSim.bootDone tn i ⊢ (monoListAuthOwn tn.dn 1 Dn ∗
+    TraceSim.bootDone tn i) ∗ ⌜i ∈ Dn⌝
 
-def TraceSim.bootInit (C : List w64) : Etcdraft.State :=
-  have __src := TraceSim.simInit C;
-  { server := __src.server, s := fun i => if i ∈ TraceSim.confAbs C then (TraceSim.simInit C).s i else TraceSim.bootJunk,
-    messages := __src.messages, pendingMessages := __src.pendingMessages, reconfigCount := __src.reconfigCount,
-    preVote := __src.preVote, checkQuorum := __src.checkQuorum }
+theorem TraceSim.bootDones_mem (tn : TraceSim.TraceNames) (Dn C : List w64) : (monoListAuthOwn tn.dn
+    1 Dn ∗ [∗list] i ∈ C, TraceSim.bootDone tn i) ⊢ monoListAuthOwn tn.dn 1 Dn ∗ ⌜∀ (i : w64), i ∈ C
+    → i ∈ Dn⌝
 
-theorem TraceSim.bootInit_ne_simInit (C : List w64) : TraceSim.bootInit C ≠ TraceSim.simInit C
+theorem TraceSim.simInv_end_bootDone (C : List w64) (tn : TraceSim.TraceNames) (Fx : Etcdraft.State
+    → IProp GF) (L : List TraceEv) (hC0 : C ≠ []) (hCl : C.length < 2 ^ 40) : (traceAuth tn.tr L ∗
+    TraceSim.simInv C tn Fx ∗ [∗list] i ∈ C, TraceSim.bootDone tn i) ⊢ traceAuth tn.tr L ∗
+    TraceSim.simInv C tn Fx ∗ ⌜∃ t, Etcdraft.newTrace (List.map TraceSim.evConv L) = Except.ok t ∧
+    t.init = TraceSim.simInit C ∧ t.server = TraceSim.confAbs C ∧ t.initSrv = TraceSim.confAbs C⌝

@@ -28,6 +28,9 @@ def TraceSim.toC (srv : Etcdraft.SetIds) (v : Etcdraft.Server) : TraceSim.Server
     matchIndex := List.map v.matchIndex srv, pendingConfChangeIndex := v.pendingConfChangeIndex, config := v.config,
     durable := v.durable }
 
+theorem TraceSim.bootDone_persistent (tn : TraceSim.TraceNames) (i : w64) : Persistent
+    (TraceSim.bootDone tn i)
+
 def TraceSim.simInit (C : List w64) : Etcdraft.State :=
   have srv := TraceSim.confAbs C;
   have v :=
@@ -41,11 +44,13 @@ def TraceSim.simInit (C : List w64) : Etcdraft.State :=
       commitIndex := ↑C.length, votesResponded := [], votesGranted := [], matchIndex := fun x => 0,
       pendingConfChangeIndex := 0, config := { incoming := srv, outgoing := [], learners := [] }, durable := default };
   { server := srv,
-    s := fun x =>
-      { currentTerm := v.currentTerm, state := v.state, votedFor := v.votedFor, lead := v.lead, log := v.log,
-        commitIndex := v.commitIndex, votesResponded := v.votesResponded, votesGranted := v.votesGranted,
-        matchIndex := v.matchIndex, pendingConfChangeIndex := v.pendingConfChangeIndex, config := v.config,
-        durable := Etcdraft.durableOf v },
+    s := fun i =>
+      if i ∈ srv then
+        { currentTerm := v.currentTerm, state := v.state, votedFor := v.votedFor, lead := v.lead, log := v.log,
+          commitIndex := v.commitIndex, votesResponded := v.votesResponded, votesGranted := v.votesGranted,
+          matchIndex := v.matchIndex, pendingConfChangeIndex := v.pendingConfChangeIndex, config := v.config,
+          durable := Etcdraft.durableOf v }
+      else TraceSim.bootJunk,
     messages := [], pendingMessages := [], reconfigCount := 0 }
 
 theorem TraceSim.simRun_accepts (C : List w64) (L : List TraceEv) (σ : Etcdraft.State) (t :
@@ -56,6 +61,16 @@ theorem TraceSim.simRun_accepts (C : List w64) (L : List TraceEv) (σ : Etcdraft
 def TraceSim.simBoot (tn : TraceSim.TraceNames) (i : w64) (b : Bool) (o : Option TraceEv) : IProp GF
     :=
   i ↪[tn.bt] (b, o)
+
+def TraceSim.bootJunk : Etcdraft.Server :=
+  have v :=
+    { currentTerm := 0, state := Etcdraft.follower, votedFor := Etcdraft.nil, lead := Etcdraft.nil, log := [],
+      commitIndex := 0, votesResponded := [], votesGranted := [], matchIndex := fun x => 0, pendingConfChangeIndex := 0,
+      config := { incoming := [], outgoing := [], learners := [] }, durable := default };
+  { currentTerm := v.currentTerm, state := v.state, votedFor := v.votedFor, lead := v.lead, log := v.log,
+    commitIndex := v.commitIndex, votesResponded := v.votesResponded, votesGranted := v.votesGranted,
+    matchIndex := v.matchIndex, pendingConfChangeIndex := v.pendingConfChangeIndex, config := v.config,
+    durable := Etcdraft.durableOf v }
 
 def TraceSim.bagOf (l : List Etcdraft.Msg) : Etcdraft.Bag :=
   List.foldl Etcdraft.Bag.with [] l
@@ -91,6 +106,9 @@ def TraceSim.BootSegs (C : List w64) (L : List TraceEv) : Prop :=
 def TraceSim.bootSeg (L : List TraceEv) (i : w64) : List TraceEv :=
   List.takeWhile (fun x => Etcdraft.isBootstrapName (TraceSim.gsStr x.name))
     (List.filter (fun x => decide (x.nid = decStr i)) L)
+
+def TraceSim.bootDone (tn : TraceSim.TraceNames) (i : w64) : IProp GF :=
+  iprop(∃ k, monoListIdxOwn tn.dn k i)
 
 def TraceSim.bootFlags (srv : Etcdraft.SetIds) (lines : List Etcdraft.Line) : List Bool :=
   List.map (fun k => (List.map (fun i => (Etcdraft.bootstrapOf lines i).fst) srv).any fun f => f.getD k false)
@@ -178,10 +196,28 @@ structure TraceSim.TraceNames : Type where
   bag : GName
   voters : List w64
   bt : GName
+  dn : GName
 
 def TraceSim.config_countable : Pos.Countable Etcdraft.Config :=
   countableOfLeftInverse (fun c => (c.incoming, c.outgoing, c.learners))
     (fun p => { incoming := p.fst, outgoing := p.snd.fst, learners := p.snd.snd }) TraceSim.config_countable._proof_1
+
+theorem TraceSim.simInit_s_voter (C : List w64) (i : Etcdraft.ID) (h : i ∈ TraceSim.confAbs C) :
+    (TraceSim.simInit C).s i = have v :=
+      { currentTerm := 1, state := Etcdraft.follower, votedFor := Etcdraft.nil, lead := Etcdraft.nil,
+        log :=
+          List.map
+            (fun k =>
+              { term := 1, type := Etcdraft.EntryType.config,
+                value := Etcdraft.Value.conf (TraceSim.confAbs (List.take (k + 1) C)) [] })
+            (List.range C.length),
+        commitIndex := ↑C.length, votesResponded := [], votesGranted := [], matchIndex := fun x => 0,
+        pendingConfChangeIndex := 0, config := { incoming := TraceSim.confAbs C, outgoing := [], learners := [] },
+        durable := default };
+    { currentTerm := v.currentTerm, state := v.state, votedFor := v.votedFor, lead := v.lead, log := v.log,
+      commitIndex := v.commitIndex, votesResponded := v.votesResponded, votesGranted := v.votesGranted,
+      matchIndex := v.matchIndex, pendingConfChangeIndex := v.pendingConfChangeIndex, config := v.config,
+      durable := Etcdraft.durableOf v }
 
 def TraceSim.booted (L : List TraceEv) (i : Etcdraft.ID) : Prop :=
   ∃ x,
@@ -205,34 +241,39 @@ def TraceSim.linesTrace (C : List w64) (lines : List Etcdraft.Line) : Etcdraft.T
   { lines := lines, server := TraceSim.confAbs C, initSrv := TraceSim.confAbs C,
     bootstrap := TraceSim.bootFlags (TraceSim.confAbs C) lines, init := TraceSim.simInit C }
 
+theorem TraceSim.simInit_s_nonvoter (C : List w64) (i : Etcdraft.ID) (h : ¬i ∈ TraceSim.confAbs C) :
+    (TraceSim.simInit C).s i = TraceSim.bootJunk
+
 def TraceSim.simInv (C : List w64) (tn : TraceSim.TraceNames) (Fx : Etcdraft.State → IProp GF) :
     IProp GF :=
-  iprop(∃ L σ A B phP phM Bt,
+  iprop(∃ L σ A B phP phM Bt Dn,
       traceFrag tn.tr L ∗
         ghostMapAuth tn.st 1 A ∗
           ghostMapAuth tn.bag 1 B ∗
             ghostMapAuth tn.bt 1 Bt ∗
-              Fx σ ∗
-                ⌜TraceSim.SimRun C L σ ∧
-                    σ.server = TraceSim.confAbs C ∧
-                      (∀ (i : w64), i ∈ C → ∃ P, A !! i = some (TraceSim.toC σ.server (σ.s (TraceSim.idAbs i)), P)) ∧
-                        (∀ (i : w64), ¬i ∈ C → A !! i = none) ∧
-                          TraceSim.BagRep σ.pendingMessages
-                              (List.flatMap (fun i => (Option.map Prod.snd (A !! i)).getD []) C ++ phP) ∧
-                            TraceSim.BagRep σ.messages (List.map Prod.snd B.toList ++ phM) ∧
-                              σ.preVote = false ∧
-                                σ.checkQuorum = false ∧
-                                  (∀ (i : w64),
-                                      i ∈ C →
-                                        ∀ (x : Etcdraft.Msg),
-                                          x ∈ (Option.map Prod.snd (A !! i)).getD [] → x.source = TraceSim.idAbs i) ∧
+              monoListAuthOwn tn.dn 1 Dn ∗
+                Fx σ ∗
+                  ⌜TraceSim.SimRun C L σ ∧
+                      σ.server = TraceSim.confAbs C ∧
+                        (∀ (i : w64), i ∈ C → ∃ P, A !! i = some (TraceSim.toC σ.server (σ.s (TraceSim.idAbs i)), P)) ∧
+                          (∀ (i : w64), ¬i ∈ C → A !! i = none) ∧
+                            TraceSim.BagRep σ.pendingMessages
+                                (List.flatMap (fun i => (Option.map Prod.snd (A !! i)).getD []) C ++ phP) ∧
+                              TraceSim.BagRep σ.messages (List.map Prod.snd B.toList ++ phM) ∧
+                                σ.preVote = false ∧
+                                  σ.checkQuorum = false ∧
                                     (∀ (i : w64),
                                         i ∈ C →
-                                          ∃ b o,
-                                            Bt !! i = some (b, o) ∧
-                                              (b = true ↔ TraceSim.booted L (TraceSim.idAbs i)) ∧
-                                                TraceSim.LastOf L (decStr i) o ∧ (b = true → o.isSome = true)) ∧
-                                      TraceSim.SimEvents C.length L ∧ TraceSim.BootSegs C L⌝)
+                                          ∀ (x : Etcdraft.Msg),
+                                            x ∈ (Option.map Prod.snd (A !! i)).getD [] → x.source = TraceSim.idAbs i) ∧
+                                      (∀ (i : w64),
+                                          i ∈ C →
+                                            ∃ b o,
+                                              Bt !! i = some (b, o) ∧
+                                                (b = true ↔ TraceSim.booted L (TraceSim.idAbs i)) ∧
+                                                  TraceSim.LastOf L (decStr i) o ∧ (b = true → o.isSome = true)) ∧
+                                        TraceSim.SimEvents C.length L ∧
+                                          TraceSim.BootSegs C L ∧ ∀ (i : w64), i ∈ Dn → TraceSim.BootDone C L i⌝)
 
 def TraceSim.msgType_countable : Pos.Countable Etcdraft.MsgType :=
   countableOfLeftInverse
@@ -255,9 +296,10 @@ def TraceSim.msgType_countable : Pos.Countable Etcdraft.MsgType :=
     ⋯
 
 def TraceSim.traceNames_countable : Pos.Countable TraceSim.TraceNames :=
-  countableOfLeftInverse (fun n => (n.tr, n.st, n.bag, n.voters, n.bt))
+  countableOfLeftInverse (fun n => (n.tr, n.st, n.bag, n.voters, n.bt, n.dn))
     (fun p =>
-      { tr := p.fst, st := p.snd.fst, bag := p.snd.snd.fst, voters := p.snd.snd.snd.fst, bt := p.snd.snd.snd.snd })
+      { tr := p.fst, st := p.snd.fst, bag := p.snd.snd.fst, voters := p.snd.snd.snd.fst, bt := p.snd.snd.snd.snd.fst,
+        dn := p.snd.snd.snd.snd.snd })
     TraceSim.traceNames_countable._proof_1
 
 def TraceSim.entry_countable : Pos.Countable Etcdraft.Entry :=
