@@ -4,7 +4,7 @@ the file's size is unchanged and the range's bytes are the data or the old ones.
 -/
 module
 
-public import GooseLang.Ext.OsFs.Write
+public import GooseLang.Ext.Fs.Write
 
 @[expose] public section
 
@@ -13,6 +13,8 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace bbolt
+
+open Fs
 
 theorem pwSize_inside (sz off j : Nat) (n : Nat) (hj : j ≤ n) (h : off + n ≤ sz) :
     pwSize sz off j = sz := by

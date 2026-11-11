@@ -148,6 +148,10 @@ def toks (p : Ino) (s : CSt) : List (Nat × TokInfo) :=
       pwAnn data n (cfRange s.m s.bs off data.length)⟩)]
   | .trunc t sz n => [(t, ⟨p, .truncate sz, n, s.m, rsAnn n []⟩)]
 
+/-- What a crash sees of a state's `OsMeta` has its cut. -/
+theorem vmeta_cut (s : CSt) : s.vmeta.cut = s.m.cut := by
+  unfold CSt.vmeta; split <;> simp [cfMeta, OsMeta.announce]
+
 /-- What the specs keep of a state: all the bytes, the frozen ones inside, a write in flight
 misses them (and so does what it appends, which starts at the size), a truncate grows. -/
 def Wf (s : CSt) : Prop :=
@@ -188,7 +192,7 @@ end CSt
 is `Good`, given the crash's facts. -/
 def FileOkS (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) (i : Ino) (s : CSt) :
     Prop :=
-  ∀ f, FileCrashedR s.vmeta s.vruns (some f) → CrashSeenR Q i s.vmeta s.vruns (s.toks i) (some f) →
+  s.m.cut = none → ∀ f, FileCrashedR s.vmeta s.vruns (some f) → CrashSeenR Q i s.vmeta s.vruns (s.toks i) (some f) →
     Good (some f)
 
 /-! ## What a crash sees does not depend on fractions -/
@@ -258,7 +262,7 @@ theorem fileOkS_idle {Q : OsState → OsState → Prop} {Good : Option OsFile �
     simp [CSt.taken, hb]
   have hm : s.vmeta = s.m := by simp [CSt.vmeta, hb]
   have ht : s.toks i = [] := by simp [CSt.toks, hb]
-  intro f hc hs
+  intro _ f hc hs
   rw [hm] at hc hs; rw [ht] at hs
   exact h f (fileCrashedR_sub hsub hc) (crashSeenR_sub hsub hs)
 
@@ -282,7 +286,7 @@ theorem fileOkS_write {Q : OsState → OsState → Prop} {Good : Option OsFile �
   have hm : s.vmeta = cfMeta s.m off data.length := by simp [CSt.vmeta, hb]
   have ht : s.toks i = cToks i (s.m, s.bs, some (t, off, data, n)) := by
     simp [CSt.toks, cToks, hb]
-  intro f hc hs
+  intro _ f hc hs
   rw [hm] at hc hs; rw [ht] at hs
   exact h f (fileCrashedR_sub hsub hc) (crashSeenR_sub hsub hs)
 
@@ -467,13 +471,20 @@ instance invResS_timeless (s : CState) : Timeless (invResS (L := L) s) := by
     · unfold pwTok osTok; infer_instance
     · unfold rsTok osTok; infer_instance
 
+/-- The state's file had no sync without its bytes (`OsMeta.cut`): what a crash leaves of it is
+read from its candidates exactly. Every crash-aware spec keeps it (their posts' metas keep the
+cut); the invariant carries it, so that the client's obligations need not. -/
+def CsCut : CState → Prop
+  | none => True
+  | some (_, s) => s.m.cut = none
+
 /-- The crash invariant of the file at `p` (the roots `R`): its state `s` (named by `γ`), the
 invariant's part of it, half of the tree's history `V`, `Ok s`, and that every crash of the
 history leaves `p` naming nothing (then `Good none`) or the state's file (`TreeOkI`). -/
 def csInv (N : Namespace) (p : GoString) (R : Roots) (γ : GName) (Good : Option OsFile → Prop)
     (Ok : CState → Prop) : IProp GF :=
   inv N iprop(∃ (s : CState) (V : Hist), ghostVar γ (1 : Qp).half s ∗ invResS (L := L) s ∗
-    osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ⌜Ok s ∧ TreeOkI Good p R (sIno s) V⌝)
+    osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗ ⌜Ok s ∧ TreeOkI Good p R (sIno s) V ∧ CsCut s⌝)
 
 instance csInv_persistent (N : Namespace) (p : GoString) (R : Roots) (γ : GName)
     (Good : Option OsFile → Prop) (Ok : CState → Prop) :
@@ -499,6 +510,8 @@ def csStart (i : Ino) (f : OsFile) : CState :=
 
 theorem csStart_wf (i : Ino) (f : OsFile) : CsWf (csStart i f) :=
   ⟨by simp [initMeta, contents_length], Nat.le_refl _, Nat.zero_le _, trivial⟩
+
+theorem csStart_cut (i : Ino) (f : OsFile) : CsCut (csStart i f) := rfl
 
 /-- What a generation's start gives of an idle state with nothing frozen: nothing, or its file
 whole. -/
@@ -537,7 +550,7 @@ history is `Good`. -/
 theorem csInv_alloc (N : Namespace) (p : GoString) (R : Roots) (V : Hist)
     (Good : Option OsFile → Prop) (Ok : CState → Prop) (s : CState)
     (hs : ∀ i x, s = some (i, x) → x.busy = .idle ∧ x.fb ≤ x.fa) (hok : Ok s)
-    (htr : TreeOkI Good p R (sIno s) V) (hwf : CsWf s) (hp : SPathOk p R s V) :
+    (htr : TreeOkI Good p R (sIno s) V) (hwf : CsWf s) (hcut : CsCut s) (hp : SPathOk p R s V) :
     ⊢ osTree (L := L) (DFrac.own 1) R V -∗ csStartRes (L := L) s ={⊤}=∗ ∃ γ,
       csInv (L := L) N p R γ Good Ok ∗ csOwn (L := L) p R γ s V := by
   iintro Ht Hf
@@ -547,8 +560,8 @@ theorem csInv_alloc (N : Namespace) (p : GoString) (R : Roots) (V : Hist)
   icases csStartRes_split s hs $$ Hf with ⟨Hi, Hth⟩
   imod inv_alloc N ⊤ (iprop(∃ (s : CState) (V : Hist), ghostVar γ (1 : Qp).half s ∗
       invResS (L := L) s ∗ osTree (L := L) (DFrac.own (1 : Qp).half) R V ∗
-      ⌜Ok s ∧ TreeOkI Good p R (sIno s) V⌝)) $$ [Hv1 Hi Ht1] with #Hinv
-  · inext; iexists s, V; iframe; ipureintro; exact ⟨hok, htr⟩
+      ⌜Ok s ∧ TreeOkI Good p R (sIno s) V ∧ CsCut s⌝)) $$ [Hv1 Hi Ht1] with #Hinv
+  · inext; iexists s, V; iframe; ipureintro; exact ⟨hok, htr, hcut⟩
   imodintro
   iexists γ
   unfold csInv csOwn csOwnF
@@ -600,7 +613,7 @@ the old parts come back, so that the invariant can be closed again. -/
 theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
     (V' : Hist) (p : GoString) (R : Roots) (Good : Option OsFile → Prop) (s : CState) (V : Hist)
     (hD : ∀ i, sIno s = some i → i ∉ D) (htr : TreeOkI Good p R (sIno s) V)
-    (hok : ∀ i x, s = some (i, x) → FileOkS Q Good i x) :
+    (hok : ∀ i x, s = some (i, x) → FileOkS Q Good i x) (hcut : CsCut s) :
     ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' -∗ invResS (L := L) s -∗
       osTree (L := L) (DFrac.own (1 : Qp).half) R V -∗
       ∃ fo, ⌜Good fo ∧ TreeCrashed V V'⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗ startAt L' p R V' fo ∗
@@ -639,7 +652,7 @@ theorem csInv_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     iexists (some f)
     iframe Ht' Ht Hm Hb
     isplitr
-    · ipureintro; exact ⟨hok i x rfl f hfc hseen, htc⟩
+    · ipureintro; exact ⟨hok i x rfl hcut f hfc hseen, htc⟩
     isplitl [Hf]
     · unfold startAt; rw [hl]; iexists f; isplitr
       · ipureintro; rfl

@@ -15,13 +15,15 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 /- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
-whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` at
 the head of each triple (a section variable is dropped from a definition that does not use it),
 and in the signature of each vocabulary predicate, so that every statement carries it (checked
 with `#check`). -/
@@ -35,7 +37,7 @@ otherwise the entry set (bbolt copies the key and keeps the value: read-only for
 bound excludes `ErrValueTooLarge` (`bboltEntryMax < MaxValueSize`): values bbolt accepts but
 cannot store are not `Put`'s (`notes/bbolt-spec-decisions.md`, D4). -/
 abbrev Bucket.Put.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
     (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
   {{ boltTx (GF := GF) tx γ 1 T ∗ boltBkt tx γ b n (T.gen n) ∗ key ↦*{dk} kb ∗ value ↦*□ vb ∗
       ⌜T.rw = true ∧ T.cur.lookup n = some m ∧ kb.length + vb.length ≤ bboltEntryMax⌝ }}

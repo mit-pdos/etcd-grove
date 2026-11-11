@@ -130,7 +130,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     obtain ⟨f, hf, -⟩ := this
     rw [hp, hn] at hf; cases hf
   refine ⟨fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, hcoh.toks, hcoh.tok_is, fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_⟩
+    hcoh.fds, hcoh.toks, hcoh.tok_is, fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_,
+    fun q m c hm hc => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
     · simp
     · exact hcoh.meta_dom q
@@ -150,7 +151,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
       exact ⟨f1, by rw [files_setFile, if_neg hpq]; exact h1, MetaOk.transfer (st := st) (st' := st.setFile n newFile) rfl rfl hm1⟩
   · obtain ⟨f1, h1, hb, hx1⟩ := hcoh.bytes q i x hx
     have hpq : n ≠ q := fun e => by subst e; rw [hn] at h1; cases h1
-    exact ⟨f1, by rw [file_setFile_ne _ _ hpq]; exact h1, hb, hx1⟩
+    refine ⟨f1, by rw [file_setFile_ne _ _ hpq]; exact h1, hb, ?_⟩
+    rw [cutOf_insert, if_neg hpq]; exact hx1
   · rw [file_setFile] at h1; split at h1
     · cases h1; simp [newFile, OsFile.ofBytes, OsFile.ofDisk] at hi
     · exact hcoh.bytes_full q f1 i h1 hi
@@ -159,6 +161,10 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t ti h
     exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
+  · rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · cases hm; simp [newMeta, initMeta] at hc
+    · exact hcoh.cut_le q m c hm hc
 
 end create
 

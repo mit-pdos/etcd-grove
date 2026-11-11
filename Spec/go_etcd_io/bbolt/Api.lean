@@ -11,7 +11,7 @@ and who took them: `notes/bbolt-spec-decisions.md`; `notes/decisions.md`, "bbolt
 of `Proof/go_etcd_io/bbolt/Inv/` (U0a, `notes/bbolt-proof-plan.md`: `isBolt db γ` is
 `isBoltDef (bnsOf γ.gs) γ.ns db`, and so on), with the statements they had as `opaque`s (their
 ambient instance arguments now include the heap's, which their bodies use). Each takes OsFs's
-`[HasExt osFsExt]` in its signature. **The laws** are proved from their `…Def` versions in
+`[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` in its signature. **The laws** are proved from their `…Def` versions in
 `Inv/`, whose `sorry`s are the proof's planned work.
 -/
 module
@@ -21,7 +21,7 @@ public import GeneratedProof.go_etcd_io.bbolt.errors
 public import Perennial.Proof.ProofPrelude
 public import Perennial.ProgramLogic.Bounds
 public import Iris.BI.Lib.Atomic
-public import GooseLang.Ext.OsFs.Specs
+public import GooseLang.Ext.Fs.Specs
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.go_etcd_io.bbolt.Data
 import Proof.go_etcd_io.bbolt.Inv.FileHolds
@@ -33,6 +33,8 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace bbolt
+
+open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
@@ -73,7 +75,7 @@ variable [go_gctx : GoGlobalContext]
 /- The vocabulary is over OsFs's semantics (round 11: the default `osFs_semantics`, D22): each
 predicate takes the instance in its signature (round 10), and the laws, which use the
 predicates, take this section variable. -/
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -88,20 +90,20 @@ It also owns **`DB`'s exported fields** (`StrictMode`, `NoSync`, `NoGrowSync`, `
 must not write them after `Open` (Go lets it; the specs do not, since no client holds their
 points-to). `StrictMode = true` alone would change `Commit` (it runs `tx.Check()`: goroutines,
 read transactions, a panic on any report). etcd writes none of them. -/
-@[no_expose] def isBolt [HasExt osFsExt] (db : Loc) (γ : BoltName) : IProp GF :=
+@[no_expose] def isBolt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) : IProp GF :=
   isBoltDef (bnsOf γ.gs) γ.ns db
 
 /-- **The committed data of `γ` is `D`**, at fraction `q`: the client's view, which the
 atomic updates of `Begin(false)` and `Commit` act on (fractional: a read needs some fraction, a
 commit all of it). Survives `Close` (the data then stays `D`). -/
-@[no_expose] def boltState [HasExt osFsExt] (γ : BoltName) (q : Qp) (D : Data) : IProp GF :=
+@[no_expose] def boltState [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (q : Qp) (D : Data) : IProp GF :=
   boltStateDef (bnsOf γ.gs) q D
 
 /-- **`tx` is a transaction of `γ`, live, with the view `T`**, at fraction `q`. A read
 transaction's whole (`q = 1`) holds the reader slot `Begin(false)` took for the caller's
 `threadTok` (given back by `Rollback`); its fractions may be shared between goroutines for
 reads. A write transaction's operations that change it need all of it. -/
-@[no_expose] def boltTx [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) : IProp GF :=
+@[no_expose] def boltTx [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) : IProp GF :=
   boltTxDef (bnsOf γ.gs) γ.ns tx q T
 
 -- Round 6: `txSnap` (and `boltTx_snap`, `txSnap_agree`) dropped (review 5, finding 5): with no
@@ -110,17 +112,17 @@ reads. A write transaction's operations that change it need all of it. -/
 
 /-- `tx` is a transaction of the database `db` named `γ` (persistent; what `Tx.DB` returns).
 Takes `γ` (batch 21, approved by the user, 2026-11-04; the D-C precedent of `boltBkt`/`boltCur`). -/
-@[no_expose] def txDB [HasExt osFsExt] (tx : Loc) (γ : BoltName) (db : Loc) : IProp GF :=
+@[no_expose] def txDB [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (db : Loc) : IProp GF :=
   txDBDef (bnsOf γ.gs) γ.ns tx db
 
 /-- `tx` was committed or rolled back (persistent): its statistics can be read. -/
-@[no_expose] def txDone [HasExt osFsExt] (tx : Loc) : IProp GF :=
+@[no_expose] def txDone [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) : IProp GF :=
   txDoneDef tx
 
 /-- `b` is `tx`'s handle of the bucket named `n` at generation `g` (persistent). Its operations
 need `n` at generation `g` in the transaction's view: a deleted bucket's handle is never current
 again (a re-created bucket of the name gets a new generation). -/
-@[no_expose] def boltBkt [HasExt osFsExt] (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
+@[no_expose] def boltBkt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
   boltBktDef (bnsOf γ.gs) tx b n g
 
 /-- `c` is a cursor of `tx`, made at the view `T`, over the entries `es`, at position `pos`
@@ -128,13 +130,13 @@ again (a re-created bucket of the name gets a new generation). -/
 `es.length`, see `Cursor.Next.spec`). Exclusive. Its moves need `tx` at the view `T`: after a
 change of the transaction, a cursor made before it is not usable (Go: "You must reposition your
 cursor after mutating data"; the spec does not let it be repositioned). -/
-@[no_expose] def boltCur [HasExt osFsExt] (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) : IProp GF :=
+@[no_expose] def boltCur [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) : IProp GF :=
   boltCurDef (bnsOf γ.gs) tx c T es pos
 
 /-- The slice `s` holds `b` while `tx` is live (persistent; read with `txBytes_acc`): a key or
 value bbolt returned, pointing into the memory map (unmapped by a remap or `Close`, which wait
 for the transaction) or into the transaction's nodes. -/
-@[no_expose] def txBytes [HasExt osFsExt] (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) : IProp GF :=
+@[no_expose] def txBytes [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) : IProp GF :=
   txBytesDef (bnsOf γ.gs) tx s b
 
 /-- **The file at `path` holds a database with the data `D`** (exclusive): what `Open` reads.
@@ -236,8 +238,17 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 -- invariant design (D-B: `osInv` is an invariant, so `fileHolds` was not timeless, and the fold's
 -- reason went with D22 = (b)): `Open` takes `osInv` separately, and `fileHolds` is `osMeta`,
 -- `osBytes` and pure facts.
-@[no_expose] def fileHolds [HasExt osFsExt] (path : GoString) (D : Data) : IProp GF :=
-  fileHoldsDef path D
+@[no_expose] def fileHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (i : Ino) (D : Data) : IProp GF :=
+  fileHoldsDef i D
+
+/-- **What `Open(path)` needs of the file system**, in the directory tree `(R, V)`: `path` names a
+file that holds a database with the data `D` (`fileHolds`), or nothing, in a directory of the
+tree, and then `D = ∅` (`Open` creates the file there: bbolt always passes `O_CREATE`). -/
+def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : Hist) (path : GoString)
+    (D : Data) : IProp GF :=
+  iprop((∃ i, ⌜lookupH R V path = some (.file i)⌝ ∗ fileHolds i D) ∨
+    ⌜∃ d b j, path = child d b ∧ NameOk b ∧ lookupH R V d = some (.dir j) ∧
+      lookupH R V path = none ∧ D = ∅⌝)
 
 /-! ## Laws -/
 
@@ -305,8 +316,8 @@ theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Dat
 @[instance] theorem boltCur_timeless (tx : Loc) (γ : BoltName) (c : Loc) (T : TxView)
     (es : List BoltEnt) (pos : Option Nat) : Timeless (boltCur (GF := GF) tx γ c T es pos) := by
   unfold boltCur; infer_instance
-@[instance] theorem fileHolds_timeless (path : GoString) (D : Data) :
-    Timeless (fileHolds (GF := GF) path D) := by
+@[instance] theorem fileHolds_timeless (i : Ino) (D : Data) :
+    Timeless (fileHolds (GF := GF) i D) := by
   unfold fileHolds; infer_instance
 
 /-- A slice the transaction returned is read while the transaction is live (any fraction). -/
@@ -366,17 +377,10 @@ a file model where these system calls may fail; only the trust-boundary layer
 `DB.Close_kv` (backend) rests on it. -/
 opaque dbCloseOk : Prop
 
-/-- **A fresh file holds the empty database** (round 2; the concurrent test's start, a path in a
-fresh directory): no file at `path`, or an empty one with no mapping, in OsFs's terms
-(`GooseLang/Ext/OsFs/Specs.lean`). Round 11: stated again, at the default semantics (D22). (D-B,
-the coordinator: no `osInv` here, which `fileHolds` no longer holds.) -/
-theorem fileHolds_new (path : GoString) (mo : Option OsMeta) :
-    osMeta (GF := GF) path (DFrac.own 1) mo ∗
-      (match mo with
-       | none => iprop(emp)
-       | some m => iprop(⌜m.size = 0 ∧ m.maps = ∅⌝ ∗ osBytes (GF := GF) path 0 (DFrac.own 1) []))
-    ⊢ fileHolds path ∅ := by
-  unfold fileHolds; exact fileHoldsDef_new _ _
+/-- **A file just created holds the empty database** (`os.OpenFile.specCreate`'s `newMeta`). -/
+theorem fileHolds_new (i : Ino) :
+    osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ fileHolds i ∅ := by
+  unfold fileHolds; exact fileHoldsDef_new _
 
 end vocab
 
@@ -384,7 +388,7 @@ section stat
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 /- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
-whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` at
 the head of each triple (a section variable is dropped from a definition that does not use it),
 and in the signature of each vocabulary predicate, so that every statement carries it (checked
 with `#check`). -/
@@ -399,7 +403,7 @@ caller whose token a read transaction holds, as the backend's `begin` right afte
 *pair* per token, an `mmaplock` reader token and a `statlock` one, so a read transaction's slot
 covers its `Stats`; it needs all of the transaction, since two holders of fractions calling
 `Stats` at once would need two `statlock` tokens. -/
-def statSlot [HasExt osFsExt] (γ : BoltName) : Option (Loc × Data) → IProp GF
+def statSlot [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : Option (Loc × Data) → IProp GF
   | none => threadTok
   | some (tx, D) => boltTx tx γ 1 (TxView.ro D)
 

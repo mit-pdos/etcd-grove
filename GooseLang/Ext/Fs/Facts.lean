@@ -43,8 +43,22 @@ theorem size_of_file {st : OsState} {i : Ino} {f : OsFile} (hf : st.file i = som
 
 theorem coh_byte {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
     {b : Nat} {x : ByteG} (hx : Γb !! (i, b) = some x) :
-    ∃ f, st.file i = some f ∧ b < f.size ∧ x = (f.cache b, f.cand b) :=
+    ∃ f, st.file i = some f ∧ b < f.size ∧ x.1 = f.cache b ∧ (∃ s, (x.1, s) ∈ x.2) ∧
+      CandRel (cutOf Γm i) x.2 (f.cand b) :=
   hcoh.bytes i b x hx
+
+/-- A byte resource of a file with no cut is the state's byte exactly. -/
+theorem coh_byte_exact {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
+    {b : Nat} {x : ByteG} (hcut : cutOf Γm i = none) (hx : Γb !! (i, b) = some x) :
+    ∃ f, st.file i = some f ∧ b < f.size ∧ x = (f.cache b, f.cand b) := by
+  obtain ⟨f, hf, hb, h1, -, h3⟩ := hcoh.bytes i b x hx
+  rw [hcut] at h3
+  exact ⟨f, hf, hb, Prod.ext h1 h3.symm⟩
+
+/-- The cut of `i` after `i`'s `OsMeta` is replaced by `m'`. -/
+theorem cutOf_insert (Γm : GMap Ino OsMeta) (i q : Ino) (m' : OsMeta) :
+    cutOf (<[i := m']> Γm) q = if i = q then m'.cut else cutOf Γm q := by
+  unfold cutOf; rw [GMap.lookup_insert_eq_iff]; split <;> simp
 
 theorem coh_tok {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     {c : OsChange} (ht : st.proc.inflight !! t = some c) : ∃ ti, Γt !! t = some ti ∧ ti.Is c := by
@@ -181,16 +195,18 @@ theorem osCoh_setFile {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     (Γb' : GMap (Ino × Nat) ByteG) (m' : OsMeta) (st' : OsState)
     (hst' : st'.fs.files = <[i := f']> st.fs.files) (hproc : st'.proc = st.proc)
     (hmo : MetaOk st' i m' f')
-    (hbi : ∀ b x, Γb' !! (i, b) = some x → b < f'.size ∧ x = (f'.cache b, f'.cand b))
+    (hbi : ∀ b x, Γb' !! (i, b) = some x → b < f'.size ∧ x.1 = f'.cache b ∧
+      (∃ s, (x.1, s) ∈ x.2) ∧ CandRel m'.cut x.2 (f'.cand b))
     (hfull : ∀ b, b < f'.size → (Γb' !! (i, b)).isSome)
-    (hother : ∀ q b, q ≠ i → Γb' !! (q, b) = Γb !! (q, b)) :
+    (hother : ∀ q b, q ≠ i → Γb' !! (q, b) = Γb !! (q, b))
+    (hstamp : st.fs.stamp ≤ st'.fs.stamp) (hcut : ∀ c, m'.cut = some c → c ≤ st'.fs.stamp) :
     OsCoh st' Γb' (<[i := m']> Γm) Γf Γt := by
   have hfile : ∀ q, st'.file q = if i = q then some f' else st.file q := by
     intro q; simp only [OsState.file, hst', GMap.lookup_insert_eq_iff]
   refine ⟨fun q => ?_, fun q m hm => ?_, fun q b x hx => ?_, fun q f1 b h1 hb => ?_,
     by rw [hproc]; exact hcoh.fds, fun t => by rw [hproc]; exact hcoh.toks t,
     fun t ti c h hc => by rw [hproc] at hc; exact hcoh.tok_is t ti c h hc,
-    fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_⟩
+    fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_, fun q m c hm hc => ?_⟩
   · rw [hst', GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]
     split
     · simp
@@ -202,12 +218,13 @@ theorem osCoh_setFile {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m hm
       exact ⟨f1, by rw [hst', GMap.lookup_insert_eq_iff, if_neg hpq]; exact h1,
         hm1.transfer (by rw [hproc]) (by rw [hproc])⟩
-  · by_cases hq : q = i
+  · rw [cutOf_insert]
+    by_cases hq : q = i
     · subst hq; obtain ⟨h1, h2⟩ := hbi b x hx
-      exact ⟨f', by rw [hfile, if_pos rfl], h1, h2⟩
+      exact ⟨f', by rw [hfile, if_pos rfl], h1, by rw [if_pos rfl]; exact h2⟩
     · rw [hother q b hq] at hx
       obtain ⟨f1, h1, hb, hx⟩ := hcoh.bytes q b x hx
-      exact ⟨f1, by rw [hfile, if_neg (Ne.symm hq)]; exact h1, hb, hx⟩
+      exact ⟨f1, by rw [hfile, if_neg (Ne.symm hq)]; exact h1, hb, by rw [if_neg (Ne.symm hq)]; exact hx⟩
   · rw [hfile] at h1; split at h1
     · subst_vars; cases h1; exact hfull b hb
     · rename_i hq; rw [hother q b (Ne.symm hq)]; exact hcoh.bytes_full q f1 b h1 hb
@@ -217,6 +234,10 @@ theorem osCoh_setFile {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t ti h))]; exact h1, hrest⟩
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t ti h
     exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t ti h))]; exact h1, hrest⟩
+  · rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · cases hm; exact hcut c hc
+    · exact Nat.le_trans (hcoh.cut_le q m c hm hc) hstamp
 
 /-- No change in flight on a file whose whole `OsMeta` the client holds (`tokRes_meta_whole`), as
 the state has it. -/
@@ -294,7 +315,19 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
       rw [he]
       exact ⟨f, hf, ⟨hmo.size, hmo.lo, hmo.hi, by rw [← he]; exact h6, hmo.targets, hmo.dur,
         hmo.zf, hmo.tail⟩⟩
-    tok_meta := htok }
+    bytes := fun q b x hx => by
+      have hc : cutOf Γm' q = cutOf Γm q := by
+        unfold cutOf
+        cases h1 : Γm' !! q with
+        | none => rw [(hdom q).1 h1]
+        | some m' =>
+          obtain ⟨m, hm, he, -⟩ := hsome q m' h1
+          rw [hm]; simp only [Option.bind_some]; rw [he]
+      rw [hc]; exact hcoh.bytes q b x hx
+    tok_meta := htok
+    cut_le := fun q m' c h hc => by
+      obtain ⟨m, hm, he, -⟩ := hsome q m' h
+      exact hcoh.cut_le q m c hm (by rw [he] at hc; exact hc) }
 
 end maps
 

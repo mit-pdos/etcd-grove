@@ -23,6 +23,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -47,13 +49,13 @@ theorem dropBkt_ofC (c : TxViewC) (n : GoString) :
   · simp [h, Ne.symm h]
 
 theorem Tx.DeleteBucket.wp_proof
-    (hBw : ∀ [HasExt osFsExt], Bucket.Bucket_w.spec (GF := GF) (hG := hG))
-    (hCur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
-    (hSeek : ∀ [HasExt osFsExt], Cursor.seek_w.spec (GF := GF) (hG := hG))
-    (hFeb : ∀ [HasExt osFsExt], Bucket.ForEachBucket_w.spec (GF := GF) (hG := hG))
-    (hNode : ∀ [HasExt osFsExt], Cursor.node.spec (GF := GF) (hG := hG))
+    (hBw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Bucket_w.spec (GF := GF) (hG := hG))
+    (hCur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
+    (hSeek : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_w.spec (GF := GF) (hG := hG))
+    (hFeb : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.ForEachBucket_w.spec (GF := GF) (hG := hG))
+    (hNode : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.node.spec (GF := GF) (hG := hG))
     (hDel : node.del.spec (GF := GF) (hG := hG))
-    (hFree : ∀ [HasExt osFsExt], Bucket.free_dead.spec (GF := GF) (hG := hG))
+    (hFree : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.free_dead.spec (GF := GF) (hG := hG))
     (hClone : cloneBytes.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Tx.DeleteBucket.spec (GF := GF) (hG := hG) := by

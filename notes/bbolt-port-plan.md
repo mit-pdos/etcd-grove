@@ -424,3 +424,59 @@ and the invariant would carry the candidates instead of hiding them.
    `_kv` axioms rather than `Open.spec`.
 3. Should real bbolt get a crash theorem now (minibolt's design, P1) or stay Hoare-only? This plan keeps it
    Hoare-only, as on lean.
+
+## 7. Implementation log
+
+**2026-11-12, fork BX (step 3 begun, branch `fs-lean`).**
+
+Done:
+- **The byte-less fsync (§2.3), program logic only.** Not the plan's field-by-field superset: a
+  *cut*. `OsMeta.cut : Option Nat` (default `none`), and the byte clause of the state
+  interpretation (`OsCoh.bytes`, `GooseLang/Ext/Fs/Ghost.lean`) relates a byte resource's
+  candidates to the state's by `CandRel (cutOf Γm i)`: `none`, equal (every existing proof's case);
+  `some c`, the same candidates stamped after `c`, and every value of the state's among the
+  resource's. A byte resource also records that its page-cache value is among its candidates'
+  values. `OsCoh.cut_le`: a cut is at most the last change number. `wp_osFsyncB`
+  (`GooseLang/Ext/Fs/Specs.lean`): `{osMeta i 1 m} fsync {e = 0 ∗ ∃ c, osMeta i 1 (m.bsynced c) ∨
+  e ≠ 0, e ≠ EINTR ∗ osMeta i 1 m}`, `OsMeta.bsynced c := {m with cut := some c, zf := some
+  (pageUp m.size), tc := ∅}` (size, maps, crash bounds kept). Why a cut and not a superset: a
+  sync replaces each byte's candidates by one stamped 0, which no list relation on the resource's
+  candidates alone predicts after later writes; the cut keeps the later candidates equal, so every
+  write/resize/finish spec stays exact after it (`CandRel.append`), and the crash lemmas use only
+  values (`CandRel.mem`). Stamp-precise reasoning (minibolt's P1) still needs `cut = none`, which
+  holds for every file that never had a byte-less sync. Every spec, the crash layer, `Proof/os`,
+  crashlog and walfs (three results) rebuilt; no statement of theirs changed. `osMeta_eq` gained the
+  `cut` hypothesis.
+- **The merge review's fixes** (`notes/axiom-review/fs-lean-merge.md`, dispositions appended).
+- **The mechanical step (§5.6)**: `etc/fs-port/bbolt-rename.py`, run over the 1044 files: the
+  instance binders, imports, `open Fs`. What still mentions the v1 extension is doc text.
+- **Statements, not yet type-checked** (bbolt does not build until the substantive files are
+  ported, as before the merge): `fileHolds (i : Ino) D` and `fileHoldsDef` by inode
+  (`Inv/FileHolds.lean`), no "no file" case (it is `pathHolds`'s); `pathHolds R V path D`
+  (`Spec/go_etcd_io/bbolt/Api.lean`); `fileHolds_new : osMeta i 1 newMeta ⊢ fileHolds i ∅`;
+  `Open.spec` over `osTree (own 1) R V ∗ pathHolds R V path D`, returning the tree (`V' = V ∨ V'
+  = V.push e`) and, on success, `lookupH R V' path = some (.file i)`; `fdatasync.spec` and
+  `Tx.write_ext.spec` by inode; `osSlot` by inode, over `ByteG`.
+
+Deviation from the plan:
+- **`BC` keeps the path and gains the inode** (`BC.p : GoString`, `BC.i : Ino`), not `K.p → K.i`:
+  the path is also the file's name (`fileOwn f fd p`, `db.path ↦ p`), which the inode does not
+  give. Every resource is keyed by `K.i`; `fileOwn` and `db.path` keep `K.p`.
+
+Not done (in order):
+1. `WriteAt` past the end of the file (§2.5) and the lifted `2 ^ 30` premise (§2.6, chunks;
+   `Proof/os/WriteChunks.lean` over the new extension), with the page-cut error case (§2.4);
+   lean's `fmtErrorOkOrNil` on `WriteAt`/`ReadAt`/`OpenFile`; `specRacyLt`.
+2. bbolt's invariants beyond `osSlot` and `BC` (`Inv/{Store,Locks,WSlots,Bolt,Tx,Txs}` over
+   `K.i`), the 38 file-name files, then the 62 substantive files; `Link`, `Results`; gates.
+
+**2026-11-12, fork BX, continued.** minibolt rebuilt over the cut: `CSt.Wf` (`Proof/os/CrashSt.lean`)
+gains `s.m.cut = none` (no sync without the bytes in a crash-proved client; preserved by every
+crash-aware op, `Proof/os/CrashStOps.lean`, since their posts' metas keep the cut), `CSt.vmeta_cut`;
+`kc_cand` (`bboltfs/CrashOk.lean`) reads the candidates exactly through `coh_byte_exact`;
+`synced_eq` (`bboltfs/DB__init.lean`) takes the cuts' equality.
+Status at this commit: every osfs target builds but bboltfs `Results` (the crash side): minibolt's
+crash files build their states' `Wf` themselves (`DBCrash.writer_okS`, `DB__initCrash`'s
+`noValid_okS`/`initMid_okS`/`hfacts` uses), which now need `m'.cut = none`. Next: `WReach.cut`
+(`m'.cut = m.cut`, by induction, `Spec/os/CrashSt.lean`), `m.cut = none` in `initIdle` and
+`commitClean` (their producers: `newMeta`, a file on disk, `CsWf`), then those constructions.

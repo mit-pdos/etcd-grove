@@ -275,8 +275,12 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       · intro _ _ h; cases h
       · intro _ _ h; simp only [csStart, Option.some.injEq, Prod.mk.injEq] at h
         obtain ⟨-, rfl⟩ := h; exact ⟨rfl, Nat.le_refl _⟩
+    have hcut : CsCut s := by
+      rcases hst with rfl | ⟨i, vs, sz, rfl, -⟩
+      · trivial
+      · exact csStart_cut i _
     imod csInv_alloc (L := hG.goose_localGS) dbCrashN (child dir dbB) R (m, []) Good dbOk s hidle
-      (startSt_okS hst) htr hwf hp $$ Ht Hsr with ⟨%γ, #Hinv, Hown⟩
+      (startSt_okS hst) htr hwf hcut hp $$ Ht Hsr with ⟨%γ, #Hinv, Hown⟩
     imodintro
     isplitl [Hgs Hown Htok]
     · -- the boot program
@@ -294,7 +298,7 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
         with ⟨Hi, Hclose⟩
       icases Hi with ⟨%s', %W, >Hv, >Hs, >Ht, >%Hok⟩
       icases csInv_crash_keep P1 hG.goose_localGS L' [] V' (child dir dbB) R Good s' W
-          (fun _ _ => List.not_mem_nil) Hok.2 (fun i x h => by subst h; exact Hok.1) $$ Hr Hs Ht
+          (fun _ _ => List.not_mem_nil) Hok.2.1 (fun i x h => by subst h; exact Hok.1) Hok.2.2 $$ Hr Hs Ht
         with ⟨%fo', %hgt, Ht', Hst, -, Hs, Ht⟩
       obtain ⟨hg', htc'⟩ := hgt
       imod Hclose $$ [Hv Hs Ht] with -

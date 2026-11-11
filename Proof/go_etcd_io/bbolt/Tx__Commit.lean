@@ -15,6 +15,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -24,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 theorem Tx.Commit.wp_proof
-    (wp_Commit_err : ∀ [HasExt osFsExt], Tx.Commit_err.spec (GF := GF) (hG := hG)) :
+    (wp_Commit_err : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG)) :
     Tx.Commit.spec (GF := GF) (hG := hG) := by
   intro hos tx γ T Q
   wp_start_folded as Hpre

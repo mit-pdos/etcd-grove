@@ -161,12 +161,12 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
     rcases hhi with h | ⟨t, c, ht, hci, h⟩
     · exact Nat.le_trans h hok.hi
     · exact Nat.le_trans h (hok.targets t c ht hci).2
-  · obtain ⟨f1, hf1, -, hx⟩ := hcoh.bytes i _ _ (hrs r hr k hk)
+  · obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes i _ _ (hrs r hr k hk)
     simp only [OsState.file, hf, Option.some.injEq] at hf1; subst hf1
-    rw [hx]
     simp only [OsFile.ofDisk] at hks
     rw [hb _ hks]
-    exact hcand _
+    obtain ⟨s, hs⟩ := hcand (r.1 + k)
+    exact hrel.mem hs
   · simp only [OsFile.ofDisk] at hbs
     rw [hb _ hbs]
     obtain ⟨s, hs⟩ := hcand b

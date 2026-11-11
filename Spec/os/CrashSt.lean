@@ -50,6 +50,13 @@ inductive WReach (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) :
       WReach m bs off data nn'
         (pwPostK true m' (off + nn) (data.drop nn) k n) (finBytes m' bs' (off + nn) (data.drop nn) k n zs)
 
+/-- A state the loop reached has the start's cut (no attempt syncs). -/
+theorem WReach.cut {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
+    {m' : OsMeta} {bs' : List ByteG} (h : WReach m bs off data nn m' bs') : m'.cut = m.cut := by
+  induction h with
+  | refl => rfl
+  | step _ _ _ _ _ _ _ _ _ _ _ ih => simp [pwPostK, pwPost, OsMeta.announce, ih]
+
 /-- **A state the loop reached is one the write may pass through** (`WIn`), and the bytes written
 so far are inside it. -/
 theorem WReach.wIn {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}

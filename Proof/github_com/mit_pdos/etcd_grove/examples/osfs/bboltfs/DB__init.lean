@@ -50,9 +50,9 @@ theorem pwPost_synced_size (m : OsMeta) (off n k : Nat) :
     (pwPost m off n k).synced.size = pwSize m.size off k := rfl
 
 /-- Two synced `OsMeta`s of the same size and mappings are the same. -/
-theorem synced_eq (m1 m2 : OsMeta) (hs : m1.size = m2.size) (hm : m1.maps = m2.maps) :
-    m1.synced = m2.synced := by
-  cases m1; cases m2; simp only at hs hm; subst hs; subst hm; rfl
+theorem synced_eq (m1 m2 : OsMeta) (hs : m1.size = m2.size) (hm : m1.maps = m2.maps)
+    (hc : m1.cut = m2.cut) : m1.synced = m2.synced := by
+  cases m1; cases m2; simp only at hs hm hc; subst hs; subst hm; subst hc; rfl
 
 end osbytes
 
@@ -384,6 +384,10 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   have hm3 : (pwPost m2 0 D0.length D0.length).synced =
       ({ m with size := max m.size 16384 } : OsMeta).synced :=
     synced_eq _ _ hS3 ((announce_maps m2 _ _ (max m2.size (0 + D0.length))).trans (hm2m.trans hmaps.symm))
+      (by
+        have h1 : m1.cut = m.cut := by rw [← hm1']; simp [pwPost, OsMeta.synced]
+        have h2 : m2.cut = m1.cut := by rw [← hm2']; simp [pwPost, OsMeta.synced]
+        simp [pwPost, h2, h1])
   have hsz64 : sint.Z (W64 (m.size : Int)) = m.size := by
     have : (m.size : Int) < 2 ^ 63 := by omega
     word

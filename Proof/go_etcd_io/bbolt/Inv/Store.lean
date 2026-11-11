@@ -20,6 +20,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI go_etcd_io.bbolt
 
 section fbrec
@@ -45,7 +47,7 @@ end fbrec
 section store
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -57,8 +59,8 @@ def viewCells (q : Qp) (v : View) : IProp GF :=
   iprop([∗map] id ↦ pg ∈ v.pages, bytesPointsto (v.base +ₗ ((id * 4096 : Nat) : Int)) (DFrac.own q) pg)
 
 /-- The page-cache bytes of slot `s` of the file `p`, all of them, holding `bs`. -/
-def osSlot (p : GoString) (s : Nat) (bs : List w8) : IProp GF :=
-  iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs⌝)
+def osSlot (i : Ino) (s : Nat) (bs : List w8) : IProp GF :=
+  iprop(∃ xs : List ByteG, osBytes i (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs⌝)
 
 /-- The slots `S` whole, as they move between the store and `W`: their client cell halves (when
 mapped) and their page-cache bytes, holding `bs`. -/

@@ -461,8 +461,8 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
     (ti : TokInfo) (hti : ti.Is c) (hp : ti.ino = p) (hm0 : ti.m0 = m)
     (hn : ti.n = st.fs.stamp + 1) (hlh : c.lo ≤ c.hi)
     (hlen : ti.saved.length = min c.hi f.size - c.lo)
-    (hsv : ∀ j (hj : j < ti.saved.length), ti.saved[j] =
-      (f.cache (c.lo + j), f.cand (c.lo + j) ++ [(c.val (c.lo + j), ti.n)])) :
+    (hsv : ∀ j (hj : j < ti.saved.length), ∃ x, Γb !! (p, c.lo + j) = some x ∧ ti.saved[j] =
+      (x.1, x.2 ++ [(c.val (c.lo + j), ti.n)])) :
     OsCoh (startState st p f c t) (insertBytes p c.lo ti.saved Γb) (<[p := ti.meta]> Γm) Γf
       (<[t := ti]> Γt) := by
   obtain ⟨hino, hkind, hlo, hhi, htg, hval⟩ := hti
@@ -479,7 +479,7 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       else f.cand b := fun b => rfl
   refine ⟨fun q => ?_, fun q m' hm => ?_, fun q b x hx => ?_, fun q f1 b h1 hb => ?_,
     hcoh.fds, fun t' => ?_, fun t' ti' c' h1 h2 => ?_, fun t' ti' h => ?_, fun t' ti' h => ?_,
-    fun t' ti' h => ?_⟩
+    fun t' ti' h => ?_, fun q m' c' hm hc => ?_⟩
   · simp only [startState, OsState.addInflight, OsState.stampFile, GMap.lookup_insert_eq_iff]
     split
     · simp
@@ -511,24 +511,35 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
         cases h1'; exact absurd (hcp.symm.trans h2') hne
       · simp only [startState, OsState.addInflight] at h1'
         rw [GMap.lookup_insert_ne _ _ he] at h1'; exact hm1.targets t' c' h1' h2'
-  · rw [lookup_insertBytes] at hx
+  · have hcutp : cutOf (<[p := ti.meta]> Γm) p = cutOf Γm p := by
+      rw [cutOf_insert, if_pos rfl]; simp [TokInfo.meta, cutOf, Hml, hm0]
+    rw [lookup_insertBytes] at hx
     split at hx
     · rename_i hr
       obtain ⟨rfl, h1, h2⟩ := hr
       have hk : b - c.lo < ti.saved.length := by omega
-      rw [List.getElem?_eq_getElem hk, hsv _ hk] at hx; cases hx
-      refine ⟨f', by rw [hfile, if_pos rfl], by simp [f', OsFile.announce]; omega, ?_⟩
-      rw [show c.lo + (b - c.lo) = b by omega, hcand', if_pos (by
-        simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega), hn]; rfl
-    · obtain ⟨f1, h1, hb, hx1⟩ := hcoh.bytes q b x hx
+      obtain ⟨x0, hx0, hsx⟩ := hsv _ hk
+      rw [List.getElem?_eq_getElem hk, hsx] at hx; cases hx
+      rw [show c.lo + (b - c.lo) = b by omega] at hx0 ⊢
+      obtain ⟨f1, h1', hb1, hx1, ⟨s0, hs0⟩, hrel⟩ := hcoh.bytes _ b x0 hx0
+      rw [hf] at h1'; cases h1'
+      refine ⟨f', by rw [hfile, if_pos rfl], by simp [f', OsFile.announce]; omega,
+        by simp [f', OsFile.announce]; exact hx1, ⟨s0, List.mem_append_left _ hs0⟩, ?_⟩
+      rw [hcutp, hcand', if_pos (by
+        simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega), hn]
+      refine hrel.append _ _ (fun c0 hc0 => ?_)
+      have := hcoh.cut_le _ m c0 Hml (by simpa [cutOf, Hml] using hc0)
+      omega
+    · obtain ⟨f1, h1, hb, hx1, hmem, hrel⟩ := hcoh.bytes q b x hx
       by_cases hpq : p = q
       · subst hpq; rw [hf] at h1; cases h1
-        refine ⟨f', by rw [hfile, if_pos rfl], hb, ?_⟩
-        rw [hx1, hcand', if_neg]; · rfl
+        refine ⟨f', by rw [hfile, if_pos rfl], hb, by simp [f', OsFile.announce]; exact hx1, hmem, ?_⟩
+        rw [hcutp, hcand', if_neg]; · exact hrel
         rename_i hr
         simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]
         intro ⟨h1, h2⟩; exact hr ⟨rfl, h1, by omega⟩
-      · exact ⟨f1, by rw [hfile, if_neg hpq]; exact h1, hb, hx1⟩
+      · refine ⟨f1, by rw [hfile, if_neg hpq]; exact h1, hb, hx1, hmem, ?_⟩
+        rw [cutOf_insert, if_neg hpq]; exact hrel
   · rw [hfile] at h1; rw [lookup_insertBytes]
     split
     · rename_i hr; rw [List.getElem?_eq_getElem (by omega)]; rfl
@@ -566,6 +577,12 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       · rw [hm0] at hsz hc; exact hmo.tail b c (by rw [← hmo.size]; exact hsz) hc
     · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t' ti' h
       exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t' ti' h))]; exact h1, hrest⟩
+  · show c' ≤ st.fs.stamp + 1
+    rw [GMap.lookup_insert_eq_iff] at hm
+    split at hm
+    · cases hm; rw [TokInfo.meta, OsMeta.announce_cut, hm0] at hc
+      exact Nat.le_succ_of_le (hcoh.cut_le _ m c' (by rw [← hp] at Hml; exact Hml) hc)
+    · exact Nat.le_succ_of_le (hcoh.cut_le q m' c' hm hc)
 
 end start
 
@@ -648,10 +665,12 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
   have hni := noInfl_of_noTok hcoh Hnt
   have hnb : ¬ BusyAt st d.ino := by rintro ⟨t', c', ht', hc'⟩; exact hni t' c' ht' hc'
   have hgapf : off.toNat ≤ f.size := hmo.size ▸ hgap
-  have hxs : ∀ k (hk : k < xs.length), xs[k] = (f.cache (off.toNat + k), f.cand (off.toNat + k)) := by
+  have hxs : ∀ k (hk : k < xs.length), ∀ q ∈ xs[k].2, q.2 ≤ st.fs.stamp := by
     intro k hk
-    obtain ⟨f1, hf1, -, hx⟩ := hcoh.bytes _ _ _ (Hbl k hk)
-    rw [hf] at hf1; cases hf1; exact hx
+    obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes _ _ _ (Hbl k hk)
+    rw [hf] at hf1; cases hf1
+    exact hrel.stamps_le (fun p hp => hwf.stamps _ f _ p hf hp)
+      (fun c hc => hcoh.cut_le d.ino m c Hml (by simpa [cutOf, Hml] using hc))
   have Hh : ∀ l, Mapped st l → (h !! l).isSome := by
     intro l hm
     obtain ⟨x, hx⟩ := cellView_isSome hwf hm
@@ -687,7 +706,9 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
     (by show (pwAnn data n xs).length = _; rw [pwAnn_length, hlen, hmo.size, hclo]; rfl)
     (fun j hj => by
       simp only [ti] at hj ⊢
-      rw [pwAnn_getElem, hxs j (by simpa using hj), hclo]
+      have hj0 : j < xs.length := by simpa using hj
+      refine ⟨xs[j], by rw [hclo]; exact Hbl j hj0, ?_⟩
+      rw [pwAnn_getElem, hclo]
       congr 3
       have hj' : j < data.length := by
         have := hj; simp only [ti, pwAnn_length] at this; omega
@@ -779,8 +800,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
   iapply wp_value'
   iapply HΦ $$ %t %n %(⟨fun x hx q hq => by
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hx
-    rw [hxs k hk] at hq
-    exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq), fun b c hb hc q hq => by
+    exact Nat.lt_succ_of_le (hxs k hk q hq), fun b c hb hc q hq => by
     rw [← hmo.pc_cand b c (by rw [← hmo.size]; exact hb) hc] at hq
     exact Nat.lt_succ_of_le (hwf.stamps d.ino f _ q hf hq), Nat.succ_pos _⟩) Hfd
   unfold pwTok osTok
@@ -834,7 +854,8 @@ its file any more. -/
 theorem osCoh_done {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) :
     OsCoh (st.doneInflight t) Γb Γm Γf (GMap.delete t Γt) := by
   refine ⟨hcoh.meta_dom, fun q m hm => ?_, hcoh.bytes, hcoh.bytes_full, hcoh.fds, fun t' => ?_,
-    fun t' ti c' h1 h2 => ?_, fun t' ti h => ?_, fun t' ti h => ?_, fun t' ti h => ?_⟩
+    fun t' ti c' h1 h2 => ?_, fun t' ti h => ?_, fun t' ti h => ?_, fun t' ti h => ?_,
+    fun q m c hm hc => hcoh.cut_le q m c hm hc⟩
   · obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
     exact ⟨f, hf, hmo.mono_infl (st := st) rfl (doneInflight_sub st t)⟩
   · simp only [OsState.doneInflight, GMap.lookup_delete_iff]; split
@@ -1041,13 +1062,14 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
   have hszs := hwf.sizes c.ino f hf
   -- the bytes the change holds
   have hxs : ∀ j (hj : j < xs.length), (xs[j]).1 = f.cache (off + j) ∧
-      f.cand (off + j) = (xs[j]).2 ++ [(data.getD j 0, n)] := by
+      (∃ s, ((xs[j]).1, s) ∈ (xs[j]).2 ++ [(data.getD j 0, n)]) ∧
+      CandRel m.cut ((xs[j]).2 ++ [(data.getD j 0, n)]) (f.cand (off + j)) := by
     intro j hj
-    obtain ⟨f1, hf1, -, hx⟩ := hcoh.bytes _ _ _ (Hbl j (by simpa using hj))
+    obtain ⟨f1, hf1, -, hx1, hmem, hrel⟩ := hcoh.bytes _ _ _ (Hbl j (by simpa using hj))
     rw [hf] at hf1; cases hf1
-    rw [pwAnn_getElem] at hx
-    simp only [Prod.mk.injEq] at hx
-    exact ⟨hx.1, hx.2.symm⟩
+    rw [pwAnn_getElem] at hx1 hmem hrel
+    simp only [cutOf, Hml, Option.bind_some, OsMeta.announce_cut] at hrel
+    exact ⟨hx1, hmem, hrel⟩
   have hval : ∀ b, off ≤ b → b < off + data.length → c.val b = data.getD (b - off) 0 := by
     intro b h1 h2
     have hin : inRange c.lo c.hi b = true := by
@@ -1121,7 +1143,8 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
   have hcoh2 : OsCoh (pwState st t c.ino f c off k) (insertBytes c.ino off ys Γb)
       (<[c.ino := pwPostK keep m off data k n]> Γm) Γf (GMap.delete t Γt) := by
     refine osCoh_setFile (osCoh_done hcoh) hf
-      (noTok_done hwf hcoh hct) _ _ _ rfl rfl ?_ ?_ ?_ ?_
+      (noTok_done hwf hcoh hct) _ _ _ rfl rfl ?_ ?_ ?_ ?_ (Nat.le_refl _)
+      (fun c0 hc0 => hcoh.cut_le _ _ c0 Hml (by rw [hpp] at hc0; simpa using hc0))
     · -- the OsMeta
       have hlo := hmo.lo
       have hhi := hmo.hi
@@ -1193,8 +1216,9 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
         have hbo : b < off + data.length := by rw [hysl] at hj; omega
         refine ⟨by rw [hsz2]; exact hbz, ?_⟩
         simp only [hys0, pwBytes, List.getElem_map, List.getElem_range]
-        simp only [Prod.mk.injEq]
-        constructor
+        have hcutp : (pwPostK keep m off data k n).cut = m.cut := by rw [hpp]; simp
+        rw [hcutp]
+        refine ⟨?_, ?_, ?_⟩
         · rw [show off + (b - off) = b by omega, hcache b]
           unfold pwByte
           by_cases hlt : b < off + k
@@ -1205,25 +1229,39 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
             rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbx]
             simp only [Option.getD_some]
             have := (hxs _ hbx).1; rw [show off + (b - off) = b by omega] at this; exact this
-        · show _ = f.cand b
+        · unfold pwByte
+          by_cases hlt : off + (b - off) < off + k
+          · rw [if_pos hlt]; exact ⟨n, List.mem_append_right _ (by simp)⟩
+          · rw [if_neg hlt]
+            have hbx : b - off < xs.length := by
+              have := (hpsz b).1 hbz; rw [hxl, hmsz]; omega
+            rw [if_pos hbx, show off + (b - off) - off = b - off by omega,
+              List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbx]
+            simp only [Option.getD_some]
+            exact (hxs _ hbx).2.1
+        · show CandRel m.cut _ (f.cand b)
           by_cases hbx : b - off < xs.length
           · rw [if_pos hbx]
-            have := (hxs _ hbx).2
+            have := (hxs _ hbx).2.2
             rw [show off + (b - off) = b by omega] at this
-            rw [this, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbx]; rfl
+            rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbx]; exact this
           · rw [if_neg hbx]
             have hfb : f.size ≤ b := by rw [hxl, hmsz] at hbx; omega
+            apply CandRel.of_eq
             rw [hzs b hfb hbz, hxl, hmsz]
             congr 2; omega
-      · obtain ⟨f1, hf1, hb, hx1⟩ := hcoh.bytes _ _ _ hx
+      · obtain ⟨f1, hf1, hb, hx1, hmem, hrel⟩ := hcoh.bytes _ _ _ hx
         rw [hf] at hf1; cases hf1
         rename_i hr
-        refine ⟨by rw [hsz2]; exact (hpsz b).2 (.inl hb), ?_⟩
-        have hnot : ¬ (off ≤ b ∧ b < off + k) := by
-          rintro ⟨h1, h2⟩
-          apply hr; refine ⟨rfl, h1, ?_⟩
-          rw [hysl]; have := (hpsz b).2 (.inr ⟨by omega, h2⟩); omega
-        rw [hx1, hcache b, if_neg hnot]; rfl
+        refine ⟨by rw [hsz2]; exact (hpsz b).2 (.inl hb), ?_, hmem, ?_⟩
+        · have hnot : ¬ (off ≤ b ∧ b < off + k) := by
+            rintro ⟨h1, h2⟩
+            apply hr; refine ⟨rfl, h1, ?_⟩
+            rw [hysl]; have := (hpsz b).2 (.inr ⟨by omega, h2⟩); omega
+          rw [hx1, hcache b, if_neg hnot]
+        · have hcutp : (pwPostK keep m off data k n).cut = m.cut := by rw [hpp]; simp
+          simp only [cutOf, Hml, Option.bind_some, OsMeta.announce_cut] at hrel
+          rw [hcutp]; exact hrel
     · intro b hb
       rw [lookup_insertBytes]
       split
