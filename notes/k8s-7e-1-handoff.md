@@ -642,3 +642,7 @@ land.sh only on 81's go.
   matches; collections: only mvccfull +`DefaultBackoffConfig_init`; interfaces unchanged; gen-init
   clean; Freeze §3 redone against `06b1b9c059`.
 - Next: `etc/land.sh` (log `/shared/tmp/k8s7e1/land.log`).
+- First land.sh run (gates FAILED, lean unchanged): `issues/INDEX.md` stale (regenerated); mode gate:
+  `etcdRangeSpecE_M` (approved bridge, literal `false`) unclassified; classified `bridge` by name in
+  `etc/mode-allow.txt`, client/v3 lit-mode baseline 17 → 18 (precedents e66b6ce246, 769e06a57a).
+  Rerunning land.sh.
