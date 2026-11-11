@@ -9,6 +9,51 @@ Lean names, the outcome it allows or excludes and the evidence (measured, docume
 in `examples/osfs/semantics/` (indexed in its `doc.go`). A change to the semantics adds or updates
 its example in the same commit (`CLAUDE.md`, "Layout").
 
+## Byte-level crash candidates (2026-11-11, the user's decisions; supersedes V5)
+
+**What changed.** A file is its page cache (`OsFile.cache`) and, per byte, a list of crash
+candidates (`OsFile.cand : Nat → List (w8 × Nat)`): the value as of the last successful sync
+(stamped 0), then each value a change since announced for it, stamped with the change's number
+(`FsState.stamp`, numbered from 1). A change (`PWriteStart`, `FtruncateStart`, `FallocStart`,
+`O_TRUNC`) announces all its data when it starts (`OsFile.announceWrite`/`announceResize`); its
+finish changes the page cache by what landed. A successful sync collapses each byte not under a
+change in flight to its page-cache value (zero in a page past the size); a failed sync changes
+nothing. **A crash leaves each byte any one of its candidates, independently** (`CrashFile`).
+Removed: per-sector versions (`Sector`, `SecCand`, `Landed`, the dirty bit, `syncFailed`, lost
+sectors), `NoTear.lean` and its premise, the "no mixed writeback" assumption, and device sector
+atomicity (kept: a device write leaves each byte old or new, never garbage, SQLite's "linear" model).
+
+**Why.** Measured on configuration C (`notes/axiom-review/fs-v2-r6/e2e/`): one aligned 4096-byte
+`pwrite` reaches disk torn mid-sector in two ways. (A) Its source crosses a page that compaction is
+migrating: the copy stops there, the prefix is committed, writeback takes it (49 torn images in 5
+runs). (B) A page rewritten while its previous writeback is in flight: without stable pages the
+device reads a mix (1.3-2.2 % of such writebacks, aligned buffers, no compaction). Every guarantee
+that grouped bytes (V5's "a crash leaves each sector one whole version", NoTear's page cuts, no
+mixed writeback) was false of C. The user: "The general semantics should avoid making sector-level
+assumptions, and we could do the byte-level thing in general" (2026-11-11); per-byte version lists
+over sector versions, with the stamps, so that the clients' premises can name "one state" of a
+range without the semantics grouping bytes.
+
+**The failed-sync simplification.** The dirty and lost bits existed only for a failed `fsync`
+whose writeback failed (Linux marks its pages clean; a later sync does not redo them). Under the
+environment's "no failed writeback" (F1) that never happens: a failed `fsync`'s writeback either
+completed or left the pages dirty, so a later successful sync makes everything durable. The model
+keeps the failure (an errno) and makes it change nothing.
+
+**Client premises** (`Premises.lean`; a theorem states them on its executions, as crash filters of
+`fsSemWithS`): `valAt l n` is a byte's value right after change `n` (its candidate of largest stamp
+up to `n`); `SectorWhole covers`: each 512-byte sector below the crash size of a covered file comes
+back as one state `valAt · m` of that sector. False of C in general (A, B); assumed only for etcd's
+WAL, whose `isTornEntry` relies on it: a known limitation (`notes/STATUS.md`;
+`nonissues/etcd-wal-torn-tail-mid-sector.md`). bbolt's P1 (a validating meta slot is one state of
+its sector, `valAt · m`) is stated in bbolt's statement file the same way.
+
+**Open.** The stamps of a change are taken at its start with all its data; a short write's real
+page-cache state (a prefix new, the rest old) is a byte-wise mix of two stamps, not one: a premise
+of "one state" excludes it, which for `SectorWhole` is the assumption's intent (a sector torn by
+a short write is a torn sector) and for P1 a slot torn that way must fail its checksum, as one torn
+by A or B.
+
 ## Why
 
 The extension as of `worktree-walfs-ext` has two ways to name a file: the original fixed table of
@@ -48,7 +93,8 @@ crash model at the granularity of 512-byte sectors, which is what etcd's WAL nee
   Names keep a base and a log, where file contents do not, because a crash keeps a prefix of one
   global order. A directory `fsync` commits through the last operation that changed its entries
   (`dirCommitLen`); a file `fsync` commits no name (as before; weaker than ext4).
-- **V5, file contents by 512-byte sectors.** A file is a map from sector numbers to sectors. A
+- **V5, file contents by 512-byte sectors.** *Superseded 2026-11-11* by "Byte-level crash
+  candidates" above (a crash leaving each sector one whole version is false on C). A file is a map from sector numbers to sectors. A
   sector holds every version it had since the last successful sync (the last one is the page
   cache's), and the kernel's dirty bit. A crash leaves one of the versions. There is no separate
   page cache (`cur`) or disk image (`durable`): the page cache is the last version of each sector,

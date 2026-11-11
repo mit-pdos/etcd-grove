@@ -9,12 +9,12 @@ import (
 // An append into the block that holds the end is not ordered (model decision,
 // a consequence of durable zeros covering only the pages past the size).
 //
-// Decision: the page that holds the file's end keeps its sectors' on-disk
-// versions past the size (OsFile.ofDisk: diskSec gives vs n for a page with a
+// Decision: the page that holds the file's end keeps its bytes past the size
+// as they are on disk (OsFile.ofDisk: diskByte gives img b for a page with a
 // byte below the size), stale bytes a crash left there included; a crash may
-// keep a grown size with such a sector's synced version.
+// keep a grown size with those bytes' synced values.
 //
-// Lean: Impl.lean: diskSec, OsFile.ofDisk, CrashFile; Tests.lean:
+// Lean: Impl.lean: diskByte, OsFile.ofDisk, CrashFile; Tests.lean:
 // crash_append_old_block.
 //
 // Allowed: after the crash below, size 1 (00); size 2 with 00 05; and size 2
@@ -25,7 +25,7 @@ import (
 // on disk, size 2 reading 00 07). A write into an allocated block updates the
 // size at write_end, and the next journal commit can carry it without the
 // data. Programs must not trust a grown length: etcd's WAL checks every
-// record's CRC and treats a zero sector as torn.
+// record's CRC (and treats a zero sector as torn, premise_sector_whole.go).
 func AppendOldBlock(dir string) {
 	f, _ := os.Create(dir + "/f")
 	f.Write([]byte{0x00})

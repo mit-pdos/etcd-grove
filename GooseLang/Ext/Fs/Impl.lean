@@ -1,12 +1,13 @@
 /-
-The Linux file extension of GooseLang, version 2 [Trusted definitions!]. The design is
-`notes/fs-semantics-v2.md`. Each decision below has a Go example saying why, in
-`examples/osfs/semantics/` (indexed in its `doc.go`); a change here updates its example.
+The Linux file extension of GooseLang [Trusted definitions!]. The design is
+`notes/fs-semantics-v2.md` ("Byte-level crash candidates"). Each decision below has a Go example
+saying why, in `examples/osfs/semantics/` (indexed in its `doc.go`); a change here updates its
+example.
 
 A node's files and directories as Linux exposes them to one process: the directory tree under
-fixed roots (`Tree.lean`), each file's page cache and what its disk may hold, by 512-byte sectors;
-and the process's fds, directory fds, system calls in flight and read-only shared mappings. The
-machine's part (`FsState`) survives the process; the process's part (`ProcState`) does not.
+fixed roots (`Tree.lean`); each file's page cache and, byte by byte, what its disk may hold after a
+crash; and the process's fds, directory fds, system calls in flight and read-only shared mappings.
+The machine's part (`FsState`) survives the process; the process's part (`ProcState`) does not.
 
 **Configuration C** (the one target; `notes/axiom-review/fs-config/README.md`, whose `check.sh`
 checks a machine against it and whose `mkfs-mount.sh` every experiment uses). Linux 7.0, x86-64,
@@ -29,24 +30,20 @@ whole journal (`ext4_force_commit` for a file that is not regular, `fs/ext4/fsyn
 **Restarts**: the program restarts only after a machine restart, or after the previous process
 has exited (every thread of it returned from the kernel; by any means, a Go runtime fatal error
 such as `netpollinit failed` at the first `os.OpenFile` included, which the model does not
-describe otherwise) and a `sync(2)` has made everything it
-left durable (a supervisor runs `sync` before restarting the program, e.g. systemd's
-`ExecStartPre=/bin/sync`): with no failed writeback, the disk then holds the page cache and the
-journal is committed, so a process's restart is the machine crash that keeps everything, and the
-model has machine crashes only (`notes/fs-semantics-v2.md`). The device honours cache flushes, has no media errors, and writes each 512-byte sector
-atomically: a crash leaves each sector of a write entirely as it was or entirely as sent (sound for
-512n and 4Kn devices alike; it excludes a device whose write damages sectors it was not writing).
-**No mixed writeback**: the data a writeback sends never mixes a page's contents before and after
-a concurrent write into it (ext4 does not promise this: without stable pages a write
-may change a page during its DMA; it is assumed, `notes/fs-semantics-v2.md`). **No failed
-writeback**: no writeback of a file in the roots' trees fails (the device returns no I/O error, and
-writeback never fails to allocate blocks, ext4's "Delayed block allocation failed"): Linux may drop
-the page cache's copy of data whose writeback failed, so that reads return the disk's older
-contents, which the model does not describe (`notes/axiom-review/fs-v2.md`, F1; the model's failed
-`fsync` and lost sectors remain, more behaviours than this assumption leaves). **Durable at first
-start**: when the program first starts, the roots' trees and every file in them are durable: nothing
-has changed them since their last successful `sync`, `syncfs` or `fsync` (F2). Only paths in the
-roots' trees are given a meaning: a step on any other path is stuck.
+describe otherwise) and a `sync(2)` has made everything it left durable (a supervisor runs `sync`
+before restarting the program, e.g. systemd's `ExecStartPre=/bin/sync`): with no failed
+writeback, the disk then holds the page cache and the journal is committed, so a process's
+restart is the machine crash that keeps everything, and the model has machine crashes only. The
+device honours cache flushes, has no media errors, and never returns garbage: a write it was
+doing when the power went leaves each byte with its old or its new value (SQLite's "linear"
+sector writes, `https://www.sqlite.org/atomiccommit.html`; nothing is assumed about which).
+**No failed writeback**: no writeback of a file in the roots' trees fails (the device returns no
+I/O error, and writeback never fails to allocate blocks, ext4's "Delayed block allocation
+failed"; F1, `notes/axiom-review/fs-v2.md`): so a failed `fsync` lost nothing, and a later
+successful one makes everything durable. **Durable at first start**: when the program first
+starts, the roots' trees and every file in them are durable: nothing has changed them since their
+last successful `sync`, `syncfs` or `fsync` (F2). Only paths in the roots' trees are given a
+meaning: a step on any other path is stuck.
 
 **Soundness discipline.** The model is never more defined than Linux:
 * *Misuse is stuck*: a closed, forged or wrong-mode fd, an unsupported flag, `PROT_WRITE`, a
@@ -54,18 +51,16 @@ roots' trees are given a meaning: a step on any other path is stuck.
   is not canonical in a root's tree.
 * *Environmental failure is a nondeterministic errno*: every step that makes a system call may fail
   with any nonzero errno; on failure, the changes listed in each case may or may not have happened;
-  a failed `pread` read a prefix; a failed `pwrite` wrote a prefix; a failed `fsync` leaves the
-  dirty sectors' writeback undone, and Linux marks them clean, so a later sync does not redo them.
+  a failed `pread` read a prefix; a failed `pwrite` wrote a prefix.
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`) is two steps
   (`…Start`/`…Finish`, the change in flight between them, `ProcState.inflight`); a mapped load that
-  could see part of it is stuck (a hole), a racing `pread` or `fstat` returns any mix, and a crash
-  may find any prefix of it landed. Path calls (`CallBegin` … step) overlap, except that a rename
-  of a directory is stuck while any other path call is in flight: Linux walks a path a component at
-  a time, and the model resolves it at one instant, which agrees with Linux only when no directory
-  is moved during the walk. This stuck case depends on other threads, so the model contains Linux's
-  behaviours for the runs of programs proved not stuck (every WP is), which never have that
-  overlap. A crash keeps a set of logged operations that respects the journal's order (`Tree.lean`,
-  `Follows`).
+  could see part of it is stuck (a hole), a racing `pread` or `fstat` returns any mix. Path calls
+  (`CallBegin` … step) overlap, except that a rename of a directory is stuck while any other path
+  call is in flight: Linux walks a path a component at a time, and the model resolves it at one
+  instant, which agrees with Linux only when no directory is moved during the walk. This stuck
+  case depends on other threads, so the model contains Linux's behaviours for the runs of programs
+  proved not stuck (every WP is), which never have that overlap. A crash keeps a set of logged
+  operations that respects the journal's order (`Tree.lean`, `Follows`).
 * *Mappings*: a mapped cell is an ordinary byte cell; a store to it succeeds in the model, which on
   Linux is a fatal fault (`PROT_READ`), so the model's extra behaviours there are never Go's (Go's
   runtime makes the fault fatal unless `runtime/debug.SetPanicOnFault`, which Perennial does not
@@ -76,24 +71,34 @@ roots' trees are given a meaning: a step on any other path is stuck.
 cells of every mapping show the file; a removed mapping's cells are gone; every other cell is
 unchanged.
 
-**Crash** (`OsCrash`): a machine crash (a restart of the process is one, by the environment's
-assumption on restarts). It keeps the
-durable tree with a set of the metadata operations since replayed (the committed ones, closed under
-the journal's order, `Follows`); every file that tree names
-becomes a crash image (a size it had since its last successful sync, or one an in-flight change
-gives it; each sector one of the versions it had since its last successful sync, or the current one
-with part of an in-flight change, whole: on ext4 a block's tail past a recovered size may hold data
-whose size change was lost); every other file, and the process's state, is gone. **Durable
-zeros**: at every point where a file's size is durable (a successful sync, a boot, a crash), the
-sectors of each page wholly past that size are zeros: such a page has no block, or an unwritten
-one (`FALLOC_FL_KEEP_SIZE`'s), which reads as zeros (`diskSec`, `OsFile.synced`). With no other
-rule, a crash that keeps a size covering such a page leaves each of its sectors zeros or a later
-version: ext4 (`dioread_nolock`) commits a new block as an unwritten extent with the size that
-covers it before the data is written, and converts it when the write completes. The page holding
-the end keeps its sectors' versions past the size, stale bytes on disk included: an append into it
-is not ordered before its size. An extension (truncate-up, a write past the end, `fallocate`) reads
-zeros past the old size, stale bytes included. All measured on C (`notes/axiom-review/fs-config/
-crash.sh`, `fs-v2-f3/f3.sh`).
+**File bytes and crashes.** A file is its page cache (`OsFile.cache`, what reads see) and, for
+each byte, its *crash candidates* (`OsFile.cand`): the value it had at the last successful sync,
+then the value each change since announced for it, stamped with the change's number. A change
+announces its bytes when it starts, with all of its data, whatever it later lands (`…Start`); its
+finish changes the page cache by what landed. A successful sync (`OsFile.synced`) collapses every
+byte not under a change in flight to its page-cache value; a failed one changes nothing (no
+failed writeback). **The crash rule** (`OsCrash`, a machine crash; a restart of the process is
+one, by the environment's assumption on restarts): the durable tree is kept with a set of the
+metadata operations since replayed (the committed ones, closed under the journal's order,
+`Follows`); every file that tree names gets a size it had since its last successful sync (or one
+an in-flight change gives it) and **each byte any one of its candidates, independently**
+(`CrashFile`); every other file, and the process's state, is gone. Bytes are independent because
+Linux's are: one `pwrite` of a page can reach disk torn mid-sector, a prefix of it new (its source
+crossed a page that was migrated during the copy) or any mix of two writes (a page rewritten while
+its previous writeback was reading it, on a device without stable pages); both measured on C
+(`notes/axiom-review/fs-v2-r6/e2e/`). Nothing groups bytes into sectors. **Durable zeros**: at
+every point where a file's size is durable (a successful sync, a boot, a crash), the bytes of each
+page wholly past that size are zeros: such a page has no block, or an unwritten one (`dioread_nolock`
+and `FALLOC_FL_KEEP_SIZE` allocate unwritten extents), which reads as zeros (`diskByte`). The page
+holding the end keeps whatever its bytes past the size hold, stale ones included; an extension
+(truncate-up, a write past the end, `fallocate`) reads zeros past the old size. All measured on C
+(`notes/axiom-review/fs-config/crash.sh`, `fs-v2-f3/f3.sh`).
+
+**Client premises** (`Premises.lean`, never part of these semantics): a theorem may assume of its
+crashes more than this rule gives, as a stated premise on its executions. `SectorWhole` is one:
+each 512-byte sector of the files it covers comes back as one state of that sector (`valAt` at one
+stamp). It is false of Linux in general (the measurements above) and a known limitation, stated
+only for etcd's WAL, whose recovery (`isTornEntry`) assumes it.
 -/
 module
 
@@ -108,58 +113,46 @@ namespace Fs
 
 /-! ## State -/
 
-/-- The bytes of one 512-byte sector. -/
-abbrev SecBytes := Vector w8 512
+/-- The crash candidates of one byte: the values the disk may hold there after a crash, oldest
+first, each stamped with the number of the change that announced it; the first is the value as of
+the file's last successful sync (or boot, or crash), stamped 0. -/
+abbrev Cands := List (w8 × Nat)
 
-/-- A sector of zeros. -/
-def zeroSec : SecBytes := Vector.ofFn (fun _ => 0)
-
-/-- A 512-byte sector of a file: every version of its contents since the file's last successful
-sync, oldest first, the last one the page cache's (never empty); and the kernel's dirty bit, set by
-a change, cleared by a sync (a successful one writes the last version; a failed one does not, and a
-later one does not redo it: the sector is *lost*, not dirty with more than one version). -/
-structure Sector where
-  vers : List SecBytes
-  dirty : Bool
-
-/-- The page cache's version of the sector. -/
-def Sector.last (s : Sector) : SecBytes := s.vers.getLast?.getD zeroSec
-
-/-- A regular file: its sectors (sector `n` holds bytes `[512 n, 512 (n + 1))`, as zero past the
-size), its size, and the smallest and largest sizes since its last successful sync. A sector never
-written is a clean sector of zeros (`OsFile.ofBytes`). -/
+/-- A regular file: its page cache (`cache b` is byte `b` as reads see it below the size; past the
+size, what its page holds there), each byte's crash candidates, its size, and the smallest and
+largest sizes since its last successful sync. -/
 structure OsFile where
-  secs : Nat → Sector
+  cache : Nat → w8
+  cand : Nat → Cands
   size : Nat
   sizeLo : Nat
   sizeHi : Nat
 
-/-- Sector `n` of the bytes `c`, zero past their end. -/
-def secOf (c : List w8) (n : Nat) : SecBytes := Vector.ofFn (fun j : Fin 512 => c.getD (512 * n + j) 0)
+/-- The page of byte `b` holds a byte below the size `sz` (4096-byte pages, which are the blocks
+of the configuration: the header). -/
+def pageIn (sz b : Nat) : Bool := decide (4096 * (b / 4096) < sz)
 
-/-- The page of sector `n` holds a byte below the size `sz` (4096-byte pages, which are the
-blocks of the configuration: the header). -/
-def pageIn (sz n : Nat) : Bool := decide (4096 * (n / 8) < sz)
+/-- What the disk holds at byte `b` of a file of durable size `sz` whose bytes are `img`: `img b`
+in a page that holds a byte below `sz`; zero past it, a page with no block or an unwritten one
+(**durable zeros**, the header). -/
+def diskByte (img : Nat → w8) (sz b : Nat) : w8 := if pageIn sz b then img b else 0
 
-/-- What the disk holds in sector `n` of a file of durable size `sz` whose sectors hold `vs`:
-`vs n` in a page that holds a byte below `sz`; zeros past it, a page with no block or an unwritten
-one (**durable zeros**, the header). -/
-def diskSec (vs : Nat → SecBytes) (sz n : Nat) : SecBytes := if pageIn sz n then vs n else zeroSec
-
-/-- A file of size `sz` whose sector `n` holds `vs n`, all of it on disk (a boot and a crash find
-files so): the bytes past the size in its last page are whatever the sectors hold (stale ones
-included), the pages past it zeros (`diskSec`). -/
-def OsFile.ofDisk (vs : Nat → SecBytes) (sz : Nat) : OsFile :=
-  { secs := fun n => ⟨[diskSec vs sz n], false⟩, size := sz, sizeLo := sz, sizeHi := sz }
+/-- A file of size `sz` whose bytes are `img`, all of it on disk (a boot and a crash find files
+so): the bytes past the size in its last page are whatever `img` holds there (stale ones included),
+the pages past it zeros (`diskByte`); each byte's one candidate is what it holds. -/
+def OsFile.ofDisk (img : Nat → w8) (sz : Nat) : OsFile :=
+  { cache := diskByte img sz, cand := fun b => [(diskByte img sz b, 0)],
+    size := sz, sizeLo := sz, sizeHi := sz }
 
 /-- A file holding `c`, all of it on disk, zero past its end. -/
-def OsFile.ofBytes (c : List w8) : OsFile := OsFile.ofDisk (secOf c) c.length
+def OsFile.ofBytes (c : List w8) : OsFile := OsFile.ofDisk (fun b => c.getD b 0) c.length
 
-/-- Byte `b` of the page cache's versions of the sectors, past the size too. -/
-def OsFile.rawAt (f : OsFile) (b : Nat) : w8 := (f.secs (b / 512)).last.toList.getD (b % 512) 0
+/-- What reads, `fstat` and mappings see: the page cache, cut to the size. -/
+def OsFile.contents (f : OsFile) : List w8 := (List.range f.size).map f.cache
 
-/-- What reads, `fstat` and mappings see: the last version of each sector, cut to the size. -/
-def OsFile.contents (f : OsFile) : List w8 := (List.range f.size).map f.rawAt
+/-- Byte `b`'s value as of change `n`: its candidate of the largest stamp up to `n` (the page
+cache's value right after change `n`, had each change landed all it announced). -/
+def valAt (l : Cands) (n : Nat) : w8 := ((l.filter (·.2 ≤ n)).getLast?.map (·.1)).getD 0
 
 /-- An open file description: its file and access mode. (The file offset of `Seek`/`Write`/`Read`
 is the Go model's, `TrustedCode/os.lean`: every step here is positional.) -/
@@ -201,8 +194,9 @@ structure OsDirFd where
 /-- The machine's state: the roots (each a path and its directory's inode); the tree as of the boot
 (or the last crash) and the metadata operations since, in the order they took effect (the tree now
 is derived: `OsState.tree`); the entries of the log a directory `fsync` made durable (`committed`);
-the files; and the next inode number to allocate (every inode in use is below it). A file stays in
-`files` after its last name goes (its fds may still use it), until a crash. -/
+the files; the next inode number to allocate (every inode in use is below it); and the number of
+the last change announced (`OsFile.announce`; changes are numbered from 1). A file stays in `files`
+after its last name goes (its fds may still use it), until a crash. -/
 structure FsState where
   roots : List (GoString × Ino)
   treeDur : Tree
@@ -210,6 +204,7 @@ structure FsState where
   committed : Nat → Prop
   files : GMap Ino OsFile
   nextIno : Nat
+  stamp : Nat
 
 /-- The process's state: its fds (of files and of directories, with distinct numbers), its changes
 in flight (by the token their first step returned, `osTokV`), its mappings (by base address), and
@@ -233,7 +228,7 @@ structure OsState where
 
 instance : Inhabited OsState :=
   ⟨{ fs := { roots := [], treeDur := ∅, metaLog := [], committed := fun _ => False,
-                files := ∅, nextIno := 0 }
+                files := ∅, nextIno := 0, stamp := 0 }
      proc := ProcState.empty }⟩
 
 /-- The Linux file extension. Its values are the tokens of in-flight changes; it has no global
@@ -264,17 +259,14 @@ def osPageSize : Nat := 4096
 /-- `i` is in `[lo, hi)`. -/
 def inRange (lo hi i : Nat) : Bool := lo ≤ i && i < hi
 
-/-- Sector `n` meets the bytes `[lo, hi)`. -/
-def secHits (lo hi n : Nat) : Bool := lo < 512 * (n + 1) && 512 * n < hi
-
 /-! ## File effects -/
 
 section effects
 
-/-- The contents of `f` resized to `sz`: cut, or extended with zeros (whatever the sectors hold
-past the size: Linux zeroes it on an extension, F3). -/
+/-- The contents of `f` resized to `sz`: cut, or extended with zeros (whatever the page holds past
+the size: Linux zeroes it on an extension, F3). -/
 def OsFile.resized (f : OsFile) (sz : Nat) : List w8 :=
-  (List.range sz).map (fun b => if b < f.size then f.rawAt b else 0)
+  (List.range sz).map (fun b => if b < f.size then f.cache b else 0)
 
 /-- The contents of `f` with `d` written at `off`, any gap past the end zero (as `resized`).
 Writing nothing changes nothing, even past the end. -/
@@ -284,15 +276,26 @@ def OsFile.written (f : OsFile) (off : Nat) (d : List w8) : List w8 :=
     let c := f.resized (max f.size (off + d.length))
     c.take off ++ d ++ c.drop (off + d.length)
 
-/-- `f` with its contents changed to `c` by a change of the bytes `[lo, hi)`: each sector those
-bytes meet gets the new version and becomes dirty (a lost sector written again is dirty again: the
-next sync writes it); the size range widens to `c`'s length. -/
+/-- `f` with the change numbered `n` announced for the bytes `[lo, hi)`: each gets the candidate
+`v b`, stamped `n`. -/
+def OsFile.announce (f : OsFile) (lo hi : Nat) (v : Nat → w8) (n : Nat) : OsFile :=
+  { f with cand := fun b => if inRange lo hi b then f.cand b ++ [(v b, n)] else f.cand b }
+
+/-- `f` with a `pwrite` of `data` at `off` announced as change `n`: the bytes it may change, the
+zero gap before them included, with all of its data. -/
+def OsFile.announceWrite (f : OsFile) (off : Nat) (data : List w8) (n : Nat) : OsFile :=
+  f.announce (min off f.size) (off + data.length) (fun b => (f.written off data).getD b 0) n
+
+/-- `f` with a resize to `sz` announced as change `n`: every byte from where the old and new sizes
+part becomes zero (an extension reads zeros; a cut zeroes the page cache past the new end). -/
+def OsFile.announceResize (f : OsFile) (sz n : Nat) : OsFile :=
+  f.announce (min f.size sz) (max f.size sz) (fun _ => 0) n
+
+/-- `f` with its page cache changed to `c` in the bytes `[lo, hi)` (zero past `c`'s end), its size
+`c`'s length; the size range widens to it. -/
 def OsFile.change (f : OsFile) (c : List w8) (lo hi : Nat) : OsFile :=
-  { secs := fun n => let s := f.secs n
-      if secHits lo hi n then ⟨s.vers ++ [secOf c n], true⟩ else s,
-    size := c.length,
-    sizeLo := min f.sizeLo c.length,
-    sizeHi := max f.sizeHi c.length }
+  { f with cache := fun b => if inRange lo hi b then c.getD b 0 else f.cache b,
+           size := c.length, sizeLo := min f.sizeLo c.length, sizeHi := max f.sizeHi c.length }
 
 /-- `f` with `k` bytes of a `pwrite` of `data` at `off` landed (nothing if `k = 0`): the bytes
 `[min off size, off + k)` change, the zero gap before them included. -/
@@ -300,40 +303,19 @@ def OsFile.landWrite (f : OsFile) (off : Nat) (data : List w8) (k : Nat) : OsFil
   if k = 0 then f
   else f.change (f.written off (data.take k)) (min off f.size) (off + k)
 
-/-- `f` resized to `sz`: every byte from where the old and new sizes part changes. -/
+/-- `f`'s page cache resized to `sz`: every byte from where the old and new sizes part changes. -/
 def OsFile.truncate (f : OsFile) (sz : Nat) : OsFile :=
   f.change (f.resized sz) (min f.size sz) (max f.size sz)
 
-/-- `f` after a successful sync: the size is durable; of the sectors not under an in-flight change
-(`busy`), one in a page past the size is durable zeros (the sync committed the freeing of the blocks
-a shrink cut off; the header), and a dirty one is written, its versions collapsed to the last; a
-lost one is unchanged (Linux does not write it). -/
+/-- `f` after a successful sync: the size is durable; each byte not under an in-flight change
+(`busy`) is durable: its page-cache value in a page that holds a byte below the size, zero in a
+page past it (the sync committed the freeing of the blocks a shrink cut off; durable zeros, the
+header), its one candidate that value. -/
 def OsFile.synced (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFile :=
   { f with
-    secs := fun n => let s := f.secs n
-      if busy n then s
-      else if pageIn f.size n then (if s.dirty then ⟨[s.last], false⟩ else s)
-      else ⟨[zeroSec], false⟩,
+    cache := fun b => if busy b then f.cache b else diskByte f.cache f.size b,
+    cand := fun b => if busy b then f.cand b else [(diskByte f.cache f.size b, 0)],
     sizeLo := f.size, sizeHi := f.size }
-
-/-- `f` after a failed sync: the writeback of each dirty sector not under an in-flight change
-(`busy`) failed and Linux marks it clean: it is lost, its versions kept. The sizes are unchanged. -/
-def OsFile.syncFailed (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFile :=
-  { f with
-    secs := fun n => let s := f.secs n
-      if s.dirty ∧ ¬ busy n then { s with dirty := false } else s }
-
-/-- `f'` is `f` with each of the changes `ks`, in order, landed as some prefix: some bytes of a
-write (possibly none or all), a resize to any size between the file's and its target (ext4 resizes
-in chunks, and goes on after the process is killed, F5). -/
-inductive Landed : List OsChangeKind → OsFile → OsFile → Prop where
-  | nil (f : OsFile) : Landed [] f f
-  | write (off : Nat) (data : List w8) (k : Nat) (ks : List OsChangeKind) (f f' : OsFile) :
-      k ≤ data.length → Landed ks (f.landWrite off data k) f' →
-      Landed (.write off data :: ks) f f'
-  | trunc (sz sz' : Nat) (ks : List OsChangeKind) (f f' : OsFile) :
-      min f.size sz ≤ sz' → sz' ≤ max f.size sz →
-      Landed ks (f.truncate sz') f' → Landed (.truncate sz :: ks) f f'
 
 end effects
 
@@ -368,16 +350,8 @@ def OsChange.target (c : OsChange) : Nat :=
 def InflightAt (i : Ino) (b : Nat) : Prop :=
   ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ Affects st c b
 
-/-- Some in-flight change may change a byte of sector `n` of the file of `i`. -/
-def SecBusy (i : Ino) (n : Nat) : Prop :=
-  ∃ b, 512 * n ≤ b ∧ b < 512 * (n + 1) ∧ InflightAt st i b
-
 /-- Some change is in flight on the file of `i`. -/
 def BusyAt (i : Ino) : Prop := ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i
-
-/-- The kinds of the changes in flight on the file of `i`. -/
-def changesOn (i : Ino) : List OsChangeKind :=
-  ((st.proc.inflight.toList.map (·.2)).filter (fun c => decide (c.ino = i))).map (·.kind)
 
 /-- What `fstat` may give as the size of the file of `i`: its size, or, while a change resizes it,
 a size between its size and the change's target. -/
@@ -434,6 +408,12 @@ section effects2
 /-- The file of `i` replaced by `f`. -/
 def OsState.setFile (st : OsState) (i : Ino) (f : OsFile) : OsState :=
   { st with fs := { st.fs with files := <[i := f]> st.fs.files } }
+
+/-- The file of `i` replaced by `g n` for the next change number `n`, which is taken: a change
+announced. -/
+def OsState.stampFile (st : OsState) (i : Ino) (g : Nat → OsFile) : OsState :=
+  { st with fs := { st.fs with files := <[i := g (st.fs.stamp + 1)]> st.fs.files,
+                               stamp := st.fs.stamp + 1 } }
 
 /-- The process's state replaced. -/
 def OsState.setProc (st : OsState) (p : ProcState) : OsState := { st with proc := p }
@@ -506,7 +486,7 @@ def OsState.commitAll (st : OsState) : OsState :=
 def newFile : OsFile := OsFile.ofBytes []
 
 /-- What `open(p)` does before its fd (`st1`), and what the fd will be on (`tgt`): an existing file
-(truncated with `trunc`); a new file of a fresh inode, with its `create` logged (`O_CREAT`, in an
+(truncated with `trunc`: announced and done at once); a new file of a fresh inode, with its `create` logged (`O_CREAT`, in an
 existing directory; `start` the call's start); or a directory, opened read-only without `O_CREAT` or
 `O_TRUNC` (Linux refuses the rest, `EISDIR`). -/
 def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (start : Nat)
@@ -514,7 +494,8 @@ def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (s
   match st.lookup p with
   | some (.dir j) => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = .dir j
   | some (.file i) => (∃ f, st.file i = some f ∧
-      st1 = (if trunc then st.setFile i (f.truncate 0) else st)) ∧ tgt = .file i
+      st1 = (if trunc then st.stampFile i (fun n => (f.announceResize 0 n).truncate 0) else st)) ∧
+      tgt = .file i
   | none => creat = true ∧ ∃ j b, st.parent p = some (j, b) ∧
       st1 = ((st.setFile st.fs.nextIno newFile).takeIno).metaDo (.create j b st.fs.nextIno) start ∧
       tgt = .file st.fs.nextIno
@@ -618,12 +599,15 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       ((∃ k, k ≤ r.length ∧ (0 < k ∨ r = []) ∧ e' = osRes (#(r.take k)) 0) ∨
        ∃ (k : Nat) (e : w64), k ≤ r.length ∧ e ≠ 0 ∧ e' = osRes (#(r.take k)) e)
   /- The first step of `pwrite(fd, data, off)`: `(#fd, #off, #data) ↦ token`. It makes no system
-  call and cannot fail. The bytes it may change must be clear of every other change. -/
-  | "PWriteStart" => ∃ (fd off : w64) (data : List w8) (d : OsFd) (t : Nat),
+  call and cannot fail; it announces the write (all of its data, as the next change). The bytes it
+  may change must be clear of every other change. -/
+  | "PWriteStart" => ∃ (fd off : w64) (data : List w8) (d : OsFd) (f : OsFile) (t : Nat),
       v = PairV (#fd) (PairV (#off) (#data)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
+      st.file d.ino = some f ∧
       (let c : OsChange := ⟨d.ino, .write off.toNat data⟩
        (∀ b, Affects st c b → ¬ InflightAt st d.ino b) ∧
-       st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧ st' = st.addInflight t c) ∧
+       st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧
+       st' = (st.stampFile d.ino (f.announceWrite off.toNat data)).addInflight t c) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ (#written, #errno)`. A prefix of the data is written: with errno
   0, all of it or a non-empty part (a short write, F6); with a nonzero errno, any prefix. -/
@@ -637,11 +621,11 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       StatSees st d.ino sz ∧ st' = st ∧
       (e' = osRes (#(W64 sz)) 0 ∨ ∃ e : w64, e ≠ 0 ∧ e' = osRes (#(0 : w64)) e)
   /- The first step of `ftruncate(fd, sz)`: `(#fd, #sz) ↦ token`. It makes no system call and
-  cannot fail. No other change may be in flight on the file. -/
-  | "FtruncateStart" => ∃ (fd sz : w64) (t : Nat) (d : OsFd), v = PairV (#fd) (#sz) ∧
-      FdOpen st fd d ∧ d.writable ∧ 0 ≤ sz.toInt ∧ ¬ BusyAt st d.ino ∧
+  cannot fail; it announces the resize. No other change may be in flight on the file. -/
+  | "FtruncateStart" => ∃ (fd sz : w64) (t : Nat) (d : OsFd) (f : OsFile), v = PairV (#fd) (#sz) ∧
+      FdOpen st fd d ∧ d.writable ∧ 0 ≤ sz.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧
       st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧
-      st' = st.addInflight t ⟨d.ino, .truncate sz.toNat⟩ ∧
+      st' = (st.stampFile d.ino (f.announceResize sz.toNat)).addInflight t ⟨d.ino, .truncate sz.toNat⟩ ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. On failure the file may or may not be resized. -/
   | "FtruncateFinish" => ∃ (t : Nat) (i : Ino) (sz : Nat) (f : OsFile), v = osTokV t ∧
@@ -650,15 +634,16 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        let st1 := st0.setFile i (f.truncate sz)
        st' = st1 ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ st' = st1))
-  /- `fsync(fd)` and `fdatasync(fd)` of a file alike: `#fd ↦ #errno`. A failure is never `EINTR`:
-  `fsync(2)` on a local ext4 or xfs file does not return it, and Go's `File.Sync` retries `EINTR`,
-  so a hidden failed attempt behind a successful `Sync` would be a run Linux does not have. It
-  commits no name. -/
+  /- `fsync(fd)` and `fdatasync(fd)` of a file alike: `#fd ↦ #errno`. Success makes every byte
+  not under an in-flight change durable (`OsFile.synced`); a failure changes nothing (no failed
+  writeback, the header: whatever it wrote, a crash may keep anyway). A failure is never `EINTR`:
+  `fsync(2)` on a local ext4 file does not return it, and Go's `File.Sync` retries `EINTR`, so a
+  hidden failed attempt behind a successful `Sync` would be a run Linux does not have. It commits
+  no name. -/
   | "Fsync" => ∃ (fd : w64) (d : OsFd) (f : OsFile), v = #fd ∧ FdOpen st fd d ∧
       st.file d.ino = some f ∧
-      (st' = st.setFile d.ino (f.synced (SecBusy st d.ino ·)) ∧ e' = Val (#(0 : w64)) ∨
-       ∃ e : w64, e ≠ 0 ∧ e ≠ EINTR ∧ e' = Val (#e) ∧
-         st' = st.setFile d.ino (f.syncFailed (SecBusy st d.ino ·)))
+      (st' = st.setFile d.ino (f.synced (InflightAt st d.ino ·)) ∧ e' = Val (#(0 : w64)) ∨
+       ∃ e : w64, e ≠ 0 ∧ e ≠ EINTR ∧ e' = Val (#e) ∧ st' = st)
   /- `flock(fd, how)`: `(#fd, #how) ↦ #errno`. Trivial: the lock state is not modelled, so the
   errno is anything; only the fd must be open. -/
   | "Flock" => ∃ (fd how e : w64) (d : OsFd), v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧
@@ -787,13 +772,14 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
   /- The first step of `fallocate(fd, 0, off, len)`: `(#fd, #off, #len) ↦ token`, a resize to
   `max size (off + len)` in flight (its visible effect is `ftruncate`'s to that size: zeros past the
-  end; the blocks it allocates are not modelled). As `FtruncateStart`: no other change may be in
-  flight on the file. Stuck on a negative offset or a length not above 0. -/
-  | "FallocStart" => ∃ (fd off len : w64) (t : Nat) (d : OsFd),
+  end, announced; the blocks it allocates are not modelled). As `FtruncateStart`: no other change
+  may be in flight on the file. Stuck on a negative offset or a length not above 0. -/
+  | "FallocStart" => ∃ (fd off len : w64) (t : Nat) (d : OsFd) (f : OsFile),
       v = PairV (#fd) (PairV (#off) (#len)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
-      0 < len.toInt ∧ ¬ BusyAt st d.ino ∧ st.proc.inflight !! t = none ∧
+      0 < len.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧ st.proc.inflight !! t = none ∧
       st.proc.calls !! t = none ∧
-      st' = st.addInflight t ⟨d.ino, .truncate (max (st.size d.ino) (off.toNat + len.toNat))⟩ ∧
+      (let sz := max f.size (off.toNat + len.toNat)
+       st' = (st.stampFile d.ino (f.announceResize sz)).addInflight t ⟨d.ino, .truncate sz⟩) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. On failure the file may have grown to any size between its
   size and the target, zero-filled (ext4 grows it as each chunk is allocated). -/
@@ -830,22 +816,15 @@ end step
 
 /-! ## Crash -/
 
-/-- `v` is a version a crash may leave in sector `n` of the file `f` of inode `i`: one it had since
-its last successful sync (the page cache's included), or the page cache's with each change in flight
-on the file landed as some prefix. -/
-def SecCand (st : OsState) (i : Ino) (f : OsFile) (n : Nat) (v : SecBytes) : Prop :=
-  v ∈ (f.secs n).vers ∨
-  ∃ ks f', ks.Perm (changesOn st i) ∧ Landed ks f f' ∧ v = (f'.secs n).last
-
 /-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size it had since its
-last successful sync, or between such a size and one an in-flight change would give it; each sector a
-version `SecCand` allows, whole (its bytes past the size included); all of it on disk (`ofDisk`: the
-pages past the size durable zeros). -/
+last successful sync, or between such a size and one an in-flight change would give it; each byte
+any one of its crash candidates, each independently (its bytes past the size included); all of it
+on disk (`ofDisk`: the pages past the size durable zeros). -/
 def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
-  ∃ (sz : Nat) (vs : Nat → SecBytes),
+  ∃ (sz : Nat) (img : Nat → w8),
     ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target st ≤ sz) ∧
      (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target st)) ∧
-    (∀ n, SecCand st i f n (vs n)) ∧ f' = OsFile.ofDisk vs sz
+    (∀ b, ∃ s, (img b, s) ∈ f.cand b) ∧ f' = OsFile.ofDisk img sz
 
 /-- The file `i` is named in the tree `m`. -/
 def Named (m : Tree) (i : Ino) : Prop := ∃ j b, m.entry j b = some (.file i)
@@ -856,7 +835,7 @@ journal may have on disk), all of it durable; every file it names is what a cras
 file (`CrashFile`); every other file is gone; the process has nothing open or in flight. -/
 def MachineCrash (st st' : OsState) : Prop :=
   st'.proc = ProcState.empty ∧ st'.fs.roots = st.fs.roots ∧ st'.fs.metaLog = [] ∧
-  (∀ y, ¬ st'.fs.committed y) ∧ st'.fs.nextIno = st.fs.nextIno ∧
+  (∀ y, ¬ st'.fs.committed y) ∧ st'.fs.nextIno = st.fs.nextIno ∧ st'.fs.stamp = st.fs.stamp ∧
   (∃ S : Nat → Prop, (∀ x, S x → x < st.fs.metaLog.length) ∧ (∀ y, st.fs.committed y → S y) ∧
     Closed st.fs.metaLog S ∧ st'.fs.treeDur = replay (keptOps st.fs.metaLog S) st.fs.treeDur) ∧
   ∀ i, (Named st'.fs.treeDur i →
@@ -874,7 +853,7 @@ def FsInit (st : OsState) : Prop :=
   st.proc = ProcState.empty ∧ st.fs.metaLog = [] ∧ (∀ y, ¬ st.fs.committed y) ∧
   RootsOk st.fs.roots ∧ TreeWf st.fs.roots st.fs.treeDur ∧
   (∀ i, Named st.fs.treeDur i → st.fs.files !! i ≠ none) ∧
-  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧ ∃ vs sz, f = OsFile.ofDisk vs sz) ∧
+  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧ ∃ img sz, f = OsFile.ofDisk img sz) ∧
   (∀ i, i ∈ st.fs.files → i < st.fs.nextIno) ∧ (∀ j, j ∈ st.fs.treeDur → j < st.fs.nextIno)
 
 instance fs_semantics : ExtSemantics fsExt where

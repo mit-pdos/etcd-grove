@@ -1,13 +1,12 @@
 /-
-The Linux file extension's semantics restricted by premises on the executions: a premise `SQ` on
-steps and a premise `Q` on crashes (`fsSemWithS SQ Q`: step `FsStep ∧ SQ`, crash `OsCrash ∧ Q`). A
-theorem proved over it holds of the executions that satisfy both: an assumption on the environment,
-which the theorem states. The program logic's specs hold over it when `SQ` keeps a step from every
+The program logic over the semantics restricted by premises (`Premises.lean`, `fsSemWithS SQ Q`).
+The program logic's specs hold over it when `SQ` keeps a step from every
 state `FsStep` has one from (`StepKeeps`, giving `FsSemOk`). Untrusted.
 -/
 module
 
 public import GooseLang.Ext.Fs.CrashTok
+public import GooseLang.Ext.Fs.Premises
 
 @[expose] public section
 
@@ -15,17 +14,6 @@ noncomputable section
 
 namespace Perennial
 namespace Fs
-
-/-- A premise on the extension's steps: of the operation `op` on `v`, from `st` to `st'` with the
-result `e'`. -/
-abbrev StepPrem := ∀ [GooseExts] [GoGlobalContext], String → val → OsState → Expr → OsState → Prop
-
-/-- The semantics whose steps are `FsStep`s satisfying `SQ` and whose crashes are `OsCrash`es
-satisfying `Q`. -/
-@[instance_reducible] def fsSemWithS (SQ : StepPrem) (Q : OsState → OsState → Prop) :
-    ExtSemantics fsExt where
-  step o v h st g e' h' st' g' := FsStep o v h st g e' h' st' g' ∧ SQ o v st e' st'
-  crash st st' := OsCrash st st' ∧ Q st st'
 
 /-- `SQ` keeps a step from every state, with mappings that do not overlap, that `FsStep` has one
 from. -/

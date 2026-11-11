@@ -6,41 +6,36 @@ import (
 	"os"
 )
 
-// A failed fsync leaves lost sectors, which no later sync writes (model
-// decision).
+// A failed fsync changes nothing (model decision, under the no-failed-writeback
+// assumption).
 //
-// Decision: a failed fsync clears the dirty bit of every dirty sector not under
-// an in-flight change, keeping its versions: the sector is *lost*. A later
-// successful fsync writes only dirty sectors, so a lost sector stays
-// uncertain (any of its versions after a crash) until it is written again.
-// A failed fsync is never EINTR.
+// Decision: a failed fsync leaves every byte's crash candidates as they were;
+// a later successful fsync makes everything durable. A failed fsync is never
+// EINTR.
 //
-// Lean: Impl.lean: Sector.dirty, OsFile.syncFailed, OsFile.synced (only
-// `s.dirty`), the Fsync step's failure branch; Tests.lean:
-// crash_lost_after_sync.
+// Lean: Impl.lean: the Fsync step's failure branch (st' = st); OsFile.synced.
 //
-// Allowed: after the crash below, sector 0 holds A or B, although the second
-// Sync returned nil.
-// Excluded: sector 0 anything else; the second Sync making B durable is
-// allowed but not promised.
+// Allowed: after the first crash below, byte 0 holds A or B; after the second
+// (the later Sync returned nil), B.
+// Excluded: B lost after a later successful Sync.
 //
-// Why: documented. Linux clears the dirty state of pages whose writeback
-// failed and reports the error once per file description (errseq); a retried
-// fsync does not write them again (the 2018 "fsyncgate", LWN "PostgreSQL's
-// fsync() surprise"). This is the only reason the model has a dirty bit:
-// without failed fsyncs "dirty" would equal "more than one version". EINTR is
-// excluded because ext4's fsync waits are uninterruptible and Go's
-// File.Sync retries EINTR. (Under the no-failed-writeback assumption the
-// failure branch is an extra behaviour of the model, sound to keep.)
+// Why: under the no-failed-writeback assumption (env_no_failed_writeback.go),
+// a failed fsync's error does not come from a failed writeback, so whatever it
+// started either completed (the bytes are on disk) or left them dirty (a later
+// sync writes them). Linux does lose data whose writeback failed (it marks the
+// pages clean; the 2018 "fsyncgate", LWN "PostgreSQL's fsync() surprise"): the
+// assumption excludes that, as it excludes the page cache dropping such data.
+// EINTR is excluded because ext4's fsync waits are uninterruptible and Go's
+// File.Sync retries EINTR.
 func FailedFsync(dir string) {
 	f, _ := os.Create(dir + "/f")
 	f.WriteAt(fill(512, 'A'), 0)
-	f.Sync() // sector 0: [A], clean
+	f.Sync()
 	f.WriteAt(fill(512, 'B'), 0)
 	if err := f.Sync(); err != nil {
-		// sector 0 is lost: [A, B], not dirty
-		f.Sync() // returns nil: nothing dirty to write
-		// crash here
-		// allowed: sector 0 = A or B
+		// crash here: each byte A or B
+		if f.Sync() == nil {
+			// crash here: B
+		}
 	}
 }

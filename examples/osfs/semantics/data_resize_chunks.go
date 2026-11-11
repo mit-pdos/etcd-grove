@@ -13,8 +13,10 @@ import (
 // Decision: a change of a file's size lands, at a failure or a crash, as any
 // size between the file's size and the target, not only all or nothing.
 //
-// Lean: Impl.lean: Landed.trunc (any `sz'` between), the FallocFinish step's
-// failure branch; notes/axiom-review/fs-v2.md, F5.
+// Lean: Impl.lean: CrashFile (a size between the sizes since the last sync and
+// an in-flight change's target), the FallocFinish step's failure branch (any
+// `sz'` between); OsFile.announceResize (the grown bytes' candidate, zero);
+// notes/axiom-review/fs-v2.md, F5.
 //
 // Allowed: after a failure (or a crash during the call) below, any size in
 // [4096, 1<<20], zero-filled past 4096.

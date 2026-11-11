@@ -1,8 +1,8 @@
 // Package semantics explains, by small Go programs, each decision of the Linux
 // file extension's trusted semantics (GooseLang/Ext/Fs/{Impl,Tree,Paths}.lean,
 // with the trusted models TrustedCode/{os,syscall}.lean and
-// TrustedCode/golang_org/x/sys/unix.lean) and of the trace-level NoTear
-// assumption (GooseLang/Ext/Fs/NoTear.lean).
+// TrustedCode/golang_org/x/sys/unix.lean) and of the client premises a theorem
+// may state beyond it (GooseLang/Ext/Fs/Premises.lean).
 //
 // Each file is one decision: its doc comment says what the model does, the
 // Lean names that encode it, the outcome it allows or excludes, and why
@@ -11,7 +11,8 @@
 // The functions are illustrations: nothing calls them, and no Goose
 // translation or proof covers this package. Every claim is about the target
 // configuration C (env_config.go); the measurements cited were made on C with
-// the scripts in notes/axiom-review/fs-config/ (and fs-v2-f3/, fs-v2-r4/).
+// the scripts in notes/axiom-review/fs-config/ (and fs-v2-f3/, fs-v2-r4/,
+// fs-v2-r6/).
 //
 // The rule (CLAUDE.md): every change to the trusted semantics adds or updates
 // the file of the decision it changes, in the same commit.
@@ -19,9 +20,8 @@
 // Environment assumptions (hypotheses of the adequacy statement):
 //
 //	env_config.go                 the target configuration C         Impl.lean header, pageIn
-//	env_sector_atomicity.go       512-byte sector atomicity          Sector, SecBytes, CrashFile
-//	env_no_mixed_writeback.go     no mixed writeback                 Sector.vers (whole versions)
-//	env_no_failed_writeback.go    no failed writeback (F1)           OsFile.syncFailed, ReadSees
+//	env_device_no_garbage.go      a device write leaves old or new   CrashFile (candidates only)
+//	env_no_failed_writeback.go    no failed writeback (F1)           Fsync (failure: no change), ReadSees
 //	env_durable_at_first_start.go durable at first start (F2)        FsInit
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
 //	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
@@ -29,16 +29,18 @@
 //
 // File contents and sizes:
 //
-//	data_sector_versions.go       versions since the last sync       Sector, OsFile.change, OsFile.synced, SecCand
-//	data_failed_fsync.go          failed fsync: lost sectors         Sector.dirty, OsFile.syncFailed, Fsync
+//	data_crash_candidates.go      each byte any of its candidates    OsFile.cache/cand, announce, synced, CrashFile
+//	data_torn_source_page.go      a write torn at a source page (A)  CrashFile (measured)
+//	data_mixed_writeback.go       a rewrite during writeback (B)     CrashFile (measured)
+//	data_failed_fsync.go          a failed fsync changes nothing     Fsync
 //	data_sizes_since_sync.go      any size in [sizeLo, sizeHi]       OsFile.sizeLo/sizeHi, CrashFile
-//	data_resize_chunks.go         partial resize (F5)                Landed.trunc, FallocFinish
-//	data_durable_zeros.go         pages past a durable size: zeros   diskSec, OsFile.ofDisk, OsFile.synced
-//	data_append_old_block.go      the end's block is not ordered     diskSec (the end's page), CrashFile
+//	data_resize_chunks.go         partial resize (F5)                CrashFile (targets), FallocFinish
+//	data_durable_zeros.go         pages past a durable size: zeros   diskByte, OsFile.ofDisk, OsFile.synced
+//	data_append_old_block.go      the end's block is not ordered     diskByte (the end's page), CrashFile
 //	data_extension_zeros.go       extensions read zeros (F3 refuted) OsFile.resized, OsFile.written
 //	data_keep_size.go             FALLOC_FL_KEEP_SIZE: no change     FallocKeep
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish
-//	data_inflight_changes.go      changes in flight, mappings        OsChange, inflight, Landed, osHole
+//	data_inflight_changes.go      changes in flight, mappings        OsChange, inflight, announceWrite, osHole
 //
 // The directory tree and metadata calls:
 //
@@ -50,7 +52,7 @@
 //	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext
 //
-// Trace-level assumption (not part of the semantics):
+// Client premises (not part of the semantics; a theorem states them):
 //
-//	notear.go                     a partial pwrite stops at a page   PageCut, NoTearStep, NoTearCrash
+//	premise_sector_whole.go       WAL sectors come back whole        SectorWhole, valAt (a known limitation)
 package semantics

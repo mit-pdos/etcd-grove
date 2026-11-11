@@ -12,7 +12,7 @@ import (
 // them are durable: nothing has changed them since their last successful
 // sync, syncfs or fsync.
 //
-// Lean: FsInit (every file `OsFile.ofDisk`: one version per sector, clean;
+// Lean: FsInit (every file `OsFile.ofDisk`: one candidate per byte;
 // `metaLog = []`).
 //
 // Excluded (under the assumption): the scenario below, where a crash after

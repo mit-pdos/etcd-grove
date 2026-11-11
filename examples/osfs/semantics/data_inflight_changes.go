@@ -12,17 +12,19 @@ import (
 //
 // Decision: a change to a file's bytes or size starts (…Start, the change in
 // flight) and finishes (…Finish). In between: a racing pread or fstat may see
-// any mix of the change's prefixes; a crash may find any prefix landed; a
+// any mix of the change's prefixes; a crash may find any of it landed (the
+// start announced all of it, byte by byte); a
 // load through a mapping of a byte the change could touch is stuck (a hole);
 // a second change overlapping it is stuck.
 //
 // Lean: Impl.lean: OsChange, ProcState.inflight, the PWriteStart/Finish,
 // FtruncateStart/Finish, FallocStart/Finish steps, Affects, InflightAt,
-// SecBusy, Landed, osHole and HeapRendered (mappings), SecCand's in-flight
-// case; the header's "Races" and "Mappings".
+// OsFile.announceWrite/announceResize (the start's candidates), osHole and
+// HeapRendered (mappings), OsFile.synced (a sync leaves a byte under a change
+// in flight as it was); the header's "Races" and "Mappings".
 //
 // Allowed: the reader below sees, per byte range, old or new data; a crash
-// during the write keeps any prefix of it (by sector).
+// during the write keeps any mix of old and new, byte by byte.
 // Excluded (stuck, so no proved program does it): two overlapping writes in
 // flight at once; a mapped load of a byte being written; a store to a
 // PROT_READ mapping (a fatal fault on Linux).

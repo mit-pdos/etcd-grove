@@ -19,7 +19,6 @@ import (
 // Lean: Impl.lean: the PRead step (ReadSees, a prefix), PWriteFinish
 // (`(k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0`, `k ≤ data.length`); the
 // header's "Environmental failure"; notes/axiom-review/fs-v2.md, F4 and F6.
-// NoTear (notear.go) narrows the prefix for the theorems that assume it.
 //
 // Allowed: n < len(buf) with err == nil; a short write with err == nil; a
 // failed write whose prefix landed.

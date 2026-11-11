@@ -12,7 +12,7 @@ import (
 // Decision: a file records the smallest and largest sizes it had since its
 // last successful sync (sizeLo, sizeHi); a crash gives it any size in that
 // range, or between it and the target of a change in flight. The size is
-// chosen independently of the sectors (data_durable_zeros.go: no ordering of
+// chosen independently of the bytes (data_durable_zeros.go: no ordering of
 // sizes against data).
 //
 // Lean: Impl.lean: OsFile.sizeLo, OsFile.sizeHi, OsFile.change (widens),

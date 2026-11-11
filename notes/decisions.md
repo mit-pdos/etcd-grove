@@ -31864,3 +31864,19 @@ back (stale comments say it keeps it); one named `Prop` for the config block sha
 `Hraft`; stale docs (`newRaftNode`'s header on read-only fields and the names it allocates,
 `NodeStart.lean`'s header premises, `InvRaftNode`'s header on `E.T`); `isRNTicker`'s nil arm
 excluded by every spec, unfolded in `raftNode.start`/`onStop` instead of a law.
+
+## The file extension's crash rule, byte by byte (2026-11-11 · the user's decisions · branch `fs-bytes`)
+
+**Decision:** the Linux file extension (`GooseLang/Ext/Fs/Impl.lean`) gives each file byte a list of
+crash candidates stamped with change numbers; a crash leaves each byte any candidate, independently.
+Client-specific guarantees beyond that are premises the client's theorem states (`Premises.lean`:
+`SectorWhole` for etcd's WAL, a known limitation; bbolt's P1), never rules of the semantics.
+
+**Why:** the sector-level rule (`notes/fs-semantics-v2.md`, V5) and the NoTear premise were refuted on
+configuration C by an end-to-end crash test (`notes/axiom-review/fs-v2-r6/e2e/`). The user asked for a
+general semantics without sector-level assumptions, the WAL's sector assumption stated only for the
+WAL, and a final artifact that makes sense on its own rather than one shaped by earlier temporary
+decisions. Per-byte lists stamped by change numbers keep one uniform crash rule and still let a premise
+say "one state of this range". **Supersedes** the V5 decision and the NoTear entries in
+`notes/fs-semantics-v2.md` and `notes/axiom-review/fs-v2-r4.md`/`-r5.md`/`-r6.md` dispositions.
+

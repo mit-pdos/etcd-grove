@@ -7,17 +7,17 @@ import (
 )
 
 // Durable zeros: wherever a file's size is durable, the pages wholly past it
-// are zeros on disk, and a crash leaves each sector one of its versions
+// are zeros on disk, and a crash leaves each byte one of its candidates
 // (model decision).
 //
-// Decision: at a successful sync, a boot and a crash, every sector of a page
-// with no byte below the durable size has the one version zeros (such a page
-// has no block, or an unwritten one, which reads as zeros). Nothing else
+// Decision: at a successful sync, a boot and a crash, every byte of a page
+// with no byte below the durable size is zero, its one candidate zero (such a
+// page has no block, or an unwritten one, which reads as zeros). Nothing else
 // orders sizes against data: a crash picks a size in the range since the
-// last sync and, independently, one version of each sector; a page the
+// last sync and, independently, one candidate of each byte; a page the
 // crash's size does not reach is zeros.
 //
-// Lean: Impl.lean: diskSec, OsFile.ofDisk, OsFile.synced, CrashFile; the
+// Lean: Impl.lean: diskByte, OsFile.ofDisk, OsFile.synced, CrashFile; the
 // header's "Durable zeros"; Tests.lean: crash_new_block_zeros,
 // crash_past_end_zeros, crash_current.
 //

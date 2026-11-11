@@ -10,11 +10,12 @@ import (
 //
 // Decision: no writeback of a file in the roots' trees fails: the device
 // returns no I/O error, and ext4's delayed allocation never fails at
-// writeback. The model still lets `fsync` fail (more behaviours), but a read
-// after a failed `fsync` sees the page cache's version.
+// writeback. The model still lets `fsync` fail (more behaviours), which changes
+// nothing: a read after it sees the page cache, and a later successful
+// `fsync` makes everything durable.
 //
 // Lean: Impl.lean header ("No failed writeback"); OsFile.contents and
-// ReadSees read Sector.last also after OsFile.syncFailed;
+// ReadSees read OsFile.cache; the Fsync step's failure branch (st' = st);
 // notes/axiom-review/fs-v2.md, F1.
 //
 // Excluded (under the assumption): the read below returning A.
