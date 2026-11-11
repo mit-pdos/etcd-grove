@@ -58,7 +58,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
     iapply wp_fupd
-    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -⟩
+    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -, #HsctxO⟩
     (try wp_auto)
     ipersist donec
     ipersist stopCtx
@@ -100,7 +100,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
     iapply wp_fupd
-    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -⟩
+    wp_apply HWC $$ [] as %sctx %γs %scancel ⟨#Hscan, #Hsctx, -, #HsctxO⟩
     (try wp_auto)
     ipersist donec
     ipersist stopCtx

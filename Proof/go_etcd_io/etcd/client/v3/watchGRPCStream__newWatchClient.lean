@@ -48,7 +48,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   wp_start as ⟨#HG, Hsub, Hm0, Hres, Hs0, Hrc, Hrcb, Hgen, Hprod, Hep, %HgOk, Hwsa, Hels, Had, Htt⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
-  icases HG' with ⟨%Hwgsnn, ⟨%vs, #Hvs, #Hcoo⟩, #Hsf, #Hlg, #Fowner, #Fremote, #Fcall, #Fctx, #Fckey,
+  icases HG' with ⟨%Hwgsnn, ⟨⟨%vs, #Hvs, #Hcoo⟩, #HctxO⟩, #Hsf, #Hlg, #Fowner, #Fremote, #Fcall, #Fctx, #Fckey,
     #Fcancel, #Freqc, #Frespc, #Fdonec, #Ferrc, #Fclosingc, #Flg, #Hctx, #Hcancel, #Hreq, #Herr,
     #Hclosing, #Hdone, #Hrespsc⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

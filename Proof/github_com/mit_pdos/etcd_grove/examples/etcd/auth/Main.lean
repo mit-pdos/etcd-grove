@@ -489,7 +489,7 @@ theorem Main.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro; exact ⟨watch_all_ok.1, watch_all_ok.2, by decide⟩
     iintro !> %h
@@ -563,7 +563,7 @@ theorem Main.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro; exact ⟨watch_ab_ok.1.1, watch_ab_ok.1.2, by decide⟩
     iintro !> %h

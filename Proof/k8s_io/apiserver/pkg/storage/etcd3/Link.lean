@@ -63,8 +63,10 @@ public import Proof.go_etcd_io.etcd.client.v3.Version
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__CompactRevision
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__Stop
@@ -379,6 +381,14 @@ theorem wait.channelContext.wp_Err :
     EtcdGrove.wait.channelContext.Err.spec (GF := GF) (hG := hG) :=
   EtcdGrove.wait.channelContext.Err.wp_proof
 
+theorem wait.channelContext.wp_Deadline :
+    EtcdGrove.wait.channelContext.Deadline.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.wait.channelContext.Deadline.wp_proof
+
+theorem wait.channelContext.wp_Value :
+    EtcdGrove.wait.channelContext.Value.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.wait.channelContext.Value.wp_proof
+
 theorem compactor.wp_UpdateCompactRevision :
     EtcdGrove.k8s.compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.compactor.UpdateCompactRevision.wp_proof
@@ -397,7 +407,7 @@ theorem compactor.wp_fromWatchResponse :
 
 theorem compactor.wp_runWatchLoop :
     EtcdGrove.k8s.compactor.runWatchLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.compactor.runWatchLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err _root_.Perennial.time.wp_After compactor.wp_getCompactRev compactor.wp_UpdateCompactRevision v3.wp_WithRev client.v3.watcher.wp_Watch compactor.wp_fromWatchResponse v3.Client.wp_Endpoints klog.wp_Errorf
+  EtcdGrove.k8s.compactor.runWatchLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err wait.channelContext.wp_Deadline wait.channelContext.wp_Value _root_.Perennial.time.wp_After compactor.wp_getCompactRev compactor.wp_UpdateCompactRevision v3.wp_WithRev client.v3.watcher.wp_Watch compactor.wp_fromWatchResponse v3.Client.wp_Endpoints klog.wp_Errorf
 
 theorem wp_NewDefaultLeaseManagerConfig :
     EtcdGrove.k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG) :=
@@ -720,7 +730,7 @@ include h_clock_RealClock__After
 
 theorem compactor.wp_runCompactLoop :
     EtcdGrove.k8s.compactor.runCompactLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.compactor.runCompactLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err h_clock_RealClock__After wp_Compact compactor.wp_UpdateCompactRevision v3.Client.wp_Endpoints klog.wp_Errorf
+  EtcdGrove.k8s.compactor.runCompactLoop.wp_proof wait.wp_ContextForChannel wait.channelContext.wp_Done wait.channelContext.wp_Err wait.channelContext.wp_Deadline wait.channelContext.wp_Value h_clock_RealClock__After wp_Compact compactor.wp_UpdateCompactRevision v3.Client.wp_Endpoints klog.wp_Errorf
 
 theorem wp_NewCompactor :
     EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=

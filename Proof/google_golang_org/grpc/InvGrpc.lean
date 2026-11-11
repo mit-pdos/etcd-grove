@@ -59,6 +59,7 @@ module
 public import Perennial.Proof.context
 public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.context.LibKeys
+public import Proof.context.LibKeysChain
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
@@ -1154,6 +1155,41 @@ abbrev interceptorCall (ic : GoFunc) (ctx method req reply cc : val) (inv : GoFu
   App (App (App (App (App (App (App (Val #ic) (Val ctx)) (Val method)) (Val req)) (Val reply))
     (Val cc)) (Val #inv)) (Val opts)
 
+/-- **A context's `Deadline()` returns** (persistent; premise fixes 8, N1, approved by
+etcd-grove-81): some time and flag, without panicking. grpc's client calls it on every call
+(`stream.go:520,586`), and its transport on the call's child context, which delegates to it
+(`http2_client.go:573,619,1312`). Any value will do: grpc only compares it with the clock
+(`time.Until`, `Time.After`), and a deadline in the past ends the attempt with a status error, as for
+an `isContext` with a deadline. -/
+def ctxDeadline (ci : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ (t : _root_.Perennial.time.Time) (b : Bool), Φ (PairV #t #b)) -∗
+    WP (App (Val #(methods ci.ty go!"Deadline" ci.v)) (Val #())) {{ Φ }})
+
+instance ctxDeadline_persistent (ci : GoInterfaceOk) : Persistent (ctxDeadline (GF := GF) ci) := by
+  unfold ctxDeadline; infer_instance
+
+/-- **A context `context.WithCancel` can take as a parent outside Perennial's model** (persistent;
+premise fixes 8, N2 and N3, approved by etcd-grove-81). Go's `propagateCancel` (go1.27.3
+`context.go`), once the parent's `Done()` is not nil, calls `parentCancelCtx(parent)`, which calls
+`parent.Value(&cancelCtxKey)` and dereferences the result if it is a `*cancelCtx` (a nil one panics:
+`TestClientCallCtxPanics`' `errsNilCancelCtx`), then type-asserts `parent.(afterFuncer)` and calls its
+`AfterFunc` if that succeeds; `Cause(parent)` calls `Value(&cancelCtxKey)` too. So: `Value` at
+`&cancelCtxKey` returns something that is not a `*cancelCtx` (`parentCancelCtx` and `Cause` find
+none), and the dynamic type is not in `afterFuncer`'s type set (the assertion fails: Goose's
+`type_assert2_interface_step` decides it by `typeSetContains`, which `go_type_set` evaluates from the
+type's method set; Go's own rule, an `AfterFunc` of another signature does not satisfy it). Then
+`propagateCancel` starts its goroutine, which only calls `Done()`, `Err()` and `Cause` (`ctxDone`,
+`ctxErrsErr`, this). -/
+def ctxWithCancelOk (ci : GoInterfaceOk) : IProp GF :=
+  iprop(EtcdGrove.context.valueAt ci _root_.Perennial.context.cancelCtxKeyAny
+      (fun v => ∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
+        vi.ty ≠ go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) ∗
+    ⌜go.typeSetContains ci.ty _root_.Perennial.context.afterFuncer.ty = false⌝)
+
+instance ctxWithCancelOk_persistent (ci : GoInterfaceOk) :
+    Persistent (ctxWithCancelOk (GF := GF) ci) := by
+  unfold ctxWithCancelOk; infer_instance
+
 /-- **A context that is never done: its `Done()` returns the nil channel and its `Err()` returns
 `nil`** (persistent; the vertical slice's unit V2): `context.TODO()` and `context.Background()` (an
 `emptyCtx`: `Done()` is `nil`, `Err()` is `nil`), and value contexts over them (`valueCtx` delegates
@@ -1161,12 +1197,15 @@ abbrev interceptorCall (ic : GoFunc) (ctx method req reply cc : val) (inv : GoFu
 is a channel). (Premise fixes 5, 2026-11-10, approved by etcd-grove-81) With `Done()`: until then
 only `Err()` was stated, so the axioms taking `ctxOk` that select on `ctx.Done()`
 (`waitRetryBackoff`, grpc's `Invoke` and `NewStream`) covered a context whose `Done()` panics or is
-closed while `Err()` is `nil`, on which Go panics (`notes/axiom-review/ctxok-done.md`). -/
+closed while `Err()` is `nil`, on which Go panics (`notes/axiom-review/ctxok-done.md`). (Premise
+fixes 8, N1, approved by etcd-grove-81) With `Deadline()` (`ctxDeadline`), which grpc calls on every
+call. No `Value`/`AfterFunc` clause: with a nil `Done()`, `propagateCancel` returns at once. -/
 def ctxQuiet (ci : GoInterfaceOk) : IProp GF :=
   iprop((□ ∀ Φ : val → IProp GF, ▷ Φ #chan.nil -∗
       WP (App (Val #(methods ci.ty go!"Done" ci.v)) (Val #())) {{ Φ }}) ∗
-    □ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.nil) -∗
-      WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #(GoInterface.nil) -∗
+      WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }}) ∗
+    ctxDeadline ci)
 
 instance ctxQuiet_persistent (ci : GoInterfaceOk) : Persistent (ctxQuiet (GF := GF) ci) := by
   unfold ctxQuiet; infer_instance
@@ -1231,9 +1270,11 @@ instance ctxDone_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IPro
 closing means the context is done; premise fixes 5, 2026-11-10, approved by etcd-grove-81: until
 then nothing about `Done()`, `notes/axiom-review/ctxok-done.md`), and its `Err()` follows Go's
 contract with client errors (`ctxErrsErr`). It is what a context outside Perennial's model meets:
-k8s's `wait.ContextForChannel(stopCh)` (`chanCtx_ok`). -/
+k8s's `wait.ContextForChannel(stopCh)` (`chanCtx_ok`). (Premise fixes 8, N1-N3, approved by
+etcd-grove-81) And its `Deadline()` returns (`ctxDeadline`), and `WithCancel` can take it as a parent
+(`ctxWithCancelOk`: `Value(&cancelCtxKey)` is no `*cancelCtx`, no `AfterFunc`). -/
 def ctxErrs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(ctxDone ci cd ∗ ctxErrsErr ci cd)
+  iprop(ctxDone ci cd ∗ ctxErrsErr ci cd ∗ ctxDeadline ci ∗ ctxWithCancelOk ci)
 
 instance ctxErrs_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     Persistent (ctxErrs (GF := GF) ci cd) := by
@@ -1249,21 +1290,33 @@ of the others (a `nil` `Done()` channel never fires; grpc turns a done context's
 status error, `status.FromContextError`, and `waitRetryBackoff` likewise, `contextErrToGRPCErr`;
 since premise fixes 5 each case states `Done()`, which these select on);
 the client's token fetch (`getToken`, `refreshToken`) also takes `ctxErrClient` (its
-`ContextError`). -/
+`ContextError`). (Premise fixes 8, approved by etcd-grove-81) In every case, its outgoing
+metadata is grpc's (`metadata.outgoingCtxOkC`, the chain form, `Proof/context/LibKeysChain.lean`):
+grpc reads it on every call (`stream.go:322,513`, `http2_client.go:579,940`), and etcd's
+`withVersion` itself. -/
 def ctxOk (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(context.isContext ci cd ∨ ctxQuiet ci ∨ ctxErrs ci cd)
+  iprop((context.isContext ci cd ∨ ctxQuiet ci ∨ ctxErrs ci cd) ∗ metadata.outgoingCtxOkC ci)
 
 instance ctxOk_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     Persistent (ctxOk (GF := GF) ci cd) := by
   unfold ctxOk; infer_instance
 
 theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    context.isContext (GF := GF) ci cd ⊢ ctxOk ci cd := by
-  iintro #H; unfold ctxOk; ileft; iexact H
+    context.isContext (GF := GF) ci cd ∗ metadata.outgoingCtxOkC ci ⊢ ctxOk ci cd := by
+  iintro ⟨#H, #Ho⟩; unfold ctxOk; iframe Ho; ileft; iexact H
 
 theorem ctxOk_of_errs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    ctxErrs (GF := GF) ci cd ⊢ ctxOk ci cd := by
-  iintro #H; unfold ctxOk; iright; iright; iexact H
+    ctxErrs (GF := GF) ci cd ∗ metadata.outgoingCtxOkC ci ⊢ ctxOk ci cd := by
+  iintro ⟨#H, #Ho⟩; unfold ctxOk; iframe Ho; iright; iright; iexact H
+
+theorem ctxOk_of_quiet (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    ctxQuiet (GF := GF) ci ∗ metadata.outgoingCtxOkC ci ⊢ ctxOk ci cd := by
+  iintro ⟨#H, #Ho⟩; unfold ctxOk; iframe Ho; iright; ileft; iexact H
+
+/-- `ctxOk`'s outgoing-metadata clause. -/
+theorem ctxOk_outgoingC (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    ctxOk (GF := GF) ci cd ⊢ metadata.outgoingCtxOkC ci := by
+  iintro #H; unfold ctxOk; icases H with ⟨-, #Ho⟩; iexact Ho
 
 /-- **A method of etcd's KV service** (`/etcdserverpb.KV/Range`, `Put`, `DeleteRange`, `Txn`,
 `Compact`: the full method names grpc sends; 2026-10-23). -/

@@ -107,7 +107,7 @@ theorem checkCompactRev.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro
       refine ⟨?_, ?_, by decide, ?_⟩

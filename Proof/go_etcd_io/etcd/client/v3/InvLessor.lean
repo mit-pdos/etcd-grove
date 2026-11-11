@@ -157,10 +157,11 @@ instance ctxErrTargets_persistent : Persistent (ctxErrTargets (GF := GF)) := by
 
 /-- A keep-alive's context (`ka.ctxs`'s element): a context, whose keep-alive key answers a context
 pointer (`keepAliveOk`, sweep repairs 1, B2b: `lessor.KeepAlive` stores only `WithValue(ctx,
-keepAliveCtxKey{}, &ctx)`). -/
+keepAliveCtxKey{}, &ctx)`), and (premise fixes 8) whose outgoing metadata is grpc's (WP form:
+`closeRequireLeader` calls `FromOutgoingContext` on it). -/
 def kaCtxOk (c : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜c = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd ∗ context.keepAliveOk ci)
+    context.isContext ci cd ∗ context.keepAliveOk ci ∗ metadata.outgoingCtxOk ci)
 
 instance kaCtxOk_persistent (c : GoInterface) : Persistent (kaCtxOk (GF := GF) c) := by
   unfold kaCtxOk; infer_instance
@@ -231,7 +232,8 @@ def lessorAt (l : Loc) (addr : List GoString) : IProp GF :=
   iprop(∃ (dc : GoChan) (γd : ChanNames) (sc : GoInterfaceOk)
       (scd : context.ContextDesc (IProp GF)) (lg : Loc) (d : time.Duration) (γr : GName),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
-    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗ context.isContext sc scd ∗
+    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗
+    (context.isContext sc scd ∗ metadata.outgoingCtxOkC sc) ∗
     lsF go!"lg" l ↦□ lg ∗ zapLoggerOk lg ∗
     lsF go!"firstKeepAliveTimeout" l ↦□ d ∗
     lessorRemoteAt l addr ∗

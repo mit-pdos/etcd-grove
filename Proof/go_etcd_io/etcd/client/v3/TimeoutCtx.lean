@@ -68,7 +68,7 @@ theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (
   iframe #
   isplitr
   · iapply ctxOk_of_isContext
-    iexact Hctx
+    iframe Hctx HC
   iapply Hall
   iexact Hctx
 
@@ -94,13 +94,13 @@ theorem wp_WithTimeout_bgMd (hWT : context.WithTimeoutBackgroundMd.spec (GF := G
     iexact Hpkg
   ihave #Hall := ctxErrClientAllW_of wp_ErrAny hAs $$ Hpkg
   iunfold ctxErrClientAllW at Hall
-  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd, #Hlib, -⟩
+  wp_apply hWT d $$ [] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, %Hmd, #Hlib, #HCo⟩
   · iframe #
   iapply HΦ
   iframe #
   isplitr
   · iapply ctxOk_of_isContext
-    iexact Hctx
+    iframe Hctx HCo
   isplitl
   · iapply Hall
     iexact Hctx

@@ -102,20 +102,20 @@ theorem Client.getToken.wp_proof
   ihave Hcd : iprop(|==> ∃ cd' : context.ContextDesc (IProp GF),
       ctxOk ctx cd' ∗ ctxErrClient ctx cd') $$ []
   · iunfold ctxOk at Hctx
-    icases Hctx with (#Hic | #Hq | #He)
+    icases Hctx with ⟨(#Hic | #Hq | #He), #Ho⟩
     · imodintro
       iexists cd
       isplitr
-      · iapply ctxOk_of_isContext; iexact Hic
+      · iapply ctxOk_of_isContext; iframe Hic Ho
       iunfold client.ctxErrClientAll at Hall
       iapply Hall; iexact Hic
-    · iapply quiet_ctx EtcdGrove.rpctypesEtcdError_asTarget ctx; iexact Hq
+    · iapply quiet_ctx EtcdGrove.rpctypesEtcdError_asTarget ctx; iframe Hq Ho
     · -- a context whose `Err()` follows Go's contract with client errors (`ctxErrs`)
       imodintro
       iexists cd
       isplitr
-      · iapply ctxOk_of_errs; iexact He
-      rw [ctxErrClient_eq_errs]; iunfold ctxErrs at He; icases He with ⟨-, #He⟩; iexact He
+      · iapply ctxOk_of_errs; iframe He Ho
+      rw [ctxErrClient_eq_errs]; iunfold ctxErrs at He; icases He with ⟨-, #He, -, -⟩; iexact He
   imod Hcd with ⟨%cd', #Hok', #Hce⟩
   wp_apply wp_Authenticate api eps ctx cd' u pw Spec
       (fun (t : (pbAuthenticateResponse (GF := GF)).M) => iprop(□ P t)) $$ []

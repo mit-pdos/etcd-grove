@@ -42,7 +42,7 @@ theorem lessor.recvKeepAlive.wp_proof
   iunfold keepAliveRespMsg at Hresp
   icases Hresp with ⟨%Hnn, %h, #Hh, #Hid, #Httl⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit

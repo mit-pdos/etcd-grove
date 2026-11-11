@@ -36,7 +36,7 @@ abbrev watcher.RequestProgress.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗
-      context.isContext ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"RequestProgress")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; statusErrOk err }}
 

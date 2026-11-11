@@ -178,7 +178,7 @@ theorem lessor.closeRequireLeader.wp_proof
   intro l addr
   wp_start as #Hl
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -244,10 +244,10 @@ theorem lessor.closeRequireLeader.wp_proof
       (try wp_auto)
       ihave #Hco := BigSepL.bigSepL_lookup (Φ := fun _ c => kaCtxOk (GF := GF) c) Hc $$ Hctxok
       iunfold kaCtxOk at Hco
-      icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci, -⟩
+      icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci, -, #HciO⟩
       rw [Hcieq]
       (try wp_auto)
-      wp_apply wp_FromOutgoing ci cdi $$ [$Hmd $Hci] as %md %ok Hres
+      wp_apply wp_FromOutgoing ci cdi $$ [$Hmd $Hci $HciO] as %md %ok Hres
       icases Hres with (%Hok | ⟨%mdm, Hmdm, Hvs⟩)
       · subst Hok
         (try wp_auto)

@@ -34513,3 +34513,37 @@ graceful-only (the backend can be ahead of the WAL's synced commit) and stays on
 **Not changed.** Row 1 (`Hwpend`, false on a class; S7 deletes it) and row 4 (`rnSnapTermAbove`,
 true of Go). No axiom, `sorry` or trusted text. `NewServer.lean` needed no edit (its `Hrnames` comes
 from `NodeStartSpec`, whose post is unchanged; the plan's file 9 was not needed).
+
+## Premise fixes 8, part C3: `ctxOk` restated (N1-N3, the outgoing metadata) (2026-11-11 · the Scope approved by etcd-grove-81, `/shared/tmp/premise-fixes-8/scope.md`; C3's trusted texts approved by etcd-grove-81 under the user's delegation, `/shared/tmp/premise-fixes-8c/c3-trusted.md` · branch `premise-fixes-8c`)
+
+**Problem.** grpc's client reads more of a call's context than `ctxOk`'s arms stated (Scope §0):
+`Deadline()` on every call (N1); and, once `Done()` is not nil, Go's `propagateCancel` calls
+`parent.Value(&cancelCtxKey)` (N2) and `parent.(afterFuncer).AfterFunc` (N3); grpc and etcd's
+`withVersion` read `Value(mdOutgoingKey{})` (item 3). `Invoke`, `NewStream`, `withVersion` and
+`waitRetryBackoff` were false of contexts meeting `ctxQuiet`/`ctxErrs` that panic there
+(`examples/premisefix/ctxvalue/clientctx_test.go`, `TestClientCallCtxPanics`).
+
+**Decision.**
+- `ctxOk` = `(isContext ∨ ctxQuiet ∨ ctxErrs) ∗ metadata.outgoingCtxOkC ci` (the chain form, D3).
+- `ctxQuiet` and `ctxErrs` gain `ctxDeadline` (`Deadline()` returns any `(t, b)`: grpc only compares
+  it with the clock, and a past deadline is a status error, as for an `isContext`).
+- `ctxErrs` gains `ctxWithCancelOk`: `Value(&cancelCtxKey)` returns something that is not a
+  `*cancelCtx`, and `go.typeSetContains ci.ty context.afterFuncer.ty = false` ("no `AfterFunc`": exactly
+  the condition under which Goose's `parent.(afterFuncer)` fails; `go_type_set` proves it from the
+  type's method set).
+- **Correction to Scope D4.** D4 asked for "`Value` at every `*int` key returns". That is still false:
+  a context whose `Value(&cancelCtxKey)` returns a nil `*cancelCtx` (`reflect.Zero` of a real one's
+  type) returns fine, but `parentCancelCtx` dereferences it (Go case `errsNilCancelCtx`). Only package
+  `context` calls `Value` with a `*int` key on this path, so the clause is stated at `&cancelCtxKey`,
+  with the result not a `*cancelCtx` (approved by etcd-grove-81).
+- `metadata.FromOutgoingContext.spec` takes `metadata.outgoingCtxOk ctx` (its margin gone);
+  `context.watchCtx` carries `outgoingCtxOkC` (`"#HOut"`, D5), which `streamKeyFromCtx` (margins gone
+  from its docstring) and `WithCancelValCtx` (whose post now gives `outgoingCtxOkC ctx'`) read;
+  `kaCtxOk` carries `outgoingCtxOk` (`closeRequireLeader`).
+- Producers: `ctxQuiet_todo`/`_background` (`emptyCtx.Deadline`), `chanCtx_ok` (now takes
+  `channelContext.Deadline`/`Value`'s specs: the k8s compactor's two proofs take them, linked),
+  `chanCtx_watch` (`Value`), `ctxOk_of_isContext`/`_errs`/`_quiet`, `watchCtx_of_isContext` (each takes
+  `outgoingCtxOkC`), `lessor.KeepAlive` (+ `outgoingCtxOkC ctx`, law
+  `metadata.outgoingCtxOk_of_valueWand`), `watcher.RequestProgress` (+ `outgoingCtxOkC ctx`).
+
+No axiom or `sorry` added or removed.

@@ -51,7 +51,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, #Hlgok, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   icombine Hdc0 Hdc gives %Hdceq
   subst Hdceq

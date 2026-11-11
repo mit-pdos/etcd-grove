@@ -46,7 +46,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   wp_auto
   wp_alloc vcp as Hvc
   ipersist Hvc
-  wp_apply wp_WithCancel vcp inctx cs $$ [] as %cx %γc %cancel ⟨#Hcspec, #Hcx, %Hmd⟩
+  wp_apply wp_WithCancel vcp inctx cs $$ [] as %cx %γc %cancel ⟨#Hcspec, #Hcx, %Hmd, #HcxO⟩
   · iframe #
   wp_apply wp_key inctx cs $$ []
   · iframe #

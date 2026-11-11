@@ -1290,9 +1290,11 @@ def closingP (V : WEnv GF) (G : WgsPrm GF) (ws : Loc) : IProp GF :=
 /-- **A gRPC watch stream** `G.wgs` of the watcher `G.w` (persistent): the call options and the
 server's facts (`watchSrvFacts`, as the watcher's), its read-only fields, its
 context and `cancel` (callable from anywhere), its channels (`reqc`, `errc`, `closingc` bags;
-`donec` publishing `closeErrPub`). -/
+`donec` publishing `closeErrPub`). Since premise fixes 8 also the context's outgoing metadata, in the
+chain form (`WithCancelValCtx`'s post; `openWatchClient`'s `ctxOk`), beside the call options. -/
 def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
-  iprop(⌜G.wgs ≠ null⌝ ∗ (∃ vs : List GoInterface, callSl ↦*□ vs ∗ callOptsOk vs) ∗
+  iprop(⌜G.wgs ≠ null⌝ ∗
+    ((∃ vs : List GoInterface, callSl ↦*□ vs ∗ callOptsOk vs) ∗ metadata.outgoingCtxOkC G.ctx) ∗
     watchSrvFacts V ∗ zapLoggerOk V.lg ∗
     wgsF G.wgs go!"owner" ↦□ G.w ∗ wgsF G.wgs go!"remote" ↦□ wcIface V.wc ∗
     wgsF G.wgs go!"callOpts" ↦□ callSl ∗
