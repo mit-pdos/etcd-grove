@@ -51,7 +51,7 @@ theorem treeCoh_metaEnd {st : OsState} {V Γdf Γc} (hc : TreeCoh st V Γdf Γc)
     · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.start t0 x hx
 
 theorem filesSame_metaEnd (st : OsState) (k : Nat) : FilesSame st (st.metaEnd k) :=
-  ⟨rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-- The whole tree is well formed now. -/
 theorem treeWf_now {st : OsState} (hw : FsTreeWf st) : TreeWf st.fs.roots st.tree := by
@@ -72,22 +72,13 @@ theorem file_of_lookup {st : OsState} (hw : FsTreeWf st) {p : GoString} {i : Ino
 
 /-! ## A file created -/
 
-/-- The ghost `OsMeta` of a file just created: zeros past its (empty) end, and its durable bytes
-known as zeros from offset 0 on (every sector's one version is zeros: `dz`). -/
-abbrev newMeta : OsMeta := { initMeta newFile with dz := some 0 }
+/-- The ghost `OsMeta` of a file just created: empty, durable, zeros from offset 0 on. -/
+abbrev newMeta : OsMeta := initMeta newFile
 
 theorem newFile_size : newFile.size = 0 := rfl
 theorem newFile_contents : newFile.contents = [] := rfl
 
-/-- The durable zeros `newMeta` knows are the zeros a new file's sectors hold. -/
-theorem newMeta_dz : ∀ z, newMeta.dz = some z → ∀ b, z ≤ b →
-    ∀ v, (newFile.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = 0 := by
-  intro z _ b _ v hv
-  simp only [newFile, OsFile.ofBytes, OsFile.ofDisk, diskSec, List.head?_cons, Option.some.injEq,
-    pageIn, List.length_nil, Nat.not_lt_zero, decide_false, Bool.false_eq_true, if_false] at hv
-  subst hv
-  simp [zeroSec]
-  split <;> rfl
+theorem newMeta_zf : newMeta.zf = some 0 := rfl
 
 section create
 variable {st : OsState} {n : Ino}
@@ -98,30 +89,28 @@ theorem sizes_create (hn : st.file n = none) : ∀ q, (st.setFile n newFile).siz
   · rfl
 
 theorem osWf_create (hwf : OsWf st) (hn : st.file n = none) : OsWf (st.setFile n newFile) := by
-  have hs := sizes_create hn
   have hex : ∀ q f0, st.file q = some f0 → ∃ f1, (st.setFile n newFile).file q = some f1 := by
     intro q f0 h0; rw [file_setFile]; split
     · exact ⟨_, rfl⟩
     · exact ⟨_, h0⟩
-  refine ⟨fun fd d h => ?_, fun b m h => ?_, hwf.maps_disj, fun t c h => ?_, ?_, ?_, ?_⟩
+  refine ⟨fun fd d h => ?_, fun b m h => ?_, hwf.maps_disj, fun t c h => ?_, hwf.infl_one, ?_, ?_⟩
   · obtain ⟨f0, h0⟩ := hwf.fds fd d h; exact hex _ _ h0
   · obtain ⟨⟨f0, h0⟩, h1, h2, h3⟩ := hwf.maps b m h; exact ⟨hex _ _ h0, h1, h2, h3⟩
   · obtain ⟨f0, h0⟩ := hwf.infl t c h; exact hex _ _ h0
-  · intro t1 c1 t2 c2 i h1 h2 hne hp
-    simp only [affects_congr hs]
-    exact hwf.infl_disj t1 c1 t2 c2 i h1 h2 hne hp
   · intro q f1 h1
     rw [file_setFile] at h1; split at h1
     · cases h1; simp [newFile, OsFile.ofBytes, OsFile.ofDisk]
     · exact hwf.sizes q f1 h1
-  · intro q f1 k h1
+  · intro q f1 b p h1 hp
     rw [file_setFile] at h1; split at h1
-    · cases h1; simp [newFile, OsFile.ofBytes, OsFile.ofDisk]
-    · exact hwf.vers q f1 k h1
+    · cases h1; simp only [newFile, OsFile.ofBytes, OsFile.ofDisk, List.mem_singleton] at hp
+      subst hp; simp
+    · exact hwf.stamps q f1 b p h1 hp
 
 theorem cellView_create (hwf : OsWf st) (hn : st.file n = none) :
     cellView (st.setFile n newFile) = cellView st := by
-  have hI := inflightAt_congr (sizes_create hn) (st' := st.setFile n newFile) rfl
+  have hI : ∀ q i, InflightAt (st.setFile n newFile) q i = InflightAt st q i :=
+    inflightAt_congr rfl
   refine cellView_congr' hwf (osWf_create hwf hn) rfl (fun q i => ?_) hI
   by_cases hpq : n = q
   · subst hpq; unfold cellByte; rw [file_setFile_eq, hn]
@@ -131,57 +120,45 @@ theorem cellView_create (hwf : OsWf st) (hn : st.file n = none) :
 theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt)
     (hn : st.file n = none) :
     OsCoh (st.setFile n newFile) Γb (<[n := newMeta]> Γm) Γf Γt := by
-  have hs := sizes_create hn
-  have hI := inflightAt_congr (sizes_create hn) (st' := st.setFile n newFile) rfl
   have hnt : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ n := by
     intro t c ht hcp
     obtain ⟨f, hf⟩ := hwf.infl t c ht
     rw [hcp, hn] at hf; cases hf
+  have hnt' : ∀ t ti, Γt !! t = some ti → ti.ino ≠ n := by
+    intro t ti h hp
+    have := hcoh.tok_file t ti h
+    obtain ⟨f, hf, -⟩ := this
+    rw [hp, hn] at hf; cases hf
   refine ⟨fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
-    hcoh.fds, hcoh.toks, fun t ti h => ?_, hcoh.tok_alone, fun t ti h => ?_,
-    fun t ti h => ?_⟩
+    hcoh.fds, hcoh.toks, hcoh.tok_is, fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
     · simp
     · exact hcoh.meta_dom q
   · rw [GMap.lookup_insert_eq_iff] at hm
     split at hm
     · subst_vars; cases hm
-      refine ⟨newFile, by rw [files_setFile, if_pos rfl], ⟨rfl, Nat.le_refl _, Nat.le_refl _,
-        fun _ k _ => by simp [newFile, OsFile.ofBytes, OsFile.ofDisk], fun b len => ?_,
-        fun t c ht hc => absurd hc (hnt t c ht), fun i d h => by
-          simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents, pageUp] at h,
-        fun ns hns k => by
-          simp only [newMeta, initMeta, Option.some.injEq] at hns; subst hns
-          simp [newFile, OsFile.ofBytes, OsFile.ofDisk], newMeta_dz⟩⟩
-      simp only [newMeta, initMeta, GMap.lookup_empty, reduceCtorEq, false_iff]
-      intro hb
-      obtain ⟨⟨f0, hf0⟩, -⟩ := hwf.maps b _ hb
-      simp only at hf0; rw [hn] at hf0; cases hf0
+      refine ⟨newFile, by rw [files_setFile, if_pos rfl], ?_⟩
+      have := metaOk_ofDisk (st := st.setFile q newFile) (i := q) (fun _ => 0) 0
+        (fun b m h => by
+          intro hp
+          obtain ⟨⟨f0, hf0⟩, -⟩ := hwf.maps b m h
+          rw [hp] at hf0; rw [hn] at hf0; cases hf0)
+        (fun t c ht hc => hnt t c ht hc)
+      exact this
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m hm
-      exact ⟨f1, by rw [files_setFile, if_neg hpq]; exact h1, hm1.transfer hs rfl rfl⟩
-  · obtain ⟨f1, h1, hb, hc⟩ := hcoh.bytes q i x hx
+      exact ⟨f1, by rw [files_setFile, if_neg hpq]; exact h1, MetaOk.transfer (st := st) (st' := st.setFile n newFile) rfl rfl hm1⟩
+  · obtain ⟨f1, h1, hb, hx1⟩ := hcoh.bytes q i x hx
     have hpq : n ≠ q := fun e => by subst e; rw [hn] at h1; cases h1
-    refine ⟨f1, by rw [file_setFile_ne _ _ hpq]; exact h1, hb, fun hx2 => ?_⟩
-    obtain ⟨hc1, hc2⟩ := hc hx2
-    exact ⟨hc1, by rw [hI]; exact hc2⟩
+    exact ⟨f1, by rw [file_setFile_ne _ _ hpq]; exact h1, hb, hx1⟩
   · rw [file_setFile] at h1; split at h1
     · cases h1; simp [newFile, OsFile.ofBytes, OsFile.ofDisk] at hi
     · exact hcoh.bytes_full q f1 i h1 hi
-  · rw [reaches_congr hs]; exact hcoh.tok_q t ti h
-  · obtain ⟨f1, h1, hsv⟩ := hcoh.tok_saved t ti h
-    rw [affRange_congr hs, file_setFile]; split
-    · subst_vars; rw [hn] at h1; cases h1
-    · exact ⟨f1, h1, hsv⟩
-  · intro j hj
-    obtain ⟨hjl, f1, h1, hc⟩ := hcoh.tok_clean t ti h j hj
-    have hlo : affLo (st.setFile n newFile) ti.c = affLo st ti.c := affLo_congr hs _
-    have hhi : affHi (st.setFile n newFile) ti.c = affHi st ti.c := by unfold affHi; rw [hs]
-    rw [hlo, hhi, file_setFile]
-    refine ⟨hjl, ?_⟩
-    split
-    · subst_vars; rw [hn] at h1; cases h1
-    · exact ⟨f1, h1, hc⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm (hnt' t ti h))]; exact hcoh.tok_meta t ti h
+  · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_file t ti h
+    exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
+  · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t ti h
+    exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
 
 end create
 
@@ -234,21 +211,9 @@ theorem osWorld_addFd {st st0 : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
   have hΓfn : Γf !! fd = none := by rw [hcoh.fds]; exact hfd
   imod gAuth_insert _ _ _ fd d hΓfn $$ HAf with ⟨HAf, Hfd⟩
   have hcv : cellView (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) =
-      cellView st := cellView_congr hwf hwf' hs.2.2.2 hs.1 hs.2.2.1
-  imod cells_same hwf hwf' hr hfr hs.2.2.2 hcv $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+      cellView st := cellView_congr hwf hwf' hs.2.2.2.1 (fun i => congrArg _ (hf0 i)) hs.2.2.1
+  imod cells_same hwf hwf' hr hfr hs.2.2.2.1 hcv $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
   · iframe
-  have htk : tokRes (gooseOsGS (L := L))
-      (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) Γt =
-      tokRes (gooseOsGS (L := L)) st Γt := by
-    have : FilesSame st (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) ∨ True :=
-      .inr trivial
-    unfold tokRes
-    have hsz : ∀ i, (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }).size i =
-        st.size i := fun i => by
-      simp only [OsState.size]; rw [show (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }).file i =
-        st0.file i from rfl, hf0]
-    simp only [affLo_congr hsz]
-  rw [htk]
   imodintro
   unfold osFd
   iframe
@@ -291,7 +256,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
     exact ⟨_, h, _, ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl', flRO_ok, hcall,
-      .inr ⟨1, by decide, rfl, .inl rfl⟩⟩, hfr, hr⟩
+      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -308,6 +273,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   imod call_end _ _ Γc k' s0 q $$ HAd HAc Hcr Hk with ⟨%hk2, HAd, HAc, Hcr, Hq⟩
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
+  obtain ⟨-, hres⟩ := hres
   rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
@@ -413,7 +379,7 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
     exact ⟨_, h, _, ⟨p, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
-      .inr ⟨1, by decide, rfl, .inl rfl⟩⟩, hfr, hr⟩
+      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -433,6 +399,7 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   · iapply (osTree_split q1 q _ _).2; iframe
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
+  obtain ⟨-, hres⟩ := hres
   rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
@@ -508,7 +475,7 @@ abbrev createdSt (st : OsState) (k : Nat) (j : Ino) (b : GoString) (s0 : Nat) : 
 
 theorem filesSame_created (st : OsState) (k : Nat) (j : Ino) (b : GoString) (s0 : Nat) :
     FilesSame ((st.metaEnd k).setFile st.fs.nextIno newFile) (createdSt st k j b s0) :=
-  ⟨rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-- **What creating `b` in the directory `j` keeps**, from a state where the call `k` holds the rest
 of the whole history (no directory fd, no other call). -/
@@ -655,7 +622,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (filesSame_metaEnd st k) Hag
     exact ⟨_, h, _, ⟨child d b, flCreat, k, s0, rfl, .inr (treeName_child hl hb), flCreat_ok, hcall,
-      .inr ⟨1, by decide, rfl, .inl rfl⟩⟩, hfr, hr⟩
+      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -712,9 +679,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     unfold osMeta
     iframe
   -- the files' world of the created state, from the old one's parts
-  have htokC : tokRes (gooseOsGS (L := L)) (createdSt st k' j b s0) Γt =
-      tokRes (gooseOsGS (L := L)) st Γt := by
-    unfold tokRes; simp only [affLo_congr hszC]
+  obtain ⟨-, hres⟩ := hres
   rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst | ⟨tgt, heff⟩⟩
   · -- success
     obtain ⟨rfl, rfl⟩ := heffect st1 tgt heff
@@ -726,7 +691,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     imod hghost $$ HAm HAd Hh with ⟨HAm, HAd, Hh, Hm⟩
     ihave Hwc : osWorld (L := L) (createdSt st k' j b s0) Γb (<[st.fs.nextIno := newMeta]> Γm) Γf Γt h
       $$ [HAb HAm HAf HAt Htok Hcells Hσ]
-    · unfold osWorld; rw [htokC, hcvC]; iframe; ipureintro; exact ⟨hwfC, hcohC⟩
+    · unfold osWorld; rw [hcvC]; iframe; ipureintro; exact ⟨hwfC, hcohC⟩
     imod osWorld_addFd (st := createdSt st k' j b s0) (filesSame_refl _) (fd := fd)
       (d := ⟨st.fs.nextIno, true, true⟩) hfdn ⟨_, hfC⟩ Hr Hfr $$ Hwc with ⟨Hwc, Hfd⟩
     have hw' : FsTreeWf ((createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
@@ -786,7 +751,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     ihave Hn := treeWorld_mk (st := st) (by rfl) hwC hcC $$ HAd HAdf HAc Hrd Hcr
     ihave Hwc : osWorld (L := L) (createdSt st k' j b s0) Γb (<[st.fs.nextIno := newMeta]> Γm) Γf Γt h'
       $$ [HAb HAm HAf HAt Htok Hcells Hσ]
-    · (try unfold osWorld); rw [htokC]; iframe; ipureintro; exact ⟨hwfC, hcohC⟩
+    · (try unfold osWorld); iframe; ipureintro; exact ⟨hwfC, hcohC⟩
     imodintro
     iexists Γb, _, Γf, Γt, _, ∅, ∅
     try unfold osWorld
