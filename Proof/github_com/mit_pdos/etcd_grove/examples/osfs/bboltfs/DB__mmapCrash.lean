@@ -225,7 +225,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
     isplitr [Hx]
     · ipureintro; exact hpost M1
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, trivial, rfl, rfl⟩
     iright
     iframe
     ipureintro; simp
@@ -256,7 +256,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
     isplitr [Hx]
     · ipureintro; exact hpost ∅
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, trivial, rfl, rfl⟩
     iright
     iframe
     ipureintro; simp [interface.mkOk]
@@ -302,7 +302,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
     isplitr [Hx]
     · ipureintro; exact hpost M2
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, trivial, rfl, rfl⟩
     iright
     iframe
     ipureintro; exact ⟨errnoErr_ne_nil e2 he2, rfl⟩
@@ -401,7 +401,7 @@ theorem DB.mmap.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG :
     exact ⟨h2, hsz, hokM, fun _ => ⟨hmp, hcc1 _, trivial, hfd0, h16, hsz30,
       by have := Hsz2.2.2.2.2 (by omega); omega⟩⟩
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, trivial, rfl, rfl⟩
   ileft
   isplitr
   · ipureintro; trivial

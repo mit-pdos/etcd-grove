@@ -47,10 +47,10 @@ open Fs
 section pure
 variable [GooseExts]
 
-/-- `commitClean` does not look at the mappings or `ok`. -/
+/-- `commitClean` does not look at the mappings. -/
 theorem commitClean_meta {m m' : OsMeta} {bs : List ByteG} (h : commitClean m bs)
     (hhi : m'.hi = m.hi) (hlo : m'.lo = m.lo) : commitClean m' bs :=
-  ⟨hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.metas, h.root, h.tx⟩
+  ⟨hhi ▸ h.hi, hlo ▸ h.lo, h.ok, h.slot, hlo ▸ h.pg, h.boot, h.metas, h.root, h.tx, h.frz⟩
 
 /-- The writer's idle states while not failed are `dbOk`, whatever the mappings (`Mmap`'s and
 `Munmap`'s obligations). -/
@@ -58,13 +58,14 @@ theorem writer_okS {i : Ino} {m : OsMeta} {bs : List ByteG} (fa fb : Nat)
     (hl : bs.length = m.size) (hfab : fa ≤ fb) (hfb : fb ≤ m.size) (h : commitClean m bs)
     (M : GMap Loc Nat) :
     dbOk (some (i, ⟨{ m with maps := M }, bs, fa, fb, .idle⟩)) :=
-  commitClean_okS ⟨{ m with maps := M }, bs, fa, fb, .idle⟩ ⟨hl, hfab, hfb, trivial⟩ rfl
-    (commitClean_meta h rfl rfl)
+  commitClean_okS ⟨{ m with maps := M }, bs, fa, fb, .idle⟩ ⟨hl, hfab, hfb, trivial⟩ trivial
+    (commitClean_meta h rfl rfl) (Nat.le_refl _) (by show m.hi ≤ 2 ^ 30; exact h.hi)
+    (fun _ _ => trivial)
 
 /-- After `init` (`DB.init.specCrash`'s post), a commit may start: the writer's invariant. -/
 theorem init_commitClean {m : OsMeta} {xs : List ByteG}
     (hsz : m.size ≤ 2 ^ 30) :
-    commitClean (initDoneMeta m xs) (initFile xs) := by
+    commitClean (initDoneMeta m) (initFile xs) := by
   have hil := initBytes_length
   simp only [pageBytes] at hil
   have hfst : (initFile xs).map Prod.fst = initBytes ++ (xs.map Prod.fst).drop 16384 := by
@@ -78,7 +79,7 @@ theorem init_commitClean {m : OsMeta} {xs : List ByteG}
     rw [curRoot, hc, initMeta_root]; decide
   have hpg : curPgid (((initFile xs).map Prod.fst).take 8192) = 4 := by
     rw [curPgid, hc, initMeta_pgid]; decide
-  have hcl : ∀ k < 16384, ∃ b, (initFile xs)[k]? = some (b, true) := by
+  have hcl : ∀ k < 16384, ∃ b, (initFile xs)[k]? = some (durB b) := by
     intro k hk
     unfold initFile
     rw [List.getElem?_map, List.getElem?_append_left (by omega),
@@ -86,13 +87,14 @@ theorem init_commitClean {m : OsMeta} {xs : List ByteG}
     exact ⟨_, rfl⟩
   have hlen : (((initFile xs).map Prod.fst).take 8192).length = 8192 := by
     rw [hmp, List.length_take]; omega
-  refine ⟨by simp only [initDoneMeta]; omega, by simp only [initDoneMeta]; omega,
+  refine ⟨by simp only [initDoneMeta, OsMeta.synced]; omega, by simp only [initDoneMeta, OsMeta.synced]; omega,
     metaPagesOk_init _ hmp' hlen, ?_, ?_, ?_,
-    fun k hk => hcl k (by omega), fun k hk => hcl _ (by rw [hroot]; omega), ?_⟩
+    fun k hk => hcl k (by omega), fun k hk => hcl _ (by rw [hroot]; omega), ?_,
+    fun k _ hk => hcl k (by rw [hpg] at hk; omega)⟩
   · unfold curInSlot
     rw [hc, initMeta_txid, show (W64 ((1 : Nat) : Int)).toNat % 2 = 1 by decide,
       initMetas _ hmp' 1 (by decide)]
-  · rw [hpg]; simp only [initDoneMeta]; omega
+  · rw [hpg]; simp only [initDoneMeta, OsMeta.synced]; omega
   · rw [hc, hroot, hfst, List.drop_append_of_le_length (by omega),
       List.take_append_of_le_length (by simp only [List.length_drop]; omega)]
     have : (initBytes.drop (4096 * 3)).take 4096 = emptyPageBytes (W64 3) (W16 2) := by

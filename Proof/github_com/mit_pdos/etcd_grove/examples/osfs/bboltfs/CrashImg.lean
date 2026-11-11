@@ -362,6 +362,8 @@ structure commitClean (m : OsMeta) (bs : List ByteG) : Prop where
   metas : ∀ k < 8192, ∃ b, bs[k]? = some (durB b)
   root : ∀ k < 4096, ∃ b, bs[4096 * curRoot ((bs.map Prod.fst).take 8192) + k]? = some (durB b)
   tx : txOk ((bs.map Prod.fst).take 8192)
+  /-- The committed pages (the frozen ones, past the meta pages) durable. -/
+  frz : ∀ k, 8192 ≤ k → k < 4096 * curPgid ((bs.map Prod.fst).take 8192) → ∃ b, bs[k]? = some (durB b)
 
 theorem commit_clean_img {m : OsMeta} {bs : List ByteG} (h : commitClean m bs)
     {img : List w8} (hlo : m.lo ≤ img.length) (hhi : img.length ≤ 2 ^ 30)
@@ -474,6 +476,7 @@ structure commitMetaSt (m : OsMeta) (bs : List ByteG) (mp : List w8) (N : Meta)
   nBoot : bootOk N.txid'.toNat
     (pageVal (((bs.map Prod.fst).drop (4096 * N.root'.root'.toNat)).take 4096))
   nPage : ∀ k < 4096, ∃ b, bs[4096 * N.root'.root'.toNat + k]? = some (durB b)
+  frz : ∀ k, 8192 ≤ k → k < 4096 * curPgid mp → ∃ b, bs[k]? = some (durB b)
 
 theorem commitMeta_good {m : OsMeta} {bs : List ByteG} {mp : List w8} {N : Meta} {s : Nat}
     (h : commitMetaSt m bs mp N s) {img : List w8} (hlo : m.lo ≤ img.length)
@@ -625,8 +628,9 @@ theorem initMid_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (hlo : 4 * 4096 ≤ 
 
 /-- **A commit's states before its meta write**: the metas and the current root page clean, and
 missed by the change in flight. -/
-theorem commitClean_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (h : commitClean s.m s.bs)
-    (hlo : s.m.lo ≤ s.vmeta.lo) (hhi : s.vmeta.hi ≤ 2 ^ 30)
+theorem commitClean_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) {M : OsMeta}
+    (h : commitClean M s.bs)
+    (hlo : M.lo ≤ s.vmeta.lo) (hhi : s.vmeta.hi ≤ 2 ^ 30)
     (hmiss : ∀ k, (k < 8192 ∨ (4096 * curRoot ((s.bs.map Prod.fst).take 8192) ≤ k ∧
         k < 4096 * curRoot ((s.bs.map Prod.fst).take 8192) + 4096)) → s.Misses k) :
     FileOkS P1 Good i s := by
@@ -648,8 +652,8 @@ theorem commitClean_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (h : commitClean
 and the new current root pages clean and missed, and slot `1 - sl` as the state knows it the old
 meta or the new one, if valid. -/
 theorem commitMeta_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) {mp : List w8} {N : Meta}
-    {sl : Nat} (h : commitMetaSt s.m s.bs mp N sl)
-    (hlo : s.m.lo ≤ s.vmeta.lo) (hhi : s.vmeta.hi ≤ 2 ^ 30)
+    {sl : Nat} {M : OsMeta} (h : commitMetaSt M s.bs mp N sl)
+    (hlo : M.lo ≤ s.vmeta.lo) (hhi : s.vmeta.hi ≤ 2 ^ 30)
     (hmiss : ∀ k, (4096 * sl + 16 ≤ k ∧ k < 4096 * sl + 80 ∨
       (4096 * curRoot mp ≤ k ∧ k < 4096 * curRoot mp + 4096) ∨
       (4096 * N.root'.root'.toNat ≤ k ∧ k < 4096 * N.root'.root'.toNat + 4096)) → s.Misses k)
