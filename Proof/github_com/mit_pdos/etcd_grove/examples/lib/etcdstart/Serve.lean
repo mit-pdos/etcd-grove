@@ -110,7 +110,7 @@ theorem Serve.wp_proof
     iexists C, q, p, pw, pa, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro
-    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
+    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ, Hregs.2.2.2.2.2⟩
   imod HG $$ %gs %lis %cid %mid %R Hup with ⟨Hserv, HQ⟩
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]

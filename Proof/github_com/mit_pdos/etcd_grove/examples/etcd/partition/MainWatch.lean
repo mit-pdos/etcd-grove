@@ -461,11 +461,11 @@ theorem MainWatch.wp_proof
     itrivial
   -- (D29) the bridges' addresses are refusal-free: every client's writes are sent at most once
   ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha

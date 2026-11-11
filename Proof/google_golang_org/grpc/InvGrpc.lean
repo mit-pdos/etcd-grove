@@ -605,14 +605,17 @@ return, proved; what grpc-prometheus's is assumed to be): called with `R`, the r
 request with `Q` (what the interceptor reads of it: etcd's learner check reads a
 `*RangeRequest`'s `Serializable`), an `info` (`srvInfoIs`) and a handler `h`, it either calls `h`
 once on the same context and request and returns its result, or returns `(nil, err)` for some
-non-nil error without calling `h`; either way `R` comes back. The caller gives both
+non-nil error without calling `h`; either way `R` comes back. It lends `R` to the handler's call
+(per-type stage B, r5 §2.5): the handler's call takes `R` and gives it back with its result, and
+the interceptor, done with it, hands it to the rest (`R -∗ Ψ v`). The caller gives both
 continuations (`∧`: one is taken). -/
 def srvInterceptorOk (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF) : IProp GF :=
   iprop(□ ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (req : GoInterface)
       (info : Loc) (h : GoFunc) (Ψ : val → IProp GF),
     R -∗ context.isContext ci cd -∗ grpcRunCtx ci -∗ srvInfoIs info -∗ □ Q req -∗
-    (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v) }} ∧
+    ((R -∗ WP (srvHandlerCall h #(GoInterface.ok ci) #req)
+        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ R ∗ (R -∗ Ψ v) }}) ∧
       (R -∗ ∀ err : GoInterface,
         ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
         go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) -∗
@@ -640,16 +643,16 @@ instance srvInterceptorsOk_persistent (Q : GoInterface → IProp GF) (ics : List
 
 /-- **A chain of transparent interceptors runs the handler or fails** (`srvChainWP` from the
 interceptors' contracts): with the interceptors' resources, the run's context, an `info`, and
-both continuations of the handler's call (its result with the resources back, or an early
-`(nil, err)` with them back), the chain's call meets `Ψ`. -/
+both continuations of the handler's call (its result, the resources lent to it and back, or an
+early `(nil, err)` with them back), the chain's call meets `Ψ`. -/
 theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (req : GoInterface) (info : Loc) (h : GoFunc)
     (Ψ : val → IProp GF) (Q : GoInterface → IProp GF) :
     srvInterceptorsOk Q ics Rs ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
       srvInfoIs info ∗ □ Q req ∗
-      (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
+      ((([∗list] R ∈ Rs, R) -∗ WP (srvHandlerCall h #(GoInterface.ok ci) #req)
           {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-            (([∗list] R ∈ Rs, R) -∗ Ψ v) }} ∧
+            ([∗list] R ∈ Rs, R) ∗ (([∗list] R ∈ Rs, R) -∗ Ψ v) }}) ∧
         (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface,
           ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
           go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) ⊢
@@ -661,15 +664,15 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
       rw [show srvInterceptorsOk (GF := GF) Q [] (R :: Rs) = iprop(⌜False⌝) from rfl]
       iintro ⟨%H, -⟩; exact H.elim
     | nil =>
-      iintro ⟨-, -, -, -, -, -, H⟩
+      iintro ⟨-, HRs, -, -, -, -, H⟩
       unfold srvChainWP
       icases H with ⟨H, -⟩
+      ispecialize H $$ HRs
       iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-        go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
-      iintro %v ⟨%resp, %err, -, -, HΨ⟩
-      iapply HΨ
-      iapply BigSepL.bigSepL_nil.2
-      itrivial
+        go_etcd_io.etcd.cache.v3.srvErrOk err ∗ ([∗list] R ∈ ([] : List (IProp GF)), R) ∗
+        (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
+      iintro %v ⟨%resp, %err, -, -, HRs, HΨ⟩
+      iapply HΨ $$ HRs
   | cons ic ics ih =>
     cases Rs with
     | nil =>
@@ -686,26 +689,37 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
       iunfold srvInterceptorOk at Hic
       iapply Hic $$ HR Hctx Hrc Hinfo HQ
       isplit
-      · iapply Hh'
+      · iintro HR'
+        iapply Hh'
         iapply (ih Rs (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v))))
+          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ R ∗ (R -∗ Ψ v))))
         iframe #
-        iframe
+        iframe HRs
         isplit
         · icases H with ⟨H, -⟩
-          iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
-          iintro %v ⟨%resp, %err, %Hv, #Hse, HΨ⟩
-          iexists resp, err
-          isplitr
-          · ipureintro; exact Hv
-          iframe Hse
           iintro HRs'
+          ihave HRR := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
+            (xs := Rs)).2 $$ [HR' HRs']
+          · iframe
+          ispecialize H $$ HRR
+          iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ ([∗list] R ∈ R :: Rs, R) ∗
+            (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
+          iintro %v ⟨%resp, %err, %Hv, #Hse, HRR, HΨ⟩
+          ihave ⟨HR2, HRs2⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
+            (xs := Rs)).1 $$ HRR
           iexists resp, err
           isplitr
           · ipureintro; exact Hv
           iframe Hse
-          iintro HR'
+          iframe HRs2
+          iintro HRs3
+          iexists resp, err
+          isplitr
+          · ipureintro; exact Hv
+          iframe Hse
+          iframe HR2
+          iintro HR3
           iapply HΨ
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
           iframe
@@ -715,8 +729,9 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
           isplitr
           · ipureintro; rfl
           iframe Hse
-          iintro HR'
-          iapply H $$ [HR' HRs'] %err %Herr Hse
+          iframe HR'
+          iintro HR3
+          iapply H $$ [HR3 HRs'] %err %Herr Hse
           iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
           iframe
       · icases H with ⟨-, H⟩

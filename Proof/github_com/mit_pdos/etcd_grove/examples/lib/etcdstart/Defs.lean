@@ -428,7 +428,7 @@ theorem memberUp_stop (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the
 `*quotaLeaseServer` `ql` over the `*LeaseServer` `pl` of the server `s`, its header at the KV answers
 `A` (`v3rpc.Server`'s post). -/
-def grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × val × GoInterface)) :
+def grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × GoFunc × GoInterface)) :
     IProp GF :=
   iprop(∃ (ql pl : Loc) (lcid lmid : w64), ⌜∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs⌝ ∗
     v3rpc.quotaLeaseServerAt ql
@@ -436,7 +436,7 @@ def grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × val × 
     v3rpc.leaseServerAt pl s A lcid lmid)
 
 instance grpcLeaseUp_persistent (s : Loc) (A : v3rpc.KVAns GF)
-    (regs : List (GoString × val × GoInterface)) : Persistent (grpcLeaseUp (GF := GF) s A regs) := by
+    (regs : List (GoString × GoFunc × GoInterface)) : Persistent (grpcLeaseUp (GF := GF) s A regs) := by
   unfold grpcLeaseUp; infer_instance
 
 /-- **What `v3rpc.Server` and `Listen` return** (the ghost step's input): the gRPC server `gs`
@@ -447,10 +447,11 @@ server's resources back, and the listener `lis` at `addr`. -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
-      (regs sregs : List (GoString × val × GoInterface)),
+      (regs sregs : List (GoString × GoFunc × GoInterface)),
     ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
-      R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+      R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧
+      ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
     v3rpc.grpcCfgOk s C ∗
     grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
     v3rpc.quotaKVServerAt q
@@ -547,10 +548,11 @@ the `*AuthServer` `pa` over the server (`authRegs`, `authServerIs`). -/
 def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
-      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)),
+      (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)),
     ⌜C.A = v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
-      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧
+      ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
     v3rpc.grpcCfgOk s C ∗
     grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
     v3rpc.quotaKVServerAt q
@@ -574,10 +576,11 @@ the mode (`srvKVAnsM on … 0 none`), with the Auth service's registrations and 
 def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
-      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)),
+      (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)),
     ⌜C.A = v3rpc.srvKVAnsM on s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
       (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
-      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧
+      ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
     v3rpc.grpcCfgOk s C ∗
     grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
     v3rpc.quotaKVServerAt q

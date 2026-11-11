@@ -176,11 +176,11 @@ theorem MainCluster.wp_proof
     iapply BigSepL.bigSepL_nil.2
     itrivial
   ihave %Hb₁' : ⌜noRefusalAt clusterCfg.Bridge1'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂' : ⌜noRefusalAt clusterCfg.Bridge2'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃' : ⌜noRefusalAt clusterCfg.Bridge3'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ cluster3.bridges clusterCfg, noRefusalAt a := by
     intro a ha
     simp only [cluster3.bridges, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha

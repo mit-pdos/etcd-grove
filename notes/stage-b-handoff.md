@@ -89,28 +89,40 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `bridge.New` over `grpcAddrIs`; `Invoke`/`NewStream` docstrings.
   - Axioms vs `lean` (repository files): +11 (B1a) −10 = **+1**, as frozen.
 
+- **B1b, mechanical remainder** (2026-11-11, fresh agent; decisions 1-3 of etcd-grove-81 in
+  `questions.md`): done and checked with `etc/lean-check.py -a` where the file's imports build:
+  - `v3rpc/InvGrpcStart.lean`: `kvRegs` … `leaseSReg` over `GoFunc` (`functions X []`);
+    `descRegs_eq`/`descSRegs_eq` over `GoFunc`; `func_intoVal_inj`, `handlers_eq` (handlers from the
+    generated facts' values, `[go.CoreSemantics]`); `kvDescFuncs`/`authDescFuncs`/`leaseDescFuncs`
+    with `*_eq : … = …Funcs.map … := rfl`; `server_nodup` (the spike's `spike_v3rpc_nodup`, ported,
+    hypotheses as per-service `descNames` Nodup). 0 errors.
+  - `v3rpc.Server` spec (retyped; post gains `((regs ++ sregs).map Prod.fst).Nodup`) and proof (the
+    six flag discharges, health post's Nodup, `server_nodup`). 0 errors.
+  - `NoRefusal.lean` (two axioms, binders retyped only: freeze §8.2), `InitializeMetrics` spec
+    (retyped, §8.2), `etcdstart/Defs` (`grpcUp`/`grpcUpOn`/`grpcUpM` retyped and their pure part
+    gains the joint Nodup as last conjunct; `grpcLeaseUp` retyped), `etcdstart/Serve.lean` (passes
+    `Hregs.2.2.2.2.2`). Defs 0 errors; Serve.lean not checkable until B3 (imports boundary files).
+  - `cluster3/Defs`: `forwards` is `(□ ∀ γ, grpcAddrIs b γ -∗ grpcAddrIs a γ) ∗ ⌜noRefusal…⌝`; the
+    three `_forwards` lemmas re-proved; the 9 `icases Hfw with ⟨-, %Hf, -⟩` sites → `⟨-, %Hf⟩`;
+    `StartBridge` post pattern. Not checkable until B3 (imports `client/v3/Results`, `ServedLease`).
+  - `srvInterceptorOk`'s lend (r5 §2.5): handler continuation `R -∗ WP … {{ …, srvErrOk err ∗ R ∗
+    (R -∗ Ψ v) }}`; `srvChainWP_of_ok` re-proved (the chain lends `[∗list] Rs`);
+    `newLogUnaryInterceptor` (lends `srvLgReader`), `newUnaryInterceptor` (wp_join's `Q`,
+    `handler_tail`'s `ispecialize Hk $$ [//]`). 0 errors.
+  - Link lists: `grpc_Server__Serve: model_Serve`, `model_Serve: model_acceptRun …` and the four
+    leaves in `etc/link-lean-first-{common,cluster3}.txt`; both `Link.lean` regenerated.
+
 ## Next, in order
 
-1. **The boundary (STOP reported to etcd-grove-81):** B1b cannot build past the grpc package
-   without B2/B3. Pool-dependent: every serve site turns `grpcServerAt … ∗ replicate N S` and
-   `grpcMethodOkMd … S` into registrations, and now needs `□ grpcRunOkMd` per method, i.e. pool
-   handles (`isThreadPoolL` at levels 1-3) from B2 and B3's adapter instances:
-   `client/v3/Results.lean` (`etcd_kv_servedM_with`, lease served), `client/v3/AuthnServedOn.lean`,
-   `v3rpc/Results.lean` (auth served, `etcd_watch_served`), `etcdstart/{Served,ServedLease}.lean`,
-   `examples/etcd/auth/MainServe.lean`, `examples/etcd/watch/Served.lean`, `cache/v3/Results.lean`.
-   Stream `S` return: `_Watch_Watch_Handler` (spec and proof; `watchServer.Watch` keeps its slot:
-   B3's Watch restatement). Per-file list: `/shared/tmp/stageB/b1b/boundary.txt`.
-2. Mechanical B1b work left, not pool-dependent: `v3rpc/InvGrpcStart.lean` (`kvRegs` …
-   `leaseSReg` over `GoFunc`; membership lemmas through `intoVal_inj_func`,
-   `PostLifting.lean:725`); `v3rpc.Server` spec/proof (retype; flag discharge: KV `HkvD.2.2`, Watch
-   from `HwD.2`, Lease `HlD.2.2`, Cluster `HcD.2`, Auth from `asds` names `= []`, Maintenance
-   `HmD.2`; the joint `Nodup` post from `grpcNames_nodup`, ported from the spike's
-   `spike_v3rpc_nodup`); `NoRefusal.lean`, `ServerMetrics__InitializeMetrics` spec, `etcdstart/Defs`,
-   `cluster3/Defs` (bridge relation → `grpcAddrIs`); `srvInterceptorOk`'s lend (r5 §2.5);
-   link lists (`etc/link-lean-first-{common,cluster3}.txt`: `grpc_Server__Serve: model_Serve`,
-   `model_Serve: model_acceptRun model_acceptRunConns model_respond model_finishStream`, leaves).
-3. Then B2, B3; full build, tcb `--check --update` (net +1), collections, interfaces, gen-init,
-   gate; delete `Scratch/`.
+1. **B2** (CP2): the owner pools and `NewServer`, per r5 §4.2 (additive: the raw stocks beside the
+   64-stocks; lease pools leveled; `srvLevelK`/`srvLevels` in `RevokeLevels.lean`; `memberUp`'s run
+   pool; adequacy with `srvLevelK`).
+2. **B3**: the callers in `/shared/tmp/stageB/b1b/boundary.txt` (+ `ServeFromStart`, `cluster3/Defs`
+   become checkable), `Watch` made exact, the 64-stocks removed, `srvLevels` where used; the chain
+   consumers of `srvChainWP_of_ok` (`client/v3/Results`' `etcdIcRs` …) pass the lent `Rs` to the
+   handler.
+3. CP3: full build, tcb `--check --update` (net +1), collections, interfaces, gen-init, gate
+   enforcing (capped walks fixed), `tcb-report --roots`; delete `Scratch/`. STOP before land.sh.
 
 ## Pitfalls
 

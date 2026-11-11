@@ -53,9 +53,10 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   icases Hk with ⟨Hk, -⟩
   iunfold srvHandlerCall at Hk
   wp_bind (App (App (Val #h) _) _)
+  ispecialize Hk $$ HR
   iapply (wp_wand (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (srvLgReader s -∗ Ψ v)))) $$ Hk
-  iintro %v ⟨%resp, %err, %Hv, -, HΨ⟩
+    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ srvLgReader s ∗ (srvLgReader s -∗ Ψ v)))) $$ Hk
+  iintro %v ⟨%resp, %err, %Hv, -, HR, HΨ⟩
   subst Hv
   wp_auto
   wp_apply wp_Logger s lg $$ [HR] as ⟨-, HR⟩
