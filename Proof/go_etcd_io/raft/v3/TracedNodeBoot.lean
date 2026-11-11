@@ -324,7 +324,7 @@ theorem trCapB_hookGate_boot (tr : Option GName) (γ : RaftNames) (r : Loc) (id 
     (Λ Λ' : Option TraceEv → Prop)
     (hboot : ∀ e, E e → e.nid = decStr id ∧ ∃ ln, Etcdraft.parseLine 0 (evConv e) = .ok ln ∧
       ln.nid = idAbs id ∧ Etcdraft.isBootstrapName ln.ev.name = true)
-    (hBN : ∀ C cs P, Φ C cs P → ∀ e, E e → ∀ o, Λ o → BootNext C id o e)
+    (hBN : tr.isSome → ∀ C cs P, Φ C cs P → ∀ e, E e → ∀ o, Λ o → BootNext C id o e)
     (hΛ : ∀ e, E e → Λ' (some e))
     (hOk : tr.isSome → ∀ e, E e → TraceEv.OkBoot (elements cC.incoming).length e)
     (hok : tr = none → TraceLoggerOk tl0) :
@@ -351,7 +351,7 @@ theorem trCapB_hookGate_boot (tr : Option GName) (γ : RaftNames) (r : Loc) (id 
     iexists tl
     isplitr
     · iexact Htl
-    iapply trCap_fire_boot γd γ r id cC tl E Φ Λ Λ' hboot hBN hΛ (hOk rfl)
+    iapply trCap_fire_boot γd γ r id cC tl E Φ Λ Λ' hboot (hBN rfl) hΛ (hOk rfl)
     iframe Hcap Htl
 
 /-- **`InitState`'s gate** (`newRaft`'s `traceInitState`, at raft's state `s` and configuration `c`,
@@ -359,7 +359,7 @@ empty at that point; the capability's `cC` the voters'), either mode. -/
 theorem trCapB_hookGate_init (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c cC : CfgM)
     (s : NState) (tl0 : GoInterface) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop)
     (Λ Λ' : Option TraceEv → Prop)
-    (hBN : ∀ C cs P, Φ C cs P → ∀ e, NodeEvOf (W64 0) id s c e → ∀ o, Λ o → BootNext C id o e)
+    (hBN : tr.isSome → ∀ C cs P, Φ C cs P → ∀ e, NodeEvOf (W64 0) id s c e → ∀ o, Λ o → BootNext C id o e)
     (hΛ : ∀ e, NodeEvOf (W64 0) id s c e → Λ' (some e))
     (hOk : tr.isSome → ∀ e, NodeEvOf (W64 0) id s c e → TraceEv.OkBoot (elements cC.incoming).length e)
     (hok : tr = none → TraceLoggerOk tl0) :
@@ -372,7 +372,7 @@ theorem trCapB_hookGate_init (tr : Option GName) (γ : RaftNames) (r : Loc) (id 
 theorem trCapB_hookGate_ccBoot (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c cn cC : CfgM)
     (s : NState) (tl0 : GoInterface) (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop)
     (Λ Λ' : Option TraceEv → Prop)
-    (hBN : ∀ C cs P, Φ C cs P → ∀ e, CCEvOf id s c cn e → ∀ o, Λ o → BootNext C id o e)
+    (hBN : tr.isSome → ∀ C cs P, Φ C cs P → ∀ e, CCEvOf id s c cn e → ∀ o, Λ o → BootNext C id o e)
     (hΛ : ∀ e, CCEvOf id s c cn e → Λ' (some e))
     (hOk : tr.isSome → ∀ e, CCEvOf id s c cn e → TraceEv.OkBoot (elements cC.incoming).length e)
     (hok : tr = none → TraceLoggerOk tl0) :

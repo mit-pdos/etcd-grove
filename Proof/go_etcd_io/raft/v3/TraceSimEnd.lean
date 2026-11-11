@@ -15,7 +15,9 @@ events ASCII, in scope (`ScopeOk`), the bootstrap lines' logs (`BootLogsOk`), th
 `traceNumBound`, their configuration lists within the voters' number), and `simRun_runAccepted`, `mainPure`'s
 `RunAccepted L` from it and the bootstrap facts. `tracecheck/MainSim.lean` combines them with
 `mainPure`. Not here: the event count (`L.length < numBound`), bounded by the run's steps
-(the recorder's, outside the simulation), and the bootstrap facts (layer B's bootstrap clause).
+(the recorder's, outside the simulation). (Amendment A7, Q29) The bootstrap segments: `simInv_end_boot`
+also gives `BootSegs`, and `newTrace_bootInit` what `NewTrace` computes of complete segments
+(`bootInit C`, which is `simInit C` at the voters only: the plan's Q30).
 -/
 module
 
@@ -136,9 +138,10 @@ end ghost
 section boot
 variable [GooseExts]
 
-/-- The server `newTraceWith` builds for an id outside the trace's servers: the one of the trace's
-first line's state (`lines.getD (0 - 1)`), which is an `InitState` (term 0, a follower, no vote, an
-empty log, nothing committed) with the empty configuration. -/
+/-- The server `newTraceWith` builds for an id outside the trace's servers: its term, role, vote, log
+size and commit are the trace's first line's (`lines.getD (0 - 1)`, an `InitState`: term 0, a follower,
+no vote, an empty log, nothing committed), its configuration empty (no configuration is computed for a
+non-server). -/
 def bootJunk : Etcdraft.Server :=
   let v : Etcdraft.Server :=
     { currentTerm := 0, state := Etcdraft.follower, votedFor := Etcdraft.nil, lead := Etcdraft.nil,

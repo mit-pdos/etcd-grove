@@ -1250,7 +1250,8 @@ touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.p
   from one initial state is one from any state equal to it at the servers (TLA+'s `s` is a function on
   `Server`): a new lemma over the transcription (each action, line predicate and invariant reads `s` at
   servers only, the line's node and its messages' ends; to be checked, possibly with a premise that the
-  lines' message ends are servers), no frozen change, a larger proof. **Recommended: (a)** (mechanical,
+  lines' message ends are servers), no frozen statement changed (`simRun_runRel`/`simRun_accepts` stay; the
+  transfer is a new lemma beside them), a larger proof. **Recommended: (a)** (mechanical,
   and it makes the simulation's initial state the one TLC starts from, junk included). A frozen
   definition: for the coordinator or the user.
 - **Q31 (2026-11-11, A7): the per-voter "bootstrap complete" fact has no ghost anchor.** `newTrace`'s
@@ -2859,5 +2860,5 @@ complete segments make `newTrace` succeed with the voters' servers and initial s
 (`newTrace_bootInit`). Not done, two questions: `BootFacts` is false (`not_bootFacts`: `newTraceWith`'s
 initial state differs from `simInit C` outside the voters; Q30), and the per-voter completion fact
 `StartNode` would return has no persistent witness in the frozen ghost state (Q31); `runOk_of_sim` keeps
-its hypothesis. No axiom, no `sorry`. Reviews `a7-r1.md`, ...
+its hypothesis. No axiom, no `sorry`. Reviews `a7-r1.md`, `a7-r2.md` (no first-tier finding against the amended statements; Q30, Q31 open)
 (`notes/decisions.md`, "Amendment A7 (Q29)").

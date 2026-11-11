@@ -1902,7 +1902,7 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
     (hcC : b = true → cC = c) (hout : b = false → c.outgoing = ∅)
     (hbf : b = true → PhaseStepBF id c s Φ Φ' Λ)
     (hb0 : b = false → ∀ C cs P, Φ C cs P → Φ' C cs P ∧
-      ∀ e, NodeEvOf (W64 2) id s c e → ∀ o, Λ o → BootNext C id o e)
+      (tr.isSome → ∀ e, NodeEvOf (W64 2) id s c e → ∀ o, Λ o → BootNext C id o e))
     (hΛ : ∀ e, NodeEvOf (W64 2) id s c e → Λ' (some e))
     (hOk : tr.isSome → (b = true → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.Ok (elements c.incoming).length e) ∧
       (b = false → ∀ e, NodeEvOf (W64 2) id s c e → TraceEv.OkBoot (elements cC.incoming).length e))
@@ -1946,7 +1946,7 @@ theorem trCapB_hookGate_bf (tr : Option GName) (γ : RaftNames) (r : Loc) (id : 
       · iintro H
         iapply trCapB_mono (some γd) γ r id cC false Φ Φ' Λ' (fun C cs P h => (hb0 rfl C cs P h).1) $$ H
       iapply trCap_fire_boot γd γ r id cC tl _ Φ Λ Λ' (fun e he => nodeEvOf_bf_boot id s c e (hout rfl) he)
-        (fun C cs P h => (hb0 rfl C cs P h).2) hΛ
+        (fun C cs P h => (hb0 rfl C cs P h).2 rfl) hΛ
         (hOkF rfl)
       iframe Hcap Htl
 

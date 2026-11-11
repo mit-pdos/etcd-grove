@@ -36558,4 +36558,4 @@ plan's questions, with options; nothing here depends on their answers (the claus
 needed either way).
 
 No axiom, no `sorry`; frozen statements changed: `simInv` (the clause), `trCap_fire_boot.statement` (the
-premise). Reviews `notes/trace-validation-reviews/a7-r1.md`, ....
+premise). Reviews `notes/trace-validation-reviews/a7-r1.md`, `a7-r2.md`: no first-tier finding against the amended statements; the gates' `BootNext` premises gated on the trace mode (a7-r2's N1); Q30 and Q31 confirmed.
