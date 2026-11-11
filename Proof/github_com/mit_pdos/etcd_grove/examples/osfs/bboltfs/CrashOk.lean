@@ -1,21 +1,19 @@
-/- Lean-first (no Rocq counterpart). minibolt's crash obligations on Fs v2, without P1: `FileOkS
-NoTearCrash Good i s` for a state `s` of the database file (`Proof/os/CrashSt.lean`), reduced to a
-statement on images (`crashImg`).
+/- Lean-first (no Rocq counterpart). minibolt's crash obligations on the per-byte model:
+`FileOkS P1 Good i s` for a state `s` of the database file (`Proof/os/CrashSt.lean`), reduced to a
+statement on the file a crash leaves (`CrashImg`).
 
-A meta slot (64 bytes at offset 16 of page 0 or 1) lies inside one sector (sector `8 i`). While the
-file's `OsMeta` knows which sectors have at most two versions since the last successful sync
-(`OsMeta.vk`, kept by the writes minibolt makes between syncs, each sector written at most once),
-a crash leaves that sector whole (`crashSeen_sec`): as its durable version (the bytes `m.dur`
-knows), as the page cache's (the bytes the client holds), or, under the no-tear assumption
-(`NoTearCrash`, `GooseLang/Ext/Fs/NoTear.lean`), as the client's write in flight landed over it
-(a page cut of a write covers a sector whole or misses it). This replaces v1's P1 (no checksum collision on a torn meta): a slot is never a mix, so
-nothing about checksums is assumed.
+**What a crash leaves.** Each byte of the file comes back as one of its candidates (`CrashFile`),
+which the client knows exactly (`CSt.kc`): below the size the bytes it holds (`bs`, with their
+candidates), past it those the `OsMeta` knows (`tc`: the bytes past the size in its last page as a
+crash left them on disk, and those a write left there), each with the change in flight's
+announced value over its range (`kc_cand`). P1 (`BootP1.lean`) adds that a meta slot that
+validates is the slot as of one change: each of its bytes the value of its candidates as of one
+stamp (`valAt`). Nothing else is assumed: a slot that mixes two states is the case P1 excludes.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.CrashGood
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
 public import Proof.os.CrashSt
-public import GooseLang.Ext.Fs.CrashSecAny
 
 @[expose] public section
 
@@ -30,290 +28,204 @@ open Iris Fs github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 /-- The meta slot of page `i` of the bytes `l`: 64 bytes at offset 16. -/
 def metaSlot (l : List w8) (i : Nat) : List w8 := ((l.drop (4096 * i)).drop 16).take 64
 
-/-- The client's change in flight is one `crashSeen_sec` covers: a write in flight starts inside
-the file. -/
+/-- The client's change in flight starts inside the file (a write; a truncate grows it). -/
 def BusyOk (s : CSt) : Prop :=
   match s.busy with
-  | .write _ off _ => off ≤ s.m.size
+  | .write _ off _ _ => off ≤ s.m.size
   | _ => True
 
-/-- What a crash may leave of the database file in the state `s` (`img` its bytes): within the
-size bounds of `s`'s `OsMeta` (the token's while a change is in flight), with every clean byte the
-client holds (not taken by its write), and, while the `OsMeta` knows the versions of its sectors,
-each meta slot inside the file whole: the bytes `m.dur` knows there, the client's, or the client's
-with its write in flight over them. -/
-def crashImg (s : CSt) (img : List w8) : Prop :=
-  s.vmeta.lo ≤ img.length ∧ img.length ≤ s.vmeta.hi ∧
-  (∀ k x, s.bs[k]? = some x → x = durB x.1 → s.taken k = false → img[k]? = some x.1) ∧
-  ((∃ ns, s.m.vk = some ns) → ∀ i < 2, 4096 * i + 512 ≤ s.m.size → 4096 * i + 80 ≤ img.length →
-    (∀ k < 64, ∀ d, s.m.dur[4096 * i + 16 + k]? = some (some d) → img[4096 * i + 16 + k]? = some d) ∨
-    (∀ k < 64, img[4096 * i + 16 + k]? = some (s.bs.getD (4096 * i + 16 + k) (0, false)).1) ∨
-    (∃ t off data, s.busy = .write t off data ∧ ∀ k < 64,
-      img[4096 * i + 16 + k]? =
-        some (wByte off data (4096 * i + 16 + k) (s.bs.getD (4096 * i + 16 + k) (0, false)).1)))
+/-- The candidates of byte `b` of the state `s` before its change in flight: its own below the
+size, the `OsMeta`'s past it. -/
+def _root_.Perennial.CSt.baseC (s : CSt) (b : Nat) : Option Cands :=
+  if b < s.m.size then (s.bs[b]?).map Prod.snd else s.m.tc !! b
 
-/-- Byte `b` of the state's bytes. -/
-def bsB (s : CSt) (b : Nat) : w8 := (s.bs.getD b (0, false)).1
-
-/-- Byte `b` after `k` bytes of the write of `data` at `off` landed: the write's inside them, the
-state's below its size outside, zero past it. -/
-def landB (s : CSt) (off : Nat) (data : List w8) (k b : Nat) : w8 :=
-  if off ≤ b ∧ b < off + k then data.getD (b - off) 0 else if b < s.m.size then bsB s b else 0
-
-/-- Byte `b` after a growing truncate landed: the state's below its size, zero past it. -/
-def truncB (s : CSt) (b : Nat) : w8 := if b < s.m.size then bsB s b else 0
-
-/-- What a crash to the size `sz` may leave in meta slot `i` (its bytes `L`, as sector `8 i` holds
-them) of the state `s` whose `OsMeta` knows the versions (`crashSeen_secAny`): zeros if its page
-lies past `sz` (durable zeros); the durable version; the page cache's, of a sector with two
-versions (its bytes below the size); the write in flight landed in part; the truncate in flight
-landed. -/
-def slotCand (s : CSt) (sz i : Nat) (L : List w8) : Prop :=
-  L.length = 64 ∧
-  ((pageIn sz (8 * i) = false ∧ ∀ k < 64, L[k]? = some 0) ∨
-   (∀ k < 64, ∀ d, s.m.DurAt (4096 * i + 16 + k) d → L[k]? = some d) ∨
-   ((∃ ns, s.m.vk = some ns ∧ 8 * i ∈ ns) ∧
-      ∀ k < 64, 4096 * i + 16 + k < s.m.size → L[k]? = some (bsB s (4096 * i + 16 + k))) ∨
-   (∃ t off data k', s.busy = .write t off data ∧ 0 < k' ∧ k' ≤ data.length ∧
-      secHits (min off s.m.size) (off + k') (8 * i) = true ∧
-      PageCut off data.length k' ∧
-      ∀ k < 64, L[k]? = some (landB s off data k' (4096 * i + 16 + k))) ∨
-   ((∃ t sz', s.busy = .trunc t sz') ∧
-      ∀ k < 64, L[k]? = some (truncB s (4096 * i + 16 + k))))
-
-/-- What a crash may leave of the database file of the state `s` past `crashImg`: each meta slot
-as `slotCand` says, while the versions are known. -/
-def crashRaw (s : CSt) (f : OsFile) : Prop :=
-  (∃ ns, s.m.vk = some ns) → ∀ i < 2, slotCand s f.size i (rawSlot f i)
+/-- **The candidates of byte `b` a crash of the state `s` picks from**, as far as the client knows
+them: `baseC`, with the value the change in flight announced over its range, stamped with its
+number. -/
+def _root_.Perennial.CSt.kc (s : CSt) (b : Nat) : Option Cands :=
+  match s.busy with
+  | .idle => s.baseC b
+  | .write _ off data n =>
+    if inRange (min off s.m.size) (off + data.length) b then
+      (s.baseC b).map (· ++ [(if off ≤ b then data.getD (b - off) 0 else 0, n)])
+    else s.baseC b
+  | .trunc _ sz n =>
+    if inRange (min s.m.size sz) (max s.m.size sz) b then (s.baseC b).map (· ++ [((0 : w8), n)])
+    else s.baseC b
 
 section pure
 variable [GooseExts]
 
-/-- A byte of a state's runs is one of its bytes not taken. -/
-theorem CSt.runs_byte (s : CSt) : ∀ r ∈ s.runs, ∀ k x, r.2.2[k]? = some x →
-    s.bs[r.1 + k]? = some x ∧ s.taken (r.1 + k) = false := by
-  intro r hr k x hx
-  simp only [CSt.runs, List.mem_map] at hr
-  obtain ⟨⟨y, j⟩, hy, rfl⟩ := hr
-  have hyj : s.bs[j]? = some y := List.mem_zipIdx_iff_getElem?.1 hy
-  simp only at hx ⊢
-  by_cases ht : s.taken j = true
-  · simp [ht] at hx
-  · simp only [ht, Bool.false_eq_true, if_false] at hx
-    cases k with
-    | zero =>
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hx; subst hx
-      exact ⟨by simpa using hyj, by simpa using ht⟩
-    | succ k => simp at hx
+theorem _root_.Perennial.CSt.vmeta_size (s : CSt) : s.vmeta.size = s.m.size := by
+  unfold CSt.vmeta; split <;> simp [cfMeta]
 
-/-- Every byte of a state below its size is one the client holds (`ByteSeen`): in its runs, or
-saved by its write in flight. -/
-theorem CSt.byteSeen (s : CSt) (i : Ino) (hl : s.bs.length = s.m.size) (b : Nat) (hb : b < s.m.size) :
-    ByteSeen s.vmeta s.runs (s.toks i) b (s.bs.getD b (0, false)).1 := by
-  have hbl : b < s.bs.length := by omega
-  by_cases ht : s.taken b = true
-  · right
-    unfold CSt.taken at ht
-    split at ht
-    · rename_i t off data hbz
-      simp only [decide_eq_true_eq] at ht
-      refine ⟨(t, ⟨⟨i, .write off data⟩, 1, (cfRange s.m s.bs off data.length).map Prod.fst,
-        pwMeta s.m off data.length, (cfRange s.m s.bs off data.length).map Prod.snd⟩),
-        by simp [CSt.toks, hbz], off, data, rfl, ?_, ?_⟩
-      · simp only [CSt.vmeta, hbz, pwMeta]; simp only [cfLo] at ht; omega
-      · simp only [CSt.vmeta, hbz, pwMeta, cfRange, cfLo, cfHi] at ht ⊢
-        simp only [List.getElem?_map, List.getElem?_take, List.getElem?_drop]
-        rw [if_pos (by omega), show min off s.m.size + (b - min off s.m.size) = b by omega,
-          List.getElem?_eq_getElem hbl, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]
-        rfl
-    · cases ht
-  · left
-    obtain ⟨r, hr, rfl⟩ := s.runs_getElem b hbl
-    refine ⟨_, hr, 0, s.bs[b], ?_, rfl, ?_⟩
-    · simp [ht]
-    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]; rfl
+/-- A byte below the size that no write in flight took, from the runs. -/
+theorem _root_.Perennial.CSt.runs_mem (s : CSt) (b : Nat) (hb : b < s.bs.length) (ht : s.taken b = false) :
+    (b, s.frac b, [s.bs[b]]) ∈ s.vruns := by
+  obtain ⟨r, hr, e⟩ := s.runs_getElem b hb
+  rw [ht] at e; simp only [Bool.false_eq_true, if_false] at e
+  subst e
+  unfold CSt.vruns; split <;> simp [hr]
 
-theorem CSt.vmeta_size (s : CSt) : s.vmeta.size = s.m.size := by
-  unfold CSt.vmeta; split <;> rfl
-
-theorem CSt.vmeta_vk (s : CSt) : s.vmeta.vk = s.m.vk := by
-  unfold CSt.vmeta; split <;> rfl
-
-theorem CSt.vmeta_dur (s : CSt) : s.vmeta.dur = s.m.dur := by
-  unfold CSt.vmeta; split <;> rfl
-
-theorem CSt.vmeta_dz (s : CSt) : s.vmeta.dz = s.m.dz := by
-  unfold CSt.vmeta; split <;> rfl
-
-theorem CSt.vmeta_lo (s : CSt) : s.vmeta.lo = s.m.lo := by
-  unfold CSt.vmeta; split <;> rfl
-
-theorem CSt.vmeta_durAt (s : CSt) (b : Nat) (d : w8) : s.vmeta.DurAt b d ↔ s.m.DurAt b d := by
-  unfold OsMeta.DurAt; rw [CSt.vmeta_dur, CSt.vmeta_dz]
-
-/-- The change in flight of a state, as `crashSeen_sec` and `crashSeen_secAny` take it. -/
-theorem CSt.toksShape {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) :
-    (s.toks i = [] ∧ ∀ b < s.vmeta.size, ∃ r ∈ s.runs, r.1 ≤ b ∧ b < r.1 + r.2.2.length) ∨
-      ∃ t ti, s.toks i = [(t, ti)] ∧ ti.q = 1 ∧ ti.c.ino = i ∧
-        ((∃ off data, ti.c.kind = .write off data ∧ off ≤ s.vmeta.size) ∨
-         ∃ sz, ti.c.kind = .truncate sz ∧ s.vmeta.size ≤ sz) := by
+/-- **The candidates the client knows are the file's**, at the crash `CrashSeenR` records. -/
+theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Option OsFile}
+    (hwf : s.Wf) (hbz : BusyOk s) (h : CrashSeenR Q i s.vmeta s.vruns (s.toks i) fo) :
+    ∃ (st st' : OsState) (f : OsFile), OsCrash st st' ∧ Q st st' ∧ st'.fs.files !! i = fo ∧
+      st.fs.files !! i = some f ∧ ∀ b c, s.kc b = some c → f.cand b = c := by
+  obtain ⟨st, st', Γb, Γm, Γf, Γt, hwfs, hcoh, hcr, hQ, hfo, hm, hrs, -, hts⟩ := h
+  obtain ⟨f, hf, hmo⟩ := hcoh.meta_some i _ hm
+  refine ⟨st, st', f, hcr, hQ, hfo, hf, ?_⟩
   have hl : s.bs.length = s.m.size := hwf.1
-  unfold BusyOk at hbz
-  have hw2 := hwf.2.2.2
-  rcases hb : s.busy with _ | ⟨t, off, data⟩ | ⟨t, sz⟩
-  · left
-    refine ⟨by simp [CSt.toks, hb], fun b hb' => ?_⟩
-    rw [CSt.vmeta_size] at hb'
-    obtain ⟨r, hr, rfl⟩ := s.runs_getElem b (by omega)
-    exact ⟨_, hr, Nat.le_refl _, by simp [CSt.taken, hb]⟩
-  · rw [hb] at hbz
-    right
-    exact ⟨t, ⟨⟨i, .write off data⟩, 1, (cfRange s.m s.bs off data.length).map Prod.fst,
-      pwMeta s.m off data.length, (cfRange s.m s.bs off data.length).map Prod.snd⟩,
-      by simp [CSt.toks, hb], rfl, rfl,
-      .inl ⟨off, data, rfl, by rw [CSt.vmeta_size]; exact hbz⟩⟩
-  · rw [hb] at hw2
-    right
-    exact ⟨t, ⟨⟨i, .truncate sz⟩, 1, [], ftMeta s.m sz, []⟩, by simp [CSt.toks, hb], rfl, rfl,
-      .inr ⟨sz, rfl, by rw [CSt.vmeta_size]; exact hw2⟩⟩
-
-/-- The client's token of a state's write in flight is its `busy` write. -/
-theorem CSt.toks_write {i : Ino} (s : CSt) {t : Nat} {ti : TokInfo} {off : Nat} {data : List w8}
-    (htk : s.toks i = [(t, ti)]) (hkd : ti.c.kind = .write off data) :
-    s.busy = .write t off data := by
-  unfold CSt.toks at htk
-  split at htk
-  · cases htk
-  · rename_i t' off' data' hb'
-    simp only [List.cons.injEq, Prod.mk.injEq, and_true] at htk
-    obtain ⟨rfl, rfl⟩ := htk
-    simp only at hkd; cases hkd; exact hb'
-  · rename_i t' sz hb'
-    simp only [List.cons.injEq, Prod.mk.injEq, and_true] at htk
-    obtain ⟨rfl, rfl⟩ := htk
-    simp only at hkd; cases hkd
-
-/-- The client's token of a state's truncate in flight is its `busy` truncate. -/
-theorem CSt.toks_trunc {i : Ino} (s : CSt) {t : Nat} {ti : TokInfo} {sz : Nat}
-    (htk : s.toks i = [(t, ti)]) (hkd : ti.c.kind = .truncate sz) :
-    ∃ t' sz', s.busy = .trunc t' sz' := by
-  unfold CSt.toks at htk
-  split at htk
-  · cases htk
-  · rename_i t' off' data' hb'
-    simp only [List.cons.injEq, Prod.mk.injEq, and_true] at htk
-    obtain ⟨rfl, rfl⟩ := htk
-    simp only at hkd; cases hkd
-  · rename_i t' sz' hb'
-    exact ⟨t', sz', hb'⟩
-
-/-- What a crash of the state `s` leaves, as `crashImg` says it. -/
-theorem crashImg_seen {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (f : OsFile)
-    (hfc : FileCrashedR s.vmeta s.runs (some f))
-    (hseen : CrashSeenR NoTearCrash i s.vmeta s.runs (s.toks i) (some f)) :
-    crashImg s f.contents := by
-  obtain ⟨hlo, hhi, hcl⟩ := hfc f rfl
-  have hl : s.bs.length = s.m.size := hwf.1
-  refine ⟨by rw [contents_length]; exact hlo, by rw [contents_length]; exact hhi,
-    fun k x hk hc ht => ?_, fun ⟨ns, hns⟩ j hj hsz himg => ?_⟩
-  · obtain ⟨hkl, rfl⟩ := List.getElem?_eq_some_iff.1 hk
-    obtain ⟨r, hr, rfl⟩ := s.runs_getElem k hkl
-    have := hcl _ hr 0 s.bs[k] (by simp [ht]) hc
-    simpa using this.1
-  -- a meta slot: its sector `8 j`, whole
-  have hvk : s.vmeta.vk = some ns := by rw [CSt.vmeta_vk]; exact hns
-  have hn : 512 * (8 * j) + 512 ≤ s.vmeta.size := by rw [CSt.vmeta_size]; omega
-  have hsec := crashSeen_sec (fun _ _ h => h) hseen hvk (8 * j) hn
-    (by have := himg; rw [contents_length] at this; omega) (CSt.toksShape s hwf hbz)
-  -- a byte of the slot, from its sector
-  have hbyte : ∀ k < 64, f.contents[4096 * j + 16 + k]? =
-      some (secByte (f.secs (8 * j)).last (16 + k)) := by
-    intro k hk
-    rw [contents_getElem?, if_pos (by rw [contents_length] at himg; omega), rawAt_def,
-      show (4096 * j + 16 + k) / 512 = 8 * j by omega, show (4096 * j + 16 + k) % 512 = 16 + k by omega]
-  have he : ∀ k, 512 * (8 * j) + (16 + k) = 4096 * j + 16 + k := fun k => by omega
-  rcases hsec with h1 | h1 | ⟨t, ti, off, data, htk, hkd, h1⟩
-  · left
-    intro k hk d hd
-    rw [hbyte k hk]
-    have := h1 (16 + k) (by omega) d (.inl (by rw [CSt.vmeta_dur, he]; exact hd))
+  have hsz : f.size = s.m.size := by rw [← hmo.size, CSt.vmeta_size]
+  -- a byte a run holds
+  have hrun : ∀ r ∈ s.vruns, ∀ k (hk : k < r.2.2.length), f.cand (r.1 + k) = (r.2.2[k]).2 := by
+    intro r hr k hk
+    obtain ⟨f1, hf1, -, hx⟩ := hcoh.bytes _ _ _ (hrs r hr k hk)
+    have : f1 = f := by
+      have h1 : st.fs.files !! i = some f1 := hf1
+      rw [hf] at h1; cases h1; rfl
+    subst this; rw [hx]
+  -- a byte below the size no write took
+  have hown : ∀ b, b < s.m.size → s.taken b = false → ∀ c, s.baseC b = some c → f.cand b = c := by
+    intro b hb ht c hc
+    have hbl : b < s.bs.length := by omega
+    have := hrun _ (s.runs_mem b hbl ht) 0 (by simp)
+    simp only [Nat.add_zero, List.getElem_cons_zero] at this
     rw [this]
-  · right; left
-    intro k hk
-    rw [hbyte k hk]
-    have := h1 (16 + k) (by omega) _ (by rw [he]; exact CSt.byteSeen s i hl _ (by omega))
-    rw [this]
-  · right; right
-    refine ⟨t, off, data, CSt.toks_write s htk hkd, fun k hk => ?_⟩
-    rw [hbyte k hk]
-    have := h1 (16 + k) (by omega) _ (by rw [he]; exact CSt.byteSeen s i hl _ (by omega))
-    rw [this, he]
+    unfold CSt.baseC at hc
+    rw [if_pos hb, List.getElem?_eq_getElem hbl] at hc
+    simp only [Option.map_some, Option.some.injEq] at hc
+    exact hc
+  -- a byte past the size, out of the change in flight's range
+  have hpast : ∀ b, s.m.size ≤ b → ∀ c, s.vmeta.tc !! b = some c → f.cand b = c := by
+    intro b hb c hc
+    exact hmo.tail b c (by omega) hc
+  -- the change in flight's token
+  have htok : ∀ t ti, (t, ti) ∈ s.toks i → ∃ f1, st.fs.files !! ti.ino = some f1 ∧
+      ∀ b, inRange ti.lo ti.hi b = true → ∃ c0, f1.cand b = c0 ++ [(ti.val b, ti.n)] ∧
+        ∀ c, ti.m0.size ≤ b → ti.m0.tc !! b = some c → c0 = c := by
+    intro t ti hti
+    obtain ⟨f1, hf1, hc⟩ := hcoh.tok_cand t ti (hts _ hti)
+    exact ⟨f1, hf1, fun b hb => by
+      obtain ⟨c0, h1, -, h3⟩ := hc b hb
+      exact ⟨c0, h1, h3⟩⟩
+  intro b c hc
+  rcases hbs : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩ <;> simp only [CSt.kc, hbs] at hc
+  · -- idle
+    have ht : s.taken b = false := by simp [CSt.taken, hbs]
+    by_cases hb : b < s.m.size
+    · exact hown b hb ht c hc
+    · unfold CSt.baseC at hc; rw [if_neg hb] at hc
+      exact hpast b (by omega) c (by simp only [CSt.vmeta, hbs]; exact hc)
+  · -- a write
+    have hoff : off ≤ s.m.size := by unfold BusyOk at hbz; rw [hbs] at hbz; exact hbz
+    have hmin : min off s.m.size = off := Nat.min_eq_left hoff
+    split at hc
+    · rename_i hr
+      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, hmin] at hr
+      obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hc
+      by_cases hb : b < s.m.size
+      · -- taken: the write's run
+        have hrun0 := hrun (cfLo s.m off, DFrac.own 1, pwAnn data n (cfRange s.m s.bs off data.length))
+          (by simp [CSt.vruns, hbs]) (b - off)
+          (by simp only [pwAnn_length, cfRange, cfLo, cfHi, List.length_take, List.length_drop]; omega)
+        simp only [cfLo, hmin, show off + (b - off) = b by omega] at hrun0
+        rw [hrun0, pwAnn_getElem]
+        unfold CSt.baseC at hc1
+        rw [if_pos hb, List.getElem?_eq_getElem (by omega)] at hc1
+        simp only [Option.map_some, Option.some.injEq] at hc1
+        simp only [cfRange, cfLo, hmin, List.getElem_take, List.getElem_drop,
+          show off + (b - off) = b by omega, hc1, if_pos hr.1]
+      · -- past the size: the token
+        obtain ⟨f1, hf1, hcand⟩ := htok t
+          ⟨i, .write off data, n, s.m, pwAnn data n (cfRange s.m s.bs off data.length)⟩
+          (by simp [CSt.toks, hbs])
+        simp only at hf1
+        rw [hf] at hf1; cases hf1
+        obtain ⟨c0, h1, h2⟩ := hcand b (by
+          simp only [TokInfo.lo, TokInfo.hi, inRange, Bool.and_eq_true, decide_eq_true_eq, hmin]
+          exact ⟨hr.1, decide_eq_true hr.2⟩)
+        unfold CSt.baseC at hc1; rw [if_neg hb] at hc1
+        rw [h1, h2 c1 (by simp only; omega) hc1]
+        simp only [TokInfo.val]
+    · rename_i hr
+      by_cases hb : b < s.m.size
+      · refine hown b hb ?_ c hc
+        simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, hmin] at hr
+        unfold CSt.taken; rw [hbs]; simp only [cfLo, cfHi]
+        exact decide_eq_false (by omega)
+      · unfold CSt.baseC at hc; rw [if_neg hb] at hc
+        refine hpast b (by omega) c ?_
+        simp only [CSt.vmeta, hbs, cfMeta]
+        rw [announce_tc, if_neg hr]; exact hc
+  · -- a growing truncate
+    have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2; simp only [hbs] at this; exact this
+    split at hc
+    · rename_i hr
+      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, Nat.min_eq_left hgrow,
+        Nat.max_eq_right hgrow] at hr
+      obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hc
+      obtain ⟨f1, hf1, hcand⟩ := htok t ⟨i, .truncate sz, n, s.m, rsAnn n []⟩
+        (by simp [CSt.toks, hbs])
+      simp only at hf1
+      rw [hf] at hf1; cases hf1
+      obtain ⟨c0, h1, h2⟩ := hcand b (by
+        simp only [TokInfo.lo, TokInfo.hi, inRange, Bool.and_eq_true, decide_eq_true_eq,
+          Nat.min_eq_left hgrow, Nat.max_eq_right hgrow]; omega)
+      unfold CSt.baseC at hc1; rw [if_neg (by omega)] at hc1
+      rw [h1, h2 c1 (by simp only; omega) hc1]
+      simp only [TokInfo.val]
+    · rename_i hr
+      by_cases hb : b < s.m.size
+      · exact hown b hb (by simp [CSt.taken, hbs]) c hc
+      · unfold CSt.baseC at hc; rw [if_neg hb] at hc
+        refine hpast b (by omega) c ?_
+        simp only [CSt.vmeta, hbs]
+        rw [announce_tc, if_neg hr]; exact hc
 
-/-- What a crash of the state `s` leaves, as `crashRaw` says it. -/
-theorem crashRaw_seen {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (f : OsFile)
-    (hseen : CrashSeenR NoTearCrash i s.vmeta s.runs (s.toks i) (some f)) :
-    crashRaw s f := by
-  have hl : s.bs.length = s.m.size := hwf.1
-  intro ⟨ns, hns⟩ j hj
-  have hvk : s.vmeta.vk = some ns := by rw [CSt.vmeta_vk]; exact hns
-  have he : ∀ k, 512 * (8 * j) + (16 + k) = 4096 * j + 16 + k := fun k => by omega
-  have hraw : ∀ k < 64, (rawSlot f j)[k]? = some (secByte (f.secs (8 * j)).last (16 + k)) := by
-    intro k hk
-    simp only [rawSlot, List.getElem?_map, List.getElem?_range hk, Option.map_some]
-  have hseenB : ∀ b < s.m.size, ByteSeen s.vmeta s.runs (s.toks i) b (bsB s b) :=
-    fun b hb => CSt.byteSeen s i hl b hb
-  refine ⟨by simp [rawSlot], ?_⟩
-  rcases crashSeen_secAny (fun _ _ h => h) hseen hvk (8 * j) (CSt.toksShape s hwf hbz) with
-    ⟨hpg, h1⟩ | h1 | ⟨hn, h1⟩ | ⟨t, ti, off, data, k', htk, hkd, hoff, hk0, hkl, hhit, hcut, h1⟩ |
-      ⟨t, ti, sz, htk, hkd, h1⟩
-  · left
-    exact ⟨hpg, fun k hk => by rw [hraw k hk, h1 (16 + k) (by omega)]⟩
-  · right; left
-    intro k hk d hd
-    rw [hraw k hk, h1 (16 + k) (by omega) d (by rw [he, CSt.vmeta_durAt]; exact hd)]
-  · right; right; left
-    refine ⟨⟨ns, hns, hn⟩, fun k hk hb => ?_⟩
-    rw [hraw k hk, h1 (16 + k) (by omega) (by rw [CSt.vmeta_size, he]; exact hb) _
-      (by rw [he]; exact hseenB _ hb)]
-  · right; right; right; left
-    rw [CSt.vmeta_size] at hoff hhit
-    refine ⟨t, off, data, k', CSt.toks_write s htk hkd, hk0, hkl, hhit, hcut, fun k hk => ?_⟩
-    rw [hraw k hk]
-    obtain ⟨hin, hout, hpast⟩ := h1 (16 + k) (by omega)
-    rw [he] at hin hout hpast
-    unfold landB
-    split
-    · rename_i hc; rw [hin hc.1 hc.2]
-    · split
-      · rename_i hc hb
-        rw [hout (by omega) (by rw [CSt.vmeta_size]; exact hb) _ (hseenB _ hb)]
-      · rename_i hc hb
-        rw [hpast (by omega) (by rw [CSt.vmeta_size]; omega)]
-  · right; right; right; right
-    refine ⟨CSt.toks_trunc s htk hkd, fun k hk => ?_⟩
-    rw [hraw k hk]
-    obtain ⟨hin, hpast⟩ := h1 (16 + k) (by omega)
-    rw [he] at hin hpast
-    unfold truncB
-    split
-    · rename_i hb; rw [hin (by rw [CSt.vmeta_size]; exact hb) _ (hseenB _ hb)]
-    · rename_i hb; rw [hpast (by rw [CSt.vmeta_size]; omega)]
+/-- **What a crash of the state `s` leaves** (`f`): a file on disk, within the size bounds, each
+byte in a page that holds one of the file (the size's last page included) one of its known
+candidates, and each meta slot that validates, whose bytes' candidates are known, the slot as of
+one stamp (P1). -/
+structure CrashImg (s : CSt) (f : OsFile) : Prop where
+  disk : ∃ img, f = OsFile.ofDisk img f.size
+  lo : s.vmeta.lo ≤ f.size
+  hi : f.size ≤ s.vmeta.hi
+  byte : ∀ b c, pageIn f.size b = true → s.kc b = some c → ∃ q, (f.cache b, q) ∈ c
+  slot : ∀ j < 2, 4096 * j < f.size → metaValid (decode (rawSlot f j) : Meta) →
+    (∀ k < 64, (s.kc (4096 * j + 16 + k)).isSome) →
+    ∃ n, ∀ k < 64, ∀ c, s.kc (4096 * j + 16 + k) = some c → f.cache (4096 * j + 16 + k) = valAt c n
 
-/-- **The obligation of a state, from its images and slots** (see the file header): every crash
-of the state `s` is `Good` if every image `crashImg` and `crashRaw` allow is. -/
-theorem fileOkS_crashRaw {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
-    (H : ∀ f, crashImg s f.contents → crashRaw s f → goodImg f.contents ∧ RawOk f) :
-    FileOkS NoTearCrash Good i s := fun f hfc hseen =>
-  let h := H f (crashImg_seen s hwf hbz f hfc hseen) (crashRaw_seen s hwf hbz f hseen)
-  ⟨h.1, h.2, crashSeen_ofDisk hseen⟩
+/-- A crash's file, as `CrashImg` says it. -/
+theorem crashImg_of {i : Ino} {s : CSt} {f : OsFile} (hwf : s.Wf) (hbz : BusyOk s)
+    (hfc : FileCrashedR s.vmeta s.vruns (some f))
+    (h : CrashSeenR P1 i s.vmeta s.vruns (s.toks i) (some f)) : CrashImg s f := by
+  obtain ⟨hdisk, hlo, hhi, -, -⟩ := hfc f rfl
+  obtain ⟨st, st', f0, hcr, hQ, hfo, hf0, hkc⟩ := kc_cand hwf hbz h
+  -- the crash's file
+  have hn : Named st'.fs.treeDur i := by
+    apply Classical.byContradiction; intro hn
+    rw [(hcr.2.2.2.2.2.2.2 i).2 hn] at hfo; cases hfo
+  obtain ⟨f1, f2, hf1, ⟨sz, img, -, hcand, rfl⟩, hf2⟩ := (hcr.2.2.2.2.2.2.2 i).1 hn
+  rw [hf0] at hf1; cases hf1
+  rw [hfo] at hf2; cases hf2
+  refine ⟨hdisk, hlo, hhi, fun b c hpg hc => ?_, fun j hj hsz hv _ => ?_⟩
+  · obtain ⟨q, hq⟩ := hcand b
+    refine ⟨q, ?_⟩
+    rw [← hkc b c hc]
+    simp only [OsFile.ofDisk, diskByte] at hpg ⊢
+    rw [if_pos hpg]; exact hq
+  · obtain ⟨n, hn⟩ := hQ i f0 _ hf0 hfo j hj hsz hv
+    exact ⟨n, fun k hk c hc => by rw [hn k hk, hkc _ c hc]⟩
 
-/-- **The obligation of a state of at least four pages since the last sync, from its images**:
-every crash of `s` is `Good` if every image `crashImg` allows is good. -/
-theorem fileOkS_crashImg {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
-    (hlo : 4 * 4096 ≤ s.m.lo)
-    (H : ∀ img, crashImg s img → goodImg img) : FileOkS NoTearCrash Good i s :=
-  fileOkS_crashRaw s hwf hbz fun f hI _ => ⟨H _ hI, fun hs => by
-    have := hI.1; rw [CSt.vmeta_lo, contents_length] at this; omega⟩
+/-- **The obligation of a state, from its crashes' files** (see the file header): every crash of
+the state `s` is `Good` if every file `CrashImg` allows is (`Good` of a file on disk). -/
+theorem fileOkS_of {i : Ino} (s : CSt) (hwf : s.Wf) (hbz : BusyOk s)
+    (H : ∀ f, CrashImg s f → goodImg f.contents ∧ RawOk f) : FileOkS P1 Good i s :=
+  fun f hfc hseen =>
+    let hI := crashImg_of hwf hbz hfc hseen
+    let h := H f hI
+    ⟨h.1, h.2, let ⟨img, he⟩ := hI.disk; ⟨img, f.size, he⟩⟩
 
 end pure
 
