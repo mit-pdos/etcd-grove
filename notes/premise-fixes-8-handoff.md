@@ -61,19 +61,23 @@ Forms accepted: isWatchPermitted unchanged; stronger posts of `EnsureTrace` and
   past it (client served results, `examples/lib/etcdstart/ServedLease`, auth-admin callers via
   `AuthService`/`InvAuthAdmin`, publishV3/monitorClusterVersions if they reach raftRequest).
 
+## S1 finished (2026-11-11, commit 56498ba7e5 and the handoff after it)
+
+- LeaseReadServed (2 handlers) and LeaseGrantServed (3) take `ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc`
+  before `wp_LeaseTimeToLive`/`wp_LeaseLeases`. `libCtxOk_from` was not needed (not written).
+- Full build 6 clean (`/shared/tmp/premise-fixes-8/s1/build6.log`, build 20261111-131541-692435).
+- `etc/tcb-report.py --check`: matches (865 axioms, 5 sorries); every collection `--check` matches
+  (`/shared/tmp/premise-fixes-8/s1/coll-*.log`); `etc/gen-interface.py --check` on every
+  `etc/api/*.txt`: no diff; `etc/gen-init.py --check`: up to date.
+- Exported text changed: etcdserver `Results.lean` `range_linearizable`, `range_serializable`,
+  `txn_readonly`, `txn_applied` (pre + `context.libCtxOk ctx`); v3rpc `Results.lean`'s put/deleteRange/
+  range/txn results through `v3rpc.srvCall` (its definition gained `context.libCtxOk ci`).
+
 ## Next, in order
 
-1. Fix LeaseReadServed; full build again (flock, 64G); repeat until clean. Producers: request
-   contexts `libCtxOk_of_runCtx ci $$ Hrc` (beside each `spanCtxOk_of_runCtx`); `WithValue` at a
-   server key: `context.libCtxOk_of_valueWand ... (by context_libKeys_ne [K.ty]) $$ Hdel Hlib`;
-   `WithCancel/WithTimeout(Background())`: `context.libCtxOk_bgFrom`; `TODO()`: `libCtxOk_todo`.
-   For a chained `WithTimeout(s.ctx)` the Scope's new law `libCtxOk_from` (ctxValueFrom parent child
-   with parent nil at the keys) may be needed (not written yet).
-2. Then: `etc/tcb-report.py --check` (expect no axiom/sorry change), collections, interfaces
-   (`etc/gen-interface.py etc/api/<pkg>.txt` for changed packages, incl. raft? no; server/v3rpc,
-   traceutil, client), `etc/gen-init.py --check`; commit; STOP before land.sh with the report
-   (list the four Results above, and any further exported text change).
-3. S2 after S1 lands (Scope S.2; D2), with the old → new text STOP first.
+1. STOP before land.sh (report to etcd-grove-81). On go: merge lean, add the STATUS entry (oldest to
+   status-history, append only), `etc/land.sh`.
+2. S2 after S1 lands (Scope S.2; D2), with the old → new text STOP first.
 
 ## Pitfalls
 
