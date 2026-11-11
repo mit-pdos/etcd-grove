@@ -31,6 +31,16 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     --check` matches the baseline (865 axioms, 5 sorries). Reach: 74 of 5179 roots rest on
     `grpc.serve`/`grpc.serveStream`, 18 of them `*_safe`.
 
+  - Gate, report-only: `etc/AxiomTokCheck.lean`, `etc/axiom-tok-check.py`, selftests in
+    `etc/axiom-tok-selftest/` (21/21). Run over pf7's `tcb.json` copy (`da225483c9`), stale oleans,
+    36 roots replaced by sub-modules: 811 Prop axioms, 706 pass, 90 need an entry, 15 capped.
+    Token mint: only `goose_adequacy_start_files`. Rule-3/7 hits to triage: `grpc.serve(Stream)` (the
+    bug), `grpc.NewClient`, `heap.Init_`/`Pop`, `http.CloseIdleConnections_ok`, `backend.Snapshot`,
+    `lease.NewLessor`, `v3alarm.NewAlarmStore`, `adjustTicks`, `monitorStorageVersion`,
+    `etcd_noRefusal`, `io.MultiReader`; rule 5 is mostly a cascade. Report:
+    `/shared/tmp/stageB/gate/report.txt`. Memory: 8.68 GiB peak, 334 s. Rerun on the fresh
+    `.lake/tcb.json` is a cheap follow-up (`--json .lake/tcb.json`).
+
 ## Next, in order
 
 1. (done)

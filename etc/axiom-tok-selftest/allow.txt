@@ -1,0 +1,6 @@
+# The selftests' declared pairs (rule 7) and the real axioms the main run must pass.
+pair AxiomTokSelftest.st_refuse_pairtype AxiomTokSelftest.st_partner_bad
+pair AxiomTokSelftest.st_pass_pair AxiomTokSelftest.st_partner_ok
+real-pass Perennial.EtcdGrove.bbolt.DB.Begin_kv.wp_proof
+real-pass Perennial.EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof
+real-pass Perennial.EtcdGrove.EtcdServer.leaseTimeToLive.wp_proof
