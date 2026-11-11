@@ -291,7 +291,16 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `srvLevels_of_max HT`; leaseexpiry via `srvLevels_iff`), auth `ak_served_kv`/`ak_served_watch`,
     cluster3 `StartMember` (no `hRS`; `etc/link-lean-first-cluster3.txt` and its Link regenerated).
     (7): STATUS soundness section records the Renew/leaseTimeToLive level-0 known overclaim (reach at
-    CP3). `lean` `a259c0efd1` merged (`7e5a97c6b2`, no conflict). Next: CP3 full build `b3-full4`.
+    CP3). `lean` `a259c0efd1` merged (`7e5a97c6b2`, no conflict).
+    **CP3** (2026-11-11): full build `b3-full4` exit 0 (first try); `tcb-report --check --update`: trust
+    base 870 = 870 (−10 grpc.serve/serveStream/Server.Serve/grpcServes*/grpcServeTok/grpcServerAt/
+    grpcStreamServerAt, +10 the model's 4 leaves, grpcAddrIsRaw, grpcConnsLink, grpcReplyTo,
+    grpcSrvCfgRaw, grpcSrvCfg_agree, grpcSrvLink); repository axioms +1 (`grpcAddrIs_agree`, reached by no
+    result); 24 collections updated (grpc lines only); interfaces regenerated (etcdstart only),
+    `api-check` clean; `gen-init --check` clean; `goose --check` clean; bounds 331 (baseline lowered from
+    374; allow entry for `watchServer__Watch`'s levels); `--roots '_safe$'`: no `*_safe` rests on
+    `grpc.serve`/`serveStream` (`/shared/tmp/stageB/logs/cp3-safe-roots.txt`); `Scratch/` removed.
+    The gate (`axiom-tok --check`, capped walks): a sub-agent, in progress. Then STOP before land.sh.
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);

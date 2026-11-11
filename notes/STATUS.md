@@ -172,7 +172,7 @@ the Freeze package `/shared/tmp/r2dpa-freeze-package.md`; the user approved "fre
   restates row 3 (Q31) and `Hwpend`, derives rows 2 and 4, and discharges 5-8; R2s removes `Hwpend`.) Before landing (the coordinator's): merge `lean` (tip past
   `ad87892323`, errany-remove), `etc/gates.sh`, `etc/land.sh`, then the tag `r2dpa-frozen`.
 
-## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; fixed by the per-type stage, not started)
+## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; the pool fixed by per-type stage B, branch `stage-b`, CP3 2026-11-11, not landed; `pbEnc` by the per-type stage, not started)
 
 Both are false at the **genuine** message models, so the per-type registry alone does not fix them
 (`notes/per-type-blockers.md`):
