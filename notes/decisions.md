@@ -35617,3 +35617,133 @@ its `"Hgrep"` ignores it; the untraced and traced instances (`raft.becomeLeader.
    source to the cluster's voters (client-visible `Protocol/Model.lean` body change); raft alone cannot
    (`recordVote` records any sender). Recommended: (a), as an amendment
    with a TLC check of the clause.
+
+## Q8 stage 1 (slice 24a): `MsgProp` at a leader, done: the family's propose update, the `Replicate` lines, the self-acknowledgement, the appends, the bundle (2026-11-11 · trace-check, Q8 stage 1 slice 24a; decided by the agent under the user's delegation · branch `trace-check-q8s24a`; DRAFT until trace-check's Freeze)
+
+All raft-internal and new modules (`TracedRaftStepProp.lean`, `TracedRaftStepPropRep.lean`,
+`TracedRaftStepPropBundle.lean`), none on `etc/api/raft.txt`; no existing statement changed (nothing
+frozen, no path file, `stepBundle_traced.on` untouched). No axiom, no `sorry`.
+
+**Done.**
+- *The family's propose update* (`ghost_stepProp`): `ownRaftGhost_step_propose` (a basic update) with
+  what `Step` lends (`propLend`: data, tickets, the receipt; the empty-`ConfChangeV2` clause vacuous for a
+  batch of no conf-change entry), and in the dynamic mode `RInv_propose` (pure: `propBatch` is the batch,
+  `pendingConfIndex` kept, `propConf_noConf'`); `NsLink`'s `OutTr` for the queued self-acknowledgement from
+  the receipt's bound (`preceipt_lt`, `selfAck_trOk`). No `£` in either mode; the mode is kept. Run inside
+  `"Hgprep"` before the lines (`propGate_rep`), so the lines' facts and the appends' read raft's ghost
+  state at the proposed state.
+- *The `Replicate` lines' phase steps* (`phaseStepB_replicate`, at pinned phases `RepPin`: the voters and
+  list pinned, the server `repCN cs0 k` after `k` lines, the idle relation at `propK s es k =
+  propAppended s (es.take k)`): `lineEffect_replicate`, the abstract log grown by the stamped entry's
+  `entAbs` (`simServerR_append`), `LogShapeOk` (`logShapeOk_append`) and the `2^63` bounds at the appended
+  state. **Past the bootstrap entries**: the new entry is a value entry only if the log reaches past the
+  `|C|` bootstrap positions `logAbs` maps to configuration entries; raft's campaign record gives the
+  leader's last entry of its term (`ownStepGhost_leadLast`, `campOwn`), the bootstrap entries are of term 1
+  (`LogShapeOk`), and the term is `≥ 2` in a cluster with a bootstrap log (`isCamp_boot`):
+  `bl_le_of_last`. (`ownStepGhost_bootCommit` alone does not do: it bounds the commit by `γ.reBoot`'s
+  length, which nothing in the capability ties to `C`'s.)
+- *The `Replicate` lines' facts* (`fxPres_replicate`, `simFx_replicate`): the specification's
+  `ClientRequest` (`specInv_clientRequest`), `QuorumLogF` (`quorumLogF_grow` with `CommitOk`), `AppSlices`
+  (`appSlices_extend`), the bags unchanged; the leader's server facts with the new entry among its
+  **pending entries** (`srvFacts`' `pend`, review finding A9; `srvFacts_rep`): no record is created in a
+  line's facts (raft's records exist from `ghost_stepProp` on, so a later line that needs the entries as
+  records, a leader's `Commit` or step-down, rebuilds the leader's facts from raft's ghost state). With no
+  pending entry before, the campaign clause comes from the full log's (`leadFull_camp`, `isLeader_unique`)
+  and its last entry of the term from the abstract log's (`last_term_of_abs`). Rejected: the facts at
+  `es` the recorded log with the new entries' records (`leadFull` of a prefix of the term log, a new lemma
+  about `leadPrefix`, for nothing the pending form lacks).
+- *The self-acknowledgement's facts* (`fxPres_selfAck`): `AppendEntriesToSelf` (`appendEntriesToSelf_send`,
+  `specInv_appendEntriesToSelf`) through `simFx_sendS` (`simFx_send` with the step's `SpecInv` in place of
+  `MsgOk`); the message plain, canonical, pinning nothing.
+- *The appends' gate* (`propGate_app`, `"#Hgpapp"`): `phaseStepB_msgApp_pin` (pinned `phaseStepB_msgApp`),
+  `fxPres_app` with `app_lead` and the request's facts from raft's ghost state at the proposed state
+  (`msgFacts_app_of_log`: `ownStepGhost_appFacts`' `isLeader` and records, `logRecs_drop` of the full log
+  at `FullOk_take`'s base, then `logRecs_take_gen`, a take at a general base), the numbers from the
+  receipts' bound and `TermsLe`.
+- *The bundle* (`stepBundle_traced_prop`, `propR`): `G0`/`G1` the local path's family at `s` with
+  `⌜o = s.outbox⌝`, `Gp1` after the lines (ghost at the proposed state, the capability at `RepPin s ents
+  s.outbox C0 cs0 P0 |ents|`), `Gp2` after the acknowledgement with `⌜|s.outbox| < |o|⌝` (`propF`: ghost at
+  the proposed state, the family at the appended state's idle server). The close (`propClose`) by the
+  outbox's length against `StepEnd`'s `LeaderProposeResult` (`propLead_end`): dropped, `CloseAt` (the batch
+  not appended, `proposed_logst_ne'`) with the ghost state at `s`; appended, `CloseMid` at `proposed id s
+  ents`, the capability by `trFam_idle` (`simIdleS_prvals`, the idle relation reading neither the outbox
+  nor `Progress` beyond `Match`).
+
+**The path's premises** (`PropLead γ ents s m`: `MsgProp`, a leader, a non-empty batch of normal entries,
+`γ.reBoot ≠ []`) read the cluster's names and the batch, which `stepBundle_traced.on`'s `Path` does not
+see: the bundle is stated over **`stepBundle_traced.onG`** (`.on` with a path reading `γ` and `ents`, as
+slice 22b's `.onC`; `.on_of_onG` for the others). Why each: a conf-change entry, or an entry of another
+type, makes the `Replicate` lines fewer than the appended entries (`normalCount`) and the propose update's
+conf-change clause live (the specification has no configuration change, P3); a non-empty batch is what
+`CloseAt` reads on a dropped proposal (and `stepLeader`'s premise); the bootstrap log, above. Each is the
+node API's (`raft.Step`'s `Hp3` and `Hne`; `γ.reBoot ≠ []` already a premise of `.on` for `MsgHeartbeat`
+and `MsgApp`). Rejected: adding them to `stepBundle_traced.on` now (every path file's `intro`, files
+slices 24b/24c edit concurrently); the assembly of the paths into `stepBundle_traced.statement` adds them
+there (`m.Type' = MsgProp → ents ≠ [] ∧ ∀ e ∈ ents, e.Type' = EntryNormal`, and `MsgProp` among the
+types needing `γ.reBoot ≠ []`).
+
+**Copies.** `toPState_proposed'`, `propConf_noConf_fold'`/`propConf_noConf'`, `proposed_logst_ne'` restate
+`raft__Step/MsgProp.lean`'s (a module only `raft__Step` may import); a later cleanup may move both to a
+shared lemma file.
+
+**Left for `MsgProp`**: nothing but the assembly premises above.
+
+## Q8 stage 1 (slice 24c): an accepted `MsgApp` at a follower and at a candidate of its term; the bootstrap positions' question (2026-11-11 · trace-check, Q8 stage 1 slice 24c; decided by the agent under the user's delegation · branch `trace-check-q8s24c`; DRAFT until trace-check's Freeze)
+
+**Done** (new modules, none on `etc/api/raft.txt`; no axiom, no `sorry`, no frozen or client-visible
+statement changed):
+- `TracedRaftStepRecvAppAcc.lean`, the line's facts, generic in the receiving server: **raft's facts of the
+  new log** (`ownRaftGhost_appAccFacts`: `ownRaftGhost_step_app_accept`'s records of `maybeAppend`'s new log
+  `es'` — the kept prefix's, the request's leader's above the cut — its commit certificate at the raised
+  index `accCommit` by `commitIn_move`, its committed prefix; the ghost state unchanged, no step), the
+  commit index past the bootstrap log (`ownRaftGhost_bootLe`), the new log's length within the trace's bound
+  (`logRecs_traceBound`: its last entry's receipt, `lastRec_receipt`); **`QuorumLogF` for any new receiver
+  log** that keeps the committed prefix and every prefix the request agrees with (`quorumLogF_appLog`,
+  amendment A5's `quorumLogF_conflict` generalized: one step from the line's first state to any `appMid`
+  state, instead of round by round), with the kept prefixes `prefix_take_of_conflict` (a truncation past
+  a conflict) and `prefix_newLog` (`maybeAppend`'s new log); **the intermediate states' facts**
+  (`simFx_appLog`/`simFx_appAccMid`: `SpecInv` by `specInv_upd_followerLog`, the new log's entries the old
+  log's or the request's, `newLog_entries`) and **the end state's** (`simFx_appDone`/`simFx_appAccEnd`:
+  `AppendEntriesAlreadyDone` from the new log, `alreadyDone_any`, `specInv_appendEntriesAlreadyDone`,
+  `QuorumLogF` by the sender's committed prefix as the heartbeat's `simFx_hb`).
+- `TracedRaftStepRecvAppAccFol.lean`: `phaseStepR_appAcc` (`lineEffect_appRecv`, its `appMid` weakened to
+  `AccMid` up to `toC`), `fxPresR_appAcc` (each intermediate state's facts drawn with the vote table before
+  the line's end, `votesTbl_forall_list` over `accLogs`: `FxPresR`'s intermediate wand has no vote table),
+  `accEnd_simIdle` (the close: `SimServerR` at `doneSrv`, the new log's `LogShapeOk` from `newLog_pure`, its
+  length bound), the send line skipped (`skipGate_appresp`, `lastnewi` bounded by the new log's length),
+  and **`stepBundle_traced_folAppAcc`**.
+- `TracedRaftStepRecvAppAccCand.lean`: **`stepBundle_traced_candAppAcc`** (`ReturnToFollowerState`, then the
+  accepted handling at `rtfSrv`, `lineEffect_appRecvU` with `firstRound_rtf`; the facts `simFx_rtf` then
+  the follower's at the step-down's state; the `BecomeFollower` line skipped; the close by
+  `accEnd_simIdle` at `bfState`).
+
+**The bootstrap positions (a question; the bundles are proved for a strengthened capability).** The
+specification's abstract log fixes its first `|C|` entries (the voters' configuration entries, term `1`,
+`entAbs`), so the line's correspondence (`lineEffect_appRecv`'s `hbe`) and the new log's `srvFacts` and
+`LogShapeOk` need the request's entries at positions `≤ |C|` to be of term `1` (`BootTerms`). Raft's facts
+give its commit index past the bootstrap log (`|γ.reBoot| ≤ committed ≤ m.Index`), so the batch is past
+`|γ.reBoot|`; `|C| ≤ |γ.reBoot|` (the bootstrap log has one entry per voter, `BootLogOk C γ.reBoot`, known
+where the capability's invariant is allocated, `Cluster.traceSimInv_alloc`/`simFx_simInit`) is carried by
+no clause of the capability, `SimIdle`, `simFx` or the bundle's premises, and without it the batch may
+overlap positions in `(|γ.reBoot|, |C|]` with a term `≥ 2`. The bundles are therefore proved as
+`stepBundle_traced.onRB` (the statement of `stepBundle_traced.on` with the capability's phase
+`SimIdle C s ∧ C.length ≤ γ.reBoot.length`), and `stepBundle_traced.on_of_onRB` gives `.on` from a law of
+the capability that yields the fit. Options (each a frozen-statement change): (a) the capability's pure
+clause (`trCapB`, `TracedCap.lean`) gains `C.length ≤ γ.reBoot.length` (or `= `), established where the
+capability is made (`startTrace_trCapB`; `BootLogOk C γ.reBoot` is what `Cluster.traceSimInv_alloc` reads,
+to be passed on to it, or the length fact added to `startTrace`'s pure clause) and kept by every law
+mechanically (the clause is read by `trCapB_pinDir` and rebuilt by each law); (b) `SimIdle` gains `C.length ≤ committed` (re-proved at every
+close: the commit index only grows); (c) a premise of `stepBundle_traced.on` (it does not name `C`: needs
+the capability's names). Recommended: (a), the lightest (one conjunct, no path re-proved, the fact the
+allocation already has); then `stepBundle_traced.on_of_onRB` discharges both bundles.
+
+**Not done (exact).**
+- **A higher-term accepted `MsgApp`** (`UpdateTerm` first, as `stepBundle_traced_utAppSR`): its pieces are
+  this slice's at `utSrv` — `lineEffect_appRecvU` with `firstRound_updateTerm` (as `lineEffect_ut`), the
+  facts `simFx_ut` then `simFx_appAccMid`/`simFx_appAccEnd` at the step-down's state (as
+  `fxPresR_candAppAcc` with `simFx_rtf` replaced), the close by `accEnd_simIdle` at the step-down's state;
+  one change: `ownRaftGhost_appAccFacts` takes `m.term = s.term` and gives the certificate at `s.term`,
+  while at a higher term it must give it at `m.term` (`commitIn_move` allows a higher term: replace `Hterm`
+  by `uint.Z s.term ≤ uint.Z m.term` and the old log's certificate moved up, the request's facts kept at
+  `m.term`).
+- The bootstrap positions' question above (then `.on_of_onRB`).
