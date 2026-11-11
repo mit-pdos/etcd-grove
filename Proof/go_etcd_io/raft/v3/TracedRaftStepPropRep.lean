@@ -25,6 +25,7 @@ the log reaches past them; a leader's term is `≥ 2` in a cluster with a bootst
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedRaftStepProp
+public import Proof.go_etcd_io.raft.v3.TracedQuorumLog
 
 @[expose] public section
 
@@ -136,19 +137,19 @@ theorem logShapeOk_append (bl : Nat) (s : NState) (x : EntryM) (h : LogShapeOk b
 of a term `≥ 2`. -/
 theorem bl_le_of_last (bl : Nat) (l l' : List EntryM) (x : EntryM) (T : w64)
     (hshape : ∀ k e, k < bl → (l ++ l')[k]? = some e → e.Term' = W64 1) (hlast : l.getLast? = some x)
-    (hxt : x.Term' = T) (hT : 2 ≤ uint.Z T) : bl ≤ l.length := by
-  rcases Nat.lt_or_ge l.length bl with h | h
+    (hxt : x.Term' = T) (hT : 2 ≤ uint.Z T) : bl < l.length := by
+  obtain ⟨l0, hl0⟩ := List.getLast?_eq_some_iff.1 hlast
+  have hlen : l.length = l0.length + 1 := by rw [hl0]; simp
+  rcases Nat.lt_or_ge l0.length bl with h | h
   · exfalso
-    obtain ⟨l0, hl0⟩ := List.getLast?_eq_some_iff.1 hlast
     have hk : (l ++ l')[l0.length]? = some x := by
       rw [hl0, List.append_assoc]; simp
-    have hlen : l.length = l0.length + 1 := by rw [hl0]; simp
-    have := hshape l0.length x (by omega) hk
+    have := hshape l0.length x h hk
     rw [hxt] at this
     subst this
     have : uint.Z (W64 1) = 1 := rfl
     omega
-  · exact h
+  · omega
 
 /-- `repSrv` on the share's server (`toC`). -/
 def repC (cs : ServerC) : ServerC :=
@@ -166,6 +167,9 @@ after `k` lines, at the idle server of the `k`-th state. -/
 abbrev RepPin (s : NState) (es : List EntryM) (o : List Msg) (C0 : List w64) (cs0 : ServerC)
     (P0 : List Etcdraft.Msg) (k : Nat) : List w64 → ServerC → List Etcdraft.Msg → Prop :=
   fun C cs P => C = C0 ∧ cs = repCN cs0 k ∧ P = P0 ∧ PhaseAt (fun C => SimIdleS C (propK s es k)) o C cs P
+
+theorem idAbs_inj {j id : w64} (h : idAbs j = idAbs id) : j = id := by
+  unfold idAbs at h; exact BitVec.eq_of_toNat_eq h
 
 end pure
 
@@ -208,7 +212,7 @@ theorem simIdleS_rep (C : List w64) (s : NState) (es : List EntryM) (k : Nat) (e
   have hlk : (toPState (propK s es k)).log =
       (toPState s).log ++ (es.take k).mapIdx (stamp s.term (logLast s.logst)) := by
     simp [propK, propAppended, toPState, logAppend]
-  have hbl0 : C.length ≤ (toPState s).log.length :=
+  have hbl0 : C.length ≤ (toPState s).log.length := Nat.le_of_lt <|
     bl_le_of_last C.length (toPState s).log _ x s.term
       (fun j y hj hy => hs.2.2 j y hj (by rw [hlk]; exact hy)) hx hxt hT2
   have hbl : C.length ≤ (toPState (propK s es k)).log.length := by rw [propK_len]; omega
@@ -260,6 +264,256 @@ theorem phaseStepB_replicate (id : w64) (c : CfgM) (s : NState) (es : List Entry
     rw [toC_repSrv_eq, ha]; exact hI1, by rw [List.append_nil]; exact hP⟩, fun _ h => (by cases h), hle⟩
 
 end phase
+
+section facts
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+omit [GooseSemantics] [GooseInterp] go_gctx [StorageModel GF] sem package_sem in
+/-- A log whose abstract last entry is of the server's term, past the bootstrap entries: its last
+entry is of that term. -/
+theorem last_term_of_abs (C : List w64) (es : List EntryM) (T : Int)
+    (hbl : C.length < es.length) (hT : 0 ≤ T ∧ T < 2 ^ 63)
+    (hlast : (logAbs C C.length 1 es).getLast?.map Etcdraft.Entry.term = some T) :
+    es.getLast?.map EntryM.Term' = some (W64 T) := by
+  cases hl : es.getLast? with
+  | none => rw [List.getLast?_eq_none_iff] at hl; subst hl; simp at hbl
+  | some y =>
+    obtain ⟨es0, rfl⟩ := List.getLast?_eq_some_iff.1 hl
+    rw [logAbs_snoc] at hlast
+    simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.map_some] at hlast
+    have hn : ¬ (1 + es0.length ≤ C.length) := by simp at hbl; omega
+    simp only [entAbs, if_neg hn, Option.some.injEq] at hlast
+    simp only [Option.map_some, Option.some.injEq]
+    rw [← hlast]
+    word
+
+/-- **A leader's facts after its `Replicate` line**: the new entry among its pending entries (`pend`,
+review finding A9: raft appends it after the hook; no record needed here), a value entry of its term
+past the bootstrap entries; with no pending entry before, the campaign record's clause from its full
+log's (`leadFull_camp`, `isLeader_unique`) and its last entry of its term (`hlast`, from raft's log). -/
+theorem srvFacts_rep (γ : RaftNames) (C : List w64) (j : w64) (a : Etcdraft.Server)
+    (hl : a.state = Etcdraft.leader) (hbl : C.length < a.log.length)
+    (hlast : a.log.getLast?.map Etcdraft.Entry.term = some a.currentTerm) (hlen : a.log.length + 1 < 2 ^ 63) :
+    srvFacts (GF := GF) γ C j a ⊢ srvFacts γ C j (repSrv a) := by
+  have hst : (repSrv a).state = a.state := rfl
+  have htm : (repSrv a).currentTerm = a.currentTerm := rfl
+  have hcm : (repSrv a).commitIndex = a.commitIndex := rfl
+  unfold srvFacts
+  rw [hst, htm, hcm]
+  simp only [if_pos hl]
+  iintro #H
+  icases H with ⟨%es, %pend, %Hp, #Hr, #Hc, ⟨#Hil, #Hlf, Hcamp⟩, #Hci⟩
+  obtain ⟨hlog, hbt, hwf, hln, hc0, hce, ht0, ht63, hnl, hpt⟩ := Hp
+  have hlen' : (es ++ pend).length = a.log.length := by rw [hlog, logAbs_length]
+  let x : EntryM := { (zero_val EntryM) with Term' := W64 a.currentTerm, Index' := W64 ((es ++ pend).length + 1 : Nat) }
+  iexists es, pend ++ [x]
+  isplitr
+  · ipureintro
+    have hn : ¬ (1 + (es ++ pend).length ≤ C.length) := by omega
+    refine ⟨?_, ?_, ?_, ?_, hc0, hce, ht0, ht63, fun h => absurd hl h, ?_⟩
+    · show a.log ++ _ = _
+      rw [← List.append_assoc, logAbs_snoc, ← hlog]
+      have hw : uint.Z (W64 a.currentTerm : w64) = a.currentTerm := by word
+      simp only [entAbs, if_neg hn, x, hw]
+    · intro k e hk he
+      rw [← List.append_assoc] at he
+      rcases Nat.lt_or_ge k (es ++ pend).length with hk' | hk'
+      · rw [List.getElem?_append_left hk'] at he; exact hbt k e hk he
+      · omega
+    · intro k e he hk64
+      rw [← List.append_assoc] at he
+      rcases Nat.lt_or_ge k (es ++ pend).length with hk' | hk'
+      · rw [List.getElem?_append_left hk'] at he; exact hwf k e he hk64
+      · rw [List.getElem?_append_right hk'] at he
+        have hk0 : k - (es ++ pend).length = 0 := by
+          have := (List.getElem?_eq_some_iff.1 he).1
+          simp only [List.length_singleton] at this; omega
+        rw [hk0] at he
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at he
+        subst he
+        have hk1 : k = (es ++ pend).length := by omega
+        subst hk1
+        simp only [x]
+        have : uint.Z (entryID.mk (W64 0) (W64 0)).index' = 0 := rfl
+        rw [this] at hk64 ⊢
+        word
+    · rw [← List.append_assoc, List.length_append]; simp only [List.length_singleton]; omega
+    · intro e he
+      rcases List.mem_append.1 he with he | he
+      · exact hpt e he
+      · rw [List.mem_singleton] at he; subst he; rfl
+  iframe Hr Hc Hil Hlf Hci
+  iright
+  icases Hcamp with (%Hp0 | Hx)
+  · subst Hp0
+    icases leadFull_camp γ (W64 a.currentTerm) es $$ Hlf with ⟨%ldr, %F0, #Hl2, #Hc2, %Hpre⟩
+    icases isLeader_unique γ j ldr (W64 a.currentTerm) $$ Hil Hl2 with %Heq
+    subst Heq
+    iexists F0
+    iframe Hc2
+    ipureintro
+    refine ⟨Hpre, .inr ?_⟩
+    rw [List.append_nil] at hlog
+    rw [hlog] at hbl hlast
+    rw [logAbs_length] at hbl
+    exact last_term_of_abs C es a.currentTerm hbl ⟨ht0, ht63⟩ hlast
+  · iexact Hx
+
+omit [GooseSemantics] [GooseInterp] go_gctx [StorageModel GF] sem package_sem in
+/-- The `k`-th state's log ends in an entry of the leader's term. -/
+theorem propK_last (s : NState) (es : List EntryM) (k : Nat)
+    (hlast : ∃ x, (toPState s).log.getLast? = some x ∧ x.Term' = s.term) :
+    ∃ y, (toPState (propK s es k)).log.getLast? = some y ∧ y.Term' = s.term := by
+  have hlk : (toPState (propK s es k)).log =
+      (toPState s).log ++ (es.take k).mapIdx (stamp s.term (logLast s.logst)) := by
+    simp [propK, propAppended, toPState, logAppend]
+  rw [hlk, List.getLast?_append]
+  cases hm : ((es.take k).mapIdx (stamp s.term (logLast s.logst))).getLast? with
+  | none => simpa using hlast
+  | some y =>
+    refine ⟨y, by simp, ?_⟩
+    have hy := List.mem_of_getLast? hm
+    rw [List.mem_mapIdx] at hy
+    obtain ⟨i, -, rfl⟩ := hy
+    rfl
+
+/-- **What the `Replicate` line's facts read of the share's server at the `k`-th state**: a leader's,
+its log past the bootstrap entries ending in an entry of its term, with room for one more. -/
+theorem simIdleS_repFacts (C : List w64) (s : NState) (es : List EntryM) (k : Nat) (hk : k < es.length)
+    (hlead : s.role = .leader)
+    (hlast : ∃ x, (toPState s).log.getLast? = some x ∧ x.Term' = s.term) (hT2 : 2 ≤ uint.Z s.term)
+    (hbnd : plogLastIndexZ (toPState s).base (toPState s).log + es.length < 2 ^ 63)
+    (a : Etcdraft.Server) (h : SimIdleS C (propK s es k) (toC (confAbs C) a)) :
+    a.state = Etcdraft.leader ∧ C.length < a.log.length ∧
+      a.log.getLast?.map Etcdraft.Entry.term = some a.currentTerm ∧ a.log.length + 1 < 2 ^ 63 := by
+  have hst := simIdleS_leader hlead h
+  obtain ⟨a0, ha0, hR0, hs, -⟩ := h
+  have hR : SimServerR C C.length (toPState (propK s es k)) a := simServerR_toC ha0 hR0
+  obtain ⟨y, hy, hyt⟩ := propK_last s es k hlast
+  have hbl : C.length < (toPState (propK s es k)).log.length :=
+    bl_le_of_last C.length _ [] y s.term (fun j z hj hz => hs.2.2 j z hj (by simpa using hz)) hy hyt hT2
+  have hlog : a.log = logAbs C C.length 1 (toPState (propK s es k)).log := hR.2.2.2.2.2.1
+  refine ⟨hst, by rw [hlog, logAbs_length]; exact hbl, ?_, ?_⟩
+  · obtain ⟨l0, hl0⟩ := List.getLast?_eq_some_iff.1 hy
+    rw [hlog, hl0, logAbs_snoc]
+    have hn : ¬ (1 + l0.length ≤ C.length) := by
+      have : (toPState (propK s es k)).log.length = l0.length + 1 := by rw [hl0]; simp
+      omega
+    simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.map_some,
+      entAbs, if_neg hn, hyt, hR.1]
+    rfl
+  · rw [hlog, logAbs_length, propK_len]
+    have hb0 : uint.Z (toPState s).base.index' = 0 := by
+      have := hs.1; simp only [toPState, propK, propAppended, logAppend] at this
+      show uint.Z s.logst.prev.index' = 0; rw [this]; rfl
+    simp only [plogLastIndexZ] at hbnd
+    have := Nat.min_le_left k es.length
+    omega
+
+/-- **The facts kept by `ClientRequest`** (a `Replicate` line's step): a leader's log grows by a value
+entry of its term (`repSrv`); its server facts (`srvFacts_rep`), the specification invariant
+(`specInv_clientRequest`), `QuorumLogF` (`quorumLogF_grow`, with `CommitOk`), `AppSlices`
+(`appSlices_extend`); the bags unchanged. -/
+theorem simFx_replicate (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (id : w64) (a : Etcdraft.Server)
+    (hsrv : σ.server = confAbs C) (hidC : id ∈ C) (hσa : σ.s (idAbs id) = a)
+    (hl : a.state = Etcdraft.leader) (hbl : C.length < a.log.length)
+    (hlast : a.log.getLast?.map Etcdraft.Entry.term = some a.currentTerm) (hlen : a.log.length + 1 < 2 ^ 63) :
+    simFx (GF := GF) γ C σ ⊢ simFx γ C (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id) := by
+  have hi : idAbs id ∈ σ.server := by rw [hsrv]; exact (mem_confAbs C id).2 hidC
+  have hs' : ∀ j, (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).s j =
+      if j = idAbs id then repSrv a else σ.s j := fun _ => rfl
+  iintro #Hfx
+  iunfold simFx at Hfx
+  icases Hfx with ⟨#Hal, #Hmf, #Hq, %Hp⟩
+  obtain ⟨hsi, hu, hsh, has⟩ := Hp
+  icases allFacts_oneLeader γ C σ hsrv $$ Hal with %h1
+  icases allFacts_commitOk γ C σ hsrv $$ Hal with %hco
+  iunfold simFx
+  isplitl
+  · iunfold allFacts at Hal
+    iunfold allFacts
+    imodintro
+    iintro %j %hj
+    rw [hs']
+    by_cases hji : idAbs j = idAbs id
+    · rw [if_pos hji]
+      have := idAbs_inj hji
+      subst this
+      iapply srvFacts_rep γ C j a hl hbl hlast hlen
+      rw [← hσa]
+      iapply Hal $$ %j %hj
+    · rw [if_neg hji]
+      iapply Hal $$ %j %hj
+  isplitl
+  · have hm : (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).messages = σ.messages := rfl
+    have hp : (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).pendingMessages = σ.pendingMessages := rfl
+    rw [hm, hp]
+    imodintro; iexact Hmf
+  have hL : ∀ k, (σ.s k).log <+: ((withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).s k).log := by
+    intro k; rw [hs']; split
+    · rename_i h; subst h; rw [hσa]; exact List.prefix_append _ _
+    · exact List.prefix_refl _
+  have hC : ∀ k, ((withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).s k).commitIndex = (σ.s k).commitIndex := by
+    intro k; rw [hs']; split
+    · rename_i h; subst h; rw [hσa]; rfl
+    · rfl
+  have hT : ∀ k, (σ.s k).currentTerm ≤ ((withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).s k).currentTerm := by
+    intro k; rw [hs']; split
+    · rename_i h; subst h; rw [hσa]; exact Int.le_refl _
+    · exact Int.le_refl _
+  isplitl
+  · iapply quorumLogF_grow γ C σ (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id) rfl hL hC hT hco
+    iexact Hq
+  ipureintro
+  have hcr : σ.clientRequest (idAbs id) 0 = some (σ.replicate (idAbs id) (.val 0) .value) := by
+    unfold Etcdraft.State.clientRequest; simp [hσa, hl]
+  have hrep : σ.replicate (idAbs id) (.val 0) .value = withNode σ (idAbs id) (repSrv a) _root_.id _root_.id := by
+    rw [Etcdraft.State.replicate, upd_eq_withNode, hσa]; rfl
+  rw [hrep] at hcr
+  refine ⟨TraceSpecInv.specInv_clientRequest hsi hi h1 hcr, hu, hsh, ?_⟩
+  exact appSlices_extend σ has (idAbs id) (repSrv a) (by rw [hσa]; rfl) (by rw [hσa]; rfl)
+    (by rw [hσa]; exact List.prefix_append _ _)
+
+/-- **A `Replicate` line's facts** at the pinned phases (the `k`-th of the batch): the share's server
+`repSrv`'d (the pinned servers' `repC`), the list kept; `simFx_replicate` at the server's facts
+(`simIdleS_repFacts`), then `simFx_congr` to the line's result. -/
+theorem fxPres_replicate (γ : RaftNames) (id : w64) (E : TraceEv → Prop) (s : NState) (es : List EntryM)
+    (o : List Msg) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (hidC : id ∈ C0) (k : Nat)
+    (hk : k < es.length) (hlead : s.role = .leader)
+    (hlast : ∃ x, (toPState s).log.getLast? = some x ∧ x.Term' = s.term) (hT2 : 2 ≤ uint.Z s.term)
+    (hbnd : plogLastIndexZ (toPState s).base (toPState s).log + es.length < 2 ^ 63) :
+    ⊢ FxPres (GF := GF) γ id E (RepPin s es o C0 cs0 P0 k) (RepPin s es o C0 cs0 P0 (k + 1)) := by
+  iunfold FxPres
+  imodintro
+  iintro %C %cs %P %e %a %a' %P' %σ %hpre Htbl #Hfx
+  obtain ⟨⟨rfl, hcs, rfl, hI, -⟩, -, hca, ⟨-, hcs', hP', -⟩, -, hsrv, hσa, -, -, -⟩ := hpre
+  have hP0 : P' = [] := by
+    have := congrArg List.length hP'; rw [List.length_append] at this
+    exact List.eq_nil_of_length_eq_zero (by omega)
+  subst hP0
+  rw [← hca] at hI
+  obtain ⟨hl, hbl, hlast', hlen⟩ := simIdleS_repFacts C s es k hk hlead hlast hT2 hbnd a hI
+  ihave #H2 := simFx_replicate γ C σ id a hsrv hidC hσa hl hbl hlast' hlen $$ Hfx
+  have hs : ∀ j, toC (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).server
+      ((withNode σ (idAbs id) a' _root_.id (fun b => ([] : List Etcdraft.Msg).foldl Etcdraft.Bag.with b)).s j) =
+      toC (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).server
+        ((withNode σ (idAbs id) (repSrv a) _root_.id _root_.id).s j) := by
+    intro j
+    show toC σ.server (if j = idAbs id then a' else σ.s j) = toC σ.server (if j = idAbs id then repSrv a else σ.s j)
+    split
+    · rw [hsrv, hcs', toC_repSrv_eq, hca, hcs]; rfl
+    · rfl
+  ihave #H3 := simFx_congr γ C (withNode σ (idAbs id) (repSrv a) _root_.id _root_.id)
+    (withNode σ (idAbs id) a' _root_.id (fun b => ([] : List Etcdraft.Msg).foldl Etcdraft.Bag.with b))
+    rfl rfl rfl hs $$ H2
+  iframe Htbl
+  iexact H3
+
+end facts
 
 end EtcdGrove
 end Perennial
