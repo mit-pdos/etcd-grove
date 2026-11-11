@@ -6,8 +6,8 @@ Adequacy, plain and with crashes, for a program whose only extension is the Linu
   file named and on disk (the environment assumptions of `Impl.lean`'s header are what make a real
   node's files such a state).
 * The program's proof gets the invariant of the mapped cells (`osInv`, allocated here from the
-  start resources), every file, whole, as on disk (`osFileStart`: its `OsMeta` and its bytes, all
-  clean), and the tree's history, whole, with nothing logged (`osTree 1 R (treeDur, [])`).
+  start resources), every file, whole, as on disk (`osFileStart`: its `OsMeta` and its bytes, each
+  durable), and the tree's history, whole, with nothing logged (`osTree 1 R (treeDur, [])`).
 * With crashes (`fs_crash_adequacy`; `fsQ_crash_adequacy` under a premise `Q` on crashes), each
   generation's ghost state is new (`CrashTok.lean`): the proof of a generation guarantees the
   precondition of the next from the new generation's `osInv` and `crashRest Q old new [] false V'`
@@ -75,31 +75,6 @@ noncomputable instance fsGpreS : GooseGpreS fsGF where
 
 /-! ## The first generation's start -/
 
-theorem bytesMap_init {st : OsState} (h : FsInit st) : bytesMap st = bytesMapF st.fs.files := by
-  have hdisk : ∀ i f, st.fs.files !! i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
-    fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
-  refine GMap.ext (fun k => ?_)
-  obtain ⟨i, b⟩ := k
-  simp only [bytesMap, bytesMapF, GMap.lookup_mk, OsState.file]
-  cases hf : st.fs.files !! i with
-  | none => rfl
-  | some f =>
-    obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
-    simp only [Option.bind_some]
-    rw [bytesOf_ofDisk, List.getElem?_map]
-
-theorem metaMap_init {st : OsState} (h : FsInit st) :
-    metaMap st = GMap.fmap metaOf st.fs.files := by
-  have hdisk : ∀ i f, st.fs.files !! i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
-    fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
-  refine GMap.ext (fun i => ?_)
-  simp only [metaMap, GMap.lookup_fmap]
-  cases hf : st.fs.files !! i with
-  | none => rfl
-  | some f =>
-    obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
-    simp only [Option.map_some, metaOf_ofDisk]
-
 section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
 
@@ -115,21 +90,19 @@ theorem fs_start [hG : HeapGS .hasLC GF] (σ : state) (h : FsInit (extLocal fsEx
       osStart (gooseOsGS (L := hG.goose_localGS)) (extLocal fsExt σ.world) :=
     sep_elim_left
   have hdisk : ∀ i f, (extLocal fsExt σ.world).fs.files !! i = some f →
-      ∃ vs sz, f = OsFile.ofDisk vs sz := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
+      ∃ img sz, f = OsFile.ofDisk img sz := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
   iintro Hs
   icases Hl $$ Hs with Hs
-  unfold osStart osStartF treeStart
+  unfold osStart osStartF treeStart bytesMap metaMap
   icases Hs with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
-  rw [bytesMap_init h, metaMap_init h]
-  ihave Hfs := start_filesG (gooseOsGS (L := hG.goose_localGS)) _ $$ [Hb Hm]
+  ihave Hfs := start_files (gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
   imodintro
   iframe Hinv
   isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} hf => by
-      obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
-      exact (osFileStartG_ofDisk (L := hG.goose_localGS) i vs sz).1) $$ Hfs
+  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+      (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
   · unfold osTree; iexact Hd
 
 /-- **Adequacy for a program with Linux files** (`goose_adequacy` for `[fsExt]`), from an initial
@@ -164,7 +137,7 @@ theorem fs_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : state)
 /-- **Crash adequacy for a program with Linux files** (`goose_crash_adequacy` for `[fsExt]`): the
 boot program `e` runs at the start and after every crash (of the machine, or of the process alone).
 The precondition `P` holds of the first generation, from the invariant of its mapped cells, every
-initial file (whole, all of it clean), the tree's history and the initial package state; every
+initial file (whole, every byte durable), the tree's history and the initial package state; every
 generation proves the WP of `e` from `P` and the main thread's token, and guarantees `P` of the next
 generation `L'` after it crashes, from its `crashed`, `L'`'s invariant of the mapped cells, the
 restart's resources (`crashRest`, for some new history `V'`) and `L'`'s package state. -/

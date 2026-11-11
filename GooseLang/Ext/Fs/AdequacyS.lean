@@ -60,18 +60,16 @@ theorem fs_startS (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : StepK
       ∃ vs sz, f = OsFile.ofDisk vs sz := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
   iintro Hs
   icases Hl $$ Hs with Hs
-  unfold osStart osStartF treeStart
+  unfold osStart osStartF treeStart bytesMap metaMap
   icases Hs with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
-  rw [bytesMap_init h, metaMap_init h]
-  ihave Hfs := start_filesG (gooseOsGS (L := hG.goose_localGS)) _ $$ [Hb Hm]
+  ihave Hfs := start_files (gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
   imodintro
   iframe Hinv
   isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} hf => by
-      obtain ⟨vs, sz, rfl⟩ := hdisk i f hf
-      exact (osFileStartG_ofDisk (L := hG.goose_localGS) i vs sz).1) $$ Hfs
+  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+      (fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
   · unfold osTree; iexact Hd
 
 
