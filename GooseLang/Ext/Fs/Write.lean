@@ -882,6 +882,35 @@ with the size it leaves. -/
 def pwPost (m : OsMeta) (off n k : Nat) : OsMeta :=
   { m.announce (min off m.size) (off + n) (max m.size (off + n)) with size := pwSize m.size off k }
 
+/-- The candidates known past the size after a `pwrite` of `data` at `off` (inside the file),
+announced as change `n`: each byte of its range past the old size with the data's byte as a new
+candidate, stamped `n`; the rest of the range unknown; the other bytes as before. -/
+def pwTail (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) : GMap Nat Cands :=
+  ⟨fun b => if inRange off (off + data.length) b then
+      (if m.size ≤ b then (m.tc !! b).map (· ++ [(data.getD (b - off) 0, n)]) else none)
+    else m.tc !! b,
+   by
+    obtain ⟨l, hl⟩ := m.tc.finite
+    refine ⟨l, fun b h => hl b ?_⟩
+    by_cases h1 : inRange off (off + data.length) b = true
+    · by_cases h2 : m.size ≤ b
+      · simp only [h1, h2, if_true] at h; cases e : m.tc !! b <;> simp_all
+      · simp [h1, h2] at h
+    · simp only [h1] at h; simpa using h⟩
+
+theorem pwTail_lookup (m : OsMeta) (off : Nat) (data : List w8) (n b : Nat) :
+    pwTail m off data n !! b = if inRange off (off + data.length) b then
+      (if m.size ≤ b then (m.tc !! b).map (· ++ [(data.getD (b - off) 0, n)]) else none)
+    else m.tc !! b := rfl
+
+/-- `pwPost`, and, if `keep`, the candidates past the size the write leaves (`pwTail`). -/
+def pwPostK (keep : Bool) (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) : OsMeta :=
+  { pwPost m off data.length k with
+    tc := cond keep (pwTail m off data n) (pwPost m off data.length k).tc }
+
+theorem pwPostK_false (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
+    pwPostK false m off data k n = pwPost m off data.length k := rfl
+
 /-- Byte `i` (from `off` on) after a `pwrite` of the first `k` bytes of `data` at `off`, whose
 bytes from `off` were `xs`: the data, then the old bytes. -/
 def pwByte (off : Nat) (data : List w8) (k : Nat) (xs : List ByteG) (i : Nat) : w8 :=
@@ -951,14 +980,14 @@ with a nonzero errno. What the first step took comes back: the `OsMeta` with the
 and the data's byte, stamped `n`, last (the bytes the write added past the old size had the
 candidates `zs`: the zero alone past the zeros known), and the client's halves of the mapped cells,
 which show the new bytes. -/
-theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : OsMeta)
-    (xs : List ByteG) (n : Nat) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data : List w8)
+    (m : OsMeta) (xs : List ByteG) (n : Nat) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data m xs n -∗
       (∀ k : Nat, ∀ e : w64, ∀ zs : List Cands,
         ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
           zs.length = pwSize m.size off k - m.size ∧
           ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
-        osMeta (L := L) p (DFrac.own 1) (pwPost m off data.length k) -∗
+        osMeta (L := L) p (DFrac.own 1) (pwPostK keep m off data k n) -∗
         osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
         mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
         Φ (PairV (#(W64 k)) (#e))) -∗
@@ -1078,12 +1107,14 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
   obtain ⟨ys, hys0⟩ : ∃ ys, ys = pwBytes m.size off data k n xs zs := ⟨_, rfl⟩
   have hysl : ys.length = min (off + data.length) (pwSize f.size off k) - off := by
     simp only [hys0, pwBytes_length, hmsz]
-  have hpp : pwPost m off data.length k =
+  have hpp : pwPostK keep m off data k n =
       { m.announce off (off + data.length) (max m.size (off + data.length)) with
-        size := pwSize m.size off k } := by
-    simp only [pwPost, hcanon]
+        size := pwSize m.size off k,
+        tc := cond keep (pwTail m off data n)
+          (m.announce off (off + data.length) (max m.size (off + data.length))).tc } := by
+    simp only [pwPostK, pwPost, hcanon]
   have hcoh2 : OsCoh (pwState st t c.ino f c off k) (insertBytes c.ino off ys Γb)
-      (<[c.ino := pwPost m off data.length k]> Γm) Γf (GMap.delete t Γt) := by
+      (<[c.ino := pwPostK keep m off data k n]> Γm) Γf (GMap.delete t Γt) := by
     refine osCoh_setFile (osCoh_done hcoh) hf
       (noTok_done hwf hcoh hct) _ _ _ rfl rfl ?_ ?_ ?_ ?_
     · -- the OsMeta
@@ -1099,9 +1130,27 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
       rotate_right
       · rw [show (pwFile f c off k).cand b = f.cand b from rfl]
         rw [hsz2] at hb
-        exact hmo.tail b cs (by
+        have hfb : f.size ≤ b := by
           have : f.size ≤ pwSize f.size off k := by unfold pwSize; split <;> omega
-          omega) hc
+          omega
+        cases keep with
+        | false => exact hmo.tail b cs hfb hc
+        | true =>
+          change pwTail m off data n !! b = some cs at hc
+          rw [pwTail_lookup] at hc
+          split at hc
+          · rename_i hr
+            split at hc
+            · rename_i hms
+              obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hc
+              simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hr
+              obtain ⟨c0, hc0, -, htc⟩ := hcand b
+                (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
+              rw [if_pos hr.1] at hc0
+              rw [hc0, htc c1 hms hc1]
+            · cases hc
+          · rename_i hr
+            exact hmo.tail b cs hfb (by rw [announce_tc, if_neg hr]; exact hc)
       · simp only [pwFile, OsFile.land, announce_lo]; omega
       · simp only [pwFile, OsFile.land, announce_hi]; split <;> omega
       · exfalso
@@ -1288,7 +1337,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
     $$ [Hσ Hcells] with ⟨Hσ, Hcells, Hc⟩
   · iframe; unfold halves; iapply BigSepM.bigSepM_empty.2; iempintro
   -- the ghost resources
-  imod gAuth_update _ _ _ _ _ (pwPost m off data.length k) $$ HAm Hm with ⟨HAm, Hm⟩
+  imod gAuth_update _ _ _ _ _ (pwPostK keep m off data k n) $$ HAm Hm with ⟨HAm, Hm⟩
   have hl1 : (pwAnn data n xs).length = xs.length := pwAnn_length _ _ _
   have hys1 : (ys.take xs.length).length = xs.length := by
     rw [List.length_take, hysl, hxl, hmsz]; simp only [pwSize]; split <;> omega
@@ -1341,6 +1390,22 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
       (pwCell m.size off data k xs))).2
   iapply (halves_mapsCells _ _ _ _ hdisj).1
   rw [hC]; iexact Hc
+
+/-- `wp_osPWriteFinishK` forgetting the candidates past the size: the `OsMeta` it leaves is
+`pwPost`'s. -/
+theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : OsMeta)
+    (xs : List ByteG) (n : Nat) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ pwTok (L := L) t p off data m xs n -∗
+      (∀ k : Nat, ∀ e : w64, ∀ zs : List Cands,
+        ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+          zs.length = pwSize m.size off k - m.size ∧
+          ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
+        osMeta (L := L) p (DFrac.own 1) (pwPost m off data.length k) -∗
+        osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
+        mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
+        Φ (PairV (#(W64 k)) (#e))) -∗
+      WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} :=
+  wp_osPWriteFinishK false t p off data m xs n hE Φ
 
 end specs2
 

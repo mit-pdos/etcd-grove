@@ -58,6 +58,15 @@ structure WIn (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) (m' : 
     q ∈ bs[b].2 ∨ (off ≤ b ∧ b < off + data.length ∧ q.1 = data.getD (b - off) 0)
   out : ∀ b, (b < off ∨ off + data.length ≤ b) → bs'[b]? = bs[b]?
 
+/-- `WIn` reads of the `OsMeta` it reaches only its bounds, zeros, size and mappings. -/
+theorem WIn.congr {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {m1 : OsMeta}
+    {bs' : List ByteG} (h : WIn m bs off data m1 bs') (m2 : OsMeta) (hlo : m2.lo = m1.lo)
+    (hhi : m2.hi = m1.hi) (hzf : m2.zf = m1.zf) (hsz : m2.size = m1.size)
+    (hmaps : m2.maps = m1.maps) : WIn m bs off data m2 bs' :=
+  ⟨by rw [hlo]; exact h.lo, by rw [hhi]; exact h.hi, by rw [hzf]; exact h.zf,
+    by rw [hsz]; exact h.len, by rw [hsz]; exact h.sz1, by rw [hsz]; exact h.sz2,
+    by rw [hmaps]; exact h.maps, h.cands, h.out⟩
+
 theorem wIn_refl {m : OsMeta} {bs : List ByteG} (off : Nat) (data : List w8)
     (hlen : bs.length = m.size) : WIn m bs off data m bs :=
   ⟨by simp only [wT]; omega, by simp only [wT]; omega, fun z hz => ⟨z, hz, by omega⟩, hlen,

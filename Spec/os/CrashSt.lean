@@ -47,7 +47,7 @@ inductive WReach (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) :
       WReach m bs off data nn m' bs' → nn < data.length → k ≤ data.length - nn →
       (nn' = nn + k ∨ nn' = nn) →
       WReach m bs off data nn'
-        (pwPost m' (off + nn) (data.drop nn).length k) (finBytes m' bs' (off + nn) (data.drop nn) k n zs)
+        (pwPostK true m' (off + nn) (data.drop nn) k n) (finBytes m' bs' (off + nn) (data.drop nn) k n zs)
 
 /-- **A state the loop reached is one the write may pass through** (`WIn`), and the bytes written
 so far are inside it. -/
@@ -61,8 +61,11 @@ theorem WReach.wIn {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {
     obtain ⟨hW, hS, -⟩ := ih
     have hne : data.drop nn0 ≠ [] := by
       intro h; have := congrArg List.length h; simp at this; omega
-    refine ⟨wIn_fin hW hl (by omega) (by rw [List.length_drop]; omega)
-      (by rw [show off + nn0 - off = nn0 by omega]) hne hS (by rw [List.length_drop]; exact hk), ?_, ?_⟩
+    have hW' : WIn m bs off data (pwPost m0 (off + nn0) (data.drop nn0).length k)
+        (finBytes m0 bs0 (off + nn0) (data.drop nn0) k n zs) :=
+      wIn_fin hW hl (by omega) (by rw [List.length_drop]; omega)
+        (by rw [show off + nn0 - off = nn0 by omega]) hne hS (by rw [List.length_drop]; exact hk)
+    refine ⟨hW'.congr _ rfl rfl rfl rfl rfl, ?_, ?_⟩
     · show off + nn' ≤ pwSize m0.size (off + nn0) k
       unfold pwSize; split <;> omega
     · omega

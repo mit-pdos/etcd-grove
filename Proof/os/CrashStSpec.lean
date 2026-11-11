@@ -380,7 +380,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
     hN hwr hoffv' hgap' hdne hfz' hW1 $$ Hos Hinv Hosfd Hown Hc2 as %t %nst Hosfd Hown
   have hW2 : ∀ k (zs : List Cands), k ≤ (data.drop nnv.toNat).length → (off + nnv).toNat ≤ m'.size →
       Ok (some (d.ino,
-      ⟨pwPost m' (off + nnv).toNat (data.drop nnv.toNat).length k,
+      ⟨pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst,
         finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs, fa, fb, .idle⟩)) := by
     intro k zs hk _; rw [hoffv]
     exact (hW _ _ _ (hR.step k _ nst zs hnn (by rw [hdl] at hk; exact hk) (.inl rfl))).1
@@ -392,7 +392,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   rw [← hoffv, Nat.max_eq_right (Nat.le_add_right _ _)] at hv
   obtain ⟨hS', hpre'⟩ := hv
   have hRs : ∀ nn', (nn' = nnv.toNat + k ∨ nn' = nnv.toNat) →
-      WReach m bs off.toNat data nn' (pwPost m' (off + nnv).toNat (data.drop nnv.toNat).length k)
+      WReach m bs off.toNat data nn' (pwPostK true m' (off + nnv).toNat (data.drop nnv.toNat) k nst)
         (finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k nst zs) := by
     intro nn' h; rw [hoffv]; exact hR.step k nn' nst zs hnn hk h
   -- the cells back

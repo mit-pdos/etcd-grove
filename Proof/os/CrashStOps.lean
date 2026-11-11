@@ -360,13 +360,13 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
     (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (bs : List ByteG)
     (fa fb : Nat) (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N)
     (hok : ∀ k (zs : List Cands), k ≤ data.length → off ≤ m.size →
-      Ok (some (p, ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩)))
+      Ok (some (p, ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩)))
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗
       csOwnF (L := L) γ (some (p, ⟨m, bs, fa, fb, .write t off data n⟩)) -∗
       (∀ (k : Nat) (e : w64) (zs : List Cands),
         ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧ off ≤ m.size⌝ -∗
-        csOwnF (L := L) γ (some (p, ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb,
+        csOwnF (L := L) γ (some (p, ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb,
           .idle⟩)) -∗
         mcells (L := L) m.maps (cfLo m off) (off + data.length)
           (pwCell m.size off data k (cfRange m bs off data.length)) -∗
@@ -386,7 +386,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
   obtain ⟨hgap, hd, hxl⟩ := hpw
   have hlo : cfLo m off = off := Nat.min_eq_left hgap
   imodintro
-  iapply wp_osPWriteFinish t p off data m (cfRange m bs off data.length) n hN $$ Hos [Ht]
+  iapply wp_osPWriteFinishK true t p off data m (cfRange m bs off data.length) n hN $$ Hos [Ht]
   · unfold pwTok; iframe; ipureintro; exact ⟨hgap, hd, hxl⟩
   iintro %k %e %zs %hke Hm Hrg Hc
   have hk := hke.1
@@ -411,9 +411,9 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
       cBytes (L := L) p (CSt.frac ⟨m, bs, fa, fb, .write t off data n⟩)
       (fun j => !CSt.taken ⟨m, bs, fa, fb, .write t off data n⟩ j) 0 bs from .rfl) $$ Hb2
   ihave Hb2 := cBytes_fin (L := L) p (CSt.frac ⟨m, bs, fa, fb, .write t off data n⟩)
-    (CSt.frac ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩)
+    (CSt.frac ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩)
     (fun j => !CSt.taken ⟨m, bs, fa, fb, .write t off data n⟩ j)
-    (fun j => !CSt.taken ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩ j)
+    (fun j => !CSt.taken ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩ j)
     (DFrac.own (1 : Qp).half) m bs off data k n zs hl
     (fun j hj => ⟨by rw [hout j (.inl hj)]; rfl, fun _ => rfl⟩)
     (fun j hj => ⟨by rw [hout j (.inr hj)]; rfl, fun _ => rfl⟩)
@@ -421,10 +421,10 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
     (fun j h1 h2 => ⟨rfl, CSt.frac_out _ _ (by dsimp only; have := hlo2; omega)⟩) $$ [Hb2 Hr2]
   · iframe
   ihave Hb2 := (show cBytes (L := L) p
-      (CSt.frac ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩)
-      (fun j => !CSt.taken ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩ j) 0
+      (CSt.frac ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩)
+      (fun j => !CSt.taken ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩ j) 0
       (finBytes m bs off data k n zs) ⊢
-      invBytes (L := L) p ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩
+      invBytes (L := L) p ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩
       from .rfl) $$ Hb2
   ihave Hb1 := (show thrBytes (L := L) p ⟨m, bs, fa, fb, .write t off data n⟩ ⊢
       cBytes (L := L) p (fun _ => DFrac.own (1 : Qp).half)
@@ -433,8 +433,8 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
   ihave Hb1 := cBytes_fin (L := L) p (fun _ => DFrac.own (1 : Qp).half) (fun _ => DFrac.own (1 : Qp).half)
     (fun j => !CSt.taken ⟨m, bs, fa, fb, .write t off data n⟩ j &&
       !CSt.frozen ⟨m, bs, fa, fb, .write t off data n⟩ j)
-    (fun j => !CSt.taken ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩ j &&
-      !CSt.frozen ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩ j)
+    (fun j => !CSt.taken ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩ j &&
+      !CSt.frozen ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩ j)
     (DFrac.own (1 : Qp).half) m bs off data k n zs hl
     (fun j hj => ⟨by rw [hout j (.inl hj)]; rfl, fun _ => rfl⟩)
     (fun j hj => ⟨by rw [hout j (.inr hj)]; rfl, fun _ => rfl⟩)
@@ -443,16 +443,16 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
       rfl⟩) $$ [Hb1 Hr1]
   · iframe
   ihave Hb1 := (show cBytes (L := L) p (fun _ => DFrac.own (1 : Qp).half)
-      (fun j => !CSt.taken ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩ j &&
-        !CSt.frozen ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩ j) 0
+      (fun j => !CSt.taken ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩ j &&
+        !CSt.frozen ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩ j) 0
       (finBytes m bs off data k n zs) ⊢
-      thrBytes (L := L) p ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩
+      thrBytes (L := L) p ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩
       from .rfl) $$ Hb1
   imod ghostVar_update_halves
-    (some (p, ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩) : CState) γ _ _
+    (some (p, ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩) : CState) γ _ _
     $$ Hv Hv' with ⟨Hv, Hv'⟩
   imod Hclose $$ [Hv' Hm2 Hb2] with -
-  · inext; iexists (some (p, ⟨pwPost m off data.length k, finBytes m bs off data k n zs, fa, fb, .idle⟩))
+  · inext; iexists (some (p, ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩))
     iframe Hv'; isplitl
     · dsimp only; iframe
     ipureintro; exact ⟨hok k zs hk hgap, rfl⟩
