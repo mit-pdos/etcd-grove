@@ -213,7 +213,7 @@ theorem stepBundle_traced_candVoteRespPending :
       rw [if_pos hTy] at hf
       obtain ⟨-, hf⟩ := hf
       rw [if_neg (by rw [hrole]; decide)] at hf
-      obtain ⟨won, lost, ms, pvs, hw, hl, hs'⟩ := hf
+      obtain ⟨won, lost, ms, pvs, hw, hl, -, hs'⟩ := hf
       cases won with
       | true => exact absurd (hw rfl).1 hnq
       | false =>
