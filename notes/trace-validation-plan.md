@@ -1059,7 +1059,7 @@ bound (`logRecs_traceBound`, its last entry's receipt), the close (`accEnd_simId
 strengthened by `|C| ≤ |γ.reBoot|`, which the request's bootstrap positions need and nothing carries: Q24;
 `stepBundle_traced.on_of_onRB` gives `.on` once it is carried). Left: the higher-term accepted `MsgApp`
 (its pieces in place; `ownRaftGhost_appAccFacts` to state its certificate at the request's term), Q24.
-Checked (branch at `trace-check` `2c7c285f55` plus this slice): full `lake build` green (13817 jobs);
+Checked (branch at `trace-check` `27da747ae6` plus this slice and a one-line merge fix in `TracedRaftStepPropBundle`, its close reading slice 24b's `stepOutG` through `stepOutG_stepOut`): full `lake build` green (13820 jobs);
 `#print axioms` of both bundles: no `sorryAx`; `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s,
 unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module
 touched); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
