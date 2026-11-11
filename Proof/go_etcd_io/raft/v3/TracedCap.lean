@@ -33,7 +33,7 @@ lines' gate takes the two apart, `trCapB_hookGate_bf`). The Draft's traced state
 committed prefix kept from a term with raft's commit justification) with `AckHists` (A6: the
 acknowledgements' histories, raft's `hist` over each acknowledging server's current log, keyed on the
 specification's acknowledgements and leaders' match indices), so that a leader's `Commit` line keeps it
-(`quorumLogF_commit`, `TracedQuorumLog.lean`; `notes/decisions.md`, "Amendment A6 (Q22)").
+(`quorumLogF_commit`, `TracedQuorumLog.lean`; `notes/decisions.md`, "Amendment A6 (Q22, Q23)").
 -/
 module
 
@@ -833,7 +833,7 @@ earlier term, or the bootstrap log), or two such logs already disagree at or bel
 `histsOk` (`GhostState.lean`), kept by the simulation over the specification's log rather than raft's,
 and keyed on the specification's acknowledgements (`AckHists`) rather than raft's acknowledgement maps:
 raft mints those at a batch's *enter*, outside any line, and a receive line moves `k`'s log before raft
-does (`notes/decisions.md`, "Amendment A6 (Q22)"). -/
+does (`notes/decisions.md`, "Amendment A6 (Q22, Q23)"). -/
 def AckHist (γ : RaftNames) (C : List w64) (σ : Etcdraft.State) (k : Etcdraft.ID) (T m : Int) : IProp GF :=
   iprop(⌜0 ≤ T ∧ T ≤ (σ.s k).currentTerm ∧ T < 2 ^ 63 ∧ m < 2 ^ 63⌝ ∗
     □ ∀ F : List EntryM, ⌜(σ.s k).log = logAbs C C.length 1 F ∧ BootTerms C.length 1 F⌝ →

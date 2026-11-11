@@ -35617,3 +35617,114 @@ its `"Hgrep"` ignores it; the untraced and traced instances (`raft.becomeLeader.
    source to the cluster's voters (client-visible `Protocol/Model.lean` body change); raft alone cannot
    (`recordVote` records any sender). Recommended: (a), as an amendment
    with a TLC check of the clause.
+
+## Amendment A6 (Q22, Q23): the acknowledgement histories in `QuorumLogF`, for a leader's `Commit` line; messages between servers, for a won vote's quorum (2026-11-11 · trace-check, Q22 (a) and Q23 (a) taken by the coordinator pending the user's veto, their forms decided by the agent · branch `trace-check-a6`; amends the frozen Draft (A5 merged, not yet re-frozen) in `simFx`'s `QuorumLogF` and `MsgsShape` clauses and the receive law's `PhaseStepR`; DRAFT until the re-freeze)
+
+**The problem** (A5's open item, "Amendment A5 (Q21)"): a leader's `Commit` line (`AdvanceCommitIndex`)
+raises its commit index to `c`, agreed by a quorum `Q` of its match indices; its new committed prefix
+`P` needs a witness for `QuorumKept` (A5's clause): a term `t` from which the servers holding `P` are a
+quorum (`KeptFrom`), with raft's commit justification at `t` (`CommitCert`). The certificate is raft's
+own after `maybeCommit` (`t` the leader's term `T`), but nothing in `simFx` says that `Q`'s members hold
+`P` *now*: a member may have truncated since it acknowledged, at a later term, as far as `simFx` knows.
+
+**Checked first, against the specification** (`Tla/Spec.lean`; scope as A5: no restart, snapshot,
+duplicate, drop or reconfiguration):
+- *What the line needs*: for every `k ∈ Q`, `k ≠ i`: `k`'s current log extends `P` and `k`'s term is
+  `≥ T`. Raft's acknowledgement history gives it: if `k` acknowledged `(T, m)`, `m ≥ c`, and its current
+  log `F` has `hist γ F T m B` (every index `j ≤ m` has the term of some `okL` log: a full log of a
+  leader of a term `≥ T`, a committed log of an earlier term, the bootstrap log; or two such logs
+  disagree at or below `j`), then at `j = c` every `okL` log agrees with the leader's commit-certified
+  log `es` (`commitJ_leadFull`: `lc_core` from the certificate for leaders of later terms, the converse
+  for committed logs of earlier terms, `logRecs_boot_termAt`), so no two disagree and `F` has `es`'s
+  term at `c`; `LogMatchingInv` then gives `P` (`hist_commitAgree`, `prefix_of_termAt`).
+- *Something weaker?* "Each acknowledging member's log at its current term extends the acknowledged
+  prefix" is false: an uncommitted prefix acknowledged at `T` is overwritten by a later term's leader;
+  only `hist`'s disagreement disjunct survives that. A history of the single index `m` does not give
+  the term at `c < m` (two `okL` logs may disagree between `c` and `m`). The quorum's acknowledgement
+  must hold at the `Commit` line, on the current log, so a copy at acknowledgement time would not do.
+- *Keyed on what*: raft's acknowledgement maps (`isAcked`, `histsOk` in `ownLogGhost`) would be the
+  literal copy, but raft mints an acknowledgement's fragment at a batch's *enter*, outside any line, so an
+  invariant quantifying over the fragments could not be kept; and a receive line moves the server's log
+  before raft appends (`traceReceiveMessage` at `Step`'s start), so raft's `histsOk` over its old log
+  would not cover the new one. The specification's own acknowledgements are what the line reads: the
+  successful append responses in flight (`AckMsg`: to another server, positive match index) and the
+  match indices a leader holds for another server. So `AckHists` keys on those (`notes/trace-validation-
+  sim.md`'s per-node acknowledgement sets are not needed: an acknowledgement's history is dropped with
+  the response or the leader's leadership, after which nothing reads it).
+- *Not covered, out of scope*: `ApplySimpleConfChange` (reconfiguration; it only keeps or zeroes match
+  indices, and `0` is vacuous) and restart/snapshot (an `AckHist` over the replaced or durable log would
+  be needed; raft has `hist_replace`). This supersedes A5's open item ("a leader's `Commit` line") and its
+  claim that `BecomeLeader` is kept by `quorumLogF_congr` (it now needs `ackHists_becomeLeader`).
+- *Preserved by* (each with a lemma, `TracedHooksGlobal.lean`/`TracedQuorumLog.lean`, or re-proved in
+  the path files): lines that move no log and no acknowledgement (`ackHists_congr`: terms rise, roles
+  change, a vote, `Ready`, a discarded message, a phantom refusal, a timeout; `BecomeLeader` and
+  `UpdateTerm` leave no new leader match index above 0); a send that is not an acknowledgement
+  (`simFx_send`'s new premise); the stale append request's reply, acknowledging the receiver's commit
+  index at its term (`ackHist_commit`, raft's `hist_of_commit` from the commit certificate in
+  `srvFacts`); an accepted request's reply (`ackHist_ofAgree`: the receiver's recorded log agrees at
+  the reply's match index with its leader's full log, `hist_of_agree`; the agreement from
+  `HasNoConflict`/`logOk` and the request's raft facts is the receive path's, slice 24c); a recorded
+  response at a leader (`ackHists_resp`: the match index raised to the response's, whose history it
+  carries); an append round and a leader's growing log (`ackHist_prefix`, `hist_keep`); a truncation
+  round (`ackHist_conflict`, `hist_trunc`: below the cut the old history serves; past it the conflict,
+  where the receiver's log disagrees with the request's leader's full log of the receiver's term `≥ T`,
+  is the disagreement); the bootstrap state (no message, every match index 0); the `Commit` line
+  itself (`quorumLogF_commit`). A member that acknowledged at `T` and truncates within `T` cannot cut the
+  acknowledged prefix (the request is `T`'s leader's, agreeing with it there), but the proof does not
+  need that case apart: `hist` covers it uniformly.
+
+**The amendment**: `QuorumLogF γ C σ := QuorumKept γ C σ ∗ AckHists γ C σ` (`QuorumKept` is A5's
+clause unchanged, renamed); `AckHist γ C σ k T m` says `T ≤` `k`'s term and every raft log `F` that
+`k`'s log abstracts (`logAbs`, bootstrap entries of term 1) has `∃ B, hist γ F (W64 T) (W64 m) B`;
+`AckHists` holds it for every acknowledgement in flight from a server and every positive match index a
+leader holds for another server, at the leader's term. Nothing else frozen changed (`simFx`'s shape,
+the laws, `FxPres*`, `trCap*` as they were); no axiom, no `sorry`, no client-visible change
+(`TracedCap` is not on `etc/api/raft.txt`).
+
+**Users re-proved, mechanically**: `quorumLogF_congr` gained two premises (no new acknowledgement in
+flight; no new leader, term or match index on the servers), discharged at each site from the line's
+shape (`withNode_leaders`, `withNode_acks_without`); `quorumLogF_mono` a third (the histories carried);
+`simFx_send` and `fxPres_plain` a premise that the message is not an acknowledgement (phantom refusals,
+votes, heartbeats, append requests); `simFx_leadReply` (and `fxPresR_leadReply`, `fxPresR_utLeadReply`,
+`fxPresR_candLeadReply`) the stale reply's acknowledgement (`ackHist_commit`); `simFx_simInit`; A5's
+sufficiency lemmas (`quorumLogF_noConflict`, `_grow`, `_commitReply`, `_alreadyDone` with the reply's
+`NewAckHists`, `_conflict` with the receiver's facts).
+
+**Sufficiency** (`TracedQuorumLog.lean`, lemma level): `quorumLogF_commit`: from `AdvanceCommitIndex`
+at a leader (`advanceCommitIndex_cases`), the leader's facts at the new state (`allFacts γ C σ'`, which
+the line's `FxPres` builds anyway from raft's `maybeCommit`: `commitIn` at `c` and `T`), the vote table
+and `QuorumLogF` before, `QuorumLogF` after. Not yet: the `Commit` line's path (`raft.maybeCommit`'s
+traced spec), and the accepted request's agreement fact for `ackHist_ofAgree` (slice 24c).
+
+### Q23: a won vote's quorum, and the messages' ends
+
+**The problem** (slice 24b, "Q8 stage 1 (slice 24b)" item 4): `tallyGranted_quorum`'s premise `hc`
+(every voter raft's tally holds is configured) has no source where the `BecomeLeader` guard is checked:
+raft's `recordVote` records any sender, a refusal's `isMessageC` is `True`, `MsgTrOk` bounds numbers.
+
+**Checked first, against the transcription**: a server sends only as itself (`send`'s callers set
+`source := i`), to a server (`AppendEntries(i, j)`, `RequestVote(i, j)` over the configuration; raft's
+`bcastAppend`/`campaign` over its tracker's voters, all configured in scope); a reply (`reply`,
+`rejectAppendEntriesRequest`, `appendEntriesAlreadyDone`, `HandleRequestVoteRequest`) goes from its
+request's destination to its source, and so does a phantom (`phantomOf`); `AppendEntriesToSelf` is a
+server to itself; `Ready` moves messages between the bags; the initial state has none. So every message
+in flight is between servers.
+
+**The amendment**: `MsgsShape σ` (a `simFx` clause, A2) now says every message in flight is canonical
+**and** `MsgEnds σ x` (`x.source ∈ σ.server ∧ x.dest ∈ σ.server`). The receive law's premise
+`PhaseStepR` changes, old vs new: its hypothesis on the share `(elements c.incoming).Perm C ∧
+c.outgoing = ∅ ∧ id ∈ C` becomes `… ∧ id ∈ C ∧ m.source ∈ confAbs C` (the step may assume its message's
+source a voter); `trCap_fire_recv` supplies it from `MsgsShape` (the message is in flight, its token's).
+No other frozen statement changed. Users: every `PhaseStepR` proof's pattern (`⟨hin, hout, hC, -⟩`,
+twelve files, mechanical); the send lemmas' new ends premise (`simFx_send`, `msgsUniq_send_canon`;
+`fxPres_plain`'s `hpE`, `fxPres_heartbeat`/`fxPres_app`'s `hdC`, `fxPres_heartbeat_pin`'s `hto`, from
+the capability's configuration, `trCapB_pinPerm`); the replies' ends from their request's
+(`simFx_leadReply`'s `hmem`/`hrsd` and its three wrappers, `simFx_voteReq`'s `hdi`, `simFx_hb`,
+`fxPresR_staleReq`'s phantom, `phantomOf_dest`); `simFx_congr` (`MsgEnds` across equal server sets).
+Concurrent slices' new `PhaseStepR` proofs and send sites need the same two mechanical changes.
+
+**Sufficiency** (`TracedQuorumLog.lean`): `votesIn_recordVote` (a tally whose voters are configured keeps
+that after recording a configured sender), `votesIn_empty`, and `wonVote_quorum`: at a won `MsgVoteResp`,
+the phase's voters-configured fact and the receive law's source premise give `tallyGranted_quorum`'s
+`hc`, so the won tally is the specification's quorum. Left to the won path (slice 24b's successor): its
+phase carries the voters-configured fact from the campaign (raft's self-vote at a configured node) on.
