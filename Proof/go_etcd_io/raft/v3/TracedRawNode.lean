@@ -30,6 +30,8 @@ public import Spec.go_etcd_io.raft.v3.IsResponseMsg
 public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.LemmasP3bXw
+public import Proof.go_etcd_io.raft.v3.InvNodeRun
+public import Proof.go_etcd_io.raft.v3.TracedRaftStepPropBundle
 
 @[expose] public section
 
@@ -332,6 +334,216 @@ theorem RawNode.Step.traced
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩)
+
+set_option hygiene false in
+/-- A premise of `Step` about another message type, for a proposal (`Hty` in context). -/
+local macro "prop_ne" : tactic => `(tactic| (intro Hc; rw [Hty] at Hc; simp [MsgHup, MsgVote,
+  MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum,
+  MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgReadIndex,
+  MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
+
+/-- **The paths of a traced node's proposal**: a `MsgProp` of a non-empty batch of normal entries, in a
+cluster started from a bootstrap log, at any role (a leader appends it, `PropLead`; a follower forwards
+it; a candidate drops it). The assembly's premises for `MsgProp` (`notes/decisions.md`, "Q8 stage 1
+(slice 24a)"). -/
+def PropAny (γ : RaftNames) (ents : List EntryM) (_s : NState) (m : MessageM) : Prop :=
+  m.Type' = MsgProp ∧ ents ≠ [] ∧ (∀ e ∈ ents, e.Type' = EntryNormal) ∧ γ.reBoot ≠ []
+
+/-- **`r.Step(m)` on a proposal at a traced node** (`node.run`'s `propc` arm: `node.Propose`'s
+proposal, or one a follower forwarded, which `node.Step` hands to `propc`; `RawNode.Propose` is not on
+the node API's path): `wp_rn_raft_Step_prop`'s triple at a traced cluster, over the traced bundle on
+`PropAny`. Beyond the untraced premises: the batch's entries normal (the harness proposes no
+configuration change, P3), the bounds, the bootstrap log. -/
+theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (hb : stepBundle_traced.onG (GF := GF) (hG := hG) PropAny)
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt) (γd : GName)
+    (Hty : st.msg.Type' = MsgProp) (Hfr : st.msg.From' = id) (Hrs : st.resps = [])
+    (HtrG : γ.reTrace = some γd) (Hnorm : ∀ e ∈ st.ents, e.Type' = EntryNormal)
+    (Htcb : uint.Z rs.tc + 1 < traceNumBound) (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound)
+    (Hboot : γ.reBoot ≠ []) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
+        msgIn ml (DFrac.own 1) st ∗
+        isMessage γ (absMsg .propose st.msg st.ents) ∗
+        ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+    {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗ stepErr err }} := by
+  rcases st with ⟨m, ents, sn, ctx, rsp⟩
+  simp only at Hty Hfr Hrs Hnorm ⊢
+  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Htk, Hlc⟩ HΦ
+  ihave #Hinit := isInitialized_access $$ Hpkg
+  unfold isInitialized
+  icases Hinit with ⟨%_, %_, %_, %_, %errPropDropped, %_, %_, %_, %_, %_, #Hinit⟩
+  iNamed Hinit
+  iNamed Hrn
+  ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
+  icombine Hr Hr' gives %Heq
+  subst Heq
+  icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
+  ihave %Hpm := isMessage_propose_pure γ m ents $$ Hm
+  obtain ⟨Hterm, Hne, Hlen⟩ := Hpm
+  ihave #Hed : iprop([∗list] e ∈ ents, propData γ e) $$ []
+  · iunfold isMessage at Hm
+    simp only [absMsg, absMsgFrom]
+    icases Hm with ⟨-, #Hed⟩
+    iexact Hed
+  icases propData_ccEnts γ ents $$ Hed with ⟨%cs, #Hcc⟩
+  imod rdCred_zero_upd (GF := GF) γ with Hcr
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  -- (slice 25n) the capability, open; the bundle's premises from the node's state
+  have Htr : s.gh.tr = some γd := Hgtr.trans HtrG
+  icases (rnTrace_some γ rnv.raft' id cf s γd Htr).1 $$ Hrntr with ⟨%Hscope, #Hcqf, #Hnosnap, %bt, Hcap⟩
+  icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq, Hphys⟩
+  icombine Hcqf Hcq gives %Hcqe
+  icases ownRaftPhysC_dom cf rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
+  icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpcd, Hphys⟩
+  have Hst1 : uint.Z s.term ≤ uint.Z rs.tc := by rw [Hpvoff.2.1]; exact Hpvoff.2.2.1
+  have Hpt : mtypeOf m.Type' = some .propose := by rw [Hty]; rfl
+  have Hpu : ∀ ty, mtypeOf m.Type' = some ty → ty.traced = false := by
+    intro ty h; rw [Hpt] at h; cases h; rfl
+  ihave Htok : recvTokOf γd m ents ctx $$ []
+  · iunfold recvTokOf
+    iintro %ty %h
+    exact absurd h.2 (by rw [Hpu ty h.1]; simp)
+  ihave Hpre : (trCapB s.gh.tr γ rnv.raft' id cf bt (fun C => SimIdle C s) (fun _ => True) ∗
+      (recvTokOf γd m ents ctx ∗
+        □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
+          isMessageC γ (absMsg ty m ents ctx))) ∗
+      TrNoSnap s.gh.tr s.logst : IProp GF) $$ [Hcap Htok]
+  · iframe Hcap Htok Hnosnap
+    imodintro
+    iintro %ty %h
+    exact absurd h.2 (by rw [Hpu ty h.1]; simp)
+  imod hb γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s m ents sn ctx rsp γd
+      (fun _ => True) bt ⟨Hty, Hne, Hnorm, Hboot⟩ Htr Hscope.1 Hcqe.symm
+      (by unfold StepEndTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => by prop_ne)
+      (fun ty h1 h2 => by rw [Hpu ty h1] at h2; cases h2)
+      (by omega) (by rw [Hterm]; unfold traceNumBound; decide)
+      (fun ty h => MsgTrOk.of_untraced γ (by
+        have := Hpu ty h
+        rw [Hpt] at h; cases h
+        simpa [absMsg, absMsgFrom, Msg.mkV] using this))
+      Hfit Hscope.2 Hsub
+      (fun h => by have := Hpcd h; rw [Hscope.1] at this; cases this)
+      ⟨fun h => by prop_ne, fun h => by prop_ne, fun h => by rcases h with h | h | h <;> prop_ne⟩
+      (fun _ => Hboot) $$ Hpre
+    with ⟨%R, HG, Hgates, Hclose⟩
+  wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp R
+    (fun s' => iprop(∃ bt' : Bool,
+      trCapB s.gh.tr γ rnv.raft' id cf bt' (fun C => SimIdle C s') (stepLastEv (fun _ => True))))
+    (by simp only [StepMsg, stepMsgTypes]; rw [Hty]; simp [MsgProp])
+    (by prop_ne) (by prop_ne)
+    (by prop_ne) (by prop_ne)
+    (by prop_ne) (by prop_ne)
+    (by prop_ne) (by prop_ne)
+    (by prop_ne) (by prop_ne)
+    (by prop_ne)
+    (fun _ => ⟨Hterm, .inr Hfr⟩) (by prop_ne) (by prop_ne) (by prop_ne) (by prop_ne)
+    (RestMsgOk.of_ne ⟨by prop_ne, by prop_ne, by prop_ne, by prop_ne, by prop_ne⟩) Hwf
+    (GMode.Pre.of_facts Hpf (by prop_ne) (by prop_ne)) (fun h => absurd h (by prop_ne))
+    (fun h => absurd h (by prop_ne)) (fun h => absurd h (by prop_ne)) (fun h => absurd h (by prop_ne))
+    (fun _ _ e he hc => by
+      have := Hnorm e he
+      unfold IsConfEnt at hc; rw [this] at hc
+      rcases hc with hc | hc <;> simp [EntryNormal] at hc)
+    $$ [$Hphys $Hghost $Hlc Hmin Htk Hcr HG Hgates Hclose]
+  · rw [Hty]
+    simp only [ite_true]
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h.1 (by simp [MsgProp, MsgTransferLeader])
+    isplitl [Hmin Htk]
+    · simp only [named]
+      isplitl [Hmin]
+      · iexact Hmin
+      isplitl [Htk]
+      · isplitr
+        · iexists cs
+          iexact Hcc
+        iexact Htk
+      isplitr
+      · ipureintro
+        intro _
+        exact ⟨Hne, Hlen⟩
+      isplitr
+      · ipureintro; intro _; exact Hrs
+      isplitr
+      · ipureintro
+        intro Hc
+        simp [MsgProp, MsgStorageApplyResp] at Hc
+      · imodintro
+        iintro %ty %Hty2 _
+        rw [show mtypeOf MsgProp = some .propose from rfl] at Hty2
+        cases Hty2
+        iapply isMessage_ctx_intro _ .propose _ _ _ ⟨nofun, nofun⟩
+        iexact Hm
+    isplitl [Hcr]
+    · simp [MsgProp, MsgReadIndex]; iexact Hcr
+    isplitr
+    · imodintro
+      iintro %Hc
+      simp [MsgProp, MsgSnap] at Hc
+    iframe HG Hgates Hclose
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %Htm, %_, -, -, Herr, HG⟩
+  icases ownRaftPhysC_sn _ rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
+  ihave #Hstep : stepErr err $$ [Herr]
+  · unfold stepErr
+    icases Herr with (%Hnil | ⟨-, #Hpd⟩)
+    · ileft; ipureintro; exact Hnil
+    · iright
+      unfold errProposalDropped
+      icombine Hpd ErrPropDropped gives %Heq
+      subst Heq
+      iframe Hpd
+      ipureintro; exact HErrPropDropped
+  have Hc := Href.commit_mono
+  have e1 := Href.keep (by prop_ne) (by prop_ne) (fun h => absurd h (by prop_ne)); subst e1
+  have e2 := Hcc (by prop_ne); subst c'
+  obtain ⟨Hfr', Hap, -⟩ := Hloc.1 (fun h => absurd h (by prop_ne)) (.inl Hty)
+  have Hap' := Hap (fun Hc => by rw [Hty] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Hfr'.1]; exact Int.le_refl _)
+    Hfr'.2.2.2.2.1 Hfr'.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1) Hfr'.2.1 $$ Hstrecs
+  ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr'.2.2.2.1) $$ Hsloc
+  -- (slice 25n) the capability back, idle at the end state
+  have Hgh' : s'.gh = s.gh := Hfr'.2.2.2.2.2.2.2.2.1
+  have Htr' : s'.gh.tr = some γd := by rw [Hgh']; exact Htr
+  ihave Hrntr : rnTrace γ rnv.raft' id cf s' $$ [HG]
+  · iapply (rnTrace_some γ rnv.raft' id cf s' γd Htr').2
+    isplitr
+    · ipureintro; exact ⟨Hfr'.2.2.2.2.2.2.2.1.trans Hscope.1, Hscope.2⟩
+    isplitr
+    · iexact Hcqf
+    isplitr
+    · iapply trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
+        Hfr'.2.2.2.2.1.symm Hfr'.2.2.2.2.2.2.1.symm $$ Hnosnap
+    icases HG with ⟨%bt', HG⟩
+    iexists bt'
+    rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
+    iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ HG
+  iapply HΦ
+  isplitl
+  rotate_left
+  · iexact Hstep
+  iapply ownRawNode_intro_tr γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hasync
+    (by rw [Hap']; exact Hdlen) (by rw [Hfr'.2.2.1]; exact Hunp)
+    (by rw [Hfr'.2.2.2.1]; exact Hsnap)
+    (stepsOk_mono s s' _ Hfr'.1 ⟨Hfr'.2.2.2.2.1, (logStoreRec_stored Hfr'.2.2.2.2.2.1)⟩ Hc Hap'
+      (tc_le_of_gh Hfr'.2.2.2.2.2.2.2.2.1) Hstok)
+    (by rw [Hfr'.1]; exact Htrm)
+    (by rw [Hfr'.2.2.2.2.2.2.1]
+        exact ⟨Hstor.1, by rw [Hsn1.2, Hfr'.2.2.2.2.2.2.2.2.1, ← Hns0.2]; exact Hstor.2⟩)
+    (Hpvoff.keep rfl rfl Hfr'.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.1 Hfr'.2.2.2.2.2.2.2.2.2.1
+      Hfr'.2.2.2.1 (PreGuardF.step (Htm (by prop_ne))))
+    (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
+    (Int.le_trans Hrs_clb Hc)
+    (RNFl.keep Hrnfl Hfr'.2.2.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hap')
+    (Hloan.keep Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1)
+      Hfr'.2.2.1 Hap' Hc)
+    (Hsdt.ofRec Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.1) Hrole
+    (Hphs.keep rfl rfl rfl (HsLe.of_step Href.voteLe Hc) Hfr'.2.2.2.1 (.inl Hfr'.2.1))
+    (by rw [LocalFrame.ns Hfr']; exact Hgtr) (by rw [LocalFrame.ns Hfr']; exact Hglq) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc' [Hdur] Hrntr
+  · iapply durTie_congr γ (rs := rs) (s := s) (by rfl) (by rfl) Hfr'.2.2.2.1 Hfr'.2.2.2.2.1 (logStoreRec_stored Hfr'.2.2.2.2.2.1) $$ Hdur
 
 end traced
 
