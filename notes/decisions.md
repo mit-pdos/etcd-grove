@@ -36991,6 +36991,8 @@ No axiom, no `sorry`, no Lean file changed.
 
 ## Design pass, revision 1: the review round `design-r1` answered; Q38 (a) in the closed statements; the tokens through a per-node escrow; one `node.Step.spec` (2026-11-11 · trace-check, decided by the agent under the user's delegation, but Q38, which the user decided · branch `trace-check-design2`; DRAFT, for review)
 
+*Superseded in part (2026-11-11) by "Design pass, revision 2" below: F3's escrow in the driver-first order (`run` cannot see the driver's key without an allocation bound), `node.Advance.spec` proved apart from the traced triple (now its instance), G3's registry route and source list (the automatic leave), and the open L5.*
+
 **What.** `notes/trace-check-design.md` revised against `notes/trace-validation-reviews/design-r1.md`
 (F1-F3, S1-S12); its "Revision 1" header lists each finding and the change. Nothing threaded, no Lean
 run.
@@ -37036,3 +37038,64 @@ L5 (`rnTrace`'s `TrNoSnap` comes from Q6 item 8's gated `storBnd`, not yet in Le
 full:** L1, L2 (lemma (ii)'s step and G3), L5.
 
 No axiom, no `sorry`, no Lean file changed.
+
+## Design pass, revision 2: the review round `design-r2` answered; the escrow's allocation bound; one proved `node.Advance` triple; `OutTyStep` in the paths' end resource, with a physical half; G3 as a joint invariant; `TrNoSnap` under an update; the harness's `ConfChangeV2` arm from client facts (2026-11-11 · trace-check, A1-A6's direction decided by the coordinator (raft-internal, intermediate statements), their form and B1-B7 by the agent under the user's delegation · branch `trace-check-design3`; DRAFT, for review)
+
+**What.** `notes/trace-check-design.md` revised against `notes/trace-validation-reviews/design-r2.md`
+(A1-A6, B1-B7); its "Revision 2" header lists each finding and the change. §1 (the closed statements)
+unchanged. Nothing threaded, no Lean run, no axiom.
+
+**Decided (the form; the coordinator gave the direction):**
+- *A1, the escrow when the driver sends first*: of "the claim in the payload" and "a persistent
+  allocation bound", the bound (a new monotone count `al` in `rtkInv`, its lower bound minted with the
+  key and carried by the claim; the `SndPending` payload carries a copy; `run`, holding `np`, reads
+  `j + 1 ≤ a` and answers `monoNatLb dep (j + 1)`). Simpler: every payload across `advancec` stays
+  persistent, and `run` never handles the driver's element or the tokens. Both hand-off orders argued
+  against `node.go`'s `run`: `run`'s receive on `advancec` happens only between a deposit and the next
+  allocation (`advancec` armed after `acceptReady`, `readyc` re-armed after the `advancec` case), while
+  the driver may offer its send at any time after its `Ready` receive, including while `pend = true`.
+- *A2, the outbox's types*: the derivation from `raft.Step.spec`'s results is struck (`StepC` admits
+  free pre-votes and `SnapOk`; the role results' `ReplSends` admit `.snap` with the no-snapshot mode
+  off). `⌜OutTyStep s s'⌝` joins the caller's end resource `Gout` of `stepBundle_traced.statement` (and
+  its per-path forms), not `stepClose`'s definition: `raft.Step`'s code proof returns `Gout` untouched,
+  so it does not change, and `raft.Step.tracedTriple`'s post carries the fact. 27 path files and 4
+  consumers re-opened (listed in §3.6). **Found:** the abstract outbox cannot see a message whose type
+  has no abstraction (`msgAbs … none`), and raft queues two (`MsgTimeoutNow`, a forwarded
+  `MsgTransferLeader`): a physical half in raft's code specs (`raft.send.spec`'s traced premise
+  excludes untyped messages, `XfOk` records it of the queues, `raft.sendTimeoutNow.spec` and
+  `raft.Step.spec` gain traced premises, `raft.Step.tracedTriple` discharges them by `StepEndTy` and
+  `s.lt = 0`), in the style of `raft.Step.spec`'s existing traced premises.
+- *A3, G3*: a joint invariant. (a) no configuration entry past the bootstrap log in any log, a gated
+  clause of the term logs' authority (where every entry is minted), kept at each minting by
+  `raft.Step.spec`'s existing traced `MsgProp` premise, the new leader's empty normal entry, and, for
+  `appliedTo`'s automatic leave, `raft.Step.spec`'s existing `autoLeave` premise; (b) no joint
+  configuration, `rnTrace` 1(d), kept at the `confc` arm because the entry applied is a bootstrap
+  `AddNode` by (a). The registry route is dropped (an empty `ConfChangeV2` is a filler, invisible to it).
+- *A4, `TrNoSnap`*: the update form (`… -∗ |={⊤}=> False`), built at `setupNode` from the client's
+  `isStorage` (its `Hbound` at the gated `storBnd`) before the conversion to `raftBnd`, which needs no
+  gate; its two uses are WP steps at `⊤` (`iapply` becomes `imod`). Rejected: a "never compacted" fact
+  in the storage key's names (a MemoryStorage ghost change for one premise). L5 closed.
+- *A5*: `node.Advance.tracedSpec` the one proof, `node.Advance.spec` (text unchanged) its instance at
+  `ms = []` through `readyToksClaim_nil`, the claim being `⌜ms = []⌝ ∨ (element ∗ bound)`.
+- *A6*: `handleReady`'s conf arms as kvreconf's `Replica__applyEntry`: the committed entry decodes
+  (`tc_confShaped`: `tcOpsInv` gains the clause that its requested entries past the bootstrap log are
+  normal; kvreconf's pure `confShaped_of_ops` moves to raft's `ConfRule.lean`); an empty
+  `ConfChangeV2` is applied at a joint configuration (`committed_emptyV2_joint`, already exported).
+  Rejected: exporting G3 as a client law (an internal invariant in the API).
+- *B1*: revision 1's steps 1 and 2 are one landing; `rnTrace`'s new clauses (now 1(a)-(e), lemma (ii)
+  being 1(e), traced only) land after their facts are theorems, with every re-opened triple in the same
+  landing; `node.run.gated_of` then has only `hAdv` and `hCC` as hypotheses. A8 lands on its own with
+  every `simInit` reader re-proved (done on `trace-check-a8`).
+- *B2*: `storBnd_intro_untraced` and `storBnd_zero` exported; kv's, kvreconf's and kvdurable's
+  `*J_bnd` re-proved through them (no unfold); L3: about 25 call sites in 20 files.
+- *B4*: `PbMessage.lean` moves to raft's tree (no server import for the harness). *B5*: `app`'s thread
+  token from `wp_fork_tok_body`. *B6*: `rtkN := N.@"rtk"`, opened inside channel AUs. *B7*:
+  `acceptReady`'s re-opening narrowed. `ThreadBoundLe.weaken`'s call written with `haveI`.
+- §5.3 aligned with A8 as implemented (a mono list for the witnesses; `bootInit` deleted;
+  `newTrace_simInit`; `HarnessEnd`'s `bootEnd` a theorem).
+
+**Not argued in full:** L1, narrowed (whether a broadcasting path's close sees its sends' types, or its
+send gates must record them); L2's two locating tasks (lemma (ii)'s `ca ≥` applied at `Advance`, for
+Probe B; the term logs' minting update and its callers, at threading).
+
+No axiom, no `sorry`, no Lean file changed. Nothing for the user (§1 unchanged).

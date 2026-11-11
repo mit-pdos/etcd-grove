@@ -2663,6 +2663,21 @@ never needs back. Call sites counted (L3: about 21 in 16 files, none for `Advanc
 entry past the bootstrap log, for the leader exclusion) and L5 (`TrNoSnap`'s source, Q6's gated
 `storBnd`). Not argued in full: L1, L2, L5. Next: a second review round on the document.
 
+**The design pass, revision 2 (2026-11-11, branch `trace-check-design3`): the review round `design-r2`
+answered** (`notes/trace-validation-reviews/design-r2.md`; the document's "Revision 2" header,
+`notes/decisions.md`, "Design pass, revision 2"). §1 unchanged. The escrow's driver-first order fixed by
+a persistent allocation bound (A1); `node.Advance.tracedSpec` the one proof, `node.Advance.spec` its
+instance (A5); the outbox's types as `OutTyStep` in `stepBundle_traced.statement`'s end resource, each
+path proving it (27 path files), with a physical half found (untyped `MsgTimeoutNow`/forwarded
+`MsgTransferLeader` are invisible to the abstract outbox: traced premises on `raft.send`/`raft.Step`, a
+clause of `XfOk`) (A2); G3 a joint invariant, the term logs' gated clause and `rnTrace` 1(d), covering
+`appliedTo`'s automatic leave (A3); `TrNoSnap` under an update, from the client's storage contract (A4,
+L5 closed); `handleReady`'s `ConfChangeV2` arm from client facts, as kvreconf (A6). The order of work:
+the gates and every call site in one landing, then the clauses' facts, then the clauses with their
+re-opened triples (B1); L3 about 25 call sites in 20 files with `storBnd`'s clients (B2). Not argued in
+full: L1 narrowed (a broadcasting path's sent types at its close), two locating tasks of L2. Next: a
+third review round on the document.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and
