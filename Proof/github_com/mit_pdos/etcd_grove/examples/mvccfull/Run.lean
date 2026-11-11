@@ -84,7 +84,7 @@ theorem Run.wp_proof
   haveI : ∀ x cfg wr, Persistent (runnerCfg (GF := GF) x cfg wr) := by
     intro x cfg wr; unfold runnerCfg runnerRangeMix; infer_instance
   haveI : ∀ x, Persistent (rdShared (GF := GF) x) := by intro x; unfold rdShared ctrInv; infer_instance
-  wp_start as ⟨Hmix, Hfiles, #Hks, Htok, #Hvoff⟩
+  wp_start as ⟨Hmix, Hfiles, Htok, #Hvoff⟩
   wp_auto
   wp_apply wp_normalize
   (try wp_auto)

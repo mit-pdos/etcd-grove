@@ -63,7 +63,7 @@ theorem runner.restart.wp_proof
   haveI : Persistent (rdShared (GF := GF) x) := by unfold rdShared ctrInv; infer_instance
   haveI : Persistent (runnerKeys (GF := GF) x ks) := by unfold runnerKeys; infer_instance
   haveI : Persistent (runnerH (GF := GF) x h) := by unfold runnerH; infer_instance
-  wp_start as ⟨#Hctx, #Hks, #Hvoff, Htok, Hw⟩
+  wp_start as ⟨#Hctx, #Hvoff, Htok, Hw⟩
   iunfold writerOwn at Hw
   icases Hw with ⟨#Hms, #Hreg0, #Hreg1, Hlog, Hctrs, HhW, Hrd, %Hops, %Hnb, Hfiles,
     ⟨%qw0, %nw0, %k0, Hm0, %Hl0⟩, ⟨%qw1, %nw1, %k1, Hm1, %Hl1⟩, Hss0, Hss1, Hadd⟩

@@ -50,7 +50,7 @@ theorem runner.write.wp_proof
     (wp_checkLeases : runner.checkLeases.spec (GF := GF) (hG := hG)) :
     runner.write.spec (GF := GF) (hG := hG) := by
   intro hT hR x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs hnv hopen hclose hckpt hlim hbl
-  wp_start as ⟨#Hctx, #Hks, #Henv, Htok, Hown⟩
+  wp_start as ⟨#Hctx, #Henv, Htok, Hown⟩
   haveI : Persistent (runnerMs (GF := GF) x mp0 mp1) := by unfold runnerMs; infer_instance
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   ihave #Hctx2 := Hctx
@@ -323,7 +323,7 @@ theorem runner.write.wp_proof
         simp only [hlt', _root_.decide_true]
         (try wp_auto)
         wp_apply (wp_restore x ks cfg wr h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA hlt
-            hopen hclose hckpt hlim hbl) $$ [$Hctx $Hks $Henv $Htok $Hown]
+            hopen hclose hckpt hlim hbl) $$ [$Hctx $Henv $Htok $Hown]
           as ⟨Htok, %vB1, %HvB, Hown⟩
         (try wp_auto)
         wp_for_post
@@ -347,7 +347,7 @@ theorem runner.write.wp_proof
       simp only [h3, _root_.decide_true]
       (try wp_auto)
       wp_apply (wp_restart x ks cfg wr h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA 0 mp0 rfl
-          hopen hclose hckpt hlim hbl) $$ [$Hctx $Hks $Henv $Htok $Hown]
+          hopen hclose hckpt hlim hbl) $$ [$Hctx $Henv $Htok $Hown]
         as ⟨Htok, %vB0, %vB1, %qB, %qsB, %HvB, Hown⟩
       wp_for_post
       iframe
@@ -361,7 +361,7 @@ theorem runner.write.wp_proof
       simp only [h4, _root_.decide_true]
       (try wp_auto)
       wp_apply (wp_restart x ks cfg wr h γ mp0 mp1 f0 f1 opsA vA0 vA1 nvA nbA qA qsA 1 mp1 rfl
-          hopen hclose hckpt hlim hbl) $$ [$Hctx $Hks $Henv $Htok $Hown]
+          hopen hclose hckpt hlim hbl) $$ [$Hctx $Henv $Htok $Hown]
         as ⟨Htok, %vB0, %vB1, %qB, %qsB, %HvB, Hown⟩
       wp_for_post
       iframe

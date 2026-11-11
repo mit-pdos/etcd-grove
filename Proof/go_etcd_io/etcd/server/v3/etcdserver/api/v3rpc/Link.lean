@@ -857,7 +857,7 @@ theorem serverWatchStream.wp_sendLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem watchServer.wp_Watch [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
+  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr errors.wp_Is zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
 
 end links_hasLC
 

@@ -7,9 +7,10 @@ the trust base of each printed in the build log (`#print axioms`). Lean-first (n
   grants and revokes, compactions, snapshot installs, clean restarts), readers and watch streams on
   both members, every result checked against the tester's model (a check that fails panics), each
   member closed, reopened, read in full and closed -- returns; so every check passes. From the
-  package's `isPkgInit`, `Main`'s files absent, `keySized`, the thread and receipt bounds,
+  package's `isPkgInit`, `Main`'s files absent, the thread and receipt bounds,
   `ckptEffectsOk`, `dbOpenOk` and `dbCloseOk`
-  (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/Main.lean`).
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/Main.lean`; until premise fixes 5,
+  2026-11-10, also `keySized`, now proved: `mvcc.keySized_all`).
 * **`mvccfull_safe`** (`Adequacy.lean`'s `mvccfull_adequate`): the closed theorem. Every real
   execution of `n` steps of `mvccfull`'s initialization followed by `Main()`, from a fresh state
   with one thread: the main thread's result, if any, is `#()`, no thread is stuck, none has
@@ -60,9 +61,6 @@ theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (Hks : ∀ hG : HeapGS .hasLC mvccfullGF,
-      ⊢ (□ ∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc),
-          mvcc.keySized (GF := mvccfullGF) (hG := heapWith hG lctx) γB P b : IProp mvccfullGF))
     (Hck : ckptEffectsOk) (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (HFs : dbFilesAbsent mvccfullProgram
       (mvccfull.filePathsM (mvccfull.mainConfigM go!"mvccfull"
@@ -76,7 +74,7 @@ theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  mvccfull_adequate Hks Hck Hdbo Hdbc HFs HEnv σ g Hlctx Hinit Hthreads n κs t2 σ2 Hsteps Hn
+  mvccfull_adequate Hck Hdbo Hdbc HFs HEnv σ g Hlctx Hinit Hthreads n κs t2 σ2 Hsteps Hn
 
 end adequacy
 

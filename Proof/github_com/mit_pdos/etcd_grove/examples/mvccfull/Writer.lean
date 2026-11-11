@@ -567,8 +567,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64) (path : GoString) (D : backend.Data)
     (L : Log) (c : Int) (u : Bool) (k : Nat) (hk : receiptBound GF + k + 4 ≤ backend.wbInit) :
     let bk := mvccrand.rcKB γB be gx lim
-    □ (∀ (γ : backend.BNames) (P : backend.BParams) (b' : Loc), keySized (GF := GF) γ P b') ∗
-      mvccWReg gx ∗ mvccImage D L c u ∗ backend.bFile γB path ∗
+    mvccWReg gx ∗ mvccImage D L c u ∗ backend.bFile γB path ∗
       backend.newPostK γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
         (backend.bFresh (GF := GF)) be D ={⊤}=∗
     mvccStorageFor (etcdStorage bk) iprop(True) L c u ∗ bkKeep bk path k ∗
@@ -577,7 +576,8 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   intro bk
   have hT : threadBound GF ≤ backend.rdPoolN :=
     ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq backend.rdPoolN_val.symm)
-  iintro ⟨#Hks, Hreg, Himg, Hbf, Hnew⟩
+  iintro ⟨Hreg, Himg, Hbf, Hnew⟩
+  ihave #Hks := mvcc.keySized_all (GF := GF)
   icases backend.newPostK_named γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
     backend.bFresh be D $$ Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr⟩
   icases (backend.bFresh_eq γB).1 $$ Hk with ⟨Hwb, Ho⟩

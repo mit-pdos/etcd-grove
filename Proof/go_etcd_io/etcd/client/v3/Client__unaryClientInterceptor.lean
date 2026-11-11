@@ -333,6 +333,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         · -- a quiet context (`context.TODO()`, the vertical slice's unit V2): `Err()` is `nil`
           (try wp_auto)
           iunfold ctxQuiet at HQ
+          icases HQ with ⟨-, #HQ⟩
           wp_bind (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #()))
           iapply HQ
           inext
@@ -365,6 +366,8 @@ theorem Client.unaryClientInterceptor.wp_proof
           -- `wait.ContextForChannel`), as an `isContext`'s
           (try wp_auto)
           iunfold ctxErrs at HE
+          icases HE with ⟨-, #HE⟩
+          iunfold ctxErrsErr at HE
           wp_apply HE $$ %Broadcast.Pending as %ce Hce' - - - -
           cases ce with
           | ok cei =>

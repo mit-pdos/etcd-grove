@@ -65,7 +65,7 @@ macro "recv_ret_nil" : tactic => `(tactic| (
   iapply HΦ
   iframe Htt Hrdr
   isplitr
-  · ipureintro; left; rfl
+  · ileft; ipureintro; rfl
   iexists _; iexact Hprod))
 
 section proof
@@ -266,7 +266,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     · wp_for_post
       iapply HΦ
       isplitr
-      · ipureintro; left; rfl
+      · ileft; ipureintro; rfl
       iframe Htt Hrdr
       iexists sent; iexact Hprod
     iunfold v3rpc.watchReqRecv at Hreq
@@ -829,7 +829,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     subst Heq
     wp_apply hIs (· = GoInterface.ok eofE) (fun _ => False) (GoInterface.ok eofE)
       (GoInterface.ok eofE) (fun tii h => by cases h; exact HeofL.1.1)
-      (_root_.Perennial.errors.treeTyped_pointer eofE _ HeofL.1.1) $$ [] as %b -
+      (_root_.Perennial.errors.treeTyped_pointer eofE _ HeofL.1.1) $$ [] as %b ⟨-, %HbT, -⟩
     · iframe #
       isplitl
       · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2.1
@@ -837,13 +837,10 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     wp_if_destruct
     rotate_left
     · recv_ret_nil
-    wp_for_post
-    iapply HΦ
-    isplitr
-    · ipureintro; right; exact HeofL.2
-    iframe Htt Hrdr
-    iexists _; iexact Hprod
+    -- `errors.Is(err, io.EOF)` of `io.EOF` itself is `true`
+    exact absurd (HbT _ rfl HeofL.1.1 rfl) (by simp)
   · -- another error
+    ihave #Hse0 := Hse
     iunfold v3rpc.streamErr at Hse
     icases Hse with ⟨%Hty, #HseT⟩
     ihave ⟨%S, %M, #Ht, %HS⟩ := HseT $$ %(GoInterface.ok eofE)
@@ -858,7 +855,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_for_post
       iapply HΦ
       isplitr
-      · ipureintro; right; exact Hty
+      · iright; iexact Hse0
       iframe Htt Hrdr
       iexists _; iexact Hprod
     · exact absurd rfl Hne

@@ -16,6 +16,7 @@ names `γi`, `BroadcastInternal.lean`), the context is closed exactly when `sc` 
 module
 
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Perennial.Proof.context.NewErrorString
 
@@ -90,8 +91,10 @@ theorem canceledOk_of_init
   iapply errCellOk_of_cell x _ (by simp [clientErrMsgs]) $$ Hcell
 
 /-- **A `channelContext` over a broadcast channel is a context the client takes** (see the file
-header): `ctxOk` (its third case, `ctxErrs`) and `ctxErrClient`, at `chanCd γi`. -/
+header): `ctxOk` (its third case, `ctxErrs`: since premise fixes 5 also `Done()`, which returns
+`sc`, whose done flag is `chanCd γi`'s closed flag) and `ctxErrClient`, at `chanCd γi`. -/
 theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (sc : GoChan) (γs : ChanNames) (γi : BroadcastInternalNames) (Q : IProp GF) :
@@ -103,8 +106,25 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
   · iPkgInit
   -- (k8s etcd3 7c-2 part 2, S7) `Canceled`'s description, neither read error's
   ihave ⟨⟨%ec3, #Hec3, %Hdc⟩, -⟩ := EtcdGrove.ContextReadErrs.descs $$ Pctx
-  ihave #He : ctxErrs (chanCtxVal sc) (chanCd γi) $$ []
-  · unfold ctxErrs
+  -- (premise fixes 5) `Done()` returns `stopCh`, a broadcast channel whose done flag is the
+  -- descriptor's closed flag
+  ihave #HDn : ctxDone (chanCtxVal sc) (chanCd γi) $$ []
+  · unfold ctxDone
+    iintro !> %Φ HΦ
+    iapply (wp_Done sc) $$ [Pw]
+    · iexact Pw
+    inext
+    iintro -
+    iapply HΦ
+    unfold ctxDoneCh
+    iright
+    iexists γs, γi, Q
+    iframe Hint
+    iintro !> Hdn
+    iunfold context.ContextClosed
+    iexact Hdn
+  ihave #He : ctxErrsErr (chanCtxVal sc) (chanCd γi) $$ []
+  · unfold ctxErrsErr
     iintro !> %cl %Φ Hcl HΦ
     iapply (wp_Err sc γs γi Q cl) $$ [Hcl]
     · iframe Pw Hint
@@ -142,7 +162,9 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
           not_or, Hdc]
         decide
   isplitr
-  · iapply ctxOk_of_errs $$ He
+  · iapply ctxOk_of_errs
+    unfold ctxErrs
+    iframe HDn He
   rw [ctxErrClient_eq_errs]; iexact He
 
 end proofs

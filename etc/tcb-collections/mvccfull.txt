@@ -167,6 +167,7 @@ axiom backend.rBkt_persistent
 axiom backend.rBkt_timeless
 axiom backend.rtxSnap
 axiom backend.rtxSnap_persistent
+axiom backend.rtxSnap_size
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless

@@ -31,10 +31,10 @@ the tester's lease checks compare the lessor's list against the model's without 
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
 * a pure fact of the lessor's configuration: `ckptEffectsOk` (`lease.NewLessor`'s);
 * the semantics: `go.Semantics` and the package assumptions (`mvccfull`'s, mvcc's, the server's,
-  the cache's);
-* at every ghost-state instance: the store's key-count premise `keySized` (`etcdStorage_open.law`'s:
-  the backend's read states hold fewer than `2 ^ 62` keys, a genuine assumption, persistent).
-Nothing beyond mvccrand's.
+  the cache's).
+Nothing beyond mvccrand's. (Until premise fixes 5, 2026-11-10, also the store's key-count premise
+`keySized` at every ghost-state instance; now proved, `mvcc.keySized_all`, from bbolt's address-space
+bound `backend.rtxSnap_size`.)
 -/
 module
 
@@ -204,9 +204,6 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (Hks : ∀ hG : HeapGS .hasLC mvccfullGF,
-      ⊢ (□ ∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc),
-          mvcc.keySized (GF := mvccfullGF) (hG := heapWith hG lctx) γB P b : IProp mvccfullGF))
     (Hck : ckptEffectsOk) (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (HFs : dbFilesAbsent mvccfullProgram
       (mvccfull.filePathsM (mvccfull.mainConfigM go!"mvccfull"
@@ -233,14 +230,10 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   subst Hlctx
   subst HL
   letI : HeapGS .hasLC mvccfullGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
-  -- the hypothesis at this instance (`heapWith` of it, definitionally)
-  have Hks' : ⊢ (□ ∀ (γB : backend.BNames) (P : backend.BParams) (b : Loc),
-      mvcc.keySized (GF := mvccfullGF) γB P b : IProp mvccfullGF) := Hks _
   unfold IsInit at Hinit
   rw [Hinit]
   haveI : ThreadBoundLe mvccfullGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
-  ihave #Hks := Hks'
   iintro - - Hgs Htok Hrights Hfiles
   iunfold startRights at Hrights
   icases Hrights with ⟨-, -, -, -, #Hvoff⟩
@@ -251,7 +244,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
   wp_apply (mvccfull.wp_Main Hck Hdbo Hdbc) $$ [Hfiles Htok]
-  · iframe Hfiles Htok Hvoff Hks
+  · iframe Hfiles Htok Hvoff
   ipureintro
   rfl
 

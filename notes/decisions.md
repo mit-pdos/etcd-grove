@@ -34254,3 +34254,38 @@ their logger: mvccrand's `runChecks` and mvccfull's `Run` from `zap.NewNop()`'s 
 pre's `#Hzlg : zapLoggerOk cfg.Logger'`; so no exported result gains a premise. zap's own
 `Logger.{Debug,Info,...}` axioms still ask only `l ≠ null` (sweep repairs 1's zap-zero repair,
 still open); the lessor's two axioms are names-only and do not go through them.
+
+## Premise fixes 6, part B: `errors.IsCtxErr` takes a context's error (`isCtxErr`) (2026-11-11 · the Scope approved by etcd-grove-81, `/shared/tmp/premise-fixes-6/scope.md` · branch `premise-fixes-6`)
+
+The axiom review `notes/axiom-review/isctxerr.md` refuted `errors.IsCtxErr` on the Go side: its
+only premise on `err` was `context.isTypedErr err` (the type has `Error() string`), and Go's
+`errors.Is` runs `err`'s own `Is` and `Unwrap` methods, which may panic. The premise is now
+Perennial's `context.isCtxErr err` (`Proof/context/Base.lean`, persistent: `err` is `Canceled`'s
+`*errors.errorString` or `DeadlineExceeded`'s `deadlineExceededError{}`), a separating conjunct of
+the pre in place of the pure premise. Neither type has an `Is` or `Unwrap` method and both are
+comparable, so Go's `errors.Is` returns `err == target` and cannot panic; the post (`true` when
+`err = target`) is unchanged. One trusted text restated, the axiom count unchanged.
+
+The callers, as the Scope corrected the review note's plan:
+
+- `EtcdServer.parseProposeCtxErr`: its spec is unchanged (the review note proposed changing it; not
+  needed): its pre already has `Canceled ↦□ err ∨ DeadlineExceeded ↦□ err`, from which the proof
+  makes `isCtxErr err` with Perennial's `isCtxErr_of_Canceled`/`isCtxErr_of_DeadlineExceeded`. Its
+  pure premise `isTypedErr err` is now unused by the proof but stays (no spec change).
+- `EtcdServer.LeaseRenew`: the same, from `context.ErrDone.spec`'s post.
+- `v3rpc.watchServer.Watch`, the second `errors.Is` (`stream.Context().Err()` after `Done`): Perennial's
+  `isContext` `HErrDone` already gives `isCtxErr err`; the proof now keeps it.
+- `v3rpc.watchServer.Watch`, the first `errors.Is` (the receive loop's error from `errc`): no
+  context error there (it is grpc's `Recv` error, a status error), so `isCtxErr` does not hold and
+  the call uses the proved `errors.Is.spec` over the error's tree instead. `recvLoop.spec`'s post
+  becomes `⌜err = nil⌝ ∨ v3rpc.streamErr err` (was `⌜err = nil ∨ isTypedErr err⌝`; a stronger post
+  of a proved spec, `streamErr` holding the typed fact: form decided by the agent, the Scope wrote
+  `⌜isTypedErr⌝ ∗ streamErr`, redundant), from grpc's `Recv` contract, which already gave
+  `streamErr`; the `io.EOF` branch's error return is now shown unreachable (`errors.Is(io.EOF,
+  io.EOF)` is `true` by the proved spec's post). `Watch`'s channel predicate carries `streamErr`, and
+  `Watch.wp_proof` takes `errors.Is.spec` as well (Link: `etc/link-lean-first-v3rpc.txt`).
+
+No exported or closed statement changes. Go test: `examples/premisefix/isctxerr` (gates step 9):
+the old premise admits panicking errors; the errors of done standard contexts (canceled, timed out,
+children) are `Canceled`/`DeadlineExceeded` and `errors.Is` on them is `err == target`; etcd's
+two-case switch is exhaustive on them; a grpc status error is no context error.
