@@ -552,6 +552,7 @@ theorem propClose (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
   have hlong : ∀ (ms : List Msg) (pvs : GMap w64 Progress),
       s.outbox.length < ({ sendMsgs (proposed id s ents) ms with prvals := pvs } : NState).outbox.length := by
     intro ms pvs; simp [proposed, sendMsgs]
+  ihave Hout := stepOutG_stepOut c m s _ $$ Hout
   unfold stepOut
   dsimp only [propR]
   icases Hout with (⟨%ho, H⟩ | ⟨%ho, H⟩ | %hf | ⟨%hlen, H⟩ | ⟨%b, %N, %hf⟩)
