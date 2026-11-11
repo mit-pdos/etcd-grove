@@ -91,11 +91,15 @@ destination). And the node's last event after the step is `stepLastEv Λ`, not `
 18a, `notes/decisions.md`, "Q8 stage 1 (slice 18a)") No learners (`c.learners = ∅`) and the tracker's
 peers within the configuration: a heartbeat's and an append's send line needs its destination a voter.
 The log terms' bound the append and vote-request lines need (`blt`) is not a premise: raft's ghost state,
-which the gates hand the caller's families, gives it (`ownRaftGhost_terms_le`). -/
+which the gates hand the caller's families, gives it (`ownRaftGhost_terms_le`). (2026-11-11, slice 22a,
+Q19 (a), the coordinator's) The capability with any `booted` flag `bt` in, and with some flag out:
+`node.run` may step a message before the node's first `Ready` line, and every path's first line takes
+any flag (a receive line, `trCap_fire_recv`; `BecomeCandidate` and the leader's sends,
+`trCap_fire_any`, not bootstrap-named; a skipped `BecomeFollower` only after a receive line). -/
 abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
-    (Λ : Option TraceEv → Prop),
+    (Λ : Option TraceEv → Prop) (bt : Bool),
   Path s m →
   s.gh.tr = some γd →
   -- a traced node's configuration (`TracedConfigOk`) and message types
@@ -127,14 +131,36 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   -- (slice 15) the log never compacted (P2): `TrNoSnap`, persistent; (slice 19b) with the received
   -- message's token, its raft facts (`isMessageC`, persistent, the node API's from `isRaftMsg`): the
   -- commit certificates of a raised commit index
-  (trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ ∗
+  -- (slice 22a, Q19) the capability with any `booted` flag `bt`: `node.run` may step a message before
+  -- the node's first `Ready` line
+  (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
       (recvTokOf γd m ents ctx ∗
         □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
           isMessageC γ (absMsg ty m ents ctx))) ∗
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R
-        (fun s' => trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ))
+        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+
+/-- **The closing wand's capability with any `booted` flag** (slice 22a, Q19): a close giving the
+capability back booted gives it back with some flag. -/
+theorem stepClose_anyB (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8) (s : NState) (R : StepG GF) (tr : Option GName) (γ' : RaftNames)
+    (r : Loc) (c' : CfgM) (Φ : NState → List w64 → ServerC → List Etcdraft.Msg → Prop)
+    (Λ : Option TraceEv → Prop) :
+    stepClose γ md c id m ents ctx s R (fun s' => trCapB tr γ' r id c' true (Φ s') Λ) ⊢
+      stepClose γ md c id m ents ctx s R
+        (fun s' => iprop(∃ bt' : Bool, trCapB tr γ' r id c' bt' (Φ s') Λ)) := by
+  iintro H
+  iunfold stepClose at H
+  iunfold stepClose
+  iintro %s' %B %recv %h1 %h2 Hout
+  imod H $$ %s' %B %recv %h1 %h2 Hout with ⟨Hgh, Hc, %Ho⟩
+  imodintro
+  iframe Hgh
+  isplitl [Hc]
+  · iexists true; iexact Hc
+  ipureintro; exact Ho
 
 /-- **`raft.Step`'s resources from the capability** on every path (see `stepBundle_traced.on`). -/
 abbrev stepBundle_traced.statement : Prop := stepBundle_traced.on (GF := GF) (hG := hG) (fun _ _ => True)

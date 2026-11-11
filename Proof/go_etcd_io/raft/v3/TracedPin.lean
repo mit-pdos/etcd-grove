@@ -215,33 +215,35 @@ theorem hookGateOpt_mono (tr : Option GName) (r : Loc) (oE : Option (TraceEv →
   iframe HW H
 
 /-- **A local path's family** (see the header): raft's ghost state at `s`, the traced family at the
-server's phase `Φs` (booted), the outbox's new messages' numbers. -/
+server's phase `Φs` (with any `booted` flag: slice 22a, Q19; set once a line is logged), the outbox's
+new messages' numbers. -/
 def lineF (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (o : List Msg) : IProp GF :=
-  iprop(ownStepGhost γ md c id s ∗ trFam s.gh.tr γ r id c true Φs Λ o ∗ ⌜OutOk s o⌝)
+  iprop(ownStepGhost γ md c id s ∗ (∃ b : Bool, trFam s.gh.tr γ r id c b Φs Λ o) ∗ ⌜OutOk s o⌝)
 
 theorem lineF_permInv (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) :
     PermInv (lineF (GF := GF) γ md c r id s Φs Λ) := by
   intro o o' h
-  unfold lineF
-  rw [trFam_permInv s.gh.tr γ r id c true Φs Λ o o' h, outOk_perm s h]
+  unfold lineF trFam
+  rw [phaseAt_permInv Φs o o' h, outOk_perm s h]
 
 /-- **A local path's family, from the idle capability** at the receive gate (a local type logs no
 receive line): the phase the idle server's, the last-event predicate weakened to `stepLastEv Λ`. -/
 theorem lineF_recv (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Λ : Option TraceEv → Prop) (htr : s.gh.tr = some γd) :
-    (ownStepGhost γ md c id s ∗ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s) Λ : IProp GF) ⊢
+    (Λ : Option TraceEv → Prop) (b : Bool) (htr : s.gh.tr = some γd) :
+    (ownStepGhost γ md c id s ∗ trCapB s.gh.tr γ r id c b (fun C => SimIdle C s) Λ : IProp GF) ⊢
       HookGateOpt s.gh.tr r none (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox) := by
   unfold lineF trFam
   rw [htr]
   iintro ⟨Hgh, Hc⟩
-  ihave Hc := trCapB_monoΛ (some γd) γ r id c true _ Λ (stepLastEv Λ) (fun o h => .inl h) $$ Hc
+  ihave Hc := trCapB_monoΛ (some γd) γ r id c b _ Λ (stepLastEv Λ) (fun o h => .inl h) $$ Hc
   iapply hookGateOpt_mono (some γd) r none
-    iprop(⌜OutOk s s.outbox⌝ ∗ trCapB (some γd) γ r id c true (PhaseAt (fun C => SimIdleS C s) s.outbox) (stepLastEv Λ))
+    iprop(⌜OutOk s s.outbox⌝ ∗ trCapB (some γd) γ r id c b (PhaseAt (fun C => SimIdleS C s) s.outbox) (stepLastEv Λ))
   isplitl [Hgh]
-  · iintro ⟨%Hok, Hc⟩; iframe Hgh Hc; ipureintro; exact Hok
-  iapply trCapB_gateNone γd γ r id c true _ _ _ _ (fun C cs P h => simIdle_phaseAt C s cs P h)
+  · iintro ⟨%Hok, Hc⟩; iframe Hgh; isplitl [Hc]; · iexists b; iexact Hc
+    ipureintro; exact Hok
+  iapply trCapB_gateNone γd γ r id c b _ _ _ _ (fun C cs P h => simIdle_phaseAt C s cs P h)
   iframe Hc
   ipureintro; exact outOk_self s
 
@@ -250,13 +252,15 @@ part is `s`'s, the share re-ordered: raft's ghost state, the idle capability and
 theorem lineF_close (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s s' : NState)
     (Λ : Option TraceEv → Prop) (hS : ∀ C, SimIdleS C s = SimIdleS C s') :
     lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) Λ s'.outbox ⊢
-      |={⊤}=> ownStepGhost γ md c id s ∗ trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') Λ ∗
+      |={⊤}=> ownStepGhost γ md c id s ∗ (∃ b : Bool, trCapB s.gh.tr γ r id c b (fun C => SimIdle C s') Λ) ∗
         ⌜OutTrStep s s'⌝ := by
   unfold lineF
-  iintro ⟨Hgh, H, %Hok⟩
-  imod trFam_idle s.gh.tr γ r id c true s s' Λ hS $$ H with H
+  iintro ⟨Hgh, ⟨%b, H⟩, %Hok⟩
+  imod trFam_idle s.gh.tr γ r id c b s s' Λ hS $$ H with H
   imodintro
-  iframe Hgh H
+  iframe Hgh
+  isplitl [H]
+  · iexists b; iexact H
   ipureintro; exact outTrStep_of_outOk Hok
 
 end ghost

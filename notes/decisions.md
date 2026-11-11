@@ -35190,3 +35190,71 @@ bundle premise (the node API cannot know the hint).
 
 No axiom, no `sorry`, no frozen statement changed (`TracedCap.lean`, `TraceSimSpecInv.lean`,
 `TracedRaftStep.lean` untouched); not client-visible.
+
+## Q8 stage 1 (slice 22a): Q19 (a), the bundle and the ticks at any `booted` flag; `MsgProp` at a leader: the self-acknowledgement's phase step, and what the close's relaxation needs beyond slice 19a's design (2026-11-11 · trace-check, Q8 stage 1 slice 22a; Q19 (a) decided by the coordinator, its form and the rest by the agent under the user's delegation · branch `trace-check-q8s22a`; DRAFT until trace-check's Freeze)
+
+**Q19 (a), done** (raft-internal: none of the files is on `etc/api/raft.txt`, nothing frozen).
+`stepBundle_traced.on` (`TracedRaftStep.lean`) takes a flag `bt` (a new binder after `Λ`) and the
+capability `trCapB … bt …` in, and gives back `∃ bt', trCapB … bt' …`; likewise
+`raft.tickHeartbeat.tracedTriple` and `raft.tickElection.tracedTriple` (binder `bt` after `Λ`, `"Hcap"`
+`∃ bt'` out). The form: a parameter in and an explicit `∃` out, not `trCap` (whose `match` on the trace
+mode every path would rewrite with `htr` first); the node API, holding `∃ b`, destructs and passes it.
+Why it holds on every path: the first line of a path is a receive line (`trCapB_hookGateRecv`, any flag),
+`BecomeCandidate` (`trCapB_hookGate`, whose `hnb` is now discharged by the name,
+`nodeEvOf_name_candidate`) or a leader's send (`trCapB_hookGateOpt`, any flag); a skipped
+`BecomeFollower` comes only after a receive line, at the flag it sets. No leader-is-booted lemma was
+needed (the coordinator's remark that a leader has logged `BecomeLeader` is true but unused). The path
+files' changes are mechanical: `lineF` (`TracedPin.lean`) carries `∃ b` (each gate destructs it and
+re-packs `true` after its line; `lineF_recv` takes the flag, `lineF_close`/`lineF_closeAt` give `∃ b`);
+`localF`/`localR` (no line: the flag kept), `beatR`, `hupR`, `staleR`, `ignR`, `voteR`, `bfR` take the
+flag for their `G`; the receive paths pin and fire at it (`trCapB_pinDir`, `recvGate_traced(L)`) and
+close through **`stepClose_anyB`** (new: a close giving the capability back booted gives it with some
+flag). Rejected: a lemma "a leader's capability is booted" (it needs a `SimRun` fact that an unbooted
+node's server is the bootstrap follower: a new invariant clause for no gain).
+
+**`MsgProp` at a leader: done** (`TracedRaftStepProp.lean`, new): `selfAck_eq_pselfAck` (`appendEntry`'s
+self-acknowledgement is the protocol's `pselfAck`), `phaseStepB_selfAck` (the self-acknowledgement's
+phase step at the pinned idle phase of a leader's state, `phaseStepB_send_pin` with
+`lineEffect_selfAck`).
+
+**Found: what slice 19a's design (`stepClose` relaxed to the appended state) needs that it did not
+record** (all raft-internal; none frozen or client-visible):
+1. *The protocol's propose state has the self-acknowledgement queued.* `ownRaftGhost_step_propose`
+   (`StepC.propose`, and the dynamic mode's `StepR.propose`, `RefinementDyn.lean`) moves raft's ghost
+   state to `psendMsgs (pappend s es) [pselfAck …]`, i.e. `proposed id {s with pci := …} es`, not
+   `propAppended s es`. So the family after the `Replicate` lines holds `ownStepGhost` at `proposed …`
+   while raft's outbox does not yet hold the acknowledgement (it is queued by the next line): the
+   relaxed close takes `ownStepGhost` back at `s` or at `proposed id {s with pci} es` (with
+   `es = (leaderPropConf s ents cs c.joint).1`), and `Step`'s `MsgProp` arm then steps from there by the
+   broadcast alone (`StepC.sendApps`/`StepR.sendApps`, `recv = []`).
+2. *The update's resources are `Step`'s, not the caller's.* `ownRaftGhost_step_propose` consumes the
+   proposal's tickets (`entTk`, from `Step`'s `msgsTks`), reads `propData` (persistent, from the
+   proposal's `isMessage`) and the receipt `⧖ n` covering the new indices (raised inside `appendEntry`'s
+   clone loop, before `traceReplicate`), and the empty-`ConfChangeV2` clause (vacuous for a traced node:
+   no configuration change). So `"Hgprep"` (`leaderGates`, `stepLeader.spec`, `raft.appendEntry.spec`'s
+   `Replicate` gate) must take them as premises, `Step` passing them in through the gates, and the close
+   must give them back when unused (the untraced bundle, `stepBundle_none`, keeps its single ghost step
+   from `s`; a traced leader that drops the proposal never reaches `"Hgprep"`).
+3. *`Step`'s one ghost step splits in two* (`ghost_stepCD` from `s` to `proposed …` with `recv =
+   [proposal]` in the family; from `proposed …` to `s'` with `recv = []` in `Step`): the propose part's
+   update needs no later credit in either mode (`ownRaftGhost_step_propose` is `==∗`), but `ghost_stepCD`
+   as stated takes `£ 1` and `ghostRest`'s part (`leadW_stepC`, `NsLink`); a propose-only lemma
+   (`ghost_stepProp`: `StepCD` of `StepC.propose`/`StepR.propose`, without `£`) is the piece to write.
+**Taken (recommended to the coordinator, raft-internal)**: slice 19a's design with 1-3: `stepClose`'s
+ghost disjunct at `proposed …` (premised by `m.Type' = MsgProp ∧ s.role = .leader`, so `gate_close`'s
+other call sites refute it by the type), the resources of 2 through `"Hgprep"`, `ghost_stepProp`. Not
+started in this slice: it changes `raft.appendEntry.spec`, `stepLeader.spec`, `leaderGates`,
+`stepClose`, `gate_close` and `Step`'s `MsgProp` arm together, then every bundle's `"Hgprep"` and close
+mechanically.
+
+**Not done, exact** (after 1-3): the `Replicate` lines' phase steps (`lineEffect_replicate` at the
+pinned phases along `propAppended s (es.take k)`, the share's server's log grown by one value entry of
+its term; needs `logAbs` of an append, `LogShapeOk` and the `2^63` bounds at the appended state, and the
+log reaching past the bootstrap entries, from the commit index, `ownStepGhost_bootCommit`) and facts
+(`FxPresU`: the ghost update of 2 creating the records, the specification's `ClientRequest`
+(`srvFacts` with a pending entry, `AppSlices` by `appSlices_extend`)); the self-acknowledgement's facts
+(`fxPres_plain`-like, an `appResp` to itself); the appends' gates (`fxPres_app` with `app_lead` at the
+appended state, through `"#Hgpapp"`); the bundle (`G1` at `o = s.outbox`, `Gp2` at a longer outbox,
+`LeaderProposeResult`'s two outcomes).
+
+No axiom, no `sorry`, no frozen, client-visible or untraced statement changed.
