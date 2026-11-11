@@ -36095,3 +36095,79 @@ capability's lemmas destructure and rebuild the clause (`TracedHooksGlobal.lean`
 `trCapB_cfg`, `TracedFamilies.lean`'s `trCapB_pinMem`); `trCapB_intro`'s premise; `startTrace_trCapB`.
 `trCapB_bootFit` puts the clause into the phase, and with slice 24c's `stepBundle_traced.on_of_onRB`
 gives `stepBundle_traced_folAppAcc_on` and `stepBundle_traced_candAppAcc_on` (`.on`, every capability).
+
+## Q8 stage 1 (slice 27c): a leader's rejected `MsgAppResp` and `MsgHeartbeatResp` of its term done; the accepted `MsgAppResp`'s receive line; what its `Commit` line needs (2026-11-11 · trace-check, Q8 stage 1 slice 27c; decided by the agent under the user's delegation · branch `trace-check-q8s27c`; DRAFT until trace-check's Freeze)
+
+**Done** (new modules `TracedRaftStepRecvLeadSend.lean`, `TracedRaftStepRecvLeadNA.lean`,
+`TracedRaftStepRecvLeadAcc.lean`, none on `etc/api/raft.txt`; slice 22b's `TracedRaftStepRecvLead.lean`
+edited; no axiom, no `sorry`, no frozen or client-visible statement changed):
+- *The receive line carries the sender among the voters.* `phaseStepR_leadResp`'s target is now the pinned
+  idle phase and `m.From' ∈ C` (the receive law's premise `m.source ∈ confAbs C`, amendment A6's
+  `MsgEnds`); `fxPresR_leadResp` follows. Why: `"Hgsapp"` (the probe's or catch-up's append to the
+  responder) gives no membership of the destination (`#Hgaapp`'s `to ∈ domSet s.progress` it lacks), and
+  the send line needs a voter destination. Rejected: adding `m.From' ∈ domSet s.progress` to `"Hgsapp"`
+  (a `stepLeader.spec` change and every `leaderGates` user, for a fact the receive law already gives).
+- *The sends on a leader's local family at any state* (`TracedRaftStepRecvLeadSend.lean`): `lineF_app`
+  (slice 24a's `propGate_app` at a general state `X`, raft's facts from the ghost state at `X`, the
+  destination given as a voter), `lineF_untraced` (a read-index response, no line), `simIdleS_rd` (the
+  idle server's part reads neither the outbox nor the read-only state).
+- *`stepBundle_traced_leadRespNA`* (`.on`, path `LeadRespNA`: a leader of the message's term, a rejected
+  `MsgAppResp` or a `MsgHeartbeatResp`): the receive line, then `lineF` at `s` with the sender a voter
+  (`G0`, `G1`); `"Hgsapp"` by `lineF_app`; `"#Hghresp"` by `lineF_untraced`; the close at `s`
+  (`CloseAt.of_traced`), the end state's idle server `s`'s (`leadRespNA_end`: the appends queued, the
+  `Progress` values at the same `Match` values, and on a confirmed read the read-only state and the
+  untraced responses, `simIdleS_readRespondAll`).
+- *The read index is in scope, not excluded.* The harness never calls `ReadIndex` (`concurrent.go`), so a
+  heartbeat response's context is always empty in the runs, but no premise of the bundle says so (it would
+  be a path premise the node API supplies from an invariant on the read-only state); the path costs only
+  the untraced responses and the read-only state's change, so it is proved, not premised. The same holds
+  for the accepted path's `"#Hgrlhb"` heartbeats (`lineF_heartbeat` at the committed state).
+- *The accepted `MsgAppResp`'s receive line* (`TracedRaftStepRecvLeadAcc.lean`): the specification's
+  `respSrv` raises the sender's match index to `max` of the old and the response's, as raft's `MaybeUpdate`
+  raises `Match` after the line (`appRespMatch`), so the share's server after the line is the leader's idle
+  server of a state with `appRespMatch`'s `Match` values (`AccIdle`, `AccPin`; `simServerR_respLead`, the
+  witness `arPv`); `phaseStepR_leadAcc` needs the sender to have a `Progress` (`hdom`; else raft keeps
+  `Match` and the specification raises it). Its facts: `simFx_respLead` (`ackHists_resp`; `SpecInv` by the
+  leader's durable bound `DurS`, `specInv_respLead`), `fxPresR_leadAcc`.
+
+**Not done: the accepted `MsgAppResp` past its receive line** (`maybeCommit`'s `Commit` line, the release
+heartbeats, the broadcast appends, the close, the bundle). What it needs, found here:
+1. *A path premise `m.From' ∈ domSet s.progress`* (for `hdom`): the node API's (`RawNode.Step` refuses a
+   response from a peer with no `Progress` before `raft.Step`, `ErrStepPeerNotFound`), as slice 24a's
+   `PropLead` premises, by a path reading `s` only (`stepBundle_traced.on` suffices).
+2. *Raft's ghost state moved past the commit inside `"Hgcommit"`*: the `Commit` line's facts need the
+   leader's `srvFacts` at the new commit index (`commitIn` at `N`, `quorumLogF_commit`'s `allFacts γ C
+   σ'`), which only `ownRaftGhost_step_app_resp` then `ownRaftGhost_step_commit` (the commit quorum
+   registered by `commit_extend`, the node's commit lower bound `lcmOwn_commit`) create; the leader's facts
+   are rebuilt from raft's ghost state there (its full log as records, `pend = []`: slice 24a's pending
+   entries were made records by `ghost_stepProp`). So the close must give raft's ghost state back past `s`:
+   a third `CloseMid` case (`MsgAppResp` accepted at a leader of its term: `s1 = commitAt { s with prvals
+   := pvs } b N`, `prvalsMatch pvs = appRespMatch …`, `maybeCommitOut … b N`, `s1.logst = s'.logst`) and
+   `Step`'s `MsgAppResp` arm split as slice 23a's `MsgProp` and 25b's `MsgVoteResp` (the rest of the step,
+   `StepC.sendApps` and the release, from `s1`: a decomposition of `leader_appresp_step`).
+3. *The close cannot prove `s1.logst = s'.logst` from `StepEnd` as `stepLeader.spec` states it*:
+   `AppRespAcceptedC` has the new commit index `n` only as `n = committed ∨ CommitOkC …`, not tied to
+   `maybeCommit`'s outcome `(b, N)` that the family's `Gc b N` ran with, and whether `maybeCommit` ran at
+   all is a resource-level fact (`Gc` reached) the close's pure inputs do not carry (the probe shortcut
+   `pr.Match == m.Index && pr.State == StateProbe` runs it without a raise). Proposed (raft-internal,
+   `Spec/go_etcd_io/raft/v3/stepLeader.lean` and its proof `stepLeader/Rest.lean`, which already has
+   `HbN : n = (commitAt s bc Nc).logst.committed` and `Hout` internally): `"Hgcommit"`'s premise gains
+   `AppRespRan s m` (`x < m.Index' ∨ (x = m.Index' ∧ the sender's Progress in StateProbe)`, `x` the old
+   `Match`; the code's own test), and `AppRespAcceptedC` gains `(AppRespRan … → ∃ b N, maybeCommitOut c
+   { s with prvals := pvs } b N ∧ n = (commitAt s b N).logst.committed) ∧ (¬ AppRespRan … → n =
+   committed)`; with `maybeCommitOut`'s uniqueness (it reads only `Match`, `JCommittedIdx` is functional),
+   the family's `Gc b N` (carrying `AppRespRan` from the gate) and `StepEnd` give `n`. Users:
+   `leaderGates`' mirror, `LemmasStepGates`' `CloseMid`/`CloseMid.ty`, every `leaderGates` instance
+   (mechanical: one more ignored premise), `leader_appresp_step` (destructuring).
+4. *The `Commit` line itself*: its phase step from `AccPin` is `TracedHooks.lean`'s `phaseStepB_commit` at
+   `{ commitAt s b N with prvals := pvs }` (`nodeEvOf_prvals`), given `AdvancesTo a n` for the recorded
+   server `a`: a pure bridge from `maybeCommitOut` (`JCommittedIdx` over `c.incoming ≈ C`, `c.outgoing =
+   ∅`: `IsQuorumIndex`) to `advanceCommitIndex_eq`/`advanceCommitIndex_noop`'s `IsQuorum (listToSet C)
+   (ackedBy …)` and maximality (`TraceSimLemmas.lean`), with every `Match` within the log (from raft's
+   ghost state at the gate, `ownRaftGhost_ackIn_le` for the response's index, threaded into the phase as a
+   pure fact). Its facts: `quorumLogF_commit` (A6), `specInv_advanceCommitIndex`, the leader's rebuilt
+   `srvFacts`, the rest unchanged.
+5. *After it*: the appends (`"#Hgaapp"`) by `lineF_app` at `{ commitAt s b N with prvals := pvs }`
+   (`sendOutGate_hdr`: the gate's state differs only in `Progress`), the release heartbeats (`"#Hgrlhb"`,
+   `lineF_heartbeat` there) and responses (`"#Hgrlresp"`, `lineF_untraced`), `"#Hgatnow"` (no event), the
+   close by `CloseMid` (2, 3), the bundle.
