@@ -360,13 +360,15 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
     (N : Namespace) (P : GoString) (R : Roots) (γ : GName)
     (Good : Option OsFile → Prop) (Ok : CState → Prop) (m : OsMeta) (bs : List ByteG)
     (fa fb : Nat) (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N)
-    (hok : ∀ k (zs : List Cands), k ≤ data.length → off ≤ m.size → ZsOk m zs →
+    (hok : ∀ k (zs : List Cands), k ≤ data.length → off ≤ m.size →
+      zs.length = pwSize m.size off k - m.size → ZsOk m zs →
       Ok (some (p, ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩)))
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗
       csOwnF (L := L) γ (some (p, ⟨m, bs, fa, fb, .write t off data n⟩)) -∗
       (∀ (k : Nat) (e : w64) (zs : List Cands),
-        ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧ off ≤ m.size ∧ ZsOk m zs⌝ -∗
+        ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧ off ≤ m.size ∧
+          zs.length = pwSize m.size off k - m.size ∧ ZsOk m zs⌝ -∗
         csOwnF (L := L) γ (some (p, ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb,
           .idle⟩)) -∗
         mcells (L := L) m.maps (cfLo m off) (off + data.length)
@@ -456,12 +458,12 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
   · inext; iexists (some (p, ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩))
     iframe Hv'; isplitl
     · dsimp only; iframe
-    ipureintro; exact ⟨hok k zs hk hgap hzt, rfl⟩
+    ipureintro; exact ⟨hok k zs hk hgap hke.2.2.1 hzt, rfl⟩
   imodintro
   ihave Hc := (show mcells (L := L) m.maps off (off + data.length)
       (pwCell m.size off data k (cfRange m bs off data.length)) ⊢ mcells (L := L) m.maps (cfLo m off)
       (off + data.length) (pwCell m.size off data k (cfRange m bs off data.length)) by rw [hlo]) $$ Hc
-  iapply HΦ $$ %k %e %zs %(⟨hk, hke.2.1, hgap, hzt⟩) [Hv Hm1 Hb1] Hc
+  iapply HΦ $$ %k %e %zs %(⟨hk, hke.2.1, hgap, hke.2.2.1, hzt⟩) [Hv Hm1 Hb1] Hc
   iapply (csOwnF_idle _ _ _ rfl).2
   iframe
   ipureintro
