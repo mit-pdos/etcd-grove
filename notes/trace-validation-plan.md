@@ -1425,6 +1425,11 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   The agent records such a question in "Questions for the user" below, takes the plan's
   recommendation where it has one (marked "taken by the agent, pending the user's veto"), and
   goes on with the work that does not depend on it; it does not stop for them.
+- **The user reviews only the top-level statement** (the user's, 2026-11-11): changes to the closed
+  theorems (`raft_tracecheck_safe`, `TraceAccepts`: what they promise, their premises, the workload they
+  cover) or to the trust base go to the user before they land; amendments to the frozen layer-B
+  Draft and every other intermediate statement are the agent's, recorded as before, with no veto list
+  to work through.
 - Every other decision the agent takes is recorded where it is taken, "decided by the agent",
   with the options and the reason (`notes/spec-first-plan.md`, "Who decides").
 
