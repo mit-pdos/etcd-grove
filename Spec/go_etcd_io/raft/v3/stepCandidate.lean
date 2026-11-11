@@ -61,7 +61,9 @@ section results
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `CandVoteRespResult` at the configuration `c` (2026-10-13, reconfiguration stage A2): `poll`'s
-facts are joint (`JQuorum`, `JLost`). -/
+facts are joint (`JQuorum`, `JLost`). (2026-11-11, trace-check Q8 stage 1 slice 24b) The loss is
+exact, as `poll`'s outcome is: not won and `JLost`, it is lost (a traced caller's close then knows the
+step-down ran). -/
 def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (s' : NState) : Prop :=
   ∃ (won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress),
@@ -71,6 +73,7 @@ def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
        ReplSends id (becomeLeader id { s with votes := votes' }) ms ∧
        prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals) ∧
     (lost = true → JLost c votes') ∧
+    (won = false → JLost c votes' → lost = true) ∧
     s' = { voteRespResult id s m.From' m.Reject' won lost ms with prvals := pvs }
 
 /-- `PrecandVoteRespResult` at the configuration `c`: the joint facts, and on a win the peers

@@ -183,10 +183,13 @@ theorem stepCandidate.wp_proof
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
       ispecialize Hgbl $$ %(⟨trivial, Hwin.2⟩)
+      -- (2026-11-11, slice 24b) `becomeLeader`'s receipt: the least one (the spec's `"Hgrep"` takes none)
+      imod (preceipt_zero (GF := GF)) with #Hrc00
       wp_apply wp_raft_becomeLeader c r id _ (G s.outbox) G1 G2
-          (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])) (by simp only [Hrole]; decide)
-          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $HG $Hgbl $Hgrep $Hgack]
+          (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])) 0 (by simp only [Hrole]; decide)
+          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $Hrc00 $HG $Hgbl Hgrep $Hgack]
         as %pvs1 ⟨Hphys, %Hmb, HG⟩
+      · iintro - HG; iapply Hgrep $$ HG
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
       ihave #Hgc := Hgcast $$ %(⟨trivial, Hwin.2⟩)
@@ -235,7 +238,8 @@ theorem stepCandidate.wp_proof
         refine ⟨trivial, ?_⟩
         have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
         simp only [Hnp, ↓reduceIte]
-        refine ⟨true, false, ms, pvs, fun _ => ⟨Hwon.1 rfl, ?_, ?_⟩, fun h => absurd h (by decide), ?_⟩
+        refine ⟨true, false, ms, pvs, fun _ => ⟨Hwon.1 rfl, ?_, ?_⟩, fun h => absurd h (by decide),
+          fun h => absurd h (by decide), ?_⟩
         · exact (replSends_prvals _ _ pvs1 ms).1 Hms
         · rw [Hmm]; exact Hmb
         · cases s; rfl
@@ -269,7 +273,7 @@ theorem stepCandidate.wp_proof
         refine ⟨trivial, ?_⟩
         have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
         simp only [Hnp, ↓reduceIte]
-        refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost.1 rfl, ?_⟩
+        refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost.1 rfl, fun _ _ => rfl, ?_⟩
         cases s; rfl
       isplitr [HG]
       · ipureintro; first | rfl | trivial
@@ -295,7 +299,7 @@ theorem stepCandidate.wp_proof
         simp only [Hnp, ↓reduceIte]
         -- nothing wrote a `Progress`: the values are `s1`'s own
         refine ⟨false, false, [], s.prvals, fun h => absurd h (by decide),
-          fun h => absurd h (by decide), ?_⟩
+          fun h => absurd h (by decide), fun _ h => absurd (Hlost.2 h) (by decide), ?_⟩
         cases s; simp only at Hrole; subst Hrole; rfl
       isplitr [HG]
       · ipureintro; first | rfl | trivial

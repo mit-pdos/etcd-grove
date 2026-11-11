@@ -312,8 +312,9 @@ theorem raft.becomeLeader.untraced (h : raft.becomeLeader.spec (GF := GF) (hG :=
   intro c r id s Hrole Hnl Hnz htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s iprop(emp) iprop(emp) iprop(emp) iprop(emp) Hrole Hnl Hnz $$ [Hphys]
-  · iframe Hpkg Hphys
+  imod (preceipt_zero (GF := GF)) with #Hrc0
+  iapply h c r id s iprop(emp) iprop(emp) iprop(emp) iprop(emp) 0 Hrole Hnl Hnz $$ [Hphys]
+  · iframe Hpkg Hphys Hrc0
     isplitr
     · iempintro
     isplitr
@@ -322,7 +323,7 @@ theorem raft.becomeLeader.untraced (h : raft.becomeLeader.spec (GF := GF) (hG :=
       iapply hookGate_none r _ tl iprop(emp) Htlok
       iframe Htl
     isplitr
-    · iintro -
+    · iintro - -
       rw [htr]
       iapply hookGateN_none r _ _ tl iprop(emp) Htlok
       iframe Htl

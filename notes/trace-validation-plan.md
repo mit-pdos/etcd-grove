@@ -1013,9 +1013,41 @@ self-acknowledgement's facts, the appends' gates (unblocked now by the `RejectHi
 the vote's loss (a guarded `stepOut` for the close) and win (the win's ghost update split, its receipt
 through `becomeLeader`), each recorded with its design in the decisions entry. Checked (branch at `trace-check` `98618b5dfa` plus this slice): full `lake build` green (13813 jobs); `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` differs in six function proof interfaces (`raft__appendEntry`, `stepLeader`: the receipt in the `Replicate` gate; those, `raft__maybeSendAppend`, `raft__sendAppend`, `raft__bcastAppend`, `stepCandidate`: `mm.rejecthint = W64 0`); `--check --layout` 0 new; `etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
 
+**Q8 stage 1 (slice 24b), 2026-11-11 (branch `trace-check-q8s24b`): a candidate's lost vote done; the
+won vote's receipt through `becomeLeader`; the win's ghost split found to need three phases, and `hc`
+not derivable.** Slice 23a's designs taken by the coordinator, their form and the findings the agent's
+(`notes/decisions.md`, "Q8 stage 1 (slice 24b)"); all raft-internal. Done: `stepOutG` (the close's guarded
+result: `G0` and `G1` under `¬ CandHooked`), `gate_close` off the vote response, `wp_Step_MsgVoteResp`
+tagged, `CandVoteRespResultC`'s loss exact; `stepBundle_traced_candVoteRespLost`
+(`TracedRaftStepRecvVoteRespLost.lean`: the receive line, then the `BecomeFollower` line as the
+specification's `StepDownToFollower`, `phaseStepBF_lost`, `fxPresBF_cand`); `raft.becomeLeader.spec`
+passing the caller's receipt to `"Hgrep"`. Not done (each with its form in the decisions entry): the win's
+ghost update in three phases (registration before the `BecomeLeader` line, the term log inside its
+`FxPresU`, a basic update, the entry's record at `"Hgrep"`: `Protocol/Refinement.lean` additions), the
+receipt through `stepCandidate.spec` and `candidateGates` (a `StepG` loan), `ghostRest` at the won state
+and `Step`'s `MsgVoteResp` arm split, and `tallyGranted_quorum`'s `hc` (a new question: no fact scopes a
+vote response's sender; recommended an amendment typing the bag's sources).
+
+**Q8 stage 1 (slice 24a), 2026-11-11 (branch `trace-check-q8s24a`): `MsgProp` at a leader done.**
+Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 24a)"); new modules only
+(`TracedRaftStepProp.lean`, `TracedRaftStepPropRep.lean`, `TracedRaftStepPropBundle.lean`), no existing
+statement changed. `ghost_stepProp` (the family's propose update with what `Step` lends, no `£`, run
+inside `"Hgprep"` before the lines); the `Replicate` lines' pinned phase steps (`phaseStepB_replicate`,
+`RepPin`) and facts (`fxPres_replicate`: `ClientRequest`, the new entries among the leader's pending
+entries, `appSlices_extend`, `quorumLogF_grow`); the self-acknowledgement's facts (`fxPres_selfAck`); the
+appends' gate (`propGate_app`, the request's facts from raft's ghost state, `msgFacts_app_of_log`); the
+bundle `stepBundle_traced_prop` with its close by the outbox's length. Stated over
+`stepBundle_traced.onG` (a path reading the names and the batch, as slice 22b's `.onC`): `PropLead` asks a
+non-empty batch of normal entries and a cluster with a bootstrap log (the appended entry past the
+bootstrap entries), the node API's; the paths' assembly adds them to `stepBundle_traced.on`. Checked
+(branch at `trace-check` `2c7c285f55` plus this slice): full `lake build` green (13816 jobs);
+`etc/tcb-report.py --check` (806 axioms, 4 `sorry`s, unchanged) and all 53 collections `--reuse --check`,
+none updated; `interface/` unchanged (no listed module touched); `--check --layout` 0 new;
+`etc/api-check.py` 0 errors; `etc/gen-link.py --raft` unchanged.
+
 **Q8 stage 1 (slice 24c), 2026-11-11 (branch `trace-check-q8s24c`): an accepted `MsgApp` at a follower
 and at a candidate of its term, for a capability whose voters fit the bootstrap log; the higher-term one
-not done; Q22.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 24c)"); all raft-internal,
+not done; Q24.** Decided by the agent (`notes/decisions.md`, "Q8 stage 1 (slice 24c)"); all raft-internal,
 no frozen statement changed. Done (new modules `TracedRaftStepRecvAppAcc{,Fol,Cand}.lean`): raft's facts of
 `maybeAppend`'s new log without the step (`ownRaftGhost_appAccFacts`: records, the raised commit's
 certificate by `commitIn_move`, the committed prefix), the line's facts at every `appMid` state
@@ -1024,9 +1056,9 @@ keeping the prefixes the request agrees with) and at the end (`simFx_appAccEnd`)
 bound (`logRecs_traceBound`, its last entry's receipt), the close (`accEnd_simIdle`, the new log's
 `LogShapeOk`), the response's skipped send line; **`stepBundle_traced_folAppAcc`** and
 **`stepBundle_traced_candAppAcc`**, proved as `stepBundle_traced.onRB` (the capability's phase
-strengthened by `|C| ≤ |γ.reBoot|`, which the request's bootstrap positions need and nothing carries: Q22;
+strengthened by `|C| ≤ |γ.reBoot|`, which the request's bootstrap positions need and nothing carries: Q24;
 `stepBundle_traced.on_of_onRB` gives `.on` once it is carried). Left: the higher-term accepted `MsgApp`
-(its pieces in place; `ownRaftGhost_appAccFacts` to state its certificate at the request's term), Q22.
+(its pieces in place; `ownRaftGhost_appAccFacts` to state its certificate at the request's term), Q24.
 Checked (branch at `trace-check` `2c7c285f55` plus this slice): full `lake build` green (13817 jobs);
 `#print axioms` of both bundles: no `sorryAx`; `etc/tcb-report.py --check` (806 axioms, 4 `sorry`s,
 unchanged) and all 53 collections `--reuse --check`, none updated; `interface/` unchanged (no listed module
@@ -1297,7 +1329,20 @@ before the freeze), with the user's gates delegated to the agent for this stage:
   (`TracedMsgType.lean`) gives `msgTypeStr ty` for the six traced types, for the send and receive
   hooks; the Go test `examples/raft/tracecheck/msgtype_string_test.go`. Trust base: the axiom out,
   the model in, the server's results on `strconv.Itoa`'s axiom (`notes/decisions.md`, "Q9").
-- **Q22 (2026-11-11, Q8 stage 1 slice 24c): an accepted `MsgApp`'s bootstrap positions.** The
+- **Q23 (2026-11-11, Q8 stage 1 slice 24b): a won vote's quorum and the voters' sources.**
+  `tallyGranted_quorum` (A3) needs every voter raft heard from to be in the configuration (`hc`), but
+  nothing gives it where the `BecomeLeader` guard is checked: a refusal's `isMessageC` is `True`,
+  `Msg.TrOk`/`MsgTrOk` bound numbers only, `TraceEv.InScope` restricts event names, `SpecInv` types
+  only append requests' sources, and raft's `recordVote` records any sender (`notes/decisions.md`, "Q8
+  stage 1 (slice 24b)"). Options: (a) a `SpecInv` clause that every in-flight message's source (and
+  destination) is a server, preserved by the specification's sends (servers only send as themselves,
+  phantoms come from the receiver), given to the receive law so its phase records raft's voters in the
+  configuration: a frozen-statement change; (b) a traced message's source scoped in `MsgTrOk`
+  (`Protocol/Model.lean`, client-visible body, gated). **Taken by the coordinator (the freeze being
+  delegated to it), pending the user's veto: (a)**, folded into amendment A6 (checked against the
+  specification first, one review round with Q22).
+
+- **Q24 (2026-11-11, Q8 stage 1 slice 24c): an accepted `MsgApp`'s bootstrap positions.** The
   specification's log fixes its first `|C|` entries (term `1`); the accepted request's entries there must be
   of term `1`. Raft's facts put the batch past `|γ.reBoot|` (the commit index covers the bootstrap log), and
   `|C| = |γ.reBoot|` (`BootLogOk`) holds where the capability's invariant is allocated, but no clause of the
