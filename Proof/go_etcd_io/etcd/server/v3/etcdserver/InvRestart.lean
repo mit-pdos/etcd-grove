@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Spec.go_etcd_io.raft.v3.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseRestartStor
 
 @[expose] public section
 
@@ -341,13 +342,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
-/-- **The `MemoryStorage` `bootstrappedWAL.MemoryStorage` rebuilds** (opaque, DRAFT R2c, R2d's to
-define): `NewMemoryStorage`, then `ApplySnapshot` of the WAL's snapshot record at `σ.b` with the
-conf state `cs`, `SetHardState(σ.hs)`, `Append(σ.ents)`. R2d defines it in raft's storage
-vocabulary (`memLog`, `memEnd`, `memStorMeta`, `memStorFresh` at the snapshot) and proves from it
-`RestartNode`'s `restartStorage`, as kvdurable's `kd_restartStorage`. -/
-opaque memStorRestarted (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) :
-    IProp GF
+-- `memStorRestarted` (the `MemoryStorage` `bootstrappedWAL.MemoryStorage` rebuilds from the WAL's
+-- records `σ` and the backend's conf state `cs`): defined in `BaseRestartStor.lean` (restart S3,
+-- 2026-11-11, D2 (b)) as that method's proved post (`bootstrappedWAL__MemoryStorage.lean`); until
+-- then an opaque here.
 
 /-- **The real backend's batch-lock resource, as a restart's `bootstrap` leaves it** (2026-11-03,
 the whole-`bootOk` review, T1-B, option B3; DRAFT, R2d's). (The `lean` merge, 2026-11-06: the
