@@ -48,6 +48,8 @@ abbrev restartCheck.spec : Prop :=
     (Uok : BootURLs → Prop) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (id : w64) (γ : SrvRaft) (γn : NetNames GF)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
+  srvLevels (GF := GF) →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
   ρ.rd.kv.st = γr.kv.st →

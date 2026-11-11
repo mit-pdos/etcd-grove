@@ -5,9 +5,8 @@ Lean-first (no Rocq counterpart).
 `genAll` picks the writers' Puts `trs` first. The server's start is the examples' shared one
 (since 2026-10-22, D33): `etcdstart.alloc1`, then watchkv's invariant over the KV state's half
 (`wkInv_alloc` at the plan `trs.map pairOf`: the bootstrap log changes no KV state,
-`linkv.kvRaftOf_boot`; `Writes.lean`), `etcdstart.StartServer`, `etcdstart.Serve` (whose
-`grpcCfgOk_of_started_w` gives the watchable store's readers) with the ghost step: one watch run
-slot (`watchRunSlots_of`), the member refusal-free (`etcd_noRefusal`, D29), and `wk_served`
+`linkv.kvRaftOf_boot`; `Writes.lean`), `etcdstart.StartServer`, `etcdstart.Serve` with the ghost step: the gRPC run pools
+(`etcdstart.kvServeStocks_pools`), the member refusal-free (`etcd_noRefusal`, D29), and `wk_served`
 (`Served.lean`: the KV methods and the watch server's facts at the address, the members' KV facts
 `srvKVFacts` from the server's read path). Then `etcdstart.NewClient` (etcd's default configuration;
 `clientWriteOnce`, D29), and from here on the program sees etcd through the client's KV and watch
@@ -100,7 +99,7 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN HwbN Hck Haf
+  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf
     Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Hstart, Htok, #Hprem⟩
@@ -214,7 +213,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd, #Hsf,
-    Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
+    Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
@@ -228,7 +227,7 @@ theorem Main.wp_proof
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23872"⌝ ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23872", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
         watchAddrFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv))))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
@@ -237,32 +236,12 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis, -⟩
-    obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+    obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
-    icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
-    icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
-    ihave Hslots := client.etcdGrpcSlots_of_started srv R.E ρ.rd 1 (64 - 2) 64
-        etcdstart.memberReadN 64 (by omega) (by omega)
-        etcdstart.one_le_memberReadN
-        (by omega)
-        $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
-    · iframe
-    -- (D23) one watch run slot: two of the store's reader tokens, one of the request path's
-    icases (hRS R.E.γ 2 62).1 $$ HWRs with ⟨HWR2, -⟩
-    ihave Hwslots := client.watchRunSlots_of hRS R (etcdstart.srvWOf R.E ρ.rd false) 1 1 (Nat.le_refl _)
-        $$ [HWR2 Hrd1]
-    · simp only [etcdstart.srvWOf, Nat.mul_one]
-      iframe HWR2
-      isplitl [Hrd1]
-      · simp only [List.replicate]
-        iapply BigSepL.bigSepL_cons.2
-        iframe Hrd1
-        iapply BigSepL.bigSepL_nil.2; itrivial
-      ipureintro
-      rw [sync.rwmutex.actualMaxReaders_unseal]
-      omega
+    -- (per-type stage B3) the gRPC run pools, from the serving stocks
+    imod (etcdstart.kvServeStocks_pools srv R.E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     -- the watch server's facts: the members' KV facts (`srvKVFacts`, D47), `io.EOF`
     ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave %Hcm : ⌜ρ.rd.kv.cmp = false⌝ $$ []
@@ -288,8 +267,9 @@ theorem Main.wp_proof
     ihave #Hon := client.srvOnce_noCmp (etcdstart.srvWOf R.E ρ.rd false) ρ.rd rfl Hcm
     imod (wk_served_nd hP (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv) go!"127.0.0.1:23872"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf)
-      $$ [Hgsn Hlis Hslots Hwslots HWok] with ⟨Hserv, #HKV, #HWF⟩
+        Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
+      $$ [Hgsn Hlis HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro

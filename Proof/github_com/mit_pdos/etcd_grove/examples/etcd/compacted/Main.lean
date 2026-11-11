@@ -11,7 +11,7 @@ counterpart).
 The steps: `Main`'s premises in the shared start's form (`etcdstart.bootPremise_of`,
 `commonPremises`); the ghost state `NewServer` takes (`etcdstart.alloc1`); `etcdstart.StartPeriodicServer` (the member's configuration with the auto-compactor on in periodic mode, `NewServer`, `Start`);
 `etcdstart.Serve` (`v3rpc.Server`, `Listen`, `go gs.Serve(l)`) with the ghost step
-`etcdstart.kv_served` (one gRPC slot; etcd's `Put` and `Range` registered at the address);
+`etcdstart.kv_served` (etcd's `Put` and `Range` registered at the address);
 `etcdstart.NewClient` (`clientv3.New`); each call's context with the request timeout
 (`context.WithTimeout(context.Background(), etcdstart.RequestTimeout)`, `client.wp_WithTimeout_bg`:
 an `isContext` whose `Err()` returns client errors, cancelled after the call; since 2026-10-23,
@@ -66,7 +66,7 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
@@ -134,7 +134,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
-    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
+    #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
   haveI := Hms
@@ -145,7 +145,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cid mid))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
@@ -153,8 +153,7 @@ theorem Main.wp_proof
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iapply (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid
-      R Hrb48 Hrf rfl)
-    unfold etcdstart.kvServeStocks
+      R Hrb48 Hrf rfl HLv)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
   · cases serr with

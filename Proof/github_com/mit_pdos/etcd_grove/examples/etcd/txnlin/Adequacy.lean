@@ -148,7 +148,7 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Hms, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_txnlin.wp_Main (GF := linkvtxnGF) n id ctxs boot clients ops Hbf
-    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

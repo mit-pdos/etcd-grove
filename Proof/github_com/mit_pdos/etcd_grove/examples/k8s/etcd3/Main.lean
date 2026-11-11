@@ -82,7 +82,7 @@ theorem Main.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
     hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
@@ -149,7 +149,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
-    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
+    #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
   -- members' axiom), and etcd's KV calls registered at the address
@@ -162,7 +162,7 @@ theorem Main.wp_proof
   wp_apply (wp_Serve srv go!"127.0.0.1:23896" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23896" E { ρ with wait := γw } ρ.rd cid mid ∗
         ⌜noRefusalAt go!"127.0.0.1:23896"⌝)))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
@@ -172,10 +172,9 @@ theorem Main.wp_proof
     ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23896" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    imod (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23896" cid mid R Hrb48 Hrf rfl)
-      $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
-    · unfold etcdstart.kvServeStocks
-      iframe; iframe #
+    imod (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23896" cid mid R Hrb48 Hrf rfl HLv)
+      $$ [Hg Hstk] with ⟨Hserv, #Hkv⟩
+    · iframe; iframe #
     imodintro
     iframe Hserv Hkv
     ipureintro; exact Hnr
