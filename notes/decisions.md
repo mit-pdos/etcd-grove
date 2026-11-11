@@ -34547,3 +34547,39 @@ from `NodeStartSpec`, whose post is unchanged; the plan's file 9 was not needed)
   `metadata.outgoingCtxOk_of_valueWand`), `watcher.RequestProgress` (+ `outgoingCtxOkC ctx`).
 
 No axiom or `sorry` added or removed.
+
+## WAL W3: the WAL's power-loss fixes on the fork, and the world assumptions the WAL spec rests on (2026-11-11 · the fixes and the assumptions approved by the user via etcd-grove-81, `/shared/tmp/wal-spec/scope.md` "Decisions" · branch `wal-w3`)
+
+**World assumptions** (the WAL crash spec's, for W4's trusted texts; the user's, 2026-11-11):
+- **Directory entries: the bare fsync(2) contract** (U1): a directory operation (create, rename,
+  unlink, mkdir) is durable once the directory is fsynced; nothing orders it with file data.
+  Journaled ext4/xfs give more (journal ordering); the spec does not rely on it.
+- **File data**: `fsync`/`fdatasync` returning 0 makes the file's content and size as of the call
+  durable, truncates and fallocates included; unsynced bytes come back arbitrary after a power loss.
+- **Sector rewrites** (supersedes etcd-grove-81's weaker P4 of the same day, which W1.5 showed makes
+  the spec false through `Repair`): rewriting a sector never corrupts the bytes of it that were
+  already synced (as atomic sector writes would give). The WAL depends on it:
+  `nonissues/etcd-wal-synced-sector-rewrite.md`.
+- **No CRC32 collision** on torn or garbled data (safety only: a detected tear ends in bootstrap's
+  error or `Fatal` arm).
+
+**The fork fixes** (branch `goose-lean-walsync` of upamanyus/etcd, on `a4d2bb172`; the `etc/goose.py`
+pin; each a nonissue with an upstream candidate branch off etcd main 6974f522338b):
+- F-Z, 41fddbc2d: `ReadAll` fdatasyncs the tail it zeroed (`nonissues/etcd-wal-readall-zero-unsynced.md`);
+- F-N1, 161796636: `Create` fsyncs `<dir>.tmp` before renaming it (`nonissues/etcd-wal-create-dir-entry-unsynced.md`);
+- F-N2, 71f99a4bf: `TouchDirAll` fsyncs the parent of each directory it creates
+  (`nonissues/etcd-fileutil-touchdirall-parent-unsynced.md`).
+Not fixed: C-W2 (`nonissues/etcd-wal-dormant-snapshot-record.md`; raft-safe, the reader models it),
+C-P6 (`nonissues/etcd-wal-purge-unlink-gap.md`; liveness; the optional purge fix skipped by the user).
+C-W1 is `issues/etcd-wal-received-snapshot-save-crash-no-restart.md` (landed separately).
+
+**Why the issues are nonissues.** issues/README.md's bar asks for a failing test in etcd's own
+harness; a power-loss model of the file system is not one (neither etcd's tests nor its failpoints
+model unsynced pages or directory entries). The evidence is the WAL crash spec's ptrace
+record-and-replay harness (W0), on the real system-call trace: `TestW3FZ` and `TestW3FN` (in the
+nonissues' directories) fail at `a4d2bb172` and pass at `71f99a4bf` with no modelled fix.
+
+**The reader under purge** (decided by etcd-grove-81 after W1.5, adopted for W4 on W3's targeted
+runs): a dormant snapshot record (C-W2) can sit in a file that `ReleaseLockTo` and the purge
+delete; the restart then opens at the released snapshot, not at the dormant record. W4's `walRead`
+allows a missing prefix up to the last released snapshot's record.
