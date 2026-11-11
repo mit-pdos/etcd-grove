@@ -19,9 +19,17 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     model-only `#` name. Check: `env LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json
     etc/lean-check.py -a Scratch/StageB/Spike.lean`.
 
+  - Spike (4) done: `spike_grpcFullName_inj`, `spike_names_nodup`, `spike_v3rpc_nodup` (etcd's lists in
+    `v3rpc.Server`'s registration order, from `svcDescsOk`'s facts and the restated health post).
+  - goose `trusted = ["Server.Serve"]` dry run: works (scratch `/shared/tmp/stageB/goose-dry/`; needs
+    `GOWORK` unset; adds `ptr_Serve_unfold`; `Server` is axiomatized, the model cannot name its
+    fields). `etc/verified-code.py` counts a trusted function proved over its model as "verified":
+    B1a must make the `Serve` model's leaves count as assumed.
+  - Statements touching B's names: `/shared/tmp/stageB/stmt/stmtlist.md` (script `stmtlist.py`).
+
 ## Next, in order
 
-1. Spike (4): the joint Nodup on etcd's real `v3rpc.Server` lists (`grpcFullName_inj`).
+1. (done)
 2. Gate report-only (`etc/AxiomTokCheck.lean`, `etc/axiom-tok-check.py`), import-all memory probe,
    fresh `tcb.json` (a subagent was on it).
 3. goose `trusted = ["Server.Serve"]` dry run (a subagent was on it).
