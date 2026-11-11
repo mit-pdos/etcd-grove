@@ -319,7 +319,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   · unfold mcellsAny; rw [hmaps]; iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply os.File.Truncate.wp_proof f fd name dqf (W64 8) dq ⟨i, true, true⟩ m (bs.drop 8)
       hfd0 rfl (by decide) (by simp [hbl, hsz])
-    $$ [Hos Hf Hfd Hm Hbr Hc8] as %err ⟨Hf, Hfd, Hr⟩
+    $$ [Hos Hf Hfd Hm Hbr Hc8] as %err ⟨Hf, Hfd, Hr, -⟩
   · iframe; iframe #; rw [hmin]; iexact Hbr
   icases Hr with (⟨%he, Hd⟩ | ⟨%he, -⟩)
   rotate_left

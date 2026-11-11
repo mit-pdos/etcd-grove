@@ -590,7 +590,7 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
       simp only [OsChange.ofWrite, OsChangeKind.write.injEq] at hk ⊢
       obtain ⟨rfl, rfl⟩ := hk; rfl)
   next => -- PWriteFinish
-    obtain ⟨t, c, off, data, f, k, e, -, ht, hk, hf, hkl, -, hst, -⟩ := hs
+    obtain ⟨t, c, off, data, f, k, e, -, ht, hk, hf, hkl, -, -, hst, -⟩ := hs
     subst hst
     obtain ⟨-, -, -, hw⟩ := h.2.1 t c ht
     have hhi := hw off data hk
@@ -879,6 +879,32 @@ theorem rmdir_open_fd [GooseExts] [GoGlobalContext] :
   refine ⟨_, _, go!"/r/m", 0, 0, rfl, ⟨(rootP, 1), by simp [stRm], [go!"m"], by simp, by decide, hp⟩,
     by simp [stRm], .inl ⟨2, 1, go!"m", ⟨hl, fun b => ?_⟩, hpar, .inl ⟨rfl, rfl⟩⟩⟩
   simp [stRm, OsState.tree, replay, Tree.entry]
+
+/-! ### Page cuts (`PWriteFinish`, the header's "Page cuts") -/
+
+/-- A `pwrite`'s count is a page cut of its write: none, all, or ending on a 4096-byte page
+boundary of the file. -/
+theorem pwrite_page_cut [GooseExts] [GoGlobalContext] {v : val} {st st' : OsState} {e' : Expr}
+    (h : IsFsStep "PWriteFinish" v st e' st') :
+    ∃ (t : Nat) (c : OsChange) (off : Nat) (data : List w8) (k : Nat) (e : w64),
+      v = osTokV t ∧ st.proc.inflight !! t = some c ∧ c.kind = .write off data ∧
+      e' = osRes (#(W64 k)) e ∧ k ≤ data.length ∧
+      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) := by
+  simp only [IsFsStep] at h
+  obtain ⟨t, c, off, data, f, k, e, hv, ht, hk, -, hkl, -, hcut, -, he⟩ := h
+  exact ⟨t, c, off, data, k, e, hv, ht, hk, he, hkl, hcut⟩
+
+/-- So a write of at most one page at a page-aligned offset lands all of it or nothing, whatever
+it returns (bbolt's one-page meta write, D22). -/
+theorem pageCut_one_page {off len k : Nat} (hoff : off % osPageSize = 0) (hlen : len ≤ osPageSize)
+    (hk : k ≤ len) (hcut : k = 0 ∨ k = len ∨ (off + k) % osPageSize = 0) : k = 0 ∨ k = len := by
+  simp only [osPageSize] at *
+  rcases hcut with h | h | h
+  · exact Or.inl h
+  · exact Or.inr h
+  · rcases Nat.eq_zero_or_pos k with h0 | h0
+    · exact Or.inl h0
+    · right; omega
 
 end Tests
 end Fs

@@ -11,6 +11,7 @@ failure nothing changes (no failed writeback: the semantics' rule). Proved in
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -42,7 +43,8 @@ abbrev os.File.Sync.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) m.synced ∗
           osBytes d.ino lo (DFrac.own 1) (xs.map (fun x => durB x.1))) ∨
        (⌜err ≠ interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) m ∗
-          osBytes d.ino lo (DFrac.own 1) xs)) }}
+          osBytes d.ino lo (DFrac.own 1) xs)) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

@@ -535,7 +535,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   wp_apply wp_Stat f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ⟨i, true, true⟩ m
       $$ [Hos Hf Hfd Hm] as %fi %err ⟨Hf, Hfd, Hm, Hfi⟩
   · iframe; iframe #
-  icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
+  icases Hfi with ⟨(⟨%fs, %Hfi, Hfs⟩ | %Hfi), -, -⟩
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Hfi
     cases err with

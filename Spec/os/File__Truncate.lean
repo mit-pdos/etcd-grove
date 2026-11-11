@@ -13,6 +13,7 @@ in `Proof/os/File__Truncate.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -44,7 +45,8 @@ abbrev os.File.Truncate.spec : Prop :=
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜err = interface.nil⌝ ∗ os.ftDone d.ino m sz.toNat) ∨
        (⌜err ≠ interface.nil⌝ ∗
-         (os.ftDone d.ino m sz.toNat ∨ os.ftUndone d.ino m sz.toNat xs))) }}
+         (os.ftDone d.ino m sz.toNat ∨ os.ftUndone d.ino m sz.toNat xs))) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

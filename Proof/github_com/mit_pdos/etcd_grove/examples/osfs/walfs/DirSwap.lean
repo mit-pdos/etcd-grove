@@ -1041,7 +1041,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   (try wp_auto)
   -- `f.Sync()`
   wp_apply wp_Sync f fd (child (child dir wtB) segB) (DFrac.own 1) (DFrac.own 1) ⟨i, true, true⟩ _
-      0 ys (OsMeta.covers_whole _ hysl) $$ [Hos Hf Hfd Hm Hys] as %err ⟨Hf, Hfd, Hr⟩
+      0 ys (OsMeta.covers_whole _ hysl) $$ [Hos Hf Hfd Hm Hys] as %err ⟨Hf, Hfd, Hr, -⟩
   · iframe; iexact Hos
   icases Hr with (⟨%he, Hm, Hys⟩ | ⟨%he, -, -⟩)
   rotate_left

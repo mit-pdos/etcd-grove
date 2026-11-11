@@ -51,7 +51,17 @@ meaning: a step on any other path is stuck.
   is not canonical in a root's tree.
 * *Environmental failure is a nondeterministic errno*: every step that makes a system call may fail
   with any nonzero errno; on failure, the changes listed in each case may or may not have happened;
-  a failed `pread` read a prefix; a failed `pwrite` wrote a prefix.
+  a failed `pread` read a prefix; a failed `pwrite` wrote a prefix. **Page cuts**: whatever its
+  errno, a `pwrite` (`PWriteFinish`) landed nothing, all of its data, or a prefix ending on a
+  4096-byte page boundary of the file. On C, a write's loop (`generic_perform_write`) stops only
+  before a folio (`write_begin` failing: `ENOSPC`, `EDQUOT`; the cut at `s_maxbytes`, page-aligned
+  with 4 KiB blocks), and folios are page-aligned; the two ways to cut inside a page are excluded:
+  a limited `RLIMIT_FSIZE` (C has it unlimited) and an unreadable source buffer (a Go slice is
+  readable). Measured on C (`notes/axiom-review/bbolt-port-plan-review/`: 19 of 19 short counts on a
+  page boundary, 20 of 20 errors with a page cut landed, `ENOSPC` swept over free-block counts and
+  `EFBIG` at `s_maxbytes`; both contrasts outside C cut mid-page). It is a rule of the step's
+  result only: a write in flight at a crash leaves, byte by byte, any candidates (the crash rule),
+  as a process killed in mid-copy leaves a mid-page prefix in the page cache.
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`, and `O_TRUNC`
   in one step) is two steps (`…Start`/`…Finish`, the change in flight between them,
   `ProcState.inflight`). **At most one change is in flight on a file**: a change's first step is
@@ -618,12 +628,15 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       e' = Val (osTokV t)
   /- The second step: `token ↦ (#written, #errno)`. A prefix of `k` bytes of the data is
   written: with errno 0, all of it or a non-empty part (a short write, F6); with a nonzero errno,
-  any prefix. It lands the announced bytes up to the end of what was written (the zero gap
-  included), none if nothing was; the size grows to that end. -/
+  any prefix. Whatever the errno, the prefix is empty, the whole write, or ends on a 4096-byte
+  page boundary of the file (**page cuts**, the header). It lands the announced bytes up to the
+  end of what was written (the zero gap included), none if nothing was; the size grows to that
+  end. -/
   | "PWriteFinish" => ∃ (t : Nat) (c : OsChange) (off : Nat) (data : List w8) (f : OsFile)
       (k : Nat) (e : w64), v = osTokV t ∧ st.proc.inflight !! t = some c ∧
       c.kind = .write off data ∧ st.file c.ino = some f ∧ k ≤ data.length ∧
       ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) ∧
       (let w := if k = 0 then c.lo else off + k
        st' = (st.doneInflight t).setFile c.ino (f.land c w (max f.size w))) ∧
       e' = osRes (#(W64 k)) e

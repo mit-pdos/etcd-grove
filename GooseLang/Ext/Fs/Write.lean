@@ -1074,12 +1074,12 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
   · ipureintro
     exact ⟨_, renderHeap (pwState st t c.ino f c off data.length) h, _,
       ⟨t, c, off, data, f, data.length, 0, rfl, hct, hckind, hf, Nat.le_refl _, .inl ⟨.inl rfl, rfl⟩,
-        rfl, rfl⟩, mapsFresh_same rfl, heapRendered_render (hfin _ (Nat.le_refl _)) rfl Hh⟩
+        .inr (.inl rfl), rfl, rfl⟩, mapsFresh_same rfl, heapRendered_render (hfin _ (Nat.le_refl _)) rfl Hh⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
-  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, hst', rfl⟩ := Hst
+  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, -, hst', rfl⟩ := Hst
   have htt : t = t' := by injection hv with hv; exact extVal_inj hv
   subst htt
   rw [hct, Option.some.injEq] at hinfl; subst hinfl

@@ -613,7 +613,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     · iempintro
     wp_apply wp_Truncate f fd p _ (W64 (len : Int)) _ ⟨γ.ino, true, true⟩ m' [] hfd rfl hlenI
         (by simp only [List.length_nil, hlen64]; omega)
-        $$ [Hf Hfd Hm Hnil Hmc] as %err ⟨Hf, Hfd, Hres⟩
+        $$ [Hf Hfd Hm Hnil Hmc] as %err ⟨Hf, Hfd, Hres, -⟩
     · simp only [hlen64]
       rw [show min m'.size len = m'.size by omega, show max m'.size len = len by omega]
       iframe #
@@ -638,7 +638,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
         covers_touch_clean m' (rsPost m' len len) (min m'.size len) (max m'.size len) (4096 * hwm)
           tail2.length hclean.2 rfl rfl (by omega) (by omega)
       wp_apply wp_Sync f fd p _ _ ⟨γ.ino, true, true⟩ (rsPost m' len len) (4096 * hwm) tail2 hcov
-          $$ [Hf Hfd Hm Htail] as %err2 ⟨Hf, Hfd, Hres2⟩
+          $$ [Hf Hfd Hm Htail] as %err2 ⟨Hf, Hfd, Hres2, -⟩
       · iframe; iframe #
       icases Hres2 with (⟨%Herr2, Hm, Htail⟩ | ⟨%Herr2, Hm, Htail⟩)
       · subst Herr2

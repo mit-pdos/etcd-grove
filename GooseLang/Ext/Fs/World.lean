@@ -322,7 +322,7 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
     obtain ⟨_, _, _, d, f, t, -, -, -, -, -, hf, -, -, -, h1, -⟩ := h
     rw [h1]; exact (treeFrame_stampFile _ _ _ f hf).trans (treeFrame_addInflight _ _ _)
   · -- PWriteFinish
-    obtain ⟨t, c, off, data, f, k, e, -, -, -, hf, -, -, h1, -⟩ := h
+    obtain ⟨t, c, off, data, f, k, e, -, -, -, hf, -, -, -, h1, -⟩ := h
     rw [h1]; exact (treeFrame_doneInflight st t).trans (treeFrame_setFile _ _ _ f hf)
   · -- Fstat
     obtain ⟨_, _, _, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
