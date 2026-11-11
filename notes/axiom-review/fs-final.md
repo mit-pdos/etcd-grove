@@ -283,3 +283,32 @@ The places that do not match are D1-D6:
 
 Run the Lean files with `lake env lean <file>`, after `lake build` of `BootP1`, `Tests` and the
 `Results` modules. They were up to date at `83391b1ac7`.
+
+## Dispositions (2026-11-12, fork D1)
+
+- **P1a/P1b/P2.** `p1_untouched` and `p1_crash_exists` moved into the build:
+  `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/P1Sat.lean` (imported by `Results.lean`,
+  `#print axioms` of both there); `fsInit0`, `root0` and `db_none` into
+  `GooseLang/Ext/Fs/TestsInit.lean`. `BootP1.lean`'s "fair premise" paragraph and STATUS's P1 entry now
+  give the exact argument (the two-state pairs per slot between syncs, the enumeration in
+  `fs-final/p1mix/`). A Go example for P1 (`examples/osfs/semantics/premise_p1.go`), indexed in
+  `doc.go`, as CLAUDE.md asks of a trace-level assumption.
+- **D1.** `examples/osfs/bboltfs/README.md` (the extension's files, the crash relation, P1) and
+  `page.go`'s package doc (roots in place of allowed paths) rewritten.
+- **D2, D6.** The walfs results' docstrings: a crash keeps a set closed under the journal order;
+  restarts are machine crashes under the "Restarts" assumption; `DataGood` has no "clean"; "What is
+  assumed" names `[os.Assumptions]` (and seglog's `[golang_org.x.sys.unix.Assumptions]`).
+- **D3.** `notes/fs-semantics-v2.md`: a reading guide (the current model is its first section and the
+  Impl header); the newest section's names fixed (`OsFile.announce`/`land`, `OsChange.ofWrite`/
+  `ofResize`); V4, V6, sector atomicity and no mixed writeback marked superseded in place; "The
+  state", "The steps", "Crash", "After the soundness audit", "The program logic" and "Phases" moved
+  to `notes/fs-semantics-v2-history.md`.
+- **D4.** `segdir.go`, `crashlog.go` (the flag's reason, now with candidates), `dirswap.go` (the
+  journal order and `commitAll`) and `Paths.lean`'s docstring fixed; the walfs translation
+  regenerated (only `go:` line markers changed; crashlog's and bboltfs's are unchanged, their package
+  docs are not copied).
+- **D5.** The Impl header's "Client premises" and `semantics/doc.go` list P1 next to `SectorWhole`;
+  `AdequacyS.lean` points to `Premises.lean`.
+- **N1.** Open: a whole-state crash from every reachable state needs two invariants `CacheOk` does not
+  carry (every committed entry inside the log; every file the tree names present). Recorded in
+  `notes/STATUS.md`; it narrows what the theorems cover, not their soundness.

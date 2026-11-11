@@ -55,4 +55,5 @@
 // Client premises (not part of the semantics; a theorem states them):
 //
 //	premise_sector_whole.go       WAL sectors come back whole        SectorWhole, valAt (a known limitation)
+//	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
 package semantics

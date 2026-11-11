@@ -1,7 +1,7 @@
 /-
 Paths of the Linux file extension [Trusted definitions!]: names, canonical paths below a root,
-textual nesting, a path's last component and directory. Shared by the extension's directory tree
-(`Tree.lean`) and, until it is removed, the first version's namespace (`OsFs/Names.lean`).
+textual nesting, a path's last component and directory, used by the extension's directory tree
+(`Tree.lean`).
 
 A *name* is a byte string. A *canonical* path below a root `r` is `r` followed by components, each
 preceded by `/`, each a valid name (`NameOk`: not empty, not `.` or `..`, no `/`, no NUL): Linux

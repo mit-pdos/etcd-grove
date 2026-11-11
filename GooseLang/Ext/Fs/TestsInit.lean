@@ -1,13 +1,20 @@
-/- Review check (fs-final): the start hypotheses of `BootCrashSafety` (and of crashlog's, walfs's)
-are satisfiable: an empty root `/r` is `FsInit`, `/r` is a root, and `/r/db` names nothing.
-Run: `lake env lean notes/axiom-review/fs-final/InitSat.lean`. -/
-import GooseLang.Ext.Fs.TreeLemmas
-import GooseLang.Ext.Fs.Tests
+/- The start hypotheses of the examples' crash theorems are satisfiable: an empty root `/r` is
+`FsInit`, `/r` is a root, and `/r/db` names nothing (`fsInit0`, `root0`, `db_none`), so
+`BootCrashSafety`, crashlog's and walfs's results are not vacuous for want of a start state. From
+the final review (`notes/axiom-review/fs-final.md`). Untrusted (a check of the trusted
+definitions). -/
+module
 
-open Perennial Perennial.Fs Perennial.Fs.Tests
+public import GooseLang.Ext.Fs.TreeLemmas
+public import GooseLang.Ext.Fs.Tests
 
-namespace InitSat
+@[expose] public section
 
+namespace Perennial
+namespace Fs
+namespace TestsInit
+
+open Perennial.Fs.Tests
 def tree0 : Tree := {[1 := ∅]}
 
 def st0 : OsState :=
@@ -73,7 +80,10 @@ theorem db_none : st0.lookup (rootP ++ go!"/db") = none := by
   rw [h, lookup_joinPath (j := 1) roots0 (by simp [st0]) (by simpa using nameOk_db)]
   simp [walk, OsState.tree, st0, replay, entry0]
 
-#print axioms fsInit0
-#print axioms db_none
 
-end InitSat
+
+end TestsInit
+end Fs
+end Perennial
+
+end

@@ -1,6 +1,6 @@
 /-
 Crash adequacy for a program with Linux files under premises on its executions: on the extension's
-steps (`SQ`) and on crashes (`Q`), `fsSemWithS SQ Q` (`FilteredSem.lean`). The proof of the program
+steps (`SQ`) and on crashes (`Q`), `fsSemWithS SQ Q` (`Premises.lean`). The proof of the program
 is over the restricted semantics, which the specs hold over when `SQ` keeps a step (`FsSemOk`,
 `fsSemWithS_ok`). Untrusted.
 -/

@@ -8,13 +8,14 @@ segment's life makes (an OFD lock, `Seek` from the start, the offset and the end
 offset, `fallocate` growing the file and keeping its size, `fdatasync`, a shrinking `Truncate`,
 `Read` at the offset, `unlink` and `rmdir`) is one the extension's trusted models cover, so that
 their "not modelled" panics never fire and no run is stuck, however often the node crashes
-(each crash keeping any prefix of the logged metadata operations, or all of them when only the
-process restarts). The crash invariant is `SegLogOps.lean`'s `logInv`, half of the tree's
+(each crash keeping a set of the logged metadata operations closed under the journal order; a
+process restart is a machine crash under the semantics' "Restarts" assumption). The crash invariant is `SegLogOps.lean`'s `logInv`, half of the tree's
 history: the boot program removes whatever is at `seg.log` and makes a new segment, so it needs
 nothing of what a crash left.
 
-**What is assumed**, as for `segdir` (`Results.lean`): the package initializer (`Hinit_wp`) and
-the hand-written `os.file` field facts.
+**What is assumed**, as for `segdir` (`Results.lean`): the package initializer (`Hinit_wp`), the
+hand-written `os.file` field facts, and the Goose-generated package facts of `os` and
+`golang.org/x/sys/unix` (`[os.Assumptions]`, `[golang_org.x.sys.unix.Assumptions]`).
 -/
 module
 

@@ -8,17 +8,18 @@ The boot program's precondition, over a generation's local ghost state `L` (`boo
 invariant of the mapped cells, the whole of the tree's history `V`, whose every crash has no
 directory at `dir/seg` or `dir/seg.tmp` and at `seg` nothing or the file of a key `ko` (`SafeH`),
 and in none of which `seg` is there unless it is there now (`MonoH`), and, for the key, the file
-as `L` starts with it (`osFileStartO`), `DataGood` (absent, or the data at 0, clean), there if
+as `L` starts with it (`osFileStartO`), `DataGood` (absent, or the data at 0), there if
 `seg` names it now. Each generation puts half of the history and of the first 8 bytes of the file
 in its crash invariant (`bootInv`) and runs `Boot` (`Boot.lean`'s `wp_Boot`). After a crash, the
 crash part opens the old generation's invariant: the new history is a crash of the old one
-(`osTreeCrash_take`: the same after a restart, a prefix of the logged operations replayed after a
-machine crash), so `SafeH` and `MonoH` hold of it; the key's file in the new generation is a crash
+(`osTreeCrash_take`: a set of the logged operations closed under the journal order, replayed),
+so `SafeH` and `MonoH` hold of it; the key's file in the new generation is a crash
 of the invariant's half (`osCrash_take_runs_keep`), so `DataGood`, and there if a name names it.
 
 **What is assumed**, as for `examples/osfs/crashlog`: the package initializer (`Hinit_wp`, which
-needs `wp_initialize'` of this repository's `os` and `syscall`), and the hand-written `os.file`
-field facts (instance hypotheses). The trust base is otherwise the extension's semantics
+needs `wp_initialize'` of this repository's `os` and `syscall`), the hand-written `os.file` field
+facts, and the Goose-generated package facts of the packages it calls (`[os.Assumptions]`, as
+`package_sem` is the program's own) (instance hypotheses). The trust base is otherwise the extension's semantics
 (`GooseLang/Ext/Fs/Impl.lean`) and the trusted models of `os` and `syscall`
 (`TrustedCode/os.lean`, `TrustedCode/syscall.lean`).
 -/
@@ -331,7 +332,7 @@ the boot program (`RealCrashNsteps`, the real semantics; a crash of the machine,
 process alone being one under the semantics' "Restarts" assumption), from a state whose Go context satisfies the Go semantics and the package's assumptions,
 with no package initialized, the main thread only, the Linux file extension's state as on disk
 (`FsInit`), `dir` one of its roots, in which neither `dir/seg` nor `dir/seg.tmp` is a directory and
-`dir/seg`, if it names a file, names one that is `DataGood` (the 8 bytes of data at 0, clean): the
+`dir/seg`, if it names a file, names one that is `DataGood` (the 8 bytes of data at 0): the
 boot program's result is `#()`, no thread is stuck and no thread has an unrecovered panic, so
 `check`'s panic never fires, however many times the node crashes or (after a `sync`) the process restarts, and in
 particular whenever one interrupts `commit` (after the create, the write, the `fdatasync`, the

@@ -2,8 +2,8 @@
 // etcd's WAL (server/storage/wal, client/pkg/fileutil) makes beyond the ones
 // minibolt makes: directories (open, read, fsync), rename, unlink and mkdir,
 // and the sequential I/O of a segment (seek, write, fallocate, an OFD lock).
-// They are the acceptance tests of the namespace of the Linux file extension
-// (GooseLang/Ext/OsFs, notes/walfs-ext-plan.md).
+// They are the acceptance tests of the directory tree of the Linux file
+// extension (GooseLang/Ext/Fs, notes/fs-semantics-v2.md).
 //
 // segdir.go: a segment committed by rename. The directory dir holds at most a
 // committed segment "seg", whose 8 bytes are the data, and perhaps a leftover

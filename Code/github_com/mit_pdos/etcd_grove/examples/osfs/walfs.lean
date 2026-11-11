@@ -78,7 +78,7 @@ noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
 /-- Create makes dir/wal with dir/wal/seg holding the data. On any error it
     returns.
 
-    go: dirswap.go:24:6 -/
+    go: dirswap.go:25:6 -/
 noncomputable def Create.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
@@ -191,7 +191,7 @@ noncomputable def Create.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- BootDir checks dir/wal if it exists, and creates it otherwise.
 
-    go: dirswap.go:51:6 -/
+    go: dirswap.go:52:6 -/
 noncomputable def BootDir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
@@ -244,7 +244,7 @@ noncomputable def BootDir.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkDir: the directory holds seg, with the data.
 
-    go: dirswap.go:66:6 -/
+    go: dirswap.go:67:6 -/
 noncomputable def checkDir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wal"
   (Seq (App (Val exceptionDo)

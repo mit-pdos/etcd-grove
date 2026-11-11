@@ -108,7 +108,11 @@ holding the end keeps whatever its bytes past the size hold, stale ones included
 crashes more than this rule gives, as a stated premise on its executions. `SectorWhole` is one:
 each 512-byte sector of the files it covers comes back as one state of that sector (`valAt` at one
 stamp). It is false of Linux in general (the measurements above) and a known limitation, stated
-only for etcd's WAL, whose recovery (`isTornEntry`) assumes it.
+only for etcd's WAL, whose recovery (`isTornEntry`) assumes it. The other, used by a proved
+theorem, is minibolt's P1 (`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`):
+a meta slot of a crash image that validates is the slot as of one change (a torn meta does not
+collide on its checksum); it removes no crash of minibolt's real runs (`notes/axiom-review/fs-final.md`).
+Both are listed in `notes/STATUS.md`, "Known limitations".
 -/
 module
 

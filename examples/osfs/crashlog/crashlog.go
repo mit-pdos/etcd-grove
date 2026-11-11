@@ -1,13 +1,13 @@
 // Package crashlog is the smallest crash-safe program over the Linux file
-// extension (GooseLang/Ext/OsFs): a commit flag that guards 8 bytes of data in
+// extension (GooseLang/Ext/Fs): a commit flag that guards 8 bytes of data in
 // one file. Its boot program's panics never fire, however often the node
 // crashes (Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/Results.lean).
 //
 // The layout is the data at offset 0 and the flag byte at offset 8, after the
 // data. The flag cannot come first: the first write to an empty file extends it
-// over offset 0, and until that write is synced a crash may leave any byte
-// there (the unsynced bytes of an extended file are arbitrary, D1 of
-// notes/osfs-ext-plan.md), a nonzero flag with no data. With the flag after the
+// over offset 0, and until that write is synced a crash may leave each byte
+// there old (zero) or as written, independently (GooseLang/Ext/Fs/Impl.lean,
+// CrashFile): a nonzero flag with zeros for data. With the flag after the
 // data, the flag byte does not exist until the data is durable: a crash before
 // then leaves the file at most 8 bytes long.
 package crashlog

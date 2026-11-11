@@ -1,8 +1,9 @@
 /-
 The end-to-end result of `examples/osfs/walfs`'s `dirswap.go`: the crash adequacy of its boot
 program, which initializes the package and runs `BootDir(dir)`, at the start and after every
-crash, over the Linux file extension v2 (`fs_crash_adequacy`: a crash keeps a prefix of the logged
-metadata operations, replayed, or all of them when only the process restarts).
+crash, over the Linux file extension v2 (`fs_crash_adequacy`: a crash keeps a set of the logged
+metadata operations closed under the journal order, replayed; a process restart is a machine crash
+under the semantics' "Restarts" assumption).
 
 The boot program's precondition, over a generation's local ghost state `L` (`bootPreDS`), is `L`'s
 invariant of the mapped cells, the whole of the tree's history, which is `SafeH` and `MonoH`
@@ -15,7 +16,8 @@ invariant's half (`osCrash_take_runs_keep`), so `DataGood`; if the crash dropped
 the new history names it, and the key `none` will do.
 
 **What is assumed**, as for `segdir`'s result (`Results.lean`): the package initializer
-(`Hinit_wp`) and the hand-written `os.file` field facts (instance hypotheses).
+(`Hinit_wp`), the hand-written `os.file` field facts and `os`'s Goose-generated package facts
+(`[os.Assumptions]`) (instance hypotheses).
 -/
 module
 
@@ -208,8 +210,8 @@ thread only, the Linux file extension's state as on disk (`FsInit`), `dir` the r
 whose tree is `SafeT`: `wal` no file and, if `wal` is a directory, its `seg` a file holding the
 data (`DataGood`): the boot program's result is `#()`, no thread is stuck and no thread has an
 unrecovered panic, so `checkDir`'s and `check`'s panics never fire, however many times the node
-crashes (a machine crash keeping a prefix of the logged metadata operations, a process restart all
-of them), in particular whenever a crash interrupts `Create` (after the removals, the `mkdir`, the
+crashes (a machine crash keeping a set of the logged metadata operations closed under the journal
+order), in particular whenever a crash interrupts `Create` (after the removals, the `mkdir`, the
 create, the write, the sync, the rename of the directory or the parent's sync). It assumes that
 the package's initializer runs (`Hinit_wp`). (`dirswap_crash_safety_bounded` with the ghost state
 `fsGF`.) -/

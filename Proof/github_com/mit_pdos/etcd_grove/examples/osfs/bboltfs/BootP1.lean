@@ -12,13 +12,20 @@ included, in a page that holds a byte of the file), passes `validate` (`metaVali
 and the FNV-64a checksum of its first 56 bytes), then it is the slot as of one change `n`: each of
 its bytes is its value as of `n` (`valAt`, its candidate of the largest stamp up to `n`).
 
-Why it is a fair premise: a slot is 64 bytes inside one 512-byte sector; a slot that is no change's
-state mixes bytes of two states, and validates only if the checksum of the mix matches its own
-stored checksum (itself possibly mixed) by accident, an FNV-64a collision on 56 bytes. This is
-bbolt's own assumption about torn metas (it relies on the checksum to reject them). A crash that
-keeps every slot byte as of the last sync (`n = 0`, the durable state) satisfies it, as does one
-that keeps each slot as of one write, so P1 removes no crash a real disk makes except a torn slot
-whose checksum collides.
+Why P1 holds of `BootMinibolt`'s real runs on the target configuration (the final review,
+`notes/axiom-review/fs-final.md`): between two syncs a slot of `dir/db` has only two states: zeros
+and `meta(j)` (`init`, slot `j`), or `meta(t-2)` and `meta(t)` (commit `t`, slot `t % 2`), because an
+`fdatasync` follows every slot write before the next, a failed sync ends the boot program's writes,
+and `meta(t)` is a function of `t` (a commit retried after a crash writes the same meta). A slot left
+torn by an earlier crash is itself a mix of the same two states. The enumeration
+`notes/axiom-review/fs-final/p1mix/main.go` tries every byte-wise mix of every such pair for every
+txid up to the 1 GiB bound (2^18 pairs, 2.2 M mixes of the checksummed 56 bytes, with every mix of the
+checksum field): no mix validates except the two states themselves. So P1 removes no crash Linux on
+the target configuration can produce in a `BootMinibolt` run (given the semantics' device assumption:
+a byte comes back old or new, never garbage); in general it is bbolt's own assumption that a torn meta
+does not collide on its checksum. P1 is never vacuous (`P1Sat.p1_crash_exists`: from every reachable
+state, whenever there is a crash there is one satisfying P1) and a file other than the database never
+makes it fail (`P1Sat.p1_untouched`).
 
 **The statement** (`BootCrashSafety`): the boot program (initialize the package, call
 `BootMinibolt(dir)`) runs with the extension's semantics whose crash relation is `OsCrash ∧ P1`

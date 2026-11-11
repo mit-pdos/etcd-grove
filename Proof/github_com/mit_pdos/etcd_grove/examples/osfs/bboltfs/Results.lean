@@ -22,11 +22,15 @@ crash-free ones of `Link.lean`).
   not generated.
 * The hand-written `os.file` and `os.fileStat` field facts, as instance hypotheses (as for every
   `OpenFile` and `Stat` spec).
+
+The premises are satisfiable and not vacuous: an empty root is a start state
+(`GooseLang/Ext/Fs/TestsInit.lean`), and P1 always leaves a crash (`P1Sat.lean`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootMinibolt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.P1Sat
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.OpenCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__CommitCrash
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commitCrash
@@ -320,6 +324,9 @@ theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
 end adequacy
 
 #print axioms bootCrashSafety
+-- P1 is never vacuous at a crash, and a file no change touched never makes it fail (`P1Sat.lean`).
+#print axioms P1Sat.p1_crash_exists
+#print axioms P1Sat.p1_untouched
 
 end osfs_bboltfs
 end EtcdGrove

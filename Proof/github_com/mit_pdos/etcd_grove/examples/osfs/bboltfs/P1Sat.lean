@@ -1,16 +1,26 @@
-/- Review check (fs-final): P1 never leaves a reachable state without a crash. From any machine
-crash `st'` of a state satisfying `CacheOk` (true from boot, after every step and after a crash:
-`Tests.lean`), the crash with the same tree that leaves every named file as of its last sync
-(each byte `valAt · 0`, size `sizeLo`) is a machine crash and satisfies P1 (with `n = 0`).
-Run: `lake env lean notes/axiom-review/fs-final/P1Sat.lean` (after `lake build` of BootP1 and
-Tests). -/
-import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
-import GooseLang.Ext.Fs.Tests
+/- Lean-first (no Rocq counterpart). P1 (`BootP1.lean`) neither empties nor narrows the crashes
+of a run beyond what it means to: from every reachable state (one satisfying `CacheOk`, which holds
+from boot, after every step and after a crash: `GooseLang/Ext/Fs/Tests.lean`) with a machine crash,
+the crash with the same tree that leaves every named file as of its last sync is a machine crash
+satisfying P1 (`p1_crash_exists`), so the premise never makes `bootCrashSafety` vacuous; and a file
+no change touched since its last sync satisfies P1's clause at every crash, whatever its bytes
+(`p1_untouched`), so a file other than the database (holding a valid meta or not) never makes P1
+fail. From the final review (`notes/axiom-review/fs-final.md`). Untrusted. -/
+module
 
-open Perennial Perennial.Fs Perennial.Fs.Tests Perennial.EtcdGrove.osfs_bboltfs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
+public import GooseLang.Ext.Fs.Tests
 
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace osfs_bboltfs
 namespace P1Sat
 
+open Perennial.Fs Perennial.Fs.Tests
 /-- Each file as of its last sync. -/
 noncomputable def durFile (f : OsFile) : OsFile :=
   OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo
@@ -83,7 +93,11 @@ theorem p1_untouched (st : OsState) (i : Ino) (f f' : OsFile) (v : Nat → w8)
   rw [diskByte, if_pos (by simp only [pageIn, decide_eq_true_eq]; omega), hs.1]
   simp [valAt]
 
-#print axioms p1_crash_exists
-#print axioms p1_untouched
+
 
 end P1Sat
+end osfs_bboltfs
+end EtcdGrove
+end Perennial
+
+end

@@ -14,10 +14,11 @@ import (
 // entries. With each directory's entries durable only through that directory's
 // fsync (POSIX), a crash after Create may keep the rename (the parent was
 // synced) and lose seg's entry in the renamed directory (never synced): wal
-// without seg. With the metadata operations durable in order, as ext4's and
-// xfs's journals make them (the extension's model, notes/walfs-ext-plan.md,
-// N1), syncing the parent after the rename makes the earlier create of seg
-// durable too. etcd's WAL relies on the latter.
+// without seg. With the metadata operations journaled in order, as ext4's
+// journal does (the extension's model: a crash keeps a set of them closed under
+// the journal order, and a directory fsync commits every logged one;
+// notes/fs-semantics-v2.md), syncing the parent after the rename makes the
+// earlier create of seg durable too. etcd's WAL relies on the latter.
 
 // Create makes dir/wal with dir/wal/seg holding the data. On any error it
 // returns.
