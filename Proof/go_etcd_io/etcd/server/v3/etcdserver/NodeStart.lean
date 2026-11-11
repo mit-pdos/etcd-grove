@@ -244,6 +244,154 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = []) (ha : γ.a0 = []) (h
     iframe Hcons
     iexact Hcum0
 
+/-- (restart S3 item 8, 2026-11-11; Q34 (a)) **The loop's and the apply side's tokens at a restart**
+(`rnLoopTok γ P`, `rnApplyTok γ P`), beside `rnToks_of_start`: from the node API's driver as
+`RestartNode` leaves it (delivered the committed log of the restored base, here `srvLE γ.srv P`; the
+restored hard state `p`; the durable state `S`; a follower), its view `v` after the ghost log
+(`srvCfgOk`), the loop's half of the running token, `applyc`'s halves with `cum` at `[P]`
+(`newRaftNode`'s at `L₀ = P`), the loop's WAL view at `⟨S, p, none, srvLE γ.srv P⟩`, `P`'s frozen terms
+(the restarted storage's, `srvFrozenTerms_restart`), `P`'s indices from `1`, and the loop's fact
+(`commit0 ≤ p.Commit'`). -/
+theorem rnToks_of_restart (γ : RNNames) (P : List EntryModel) (p : HardStateM) (S : RaftState)
+    (v : ConfigView) (hpre : γ.pre = []) (hidx : srvIdxOkW (W64 0) P)
+    (hc0 : γ.commit0 ≤ uint.nat p.Commit')
+    (hcfg : srvCfgOk γ.node.cfg (rnGhost γ P) v) :
+    (letI := srvStor (GF := GF) γ.node;
+      iprop(nodeDriver γ.nl γ.node.cl srvClusterN
+          ⟨memStorIface γ.ms, srvLE γ.srv P, p, none, γ.key, S, StateFollower⟩ ∗
+        raftState γ.node.cl γ.id S ∗
+        nodeConfig γ.nl γ.node.cl srvClusterN v)) ∗
+      (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
+      sspscProducer γ.ap ([] : List toApply) ∗ sspscConsumer γ.ap ([] : List toApply) ∗
+      monoListAuthOwn γ.cum 1 [P] ∗ monoListIdxOwn γ.cum 0 P ∗
+      ghostVar γ.wal.view (1 : Qp).half (⟨S, p, none, srvLE γ.srv P⟩ : WalView) ∗ token γ.wal.ok ∗
+      srvFrozenTerms γ.γs 1 P ⊢
+      rnLoopTok γ P ∗ rnApplyTok γ P := by
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0, Hwv, Hwok, #Hfz⟩
+  ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
+  ihave #HcL : isCommittedLogLb γ.node.cl (srvLE γ.srv P) $$ []
+  · iapply deliveredLogLb_committed $$ Hdl
+  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
+  · iunfold rnLoopTok
+    iexists p
+    iunfold rnLoopTokP
+    iexists [], [P], S, StateFollower
+    isplitl [Hdrv HrS Hcfg]
+    · iunfold rnDrv
+      have h : rnDrvSt γ P p S StateFollower =
+          ⟨memStorIface γ.ms, srvLE γ.srv P, p, none, γ.key, S, StateFollower⟩ := rfl
+      rw [h]
+      iframe Hdrv HrS
+      iunfold rnCfgAt
+      iunfold rnView
+      iunfold srvCfgView
+      iexists v
+      iframe Hcfg
+      ipureintro
+      simp only [List.nil_append]
+      exact hcfg
+    isplitr
+    · ipureintro; intro h; cases h
+    isplitl [Hwv Hwok]
+    · iunfold rnWalView
+      iframe Hwv Hwok
+    iframe Hrun Hprod Hcum
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · ipureintro
+      exact ⟨W64 0, by rw [hpre]; rfl, hidx⟩
+    isplitr
+    · rw [hpre]; iexact Hfz
+    isplitr
+    · ipureintro; exact hc0
+    iexact HcL
+  · iunfold rnApplyTok
+    iexists []
+    iframe Hcons
+    iexact Hcum0
+
+/-- (restart S3 item 8, 2026-11-11) **The restarted storage freezes the log up to its base with its
+terms**: the storage compacted through `|P|` and its entry at `|P|` frozen at `P`'s last term (what
+`memStorRestarted` leaves at the base `σ.b = |P|`) give `P`'s frozen terms from index `1` (every
+entry but the last compacted, the last frozen). -/
+theorem srvFrozenTerms_restart (γs : MemStorNames) (P : List EntryModel) (e0 : EntryM)
+    (hlt : lastTermIs P e0.Term') :
+    memCompacted (GF := GF) γs P.length ∗ memLog γs P.length DFrac.discard [e0] ⊢
+      srvFrozenTerms γs 1 P := by
+  suffices h : iprop(□ (memCompacted (GF := GF) γs P.length ∗
+      memLog γs P.length DFrac.discard [e0])) ⊢ srvFrozenTerms γs 1 P by
+    iintro ⟨#Hc, #He⟩
+    iapply h
+    imodintro
+    iframe Hc He
+  unfold srvFrozenTerms
+  refine BigSepL.bigSepL_intro fun k m hk => ?_
+  iintro #H
+  icases H with ⟨#Hc, #He⟩
+  have hkl : k < P.length := (List.getElem?_eq_some_iff.1 hk).1
+  by_cases hlast : k + 1 < P.length
+  · iright
+    isplitr
+    · ipureintro; exact hlast
+    iapply memCompacted_mono γs P.length (1 + k) (by omega) $$ Hc
+  · ileft
+    iexists e0
+    have hkP : 1 + k = P.length := by omega
+    rw [hkP]
+    iframe He
+    ipureintro
+    rcases hlt with h | h
+    · subst h; simp at hkl
+    · have hg : P.getLast? = some m := by
+        rw [List.getLast?_eq_getElem?, show P.length - 1 = k by omega]; exact hk
+      rw [hg] at h
+      simp only [Option.map_some, Option.some.injEq] at h
+      exact h.symm
+
+/-- (restart S3 item 8, 2026-11-11) **The restored base's term is the backend log's**: a committed
+backend log `A₀` (`srvRLogLb`, at the server's names) reaching the records' base, and the records'
+snapshot certificate (`walSnapCert`; the snapshot record's term the base's, `hterm`), give the base's
+term as the last term of `A₀` up to the base (committed logs agree, `isCommittedLogLb_agree`). -/
+theorem restart_lastTerm (γr : SrvRaft) (A₀ : List EntryModel) (σ : StorContents)
+    (hb : σ.b ≤ A₀.length)
+    (hterm : ∀ m : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m) → m.Term' = σ.base.term') :
+    srvRLogLb (GF := GF) ⟨γr, [], W64 0⟩ A₀ ∗ walSnapCert γr.cl σ ⊢
+      ⌜lastTermIs (A₀.take σ.b) σ.base.term'⌝ := by
+  letI := srvStor (GF := GF) γr
+  iintro ⟨#HA, #Hc⟩
+  iunfold walSnapCert at Hc
+  icases Hc with (%H0 | ⟨%m, %Hsm, #Hv⟩)
+  · ipureintro; left; rw [H0]; rfl
+  obtain ⟨Hsnap, Hidx⟩ := Hsm
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %mem, #Hl, -, -, %Hp⟩
+  obtain ⟨h1, h2, h3, -⟩ := Hp
+  iunfold srvRLogLb at HA
+  icases HA with ⟨#HAc, -⟩
+  icases isCommittedLogLb_agree γr.cl l (srvLE ⟨γr, [], W64 0⟩ A₀) $$ [Hl HAc] with %Hag
+  · iframe Hl HAc
+  ipureintro
+  have hlb : l.length = σ.b := by simp only at h1; rw [h1, Hidx]
+  have hSL : (srvLE ⟨γr, [], W64 0⟩ A₀).length = A₀.length := by simp [srvLE]
+  have hl : l = (A₀.take σ.b).map EntryModel.toLE := by
+    have e : (A₀.take σ.b).map EntryModel.toLE = (srvLE ⟨γr, [], W64 0⟩ A₀).take l.length := by
+      rw [hlb]; simp [srvLE, List.map_take]
+    rw [e]
+    rcases Hag with h | h
+    · exact List.prefix_iff_eq_take.1 h
+    · have := h.length_le
+      rw [hSL] at this
+      have heq : srvLE ⟨γr, [], W64 0⟩ A₀ = l :=
+        List.IsPrefix.eq_of_length h (by omega)
+      rw [heq, List.take_length]
+  right
+  have ht : Option.map LogEntry.term l.getLast? = some m.Term' := h3
+  rw [hterm m Hsnap] at ht
+  rw [hl, List.getLast?_map, Option.map_map] at ht
+  exact ht
+
 /-- **A fresh `MemoryStorage` boots a node** (2026-10-30, the repair: `StartNode.spec`'s
 `bootStorage`, at the empty conf state and hard state, over raft's two-writer `MemoryStorage`
 specs; until then the trusted `InitialState` closure and the old storage tokens; 2026-11-01,
@@ -794,6 +942,314 @@ theorem raftNode_of_StartNode
     simp only [named]
     iframe #
     -- (2026-10-31) `stopped`'s bag at the storage's WAL; (R2b-3b) `done`'s escrow at it
+    isplitr
+    · iExactEq Hstci
+      first | rfl | simp [Hrvcfg]
+    iExactEq Hdnci
+    first | rfl | simp [Hrvcfg]
+  imodintro
+  iframe Hrn Hdone Htrf Hprop
+  have hn : rnNodeIface γw =
+      ({ rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } : raftNode).raftNodeConfig'.Node' := by
+    simp only [Hrvcfg, rnNodeIface, Hwnl]
+  rw [hn]
+  iexact Hnodef
+
+
+/-- (restart S3 item 8, D5, 2026-11-11) **The composition's statement at a restart** (beside
+`NodeStartSpec`, which stays the first start's: D5, so that `NewServer.lean` is untouched until S6):
+`bootstrappedRaft.newRaftNode` over the node API's `RestartNode` (the boot `.restart σ cs S |A₀| m A₀`),
+for the WAL's records `σ`, the backend's conf state `cs` and committed log `A₀` (its consistent index
+`|A₀|` between the records' base and commit), the node's durable state `S` held by the records: the
+storage `bootstrappedWAL.MemoryStorage` rebuilt (`memStorRestarted`; `srvMem_restartStorage`, its
+snapshot valid by `walSnapCS_valid`), the WAL's durability at the view `⟨S, σ.hs, none, P⟩` with
+`P = A₀.take σ.b` (`rnDur_alloc_view`, W4's records); yields the wrapper with the tokens at `P`
+(Q34 (a); `rnToks_of_restart`), the names' restart data (`a0 = A₀`, `t0` the restored term, `commit0`,
+`snap0` the restored commit and base), and the installer, which takes the restart-only premise
+`rnSnapTermAbove` (row 4, R2d'a's) for `isRaftNode`'s `rnRestartOk`. -/
+abbrev NodeStartSpecR : Prop :=
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
+    (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
+    (ν : WalNames) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
+    (σ : StorContents) (cs : ConfStateM) (S : RaftState) (m : Membership) (A₀ : List EntryModel),
+    letI : MemStorReg GF := ⟨γr.reg⟩
+    letI := srvStor (GF := GF) γr
+    {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        -- the pure premises: the restart's configuration (`rnRestartCfg`), a positive heartbeat, the
+        -- WAL read, the receipts' bound (`rnLogFits`), the voters within raft's bounds (the view's
+        -- `srvCfgOk`), the backend's consistent index between the records' base and commit, the
+        -- bootstrap log within the commit, the records holding `S`, the snapshot record's term the
+        -- base's, the backend's conf state the voters' (D4, S6's) within raft's bounds
+        "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ 0 < sint.Z bv.heartbeat' ∧ storage.walReady wal ∧
+          receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧ W64 0 ∉ γr.cfg ∧ GMap.size γr.cfg < 2 ^ 62 ∧
+          σ.b ≤ A₀.length ∧ A₀.length ≤ σ.commit ∧ γr.cl.bootLen ≤ σ.commit ∧ StorageHolds S σ ∧
+          (∀ m' : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m') → m'.Term' = σ.base.term') ∧
+          confStateIs cs (Membership.simple γr.cfg) ∧
+          (cs.Voters'.length + cs.Learners'.length + cs.VotersOutgoing'.length +
+            cs.LearnersNext'.length : Int) ≤ 2 ^ 62⌝ ∗
+        "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
+        "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
+        -- the registered `MemoryStorage` as `bootstrappedWAL.MemoryStorage` rebuilds it
+        "#Hreg" ∷ memStorReg bv.storage' γs ∗ "#Hlock" ∷ memStorLock bv.storage' γs ∗
+        "Hrest" ∷ memStorRestarted bv.storage' γs σ cs ∗
+        "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
+        -- the restart image's: the cluster, its receipts' bound, the id vacant, the durable state,
+        -- the configuration at the backend's index, the server's raft-log invariant, the backend's
+        -- log committed, the records' snapshot certificate
+        "#Hclu" ∷ isCluster γr.cl srvClusterN ∗ "#Hrf" ∷ readyFits γr.cl srvClusterN ∗
+        "Hvac" ∷ nodeVacant γr.cl cv.ID' ∗ "HrS" ∷ raftState γr.cl cv.ID' S ∗
+        "#Hconf" ∷ confAt γr.cl A₀.length m ∗
+        "#Hlinv" ∷ srvRaftLogInv ⟨γr, [], W64 0⟩ ∗ "#HA0" ∷ srvRLogLb ⟨γr, [], W64 0⟩ A₀ ∗
+        "#Hcert" ∷ walSnapCert γr.cl σ ∗
+        -- the names-only contracts
+        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+        "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
+        "#Hcl" ∷ rnClusterOk cl ∗
+        -- the WAL's durability at the restart's view (`rnDur_alloc_view`)
+        "#Hdur" ∷ rnDurInv γr.cl ν wal ∗
+        "Hwview" ∷ ghostVar ν.view (1 : Qp).half
+          (⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ : WalView) ∗
+        "Hwok" ∷ token ν.ok }}
+      (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
+        (Val #ss)) (Val #wal)) (Val #cl))
+    {{ (r : Loc), RET #r;
+        ∃ (γw : RNNames) (rv : raftNode),
+          ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
+            γw.wal = ν ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
+            γw.snap0 = σ.b ∧
+            rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
+            rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
+            rv.raftNodeConfig'.transport' = GoInterface.nil ∧
+            rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
+            rnStorageOf rv.raftNodeConfig'.storage' ss ∧
+            storage.walOf rv.raftNodeConfig'.storage' = wal⌝ ∗
+          r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
+          rnStepIfc γw (rnNodeIface γw) ∗
+          -- the tokens at `P` (Q34 (a))
+          rnLoopTok γw (A₀.take σ.b) ∗ rnApplyTok γw (A₀.take σ.b) ∗
+          (letI := srvStor (GF := GF) γw.node; nodeRunning γw.nl γw.node.cl srvClusterN (1 : Qp).half) ∗
+          -- the installer, with the restart-only premise `rnSnapTermAbove`
+          (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
+            srvRdCtxInv E.γr.raft issued -∗ rnSnapTermAbove γw -∗
+            rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
+            isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
+            isRaftNode E γw a ∗ rnDoneTok γw a ∗
+            rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
+            rnTransportAddr a ↦□ tr) ∗
+          b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
+          memStorInv bv.storage' γs γr.cl γw.key ∗ memStorMeta bv.storage' γs σ.hs ∗
+          rnStopClaim γw }}
+
+set_option maxHeartbeats 0 in
+/-- (restart S3 item 8, 2026-11-11) **The composition at a restart** (see `NodeStartSpecR`): from
+`bootstrappedRaft.newRaftNode.spec` at `.restart` (through it the node API's `RestartNode`) and the
+node API's node specs, as `raftNode_of_StartNode`. -/
+theorem raftNode_of_RestartNode
+    (wp_bnr : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
+    (wp_InitialState : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
+    (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
+    (wp_Ready : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Ready.spec (GF := GF) (hG := hG))
+    (wp_Advance : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Advance.spec (GF := GF) (hG := hG))
+    (wp_Tick : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Tick.spec (GF := GF) (hG := hG))
+    (wp_Stop : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Stop.spec (GF := GF) (hG := hG))
+    (wp_ReadIndex : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ReadIndex.spec (GF := GF) (hG := hG))
+    (wp_Step : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Step.spec (GF := GF) (hG := hG))
+    (wp_ReportUnreachable : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
+    (wp_ReportSnapshot : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
+    (wp_Propose : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.Propose.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
+    NodeStartSpecR (GF := GF) := by
+  intro γr E b ss wal cl dq bv cv lok γs ν pv ctxs issued σ cs S m A₀
+  letI : MemStorReg GF := ⟨γr.reg⟩
+  letI := srvStor (GF := GF) γr
+  iintro %Φ Hpre HΦ
+  iNamed Hpre
+  obtain ⟨Hcfg, Hhb, Hwal, Hfit, H0, Hsz, Hba, Hac, Hboot, Hhold, Hterm, Hcs, Hcsb⟩ := Hraft
+  have Hbc : σ.b ≤ σ.commit := Nat.le_trans Hba Hac
+  -- the configuration at the backend's index the voters' (Q39)
+  imod srv_confAt_eq_simple ⟨γr, [], W64 0⟩ (srvLE ⟨γr, [], W64 0⟩ A₀) A₀.length m
+      (by simp [srvLE]) ⊤ (by simp) (by simp) $$ [$Hlinv $Hconf] with %Hm
+  · iunfold srvRLogLb at HA0; icases HA0 with ⟨#H, -⟩; iexact H
+  subst Hm
+  -- the restarted storage's snapshot valid (D4) and its persistent part, for the frozen terms
+  imod walSnapCS_valid ⟨γr, [], W64 0⟩ σ cs ⊤ (by simp) (by simp) Hterm Hcs Hcsb $$ [$Hlinv $Hcert]
+    with Hval
+  ihave %Hlt := restart_lastTerm γr A₀ σ Hba Hterm $$ [$HA0 $Hcert]
+  iunfold memStorRestarted at Hrest
+  icases Hrest with ⟨Hfresh, Hmeta, #Hcp, #He0, #Hslb, Hents, Hend⟩
+  ihave #Hfz : srvFrozenTerms γs 1 (A₀.take σ.b) $$ []
+  · have hlen : (A₀.take σ.b).length = σ.b := by simp; omega
+    iapply srvFrozenTerms_restart γs (A₀.take σ.b) (memDummy (walSnapCS σ cs)) Hlt
+    rw [hlen]
+    iframe Hcp He0
+  ihave Hbs := srvMem_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
+      wp_Entries γr bv.storage' γs σ cs 0
+      (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs)) Hbc
+      $$ [Hfresh Hmeta Hents Hend Hval]
+  · iframe Hreg Hlock Hval
+    isplitl [Hfresh Hmeta Hents Hend]
+    · iunfold memStorRestarted
+      iframe Hfresh Hmeta Hcp He0 Hslb Hents Hend
+    iintro %K Hi Hm
+    iframe Hi Hm
+  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv [] ctxs
+    (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs))
+    (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀))
+    $$ [Hb Hc Hbs Hpeers HrS Hvac]
+    as %r Hpost
+  · iframe #; iframe Hb Hc Hpeers
+    isplitr
+    · ipureintro; exact ⟨Hhb, Hwal⟩
+    simp only [rnBootPre]
+    isplitr
+    · ipureintro; exact ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold⟩
+    isplitl [Hbs]
+    · iExactEq Hbs; rfl
+    isplitr
+    · iExactEq Hclu; rfl
+    isplitr
+    · iExactEq Hrf; rfl
+    isplitl [Hvac]
+    · iExactEq Hvac; rfl
+    isplitl [HrS]
+    · iExactEq HrS; rfl
+    iExactEq Hconf; rfl
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti,
+    %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
+  simp only [rnBootPost, RNBoot.P]
+  icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
+  simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
+  -- the driver's delivered log is the backend's up to the base (committed logs agree)
+  ihave %Hleq : ⌜l = srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⌝ $$ []
+  · iunfold srvRLogLb at HA0
+    icases HA0 with ⟨#HAc, -⟩
+    icases isCommittedLogLb_agree γr.cl l (srvLE ⟨γr, [], W64 0⟩ A₀) $$ [Hl HAc] with %Hag
+    · iframe Hl HAc
+    ipureintro
+    have hSL : (srvLE ⟨γr, [], W64 0⟩ A₀).length = A₀.length := by simp [srvLE]
+    have e : srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b) = (srvLE ⟨γr, [], W64 0⟩ A₀).take l.length := by
+      rw [Hll]; simp [srvLE, List.map_take]
+    rw [e]
+    rcases Hag with h | h
+    · exact List.prefix_iff_eq_take.1 h
+    · have := h.length_le
+      rw [hSL] at this
+      have heq : srvLE ⟨γr, [], W64 0⟩ A₀ = l := List.IsPrefix.eq_of_length h (by omega)
+      rw [heq, List.take_length]
+  subst Hleq
+  iunfold rnBuilt at Hbuilt
+  iNamed Hbuilt
+  obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
+  have Hsrv : γw.srv = ⟨γr, [], W64 0⟩ := by
+    unfold RNNames.srv; rw [Hwnode, Hwpre]
+  -- the bridges
+  ihave #Hfits' : rnLogFits γw $$ []
+  · iunfold rnLogFits; ipureintro; rw [Hwnode]; exact Hfit
+  ihave #Hreg' : rnMemStorReg γw $$ []
+  · unfold rnMemStorReg RNNames.reg; rw [Hwms, Hwγs, Hwnode]; iexact Hreg
+  ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  ihave #Hmsi : isRNMemStor γw γw.ms $$ []
+  · iapply isRNMemStor_of_memstorage γw
+    iframe Hpraft Hreg'
+    rw [Hwms, Hwγs]; iexact Hlock
+  ihave #Hisnode : rnIsNode γw $$ []
+  · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
+  icases ((nodeRunning_fractional n γr.cl srvClusterN).fractional (1 : Qp).half
+      (1 : Qp).half).1 $$ [Hrun] with ⟨Hrun1, Hrun2⟩
+  · rw [Qp.half_add_half]; iexact Hrun
+  -- the tokens at `P`
+  ihave %HAidx : ⌜srvIdxOkW (W64 0) A₀⌝ $$ []
+  · iunfold srvRLogLb at HA0; icases HA0 with ⟨-, %h⟩; ipureintro; exact h
+  have hidx : srvIdxOkW (W64 0) (A₀.take σ.b) :=
+    srvIdxOkW_prefix _ _ _ HAidx (List.take_prefix _ _)
+  have hghost : rnGhost γw (A₀.take σ.b) = A₀ := by
+    unfold rnGhost
+    rw [Hwpre, Hwa0, List.nil_append, List.length_take, Nat.min_eq_left Hba, List.take_append_drop]
+  have hcfgv : srvCfgOk γw.node.cfg (rnGhost γw (A₀.take σ.b))
+      ⟨A₀.length, Membership.simple γr.cfg⟩ := by
+    rw [hghost, Hwnode]
+    exact ⟨Nat.le_refl _, fun _ _ h1 h2 _ => absurd h2 (by simp; omega),
+      ⟨γr.cfg, rfl, fun _ h => h, fun _ h1 h2 => absurd h1 h2, H0, Hsz⟩⟩
+  ihave ⟨Hloop, Happly⟩ := rnToks_of_restart γw (A₀.take σ.b) σ.hs S
+      ⟨A₀.length, Membership.simple γr.cfg⟩ Hwpre hidx (by rw [Hwc0]; exact Nat.le_refl _) hcfgv
+    $$ [Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok]
+  · rw [Hsrv, Hwnode, Hwnl, Hwms, Hwid, Hwwal, Hwγs]
+    iframe Hdrv HrS Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview Hwok Hfz
+  iapply HΦ
+  iexists γw, rv
+  isplitr
+  · ipureintro
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0, Hwc0, Hws0, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;>
+      rw [Hrvcfg]
+    all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
+  iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
+  isplitr
+  · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
+      (wp_ReportSnapshot γw.node)
+    iframe Hpkg Hisnode
+  isplitl [Hrun2]
+  · rw [Hwnode, Hwnl]; iexact Hrun2
+  -- the installer
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hsta #Hfix Htrf Hlts #Htri Hmu'
+  ihave #Hrsb : rnReadStateBridge E γw $$ []
+  · iapply rnReadStateBridge_of_raft E γw $$ Henv'
+  ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
+  · iapply isRaftNodeIfc_of_isNode E γw s issued (wp_Ready γw.node) (wp_Advance γw.node)
+      (wp_Tick γw.node) (wp_Stop γw.node) (wp_ReadIndex γw.node)
+      (wp_ApplyConfChange γw.node)
+    iframe Hpkg Henv' Hisnode Hcommi Hreg' Hrdi
+  ihave #Hlinv' : srvRaftLogInv E.γr.raft $$ []
+  · iunfold rnEnvOk at Henv'
+    icases Henv' with ⟨-, -, -, #H, -⟩
+    iexact H
+  ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
+  · iapply raftPropose_of_isNode E γw (wp_Propose γw.node)
+    iframe Hpkg Henv' Hisnode Hlinv'
+  ihave #Hfix' : rnFixed a
+      { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } $$ []
+  · simp only [rnFixed]
+    iexact Hfix
+  imod (isRaftNode_of_rnParts E γw a
+    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
+    $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
+    isplitr
+    · -- the restart data: the restart disjunct
+      iunfold rnRestartOk; iright
+      iframe Hsta
+      isplitr
+      · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac⟩
+      rw [Hsrv, Hwa0]; iexact HA0
+    simp only [Hrvcfg]
+    iframe Hidri Hsti Htri Hmsi
+    isplitr
+    · rw [← Hwnl]
+      iexact Hni
+    isplitr
+    · ipureintro; exact Hwms.symm
+    isplitr
+    · rw [Hwwal, Hstss.2, Hwnode]; iexact Hdur
+    iunfold rnParts at Hparts
+    iunfold rnParts
+    iNamed Hparts
+    simp only [named]
+    iframe #
     isplitr
     · iExactEq Hstci
       first | rfl | simp [Hrvcfg]
