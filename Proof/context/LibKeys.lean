@@ -84,7 +84,7 @@ opaque trace.otelSpan [GooseExts] : GoInterface → Prop
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **`ctx.Value(k)` returns a value satisfying the pure `R`** (persistent; from any goroutine). -/

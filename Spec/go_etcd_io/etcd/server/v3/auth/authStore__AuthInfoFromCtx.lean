@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -25,11 +26,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.AuthInfoFromCtx(ctx)`: an auth info (`nil` if auth is disabled or the context has no token) and `nil` or `ErrInvalidAuthToken`; the info is bound to the context's own token (`ctxBound`: the token `ctxTokenOf ctx` the context's incoming metadata carries, the auth plan's E2c; in `on γa`, its user is one the token was issued to; the auth plan's S5). -/
 
 abbrev auth.authStore.AuthInfoFromCtx.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ enabledRd st M }}
-    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthInfoFromCtx")) (Val #ctx))
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ctx : GoInterfaceOk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ enabledRd st M ∗
+      metadata.incomingCtxOk ctx }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthInfoFromCtx"))
+      (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); enabledRd st M ∗ authInfoRO a ∗ authErrIs err ∗
-      ctxBound M ctx a }}
+      ctxBound M (GoInterface.ok ctx) a }}
 
 end spec
 

@@ -81,6 +81,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
+public import Proof.context.LibKeys
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
@@ -2625,18 +2626,19 @@ def authInfoOpt (a : Loc) : IProp GF :=
 reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method read-locks
 `enabledMu`), returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer can take:
 `applyErrIs`; 2026-10-12, unit 3a; and `nil` or one of the auth package's error variables,
-`authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). Of the real
-store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
+`authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`); (premise-fixes-8 S2) each call on a context whose
+library values are well formed (`context.libCtxOk`, which the request path carries from the gRPC run
+context). Of the real store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
 apply package's `isAuthStore`. -/
 def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ RD }}
+      {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
           authApplyErrIs err }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd }}
+      {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc), RET #a; authInfoOpt a }}))
 
@@ -2656,7 +2658,7 @@ plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrL
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ RD }}
+      {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
           authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
