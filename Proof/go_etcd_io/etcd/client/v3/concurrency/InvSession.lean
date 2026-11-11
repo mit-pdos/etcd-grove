@@ -214,10 +214,10 @@ def isSession (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) : IProp GF
     structFieldRef Session go!"cancel" s ↦□ cancel ∗
     structFieldRef Session go!"donec" s ↦□ donec ∗
     ops ↦□ o.val ∗ ⌜o.ctx = GoInterface.ok octx ∧ id ≠ W64 0⌝ ∗ context.isContext octx ocs ∗
-    context.isContext ctx cs ∗ cancelSpec cancel ∗ sessionDoneChan donec γ ∗
+    metadata.outgoingCtxOkC octx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ cancelSpec cancel ∗ sessionDoneChan donec γ ∗
     isEtcdLeaseClient client)
 
-set_option synthInstance.maxSize 512 in
+set_option synthInstance.maxSize 1024 in
 set_option synthInstance.maxHeartbeats 200000 in
 instance isSession_persistent (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) :
     Persistent (isSession (GF := GF) s γ client id) := by

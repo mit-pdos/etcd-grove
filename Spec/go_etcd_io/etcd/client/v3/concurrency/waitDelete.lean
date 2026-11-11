@@ -31,7 +31,7 @@ context's, or "lost watcher" when the channel closes). -/
 abbrev waitDelete.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (client : Loc) (pfx key : GoString)
     (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdMutexClient client pfx ∗ context.isContext ctx cs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdMutexClient client pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
       context.isCancelCtxCtx ctx cs ∗ ⌜pfx <+: key ∧ 0 ≤ sint.Z rev ∧ key.length ≤ 2 ^ 30⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.waitDelete))
       (Val #(GoInterface.ok ctx))) (Val #client)) (Val #key)) (Val #rev))

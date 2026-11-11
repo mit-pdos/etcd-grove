@@ -149,7 +149,7 @@ def isEtcdMutexClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv w cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ clientWatcherAddr client ↦□ GoInterface.ok w ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" client ↦□ GoInterface.ok cctx ∗
-    context.isContext cctx ccs ∗
+    context.isContext cctx ccs ∗ metadata.outgoingCtxOkC cctx ∗
     isEtcdKV kv pfx ∗ isEtcdTxnKV kv pfx ∗ isEtcdDeleteKV kv pfx ∗ isEtcdRangeWatcher w pfx)
 
 instance isEtcdMutexClient_persistent (client : Loc) (pfx : GoString) :

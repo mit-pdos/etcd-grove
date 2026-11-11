@@ -53,7 +53,7 @@ theorem mkSTM.wp_proof
     (hWS : EtcdGrove.WithSerializable.spec (GF := GF) (hG := hG)) :
     mkSTM.spec (GF := GF) (hG := hG) := by
   intro c pfx op ov ctx cs
-  wp_start as ⟨#Hcl, #Hop, #Hctx, %Hov⟩
+  wp_start as ⟨#Hcl, #Hop, #Hctx, #HctxC, %Hov⟩
   ihave #Hop2 := Hop
   iStructNamed Hop2
   wp_auto
