@@ -55,6 +55,7 @@ theorem simServerR_becomeCandidate (C : List w64) (bl : Nat) (id : w64) (s : NSt
   · intro _
     refine ⟨?_, ?_⟩ <;>
       simp [candOf, toPState, becomeCandidate, resetTo, resetTo0, Etcdraft.SetIds.mk]
+    exact tallyGranted_empty
   · intro h; cases h
 
 theorem logShapeOk_becomeCandidate (bl : Nat) (id : w64) (s : NState) (h : LogShapeOk bl (toPState s)) :

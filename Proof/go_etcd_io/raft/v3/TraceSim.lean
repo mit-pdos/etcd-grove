@@ -120,8 +120,23 @@ def msgAbs (C : List w64) (bl : Nat) (m : Msg) : Option Etcdraft.Msg :=
 
 /-! ## A node and its server -/
 
+/-- **A candidate's granted voters against raft's tally** (amendment A3, Q17 (d)): the
+specification's `votesGranted` `g` is a set (`SetIds.mk L`) holding every voter raft's tally `votes`
+counts as granting and only voters raft has heard from. Not equality: raft records a voter's first
+response of a term only (`RecordVote`), the specification adds a voter on every granting response,
+and a phantom refusal (Q14, of the voter's current term) can sit in flight beside the voter's real
+grant, so no fact of the specification's state rules out a second response
+(`notes/decisions.md`, "Amendment A3 (Q17)"); with this relation the specification's tally only ever
+holds more granting voters than raft's, all of them responded, which is all its `BecomeLeader` reads
+(`isQuorum`, monotone on subsets of the configuration: `tallyGranted_quorum`, given that raft's
+voters are in it). -/
+def TallyGranted (votes : GMap w64 Bool) (g : Etcdraft.SetIds) : Prop :=
+  ∃ L : List Etcdraft.ID, g = Etcdraft.SetIds.mk L ∧
+    (∀ k, votes !! k = some true → idAbs k ∈ L) ∧ (∀ x ∈ L, ∃ k v, votes !! k = some v ∧ idAbs k = x)
+
 /-- Node `s` and its server `a` agree, at a hook point of the idle phase (revision 13's `R_i`):
-term, role, vote, leader, log, commit index, configuration; the vote tally while a candidate;
+term, role, vote, leader, log, commit index, configuration; the vote tally while a candidate (the
+responded voters exactly, the granted ones up to `TallyGranted`: amendment A3);
 `matchIndex` while a leader (raft's `Match`, its own entry included); `pendingConfChangeIndex` 0
 (no configuration change: P3). `durable` is not raft's (the node's last `Ready` line's,
 `durableOf`), so it is the simulation's: not here. -/
@@ -132,7 +147,7 @@ def SimServerR (C : List w64) (bl : Nat) (s : PState) (a : Etcdraft.Server) : Pr
   a.pendingConfChangeIndex = 0 ∧
   (s.role = .candidate →
     a.votesResponded = Etcdraft.SetIds.mk ((GMap.toList s.votes).map (fun p => idAbs p.1)) ∧
-    a.votesGranted = Etcdraft.SetIds.mk (((GMap.toList s.votes).filter (fun p => p.2)).map (fun p => idAbs p.1))) ∧
+    TallyGranted s.votes a.votesGranted) ∧
   (s.role = .leader → ∀ j ∈ C, a.matchIndex (idAbs j) = uint.Z ((s.matched !! j).getD (W64 0)))
 
 end TraceSim
