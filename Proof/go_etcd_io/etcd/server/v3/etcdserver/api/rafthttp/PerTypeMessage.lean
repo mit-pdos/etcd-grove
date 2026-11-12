@@ -41,6 +41,7 @@ The schemas are defined, with `pbSchemaOf`, in `proto/PbSchema.lean` (CP2).
 module
 
 public import Proof.go_etcd_io.raft.v3.PbEntryType
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 public import Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section

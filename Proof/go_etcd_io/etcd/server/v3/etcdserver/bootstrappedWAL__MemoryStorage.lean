@@ -98,7 +98,7 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   try wp_auto
-  wp_apply wp_NewMemoryStorage as %ms %γs ⟨#Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
+  wp_apply wp_NewMemoryStorage false as %ms %γs ⟨%Hsz, #Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
   try wp_auto
   imod memSnapNone_open γs $$ Hnone with #Hlb0
   ihave #Hinit := go_etcd_io.raft.v3.isInitialized_access $$ Hraft
@@ -162,9 +162,12 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
       · rw [if_neg Hne, List.length_nil, Nat.add_zero]
         iframe Hend
         iapply memLog_nil
+      ihave Hents : entsPtsZ γs.sz bw.ents' edq σ.ents $$ [Hents]
+      · rw [Hsz]; iapply entsPts_entsPtsZ $$ Hents
       wp_apply wp_Append ms γs (σ.b + 1) [] σ.ents bw.ents' edq Hidx1 Hb61' $$ [HA Hents]
         as ⟨Hents, HA⟩
       · iframe Hlock HA Hents
+      ihave Hents := entsPtsZ_entsPts $$ Hents
       rw [if_neg Hne]
       icases HA with ⟨Hlog, Hend⟩
       try wp_auto
