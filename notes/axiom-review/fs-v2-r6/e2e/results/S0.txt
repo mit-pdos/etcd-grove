@@ -1,0 +1,20 @@
+e2e: skew 0, 120s x 1 rounds, 8 writers, 1 syncers, COMPACT=1 STABLE=1 CHURN=0 POOL=256 FILL=once
+check: /tmp/e2e/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+round 1: blocks 65536,65537,65538,65539,65540,65541,65542,65543; dm-0 stable_writes 1, loop 0
+write /tmp/e2e/mnt/f0: skew 0 (addr % 4096 = 0x0), fill once: 18496512 writes
+write /tmp/e2e/mnt/f1: skew 0 (addr % 4096 = 0x0), fill once: 18377728 writes
+write /tmp/e2e/mnt/f2: skew 0 (addr % 4096 = 0x0), fill once: 18567168 writes
+write /tmp/e2e/mnt/f3: skew 0 (addr % 4096 = 0x0), fill once: 18582528 writes
+write /tmp/e2e/mnt/f4: skew 0 (addr % 4096 = 0x0), fill once: 18395136 writes
+write /tmp/e2e/mnt/f5: skew 0 (addr % 4096 = 0x0), fill once: 18506752 writes
+write /tmp/e2e/mnt/f6: skew 0 (addr % 4096 = 0x0), fill once: 18549760 writes
+write /tmp/e2e/mnt/f7: skew 0 (addr % 4096 = 0x0), fill once: 18465792 writes
+sync: 30759224 sync_file_range calls
+@calls: 147941400
+@wb_ours: 2325717
+@zero_retry: 24
+WB-TORN lines: 0
+log: 10G
+log: 2325890 entries, 2325853 writes, 2325725 writes of a page 0, 0 torn, 0 with a mixed sector, 0 new-prefix cuts at the source page boundary (0)
+--- TORN lines: 0 at the source page boundary (all), then the first 20 of 0 others
+

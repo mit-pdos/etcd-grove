@@ -57,7 +57,16 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
   and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
   operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
-  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first;
+  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first.
+  Every decision of an extension's trusted semantics (its `Impl`, and any trace-level assumption
+  a theorem over it takes) has a Go example saying why, in the extension's semantics examples
+  package (the Linux file extension `GooseLang/Ext/Fs`: `examples/osfs/semantics/`, indexed in
+  its `doc.go`): the decision, the Lean names, the outcome allowed or excluded, and the evidence
+  (measured, documented with a citation, or assumed). A change to the semantics adds or updates
+  its example in the same commit. An extension of an OS interface claims one target configuration
+  and nothing wider (the Linux file extension: configuration C, Linux 7.0 and ext4 with its
+  defaults, `notes/axiom-review/fs-config/`); every kernel claim is tested on it, with its
+  helper scripts (`mkfs-mount.sh`, `check.sh`);
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);
@@ -121,6 +130,17 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
   --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
+- `LinuxFs/` is another: the per-byte Linux file extension's `os`, `syscall`,
+  `golang.org/x/sys/unix`, `io/fs`, `internal/poll` and `internal/syscall/unix` (their trusted models
+  over `fsExt`, `GooseLang/Ext/Fs`, and their specs and proofs) and the programs proved over it
+  (`examples/osfs/{bboltfs,crashlog,walfs}`: minibolt, crashlog, walfs). The main tree's `os`, ... are
+  the first extension's (`osFsExt`, `GooseLang/Ext/OsFs`, path-keyed), which real bbolt's proof uses,
+  so the part declares the same names and nothing outside it imports it. Translated by project
+  bboltfs's part and projects crashlog and walfs (`LinuxFs/Code/**.toml`); package initializers by
+  `etc/gen-init.py` (`LFS_PKGS`, and a `PkgInitExt` without raft). Links: `etc/gen-link.py
+  --bboltfs`; trust base: `etc/tcb-collections/linuxfs.txt`. Temporary: once real bbolt is ported
+  onto `fsExt` (branch `bbolt-port-wip`, `notes/bbolt-port-plan.md`), the part becomes the main
+  tree's `os` and the first extension goes.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
   etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
   over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one

@@ -32339,6 +32339,28 @@ back (stale comments say it keeps it); one named `Prop` for the config block sha
 `NodeStart.lean`'s header premises, `InvRaftNode`'s header on `E.T`); `isRNTicker`'s nil arm
 excluded by every spec, unfolded in `raftNode.start`/`onStop` instead of a law.
 
+## The file extension's crash rule, byte by byte (2026-11-11 · the user's decisions · branch `fs-bytes`)
+
+**Decision:** the Linux file extension (`GooseLang/Ext/Fs/Impl.lean`) gives each file byte a list of
+crash candidates stamped with change numbers; a crash leaves each byte any candidate, independently.
+Client-specific guarantees beyond that are premises the client's theorem states (`Premises.lean`:
+`SectorWhole` for etcd's WAL, a known limitation; bbolt's P1), never rules of the semantics.
+
+**Why:** the sector-level rule (`notes/fs-semantics-v2.md`, V5) and the NoTear premise were refuted on
+configuration C by an end-to-end crash test (`notes/axiom-review/fs-v2-r6/e2e/`). The user asked for a
+general semantics without sector-level assumptions, the WAL's sector assumption stated only for the
+WAL, and a final artifact that makes sense on its own rather than one shaped by earlier temporary
+decisions. Per-byte lists stamped by change numbers keep one uniform crash rule and still let a premise
+say "one state of this range". **Supersedes** the V5 decision and the NoTear entries in
+`notes/fs-semantics-v2.md` and `notes/axiom-review/fs-v2-r4.md`/`-r5.md`/`-r6.md` dispositions.
+
+**Round 7's fixes (2026-11-11, fork S2, `notes/axiom-review/fs-v2-r7.md`).** A change stores its
+announcement and its finish lands exactly the announced values (`OsChange.lo/hi/val/target`,
+`OsFile.land`), so "the page cache is a candidate" holds by construction and is proved for every
+step (`Tests.lean`, `cacheOk_step`). At most one change is in flight per file and an empty `pwrite`
+is stuck: stuck restrictions in place of the disjoint-range concurrency rules, chosen because no
+client changes a file from two threads and they remove special cases the review found (`O_TRUNC`
+racing a write, out-of-order finishes, `Affects` disagreeing with the announcement).
 ## The compactor registry's name (2026-11-05 · Q1 (c) of `notes/k8s-compactor-plan.md`, C1-C2; the user's choice of A1, then of option (i) · branch `q1c`)
 
 **The problem.** `StartCompactorPerEndpoint` returns the compactor registered for one of the client's

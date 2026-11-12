@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "LinuxFs", "SpecPlan"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -65,6 +65,17 @@ globs = ["SpecPlan.+"]
 [[lean_lib]]
 name = "Bbolt"
 globs = ["Bbolt.+"]
+
+# The per-byte Linux file extension's `os`, `syscall`, `golang.org/x/sys/unix`, `io/fs` and their
+# models (`GooseLang/Ext/Fs`, notes/fs-semantics-v2.md), with the programs proved over it
+# (examples/osfs/{bboltfs,crashlog,walfs}), in a parallel tree with the same layout
+# (LinuxFs/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
+# bboltfs's part and projects crashlog, walfs): the main tree's `os` is the first extension's
+# (`GooseLang/Ext/OsFs`, real bbolt's), so the two declare the same names; nothing outside LinuxFs
+# imports it. Until real bbolt is ported onto the new extension (branch `bbolt-port-wip`).
+[[lean_lib]]
+name = "LinuxFs"
+globs = ["LinuxFs.+"]
 
 [leanOptions]
 linter.unusedSectionVars = false

@@ -17,6 +17,8 @@ bboltfs_mmapSize:
 bboltfs_DB__meta: bboltfs_pickMeta
 bboltfs_DB__readPageSize: bboltfs_pageAt bboltfs_Page__meta bboltfs_Meta__validate os_File__ReadAt
 os_File__ReadAt:
+# the racing read (`os.File.ReadAt.specRacy`)
+os_File__ReadAt+Racy:
 bboltfs_DB__init: bboltfs_initPages os_File__WriteAt os_File__Fd syscall_Fdatasync
 os_File__WriteAt:
 syscall_Fdatasync:
@@ -37,8 +39,8 @@ unix_Mmap:
 unix_Madvise:
 os_File__Close:
 bboltfs_DB__Get: bboltfs_DB__meta bboltfs_pageAt
-bboltfs_DB__Snapshot: bboltfs_DB__meta bboltfs_pageAt =_root_.Perennial.EtcdGrove.os.File.ReadAt.wp_proofRacy
-bboltfs_Open: os_OpenFile os_File__Name bboltfs_flock os_File__Stat os_fileStat__Size os_File__Close bboltfs_DB__close bboltfs_DB__readPageSize bboltfs_DB__init bboltfs_DB__mmap
+bboltfs_DB__Snapshot: bboltfs_DB__meta bboltfs_pageAt os_File__ReadAt+Racy
+bboltfs_Open: os_OpenFile =_root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreate os_File__Name bboltfs_flock os_File__Stat os_fileStat__Size os_File__Close bboltfs_DB__close bboltfs_DB__readPageSize bboltfs_DB__init bboltfs_DB__mmap
 os_OpenFile:
 os_File__Name:
 os_File__Stat:
