@@ -84,6 +84,7 @@ public import Proof.go_etcd_io.raft.v3.InvLogger
 public import Proof.go_etcd_io.raft.v3.InvMisc
 public import Proof.go_etcd_io.raft.v3.LemmasRaftlogW
 public import Proof.go_etcd_io.raft.v3.MsgOut
+public import Proof.go_etcd_io.raft.v3.MsgOwnZ
 
 @[expose] public section
 
@@ -102,6 +103,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {sz : Bool}
 
 /-! ## The abstract outbox of the two queues
 
@@ -137,29 +139,30 @@ messages (`msgQ`), so it is **no longer persistent**. -/
 
 -- (2026-10-26, raft's signature, stage 1) `msgAbs` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- A queued message, owned, and its contribution (stage R4). -/
-def msgQ (q : QMsg) (a : Option Msg) : IProp GF :=
-  iprop((msgOwn q.loc (DFrac.own 1) q.st ∗ snapUf q.loc q.st) ∗ ⌜msgAbs q.st a⌝)
+/-- A queued message, owned, and its contribution (stage R4). (out_size C3) At a content raft
+pins, of bounded size under the node's flag `sz` (`msgOwnZ`; until then `msgOwn` and its `snapUf`). -/
+def msgQ (sz : Bool) (q : QMsg) (a : Option Msg) : IProp GF :=
+  iprop(msgOwnZ sz q.loc (DFrac.own 1) q.st ∗ ⌜msgAbs q.st a⌝)
 
 def absList (as_ : List (Option Msg)) : List Msg := as_.filterMap id
 
-def outboxRel (o : List Msg) (msgs msgsAA : List QMsg) : IProp GF :=
+def outboxRel (sz : Bool) (o : List Msg) (msgs msgsAA : List QMsg) : IProp GF :=
   iprop(∃ (as1 as2 : List (Option Msg)),
     ⌜o ≡ₚ absList as1 ++ absList as2⌝ ∗
-    ([∗list] _k ↦ q;a ∈ msgs;as1, msgQ q a) ∗
-    ([∗list] _k ↦ q;a ∈ msgsAA;as2, msgQ q a))
+    ([∗list] _k ↦ q;a ∈ msgs;as1, msgQ sz q a) ∗
+    ([∗list] _k ↦ q;a ∈ msgsAA;as2, msgQ sz q a))
 
-theorem outboxRel_nil : ⊢ outboxRel (GF := GF) [] [] [] := by
+theorem outboxRel_nil : ⊢ outboxRel (GF := GF) sz [] [] [] := by
   unfold outboxRel
   iexists [], []
   isplitr
   · ipureintro; rfl
   isplitr
-  · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ q a => msgQ (GF := GF) q a)).2; iempintro
-  · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ q a => msgQ (GF := GF) q a)).2; iempintro
+  · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2; iempintro
+  · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2; iempintro
 
 theorem outboxRel_perm (o o' : List Msg) (msgs msgsAA : List QMsg) (Hp : o' ≡ₚ o) :
-    ⊢ outboxRel (GF := GF) o msgs msgsAA -∗ outboxRel o' msgs msgsAA := by
+    ⊢ outboxRel (GF := GF) sz o msgs msgsAA -∗ outboxRel sz o' msgs msgsAA := by
   unfold outboxRel
   iintro ⟨%as1, %as2, %Ho, H1, H2⟩
   iexists as1, as2
@@ -168,9 +171,9 @@ theorem outboxRel_perm (o o' : List Msg) (msgs msgsAA : List QMsg) (Hp : o' ≡�
 
 /-- The contributions of a queue's messages, read out (2026-10-19, D21 M2r). -/
 theorem msgQs_abs (l : List QMsg) (as_ : List (Option Msg)) :
-    ([∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) q a) ⊢
+    ([∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) sz q a) ⊢
       ⌜List.Forall₂ (fun q a => msgAbs q.st a) l as_⌝ ∗
-        [∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) q a := by
+        [∗list] _k ↦ q;a ∈ l;as_, msgQ (GF := GF) sz q a := by
   induction l generalizing as_ with
   | nil =>
     cases as_ with
@@ -181,13 +184,13 @@ theorem msgQs_abs (l : List QMsg) (as_ : List (Option Msg)) :
     | nil => iintro H; ihave %Hl := BigSepL2.bigSepL2_length $$ H; simp at Hl
     | cons a as' =>
       iintro H
-      icases (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) q a)).1 $$ H with ⟨Hq, H⟩
+      icases (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) sz q a)).1 $$ H with ⟨Hq, H⟩
       icases (ih as') $$ H with ⟨%Hf, H⟩
       iunfold msgQ at Hq
       icases Hq with ⟨Hq, %Ha⟩
       isplitr
       · ipureintro; exact List.Forall₂.cons Ha Hf
-      iapply (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) q a)).2
+      iapply (BigSepL2.bigSepL2_cons (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2
       isplitl [Hq]
       · iunfold msgQ; iframe Hq; ipureintro; exact Ha
       iexact H
@@ -195,8 +198,8 @@ theorem msgQs_abs (l : List QMsg) (as_ : List (Option Msg)) :
 /-- With an empty abstract outbox every queued message is of a type the model does not describe
 (2026-10-19, D21 M2r): one it describes would contribute. -/
 theorem outboxRel_nil_types (msgs msgsAA : List QMsg) :
-    outboxRel (GF := GF) [] msgs msgsAA ⊢
-      ⌜∀ q ∈ msgs ++ msgsAA, mtypeOf q.st.msg.Type' = none⌝ ∗ outboxRel [] msgs msgsAA := by
+    outboxRel (GF := GF) sz [] msgs msgsAA ⊢
+      ⌜∀ q ∈ msgs ++ msgsAA, mtypeOf q.st.msg.Type' = none⌝ ∗ outboxRel sz [] msgs msgsAA := by
   have key : ∀ (l : List QMsg) (as_ : List (Option Msg)),
       List.Forall₂ (fun q a => msgAbs q.st a) l as_ → absList as_ = [] →
       ∀ q ∈ l, mtypeOf q.st.msg.Type' = none := by
@@ -237,8 +240,8 @@ theorem outboxRel_nil_types (msgs msgsAA : List QMsg) :
 
 /-- A message appended to `msgs` joins the outbox (at the end, up to permutation). -/
 theorem outboxRel_snoc (o : List Msg) (msgs msgsAA : List QMsg) (q : QMsg) (a : Option Msg) :
-    ⊢ outboxRel (GF := GF) o msgs msgsAA -∗ msgQ q a -∗
-      outboxRel (o ++ absList [a]) (msgs ++ [q]) msgsAA := by
+    ⊢ outboxRel (GF := GF) sz o msgs msgsAA -∗ msgQ sz q a -∗
+      outboxRel sz (o ++ absList [a]) (msgs ++ [q]) msgsAA := by
   unfold outboxRel
   iintro ⟨%as1, %as2, %Ho, H1, H2⟩ Hq
   iexists as1 ++ [a], as2
@@ -251,13 +254,13 @@ theorem outboxRel_snoc (o : List Msg) (msgs msgsAA : List QMsg) (q : QMsg) (a : 
       simp only [List.append_assoc]
       exact List.Perm.append_left _ List.perm_append_comm))
   iframe H2
-  iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ q a => msgQ (GF := GF) q a)).2
+  iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2
   iframe H1 Hq
 
 /-- A message appended to `msgsAA` joins the outbox (at the end, up to permutation). -/
 theorem outboxRel_snocAA (o : List Msg) (msgs msgsAA : List QMsg) (q : QMsg) (a : Option Msg) :
-    ⊢ outboxRel (GF := GF) o msgs msgsAA -∗ msgQ q a -∗
-      outboxRel (o ++ absList [a]) msgs (msgsAA ++ [q]) := by
+    ⊢ outboxRel (GF := GF) sz o msgs msgsAA -∗ msgQ sz q a -∗
+      outboxRel sz (o ++ absList [a]) msgs (msgsAA ++ [q]) := by
   unfold outboxRel
   iintro ⟨%as1, %as2, %Ho, H1, H2⟩ Hq
   iexists as1, as2 ++ [a]
@@ -268,7 +271,7 @@ theorem outboxRel_snocAA (o : List Msg) (msgs msgsAA : List QMsg) (q : QMsg) (a 
     rw [this, ← List.append_assoc]
     exact Ho.append_right _
   iframe H1
-  iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ q a => msgQ (GF := GF) q a)).2
+  iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ q a => msgQ (GF := GF) sz q a)).2
   iframe H2 Hq
 
 /-- A message of `r.msgsAfterAppend` at a node `id` of term `t` (2026-10-10). `send`
@@ -1017,7 +1020,7 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF)
   "Hmsgs_cap" ∷ ownSliceCap Loc rv.msgs' (DFrac.own 1) ∗
   "HmsgsAA" ∷ rv.msgsAfterAppend' ↦* msgsAA.map QMsg.loc ∗
   "HmsgsAA_cap" ∷ ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) ∗
-  "Houtbox" ∷ outboxRel s.outbox msgs msgsAA ∗
+  "Houtbox" ∷ outboxRel s.gh.sn.sz s.outbox msgs msgsAA ∗
   -- what `send` puts in `msgsAfterAppend` (2026-10-10): responses from the node, the
   -- self-addressed ones steppable by `RawNode.Advance` (`AAMsgOk`); (2026-11-01, durability stage
   -- II (m)) and none in `msgs` self-addressed (`QOk`)
@@ -1167,7 +1170,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
       rv.msgsAfterAppend' ↦* msgsAA.map QMsg.loc -∗
       ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) -∗
       ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd -∗
-      outboxRel s.outbox msgs msgsAA -∗
+      outboxRel s.gh.sn.sz s.outbox msgs msgsAA -∗
       NsCap s.gh.ns s.logst.storage -∗
       qSrcs s.gh.sn (msgs ++ msgsAA) -∗
       ownRaftPhysCV c V r id s := by
@@ -1242,7 +1245,7 @@ theorem ownRaftPhysCVW_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s :
       rv.msgsAfterAppend' ↦* msgsAA.map QMsg.loc -∗
       ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) -∗
       ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd -∗
-      outboxRel s.outbox msgs msgsAA -∗
+      outboxRel s.gh.sn.sz s.outbox msgs msgsAA -∗
       NsCap s.gh.ns s.logst.storage -∗
       qSrcs s.gh.sn (msgs ++ msgsAA) -∗
       ownRaftPhysCVW c V r id s := by
@@ -2550,7 +2553,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
         (∀ (sl' : GoSlice) (l' : Loc) (st' : MsgSt) (a : Option Msg),
            r.[raft, go!"msgs"] ↦ sl' -∗ sl' ↦* (ls ++ [l']) -∗
            ownSliceCap Loc sl' (DFrac.own 1) -∗
-           msgOwn l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
+           msgOwnZ s.gh.sn.sz l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
            ⌜OutTermOk s.term s.gh.tc st'.msg⌝ -∗
            -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode
            ⌜s.gh.ns = true → ∀ x ∈ a.toList, x.ty ≠ .snap⌝ -∗
@@ -2561,16 +2564,15 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome)⌝ -∗
            -- (2026-11-01, durability stage II (m)) not self-addressed (`send`'s panic)
            ⌜st'.msg.To' ≠ id⌝ -∗
-           -- (D22 S-b′3) the message's certificate's source; (raft-entsize §2) a `MsgSnap`'s unknown
-           -- fields pinned (`snapUfT`)
-           (tsSrc s.gh.sn st'.msg.Type' st'.snap ∗ snapUfT l' st'.msg.Type') -∗
+           -- (D22 S-b′3) the message's certificate's source
+           tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H
   icases raft_split_msgs r rv $$ Hr with ⟨Hf, Hback⟩
   iexists rv.msgs', msgs.map QMsg.loc
   iframe Hf Hmsgs Hmsgs_cap
-  iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot %Hans %Hxq %Hto ⟨#Hq, #Hu⟩
+  iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot %Hans %Hxq %Hto #Hq
   have HmsgsAA_ok : QOk id s.term (msgs ++ [(⟨l', st'⟩ : QMsg)]) msgsAA := by
     refine ⟨HmsgsAA_ok.1, fun m Hm => ?_⟩
     rcases List.mem_append.1 Hm with Hm | Hm
@@ -2608,7 +2610,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
   ihave Hmsgs : (sl' ↦* (msgs ++ [(⟨l', st'⟩ : QMsg)]).map QMsg.loc : IProp GF) $$ [Hmsgs]
   · simp only [List.map_append, List.map_cons, List.map_nil]; iexact Hmsgs
   ihave Houtbox := outboxRel_snoc _ _ _ ⟨l', st'⟩ a $$ Houtbox [Hm]
-  · unfold msgQ; iframe Hm Hu; ipureintro; exact Ha
+  · unfold msgQ; iframe Hm; ipureintro; exact Ha
   iapply ownRaftPhysCV_intro c _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgs' := sl' } (msgs ++ [(⟨l', st'⟩ : QMsg)]) msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
@@ -2626,7 +2628,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            r.[raft, go!"msgsAfterAppend"] ↦ sl' -∗
            sl' ↦* (ls ++ [l']) -∗
            ownSliceCap Loc sl' (DFrac.own 1) -∗
-           msgOwn l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
+           msgOwnZ s.gh.sn.sz l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
            ⌜AAMsgOk id s.term st'⌝ -∗
            ⌜OutTermOk s.term s.gh.tc st'.msg⌝ -∗
            -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode
@@ -2636,16 +2638,15 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            ⌜SentMsgShape st' ∧ AppFrom id st' ∧
              (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome)⌝ -∗
-           -- (D22 S-b′3) the message's certificate's source; (raft-entsize §2) a `MsgSnap`'s unknown
-           -- fields pinned (`snapUfT`)
-           (tsSrc s.gh.sn st'.msg.Type' st'.snap ∗ snapUfT l' st'.msg.Type') -∗
+           -- (D22 S-b′3) the message's certificate's source
+           tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H
   icases raft_split_msgsAA r rv $$ Hr with ⟨Hf, Hback⟩
   iexists rv.msgsAfterAppend', msgsAA.map QMsg.loc
   iframe Hf HmsgsAA HmsgsAA_cap
-  iintro %sl' %l' %st' %a Hf HmsgsAA HmsgsAA_cap Hm %Ha %Hok %Hot %Hans %Hxq ⟨#Hq, #Hu⟩
+  iintro %sl' %l' %st' %a Hf HmsgsAA HmsgsAA_cap Hm %Ha %Hok %Hot %Hans %Hxq #Hq
   ihave #Hscert : qSrcs (GF := GF) s.gh.sn (msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)])) $$ []
   · icases (qSrcs_app (GF := GF) s.gh.sn msgs msgsAA).1 $$ Hscert with ⟨#H1, #H2⟩
     iapply (qSrcs_app (GF := GF) s.gh.sn msgs _).2
@@ -2683,7 +2684,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
   ihave HmsgsAA : (sl' ↦* (msgsAA ++ [(⟨l', st'⟩ : QMsg)]).map QMsg.loc : IProp GF) $$ [HmsgsAA]
   · simp only [List.map_append, List.map_cons, List.map_nil]; iexact HmsgsAA
   ihave Houtbox := outboxRel_snocAA _ _ _ ⟨l', st'⟩ a $$ Houtbox [Hm]
-  · unfold msgQ; iframe Hm Hu; ipureintro; exact Ha
+  · unfold msgQ; iframe Hm; ipureintro; exact Ha
   iapply ownRaftPhysCV_intro c _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgsAfterAppend' := sl' } msgs (msgsAA ++ [(⟨l', st'⟩ : QMsg)]) lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
@@ -2796,7 +2797,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
         "Hmsgs_cap" ∷ ownSliceCap Loc sl1 (DFrac.own 1) ∗
         "Hf_msgsAA" ∷ r.[raft, go!"msgsAfterAppend"] ↦ sl2 ∗ "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
         "HmsgsAA_cap" ∷ ownSliceCap Loc sl2 (DFrac.own 1) ∗
-        "Houtbox" ∷ outboxRel s.outbox ms1 ms2 ∗
+        "Houtbox" ∷ outboxRel s.gh.sn.sz s.outbox ms1 ms2 ∗
         "%HmsgsAA_ok" ∷ ⌜QOk id s.term ms1 ms2⌝ ∗
         "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
         "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
@@ -2820,7 +2821,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
             ownSliceCap Loc sl1' (DFrac.own 1) -∗
             r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
             ownSliceCap Loc sl2' (DFrac.own 1) -∗
-            outboxRel o ms1' ms2' -∗
+            outboxRel g.sn.sz o ms1' ms2' -∗
             ⌜QOk id s.term ms1' ms2'⌝ -∗
             ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
             ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
@@ -3254,7 +3255,7 @@ theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
       rv.msgsAfterAppend' ↦* msgsAA.map QMsg.loc -∗
       ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) -∗
       ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd -∗
-      outboxRel s.outbox msgs msgsAA -∗
+      outboxRel s.gh.sn.sz s.outbox msgs msgsAA -∗
       NsCap s.gh.ns s.logst.storage -∗
       qSrcs s.gh.sn (msgs ++ msgsAA) -∗
       r.[raft, go!"trk"] ↦ rv.trk' ∗
