@@ -51,9 +51,9 @@ resources and the scope as premises). The `errorc` path stays closed.
 
 **Scope** (R2d'a swap batch 5, 2026-11-07: one spec for a first start and a restart, through
 `isServerRunC`'s `srvRunRestartR`, which a first start gives, `srvRunRestartR_first`; restart S4,
-2026-11-12: at any WAL snapshot index, until then `σ.b = 0` only): nothing handed before the start in
-the server's names (`ai₀ = 0`, `γn.pre = []`); Go starts at the log `P` raft handed before this
-incarnation (`A₀`'s prefix up to the WAL snapshot's index), the storage's snapshot at index `|P|` with
+2026-11-12: at any WAL snapshot index, until then `σ.b = 0` only): the server's names start at index
+`0` (`ai₀ = 0`, `γn.pre = []`, the ghost log counted from raft's first entry); Go starts at the log
+`P` raft handed before this incarnation (`A₀`'s prefix up to the WAL snapshot's index), the storage's snapshot at index `|P|` with
 `P`'s last term, the loop's and the apply side's tokens at `P`; the backend's ghost log `A₀ = γn.a0`
 is replayed through the window `(|P|, |A₀|]` (a first start is `A₀ = P = []`).
 
@@ -78,10 +78,14 @@ proved or vacuous at a first start; R2s removes 1; S1, 2026-11-11: rows 2-3 repl
 * `rnSnapTermAbove` (`rnRestartOk`'s): every `MsgSnap` a `Ready` carries has a term above the
   incarnation's start term.
 * `ai₀ + |A₀| + 1 < 2^64` (`srvRunRestartR`'s): room past the replayed log (S4: `start` derives it
-  from the next row, `srvRunRows_of_rn`).
+  from the `srvRLogLb` row below, `srvRunRows_of_rn`).
 * every entry of `A₀` has `typ` 0 or 1 (`EntryNormal`/`EntryConfChange`, no `EntryConfChangeV2`;
   `srvRunRestartR`'s): etcd proposes only v1 `ConfChange`s (`configure`'s `ProposeConfChange`) (S4:
-  `start` derives it from the next row).
+  `start` derives it from the `srvRLogLb` row below).
+* (S4) `P <+: A₀` (`srvRunRestartR`'s): the backend is at or past the WAL snapshot's index (`snapshot()`
+  commits the backend before `SaveSnap`, `server.go:2134, 2152` at `673da07c8`; `RecoverSnapshotBackend`
+  swaps in the snapshot's db when the backend is behind); at a restart its producer is S6's
+  `NewServer` (from `NodeStartSpecR`, `P = A₀.take σ.b`).
 * (S4) `lastTermIs P at₀` (`srvRunRestartR`'s): the storage snapshot's term is `P`'s last; at a
   restart its producer is `NewServer`'s restart branch (S6, from `walSnapCert`).
 * `srvRLogLb γ.srv γ.a0` (`rnRestartOk`'s restart disjunct): the backend's log `A₀` is

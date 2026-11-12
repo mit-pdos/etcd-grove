@@ -186,8 +186,10 @@ def srvBuiltRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoI
     rnLoopTok γn P ∗ rnApplyTok γn P ∗
     applyBuiltR C s γ ci b E γr ai₀ c₀ x₀ γn.a0 (W64 P.length))
 
-/-- **`start`'s construction premise** (`isServerBuilt` off, `isServerBuiltOn` on: the
-model rows at `C.isOn`, the KV invariants and the apply thread's resources the component's). -/
+/-- **`start`'s construction premise** (the model rows at `C.isOn`, the KV invariants and the apply
+thread's resources the component's; restart S4, 2026-11-12: at the restart point, `HBr`). Implied by
+`isServerBuilt` off and `isServerBuiltOn` on with the stop's slot (`isServerBuiltM_C`, a first start
+at `P = []`), and strictly weaker since S4 (until then equivalent). -/
 def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
@@ -211,9 +213,9 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
     -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
-    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
-    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2s
+    -- (restart S7) removes it; S1 removed row 3, so the restart meaning is limited by this premise
+    -- and by `rnRestartOk`'s graceful-only `|a0| ≤ commit0`; free at a first start, `srvWinPend_first`)
     "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
@@ -309,8 +311,8 @@ def srvRestartAtR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
 
 /-- **`isServerRunC`'s restart conjuncts** (R2d'a A9, Q24 (c), in the hub since swap batch 5,
 2026-11-07; restart S4, 2026-11-12, at any WAL snapshot index, `/shared/tmp/restart-s4/plan.md` §1.1,
-D1): nothing handed before the start in the server's names (`γn.pre = []`, `ai₀ = 0`: `rnEnvOk`
-unchanged); `P`, the log raft handed before this incarnation (in Go `A₀`'s prefix up to the WAL
+D1): the server's names start at index `0` (`γn.pre = []`, `ai₀ = 0`: `rnEnvOk` unchanged, the
+ghost log counted from raft's first entry); `P`, the log raft handed before this incarnation (in Go `A₀`'s prefix up to the WAL
 snapshot's index `σ.b`, `P = []` at a first start or `σ.b = 0`), is Go's start: the storage's
 snapshot at index `|P|` with term `at₀`, `P`'s last term (`ep.appliedi`, `appliedt`, `server.go:808-814`
 at `673da07c8`), the loop's and the apply side's tokens at `P`; the backend's ghost log `A₀`
@@ -336,10 +338,9 @@ def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInt
     srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ (W64 P.length) ∗
     rnLoopTok γn P ∗ rnApplyTok γn P)
 
-/-- **What `run` needs**, at a first start or a restart (R2d'a swap batch 5; restart S4, 2026-11-12, at
-any WAL snapshot index,
-2026-11-07: the start's conjuncts are `HRr ∷ srvRunRestartR`, the backend's ghost log `A₀ = γn.a0`;
-until then `InvRun.lean`'s `isServerRun` off and `RunOn.lean`'s `isServerRunOn` on, both deleted
+/-- **What `run` needs**, at a first start or a restart (R2d'a swap batch 5, 2026-11-07: the start's
+conjuncts are `HRr ∷ srvRunRestartR`, the backend's ghost log `A₀ = γn.a0`; restart S4, 2026-11-12:
+at any WAL snapshot index, with Go's start log `P` and the tokens at it in `HRr`; until then `InvRun.lean`'s `isServerRun` off and `RunOn.lean`'s `isServerRunOn` on, both deleted
 2026-11-07). The stop
 requests' `SP` and the done channel's `DQ`, and (R2c-4) the stop's slot, `srvStop.slot`. -/
 def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -362,9 +363,9 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ ρ.wait ∗
     -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
     -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
-    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
-    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2s
+    -- (restart S7) removes it; S1 removed row 3, so the restart meaning is limited by this premise
+    -- and by `rnRestartOk`'s graceful-only `|a0| ≤ commit0`; free at a first start, `srvWinPend_first`)
     "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
