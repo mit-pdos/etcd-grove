@@ -346,7 +346,7 @@ theorem StartCluster.wp_proof
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     ihave Hboot := kvStorage_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex
       wp_Term wp_Entries st ms γs vsl clusterIds γr.cluster
-      (fun K => memStorInvP ms γs (kvJ γr.cluster K))
+      (fun K => memStorInvP ms γs (kvJ γr.cluster K)) Htr0
       $$ Hpkg Hrec Hvoters Hvsl Hml Hfresh Hmlog Hmend []
     · iintro %K Hi; iexact Hi
     ihave Hau := kv_restartAu γr.cluster kvRaftN id0 kvBootContents kvBoot_holds $$ [HrS]

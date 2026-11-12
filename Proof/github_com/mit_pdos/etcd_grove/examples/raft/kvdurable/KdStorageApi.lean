@@ -144,9 +144,13 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 attribute [local instance] kdStorageModel
 
 /-- `kdJ`'s compaction justification is the API's (`storBnd`). -/
-theorem kdJ_bnd (γ : Cluster) (K : GName) (c : Nat) :
+theorem kdJ_bnd (γ : Cluster) (K : GName) (c : Nat) (htr : Cluster.trace γ = none) :
     memBnd (kdJ (GF := GF) γ K) c ⊢ storBnd γ K c := by
-  unfold memBnd storBnd kdJ; exact .rfl
+  -- (2026-11-12, Q39 (a)) through raft's law: `storBnd` is sealed and gated on the trace
+  unfold memBnd kdJ
+  iintro ⟨%k, %Hk, #Hl⟩
+  iapply storBnd_intro_untraced γ K k c htr $$ Hl
+  ipureintro; exact Hk
 
 /-- **The store's storage meets the storage contract of key `K`** (under `kdStorageModel`;
 kvreconf's `kvrStorage_isStorage`). -/
@@ -156,7 +160,8 @@ theorem kdStorage_isStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (htr : Cluster.trace γ = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable -∗
       kdStorRec s ms γs -∗ memStorInvP ms γs (kdJ γ K) -∗
       isStorage γ K (kdStorIface s) := by
@@ -240,7 +245,7 @@ theorem kdStorage_isStorage
     ihave #Hc := kdStorCompacted_to s ms γs c $$ Hrec Hc
     imod memCompacted_bound ms γs (kdJ γ K) c $$ Hinv Hc with Hb
     imodintro
-    iapply kdJ_bnd γ K c $$ Hb
+    iapply kdJ_bnd γ K c htr $$ Hb
   iintro !> %k %dq %es H
   ihave H := kdStorLog_to s ms γs k dq es $$ Hrec H
   iunfold memLog at H
@@ -300,7 +305,7 @@ theorem kd_restartStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms bp : Loc) (γs : MemStorNames) (f : StorFile) (boot : ConfStateM) (e0 : EntryM)
-    (γ : Cluster) (A : Nat) (F : GName → IProp GF)
+    (γ : Cluster) (A : Nat) (F : GName → IProp GF) (htr : Cluster.trace γ = none)
     (Hok : KdFileOk f) (He0 : e0.Term' = f.prevTerm)
     (Hbf : uint.nat f.prev ≤ uint.nat f.snap.Metadata'.Index')
     (Hsc : uint.nat f.snap.Metadata'.Index' ≤ uint.nat f.hs.Commit') :
@@ -393,7 +398,7 @@ theorem kd_restartStorage
   imod memStorInvP_alloc ms γs (kdJ γ K) ⊤ (uint.nat f.prev) (kdFreshSnap f) $$ Hl Hfresh HB Hsv
     with #Hinv
   ihave #Hst := kdStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
-    s ms γs γ K $$ Hpkg Hrec Hinv
+    s ms γs γ K htr $$ Hpkg Hrec Hinv
   ihave HFK := HF $$ %K Hmeta Hinv
   imodintro
   iframe Hst HFK

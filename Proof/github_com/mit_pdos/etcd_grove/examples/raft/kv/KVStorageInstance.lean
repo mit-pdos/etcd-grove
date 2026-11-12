@@ -270,9 +270,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumpti
 variable [KVStor GF]
 
 /-- `kvJ`'s compaction justification is the API's (`storBnd`). -/
-theorem kvJ_bnd (γ : Cluster) (K : GName) (c : Nat) :
+theorem kvJ_bnd (γ : Cluster) (K : GName) (c : Nat) (htr : Cluster.trace γ = none) :
     memBnd (kvJ (GF := GF) γ K) c ⊢ storBnd γ K c := by
-  unfold memBnd storBnd kvJ; exact .rfl
+  -- (2026-11-12, Q39 (a)) through raft's law: `storBnd` is sealed and gated on the trace
+  unfold memBnd kvJ
+  iintro ⟨%k, %Hk, #Hl⟩
+  iapply storBnd_intro_untraced γ K k c htr $$ Hl
+  ipureintro; exact Hk
 
 theorem kvJ_B0 (γ : Cluster) (K : GName) : ⊢ (kvJ (GF := GF) γ K).B 0 := by
   unfold kvJ; exact nodeAppliedLb_zero γ K
@@ -284,7 +288,8 @@ theorem kvStorage_isStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (htr : Cluster.trace γ = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv -∗
       kvStorRec s ms γs -∗ memStorInvP ms γs (kvJ γ K) -∗
       isStorage γ K (kvStorIface s) := by
@@ -369,7 +374,7 @@ theorem kvStorage_isStorage
     ihave #Hc := kvStorCompacted_to s ms γs c $$ Hrec Hc
     imod memCompacted_bound ms γs (kvJ γ K) c $$ Hinv Hc with Hb
     imodintro
-    iapply kvJ_bnd γ K c $$ Hb
+    iapply kvJ_bnd γ K c htr $$ Hb
   iintro !> %k %dq %es H
   ihave H := kvStorLog_to s ms γs k dq es $$ Hrec H
   iunfold memLog at H
@@ -398,7 +403,7 @@ theorem kvStorage_bootStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters : List w64)
-    (γ : Cluster) (F : GName → IProp GF) :
+    (γ : Cluster) (F : GName → IProp GF) (htr : Cluster.trace γ = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv -∗
       kvStorRec s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
@@ -456,7 +461,7 @@ theorem kvStorage_bootStorage
   imodintro
   isplitr
   · iapply kvStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
-      s ms γs γ K $$ Hpkg Hrec Hinv
+      s ms γs γ K htr $$ Hpkg Hrec Hinv
   iframe HFK
   iunfold storHolds
   have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by

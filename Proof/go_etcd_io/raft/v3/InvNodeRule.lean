@@ -640,31 +640,34 @@ theorem ownSnapsMade_snapshotValid_data (γ : Cluster) (S : List SnapRec) (sv : 
 
 /-- The compaction's justification (`isStorageP`'s `Bnd`): compacting at or past `c` is safe
 (`nodeAppliedLb`, which since 2026-11-01 holds the snapshot hand-out). (2026-11-01, durability stage
-I-4: keyed by the storage's key `K`.) -/
-def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
-  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k)
-
--- (2026-11-12, trace-check implementation step 1) The design's gate on `storBnd` (Q6 item 8, B2: no
--- compaction right at a traced cluster) is **not** made here: it makes kv's closed
--- `kv_storage_isStorage` (`examples/raft/kv/Results.lean`) gain `Cluster.trace γ = none`, a change
--- the design does not list (`notes/decisions.md`, "Implementation step 1 (gates)"). The laws its
--- clients are to be re-proved through are added, so that they can move first.
+I-4: keyed by the storage's key `K`.) (2026-11-12, trace-check's small items: Q39 (a), the design's
+B2, `notes/trace-validation-q6.md` §7) **Gated on the trace**: at a traced cluster no compaction is
+justified (`c = 0`), so that the specification never has to follow a snapshot (what `rnTrace`'s
+`TrNoSnap` is built from at `setupNode`, A4); untraced, as before. Sealed: clients use
+`storBnd_zero` and `storBnd_intro_untraced`. -/
+@[no_expose] def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
+  match Cluster.trace γ with
+  | none => iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k)
+  | some _ => iprop(⌜c = 0⌝)
 
 /-- (2026-11-12, trace-check implementation step 1: the design's B2) **No compaction is always
 justified** (any cluster; what a storage that never compacts, the trace-check harness's, uses). -/
 theorem storBnd_zero (γ : Cluster) (K : GName) : ⊢ storBnd (GF := GF) γ K 0 := by
   unfold storBnd
-  iexists 0
-  isplitr; · ipureintro; exact Nat.le_refl 0
-  iapply nodeAppliedLb_zero γ K
+  split
+  · iexists 0
+    isplitr; · ipureintro; exact Nat.le_refl 0
+    iapply nodeAppliedLb_zero γ K
+  · ipureintro; rfl
 
 /-- (2026-11-12, trace-check implementation step 1: the design's B2) **At an untraced cluster,
 compacting at or below the applied index is justified** (what the key-value stores' and etcd's
-server's storages are to use in place of unfolding `storBnd`, once it is gated). -/
-theorem storBnd_intro_untraced (γ : Cluster) (K : GName) (k c : Nat) (_h : Cluster.trace γ = none) :
+server's storages use in place of unfolding `storBnd`). -/
+theorem storBnd_intro_untraced (γ : Cluster) (K : GName) (k c : Nat) (h : Cluster.trace γ = none) :
     ⊢ nodeAppliedLb (GF := GF) γ K k -∗ ⌜c ≤ k⌝ -∗ storBnd γ K c := by
   iintro #Hl %Hc
   unfold storBnd
+  rw [h]
   iexists k; iframe Hl; ipureintro; exact Hc
 
 -- (2026-11-01, durability stage I-4) `storDL γ id i` (an open definition: "the committed log

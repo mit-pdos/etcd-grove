@@ -71,18 +71,40 @@ theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GNa
   -- PORT(durability stage II): restated (I-4: keyed by `K`, the generalized attach)
   sorry
 
-/-- **A registered `MemoryStorage` meets the storage contract of key `K`.** -/
+/-- **A registered `MemoryStorage` meets the storage contract of key `K`**, at an untraced cluster
+(2026-11-12, trace-check, Q39 (a): `storBnd` is gated on the trace; at a traced one `memStorJ`'s
+bound, the applied index, is not the contract's). -/
 theorem memStorage_isStorage
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (htr : Cluster.trace γ = none) :
     ⊢ memStorInv (GF := GF) ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms) := by
-  unfold memStorInv isStorage
-  exact memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
-    (memStorJ γ K)
+  -- (2026-11-12, Q39 (a)) `storBnd` is gated on the trace, so no longer `memBnd (memStorJ γ K)`:
+  -- the bound is converted through `storBnd_intro_untraced`, at the untraced cluster `htr`
+  unfold memStorInv
+  iintro #Hinv #Hreg
+  ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
+    (memStorJ γ K) $$ Hinv Hreg
+  ihave #H' : isStorageP (snapshotValid γ) (memBnd (memStorJ γ K)) (nodeCommitLb γ K)
+    (memStorIface ms) $$ []
+  · iExactEq H; rfl
+  unfold isStorage
+  unfold isStorageP
+  icases H' with ⟨%i, %Hst, #H1, #H2, #H3, #H4, #H5, #Hbound, #Hlen⟩
+  iexists i
+  iframe H1 H2 H3 H4 H5 Hlen
+  isplitr
+  · ipureintro; exact Hst
+  iintro !> %c #Hc
+  imod Hbound $$ %c Hc with HB
+  unfold memBnd memStorJ
+  icases HB with ⟨%k, %Hck, #Hk⟩
+  imodintro
+  iapply storBnd_intro_untraced γ K k c htr $$ Hk
+  ipureintro; exact Hck
 
 end api
 

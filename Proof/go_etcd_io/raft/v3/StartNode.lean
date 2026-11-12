@@ -109,6 +109,14 @@ private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c :
       raftBnd sn c := by
   iintro #Hsn #H0 Hb
   unfold EtcdGrove.storBnd EtcdGrove.nodeAppliedLb nodeAppliedLbU raftBnd
+  -- (2026-11-12, Q39 (a)) the gate: traced, `c = 0`
+  cases htr : Cluster.trace γ <;> dsimp only
+  case some =>
+    icases Hb with %Hc0
+    ileft
+    iexists 0
+    isplitr; · ipureintro; omega
+    ileft; iexact H0
   icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩)⟩
   · ileft
     iexists 0
