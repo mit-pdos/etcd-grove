@@ -127,7 +127,7 @@ What it does not close:
   from `C0`'s `ConfState`, as that issue's fix asks, so the tests' safety checks are not
   vacuous because of it; in the leader-lag test node 4 never applies anything (node 1, on
   `C0`, does not replicate to it, and node 3 never leads).
-- **Non-atomic persistence** ([raft-commit-lost-with-entries-kept](../nonissues/raft-commit-lost-with-entries-kept.md)):
+- **Non-atomic persistence** ([raft-commit-lost-with-entries-kept](../issues/raft-commit-lost-with-entries-kept.md)):
   the crash trace loses `HardState.Commit`, so the scan of `(applied, committed]` misses the
   conf entry; the queue is in memory and empty after the restart. Untouched.
 - **A restart with `Config.Applied` past a conf entry newer than the stored `ConfState`**

@@ -43,7 +43,7 @@ Conclusions, in short:
   `applied ≤ a ≤ commit` (more precisely `a ≤ applying`, or `a = base` after a snapshot not yet
   applied, see 4.10).
 * **Fresh nodes**: no crash-restart with persisted state (so **A2**, atomic persistence of
-  entries and `HardState`, `nonissues/raft-commit-lost-with-entries-kept.md`, is moot). Every
+  entries and `HardState`, `issues/raft-commit-lost-with-entries-kept.md`, is moot). Every
   node starts from one configuration `c0` with `CfgOk c0` and the same initial log. (Go's
   bootstrap applies its conf entries on every node before any message; a node added later
   starts with an empty configuration and log and is unpromotable until it has applied a
