@@ -391,7 +391,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n
   imodintro
   iapply wp_osPWriteFinishK true t p off data m (cfRange m bs off data.length) n hN $$ Hos [Ht]
   · unfold pwTok; iframe; ipureintro; exact ⟨hgap, hd, hxl⟩
-  iintro %k %e %zs %hke %hzt Hm Hrg Hc
+  iintro %k %e %zs %hke %hzt %- Hm Hrg Hc
   have hk := hke.1
   icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
   icases (osBytes_halves _ _ _).1 $$ Hrg with ⟨Hr1, Hr2⟩

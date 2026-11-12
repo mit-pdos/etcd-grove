@@ -997,6 +997,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 variable {s : Stuckness} {E : CoPset}
 attribute [local instance] Classical.propDecidable
 
+/-- What a `pwrite`'s count may be (the page-cut rule, `Impl.lean`'s `PWriteFinish`): none of the
+data, all of it, or a prefix ending on a page boundary of the file. -/
+def PwCut (off len k : Nat) : Prop := k = 0 ∨ k = len ∨ (off + k) % osPageSize = 0
+
 /-- The second step of `pwrite(fd, data, off)`: it writes the first `k` bytes of `data`, all of
 them with errno 0, or, with errno 0 too, a non-empty prefix (a short write: F6), or any prefix
 with a nonzero errno. What the first step took comes back: the `OsMeta` with the new size, the bytes
@@ -1012,6 +1016,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
           zs.length = pwSize m.size off k - m.size ∧
           ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
         ⌜∀ j c, m.pc (m.size + j) = some c → j < zs.length → zs[j]? = some c⌝ -∗
+        ⌜PwCut off data.length k⌝ -∗
         osMeta (L := L) p (DFrac.own 1) (pwPostK keep m off data k n) -∗
         osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
         mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
@@ -1101,7 +1106,9 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
-  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, -, hst', rfl⟩ := Hst
+  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, hpc0, hst', rfl⟩ := Hst
+  have hpc : PwCut off' data'.length k := hpc0
+  clear hpc0
   have htt : t = t' := by injection hv with hv; exact extVal_inj hv
   subst htt
   rw [hct, Option.some.injEq] at hinfl; subst hinfl
@@ -1441,7 +1448,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
       · exact hz0 z hz (by rw [← hmsz]; exact hzb)
     simp only [hzs0, List.getElem?_map, List.getElem?_range hj, hc0, this, Option.map_some]
     simp
-  iapply HΦ $$ %k %e %zs %(⟨hk, hke, by rw [hzsl, hmsz], hzsfact⟩) %hzstc Hm Hbs
+  iapply HΦ $$ %k %e %zs %(⟨hk, hke, by rw [hzsl, hmsz], hzsfact⟩) %hzstc %hpc Hm Hbs
   unfold mcells
   iapply (BigSepM.bigSepM_toList (Φ := fun (b : Loc) (len : Nat) =>
     cellsR b (min off len) (min (off + data.length) len - min off len)
@@ -1458,6 +1465,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
         ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
           zs.length = pwSize m.size off k - m.size ∧
           ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
+        ⌜PwCut off data.length k⌝ -∗
         osMeta (L := L) p (DFrac.own 1) (pwPost m off data.length k) -∗
         osBytes (L := L) p off (DFrac.own 1) (pwBytes m.size off data k n xs zs) -∗
         mcells m.maps off (off + data.length) (pwCell m.size off data k xs) -∗
@@ -1465,9 +1473,9 @@ theorem wp_osPWriteFinish (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : 
       WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
   iapply wp_osPWriteFinishK false t p off data m xs n hE Φ $$ Hinv Ht
-  iintro %k %e %zs %h %- Hm Hbs Hc
+  iintro %k %e %zs %h %- %hpc Hm Hbs Hc
   rw [pwPostK_false]
-  iapply HΦ $$ %k %e %zs %h Hm Hbs Hc
+  iapply HΦ $$ %k %e %zs %h %hpc Hm Hbs Hc
 
 end specs2
 

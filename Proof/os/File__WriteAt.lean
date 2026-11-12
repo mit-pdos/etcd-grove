@@ -289,7 +289,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   · rw [hoffv]; iexact Hbs2
   · rw [hoffv, hdl, hend, hmaps]; iexact Hc2
   wp_apply wp_osPWriteFinish t d.ino (off + nnv).toNat (data.drop nnv.toNat) mj
-    (ys.drop nnv.toNat) nst CoPset.subseteq_top $$ Hinv Ht as %k %e %zs %hke Hm Hbs2 Hc2
+    (ys.drop nnv.toNat) nst CoPset.subseteq_top $$ Hinv Ht as %k %e %zs %hke %hpc Hm Hbs2 Hc2
   obtain ⟨hk, hke, -, -⟩ := hke
   rw [hdl] at hk
   -- the file as a write of the first `max j (nn + k)` bytes left it

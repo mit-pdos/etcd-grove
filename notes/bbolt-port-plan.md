@@ -480,3 +480,39 @@ crash files build their states' `Wf` themselves (`DBCrash.writer_okS`, `DB__init
 `noValid_okS`/`initMid_okS`/`hfacts` uses), which now need `m'.cut = none`. Next: `WReach.cut`
 (`m'.cut = m.cut`, by induction, `Spec/os/CrashSt.lean`), `m.cut = none` in `initIdle` and
 `commitClean` (their producers: `newMeta`, a file on disk, `CsWf`), then those constructions.
+
+**2026-11-12, fork BX2.** The cut moved to the invariant side, as the previous entry's successor
+recommended: `CSt.Wf` is back to its form without the cut; `CsCut s` (`Proof/os/CrashSt.lean`: the
+state's file has `cut = none`) is a conjunct of `csInv`'s pure part; `cs_open`/`cs_openT`
+(`Proof/os/CrashStOps.lean`) hand it out and ask it back at every close (each op proves it by `simp`
+from the old state's, the posts keeping the cut); `csInv_alloc` takes `hcut` (`csStart_cut`, `rfl`);
+`FileOkS Q Good i s := s.m.cut = none → ∀ f, …`; `csInv_crash_keep` takes `hcut : CsCut s`
+(bboltfs `Results` gives it from the opened invariant). `kc_cand`/`crashImg_of` take the cut;
+`WReach.cut` (`Spec/os/CrashSt.lean`) gives `DB.init`'s crash proof the cuts' equality. Every osfs
+target builds; merged into `fs-lean` (`c12bded9f8`).
+Then: the page-cut rule reaches the program logic: `PwCut off len k` (`GooseLang/Ext/Fs/Write.lean`,
+a `def` so that `omega` does not case-split it) and a new pure premise `⌜PwCut off data.length k⌝`
+of `wp_osPWriteFinishK`'s and `wp_osPWriteFinish`'s continuations (the step's conjunct); the three
+callers (`Proof/os/{File__WriteAt,CrashOps,CrashStOps}.lean`) take it.
+
+**Where the port stands, and the next step.** Next is `os.File.WriteAt.spec` (`Spec/os/File__WriteAt.lean`,
+proof `Proof/os/File__WriteAt.lean`), in one change:
+1. **The page cut on `j`**: add `PwCut off.toNat data.length j` to the post's pure part. Loop
+   invariant additions in the proof: `PwCut off.toNat data.length j` and `nnv.toNat = 0 ∨
+   (off.toNat + nnv.toNat) % osPageSize = 0`; at each attempt the finish's `hpc : PwCut (off + nn)
+   (len - nn) k` gives `PwCut off len (max j (nn + k))` (cases: `k = 0` → `nn`'s fact; `k = len - nn`
+   → `len`; else the boundary), and a short success (`e = 0`, `0 < k`, not full) gives the boundary
+   for `nn + k`. One aligned page then lands all or nothing (D22, for `Tx.writeMeta`).
+2. **`fmtErrorOkOrNil err`** at the end of the post (as `File__Sync`: `fmtErrorOkOrNil_nil` on
+   success, `os.wp_wrapErrno_ok` + `fmtErrorOkOrNil_of` on the two error branches).
+3. **`off > size`** (§2.5): generalize `wp_osPWriteStart`/`wp_osPWriteFinishK`'s `hgap : off ≤
+   m.size` (`GooseLang/Ext/Fs/Write.lean`; the token `pwTok` stores it, and the proof uses `min off
+   m.size = off` as `hcanon`) to bytes from `min off m.size`; the gap `[size, off)` is announced as
+   zeros and is part of what lies past the old size (`zs`).
+4. **Lift `data.length ≤ 2^30`** (§2.6) with a chunk loop over the attempt loop (lean's
+   `Proof/os/WriteChunks.lean`, old extension, is the template; it does not build on `fs-lean`).
+   Consumers to adapt (tuple shape): `Proof/os/{Off,Crash,CrashStSpec}.lean`, `Spec/os/{Crash,CrashSt}.lean`
+   and the osfs clients through them (bboltfs `DB__{init,initCrash,commit,commitCrash}`, crashlog
+   `Boot`, walfs `{Boot,SegLog,DirSwap}`).
+Then `fmtErrorOkOrNil` on `ReadAt`/`OpenFile`, `specRacyLt`, then bbolt itself (§5's order: the
+invariants by `K.i`, `Inv/*`, the 38 file-name files, the 62 substantive files), then the gates.

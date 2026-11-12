@@ -428,7 +428,7 @@ theorem wp_osPWriteFinish_cf (t : Nat) (i : Ino) (off : Nat) (data : List w8) (n
   · unfold pwTok; iframe; ipureintro
     refine ⟨hgap, hd, ?_⟩
     have := Hwf.1.1; unfold cfRange cfLo cfHi; simp only [List.length_take, List.length_drop]; omega
-  iintro %k %e %zs %hke Hm Hrg -
+  iintro %k %e %zs %hke %- Hm Hrg -
   have hk := hke.1
   have hwl := Hwf.1.1
   have hlen : (finBytes m bs off data k n zs).length = (pwPost m off data.length k).size :=
