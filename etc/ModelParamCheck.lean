@@ -57,8 +57,12 @@ in the Freeze package and attacked there.
 environment (`SELFTESTS` below), each of which must be refused, and one which must pass.
 
 One JSON object per line: `axiom`, `hit` (`R1` hits, `covered` by rule 1 or not), `atom`
-(rule 2 failures), `reg` (registrations, with `bad` reasons), `sat` (rule 7: the theorems found),
-`satax` (their axioms, with modules and types), `selftest`.
+(rule 2 failures; `other` when the statement receives a rule-2 item that is no registry atom on a
+binder path), `supp`/`recv` (the registry atoms a statement requires / hands its user, by registry and
+value path, `keyed` when a key of the same registry is a projection chain from that path: for the
+driver's pair entries, `etc/model-param-allow.txt`), `reg` (registrations, with `bad` reasons), `sat`
+(rule 7: the theorems found), `satax` (their axioms, with modules and types), `selftest`, and the
+pair tests' lines (`PAIRTESTS`, tagged `"pt":true`).
 -/
 import Lean
 open Lean Elab
@@ -185,6 +189,9 @@ structure St where
   locals : Std.HashMap (String × String) (Bool × Bool) := {}
   r1 : Std.HashSet (String × String × Bool) := {}
   atoms : Bool × Bool := (false, false)
+  -- a received or supplied rule-2 item that is not a registry atom on a projection chain (a
+  -- `GrpcMethod` binder, a bare registry, an atom whose value has no binder path): never paired
+  other : Bool × Bool := (false, false)
   atomWhere : Array String := #[]
   paramPol : Std.HashMap Nat (Bool × Bool) := {}
   -- global
@@ -196,6 +203,7 @@ structure St where
   indProg : NameSet := {}
   regCarry : Std.HashMap Name Bool := {}
   whereMap : Std.HashMap Name (Array String) := {}
+  otherSums : Std.HashMap Name (Bool × Bool) := {}
 
 abbrev M := ReaderT (Environment × List Name) (StateM St)
 
@@ -338,7 +346,10 @@ def unfoldable (env : Environment) (parts : List Name) (c : Name) : Option Defin
 
 def noteAtom (pol : Pol) (what : String) : M Unit := modify fun s =>
   let sign := match pol with | .pos => "+" | .neg => "-" | .both => "±"
-  { s with atoms := orPair s.atoms (rs pol), atomWhere := s.atomWhere.push (sign ++ what) }
+  { s with atoms := orPair s.atoms (rs pol), atomWhere := s.atomWhere.push (sign ++ what),
+           other := if what.startsWith "atom " then s.other else orPair s.other (rs pol) }
+
+def noteOther (pol : Pol) : M Unit := modify fun s => { s with other := orPair s.other (rs pol) }
 
 def recordOcc (stack : Array Nat) (obj : Expr) (tag : String) (pol : Pol) : M Unit := do
   let (env, _) ← read
@@ -386,6 +397,7 @@ partial def walk (e : Expr) (pol : Pol) (pfx : String) (stack : Array Nat) : M U
   | .app .. =>
     if let some (r, key, v) := regAtom? e then
       noteAtom pol s!"atom {r}"
+      if (objPath env stack v).isNone then noteOther pol
       recordOcc stack v s!"__reg:{r}" pol
       recordOcc stack key s!"__regkey:{r}" pol
       walk key .both pfx stack
@@ -437,11 +449,15 @@ partial def useDef (c : Name) (args : Array Expr) (pol : Pol) (pfx : String)
     let sign := match pol with | .pos => "+" | .neg => "-" | .both => "±"
     modify fun s => { s with atomWhere := s.atomWhere.push s!"{sign}via {c} [{"; ".intercalate inner}]" }
   modify fun s => { s with atoms := orPair s.atoms (compPair pol atoms) }
+  let oth := (← get).otherSums.getD c (false, false)
+  modify fun s => { s with other := orPair s.other (compPair pol oth) }
   for (i, suf, tag, q) in params do
     if h : i < args.size then
       if let some (r, p) := objPath env stack args[i] then
         let k := (r, p ++ suf, tag)
         modify fun s => { s with occ := s.occ.insert k (orPair (s.occ.getD k (false, false)) (rs (pol.comp q))) }
+      else if tag.startsWith "__reg:" then noteOther (pol.comp q)
+    else if tag.startsWith "__reg:" then noteOther (pol.comp q)
   for (p, tag, r, u) in locals do
     let v := compPair pol (r, u)
     modify fun s => { s with locals := s.locals.insert (p, tag) (orPair (s.locals.getD (p, tag) (false, false)) v) }
@@ -459,7 +475,7 @@ partial def summary (c : Name) : M (Array (String × String × Bool) × Array (N
   let some dv := unfoldable env parts c | return (#[], #[], #[], (false, false), #[])
   let s0 ← get
   set { s0 with occ := {}, locals := {}, r1 := {}, paramPol := {}, atoms := (false, false),
-                atomWhere := #[], inProg := s0.inProg.insert c }
+                other := (false, false), atomWhere := #[], inProg := s0.inProg.insert c }
   let pfx := s!"{c.getString!}/"
   let mut body := dv.value
   let mut stack : Array Nat := #[]
@@ -484,9 +500,11 @@ partial def summary (c : Name) : M (Array (String × String × Bool) × Array (N
   for ((p, tag), (rr, uu)) in st.locals.toList do locals := locals.push (p, tag, rr, uu)
   let pp := (List.range np).toArray.map fun k => st.paramPol.getD k (false, false)
   let sm := (st.r1.toArray, params, locals, st.atoms, pp)
-  let st := { st with whereMap := st.whereMap.insert c st.atomWhere }
+  let st := { st with whereMap := st.whereMap.insert c st.atomWhere,
+                      otherSums := st.otherSums.insert c st.other }
   set { st with occ := s0.occ, locals := s0.locals, r1 := s0.r1, paramPol := s0.paramPol,
-                atoms := s0.atoms, atomWhere := s0.atomWhere, inProg := st.inProg.erase c,
+                atoms := s0.atoms, other := s0.other, atomWhere := s0.atomWhere,
+                inProg := st.inProg.erase c,
                 sums := st.sums.insert c sm }
   return sm
 end
@@ -496,29 +514,50 @@ def extendsPath (p q : String) : Bool :=
   q.isPrefixOf p && (p.length == q.length ||
     let c := (p.drop q.length).front; c == '.' || c == '[' || c == '?')
 
-/-- Judge one statement: the R1 hits (with whether rule 1 covers each), and the received
-atoms (rule 2). -/
+/-- A statement's registry atoms on binder paths, for the driver's pair entries
+(`etc/model-param-allow.txt`): (registry, value path, whether a key of the same registry is a
+projection chain from the value's path). -/
+structure RegOccs where
+  supp : Array (String × String × Bool) := #[]
+  recv : Array (String × String × Bool) := #[]
+  /-- a received rule-2 item that is no registry atom on a binder path (never paired) -/
+  other : Bool := false
+
+/-- Judge one statement: the R1 hits (with whether rule 1 covers each), the received
+atoms (rule 2), and the registry atoms by side (`RegOccs`). -/
 def judge (env : Environment) (parts : List Name) (t : Expr) (st0 : St) :
-    Array (String × String × Bool) × Array String × St := Id.run do
+    Array (String × String × Bool) × Array String × RegOccs × St := Id.run do
   let st0 := { st0 with occ := {}, locals := {}, r1 := {}, paramPol := {}, atoms := (false, false),
-                        atomWhere := #[], binders := #[] }
+                        other := (false, false), atomWhere := #[], binders := #[] }
   let ((), st) := ((walk t .pos "" #[]).run (env, parts)).run st0
-  -- the supplied registry occurrences: (path, registry) for values and keys
-  let mut vals : Array String := #[]
-  let mut keys : Array String := #[]
-  for ((r, p, tag), (_, uu)) in st.occ.toList do
-    if uu then
-      let path := st.binders[r]!.1 ++ p
-      if tag.startsWith "__reg:" then vals := vals.push path
-      if tag.startsWith "__regkey:" then keys := keys.push path
-  for ((path, tag), (_, uu)) in st.locals.toList do
-    if uu then
-      if tag.startsWith "__reg:" then vals := vals.push path
-      if tag.startsWith "__regkey:" then keys := keys.push path
+  -- the registry occurrences: (registry, path) for values and keys, by side
+  let mut sV : Array (String × String) := #[]
+  let mut sK : Array (String × String) := #[]
+  let mut rV : Array (String × String) := #[]
+  let mut rK : Array (String × String) := #[]
+  let all : List (String × String × Bool × Bool) :=
+    (st.occ.toList.map fun ((r, p, tag), (rr, uu)) => (st.binders[r]!.1 ++ p, tag, rr, uu)) ++
+    (st.locals.toList.map fun ((path, tag), (rr, uu)) => (path, tag, rr, uu))
+  for (path, tag, rr, uu) in all do
+    if let some reg := tag.dropPrefix? "__reg:" then
+      if uu then sV := sV.push (reg.toString, path)
+      if rr then rV := rV.push (reg.toString, path)
+    if let some reg := tag.dropPrefix? "__regkey:" then
+      if uu then sK := sK.push (reg.toString, path)
+      if rr then rK := rK.push (reg.toString, path)
+  let vals := sV.map (·.2)
+  let keys := sK.map (·.2)
   let hits := st.r1.toArray.map fun (p, ty, cv) =>
     let ok := cv || vals.any fun v => extendsPath p v && keys.any fun k => extendsPath k v
     (p, ty, ok)
-  return (hits, (if st.atoms.1 then st.atomWhere.filter (fun w => w.startsWith "+" || w.startsWith "±") else #[]), st)
+  let keyed (ks : Array (String × String)) (reg v : String) : Bool :=
+    ks.any fun (r', k) => r' == reg && extendsPath k v
+  let occs : RegOccs := {
+    supp := sV.map fun (reg, v) => (reg, v, keyed sK reg v)
+    recv := rV.map fun (reg, v) => (reg, v, keyed rK reg v)
+    other := st.other.1 }
+  return (hits, (if st.atoms.1 then st.atomWhere.filter (fun w => w.startsWith "+" || w.startsWith "±") else #[]),
+    occs, st)
 
 def stripBinders (t : Expr) : Array (Name × Expr × BinderInfo) × Expr := Id.run do
   let mut t := t
@@ -686,7 +725,7 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
     if onlyNew && (env.getModuleIdxFor? n).isSome then continue
     if let some o := (← IO.getEnv "MPC_ONLY") then
       if !(o.splitOn ",").contains n.toString then continue
-    let (hits, recv, st') := judge env parts ci.type st
+    let (hits, recv, occs, st') := judge env parts ci.type st
     if (← IO.getEnv "MPC_ONLY").isSome then
       emit s!"\{\"t\":\"debug\",\"axiom\":{jstr n.toString},\"where\":{jstr (" | ".intercalate st'.atomWhere.toList)}}"
     st := st'
@@ -694,9 +733,14 @@ def check (env : Environment) (parts : List Name) (emit : String → IO Unit) (o
     for (p, ty, ok) in hits do
       emit s!"\{\"t\":\"hit\",\"rule\":\"R1\",\"axiom\":{jstr n.toString},\"path\":{jstr p},\"type\":{jstr ty},\"covered\":{ok}}"
       if !ok then bad := bad + 1
+    -- the registry atoms by side, for the driver's pair entries
+    for (reg, path, keyed) in occs.supp do
+      emit s!"\{\"t\":\"supp\",\"axiom\":{jstr n.toString},\"registry\":{jstr reg},\"path\":{jstr path},\"keyed\":{keyed}}"
+    for (reg, path, keyed) in occs.recv do
+      emit s!"\{\"t\":\"recv\",\"axiom\":{jstr n.toString},\"registry\":{jstr reg},\"path\":{jstr path},\"keyed\":{keyed}}"
     for w in recv do
       bad := bad + 1
-      emit s!"\{\"t\":\"atom\",\"axiom\":{jstr n.toString},\"where\":{jstr w}}"
+      emit s!"\{\"t\":\"atom\",\"axiom\":{jstr n.toString},\"where\":{jstr w},\"other\":{occs.other}}"
   -- rule 3: one registration per (registry, key)
   let mut seen : Std.HashMap (Name × String) Name := {}
   for (n, r, kc, _, _) in regs do
@@ -872,6 +916,41 @@ theorem stW_reqSat : (stW (GF := GF)).ReqSat := by
 axiom st_wl : grpcReqModelOf GF go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty = some (stW (GF := GF))", true)
 ]
 
+/-- The pair entries' tests (`etc/model-param-check.py`, `PAIR_SELFTESTS`): declarations elaborated
+together and walked like the others, their lines emitted tagged `"pt":true` for the driver, which
+judges them against its own test entries: a returner receiving a registry atom on `T` (and its
+model binder `T.M`), a depositor requiring the same registration, one that does not, and one
+requiring another registry; and returners that also receive a `GrpcMethod`, or an atom whose key is
+not their model's type. -/
+def PAIRTESTS : String := "
+axiom st_pret : ∀ (P : IProp GF), P ⊢ ∃ (T : ProtoMsgT GF), ⌜grpcReqModelOf GF T.ty = some T⌝ ∗
+  ∀ (l : Loc) (m : T.M), T.recv l m -∗ True
+axiom st_pdep : ∀ (T : ProtoMsgT GF), grpcReqModelOf GF T.ty = some T → ∀ (l : Loc) (m : T.M), T.send l m ⊢ T.send l m
+axiom st_pdep_none : ∀ (P : IProp GF), P ⊢ P
+axiom st_pdep_other : ∀ (T : ProtoMsgT GF), grpcRepModelOf GF T.ty = some T → ∀ (l : Loc) (m : T.M), T.send l m ⊢ T.send l m
+axiom st_pret_meth : ∀ (P : IProp GF), P ⊢ ∃ (T : ProtoMsgT GF) (g : GrpcMethod GF),
+  ⌜grpcReqModelOf GF T.ty = some T ∧ g.name = g.name⌝ ∗ ∀ (l : Loc) (m : T.M), T.recv l m -∗ True
+axiom st_pret_unkeyed : ∀ (P : IProp GF), P ⊢ ∃ (T : ProtoMsgT GF),
+  ⌜grpcReqModelOf GF go.bool = some T⌝ ∗ ∀ (l : Loc) (m : T.M), T.recv l m -∗ True
+"
+
+def runPairtests (env : Environment) (parts : List Name) (emit : String → IO Unit) : IO Nat := do
+  let inputCtx := Parser.mkInputContext (PRELUDE ++ PAIRTESTS) "<pairtest>"
+  let s ← IO.processCommands inputCtx {} (Command.mkState env {} {})
+  let errs ← s.commandState.messages.toList.filterMapM fun m => do
+    if m.severity == .error then return some (← m.toString) else return none
+  if !errs.isEmpty then
+    emit s!"\{\"t\":\"pairtests\",\"ok\":false,\"why\":{jstr ("did not elaborate: " ++ errs.headD "")}}"
+    return 1
+  let r ← IO.mkRef (#[] : Array String)
+  let _ ← check s.commandState.env parts (fun l => r.modify (·.push l)) (onlyNew := true)
+  for l in ← r.get do
+    -- only the scratch axioms' own lines (not the imported registrations)
+    if (l.splitOn "\"axiom\":\"st_p").length > 1 || (l.splitOn "\"name\":\"st_p").length > 1 then
+      emit ("{\"pt\":true," ++ (l.drop 1).toString)
+  emit s!"\{\"t\":\"pairtests\",\"ok\":true}"
+  return 0
+
 /-- A line of the check's output that is a failure. -/
 def isBadLine (l : String) : Bool :=
   (l.splitOn "\"bad\":").length > 1 && !(l.startsWith "{\"t\":\"done\"") ||
@@ -923,4 +1002,5 @@ unsafe def main (args : List String) : IO UInt32 := do
   if selftest then
     let f ← runSelftest env parts (fun s => do out.putStrLn s; out.flush) (← baseRef.get)
     emit s!"\{\"t\":\"selftests\",\"failures\":{f}}"
+    let _ ← runPairtests env parts (fun s => do out.putStrLn s; out.flush)
   return 0
