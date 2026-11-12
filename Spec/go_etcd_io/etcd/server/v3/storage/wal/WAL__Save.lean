@@ -1,5 +1,5 @@
 /-
-`(*wal.WAL).Save` (WAL W4a, 2026-11-11, revised after the Freeze review; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
+`(*wal.WAL).Save` (WAL W4a, 2026-11-11, revised after the Freeze review and its second round; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
 -/
 module
 
@@ -34,7 +34,11 @@ before the call writes a record (a crash mid-call leaves an image of `H ++ [op]`
 `walImg`): the entries' records, then `st`'s unless it is empty (`saveState`). On success the WAL has
 written the history up to its new length (`walLenLb`), and if the save must sync (`walMustSync`:
 entries, or a changed vote or term) it has fdatasynced every record so far (`walSyncedLb`; also
-when it cut, which syncs). An error is an I/O failure (`¬ storage.walSaveOk`). -/
+when it cut, which syncs). An error is an I/O failure (`¬ storage.walSaveOk`). `Save` of an empty
+state and no entries writes nothing (S/wal.go:1079, its shortcut; Go test `rev2-tests`
+`TestRev2SaveEmptyWritesNothing`) while the model appends `save hsZero []`: no reader sees it
+(`walFoldChkFrom_phantom`, `walLastHS_phantom`, `walRead_phantom`), and positions after it only
+shift. -/
 abbrev wal.WAL.Save.spec : Prop :=
   ∀ (w : Loc) (dir : GoString) (hp : Loc) (hs : HardStateM) (sl : GoSlice) (esL : List Loc)
     (es : List EntryM) (sized : Bool) (Q : WalHist → IProp GF),

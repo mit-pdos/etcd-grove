@@ -6,8 +6,8 @@ Paths are strings (`GoString`). The WAL directories lie in one fixed directory, 
 (`AbsDiskState.area`), each a single element `area/n` (`walAreaDir`); the durable extension's names
 and `TouchDirAll`'s directories lie outside it (`underDir`). Clean absolute paths (`cleanAbsPath`)
 are those Go's `filepath.Clean` leaves unchanged, so `filepath.Clean(dir) + ".tmp"` is
-`dir ++ ".tmp"` and `filepath.Dir(r ++ "/" ++ n)` is `r`. That distinct strings name distinct files
-(no symbolic link on the paths a run uses) is a world assumption (`Impl.lean`).
+`dir ++ ".tmp"` and `filepath.Dir(r ++ "/" ++ n)` is `r`. That distinct such paths at or below the
+data directory name distinct files rests on the world assumption "Paths" (`Impl.lean`).
 -/
 module
 

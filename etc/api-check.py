@@ -39,7 +39,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC_DIRS = ("Code", "TrustedCode", "GeneratedProof", "ManualProof", "Spec", "Proof", "RaftWitness",
+SRC_DIRS = ("Code", "TrustedCode", "GeneratedProof", "ManualProof", "Spec", "Proof", "RaftWitness", "GooseLang",
             "EtcdDeps")
 IMPORT = re.compile(r"^(public\s+)?(meta\s+)?import\s+(all\s+)?(\S+)", re.M)
 

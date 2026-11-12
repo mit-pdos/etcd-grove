@@ -43,7 +43,7 @@ theorem Read.wp_file_au (wp_Read : Read.spec (GF := GF) (hG := hG)) (γ : GName)
         (dfile γ f o ={∅,⊤ \ ↑N}=∗ Φ (durableReadVal o))) -∗
       WP (App (Val (@! Read)) (Val #f)) {{ Φ }} := by
   iintro #Hinv HAU
-  iapply wp_Read none f trivial $$ %Φ
+  iapply wp_Read none none f trivial $$ %Φ
   rw [durableOwnM_none]
   iapply durableFiles_read_au γ N ⊤ CoPset.subseteq_top f Φ $$ Hinv HAU
 

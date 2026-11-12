@@ -1,5 +1,5 @@
 /-
-`(*wal.WAL).ReadAll` (WAL W4a, 2026-11-11, revised after the Freeze review; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
+`(*wal.WAL).ReadAll` (WAL W4a, 2026-11-11, revised after the Freeze review and its second round; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
 -/
 module
 
@@ -34,7 +34,10 @@ relaxed read (`walReadCut` of the history at the read position). On success the 
 read is fdatasynced, the zeroed tail included (F-Z), and the WAL directory and its parent are
 fsynced (F-N4), so the history is synced (`walSyncedLb`, the mark at its length) and, with the area
 `r` durable, the WAL's name is durable (`walNamed`); the records before `walReleasePos` are in
-unlocked files (as `ReleaseLockTo`'s); the purge's right is given. An error leaves `w` failed
+unlocked files (as `ReleaseLockTo`'s); the handle's purge right is given (`walPurgeW`). The premise
+`s = walNewestPair …` is what excludes a Go bug: at a snapshot no record matches, a write-mode
+`ReadAll` loses `ErrSnapshotNotFound` (overwritten by `newFileEncoder`'s nil error, S/wal.go:637-660)
+and succeeds (nonissue `etcd-wal-readall-snapshot-not-found-masked`). An error leaves `w` failed
 (`walReadFailed`): only `Close` accepts it (Go keeps the decoder, and a second `ReadAll` would read on
 from the failure; etcd closes the handle and reopens, `bootstrap`, `renameWALUnlock`), and the state
 as it was. -/
@@ -51,7 +54,7 @@ abbrev wal.WAL.ReadAll.spec : Prop :=
         walSaveEnts false esL σ.ents ∗ mdp ↦*□ d.metadata ∗ walOpenW w dir ∗
         walDiskAt dir { { d with m := max d.m d.H.length } with
           unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) s.1), named := true } ∗
-        walNamed dir ∗ walSyncedLb dir d.H.length ∗ walLenLb w dir d.H.length ∗ walPurgeRight dir) }}
+        walNamed dir ∗ walSyncedLb dir d.H.length ∗ walLenLb w dir d.H.length ∗ walPurgeW w dir) }}
 
 end spec
 

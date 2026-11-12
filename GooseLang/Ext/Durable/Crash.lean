@@ -4,9 +4,10 @@ interpretation. The files survive a crash unchanged (`durable_semantics`), so th
 keeps the old generation's ghost variable (`crashStart old new := ⌜new = old⌝`, as Perennial's
 `fs_crash_interp`), and the old generation's `durableOwn fs` is the new one's.
 
-The WAL area's reservation (2026-11-11) keeps its ghost name too, and the crash gives no start
-resources (the authority of the empty reservation is minted only at the first start,
-`durable_local_init`), so it is never re-minted: the program carries its ownership across the crash
+The WAL area's reservation (2026-11-11; its authority and invariant in the interpretation since
+2026-11-12) keeps its ghost name too, and the crash gives no start resources (the unreserved
+element `() ↪ none` is minted only at the first start, `durable_local_init`), so it is never
+re-minted: the program carries its ownership across the crash
 in whichever mode it is (`durableOwnM_crash`), and a reserved area stays reserved, with its
 persistent `durableReserved r` (`durableReserved_crash`).
 -/

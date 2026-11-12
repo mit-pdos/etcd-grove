@@ -76,6 +76,29 @@ def walReleasePos (H : WalHist) (a : w64) : Nat :=
   else if (∃ (i : Nat) (m : SnapshotMetadataM), H[i]? = some (WalOpG.snap m) ∧ m.Index' = a) ∧ walRelGuard H a (walLastSnapPos H a)
     then walLastSnapPos H a else H.length
 
+/-! The empty `Save` (S/wal.go:1079: an empty state and no entries write nothing; the model appends
+`save hsZero []`): no reader sees it. -/
+
+theorem walFoldChkFrom_phantom (σ : StorContents) (H₁ H₂ : WalHist) :
+    walFoldChkFrom σ (H₁ ++ WalOpG.save hsZero [] :: H₂) = walFoldChkFrom σ (H₁ ++ H₂) := by
+  induction H₁ generalizing σ with
+  | nil =>
+    simp only [List.nil_append, walFoldChkFrom, List.foldlM_nil, phsNext_empty _ hsZero ⟨rfl, rfl, rfl⟩]
+    rfl
+  | cons o H ih =>
+    cases o with
+    | snap m => simp only [List.cons_append, walFoldChkFrom]; exact ih _
+    | save h es => simp only [List.cons_append, walFoldChkFrom, ih]
+
+theorem walLastHS_phantom (H₁ H₂ : WalHist) :
+    walLastHS (H₁ ++ WalOpG.save hsZero [] :: H₂) = walLastHS (H₁ ++ H₂) := by
+  simp only [walLastHS, List.foldl_append, List.foldl_cons, phsNext_empty _ hsZero ⟨rfl, rfl, rfl⟩]
+
+theorem walRead_phantom (H₁ H₂ : WalHist) :
+    walRead (H₁ ++ WalOpG.save hsZero [] :: H₂) = walRead (H₁ ++ H₂) := by
+  simp only [walRead, walLastHS_phantom, List.filter_append, List.filter_cons, walKeep, if_true,
+    walFoldChkFrom_phantom]
+
 end pure
 
 section defs
@@ -95,9 +118,10 @@ def durableResvD (r : GoString) : IProp GF :=
 instance durableResvD_persistent (r : GoString) : Persistent (durableResvD (GF := GF) r) := by
   unfold durableResvD; split <;> infer_instance
 
-/-- **The WAL area is `r`, and no other path user writes or reads under it**: absDisk's area, and
-durable's reservation of it when the program has the durable extension (every WAL function that
-takes a directory requires it). -/
+/-- **The WAL area is `r`, and the durable extension's names stay out of the WAL's footprint**:
+absDisk's area, and durable's reservation of it when the program has the durable extension (every
+WAL function that takes a directory, and `TouchDirAll`, require it). No other path user is
+constrained (`Impl.lean`, "What this covers"). -/
 def walAreaOk (r : GoString) : IProp GF :=
   iprop(walArea (L := hG.goose_localGS) r ∗ durableResvD r)
 
@@ -136,15 +160,15 @@ instance walSnapIdTerm_persistent (sp : Loc) (s : w64 × w64) :
 
 /-- **The purge law** (the approved Draft's §1.5; proved from the extension's purge step, which the
 tester's trusted `purgeRound` model performs, W4c): a purge round in `dir`, while the purge's right
-is held, may delete the records before `unl` (`pur := max pur unl`), and moves the read position to the
+on the open WAL `w` is held (`walPurgeW`, one per handle, per generation), may delete the records before `unl` (`pur := max pur unl`), and moves the read position to the
 start `k` of the first file it left (`cut ≤ k ≤ max pur unl`). Stated over the step itself
 until the tester's `purgeRound` (and its model) exist. -/
-theorem walPurge_step (dir : GoString) (d : WalDur) (k : Nat) (hk : d.cut ≤ k)
+theorem walPurge_step (w : Loc) (dir : GoString) (d : WalDur) (k : Nat) (hk : d.cut ≤ k)
     (hk' : k ≤ max d.pur d.unl) :
-    {{ walDiskAt (L := hG.goose_localGS) dir d ∗ walPurgeRight (GF := GF) dir }}
+    {{ walDiskAt (L := hG.goose_localGS) dir d ∗ walPurgeW (L := hG.goose_localGS) w dir }}
       (ExternalOp absDiskExt.name "WalPurge" (Val (PairV (#dir) (#(walCode k)))))
     {{ RET #(); walDiskAt (L := hG.goose_localGS) dir { d with pur := max d.pur d.unl, cut := k } ∗
-        walPurgeRight dir }} := by
+        walPurgeW (L := hG.goose_localGS) w dir }} := by
   iintro %Φ ⟨Hd, Hr⟩ HΦ
   iapply wp_WalPurge dir k d ⟨hk, hk'⟩ Φ
   iapply fupd_mask_intro Std.LawfulSet.empty_subset

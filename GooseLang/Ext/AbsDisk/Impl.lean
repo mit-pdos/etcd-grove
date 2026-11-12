@@ -26,9 +26,11 @@ ptrace-recorded crash file system, kill, posix, ordered and kill-then-power-loss
   into a partly written, synced sector leaves the synced part intact).
 * **No CRC32-Castagnoli collision** on torn or arbitrary data: a record that was not written whole
   never passes the WAL's CRC chain.
-* **Paths name files**: the paths the run uses (clean absolute strings, `Paths.lean`) do not resolve
-  through a symbolic link, and nothing outside the program renames or removes them, so distinct
-  strings name distinct files (the tester's root is a fresh temporary directory).
+* **Paths** (approved by the user, 2026-11-12, via etcd-grove-81): during the run, no other process
+  creates, renames or removes files in the directories etcd and the tester use; no path the run uses
+  has a symbolic link at or below the data directory (symlinked ancestors are fine); file names are
+  case-sensitive. (The paths are clean absolute strings, `Paths.lean`; under this assumption two
+  distinct ones at or below the data directory name distinct files.)
 Under them, what a restart decodes is a record-granular prefix of what was written that reaches the
 last sync (F-Z makes a restart's read itself synced); an image outside that set fails the restart's
 read (bootstrap's error, or `Fatal`), which every read spec allows.
@@ -39,8 +41,15 @@ keeps it). Every WAL directory is a single element `area/n` with `n` free of `/`
 (`walAreaDir`); `"WalCreate"` requires all of `Create`'s footprint free (`walCreateRegion`), and
 `"DirDurable"` (`TouchDirAll`) is never under the area. The durable extension's names stay outside the
 area through a one-shot reservation in its ghost state (`durableReserved`), which the WAL functions
-that take a directory require. So nothing outside the WAL functions touches the area, and they touch
-nothing outside it. The adequacy theorem covers only starts meeting `absDiskInitOk`.
+that take a directory require. **What this covers, precisely**: of the program's other path users,
+only the durable extension (its names, in the reserved mode) and `TouchDirAll` (its directory, its
+parents' fsyncs and its probe `d/.touch`, which no durable name in the reserved mode and no WAL
+directory can be) are kept out of the WAL directories' footprint; the WAL functions' own footprint
+is the area's WAL directories and `Create`'s region (`walCreateRegion`), plus the area's and its
+parent's fsyncs. No other extension is constrained: a closed theorem that combines this extension
+with another one that names paths (`osFsExt`, rung 3's bbolt; the server's WAL axioms, C6) must
+first extend the reservation to it (a gate, `notes/decisions.md`, "WAL W4a revision round 2"). The
+adequacy theorem covers only starts meeting `absDiskInitOk`.
 -/
 module
 
@@ -126,10 +135,11 @@ def walImg {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Pr
 
 /-- **The durable state of the WAL in one directory**. `H`: every `Save`/`SaveSnapshot` since
 `Create`, across restarts (after a crash, the image the crash left). `m`: how many operations of `H`
-are synced. `unl`: the records before position `unl` are in files the WAL holds no lock on
-(`ReleaseLockTo`, and a restart's `Open`, which locks from the opened snapshot's file on). `pur`: the
-records before position `pur` may have been deleted (a purge round ran while `unl` was that). `cut`:
-the next restart reads from position `cut` on (chosen at a crash, `≤ pur`). `metadata`: `Create`'s
+are synced. `unl`: every record from position `unl` on is in a file the WAL keeps locked (records
+before it may be in unlocked files: `ReleaseLockTo`, and a restart's `Open`, which locks from the
+opened snapshot's file on); an upper bound on what is unlocked. `pur`: no record from position `pur`
+on has been deleted (records before it may have been: a purge round ran while `unl` was that).
+`cut`: the next restart reads from position `cut` on (chosen at a crash, `≤ pur`). `metadata`: `Create`'s
 metadata. `named`: the WAL directory's entry, and its ancestors', are durable. `sized`: as today's
 `walRecs` flag (WalRecs.lean), every entry record of a successful `Save` is the encoding of an entry
 object of bounded size. -/
@@ -166,7 +176,7 @@ The adequacy theorem covers only such starts; the program's own directories are 
 closed theorem (W4c). -/
 def absDiskInitOk (s : AbsDiskState) : Prop :=
   cleanAbsPath s.area ∧ (∀ k d, s.wal !! k = some d → walAreaDir s.area k) ∧
-  (∀ k, s.dirs !! k = some () → ¬ underDir s.area k)
+  (∀ k, s.dirs !! k = some () → cleanAbsPath k ∧ ¬ underDir s.area k)
 
 /-- The abstract-disk extension. No values of its own, no global state. -/
 @[reducible] def absDiskExt : GooseExt where
@@ -179,11 +189,16 @@ def absDiskInitOk (s : AbsDiskState) : Prop :=
 (`Create` between its rename and the parent's fsync, and after a kill until the next write-mode
 `ReadAll`) may vanish; otherwise the history becomes an
 image `I` at or past the mark, the mark stays (a kill keeps unsynced records unsynced; F-Z makes the
-restart's read durable, `ReadAll`'s post), the next read's purged prefix is any `k ≤ pur`. -/
+restart's read durable, `ReadAll`'s post), `unl` and `pur` are clamped to the image's length, and the
+next read's purged prefix is any `k ≤ min pur |I|`. The clamp (revision round 2, m-1): every record
+in an unlocked or deleted file is synced, since `cut` fdatasyncs a file before it starts the next
+(S/wal.go:876, 909) and only whole files before the one holding `unl` are unlocked; a crash keeps
+the synced records (`|I| ≥` what was synced), so `min unl |I|` and `min pur |I|` still bound what
+is unlocked and what was deleted. -/
 def walCrash (d : WalDur) (d' : Option WalDur) : Prop :=
   (d.named = false ∧ d' = none) ∨
-  ∃ I k, walImg d.H d.m I ∧ k ≤ d.pur ∧
-    d' = some { d with H := I, cut := k }
+  ∃ I k, walImg d.H d.m I ∧ k ≤ min d.pur I.length ∧
+    d' = some { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }
 -- `named` kept: a WAL that survived a kill between `Create`'s rename and its parent's fsync is seen
 -- through a name in the page cache only, and a later power loss can still revert the rename. F-N4
 -- (b18c2d500) makes the name durable at a write-mode `ReadAll` (its model's `"WalNamed"` step).

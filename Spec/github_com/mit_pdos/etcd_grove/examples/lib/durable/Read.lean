@@ -27,11 +27,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assu
 such file (`durableReadResult`), in one atomic step: a logically atomic spec, so that the files'
 ownership (`durableOwn`) is needed only at that step and can come from an invariant
 (`GooseLang/Ext/Durable/Files.lean` gives the per-file form). In the mode `o` (`durableOwnM`: `none`, no area reserved, any name; `some r`, the
-WAL area `r` reserved, a clean absolute name outside `r/`: `durableNameOk`). -/
+WAL area `r` reserved, a clean absolute name outside `r/` that does not hide: `durableNameOk`). The
+step may change the mode to `o'` (`durableModeStep`: it stays, or an unreserved program reserves the
+WAL area, when every current name is one the reserved mode allows; the WAL W4a revision's second
+round, 2026-11-12: the reservation is made at a durable step, where its invariant sees the files). -/
 abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.spec : Prop :=
-  ∀ (o : Option GoString) (name : GoString), durableNameOk o name →
+  ∀ (o o' : Option GoString) (name : GoString), durableNameOk o name →
   ⊢ ∀ Φ : val → IProp GF, (|={⊤,∅}=> ∃ fs : DurableState, durableOwnM o fs ∗
-        (durableOwnM o fs ={∅,⊤}=∗ Φ (durableReadResult fs name))) -∗
+        ⌜durableModeStep o o' fs⌝ ∗
+        (durableOwnM o' fs ={∅,⊤}=∗ Φ (durableReadResult fs name))) -∗
       WP (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Read)) (Val #name)) {{ Φ }}
 
 end spec
