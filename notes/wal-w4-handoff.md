@@ -206,3 +206,13 @@ Next: the fourth review; STOP before land.sh. When landing: merge lean first, re
 Pitfalls (W4c): the tester's boot takes `walUnlockedTok` from `absDiskStart` (and from
 `absDiskCrashStart` via `absDiskCrashStart_split` after a crash); it must `Close` before any second
 `Open`; `purgeRound`'s spec takes `walPurgeW w dir` and `walOpenW w dir`; it saves sized entries.
+
+## Review 4 minors (seventh agent, 2026-11-12)
+
+The fourth review: READY WITH CHANGES, minors only (journal
+`/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_436301cf-499/journal.jsonl`).
+Applied (docstrings, tests, notes; no statement changed): gates (area under the data directory; the
+token per directory for several WALs), `Open`'s raise described as `walReleasePos`, the pair's γ
+sentence, W4c items; tests `rev3_leak_test.go` (control), `rev3_open_guard_test.go`,
+`rev3_reopen_test.go`. Freeze package: "Review 4 minors". Next: merge lean when etcd-grove-81 says it is
+free (a SpecPlan/ sync is landing), rerun the checks, then `etc/land.sh` on its go.

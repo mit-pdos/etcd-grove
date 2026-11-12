@@ -45,8 +45,8 @@ approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a", and its revision aft
   **Revision round 3** (the third Freeze review): `walHandleP`, `walOpenW`, `walOpening` and
   `walReadFailed` are sealed (`@[no_expose]`) and the split of a handle into the open WAL and its
   right is private and of append handles only (F1: no right from an opening or failed handle);
-  `Open` raises `unl` to the opened snapshot's file (`wp_WalOpenHandle` performs `"WalUnlock"` of
-  that position, F1 (b)), so `unl` is current wherever a right exists. **The lock token**
+  `Open` raises `unl` to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`) (`wp_WalOpenHandle` performs `"WalUnlock"` of that position,
+  F1 (b)), so `unl` is current wherever a right exists. **The lock token**
   (`walUnlockedTok`, B2): one per generation (`absDiskStart`, `absDiskCrashStart`), taken by the
   handle a successful `Create`/`Open` allocates, carried by every handle predicate and given back
   only by `Close` (`wp_WalCloseHandle`): at most one handle, so one purge right (M2), per
@@ -572,7 +572,10 @@ carried by the handle (`walOpenW`, `walOpening`, `walReadFailed`) and returned o
 at most one handle exists per generation, and a handle the program drops takes the token with it: no
 second `Open` or `Create` is provable until a crash. (Go releases a dropped `*WAL`'s locks through
 `os.File` finalizers, without `Close`, and its buffered records are lost: Go test
-`TestRev3LeakedHandleThenOpen`.) No lemma mints it: `token_alloc` gives a fresh name only. -/
+`TestRev3LeakedHandleThenOpen`.) No lemma mints it: `token_alloc` gives a fresh name only. The
+token is area-wide, not per directory: at most one WAL handle exists across all the area's
+directories (enough for etcd and the tester, one WAL each; several WALs per process need a token
+keyed per directory, a rung-3/C6 gate). -/
 def walUnlockedTok : IProp GF :=
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
   token (gooseAbsDiskGS (L := L)).γu
@@ -601,9 +604,10 @@ opaque `walPurgeRight` in the extension's axioms): the purge of old WAL files th
 while it is held, and `Close` (which unlocks every file) consumes it with the handle. It is handed
 out only with `walOpenW` (by `Create`, by a successful `ReadAll`: the handle predicates that carry it
 before that are sealed, revision round 3, F1); while it is held, every record from the WAL's `unl`
-on is in a file the handle keeps locked (`Open` raises `unl` to the opened snapshot's file,
-`ReleaseLockTo` to the released files'). With the lock token (`walUnlockedTok`) at most one handle,
-so one right, is live per generation. **W4c gate:** the tester's `purgeRound` spec takes
+on is in a file the handle keeps locked (`Open` raises `unl` to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`),
+`ReleaseLockTo` to `walReleasePos` of its index too). With the lock token (`walUnlockedTok`) at most
+one handle, so one right, is live per generation; so `Close` and `wp_WalCloseHandle` need not ask
+that the `walOpenW` and `walPurgeW` they consume share a ghost name: no other right is outstanding. **W4c gate:** the tester's `purgeRound` spec takes
 `walPurgeW w dir` and `walOpenW w dir`, consumed or framed, never derived. -/
 def walPurgeW (w : Loc) (dir : GoString) : IProp GF :=
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
@@ -1088,8 +1092,8 @@ theorem wp_WalNoop (dir : GoString) (R R' : IProp GF)
   iframe Hc
   iapply Hk $$ HR
 
-/-- **`Open`'s handle** (revision round 3: F1 (b), B2): the `"WalUnlock"` step of `p` (the start of
-the opened snapshot's file: `Open` locks from it on, the files before it stay unlocked), which
+/-- **`Open`'s handle** (revision round 3: F1 (b), B2): the `"WalUnlock"` step of `p` (`Open`'s
+axiom passes `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`); every record from it on is in a file `Open` locks), which
 allocates the handle `w`, opened in `dir` for reading at `s`, taking the generation's lock token. -/
 theorem wp_WalOpenHandle (w : Loc) (dir : GoString) (s : w64 × w64) (p : Nat) (d : WalDur)
     (Φ : val → IProp GF) :
@@ -1106,7 +1110,9 @@ theorem wp_WalOpenHandle (w : Loc) (dir : GoString) (s : w64 × w64) (p : Nat) (
     (fun s' => by unfold walOpening; iapply walHandle_alloc s' w dir (.opening s)) Φ
 
 /-- **`Close`'s handle** (revision round 3, B2): a no-op step that consumes the handle `w` (open with
-its purge right, opening, or failed) and gives back the generation's lock token. -/
+its purge right, opening, or failed) and gives back the generation's lock token. The open WAL and
+the purge right need not share a ghost name: the token allows at most one outstanding right per
+generation. -/
 theorem wp_WalCloseHandle (w : Loc) (dir : GoString) (s : w64 × w64) (Φ : val → IProp GF) :
     (|={E,∅}=> ((walOpenW (L := L) w dir ∗ walPurgeW (L := L) w dir) ∨ walOpening (L := L) w dir s ∨
         walReadFailed (L := L) w dir) ∗ (walUnlockedTok (L := L) -∗ ▷ |={∅,E}=> Φ #()))

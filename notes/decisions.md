@@ -34813,3 +34813,39 @@ M1, M2 and minors. Each closed (the Freeze package's "Revision round 3" maps the
   `walDisk`'s default argument removed; `etc/api-check.py` scans every `lean_lib`'s directories.
 - W4c gates added: the step spec `wp_WalCloseHandle` joins the handle-step list; the tester's
   boot holds the token from `absDiskStart`/`absDiskCrashStart` (`absDiskCrashStart_split`).
+
+## WAL W4a review 4 minors: gates and evidence (2026-11-12 · the fourth Freeze review READY WITH CHANGES, minors only; the fixes and round 3's choices (`Close` returns the token only on success, a plain token) decided by etcd-grove-81 · branch `wal-w4`)
+
+Docstrings, tests and notes only; no statement changed.
+
+- **Gate: the area at or below the data directory** (closure3 m1). "Paths"' no-symlink and one-spelling
+  clauses cover the paths at or below the data directory, while every WAL guarantee is over the
+  model's `area`. A closed theorem's area must lie at or below its data directory (the tester's
+  `root/data/member` does). C6 with a dedicated WAL directory (`--wal-dir`, `config.walDirOf dataDir
+  dedicated`, outside the data directory) must first extend "Paths" to it: a change to a world
+  assumption, for the user. Recorded in `Impl.lean`'s "What this covers".
+- **The parenthetical is part of "Paths"** (closure3 m2): in the one-spelling clause, the parenthetical
+  ("no symlinked or bind-mounted alias of an ancestor is used besides the data directory's own
+  spelling; …") is part of the assumption, not an example: it is what excludes creating a new file
+  through an aliased spelling of a directory. At the next user-approved edit of "Paths", write "each
+  file or directory" in the operative sentence.
+- **Gate: several WALs per process** (closure3 m3, fresh4 m5): the lock token is area-wide, so at most one
+  WAL handle exists across the area's directories per generation (enough for etcd and the tester).
+  Rung 3 or C6, if they need several WALs in one process (one per member of a multi-member tester),
+  must key the token per directory, minted with the directory's ownership.
+- `Close`/`wp_WalCloseHandle` need not ask that the `walOpenW` and `walPurgeW` they consume share a ghost
+  name: the token gives at most one outstanding right per generation (closure3 m4; `walPurgeW`'s and
+  `wp_WalCloseHandle`'s docstrings).
+- `Open`'s raise described as what it is (fresh4 m1): `walReleasePos H s.1`, a position at or after the
+  start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at
+  index 0, else `|H|`).
+- **W4c items** (fresh4 m5, strength, not soundness): (1) `Open`'s raise persists (a crash only clamps it
+  to `|I|`), so one `Open` at a snapshot failing `walRelGuard` sets `unl = |H|` for good and the purge
+  model may then cut anywhere, losing information in the relaxed read. The fork's
+  `LatestSnapshotEntry` comment documents a pattern (the apply loop's snapshot saved after a newer one
+  the raft loop received) that fails clause 3 at the newest snapshot. The tester opens only at
+  `walNewestPair`; W4c checks whether etcd-shaped histories meet clause 3, or weakens clause 3 to what
+  the purge-past-`p` case needs. (2) The area-wide token (above).
+- Evidence added (`/shared/tmp/wal-spec/w4/rev3-tests/`): the leak test's negative control (fresh4 m2),
+  `TestReview4OpenGuardPurge` (the guarded branch, fresh4 m3), `TestRev4ReopenAfterClose` (fresh4 m4
+  (c)); RR3-3 lists the remaining untested clauses (a)-(e).

@@ -55,8 +55,12 @@ parent's fsyncs, and, when the area or its ancestors are missing, `Create`'s mkd
 first) and the fsyncs of their parents (`CreateDirAll` of `dir.tmp` is `TouchDirAll`); a durable name
 at such an ancestor only makes that mkdir, so `Create`, fail. No other extension is constrained: a closed theorem that combines this extension
 with another one that names paths (`osFsExt`, rung 3's bbolt; the server's WAL axioms, C6) must
-first extend the reservation to it (a gate, `notes/decisions.md`, "WAL W4a revision round 2"). The
-adequacy theorem covers only starts meeting `absDiskInitOk`.
+first extend the reservation to it (a gate, `notes/decisions.md`, "WAL W4a revision round 2").
+"Paths" constrains the paths at or below the data directory only: a closed theorem's area must lie at
+or below its data directory (as the tester's `root/data/member` does), and C6 with a dedicated WAL
+directory (`--wal-dir`, outside the data directory) must first extend "Paths" to it, a change for
+the user to approve (a gate, `notes/decisions.md`, "WAL W4a review 4 minors"). The adequacy theorem
+covers only starts meeting `absDiskInitOk`.
 -/
 module
 
@@ -145,7 +149,7 @@ def walImg {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Pr
 are synced. `unl`: while a handle of the directory with its purge right is live, every record from
 position `unl` on is in a file it keeps locked (records before it may be in unlocked files:
 `ReleaseLockTo`, and a restart's `Open`, which locks from the opened snapshot's file on and raises
-`unl` to that file's start, `walReleasePos`); an upper bound on what is unlocked while the right is
+`unl` to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`)); an upper bound on what is unlocked while the right is
 held. After `Close` or a crash no file is locked, and nothing may purge until a handle exists again
 (the purge right, `walPurgeW`, exists only with a live handle). `pur`: no record from position `pur`
 on has been deleted (records before it may have been: a purge round ran while `unl` was that).

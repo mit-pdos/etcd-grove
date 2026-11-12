@@ -30,10 +30,12 @@ variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 /-- **`Open(lg, dir, snap)`** (S/wal.go:377-379, write mode): opens the WAL at the snapshot `s`, locking
 its files from the one holding `s` on (`searchIndex`, `openAtIndex`, S/wal.go:395-466) and leaving
-the earlier ones unlocked: on success `unl` is raised to `walReleasePos` of `s`'s index (the step
-`"WalUnlock"` of that position, `wp_WalOpenHandle`; revision round 3, F1: the purge right in the
-handle is then backed by a current `unl`; Go test `rev3-tests` `TestRev3PurgeWhileOpening`, a purge
-in the window between `Open` and `ReadAll` deletes the unlocked file before the snapshot's).
+the earlier ones unlocked: on success `unl` is raised to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`) (the step `"WalUnlock"` of that
+position, `wp_WalOpenHandle`; revision round 3, F1: the purge right in the handle is then backed by a
+current `unl`). Go tests `rev3-tests`: `TestRev3PurgeWhileOpening` (the `|H|` branch: a purge in the
+window between `Open` and `ReadAll` deletes the unlocked file before the snapshot's) and
+`TestReview4OpenGuardPurge` (the `walRelGuard` branch: the purge deletes only files before the
+snapshot record's position).
 Nothing durable changes (read-only: its entry need not be durable). It takes the generation's lock
 token (`walUnlockedTok`): the new handle carries it, and an error gives it back. So no `Open` is
 provable while another handle exists, even one the program dropped without `Close` (Go releases
