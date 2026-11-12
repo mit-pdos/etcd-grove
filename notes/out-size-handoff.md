@@ -54,17 +54,53 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
   start** (raft fully proved, P2-P6): next checkpoint C3. NodeStart and InvBoot may be edited; tell
   etcd-grove-81 before touching anything else outside raft.
 
-- **C3 in progress**, 2026-11-12, commit `18142fa3a5` (P2 partial): `PbSized` bridges proved
-  (`entsPtsC_entsPtsZ`, `entsPtsZ_entsPtsC`) and `entRZ_of_struct` (a fresh entry, no unknown fields,
-  frozen at a sized content); `isStorageP_unsize`/`entsPtsC_unsize` (InvStorage) and
-  `memStorage_isStorage` proved; `memstorageFields ms sz σ` holds `entsROz sz` (the helper specs
-  `MemoryStorage.{first,last}Index` take `∀ sz`); `entsROz_lookup`/`entsROz_cons_len` (LemmasEnts);
-  MemoryStorage `Append`, `Compact`, `ApplySnapshot`, `NewMemoryStorage` and the readers check.
-  **Open:** `MemoryStorage__Entries` (needs `limitSize` content-level with the cut), `limitSize`/
-  `entsSize` onto `SizePb`, kv instances, then the raft build. **Blocked (reported to etcd-grove-81):**
-  B1, raft cannot reach `pbEntryC`/`pbEntryC_reg` (they live in the server's
-  `rafthttp/PerTypeEntry.lean`, at `HasLC.hasLC`); B2, no registered `ConfChange` instance, so
-  `MarshalPb` cannot bound a proposed conf change's data (`ccSize`).
+- **C3 in progress**, 2026-11-12 (commits `18142fa3a5`, then the P2 commit after it):
+  - `PbSized`: the bridges `entsPtsC_entsPtsZ`/`entsPtsZ_entsPtsC` proved; `entRZ_of_struct` (a fresh
+    entry with no unknown fields, frozen sized: use it for every entry raft allocates); the
+    `entsBigC_*` list laws; `entsPts_entsPtsC`/`entsPtsC_entsPts` (unsized bridges for callers).
+  - `InvStorage`: `isStorageP_unsize`, `entsPtsC_unsize`; `memStorage_isStorage` proved.
+  - MemoryStorage: `memstorageFields ms sz σ` holds `entsROz sz` (helper specs `{first,last}Index`
+    take `∀ sz`); all its proofs and `NewMemoryStorage` (`γs.sz` the caller's) check.
+  - **B1 done** (decided by etcd-grove-81): `Proof/go_etcd_io/raft/v3/PbEntryType.lean` holds
+    `entDecode`/`EntWireOk`/`pbEntry` (from rafthttp `PbMessage`), all of rafthttp's
+    `PerTypeEntry.lean` (deleted) and the `pbEntryC_*` simp lemmas (from `PerTypeMessage`); texts
+    unchanged, `pbEntryC_reg` still at `HasLC.hasLC`.
+  - rafthttp `Net.lean`'s pure `sizePure` section (varint/entry/message size lemmas) moved to
+    `MsgOut.lean` (needed by raft's cut); new `entrySize_lt_of_ok`. `msgSizeOk`'s `2^31`s are
+    `entBytesMax` (decided).
+  - `limitSize`/`entsSize`: specs at contents (`entsPtsC sz`), `limitSize` with the cut
+    (`sz → maxSize ≤ entsCutMax → entsCut`), `entsSize` exact (`sz → sum < 2^64 → n = sum`); proofs on
+    `proto.SizePb` at `pbEntryC`, at `HasLC.hasLC`. Helpers `w64_add_exact`,
+    `entrySize_sum_take_succ` (limitSize.lean). Pitfall: `word` inside these proofs can produce a
+    kernel "application type mismatch" (auxiliary-proof abstraction with an unused `sz`): move the
+    arithmetic into a pure lemma.
+  - `etc/link-lean-first-raft.txt`: `proto_SizePb` replaces `proto_SizeEntry`; server list
+    `proto_SizePb: @`; both Links regenerated (17 raft results moved to the `HasLC.hasLC` section:
+    acceptable, etcd-grove-81 asked to be told if it spread badly).
+  - `MemoryStorage.Entries` (cut from `limitSize`) and `raftLog.slice` (unsized bridges) check.
+  - **Build 1** (commit `5f2759dcb5`; raft Link + kv/kvreconf/kvdurable Links;
+    `/shared/tmp/out-size/c3-build1.log`) fails in: `raftLog__firstIndex:36` (an `isStorageWith`
+    use: pass `ls.sn.sz`), `raft__Step/MsgStorageApplyResp:252` (an `entsRO`/`entsPtsC` frame),
+    `RawNode__acceptReady:668` (`entsSize` at contents: bridge as in `raftLog.slice`), `StartNode`
+    and `RestartNode` (`certLink`'s new conjunct at :190/:204 and :210/:224, `storKeyNames`' tuple
+    `sn.sz` at :451/:633, `isStorage` at `γ.maxData.isSome` at :467/:674: the C2 repairs),
+    kv `KVStorageInstance`/`NewStorage`, kvreconf `KvrStorageApi`, kvdurable `KdStorageApi`/
+    `newStorage`/`openStorage`/`Replica__run` (`hmd`; `NewMemoryStorage`'s new `∀ sz` and
+    `⌜γs.sz = sz⌝`, pass `sz := false`; `Entries`' post at contents, `entsPtsC_entsPts`;
+    `Append` at `entsPtsZ false`, `entsPts_entsPtsZ`). Everything else in raft built.
+  - **Next:** fix those, then
+    kv storage instances (`hmd`), `raft.Step`/`RawNode.acceptReady`'s `entsSize` calls (bridges as in
+    `raftLog.slice`), `Results.lean`'s `#print axioms proto.wp_SizeEntry`; then delete
+    `proto.SizeEntry` (Spec+Proof, D4) when no user is left; then P3 (outbox `msgQC`, `raft.send`
+    and callers, `outSetR` premise discharge), P4 (`LogState.sz`, step pipeline, `appendEntry`
+    onto `ClonePb` (`pbEntryC`), then delete `proto.CloneEntry`), P5 (proposals, ConfChange via
+    the B2 instances), P6. `raftLog.slice`/`entries` must return `entsPtsC` sized and cut for the
+    `MsgApp` bound: needs the unstable entries sized (`LogState.sz`, P4).
+  - **B2 (approved by etcd-grove-81, hard stop before landing):** per-type `ConfChange` and
+    `ConfChangeV2` instances in `PbEntryType`'s pattern (an opaque encoder, its Go-tested fact
+    `proto.Size` = formula + round trip, a registration; each: about +4 axioms) and a pure lemma
+    size ≤ `ccSize + 64`. Write them with the Go tests in a small Freeze package
+    (`/shared/tmp/out-size/freeze-b2.md`) for etcd-grove-81's axiom review; P2-P4 go on meanwhile.
 
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
