@@ -19,8 +19,7 @@ the receiver and the readers, holds one of its lock's `actualMaxReaders = 2 ^ 30
 readers, one of its reader tokens (`mvccReaders`, of which `New` gives `mvccReaderN`, at least
 `2 ^ 28`): `Readers + 2 ≤ 2 ^ 28`; the writer's lease grants spend one of the backend's `2 ^ 40 - 1` write-back tokens
 each, the store's receipt-paid supply as many as there are receipts: `Ops < 2 ^ 38` and
-`receiptBound ≤ 2 ^ 38`), the thread bound of the backend's reader pool (`2 ^ 28`), the lessor's
-checkpoint premise (`ckptEffectsOk`, `lease.NewLessor.spec`'s), and `dbOpenOk` (`Open_kv`'s
+`receiptBound ≤ 2 ^ 38`), the thread bound of the backend's reader pool (`2 ^ 28`), and `dbOpenOk` (`Open_kv`'s
 environment premise). (Premise fixes 5, 2026-11-10) The store's key-count premise `keySized`
 (`etcdStorage_open.law`'s) is proved (`mvcc.keySized_all`), no longer a premise here.
 -/
@@ -53,7 +52,7 @@ abbrev runChecks.spec : Prop :=
   0 ≤ sint.Z cfg.Ops' → sint.Z cfg.Ops' < 2 ^ 38 →
   0 ≤ sint.Z cfg.Readers' → sint.Z cfg.Readers' + 2 ≤ 2 ^ 28 →
   0 ≤ sint.Z cfg.Watchers' → sint.Z cfg.Watchers' < 2 ^ 32 →
-  ckptEffectsOk → backend.dbOpenOk →
+  backend.dbOpenOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds cfg.Path' ∅ ∗
       -- (R8, 2026-11-08, the second `lean` merge) the main thread's token, for `backend.New`'s

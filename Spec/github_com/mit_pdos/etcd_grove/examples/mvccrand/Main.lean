@@ -3,7 +3,7 @@
 `Main()` (`examples/mvccrand/mvccrand.go`): `Run` at seed 1, 1000 writer operations, 4 readers of
 200 reads and 8 watchers, over a backend in the file `mvccrand.db`. **It returns** (every check of
 mvcc passes; 2026-11-08, for the closed theorem). The premises are `Run`'s at that configuration:
-the file `mvccrand.db` fresh (`fileHolds … ∅`), the thread and receipt bounds, `ckptEffectsOk`,
+the file `mvccrand.db` fresh (`fileHolds … ∅`), the thread and receipt bounds,
 `dbOpenOk`, `dbCloseOk`, `ETCD_VERIFY` off (until premise fixes 5, 2026-11-10, also `keySized`, now
 proved: `mvcc.keySized_all`).
 -/
@@ -31,7 +31,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)],
-  ckptEffectsOk → backend.dbOpenOk → backend.dbCloseOk →
+  backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds go!"mvccrand.db" ∅ ∗
       threadTok ∗ envVerifyOff }}

@@ -82,7 +82,7 @@ theorem Main.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
     hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
@@ -136,7 +136,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (LogEntry.toEntries boot 0) ctxs
       (k8setcd3Dir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [k8setcd3Dir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [k8setcd3Dir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)

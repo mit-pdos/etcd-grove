@@ -65,7 +65,7 @@ abbrev StartMember.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   -- (lease-mono3) the lease reads' deployment premise, in a mode that grants leases
   (lm ≠ .none → leasePeersOk) →

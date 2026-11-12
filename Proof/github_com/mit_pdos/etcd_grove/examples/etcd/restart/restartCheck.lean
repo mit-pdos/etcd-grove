@@ -66,7 +66,7 @@ theorem restartCheck.wp_proof
     restartCheck.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl ρ N name peerAddr caddr peer cluster lg M iu
     Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HLv HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
-    Hpe Hck Haf Hbuq Hrf Hdbo Hms hAs
+    Hpe Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨#Hzlg, Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
     #Hcci, #Hnet⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -126,7 +126,7 @@ theorem restartCheck.wp_proof
   -- the stopped member started again
   have Hu : Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL caddr], M, iu⟩ := HU
   wp_apply (wp_startMemberR N name peerAddr caddr peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hck Haf Hbuq Hdbo)
+      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Haf Hbuq Hdbo)
     $$ [Htok Hrr] as %mR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %sR, %plR, %ρ', %E₀', %Hρ', Hup, Hst⟩)

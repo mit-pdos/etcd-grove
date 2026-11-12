@@ -73,7 +73,7 @@ theorem runner.restore.wp_proof
     (wp_bClose : backend.backend.Close.spec (GF := GF) (hG := hG))
     (wp_checkLeases : runner.checkLeases.spec (GF := GF) (hG := hG)) :
     runner.restore.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs hlt hdbo hdbc hck hlim hcbl
+  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs hlt hdbo hdbc hlim hcbl
   haveI : Persistent (runnerMs (GF := GF) x mp0 mp1) := by unfold runnerMs; infer_instance
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   haveI := isInc_persistent hpers
@@ -135,7 +135,7 @@ theorem runner.restore.wp_proof
     have := runM_hs_prefix ks ops 0 ops.length (Nat.zero_le _)
     rwa [show histAt ks ops 0 = hist0 from rfl] at this
   wp_apply (wp_newMember x ks cfg wr h γ.h (W64 2) (buildPathM cfg.Prefix' (nb + 1)) (by decide)
-      (by decide) hdbo hck hlim hcbl) $$ [Htok Hrd Hbf]
+      (by decide) hdbo hlim hcbl) $$ [Htok Hrd Hbf]
     as %mpb ⟨Htok, Hrd, %mb, %fb, %vb, %kb, %Hvb, Hmb, Hstb, #Hregb⟩
   · iframe #; iframe
     iapply (monoListLbOwn_le _ hp0); iexact Hlb

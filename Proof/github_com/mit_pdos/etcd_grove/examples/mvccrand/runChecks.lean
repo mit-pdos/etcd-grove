@@ -71,7 +71,7 @@ theorem runChecks.wp_proof
     (wp_receive : watchCheck.receive.spec (GF := GF) (hG := hG))
     (wp_complete : watchCheck.complete.spec (GF := GF) (hG := hG)) :
     runChecks.spec (GF := GF) (hG := hG) := by
-  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hckpt hdbo
+  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hdbo
   haveI := fun kv γ => hpers.1 kv γ
   haveI := fun ws γ ι => hpers.2.1 ws γ ι
   haveI := fun B f => hpers.2.2.2.1 B f
@@ -153,8 +153,6 @@ theorem runChecks.wp_proof
     iframe Hcl Hisb Hoh Hw1
     isplitr
     · iright; iexact Hlgz
-    isplitr
-    · ipureintro; exact hckpt
     isplitr
     · ipureintro; simp only; exact Int.le_refl _
     isplitl [Hrbo]

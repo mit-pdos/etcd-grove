@@ -57,7 +57,7 @@ abbrev MainCluster.spec : Prop :=
   srvLevels (GF := GF) →
   cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot →
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   objTyOk →

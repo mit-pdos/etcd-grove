@@ -128,7 +128,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -207,7 +207,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
-    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
@@ -253,7 +253,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -304,7 +304,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
   have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops (srvLevels_of_max HT) Hbf
     (by unfold bootWB backend.wbInit; omega)
-    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
@@ -338,7 +338,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -425,7 +425,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps (srvLevels_of_max HT) Hbf (by unfold bootWB backend.wbInit; omega)
-    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

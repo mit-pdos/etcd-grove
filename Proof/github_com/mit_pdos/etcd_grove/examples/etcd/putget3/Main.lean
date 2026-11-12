@@ -125,7 +125,7 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hs₁, Hs₂, Hs₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
@@ -269,7 +269,7 @@ theorem Main.wp_proof
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₁
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Haf
       Hbuq Hdbo) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
     iExactEq Hq₁; rfl
@@ -295,7 +295,7 @@ theorem Main.wp_proof
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₂
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Haf
       Hbuq Hdbo) $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
     iExactEq Hq₂; rfl
@@ -321,7 +321,7 @@ theorem Main.wp_proof
       hvs hrule hboot hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf) hd₃
       (dir3_dirsOk id₁ id₂ id₃ ps ctxs boot Hbf) ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hck Haf
+        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Haf
       Hbuq Hdbo) $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
     iExactEq Hq₃; rfl

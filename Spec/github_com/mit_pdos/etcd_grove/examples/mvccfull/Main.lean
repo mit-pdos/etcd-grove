@@ -3,7 +3,7 @@
 `Main()` (`examples/mvccfull/mvccfull.go`): `Run` with `MainConfig("mvccfull")`. **It returns** (every
 check passes). The premises are `Run`'s at that configuration: its files fresh (`filePathsM` of
 `mainConfigM`: they depend only on the prefix and `Ops`), the thread and receipt bounds,
-`ckptEffectsOk`, `dbOpenOk`, `dbCloseOk`, `ETCD_VERIFY` off (until premise fixes 5, 2026-11-10, also
+`dbOpenOk`, `dbCloseOk`, `ETCD_VERIFY` off (until premise fixes 5, 2026-11-10, also
 `keySized`, now proved: `mvcc.keySized_all`). `MainConfig`'s configuration
 is in `Run`'s scope (`runCfgOk`): its read weights `[1, 1, 2, 1, 1, 0]` give the hashes none
 (`readMixOk`), `Ops = 12000`, 15 threads, the batch limits `3` and `2`, the 120 keys of depth `4`.
@@ -35,7 +35,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)],
-  ckptEffectsOk → backend.dbOpenOk → backend.dbCloseOk →
+  backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗
       ([∗list] p ∈ filePathsM (mainConfigM go!"mvccfull" (zeroValDef : Mix)), backend.fileHolds p ∅) ∗
       threadTok ∗ envVerifyOff }}

@@ -65,7 +65,7 @@ theorem run.wp_proof
   wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, #Hzlg, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   obtain ⟨Htb, HLv, Hrb48, HrbN, HwbN⟩ := Hp₂
-  obtain ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp₃
+  obtain ⟨Haf, Hbuq, Hrf, Hdbo⟩ := Hp₃
   obtain ⟨HlP, HnE⟩ := Hp₄
   obtain ⟨Hms, hAs⟩ := Hp₅
   ihave #Pc3 : isPkgInit (PROP := IProp GF)
@@ -80,7 +80,7 @@ theorem run.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in the monotone lease mode
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .mono clusterCfg_ok Hbf
-      Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms (lease.runCfg_mono HnE) (by decide)
+      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms (lease.runCfg_mono HnE) (by decide)
       (fun _ => HlP))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #

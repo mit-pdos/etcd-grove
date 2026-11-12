@@ -74,7 +74,7 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
@@ -159,7 +159,7 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf
-    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     H0 H31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

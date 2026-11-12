@@ -56,7 +56,7 @@ theorem StartCluster.wp_proof
     (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     StartCluster.spec (GF := GF) (hG := hG) := by
-  intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf
+  intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf
     Hdbo Hms Hrun Hrev HlP
   -- (lease-mono3) the mode `none` or `mono`: `alloc3` at it, `StartMember` at it, `etcdKV` in the
   -- mode `none` only
@@ -146,7 +146,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hck Haf Hbuq Hrf Hdbo Hms HlP) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Haf Hbuq Hrf Hdbo Hms HlP) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -171,7 +171,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hck Haf Hbuq Hrf Hdbo Hms HlP)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Haf Hbuq Hrf Hdbo Hms HlP)
     $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -197,7 +197,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hck Haf Hbuq Hrf Hdbo Hms HlP)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Haf Hbuq Hrf Hdbo Hms HlP)
     $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
