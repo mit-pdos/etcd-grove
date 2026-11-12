@@ -34949,3 +34949,25 @@ pushes nothing, `:753-756`), and `Renew` never calls `cp` (`clearRemainingTTL` n
 `(Hck : ckptEffectsOk)`; `lease.bootCfg` loses its last conjunct, and `bootCfg_none`/`_mono`/`_of_run`
 their `hck` argument. A change that turns the feature on must give the checkpointer a contract
 (stage B3's note), not restore this premise.
+
+## WAL W4a.1: `walDiskM`, and `ValidSnapshotEntries` with the lock token (2026-11-12 · findings F-W4b-1/F-W4b-2 of the W4b plan; the fixes decided by etcd-grove-81 under the user's delegation; the trusted texts await the delta Freeze review, `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md` · branch `wal-w4a1`)
+
+Two strength gaps in W4a's landed axioms, found while planning W4b (`/shared/tmp/wal-spec/w4b/plan.md`
+§1); neither is a soundness problem, both blocked the tester's proof (W4c):
+
+- **F-W4b-1.** `Save`, `SaveSnapshot` and `Close` were stated over `walDisk dir H sized`, which hides
+  every field but the history and the flag, so after one of them nothing bounded `pur` (the crash's
+  read position `k ≤ pur` was then any `k ≤ |I|`, and the exact purge positions of the Draft's §9
+  decision 2 had no force) and the metadata was lost. Only the mark needs hiding: an atomic update
+  aborts back to the same binder (`atomic_acc`), and the bodies sync behind an aborted access. Now
+  `walDiskM dir d` (`WalDisk.lean`: `d` exactly, the mark at least `d.m`), and the three axioms move
+  only `d.H` (the mark through `walSyncedLb`). Go: a cut locks its new segment and unlocks none, the
+  metadata is rewritten at each cut.
+- **F-W4b-2.** VSE's prefix `H.take j` (review 2's B1, needed while an append handle buffers records)
+  also applied after a crash, where `ReadAll`'s premise needs the whole history's newest pair. A second
+  conjunct: a caller holding the generation's lock token (no handle of the generation live: `Close`
+  flushes and syncs before returning it, a dropped handle takes it) reads the whole history.
+
+Go tests: `/shared/tmp/wal-spec/w4a1/tests/` (pur bound via lockable files across cuts; VSE after
+`Close`, on a kill image with unsynced records, and the dropped-handle control where the token is
+gone). The axiom generator: `/shared/tmp/wal-spec/w4a1/gen/genspecs.py`. 12 axioms, unchanged in number.
