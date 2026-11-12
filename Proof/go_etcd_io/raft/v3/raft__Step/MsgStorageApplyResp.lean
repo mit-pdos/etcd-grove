@@ -104,11 +104,12 @@ theorem StepCD.trans_leave {c : CfgM} {id : w64} {B : Int} {m : MessageM} {s s1 
 /-- **The automatic leave's proposal is legitimately sent** (2026-10-29, stage U5): its one entry is
 a filler (an empty `ConfChangeV2`, `Filler`), whose data decodes (`ccDecodeV2_nil`), so raft's own
 leave needs no client's deposit. -/
-theorem isMessage_leave (γ : RaftNames) : ⊢ isMessage (GF := GF) γ leaveAbs := by
+theorem isMessage_leave (γ : RaftNames) (htr : γ.reTrace = none) :
+    ⊢ isMessage (GF := GF) γ leaveAbs := by
   unfold leaveAbs isMessage absMsg absMsgFrom
   isplitr
   · ipureintro
-    exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
+    exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e _ => TrNoConf.of_none htr e⟩
   iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
   unfold propData
   iexists none
@@ -176,7 +177,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         -- (2026-10-25, T-M M2b) a pre-candidate keeps its log and commit index (`PreKeep`)
         "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         -- (2026-10-29, stage U5) the leave's proposal received, if appended, at the bound `B`
-        "%Hrecv" ∷ ⌜(∀ m' ∈ recv, m' = leaveAbs) ∧ recv.length ≤ 1⌝ ∗
+        -- (2026-11-12, trace-check's G3 (a)) only at an untraced node (`appliedTo`'s premise)
+        "%Hrecv" ∷ ⌜(∀ m' ∈ recv, m' = leaveAbs) ∧ recv.length ≤ 1 ∧ (recv ≠ [] → s.gh.tr = none)⌝ ∗
         "%HBb" ∷ ⌜plogLastIndexZ (toPState s).base (toPState s).log ≤ B ∧
           B ≤ plogLastIndexZ (toPState s).base (toPState s).log + 1 ∧ B < 2 ^ 64⌝ ∗
         "Hrcb" ∷ (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗ ⧖ (k0 + 1)) ∗
@@ -230,7 +232,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     isplitr
     · ipureintro; exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
     isplitr
-    · ipureintro; exact ⟨by simp, by simp⟩
+    · ipureintro; exact ⟨by simp, by simp, fun h => absurd rfl h⟩
     isplitr
     · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
     isplitr
@@ -334,7 +336,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       isplitr
       · ipureintro; exact Hpk1
       isplitr
-      · ipureintro; exact ⟨by simp, by simp⟩
+      · ipureintro; exact ⟨by simp, by simp, fun h => absurd rfl h⟩
       isplitr
       · ipureintro; rw [Hps1]; exact ⟨Int.le_refl _, by omega, HL⟩
       isplitl [Hrcb]
@@ -353,7 +355,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       · ipureintro
         exact fun h => absurd (Hrl.symm.trans (Hrole1.trans h)) (by decide)
       isplitr
-      · ipureintro; exact ⟨Hrecv, Hrl1⟩
+      · ipureintro; exact ⟨Hrecv, Hrl1, fun _ => Htr (by simp) Hal⟩
       isplitr
       · ipureintro; rw [← Hps1]; exact ⟨HB1, HB2, HB3⟩
       isplitl [Hrcb]

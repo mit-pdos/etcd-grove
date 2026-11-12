@@ -2742,6 +2742,14 @@ filter their families (the design's `¬ ReadIdle` premise had no source). Not do
 site sees no trace fact; its fold needs the decoder's value on the bootstrap entries). Next: G3 (a), then
 step 3.
 
+**G3 (a) (2026-11-12, branch `trace-check-g3`)** (`notes/decisions.md`, "G3 (a): no conf entry past the
+bootstrap log"; the design's "G3 (a)"). Done in a stronger form: at a traced cluster no leader mints a
+conf entry at all (the automatic leave included, excluded by `raft.Step.spec`'s existing premise), so
+the empty-`ConfChangeV2` part (a2) and its decoder fact are not needed. The fact enters as a gated
+conjunct of `isMessage`'s proposal case, is recorded per entry in `ev2Rec`, and is read by
+`isEntryR_trNoConf`, `logRecs_trNoConf` and `ownStepGhost_trNoConf` (`TracedConfExcl.lean`), the last
+what step 3's leader exclusion takes. Next: step 3.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and

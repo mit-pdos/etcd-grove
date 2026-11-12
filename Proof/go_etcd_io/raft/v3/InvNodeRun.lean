@@ -897,7 +897,7 @@ theorem isMessage_propose_pure (γ : RaftNames) (m : MessageM) (ents : List Entr
       ⌜m.Term' = W64 0 ∧ ents ≠ [] ∧ (ents.length : Int) < 2 ^ 61⌝ := by
   unfold isMessage absMsg absMsgFrom
   iintro ⟨%H, -⟩
-  ipureintro; exact H
+  ipureintro; exact ⟨H.1, H.2.1, H.2.2.1⟩
 
 /-- The proposal `Propose` builds is legitimately sent, given its entry's data. (2026-10-16,
 stage R5: the records `propMsgM`, `propEntryM d`.) -/
@@ -908,7 +908,9 @@ theorem isMessage_propMsg (γ : RaftNames) (d : List w8) :
   unfold isMessage absMsg absMsgFrom
   isplitr
   · ipureintro
-    exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
+    -- (2026-11-12, G3 (a)) a normal entry
+    exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e he => by
+      rw [List.mem_singleton.1 he]; exact TrNoConf.of_normal γ rfl⟩
   iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
   iexact Hent
 

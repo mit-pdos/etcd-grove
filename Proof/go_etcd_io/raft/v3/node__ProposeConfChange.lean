@@ -137,7 +137,7 @@ private theorem node.ProposeConfChange.wp_raw
     · unfold isMessage absMsg absMsgFrom
       isplitr
       · ipureintro
-        exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
+        exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e _ => TrNoConf.of_none Htr e⟩
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ.raft e)).2
       iexact Hent
     isplitl [Htk]

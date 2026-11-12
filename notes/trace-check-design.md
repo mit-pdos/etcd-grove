@@ -49,8 +49,8 @@ is not needed: the automatic leave is never minted at a traced node, rather than
 and the node's `s.gh.tr` agree: `ownStepGhost`'s `NsLink`.)
 
 **Where the trace fact enters: a gated clause of `isMessage`'s proposal case** (the option the step-2
-agent listed second). The minting site, `ownRaftGhost_step_propose`, is reached from `ghostR_stepR`'s
-`StepR.propose` arm (and the static `StepC.propose` arm, `ownRaftGhost_stepC`), which see the proposal
+agent listed second). The minting site, `ownRaftGhost_step_propose`, is reached from
+`ownRaftGhostR_stepR_in`'s `StepR.propose` arm (`RefinementDyn.lean`) (and the static `StepC.propose` arm, `ownRaftGhost_stepC`), which see the proposal
 only through `isMessage` of the received message (`recv_one`); threading a premise down from
 `raft.Step`'s `MsgProp` branch instead would add a premise to `ghost_step_md` and its layers, whose
 ~20 callers (every `raft.Step` branch) would each discharge it. The clause's producers are few (below),
@@ -61,7 +61,9 @@ Statements, old → new (all raft-internal or in raft's importable "debt" module
 1. `TrNoConf γ e : Prop := γ.reTrace ≠ none → ¬ IsConfEnt e` (new, `Protocol/Ghost.lean`).
 2. `isMessage`'s `.propose` case (`Protocol/GhostState.lean`): `⌜m.term = W64 0 ∧ m.entries ≠ [] ∧
    len < 2^61⌝ ∗ [∗list] e ∈ m.entries, propData γ e` → the pure conjunct gains `∧ ∀ e ∈ m.entries,
-   TrNoConf γ e` (gated: vacuous at `γ.reTrace = none`).
+   TrNoConf γ e` (gated: vacuous at `γ.reTrace = none`). Its readers re-proved mechanically:
+   `isMessage_propose_pure` (`InvNodeRun.lean`, statement unchanged), `TracedRawNode.lean`'s proposal
+   triple, `isMessage_propose_data` (`raft__Step/MsgProp.lean`).
 3. `ev2Rec γ e pt` (`Protocol/Ghost.lean`, the last conjunct of `isEntryR`'s leader-minted disjunct):
    `∀ (_ : γ.reDyn ≠ none ∧ IsEmptyV2 e), …` → `⌜TrNoConf γ e⌝ ∗ ∀ (_ : …), …`. So every leader-minted
    record carries it; a boot record (`BootRec`, index `≤ |γ.reBoot|`) does not need it.
@@ -78,6 +80,11 @@ Statements, old → new (all raft-internal or in raft's importable "debt" module
    use, `raft.Step`'s `MsgStorageApplyResp` arm, gets that from `wp_Step_MsgStorageApplyResp`'s post
    `%Hrecv`, which gains `recv ≠ [] → s.gh.tr = none` (the leave is received only from `appliedTo`'s
    `LeaveStep` second disjunct, `c.autoLeave = true`, at `ents ≠ []`, so by its premise), and `NsLink`.
+   Since `ghost_step_md` takes `isMessage γ a` even at `recv = []`, it becomes the instance of a list
+   form `ghost_step_mdL` (taking `[∗list] m ∈ recv, isMessage γ m`): empty at `recv = []`, else
+   `isMessage_leave` under `NsLink.trace_none`. (`appliedTo`'s other caller, `appliedSnap`, is not
+   reached at a traced node: `raft.Step.spec`'s `MsgStorageAppendResp → sn ≠ none → s.gh.tr = none`,
+   and `raft.appliedSnap.spec`'s own `s.gh.tr = none`.)
    Every other `isMessage` of a proposal passes one through (`isMessage_propose_from`, `fwdP`, `node.run`).
 6. **G3 (a), the lemmas** (`TracedConfExcl.lean`): `isEntryR_trNoConf : γ.reTrace ≠ none → isEntryR γ e
    pt ⊢ ⌜IsConfEnt e → uint.Z e.Index' ≤ γ.reBoot.length⌝`; over a node's log,
@@ -87,13 +94,21 @@ Statements, old → new (all raft-internal or in raft's importable "debt" module
    shape).
 
 **Checked against the consumers** (§3.4): (b)'s keeping at the `confc` arm reads "the applied conf entry
-at position `k` of the node's log has `k < |γ.reBoot|`" off `ownStepGhost_trNoConf` (the entry is in the
-node's log: no snapshot at a traced node, `TrNoSnap`); item 5 likewise. **Order:** (a)'s statement does
+at position `k` of the node's log has `k < |γ.reBoot|`" off `ownStepGhost_trNoConf`; item 5 likewise. **Left to step 3** (the review's S6):
+that the `confc` arm's entry, delivered (`rs.delivered`, committed), sits at the same position of raft's
+log (`sents ++ uents` after `prev = 0`): no snapshot at a traced node (`TrNoSnap`), and the delivered
+log agrees with raft's below `applying` (`ackInv`/`Hdlen`, to name at threading). If that link is
+costly, a variant over the committed log's records is the alternative. **Order:** (a)'s statement does
 not mention (b), and its keeping uses only `raft.Step.spec`'s existing premises; the automatic-leave
 premise's discharge at the traced `RawNode.Advance` was already (b)'s job (§3.4, "Read"), so step 3's
 obligations are unchanged: (a) at every record by the minting premises, (b) at a `confc` step from (a).
 Each holds of the state before a step, so the two are one induction over time, not a circular proof.
 `raft.Step.spec`'s `MsgProp` premise is now derivable from `#Hmsg` and `NsLink`; it is left as it is.
+Client-visible: no `Spec/` statement changes; `interface/` changes in raft's importable debt modules
+(`Protocol.GhostState`'s `isMessage` body, `Protocol.Ghost`'s `TrNoConf`/`ev2Rec`/`isEntryR_of_core`,
+`Protocol.Refinement`'s `ownRaftGhost_step_propose`), each a gated addition. Review: one fresh
+`spec-reviewer` round (2026-11-12), no first-tier finding; its S1-S6 folded in here (S3: the older
+text below marked superseded).
 
 ## Implementation step 2 (2026-11-12): what the Lean changed
 
@@ -138,7 +153,7 @@ Not done: G3 (a) (below). The statements as written, and where they depart from 
   log whose first entries are the bootstrap's conf entries (the log facts at a node, from the committed
   log, are step 3's to read).
 - **Probe B item 6** is `trCapB_booted_of_mono`/`raft.Step.traced_booted` (`TracedRaftStepBundle.lean`).
-- **G3 (a): not done.** (a1): the per-entry form is cheaper than a clause on the term logs' authority
+- **G3 (a): not done** (done since, "G3 (a)" above; the arm is `ownRaftGhostR_stepR_in`'s). (a1): the per-entry form is cheaper than a clause on the term logs' authority
   (`ev2Rec` gains `⌜γ.reTrace ≠ none → IsConfEnt e → IsEmptyV2 e⌝`, minted at
   `ownRaftGhost_step_propose`, `Protocol/Refinement.lean`), but the minting site has no trace fact: its
   caller is `ghostR_stepR`'s `StepR.propose` arm (`Protocol/RefinementDyn.lean`), which sees the
@@ -1136,6 +1151,8 @@ the second is `readyFits` itself (`γ.reBoot.length = 3`). Read once per arm; no
      - **(a) No configuration entry past the bootstrap log**: every entry of every log at a position
        `≥ |γ.reBoot|` has `¬ IsConfEnt e` (`CCModel.lean:65`: type `1` or `2`), fillers included. In
        two parts:
+       - *(Superseded 2026-11-12 by "G3 (a)" at the top: no conf entry minted at all; the record in
+         `ev2Rec`; no (a2). The two parts below are revision 3's text.)*
        - **(a1) Non-empty conf entries: a gated clause of the term logs' authority** (the ghost map
          behind `isEntryR`, `Protocol/Ghost.lean:1604`, where each entry is minted once by its term's
          leader and whose fragments every node's log carries through `logRecs`/`leadPrefix`: Log
@@ -1177,7 +1194,8 @@ the second is `readyFits` itself (`γ.reBoot.length = 3`). Read once per arm; no
          `autoLeave = false`.
        - *Read*: the traced `RawNode.Advance` (`raft.Step.spec`'s premise `MsgStorageApplyResp → ents
          ≠ [] → c.autoLeave = true → s.gh.tr = none`, `raft__Step.lean:663`) and §4's last row.
-     - **Order** (revision 3: no longer a joint induction). (a) is kept by every step on its own ((a1)
+     - **Order** (revision 3: no longer a joint induction; *superseded 2026-11-12: see "G3 (a)" at the
+       top, (a) at the automatic leave kept by the premise (b) discharges, one induction over time*). (a) is kept by every step on its own ((a1)
        by the minting premises, (a2) from `ev2Rec` and (a1)); (b) is kept at a `confc` step using (a).
        (b) is read only to discharge `raft.Step.spec`'s `autoLeave` premise, which is no longer
        needed for (a).
@@ -1692,7 +1710,7 @@ rows say so. Revision 3: rows re-checked against N1-N3 and S1-S6; changed or new
 | `OutTyStep` and the monotone flag in `stepBundle_traced.statement`'s `Gout` ★ (A2; rev. 3, N1) | each path's close (the 27 files of §3.6); for the broadcasting paths the strengthened `OutOk` and `outTyStep_of_outOk` (rev. 3, S2); `stepClose_anyB` with the flag | each path knows what it queued (the families record it in `OutOk`) and whether it logged a line |
 | `OutOk`'s strengthened disjunct, `outOk_snoc`'s new premise, `outTyStep_of_outOk` ★ (rev. 3, S2) | the 8 `outOk_snoc` sites' message types; `lineF_untraced`'s new premise `¬ ReadIdle X` from its caller's pending read | L1 closed (§9) |
 | the physical half: the traced premises of `raft.send.spec`, `raft.Step.spec` (`MsgTransferLeader`; `MsgAppResp → lt = 0`, rev. 3, S3), `raft.sendTimeoutNow.spec`; `XfOk`'s clause ★ (A2) | `stepLeader`/`stepFollower`'s transfer branches and `raft.go:1590`'s `From == leadTransferee`; `raft.Step.tracedTriple`'s `StepEndTy` and `MsgAppResp → s.lt = 0` (1(b)) | §3.6; lands whole in step 3 (rev. 3, N3) |
-| G3 (a) ★ (A3; rev. 3, S4): (a1) the term logs' gated clause on non-empty conf entries; (a2) empty `ConfChangeV2`s | (a1) `cluster_alloc_traced`, the minting update's new premise from `raft.Step.spec`'s traced `MsgProp` premise (the automatic leave admitted); (a2) `isEntryR`'s `ev2Rec`, lemma (i), (a1), by induction on positions | §3.4 item 4; (a) no longer needs (b). One point to check at threading: `CfgAt` over the bootstrap prefix is simple |
+| G3 (a) ★ (A3; rev. 3, S4; *superseded 2026-11-12: "G3 (a)" at the top, proved*): (a1) the term logs' gated clause on non-empty conf entries; (a2) empty `ConfChangeV2`s | (a1) `cluster_alloc_traced`, the minting update's new premise from `raft.Step.spec`'s traced `MsgProp` premise (the automatic leave admitted); (a2) `isEntryR`'s `ev2Rec`, lemma (i), (a1), by induction on positions | §3.4 item 4; (a) no longer needs (b). One point to check at threading: `CfgAt` over the bootstrap prefix is simple |
 | lemma (ii), `applied ≤ capplied` (dynamic) ★ (B3; rev. 3, N2) | `RawNode.Advance.spec`'s strengthened post at the traced `RawNode.Advance`; framed elsewhere | §3.4 item 3: the source is the installed configuration index, not the driver's view |
 | `raft.Step.traced`, `stepBundle_traced` | proved (30c); re-opened for `OutTyStep` and the flag (step 2) and for the physical half's premises (step 3) | — |
 | `TrNoSnap`'s update form (A4) | `trNoSnap_traced`'s new conclusion; `raft__maybeSendAppend.lean`'s two refutations by `imod` | §5.2 |
@@ -1786,7 +1804,7 @@ that the deposit is found in both orders (A1), and that `rnTrace` 1(b) with `XfO
 - **L2 (§3.4), the leader exclusion.** Lemma (i) argued (`HupGuard` is exclusive,
   `SpecResults.lean:61-73`, so 1(c) follows at the close from `StepEnd`; review r3). Lemma (ii) with its
   source corrected (revision 3, N2: `RawNode.Advance.spec`'s strengthened post, proof sketched against
-  the Lean). **G3** (a) in two parts (revision 3, S4): (a2), the empty `ConfChangeV2`, from the
+  the Lean). (*G3 (a): superseded and closed 2026-11-12, "G3 (a)" at the top.*) **G3** (a) in two parts (revision 3, S4): (a2), the empty `ConfChangeV2`, from the
   existing `ev2Rec`, with one point to check at threading (`CfgAt` over the bootstrap prefix is the
   fold from the simple base, so simple, whatever the recorded decisions); (a1), the non-empty conf
   entries, still needs the term logs' minting update located, with the code proofs that call it
@@ -1858,7 +1876,7 @@ proved theorem before its facts.** Each landing passes the acceptance test (`not
      `outTyStep_of_outOk`; the 8 `outOk_snoc` sites; `lineF_untraced`'s premise `¬ ReadIdle X` (its one
      caller in `TracedRaftStepRecvLeadSend.lean`); `ReadIdle`/`TrScope`/`TrOutMsg`/`OutTyStep` defined
      in `StepGhostMode.lean`;
-   - **G3 (a)** (S4): (a1)'s gated clause on the term logs with the minting update's premise
+   - **G3 (a)** (S4; *done 2026-11-12 in another form, "G3 (a)" at the top*): (a1)'s gated clause on the term logs with the minting update's premise
      (`cluster_alloc_traced` establishing it); (a2) as a lemma from `ev2Rec`; lemma (i) as a pure lemma
      over the committed log;
    - `TrNoSnap`'s update form (`trNoSnap_traced`, the two `imod`s);
