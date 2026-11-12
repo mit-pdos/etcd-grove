@@ -117,9 +117,69 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
      e. (done: AbsDisk interface regenerated at `0922c63aec`, api-check clean, the 18 leaf importers of
         AbsDisk/Specs build; tcb `--check` matches the baseline, 865 axioms / 5 sorries: the new Init axioms are reached by no root yet).
      Then CP2 (report).
-4. Steps 3-4 as in plan §8.
+4. **Step 3 (in progress, fresh agent 2026-11-12, after CP2's acceptance).**
+   - CP2 accepted by etcd-grove-81 (recorded in `questions.md`): the fileutil/walpb Init axioms (+4),
+     the new AbsDisk lemmas and Timeless instances, the invariant's shape.
+   - RefLemmas part C done at `32607e360b` (`tLastIdx_abs`, `tCutPos_abs`, `tNameBound_eq` under
+     `tHistWf h` and `h.length < 2^64`, plus `tHistWf_noMax`, `tLastIdx_lt`).
+   - `Rep.lean`: the representation predicates (`opRep`, `opsElems`, `opsRep` read-only op slices,
+     `candRep`/`candsElems`/`candsOwn`, `contentsRep`, `oracleRep`, `readRes`, `entsRes`), the
+     `DecidableEq` instances of `THs`/`TEnt`, `ret_gen` (generalize `HΦ`'s value, then each branch
+     proves its value equal), `opsElems_lookup`/`_snoc`/`_nil`/`_length`.
+     Design: entry slices and op slices are read-only (`↦*□`) once built (copyOps shares the entry
+     slices); appendable ones (`since`, `opens`, a function's own fresh slice) carry
+     `ownSliceCap` and are appended with `wp_slice_append_persistent`; the candidate slice is owned
+     (`m.o.cands[ci].unl = b` writes in place).
+   - Specs and proofs done (Spec/ and Proof/ `…/examples/etcd/wal/<fn>.lean`, each proof taking
+     its callees' specs): `hsEmpty`, `hsEq`, `entEq`, `phsNext`, `walMustSync`, `copyEnts`,
+     `copyOps`, `walLastHS`, `readEnt` (premise: the entry's index `< 2^63`), `walSaveSnap`,
+     `walFoldChk` (premise `tHistWf h`). All build with `lake build` (`b4a2cfc3bb`).
+   - **Left of step 3, in order** (ref.go first, then oracle.go, then wal.go):
+     - `walRead` (filter loop then `walFoldChk`; `tRead`), `walReadFrom` (`h[k:]`, the newest-pair
+       loop `tNewest`, then the fold loop from `⟨tLastHS (h.take k), i, t, []⟩`; reuse the walFoldChk
+       proof's inner/outer loop shape and `tFoldChkFrom_take_succ`/`_save`/`_snap`,
+       `tReadEnts_take_succ`, `tReadEnts_prefix_none`, `tFoldChkFrom_prefix_none`), `walReadCut`;
+     - `contentsEq`, `opEq`, `histEq` (return `decide (a = b)` over the records), `cutPos`,
+       `lastIdx`, `nameBound`, `openBound` (`tNameBound`, `tOpenBound`), `walImgs` (`tImgs`; needs
+       `opsRep` of `h[:j]`: a lemma from `ownSlice_slice`), `walFold`/`appendEnts` (no-panic, the
+       result's entries among the history's: `opResend` saves them, so they must be well formed);
+     - oracle.go: `putU64`, `decoder.u64`, `putHS`, `decoder.hs`, `putOps`, `decoder.ops`,
+       `encodeOracle` (`tEncodeOracle`), `decodeOracle` (round trip on `tEncodeOracle o`),
+       `freshOracle`, `loadOracle` (first `durable.Read`, mode `none → some area` via
+       `durableModeStep`), `storeOracle` (opens `TInv`, updates `γo`; each call site gives the
+       `tRelI` step);
+     - wal.go: `newRnd`/`rnd.next`/`rnd.choose`, `entData`, `newU64`, `toRaft` (`entRoC`, R4),
+       `fromRaft` (the read-back `fromRaft (absEnt e) = e` for `tEntWf e`), `toHS`, `restartRead`,
+       `addCand`, `checkRestart` (§2.5), the member operations, `Boot`, `Main`;
+     - then CP3 (report: the specs proved, trusted text (none beyond purgeRound), full build, tcb
+       --check, api-check, gen-init --check).
+   - **Step-3 tooling** (scratch, `/shared/tmp/wal-spec/w4c/step3/`): `gen.py spec|proof NAME
+     IMPORTS... < body` writes a file with the package boilerplate (`spec` body: header text,
+     `---`, declarations); `goal.sh NAME` prints the goal at the first `sorry` of the proof file;
+     `chk.sh NAME...` checks proof files (both through `etc/lean-check.py`).
+5. Step 4 as in plan §8.
 
 ## Pitfalls
+
+- **Step 3, `etc/lean-check.py`:** after edits it can report a `(kernel) application type mismatch` on
+  an auxiliary `wp_proof._proof_1_N` that a fresh elaboration does not have: an artifact of the
+  incremental server. `etc/lean-check.py --stop` and check again, or `lake build` the module (the
+  check of record).
+- **Step 3, proof patterns:**
+  - `iframe` does not frame intuitionistic hypotheses: give `↦*□` facts with `iexact`
+    (`isplitl []` first).
+  - A persistent conjunct of a loop invariant comes back spatial after `wp_for`; make it
+    intuitionistic at once (`icases H with #H`), or a later `wp_apply`'s precondition swallows it.
+  - A load of a field of a slice element: `icases ownSlice_elem_acc … $$ Hs with ⟨Hv, -⟩`, then
+    `iStructNamed Hv`, then `wp_auto`.
+  - After `wp_for` of a loop whose body has `continue` or `return`, `cleanup_bool_decide` before
+    `wp_if_destruct` (else the guard stays `#(decide …) = #true`).
+  - A function that ends right after `make`/`append`: `wp_apply +noauto …`, then `ipersist`, then
+    `wp_auto` (an `ipersist` needs a WP goal). Better: persist the fresh slice at once and append
+    with `wp_slice_append_persistent`.
+  - A record literal inside `iprop(…)`: write `contents.mk …` (`{ hs' := … }` does not parse there).
+  - The Go struct `entry` clashes with a global `entry`: write `TEnt`.
+  - A `return` inside a nested loop: `wp_for_post` once per loop, then `iapply HΦ`.
 
 - **The crash obligation runs at `⊤` and cannot refute `crashed`.** So the old generation's invariant
   must be closed with its contents kept (crashlog's `cfInv_crash_keep`). This is why the durable
