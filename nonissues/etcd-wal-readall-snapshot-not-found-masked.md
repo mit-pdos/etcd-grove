@@ -53,9 +53,21 @@ commit alone). `(*WAL).ReadAll`'s trust-boundary spec
 the opened snapshot is the newest valid one does not exclude an unmatched read (the earlier claim that
 it did was wrong: WAL W4a.2, finding F-W4a2-2, `notes/decisions.md`), and without the fix its result
 (`walReadCut` of the whole history) differs from Go's, and the purge bounds of `Open`, `ReadAll` and
-`ReleaseLockTo` are unsound. With the fix every successful write-mode `ReadAll` matched, and the spec
-needs no history premise. The purge bounds' name lower bound (`walLastIdx`, `WalDisk.lean`) counts
-snapshot records too, which relies on the second.
+`ReleaseLockTo` are unsound. With the fix every successful write-mode `ReadAll` matched. Its success
+arm (the read of the whole history) and the purge bounds' name lower bound (`walLastIdx`,
+`WalDisk.lean`, which counts snapshot records) rest on the second commit too, and on no index `2^64-1`
+in the history: `Save` and `SaveSnapshot` take indices below it (WAL W4a.2 revision 1; nonissue
+`etcd-wal-segment-name-wraps`), a premise on the WAL's writers, not on `ReadAll`.
+
+**Before upstreaming (an upgrade regression of the fork commits):** `0b50f0426` names only the segments
+it cuts. A WAL written by an older etcd (segments named `enti+1`) in the forgotten-snapshot shape still
+holds a segment named below a snapshot record before it; upstream's masked read restarts there, the
+fork's `ReadAll` (with `1aaca041c`, with or without `0b50f0426`) returns `ErrSnapshotNotFound` and
+`bootstrap` exits (the W4a.2 review's Go test `TestReviewUpgradeOldNamedWAL`,
+`/shared/tmp/coord-81/wal-w4a2-review/purge-restart/`). No soundness problem (an error is always
+allowed; the model covers WALs from `Create`), but an upstream fix must keep such WALs restartable: make
+`Open` select the file holding the start record (fall back to an earlier file when the selected ones do
+not match it), or keep the masked success for a WAL whose segments were named by the old scheme.
 
 ## Notes
 

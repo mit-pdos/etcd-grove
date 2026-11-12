@@ -67,7 +67,9 @@ def walLastIdx (P : WalHist) : Nat :=
       | .snap m => max x (uint.nat m.Index')) 0)
 
 /-- **Some record of `H` has index `2^64-1`** (WAL W4a.2, F-W4a2-1): then `max(w.enti, w.snapi)` may
-be `2^64-1` at a cut, whose file name, that plus one, wraps to 0. -/
+be `2^64-1` at a cut, whose file name, that plus one, wraps to 0. Unreachable since WAL W4a.2
+revision 1 (`Save` and `SaveSnapshot` take indices below `2^64-1`; histories start empty at `Create`
+and grow only by them); the bounds keep their fallbacks under it as a defense. -/
 def walHasMaxIdx (H : WalHist) : Prop :=
   ∃ o ∈ H, match o with
     | .save _ es => ∃ e ∈ es, uint.nat e.Index' = 2 ^ 64 - 1
@@ -98,11 +100,14 @@ def walRelGuard (H : WalHist) (a : w64) (p : Nat) : Prop :=
   ¬ walHasMaxIdx H
 
 open Classical in
-/-- **The guard's position** (the landed `walReleasePos`, with clause 4): 0 for `a = 0` (file 0
-is named 0, every later file higher); the last snapshot record of index `a` under `walRelGuard`;
-otherwise the history's length (the tail file is never released). -/
+/-- **The guard's position** (the landed `walReleasePos`, with clause 4): the history's length when
+an index may wrap (`walHasMaxIdx`; WAL W4a.2 revision 1, the review's M1: a wrapped file is named 0
+too, so `Open` at 0 may lock from it); otherwise 0 for `a = 0` (file 0 is named 0, every later file
+higher); the last snapshot record of index `a` under `walRelGuard`; otherwise the history's length
+(the tail file is never released). -/
 def walGuardPos (H : WalHist) (a : w64) : Nat :=
-  if a = W64 0 then 0
+  if walHasMaxIdx H then H.length
+  else if a = W64 0 then 0
   else if (∃ (i : Nat) (m : SnapshotMetadataM), H[i]? = some (WalOpG.snap m) ∧ m.Index' = a) ∧ walRelGuard H a (walLastSnapPos H a)
     then walLastSnapPos H a else H.length
 
@@ -111,14 +116,18 @@ open Classical in
 `a`** (WAL W4a.2, R1): a file starts at a `walCutPos`, and is named `max(w.enti, w.snapi) + 1`
 (`Create`'s file 0, named 0, starts at 0, which the default covers); `walLastIdx` of the prefix before
 it bounds that maximum from below; so every file named below (at most) `a` starts at a position of
-the filter set, and at or before its last element. `|H|` when an index may wrap (`walHasMaxIdx`).
-The lower bound, by induction on the cuts, with every successful restart matched (the fork's
-`1aaca041c`) and no index wrapping: a snapshot record saved, or read by a restart's `ReadAll`, raises
-`w.snapi` to its index (the fork's `0b50f0426`), and the last entry record before the cut sets
-`w.enti` (later snapshot records only raise it); a record before the file a restart's `Open` at `s`
-opened is below that file's name (induction), which is at most `s`, and the matched start record
-raised `w.snapi` to `s`. So every file is named above every record before it, and `Open` at a
-snapshot of the history starts at or before its last record. -/
+the filter set, and at or before its last element. `|H|` when an index may wrap (`walHasMaxIdx`,
+unreachable since WAL W4a.2 revision 1). The lower bound, by induction on the files, with every
+successful restart matched (the fork's `1aaca041c`) and no index wrapping. `Create`'s file starts at
+0 with nothing before it (`walLastIdx [] = 0`, nothing to bound). For a cut: a snapshot record saved,
+or read by a restart's `ReadAll`, raises `w.snapi` to its index (the fork's `0b50f0426`), and the last
+entry record before the cut sets `w.enti` (later snapshot records only raise it); a record before the
+file `F` a restart's `Open` at `s` opened is a snapshot record below `F`'s name, or the last entry
+record before `F`, below it too (induction; for `Create`'s file, there is none), and that name is at
+most `s`, which the matched start record put in `w.snapi`. So every file is named above every
+snapshot record before it and above the last entry record before it (not above every entry record:
+an entry truncated by a later, lower one may exceed the name), and `Open` at a snapshot of the history
+starts at or before its last record. -/
 def walNameBound (H : WalHist) (a : Nat) (strict : Bool) : Nat :=
   if walHasMaxIdx H then H.length else
   ((List.range (H.length + 1)).filter (fun b => decide (walCutPos H b ∧

@@ -35091,8 +35091,9 @@ axioms, which are unlinked, so nothing proved was affected). Go tests:
 **Fixes.** F-W4a2-2: the fork fix `1aaca041c` (write-mode `ReadAll` returns `ErrSnapshotNotFound`
 when nothing matched; with a test failing before it; etcd pin bumped; the WAL is names-only, so no
 translation changed). Rejected: a history premise on `ReadAll` (every client would carry it, and the
-tester's `opResend` histories break it). F-W4a2-1: guard clause 4 (`¬ walHasMaxIdx H`) and the name
-bound's fallback to `|H|`.
+tester's `opResend` histories break it). F-W4a2-1: first guard clause 4 (`¬ walHasMaxIdx H`) and the
+name bound's fallback to `|H|`; that was not enough (revision 1, below): the wrap is ruled out at the
+source.
 
 **R1 (completeness): two bounds.** `ReleaseLockTo(a)` keeps locked from the lock before the first
 named `≥ a`; `Open(a)` locks from the last file named `≤ a`: a file named exactly `a` separates them.
@@ -35138,3 +35139,32 @@ record before it, every restart at a snapshot of the history matches, etcd's res
 fork's `TestRestartAtSnapshotSavedBeforeReSentEntries`, which fails before at the name, 39), and the
 model's lower bound counts snapshot records (`walLastIdx`, stronger bounds). `1aaca041c` stays: the
 spec's soundness rests on it (an `Open` at a pair the WAL never recorded still fails).
+
+**Revision 1 (2026-11-12, after the Freeze review, NOT READY from both lenses; decided by
+etcd-grove-81).**
+- **B1 (blocker): the wrap still made `ReadAll`'s success arm false.** A segment named 0 by the wrap,
+  followed by a `(0,0)` snapshot record, makes `Open(0)` select the wrapped segment, and `ReadAll`
+  succeeds reading only from it (none or fewer entries), where the model read the whole history (the
+  reviewers' Go tests `zz_review_wrap0_test.go`, `/shared/tmp/coord-81/wal-w4a2-review/`). Fix: ruled
+  out at the source: `Save` takes `∀ e ∈ es, uint.nat e.Index' < 2^64-1`, `SaveSnapshot` takes
+  `uint.nat md.Index' < 2^64-1` (raft never reaches that index; option B keeps the server on its own
+  model, so no closed theorem's premise changes; nonissue `etcd-wal-segment-name-wraps`). Histories
+  start empty at `Create` and grow only through those two, so `walHasMaxIdx` never holds; clause 4 and
+  the `|H|` fallbacks stay as a defense, documented unreachable. Rejected: `¬ walHasMaxIdx` in
+  `ReadAll`'s precondition (it would also need the `a = 0` fix, and a reader's premise about the
+  writers' indices belongs at the writers).
+- **M1:** `walGuardPos` tests the wrap first (`if walHasMaxIdx H then |H| else if a = 0 then 0 else …`),
+  so the definition matches its docstring without the premise.
+- **Wording:** "fixed in the text" (F-W4a2-1) and "no history premise" (the nonissue) corrected: the
+  success arm rests on both fork commits and on the writers' index premise. (L) states what Go gives:
+  every file is named above every snapshot record before it and above the last entry record before it
+  (an entry truncated by a later lower one may exceed it); its base case is `Create`'s file (nothing
+  before position 0).
+- **Error arms are argued, not proved:** `WalBodies.lean` proves the success arms' commits; the error
+  arms (`Open`: unchanged commit or `WalOpenHandle` then `WalCloseHandle`; `ReadAll`: `wp_WalReadFail`
+  with `d` committed unchanged; `ReleaseLockTo`, `Exist`, `Repair`) are realizable with the existing
+  step specs (the agent took etcd-grove-81's alternative: a recorded decision; lemmas when W4c needs them).
+- **Upgrade regression (before upstreaming):** a WAL named by an older etcd in the forgotten-snapshot
+  shape fails to restart with `1aaca041c` (`TestReviewUpgradeOldNamedWAL`); upstream fix options in
+  the nonissue (`Open` falls back to the file holding the start record, or the masked success kept for
+  old-named WALs). Not a soundness problem (the model covers WALs from `Create`).

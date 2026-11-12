@@ -1,5 +1,5 @@
 /-
-`(*wal.WAL).ReadAll` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `0b50f0426` (S/ = `server/storage/wal/`, line numbers of `c90b03b56`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`(*wal.WAL).ReadAll` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user; revision 1 after the Freeze review: no index `2^64-1` in `Save`/`SaveSnapshot`, decided by etcd-grove-81) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `0b50f0426` (S/ = `server/storage/wal/`, line numbers of `c90b03b56`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
 -/
 module
 
@@ -44,10 +44,16 @@ W4a.2, finding F-W4a2-2: before it, the error was lost, and with the premise bel
 read returned less than `walReadCut`; Go test `w4a2-tests`
 `TestW4a2UnmatchedRestartUnlocksGuardedRecord` at `c90b03b56`; nonissue
 `etcd-wal-readall-snapshot-not-found-masked`, corrected). The fork's `0b50f0426` names every file
-above every snapshot record before it, so `Open` at a snapshot of the history starts at or before its
-record and the error arm is not reached that way (the fork's `TestReadAllStartRecordBeforeOpenedFile`
-and `TestRestartAtSnapshotSavedBeforeReSentEntries`; the spec does not rely on it). So on success the read matched, and the premise `s = walNewestPair …` makes it the
-read of the whole history from the read position. An error leaves `w` failed (`walReadFailed`):
+above every snapshot record before it and above the last entry record before it, so `Open` at a
+snapshot of the history starts at or before its record (the error arm is not reached that way: the
+fork's `TestReadAllStartRecordBeforeOpenedFile` and `TestRestartAtSnapshotSavedBeforeReSentEntries`),
+and the records before the file `Open` selected are below the start (the entries the read keeps
+before it are truncated to the last one, below the file's name). So on success the read matched, and
+with the premise `s = walNewestPair …` it is the read of the whole history from the read position.
+This rests on both fork commits and on no index `2^64-1` in the history (`Save`'s and
+`SaveSnapshot`'s premises, WAL W4a.2 revision 1, the review's B1: with a wrapped file name 0, `Open`
+at `(0,0)` selected the wrapped file and `ReadAll` succeeded reading less, Go tests
+`zz_review_wrap0_test.go`). An error leaves `w` failed (`walReadFailed`):
 only `Close` accepts it (Go keeps the decoder, and a second `ReadAll` would read on from the
 failure; etcd closes the handle and reopens, `bootstrap`, `renameWALUnlock`). Logically atomic (WAL W4a.2, the W4c gate of W4a.1 revision 1, M-R1): W4c's restart runs under the
 crash model, so the tester keeps the WAL in an invariant and finds it there at a crash during the
