@@ -354,6 +354,57 @@ theorem entsPtsZ_nil (sz : Bool) (dq : DFrac) : ⊢ entsPtsZ (GF := GF) sz slice
   · iapply ownSlice_nil
   · iapply BigSepL2.bigSepL2_nil.2; iempintro
 
+/-! ### Lists of entries at contents (out_size C3: `limitSize`, `MemoryStorage.Entries`) -/
+
+theorem entsBigC_length (ls : List Loc) (cs : List EntryC) :
+    ([∗list] l;c ∈ ls;cs, entRoC (GF := GF) l c) ⊢ ⌜ls.length = cs.length⌝ :=
+  BigSepL2.bigSepL2_length
+
+theorem entsBigC_app (ls1 ls2 : List Loc) (cs1 cs2 : List EntryC) :
+    ([∗list] l;c ∈ ls1;cs1, entRoC (GF := GF) l c) ∗ ([∗list] l;c ∈ ls2;cs2, entRoC l c) ⊢
+      [∗list] l;c ∈ ls1 ++ ls2;cs1 ++ cs2, entRoC l c := by
+  iintro ⟨#H1, #H2⟩
+  ihave %Hl := entsBigC_length _ _ $$ H1
+  iapply (BigSepL2.bigSepL2_app_same_length (.inl Hl)).2
+  iframe H1 H2
+
+theorem entsBigC_take_drop (n : Nat) (ls : List Loc) (cs : List EntryC) :
+    ([∗list] l;c ∈ ls;cs, entRoC (GF := GF) l c) ⊢
+      ([∗list] l;c ∈ ls.take n;cs.take n, entRoC l c) ∗
+      ([∗list] l;c ∈ ls.drop n;cs.drop n, entRoC l c) := by
+  iintro #H
+  ihave %Hl := entsBigC_length _ _ $$ H
+  have Ht : (ls.take n).length = (cs.take n).length := by simp [Hl]
+  have Hd := (BigSepL2.bigSepL2_app_same_length (PROP := IProp GF)
+    (Φ := fun _ l c => entRoC (GF := GF) l c) (l1a := ls.take n) (l1b := ls.drop n)
+    (l2a := cs.take n) (l2b := cs.drop n) (.inl Ht)).1
+  rw [List.take_append_drop, List.take_append_drop] at Hd
+  iapply Hd $$ H
+
+theorem entsBigC_take (n : Nat) (ls : List Loc) (cs : List EntryC) :
+    ([∗list] l;c ∈ ls;cs, entRoC (GF := GF) l c) ⊢ [∗list] l;c ∈ ls.take n;cs.take n, entRoC l c := by
+  iintro #H
+  icases entsBigC_take_drop n ls cs $$ H with ⟨H1, -⟩
+  iexact H1
+
+theorem entsBigC_drop (n : Nat) (ls : List Loc) (cs : List EntryC) :
+    ([∗list] l;c ∈ ls;cs, entRoC (GF := GF) l c) ⊢ [∗list] l;c ∈ ls.drop n;cs.drop n, entRoC l c := by
+  iintro #H
+  icases entsBigC_take_drop n ls cs $$ H with ⟨-, H2⟩
+  iexact H2
+
+theorem entsBigC_lookup (ls : List Loc) (cs : List EntryC) (i : Nat) (c : EntryC)
+    (Hc : cs[i]? = some c) :
+    ([∗list] l;c ∈ ls;cs, entRoC (GF := GF) l c) ⊢ ∃ l, ⌜ls[i]? = some l⌝ ∗ entRoC l c := by
+  iintro #H
+  ihave %Hl := entsBigC_length _ _ $$ H
+  have Hi : i < ls.length := by have := (List.getElem?_eq_some_iff.1 Hc).1; omega
+  obtain ⟨l, Hl'⟩ : ∃ l, ls[i]? = some l := ⟨_, List.getElem?_eq_getElem Hi⟩
+  iexists l
+  isplitr
+  · ipureintro; exact Hl'
+  iapply (BigSepL2.bigSepL2_lookup Hl' Hc) $$ H
+
 theorem entsBigC_entsBigZ (sz : Bool) : ∀ (ls : List Loc) (cs : List EntryC),
     (sz = true → ∀ c ∈ cs, entSizeOk c) →
     ([∗list] l;c ∈ ls;cs, entRoC (GF := GF) l c) ⊢ [∗list] l;e ∈ ls;cs.map EntryC.model, entRZ sz l e
@@ -421,6 +472,23 @@ theorem entsPtsZ_entsPtsC (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List Entr
     iframe Hs Hcs
     ipureintro; exact hcs.2
   · ipureintro; exact hcs.1
+
+/-- (out_size C3) A model-level slice at some contents (unsized). -/
+theorem entsPts_entsPtsC (s : GoSlice) (dq : DFrac) (es : List EntryM) :
+    entsPts (GF := GF) s dq es ⊢
+      ∃ cs : List EntryC, entsPtsC false s dq cs ∗ ⌜cs.map EntryC.model = es⌝ := by
+  iintro H
+  iapply entsPtsZ_entsPtsC
+  iapply entsPts_entsPtsZ $$ H
+
+/-- (out_size C3) The contents forgotten. -/
+theorem entsPtsC_entsPts (sz : Bool) (s : GoSlice) (dq : DFrac) (cs : List EntryC)
+    (es : List EntryM) (h : cs.map EntryC.model = es) :
+    entsPtsC (GF := GF) sz s dq cs ⊢ entsPts s dq es := by
+  iintro H
+  subst h
+  iapply entsPtsZ_entsPts
+  iapply entsPtsC_entsPtsZ $$ H
 
 /-- An entry slice, frozen read-only. -/
 theorem entsPtsZ_persist (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :

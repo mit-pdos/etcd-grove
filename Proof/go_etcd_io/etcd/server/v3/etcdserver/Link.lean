@@ -357,7 +357,6 @@ public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.google_golang_org.protobuf.proto.SizeMessage
-public import Proof.google_golang_org.protobuf.proto.SizePb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalRole
 public import Proof.google_golang_org.protobuf.proto.UnmarshalUser
@@ -947,10 +946,6 @@ theorem proto.wp_MarshalPb :
 theorem pbutil.wp_MustMarshalMessage :
     pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustMarshalMessage.wp_proof proto.wp_MarshalPb
-
-theorem proto.wp_SizePb :
-    proto.SizePb.spec (GF := GF) (hG := hG) :=
-  proto.SizePb.wp_proof
 
 theorem zap.wp_Strings :
     zap.Strings.spec (GF := GF) (hG := hG) :=

@@ -920,7 +920,7 @@ v3_MustParse:
 v3_Version__LessThan:
 binary_ReadUint64:
 proto_UnmarshalPb:
-proto_SizePb:
+proto_SizePb: @
 binary_WriteUint64:
 pbutil_MustMarshalMessage: proto_MarshalPb
 raftpb_Message__GetIndex: @

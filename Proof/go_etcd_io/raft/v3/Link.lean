@@ -126,7 +126,7 @@ public import Proof.google_golang_org.protobuf.proto.CloneEntry
 public import Proof.google_golang_org.protobuf.proto.CloneSnapshot
 public import Proof.google_golang_org.protobuf.proto.MarshalConfChange
 public import Proof.google_golang_org.protobuf.proto.MarshalConfChangeV2
-public import Proof.google_golang_org.protobuf.proto.SizeEntry
+public import Proof.google_golang_org.protobuf.proto.SizePb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalConfChange
 public import Proof.google_golang_org.protobuf.proto.UnmarshalConfChangeV2
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
@@ -471,17 +471,9 @@ theorem MemoryStorage.wp_CreateSnapshot :
     MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) :=
   MemoryStorage.CreateSnapshot.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex raftpb.wp_EnsureSnapshot raftpb.Entry.wp_GetTerm proto.wp_CloneConfState proto.wp_CloneSnapshot
 
-theorem proto.wp_SizeEntry :
-    proto.SizeEntry.spec (GF := GF) (hG := hG) :=
-  proto.SizeEntry.wp_proof
-
-theorem wp_limitSize [StorageModel GF] :
-    limitSize.spec (GF := GF) (hG := hG) :=
-  limitSize.wp_proof proto.wp_SizeEntry
-
-theorem MemoryStorage.wp_Entries [StorageModel GF] :
-    MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
-  MemoryStorage.Entries.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex wp_limitSize
+theorem proto.wp_SizePb :
+    proto.SizePb.spec (GF := GF) (hG := hG) :=
+  proto.SizePb.wp_proof
 
 theorem MemoryStorage.wp_FirstIndex [StorageModel GF] :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
@@ -867,33 +859,13 @@ theorem unstable.wp_slice [StorageModel GF] :
     unstable.slice.spec (GF := GF) (hG := hG) :=
   unstable.slice.wp_proof unstable.wp_mustCheckOutOfBounds
 
-theorem wp_entsSize [StorageModel GF] :
-    entsSize.spec (GF := GF) (hG := hG) :=
-  entsSize.wp_proof proto.wp_SizeEntry
-
 theorem wp_extend [StorageModel GF] :
     extend.spec (GF := GF) (hG := hG) :=
   extend.wp_proof
 
-theorem raftLog.wp_slice [StorageModel GF] :
-    raftLog.slice.spec (GF := GF) (hG := hG) :=
-  raftLog.slice.wp_proof raftLog.wp_mustCheckOutOfBounds unstable.wp_slice wp_limitSize wp_entsSize wp_extend
-
-theorem raftLog.wp_scan [StorageModel GF] :
-    raftLog.scan.spec (GF := GF) (hG := hG) :=
-  raftLog.scan.wp_proof raftLog.wp_slice
-
 theorem raftpb.Entry.wp_GetType :
     raftpb.Entry.GetType.spec (GF := GF) (hG := hG) :=
   raftpb.Entry.GetType.wp_proof
-
-theorem raft.wp_hasUnappliedConfChanges [StorageModel GF] :
-    raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG) :=
-  raft.hasUnappliedConfChanges.wp_proof raftLog.wp_scan raftpb.Entry.wp_GetType
-
-theorem raft.wp_hup [StorageModel GF] :
-    raft.hup.spec (GF := GF) (hG := hG) :=
-  raft.hup.wp_proof raft.wp_campaign raft.wp_promotable raft.wp_hasUnappliedConfChanges
 
 theorem wp_traceBecomeLeader [StorageModel GF] :
     traceBecomeLeader.spec (GF := GF) (hG := hG) :=
@@ -975,10 +947,6 @@ theorem tracker.Progress.wp_SentCommit :
     tracker.Progress.SentCommit.spec (GF := GF) (hG := hG) :=
   tracker.Progress.SentCommit.wp_proof
 
-theorem raftLog.wp_entries [StorageModel GF] :
-    raftLog.entries.spec (GF := GF) (hG := hG) :=
-  raftLog.entries.wp_proof raftLog.wp_lastIndex raftLog.wp_slice
-
 theorem raftLog.wp_snapshot [StorageModel GF] :
     raftLog.snapshot.spec (GF := GF) (hG := hG) :=
   raftLog.snapshot.wp_proof proto.wp_CloneSnapshot
@@ -990,18 +958,6 @@ theorem tracker.Progress.wp_BecomeSnapshot :
 theorem raft.wp_maybeSendSnapshot [StorageModel GF] :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) :=
   raft.maybeSendSnapshot.wp_proof raftLog.wp_snapshot raftLog.wp_firstIndex wp_IsEmptySnap tracker.Progress.wp_BecomeSnapshot raft.wp_send raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.MessageType.wp_Enum
-
-theorem raft.wp_maybeSendAppend [StorageModel GF] :
-    raft.maybeSendAppend.spec (GF := GF) (hG := hG) :=
-  raft.maybeSendAppend.wp_proof tracker.Progress.wp_IsPaused tracker.Progress.wp_SentEntries tracker.Progress.wp_SentCommit tracker.Inflights.wp_Full raftLog.wp_term raftLog.wp_entries raft.wp_send raft.wp_maybeSendSnapshot wp_payloadsSize raftpb.MessageType.wp_Enum
-
-theorem raft.wp_sendAppend [StorageModel GF] :
-    raft.sendAppend.spec (GF := GF) (hG := hG) :=
-  raft.sendAppend.wp_proof raft.wp_maybeSendAppend
-
-theorem raft.wp_bcastAppend [StorageModel GF] :
-    raft.bcastAppend.spec (GF := GF) (hG := hG) :=
-  raft.bcastAppend.wp_proof tracker.ProgressTracker.wp_Visit raft.wp_sendAppend
 
 theorem raftpb.Message.wp_GetLogTerm :
     raftpb.Message.GetLogTerm.spec (GF := GF) (hG := hG) :=
@@ -1086,14 +1042,6 @@ theorem raft.wp_handleSnapshot [StorageModel GF] :
 theorem raftpb.Message.wp_GetReject :
     raftpb.Message.GetReject.spec (GF := GF) (hG := hG) :=
   raftpb.Message.GetReject.wp_proof
-
-theorem wp_stepCandidate [StorageModel GF] :
-    stepCandidate.spec (GF := GF) (hG := hG) :=
-  stepCandidate.wp_proof raft.wp_poll raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
-
-theorem wp_stepFollower [StorageModel GF] :
-    stepFollower.spec (GF := GF) (hG := hG) :=
-  stepFollower.wp_proof raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_send raft.wp_hup raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetEntries raftpb.Message.wp_GetIndex raftpb.Entry.wp_GetData
 
 theorem readOnly.wp_heartbeatCtx [StorageModel GF] :
     readOnly.heartbeatCtx.spec (GF := GF) (hG := hG) :=
@@ -1239,10 +1187,6 @@ theorem tracker.ProgressTracker.wp_QuorumActive :
     tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.QuorumActive.wp_proof tracker.ProgressTracker.wp_Visit quorum.JointConfig.wp_VoteResult
 
-theorem wp_stepLeader [StorageModel GF] :
-    stepLeader.spec (GF := GF) (hG := hG) :=
-  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer proto.wp_UnmarshalConfChange proto.wp_UnmarshalConfChangeV2 raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 fmt.wp_Sprintf wp_traceChangeConfEvent raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetReject raftpb.Message.wp_GetIndex raftpb.Message.wp_GetRejectHint raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetContext raftpb.Message.wp_GetTo raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData raftpb.EntryType.wp_Enum wp_DescribeConfChange tracker.ProgressTracker.wp_QuorumActive tracker.ProgressTracker.wp_Visit raft.wp_becomeFollower
-
 theorem wp_traceReceiveMessage [StorageModel GF] :
     traceReceiveMessage.spec (GF := GF) (hG := hG) :=
   traceReceiveMessage.wp_proof
@@ -1299,10 +1243,6 @@ theorem raftLog.wp_stableSnapTo [StorageModel GF] :
     raftLog.stableSnapTo.spec (GF := GF) (hG := hG) :=
   raftLog.stableSnapTo.wp_proof unstable.wp_stableSnapTo
 
-theorem raft.wp_switchToConfig [StorageModel GF] :
-    raft.switchToConfig.spec (GF := GF) (hG := hG) :=
-  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower
-
 theorem raft.wp_reduceUncommittedSize [StorageModel GF] :
     raft.reduceUncommittedSize.spec (GF := GF) (hG := hG) :=
   raft.reduceUncommittedSize.wp_proof
@@ -1326,10 +1266,6 @@ theorem raftpb.ConfChangeV2.wp_EnterJoint :
 theorem confchange.Changer.wp_LeaveJoint :
     confchange.Changer.LeaveJoint.spec (GF := GF) (hG := hG) :=
   confchange.Changer.LeaveJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.wp_nilAwareAdd confchange.wp_outgoing confchange.wp_incoming confchange.wp_outgoingPtr confchange.wp_checkAndReturn
-
-theorem raft.wp_applyConfChange [StorageModel GF] :
-    raft.applyConfChange.spec (GF := GF) (hG := hG) :=
-  raft.applyConfChange.wp_proof raftLog.wp_lastIndex raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint confchange.Changer.wp_LeaveJoint confchange.Changer.wp_EnterJoint confchange.Changer.wp_Simple raft.wp_switchToConfig
 
 theorem wp_getBasicStatus [StorageModel GF] :
     getBasicStatus.spec (GF := GF) (hG := hG) :=
@@ -1366,10 +1302,6 @@ theorem raftLog.wp_maxAppliableIndex [StorageModel GF] :
 theorem raftLog.wp_hasNextCommittedEnts [StorageModel GF] :
     raftLog.hasNextCommittedEnts.spec (GF := GF) (hG := hG) :=
   raftLog.hasNextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex
-
-theorem raftLog.wp_nextCommittedEnts [StorageModel GF] :
-    raftLog.nextCommittedEnts.spec (GF := GF) (hG := hG) :=
-  raftLog.nextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex raftLog.wp_slice
 
 theorem raftLog.wp_nextUnstableSnapshot [StorageModel GF] :
     raftLog.nextUnstableSnapshot.spec (GF := GF) (hG := hG) :=
@@ -1506,13 +1438,73 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+theorem wp_limitSize [StorageModel GF] :
+    limitSize.spec (GF := GF) (hG := hG) :=
+  limitSize.wp_proof proto.wp_SizePb
+
+theorem MemoryStorage.wp_Entries [StorageModel GF] :
+    MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.Entries.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex wp_limitSize
+
 theorem wp_NewRawNode [AllG GF] [StorageModel GF] :
     NewRawNode.spec (GF := GF) (hG := hG) :=
   NewRawNode.wp_proof wp_newRaft raft.wp_softState raft.wp_hardState
 
+theorem wp_entsSize [StorageModel GF] :
+    entsSize.spec (GF := GF) (hG := hG) :=
+  entsSize.wp_proof proto.wp_SizePb
+
+theorem raftLog.wp_slice [StorageModel GF] :
+    raftLog.slice.spec (GF := GF) (hG := hG) :=
+  raftLog.slice.wp_proof raftLog.wp_mustCheckOutOfBounds unstable.wp_slice wp_limitSize wp_entsSize wp_extend
+
+theorem raftLog.wp_scan [StorageModel GF] :
+    raftLog.scan.spec (GF := GF) (hG := hG) :=
+  raftLog.scan.wp_proof raftLog.wp_slice
+
+theorem raft.wp_hasUnappliedConfChanges [StorageModel GF] :
+    raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG) :=
+  raft.hasUnappliedConfChanges.wp_proof raftLog.wp_scan raftpb.Entry.wp_GetType
+
+theorem raft.wp_hup [StorageModel GF] :
+    raft.hup.spec (GF := GF) (hG := hG) :=
+  raft.hup.wp_proof raft.wp_campaign raft.wp_promotable raft.wp_hasUnappliedConfChanges
+
+theorem raftLog.wp_entries [StorageModel GF] :
+    raftLog.entries.spec (GF := GF) (hG := hG) :=
+  raftLog.entries.wp_proof raftLog.wp_lastIndex raftLog.wp_slice
+
+theorem raft.wp_maybeSendAppend [StorageModel GF] :
+    raft.maybeSendAppend.spec (GF := GF) (hG := hG) :=
+  raft.maybeSendAppend.wp_proof tracker.Progress.wp_IsPaused tracker.Progress.wp_SentEntries tracker.Progress.wp_SentCommit tracker.Inflights.wp_Full raftLog.wp_term raftLog.wp_entries raft.wp_send raft.wp_maybeSendSnapshot wp_payloadsSize raftpb.MessageType.wp_Enum
+
+theorem raft.wp_sendAppend [StorageModel GF] :
+    raft.sendAppend.spec (GF := GF) (hG := hG) :=
+  raft.sendAppend.wp_proof raft.wp_maybeSendAppend
+
+theorem raft.wp_bcastAppend [StorageModel GF] :
+    raft.bcastAppend.spec (GF := GF) (hG := hG) :=
+  raft.bcastAppend.wp_proof tracker.ProgressTracker.wp_Visit raft.wp_sendAppend
+
+theorem wp_stepCandidate [StorageModel GF] :
+    stepCandidate.spec (GF := GF) (hG := hG) :=
+  stepCandidate.wp_proof raft.wp_poll raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
+
+theorem wp_stepFollower [StorageModel GF] :
+    stepFollower.spec (GF := GF) (hG := hG) :=
+  stepFollower.wp_proof raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_send raft.wp_hup raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetEntries raftpb.Message.wp_GetIndex raftpb.Entry.wp_GetData
+
+theorem wp_stepLeader [StorageModel GF] :
+    stepLeader.spec (GF := GF) (hG := hG) :=
+  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer proto.wp_UnmarshalConfChange proto.wp_UnmarshalConfChangeV2 raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 fmt.wp_Sprintf wp_traceChangeConfEvent raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetReject raftpb.Message.wp_GetIndex raftpb.Message.wp_GetRejectHint raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetContext raftpb.Message.wp_GetTo raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData raftpb.EntryType.wp_Enum wp_DescribeConfChange tracker.ProgressTracker.wp_QuorumActive tracker.ProgressTracker.wp_Visit raft.wp_becomeFollower
+
 theorem raft.wp_appliedTo [StorageModel GF] :
     raft.appliedTo.spec (GF := GF) (hG := hG) :=
   raft.appliedTo.wp_proof raftLog.wp_appliedTo wp_confChangeToMsg wp_traceReceiveMessage wp_stepFollower wp_stepCandidate wp_stepLeader raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetIndex raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetCommit raftpb.Message.wp_GetReject raftpb.Message.wp_GetEntries raftpb.Message.wp_GetSnapshot raftpb.Message.wp_GetContext raftpb.Entry.wp_GetIndex raftpb.MessageType.wp_Enum
+
+theorem raft.wp_switchToConfig [StorageModel GF] :
+    raft.switchToConfig.spec (GF := GF) (hG := hG) :=
+  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower
 
 theorem raft.wp_appliedSnap [StorageModel GF] :
     raft.appliedSnap.spec (GF := GF) (hG := hG) :=
@@ -1525,6 +1517,10 @@ theorem raft.wp_Step [AllG GF] [StorageModel GF] :
 theorem RawNode.wp_Advance [AllG GF] [StorageModel GF] :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
   RawNode.Advance.wp_proof raft.wp_Step
+
+theorem raft.wp_applyConfChange [StorageModel GF] :
+    raft.applyConfChange.spec (GF := GF) (hG := hG) :=
+  raft.applyConfChange.wp_proof raftLog.wp_lastIndex raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint confchange.Changer.wp_LeaveJoint confchange.Changer.wp_EnterJoint confchange.Changer.wp_Simple raft.wp_switchToConfig
 
 theorem RawNode.wp_ApplyConfChange [StorageModel GF] :
     RawNode.ApplyConfChange.spec (GF := GF) (hG := hG) :=
@@ -1561,6 +1557,10 @@ theorem RawNode.wp_ProposeConfChange [StorageModel GF] :
 theorem RawNode.wp_ReadIndex [AllG GF] [StorageModel GF] :
     RawNode.ReadIndex.spec (GF := GF) (hG := hG) :=
   RawNode.ReadIndex.wp_proof raft.wp_Step raftpb.MessageType.wp_Enum
+
+theorem raftLog.wp_nextCommittedEnts [StorageModel GF] :
+    raftLog.nextCommittedEnts.spec (GF := GF) (hG := hG) :=
+  raftLog.nextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex raftLog.wp_slice
 
 theorem RawNode.wp_readyWithoutAccept [AllG GF] [StorageModel GF] :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) :=

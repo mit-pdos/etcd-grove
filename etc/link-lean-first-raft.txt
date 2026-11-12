@@ -112,7 +112,7 @@ proto_CloneEntry:
 proto_CloneSnapshot:
 proto_MarshalConfChange:
 proto_MarshalConfChangeV2:
-proto_SizeEntry:
+proto_SizePb:
 proto_UnmarshalConfChange:
 proto_UnmarshalConfChangeV2:
 
@@ -150,8 +150,8 @@ confchange_Restore: confchange_toConfChangeSingle confchange_Changer__Simple con
 pbEntryID: raftpb_Entry__GetTerm raftpb_Entry__GetIndex
 payloadSize: raftpb_Entry__GetData
 payloadsSize: payloadSize
-entsSize: proto_SizeEntry
-limitSize: proto_SizeEntry
+entsSize: proto_SizePb
+limitSize: proto_SizePb
 extend:
 unstable__maybeFirstIndex: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
 unstable__maybeLastIndex: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex

@@ -62,7 +62,7 @@ theorem RawNode.Bootstrap.wp_proof
   icases ownRaftPhys_log_same _ _ _ s $$ Hphys with ⟨Hlog, Hlogback⟩
   iNamed Hlog
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage s.logst.sn lv.storage') (storCut lv.storage')
+  ihave #Hsto : isStorageWith s.logst.sn.sz (ownStorage s.logst.sn lv.storage') (storCut lv.storage')
       (svCert s.logst.sn) lv.storage' $$ [HisStorage]
   · unfold isStorageD; iexact HisStorage
   unfold isStorageWith

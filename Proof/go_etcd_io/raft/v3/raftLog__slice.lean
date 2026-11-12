@@ -158,7 +158,12 @@ theorem raftLog.slice.wp_proof
       as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
     obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
     ihave #Hs0 := entsROz_entsRO _ _ _ $$ Hs0
-    wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
+    icases entsPts_entsPtsC _ _ _ $$ Hs0 with ⟨%cs0, #Hs0c, %Hcs0⟩
+    wp_apply wp_limitSize $$ [$Hs0c] as %s1 %nlim ⟨%Hn1c, #Hs1c, -⟩
+    ihave #Hs1 := entsPtsC_entsPts _ _ _ _ (es0.take nlim) (by rw [List.map_take, Hcs0]) $$ Hs1c
+    have Hn1 : nlim ≤ es0.length ∧ (es0 ≠ [] → 1 ≤ nlim) := by
+      rw [← Hcs0, List.length_map]
+      exact ⟨Hn1c.1, fun h => Hn1c.2.1 (fun h' => h (by rw [h']; rfl))⟩
     ihave %Hs1len := entsPts_len $$ Hs1
     ihave %Hs1wf := entsPts_wf $$ Hs1
     have Hne0 : es0 ≠ [] := by
@@ -211,7 +216,7 @@ theorem raftLog.slice.wp_proof
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     have Hstlen := Hstored.length_le
     take_storage Hsn
-    ihave #Hsto : isStorageWith (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
+    ihave #Hsto : isStorageWith ls.sn.sz (ownStorage ls.sn lv.storage') (storCut lv.storage') (svCert ls.sn) lv.storage' $$ [HisStorage]
     · unfold isStorageD; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
@@ -246,7 +251,7 @@ theorem raftLog.slice.wp_proof
         isplitr
         · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hsn _ (by omega)
         iexact ErrCompacted
-      icases HE with (⟨%HerrE, #HcutE, HStorage⟩ | ⟨%HerrE, #Hse, %Hpost, HStorage⟩)
+      icases HE with (⟨%HerrE, #HcutE, HStorage⟩ | ⟨%HerrE, ⟨%cse, #HseC, %Hcse⟩, %Hpost, HStorage⟩)
       · -- (D19i part 1) the application compacted past `lo`: `ErrCompacted`, returned
         obtain ⟨rfl, HloE⟩ := HerrE
         rw [← Hstok]
@@ -264,6 +269,7 @@ theorem raftLog.slice.wp_proof
         iapply storPast_of_cut
         iexact HcutE
       subst HerrE
+      ihave #Hse := entsPtsC_entsPts _ _ _ _ _ Hcse.1 $$ HseC
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
@@ -293,7 +299,7 @@ theorem raftLog.slice.wp_proof
         isplitr
         · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hsn _ (by omega)
         iexact ErrCompacted
-      icases HE with (⟨%HerrE, #HcutE, HStorage⟩ | ⟨%HerrE, #Hse, %Hpost, HStorage⟩)
+      icases HE with (⟨%HerrE, #HcutE, HStorage⟩ | ⟨%HerrE, ⟨%cse, #HseC, %Hcse⟩, %Hpost, HStorage⟩)
       · -- (D19i part 1) the application compacted past `lo`: `ErrCompacted`, returned
         obtain ⟨rfl, HloE⟩ := HerrE
         rw [← Hstok]
@@ -311,6 +317,7 @@ theorem raftLog.slice.wp_proof
         iapply storPast_of_cut
         iexact HcutE
       subst HerrE
+      ihave #Hse := entsPtsC_entsPts _ _ _ _ _ Hcse.1 $$ HseC
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
@@ -341,7 +348,8 @@ theorem raftLog.slice.wp_proof
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
       rename_i Hnotshort0
-      wp_apply wp_entsSize $$ [$Hse] as %sz1 -
+      icases entsPts_entsPtsC _ _ _ $$ Hse with ⟨%csE, #HseE, %HcsE⟩
+      wp_apply wp_entsSize $$ [$HseE] as %sz1 -
       wp_if_destruct
       · -- the stable part already reaches `maxSize`
         ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
@@ -363,7 +371,12 @@ theorem raftLog.slice.wp_proof
         as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
       obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
       ihave #Hs0 := entsROz_entsRO _ _ _ $$ Hs0
-      wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
+      icases entsPts_entsPtsC _ _ _ $$ Hs0 with ⟨%cs0, #Hs0c, %Hcs0⟩
+      wp_apply wp_limitSize $$ [$Hs0c] as %s1 %nlim ⟨%Hn1c, #Hs1c, -⟩
+      ihave #Hs1 := entsPtsC_entsPts _ _ _ _ (es0.take nlim) (by rw [List.map_take, Hcs0]) $$ Hs1c
+      have Hn1 : nlim ≤ es0.length ∧ (es0 ≠ [] → 1 ≤ nlim) := by
+        rw [← Hcs0, List.length_map]
+        exact ⟨Hn1c.1, fun h => Hn1c.2.1 (fun h' => h (by rw [h']; rfl))⟩
       reopen_unstable
       have Hne0 : es0 ≠ [] := by
         intro h; rw [h] at Hlen0; simp at Hlen0; omega
@@ -397,7 +410,7 @@ theorem raftLog.slice.wp_proof
           exact slice_both_prefix ls.sents ls.uents _ _ _ (by omega)
       wp_if_destruct
       · -- `len(unstable) == 1`: one more size check before giving up
-        wp_apply wp_entsSize $$ [$Hs1] as %sz2 -
+        wp_apply wp_entsSize $$ [$Hs1c] as %sz2 -
         wp_if_destruct
         · -- the single unstable entry does not fit
           ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)

@@ -253,7 +253,7 @@ private theorem wp_lastIndex_w (l : Loc) (lv : raftLog) (si : GoInterfaceOk) (sn
   wp_auto
   rw [Hsn]
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
+  ihave #Hsto : isStorageWith sn.sz (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
     (svCert sn) (interface.ok si) $$ [HisSto]
   · unfold isStorageD; iexact HisSto
   unfold isStorageWith
@@ -284,7 +284,7 @@ private theorem wp_firstIndex_w (l : Loc) (lv : raftLog) (si : GoInterfaceOk) (s
   wp_auto
   rw [Hsn]
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
+  ihave #Hsto : isStorageWith sn.sz (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
     (svCert sn) (interface.ok si) $$ [HisSto]
   · unfold isStorageD; iexact HisSto
   unfold isStorageWith
@@ -326,7 +326,7 @@ private theorem wp_lastEntryID_w (l : Loc) (lv : raftLog) (si : GoInterfaceOk) (
   wp_auto
   rw [Hsn]
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
+  ihave #Hsto : isStorageWith sn.sz (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
     (svCert sn) (interface.ok si) $$ [HisSto]
   · unfold isStorageD; iexact HisSto
   unfold isStorageWith

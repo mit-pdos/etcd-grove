@@ -20,7 +20,7 @@ trip (D2). This check:
    (under-declared: `ConfState`'s packed `2`);
 5. runs the tests of `examples/pbschema` that need no dump: `TestD1PostMessage`/`TestD1PostEntry`
    (the decoder's post D1 of `UnmarshalPb.lean` at raftpb.Message/Entry, with the instances'
-   size, levels and decOk of `PerTypeMessage.lean`/`PerTypeEntry.lean`),
+   size, levels and decOk of `PerTypeMessage.lean`/raft's `PbEntryType.lean`),
    `TestD2P2EntryEncoder`/`TestD2P2MessageEncoder` (the round trip D2 and the encoder axioms
    `entryEncC_ok`/`msgEncC_ok`), and `TestSizeBoundCondition` (step 3's size bound condition).
 
