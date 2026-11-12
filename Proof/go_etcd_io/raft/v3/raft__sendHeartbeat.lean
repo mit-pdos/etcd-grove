@@ -38,7 +38,7 @@ theorem raft.sendHeartbeat.wp_proof
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s to ctx cl Hto Hcfg Htz
+  intro c r id s to ctx cl Hto Hcfg Htz Hcl
   wp_start as H
   iNamed H
   icases ownRaftPhysC_tracker_same $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
@@ -75,13 +75,12 @@ theorem raft.sendHeartbeat.wp_proof
   imod cellRO_alloc $$ «$v0» with #cTo
   wp_auto
   imod cellRO_alloc $$ «$v2» with #cCo
-  imod msgOwn_lit «$a0_ptr» _ ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ cl ⊤ $$ [«$a0»] with Hm
+  imod msgOwnZ_lit s.gh.sn.sz «$a0_ptr» _ ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ cl ⊤
+    (fun _ => Hcl) $$ [«$a0»] with Hm
   · iframe «$a0» cTy cTo cCo Hctx
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     msg_nulls
-  -- (out_size C3, temporary) the context's size: `msgOwnZ_sized_TODO`
-  ihave Hm := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _ (by simp [MsgSnap]) $$ Hm
   have Hok : SendOk id s ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ [] cl
       [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl] :=
     Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, Htz, rfl⟩)

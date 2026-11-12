@@ -850,7 +850,7 @@ theorem wp_stepLeader_hbresp
   have Hs1rd : s1.rd = s.rd := by rw [← Hs1]; simp [sendMsgs]
   -- `if r.readOnly.option != ReadOnlySafe || len(m.Context) == 0 { return nil }`
   icases ownRaftPhysC_readOnly c r id _ $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
-  icases ownReadOnly_option ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
+  icases ownReadOnly_option _ ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
   wp_auto
   ihave Hro := Hroback $$ Hopt
   ihave Hphys := Hback $$ %ro %_ Hrof Hro
@@ -875,7 +875,7 @@ theorem wp_stepLeader_hbresp
   try wp_auto
   wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
   wp_apply wp_GetContext.1 ml _ _ _ _ $$ [$Hm] as %cs1 ⟨#Hctx1, Hm⟩
-  wp_apply wp_readOnly_recvAck ro s1.rd.ro m.From' cs1 ctx DFrac.discard $$ [$Hro $Hctx1]
+  wp_apply wp_readOnly_recvAck _ ro s1.rd.ro m.From' cs1 ctx DFrac.discard $$ [$Hro $Hctx1]
     as ⟨Hro, -⟩
   · ipureintro; exact Hclen
   generalize Hra : readonlyRecvAck s1.rd.ro m.From' ctx = ra at *
@@ -888,7 +888,7 @@ theorem wp_stepLeader_hbresp
     (by rw [Hs1rd]; exact Hcb)
   rw [Hra] at Hbound
   wp_auto
-  wp_apply wp_readOnly_maybeAdvance ro2 ra tv.Config'.Voters' vin vout c.incoming c.outgoing
+  wp_apply wp_readOnly_maybeAdvance _ ro2 ra tv.Config'.Voters' vin vout c.incoming c.outgoing
       $$ [$Hro $Hv0 $Hv1]
     as %sl %N ⟨%HN, Hro, Hv0, Hv1, ⟨%ptrs, #Hsl, #Hreqs⟩⟩
   · isplitr
@@ -935,7 +935,7 @@ theorem wp_stepLeader_hbresp
     rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len by ((try clear HcurT); (try clear Htz); word)))]
     wp_apply wp_load_slice_index sl (sint.Z n) ptrs DFrac.discard p Hn.1 $$ [Hsl] as -
     · iframe Hsl; ipureintro; exact Hp
-    ihave #Hrq := BigSepL2.bigSepL2_lookup (Φ := fun _ p q => ownReadreq (GF := GF) p q) Hp Hq
+    ihave #Hrq := BigSepL2.bigSepL2_lookup (Φ := fun _ p q => ownReadreq (GF := GF) s1.gh.sn.sz p q) Hp Hq
       $$ Hreqs
     iunfold ownReadreq at Hrq
     icases Hrq with ⟨%rv, %mm, %qsn, %qctx, %qrs, #Hrq⟩
@@ -946,9 +946,11 @@ theorem wp_stepLeader_hbresp
       cases h : q.ents with
       | nil => exact absurd h this
       | cons e es => exact ⟨e, es, rfl⟩
-    ihave #Hreqm : msgOwn (GF := GF) rv.req' DFrac.discard ⟨mm, e :: es, qsn, qctx, qrs⟩
-      $$ [Hrv_msg]
-    · rw [← Hqe]; iexact Hrv_msg
+    have Hgh_cur : (readRespondAll id s3 (qs.take (sint.Z n).toNat)).gh.sn.sz = s1.gh.sn.sz := by
+      rw [readRespondAll_gh, ← Hs3]
+    ihave #Hreqm : msgOwnZ (GF := GF) (readRespondAll id s3 (qs.take (sint.Z n).toNat)).gh.sn.sz
+        rv.req' DFrac.discard ⟨mm, e :: es, qsn, qctx, qrs⟩ $$ [Hrv_msg]
+    · rw [Hgh_cur, ← Hqe]; iexact Hrv_msg
     have Hgrow := readRespondAll_snoc id s3 qs _ q Hq
     -- (2026-10-29, stage U7) the leader's term, past `0`, for the response's stamp
     have HcurT : (readRespondAll id s3 (qs.take (sint.Z n).toNat)).term ≠ W64 0 := by
@@ -960,7 +962,7 @@ theorem wp_stepLeader_hbresp
       DFrac.discard).access_strict $$ Hrv with ⟨#Hidx, -⟩
     wp_apply wp_load_pers _ rv.req' $$ Hreq
     wp_apply wp_raft_responseToReadIndexReq c r id cur rv.req' mm rv.index' e es qsn qctx qrs
-      $$ [$Hphys $Hreqm] as %resp Hpost
+        Hrvi.2.2 $$ [$Hphys $Hreqm] as %resp Hpost
     by_cases Hloc : mm.From' = W64 0 ∨ mm.From' = id
     · -- a local request: a `ReadState`
       rw [ite_eq_left_of_eq_true _ _ (eq_true Hloc)]
@@ -968,7 +970,7 @@ theorem wp_stepLeader_hbresp
       wp_apply wp_GetTo.1 resp _ _ _ _ $$ [$Hresp] as Hresp
       try wp_auto
       have Hstep : readRespond id cur q = addReadState cur rv.index' e.Data' := by
-        have Hl : q.src = W64 0 ∨ q.src = id := by rw [← Hrvi.2]; exact Hloc
+        have Hl : q.src = W64 0 ∨ q.src = id := by rw [← Hrvi.2.1]; exact Hloc
         rw [readRespond, ite_eq_left_of_eq_true _ _ (eq_true Hl)]
         simp only [Hqe, Hrvi.1]
       ihave Hphys : ownRaftPhysCV c c.voters r id
@@ -984,12 +986,12 @@ theorem wp_stepLeader_hbresp
     · -- a forwarded one: the response
       rw [ite_eq_right_of_eq_false _ _ (eq_false Hloc)]
       icases Hpost with ⟨Hphys, Hresp⟩
+      icases msgOwnZ_read _ _ _ $$ Hresp with ⟨Hresp, Hrback⟩
       wp_apply wp_GetTo.1 resp _ _ _ _ $$ [$Hresp] as Hresp
+      ihave Hresp := Hrback $$ Hresp
       try rw [show (readIndexRespMsg mm rv.index').To' = mm.From' from rfl]
       try rw [decide_eq_false (fun h => Hloc (Or.inl h))]
       try wp_auto
-      -- (out_size C3, temporary) the response's size: `msgOwnZ_sized_TODO`
-      ihave Hresp := msgOwnZ_sized_TODO cur.gh.sn.sz _ _ _ (by simp [readIndexRespMsg, MsgSnap]) $$ Hresp
       wp_apply wp_raft_send c r id cur resp (readIndexRespMsg mm rv.index') (e :: es) none [] []
           [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term (e :: es) []]
           (Or.inl rfl)
@@ -1002,8 +1004,8 @@ theorem wp_stepLeader_hbresp
       have Hstep : readRespond id cur q =
           sendMsgs cur [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term
             (e :: es) []] := by
-        have Hl : ¬ (q.src = W64 0 ∨ q.src = id) := by rw [← Hrvi.2]; exact Hloc
-        rw [readRespond, ite_eq_right_of_eq_false _ _ (eq_false Hl), Hqe, ← Hrvi.1, ← Hrvi.2]
+        have Hl : ¬ (q.src = W64 0 ∨ q.src = id) := by rw [← Hrvi.2.1]; exact Hloc
+        rw [readRespond, ite_eq_right_of_eq_false _ _ (eq_false Hl), Hqe, ← Hrvi.1, ← Hrvi.2.1]
         rfl
       ihave Hphys : ownRaftPhysCV c c.voters r id
           (readRespondAll id s3 (qs.take (sint.Z (n + W64 1)).toNat)) $$ [Hphys]
@@ -1034,25 +1036,28 @@ theorem wp_stepLeader_readindex
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG))
         (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
+    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc)
     (Hty : m.Type' = MsgReadIndex) (Hlead : s.role = .leader) (Hnz : s.term ≠ W64 0)
     (Hne : ents ≠ []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        -- (out_size C3) at its content: stored (`ownPendRI`, `ownReadreq`) with its size
+        "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
         ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
   wp_start as ⟨Hphys, Hm⟩
   wp_auto
+  icases msgInC_halfD _ _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
+  ihave Hm := Hmb $$ Hm
+  have Hmty : m.Type' ≠ MsgSnap := by simp [Hty, MsgReadIndex, MsgSnap]
   simp only [Hty, MsgReadIndex]
   wp_auto
   -- `r.committedEntryInCurrentTerm()`
   wp_apply wp_raft_committedEntryInCurrentTerm c r id s Hnz $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
   -- (raft v3.7) the request, frozen: kept by pointer in the pending slice, or answered
-  imod msgPtsC_to_msgOwn $$ Hm with Hm
-  imod msgOwn_persist $$ Hm with #Hm
+  imod msgInC_freeze _ _ _ _ Hmty $$ Hm with #Hm
   cases b
   · -- postponed: `r.pendingReadIndexMessages = append(r.pendingReadIndexMessages, m)`
     have Hb' : plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
@@ -1080,7 +1085,8 @@ theorem wp_stepLeader_readindex
       iframe Hpri_ents
       iunfold ownPendRI
       iexists sn, ctx, rs
-      iexact Hm
+      iframe Hm
+      ipureintro; exact Hmty
     iapply HΦ
     iframe Hphys
     ipureintro
@@ -1088,7 +1094,8 @@ theorem wp_stepLeader_readindex
   · -- `sendMsgReadIndexResponse(r, m)`
     have Hb' := Hb.1 rfl
     wp_auto
-    wp_apply wp_sendMsgReadIndexResponse c r id s ml m ents sn ctx rs Hlead Hnz Hne $$ [$Hphys $Hm]
+    wp_apply wp_sendMsgReadIndexResponse c r id s ml m ents sn ctx rs Hlead Hnz Hne Hmty
+      $$ [$Hphys $Hm]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ
     iframe Hphys

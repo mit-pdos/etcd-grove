@@ -70,7 +70,8 @@ abbrev raftLog.slice.spec : Prop :=
   {{ (s : GoSlice) (es : List EntryM) (err : GoInterface),
       RET (PairV #s #err);
       ownRaftLog l ls ∗
-      ((⌜err = interface.nil⌝ ∗ entsRO s es ∗
+      ((⌜err = interface.nil⌝ ∗ entsCutRO ls.sn.sz maxSize s es ∗
+        -- (out_size C3) at contents sized under the log's flag, cut at `maxSize` (`entsCutRO`)
         ⌜es ≠ [] ∧
           (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
           (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧

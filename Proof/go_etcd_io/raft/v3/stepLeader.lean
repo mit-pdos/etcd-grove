@@ -112,8 +112,6 @@ theorem stepLeader.wp_proof
     ipureintro
     simp only [LeaderStepResultC, Hp, ↓reduceIte]
     exact Hres
-  -- (out_size C3) every other type reads the message only (the read request's storing: today's form)
-  ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
   ihave HΦ' : iprop(▷ ∀ (err : GoInterface) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
       ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦ]
@@ -129,6 +127,18 @@ theorem stepLeader.wp_proof
       exact ⟨trivial, Hres⟩
     · simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro; exact Herr
+  -- (out_size C3) a read request is stored at its content (`msgInC`, with its size)
+  by_cases Hrix : m.Type' = MsgReadIndex
+  · rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard from
+      if_neg Hp, flag_moves (by rw [Hrix]; exact movesB_MsgReadIndex)]
+    iapply wp_stepLeader_readindex c
+      wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse wp_GetType
+      r id s ml m ents ctx sn rs Hrix Hlead
+      (Hrdnz (Or.inr (Or.inr Hrix))).2 (Hri Hrix) $$ [Hphys Hm] HΦ'
+    iframe
+    iexact Hinit
+  -- every other type reads the message only
+  ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
     Hty | Hty | Hty
   rotate_right 7
@@ -202,12 +212,7 @@ theorem stepLeader.wp_proof
       (Or.inr (Or.inr (Or.inr (Or.inl Hty)))) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_readindex c
-      wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse wp_GetType
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead
-      (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) $$ [Hphys Hm] HΦ'
-    iframe
-    iexact Hinit
+  · exact absurd Hty Hrix
 
 end proof
 

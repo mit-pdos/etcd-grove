@@ -320,7 +320,7 @@ theorem stepFollower.wp_proof
       wp_apply wp_slice_append_persistent (V := ReadState) rsl vs _ [ReadState.mk m.Index' ds]
           (DFrac.own 1) $$ [$Hvs $HreadStates_cap $Hsl]
         as %rs' ⟨#Hrs', Hcap', -⟩
-      ihave Hmisc : ownRaftMisc (GF := GF) rs' ro pr
+      ihave Hmisc : ownRaftMisc (GF := GF) s.gh.sn.sz rs' ro pr
           { s.rd with states := s.rd.states ++ [ReadStateM.mk m.Index' e.Data'] }
           $$ [Hcap' Hro_obj Hpri Hpri_cap]
       · unfold ownRaftMisc
@@ -368,7 +368,7 @@ theorem stepFollower.wp_proof
     simp only [Hty, MsgForgetLeader]
     wp_auto
     icases ownRaftPhysC_readOnly c r id _ $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
-    icases ownReadOnly_option ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
+    icases ownReadOnly_option _ ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
     wp_auto
     ihave Hro := Hroback $$ Hopt
     ihave Hphys := Hback $$ %ro %_ Hrof Hro

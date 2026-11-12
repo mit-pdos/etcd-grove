@@ -928,7 +928,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         r.[raft, go!"Vote"] ↦ s.vote -∗
         r.[raft, go!"readStates"] ↦ rs' -∗
         readStatesPts rs' rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
-        ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend⌝ -∗
+        ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend ∧ g.sn.sz = s.gh.sn.sz⌝ -∗
         r.[raft, go!"raftLog"] ↦ s.log -∗
         r.[raft, go!"state"] ↦ stateW64 s.role -∗
         r.[raft, go!"lead"] ↦ s.lead -∗
@@ -1477,7 +1477,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iExactEq Hlog; rfl
   let g : NGhost := { s.gh with outlb := ms1.length + ms2.length, unst := decide (nextUnstable s.logst ≠ []) }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
+    Hf_readStates HreadStates HreadStates_cap %(⟨rfl, rfl, rfl⟩ : _ ∧ _ ∧ _)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
     %(⟨fun h => .inl (of_decide_eq_true h), Hgh_unst.1.2⟩ : GhLogOk g s.logst)

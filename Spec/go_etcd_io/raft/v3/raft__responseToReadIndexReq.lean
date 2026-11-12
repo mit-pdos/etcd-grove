@@ -21,6 +21,10 @@ its getters; the result is a fresh `*pb.Message`, owned (`msgOwn resp 1`): the e
 the request's (shared, read-only), so it holds the request's entries. (D6) The `ReadState`'s
 context is the bytes of the request's first entry (`ReadStateM`; `r.readStates` holds the Go
 structs with their `RequestCtx` slices read-only, `readStatesPts`).
+
+(out_size C3) The request is held at a content of bounded size under the node's flag (`msgOwnZ
+s.gh.sn.sz`, as the read-only queue keeps it), and so is the response, which shares its entries
+under a fresh header (no context, no snapshot, no unknown fields).
 -/
 module
 
@@ -63,9 +67,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev raft.responseToReadIndexReq.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (req : Loc) (m : MessageM) (idx : w64)
     (e : EntryM) (es : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
+  -- (out_size C3) a read request, not a `MsgSnap`
+  m.Type' ≠ MsgSnap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hreq" ∷ msgOwn req DFrac.discard ⟨m, e :: es, sn, ctx, rs⟩ }}
+      "#Hreq" ∷ msgOwnZ s.gh.sn.sz req DFrac.discard ⟨m, e :: es, sn, ctx, rs⟩ }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"responseToReadIndexReq"))
       (Val #req)) (Val #idx))
   {{ (resp : Loc), RET #resp;
@@ -74,7 +80,7 @@ abbrev raft.responseToReadIndexReq.spec : Prop :=
           msgOwn resp (DFrac.own 1) ⟨zero_val MessageM, [], none, [], []⟩
       else
         ownRaftPhysCV c c.voters r id s ∗
-          msgOwn resp (DFrac.own 1) ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ }}
+          msgOwnZ s.gh.sn.sz resp (DFrac.own 1) ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ }}
 
 end spec
 

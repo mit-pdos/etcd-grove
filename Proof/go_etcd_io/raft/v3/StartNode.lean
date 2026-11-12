@@ -424,7 +424,7 @@ private theorem wp_StartNode_impl
   wp_auto
   wp_apply wp_setupNode γ.raft (γ.mode inferInstance) c cv lok si sn σv hsZero csm
     iprop(Rb ∗ storAuths sn σv) iprop(∃ K, storKeyNames K sn ∗ F K) peers dq pv vs ctxs
-    γ.raft.reBoot H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ rfl rfl rfl rfl rfl rfl ⟨rfl, rfl, rfl⟩ Hv Hvo
+    γ.raft.reBoot H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx rfl Happ rfl rfl rfl rfl rfl rfl ⟨rfl, rfl, rfl⟩ Hv Hvo
     Hl Hln Hal rfl rfl Hvs Hne Hnd Hnz (by omega) Hid Hcfg rfl Hbl Hns
     $$ [Hc HRb HA Hpeers Hg]
     as %np ⟨⟨%K, #HKn, HF⟩, %nv, %rn, Hnp, %Hnvrn, Hchans, Hrn, Hpeers⟩

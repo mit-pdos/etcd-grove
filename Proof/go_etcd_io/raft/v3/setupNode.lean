@@ -26,7 +26,7 @@ theorem setupNode.wp_proof
     (wp_RawNode_Bootstrap : RawNode.Bootstrap.spec (GF := GF) (hG := hG))
     (wp_newNode : newNode.spec (GF := GF) (hG := hG)) :
     setupNode.spec (GF := GF) (hG := hG) := by
-  intro γ md c cv lok si sn σ hs csm R R' peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 _ P10
+  intro γ md c cv lok si sn σ hs csm R R' peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 Hmx Hsnz P10
     S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0 Hun R1 R2 R3 R4 R5 R6 R7 R8 R9 R10
   wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HIS, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl⟩
   ihave %Hplen := ownSlice_len $$ Hpeers
@@ -70,7 +70,8 @@ theorem setupNode.wp_proof
       GMap.listToSet [] = GMap.listToSet ([] : List w64) from
         GMap.set_eq fun k => by simp only [GMap.elem_of_union, or_self], h]
     simp
-  wp_apply wp_NewRawNode c cv lok si sn σ hs csm R R' (cfgState ∅ ∅) P1 P2 P3 P4 P5 P6 P7 P8 P9
+  wp_apply wp_NewRawNode c cv lok si sn σ hs csm R R' (cfgState ∅ ∅) P1 P2 P3 P4 P5 P6 P7 P8
+    (fun h => by rw [Hsnz] at h; have h2 := Hmx (by intro hn; rw [hn] at h; cases h); word) P9
     A1 S3 A2 A3 A4 A5 S6 A7 HAR (.inl Hhs) (.inl P10) A8 A9 A10
     $$ [Hc HR]
     as %rn %err ⟨HR', %s, Hfresh, %Herr, %Hsn2⟩

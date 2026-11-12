@@ -399,7 +399,7 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 _ Happ Ha1 Ha2 Hboot Hcs
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
   iunfold EtcdGrove.isCluster at Hcl
   ihave #Hcl' := Hcl
@@ -605,7 +605,11 @@ private theorem wp_RestartNode_impl
       have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'
       have := uint_nat_eq cv.Applied'; omega
   wp_apply wp_NewRawNode c cv lok si sn σv σ.hs csm iprop(Rb ∗ storAuths sn.unrec σv)
-    iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) H1 H2 H3 H4 H5 H6 H7 H8 H9
+    iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) H1 H2 H3 H4 H5 H6 H7 H8
+    (fun h => by
+      change γ.raft.maxData.isSome = true at h
+      have h2 := Hmx (by intro hn; change γ.raft.maxData = none at hn; rw [hn] at h; cases h)
+      word) H9
     (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
     rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk
     $$ [Hc HRb HA]

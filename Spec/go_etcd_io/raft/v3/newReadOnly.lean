@@ -31,13 +31,13 @@ needs the new object's ownership -- so the predicate can only be re-pointed at a
 object that was actually allocated. (Until 2026-09-23 this spec consumed and returned
 the whole of `own_raft_misc`, a raw piece of the raft struct.) -/
 abbrev newReadOnly.spec : Prop :=
-  ∀ (o : ReadOnlyOption),
+  ∀ (sz : Bool) (o : ReadOnlyOption),
   -- `ReadOnlySafe` (2026-10-12; `ownReadOnly` records it)
   o = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions newReadOnly [])) (Val #o))
   {{ (ro' : Loc), RET #ro';
-      ownReadOnly ro' (ReadOnly.mk [] ∅ (W64 0)) }}
+      ownReadOnly sz ro' (ReadOnly.mk [] ∅ (W64 0)) }}
 
 end spec
 

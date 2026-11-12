@@ -802,7 +802,7 @@ theorem RawNode.acceptReady.wp_proof
     %(logAcceptApplying (logAcceptUnstable ls0) ce sz)
     %({ s.gh with outlb := 0, unst := false, slent := L.isSome, snp := loanTrip L } : NGhost)
     %rs' %({ s.rd with states := [] } : RdState)
-    Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
+    Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(⟨rfl, rfl, rfl⟩ : _ ∧ _ ∧ _)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
     [] [] [] [] [] [] [] [] [] Hlog
   · rw [List.map_nil]; iapply ownSlice_nil

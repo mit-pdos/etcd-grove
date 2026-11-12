@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.raft.v3.limitSize
 public import Spec.go_etcd_io.raft.v3.entsSize
 public import Spec.go_etcd_io.raft.v3.extend
 public import Proof.go_etcd_io.raft.v3.LemmasRaftlogR
+public import Proof.go_etcd_io.raft.v3.MsgOut
 
 @[expose] public section
 
@@ -68,6 +69,52 @@ private theorem slice_both_prefix (s u : List A) (k b n : Nat) (Hk : k ≤ s.len
   exact (List.prefix_append_right_inj _).2 ((List.take_prefix _ _).trans (List.take_prefix _ _))
 
 end prefix_helpers
+
+/-! (out_size C3) The cut of the concatenation `extend(ents, unstable)` returns. -/
+section cut_helpers
+omit [GooseInterp] [GooseSemantics] go_gctx
+
+/-- A sized batch cut at a `maxSize` at most `entsCutMax` sums to less than `2^33`. -/
+private theorem cut_sum_lt (m : w64) (cs : List EntryC) (hok : ∀ c ∈ cs, entSizeOk c)
+    (hc : entsCut m cs) (hm : uint.nat m ≤ entsCutMax) : (cs.map entrySize).sum < 2 ^ 33 := by
+  rcases hc with h | h
+  · obtain ⟨c, rfl⟩ := List.length_eq_one_iff.1 h
+    have := entrySize_lt_of_ok c (hok c (by simp))
+    simpa using this
+  · unfold entsCutMax at hm; omega
+
+/-- `extend(ents, unstable)`'s cut: the stable part `a` (cut at `maxSize`, of size `sz1 < maxSize`)
+and the unstable part `b` (cut at `maxSize - sz1`), unless `b` is one entry that `slice` checked
+fits (`sz1 + sz2 ≤ maxSize`). -/
+private theorem extend_cut (maxSize sz1 : w64) (a b : List EntryC)
+    (hokA : ∀ c ∈ a, entSizeOk c) (hokB : ∀ c ∈ b, entSizeOk c)
+    (hm : uint.nat maxSize ≤ entsCutMax) (hcA : entsCut maxSize a)
+    (hsz1 : (a.map entrySize).sum < 2 ^ 64 → uint.nat sz1 = (a.map entrySize).sum)
+    (hlt : ¬uint.Z maxSize ≤ uint.Z sz1)
+    (hcB : uint.nat (maxSize - sz1) ≤ entsCutMax → entsCut (maxSize - sz1) b)
+    (hB : b.length ≠ 1 ∨ ∃ sz2 : w64,
+      ((b.map entrySize).sum < 2 ^ 64 → uint.nat sz2 = (b.map entrySize).sum) ∧
+      ¬uint.Z maxSize < uint.Z (sz1 + sz2)) :
+    entsCut maxSize (a ++ b) := by
+  have hA := cut_sum_lt maxSize a hokA hcA hm
+  have e1 := hsz1 (by omega)
+  have hsub : uint.nat (maxSize - sz1) = uint.nat maxSize - uint.nat sz1 := by word
+  have hlt' : uint.nat sz1 < uint.nat maxSize := by word
+  have hm' : uint.nat (maxSize - sz1) ≤ entsCutMax := by rw [hsub]; omega
+  have hcB' := hcB hm'
+  have hb := cut_sum_lt _ b hokB hcB' hm'
+  right
+  rw [List.map_append, List.sum_append]
+  rcases hB with hne | ⟨sz2, h2, hov⟩
+  · rcases hcB' with h | h
+    · exact absurd h hne
+    · omega
+  · have e2 := h2 (by omega)
+    unfold entsCutMax at hm
+    have hadd : uint.Z (sz1 + sz2) = uint.Z sz1 + uint.Z sz2 := by word
+    word
+
+end cut_helpers
 
 /-- The body has three shapes of exit, and the range premise kills every error path on
 the way:
@@ -157,8 +204,7 @@ theorem raftLog.slice.wp_proof
     wp_apply wp_unstable_slice _ (unstableOf lv ls) _ _ Hus Hnwu $$ [$Hun]
       as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
     obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
-    ihave #Hs0 := entsROz_entsRO _ _ _ $$ Hs0
-    icases entsPts_entsPtsC _ _ _ $$ Hs0 with ⟨%cs0, #Hs0c, %Hcs0⟩
+    icases entsPtsZ_entsPtsC _ _ _ _ $$ Hs0 with ⟨%cs0, #Hs0c, %Hcs0⟩
     wp_apply wp_limitSize $$ [$Hs0c] as %s1 %nlim ⟨%Hn1c, #Hs1c, -⟩
     ihave #Hs1 := entsPtsC_entsPts _ _ _ _ (es0.take nlim) (by rw [List.map_take, Hcs0]) $$ Hs1c
     have Hn1 : nlim ≤ es0.length ∧ (es0 ≠ [] → 1 ≤ nlim) := by
@@ -178,10 +224,16 @@ theorem raftLog.slice.wp_proof
     rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z s1.len ∧
       sint.Z s1.len ≤ sint.Z s1.len ∧ sint.Z s1.len ≤ sint.Z s1.cap by word)]
     wp_auto
-    ihave Hs2 := entsPts_same_ptr_len s1 (slice.fullSlice s1 Loc (W64 0) s1.len s1.len)
-      _ _ Hnetake (by simp only [slice.fullSlice, sliceIndexRef]
-                      rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0])
-      (by simp only [slice.fullSlice]; word) (by simp only [slice.fullSlice]; word) $$ Hs1
+    have Hnetakec : cs0.take nlim ≠ [] := fun h => Hnetake (by rw [← Hcs0, ← List.map_take, h]; rfl)
+    ihave #Hs2 := entsPtsC_same_ptr_len _ s1 (slice.fullSlice s1 Loc (W64 0) s1.len s1.len)
+      _ _ Hnetakec (by simp only [slice.fullSlice, sliceIndexRef]; rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0])
+      (by simp only [slice.fullSlice]; word) (by simp only [slice.fullSlice]; word) $$ Hs1c
+    ihave #Hs2 : entsCutRO (GF := GF) ls.sn.sz maxSize
+        (slice.fullSlice s1 Loc (W64 0) s1.len s1.len) (es0.take nlim) $$ []
+    · unfold entsCutRO
+      iexists cs0.take nlim
+      iframe Hs2
+      ipureintro; exact ⟨by rw [List.map_take, Hcs0], Hn1c.2.2⟩
     reopen_unstable
     ihave Hcap := ownSliceCap_empty (V := Loc)
       (slice.fullSlice s1 Loc (W64 0) s1.len s1.len) rfl
@@ -270,6 +322,8 @@ theorem raftLog.slice.wp_proof
         iexact HcutE
       subst HerrE
       ihave #Hse := entsPtsC_entsPts _ _ _ _ _ Hcse.1 $$ HseC
+      ihave #HseZ : entsCutRO (GF := GF) ls.sn.sz maxSize se ese $$ []
+      · unfold entsCutRO; iexists cse; iframe HseC; ipureintro; exact Hcse
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
@@ -282,7 +336,7 @@ theorem raftLog.slice.wp_proof
       isplitl [Hl HStorage Huents Huents_cap]
       · reseal_raftLog
       ileft
-      iframe Hse Hcap
+      iframe HseZ Hcap
       isplitr
       · ipureintro; rfl
       ipureintro
@@ -318,6 +372,8 @@ theorem raftLog.slice.wp_proof
         iexact HcutE
       subst HerrE
       ihave #Hse := entsPtsC_entsPts _ _ _ _ _ Hcse.1 $$ HseC
+      ihave #HseZ : entsCutRO (GF := GF) ls.sn.sz maxSize se ese $$ []
+      · unfold entsCutRO; iexists cse; iframe HseC; ipureintro; exact Hcse
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
@@ -330,7 +386,7 @@ theorem raftLog.slice.wp_proof
         isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
         ileft
-        iframe Hse Hcap
+        iframe HseZ Hcap
         isplitr
         · ipureintro; rfl
         ipureintro
@@ -342,14 +398,14 @@ theorem raftLog.slice.wp_proof
         isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
         ileft
-        iframe Hse Hcap
+        iframe HseZ Hcap
         isplitr
         · ipureintro; rfl
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
       rename_i Hnotshort0
-      icases entsPts_entsPtsC _ _ _ $$ Hse with ⟨%csE, #HseE, %HcsE⟩
-      wp_apply wp_entsSize $$ [$HseE] as %sz1 -
+      wp_apply wp_entsSize $$ [$HseC] as %sz1 ⟨-, %Hsz1⟩
+      ihave %HseOk := entsPtsC_sized _ _ _ $$ HseC
       wp_if_destruct
       · -- the stable part already reaches `maxSize`
         ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
@@ -357,7 +413,7 @@ theorem raftLog.slice.wp_proof
         isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
         ileft
-        iframe Hse Hcap
+        iframe HseZ Hcap
         isplitr
         · ipureintro; rfl
         ipureintro
@@ -370,10 +426,11 @@ theorem raftLog.slice.wp_proof
       wp_apply wp_unstable_slice _ (unstableOf lv ls) _ _ Hus Hnwu $$ [$Hun]
         as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
       obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
-      ihave #Hs0 := entsROz_entsRO _ _ _ $$ Hs0
-      icases entsPts_entsPtsC _ _ _ $$ Hs0 with ⟨%cs0, #Hs0c, %Hcs0⟩
+      icases entsPtsZ_entsPtsC _ _ _ _ $$ Hs0 with ⟨%cs0, #Hs0c, %Hcs0⟩
       wp_apply wp_limitSize $$ [$Hs0c] as %s1 %nlim ⟨%Hn1c, #Hs1c, -⟩
       ihave #Hs1 := entsPtsC_entsPts _ _ _ _ (es0.take nlim) (by rw [List.map_take, Hcs0]) $$ Hs1c
+      ihave %Hs1Ok := entsPtsC_sized _ _ _ $$ Hs1c
+      ihave %Hs1len := entsPts_len $$ Hs1
       have Hn1 : nlim ≤ es0.length ∧ (es0 ≠ [] → 1 ≤ nlim) := by
         rw [← Hcs0, List.length_map]
         exact ⟨Hn1c.1, fun h => Hn1c.2.1 (fun h' => h (by rw [h']; rfl))⟩
@@ -387,6 +444,12 @@ theorem raftLog.slice.wp_proof
       have Hcapx : sint.Z se.cap < (ese.length : Int) + ((es0.take nlim).length : Int) := by
         have : ((sint.nat se.len : Nat) : Int) = sint.Z se.len := by word
         rw [Hcape, Hselen.1]; omega
+      have Hcs1 : (cs0.take nlim).map EntryC.model = es0.take nlim := by rw [List.map_take, Hcs0]
+      have Hcapx' : sint.Z se.cap < (cse.length : Int) + ((cs0.take nlim).length : Int) := by
+        have h1 := congrArg List.length Hcse.1
+        have h2 := congrArg List.length Hcs1
+        simp only [List.length_map] at h1 h2
+        rw [h1, h2]; exact Hcapx
       -- `Storage.Entries` returned the whole range `[lo, offset)`: the
       -- `len(ents) < cut-lo` fast path was not taken
       have Hese : ese = ls.sents.drop (uint.Z lo - uint.Z ls.prev.index' - 1).toNat := by
@@ -410,7 +473,7 @@ theorem raftLog.slice.wp_proof
           exact slice_both_prefix ls.sents ls.uents _ _ _ (by omega)
       wp_if_destruct
       · -- `len(unstable) == 1`: one more size check before giving up
-        wp_apply wp_entsSize $$ [$Hs1c] as %sz2 -
+        wp_apply wp_entsSize $$ [$Hs1c] as %sz2 ⟨-, %Hsz2⟩
         wp_if_destruct
         · -- the single unstable entry does not fit
           ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
@@ -418,14 +481,21 @@ theorem raftLog.slice.wp_proof
           isplitl [Hl HStorage Huents Huents_cap]
           · reseal_raftLog
           ileft
-          iframe Hse Hcap
+          iframe HseZ Hcap
           isplitr
           · ipureintro; rfl
           ipureintro
           exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
         iapply wp_fupd
-        wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
-        imod entsPts_persist _ _ _ $$ Hsx with #Hsx
+        wp_apply wp_extend _ _ _ cse (cs0.take nlim) _ _ Hcapx' $$ [$HseC $Hs1c]
+          as %sx ⟨Hsx, Hsxcap, -, -⟩
+        imod entsPtsC_persist _ _ _ _ $$ Hsx with #Hsx
+        ihave #Hsx : entsCutRO (GF := GF) ls.sn.sz maxSize sx (ese ++ es0.take nlim) $$ []
+        · unfold entsCutRO; iexists cse ++ cs0.take nlim; iframe Hsx
+          ipureintro
+          refine ⟨by rw [List.map_append, Hcse.1, Hcs1], fun hs hm => ?_⟩
+          exact extend_cut maxSize sz1 cse (cs0.take nlim) (HseOk hs) (Hs1Ok hs) hm (Hcse.2 hs hm)
+            (Hsz1 hs) (by assumption) (Hn1c.2.2 hs) (.inr ⟨sz2, Hsz2 hs, by assumption⟩)
         imodintro
         iapply HΦ $$ %sx %_ %interface.nil
         isplitl [Hl HStorage Huents Huents_cap]
@@ -437,8 +507,19 @@ theorem raftLog.slice.wp_proof
         ipureintro
         exact Hext
       · iapply wp_fupd
-        wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
-        imod entsPts_persist _ _ _ $$ Hsx with #Hsx
+        wp_apply wp_extend _ _ _ cse (cs0.take nlim) _ _ Hcapx' $$ [$HseC $Hs1c]
+          as %sx ⟨Hsx, Hsxcap, -, -⟩
+        imod entsPtsC_persist _ _ _ _ $$ Hsx with #Hsx
+        ihave #Hsx : entsCutRO (GF := GF) ls.sn.sz maxSize sx (ese ++ es0.take nlim) $$ []
+        · unfold entsCutRO; iexists cse ++ cs0.take nlim; iframe Hsx
+          ipureintro
+          refine ⟨by rw [List.map_append, Hcse.1, Hcs1], fun hs hm => ?_⟩
+          refine extend_cut maxSize sz1 cse (cs0.take nlim) (HseOk hs) (Hs1Ok hs) hm (Hcse.2 hs hm)
+            (Hsz1 hs) (by assumption) (Hn1c.2.2 hs) (.inl ?_)
+          have h2 := congrArg List.length Hcs1
+          simp only [List.length_map] at h2
+          rw [h2, Hs1len.1]
+          intro h; apply (by assumption : ¬ s1.len = W64 1); word
         imodintro
         iapply HΦ $$ %sx %_ %interface.nil
         isplitl [Hl HStorage Huents Huents_cap]

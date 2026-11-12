@@ -338,36 +338,6 @@ theorem entsPts_entsPtsZ (s : GoSlice) (dq : DFrac) (es : List EntryM) :
   iframe Hs
   iapply entsBig_entsBigZ $$ Hb
 
-/-- **TEMPORARY (out_size C3, branch only; gone before C3 lands).** Entries read in today's form at
-contents of bounded size under any flag: the `sorry` is the size fact alone (`entSizeOk`), for the
-entries of a received `MsgApp` that `handleAppendEntries` hands `maybeAppend` (P4: `msgInC`). Listed
-in the handoff. -/
-theorem entRZ_sized_TODO (sz : Bool) (l : Loc) (e : EntryM) :
-    entRZ (GF := GF) false l e ⊢ entRZ sz l e := by
-  unfold entRZ
-  iintro ⟨%c, #Hc, %Hm⟩
-  iexists c
-  iframe Hc
-  ipureintro
-  exact ⟨Hm.1, fun _ => sorry⟩
-
-/-- `entRZ_sized_TODO` over a slice (TEMPORARY, see there; also `appendEntry`'s clones, whose
-sizes wait on the clone at contents). -/
-theorem entsPtsZ_sized_TODO (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :
-    entsPts (GF := GF) s dq es ⊢ entsPtsZ sz s dq es := by
-  iintro H
-  ihave H := entsPts_entsPtsZ s dq es $$ H
-  unfold entsPtsZ
-  icases H with ⟨%ls, Hs, #Hb⟩
-  iexists ls
-  iframe Hs
-  iapply (BigSepL2.bigSepL2_mono (fun _ _ => entRZ_sized_TODO sz _ _)) $$ Hb
-
-/-- `entsPtsZ_sized_TODO` read-only (TEMPORARY). -/
-theorem entsROz_sized_TODO (sz : Bool) (s : GoSlice) (es : List EntryM) :
-    entsRO (GF := GF) s es ⊢ entsROz sz s es :=
-  entsPtsZ_sized_TODO sz s DFrac.discard es
-
 /-- An empty batch is sized under any flag. -/
 theorem entsROz_of_nil (sz : Bool) (s : GoSlice) :
     entsRO (GF := GF) s [] ⊢ entsROz sz s [] := by
@@ -572,6 +542,57 @@ theorem entsPtsZ_persist (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List Entry
   unfold entsROz entsPtsZ
   iexists ls
   iframe Hs Hb
+
+/-! ### Cut slices (out_size C3, step 4: `raftLog.slice`/`entries`) -/
+
+/-- **A read-only `[]*pb.Entry` cut at `maxSize`** (out_size C3): at some contents `cs` sized when
+`sz`, holding `es`, and, under `sz` and a `maxSize` at most `entsCutMax`, cut (`entsCut`): what
+`raftLog.slice`/`entries` return, so that `maybeSendAppend`'s `MsgApp` is of bounded size. -/
+def entsCutRO (sz : Bool) (maxSize : w64) (s : GoSlice) (es : List EntryM) : IProp GF :=
+  iprop(∃ cs : List EntryC, entsPtsC sz s DFrac.discard cs ∗
+    ⌜cs.map EntryC.model = es ∧ (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝)
+
+instance entsCutRO_persistent (sz : Bool) (maxSize : w64) (s : GoSlice) (es : List EntryM) :
+    Persistent (entsCutRO (GF := GF) sz maxSize s es) := by
+  unfold entsCutRO; infer_instance
+
+/-- The list form's size fact. -/
+theorem entsPtsC_sized (sz : Bool) (s : GoSlice) (cs : List EntryC) :
+    entsPtsC (GF := GF) sz s DFrac.discard cs ⊢ ⌜sz = true → ∀ c ∈ cs, entSizeOk c⌝ := by
+  unfold entsPtsC
+  iintro ⟨%ls, -, -, %Hz⟩
+  ipureintro; exact Hz
+
+/-- The empty cut slice. -/
+theorem entsCutRO_nil (sz : Bool) (m : w64) : ⊢ entsCutRO (GF := GF) sz m slice.nil [] := by
+  unfold entsCutRO entsPtsC
+  iexists []
+  isplitl
+  · iexists []
+    isplitl
+    · iapply ownSlice_nil
+    isplitl
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    · ipureintro; simp
+  · ipureintro; exact ⟨rfl, fun _ _ => Or.inr (by simp)⟩
+
+/-- A cut slice in today's form. -/
+theorem entsCutRO_entsRO (sz : Bool) (maxSize : w64) (s : GoSlice) (es : List EntryM) :
+    entsCutRO (GF := GF) sz maxSize s es ⊢ entsRO s es := by
+  unfold entsCutRO
+  iintro ⟨%cs, #H, %h⟩
+  iapply entsPtsC_entsPts sz s DFrac.discard cs es h.1 $$ H
+
+/-- A list-form slice, frozen read-only. -/
+theorem entsPtsC_persist (sz : Bool) (s : GoSlice) (dq : DFrac) (cs : List EntryC) :
+    entsPtsC (GF := GF) sz s dq cs ⊢ |==> entsPtsC sz s DFrac.discard cs := by
+  unfold entsPtsC
+  iintro ⟨%ls, Hs, #Hb, %Hz⟩
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hs with #Hs
+  imodintro
+  iexists ls
+  iframe Hs Hb
+  ipureintro; exact Hz
 
 end lemmas
 

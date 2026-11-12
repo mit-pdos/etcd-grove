@@ -38,6 +38,55 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+/-! (out_size C3) The `MsgApp`'s framed sum (the Scope's §2.3, row `MsgApp`): its entries are cut at
+`maxMsgSize ≤ entsCutMax` (`raftLog.entries`), so one entry, or protobuf sizes summing to at most
+`2^20`; a log entry has an index past `0`, so its protobuf size is at least `2`, so there are at most
+`2^19` of them. -/
+section msgapp_sum
+variable [GooseExts]
+
+private theorem entrySize_ge2 (c : EntryC) (h : c.model.Index' ≠ W64 0) : 2 ≤ entrySize c := by
+  unfold entrySize
+  cases hi : c.index with
+  | none => exact absurd (by simp only [EntryC.model, hi, Option.getD_none]; rfl) h
+  | some v =>
+    simp only [Option.map_some, optVarintSize]
+    have := varintSize_pos ((uint.Z v).toNat)
+    omega
+
+private theorem sum_add64 (cs : List EntryC) :
+    (cs.map (fun e => entBytes e + 64)).sum = (cs.map entBytes).sum + 64 * cs.length := by
+  induction cs with
+  | nil => simp
+  | cons c cs ih => simp only [List.map_cons, List.sum_cons, List.length_cons, ih]; omega
+
+private theorem len_le_sum (cs : List EntryC) (h : ∀ c ∈ cs, 2 ≤ entrySize c) :
+    2 * cs.length ≤ (cs.map entrySize).sum := by
+  induction cs with
+  | nil => simp
+  | cons c cs ih =>
+    simp only [List.map_cons, List.sum_cons, List.length_cons]
+    have h1 := h c (by simp)
+    have h2 := ih (fun c' hc' => h c' (by simp [hc']))
+    omega
+
+private theorem msgApp_sum (m : w64) (cs : List EntryC) (hok : ∀ c ∈ cs, entSizeOk c)
+    (hix : ∀ c ∈ cs, c.model.Index' ≠ W64 0) (hc : entsCut m cs) (hm : uint.nat m ≤ entsCutMax) :
+    (cs.map (fun e => entBytes e + 64)).sum ≤ 2 ^ 36 := by
+  rcases hc with h | h
+  · obtain ⟨c, rfl⟩ := List.length_eq_one_iff.1 h
+    have := hok c (by simp)
+    unfold entSizeOk entBytesMax at this
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
+    omega
+  · rw [sum_add64]
+    have h2 := sum_map_le_sum_map cs entBytes entrySize (fun x _ => entBytes_le_entrySize x)
+    have h3 := len_le_sum cs (fun c hc => entrySize_ge2 c (hix c hc))
+    unfold entsCutMax at hm
+    omega
+
+end msgapp_sum
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -70,14 +119,14 @@ local macro "msa_fetch" : tactic => `(tactic| (
   ihave Hphys := Hpback $$ [Hpv Hinfl]
   · iapply ownProgress_intro $$ Hpv Hinfl
     ipureintro; exact Habs
-  wp_apply raft.wp_load_maxMsgSizeC $$ Hphys as %mms Hphys
+  wp_apply raft.wp_load_maxMsgSizeC $$ Hphys as %mms ⟨%Hmms, Hphys⟩
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_entries _ s.logst _ _ Hlo $$ [Hlog]
     as %sl_e %es_e %err_e ⟨Hlog, Hentr⟩
   · iframe
   ihave Hphys := Hlogback $$ Hlog
-  icases Hentr with (⟨%Herr_e, #Hents, %Hin, %Hpre⟩ | ⟨%Hsle, #Herr_e, #Hcut_e⟩)
+  icases Hentr with (⟨%Herr_e, #HentsC0, %Hin, %Hpre⟩ | ⟨%Hsle, #Herr_e, #Hcut_e⟩)
   rotate_left
   · -- (D19i part 1) `ErrCompacted`: the application compacted past `pr.Next`; no entries, so
     -- `false` without `sendIfEmpty`, else a snapshot
@@ -122,7 +171,24 @@ local macro "msa_fetch" : tactic => `(tactic| (
       ipureintro
       exact ⟨Hms', Hmm'⟩
   subst Herr_e
-  try wp_auto))
+  try wp_auto
+  -- (out_size C3) the entries at their contents, at the node's flag (`LogGhOk`: the log's storage
+  -- names are the ghost's), and the `MsgApp`'s framed sum from the cut
+  icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
+  iunfold entsCutRO at HentsC0
+  icases HentsC0 with ⟨%csE, #HentsC, %HcsE0⟩
+  ihave #HentsC : entsPtsC (GF := GF) s.gh.sn.sz sl_e DFrac.discard csE $$ [HentsC]
+  · rw [← Hgh.1.2.2]; iexact HentsC
+  ihave %HszE := entsPtsC_sized _ _ _ $$ HentsC
+  have HcsE : csE.map EntryC.model = es_e ∧
+      (s.gh.sn.sz = true → (csE.map (fun e => entBytes e + 64)).sum ≤ 2 ^ 36) := by
+    refine ⟨HcsE0.1, fun hs => msgApp_sum mms csE (HszE hs) (fun c hc => ?_)
+      (HcsE0.2 (by rw [Hgh.1.2.2]; exact hs) (Hmms hs)) (Hmms hs)⟩
+    have he := Hin _ (HcsE0.1 ▸ List.mem_map_of_mem hc)
+    obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 he
+    have := Hlwf k _ hk
+    intro h0; rw [h0] at this; word
+  ihave #Hents := entsPtsC_entsPts _ _ _ _ _ HcsE.1 $$ HentsC))
 
 /-- The leader's progress bound after `SentEntries` (2026-10-16, stage R8a, D11): the entries sent
 are a prefix of the log from `Next` on (`Hpre`), so `Next + |ents| ≤ lastIndex + 1`
@@ -167,27 +233,28 @@ local macro "msa_send" : tactic => `(tactic| (
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
   imod cellRO_alloc $$ «$v5» with #cCo
-  ihave Hents2 : entsPts (GF := GF) sl_e DFrac.discard es_e $$ Hents
-  iunfold entsPts at Hents2
-  icases Hents2 with ⟨%els, #Hsl, #Hbig⟩
+  ihave Hents2 : entsPtsC (GF := GF) s.gh.sn.sz sl_e DFrac.discard csE $$ HentsC
+  iunfold entsPtsC at Hents2
+  icases Hents2 with ⟨%els, #Hsl, #Hbig, -⟩
   ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   imod ownSlice_persist $$ Hnilb with #Hnilb
   ihave Hnilr : (slice.nil ↦* ([] : List Loc) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod msgOwn_of_struct «$a0_ptr»
+  -- (out_size C3) at the entries' contents, of bounded size (`HcsE`: the cut's framed sum)
+  imod msgOwnZ_of_structC s.gh.sn.sz «$a0_ptr»
     { state' := zeroValDef, Type' := pty, To' := «$v0_ptr», From' := null, Term' := null,
       LogTerm' := «$v3_ptr», Index' := «$v2_ptr», Entries' := sl_e, Commit' := «$v5_ptr»,
       Vote' := null, Snapshot' := null, Reject' := null, RejectHint' := null,
       Context' := slice.nil, Responses' := slice.nil, unknownFields' := slice.nil, sizeCache' := 0 }
-    els ⟨⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩, es_e, none, [], []⟩
-    ⊤ rfl $$ [«$a0» Hnilr] with Hm
+    els csE ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ [] ⊤ rfl rfl
+    (fun hs _ => ⟨by simp, fun e he => HszE hs e he, HcsE.2 hs⟩) $$ [«$a0» Hnilr] with Hm
   · iframe «$a0» cTy cTo cIx cLt cCo Hsl Hbig Hnilb Hnilr
-    simp only [snapOpt]
     msg_nulls
-    try itrivial
-  -- (out_size C3, temporary) the `MsgApp`'s size: `msgOwnZ_sized_TODO`
-  ihave Hm := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _ (by simp [MsgSnap]) $$ Hm
+  ihave Hm : msgOwnZ (GF := GF) s.gh.sn.sz «$a0_ptr» (DFrac.own 1)
+      ⟨⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩, es_e, none, [], []⟩
+    $$ [Hm]
+  · rw [← HcsE.1]; iexact Hm
   wp_apply wp_raft_send c r id s «$a0_ptr»
       ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
@@ -446,8 +513,19 @@ theorem raft.maybeSendAppend.wp_proof
       · wp_auto
         ihave #Hents : entsRO (GF := GF) (zero_val GoSlice : GoSlice) ([] : List EntryM) $$ []
         · iapply entsPts_nil
+        ihave #HentsC : entsPtsC (GF := GF) s.gh.sn.sz (zero_val GoSlice : GoSlice) DFrac.discard
+            ([] : List EntryC) $$ []
+        · unfold entsPtsC; iexists []
+          isplitl; · iapply ownSlice_nil
+          isplitl; · iapply BigSepL2.bigSepL2_nil.2; iempintro
+          ipureintro; simp
+        have HszE : s.gh.sn.sz = true → ∀ c ∈ ([] : List EntryC), entSizeOk c := by simp
+        generalize Hcs0 : ([] : List EntryC) = csE at HszE ⊢
         generalize (zero_val GoSlice : GoSlice) = sl_e
         generalize Hes : ([] : List EntryM) = es_e
+        have HcsE : csE.map EntryC.model = es_e ∧
+            (s.gh.sn.sz = true → (csE.map (fun e => entBytes e + 64)).sum ≤ 2 ^ 36) := by
+          subst Hcs0 Hes; simp
         have Hwin : p.state = .replicate → es_e ≠ [] → inflightsFull p.infl = false :=
           fun _ Hne => absurd Hes.symm Hne
         have Hpkgin : ∀ e ∈ es_e, e ∈ (toPState s).log := by

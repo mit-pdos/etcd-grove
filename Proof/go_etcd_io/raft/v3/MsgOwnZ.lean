@@ -146,25 +146,6 @@ theorem msgOwnZ_of_uf (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt)
   exact msgSizeOk_of_lit c Hu (by rw [Hmod]; exact h2) (by rw [Hmod]; exact h3)
     (by rw [Hmod]; exact h1) (by rw [Hmod]; exact h4)
 
-/-- **TEMPORARY (out_size C3, branch only; gone before C3 lands).** A message raft holds in today's
-form (not a `MsgSnap`), at a content of bounded size under any flag. The `sorry` is the size fact
-alone (`msgSizeOk` under `sz`), for the senders whose bound waits on P4 or on the read requests at
-contents: `maybeSendAppend` (the `MsgApp` sum), `stepFollower`'s three forwards (received:
-`msgInC`), `sendMsgReadIndexResponse` and `stepLeader`'s `MsgReadIndexResp` (the stored request's
-entries), `sendHeartbeat` and `handleHeartbeat` (the contexts). Listed in the handoff. -/
-theorem msgOwnZ_sized_TODO (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt)
-    (hty : st.msg.Type' ≠ MsgSnap) :
-    msgOwn (GF := GF) l dq st ⊢ msgOwnZ sz l dq st := by
-  iintro H
-  ihave H := msgOwnZ_of_snapUf l dq st $$ [H]
-  · iframe H; unfold snapUf snapUfT; ileft; ipureintro; exact hty
-  unfold msgOwnZ
-  icases H with ⟨%c, Hc, %Hok⟩
-  iexists c
-  iframe Hc
-  ipureintro
-  exact ⟨Hok.1, Hok.2.1, fun _ _ => sorry⟩
-
 end lemmas
 
 section halves
@@ -775,6 +756,79 @@ theorem msgInC_of_struct (sz : Bool) (l : Loc) (v : raftpb.Message) (dqe : DFrac
           have h2 := ih (fun e he' => he e (by simp [he']))
           rw [Nat.add_mul, Nat.one_mul]; omega
       rw [hlen] at this; omega
+
+/-- (out_size C3, step 3) A frozen message at a content is persistent (a stored read request). -/
+instance msgOwnZ_discard_persistent (sz : Bool) (l : Loc) (st : MsgSt) :
+    Persistent (msgOwnZ (GF := GF) sz l DFrac.discard st) := by
+  unfold msgOwnZ; infer_instance
+
+/-- (out_size C3, step 3) **A received message stored** (`stepLeader`'s read requests, queued or
+pending): frozen at its content, with its size. -/
+theorem msgInC_freeze (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt)
+    (hty : st.msg.Type' ≠ MsgSnap) :
+    msgInC (GF := GF) sz l dqe st ⊢ |==> msgOwnZ sz l DFrac.discard st := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  imod msgPtsCC_freeze $$ Hc with Hc
+  imod msgPtsCC_persist $$ Hc with Hc
+  imodintro
+  unfold msgOwnZ
+  iexists c
+  iframe Hc
+  ipureintro
+  obtain ⟨Hm, Hcs, Hsz⟩ := H
+  refine ⟨Hm, ⟨Hcs, fun h => ?_⟩, fun hs ht => ?_⟩
+  · exact absurd (show st.msg.Type' = MsgSnap by rw [← Hm]; exact h) hty
+  · rw [Hm] at ht; exact Hsz hs ht
+
+/-- (out_size C3, step 3) **A message raft builds from contents** (`responseToReadIndexReq`'s
+`MsgReadIndexResp`, sharing a stored request's entries): a fresh literal with no snapshot, no
+responses and no unknown fields, its entries slice read-only over objects at the contents `cs`: at a
+content of bounded size when, under the flag and off a `MsgSnap`, its context and entries are. -/
+theorem msgOwnZ_of_structC (sz : Bool) (l : Loc) (v : raftpb.Message) (els : List Loc)
+    (cs : List EntryC) (mm : MessageM) (ctx : List w8) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) (Hsn : v.Snapshot' = null)
+    (Hsz : sz = true → mm.Type' ≠ MsgSnap → ctx.length ≤ entBytesMax ∧
+      (∀ e ∈ cs, entBytes e ≤ entBytesMax) ∧ (cs.map (fun e => entBytes e + 64)).sum ≤ 2 ^ 36) :
+    (l ↦ v ∗ cellRO v.Type' mm.Type' ∗ cellRO v.To' mm.To' ∗
+      cellRO v.From' mm.From' ∗ cellRO v.Term' mm.Term' ∗
+      cellRO v.LogTerm' mm.LogTerm' ∗ cellRO v.Index' mm.Index' ∗
+      cellRO v.Commit' mm.Commit' ∗ cellRO v.Vote' mm.Vote' ∗
+      cellRO v.Reject' mm.Reject' ∗ cellRO v.RejectHint' mm.RejectHint' ∗
+      v.Entries' ↦*□ els ∗ ([∗list] p;e ∈ els;cs, entRoC p e) ∗
+      v.Context' ↦*□ ctx ∗ v.Responses' ↦* ([] : List Loc) : IProp GF) ⊢
+      |={E}=> msgOwnZ sz l (DFrac.own 1) ⟨mm, cs.map EntryC.model, none, ctx, []⟩ := by
+  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, Hes, #Hents, #Hcx, Hrs⟩
+  ihave ⟨%oTy, #oTy, %hTy⟩ := cellRO_optCell _ _ $$ cTy
+  ihave ⟨%oTo, #oTo, %hTo⟩ := cellRO_optCell _ _ $$ cTo
+  ihave ⟨%oFr, #oFr, %hFr⟩ := cellRO_optCell _ _ $$ cFr
+  ihave ⟨%oTe, #oTe, %hTe⟩ := cellRO_optCell _ _ $$ cTe
+  ihave ⟨%oLt, #oLt, %hLt⟩ := cellRO_optCell _ _ $$ cLt
+  ihave ⟨%oIx, #oIx, %hIx⟩ := cellRO_optCell _ _ $$ cIx
+  ihave ⟨%oCo, #oCo, %hCo⟩ := cellRO_optCell _ _ $$ cCo
+  ihave ⟨%oVo, #oVo, %hVo⟩ := cellRO_optCell _ _ $$ cVo
+  ihave ⟨%oRj, #oRj, %hRj⟩ := cellRO_optCell _ _ $$ cRj
+  ihave ⟨%oRh, #oRh, %hRh⟩ := cellRO_optCell _ _ $$ cRh
+  ihave ⟨%oCx, #oCx, %hCx⟩ := ownSlice_bytesC _ _ $$ Hcx
+  imod msgPtsCC_of_struct l v DFrac.discard false els
+      ⟨oTy, oTo, oFr, oTe, oLt, oIx, cs, oCo, oVo, none, oRj, oRh, oCx, []⟩ E Hu rfl
+      $$ [Hl Hes Hrs] with Hm
+  · iframe Hl Hes Hrs oTy oTo oFr oTe oLt oIx oCo oVo oRj oRh oCx Hents
+    simp only [Bool.false_eq_true, ↓reduceIte, snapOptCC]
+    isplitl []; · iempintro
+    ipureintro; exact Hsn
+  imodintro
+  unfold msgOwnZ
+  iexists _
+  iframe Hm
+  ipureintro
+  refine ⟨?_, ⟨fun s hs => by simp [MsgC.f] at hs, fun _ => rfl⟩, fun hsz hty => ?_⟩
+  · simp only [MsgC.model, MsgC.f, MsgC.resps, MsgFC.msgM, List.map_nil, Option.map_none, hCx,
+      hTy, hTo, hFr, hTe, hLt, hIx, hCo, hVo, hRj, hRh]
+  · have hty' : mm.Type' ≠ MsgSnap := by rw [← hTy]; exact hty
+    obtain ⟨hc, he, hs⟩ := Hsz hsz hty'
+    refine ⟨rfl, ?_, he, hs⟩
+    simp only [hdrBytes, MsgC.f, optSnapSize, List.length_nil, Nat.add_zero, hCx]; exact hc
 
 end recv
 
