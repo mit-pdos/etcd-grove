@@ -182,6 +182,25 @@ theorem ownRaftPhysCV_reconfigCore (c c' : CfgM) (V V' : GSet w64) (r : Loc) (id
     Hok Hnsl Hxf Hlq
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
 
+/-- The trace logger, shared, with its contract at the node's mode (the nil logger untraced), in
+either mode (`ownRaftPhysC_traceLogger` is the untraced case). -/
+theorem ownRaftPhysC_traceLoggerG (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ∃ tl : GoInterface, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜s.gh.tr = none → TraceLoggerOk tl⌝ ∗
+        ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC' H
+  ihave #Hftl := raftOwn_traceLogger _ _ $$ Hr
+  iexists rv.traceLogger'
+  iframe Hftl
+  isplitr
+  · ipureintro; exact fun htr => Htl.untraced htr
+  iapply ownRaftPhysCV_intro c V _ _ s _ msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Htl Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    Hgh_unst Hvoter Hprok Hnsl Hxf Hlq
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+
 /-- The configuration's maps out of the tracker, given back. -/
 theorem ownTrackerC_cfg (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ⊢ ownTrackerC (GF := GF) c tv t -∗
