@@ -450,6 +450,7 @@ private theorem wp_switchToConfig_w
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
         ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
           lns ≡ₚ elements c.learnersNext⌝ }} := by
+  have wp_traceConfChangeEvent := traceConfChangeEvent.untraced wp_traceConfChangeEvent
   wp_start as ⟨Htrkf, #Htl, #Hid, #Hlgf, #Hlg, HiL, Hst, Hvotes, Hnew⟩
   wp_auto
   wp_apply wp_traceConfChangeEvent $$ [Htl]
