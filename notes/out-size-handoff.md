@@ -38,7 +38,10 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
 
 ## Next, in order (Scope §4)
 
-1. C1: full build, gates, STOP before `etc/land.sh` (coordinator's go).
+1. C1 committed (`12bc0aafa5`): full build green (17484 jobs), interfaces regenerated (all
+   `etc/api/*.txt --check` clean), gates all ok but `k8s client error types` (StartCluster failed in
+   0.04s under the parallel gate run; the same test alone passes, 212s). Waiting for the
+   coordinator's go for `etc/land.sh` (merge lean first; STATUS entry and session registry then).
 2. P0's law part, moved to P3: `outSetR` with the pure fact, `raftOutInv_insert`'s premise.
 3. C2 (statements Freeze, hard stop): storage contract with `sized` and the cut (the cut needs the
    contents as a list: use `∃ cs` with `entRoC`, and a bridge `entsROz sz s es ⊢ ∃ cs, …` by
