@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
-"""The `axiom-tok` gate, report-only (per-type stage B, B0: the Scope's §5.1).
+"""The `axiom-tok` gate (per-type stage B: the Scope's §5.1; report-only from B0, enforcing from CP3).
 
 Runs `etc/AxiomTokCheck.lean` (see its header for the rules and their approximations) over every
 axiom of `.lake/tcb.json` (`etc/tcb-report.py`'s output), on each group of root modules
 `etc/proof_roots.py` imports together, and prints each axiom's verdict and the list of axioms that
-would need an entry (rule 8), with the rule and the reason. Report-only: exits 0 whatever it finds
-(but 2 on a usage error or when a Lean run fails).
+need an entry (rule 8), with the rule and the reason. Without `--check` it only reports (exit 0);
+with `--check` it exits 1 when an axiom has a finding no entry of `--allow` accepts, a walk is
+unknown (collapsed by the scenario cap, or truncated: a subterm the walk could not open), an entry
+key matches no finding, an entry or pair names an axiom that no longer exists or was not walked,
+or an axiom of the trust base is absent from the imported environments. Exit 2 on a usage error or
+when a Lean run fails.
 
-    etc/axiom-tok-check.py [--json TCB.json] [--raw OUT.jsonl] [--reuse-raw OUT.jsonl]
+    etc/axiom-tok-check.py [--check] [--json TCB.json] [--raw OUT.jsonl] [--reuse-raw OUT.jsonl]
                            [--allow FILE] [--depth N] [--all] [-v]
     etc/axiom-tok-check.py --selftest [--reuse-raw MAIN.jsonl]
 
 `--raw` keeps the Lean runs' output; `--reuse-raw` judges a kept output without running Lean.
 `--selftest` elaborates `etc/axiom-tok-selftest/Selftest.lean` over a small import and checks each
 toy axiom's verdict against its name (`st_refuse_*` refused, `st_pass_*` passed), the pairs of
-`etc/axiom-tok-selftest/allow.txt`, and (with `--reuse-raw` of a main run) its `real-pass` lines.
+`etc/axiom-tok-selftest/allow.txt`, `--check`'s failure on a stale entry, and (with `--reuse-raw`
+of a main run) its `real-pass` lines; it exits 1 on any failure.
 
 Never builds: the `.olean`s must be up to date (`lake build --no-build` is checked). `$LAKE_OPTS`
-is passed to `lake`. Run it under a memory cap (`systemd-run --scope -p MemoryMax=64G`).
+is passed to `lake`. Run it under a memory cap (`systemd-run --scope -p MemoryMax=64G`; a full
+run's peak is reported in `etc/gates.sh`'s comment).
 """
 import argparse
 import collections
@@ -142,8 +148,11 @@ def finding_key(f):
 
 def read_allow(path):
     """`entry NAME KEY[,KEY...] reason`: the axiom's findings with these keys (`finding_key`) are
-    accepted; any other finding of it is still reported. `pair NAME PARTNER`, `real-pass NAME`."""
-    entries, pairs, real_pass = {}, collections.defaultdict(set), []
+    accepted; any other finding of it is still reported. `pair NAME PARTNER`, `real-pass NAME`,
+    `trunc NAME` (the ratchet of truncated walks: NAME's walk truncates today, a known unknown that
+    `--check` lets pass until it is decided; a new truncated walk fails, and so does a listed one
+    that no longer truncates)."""
+    entries, pairs, real_pass, truncs = {}, collections.defaultdict(set), [], set()
     if path and os.path.exists(path):
         for line in open(path, encoding="utf-8"):
             line = line.split("#", 1)[0].strip()
@@ -161,12 +170,14 @@ def read_allow(path):
                 pairs[w[1]].add(w[2].split()[0])
             elif w[0] == "real-pass":
                 real_pass.append(w[1])
-    return entries, pairs, real_pass
+            elif w[0] == "trunc":
+                truncs.add(w[1])
+    return entries, pairs, real_pass, truncs
 
 
 def stale_axioms(allow, known):
     """The entry and pair lines naming an axiom not in `known` (one that no longer exists)."""
-    return sorted(n for n in set(allow[0]) | set(allow[1]) if n not in known)
+    return sorted(n for n in set(allow[0]) | set(allow[1]) | set(allow[3]) if n not in known)
 
 
 def covered(name, f, entries):
@@ -181,6 +192,9 @@ def retaint(axs, entries):
     all have entries (`covered`) does not taint by itself, but it still passes on a taint it receives,
 and gets the rule-5 findings of it (which its entry does not name)."""
     def produced(o):
+        # every scenario's (`opqProd`), not only the ones the output lists
+        if "opqProd" in o:
+            return set(o["opqProd"])
         return {k[4:] for s in o["scenarios"] for k in s["prod"] if k.startswith("opq:")}
 
     def fails(o, n=None):
@@ -207,7 +221,7 @@ and gets the rule-5 findings of it (which its entry does not name)."""
 
 def judge(objs, allow, locs):
     """{name: verdict dict}, with pairs resolved; `objs` from one or more Lean runs."""
-    entries, pairs, _ = allow
+    entries, pairs = allow[0], allow[1]
     axs = {}
     for o in objs:
         if o["t"] != "ax":
@@ -235,6 +249,9 @@ def judge(objs, allow, locs):
                     continue
             left.append(f)
         o["left"] = left
+        # a truncation (a subterm the walk could not open: unknown), unless the axiom is in the
+        # ratchet's list (`trunc NAME`)
+        o["trunc_left"] = [] if name in allow[3] else list(o.get("trunc", []))
         e = entries.get(name)
         o["entry"] = e["reason"] if e else None
         # an entry key no finding has: the statement changed, or the walk did (review it)
@@ -257,13 +274,14 @@ def report(axs, objs, verbose, show_all):
     need = {n: o for n, o in axs.items() if o["left"] and not o.get("capped")}
     capped = {n: o for n, o in axs.items() if o["left"] and o.get("capped")}
     stale = {n: o for n, o in axs.items() if o.get("stale")}
-    trunc = {n: o for n, o in axs.items() if o["trunc"]}
+    trunc = {n: o for n, o in axs.items() if o["trunc_left"]}
     mints = {n: o for n, o in axs.items() if o.get("mint")}
-    print(f"{PROG}: report-only; {checked} Prop axioms walked ({skipped} non-Prop axioms skipped: "
+    print(f"{PROG}: {checked} Prop axioms walked ({skipped} non-Prop axioms skipped: "
           f"types, values, opaque predicates)")
-    print(f"{PROG}: {checked - len(need) - len(capped)} pass (or have an entry), {len(need)} would "
+    print(f"{PROG}: {checked - len(need) - len(capped)} pass (or have an entry), {len(need)} "
           f"need an entry, {len(capped)} unknown (scenario cap: the walk merged its scenarios, so its "
-          f"rule-3 counts are not reliable); {len(trunc)} have truncated subterms (see 'trunc')")
+          f"rule-3 counts are not reliable); {len(trunc)} unknown for a truncated subterm (see "
+          f"'Truncations')")
     if stale:
         print("\nEntry keys that match no finding (the axiom or the walk changed; review the entry):")
         for n, o in sorted(stale.items()):
@@ -279,7 +297,7 @@ def report(axs, objs, verbose, show_all):
     for n, o in sorted(need.items()):
         rules = sorted({f["rule"] for f in o["left"]})
         by_rule[",".join(rules)].append((n, o))
-    print("\nAxioms that would need an entry (rule 8), by rule:")
+    print("\nAxioms that need an entry (rule 8), by rule:")
     for rules, lst in sorted(by_rule.items()):
         print(f"\n  rule {rules} ({len(lst)}):")
         for n, o in lst:
@@ -321,8 +339,11 @@ def report(axs, objs, verbose, show_all):
     for u in unf:
         print(f"    {u}")
     if trunc:
-        cnt = collections.Counter(t for o in trunc.values() for t in o["trunc"])
-        print(f"\nTruncations (counted as nothing; a --check would treat them as unknown), most frequent:")
+        cnt = collections.Counter(t for o in trunc.values() for t in o["trunc_left"])
+        print(f"\nTruncations (counted as nothing, so the walk is unknown; --check fails unless a `trunc` line lists the axiom):")
+        for n, o in sorted(trunc.items()):
+            print(f"    {short(n)}  {o['loc']}: {'; '.join(o['trunc_left'][:3])[:200]}")
+        print("  by note:")
         for t, c in cnt.most_common(25):
             print(f"    {c:5}  {t[:160]}")
     if show_all:
@@ -335,6 +356,32 @@ def report(axs, objs, verbose, show_all):
                     print(f"      prod {s['prod']}  cons {s['cons']}  if {s['if']}")
 
 
+def failures(axs, objs, allow, known, names):
+    """What `--check` refuses, counted by kind; and the stale, unwalked and absent axioms.
+    `known`: the axioms that exist (the names of the trust base); `names`: those to walk."""
+    need = [n for n, o in axs.items() if o["left"] and not o.get("capped")]
+    capped = [n for n, o in axs.items() if o["left"] and o.get("capped")]
+    stale = [n for n, o in axs.items() if o.get("stale")]
+    trunc = [n for n, o in axs.items() if o["trunc_left"]]
+    gone = stale_axioms(allow, known)
+    unwalked = sorted(n for n in set(allow[0]) | set(allow[1]) | set(allow[3])
+                      if n in known and n not in axs)
+    trunc_stale = sorted(n for n in allow[3] if n in axs and not axs[n].get("trunc"))
+    present = set()
+    for o in objs:
+        if o["t"] == "present":
+            present.update(o["names"])
+    absent = [n for n in dict.fromkeys(names) if n not in present]
+    bad = {"need an entry": len(need), "unknown (scenario cap)": len(capped),
+           "unknown (truncated)": len(trunc), "with stale entry keys": len(stale),
+           "stale entries (axiom gone)": len(gone), "entries for unwalked axioms": len(unwalked),
+           "absent from the environments": len(absent),
+           "trunc lines for walks that no longer truncate": len(trunc_stale)}
+    for n in trunc_stale:
+        print(f"    trunc line stale (the walk no longer truncates; remove it): {short(n)}")
+    return bad, gone, unwalked, absent
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--json", default=os.path.join(ROOT, ".lake", "tcb.json"))
@@ -343,6 +390,8 @@ def main():
     ap.add_argument("--allow", default=DEFAULT_ALLOW)
     ap.add_argument("--depth", type=int)
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--check", action="store_true",
+                    help="exit 1 on a finding with no entry, an unknown walk or a stale entry")
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--partial", action="store_true",
                     help="no build check; a root whose imports lack an .olean is replaced by the "
@@ -391,8 +440,7 @@ def main():
     allow = read_allow(a.allow)
     axs = judge(objs, allow, locs)
     report(axs, objs, a.v, a.all)
-    gone = stale_axioms(allow, locs)
-    unwalked = sorted(n for n in set(allow[0]) | set(allow[1]) if n in locs and n not in axs)
+    bad, gone, unwalked, absent = failures(axs, objs, allow, locs, names)
     if gone:
         print(f"\nStale entries: {len(gone)} entry or pair line(s) name an axiom that no longer "
               f"exists (not in {os.path.relpath(a.json)}); remove or rename them:")
@@ -402,17 +450,22 @@ def main():
         print(f"\nEntries for axioms not walked in this run (in modules not imported): {len(unwalked)}")
         for n in unwalked:
             print(f"    {short(n)}")
-    present = set()
-    for o in objs:
-        if o["t"] == "present":
-            present.update(o["names"])
-    absent = [n for n in dict.fromkeys(names) if n not in present]
     print(f"\n{PROG}: {len(set(names))} axioms in {os.path.relpath(a.json)}; "
           f"{len(set(names)) - len(absent)} found in the imported environments; "
           f"{len(absent)} absent (in modules not imported)")
     for n in absent[:60]:
         mod, line = locs.get(n, ("?", "?"))
         print(f"    absent: {short(n)}  {proof_roots.path_of(mod) if mod != '?' else '?'}:{line}")
+    nbad = sum(bad.values())
+    if a.check:
+        if nbad:
+            print(f"\n{PROG}: FAILED: " + ", ".join(f"{v} {k}" for k, v in bad.items() if v))
+            return 1
+        print(f"\n{PROG}: ok ({len(axs)} Prop axioms walked: "
+              f"{sum(1 for o in axs.values() if not o.get('accepted') and not o.get('resolved'))} pass, "
+              f"{sum(1 for o in axs.values() if o.get('accepted') or o.get('resolved'))} by an entry or pair)")
+    else:
+        print(f"\n{PROG}: report-only (--check would " + ("fail: " + ", ".join(f"{v} {k}" for k, v in bad.items() if v) if nbad else "pass") + ")")
     return 0
 
 
@@ -445,6 +498,28 @@ def selftest(a, extra):
     ok = gone == ["AxiomTokSelftest.st_gone"]
     print(f"  {'ok  ' if ok else 'FAIL'} stale entries {', '.join(gone) or '(none)'}")
     fails += not ok
+    # `--check`: refuses the whole selftest run (refused toys, the stale `st_gone`), and passes on
+    # the `st_pass_*` toys alone with the entries naming them
+    names = list(axs)
+    bad, _, _, _ = failures(axs, objs, allow, set(names), names)
+    ok = bad["need an entry"] > 0 and bad["stale entries (axiom gone)"] == 1
+    print(f"  {'ok  ' if ok else 'FAIL'} --check refuses the toys: "
+          + ", ".join(f"{v} {k}" for k, v in bad.items() if v))
+    fails += not ok
+    keep = lambda n: n.split(".")[-1].startswith(("st_pass_", "st_partner_"))
+    sub_allow = ({n: e for n, e in allow[0].items() if keep(n)},
+                 {n: p for n, p in allow[1].items() if keep(n)}, [], set())
+    sub_objs = [o for o in objs if o["t"] != "ax" or keep(o["name"])]
+    sub = judge(sub_objs, sub_allow, {})
+    sub = {n: o for n, o in sub.items() if keep(n)}
+    sub_names = [n for n in sub if n not in unf]
+    sub = {n: sub[n] for n in sub_names}
+    bad, _, _, _ = failures(sub, [{"t": "present", "names": sub_names}], sub_allow,
+                            set(sub_names), sub_names)
+    ok = not sum(bad.values())
+    print(f"  {'ok  ' if ok else 'FAIL'} --check passes the st_pass_* toys"
+          + ("" if ok else ": " + ", ".join(f"{v} {k}" for k, v in bad.items() if v)))
+    fails += not ok
     if allow[2]:
         if a.reuse_raw:
             main_objs = [json.loads(l) for l in open(a.reuse_raw) if l.startswith("{")]
@@ -458,8 +533,8 @@ def selftest(a, extra):
                 fails += not ok
         else:
             print(f"  (real-pass lines not checked: pass --reuse-raw MAIN.jsonl)")
-    print(f"{PROG} selftest: {fails} failure(s) (report-only: exit 0)")
-    return 0
+    print(f"{PROG} selftest: {fails} failure(s)")
+    return 1 if fails else 0
 
 
 if __name__ == "__main__":

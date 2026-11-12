@@ -89,7 +89,38 @@ axiom st_refuse_entrycb : ∀ (S : IProp GF) (n : Nat) (h : val),
     □ ({{ S ∗ threadTok }} (App (Val h) (Val #())) {{ RET #(); S ∗ threadTok }}) ⊢
   |={⊤}=> stServes (GF := GF) h
 
+/-- A transformer of a holder: `O -∗ O ∗ threadTok` keeps the token `O` carries inside the `O`
+it returns, so it is credited nothing for it (rule 6, net consumption; CP3). -/
+axiom stHoldT (l : Loc) : IProp GF
+axiom st_holdT_mk : ∀ (l : Loc), threadTok (GF := GF) ⊢ |==> stHoldT l
+axiom st_refuse_transformer : ∀ (l : Loc), stHoldT (GF := GF) l ⊢ |==> stHoldT l ∗ threadTok
+
+/-- Many branches, one of which hands out a user-chosen `R9` (rule 3): past the scenario cap the
+walk drops the dominated scenarios, never the failing one (CP3). -/
+axiom st_refuse_wide : ∀ (R1 R2 R3 R4 R5 R6 R7 R8 R9 : IProp GF) (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #()))
+  {{ RET #(); ((R1 -∗ R1) ∨ True) ∗ ((R2 -∗ R2) ∨ True) ∗ ((R3 -∗ R3) ∨ True) ∗
+    ((R4 -∗ R4) ∨ True) ∗ ((R5 -∗ R5) ∨ True) ∗ ((R6 -∗ R6) ∨ True) ∗ ((R7 -∗ R7) ∨ True) ∗
+    ((R8 -∗ R8) ∨ True) ∗ (R9 ∨ True) }}
+
 /-! Passed -/
+
+/-- Many branches, each balanced (2^8 scenarios, pairwise incomparable as walked): decided, not
+collapsed by the scenario cap (the balanced atoms cancel; CP3). -/
+axiom st_pass_wide : ∀ (R1 R2 R3 R4 R5 R6 R7 R8 : IProp GF) (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #()))
+  {{ RET #(); ((R1 -∗ R1) ∨ True) ∗ ((R2 -∗ R2) ∨ True) ∗ ((R3 -∗ R3) ∨ True) ∗
+    ((R4 -∗ R4) ∨ True) ∗ ((R5 -∗ R5) ∨ True) ∗ ((R6 -∗ R6) ∨ True) ∗ ((R7 -∗ R7) ∨ True) ∗
+    ((R8 -∗ R8) ∨ True) }}
+
+/-- Many branches, each a callback with its own user-chosen contract, balanced inside its binder:
+each binder's atoms are closed when the walk leaves it (CP3). -/
+axiom st_pass_wide_cb : ∀ (f : val),
+  {{ (True : IProp GF) }} (App (Val f) (Val #()))
+  {{ RET #(); ((∀ R1 : IProp GF, R1 -∗ R1) ∨ True) ∗ ((∀ R2 : IProp GF, R2 -∗ R2) ∨ True) ∗
+    ((∀ R3 : IProp GF, R3 -∗ R3) ∨ True) ∗ ((∀ R4 : IProp GF, R4 -∗ R4) ∨ True) ∗
+    ((∀ R5 : IProp GF, R5 -∗ R5) ∨ True) ∗ ((∀ R6 : IProp GF, R6 -∗ R6) ∨ True) ∗
+    ((∀ R7 : IProp GF, R7 -∗ R7) ∨ True) ∗ ((∀ R8 : IProp GF, R8 -∗ R8) ∨ True) }}
 
 /-- Token in, token out (as `lessor.Renew`/`leaseTimeToLive`'s `levelTok 0`). -/
 axiom st_pass_level : ∀ (f : val),

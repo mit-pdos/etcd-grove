@@ -1,5 +1,5 @@
 /-
-**The `axiom-tok` gate, report-only** (per-type stage B, B0; the Scope's §5.1, rules 1-8:
+**The `axiom-tok` gate** (per-type stage B: B0, enforcing from CP3; the Scope's §5.1, rules 1-8:
 `/shared/tmp/stageB/scope-r5.md`). Not part of the lakefile; run with
 
     lake env lean --run etc/AxiomTokCheck.lean --axioms=FILE [--depth=N] [--part=ROOT]... MODULE...
@@ -62,8 +62,29 @@ would favour the axiom", read as: whoever picks the variable picks its worst val
 Each axiom gets `ok` (no finding) or the findings; the driver turns findings into the list of
 entries needed (rule 8). Where the walk cannot proceed (a definition past `--depth`, a stuck
 `match`, a term it does not know at `IProp` type) it records a `trunc` note and counts nothing for
-that subterm: the report lists the axioms with such notes, which a `--check` mode must treat as
-unknown (report-only here).
+that subterm: the driver treats an axiom with such a note as unknown (`--check` fails, unless an
+entry names the note). A definition cut at `--depth` is noted only when the constants its body
+reaches (transitively, through definitions) include a token, the raw token name, an `IProp`-valued
+`axiom`/`opaque` or Iris's `∀`/`∃` (`reachesRes`): otherwise the cut loses nothing.
+
+**Leaving a binder** (`bindVar`, CP3): a user-picked atom's rule-3 verdict is final once the walk
+leaves its binder (no later step can name it): a scenario where it passes forgets its counts, one
+where it fails keeps its findings as `fail3:` keys (`Scen.closeAtom`). Ghost ownership (`own`,
+`iOwn`) is a leaf (a raw token at the token name, else nothing; consumed, it consumes the atoms in
+its arguments), and so is any application in consumed position of a variable the walk does not
+count (an `∃`-picked `Spec`, an axiom-picked family): it consumes the atoms among its arguments
+(`consArgs`; rule 3: the user's `Φ` in `Spec md m Φ Ψe`).
+
+**Scenario sets.** Past `PRUNEAT` scenarios, the ones another scenario dominates (produces no less,
+consumes no more, the opaque and callback-return counts equal, under fewer conditions) are dropped
+(`Res.prune`): every step of the walk and every rule is monotone in that order, so the verdict does
+not change. Past `MAXSCEN` undominated scenarios, the set is collapsed into one worst scenario
+(the pointwise max of the productions, min of the consumptions): an axiom that passes collapsed
+passes, one that fails collapsed is reported `capped` (unknown). Before pruning, an atom both produced and
+consumed drops the common part, and an opaque predicate keeps one copy on each side
+(`Scen.cancelAtoms`). Rule 6 credits a consumed holder per copy consumed and not produced back
+(a transformer `O -∗ O ∗ …` keeps the tokens inside the `O` it returns; CP3, selftest
+`st_refuse_transformer`).
 -/
 import Lean
 open Lean Meta Elab
@@ -134,7 +155,12 @@ structure Scen where
 abbrev Res := Array Scen
 
 def Res.unit : Res := #[{}]
-def MAXSCEN : Nat := 64
+/-- Past this many scenarios the dominated ones are dropped (`Res.prune`: sound, the verdict does not
+change); below it every scenario is kept, so that the findings of small walks name every scenario's
+counts. -/
+def PRUNEAT : Nat := 64
+/-- Past this many undominated scenarios the walk collapses them into one (`capped`: unknown). -/
+def MAXSCEN : Nat := 1024
 
 /-- Collapse a too-large scenario set into its worst single scenario. -/
 def KMap.norm (m : KMap) : KMap :=
@@ -160,8 +186,96 @@ def Res.dedup (r : Res) : Res := Id.run do
       out := out.push s
   return out
 
+/-- The keys a dominated scenario must agree on exactly (`Scen.dominates`): a callback's returned
+tokens (`ret:`, which rule 2b subtracts from what is supplied directly: not monotone). -/
+def exactKey (k : String) : Bool := k.startsWith "ret:"
+
+def opqSupport (m : KMap) : List String :=
+  (m.filter fun (k, c) => k.startsWith "opq:" && !c.isZero).map (·.1)
+
+/-- `a ≤ b` pointwise (normalised maps: sorted keys), the exact keys equal. -/
+def KMap.leN : KMap → KMap → Bool
+  | [], bs => !(bs.any (exactKey ·.1))
+  | (k, c) :: as, [] => !exactKey k && c.isZero && KMap.leN as []
+  | (k, c) :: as, (k', c') :: bs =>
+    if k' < k then !exactKey k' && KMap.leN ((k, c) :: as) bs
+    else if k == k' then
+      (if exactKey k then c.le c' && c'.le c else c.le c') && KMap.leN as bs
+    else -- k < k': k is absent from b
+      !exactKey k && c.isZero && KMap.leN as ((k', c') :: bs)
+termination_by a b => a.length + b.length
+
+/-- `s` is at least as bad as `t` for every verdict (rules 2, 3, 6, the mint flag), now and after
+any further combination: it produces at least as much, consumes at most as much (the exact keys
+equal), and holds under fewer conditions (so it survives every `withCond`/`consistent` filter that
+`t` survives). Every operation of the walk (`sep`, `maxc`, `union`, `withCond`, `scale`,
+`persistentPos`) is monotone in this order, and rules 2 and 3 are (`Cnt.le` is transitive), so a
+scenario dominated by another can be dropped without changing whether the axiom passes; the
+findings reported are the dominating (worst) scenario's. -/
+def Scen.dominates (s t : Scen) : Bool :=
+  s.conds.all (fun (k, v) => t.conds.lookup k == some v) && t.prod.leN s.prod && s.cons.leN t.cons &&
+  -- the opaque predicates produced, and those consumed, are the same (rule 5's taint reads the
+  -- first; rule 6 tells a source, produced and not consumed, from a duplicating law, consumed
+  -- fewer times than produced: with the counts ordered as above, `s` is then a source, or
+  -- duplicates, when `t` does, with no more net tokens consumed and no more credit)
+  opqSupport s.prod == opqSupport t.prod && opqSupport s.cons == opqSupport t.cons
+
+/-- What `a` and `b` have in common (literal part, symbolic terms as multisets); nothing when one
+is unbounded. -/
+def Cnt.common (a b : Cnt) : Cnt :=
+  if a.inf || b.inf then Cnt.zero else
+  let syms := a.syms.eraseDups.foldl (fun acc s =>
+    acc ++ List.replicate (Nat.min (a.syms.count s) (b.syms.count s)) s) []
+  ⟨Nat.min a.n b.n, syms, false⟩
+def Cnt.sub (a b : Cnt) : Cnt :=
+  ⟨a.n - b.n, b.syms.foldl (fun acc s => acc.erase s) a.syms, a.inf⟩
+
+/-- An atom both produced and consumed in a scenario: the common part dropped from both sides
+(rule 3 compares the production of an atom with the consumption of it and of the records it is a
+field of: `p + x ≤ c + x` iff `p ≤ c`, and every later step adds to or scales both sides alike).
+Only for an atom no field of which (`k.…`, `k[]`) occurs in the scenario, whose consumption covers
+it too; a field added by a later step then finds less consumed (more findings, never fewer).
+An opaque predicate both produced and consumed keeps one copy on each side (see the loop).
+Tokens (whose level coverage differs between production and consumption, `covers`) are left
+alone. -/
+def Scen.cancelAtoms (s : Scen) : Scen := Id.run do
+  let keys := (s.prod ++ s.cons).map (·.1)
+  let mut prod := s.prod
+  let mut cons := s.cons
+  for (k, p) in s.prod do
+    if k.startsWith "opq:" then
+      -- an opaque predicate both produced and consumed: the literal common part beyond one copy
+      -- dropped from both sides, so that whether it is produced, consumed, duplicated (rule 6:
+      -- consumed fewer times than produced) or a source, and the net consumption that rule 6
+      -- credits, stay the same
+      let c := cons.get k
+      if p.n ≥ 2 && c.n ≥ 2 then
+        let m : Cnt := { n := Nat.min p.n c.n - 1 }
+        prod := prod.map fun (k', v) => if k' == k then (k', v.sub m) else (k', v)
+        cons := cons.map fun (k', v) => if k' == k then (k', v.sub m) else (k', v)
+      continue
+    if !k.startsWith "atom:" then continue
+    if keys.any (fun k' => k'.startsWith (k ++ ".") || k'.startsWith (k ++ "[]")) then continue
+    let c := cons.get k
+    let m := p.common c
+    if m.isZero then continue
+    prod := prod.map fun (k', v) => if k' == k then (k', v.sub m) else (k', v)
+    cons := cons.map fun (k', v) => if k' == k then (k', v.sub m) else (k', v)
+  return { s with prod := prod.norm, cons := cons.norm }
+
+/-- The scenarios no other scenario dominates (the first of mutually dominating ones). Expects
+normalised maps (`Res.dedup`). -/
+def Res.prune (r : Res) : Res := Id.run do
+  let mut kept : Array Scen := #[]
+  for x in r do
+    if kept.any (·.dominates x) then continue
+    kept := (kept.filter fun k => !x.dominates k).push x
+  return kept
+
 def Res.cap (r0 : Res) : Res :=
   let r := r0.dedup
+  if r.size ≤ PRUNEAT then r else
+  let r := Res.prune (Res.dedup (r.map Scen.cancelAtoms))
   if r.size ≤ MAXSCEN then r else
   let p := r.foldl (fun acc s => KMap.merge Cnt.max acc s.prod) []
   let c := r.foldl (fun acc s => KMap.merge Cnt.min acc s.cons) (r[0]!.cons)
@@ -224,6 +338,8 @@ structure WS where
   user-supplied triple's `∀ Φ` at negative polarity, or a WP's postcondition at negative polarity. -/
   cbDepth : Nat := 0
   nkeys : Nat := 0
+  /-- `reachesRes` of a constant, across the axioms of a run (`analyze` threads it). -/
+  reach : Std.HashMap Name Bool := {}
   deriving Inhabited
 
 abbrev W := StateRefT WS MetaM
@@ -239,6 +355,8 @@ def flipped (x : W α) : W α := do
 structure Cfg where
   depth : Nat := 14
   fuel : Nat := 400000
+  /-- Print each axiom's name before its walk (`--trace`, to find a slow one). -/
+  trace : Bool := false
 
 def note (s : String) : W Unit := modify fun st =>
   if st.notes.contains s || st.notes.size > 40 then st else { st with notes := st.notes.push s }
@@ -247,6 +365,59 @@ def truncNote (s : String) : W Unit := modify fun st =>
 
 def lastStr (n : Name) : String := match n with | .str _ s => s | _ => ""
 
+/-- Whether a constant is, by itself, something the walk counts or must see: a token (rule 1), the
+raw token name, an `IProp`-valued `axiom`/`opaque` (rules 5, 6), or Iris's `∀`/`∃` (a binder the
+walk would turn into an atom or a transfer, rules 3, 7). -/
+def resConst (env : Environment) (c : Name) : Bool := Id.run do
+  let s := lastStr c
+  if c.getRoot == `Perennial && ["threadTok", "threadToks", "threadFuel", "levelTok", "levelToks",
+      "levelTokList", "threadTokList", "threadTokFrom", "threadToksFrom", "levelsToks",
+      "ownThreadLoan", "threadTokName"].contains s then return true
+  if c.getRoot == `Iris && (s == "forall" || s == "exists") then return true
+  match env.find? c with
+  | some (.axiomInfo i) | some (.opaqueInfo { toConstantVal := i, .. }) =>
+    let mut t := i.type
+    while t.isForall do t := t.bindingBody!
+    let h := t.getAppFn
+    return h.isConstOf `Iris.IProp || h.isConstOf `Iris.UPred
+  | _ => return false
+
+/-- `reachesRes` on one constant: depth-first, memoizing every positive answer (each constant on
+the path to a `resConst` reaches it); a constant met again on the current path counts `false` there
+(the cycle adds nothing), so a negative answer is memoized only by `reachesRes`, once the whole
+closure is explored. -/
+partial def reachC (env : Environment) (c : Name) (visiting : IO.Ref (Std.HashSet Name)) : W Bool := do
+  match (← get).reach[c]? with
+  | some r => return r
+  | none => pure ()
+  let vs ← visiting.get
+  if vs.contains c then return false
+  if vs.size > 50000 then return true
+  visiting.set (vs.insert c)
+  let mut r := resConst env c
+  if !r then
+    if let some (.defnInfo d) := env.find? c then
+      for d' in d.value.getUsedConstants do
+        if ← reachC env d' visiting then r := true; break
+  if r then modify fun st => { st with reach := st.reach.insert c true }
+  return r
+
+/-- Whether any constant reachable from `roots` through definitions' bodies is a `resConst`: if
+not, a term built from them holds nothing the walk counts (besides the free variables in it, which
+`stuck` looks at), so cutting the walk there at `--depth` loses nothing. Memoized across the
+axioms of a run; a closure past 50000 constants counts as reaching one. -/
+def reachesRes (roots : Array Name) : W Bool := do
+  let env ← getEnv
+  let visiting ← IO.mkRef ({} : Std.HashSet Name)
+  let mut found := false
+  for c in roots do
+    if ← reachC env c visiting then found := true; break
+  if !found then
+    -- the whole closure was explored and holds no `resConst`
+    let vs ← visiting.get
+    modify fun st => { st with reach := vs.fold (fun m c => m.insert c false) st.reach }
+  return found
+
 def isIrisName (c : Name) (s : String) : Bool := c.getRoot == `Iris && lastStr c == s
 def isPerName (c : Name) (s : String) : Bool := c.getRoot == `Perennial && lastStr c == s
 
@@ -254,6 +425,10 @@ def NEUTRAL : List String := ["inv", "ncinv", "cinv", "isThreadPool", "isThreadP
   "isThreadPoolL", "isThreadPoolCL"]
 def isNeutral (c : Name) : Bool :=
   (c.getRoot == `Iris || c.getRoot == `Perennial) && NEUTRAL.contains (lastStr c)
+
+/-- Ghost ownership, `own γ a` (Perennial's) and `iOwn γ a` (Iris's): a leaf (`walkI`). -/
+def isGhostOwn (c : Name) : Bool :=
+  c == `Perennial.own || c == `Iris.iOwn
 
 def TOKS : List String := ["threadTok", "threadToks", "threadFuel", "levelTok", "levelToks",
   "levelTokList", "threadTokList", "threadTokFrom", "threadToksFrom", "levelsToks", "ownThreadLoan"]
@@ -434,10 +609,53 @@ def argAtoms (args : Array Expr) : W (Array String) := do
         if !out.contains k then out := out.push k
   return out
 
+/-- Rule 3: an application in consumed position consumes the atoms among its arguments (the user's
+`Φ` handed to an axiom-picked `Spec`, `Spec md m Φ Ψe`, is the user's to give). -/
+def consArgs (args : Array Expr) (pol : Pol) : W Res := do
+  let mut r := Res.unit
+  if pol == .neg then
+    for k in ← argAtoms args do r := r.sep (single .neg s!"atom:{k}" Cnt.one)
+  return r
+
 def isOpaquePred (c : Name) : MetaM Bool := do
   match (← getEnv).find? c with
   | some (.axiomInfo _) | some (.opaqueInfo _) => return true
   | _ => return false
+
+/-- Whether `k'` is the atom `k` or one of its fields or elements. -/
+def inFamily (k k' : String) : Bool :=
+  k' == k || k'.startsWith (k ++ ".") || k'.startsWith (k ++ "[]")
+
+/-- `s` without its `#n` indices (an atom's key without the binder's number). -/
+def dropIndices (s : String) : String := Id.run do
+  let mut out := ""
+  let mut skip := false
+  for ch in s.toList do
+    if ch == '#' then skip := true; continue
+    if skip && ch.isDigit then continue
+    skip := false
+    out := out.push ch
+  return out
+
+/-- Leaving the scope of a user-picked atom `atom:k` (`bindVar`): no later step can produce or
+consume it (its key is fresh, and its variable does not occur outside its binder), so its rule-3
+verdict in each scenario is final. A scenario where it passes (each of the family's productions
+covered, as in `rule3`) forgets the family's counts, which no later verdict reads; one where it
+fails replaces them by its findings, kept as `fail3:` keys (produced; their text without the
+binder's `#n`, as the driver's entry keys name them, `finding_key`), which `rule3` reports. This
+keeps the scenarios that differ only in balanced uses of inner callbacks' atoms (a branch
+producing and consuming a `Φ`), or in which of several like binders fails, from multiplying. -/
+def Scen.closeAtom (k : String) (s : Scen) : Scen :=
+  let fam := fun (kc : String × Cnt) => inFamily ("atom:" ++ k) kc.1
+  let fails := s.prod.filterMap fun (k', c) =>
+    if !fam (k', c) then none else
+    let avail := s.cons.foldl (fun acc (k'', c'') =>
+      if k'' == k' || (k'.startsWith (k'' ++ ".")) || (k'.startsWith (k'' ++ "[]")) then acc.add c''
+      else acc) Cnt.zero
+    if c.le avail then none
+    else some ("fail3:" ++ dropIndices s!"{k'}: produced {c.show}, consumed {avail.show}")
+  let prod := s.prod.filter (!fam ·)
+  { s with prod := fails.foldl (fun m f => m.addK f Cnt.one) prod, cons := s.cons.filter (!fam ·) }
 
 def bindVar (n : Name) (ty : Expr) (kind : Pol → Bool → W VKind) (pol : Pol)
     (k : Expr → W Res) : W Res := do
@@ -445,7 +663,10 @@ def bindVar (n : Name) (ty : Expr) (kind : Pol → Bool → W VKind) (pol : Pol)
     let carries ← (try carriesIProp ty catch _ => pure false)
     let vk ← kind pol carries
     modify fun st => { st with vars := st.vars.insert x.fvarId! vk }
-    k x
+    let r ← k x
+    match vk with
+    | .user key => return Res.dedup (r.map (Scen.closeAtom key))
+    | _ => return r
 
 /-- ∀: the user picks at positive polarity; ∃: the axiom picks at positive polarity. -/
 def freshKey (n : Name) : W String := do
@@ -544,6 +765,13 @@ partial def walkI (cfg : Cfg) (e : Expr) (pol : Pol) (d : Nat) : W Res := do
         return ← walkBig cfg c args pol d
       | _ => pure ()
     if isTok c then return ← walkTok c args pol
+    if isGhostOwn c then
+      -- a ghost resource: a raw token if at the token name, else nothing the walk counts (a saved
+      -- predicate of a user's `R` names `R` and does not give it); consumed, it consumes the atoms
+      -- among its arguments, as an opaque predicate does
+      if args.any (fun a => (a.find? (·.isConstOf `Perennial.ThreadGS.threadTokName)).isSome) then
+        return single pol "tok:raw" Cnt.one
+      return ← consArgs args pol
     if isNeutral c then
       -- a handle's arguments are neutral uses of ∃-bound values (rule 7's first case)
       if pol == .pos && args.any mentionsTok then
@@ -578,12 +806,13 @@ partial def walkI (cfg : Cfg) (e : Expr) (pol : Pol) (d : Nat) : W Res := do
     if let some k ← atomKey? e then return ← atomUse e k args pol
     if let some i ← exRoot? e then
       markNaked i s!"{if pol == .pos then "produced" else "consumed"}: {← ppS e}"
-      return Res.unit
+      return ← consArgs args pol
     -- unfold
     if (e.find? (·.isConstOf `Perennial.ThreadGS.threadTokName)).isSome && lastStr c == "ghostMapElem" then
       return single pol "tok:raw" Cnt.one
     if d ≥ cfg.depth then
-      truncNote s!"depth: {c}"
+      -- cut here: a loss only if the term's definitions reach something the walk counts
+      if ← reachesRes e.getUsedConstants then truncNote s!"depth: {c}"
       return ← stuck cfg c e args pol
     match ← (try unfoldDefinition? e catch _ => pure none) with
     | some e' =>
@@ -610,16 +839,16 @@ partial def walkI (cfg : Cfg) (e : Expr) (pol : Pol) (d : Nat) : W Res := do
     | some (.user k) => return ← atomUse e k args pol
     | some (.ex i) =>
       markNaked i s!"{if pol == .pos then "produced" else "consumed"}: {← ppS e}"
-      return Res.unit
+      return ← consArgs args pol
     | some (.elem _) =>
       if let some k ← atomKey? e then return ← atomUse e k args pol
-      return Res.unit
-    | _ => return Res.unit
+      return ← consArgs args pol
+    | _ => return ← consArgs args pol
   | .proj .. =>
     if let some k ← atomKey? fn then return ← atomUse e k args pol
     if let some i ← exRoot? fn then
       markNaked i s!"{if pol == .pos then "produced" else "consumed"}: {← ppS e}"
-      return Res.unit
+      return ← consArgs args pol
     let e' ← (try whnfCore e catch _ => pure e)
     if e' != e then return ← walkI cfg e' pol (d + 1)
     truncNote s!"stuck projection: {← ppS e}"
@@ -700,8 +929,8 @@ partial def walkPost (cfg : Cfg) (Φ : Expr) (pol : Pol) (d : Nat) : W Res := do
     | .fvar f =>
       match (← get).vars[f]? with
       | some (.user k) => atomUse Φ k Φ.getAppArgs pol
-      | some (.ex i) => markNaked i s!"postcondition: {← ppS Φ}"; return Res.unit
-      | _ => return Res.unit
+      | some (.ex i) => markNaked i s!"postcondition: {← ppS Φ}"; consArgs Φ.getAppArgs pol
+      | _ => consArgs Φ.getAppArgs pol
     | _ =>
       openBody Φ fun n ty body =>
         bindVar n ty (fun _ _ => pure .ax) pol fun x => walkI cfg (body x) pol d
@@ -864,6 +1093,7 @@ def rule2 (s : Scen) : List String :=
 record it is a field of). -/
 def rule3 (s : Scen) : List String :=
   s.prod.filterMap fun (k, c) =>
+    if k.startsWith "fail3:" then some (k.drop 6).toString else
     if !k.startsWith "atom:" then none else
     let avail := s.cons.foldl (fun acc (k', c') =>
       if k' == k || (k.startsWith (k' ++ ".")) || (k.startsWith (k' ++ "[]")) then acc.add c' else acc) Cnt.zero
@@ -886,12 +1116,14 @@ structure AxRes where
   ms : Nat := 0
   deriving Inhabited
 
-def runW (x : W α) : MetaM (α × WS) := x.run {}
+def runW (x : W α) (reach : Std.HashMap Name Bool := {}) : MetaM (α × WS) := x.run { reach := reach }
 
-def analyze (cfg : Cfg) (c : Name) (t : Expr) : MetaM AxRes := do
-  let (r, st) ← runW (walkProp cfg t .pos 0)
-  return { name := c, scens := r, exs := st.exs, notes := st.notes, trunc := st.trunc,
-           consTypes := st.consTypes }
+def analyze (cfg : Cfg) (c : Name) (t : Expr) (reach : Std.HashMap Name Bool := {}) :
+    MetaM (AxRes × Std.HashMap Name Bool) := do
+  let (r, st) ← runW (walkProp cfg t .pos 0) reach
+  let a : AxRes := { name := c, scens := r, exs := st.exs, notes := st.notes, trunc := st.trunc,
+                     consTypes := st.consTypes }
+  return (a, st.reach)
 
 /-! ## Rules 5 and 6 across the axioms, and the output -/
 
@@ -923,8 +1155,11 @@ def judgeAll (env : Environment) (results : Array AxRes) (persistentOpq : NameSe
   let applyCredit (s : Scen) : Scen := Id.run do
     let mut cons := s.cons
     for (o, c) in opqConsumed s do
+      -- per copy consumed and not produced back (a transformer `O -∗ O ∗ …` keeps the tokens
+      -- `O` carries inside the `O` it returns: it is credited nothing for it)
+      let net := c.n - (s.prod.get ("opq:" ++ o)).n
       for (k, v) in creditOf o do
-        cons := cons.addK k { n := v.n * c.n }
+        cons := cons.addK k { n := v.n * net }
     return { s with cons := cons }
   -- base verdicts
   let base := results.map fun r =>
@@ -979,6 +1214,7 @@ def judgeAll (env : Environment) (results : Array AxRes) (persistentOpq : NameSe
       ("trunc", Json.arr (r.trunc.map Json.str)), ("consumesTypes", Json.arr (r.consTypes.map Json.str)),
       ("transfersNeutral", Json.arr ((r.exs.filter (·.naked.isEmpty)).map fun x => Json.str s!"{x.name} : {x.ty}")),
       ("scenarios", Json.arr scensJ.toArray), ("nscen", r.scens.size),
+      ("opqProd", Json.arr ((r.scens.toList.flatMap fun s => (opqProduced s).map (·.1)).eraseDups.toArray.map Json.str)),
       ("ms", r.ms), ("capped", Json.bool (r.scens.any fun s => s.conds.lookup "<capped>" |>.isSome))])
   for (o, v) in credit.toList do
     if let some m := v then
@@ -1033,15 +1269,20 @@ def checkAxioms (cfg : Cfg) (env : Environment) (names : Array Name) (emit : Jso
   let mut results : Array AxRes := #[]
   let mut skipped : Nat := 0
   let mut present : Array Json := #[]
+  let mut reach : Std.HashMap Name Bool := {}
   for c in names do
     let some ci := env.find? c | continue
     present := present.push (Json.str (toString c))
     let isP ← runMeta env (try isProp ci.type catch _ => pure false)
     if !isP then skipped := skipped + 1; continue
     let t0 ← IO.monoMsNow
-    let r ← runMeta env (try analyze cfg c ci.type catch e => do
-      return { name := c, scens := Res.unit, exs := #[], notes := #[s!"error: {← e.toMessageData.toString}"],
-               trunc := #[], consTypes := #[] })
+    if cfg.trace then IO.eprintln s!"axiom-tok: walking {c}"
+    let (r, reach') ← runMeta env (try analyze cfg c ci.type reach catch e => do
+      let msg ← e.toMessageData.toString
+      let r0 : AxRes := { name := c, scens := Res.unit, exs := #[], notes := #["error: " ++ msg],
+                          trunc := #[], consTypes := #[] }
+      return (r0, reach))
+    reach := reach'
     let dt := (← IO.monoMsNow) - t0
     if dt > 2000 then IO.eprintln s!"axiom-tok: slow: {c} {dt} ms"
     results := results.push { r with ms := dt }
@@ -1083,6 +1324,7 @@ unsafe def main (args : List String) : IO UInt32 := do
   for a in args do
     if let some d := a.dropPrefix? "--depth=" then cfg := { cfg with depth := d.toString.toNat! }
     if let some d := a.dropPrefix? "--fuel=" then cfg := { cfg with fuel := d.toString.toNat! }
+    if a == "--trace" then cfg := { cfg with trace := true }
   let axFile := args.findSome? fun a => (a.dropPrefix? "--axioms=").map (·.toString)
   let stFile := args.findSome? fun a => (a.dropPrefix? "--selftest=").map (·.toString)
   let mods : Array Name := (args.filter (!·.startsWith "--")).toArray.map String.toName
