@@ -63,7 +63,8 @@ abbrev stepBundle_traced.onC (Path : CfgM → NState → MessageM → Prop) : Pr
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R
-        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
 
 /-- A path that does not read the configuration. -/
 theorem stepBundle_traced.on_of_onC {Path : NState → MessageM → Prop}
@@ -197,7 +198,27 @@ theorem stepBundle_traced_candVoteRespPending :
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's tally recorded, nothing more
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
+          s' = { ({ s with votes := recordVote s.votes m.From' (!m.Reject') } : NState) with prvals := pvs } := by
+        obtain ⟨pvs0, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        rw [hpre pvs0] at h
+        obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
+        unfold CandidateStepResultC at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [if_pos hTy] at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [if_neg (by rw [hrole]; decide)] at hf
+        obtain ⟨won, lost, ms, pvs, hw, hl, -, hs'⟩ := hf
+        cases won with
+        | true => exact absurd (hw rfl).1 hnq
+        | false =>
+          cases lost with
+          | true => exact absurd (hl rfl) hnl
+          | false => exact ⟨pvs, hs'⟩
+      subst hse; outty_tac
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt

@@ -120,12 +120,14 @@ def wonB2 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NSt
       (fun o => o.isSome = true))
 
 /-- **After the self-acknowledgement, at the outbox `o`**: the outbox grown, raft's ghost state at the
-won state, the traced family at the appended state's idle server, the new messages' numbers. -/
+won state, the traced family at the appended state's idle server, the new messages' numbers.
+(Implementation step 2) The flag set (the won election's lines set it). -/
 def wonGE (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (γd : GName) : List Msg → IProp GF := fun o =>
   iprop(⌜s.outbox.length < o.length⌝ ∗ ⌜id ∈ domSet s.prvals⌝ ∗
     ownStepGhost γ md c id (wonStateW id s m (wonPvs id (logLast s.logst) s.prvals)) ∗
-    (∃ b : Bool, trFam (some γd) γ r id c b (fun C => SimIdleS C (wonLg id s m)) (fun o => o.isSome = true) o) ∗
+    (∃ b : Bool, ⌜b = true⌝ ∗
+      trFam (some γd) γ r id c b (fun C => SimIdleS C (wonLg id s m)) (fun o => o.isSome = true) o) ∗
     ⌜OutOk s o⌝)
 
 theorem wonGE_permInv (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
@@ -360,9 +362,10 @@ theorem wonGate_ack (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : 
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro
-    exact outOk_snoc (outOk_self s) hok
+    exact outOk_snocT (outOk_self s) hok rfl
   iapply trCapB_hookGateOpt (some γd) γ r id c tl _ true
     (PinAt (wonLg id s m) C0 (repCN (leaderC (confAbs C0) (idAbs id) cs1) 1) P0 s.outbox) _
     (fun o => o.isSome = true) (fun o => o.isSome = true) iprop(emp)
@@ -394,7 +397,7 @@ theorem wonGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : 
   have hcm' : mm.commit = (toPState (wonLg id s m)).commit := hcm
   rw [sendOutGate_one id _ c MsgApp mm (W64 9) rfl, ← sendEvOf_wonLg_bl]
   unfold wonGE trFam
-  iintro ⟨%Hlen, %Hid, Hgh, ⟨%b, Hf⟩, %Hok⟩
+  iintro ⟨%Hlen, %Hid, Hgh, ⟨%b, -, Hf⟩, %Hok⟩
   iapply hookGateOpt_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id (wonStateW id s m (wonPvs id (logLast s.logst) s.prvals)) hfit
     $$ Hgh with ⟨%Hb, Hgh⟩
@@ -485,9 +488,10 @@ theorem wonGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : 
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro
-    exact outOk_snoc Hok htrok
+    exact outOk_snocT Hok htrok (by rw [hok'.1]; rfl)
   iapply trCapB_hookGateOpt (some γd) γ r id c tl _ b (PinAt (wonLg id s m) C0 cs0 P0 o) _
     (fun o => o.isSome = true) (fun o => o.isSome = true) iprop(emp)
     (phaseStepB_msgApp_pin id c (wonLg id s m) o mm C0 cs0 P0 ma0 hma hrole1 hto hok' hcm' hmatch (by omega))
@@ -664,7 +668,7 @@ theorem stepBundle_traced_candVoteRespWon :
     · exact (hn.1 hhook).elim
     · exact (hn.1 hhook).elim
     · unfold wonGE
-      icases H with ⟨%hlen, %Hid, Hgh, ⟨%b, Hf⟩, %Hok⟩
+      icases H with ⟨%hlen, %Hid, Hgh, ⟨%b, %hb, Hf⟩, %Hok⟩
       obtain ⟨ms, pvs, hse, hpm⟩ := wonEnd hTy hrole hterm hlen (hend (by rw [htr]; rfl))
       have hS : ∀ C, SimIdleS C (wonLg id s m) = SimIdleS C s' := fun C => by
         rw [hse]; exact simIdleS_wonEnd C id s m ms pvs Hid hpm
@@ -678,7 +682,11 @@ theorem stepBundle_traced_candVoteRespWon :
         exact .inr (.inl ⟨hTy, hrole, hterm, wonPvs id (logLast s.logst) s.prvals, wonPvs_reset _ _ _ Hid, rfl,
           by rw [hse]; rfl⟩)
       isplitl [Hc]
-      · iexists b
+      · isplitr
+        · ipureintro
+          exact outTyStep_of_outOk Hok (by rw [hse]; exact fun h => ⟨rfl, rfl, h.2.2⟩)
+        iexists b
+        isplitr; · ipureintro; exact fun _ => hb
         iapply trCapB_monoΛ (some γd) γ r id c b _ _ _ (fun o h => .inr h) $$ Hc
       · ipureintro; exact outTrStep_of_outOk Hok
     · exact h.elim

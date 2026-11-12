@@ -189,7 +189,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-11-11, slice 30c) traced, the protocol reading unchanged (`AckEnd`: no automatic
         -- leave at a traced node)
-        "%Hack" ∷ ⌜s.gh.tr.isSome → toPState s' = toPState s⌝ ∗
+        "%Hack" ∷ ⌜s.gh.tr.isSome → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
@@ -236,7 +236,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     isplitr
     · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
     ipureintro
-    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => rfl⟩
+    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => ⟨rfl, rfl, rfl⟩⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -310,6 +310,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       rw [← Hs1]; exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He).1 Hcm.1.2.1
     have Happ1 : s1.logst.applied = w64Max e.Index' s.logst.applied := by rw [← Hs1]; rfl
     have Hps1 : toPState s1 = toPState s := by rw [← Hs1]; rfl
+    have Hlr1 : s1.lt = s.lt ∧ s1.rd = s.rd := by rw [← Hs1]; exact ⟨rfl, rfl⟩
     have Hrole1 : s1.role = s.role := by rw [← Hs1]
     have Happ2' : uint.Z e.Index' ≤ uint.Z (w64Max e.Index' s.logst.applied) := by
       unfold w64Max
@@ -339,7 +340,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       isplitl [Hrcb]
       · iintro %Hlt; iapply Hrcb; ipureintro; exact Hlt
       ipureintro
-      refine ⟨Hst1, .inr ⟨e, by simp, Happ1⟩, fun e0 He0 => ?_, rfl, fun _ => Hps1⟩
+      refine ⟨Hst1, .inr ⟨e, by simp, Happ1⟩, fun e0 He0 => ?_, rfl, fun _ => ⟨Hps1, Hlr1⟩⟩
       have He0' : e = e0 := by simpa using He0
       subst He0'
       rw [Happ1]; exact Happ2'

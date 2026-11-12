@@ -59,6 +59,20 @@ def TrRecvShape (m : MessageM) (ents : List EntryM) : Prop :=
 
 end shape
 
+section voteEnd
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- (Implementation step 2) A vote request's answer (`VoteEnd`): a `MsgVoteResp` queued. -/
+theorem outTyStep_voteEnd {id : w64} {s1 s' : NState} {m : MessageM} (hvt : m.Type' = MsgVote)
+    (h : VoteEnd id s1 m s') : OutTyStep s1 s' := by
+  have hv : ∀ rej, TrOutMsg (vrespMsgOf id s1 m rej) := fun rej =>
+    .inl (by unfold vrespMsgOf; rw [if_pos hvt]; rfl)
+  rcases h with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · exact OutTyStep.of_app _ rfl rfl rfl rfl (fun _ x hx => by rw [List.mem_singleton.1 hx]; exact hv _)
+  · exact OutTyStep.sendMsgs (fun _ x hx => by rw [List.mem_singleton.1 hx]; exact hv _)
+
+end voteEnd
+
 section traced
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -94,7 +108,11 @@ which the gates hand the caller's families, gives it (`ownRaftGhost_terms_le`). 
 Q19 (a), the coordinator's) The capability with any `booted` flag `bt` in, and with some flag out:
 `node.run` may step a message before the node's first `Ready` line, and every path's first line takes
 any flag (a receive line, `trCap_fire_recv`; `BecomeCandidate` and the leader's sends,
-`trCap_fire_any`, not bootstrap-named; a skipped `BecomeFollower` only after a receive line). -/
+`trCap_fire_any`, not bootstrap-named; a skipped `BecomeFollower` only after a receive line).
+(2026-11-12, implementation step 2, design revision 3's N1 and revision 2's A2) The end resource also
+says that the flag only goes up (`bt = true → bt' = true`: a path that logs a line closes at `true`, one
+that logs none at `bt`) and that the step stays in the traced scope and queues only `TrOutMsg`s
+(`OutTyStep`, `StepGhostMode.lean`). -/
 abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
   ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
@@ -139,17 +157,84 @@ abbrev stepBundle_traced.on (Path : NState → MessageM → Prop) : Prop :=
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R
-        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+
+/-- **`stepBundle_traced.on` with a path that reads the cluster's names and the batch** (`PropLead`'s:
+a batch of normal entries, a cluster with a bootstrap log). The premises and the conclusion are
+`stepBundle_traced.on`'s verbatim (as `stepBundle_traced.onC`'s). (2026-11-12, implementation step 2)
+Moved here from `TracedRaftStepPropBundle.lean`, for `stepBundle_traced_localNoLine`'s batch. -/
+abbrev stepBundle_traced.onG (Path : RaftNames → List EntryM → NState → MessageM → Prop) : Prop :=
+  ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
+    (Λ : Option TraceEv → Prop) (bt : Bool),
+  Path γ ents s m →
+  s.gh.tr = some γd →
+  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
+  (m.Type' = MsgHup → s.role ≠ .leader) →
+  (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
+  uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
+  (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
+  receiptBound GF + γ.reBoot.length ≤ traceNumBound →
+  c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
+  s.role ≠ .preCandidate → TrRecvShape m ents →
+  (m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []) →
+  (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
+      (recvTokOf γd m ents ctx ∗
+        □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
+          isMessageC γ (absMsg ty m ents ctx))) ∗
+      TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
+    |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      stepClose γ md c id m ents ctx s R
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+
+/-- A path that reads neither the names nor the batch. -/
+theorem stepBundle_traced.on_of_onG {Path : NState → MessageM → Prop}
+    (h : stepBundle_traced.onG (GF := GF) (hG := hG) (fun _ _ => Path)) :
+    stepBundle_traced.on (GF := GF) (hG := hG) Path := h
 
 /-- **The closing wand's capability with any `booted` flag** (slice 22a, Q19): a close giving the
-capability back booted gives it back with some flag. -/
+capability back booted gives it back with some flag. (2026-11-12, implementation step 2, design N1, A2)
+With the step's `OutTyStep`, and the flag monotone: the pre's flag `bt` implies the post's, which is
+`true`. -/
 theorem stepClose_anyB (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (s : NState) (R : StepG GF) (tr : Option GName) (γ' : RaftNames)
     (r : Loc) (c' : CfgM) (Φ : NState → List w64 → ServerC → List Etcdraft.Msg → Prop)
-    (Λ : Option TraceEv → Prop) :
+    (Λ : Option TraceEv → Prop) (bt : Bool) :
+    stepClose γ md c id m ents ctx s R
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ trCapB tr γ' r id c' true (Φ s') Λ)) ⊢
+      stepClose γ md c id m ents ctx s R
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB tr γ' r id c' bt' (Φ s') Λ)) := by
+  iintro H
+  iunfold stepClose at H
+  iunfold stepClose
+  iintro %s' %B %recv %h1 %h2 %h3 Hout
+  imod H $$ %s' %B %recv %h1 %h2 %h3 Hout with ⟨Hgh, ⟨%Hty, Hc⟩, %Ho⟩
+  imodintro
+  iframe Hgh
+  isplitl [Hc]
+  · isplitr; · ipureintro; exact Hty
+    iexists true
+    isplitr; · ipureintro; exact fun _ => rfl
+    iexact Hc
+  ipureintro; exact Ho
+
+
+/-- (Implementation step 2) **`stepClose_anyB` with the step's `OutTyStep` read off its end state**
+(`StepEnd`): a path whose close gives the capability back booted and whose end state `StepEnd`
+determines (the receive paths). -/
+theorem stepClose_anyB_end {γ : RaftNames} {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
+    {ents : List EntryM} {ctx : List w8} {s : NState} {R : StepG GF} {tr : Option GName} {γ' : RaftNames}
+    {r : Loc} {c' : CfgM} {Φ : NState → List w64 → ServerC → List Etcdraft.Msg → Prop}
+    {Λ : Option TraceEv → Prop} {bt : Bool}
+    (hty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s') :
     stepClose γ md c id m ents ctx s R (fun s' => trCapB tr γ' r id c' true (Φ s') Λ) ⊢
       stepClose γ md c id m ents ctx s R
-        (fun s' => iprop(∃ bt' : Bool, trCapB tr γ' r id c' bt' (Φ s') Λ)) := by
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB tr γ' r id c' bt' (Φ s') Λ)) := by
   iintro H
   iunfold stepClose at H
   iunfold stepClose
@@ -158,8 +243,52 @@ theorem stepClose_anyB (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : 
   imodintro
   iframe Hgh
   isplitl [Hc]
-  · iexists true; iexact Hc
+  · isplitr; · ipureintro; exact hty s' h2
+    iexists true
+    isplitr; · ipureintro; exact fun _ => rfl
+    iexact Hc
   ipureintro; exact Ho
+
+/-- (2026-11-12, implementation step 2) **The closing wand at a weaker end resource.** -/
+theorem stepClose_wand (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
+    (ents : List EntryM) (ctx : List w8) (s : NState) (R : StepG GF) (G1 G2 : NState → IProp GF)
+    (h : ∀ s', G1 s' ⊢ G2 s') :
+    stepClose γ md c id m ents ctx s R G1 ⊢ stepClose γ md c id m ents ctx s R G2 := by
+  iintro H
+  iunfold stepClose at H
+  iunfold stepClose
+  iintro %s' %B %recv %h1 %h2 %h3 Hout
+  imod H $$ %s' %B %recv %h1 %h2 %h3 Hout with ⟨Hgh, Hc, %Ho⟩
+  imodintro
+  iframe Hgh
+  isplitl [Hc]
+  · iapply (h s') $$ Hc
+  ipureintro; exact Ho
+
+/-- (Implementation step 2) **A bundle's resources at a weaker end resource**: what a caller stepping
+at a state `s2` other than its own `s` (a tick's `abortLeaderTransfer`) uses to restate the end resource
+at `s`. -/
+theorem stepBundle_close_conv {P : IProp GF} {γ : RaftNames} {md : GMode} {c : CfgM} {r : Loc} {id : w64}
+    {s : NState} {m : MessageM} {ents : List EntryM} {sn : Option SnapshotM} {ctx : List w8}
+    {rs : List Loc} {G1 G2 : NState → IProp GF} (h : ∀ s', G1 s' ⊢ G2 s')
+    (hb : P ⊢ |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      stepClose γ md c id m ents ctx s R G1) :
+    P ⊢ |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      stepClose γ md c id m ents ctx s R G2 := by
+  iintro HP
+  imod hb $$ HP with ⟨%R, HG, Hg, Hc⟩
+  imodintro
+  iexists R
+  iframe HG Hg
+  iapply stepClose_wand γ md c id m ents ctx s R G1 G2 h $$ Hc
+
+/-- (Implementation step 2) The end resource's `OutTyStep` from a step at `s2`, one in scope from `s`. -/
+theorem outTyStep_gout_trans {s s2 : NState} (hg : s2.gh.tr = s.gh.tr) (h12 : OutTyStep s s2)
+    (X : NState → IProp GF) (s' : NState) :
+    iprop(⌜OutTyStep s2 s'⌝ ∗ X s') ⊢ iprop(⌜OutTyStep s s'⌝ ∗ X s') := by
+  iintro ⟨%h, H⟩
+  iframe H
+  ipureintro; exact OutTyStep.trans hg h12 h
 
 /-- (2026-11-11, slice 30c) **What the traced paths read of the node's state beyond
 `stepBundle_traced.on`'s premises**, all the node API's, read off `ownRaftPhysC` before the call: the
@@ -187,7 +316,8 @@ def StepNodeOk (s : NState) (m : MessageM) : Prop :=
   empty batch or a configuration change is not traced: `PropLead`); its bootstrap log from the
   capability as above;
 - (slice 29c's) `StepNodeOk`;
-- (plan Q28 (c)) the term of a traced message not `0`, now a clause of `TrRecvShape`. -/
+- (plan Q28 (c)) the term of a traced message not `0`, now a clause of `TrRecvShape`;
+- (2026-11-12, implementation step 2) `.on`'s end resource: `OutTyStep` and the monotone flag. -/
 abbrev stepBundle_traced.statement : Prop :=
   ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
@@ -212,7 +342,8 @@ abbrev stepBundle_traced.statement : Prop :=
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R
-        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
 
 end traced
 

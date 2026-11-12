@@ -310,7 +310,25 @@ theorem stepBundle_traced_candVoteRespLost :
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's tally and step-down, the specification's; the close is guarded
     -- (`stepOutG`): the election decided, the step ends past `"Hglost"`
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { lostState s m with prvals := pvs } := by
+        obtain ⟨pvs0, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        rw [hpre pvs0] at h
+        obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
+        unfold CandidateStepResultC at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [ite_eq_left hTy] at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [ite_eq_right (by rw [hrole]; decide)] at hf
+        obtain ⟨won, lost, ms, pvs, hw, -, hx, hs'⟩ := hf
+        cases won with
+        | true => exact absurd (hw rfl).1 hnq
+        | false =>
+          obtain rfl := hx rfl hlost
+          exact ⟨pvs, hs'⟩
+      subst hse; outty_tac
+    iapply stepClose_anyB_end hoty
     iunfold stepClose
     iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { lostState s m with prvals := pvs } := by

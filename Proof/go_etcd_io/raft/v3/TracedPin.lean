@@ -36,17 +36,24 @@ variable [GooseExts]
 /-! ## The new messages' numbers -/
 
 /-- **Every message of the outbox `o` is `s`'s or carries its numbers** (`Msg.TrOk`): what the closing
-wand's `OutTrStep s s'` reads at `o = s'.outbox`. -/
-def OutOk (s : NState) (o : List Msg) : Prop := ∀ x ∈ o, x ∈ s.outbox ∨ x.TrOk
+wand's `OutTrStep s s'` reads at `o = s'.outbox`. (2026-11-12, implementation step 2, design revision 3's
+S2) And, if `s` is in the traced scope (`TrScope`), is a `TrOutMsg`: what `OutTyStep` reads. -/
+def OutOk (s : NState) (o : List Msg) : Prop :=
+  ∀ x ∈ o, x ∈ s.outbox ∨ (x.TrOk ∧ (TrScope s → TrOutMsg x))
 
 theorem outOk_self (s : NState) : OutOk s s.outbox := fun _ h => .inl h
 
-theorem outOk_snoc {s : NState} {o : List Msg} {x : Msg} (h : OutOk s o) (hx : x.TrOk) :
-    OutOk s (o ++ [x]) := by
+theorem outOk_snoc {s : NState} {o : List Msg} {x : Msg} (h : OutOk s o) (hx : x.TrOk)
+    (hty : TrScope s → TrOutMsg x) : OutOk s (o ++ [x]) := by
   intro y hy
   rcases List.mem_append.1 hy with hy | hy
   · exact h y hy
-  · rw [List.mem_singleton.1 hy]; exact .inr hx
+  · rw [List.mem_singleton.1 hy]; exact .inr ⟨hx, hty⟩
+
+/-- `outOk_snoc` for a message of a traced type. -/
+theorem outOk_snocT {s : NState} {o : List Msg} {x : Msg} (h : OutOk s o) (hx : x.TrOk)
+    (hty : x.ty.traced = true) : OutOk s (o ++ [x]) :=
+  outOk_snoc h hx (fun _ => .inl hty)
 
 theorem outOk_perm (s : NState) {o o' : List Msg} (hp : o.Perm o') : OutOk s o = OutOk s o' := by
   apply propext
@@ -55,7 +62,12 @@ theorem outOk_perm (s : NState) {o o' : List Msg} (hp : o.Perm o') : OutOk s o =
   · intro h x hx; exact h x (hp.mem_iff.1 hx)
 
 theorem outTrStep_of_outOk {s s' : NState} (h : OutOk s s'.outbox) : OutTrStep s s' :=
-  fun _ x hx => h x hx
+  fun _ x hx => (h x hx).imp_right And.left
+
+/-- (Implementation step 2) **`OutTyStep` from the family's `OutOk`**, the scope kept by the step. -/
+theorem outTyStep_of_outOk {s s' : NState} (h : OutOk s s'.outbox) (hs : TrScope s → TrScope s') :
+    OutTyStep s s' :=
+  fun _ ht => ⟨hs ht, fun x hx => (h x hx).imp_right (fun h' => h'.2 ht)⟩
 
 /-! ## A gate of one traced message -/
 
@@ -216,14 +228,16 @@ theorem hookGateOpt_mono (tr : Option GName) (r : Loc) (oE : Option (TraceEv →
 
 /-- **A local path's family** (see the header): raft's ghost state at `s`, the traced family at the
 server's phase `Φs` (with any `booted` flag: slice 22a, Q19; set once a line is logged), the outbox's
-new messages' numbers. -/
+new messages' numbers. (2026-11-12, implementation step 2, design N1 and Probe B's P6) The flag at
+least the step's first one, `bt`: a path's lines only set it. -/
 def lineF (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (o : List Msg) : IProp GF :=
-  iprop(ownStepGhost γ md c id s ∗ (∃ b : Bool, trFam s.gh.tr γ r id c b Φs Λ o) ∗ ⌜OutOk s o⌝)
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (bt : Bool) (o : List Msg) : IProp GF :=
+  iprop(ownStepGhost γ md c id s ∗ (∃ b : Bool, ⌜bt = true → b = true⌝ ∗ trFam s.gh.tr γ r id c b Φs Λ o) ∗
+    ⌜OutOk s o⌝)
 
 theorem lineF_permInv (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) :
-    PermInv (lineF (GF := GF) γ md c r id s Φs Λ) := by
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (bt : Bool) :
+    PermInv (lineF (GF := GF) γ md c r id s Φs Λ bt) := by
   intro o o' h
   unfold lineF trFam
   rw [phaseAt_permInv Φs o o' h, outOk_perm s h]
@@ -233,7 +247,7 @@ receive line): the phase the idle server's, the last-event predicate weakened to
 theorem lineF_recv (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Λ : Option TraceEv → Prop) (b : Bool) (htr : s.gh.tr = some γd) :
     (ownStepGhost γ md c id s ∗ trCapB s.gh.tr γ r id c b (fun C => SimIdle C s) Λ : IProp GF) ⊢
-      HookGateOpt s.gh.tr r none (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox) := by
+      HookGateOpt s.gh.tr r none (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) b s.outbox) := by
   unfold lineF trFam
   rw [htr]
   iintro ⟨Hgh, Hc⟩
@@ -241,27 +255,128 @@ theorem lineF_recv (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : L
   iapply hookGateOpt_mono (some γd) r none
     iprop(⌜OutOk s s.outbox⌝ ∗ trCapB (some γd) γ r id c b (PhaseAt (fun C => SimIdleS C s) s.outbox) (stepLastEv Λ))
   isplitl [Hgh]
-  · iintro ⟨%Hok, Hc⟩; iframe Hgh; isplitl [Hc]; · iexists b; iexact Hc
+  · iintro ⟨%Hok, Hc⟩; iframe Hgh; isplitl [Hc]
+    · iexists b; isplitr; · ipureintro; exact fun h => h
+      iexact Hc
     ipureintro; exact Hok
   iapply trCapB_gateNone γd γ r id c b _ _ _ _ (fun C cs P h => simIdle_phaseAt C s cs P h)
   iframe Hc
   ipureintro; exact outOk_self s
 
 /-- **The closing wand's capability from a local path's family**, at an end state `s'` whose server
-part is `s`'s, the share re-ordered: raft's ghost state, the idle capability and `OutTrStep`. -/
+part is `s`'s, the share re-ordered: raft's ghost state, the idle capability and `OutTrStep`.
+(Implementation step 2) With the step's `OutTyStep` (the end state in scope if `s` is, `hs`) and the
+flag at least the step's first one. -/
 theorem lineF_close (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s s' : NState)
-    (Λ : Option TraceEv → Prop) (hS : ∀ C, SimIdleS C s = SimIdleS C s') :
-    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) Λ s'.outbox ⊢
-      |={⊤}=> ownStepGhost γ md c id s ∗ (∃ b : Bool, trCapB s.gh.tr γ r id c b (fun C => SimIdle C s') Λ) ∗
+    (Λ : Option TraceEv → Prop) (bt : Bool) (hS : ∀ C, SimIdleS C s = SimIdleS C s')
+    (hs : TrScope s → TrScope s') :
+    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) Λ bt s'.outbox ⊢
+      |={⊤}=> ownStepGhost γ md c id s ∗
+        (⌜OutTyStep s s'⌝ ∗ ∃ b : Bool, ⌜bt = true → b = true⌝ ∗
+          trCapB s.gh.tr γ r id c b (fun C => SimIdle C s') Λ) ∗
         ⌜OutTrStep s s'⌝ := by
   unfold lineF
-  iintro ⟨Hgh, ⟨%b, H⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b, %hb, H⟩, %Hok⟩
   imod trFam_idle s.gh.tr γ r id c b s s' Λ hS $$ H with H
   imodintro
   iframe Hgh
   isplitl [H]
-  · iexists b; iexact H
+  · isplitr; · ipureintro; exact outTyStep_of_outOk Hok hs
+    iexists b; isplitr; · ipureintro; exact hb
+    iexact H
   ipureintro; exact outTrStep_of_outOk Hok
+
+/-! ## (Implementation step 2) The families that answer reads
+
+A leader's response paths queue read-index responses (`"#Hghresp"`, `"#Hgrlresp"`), untraced, at gates
+that say nothing of the read they answer, so `OutOk`'s `TrScope s → TrOutMsg x` cannot be proved at the
+gate. Their families are indexed by the outbox without its responses (`rirFilter`, which the traced
+family does not see: `pendAbs_rirFilter`), and the close puts them back (`lineF_unfilter`) from the end
+state, which queues none in scope (`ReadIdle`). -/
+
+/-- An outbox without its read-index responses. -/
+def rirFilter (o : List Msg) : List Msg := o.filter (fun x => !decide (x.ty = .readIndexResp))
+
+theorem rirFilter_snoc_rir {o : List Msg} {x : Msg} (h : x.ty = .readIndexResp) :
+    rirFilter (o ++ [x]) = rirFilter o := by
+  simp [rirFilter, List.filter_append, h]
+
+theorem rirFilter_snoc {o : List Msg} {x : Msg} (h : x.ty ≠ .readIndexResp) :
+    rirFilter (o ++ [x]) = rirFilter o ++ [x] := by
+  simp [rirFilter, List.filter_append, h]
+
+theorem pendAbs_rirFilter (C : List w64) (o : List Msg) : pendAbs C (rirFilter o) = pendAbs C o := by
+  induction o with
+  | nil => rfl
+  | cons x o ih =>
+    unfold rirFilter at ih ⊢
+    rw [List.filter_cons]
+    by_cases h : x.ty = .readIndexResp
+    · have hn := msgAbs_untraced C C.length x (by rw [h]; rfl)
+      simp only [h, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+      rw [ih]; unfold pendAbs; rw [List.filterMap_cons, hn]
+    · simp only [h, decide_false, Bool.not_false, ↓reduceIte]
+      unfold pendAbs at ih ⊢; rw [List.filterMap_cons, List.filterMap_cons, ih]
+
+theorem trFam_rirFilter (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (o : List Msg) :
+    trFam (GF := GF) tr γ r id c b Φs Λ (rirFilter o) = trFam tr γ r id c b Φs Λ o := by
+  unfold trFam PhaseAt
+  simp only [pendAbs_rirFilter]
+
+/-- The family at the outbox without its read-index responses. -/
+theorem lineF_filter (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (bt : Bool) (o : List Msg) :
+    lineF (GF := GF) γ md c r id s Φs Λ bt o ⊢ lineF γ md c r id s Φs Λ bt (rirFilter o) := by
+  unfold lineF
+  simp only [trFam_rirFilter]
+  iintro ⟨Hgh, Hf, %Hok⟩
+  iframe Hgh Hf
+  ipureintro
+  intro x hx
+  exact Hok x (List.mem_filter.1 hx).1
+
+/-- The family back at the whole outbox, its read-index responses `s`'s when `s` is in scope. -/
+theorem lineF_unfilter (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (bt : Bool) (o : List Msg)
+    (hri : TrScope s → ∀ x ∈ o, x.ty = .readIndexResp → x ∈ s.outbox) :
+    lineF (GF := GF) γ md c r id s Φs Λ bt (rirFilter o) ⊢ lineF γ md c r id s Φs Λ bt o := by
+  unfold lineF
+  simp only [trFam_rirFilter]
+  iintro ⟨Hgh, Hf, %Hok⟩
+  iframe Hgh Hf
+  ipureintro
+  intro x hx
+  by_cases h : x.ty = .readIndexResp
+  · by_cases hs : TrScope s
+    · exact .inl (hri hs x hx h)
+    · exact .inr ⟨Msg.trOk_of_untraced (by rw [h]; rfl), fun h' => absurd h' hs⟩
+  · exact Hok x (List.mem_filter.2 ⟨hx, by simp [h]⟩)
+
+/-- A read-index response's gate on a filtered family: no line, the family unchanged. -/
+theorem lineF_rir (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (X : NState)
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (bt : Bool) (mm : Msg) (o : List Msg)
+    (htr : X.gh.tr = some γd) (hmm : mm.ty = .readIndexResp) :
+    lineF (GF := GF) γ md c r id X Φs Λ bt (rirFilter o) ⊢
+      HookGateOpt X.gh.tr r none (lineF γ md c r id X Φs Λ bt (rirFilter (o ++ [mm]))) := by
+  rw [rirFilter_snoc_rir hmm]
+  unfold lineF
+  rw [htr]
+  iintro ⟨Hgh, ⟨%b, %hb, Hf⟩, %Hok⟩
+  unfold trFam
+  iapply hookGateOpt_mono (some γd) r none
+    iprop((ownStepGhost γ md c id X ∗ ⌜OutOk X (rirFilter o)⌝) ∗
+      trCapB (some γd) γ r id c b (PhaseAt Φs (rirFilter o)) Λ)
+  isplitr
+  · iintro ⟨⟨Hgh, %Hok'⟩, Hc⟩
+    iframe Hgh
+    isplitl [Hc]
+    · iexists b; isplitr; · ipureintro; exact hb
+      iexact Hc
+    ipureintro; exact Hok'
+  iapply trCapB_gateNone γd γ r id c b _ _ Λ _ (fun _ _ _ h => h)
+  iframe Hgh Hf
+  ipureintro; exact Hok
 
 end ghost
 

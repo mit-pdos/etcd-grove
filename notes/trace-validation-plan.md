@@ -2707,6 +2707,16 @@ escrow as designed could not do its deposit (`np`/`pend` replaced by a halved `p
 P1); `TrNetTy` must move below `InvNodeChan` (P3); item 6 needs N1's statement change, which also changes
 the families' `lineF` (P6), not proved. Next: Probe A, then step 2 with P6's wider file list.
 
+**Implementation step 2 (2026-11-12, branch `trace-check-impl2`): the path facts** (`notes/decisions.md`,
+"Implementation step 2 (path facts)"; the design's "Implementation step 2"). Every traced path's end
+resource carries the step's `OutTyStep` and the monotone booted flag, through `raft.Step.tracedTriple`,
+the ticks' traced triples and the `RawNode` traced triples; `OutOk` records `TrOutMsg` in scope;
+`TrNoSnap` is in its update form; lemma (i) and Probe B's item 6 are proved. Two gaps of the design
+fixed raft-internally: `AckEnd` reads `lt` and the read state, and the two read-index response paths
+filter their families (the design's `¬ ReadIdle` premise had no source). Not done: G3 (a) (its minting
+site sees no trace fact; its fold needs the decoder's value on the bootstrap entries). Next: G3 (a), then
+step 3.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and

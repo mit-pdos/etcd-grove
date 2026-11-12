@@ -120,8 +120,7 @@ local macro "msa_fetch" : tactic => `(tactic| (
       -- (Q8 stage 1, slice 6) not at a traced node: its log is not compacted (`TrNoSnap`)
       by_cases Htr : s.gh.tr = none
       case neg =>
-        iexfalso
-        iapply trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact
+        imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
       wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz (by tr_none) $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
@@ -430,8 +429,7 @@ theorem raft.maybeSendAppend.wp_proof
     -- (Q8 stage 1, slice 6) not at a traced node: its log is not compacted (`TrNoSnap`)
     by_cases Htr : s.gh.tr = none
     case neg =>
-      iexfalso
-      iapply trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact
+      imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
     wp_auto
     wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Htz (by tr_none) $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩

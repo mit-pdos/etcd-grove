@@ -38,9 +38,12 @@ compacted past `1`) refutes the traced mode. `maybeSendAppend` falls back to `ma
 only from such a compaction (`term(pr.Next - 1)` or `entries(pr.Next)` failing with
 `ErrCompacted`), so this is the narrowest premise excluding that branch in traced mode; a traced
 caller has it from the Draft's P2 (no compaction in a traced cluster). Persistent; untraced it says
-nothing (`trNoSnap_none`). -/
+nothing (`trNoSnap_none`). (2026-11-12, trace-check implementation step 2, design revision 2's A4) In
+its update form (`|={⊤}=> False`): its source at a traced `setupNode` is the client's storage contract
+(`isStorage`'s gated bound), read under an update; its two uses (`maybeSendAppend`'s snapshot fallbacks)
+are steps of a WP at `⊤`, which eliminate it (`imod`). -/
 def TrNoSnap (tr : Option GName) (ls : LogState) : IProp GF :=
-  iprop(□ (⌜tr ≠ none⌝ -∗ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) -∗ False))
+  iprop(□ (⌜tr ≠ none⌝ -∗ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) -∗ |={⊤}=> False))
 
 instance trNoSnap_persistent (tr : Option GName) (ls : LogState) :
     Persistent (TrNoSnap (GF := GF) tr ls) := by
@@ -55,7 +58,7 @@ theorem trNoSnap_none (ls : LogState) : ⊢ TrNoSnap (GF := GF) none ls := by
 
 /-- At a traced node, a compaction is a contradiction. -/
 theorem trNoSnap_traced (tr : Option GName) (ls : LogState) (h : tr ≠ none) :
-    TrNoSnap (GF := GF) tr ls ⊢ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) -∗ False := by
+    TrNoSnap (GF := GF) tr ls ⊢ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) -∗ |={⊤}=> False := by
   iintro #H #Hc
   iunfold TrNoSnap at H
   iapply H $$ %h Hc

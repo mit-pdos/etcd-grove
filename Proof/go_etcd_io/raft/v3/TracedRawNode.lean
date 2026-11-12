@@ -233,7 +233,7 @@ theorem RawNode.Step.traced
       · rw [ite_eq_right HnR]; iexact Hcred0
       wp_apply Hok.raftStep Hpvoff Htrm Hmtc (fun h => absurd h HnT) Hb1 (Hrnfl.1 Hflw)
           (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp R
-            (fun s' => iprop(∃ bt' : Bool,
+            (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
               trCapB s.gh.tr γ rnv.raft' id cf bt' (fun C => SimIdle C s') (stepLastEv (fun _ => True)))))
           Hwf
         (RNMode.pre_net Hpf (fun h => absurd h (by trnet_ne Hnt))) (fun _ => Hns0.1)
@@ -307,7 +307,7 @@ theorem RawNode.Step.traced
         isplitr
         · iapply trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr]) Hpv.symm Hsg.symm
             $$ Hnosnap
-        icases HG with ⟨%bt', HG⟩
+        icases HG with ⟨-, %bt', -, HG⟩
         iexists bt'
         rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
         iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ HG
@@ -431,7 +431,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
       (fun _ => Hboot) $$ Hpre
     with ⟨%R, HG, Hgates, Hclose⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp R
-    (fun s' => iprop(∃ bt' : Bool,
+    (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
       trCapB s.gh.tr γ rnv.raft' id cf bt' (fun C => SimIdle C s') (stepLastEv (fun _ => True))))
     (by simp only [StepMsg, stepMsgTypes]; rw [Hty]; simp [MsgProp])
     (by prop_ne) (by prop_ne)
@@ -519,7 +519,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
     isplitr
     · iapply trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
         Hfr'.2.2.2.2.1.symm Hfr'.2.2.2.2.2.2.1.symm $$ Hnosnap
-    icases HG with ⟨%bt', HG⟩
+    icases HG with ⟨-, %bt', -, HG⟩
     iexists bt'
     rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
     iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ HG
@@ -594,10 +594,10 @@ theorem RawNode.Tick.traced
   all_goals first
     | wp_apply wp_tickElection cf _ γ rnv.raft' id s γd (fun _ => True) bt Hwf Hpf.1 (Hrnfl.1 Hflw)
         Htr Hscope.1 Hcqe.symm HT Hfit Hscope.2
-        $$ [$Hphys $Hghost $Hcap $Hnosnap] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk, Hcap⟩
+        $$ [$Hphys $Hghost $Hcap $Hnosnap] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk, -, Hcap⟩
     | wp_apply wp_tickHeartbeat cf _ γ rnv.raft' id s γd (fun _ => True) bt Hwf Hpf.1
         Htr Hscope.1 Hcqe.symm HT Hfit Hscope.2
-        $$ [$Hphys $Hghost $Hcap $Hnosnap] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk, Hcap⟩
+        $$ [$Hphys $Hghost $Hcap $Hnosnap] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk, -, Hcap⟩
   all_goals (
     have Hc := Hcv.1
     obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, Hip4, Htpc, Hgd, Hsrb⟩ := Htk
@@ -614,7 +614,7 @@ theorem RawNode.Tick.traced
       isplitr
       · iapply trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr]) Hpv.symm Hsg.symm
           $$ Hnosnap
-      icases Hcap with ⟨%bt', Hcap⟩
+      icases Hcap with ⟨%bt', -, Hcap⟩
       iexists bt'
       rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
       iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ Hcap

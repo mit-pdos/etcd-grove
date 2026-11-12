@@ -199,6 +199,49 @@ theorem leadAcc_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {c
         show SimIdleS C { sendMsgs (readRespondAll id _ _) ms with prvals := pvs } = _
         rw [he]; rfl
 
+/-- (Implementation step 2) **An accepted response's end state, in scope**: the scope kept and no
+read-index response queued (no read pending: `pendingReadIndexMessages` empty). -/
+theorem leadAcc_scope {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hp : LeadAcc s m) (h : StepFnEnd c id s m ents ctx s') :
+    TrScope s → TrScope s' ∧ ∀ x ∈ s'.outbox, x.ty = .readIndexResp → x ∈ s.outbox := by
+  intro hs
+  obtain ⟨hl0, hro, hpe⟩ := hs
+  obtain ⟨ht, hrej, -, hr, hfp, -, -⟩ := hp
+  obtain ⟨d, hres⟩ := h.2.2 hr
+  unfold LeaderStepResultC LeaderNonpropResultC at hres
+  rw [ht] at hres
+  simp [MsgAppResp, MsgVoteResp, MsgProp, MsgBeat, MsgHeartbeatResp, MsgReadIndex, MsgForgetLeader,
+    MsgTimeoutNow, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, MsgCheckQuorum, MsgApp, MsgHeartbeat,
+    MsgPreVoteResp, MsgReadIndexResp, hrej, hfp] at hres
+  obtain ⟨-, x, pvs, n, hb, ms, hx, hpm, -, hran, hnran, hrs, hend⟩ := hres
+  have hms : ∀ y ∈ ms, y.ty ≠ .readIndexResp := fun y hy => by
+    rcases (hrs y hy).1 with h' | h'
+    · rw [h'.1]; decide
+    · rw [h'.1]; decide
+  split at hend
+  · obtain ⟨-, rfl⟩ := hend
+    refine ⟨⟨hl0, hro, hpe⟩, fun y hy hyt => ?_⟩
+    simp only [sendMsgs, List.mem_append] at hy
+    rcases hy with hy | hy
+    · exact hy
+    · exact absurd hyt (hms y hy)
+  · rcases hend with ⟨-, hrh, rfl⟩ | ⟨-, -, rfl⟩
+    · refine ⟨⟨hl0, ?_, rfl⟩, fun y hy hyt => ?_⟩
+      · simp [sendMsgs, releasedState, hpe, readonlyRelease, hro]
+      · simp only [sendMsgs, releasedState, List.mem_append] at hy
+        rcases hy with (hy | hy) | hy
+        · exact hy
+        · rw [(hrh y hy).1.1] at hyt; cases hyt
+        · exact absurd hyt (hms y hy)
+    · have hq : pendReqs { s with logst := { s.logst with committed := n } } = [] := by
+        simp [pendReqs, hpe]
+      rw [hq]
+      refine ⟨⟨hl0, hro, rfl⟩, fun y hy hyt => ?_⟩
+      simp only [sendMsgs, readRespondAll, List.foldl_nil, List.mem_append] at hy
+      rcases hy with hy | hy
+      · exact hy
+      · exact absurd hyt (hms y hy)
+
 end pure
 
 section ghost
@@ -231,22 +274,25 @@ theorem ownRaftGhost_leadFull (γ : RaftNames) (id : w64) (s : PState) {md : Boo
   iframe Hslot Hvirt Hpend Hout Htally Hlead Hlg Hlcm Hrd
   ipureintro; exact ⟨Hsname, Hfresh, Hidnz, Hhist, Hlead_ok, Hfollower_votes, Hrole_ok, Hmode⟩
 
-/-- **The family past `maybeCommit`** (see the header). -/
+/-- **The family past `maybeCommit`** (see the header). (Implementation step 2) The flag set (the
+`Commit` line sets it); the family at the outbox without its read-index responses (`rirFilter`, the
+`"#Hgrlresp"` responses, put back at the close). -/
 def leadAccGc (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
     (Λ : Option TraceEv → Prop) (b : Bool) (N : w64) (o : List Msg) : IProp GF :=
   iprop(∃ pvs : GMap w64 Progress, ⌜prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
       maybeCommitOut c { s with prvals := pvs } b N ∧ AppRespRan s m.From' m.Index' ∧ c.outgoing = ∅⌝ ∗
     lineF γ md c r id (commitAt { s with prvals := pvs } b N)
-      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) o)
+      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) true (rirFilter o))
 
 /-- **A local family's gate with no message** (`"#Hgatnow"`: a `MsgTimeoutNow` to a transferee, untraced
 and not queued here). -/
 theorem lineF_none (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (X : NState)
-    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (o : List Msg) (htr : X.gh.tr = some γd) :
-    lineF (GF := GF) γ md c r id X Φs Λ o ⊢ HookGateOpt X.gh.tr r none (lineF γ md c r id X Φs Λ o) := by
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (o : List Msg) {bt : Bool}
+    (htr : X.gh.tr = some γd) :
+    lineF (GF := GF) γ md c r id X Φs Λ bt o ⊢ HookGateOpt X.gh.tr r none (lineF γ md c r id X Φs Λ bt o) := by
   unfold lineF
   rw [htr]
-  iintro ⟨Hgh, ⟨%b, Hf⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b, %hb, Hf⟩, %Hok⟩
   unfold trFam
   iapply hookGateOpt_mono (some γd) r none
     iprop((ownStepGhost γ md c id X ∗ ⌜OutOk X o⌝) ∗ trCapB (some γd) γ r id c b (PhaseAt Φs o) Λ)
@@ -254,7 +300,8 @@ theorem lineF_none (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : L
   · iintro ⟨⟨Hgh, %Hok'⟩, Hc⟩
     iframe Hgh
     isplitl [Hc]
-    · iexists b; iexact Hc
+    · iexists b; isplitr; · ipureintro; exact hb
+      iexact Hc
     ipureintro; exact Hok'
   iapply trCapB_gateNone γd γ r id c b _ _ Λ _ (fun _ _ _ h => h)
   iframe Hgh Hf
@@ -396,12 +443,14 @@ theorem leadAccGate_commit (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM
     iexists pvs
     isplitr
     · ipureintro; exact ⟨hpvs, hout, hran, Hout0⟩
+    iapply lineF_filter
     unfold lineF trFam
     have hXtr : (commitAt { s with prvals := pvs } b N).gh.tr = some γd := by rw [commitAt_gh]; exact htr
     rw [hXtr]
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; exact fun _ => rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun C cs P h => by
         have := simIdle_phaseAt C _ cs P h.2.2.2
         cases b <;> exact this) $$ Hc
@@ -445,15 +494,16 @@ theorem leadAccGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (
   have hXT : (commitAt { s with prvals := pvs } b N).term = s.term := by cases b <;> rfl
   have hXp : (commitAt { s with prvals := pvs } b N).prvals = pvs := by cases b <;> rfl
   rw [← sendOutGate_hdr id _ _ c MsgApp [mm] h1 h2 h3 h4, htr, ← hXtr]
+  rw [rirFilter_snoc (by rw [hok.1]; decide)]
   iapply hookGateOpt_mono _ r _
     (lineF γ md c r id (commitAt { s with prvals := pvs } b N)
-      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) (o ++ [mm]))
+      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) true (rirFilter o ++ [mm]))
   isplitr
   · iintro H
     iexists pvs
     iframe H
     ipureintro; exact ⟨hpvs, hout, hran, hout0⟩
-  iapply lineF_app γd γ md c r id (commitAt { s with prvals := pvs } b N) Λ mm o hXtr
+  iapply lineF_app γd γ md c r id (commitAt { s with prvals := pvs } b N) Λ mm (rirFilter o) hXtr
     (by cases b <;> exact hrole) (by rw [hXT]; exact hT) hfit
     (by rw [hdst]; exact mem_incoming_of c to hlrn hout0 ((GMap.elem_of_subseteq _ _).1 hdomc _ hto.2))
     ((appOk_hdr id _ _ mm h1 h3).2 hok) (by rw [hcm, h3]) (by rw [hXp, hpvs, hdst]; exact hmatch) hrh
@@ -480,17 +530,20 @@ theorem leadAccGate_hb (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
   obtain ⟨h1, h2, h3, h4⟩ := commitAt_hdr s pvs true N
   have hXtr : (commitAt { s with prvals := pvs } true N).gh.tr = some γd := by rw [commitAt_gh]; exact htr
   have hXT : (commitAt { s with prvals := pvs } true N).term = s.term := rfl
-  rw [← sendOutGate_hdr id _ _ c MsgHeartbeat _ h1 h2 h3 h4, htr, ← hXtr]
+  rw [← sendOutGate_hdr id _ _ c MsgHeartbeat _ h1 h2 h3 h4, htr, ← hXtr,
+    rirFilter_snoc (show (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl).ty ≠
+      .readIndexResp from nofun)]
   iapply hookGateOpt_mono _ r _
     (lineF γ md c r id (commitAt { s with prvals := pvs } true N)
-      (fun C => SimIdleS C (commitAt { s with prvals := pvs } true N)) (stepLastEv Λ)
-      (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]))
+      (fun C => SimIdleS C (commitAt { s with prvals := pvs } true N)) (stepLastEv Λ) true
+      (rirFilter o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]))
   isplitr
   · iintro H
     iexists pvs
     iframe H
     ipureintro; exact ⟨hpvs, hout, hran, hout0⟩
-  have H := lineF_heartbeat (GF := GF) γd γ md c r id (commitAt { s with prvals := pvs } true N) Λ to cm cl o
+  have H := lineF_heartbeat (GF := GF) (bt := true) γd γ md c r id (commitAt { s with prvals := pvs } true N) Λ to cm cl
+    (rirFilter o)
     hXtr hrole hto.1 ((GMap.elem_of_subseteq _ _).1 hdomc _ hto.2) hlrn
     (by show uint.Z cm = min (uint.Z N) (uint.Z ((prvalsMatch pvs !! to).getD (W64 0))); rw [hpvs]; exact hcm)
     hT hfit
@@ -510,13 +563,13 @@ theorem leadAccGate_resp (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) 
   rw [htr, ← hXtr]
   iapply hookGateOpt_mono _ r _
     (lineF γ md c r id (commitAt { s with prvals := pvs } b N)
-      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) (o ++ [mm]))
+      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) true (rirFilter (o ++ [mm])))
   isplitr
   · iintro H
     iexists pvs
     iframe H
     ipureintro; exact Hp
-  iapply lineF_untraced γd γ md c r id _ _ _ mm o hXtr (by rw [hmm]; rfl) $$ HF
+  iapply lineF_rir γd γ md c r id _ _ _ true mm o hXtr hmm $$ HF
 
 /-- **`"#Hgatnow"` on the family past `maybeCommit`**: no message. -/
 theorem leadAccGate_tnow (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
@@ -530,13 +583,13 @@ theorem leadAccGate_tnow (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) 
   rw [htr, ← hXtr]
   iapply hookGateOpt_mono _ r _
     (lineF γ md c r id (commitAt { s with prvals := pvs } b N)
-      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) o)
+      (fun C => SimIdleS C (commitAt { s with prvals := pvs } b N)) (stepLastEv Λ) true (rirFilter o))
   isplitr
   · iintro H
     iexists pvs
     iframe H
     ipureintro; exact Hp
-  iapply lineF_none γd γ md c r id _ _ _ o hXtr $$ HF
+  iapply lineF_none γd γ md c r id _ _ _ (rirFilter o) hXtr $$ HF
 
 end ghost
 

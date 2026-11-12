@@ -399,7 +399,21 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and heartbeat handling, the specification's
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
+          s' = heartbeatResult id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
+            lead := m.From' } m ctx := by
+        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        rw [hpre pvs] at h
+        obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
+        unfold FollowerStepResultC at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [hTy] at hf
+        simp [MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat] at hf
+        exact ⟨pvs, hf.2⟩
+      subst hse; outty_tac
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt

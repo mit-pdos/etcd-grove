@@ -248,6 +248,8 @@ theorem stepBundle_traced_unreach : stepBundle_traced.on (GF := GF) (hG := hG) U
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := unreach_simIdleS hpm he
     have hout : OutTrStep s s' :=
       OutTrStep.of_sub (fun x hx => by rw [he] at hx; simpa [sendMsgs] using hx)
+    have hty' : OutTyStep s s' := by
+      rw [he]; exact OutTyStep.of_app [] rfl rfl rfl rfl (fun _ _ h => by simp at h)
     ihave H : localF (GF := GF) bt γ md c r id s Λ s'.outbox $$ [Hout]
     · unfold stepOut
       dsimp only [localR]
@@ -258,7 +260,9 @@ theorem stepBundle_traced_unreach : stepBundle_traced.on (GF := GF) (hG := hG) U
     imodintro
     iframe Hgh
     isplitl [H]
-    · iexists bt
+    · isplitr; · ipureintro; exact hty'
+      iexists bt
+      isplitr; · ipureintro; exact fun h => h
       iapply trCapB_monoΛ s.gh.tr γ r id c bt _ Λ _ (fun o h => .inl h) $$ H
     ipureintro; exact hout
 

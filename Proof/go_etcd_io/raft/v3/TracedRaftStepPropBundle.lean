@@ -149,7 +149,8 @@ state's broadcast, the `Match` values unchanged. -/
 theorem propLead_end {γ : RaftNames} {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hp : PropLead γ ents s m) (hT0 : m.Term' = W64 0)
     (h : StepEnd c id m ents ctx s s') :
-    (s'.logst = s.logst ∧ s'.outbox = s.outbox ∧ ∀ C, SimIdleS C s = SimIdleS C s') ∨
+    (s'.logst = s.logst ∧ s'.outbox = s.outbox ∧ (∀ C, SimIdleS C s = SimIdleS C s') ∧
+      (TrScope s → TrScope s')) ∨
     (∃ (ms : List Msg) (pvs : GMap w64 Progress), s' = { sendMsgs (proposed id s ents) ms with prvals := pvs } ∧
       prvalsMatch pvs = prvalsMatch s.prvals) := by
   obtain ⟨hty, hlead, hne, hnorm, -⟩ := hp
@@ -172,7 +173,7 @@ theorem propLead_end {γ : RaftNames} {c : CfgM} {id : w64} {m : MessageM} {ents
   | true =>
     simp only [↓reduceIte, or_self] at hres
     subst hres
-    exact .inl ⟨rfl, rfl, fun _ => rfl⟩
+    exact .inl ⟨rfl, rfl, fun _ => rfl, fun h => h⟩
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte] at hres
     obtain ⟨ms, pvs', hs', -, hm⟩ := hres
@@ -188,18 +189,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The family after the self-acknowledgement**: raft's ghost state at the proposed state, the traced
-family at the idle server of the appended state, the outbox's new messages' numbers. -/
+family at the idle server of the appended state, the outbox's new messages' numbers. (Implementation
+step 2) The flag set (the `Replicate` lines set it), for the monotone flag of the close. -/
 def propF (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (ents : List EntryM)
     (Λ : Option TraceEv → Prop) (o : List Msg) : IProp GF :=
   iprop(ownStepGhost γ md c id (proposed id s ents) ∗
-    (∃ b : Bool, trFam s.gh.tr γ r id c b (fun C => SimIdleS C (propAppended s ents)) Λ o) ∗ ⌜OutOk s o⌝)
+    (∃ b : Bool, ⌜b = true⌝ ∗ trFam s.gh.tr γ r id c b (fun C => SimIdleS C (propAppended s ents)) Λ o) ∗
+    ⌜OutOk s o⌝)
 
 /-- `PropLead`'s resources (see the header). -/
 def propR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ents : List EntryM) (Λ : Option TraceEv → Prop) : StepG GF where
   G := trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ
-  G0 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
-  G1 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
+  G0 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt o)
+  G1 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt o)
   GE := fun _ => iprop(⌜False⌝)
   Gf := iprop(⌜False⌝)
   Gb1 := iprop(⌜False⌝)
@@ -245,7 +248,7 @@ theorem propGate_rep (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
     (hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (hboot : γ.reBoot ≠ [])
     (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
     (ccEntsOk ents cs ∗ propLend γ s ents ∗
-        lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox : IProp GF) ⊢
+        lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt s.outbox : IProp GF) ⊢
       HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount (leaderPropConf s ents cs c.joint).1)
         (propR (GF := GF) bt γ md c r id s ents Λ).Gp1 := by
   have hnc := noConf_of_normal ents hnorm
@@ -259,7 +262,7 @@ theorem propGate_rep (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
   simp only [Option.isSome_some, ↓reduceIte]
   icases HTp with ⟨Hd, Htk, #Hrc⟩
   iapply hookGateN_fupd
-  icases Hlf with ⟨Hgh, ⟨%b, Hf⟩, %Hok⟩
+  icases Hlf with ⟨Hgh, ⟨%b, -, Hf⟩, %Hok⟩
   imod ownStepGhost_traceBound (GF := GF) γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
   icases trFam_pin γd γ r id c b _ (stepLastEv Λ) s.outbox $$ Hf with ⟨%C0, %cs0, %P0, %Hph, Hf⟩
   obtain ⟨⟨⟨a0, -, -, hs0, -⟩, -⟩, hidC⟩ := Hph
@@ -362,10 +365,11 @@ theorem propGate_ack (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; rfl
       iapply trFam_unpin (some γd) γ r id c true _ (stepLastEv Λ) C0 (repCN cs0 ents.length) (P0 ++ [ma0])
       iexact Hc
     ipureintro
-    exact outOk_snoc (outOk_self s) hok
+    exact outOk_snocT (outOk_self s) hok rfl
   iapply trCapB_hookGateOpt (some γd) γ r id c tl _ true
     (PinAt (propAppended s ents) C0 (repCN cs0 ents.length) P0 s.outbox) _ (stepLastEv Λ) (stepLastEv Λ)
     iprop(emp) (phaseStepB_selfAck id c (propAppended s ents) s.outbox C0 (repCN cs0 ents.length) P0 ma0 hma hrole1)
@@ -447,7 +451,7 @@ theorem propGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
   dsimp only [propR]
   unfold propF trFam
   rw [htr]
-  icases Hp2 with ⟨%Hlen, Hgh, ⟨%b, Hf⟩, %Hok⟩
+  icases Hp2 with ⟨%Hlen, Hgh, ⟨%b, -, Hf⟩, %Hok⟩
   iapply hookGateOpt_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id (proposed id s ents) hfit $$ Hgh with ⟨%Hb, Hgh⟩
   icases trCapB_out γd γ r id c b _ _ $$ Hf with ⟨%Hout, Hf⟩
@@ -524,9 +528,10 @@ theorem propGate_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r :
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro
-    exact outOk_snoc Hok htrok
+    exact outOk_snocT Hok htrok (by rw [hok.1]; rfl)
   iapply trCapB_hookGateOpt (some γd) γ r id c tl _ b (PinAt (propAppended s ents) C0 cs0 P0 o) _
     (stepLastEv Λ) (stepLastEv Λ) iprop(emp)
     (phaseStepB_msgApp_pin id c (propAppended s ents) o mm C0 cs0 P0 ma0 hma hrole1 hto hok hcm
@@ -547,7 +552,8 @@ theorem propClose (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
     (m : MessageM) (ents : List EntryM) (ctx : List w8) (Λ : Option TraceEv → Prop) (bt : Bool)
     (htr : s.gh.tr = some γd) (hp : PropLead γ ents s m) (hT0 : m.Term' = W64 0) :
     ⊢ stepClose (GF := GF) γ md c id m ents ctx s (propR bt γ md c r id s ents Λ)
-        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) := by
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) := by
   iunfold stepClose
   iintro %s' %B %recv %_ %hend %_ Hout
   have hE := propLead_end (c := c) (id := id) (ctx := ctx) hp hT0 (hend (by rw [htr]; rfl))
@@ -558,25 +564,25 @@ theorem propClose (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
   unfold stepOut
   dsimp only [propR]
   icases Hout with (⟨%ho, H⟩ | ⟨%ho, H⟩ | %hf | ⟨%hlen, H⟩ | ⟨%b, %N, %hf⟩)
-  · rcases hE with ⟨hl, -, hS⟩ | ⟨ms, pvs, rfl, -⟩
-    · imod lineF_close γ md c r id s s' (stepLastEv Λ) hS $$ H with ⟨Hgh, Hc, %Hot⟩
+  · rcases hE with ⟨hl, -, hS, hsc⟩ | ⟨ms, pvs, rfl, -⟩
+    · imod lineF_close γ md c r id s s' (stepLastEv Λ) bt hS hsc $$ H with ⟨Hgh, Hc, %Hot⟩
       imodintro
       isplitl [Hgh]
       · ileft; iframe Hgh; ipureintro; intro _ _ _ _; rw [hl]; exact proposed_logst_ne' id s ents hp.2.2.1
       iframe Hc; ipureintro; exact Hot
     · exfalso; have := hlong ms pvs; rw [ho] at this; omega
-  · rcases hE with ⟨hl, -, hS⟩ | ⟨ms, pvs, rfl, -⟩
-    · imod lineF_close γ md c r id s s' (stepLastEv Λ) hS $$ H with ⟨Hgh, Hc, %Hot⟩
+  · rcases hE with ⟨hl, -, hS, hsc⟩ | ⟨ms, pvs, rfl, -⟩
+    · imod lineF_close γ md c r id s s' (stepLastEv Λ) bt hS hsc $$ H with ⟨Hgh, Hc, %Hot⟩
       imodintro
       isplitl [Hgh]
       · ileft; iframe Hgh; ipureintro; intro _ _ _ _; rw [hl]; exact proposed_logst_ne' id s ents hp.2.2.1
       iframe Hc; ipureintro; exact Hot
     · exfalso; have := hlong ms pvs; rw [ho] at this; omega
   · exact hf.elim
-  · rcases hE with ⟨-, hob, -⟩ | ⟨ms, pvs, rfl, hm⟩
+  · rcases hE with ⟨-, hob, -, -⟩ | ⟨ms, pvs, rfl, hm⟩
     · exfalso; rw [hob] at hlen; omega
     · unfold propF
-      icases H with ⟨Hgh, ⟨%b, Hf⟩, %Hok⟩
+      icases H with ⟨Hgh, ⟨%b, %hb, Hf⟩, %Hok⟩
       have hS : ∀ C, SimIdleS C (propAppended s ents) =
           SimIdleS C ({ sendMsgs (proposed id s ents) ms with prvals := pvs } : NState) := fun C =>
         (simIdleS_prvals C (proposed id s ents) ms pvs hm).symm
@@ -589,7 +595,9 @@ theorem propClose (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
         ipureintro
         exact CloseMid.prop ⟨hp.1, hp.2.1, noConf_of_normal ents hp.2.2.2.1, rfl, rfl⟩
       isplitl [Hc]
-      · iexists b; iexact Hc
+      · isplitr; · ipureintro; exact outTyStep_of_outOk Hok (TrScope.congr rfl rfl rfl)
+        iexists b; isplitr; · ipureintro; exact fun _ => hb
+        iexact Hc
       ipureintro; exact outTrStep_of_outOk Hok
   · exact hf.elim
 
@@ -601,39 +609,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- **`stepBundle_traced.on` with a path that reads the cluster's names and the batch** (`PropLead`'s:
-a batch of normal entries, a cluster with a bootstrap log). The premises and the conclusion are
-`stepBundle_traced.on`'s verbatim (as `stepBundle_traced.onC`'s). -/
-abbrev stepBundle_traced.onG (Path : RaftNames → List EntryM → NState → MessageM → Prop) : Prop :=
-  ∀ (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (γd : GName)
-    (Λ : Option TraceEv → Prop) (bt : Bool),
-  Path γ ents s m →
-  s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
-  (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
-  (m.Type' = MsgHup → s.role ≠ .leader) →
-  (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →
-  uint.Z s.term + 1 < traceNumBound → uint.Z m.Term' < traceNumBound →
-  (∀ ty, mtypeOf m.Type' = some ty → MsgTrOk γ (absMsg ty m ents ctx)) →
-  receiptBound GF + γ.reBoot.length ≤ traceNumBound →
-  c.learners = ∅ → domSet s.progress ⊆ c.voters ∪ c.learners →
-  s.role ≠ .preCandidate → TrRecvShape m ents →
-  (m.Type' = MsgHeartbeat ∨ m.Type' = MsgApp → γ.reBoot ≠ []) →
-  (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
-      (recvTokOf γd m ents ctx ∗
-        □ (∀ ty : MsgType, ⌜mtypeOf m.Type' = some ty ∧ ty.traced = true⌝ -∗
-          isMessageC γ (absMsg ty m ents ctx))) ∗
-      TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
-    |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
-      stepClose γ md c id m ents ctx s R
-        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
-
-/-- A path that reads neither the names nor the batch. -/
-theorem stepBundle_traced.on_of_onG {Path : NState → MessageM → Prop}
-    (h : stepBundle_traced.onG (GF := GF) (hG := hG) (fun _ _ => Path)) :
-    stepBundle_traced.on (GF := GF) (hG := hG) Path := h
 
 /-- **`raft.Step`'s traced bundle on `MsgProp` at a leader** (see the header). -/
 theorem stepBundle_traced_prop : stepBundle_traced.onG (GF := GF) (hG := hG) PropLead := by
@@ -677,7 +652,7 @@ theorem stepBundle_traced_prop : stepBundle_traced.onG (GF := GF) (hG := hG) Pro
         cases hty'; rfl
       rw [hrg]
       iapply hookGateOpt_mono s.gh.tr r none
-        (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox)
+        (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt s.outbox)
       isplitr
       · iintro H; iframe H; ipureintro; rfl
       iapply lineF_recv γd γ md c r id s Λ bt htr
