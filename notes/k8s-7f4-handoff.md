@@ -40,8 +40,13 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
 `TestRenewHTTPErrTiming`'s pre-cancelled case: `Err()` called twice, a `*url.Error`; m1:
 `TestRawStreamKey` over prometheus x otelgrpc x Serve/ServeHTTP, the xDS line in `srvRawStreamIs`;
 m3: `Tracer.Start`'s entry; m2 noted in the freeze note for a later cleanup). Merged lean
-(`4b4eabaf38`), full build, the trust-base baselines updated for the four reached axioms, gates,
-landing (see the commit that adds this section and the report for the lean hash).
+(`4b4eabaf38`, then notes-only lean again), full build green (build 20261112-230131), the trust-base
+baselines updated for the four reached axioms (`a4ef7d7c82`: tcb 867 axioms/4 sorries, 16 collections),
+gen-interface --check and axiom-tok ok. `etc/land.sh` FAILED at one gate, bounds (`spec-thread`: the new
+`threadBound` premises of `newCancellableContext`, `newStreamInterceptor`, `Server`, `Serve`,
+`serveClient`, `sendLoop`'s `5 ≤`); every other gate passed. `e272c4f217` adds `etc/bounds-allow.txt`
+entries on the etcd3/Watch precedent (baseline 331 -> 330), NOT landed: for 81. Next: rerun
+`etc/land.sh` once 81 accepts (GOWORK unset, LAKE_PACKAGES, PERENNIAL_CHECKOUT).
 
 **LeaseKeepAlive, found before writing Lean** (reported to 81): `LeaseRenew`'s
 `context.WithTimeout(ctx1)` over a weak `ctx1` cannot be a small local lemma. go1.27.3
