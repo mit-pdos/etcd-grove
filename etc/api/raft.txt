@@ -100,6 +100,9 @@ importable Proof.go_etcd_io.raft.v3.PbModel
 importable Proof.go_etcd_io.raft.v3.InvPb
 importable Proof.go_etcd_io.raft.v3.InvPbLog
 importable Proof.go_etcd_io.raft.v3.InvPbMsg
+# (2026-11-12, trace-check B4) `pbMessage`, the `PbType` of a `*raftpb.Message` (the trusted wire
+# model; until then in rafthttp's tree): what rafthttp's codecs and the trace-check harness clone with
+importable Proof.go_etcd_io.raft.v3.PbMessage
 importable Proof.go_etcd_io.raft.v3.InvPbSnapSet
 
 ## The protocol's client vocabulary: the cluster's ghost names, the committed log, proposals, the

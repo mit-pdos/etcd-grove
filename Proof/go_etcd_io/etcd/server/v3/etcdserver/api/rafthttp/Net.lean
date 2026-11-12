@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.raft.v3.PbMessage
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.ThreadPool
@@ -106,10 +107,8 @@ structure NetNames (GF : BundledGFunctors) [GooseExts] where
 def netSlot (γn : NetNames GF) (id : w64) : IProp GF :=
   ghostMapElem γn.slots id (DFrac.own 1) ()
 
-/-- **A received copy agrees with the message sent**: its scalars, entries, snapshot and context
-(not the `Responses` pointers: an unmarshalled copy's are fresh). -/
-def wireEq (st st' : MsgSt) : Prop :=
-  st'.msg = st.msg ∧ st'.ents = st.ents ∧ st'.snap = st.snap ∧ st'.ctx = st.ctx
+-- (2026-11-12, trace-check B4) `wireEq`, a received copy's agreement with the message sent, is in
+-- raft's `PbMessage.lean` (imported above), beside the wire model that proves it.
 
 /-- **A message handed to `Send`**, with its bundle: read-only for good (the transport's writer
 goroutines marshal it after `Send` returns), its persistent part and its one-shot part; (D22 S-i)
