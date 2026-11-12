@@ -13,7 +13,7 @@ panic, so the `Get` that returned `nil` returned the `Put`'s value (D18's monoto
 **The pure premises:** the member id and bootstrap log Go computes (`etcd_putget.BootFacts`); the
 logic's thread bound and the time-receipt bounds (the adequacy theorem's choices: `threadBound GF ≤
 2 ^ 28`, `receiptBound GF ≤ 2 ^ 48` and `≤ N + 1`); the named workload and effect premises of the
-server's construction (`ckptEffectsOk`, `authRecordsFit`,
+server's construction (`authRecordsFit`,
 `apply.backendUnderQuota`, `grpcRepliesFit`, `storage.diskOk`); Go's method sets of the gRPC service values
 (`v3rpc.ServerMethodSets`) and that `errors.As` takes `*rpctypes.EtcdError` as a target (both
 discharged by the adequacy theorem, from the package assumptions).
@@ -55,10 +55,12 @@ abbrev Main.spec : Prop :=
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   BootFacts id ctxs boot →
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 28 →
+  -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
+  srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.putget ∗

@@ -564,7 +564,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   wp_apply hCI s γr none $$ [] as %ci -
   · iframe #; iunfold srvCommittedOwnOpt; itrivial
   (try wp_auto)
-  wp_apply hFE s v.fg _ $$ [] as %en -
+  wp_apply hFE s v.fg _ none $$ [] as %en -
   · iframe #; ipureintro; simp [serverFeatures]
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

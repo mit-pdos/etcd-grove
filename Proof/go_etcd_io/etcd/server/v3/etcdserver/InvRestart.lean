@@ -231,20 +231,21 @@ that every started server's `run` has one spec. -/
 def srvStop.scope (E : apply.AEnv GF) : Prop := E.authOn = false ∧ E.cmp = false
 
 /-- **The stop's serving readers** (R2c-4): the store's reader tokens a member's serving stocks
-hold (the API's and the watch server's, `64 + 64`), which the stop request returns for the backend's
-`Close` (`mvccClosed_rest.law`); named here, by the stop's owner, so that a client of the stop
-request names no count (`etc/bounds-check.py`). (The `lean` merge, 2026-11-06, the reader tokens:
-until then `64 + 64` of mvcc's `storeReader`s, retired by `storeReaders_retire`.) -/
+hold (the gRPC run pool's raw stock, `srvRevokePoolN`, `srvServeStock`'s), which the stop request
+returns for the backend's `Close` (`mvccClosed_rest.law`); named here, by the stop's owner, so that a
+client of the stop request names no count (`etc/bounds-check.py`). (Until per-type stage B3,
+2026-11-11, also the API's and the watch server's `64 + 64`; the `lean` merge, 2026-11-06, the reader
+tokens: until then `64 + 64` of mvcc's `storeReader`s, retired by `storeReaders_retire`.) -/
 abbrev srvStopReaders (E : apply.AEnv GF) : IProp GF :=
-  mvcc.api.mvccReaders E.γ (64 + 64)
+  mvcc.api.mvccReaders E.γ srvRevokePoolN
 
 /-- **A stop request** (2026-11-05, R2c-2; what `HardStop` sends on `s.stop` and `run` receives):
 evidence that the server at the request names `ρ` applied the bootstrap log (`srvBootApplied`,
 R2b-2 review F2), the stop's scope at the server's apply environment `E` (`srvStop.scope`), and the
 server's data directory `dd` with no dedicated WAL directory (`srvDataDir`, which the image names:
 the scope's other half), and (R2c-4, F-e) the store's readers of the serving stocks the server no
-longer uses (`srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers,
-`mvcc.watchReader_storeReader`): with the slot's and the apply thread's, every reader of the store,
+longer uses (per-type stage B2, `srvServeStock`'s raw stock, `srvStopReaders`; until stage B3
+also `srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers): with the slot's and the apply thread's, every reader of the store,
 for the backend's `Close` (gap 4's census); the sender stopped serving first. Until R2c-2 the
 request carried only `srvBootApplied ρ`, and `run.specStop` took the scope as premises; until R2c-4
 the readers were `run.specStop`'s (`srvShutdownPre`), which a serving member cannot give at its
@@ -316,14 +317,20 @@ instance srvCleanupOwn_persistent (s : Loc) : Persistent (srvCleanupOwn (GF := G
   unfold srvCleanupOwn; infer_instance
 
 /-- (2026-11-05, R2b-3d gap 4) **The store's reader tokens `NewServer` keeps for the stop**: of
-the `mvccReaderN` tokens `mvcc.New` gives, all but the request goroutines' and the watch service's
-run slots' (64 each, `memberUp`'s serving stocks), the compactor's and the apply thread's
+the `mvccReaderN` tokens `mvcc.New` gives, all but the compactor's and the apply thread's
 (`apply.applyTok`). With every other token, `mvccClosed_rest.law` gives the backend's `Close` the
 storage's shares of its open token, as `NewServer`'s own error path does (R-D1). (The `lean` merge,
 2026-11-06, the reader tokens: until then of mvcc's `storeReader`s, `rdStockN - nJobRd -
 wsLoopN - 64 - 64 - 1 - 1 - 1 - 1`, the monitor's and the apply thread's backend readers retired
-among them; those are now the two counted slots `etcdStorage_open.law` hands the server.) -/
-abbrev srvKeepRdN : Nat := mvcc.api.mvccReaderN - 64 - 64 - 1 - 1
+among them; those are now the two counted slots `etcdStorage_open.law` hands the server.)
+(Per-type stage B2, 2026-11-11, r5 §3.2's row of the store's readers) Also less the gRPC run pool's
+raw stock, `srvRevokePoolN` (`srvServeStock`), which a stop of a member that never served gets back
+(`srvStopReaders`). (Until per-type stage B3, 2026-11-11, also less the request goroutines' and the
+watch service's run slots, 64 each: the gRPC runs now borrow the run pool.) Written
+over `backend.rdStockN - 7` (`mvcc.api.mvccReaderN_eq`), not the sealed `mvccReaderN`: a kernel
+`whnf` of `mvccReaderN - srvRevokePoolN` unfolds `Nat.sub` on the literal `srvRevokePoolN` step by
+step (deep recursion), while `rdStockN` evaluates. -/
+abbrev srvKeepRdN : Nat := backend.rdStockN - 7 - srvRevokePoolN - 1 - 1
 
 end defs
 

@@ -1,0 +1,30 @@
+# The model-param gate's pair entries (etc/model-param-check.py; decided by etcd-grove-81, 2026-11-12,
+# option (C'): questions.md, notes/stage-b-handoff.md). A trusted statement must not let its user
+# receive a registry atom (rule 2) or bind a message model with no registry premise (rule 1); a pair
+# entry accepts exactly one such item, of one returner, because a named depositing axiom requires the
+# same registration before the deposit the returner hands back (the grpc pair: InvGrpcRun.lean,
+# "The message models are the client's registered ones").
+#
+#   pair RETURNER DEPOSITOR REGISTRY BINDER-PATH : reason
+#
+# accepts, for RETURNER only: a received REGISTRY atom (a `recv` line) whose value is BINDER-PATH
+# exactly, and an uncovered model binder (a rule-1 `hit`) whose path extends BINDER-PATH and whose
+# model type is REGISTRY's (`ProtoMsg` for grpcReq/RepModelOf, `StreamMsg` for streamReq/RepModelOf);
+# and only while DEPOSITOR's statement requires REGISTRY (a `supp` line: a supplied registry atom on a
+# binder path, keyed by the same binder). An atom line is accepted only when every registry atom the
+# returner receives is so accepted and it receives nothing else (no `GrpcMethod` binder, no bare
+# registry, no atom off a binder path). An entry that accepts nothing, or names an axiom not walked,
+# is stale and fails. Binder paths are the walk's (`<definition>/<binder>`), as in the gate's output.
+
+# --- acceptRun / acceptRunConns: grpcAccepted's message models (unary arm: Invoke's; stream arm: NewStream's) ---
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcReqModelOf grpcAccepted/Req : the unary arm's Req is the deposited invoker contract's, whose grpcInvokerOk requires grpcReqModelOf GF Req.ty = some Req
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcRepModelOf grpcAccepted/Rep : the unary arm's Rep is the deposited invoker contract's, whose grpcInvokerOk requires grpcRepModelOf GF Rep.ty = some Rep
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof Perennial.EtcdGrove.streamReqModelOf grpcAccepted/Req : the stream arm's Req is the one NewStream deposits, which requires streamReqModelOf GF Req.ty = some Req
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof Perennial.EtcdGrove.streamRepModelOf grpcAccepted/Rep : the stream arm's Rep is the one NewStream deposits, which requires streamRepModelOf GF Rep.ty = some Rep
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcReqModelOf grpcAccepted/Req : as acceptRun's (the same grpcAccepted)
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcRepModelOf grpcAccepted/Rep : as acceptRun's (the same grpcAccepted)
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof Perennial.EtcdGrove.streamReqModelOf grpcAccepted/Req : as acceptRun's (the same grpcAccepted)
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof Perennial.EtcdGrove.streamRepModelOf grpcAccepted/Rep : as acceptRun's (the same grpcAccepted)
+
+# --- respond: works at the reply model the carrier took from grpcAccepted ---
+pair Perennial.EtcdGrove.grpc.model.respond.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcRepModelOf spec/Rep : respond's pre grpcReplyTo r Rep Φ Ψe is the one grpcAccepted's unary arm hands for its Rep (model/Serve.lean), which carries grpcRepModelOf GF Rep.ty = some Rep from Invoke's deposit

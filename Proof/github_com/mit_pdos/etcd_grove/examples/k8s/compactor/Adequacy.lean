@@ -33,14 +33,9 @@ the nine addresses unclaimed; the three data directories distinct and fresh; `cl
 with this example's (`clock.RealClock.After`, the registry allocated as above).
 
 **Why the opaque premises hold of this program** (finding k8s-misc-3, round 3, 2026-11-11; an
-argument from the Go program, not a proof). Both theorems take five opaque workload or environment
+argument from the Go program, not a proof). Both theorems take four opaque workload or environment
 premises. For `Main` (one member, `etcdstart.StartCompactingServer` with retention 0) and for
 `MainPartition` (three members, `cluster3.StartCluster` at `clusterCfg`, behind bridges):
-* `ckptEffectsOk` (`InvBoot.lean`): it has content only with a lease in a lessor and the
-  `LeaseCheckpoint` feature on. Neither program grants a lease: the writer only `Put`s, and the API
-  servers' compactors (`k8s.io/apiserver` `storage/etcd3/compact.go`) only `Get`, `Txn`, `Compact` and
-  `Watch`. The members' feature gate is etcd's default (`NewDefaultServerFeatureGate`;
-  `LeaseCheckpoint` defaults to off), so `le.cp` stays nil. It holds vacuously.
 * `authRecordsFit` (`InvBoot.lean`): no request touches auth (no user, role or grant is created,
   auth is never enabled), so the auth store has no record to exceed bbolt's `MaxValueSize`.
 * `apply.backendUnderQuota` (`apply/Contracts.lean`): the members use etcd's default quota (2 GiB:
@@ -151,7 +146,7 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hcec : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextErrsClient (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcdstart.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
@@ -195,8 +190,8 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨⟨Hms, -⟩, Hreg⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
-  have hM := k8s_compactor.wp_Main (GF := k8scompactorGF) (Hafter hG) n id ctxs boot Hbf (by rw [HT]; word)
-    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+  have hM := k8s_compactor.wp_Main (GF := k8scompactorGF) (Hafter hG) n id ctxs boot Hbf (by rw [HT]; word) (srvLevels_of_max HT)
+    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok Hreg]
   · iframe; iframe #
   ipureintro
@@ -237,7 +232,7 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     (Hcec : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextErrsClient (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps : steps.length < 2 ^ 63)
@@ -325,8 +320,8 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf
-    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega)
-    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega)
+    Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok Hreg]
   · iframe; iframe #
   ipureintro

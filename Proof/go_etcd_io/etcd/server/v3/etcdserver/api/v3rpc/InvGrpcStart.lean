@@ -79,39 +79,121 @@ variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 /-- The KV service's methods `v3rpc.Server` registers, with the `*quotaKVServer` `q`: the
 `(full name, MethodDesc.Handler, service value)` of `Put`, `Range`, `DeleteRange` and `Txn`
 (`client/v3/Results.lean`'s `etcdKVRegs`). -/
-def v3rpc.kvRegs (q : Loc) : List (GoString × val × GoInterface) :=
-  [(go!"/etcdserverpb.KV/Put", (@! etcdserverpb._KV_Put_Handler),
+def v3rpc.kvRegs (q : Loc) : List (GoString × GoFunc × GoInterface) :=
+  [(go!"/etcdserverpb.KV/Put", (functions etcdserverpb._KV_Put_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
-   (go!"/etcdserverpb.KV/Range", (@! etcdserverpb._KV_Range_Handler),
+   (go!"/etcdserverpb.KV/Range", (functions etcdserverpb._KV_Range_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
-   (go!"/etcdserverpb.KV/DeleteRange", (@! etcdserverpb._KV_DeleteRange_Handler),
+   (go!"/etcdserverpb.KV/DeleteRange", (functions etcdserverpb._KV_DeleteRange_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
-   (go!"/etcdserverpb.KV/Txn", (@! etcdserverpb._KV_Txn_Handler),
+   (go!"/etcdserverpb.KV/Txn", (functions etcdserverpb._KV_Txn_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q),
-   (go!"/etcdserverpb.KV/Compact", (@! etcdserverpb._KV_Compact_Handler),
+   (go!"/etcdserverpb.KV/Compact", (functions etcdserverpb._KV_Compact_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q)]
 
 /-- The Watch service's stream `v3rpc.Server` registers, with the `*watchServer` `p`. -/
-def v3rpc.watchSReg (p : Loc) : GoString × val × GoInterface :=
-  (go!"/etcdserverpb.Watch/Watch", (@! etcdserverpb._Watch_Watch_Handler),
+def v3rpc.watchSReg (p : Loc) : GoString × GoFunc × GoInterface :=
+  (go!"/etcdserverpb.Watch/Watch", (functions etcdserverpb._Watch_Watch_Handler []),
     interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p)
 
 /-- The registrations of a descriptor's methods, through their names and handlers. -/
 theorem v3rpc.descRegs_eq (sn : GoString) (mds : List google_golang_org.grpc.MethodDesc)
     (ss : GoInterface) :
-    descRegs sn mds ss = (mds.map fun md => (md.MethodName', (#md.Handler' : val))).map
+    descRegs sn mds ss = (mds.map fun md => (md.MethodName', md.Handler')).map
       (fun x => (grpcFullName sn x.1, x.2, ss)) := by
   simp only [descRegs, List.map_map]; rfl
 
+/-- The registrations of a descriptor's streams, through their names and handlers. -/
+theorem v3rpc.descSRegs_eq (sn : GoString) (sds : List google_golang_org.grpc.StreamDesc)
+    (ss : GoInterface) :
+    descSRegs sn sds ss = (sds.map fun sd => (sd.StreamName', sd.Handler')).map
+      (fun x => (grpcFullName sn x.1, x.2, ss)) := by
+  simp only [descSRegs, List.map_map]; rfl
+
+/-- A function value is its `GoFunc` (`intoVal` is injective at `GoFunc`). -/
+theorem v3rpc.func_intoVal_inj [go.CoreSemantics] : Function.Injective (intoVal (V := GoFunc)) := by
+  intro f1 f2 h
+  rw [go.intoVal_unfold GoFunc] at h
+  cases f1; cases f2; cases h; rfl
+
+/-- **Handlers from their values**: a descriptor list's names and handler values determine its
+names and handlers (the generated facts state the values). -/
+theorem v3rpc.handlers_eq [go.CoreSemantics] {α : Type} (N : α → GoString) (H : α → GoFunc)
+    (l : List α) (l' : List (GoString × GoFunc))
+    (h : l.map (fun x => (N x, (#(H x) : val))) = l'.map (fun x => (x.1, (#x.2 : val)))) :
+    l.map (fun x => (N x, H x)) = l' := by
+  have inj : Function.Injective (fun x : GoString × GoFunc => (x.1, (#x.2 : val))) := by
+    intro a b hab
+    simp only [Prod.mk.injEq] at hab
+    exact Prod.ext hab.1 (v3rpc.func_intoVal_inj hab.2)
+  have h' : (l.map (fun x => (N x, H x))).map (fun x : GoString × GoFunc => (x.1, (#x.2 : val))) =
+      l'.map (fun x => (x.1, (#x.2 : val))) := by rw [List.map_map]; exact h
+  clear h
+  generalize l.map (fun x => (N x, H x)) = m at h'
+  induction m generalizing l' with
+  | nil => cases l' <;> simp_all
+  | cons a m ih =>
+    cases l' with
+    | nil => simp at h'
+    | cons b l' =>
+      simp only [List.map_cons, List.cons.injEq] at h'
+      rw [inj h'.1, ih l' h'.2]
+
+/-- `kvDescMethods`' handlers, as `GoFunc`s. -/
+def v3rpc.kvDescFuncs : List (GoString × GoFunc) :=
+  [(go!"Range", functions etcdserverpb._KV_Range_Handler []),
+   (go!"Put", functions etcdserverpb._KV_Put_Handler []),
+   (go!"DeleteRange", functions etcdserverpb._KV_DeleteRange_Handler []),
+   (go!"Txn", functions etcdserverpb._KV_Txn_Handler []),
+   (go!"Compact", functions etcdserverpb._KV_Compact_Handler [])]
+
+theorem v3rpc.kvDescMethods_eq :
+    v3rpc.kvDescMethods = v3rpc.kvDescFuncs.map (fun x => (x.1, (#x.2 : val))) := rfl
+
+/-- `authDescMethods`' handlers, as `GoFunc`s. -/
+def v3rpc.authDescFuncs : List (GoString × GoFunc) :=
+  [(go!"AuthEnable", functions etcdserverpb._Auth_AuthEnable_Handler []),
+   (go!"AuthDisable", functions etcdserverpb._Auth_AuthDisable_Handler []),
+   (go!"AuthStatus", functions etcdserverpb._Auth_AuthStatus_Handler []),
+   (go!"Authenticate", functions etcdserverpb._Auth_Authenticate_Handler []),
+   (go!"UserAdd", functions etcdserverpb._Auth_UserAdd_Handler []),
+   (go!"UserGet", functions etcdserverpb._Auth_UserGet_Handler []),
+   (go!"UserList", functions etcdserverpb._Auth_UserList_Handler []),
+   (go!"UserDelete", functions etcdserverpb._Auth_UserDelete_Handler []),
+   (go!"UserChangePassword", functions etcdserverpb._Auth_UserChangePassword_Handler []),
+   (go!"UserGrantRole", functions etcdserverpb._Auth_UserGrantRole_Handler []),
+   (go!"UserRevokeRole", functions etcdserverpb._Auth_UserRevokeRole_Handler []),
+   (go!"RoleAdd", functions etcdserverpb._Auth_RoleAdd_Handler []),
+   (go!"RoleGet", functions etcdserverpb._Auth_RoleGet_Handler []),
+   (go!"RoleList", functions etcdserverpb._Auth_RoleList_Handler []),
+   (go!"RoleDelete", functions etcdserverpb._Auth_RoleDelete_Handler []),
+   (go!"RoleGrantPermission", functions etcdserverpb._Auth_RoleGrantPermission_Handler []),
+   (go!"RoleRevokePermission", functions etcdserverpb._Auth_RoleRevokePermission_Handler [])]
+
+theorem v3rpc.authDescMethods_eq :
+    v3rpc.authDescMethods = v3rpc.authDescFuncs.map (fun x => (x.1, (#x.2 : val))) := rfl
+
+/-- `leaseDescMethods`' handlers, as `GoFunc`s. -/
+def v3rpc.leaseDescFuncs : List (GoString × GoFunc) :=
+  [(go!"LeaseGrant", functions etcdserverpb._Lease_LeaseGrant_Handler []),
+   (go!"LeaseRevoke", functions etcdserverpb._Lease_LeaseRevoke_Handler []),
+   (go!"LeaseTimeToLive", functions etcdserverpb._Lease_LeaseTimeToLive_Handler []),
+   (go!"LeaseLeases", functions etcdserverpb._Lease_LeaseLeases_Handler [])]
+
+theorem v3rpc.leaseDescMethods_eq :
+    v3rpc.leaseDescMethods = v3rpc.leaseDescFuncs.map (fun x => (x.1, (#x.2 : val))) := rfl
+
 /-- **The KV service's registration contains `kvRegs`** (from the descriptor's methods). -/
-theorem v3rpc.kvRegs_sub (q : Loc) (mds : List google_golang_org.grpc.MethodDesc)
+theorem v3rpc.kvRegs_sub [go.CoreSemantics] (q : Loc) (mds : List google_golang_org.grpc.MethodDesc)
     (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.kvDescMethods) :
     ∀ x ∈ v3rpc.kvRegs q, x ∈ descRegs go!"etcdserverpb.KV" mds
       (interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q) := by
+  have hF := v3rpc.handlers_eq (·.MethodName') (·.Handler') mds v3rpc.kvDescFuncs
+    (by rw [h]; rfl)
   intro x hx
-  rw [v3rpc.descRegs_eq, h]
+  rw [v3rpc.descRegs_eq, hF]
   simp only [v3rpc.kvRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
-  simp only [v3rpc.kvDescMethods, List.map_cons, List.map_nil]
+  simp only [v3rpc.kvDescFuncs, List.map_cons, List.map_nil]
   rcases hx with rfl | rfl | rfl | rfl | rfl
   · exact List.mem_cons_of_mem _ (List.mem_cons_self ..)
   · exact List.mem_cons_self ..
@@ -136,29 +218,31 @@ theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
 the `*AuthServer` `p` (the auth plan's E3zb): `UserAdd`, `UserGrantRole`, `RoleAdd`,
 `RoleGrantPermission`, `AuthEnable`, and (C1's A5, 2026-10-31) `Authenticate`, which a client's `New`
 calls. -/
-def v3rpc.authRegs (p : Loc) : List (GoString × val × GoInterface) :=
-  [(go!"/etcdserverpb.Auth/UserAdd", (@! etcdserverpb._Auth_UserAdd_Handler),
+def v3rpc.authRegs (p : Loc) : List (GoString × GoFunc × GoInterface) :=
+  [(go!"/etcdserverpb.Auth/UserAdd", (functions etcdserverpb._Auth_UserAdd_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/UserGrantRole", (@! etcdserverpb._Auth_UserGrantRole_Handler),
+   (go!"/etcdserverpb.Auth/UserGrantRole", (functions etcdserverpb._Auth_UserGrantRole_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/RoleAdd", (@! etcdserverpb._Auth_RoleAdd_Handler),
+   (go!"/etcdserverpb.Auth/RoleAdd", (functions etcdserverpb._Auth_RoleAdd_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/RoleGrantPermission", (@! etcdserverpb._Auth_RoleGrantPermission_Handler),
+   (go!"/etcdserverpb.Auth/RoleGrantPermission", (functions etcdserverpb._Auth_RoleGrantPermission_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/AuthEnable", (@! etcdserverpb._Auth_AuthEnable_Handler),
+   (go!"/etcdserverpb.Auth/AuthEnable", (functions etcdserverpb._Auth_AuthEnable_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
-   (go!"/etcdserverpb.Auth/Authenticate", (@! etcdserverpb._Auth_Authenticate_Handler),
+   (go!"/etcdserverpb.Auth/Authenticate", (functions etcdserverpb._Auth_Authenticate_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p)]
 
 /-- **The Auth service's registration contains `authRegs`** (from the descriptor's methods). -/
-theorem v3rpc.authRegs_sub (p : Loc) (mds : List google_golang_org.grpc.MethodDesc)
+theorem v3rpc.authRegs_sub [go.CoreSemantics] (p : Loc) (mds : List google_golang_org.grpc.MethodDesc)
     (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.authDescMethods) :
     ∀ x ∈ v3rpc.authRegs p, x ∈ descRegs go!"etcdserverpb.Auth" mds
       (interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p) := by
+  have hF := v3rpc.handlers_eq (·.MethodName') (·.Handler') mds v3rpc.authDescFuncs
+    (by rw [h]; rfl)
   intro x hx
-  rw [v3rpc.descRegs_eq, h]
+  rw [v3rpc.descRegs_eq, hF]
   simp only [v3rpc.authRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
-  simp only [v3rpc.authDescMethods, List.map_cons, List.map_nil]
+  simp only [v3rpc.authDescFuncs, List.map_cons, List.map_nil]
   -- the positions of UserAdd, UserGrantRole, RoleAdd, RoleGrantPermission, AuthEnable,
   -- Authenticate
   rcases hx with rfl | rfl | rfl | rfl | rfl | rfl
@@ -186,46 +270,44 @@ theorem v3rpc.authDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
   decide
 
 /-- **The Watch service's registration contains `watchSReg`**. -/
-theorem v3rpc.watchSReg_mem (p : Loc) (sds : List google_golang_org.grpc.StreamDesc)
+theorem v3rpc.watchSReg_mem [go.CoreSemantics] (p : Loc) (sds : List google_golang_org.grpc.StreamDesc)
     (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
       [(go!"Watch", @! etcdserverpb._Watch_Watch_Handler)]) :
     v3rpc.watchSReg p ∈ descSRegs go!"etcdserverpb.Watch" sds
       (interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p) := by
-  have e : descSRegs go!"etcdserverpb.Watch" sds
-      (interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p) =
-      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map
-        (fun x => (grpcFullName go!"etcdserverpb.Watch" x.1, x.2,
-          interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p)) := by
-    simp only [descSRegs, List.map_map]; rfl
-  rw [e, h]
+  have hF := v3rpc.handlers_eq (·.StreamName') (·.Handler') sds
+    [(go!"Watch", functions etcdserverpb._Watch_Watch_Handler [])] (by rw [h]; rfl)
+  rw [v3rpc.descSRegs_eq, hF]
   exact List.mem_cons_self ..
 
 /-- The Lease service's methods `v3rpc.Server` registers, with the `*quotaLeaseServer` `q` (the
 lease-src plan, 2026-11-02): `LeaseGrant`, `LeaseRevoke`, `LeaseTimeToLive`, `LeaseLeases`. -/
-def v3rpc.leaseRegs (q : Loc) : List (GoString × val × GoInterface) :=
-  [(go!"/etcdserverpb.Lease/LeaseGrant", (@! etcdserverpb._Lease_LeaseGrant_Handler),
+def v3rpc.leaseRegs (q : Loc) : List (GoString × GoFunc × GoInterface) :=
+  [(go!"/etcdserverpb.Lease/LeaseGrant", (functions etcdserverpb._Lease_LeaseGrant_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q),
-   (go!"/etcdserverpb.Lease/LeaseRevoke", (@! etcdserverpb._Lease_LeaseRevoke_Handler),
+   (go!"/etcdserverpb.Lease/LeaseRevoke", (functions etcdserverpb._Lease_LeaseRevoke_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q),
-   (go!"/etcdserverpb.Lease/LeaseTimeToLive", (@! etcdserverpb._Lease_LeaseTimeToLive_Handler),
+   (go!"/etcdserverpb.Lease/LeaseTimeToLive", (functions etcdserverpb._Lease_LeaseTimeToLive_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q),
-   (go!"/etcdserverpb.Lease/LeaseLeases", (@! etcdserverpb._Lease_LeaseLeases_Handler),
+   (go!"/etcdserverpb.Lease/LeaseLeases", (functions etcdserverpb._Lease_LeaseLeases_Handler []),
      interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q)]
 
 /-- The Lease service's stream `v3rpc.Server` registers, with the `*quotaLeaseServer` `q`. -/
-def v3rpc.leaseSReg (q : Loc) : GoString × val × GoInterface :=
-  (go!"/etcdserverpb.Lease/LeaseKeepAlive", (@! etcdserverpb._Lease_LeaseKeepAlive_Handler),
+def v3rpc.leaseSReg (q : Loc) : GoString × GoFunc × GoInterface :=
+  (go!"/etcdserverpb.Lease/LeaseKeepAlive", (functions etcdserverpb._Lease_LeaseKeepAlive_Handler []),
     interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q)
 
 /-- **The Lease service's registration contains `leaseRegs`** (from the descriptor's methods). -/
-theorem v3rpc.leaseRegs_sub (q : Loc) (mds : List google_golang_org.grpc.MethodDesc)
+theorem v3rpc.leaseRegs_sub [go.CoreSemantics] (q : Loc) (mds : List google_golang_org.grpc.MethodDesc)
     (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.leaseDescMethods) :
     ∀ x ∈ v3rpc.leaseRegs q, x ∈ descRegs go!"etcdserverpb.Lease" mds
       (interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q) := by
+  have hF := v3rpc.handlers_eq (·.MethodName') (·.Handler') mds v3rpc.leaseDescFuncs
+    (by rw [h]; rfl)
   intro x hx
-  rw [v3rpc.descRegs_eq, h]
+  rw [v3rpc.descRegs_eq, hF]
   simp only [v3rpc.leaseRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
-  simp only [v3rpc.leaseDescMethods, List.map_cons, List.map_nil]
+  simp only [v3rpc.leaseDescFuncs, List.map_cons, List.map_nil]
   rcases hx with rfl | rfl | rfl | rfl
   · exact List.mem_cons_self ..
   · exact List.mem_cons_of_mem _ (List.mem_cons_self ..)
@@ -234,18 +316,14 @@ theorem v3rpc.leaseRegs_sub (q : Loc) (mds : List google_golang_org.grpc.MethodD
       (List.mem_cons_self ..)))
 
 /-- **The Lease service's registration contains `leaseSReg`**. -/
-theorem v3rpc.leaseSReg_mem (q : Loc) (sds : List google_golang_org.grpc.StreamDesc)
+theorem v3rpc.leaseSReg_mem [go.CoreSemantics] (q : Loc) (sds : List google_golang_org.grpc.StreamDesc)
     (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
       [(go!"LeaseKeepAlive", @! etcdserverpb._Lease_LeaseKeepAlive_Handler)]) :
     v3rpc.leaseSReg q ∈ descSRegs go!"etcdserverpb.Lease" sds
       (interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q) := by
-  have e : descSRegs go!"etcdserverpb.Lease" sds
-      (interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q) =
-      (sds.map fun sd => (sd.StreamName', (#sd.Handler' : val))).map
-        (fun x => (grpcFullName go!"etcdserverpb.Lease" x.1, x.2,
-          interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q)) := by
-    simp only [descSRegs, List.map_map]; rfl
-  rw [e, h]
+  have hF := v3rpc.handlers_eq (·.StreamName') (·.Handler') sds
+    [(go!"LeaseKeepAlive", functions etcdserverpb._Lease_LeaseKeepAlive_Handler [])] (by rw [h]; rfl)
+  rw [v3rpc.descSRegs_eq, hF]
   exact List.mem_cons_self ..
 
 /-- The Lease descriptor's names are distinct. -/
@@ -277,6 +355,78 @@ theorem v3rpc.watchDesc_nodup (sds : List google_golang_org.grpc.StreamDesc)
     rfl
   simp only [descNames, List.map_nil, List.nil_append, h1]
   exact List.Pairwise.cons (fun _ h => by cases h) List.Pairwise.nil
+
+theorem v3rpc.health_prefix : (go!"/grpc.health.v1.Health/" : GoString) =
+    go!"/" ++ go!"grpc.health.v1.Health" ++ go!"/" := rfl
+
+open google_golang_org.grpc in
+/-- **The joint `Nodup` of `v3rpc.Server`'s registrations** (stage B, M2): the six services'
+registrations, in `Server`'s order, and grpc's health service's, have distinct full names, from
+each service's distinct method and stream names (`svcDescsOk`), the services' distinct slash-free
+names (`grpcFullName_inj`) and the health service's prefix (`RegisterHealthServer`'s post). -/
+theorem v3rpc.server_nodup (kmds lmds cmds amds mmds : List MethodDesc)
+    (ksds wsds lsds csds asds msds : List StreamDesc) (q pw ql pc pa pm : GoInterface)
+    (rs srs : List (GoString × GoFunc × GoInterface))
+    (hk : (descNames kmds ksds).Nodup) (hw : (descNames [] wsds).Nodup)
+    (hl : (descNames lmds lsds).Nodup) (hc : (descNames cmds csds).Nodup)
+    (ha : (descNames amds asds).Nodup) (hm : (descNames mmds msds).Nodup)
+    (hH : ((rs ++ srs).map Prod.fst).Nodup)
+    (hHp : ∀ x ∈ rs ++ srs, go!"/grpc.health.v1.Health/" <+: x.1) :
+    ((([] ++ descRegs go!"etcdserverpb.KV" kmds q ++ descRegs go!"etcdserverpb.Watch" [] pw ++
+      descRegs go!"etcdserverpb.Lease" lmds ql ++ descRegs go!"etcdserverpb.Cluster" cmds pc ++
+      descRegs go!"etcdserverpb.Auth" amds pa ++ rs ++ descRegs go!"etcdserverpb.Maintenance" mmds pm) ++
+     ([] ++ descSRegs go!"etcdserverpb.KV" ksds q ++ descSRegs go!"etcdserverpb.Watch" wsds pw ++
+      descSRegs go!"etcdserverpb.Lease" lsds ql ++ descSRegs go!"etcdserverpb.Cluster" csds pc ++
+      descSRegs go!"etcdserverpb.Auth" asds pa ++ srs ++
+      descSRegs go!"etcdserverpb.Maintenance" msds pm)).map Prod.fst).Nodup := by
+  let S : List (GoString × List GoString × List GoString) :=
+    [(go!"etcdserverpb.KV", kmds.map (·.MethodName'), ksds.map (·.StreamName')),
+     (go!"etcdserverpb.Watch", ([] : List MethodDesc).map (·.MethodName'), wsds.map (·.StreamName')),
+     (go!"etcdserverpb.Lease", lmds.map (·.MethodName'), lsds.map (·.StreamName')),
+     (go!"etcdserverpb.Cluster", cmds.map (·.MethodName'), csds.map (·.StreamName')),
+     (go!"etcdserverpb.Auth", amds.map (·.MethodName'), asds.map (·.StreamName')),
+     (go!"etcdserverpb.Maintenance", mmds.map (·.MethodName'), msds.map (·.StreamName'))]
+  have hperm : ((([] ++ descRegs go!"etcdserverpb.KV" kmds q ++ descRegs go!"etcdserverpb.Watch" [] pw ++
+      descRegs go!"etcdserverpb.Lease" lmds ql ++ descRegs go!"etcdserverpb.Cluster" cmds pc ++
+      descRegs go!"etcdserverpb.Auth" amds pa ++ rs ++ descRegs go!"etcdserverpb.Maintenance" mmds pm) ++
+     ([] ++ descSRegs go!"etcdserverpb.KV" ksds q ++ descSRegs go!"etcdserverpb.Watch" wsds pw ++
+      descSRegs go!"etcdserverpb.Lease" lsds ql ++ descSRegs go!"etcdserverpb.Cluster" csds pc ++
+      descSRegs go!"etcdserverpb.Auth" asds pa ++ srs ++
+      descSRegs go!"etcdserverpb.Maintenance" msds pm)).map Prod.fst).Perm
+      (grpcNames S ++ (rs ++ srs).map Prod.fst) := by
+    rw [List.perm_iff_count]
+    intro a
+    simp only [S, grpcNames, List.flatMap_cons, List.flatMap_nil, List.map_append,
+      descRegs_names, descSRegs_names, List.count_append, List.map_nil, List.append_nil,
+      List.nil_append]
+    omega
+  refine (List.Perm.nodup_iff hperm).mpr (List.nodup_append.mpr ⟨?_, hH, ?_⟩)
+  · apply grpcNames_nodup
+    · intro s hs
+      simp only [S, List.mem_cons, List.not_mem_nil, or_false] at hs
+      rcases hs with rfl | rfl | rfl | rfl | rfl | rfl
+      · exact ⟨by dsimp only; decide, hk⟩
+      · exact ⟨by dsimp only; decide, hw⟩
+      · exact ⟨by dsimp only; decide, hl⟩
+      · exact ⟨by dsimp only; decide, hc⟩
+      · exact ⟨by dsimp only; decide, ha⟩
+      · exact ⟨by dsimp only; decide, hm⟩
+    · simp only [S, List.map_cons, List.map_nil]; decide
+  · intro a ha b hb hab
+    subst hab
+    obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hb
+    obtain ⟨t, ht⟩ := hHp x hx
+    obtain ⟨s, hs, hsa⟩ := List.mem_flatMap.mp ha
+    obtain ⟨y, _, hy⟩ := List.mem_map.mp hsa
+    have hfull : x.1 = grpcFullName go!"grpc.health.v1.Health" t := by
+      rw [← ht, v3rpc.health_prefix]; simp [grpcFullName, List.append_assoc]
+    have hS1 : (47 : w8) ∉ s.1 ∧ s.1 ≠ go!"grpc.health.v1.Health" := by
+      simp only [S, List.mem_cons, List.not_mem_nil, or_false] at hs
+      rcases hs with rfl | rfl | rfl | rfl | rfl | rfl <;>
+        exact ⟨by dsimp only; decide, by dsimp only; decide⟩
+    have := (grpcFullName_inj s.1 go!"grpc.health.v1.Health" y t hS1.1 (by decide)
+      (hy.trans hfull)).1
+    exact hS1.2 this
 
 end pure
 

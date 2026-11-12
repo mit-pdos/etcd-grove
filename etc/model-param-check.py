@@ -7,11 +7,14 @@ Runs `etc/ModelParamCheck.lean` (see its header for the rules) on the root modul
 main group, and its selftests (rule 6's negative tests) on the registration modules alone. Then:
 
 - every `hit` not covered (rule 1), `atom` (rule 2), bad `reg` (rules 3, 4) or bad `sat` (rule 7)
-  is a failure;
+  is a failure, but for the pair entries of `etc/model-param-allow.txt` (`judge_pairs`: a returned
+  registry atom, or a model binder, accepted on exactly the listed binder path while the named
+  depositing axiom requires the same registration; a stale entry fails);
 - every axiom a `Sat` theorem rests on (`satax`, already within Lean's allowlist by module and
   shape) must also appear verbatim on an `axiom` line of its `Code/` file (`[v6a]` 4; the `Code/`
   files are the translations `etc/goose.py --check` checks);
-- every selftest must behave as declared (refused, or the one that must pass);
+- every selftest must behave as declared (refused, or the one that must pass), and the pair
+  entries' selftests too (`PAIR_SELFTESTS`, on the `PAIRTESTS` declarations' lines);
 - a floor: at least `MIN_REGS` registrations, each with its `Sat` theorem.
 
     etc/model-param-check.py [--json FILE] [--reuse] [--no-cache] [--cache-dir DIR] [-v]
@@ -68,6 +71,12 @@ sys.path.insert(0, os.path.join(ROOT, "etc"))
 import proof_roots  # noqa: E402
 
 MIN_REGS = 36
+ALLOW = os.path.join(ROOT, "etc", "model-param-allow.txt")
+# a registry's model type (an R1 hit's `type`): the family a pair entry's registry accepts
+REG_FAMILY = {"Perennial.EtcdGrove.grpcReqModelOf": "Perennial.EtcdGrove.ProtoMsg",
+              "Perennial.EtcdGrove.grpcRepModelOf": "Perennial.EtcdGrove.ProtoMsg",
+              "Perennial.EtcdGrove.streamReqModelOf": "Perennial.EtcdGrove.StreamMsg",
+              "Perennial.EtcdGrove.streamRepModelOf": "Perennial.EtcdGrove.StreamMsg"}
 REG = re.compile(r"(?:grpcReqModelOf|grpcRepModelOf|streamReqModelOf|streamRepModelOf|pbModelOf)\s+GF\s+\S+\s*=\s*some", re.S)
 
 
@@ -349,6 +358,132 @@ def run(json_path, cache_dir=None):
     return hits, len(jobs)
 
 
+def read_allow(path=ALLOW):
+    """The pair entries: [(returner, depositor, registry, binder path, line number)]."""
+    pairs, bad = [], []
+    try:
+        lines = open(path, encoding="utf-8").read().splitlines()
+    except OSError:
+        return pairs, bad
+    for i, l in enumerate(lines, 1):
+        if not l.strip() or l.lstrip().startswith("#"):
+            continue
+        head, sep, reason = l.partition(" : ")
+        w = head.split()
+        if w[0] != "pair" or len(w) != 5 or not sep or not reason.strip():
+            bad.append(f"{os.path.basename(path)}:{i}: not `pair RETURNER DEPOSITOR REGISTRY PATH : reason`")
+            continue
+        if w[3] not in REG_FAMILY:
+            bad.append(f"{os.path.basename(path)}:{i}: {w[3]} is not a message-model registry")
+            continue
+        pairs.append((w[1], w[2], w[3], w[4], i))
+    return pairs, bad
+
+
+def extends_path(p, q):
+    """`p` extends `q` at a component boundary (ModelParamCheck.lean's `extendsPath`)."""
+    return p.startswith(q) and (len(p) == len(q) or p[len(q)] in ".[?")
+
+
+def judge_pairs(objs, pairs):
+    """The rule-1 and rule-2 failures, with the pair entries applied: (failures, accepted count).
+
+    A pair `(R, D, reg, path)` is valid when `D` was walked and supplies `reg` (a `supp` line, keyed
+    by the same binder). For `R` only, it accepts an uncovered `hit` whose path extends `path` and
+    whose type is `reg`'s family, and a received `reg` atom (a `recv` line, keyed) at `path` exactly;
+    `R`'s `atom` lines are accepted only if `R` receives nothing else (`other` false) and every one
+    of its `recv` lines is accepted. A pair that accepts nothing, or names an axiom not walked, fails.
+    """
+    fails, accepted = set(), 0
+    walked = {o["name"] for o in objs if o["t"] == "axiom"}
+    supp = collections.defaultdict(set)
+    recv = collections.defaultdict(list)
+    for o in objs:
+        if o["t"] == "supp" and o.get("keyed"):
+            supp[o["axiom"]].add(o["registry"])
+        elif o["t"] == "recv":
+            recv[o["axiom"]].append(o)
+    valid = collections.defaultdict(list)
+    used = set()
+    for (r, d, reg, path, ln) in pairs:
+        if r not in walked:
+            fails.add(f"stale pair (line {ln}): {r} is not a walked trusted statement")
+        elif d not in walked:
+            fails.add(f"stale pair (line {ln}): depositor {d} is not a walked trusted statement")
+        elif reg not in supp[d]:
+            fails.add(f"pair (line {ln}): depositor {d} does not require {reg} (no keyed supplied atom)")
+        else:
+            valid[r].append((reg, path, ln))
+    for o in objs:
+        t = o["t"]
+        if t == "hit" and not o["covered"]:
+            m = [ln for (reg, path, ln) in valid.get(o["axiom"], ())
+                 if extends_path(o["path"], path) and REG_FAMILY[reg] == o["type"]]
+            if m:
+                used.update(m)
+                accepted += 1
+            else:
+                fails.add(f"rule 1: {o['axiom']}: model binder {o['path']} ({o['type']}) has no registry premise")
+        elif t == "atom":
+            a = o["axiom"]
+            ok = not o.get("other", True) and bool(recv[a])
+            lns = []
+            for rv in recv[a]:
+                m = [ln for (reg, path, ln) in valid.get(a, ())
+                     if rv.get("keyed") and reg == rv["registry"] and path == rv["path"]]
+                if not m:
+                    ok = False
+                lns += m
+            if ok:
+                used.update(lns)
+                accepted += 1
+            else:
+                fails.add(f"rule 2: {a}: a registry atom or registered record is received ({o['where']})")
+    for (r, d, reg, path, ln) in pairs:
+        if any(ln == v[2] for v in valid.get(r, ())) and ln not in used:
+            fails.add(f"stale pair (line {ln}): {r} {reg} {path} accepts nothing")
+    return fails, accepted
+
+
+# The pair entries' selftests, on `PAIRTESTS`' lines (etc/ModelParamCheck.lean): (name, entries as
+# (returner, depositor, registry, path), whether the returner `st_pret` must be refused, or the name
+# of another returner whose atom line must be refused).
+_RQ = "Perennial.EtcdGrove.grpcReqModelOf"
+PAIR_SELFTESTS = [
+    ("pair: an unpaired returned registry atom", [], True),
+    ("pair: a depositor without the registration", [("st_pret", "st_pdep_none", _RQ, "T")], True),
+    ("pair: a depositor requiring another registry",
+     [("st_pret", "st_pdep_other", _RQ, "T")], True),
+    ("pair: an entry on another binder path", [("st_pret", "st_pdep", _RQ, "U")], True),
+    ("pair: an entry for another returner", [("st_pdep_other", "st_pdep", _RQ, "T")], True),
+    ("pair: the returner paired with its depositor (must pass)", [("st_pret", "st_pdep", _RQ, "T")], False),
+    ("pair: a paired returner also receiving a GrpcMethod",
+     [("st_pret_meth", "st_pdep", _RQ, "T")], "st_pret_meth"),
+    ("pair: a paired returner receiving an atom keyed by another type",
+     [("st_pret_unkeyed", "st_pdep", _RQ, "T")], "st_pret_unkeyed"),
+]
+
+
+def run_pair_selftests(pt):
+    """Each `PAIR_SELFTESTS` case judged on the `PAIRTESTS` lines `pt`: [(name, ok, why)]."""
+    out = []
+    if not all(any(o["t"] == "atom" and o["axiom"] == a for o in pt)
+               for a in ("st_pret", "st_pret_meth", "st_pret_unkeyed")) or \
+            not any(o["t"] == "supp" and o["axiom"] == "st_pdep" for o in pt):
+        return [("pair: the PAIRTESTS lines", False, "st_pret's atom or st_pdep's supp line missing")]
+    for name, entries, refuse in PAIR_SELFTESTS:
+        fails, _ = judge_pairs(pt, [(*e, i) for i, e in enumerate(entries, 1)])
+        if isinstance(refuse, str):
+            # that returner's atom line must still be refused (its model binder is paired)
+            mine = sorted(f for f in fails if f.startswith(f"rule 2: {refuse}:"))
+            out.append((name, bool(mine), "; ".join(mine)[:200] or "passed"))
+            continue
+        mine = sorted(f for f in fails if "st_pret:" in f or "stale" in f or "depositor" in f)
+        refused = bool(mine)
+        out.append((name, refused == refuse, "; ".join(mine)[:200] or "passed"))
+    return out
+
+
 import goose  # noqa: E402  (the projects' owned output paths)
 
 OWNED = {((root or ""), o.replace(os.sep, "/")) for p in goose.PROJECTS
@@ -413,7 +548,11 @@ def main():
         hits, n = run(a.json, None if a.no_cache else a.cache_dir)
         cached = "" if a.no_cache else f", {hits} of {n} Lean runs from the cache"
     objs = [json.loads(l) for l in open(a.json) if l.strip().startswith("{")]
-    fails = set()
+    pt = [o for o in objs if o.get("pt")]
+    objs = [o for o in objs if not o.get("pt")]
+    pairs, allow_bad = read_allow()
+    fails, n_paired = judge_pairs(objs, pairs)
+    fails.update(allow_bad)
     regs, sats = {}, collections.defaultdict(set)
     axioms = set()
     selftests = []
@@ -421,10 +560,6 @@ def main():
         t = o["t"]
         if t == "axiom":
             axioms.add(o["name"])
-        elif t == "hit" and not o["covered"]:
-            fails.add(f"rule 1: {o['axiom']}: model binder {o['path']} ({o['type']}) has no registry premise")
-        elif t == "atom":
-            fails.add(f"rule 2: {o['axiom']}: a registry atom or registered record is received ({o['where']})")
         elif t == "reg":
             if "bad" in o:
                 fails.add(f"registration {o['name']}: {o['bad']}")
@@ -463,6 +598,13 @@ def main():
             fails.add(f"selftest failed: {st['name']} ({st.get('why', st.get('by', ''))})")
     if len(selftests) == 0:
         fails.add("no selftest ran")
+    if not any(o["t"] == "pairtests" and o.get("ok") for o in objs):
+        fails.add("the pair selftests' declarations did not elaborate "
+                  f"({next((o.get('why', '') for o in objs if o['t'] == 'pairtests'), 'no pairtests line')[:200]})")
+    pair_st = run_pair_selftests(pt)
+    for name, ok, why in pair_st:
+        if not ok:
+            fails.add(f"selftest failed: {name} ({why})")
     if len(regs) != MIN_REGS:
         fails.add(f"count: {len(regs)} registrations, {MIN_REGS} expected (update MIN_REGS with a new instance)")
     for r in regs:
@@ -471,13 +613,16 @@ def main():
     if a.v:
         for o in selftests:
             print(f"  selftest {'ok' if o['ok'] else 'FAILED'}: {o['name']}  [{o.get('by', '')[:160]}]")
+        for name, ok, why in pair_st:
+            print(f"  selftest {'ok' if ok else 'FAILED'}: {name}  [{why[:160]}]")
     if fails:
         print(f"model-param: FAILED ({len(fails)})")
         for f in sorted(fails):
             print("  " + f)
         sys.exit(1)
     print(f"model-param: ok ({len(axioms)} trusted statements walked, {len(regs)} registrations "
-          f"each with its Sat theorem, {len(selftests)} selftests{cached})")
+          f"each with its Sat theorem, {n_paired} finding(s) accepted by {len(pairs)} pair entries, "
+          f"{len(selftests) + len(pair_st)} selftests{cached})")
 
 
 if __name__ == "__main__":

@@ -9,10 +9,16 @@ blocks-proof: no
 
 `freelist.ReleasePendingPages` releases the pending pages between read transactions with
 `releaseRange(minid, tid-1)` for each open reader's `tid`, in `common.Txid` (`uint64`) arithmetic.
-For a reader of txid 0, `tid-1` wraps to `math.MaxUint64`: `releaseRange(0, MaxUint64)` frees every
-pending page whose allocating transaction is unknown (0) or any other, including the pages of txid
-0's tree that a later writer freed. A writer may then reallocate and overwrite them while the
-reader still reads them.
+For a reader of txid 0, `tid-1` wraps to `math.MaxUint64`: `releaseRange(0, MaxUint64)` covers every
+pending page, whose allocating transaction (unknown, 0, or any other) then lies in the range. It
+takes **two calls** with the reader still open: on the first, the fresh pending entry has
+`lastReleaseBegin = 0`, so `releaseRange(0, ...)` skips it (`shared.go:183`), but the call's last
+`releaseRange(1, MaxUint64)` sets `lastReleaseBegin = 1`; on the second, `releaseRange(0, MaxUint64)`
+no longer skips it and releases the page, including the pages of txid 0's tree that a later writer
+freed. A writer may then reallocate and overwrite them while the reader still reads them (checked
+by a test in a copy of the module, review 4d-1: reader 0, `Free(1, page 3)` with allocator 0, two
+`ReleasePendingPages`, then `Allocate(2, 1)` returns 3). A reader at txid `MaxUint64` is the
+mirror case: `tid+1` wraps to 0 and the final `releaseRange(0, MaxUint64)` releases everything.
 
 A reader has txid 0 only when the database's current meta has txid 0, i.e. when meta page 1 (txid
 1, written by `db.init`) is invalid at `Open` while meta page 0 is valid: a file whose `init` write
@@ -30,6 +36,9 @@ decided 2026-11-04: bbolt never leaves a current meta of txid 0 after `init`, si
 torn write is excluded (D22), the fork's `init` is crash-safe, and `WriteTo` copies a database of
 txid at least 1). `Open` (U11) gets `1 ≤ C.txid` from it for `metaR`, which `store_release` needs
 (every reader txid at least 1).
+
+The freelist's `ReleasePendingPages` spec takes `readersOk` (no reader at txid 0 or `2^64-1`;
+`SpecPlan/Spec/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean`).
 
 ## Notes
 

@@ -3,10 +3,10 @@
 
 `ak_served_kv`: the ghost step between `net.Listen` and `go gs.Serve(l)` with auth on, watchkv's
 `etcd_watch.wk_served_nd` without the watch: from `v3rpc.Server`'s postcondition (`grpcUpOn`), the member's
-started facts (`memberUpOn`'s `srvAuthStoreOn`: the store's cost field and `Authenticate` side), the listener and the run slots, the right to serve,
+started facts (`memberUpOn`'s `srvAuthStoreOn`: the store's cost field and `Authenticate` side), the listener and the run pools, the right to serve,
 etcd's KV methods with auth on at the address (`akKVOn`), the five Auth admin methods
 (`setupAuthServed`) and `Authenticate` (`etcd_kv_auth_served_on`). `ak_served_watch`: its watch
-half, from the stream server `ak_served_kv` returns, the watch server and its run slots: the watch
+half, from the stream server `ak_served_kv` returns, the watch server and the run pools: the watch
 server's facts at the address (`watchAddrFacts`) and its mode (`modeTag`, `Work`'s), the members' KV facts from the auth-on read view
 (`srvKVCoreM_of_readM`, G2's mode-generic `srvKVFacts`).
 
@@ -67,10 +67,11 @@ theorem bcryptCostOk_of_field (wp : auth.authStore.BcryptCost.spec (GF := GF)) (
 `grpcRepliesFit`, which it gives `grpc.start`. -/
 theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
     (E : apply.AEnv GF) (ρ : ReqNames) (cid mid n : w64) (il im iu ims is : GoFunc)
-    (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) (N : Nat)
+    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface))
     (γa : auth.AuthNames) (hγa : E.authMode = .on γa)
     (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (hregsA : ∀ x ∈ v3rpc.authRegs pa, x ∈ regs)
-    (wpBC : auth.authStore.BcryptCost.spec (GF := GF)) (Hrf : grpcRepliesFit) :
+    (wpBC : auth.authStore.BcryptCost.spec (GF := GF)) (Hrf : grpcRepliesFit)
+    (hnd : ((regs ++ sregs).map Prod.fst).Nodup) (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM true s E ρ ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
@@ -83,14 +84,14 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
-        ([∗list] _x ∈ List.replicate N (), client.etcdGrpcSlot s E ρ.rd) ⊢
-      |={⊤}=> grpcServeTok gs lis ∗ grpcStreamServerAt addr [ims, is] sregs ∗
+        srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
+      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
         akKVOn addr s E ρ cid mid ∗ setupAuthServed addr s E ρ ∗
         isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Hpa, #HBF, #Hil, #Him, #Hiu, Hgs,
-    Hlis, Hslots⟩
-  imod (grpc.start gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf) $$ [Hgs Hlis]
-    with ⟨Hat', Hss, Htok⟩
+    Hlis, #Hb, #Hrp⟩
+  imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf hnd) $$ [Hgs Hlis]
+    with ⟨%γ, #Hat', #Hss, Htok⟩
   · iframe
   iunfold srvAuthStoreOn at HBF
   icases HBF with ⟨%stl, %c, #Hfld, #Hc, #Hau⟩
@@ -98,15 +99,16 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk
   imod (client.etcd_kv_auth_served_on addr p q pa s E ρ ρ.rd cid mid n il im iu
-      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty, #stl⟩ regs N γa hγa
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty, #stl⟩ regs γ γa hγa
       (by
         intro x hx
         rcases List.mem_append.1 hx with h | h
         · exact hregs x h
-        · exact hregsA x h)) $$ [Hat' Hslots]
+        · exact hregsA x h) HL) $$ []
     with ⟨#Hput, #Hrange, #Hdel, #Htxn, #Hua, #Hug, #Hra, #Hrg, #Hae, #Hauth⟩
   · iframe; iframe #
   imodintro
+  iexists γ
   iframe Htok Hss Hauth
   isplitl []
   · unfold akKVOn
@@ -120,38 +122,40 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
 theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (Hp : mvcc.api.persistent.law (GF := GF))
     (V : client.WEnv GF) (addr : GoString) (pw s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
-    (ims is : GoFunc) (sregs : List (GoString × val × GoInterface)) (nw : Nat)
-    (hV : V.addr = addr) (hE : V.R.E = E) (hp : V.pfx ≠ []) (hst : kvSame γr.kv V.kv)
+    (ims is : GoFunc) (sregs : List (GoString × GoFunc × GoInterface)) (γ : GName)
+    (hV : V.addr = addr) (hE : V.R.E = E) (hs : V.R.s = s) (hγm : V.W.γm = V.R.E.γ) (hp : V.pfx ≠ []) (hst : kvSame γr.kv V.kv)
     (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62)
     (hset : go.typeSetContains
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
       go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
     (hwreg : (go!"/etcdserverpb.Watch/Watch",
-      (@! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler : val),
+      (functions go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler [] : GoFunc),
       interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
     -- (R9, the `lean` merge) the watch contract at the server's model and watch facts
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E γr true) (hWL : V.WL = client.srvWL V.W)
-    (hH : V.W.histLb = srvApi.histLb γr true V.R.E.γs) (hC : V.W.crevOk = srvApi.crevOk γr) :
+    (hH : V.W.histLb = srvApi.histLb γr true V.R.E.γs) (hC : V.W.crevOk = srvApi.crevOk γr)
+    (Htb : threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders) (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isServerReadM true s E γr ∗ v3rpc.isWatchServer pw V.R ∗
         v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
-        grpcStreamServerAt addr [ims, is] sregs ∗
-        ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R V.W) ∗ client.eofOk ⊢
+        grpcStreamServerAt addr [ims, is] sregs γ ∗
+        srvRevokeBuilt s E ∗ srvRunPool s E γr ∗ client.eofOk ⊢
       |={⊤}=> watchAddrFacts V ∗ auth.modeTag V.R.tag E.authMode := by
   haveI := v3rpc.srvWOk_persistent Hp V.W V.R.wsl v3rpc.wsN
-  iintro ⟨#Ppb, #Pv, #Hrd, #Hws, #HW, #Hims, #His, Hss, Hwslots, #Heof⟩
+  iintro ⟨#Ppb, #Pv, #Hrd, #Hws, #HW, #Hims, #His, #Hss, #Hb, #Hrp, #Heof⟩
   ihave #Htag : auth.modeTag V.R.tag E.authMode $$ []
   · iunfold v3rpc.isWatchServer at Hws
     icases Hws with ⟨-, -, -, -, -, -, -, -, -, #Hok⟩
     iunfold v3rpc.watchSrvOk at Hok
     icases Hok with ⟨-, -, -, #Ht, -⟩
     rw [← hE]; iexact Ht
-  imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs nw hset hwreg) $$ [Hss Hwslots]
+  imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs γ γr hγm Htb HL hset hwreg) $$ []
     with #Hst
-  · iframe; iframe #
+  · rw [hs, hE]
+    iframe #
   ihave #Hcore := srvKVCoreM_of_readM true s E γr $$ Hrd
   ihave #Hkf := client.srvKVFacts_intro V true γr hst hlog hrb hH hC $$ [Hcore]
   · rw [hE]; iframe #

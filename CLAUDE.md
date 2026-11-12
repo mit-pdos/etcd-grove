@@ -121,6 +121,14 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
   --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
+- `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
+  etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
+  over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one
+  `def … .spec : Prop` per function and per law, no `theorem`/`axiom`/`sorry`; `SpecPlan/Spec/PkgInit/`
+  is generated (`etc/gen-specs-pkginit.py`, `--check`). It builds (`etc/specs-build.sh`,
+  `etc/specs-build-all.sh`), imports only the shared translations (`GeneratedProof`, `GooseLang`) and
+  Perennial, and nothing outside it imports it (its namespaces are the main tree's). No `Link`/`Results`:
+  the trust-base and verified-code scripts see nothing of it.
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 
@@ -192,6 +200,17 @@ The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what mak
 (yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
 principle; and when the user approves a spec, an example (its first version, each critique with
 what it changed, the approved spec). A fix to the spec itself is not enough.
+
+## The spec plan and convergence
+
+`SpecPlan/`'s specs are judged against the requirement snippets of `examples/specreq/` (Go: what a
+caller relies on is a `panic` on its violation, and each snippet must be provable panic-free from the
+specs), and the snippets against what the real code and its users do. New and reworked specs and
+proofs in `Spec/`/`Proof/` converge toward `SpecPlan/`'s: take its statement (vocabulary, premises,
+post) unless the proof shows it wrong. A spec defect a proof finds goes in the change ledger
+`notes/specs-only/ledger.md` (date, spec, defect, evidence, proposed change, decision) before the spec
+is edited, in `SpecPlan/` or in `Spec/`. `notes/specs-only/README.md` is the plan and its conventions,
+`open-questions.md` its decisions.
 
 ## Bounds
 

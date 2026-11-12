@@ -136,8 +136,8 @@ def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAdd
 
 /-- (R2c-4) **What a member's stop takes of the started member**: the right to stop its server
 (`srvStopRight`, `Start`'s, inside `etcdstart.memberUp`), at an apply environment in the stop's scope
-(`srvStop.scope`), and the store's readers of the serving stocks the member never used (`memberUp`'s
-64 store readers and its watchable store's 64), which the stop request hands `run`'s shutdown. -/
+(`srvStop.scope`), and the store's readers of the serving stocks the member never used
+(`srvStopReaders`: the gRPC run pool's raw stock), which the stop request hands `run`'s shutdown. -/
 def memberStopRes (s : Loc) (ρ : ReqNames) (id : w64) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (dd : GoString), srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ ⌜srvStop.scope E⌝ ∗
     srvStopReaders E)

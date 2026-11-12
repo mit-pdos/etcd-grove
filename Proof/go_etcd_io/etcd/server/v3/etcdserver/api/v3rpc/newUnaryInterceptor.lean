@@ -43,10 +43,11 @@ set_option hygiene false in
 local macro "handler_tail" : tactic => `(tactic| (
   icases Hk with ⟨Hk, -⟩;
   iunfold srvHandlerCall at Hk;
+  ispecialize Hk $$ [//];
   wp_bind (App (App (Val #h) _) _);
   iapply (wp_wand (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (True -∗ Ψ v)))) $$ Hk;
-  iintro %v ⟨%resp, %err, %Hv, -, HΨ⟩;
+    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ True ∗ (True -∗ Ψ v)))) $$ Hk;
+  iintro %v ⟨%resp, %err, %Hv, -, -, HΨ⟩;
   subst Hv;
   wp_auto;
   iapply HΨ;
@@ -125,9 +126,9 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   ipersist Hreqp
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       «$res1_ptr» ↦ GoInterface.nil ∗
-      (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
+      ((True -∗ WP (srvHandlerCall h #(GoInterface.ok ci) #req)
           {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (True -∗ Ψ v) }} ∧
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ True ∗ (True -∗ Ψ v) }}) ∧
         (True -∗ ∀ err : GoInterface,
           ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
           go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err)))) ∨

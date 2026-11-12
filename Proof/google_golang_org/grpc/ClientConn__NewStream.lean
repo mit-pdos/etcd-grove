@@ -24,8 +24,10 @@ variable [sem : go.Semantics]
 /-- **Trust boundary** (unit W-W): a client stream through grpc's `ClientConn` is the stream
 interceptor (etcd's, at no retry) over grpc's streamer, which opens a stream of a registered
 streaming method: the network, grpc's client and server, the protobuf codec, the server's
-runtime, which runs the method's handler on the stream's server end (`grpc.serveStream`);
-`InvGrpcStream.lean`'s header states the transport's claims. -/
+runtime, which runs the method's handler on the stream's server end, on a goroutine of the
+server's (per-type stage B, B1b: `Server.Serve`'s trusted model, `acceptRun`'s stream arm, paired
+with this call as `InvGrpcRun.lean`'s header, "The pair", states: both ends share the stream's names
+and its persistent spec); `InvGrpcStream.lean`'s header states the transport's claims. -/
 axiom grpc.ClientConn.NewStream.wp_proof : grpc.ClientConn.NewStream.spec (GF := GF) (hG := hG)
 
 end proof

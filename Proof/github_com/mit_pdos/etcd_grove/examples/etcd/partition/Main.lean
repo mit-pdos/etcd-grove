@@ -53,7 +53,7 @@ theorem Main.wp_proof
     (wp_partitioner : cluster3.Partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
     Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -69,7 +69,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the cluster, its clients' watch environment unused
   wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg [] Hbf
-      Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms)
     $$ [Hstart Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -194,11 +194,11 @@ theorem Main.wp_proof
   -- (D29) the bridges' addresses are refusal-free, as their members' are: every client's writes
   -- are sent at most once, whatever its retry bound
   ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha

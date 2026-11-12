@@ -57,7 +57,7 @@ theorem Main.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
@@ -109,7 +109,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg (LogEntry.toEntries boot 0) ctxs
       (linkvtxnDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [linkvtxnDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [linkvtxnDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -122,7 +122,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
-    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
+    #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
   -- members' axiom), and etcd's KV calls registered at the address
@@ -135,7 +135,7 @@ theorem Main.wp_proof
   wp_apply (wp_Serve srv go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cid mid ∗
         ⌜noRefusalAt go!"127.0.0.1:23796"⌝)))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
@@ -145,10 +145,9 @@ theorem Main.wp_proof
     ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23796" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    imod (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl)
-      $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
-    · unfold etcdstart.kvServeStocks
-      iframe; iframe #
+    imod (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl HLv)
+      $$ [Hg Hstk] with ⟨Hserv, #Hkv⟩
+    · iframe; iframe #
     imodintro
     iframe Hserv Hkv
     ipureintro; exact Hnr

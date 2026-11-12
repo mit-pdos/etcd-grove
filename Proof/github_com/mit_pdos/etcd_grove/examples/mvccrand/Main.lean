@@ -24,11 +24,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 
 theorem Main.wp_proof (wp_Run : Run.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro _ _ hckpt hdbo hdbc
+  intro _ _ hdbo hdbc
   wp_start as ⟨Hfile, Htok, #Hvoff⟩
   (try wp_auto)
   wp_apply (wp_Run _ (by word) (by word) (by word) (by word) (by word) (by word)
-      hckpt hdbo hdbc) $$ [Hfile Htok] as %rep -
+      hdbo hdbc) $$ [Hfile Htok] as %rep -
   · iframe Hfile Htok Hvoff
     (try iPkgInit)
   (try wp_auto)

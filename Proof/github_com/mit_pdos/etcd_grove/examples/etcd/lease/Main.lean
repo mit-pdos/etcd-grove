@@ -3,9 +3,10 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/lease/Main.lean` (th
 example, 2026-11-02, `notes/lease-ex-plan.md`; as putget's). Lean-first (no Rocq counterpart).
 
 The steps (Prove stage): `Main`'s premises in the shared start's form; the ghost state `NewServer`
-takes (`etcdstart.alloc1`); `etcdstart.StartServer`; `go holdToken()` (`wp_fork_tok_self`: the goroutine never returns, its
-token stays with `Main`); `etcdstart.Serve` with the ghost step `etcdstart.kv_lease_served` (the lease
-reads registered at the address; the forked token goes into the one gRPC slot); `etcdstart.NewClient`; each
+takes (`etcdstart.alloc1`); `etcdstart.StartServer`; `go holdToken()` (`wp_fork_tok_self`: the goroutine never returns; its
+token, the one gRPC slot's until per-type stage B3, is unused); `etcdstart.Serve` with the ghost step
+`etcdstart.kv_lease_served` (the lease reads registered at the address, the runs borrowing from the
+server's run pools); `etcdstart.NewClient`; each
 read's context with the request timeout (`client.wp_WithTimeout_bg`); `cli.Lease.Leases` (`Q`: the
 IDs have no duplicate) and the double loop's check; `cli.Lease.TimeToLive(leaseID)` (`Q`: the reply's
 ID is `7`) and its check. Every step's error ends `Main` (`return`).
@@ -61,7 +62,7 @@ theorem Main.wp_proof
     (wp_TimeToLive : lessor.TimeToLive.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
@@ -110,7 +111,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasekv" go!"127.0.0.1:23946" go!"127.0.0.1:23936" lg
       (LogEntry.toEntries boot 0) ctxs (leasekvDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasekvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [leasekvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -122,17 +123,17 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
-    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, HLR⟩
+    #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, HLR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
-  -- `go holdToken()`: the forked goroutine never returns; its token stays with `Main`
+  -- `go holdToken()`: the forked goroutine never returns (its token, which the gRPC runs needed
+  -- until per-type stage B3, is no longer used: the runs borrow from the server's run pools)
   ihave #Plk : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.lease $$ []
   · iPkgInit
-  wp_apply wp_fork_tok_self as Htok2
+  wp_apply wp_fork_tok_self as -
   · wp_apply wp_holdToken as Hf
     iexfalso; iexact Hf
   (try wp_auto)
-  -- `Serve(s, clientAddr)`, with etcd's KV calls and lease reads registered at the address; the
-  -- forked goroutine's token goes into the one gRPC slot
+  -- `Serve(s, clientAddr)`, with etcd's KV calls and lease reads registered at the address
   haveI := Hms
   ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
     $$ []
@@ -141,7 +142,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23936" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23936"))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk HLR] as %serr Hs
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
@@ -149,10 +150,9 @@ theorem Main.wp_proof
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     imod (etcdstart.kv_lease_served_false srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
-      mid R Hrb48 (by omega) Hrf HlP rfl (by rw [KVNames.lg_eq, hlg0]; rfl)) $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2]
+      mid R Hrb48 (by omega) Hrf HlP rfl (by rw [KVNames.lg_eq, hlg0]; rfl) HLv) $$ [Hg Hstk HLR]
       with ⟨Htk, -, #Hlr⟩
-    · unfold etcdstart.kvServeStocks
-      iframe; iframe #
+    · iframe; iframe #
     imodintro; iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr⟩)
   · cases serr with

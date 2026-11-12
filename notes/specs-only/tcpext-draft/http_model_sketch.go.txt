@@ -1,0 +1,154 @@
+//go:build ignore
+
+// DRAFT SKETCH (design review, 2026-11-10), not compiled: the shape of the trusted net/http
+// model (notes/specs-only/tcp-extension-design.md, section 4.4). In the design it is a patch of Go
+// 1.27.3's net/http (translated by goose from the patched toolchain source; the real run builds
+// with go's -overlay): new unexported files like this one, and the reached bodies that net/http
+// implements with persistConn, its connection pool, the bundled HTTP/2 and its server conn
+// replaced. net/http's own code stays where the program reaches it and it is simple: Header and
+// textproto's CanonicalMIMEHeaderKey, NewRequest(WithContext), Request.WithContext, StatusText,
+// DetectContentType, ServeMux (if goose takes its routing tree), url.
+//
+// One request per TCP connection: the real request line (cmux.HTTP1() matches it), then frames
+// of modelframe (copied into the package). choose() as in the grpc model, but in net/http's own
+// copy (a standard-library package cannot import a module).
+
+package http
+
+// ---------------------------------------------------------------------------------------------
+// Client
+
+// RoundTrip: net/http's checks (nil URL or Header, missing host, unsupported scheme, an
+// altProto registered with RegisterProtocol is called instead; https is not modeled: panic),
+// t.Proxy is not called: ProxyFromEnvironment never proxies a loopback address (httpproxy's
+// useProxy), and the plan's addresses are loopback. Then attempts, resent as net/http resends a
+// request on a reused connection (shouldRetryRequest, transport.go:844), the connection being
+// fresh each time.
+func (t *Transport) roundTripModel(req *Request) (*Response, error) {
+	ctx := req.Context()
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		resp, written, err := t.attemptModel(ctx, req)
+		if err == nil {
+			return resp, nil
+		}
+		if !choose() { // as if the connection had been reused, or not
+			return nil, err
+		}
+		switch {
+		case written == 0 && (req.outgoingLength() == 0 || req.GetBody != nil):
+			// nothingWrittenError: nothing of this request reached a server (a failed dial
+			// included, which net/http does not resend: an over-approximation)
+		case written > 0 && req.isReplayable():
+			// transportReadFromServerError / errServerClosedIdle: every error of attemptModel
+			// after the head went out is before the response's first byte; the request replayable
+			// (GET/HEAD/OPTIONS/TRACE or an idempotency key, its body absent or rewindable:
+			// request.go:1561). Before resending, the failed attempt's body copier has stopped
+			// (its connection is closed, and the old body closed, as rewindBody does).
+		default:
+			return nil, err
+		}
+		if req.GetBody != nil {
+			b, gerr := req.GetBody()
+			if gerr != nil {
+				return nil, gerr
+			}
+			req = req.withBody(b) // net/http's rewindBody
+		}
+	}
+}
+
+// attemptModel: dial through the program's dialer (t.DialContext, else t.Dial, else
+// net.Dialer), write the request line and the head in one Write, then a goroutine copies the
+// body (the program's Body.Read: bytes.Buffer, rafthttp's readers) into chunks, ending with
+// hEnd (or hAbort if a Read failed), while this goroutine reads the response head. A context
+// watcher closes the connection when ctx is done. written is what went out of the first Write.
+func (t *Transport) attemptModel(ctx context.Context, req *Request) (*Response, int, error) {
+	conn, err := t.dialModel(ctx, "tcp", canonicalAddr(req.URL)) // etcd's rwTimeoutDialer runs
+	if err != nil {
+		return nil, 0, err
+	}
+	line := req.Method + " " + req.URL.RequestURI() + " HTTP/1.1\r\n"
+	head := frame(hHead, encodeReqHead(req)) // Host, Path, RawQuery, ContentLength, Header
+	n, err := writeFrames(conn, append([]byte(line), head...))
+	if err != nil {
+		conn.Close()
+		return nil, n, err
+	}
+	stop := watchCtx(ctx, conn)
+	go copyBody(conn, req.Body) // closes req.Body when done, as net/http's writeLoop
+	k, p, err := readFrame(conn, maxResponseHeaderBytes)
+	if err != nil || k != hResp {
+		stop()
+		conn.Close()
+		return nil, n, ctxErrOr(ctx, err) // net/http returns ctx.Err() if ctx is done
+	}
+	code, hdr, ok := decodeRespHead(p)
+	if !ok {
+		stop()
+		conn.Close()
+		return nil, n, errMalformedResponse
+	}
+	return &Response{
+		Status: itoa(code) + " " + StatusText(code), StatusCode: code,
+		Proto: "HTTP/1.1", ProtoMajor: 1, ProtoMinor: 1, Header: hdr,
+		Body:          &modelRespBody{conn: conn, stop: stop}, // chunks; io.EOF only at hREnd,
+		ContentLength: -1,                                    // io.ErrUnexpectedEOF if cut short;
+		Request:       req,                                   // Close closes the connection
+	}, n, nil
+}
+
+// CloseIdleConnections: no idle connections (none is pooled): nothing.
+
+// Client.Do/Get: net/http's send (the Transport's RoundTrip, the program's or this one) with
+// Timeout as a context deadline; a response 3xx with a Location header panics (the model does
+// not follow redirects; etcd's handlers never redirect the paths its clients request); errors
+// wrapped in *url.Error, as net/http.
+
+// ---------------------------------------------------------------------------------------------
+// Server
+
+// Serve: net/http's Serve loop (backoff on temporary Accept errors, 5ms doubling to 1s;
+// ErrServerClosed after Shutdown/Close), one goroutine per connection, tracked for Shutdown.
+
+// serveModelConn: the request line (an HTTP/2 preface, or anything not ending in HTTP/1.x: close),
+// the head, then the handler. The request: Method, URL{Path, RawQuery}, RequestURI, Proto
+// HTTP/1.1, Header, Host, ContentLength, RemoteAddr (c.RemoteAddr().String()), Body over the
+// chunks (io.EOF only at hEnd; an error on hAbort or a cut connection), its context canceled
+// when the connection fails or the handler returns. No recover: a handler's panic is the
+// program's (net/http recovers it and logs; the proof shows no handler panics).
+func (srv *Server) serveModelConn(c net.Conn) {
+	defer c.Close() // the program's wrapper's Close (LimitListener's slot)
+	line, err := readLine(c, maxRequestLine)
+	if err != nil || !isHTTP11RequestLine(line) {
+		return
+	}
+	k, p, err := readFrame(c, DefaultMaxHeaderBytes)
+	if err != nil || k != hHead {
+		return
+	}
+	req, ok := decodeReqHead(line, p) // nil if malformed
+	if !ok {
+		return
+	}
+	ctx, cancel := context.WithCancel(srv.baseContext())
+	defer cancel()
+	req.ctx = ctx
+	req.RemoteAddr = c.RemoteAddr().String()
+	req.Body = &modelReqBody{conn: c, onFail: cancel}
+	w := &modelResponse{conn: c, header: make(Header), req: req}
+	srv.handler().ServeHTTP(w, req) // the program's handler (ServeMux, rafthttp, ...)
+	w.finish()                      // the head if not sent (200), then hREnd
+}
+
+// modelResponse: Header() (a map; changes after the head is sent are ignored), WriteHeader(code)
+// (the first wins; 1xx not modeled), Write(b) (WriteHeader(200) first, Content-Type sniffed with
+// net/http's DetectContentType when unset and the body non-empty, then one hRChunk per Write, no
+// buffering), Flush (http.Flusher: the head if not sent), as net/http's response does. The
+// automatic headers net/http adds (Date, Content-Length for a small complete body) are added
+// the same way.
+
+// Shutdown(ctx): close the listeners, then wait until no connection is active or ctx is done;
+// Close: close the listeners and every connection.

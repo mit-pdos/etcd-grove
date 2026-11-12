@@ -196,25 +196,10 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
 -- (D22 J1a) the stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
 -- `lessorApplyOk`, `clusterApplyOk`) moved to `SnapRO.lean`.
 
-/-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
-lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
-over `raftRequest`, installed when the `LeaseCheckpoint` feature is on), which proposes outside the
-request path's model; and so does `lessor.Renew` (`lessor.go:436-439`: a renewal of a lease whose
-`remainingTTL` is set proposes its checkpoint through it; the lease-renew plan, 2026-11-01,
-approved by the user: `lease.lessor.Renew.spec` cites this premise). A premise of
-`lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in the model proves or refutes it.
-When it is exercised (revisited for a cluster that grants leases, the lease-grant plan's review
-S2, 2026-11-02): only with a lease in the lessor and the `LeaseCheckpoint` feature on. A cluster
-that grants none (`KVNames.lg = false`, the server's grant guard `False`) never has a lease, so
-neither call happens. In a granting cluster with the feature on, `Grant` on a primary lessor
-schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
-`checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
-(`server.go:394-406`): outside the verified request path, so the premise then has content. The
-examples leave the feature off (`examples/lib/etcdstart/common.go:96`: `le.cp == nil`, nothing is ever
-proposed), so for `examples/etcd/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
-this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
-the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
-opaque ckptEffectsOk : Prop
+-- (2026-11-12, approved by the user via etcd-grove-81) The opaque `ckptEffectsOk`, the lessor's
+-- checkpointer's effects (D14g), is deleted: no checkpointer is ever installed (`NewServer.spec`
+-- takes the `LeaseCheckpoint` feature off, `lessorInv` records `cp = nil`), so the loop never
+-- proposes and `Renew` never calls `cp`: it covered no call (`notes/decisions.md`, D14g superseded).
 
 /-- **The auth store's records fit bbolt's value bound** (opaque, a workload premise; unit N4,
 2026-10-17): a user's record grows with its roles and a role's with its permissions, each grant
@@ -793,16 +778,6 @@ theorem isRNTransport_of_live (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr
   iintro #HM #Htr
   rw [← hST] at *
   iapply isRNTransport_of_net γn lid E tr $$ HM Htr
-/-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
-checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
-closure over `raftRequest`). -/
-def lessorCkptOk (l : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
-    □ (∀ cp : GoFunc,
-      {{ True }} (App (Val #(methods li.ty go!"SetCheckpointer" li.v)) (Val #cp)) {{ RET #(); True }}))
-
-instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (GF := GF) l) := by
-  unfold lessorCkptOk; infer_instance
 
 end transport
 

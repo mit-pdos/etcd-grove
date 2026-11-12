@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
-# and every collection, the translations (and the examples' go.mod pins), the generated
+# and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
 # initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
@@ -82,6 +82,20 @@ for c in etc/tcb-collections/*.txt; do
   fi
 done
 echo "collections: $coll_ok match, $coll_bad differ"; [ "$coll_bad" = 0 ] || fail=1
+# 3b. the axiom-tok gate (per-type stage B, Scope r5 §5.1): no trusted statement lets its user
+# obtain tokens or resources it chose beyond what it gives, but for the entries of
+# etc/axiom-tok-allow.txt; reads the .lake/tcb.json the trust-base check above wrote (so after it,
+# in this section). A full run: about 6 minutes, 9 GiB peak (2026-11-11); its own memory cap
+# (systemd-run, where there is one).
+cap=()
+if command -v systemd-run > /dev/null 2>&1; then cap=(systemd-run --scope -q -p MemoryMax=24G); fi
+if "${cap[@]}" python3 etc/axiom-tok-check.py --check --raw "$tmp/atok.jsonl" > "$tmp/atok.log" 2>&1; then
+  echo "axiom-tok: $(tail -1 "$tmp/atok.log" | sed 's/^axiom-tok: //')"
+else
+  echo "axiom-tok: FAILED"; grep -A40 "need an entry (rule 8)\|^Unknown\|^Truncations\|^Entry keys\|^Stale\|FAILED\|Error\|error" "$tmp/atok.log" | head -40; fail=1
+fi
+# its selftests, and the real axioms they name (`real-pass`) in the run above
+"${cap[@]}" python3 etc/axiom-tok-check.py --selftest --reuse-raw "$tmp/atok.jsonl" > "$tmp/atoks.log" 2>&1 || { echo "axiom-tok selftest: FAILED"; grep "FAIL\|error" "$tmp/atoks.log" | head -20; fail=1; }
 return $fail
 }
 

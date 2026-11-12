@@ -29,13 +29,11 @@ axiom grpc.GenericClientStream.Context.wp_proof
 axiom grpc.GenericClientStream.Recv.wp_proof
 axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.StaticMethod.wp_proof
+axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcPeerOpt
-axiom grpcServes
-axiom grpcServesStream
-axiom grpcServesStream_persistent
-axiom grpcServes_persistent
+axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof

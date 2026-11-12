@@ -81,7 +81,7 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem, Hreg⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
@@ -139,7 +139,7 @@ theorem Main.wp_proof
       (LogEntry.toEntries boot 0) ctxs (etcdstart.dir1 peerAddr id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN
       HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide)
-      (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
+      (by rw [hkr]; decide) Haf Hbuq Hdbo)
       $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
@@ -152,7 +152,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
-    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
+    #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- the example's invariant, at the member's start state (no key)
   have hboot0 : kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = kvStateOf [[], []] := by
@@ -174,7 +174,7 @@ theorem Main.wp_proof
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt clientAddr⌝ ∗
         client.kvRegsAt (⟨clientAddr, E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
         watchAddrFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv))))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
     · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
@@ -183,30 +183,11 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis, -⟩
-    obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+    obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     subst hRE
-    icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
-    icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
-    ihave Hslots := client.etcdGrpcSlots_of_started srv R.E ρ.rd 1 (64 - 2) 64
-        etcdstart.memberReadN 64 (by omega) (by omega)
-        etcdstart.one_le_memberReadN
-        (by omega)
-        $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
-    · iframe
-    icases (hRS R.E.γ 2 62).1 $$ HWRs with ⟨HWR2, -⟩
-    ihave Hwslots := client.watchRunSlots_of hRS R (etcdstart.srvWOf R.E ρ.rd false) 1 1 (Nat.le_refl _)
-        $$ [HWR2 Hrd1]
-    · simp only [etcdstart.srvWOf, Nat.mul_one]
-      iframe HWR2
-      isplitl [Hrd1]
-      · simp only [List.replicate]
-        iapply BigSepL.bigSepL_cons.2
-        iframe Hrd1
-        iapply BigSepL.bigSepL_nil.2; itrivial
-      ipureintro
-      rw [sync.rwmutex.actualMaxReaders_unseal]
-      omega
+    -- (per-type stage B3) the gRPC run pools, from the serving stocks
+    imod (etcdstart.kvServeStocks_pools srv R.E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv) $$ []
     · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega) rfl rfl
@@ -230,8 +211,9 @@ theorem Main.wp_proof
     · iframe Hgsn Hlis; iframe #
     imod (etcd_watch.wk_served_nd hP (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv) clientAddr
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf)
-      $$ [Hgsn Hlis Hslots Hwslots HWok] with ⟨Hserv, #HKV, #HWF⟩
+        Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
+      $$ [Hgsn Hlis HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro

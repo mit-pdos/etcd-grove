@@ -8,10 +8,10 @@ theorem etcdstart.memberBoot_cmp [v3rpc_sem :
     w64) (cmp : Bool) (m : lease.Mode := lease.Mode.none) : etcdstart.memberBoot γ ctxs ρ E₀ Φs id
     cmp m ⊢ ⌜E₀.cmp = cmp⌝ ∗ etcdstart.memberBoot γ ctxs ρ E₀ Φs id cmp m
 
-def etcdstart.grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × val ×
+def etcdstart.grpcLeaseUp (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × GoFunc ×
     GoInterface)) : IProp GF :=
   iprop(∃ ql pl lcid lmid,
-      ⌜∀ (x : GoString × val × GoInterface), x ∈ v3rpc.leaseRegs ql → x ∈ regs⌝ ∗
+      ⌜∀ (x : GoString × GoFunc × GoInterface), x ∈ v3rpc.leaseRegs ql → x ∈ regs⌝ ∗
         v3rpc.quotaLeaseServerAt ql
             { ty := go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty.PointerType, v := intoVal pl } s ∗
           v3rpc.leaseServerAt pl s A lcid lmid)
@@ -22,19 +22,20 @@ def etcdstart.memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
   iprop(∃ γA ci TM E γrn b cfg γk τ,
       ⌜envAgree E E₀ ∧
             E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0⌝ ∗
-        srvWatchBuilt s E ∗
-          isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk)) γrn b ai₀ at₀ c₀ x₀
-              N ∗
-            srvServeBuilt s E cfg 64 ∗
-              srvSVRes s E ∗
-                srvMonitorsOff s ∗
-                  srvLgReader s ∗
-                    srvReadyCloser s ∗
-                      srvNetMember γn s id τ ∗
-                        srvTrTok γn τ ∗
-                          (if served = true then True
-                            else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-                            srvWatchReaders s E 64 ∗ etcdstart.srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
+        srvServeStock s E ∗
+          srvWatchBuilt s E ∗
+            isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk)) γrn b ai₀ at₀ c₀
+                x₀ N ∗
+              srvServeBuilt s E cfg ∗
+                srvSVRes s E ∗
+                  srvMonitorsOff s ∗
+                    srvLgReader s ∗
+                      srvReadyCloser s ∗
+                        srvNetMember γn s id τ ∗
+                          srvTrTok γn τ ∗
+                            (if served = true then True
+                              else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+                              etcdstart.srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
 def etcdstart.cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
     Prop :=
@@ -51,8 +52,8 @@ theorem etcdstart.grpcUpM_true [v3rpc_sem :
 theorem etcdstart.peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoString) (hd :
     netDirOk dir) (hm : go!"http://" ++ host ∈ dir id) : peerURLsDir dir id [etcdstart.httpURL host]
 
-theorem etcdstart.grpcLeaseUp_persistent (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString × val
-    × GoInterface)) : Persistent (etcdstart.grpcLeaseUp s A regs)
+theorem etcdstart.grpcLeaseUp_persistent (s : Loc) (A : v3rpc.KVAns GF) (regs : List (GoString ×
+    GoFunc × GoInterface)) : Persistent (etcdstart.grpcLeaseUp s A regs)
 
 def etcdstart.srvLeaseRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) : IProp GF :=
   iprop(∃ on, lease.srvInv on s E m)
@@ -90,9 +91,10 @@ def etcdstart.grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
   iprop(∃ C q p pw pa il im iu ims is svcs regs sregs,
       ⌜C.A = v3rpc.srvKVAnsM on s E ρ γr (W64 0) [] v3rpc.KVDep.none 0 none ∧
             C.E = E ∧
-              (∀ (x : GoString × val × GoInterface), x ∈ v3rpc.kvRegs q → x ∈ regs) ∧
-                (∀ (x : GoString × val × GoInterface), x ∈ v3rpc.authRegs pa → x ∈ regs) ∧
-                  v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+              (∀ (x : GoString × GoFunc × GoInterface), x ∈ v3rpc.kvRegs q → x ∈ regs) ∧
+                (∀ (x : GoString × GoFunc × GoInterface), x ∈ v3rpc.authRegs pa → x ∈ regs) ∧
+                  v3rpc.watchSReg pw ∈ sregs ∧
+                    R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧ (List.map Prod.fst (regs ++ sregs)).Nodup⌝ ∗
         v3rpc.grpcCfgOk s C ∗
           grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
             v3rpc.quotaKVServerAt q
@@ -106,10 +108,7 @@ def etcdstart.grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
                           srvStreamInterceptorOk ims iprop(True) ∗
                             srvStreamInterceptorOk is iprop(True) ∗
                               srvLgReader s ∗
-                                srvBemuReader s ∗
-                                  srvGoRes s ∗
-                                    mvcc.api.mvccReaders E.γ 64 ∗
-                                      netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
+                                srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
 theorem etcdstart.bootPremise_of [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (N : Nat) (ps : List w64) (bootLog :
@@ -134,9 +133,10 @@ def etcdstart.grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
   iprop(∃ C q p pw pa il im iu ims is svcs regs sregs,
       ⌜C.A = v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] v3rpc.KVDep.none 0 none ∧
             C.E = E ∧
-              (∀ (x : GoString × val × GoInterface), x ∈ v3rpc.kvRegs q → x ∈ regs) ∧
-                (∀ (x : GoString × val × GoInterface), x ∈ v3rpc.authRegs pa → x ∈ regs) ∧
-                  v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+              (∀ (x : GoString × GoFunc × GoInterface), x ∈ v3rpc.kvRegs q → x ∈ regs) ∧
+                (∀ (x : GoString × GoFunc × GoInterface), x ∈ v3rpc.authRegs pa → x ∈ regs) ∧
+                  v3rpc.watchSReg pw ∈ sregs ∧
+                    R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧ (List.map Prod.fst (regs ++ sregs)).Nodup⌝ ∗
         v3rpc.grpcCfgOk s C ∗
           grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
             v3rpc.quotaKVServerAt q
@@ -149,30 +149,25 @@ def etcdstart.grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
                         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
                             srvStreamInterceptorOk is iprop(True) ∗
-                              srvLgReader s ∗
-                                srvBemuReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 64 ∗ netListenerAt lis addr)
+                              srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr)
 
 def etcdstart.memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (m : lease.Mode := lease.Mode.none) : IProp GF :=
   iprop(∃ E cfg γw,
       ⌜envAgree E E₀ ∧
             E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0⌝ ∗
-        isServerReq s E { wait := γw, rd := ρ.rd } ∗
-          isServerRead s E ρ.rd ∗
-            srvGoRes s ∗
-              srvLgReader s ∗
-                ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s ρ.rd) ∗
-                  srvWatchBuilt s E ∗
-                    srvServeFacts s E cfg ∗
-                      srvBemuReader s ∗
-                        ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-                          ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-                            ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-                              ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
-                                ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-                                  etcdstart.srvPeerCtl γn s id ∗
-                                    srvWatchReaders s E 64 ∗
-                                      etcdstart.srvLeaseRd s E m ∗ ∃ dd, srvStopRight s E ρ.rd.raft.raft ρ id dd)
+        srvServeStock s E ∗
+          srvRunReadStock s ρ.rd ∗
+            isServerReq s E { wait := γw, rd := ρ.rd } ∗
+              isServerRead s E ρ.rd ∗
+                srvGoRes s ∗
+                  srvLgReader s ∗
+                    ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s ρ.rd) ∗
+                      srvWatchBuilt s E ∗
+                        srvServeFacts s E cfg ∗
+                          srvBemuReader s ∗
+                            etcdstart.srvPeerCtl γn s id ∗
+                              etcdstart.srvLeaseRd s E m ∗ ∃ dd, srvStopRight s E ρ.rd.raft.raft ρ id dd)
 
 theorem etcdstart.memberBootOn_cmp [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ctxs : List (List
@@ -199,8 +194,13 @@ theorem etcdstart.grpcUpM_false [v3rpc_sem :
 
 theorem etcdstart.one_le_memberReadN : 1 ≤ etcdstart.memberReadN
 
+theorem etcdstart.srvStartReaders_split [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (γr : ReadNames) :
+    ([∗list] _x ∈ List.replicate srvStartReadN (), srvReadReader s γr) ⊢ ([∗list] _x ∈
+    List.replicate etcdstart.memberReadN (), srvReadReader s γr) ∗ srvRunReadStock s γr
+
 def etcdstart.memberReadN : Nat :=
-  srvStartReadN
+  srvStartReadN - srvRevokePoolN
 
 def etcdstart.httpURL (host : GoString) : net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
@@ -213,10 +213,7 @@ theorem etcdstart.memberUp_stop [v3rpc_sem :
     isServerReq s E { wait := γw, rd := ρ.rd } ∗ srvGoRes s) ∗ ∃ E dd, srvStopRight s E
     ρ.rd.raft.raft ρ id dd ∗ ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ srvStopReaders E
 
-theorem etcdstart.mvccReaders_join [v3rpc_sem :
-    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (hRS :
-    mvcc.api.mvccReaders_split.law) (γ : mvcc.api.MvccName) (n : Nat) : ([∗list] _x ∈ List.replicate
-    (n + 1) (), mvcc.api.mvccReaders γ 1) ⊢ mvcc.api.mvccReaders γ (n + 1)
+theorem etcdstart.srvStartReadN_split : srvStartReadN = etcdstart.memberReadN + srvRevokePoolN
 
 def etcdstart.srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(∃ τ, srvNetMember γn s id τ ∗ srvTrTok γn τ)
@@ -238,30 +235,27 @@ def etcdstart.memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
       ⌜envAgree E E₀ ∧
             E.authMode = auth.AuthMode.on γa ∧
               cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧ cfg.WatchProgressNotifyInterval' = 0⌝ ∗
-        isServerReqM true s E { wait := γw, rd := ρ.rd } ∗
-          isServerReadM true s E ρ.rd ∗
-            srvAuthLb s E ∗
-              srvGoRes s ∗
-                srvLgReader s ∗
-                  ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s ρ.rd) ∗
-                    srvWatchBuilt s E ∗
-                      srvServeFacts s E cfg ∗
-                        srvBemuReader s ∗
-                          ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-                            ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-                              ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-                                ([∗list] _x ∈ List.replicate 64 (), mvcc.api.mvccReaders E.γ 1) ∗
-                                  ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-                                    etcdstart.srvPeerCtl γn s id ∗
-                                      srvWatchReaders s E 64 ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
+        srvServeStock s E ∗
+          srvRunReadStock s ρ.rd ∗
+            isServerReqM true s E { wait := γw, rd := ρ.rd } ∗
+              isServerReadM true s E ρ.rd ∗
+                srvAuthLb s E ∗
+                  srvGoRes s ∗
+                    srvLgReader s ∗
+                      ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s ρ.rd) ∗
+                        srvWatchBuilt s E ∗
+                          srvServeFacts s E cfg ∗
+                            srvBemuReader s ∗
+                              etcdstart.srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
 
 def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc) (lis :
     GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ C q p pw il im iu ims is svcs regs sregs,
       ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] v3rpc.KVDep.none ∧
             C.E = E ∧
-              (∀ (x : GoString × val × GoInterface), x ∈ v3rpc.kvRegs q → x ∈ regs) ∧
-                v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+              (∀ (x : GoString × GoFunc × GoInterface), x ∈ v3rpc.kvRegs q → x ∈ regs) ∧
+                v3rpc.watchSReg pw ∈ sregs ∧
+                  R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧ (List.map Prod.fst (regs ++ sregs)).Nodup⌝ ∗
         v3rpc.grpcCfgOk s C ∗
           grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
             v3rpc.quotaKVServerAt q
@@ -274,9 +268,7 @@ def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
                         srvStreamInterceptorOk ims iprop(True) ∗
                           srvStreamInterceptorOk is iprop(True) ∗
                             srvLgReader s ∗
-                              srvBemuReader s ∗
-                                srvGoRes s ∗
-                                  mvcc.api.mvccReaders E.γ 64 ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
+                              srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
 def etcdstart.memberBootOn (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool := false) : IProp GF :=

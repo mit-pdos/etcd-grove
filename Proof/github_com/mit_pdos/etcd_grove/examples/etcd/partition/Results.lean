@@ -115,7 +115,7 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -140,7 +140,7 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
+  etcd_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
     Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**
@@ -157,7 +157,7 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
@@ -182,7 +182,7 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_partition_watch_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31
+  etcd_partition_watch_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31
     Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy

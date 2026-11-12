@@ -8039,6 +8039,8 @@ constructor contracts false. D14 settles the three.
   excluded: with no lease granted, `checkLeasePuts` finds none and the txn package's check fails
   with `ErrLeaseNotFound`, both in the model. `ckptEffectsOk` stays a premise of `NewLessor`'s
   axiom (a statement about the Go code, whatever the workload); under D14h it is never exercised.
+  *(Superseded in part, 2026-11-12: `ckptEffectsOk` is deleted, "Deleting `ckptEffectsOk`" at the
+  end of this file.)*
   `NewUberApplier.spec` names the raft status and the snapshot server (the server itself) in its
   premise, which was undischargeable.
 - **D14i (adopted 2026-10-17, the user's approval): the applier contracts carry the apply
@@ -28829,7 +28831,8 @@ Frozen and linked:
   a peer's reply small enough to buffer). And `LeasePrefix_init` (leasehttp's `LeasePrefix` holds
   some string), with leasehttp's generated `opaqueInitsOk`: etcdserver now imports leasehttp, as
   Go's does, so every closed result's initialization (cachekv, putget, m2, ...) runs its initializer.
-- **`ckptEffectsOk` covers `Renew`'s checkpointer call** too (its docstring widened; no statement
+- *(Superseded 2026-11-12: `ckptEffectsOk` deleted, "Deleting `ckptEffectsOk`" at the end of this
+  file.)* **`ckptEffectsOk` covers `Renew`'s checkpointer call** too (its docstring widened; no statement
   changes): the call proposes a `LeaseCheckpoint` outside the proposers' workload (`apply.rqOk`),
   as the lessor loop's does. Not exercised while `srvGrantGuard` is `False`; the lease-grant work
   must revisit C1.
@@ -34475,6 +34478,33 @@ Go tests: `examples/premisefix/ctxvalue` (examples module) and `examples/premise
 changed (and the two `ConfChangeType__String.txt` deleted). Handoff:
 `notes/premise-fixes-7-handoff.md`.
 
+## Stage B: the stream-flag premise; `grpc.serveStream`'s known overclaim (2026-11-11 · decided by etcd-grove-81 under the user's delegation, CP1a review `wf_85371608-bdd` and its re-verification · branch `stage-b`)
+
+grpc-go v1.84 runs the stream interceptor only for a descriptor that sets `ClientStreams` or
+`ServerStreams`: `if s.opts.streamInt == nil || (!sd.ClientStreams && !sd.ServerStreams) {
+appErr = sd.Handler(server, wrappedStream) }` (`server.go:1446-1450`; Go test T10b,
+`examples/stageb/grpcruns/`). Neither the landed `grpc.serveStream` (`InvGrpcStream.lean:1136`) nor
+B1a's model (`runCall`'s stream arm) represents the direct path. An unflagged descriptor behind an
+interceptor that never calls its handler would give a no-panic proof of a run that panics in Go.
+
+**Decision** (option (a) of the review): `RegisterService` takes
+`⌜∀ sd ∈ sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝` (B1b), where the descriptors are
+visible; the six `Register*Server` specs carry it up; `v3rpc.Server` discharges it from the generated
+descriptors (`grpcDescIs`). `grpc.start` sees only `grpcSrvNew`, so the invariant "every `sregs` entry
+comes from a flagged descriptor" is stated in `grpcSrvNew`'s docstring (B1b), which every producer of
+`grpcSrvNew` must uphold, and in `GrpcSrvCfg`'s and `acceptRun`'s docstrings. `RegisterHealthServer`'s
+claim that health `Watch` is `ServerStreams` is a docstring claim of that trusted text, checked by
+T10b. Rejected: (b) carrying the flag in `sregs` and having `acceptRun` return `si = nil` for an
+unflagged entry (more model, no gain for etcd's descriptors).
+
+**Until B1b**: `grpc.serveStream` keeps the overclaim (STATUS, "Soundness bugs: `grpc.serve`'s
+handler pool ..."). No result is affected (etcd's stream descriptors all set a flag); B1b deletes the
+axiom.
+
+Also decided at CP1a: handlers typed `GoFunc` (`GrpcSrvCfg`, `grpcSrvStreamChain`, `grpcAccepted`;
+`descRegs`/`descSRegs`/`grpcSrvNew` in B1b), since `h : val` admitted a panic value for which the
+stream chain fact is false; `axiom-tok` entries name the findings they accept.
+
 ## Restart S1: R2d'a's rows 2-3 by the loop fact (Q31 (a), F1 form) (2026-11-11 · S1's frozen-post package approved by etcd-grove-81; the crash model is power loss, the user's decision · branch `restart-s1`)
 
 **Problem.** R2d'a's restart triple (`run.spec` through `isServerRunC`'s restart form) carried two
@@ -34849,3 +34879,73 @@ Docstrings, tests and notes only; no statement changed.
 - Evidence added (`/shared/tmp/wal-spec/w4/rev3-tests/`): the leak test's negative control (fresh4 m2),
   `TestReview4OpenGuardPurge` (the guarded branch, fresh4 m3), `TestRev4ReopenAfterClose` (fresh4 m4
   (c)); RR3-3 lists the remaining untested clauses (a)-(e).
+## Stage B: the lessor's checkpointer is nil; `lessor.Renew`/`leaseTimeToLive` at level 0 (2026-11-12 · T1-T5 approved by etcd-grove-81 under the user's delegation, `/shared/tmp/stageB/lease-level-fix.md` · branch `stage-b`)
+
+Since B2 the trusted `lease.lessor.Renew.spec` and `EtcdServer.leaseTimeToLive.spec` take only the
+level-0 token. Two paths were not argued (STATUS's known overclaim of 2026-11-11, now in
+`status-history.md`). Go at the pin `71f99a4bf`:
+
+- `leaseTimeToLive` (`v3_server.go:636-696`) never reaches a checkpointer. Its leader path read-locks
+  only level-0 pool locks (`Lookup`, `Remaining`, `Demoted`, `Keys`). Its follower path takes the
+  cluster's `sync.Mutex` (`cluster.go:134-138`), reads the leader atomically, and posts through
+  `leasehttp.TimeToLiveHTTP` (`http.go:224-278`) under no etcd lock. So the claim was true but not
+  argued. Fix: docstring only.
+- `Renew` calls `le.cp` when `cp != nil && remainingTTL > 0` (`lessor.go:412,436-440`).
+  `NewServer`'s closure (`server.go:393-405`) runs `ensureLeadership` and a `raftRequest` of a
+  `LeaseCheckpoint`, which needs server reader slots (`srvLeadTimeReader s ∗ E.RD`, level 2) and a
+  request the proposers' workload does not admit (D14h). The lessor package cannot name those, and
+  the model has no spec of `cp`. So no lending makes that path provable (option (a)), and its
+  callers hold no whole `threadTok` after B3 (option (c)).
+
+**Decision** (option (b)): the checkpointer is not installed, and the model says so.
+`features.NewDefaultServerFeatureGate`'s trusted post gains `featureIs … "LeaseCheckpoint" false` (its
+default, `etcd_features.go:104`). `NewServer.spec` takes that fact (`#Hlcp`), and its proof finds the
+`SetCheckpointer` branch dead (`FeatureEnabled.spec` now takes an optional known answer `ob`).
+`newServerMode` and `auth/startServer` discharge it from the gate's post. `NewLessor`'s trusted post
+drops `lessorCkptOk` (deleted), so no contract can set `cp`. `lessorExtra` fixes `le.cp` at
+`func.nil` (`newLessor` leaves it unset, `lessor.go:225-242`). Both triples are unchanged. `Renew`'s
+docstring argues the nil checkpointer and puts a lessor with a checkpointer out of scope; a change
+that turns the feature on must give the checkpointer a contract. No axiom or `sorry` added or removed.
+
+**Planned premise removal** (a follow-up, not in stage B; etcd-grove-81, 2026-11-12; done, "Deleting
+`ckptEffectsOk`" below): `ckptEffectsOk`
+(`InvBoot.lean`, opaque), a premise of `NewLessor` and of about 33 closed results, now covers no call
+in any closed program: with `cp` nil the lessor loop never proposes (`findDueScheduledCheckpoints`
+returns `nil`, `lessor.go:772-775`) and `Renew` never calls `cp`. Deleting it removes an opaque premise
+from every closed result. It changes exported statements, so it needs its own decision.
+
+**The gate's five server entries** (2026-11-12, etcd-grove-81 on an independent triage): the `axiom-tok` keys of
+`EtcdServer.{ensureLeadership,leaseTimeToLive,purgeFile,waitAppliedIndex,waitLeader}` are artefacts: every binder
+is two or more flips deep inside the handles `isServerReqM`/`isServerReadM` consumes (the uber-applier contracts,
+the revoke's batch-transaction callbacks, the wait registry's trigger), whose methods and wands the Go of these
+functions never uses (`server.go:608,912`; `v3_server.go:458,636,785`). Entries added to `etc/axiom-tok-allow.txt`.
+`NewAuthStore`/`NewAlarmStore`'s `3:Pre` reasons rewritten: the binders are in the produced
+`authApplyOk`/`alarmApplyOk` → `isAuthStore`/`isAlarmStore`, and the post-lock hook and the no-lock path are
+exclusive. **Follow-ups, not in stage B**: `purgeFile.spec` takes no `lgMu` slot or thread token though Go calls
+`s.Logger()` and starts a goroutine (`adjustTicks` reads `Logger()` too; low severity, no false conclusion today,
+67 roots); gate keys naming the binder path, so an entry cannot silently accept a future real duplication in
+`isServerReadM`; deleting `ckptEffectsOk` (above).
+
+## Deleting `ckptEffectsOk` (2026-11-12 · accepted, approved by the user via etcd-grove-81)
+
+Supersedes the part of D14h (and D14e/D14g's named premise) that kept `ckptEffectsOk`, the opaque
+premise "the lessor's checkpointer's effects" (`InvBoot.lean`), on `lease.NewLessor`'s axiom and so on
+`NewServer.specG` (inside `lease.bootCfg`), on the example specs that build a server or a lessor
+(`etcdstart`, `cluster3`, `restart`, `mvccrand`, `mvccfull`, ...), and on every closed result
+(the ~33 `*_adequate`/`*_safe` theorems of `examples/etcd`, `examples/k8s`, `mvccrand`, `mvccfull`).
+It is deleted, with `lease.bootCfg_ckpt`.
+
+**Why it covered no call.** Stage B3 (above) made the model say that no checkpointer is installed:
+`NewServer.spec` takes the `LeaseCheckpoint` feature off (`#Hlcp`), `NewLessor`'s post no longer
+offers a contract for `SetCheckpointer`, and `lessorInv`'s `lessorExtra` fixes `le.cp` at `func.nil`
+(`InvLessor.lean`). With `cp` nil, the loop's `checkpointScheduledLeases` proposes nothing
+(`findDueScheduledCheckpoints` returns `nil`, `lessor.go:772-775`; `scheduleCheckpointIfNeeded`
+pushes nothing, `:753-756`), and `Renew` never calls `cp` (`clearRemainingTTL` needs `le.cp != nil`, `:412`;
+`lease.lessor.Renew.spec`'s docstring). No closed program calls `SetCheckpointer` (only a Go test,
+`examples/sweeprepairs/logger/logger_test.go`, does). So the premise constrained no behaviour, and
+`NewLessor`'s axiom without it is the same statement about the Go code, minus a vacuous assumption.
+
+**Effect.** One opaque fewer in the trust base; every closed result loses the hypothesis
+`(Hck : ckptEffectsOk)`; `lease.bootCfg` loses its last conjunct, and `bootCfg_none`/`_mono`/`_of_run`
+their `hck` argument. A change that turns the feature on must give the checkpointer a contract
+(stage B3's note), not restore this premise.

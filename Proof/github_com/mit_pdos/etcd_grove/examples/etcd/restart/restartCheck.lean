@@ -65,8 +65,8 @@ theorem restartCheck.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     restartCheck.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl ρ N name peerAddr caddr peer cluster lg M iu
-    Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
-    Hpe Hck Haf Hbuq Hrf Hdbo Hms hAs
+    Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HLv HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
+    Hpe Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨#Hzlg, Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
     #Hcci, #Hnet⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -126,7 +126,7 @@ theorem restartCheck.wp_proof
   -- the stopped member started again
   have Hu : Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL caddr], M, iu⟩ := HU
   wp_apply (wp_startMemberR N name peerAddr caddr peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hck Haf Hbuq Hdbo)
+      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Haf Hbuq Hdbo)
     $$ [Htok Hrr] as %mR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %sR, %plR, %ρ', %E₀', %Hρ', Hup, Hst⟩)
@@ -138,7 +138,7 @@ theorem restartCheck.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E', %cfg, %γw, %HEc, #Hreq', #Hrd,
-    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
+    #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   iunfold memberStop at Hst
   icases Hst with ⟨HmR, -, -, -⟩
@@ -153,12 +153,11 @@ theorem restartCheck.wp_proof
   wp_apply (wp_serveClient mR sR plR caddr E' { ρ' with wait := γw } ρ'.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt caddr E' { ρ' with wait := γw } ρ'.rd cid mid)
       HEtr HEw Hms Hbuq)
-    $$ [HmR Hca Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr ⟨-, Hs⟩
+    $$ [HmR Hca Hlg3 Hbemu Hgo Hstk] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid' %mid' %R Hg
     iapply (etcdstart.kv_served sR E' { ρ' with wait := γw } ρ'.rd gs lis caddr cid' mid' R Hrb48
-      Hrf rfl)
-    unfold etcdstart.kvServeStocks
+      Hrf rfl HLv)
     iframe; iframe #
   icases Hs with (%Hserr | ⟨%Hserr, %cidR, %midR, %R, #Hkv⟩)
   · cases serr with

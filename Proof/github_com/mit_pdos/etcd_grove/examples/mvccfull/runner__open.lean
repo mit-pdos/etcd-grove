@@ -70,7 +70,7 @@ theorem runner.open.wp_proof
     (wp_Detach : lease.lessor.Detach.spec (GF := GF) (hG := hG))
     (wp_SRD : lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG)) :
     runner.open.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γh ops i mp m f n path D u b Hl obe ole okv hlog hn hlen hdbo hck hlim hcbl
+  intro _ _ x ks cfg wr h γh ops i mp m f n path D u b Hl obe ole okv hlog hn hlen hdbo hlim hcbl
   intro σ
   haveI := hpers.1
   haveI := isInc_persistent hpers
@@ -128,11 +128,9 @@ theorem runner.open.wp_proof
       (leasesAfter ks ops n) rfl (mvccrand.rcP_lease _) hrecs1 hreq (by rw [hrecs2]))
     $$ [Hnoh Hwb1 Hrbn]
     as %l ⟨Hnoh, Hrbn, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, -, #Hguard, Hlrds, Hlown, Hever,
-      Hrvk, Hrdo, -, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
+      Hrvk, Hrdo, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
   · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
     iframe #; iframe
-    isplitr
-    · ipureintro; exact hck
     isplitr
     · ipureintro; simp only; exact Int.le_refl _
     imodintro

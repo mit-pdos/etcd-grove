@@ -33,7 +33,7 @@ abbrev Run.spec : Prop :=
   0 ≤ sint.Z cfg.Ops' → sint.Z cfg.Ops' < 2 ^ 38 →
   0 ≤ sint.Z cfg.Readers' → sint.Z cfg.Readers' + 2 ≤ 2 ^ 28 →
   0 ≤ sint.Z cfg.Watchers' → sint.Z cfg.Watchers' < 2 ^ 32 →
-  ckptEffectsOk → backend.dbOpenOk → backend.dbCloseOk →
+  backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds cfg.Path' ∅ ∗
       threadTok ∗ envVerifyOff }}
