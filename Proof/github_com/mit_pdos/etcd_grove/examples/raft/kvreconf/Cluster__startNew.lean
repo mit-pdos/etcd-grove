@@ -112,10 +112,11 @@ theorem Cluster.startNew.wp_proof
   icases Hcl' with ⟨#Hic, -, #Hca0, -, -⟩
   have HnU : nid ∉ U := by rw [HdomU]; omega
   imod joinAuth_join γr.cluster kvrRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, HrS, Hvac⟩
+  ihave %Htr := kvrCluster_untraced γr _ $$ Hcl
   ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries «$r0_ptr» ms bp γs _ (bootCS vs) γr.cluster
     (fun K => iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-      memStorInvP ms γs (kvrJ γr.cluster K)))
+      memStorInvP ms γs (kvrJ γr.cluster K))) Htr
     $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
   · iintro %K Hm Hi; iframe Hm Hi
   ihave Hau := kvr_restartAu γr.cluster kvrRaftN nid kvrBootContents kvrBoot_holds $$ [HrS]

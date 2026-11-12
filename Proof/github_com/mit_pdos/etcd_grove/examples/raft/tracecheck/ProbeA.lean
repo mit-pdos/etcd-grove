@@ -43,7 +43,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Harn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.HarnessEnd
 public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
+public import Proof.go_etcd_io.raft.v3.PbMessage
 public import Spec.google_golang_org.protobuf.proto.ClonePb
 public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChangeV2Empty
 public import Spec.go_etcd_io.raft.v3.node__Advance

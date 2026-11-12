@@ -7,7 +7,6 @@ specifying `WithTimeout` of an `isContext` parent only. Lean-first (no Rocq coun
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Proof.context
 
 @[expose] public section

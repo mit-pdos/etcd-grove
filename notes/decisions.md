@@ -37558,3 +37558,60 @@ has the premise → source tables).
   `StartNode.tracedSpec` (`HarnessOpen`) does not give the fit `run` needs: a gated pure premise such as
   `Cluster.trace γ ≠ none → receiptBound GF + vs.length ≤ traceNumBound ∧ 2 ≤ vs.length`, from the
   harness's `tcRunFits`. Neither changes §1.
+
+## Trace-check small items (storBnd's gate, B4, tcRunFits) (2026-11-12 · trace-check, the plan's resume point item 4; Q39 (a) taken by the coordinator, the rest decided by the agent · branch `trace-check-small`)
+
+**`storBnd`'s gate (Q39 (a); the design's B2, `notes/trace-validation-q6.md` §7).** `storBnd`
+(`InvNodeRule.lean`) is now sealed (`@[no_expose]`) and matches on `Cluster.trace γ`: untraced, its
+old body (`∃ k, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k`); traced, `⌜c = 0⌝`. The design wrote the gate as a
+conjunct, `(∃ k, …) ∗ ⌜c = 0 ∨ untraced⌝`; at a traced cluster that is equivalent to `⌜c = 0⌝`
+(`nodeAppliedLb_zero`), and the match keeps the untraced arm literally today's body, which is what
+`TrNoSnap`'s source at `setupNode` (A4) reads (`c ≥ 1` refuted at a traced cluster) and what
+`storBnd_raftBnd` (`StartNode`, `RestartNode`, one new case each) converts. Sealed, since clients
+now go through the laws (PRINCIPLES' no unfolding): `storBnd_zero` (any cluster) and
+`storBnd_intro_untraced` (its premise now used). Who gained `Cluster.trace γ = none`:
+- raft's exported `memStorage_isStorage` (its proof converts `memBnd (memStorJ γ K)` into the gated
+  bound through `storBnd_intro_untraced`; until now it was `rfl`); the server's `srvMem_bootStorage`
+  passes it on, discharged in `raftNode_of_StartNode` from `NodeStartSpec`'s existing
+  `Cluster.trace γr.cl = none` (`srvClusterOk`'s, Q8 stage 0);
+- the clients' `kvJ_bnd`, `kvrJ_bnd`, `kdJ_bnd` (re-proved through `storBnd_intro_untraced`), their
+  `kvStorage_isStorage`, `kvrStorage_isStorage`, `kdStorage_isStorage`, and the boot lemmas that
+  call them, `kvStorage_bootStorage`, `kvr_bootStorage`, `kd_restartStorage`; each call site
+  discharges it from its cluster fact: kv's `StartCluster` from `kvCluster_alloc`'s `%Htr0`, kvreconf's
+  `StartCluster`/`Cluster.startNew` from `kvrCluster_untraced`, kvdurable's `Cluster.start` from
+  `kdCluster_untraced`;
+- kv's exported `kv_storage_isStorage` (Q39 (a)) **and `kv_bootStorage`**, which the coordinator's
+  decision did not name: it is `kvStorage_bootStorage` restated, whose continuation builds the
+  contract at the attach, and there is no untraced fact in its premises to read (its `restartStorage`
+  continuation gets only raft's bounds). The same kind of result as `kv_storage_isStorage` (an
+  exported spec-level result, not a closed adequacy theorem), and every kv caller has the fact.
+No closed adequacy theorem changed. Interface: `storBnd` shows as `def (sealed)`, and
+`storBnd_intro_untraced`'s binder `_h` became `h` (now used). The harness's local `tc_storBnd_zero` is gone; it uses raft's
+`storBnd_zero`. No law reading the traced arm (`storBnd γ K c ⊢ ⌜c = 0⌝` at a traced cluster) is
+added yet: its reader, the traced `setupNode` (step 5), is inside raft and can unfold the sealed
+definition; export one if a client needs it.
+
+**B4.** `PbMessage.lean` moved from `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/` to
+`Proof/go_etcd_io/raft/v3/` (module `Proof.go_etcd_io.raft.v3.PbMessage`), its import of rafthttp's
+`Net` dropped, listed in `etc/api/raft.txt`. The design (B4) said the body used nothing of `Net`; it
+used one definition, `wireEq` (a received copy's agreement with the sent message, a pure relation on
+raft's `MsgSt`, the conclusion of `pbMessage_wire_eq`), which moved with it into `PbMessage.lean`
+(same name, `Perennial.EtcdGrove.wireEq`); `Net` now imports `PbMessage` for it; rafthttp's importers (`Codec`, `Pipe`,
+`isMsgApp`, `isMsgSnap`, each also importing `Net`, which they had reached through `PbMessage`) and
+the harness's `ProbeA` import the new path. One more server import was on the harness's path:
+`Spec/context/WithTimeoutBackground.lean` imported the server's `BaseApply` and used nothing of it
+(dropped; full build green). The harness (`RunConcurrent`, `app`, `handleReady`, `send`, the drivers,
+the recorder, `Main`) now reaches no `go_etcd_io.etcd.server` module; the package's `Adequacy.lean`
+still does, through the shared adequacy machinery it imports (`examples/lib/etcdstart/Adequacy`,
+`Proof/runtime/Start`: `read.Metrics`, `RevokeLevels`, `storage.WalDir`), which is not the harness
+and was left as it is.
+
+**`tcRunFits` stays a named fit, not a `ReceiptBoundLe` instance** (supersedes, in part, the last
+sentence of "Trace-check's receipt bounds as instances"). That entry expected Q38's `n + 2 ≤ 2^31`
+to make `[ReceiptBoundLe GF (2^60)]` free; it is free for the adequacy theorem (`receiptBound = n + 1
+< 2^31`) but not for `raft_tracecheck_accepts_of`, whose statement (§1.3, the user's, word for word)
+takes `Hrb : receiptBound GF + 3 ≤ 2^61` and hands it to `RunConcurrent.spec`; `2^60` does not follow
+from it, and no power of two is exact. So `RunConcurrent.spec` keeps `tcRunFits GF`. `Main.spec`
+alone could take the instance (its only caller is the adequacy), but two forms of the one fit in the
+two neighbouring specs gain nothing (`etc/bounds-check.py` does not count `tcRunFits`). It can
+become an instance if the corollary's premise is ever restated as one (the user's decision).
