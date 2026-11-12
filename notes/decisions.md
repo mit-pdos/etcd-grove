@@ -37423,3 +37423,54 @@ bootstrap entries' bytes).
   change (ev2Rec is built at two sites, the win and the propose steps).
 - `raft.Step.spec`'s `MsgProp` trace premise is now derivable from `#Hmsg` and `NsLink`; kept (removing it
   changes `raft.Step.spec`'s statement for no gain here).
+
+## The harness (RunConcurrent): proved over the traced node API, with the traced `StartNode` as the one hypothesis `HarnessOpen`; §1's statements from it; the `ConfChangeV2` arm refuted, not applied (2026-11-12 · trace-check, layer D of `notes/trace-check-design.md` §2, decided by the agent under the user's delegation (intermediate statements; §1 unchanged but for the hypothesis) · branch `trace-check-harness`)
+
+**What.** The harness's Go (`concurrent.go`: `RunConcurrent`, `app`, `handleReady`, `send`, the
+isolation driver and the proposer) is proved against §2's specs, with Q34's network join (`netJoin`,
+`join3` over the raw `WaitGroup` specs under `ThreadBoundLe GF (2^31)`, `NetJoin.lean`), Q35's
+`0 < Tick` and Q33's existing `strconv.Itoa` axiom. Everything the proof calls is a linked result but
+the traced `StartNode`, which steps 3-5 of the design's §9 will prove; it is the one hypothesis:
+
+- `HarnessApi` (`HarnessDefs.lean`): `StartNode.tracedSpec`. (Written first over Probe A's
+  hypotheses, `StartNode.tracedSpec ∧ StepInIntroTr ∧ TrTokType ∧ ∃ claim, RecvTracedSpec claim ∧
+  AdvanceTracedSpec claim`; implementation step 1, merged before landing, proved the other four:
+  `stepIn_intro`, `trTok_type`, `isReadyChan_recvAu.tracedSpec_proof`, `RaftLink.node.wp_Advance_traced`,
+  which `send`'s and `app`'s proofs now use directly.)
+- `HarnessOpen` (`Results.lean`): `HarnessApi` at every instance context and storage model, as raft's
+  linked results are stated, so that both the closed theorem (at `tcGF`) and the corollary (at any
+  `GF`) use it.
+
+`Results.lean` states §1.2 and §1.3 word for word with `(h : HarnessOpen)` first
+(`raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`); `TcOpen` (the harness's whole spec as a
+hypothesis) is gone. When steps 3-5 land, `HarnessOpen` is a theorem (through `StartNode.tracedSpec_of_gated`) and the `_of`s are applied
+to it.
+
+**Why one named hypothesis, at every instance.** The harness's proofs take only what they use, as
+specs take their callees'; the name is only for the results, so that what is open is one named thing
+a reader checks against §9. Quantifying it over the instance
+context (not fixing `tcGF`) costs nothing (the statements will be proved generically, as every linked
+result) and lets the corollary, which is stated at any `GF`, use the same hypothesis.
+
+**The `ConfChangeV2` arm refuted (Probe A's P1 not needed here).** Probe A found that applying a
+committed empty `ConfChangeV2` needs `Membership.applyChange_leaveJoint`, which step 1 added. The
+harness does not apply the change: `app`'s view of its node's configuration (`ViewOk`) is always the voters' simple
+membership (every committed `ConfChange` is a bootstrap `AddNode` of a voter, `tc_conf1`), and an empty
+`ConfChangeV2` is committed only at a joint configuration (`committed_emptyV2_joint`), so the arm is
+dead (`tc_noConf2`). The law stays in raft's API (Probe A's `probeA_confV2` uses it).
+
+**Smaller choices.** `tc_storBnd_zero` (`HarnessStorage.lean`) proves the storage bound from today's
+ungated `storBnd` (step 1 left `storBnd`'s gate for a decision, its I9; once gated, raft's
+`storBnd_zero` replaces the lemma); the goroutines share one persistent
+`tcWorld c W`; the three `app`s' network-adder shares are `½, ¼, ¼` (`Qp` halves, not thirds);
+`RunConcurrent.wp_proof` takes the node specs whose statements need a storage model as
+`∀ [StorageModel GF]`, since the run allocates the storage registry itself; `probeA_alloc`'s post also
+gives `γ.dup = false` and `γ.bootLen = |boot|`. B4 (`PbMessage.lean` into raft's tree) is not done:
+`ProbeA.lean` still imports rafthttp's module. Recorded in the design (`notes/trace-check-design.md`,
+"The harness (2026-11-12)", H1-H6).
+
+**A name clash, found by the TCB report.** Once `Results.lean` reaches raft's `TracedNodeApi` (no
+root did before), `etc/tcb-report.py`'s one Lean run over the main tree's roots failed: raft's
+`trTok` and rafthttp's `trTok` (`TransportState.lean`, the transport lock's reader token) are both
+`Perennial.EtcdGrove.trTok`. rafthttp's is renamed `transportTok` (10 server files, no statement
+changed but the name).

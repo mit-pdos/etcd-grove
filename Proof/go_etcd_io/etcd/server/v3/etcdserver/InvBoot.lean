@@ -29,7 +29,7 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
   - (until R-D1, 2026-11-04, also `b.Close()` returning, the error paths' deferred close: now
     `bootstrappedServer.Close.spec`, which takes the backend's whole open token).
 * **The transport** (rafthttp stage 6d, 2026-10-24): rafthttp's own predicates (`trLive`,
-  `trFrozen`, `trTok`, `TransportState.lean`); the raft loop's key to its `Send` (`srvTrKey`,
+  `trFrozen`, `transportTok`, `TransportState.lean`); the raft loop's key to its `Send` (`srvTrKey`,
   exchanged for a reader's token of the transport, `netTransport_of_key`); `isRNTransport` for
   every environment whose messages carry the bundle (`isRNTransport_of_net`). (From D21 M2 to
   stage 6d the opaque `transportLive`, `transportStarted` and `transportRemotes` of the
@@ -613,7 +613,7 @@ reader's token of that transport. The raft node's environment (`srvEr`) is built
 and its transport exist, so its `S` is this key, of a name `NewServer` allocates first
 (`srvSendKey_alloc`) and fixes once the transport is started (`srvSendKey_fix`). -/
 def srvTrKey (γn : NetNames GF) (γk : GName) : IProp GF :=
-  iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ trTok γn x.2.1 (SrvKey.trN x))
+  iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ transportTok γn x.2.1 (SrvKey.trN x))
 
 /-- (2026-11-05, R2b-3d stage 5c) **The right to stop the keyed server's transport** (the server's
 raft environment's `ST`, as `srvTrKey` is its `S`, for the same reason: the environment is built
@@ -662,7 +662,7 @@ theorem srvSendKey_fix (γk : GName) (s t : Loc) (c : TrN GF) :
 /-- A reader's token of the fixed transport is the key. -/
 theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN GF)
     (hR : c.R = srvLgReader s) :
-    ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) ∗ trTok γn t c ⊢
+    ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) ∗ transportTok γn t c ⊢
       srvTrKey γn γk := by
   iintro ⟨#Hk, Htok⟩
   iunfold srvTrKey
@@ -671,8 +671,8 @@ theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN
   obtain ⟨lid, γd, R, γs, γr, L⟩ := c
   simp only at hR
   subst hR
-  iunfold trTok at Htok
-  iunfold trTok
+  iunfold transportTok at Htok
+  iunfold transportTok
   iexact Htok
 
 /-- **The network's transport, with the key** (stage 6d): a transport whose `Send` borrows a
@@ -680,7 +680,7 @@ reader's token of the transport fixed under `γk` borrows the key. -/
 theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (γk : GName)
     (s t : Loc) (c : TrN GF) (hR : c.R = srvLgReader s) (TS : IProp GF) :
     ⊢ ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) -∗
-      netTransport γn lid tr (trTok γn t c) TS -∗ netTransport γn lid tr (srvTrKey γn γk) TS := by
+      netTransport γn lid tr (transportTok γn t c) TS -∗ netTransport γn lid tr (srvTrKey γn γk) TS := by
   iintro #Hk #Htr
   iunfold netTransport at Htr
   icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, #Hsnap⟩
@@ -695,12 +695,12 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
     icases HS with ⟨%x, #Hx, Htok⟩
     ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
     subst Heq
-    ihave Htok' : trTok γn t c $$ [Htok]
+    ihave Htok' : transportTok γn t c $$ [Htok]
     · obtain ⟨lid', γd, R, γs, γr, L⟩ := c
       simp only at hR
       subst hR
-      iunfold trTok at Htok
-      iunfold trTok
+      iunfold transportTok at Htok
+      iunfold transportTok
       iexact Htok
     wp_apply Hsend $$ [Hsl Hms Htok'] as Htok
     · iframe

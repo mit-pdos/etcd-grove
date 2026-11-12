@@ -34,9 +34,9 @@ until then `id` had to be no remote, `trNoRemOr`). The method set's premise `Pee
 abbrev rafthttp.Transport.MendPeer.spec : Prop :=
   PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trState γn t c ∗ trTok γn t c }}
+      trState γn t c ∗ transportTok γn t c }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
-  {{ RET #(); trTok γn t c }}
+  {{ RET #(); transportTok γn t c }}
 
 end spec
 

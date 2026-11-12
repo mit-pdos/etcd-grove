@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 the peer is read under the lock, which `AddPeer`/`RemovePeer` write under), from any goroutine: some time (the zero time
 if no peer of `id` is added or it is not connected). It looks `id` up in `t.peers` under the read
 lock and asks the peer's status (`peerStatus.activeSince`, under the status's lock). The read lock
-is taken without one of the lock's reader tokens (`trTok`): the server's request path calls it
+is taken without one of the lock's reader tokens (`transportTok`): the server's request path calls it
 (`isConnectedSince`), from any number of goroutines, at most `2^30 - 1` of them at once,
 physically (as `netProcSlots`). -/
 abbrev rafthttp.Transport.ActiveSince.spec : Prop :=

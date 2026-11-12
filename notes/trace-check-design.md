@@ -312,6 +312,50 @@ Branch `trace-check-probeB`, from `trace-check` at `31058ad33c` (§8's Probe B; 
 
 ---
 
+## The harness (2026-11-12): what the proof changed
+
+Branch `trace-check-harness`, from `trace-check` at `a38252c9f0` (`notes/decisions.md`, "The harness
+(RunConcurrent)"). Proved, no `sorry`, no axiom: §2's harness (`RunConcurrent`, `app`, `handleReady`,
+`send`, the drivers; `Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/`), Q34's `netJoin`
+and `join3` (`NetJoin.lean`), Q35's `Workload`, and §1's two statements, each from one hypothesis
+`HarnessOpen` (`Results.lean`: `raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`; the statements
+are §1.2's and §1.3's with `(h : HarnessOpen)` first). `HarnessOpen` is `HarnessApi`
+(`HarnessDefs.lean`) at every instance context and storage model: `StartNode.tracedSpec`, which steps
+3-5 of §9 provide; the other traced statements (`stepIn_intro`, `trTok_type`, the traced `Ready`
+receive and `node.Advance.tracedSpec`) are step 1's, used as proved. Where the text above differs from what was proved:
+
+- **H1 (§2.3, the `ConfChangeV2` arm; Probe A's P1 not needed).** `Membership.applyChange_leaveJoint`
+  (step 1's) is not used by the harness. `app`'s view of its node's
+  configuration (`ViewOk`) is always the voters' simple membership: a committed `ConfChange` (type 1)
+  is a bootstrap one, an `AddNode` of a voter (`tcOps_v1_boot`, `tc_conf1`), and the empty
+  `ConfChangeV2` is refuted, not
+  applied: `committed_emptyV2_joint` makes the configuration it is decided at joint, while the
+  configuration there is the voters' simple one (`tc_noConf2`).
+- **H2 (§2.2, `storBnd_zero`).** Step 1 left `storBnd`'s gate for a decision (its I9), so the
+  storage's bound is `tc_storBnd_zero` (`HarnessStorage.lean`), proved from today's ungated `storBnd`
+  body through `nodeAppliedLb_zero`. Once `storBnd` is gated, `storBnd_zero` replaces the lemma.
+- **H3 (§2.2-§2.4, the shared state).** One persistent `tcWorld c W` (`HarnessDefs.lean`) holds what
+  the goroutines read: the configuration's fields `Tick`, `MaxDelay`, `DropPct`, `SnapshotEvery`
+  (read-only), the pure workload facts, the stop channel, the replicas and their nodes, the network's
+  join, the counters' invariants, the traced cluster with `tcOpsInv`, `confPolicy`, `tcSnapsInv` and
+  the bootstrap log's committed lower bound. `app`'s `ownDone` resource is
+  `appDone c W r id q := ∃ n, r.node ↦□ n ∗ isNode n … ∗ nodeRunning n … 1 ∗ njAdder … q`, with the
+  network adder's shares `½, ¼, ¼` (not thirds: `Qp` halves).
+- **H4 (§2.1, the spec's binders).** `RunConcurrent.wp_proof` takes the storage-model-dependent node
+  specs it calls (`StartNode.tracedSpec`, `node.Propose`, `node.Stop`) and `app`'s spec quantified over
+  the model (`∀ [StorageModel GF]`, `∀ [MemStorReg GF]`), because the harness allocates the storage
+  registry, hence the model, inside the run; `Results.lean` instantiates them with raft's linked
+  results.
+- **H5 (§2.2, `probeA_alloc`).** Its post also gives `γ.dup = false` and `γ.bootLen = |boot|`
+  (`node.Propose.spec`'s AU and `readyFits`).
+- **H6 (the TCB report, a name clash).** raft's `trTok` and rafthttp's (`TransportState.lean`) were
+  both `Perennial.EtcdGrove.trTok`; no root reached raft's before, so only the TCB report's one Lean
+  run over every root saw it. rafthttp's is renamed `transportTok`.
+- **Not done: B4.** `PbMessage.lean` is still in rafthttp's tree (`ProbeA.lean` imports it); the move
+  is a raft-tree change, left to the landing that touches raft's API list.
+
+---
+
 ## Revision 3 (2026-11-11): what each finding of `design-r3.md` changed
 
 All raft-internal; the direction of N1-N3 and of the second-tier fixes taken by the coordinator as the

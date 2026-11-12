@@ -8,7 +8,7 @@
   2026-10-27: until then frozen, `trFrozen`, with no remote) and every other member among the ids
   its pool budgets (what `Handler` needs, D40, W8). `NewServer` gives it. (Until J8a-7,
   2026-11-01, also opened, `trOpened`: a handler may add a remote.)
-* `srvTrTok γn τ`: one of the transport's lock's reader tokens (`trTok`), what `CutPeer` and
+* `srvTrTok γn τ`: one of the transport's lock's reader tokens (`transportTok`), what `CutPeer` and
   `MendPeer` borrow (until J8a-7, 2026-11-01, also the no-remote token of every other member,
   `trNoRem`, D22 J-T: the fork's remotes now pause by a flag);
   `srvServeRes γn τ`: what each request the transport's handler serves
@@ -55,10 +55,10 @@ instance srvNetMember_persistent (γn : NetNames GF) (s : Loc) (id : w64) (τ : 
 
 /-- **The server's transport's peer control** (see the file header): one of the transport's lock's
 reader tokens. -/
-def srvTrTok (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := trTok γn τ.t τ.c
+def srvTrTok (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := transportTok γn τ.t τ.c
 
 /-- **What each request the server's raft handler serves borrows** (see the file header). -/
-def srvServeRes (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := iprop(τ.c.R ∗ trTok γn τ.t τ.c)
+def srvServeRes (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := iprop(τ.c.R ∗ transportTok γn τ.t τ.c)
 
 end defs
 

@@ -1,10 +1,14 @@
 # The trace check (examples/raft/tracecheck, notes/trace-validation-plan.md; 2026-11-11, S7 part 1):
-# the results of Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean. Until the
-# harness (`RunConcurrent`) is proved, these are the reduction
-# `raft_tracecheck_safe_of` (the closed statement given `TcOpen`), `tcMainSpec_of` and the corollary's
-# core `tracecheck_Events_traceAccepts`; the closed `raft_tracecheck_safe` replaces the first.
-# Since S7's checker link (2026-11-11) also the checker's linked results (`etcdraft/Link.lean`,
-# `etc/gen-link.py --tracecheck`), which discharge the six checker specs `TcOpen` held.
+# the results of Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean. Since the
+# harness (2026-11-12, branch trace-check-harness): `raft_tracecheck_safe_of` and
+# `raft_tracecheck_accepts_of` (the design's §1.2 and §1.3 given `HarnessOpen`, the traced
+# `StartNode`; they lose the `_of` when it lands), `tcMainSpec_of`, `tc_wp_RunConcurrent` and the
+# corollary's core `tracecheck_Events_traceAccepts`; also the checker's linked results
+# (`etcdraft/Link.lean`, `etc/gen-link.py --tracecheck`).
+# The harness's proof brought five axioms into the baseline, all existing (in etc/tcb-baseline.txt;
+# notes/trace-check-design.md §6): proto.ClonePb (app's `proto.Clone` of each message),
+# proto.UnmarshalConfChange (handleReady's conf entries), strconv.Itoa (the proposer, Q33), and through
+# raft's linked node API proto.CloneSnapshot and proto.SizeEntry. Nothing new to the trust base.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt --check    against the lines below
@@ -14,3 +18,8 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results\.lean$
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link\.lean$
+axiom proto.ClonePb.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom strconv.Itoa.wp_proof
