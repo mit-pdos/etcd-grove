@@ -33,6 +33,46 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Steps 3-4, third agent (2026-11-12): STOPPED at a blocker in step 4 (for etcd-grove-81)
+
+Done (lean-checked, `etc/lean-check.py -a`, 0 errors; a targeted `lake build` of `SrvCtxWeakLaws`):
+- `8227d410c2` step 3. `Proof/.../v3rpc/SrvCtxWeakLaws.lean`: R-4's `v3rpc.srvErrOk_of_weakErr`
+  (`isPkgInit v3rpc ∗ isPkgInit etcdserver ⊢ □ ∀ err, (isCtxErr err ∨ noLeaderErr err) -∗ srvErrOk
+  err`); `v3rpc.valueAt_cc`, `v3rpc.libCtxOk_cc`, `v3rpc.spanCtxOk_cc` (the wrapper's promoted
+  `Value`); `v3rpc.wrapperLibCtx` (from `ccField l ↦□ c`, `ctxValueFrom ci c`, `libCtxOkC ci`,
+  `spanCtxOkC ci`: `libCtxOk (ccCtx l) ∗ trace.spanCtxOk (ccCtx l)`).
+  **Goose configuration** (`Code/.../api/v3rpc.toml`, regenerated with `etc/goose.py --project etcd`):
+  the promoted methods `cancellableContext.{Deadline,Done,Value}` and
+  `serverStreamWithCtx.{RecvMsg,SendMsg}` were not translated (goose emits a promoted method's
+  `MethodUnfold` only when the method is listed, as `quotaKVServer.Compact`), so the wrapper's
+  `Value` was uninterpreted. Now listed; the diff is only those `*_unfold` fields.
+- `e6c1a31bcb` step 4's first item. `Proof/.../v3rpc/StreamMapKey.lean`: `v3rpc.sKey t ls l`,
+  the local `MapKeys` instance `v3rpc.streamKeys` (use it as `attribute [local instance 1100]`
+  in the files that own the monitor's map), `v3rpc.sKey_eq`, `v3rpc.safeMapKey_sKey`,
+  `v3rpc.serverStreamWithCtx_intoVal_inj`.
+
+**Blocker (a trusted-text question):** `srvCtxWeak`'s `"#HErr"`/`"#HErrDone"` give `Err()` with no
+resource, but etcd's wrapper's `Err` (`interceptor.go:297-304`) takes `c.lock.RLock()`, and
+Perennial's `RLock` (`sync.RWMutex.wp_RLock_of`) needs a reader token (`ownRWMutex rw P`; the
+lock has `2^30 - 1`, the bound of Go's reader counter). A persistent `Err` triple with no resource
+would need unboundedly many concurrent readers' tokens: it is not provable for the wrapper (rightly:
+`notes/bounds-plan.md`, a reader pays with its `threadTok` through a thread pool,
+`init_RWMutex_threadPool[L]`). So `srvCtxWeak (ccCtx l) cd` cannot be proved as landed. `Cancel`
+(`Lock`, the guard) and `Done`/`Deadline`/`Value`/`parentCancelCtx` (promoted to the `*cancelCtx`
+child) are not affected. Callers of the weak context's `Err`: `watchServer.Watch` (after `Done`),
+`recvLoop` (`watch.go:203`, a forked goroutine), `leaseKeepAlive` (`lease.go:106,118,149`), and
+through `Tracer.Start`'s child and the local `WithTimeout` lemma (`propagateCancel` calls
+`parent.Err()` when the parent is done). Options in the report; nothing written for them yet.
+
+**Next, once 81 decides:** the wrapper's handle (the `RWMutex` invariant `cancelReason ∈ {nil,
+noLeaderErr}` with its reader tokens in a pool; `cancel ↦□` with `cancelSpec`; `ccField l ↦□ c1`;
+`isContext c1`), `newCancellableContext`'s spec and proof (extend `v3rpc.wp_WithCancel_cancelCtx`
+to keep `isCancelCtxOf c γ True`, needed for the wrapper's `"#HParentCC"`: `parentCancelCtx(l)`
+returns `c1`, re-proved from its code as Perennial's `wp_parentCancelCtx_self_of`), `Cancel`/`Err`,
+`srvCtxWeak (ccCtx l)`, `streamsMapInv` over `v3rpc.streamKeys` (keys with the wrapper's handle),
+`monitorLeader` (the range body: `Cancel(ErrGRPCNoLeader)`, `<-ss.Context().Done()`), the
+weakening contract and the interceptor's branch (then steps 5-6 as below).
+
 ## Revision 2 and the landing (2026-11-12)
 
 Re-review: B1, T-e' and the gates READY; the blocker (Tracer.Start's `spanCtxOk` did not exclude the
