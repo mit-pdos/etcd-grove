@@ -741,7 +741,7 @@ theorem EtcdServer.Range.wp_proof
     (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr c ctx cd r o ot te Q F n hany
-  wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, Hcall, #Hctx, #Hlib, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
+  wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, Hcall, #Hctx, #Hlib, #Hspc, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd

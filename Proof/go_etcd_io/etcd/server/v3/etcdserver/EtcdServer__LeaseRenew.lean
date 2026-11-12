@@ -348,7 +348,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     (hIsC : errors.IsCtxErr.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr γl ctx cd id n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, Htok, Hlgr, Hrrd,
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #Hspc, HRD, #Hpool, Htok, Hlgr, Hrrd,
     %Hbound, #Hprt⟩
   iunfold srvPeerRt at Hprt
   icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩

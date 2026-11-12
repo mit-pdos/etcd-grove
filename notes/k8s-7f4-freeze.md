@@ -51,7 +51,7 @@ So the weak stream end carries `srvCtxWeak ∗ libCtxOk ∗ trace.spanCtxOk` of 
 
 Written into Lean on branch `k8s-7f4` (commit in the handoff). Each item: where it is, what it says,
 why it is true in Go, the Go evidence (`examples/premisefix/streamctx/streamctx_test.go`, run at the
-pins with GOWORK=off, go1.27.1 locally), and what the review should check. T-d (F2) is deferred to
+pins with GOWORK=off; at go1.27.3, the pinned toolchain, since Revision 1), and what the review should check. T-d (F2) is deferred to
 7f-3 (decided by etcd-grove-81, 2026-11-12). "Stronger post" = an axiom gives more; "weaker pre" =
 an axiom asks less.
 
@@ -86,7 +86,7 @@ an axiom asks less.
   and `handler_server.go`'s `WithCancel`/`WithTimeout`), which etcd uses when gRPC and HTTP share a
   TLS port (transport is low priority).
 
-### T-b. F1-general: the incoming metadata is a function of `Value(mdIncomingKey{})` (R-2)
+### T-b. F1-general: the incoming metadata is a function of `Value(mdIncomingKey{})` (R-2) — REFUTED, dropped; replaced in Revision 1 (B1)
 
 - **Text** (new axiom, `Proof/google_golang_org/grpc/metadata/Incoming.lean:51`):
 
@@ -139,7 +139,7 @@ axiom metadata.incomingOf_of_value (c c' : GoInterfaceOk) (v : GoInterface) :
 - **Go:** `AuthInfoFromCtx`/`AuthInfoFromTLS` (fork `673da07c8f` `server/auth/store.go`) read only
   the metadata and the peer, never `Done`/`Err`/`Deadline`.
 
-### T-e'. `isReqAuth` takes the context's `Done()` fact (decided by etcd-grove-81, 2026-11-12; DRAFT, not built)
+### T-e'. `isReqAuth` takes the context's `Done()` fact (decided by etcd-grove-81, 2026-11-12; built in Revision 1)
 
 - **Vocabulary** (new module `Proof/go_etcd_io/etcd/server/v3/auth/CtxDone.lean`, imports only
   Perennial's context proofs): `auth.ctxDoneAny ctx := □ {{ True }} ctx.Done() {{ ch, RET #ch;
@@ -202,7 +202,105 @@ axiom metadata.incomingOf_of_value (c c' : GoInterfaceOk) (v : GoInterface) :
   already claims `applyErrIs` of every `*url.Error` the client returns. The `srvCtxWeak` form
   decision above.
 
-### Checks run (2026-11-12, on this commit)
+## Revision 1 (2026-11-12, after 81's review: NOT READY)
+
+The review's findings (two reviewers; `wf_842ada2f-10d`), what changed for each. All decided by
+etcd-grove-81 (questions.md).
+
+### B1 (blocker): T-b refuted; per-constructor preservation in its place
+
+- **Refutation (both reviewers):** `valueAt` is a partial-correctness WP, so a program context
+  `loopCtx` whose `Value` loops has `valueAt L k (· = v)` for every `v`; T-b applied through `L`
+  equated every two contexts' `incomingOf` (a handler comparing `FromIncomingContext(ctx)` with
+  `FromIncomingContext(Background())` panics in Go and was provable). T-b was used by nothing; it was
+  dropped in the handoff commit (`58fbe131d4`).
+- **Every use of `incomingOf`** (`etc/importers.py --uses incomingOf`, 2026-11-12): its definition
+  (`metadata/Incoming.lean`); `FromIncomingContext.spec` (post); `context.WithValue.spec`,
+  `Tracer.Start.spec`, `EnsureTrace.spec` (posts preserving it); auth's `ctxTokenOf`
+  (`auth/InvAuth.lean:675`), hence `ctxBound`/`isReqAuthBound` and the request path's
+  `infoBoundM`; the unary handlers' specs (`_KV_*`, `_Auth_*`, `_Lease_LeaseGrant`, `quotaKVServer`,
+  `UnaryHandlerLemmas`, `InvGrpc`'s `grpcHandlerOkMd`/`grpcSrvChain`) and their `Results.lean`
+  rewrites; `ReqOn`, `EtcdServer__{Put,Txn,LeaseRenew}` (the transfer through `Tracer.Start`);
+  `client/.../ClientAuth.lean` and `Outgoing.lean` (delivery); the stream contracts
+  (`InvGrpcStream`'s `grpcStreamMethodOk`/`grpcStreamRunOk`, `InvGrpcRun`, `_Watch_Watch_Handler`).
+- **Choice:** (a) indexing the handler side by the stored value would re-index auth's token
+  binding (`ctxTokenOf`/`isReqAuthBound`, which the unary path shares) and `FromIncomingContext`'s
+  post: past the stream path. (b) per-constructor preservation stays on it: **(b)**.
+- **Text (trusted, new):**
+  - `metadata.incomingOf_cancelCtx` (`Proof/google_golang_org/grpc/metadata/Incoming.lean`):
+    `ctxField c ↦□ p ⊢ ⌜incomingOf (*cancelCtx c) = incomingOf p⌝`. Go: `(*cancelCtx).Value(key)`
+    at a key other than `&cancelCtxKey` is `value(c.Context, key)`, which answers as `p.Value(key)`;
+    `FromIncomingContext` is a function of `Value(mdIncomingKey{})`.
+  - `v3rpc.incomingOf_cancellableContext`
+    (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WrapperMd.lean`):
+    `ccField l ↦□ c ⊢ ⌜incomingOf (*cancellableContext l) = incomingOf c⌝`. Go: `Value` is promoted
+    from the embedded `Context` field, written only by `newCancellableContext`'s literal
+    (`interceptor.go:270-283`).
+- **Proved, not trusted** (same file): `v3rpc.incomingOf_wrapper` (the composition: the wrapper over
+  `WithCancel(ci)` has `ci`'s metadata); `v3rpc.wp_WithCancel_cancelCtx` (Perennial's
+  `wp_WithCancel_any`, restated from the same linked specs with the child's location and
+  `ctxField c ↦□ parent` in the post, which Perennial's statement hides; no Perennial change).
+- **Why a looping `Value` cannot equate two contexts** (shown in the package: `incomingOf_cancelCtx`'s
+  docstring, `incomingOf_cancelCtx_parent_unique`, `v3rpc.incomingOf_cancellableContext_field_unique`):
+  the premises are persistent points-tos of one Go type's field, not WPs, and a points-to determines
+  its value, so each `*cancelCtx` or wrapper is related to exactly one context, its field's. The
+  equations follow parent links only: two contexts are equated only on one chain of such links to a
+  common root. `loopCtx` is a root (not a `*cancelCtx` or a wrapper), equated only with the links
+  built over it, whose `Value` loops too; grpc's run context and `Background()` are distinct roots.
+  The model: `incomingOf x` is `FromIncomingContext`'s result at the root reached from `x` by these
+  fields (immutable once the context is returned), arbitrary where it never returns.
+- **Use (later, step 3 of §4):** `newStreamInterceptor`'s weakening contract gets
+  `⌜incomingOf ci' = incomingOf ci⌝` from `v3rpc.incomingOf_wrapper`, with `ccField l ↦□` from
+  `newCancellableContext`'s allocation and `ctxField c ↦□ ci` from `v3rpc.wp_WithCancel_cancelCtx`.
+- **Evidence:** `TestIncomingOfValue` also compares the `WithCancel` child alone (go1.27.3: passes).
+
+### M1 (spec lens) and m3: `libCtxOkC` covers otel's key; the chain form gives the WP form
+
+- `context.libCtxOkC` (`Proof/context/LibKeysChain.lean`) gains
+  `ctxValue ctx trace.spanKeyVal trace.spanRes`: the chain form of all four parts of `libCtxOk`.
+  **Stronger post** of `acceptRun`'s stream arm and of prometheus's contract (through
+  `srvRawStreamIs`); no new claim: `grpcRunCtx` already asserts `spanValOk ci` (the same value), and
+  the run context is the chain T-a's test walks.
+- m3, by laws (proved): `context.libCtxOk_of_libCtxOkC`, `trace.spanCtxOk_of_spanCtxOkC` (with
+  `isPkgInit context`): `grpcRunCtx`'s `libCtxOk`/`spanCtxOk` parts on the stream arm follow from the
+  chain forms, so they claim nothing more. `grpcRunCtx` stays whole (the unary arm shares it).
+  Also `context.libCtxOkC_from`, `trace.spanCtxOkC_from` (carried by `ctxValueFrom`), for step 3.
+
+### M1/M2 (axiom lens): T-e' built, `isReqAuth`'s docstring corrected; m1 recorded
+
+- T-e' as drafted (above), built. The docstring now says: auth off, `AuthInfoFromCtx` returns at
+  `!as.IsAuthEnabled()` (`store.go:1073`) and `AuthInfoFromTLS` reads the peer and the metadata; auth
+  on with a simple token, `isValidSimpleToken` selects on `ctx.Done()` (`simple_token.go:239-243`).
+- m1: the whole `libCtxOk` is kept, with the reason in the docstring and `notes/decisions.md`
+  (every caller carries it; the request path's internal specs take the same fact).
+
+### M2 (axiom lens): `Tracer.Start` takes `trace.spanCtxOk ctx`
+
+- `traceutil.Tracer.Start.spec`: pre `(txnCtx ∨ srvCtxWeak) ∗ trace.spanCtxOk ctx` (**stronger pre**
+  of the axiom); the Open note is deleted (it was this refutation) and the audit row
+  (`notes/audit.md:434`) records it. `spec_txn` takes it too. Callers: the KV/lease request paths
+  (`Put`, `Txn`, `DeleteRange`, `Compact`, `LeaseGrant`, `LeaseRevoke` already took `spanCtxOk`);
+  `EtcdServer.Range.spec` and `EtcdServer.LeaseRenew.spec` gain it (internal specs; their callers
+  `kvRangeOk_of_serverM` and `raftLeaseRenew_of_server` have it from `srvCall`/the contract), and so
+  does the contract `v3rpc.raftLeaseRenew` (its user `leaseKeepAlive` from `spanCtxOk_of_runCtx`);
+  `recvLoop` from `spanCtxOk_of_runCtx`.
+- m2: the disjunction stays, recorded as a known departure (`notes/decisions.md`, "k8s 7f-4
+  Revision 1"); the docstring's "not widened" is made precise (`srvCtxWeak` admits program contexts
+  `txnCtx` did not, but `isContext`'s arm already admitted the same kind; with `spanCtxOk` required
+  neither reaches the refutation).
+
+### Minors
+
+- m1 (axiom lens): `srvRawStreamIs` and `grpcRunCtx` state etcd's configuration: no
+  `GRPCAdditionalServerOptions` adding stream interceptors or stats handlers (`embed/etcd.go:789`).
+- m2/m5: the evidence reruns at go1.27.3 (all four tests pass, 2026-11-12). The already-cancelled
+  `RenewHTTP` case is not added (optional; the post accepts every error).
+- m4: the collections whose roots reach `acceptRun` or prometheus's axiom: below ("Checks run,
+  Revision 1").
+- m3 (axiom lens, `Value(&cancelCtxKey)` determinism): no change (a Perennial question shared with
+  `isContext`; noted by the reviewer as not a finding).
+
+### Checks run (2026-11-12, on 783fd4c8c8)
 
 - Full build (`etc/timed-build.py`, under the 64G cap): passes. Two earlier full builds from the
   stale tree were OOM-killed at the cap (aggregate of parallel jobs, `run-…scope: oom-kill`, 64G

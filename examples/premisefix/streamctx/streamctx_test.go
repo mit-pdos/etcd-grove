@@ -7,10 +7,11 @@
 //     *context.valueCtx, *context.cancelCtx and *context.timerCtx links over Background(), which
 //     context.value() walks, so the chain form of its library values (ctxValue) holds; with and
 //     without TLS, otelgrpc's stats handler, a client deadline and grpc-prometheus's interceptor.
-//   - T-b (TestIncomingOfValue): metadata.FromIncomingContext reads only Value(mdIncomingKey{}):
-//     contexts whose Value at that key returns the same value have equal incoming metadata,
-//     including etcd's require-leader wrapper over WithCancel(ss.Context()) and a context whose
-//     Done, Err and Deadline panic.
+//   - T-b, as revised (TestIncomingOfValue; Revision 1 of the freeze note, B1): a *cancelCtx has
+//     its parent's incoming metadata (metadata.incomingOf_cancelCtx), and etcd's require-leader
+//     wrapper (*cancellableContext) its embedded context's (v3rpc.incomingOf_cancellableContext),
+//     after its Cancel(ErrGRPCNoLeader) too; also a context whose Done, Err and Deadline panic and a
+//     WithValue child. metadata.FromIncomingContext reads only Value(mdIncomingKey{}).
 //   - T-c (TestRawStreamKey): the ServerStream an interceptor or handler receives is a pointer (grpc's
 //     *serverStream, prometheus's *monitoredServerStream), a comparable map key, alone or in a
 //     struct beside a pointer (etcd's serverStreamWithCtx).
@@ -211,7 +212,7 @@ func TestIncomingOfValue(t *testing.T) {
 		inner, cancel := context.WithCancel(ci)
 		w := &cancellableContext{Context: inner, cancel: cancel}
 		w.Cancel(rpctypes.ErrGRPCNoLeader) // done, Err() is ErrGRPCNoLeader: FromIncomingContext does not care
-		got <- []res{from(ci), from(w), from(valueOnly{w}), from(context.WithValue(w, otherKey{}, 1))}
+		got <- []res{from(ci), from(inner), from(w), from(valueOnly{w}), from(context.WithValue(w, otherKey{}, 1))}
 		return nil
 	})
 	runStream(t, cc, false)

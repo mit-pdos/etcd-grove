@@ -33,7 +33,23 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
-## Next, in order (81's decisions on the review, 2026-11-12)
+## Revision 1 (2026-11-12, the second 7f-4 agent): steps 1-6 of 81's decisions done
+
+`notes/k8s-7f4-freeze.md`, "Revision 1", per finding. B1 by per-constructor preservation (option (b);
+(a) spread into auth): axioms `metadata.incomingOf_cancelCtx` (`Incoming.lean`) and
+`v3rpc.incomingOf_cancellableContext` (new `v3rpc/WrapperMd.lean`, with the proved
+`v3rpc.incomingOf_wrapper` and `v3rpc.wp_WithCancel_cancelCtx`). T-e' built; `Tracer.Start` takes
+`trace.spanCtxOk` (Range/LeaseRenew specs and `raftLeaseRenew` gain it); `libCtxOkC` gains otel's key,
+laws `libCtxOk_of_libCtxOkC`, `spanCtxOk_of_spanCtxOkC`, `*_from`; minors. **Build (2026-11-12): targeted
+build passed; the full build fails only in `etcdserver/Results.lean` (`range_linearizable`,
+`range_serializable`: exported, their pres lack `trace.spanCtxOk ctx`, which `Range.spec` now takes
+for M2). STOPPED for 81: add `trace.spanCtxOk ctx` to those two exported pres (recommended), then
+rebuild, gates, and the re-review.** Then: STOP for 81's
+re-review, then steps 3-6 of the re-baseline's §4 (the weakening interceptor contract uses
+`v3rpc.incomingOf_wrapper`; `newCancellableContext`'s proof must persist the `Context` field's
+points-to and call `v3rpc.wp_WithCancel_cancelCtx`).
+
+## 81's decisions on the review, 2026-11-12 (steps 1-6 done in Revision 1, above)
 
 1. **B1, without a new axiom.** Index the handler side by the stored metadata value `v` (the
    transport MD), not by `incomingOf ctx` (the spec lens's fix): an opaque

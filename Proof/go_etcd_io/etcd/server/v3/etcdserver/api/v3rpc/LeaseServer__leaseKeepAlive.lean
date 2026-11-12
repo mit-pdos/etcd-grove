@@ -190,6 +190,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   · iPkgInit
   ihave #Hctx2 := Hctxis
   ihave #Hlibk := libCtxOk_of_runCtx ci $$ Hrunctx
+  ihave #Hspk := spanCtxOk_of_runCtx ci $$ Hrunctx
   iNamed Hctx2
   ihave #HErrU := HErr $$ %Broadcast.Unknown
   wp_auto

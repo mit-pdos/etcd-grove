@@ -396,7 +396,11 @@ key (etcd's `monitorLeader` keys a map by it): grpc passes a `*serverStream` (`s
 span also in the chain form (`context.libCtxOkC`, `trace.spanCtxOkC`), which `WithCancel` carries to a
 child (`ctxValueFrom`): grpc's run context is a chain of `*valueCtx` links (`NewIncomingContext`,
 `peer.NewContext`, grpc's internal keys, otelgrpc's `ContextWithSpan`) over the transport's
-`WithCancel`/`WithTimeout` of `Background()`, which `context.value()` walks. -/
+`WithCancel`/`WithTimeout` of `Background()`, which `context.value()` walks. (Revision 1, m1) Of
+etcd's configuration: the server's options are etcd's own (`v3rpc/grpc.go`), with no
+`GRPCAdditionalServerOptions` (`server/embed/etcd.go:789`, appended by `v3rpc.Server`) adding stream
+interceptors or stats handlers, as in the etcd binary (`etcdmain` never sets it): such an option
+could wrap the stream in a non-pointer value or store values at grpc's or otel's keys. -/
 def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=

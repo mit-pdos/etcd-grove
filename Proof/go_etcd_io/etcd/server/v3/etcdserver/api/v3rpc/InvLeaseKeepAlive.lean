@@ -139,7 +139,7 @@ def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (
 /-- **The server's `LeaseRenew`** (the keep-alive's contract, persistent; see the file header). -/
 def raftLeaseRenew (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
-    {{ S' ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+    {{ S' ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseRenew")) (Val #(GoInterface.ok ci))) (Val #id))
     {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); S' ∗
         renewAns s E γl ci n m id err }})

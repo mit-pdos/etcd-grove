@@ -35088,3 +35088,33 @@ fixed exactly by the resource it hands over at the same point; the mark and `nam
 
 **Revision 1b (R1/R2, purge-model completeness): deferred to W4a.2** (the coordinator's fallback),
 `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, "Revision 1b".
+
+## k8s 7f-4 Revision 1: the stream wrapper's metadata by constructor; `Tracer.Start`'s context premise (2026-11-12 · decided by etcd-grove-81 on the trusted package's review, NOT READY · branch `k8s-7f4`; the trusted texts await the re-review, `notes/k8s-7f4-freeze.md`, "Revision 1")
+
+**The wrapper's metadata (B1).** T-b (`metadata.incomingOf_of_value`, equal `Value(mdIncomingKey{})`
+WPs ⊢ equal `incomingOf`) was refuted: a WP is partial correctness, so a context whose `Value` loops
+has `valueAt` for every value and equates every two contexts' metadata through itself. The two
+replacements were (a) indexing the handler side by the stored metadata value, (b) per-constructor
+preservation. Every use of `incomingOf` listed (`FromIncomingContext.spec`, `WithValue.spec`,
+`Tracer.Start`, `EnsureTrace`, auth's `ctxTokenOf`/`ctxBound`/`isReqAuthBound`, the unary handlers'
+specs, `Outgoing.lean`'s delivery, the stream contracts): (a) would re-index auth's token binding,
+which the unary path shares, so it spreads past the stream path; (b) stays on it. **Decision:** (b),
+two axioms, each a pure fact from a persistent points-to of one Go type's field, never from a WP:
+`metadata.incomingOf_cancelCtx` (a `*cancelCtx` has its parent's) and
+`v3rpc.incomingOf_cancellableContext` (etcd's wrapper has its embedded context's); a local
+`v3rpc.wp_WithCancel_cancelCtx` exposes the child's location and field, which Perennial's
+`wp_WithCancel_any` hides. A looping context gives no such points-to; each `*cancelCtx` or wrapper is
+related to its one field value (`*_unique`), so the equations follow parent links only.
+
+**`Tracer.Start`'s premise (M2, m2).** `trace.spanCtxOk ctx` joins the premise (the former Open
+refutation through `ctx`'s span). The premise stays the disjunction `txnCtx ∨ srvCtxWeak`, a known
+departure from the spec principles (alternatives as a disjunction rather than the one fact the
+tracers read): the common generalization (no Done/Err premise, the context-kind transfers as proved
+laws from one "delegates to `ctx` except at otel's key" fact) is a larger restatement of a trusted
+text that the k8s stage does not need. `srvCtxWeak` admits program contexts `txnCtx` did not, but
+`isContext`'s arm already admitted the same kind; with `spanCtxOk` required, neither arm reaches the
+refutation.
+
+**`isReqAuth` keeps the whole `libCtxOk` (m1).** The store reads only the incoming and peer parts;
+every caller carries the whole fact, and the request path's internal specs (`checkLeaseRenew`,
+`LeaseRenew`, the KV calls) take the same, so a narrower premise would split one context fact in two.

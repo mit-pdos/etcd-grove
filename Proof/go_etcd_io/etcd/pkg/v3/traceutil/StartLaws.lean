@@ -31,7 +31,7 @@ theorem traceutil.Tracer.Start.spec_txn (hTS : traceutil.Tracer.Start.spec (GF :
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
   {{ globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr ∗
-      mvcc.txnCtx ctx cd }}
+      mvcc.txnCtx ctx cd ∗ trace.spanCtxOk ctx }}
     (App (App (App (Val #(methods tr.ty go!"Start" tr.v)) (Val #(GoInterface.ok ctx))) (Val #name))
       (Val #opts))
   {{ (ctx' : GoInterfaceOk) (sp : GoInterface), RET (PairV #(GoInterface.ok ctx') #sp);
@@ -43,7 +43,7 @@ theorem traceutil.Tracer.Start.spec_txn (hTS : traceutil.Tracer.Start.spec (GF :
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') }} := by
   intro tr ctx cd name opts
-  iintro %Φ ⟨#Htr, #Htxn⟩ HΦ
+  iintro %Φ ⟨#Htr, #Htxn, #Hsp⟩ HΦ
   iapply (hTS tr ctx cd name opts) $$ []
   · iframe #
   iintro !> %ctx' %sp ⟨⟨%vs, #Ht, Hw⟩, -, #Hrest⟩

@@ -2646,13 +2646,19 @@ reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method 
 `authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`); (premise-fixes-8 S2) each call on a context whose
 library values are well formed (`context.libCtxOk`, which the request path carries from the gRPC run
 context). Of the real store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
-apply package's `isAuthStore`. (k8s 7f-4, T-e) Nothing of the context but its library values: the
-store's `AuthInfoFromCtx`/`AuthInfoFromTLS` read only the metadata and the peer (`Value` at grpc's
-keys), never `Done`/`Err`/`Deadline` (fork `673da07c8f` `server/auth/store.go`), so a stream
-handler's weak context (`srvCtxWeak`) is one too. (T-e', decided by etcd-grove-81) And its
-`Done()` returns nil or a context's Done channel (`auth.ctxDoneAny`): the token check
-(`isValidSimpleToken`) selects on it; a `txnCtx` gives it (`auth.ctxDoneAny_of_txnCtx`), and so does
-`srvCtxWeak` (`auth.ctxDoneAny_of_srvCtxWeak`). -/
+apply package's `isAuthStore`. (k8s 7f-4, T-e and T-e', decided by etcd-grove-81) Of the context,
+its library values and its `Done()`: with auth off, `AuthInfoFromCtx` returns at
+`!as.IsAuthEnabled()` and `AuthInfoFromTLS` reads only the peer and the metadata (`Value` at grpc's
+keys; fork `673da07c8f` `server/auth/store.go:1073`); with auth on and a simple token, the token
+check (`tokenSimple.isValidSimpleToken`, `server/auth/simple_token.go:239-243`) also selects on
+`ctx.Done()`, which Go evaluates on entry: it returns nil or a context's Done channel
+(`auth.ctxDoneAny`; `notes/auth-validspec-false.md`). Neither reads `Err`/`Deadline`, so a stream
+handler's weak context (`srvCtxWeak`) is one too: a `txnCtx` gives `ctxDoneAny`
+(`auth.ctxDoneAny_of_txnCtx`), and so does `srvCtxWeak` (`auth.ctxDoneAny_of_srvCtxWeak`). The whole
+`libCtxOk` is kept although the store reads only its incoming and peer parts: every caller carries
+it anyway (the request path from grpc's run context, the stream paths from the chain form), and the
+same premise as `checkLeaseRenew`'s and the request path's internal specs keeps one context fact
+across them (`notes/k8s-7f4-freeze.md`, Revision 1, m1). -/
 def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ ctx : GoInterfaceOk,

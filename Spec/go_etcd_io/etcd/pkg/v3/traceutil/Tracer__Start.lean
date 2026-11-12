@@ -51,25 +51,28 @@ grpc's keys (`mdIncomingKey{}`, `mdOutgoingKey{}`, `peerKey{}`, not otel's key's
 `ctx` does, and at otel's `currentSpanKey` either `ctx`'s value or the span the tracer made, one of
 otel's (`trace.otelSpan`) (checked against the noop and the SDK tracers,
 `examples/premisefix/tracerctx`).
-**Open** (2026-11-06, found with that fix): `isSpan sp` and the run's return are not justified for
-every `txnCtx`: the tracers call `SpanContext()` (and the no-op one `IsRecording()`) on `ctx`'s span,
-and the no-op tracer can return `ctx`'s span itself, so a context of the program's own whose
-`Value(currentSpanKey)` is a span with a panicking method refutes it, as it refuted
-`SpanFromContext`'s `isContext` arm. The contexts the proofs pass (grpc's run contexts, derived
-from them, `Background()`'s children) hold a genuine span or none.
+(k8s 7f-4, Revision 1, M2, decided by etcd-grove-81, 2026-11-12) `ctx`'s span is a span
+(`trace.spanCtxOk ctx`, in the premise): the tracers call `SpanContext()` (and the no-op one
+`IsRecording()`) on `ctx`'s span, and the no-op tracer can return `ctx`'s span itself, so without it
+a context of the program's own whose `Value(currentSpanKey)` is a span with a panicking method
+refuted the triple (the former **Open** note of 2026-11-06). Callers have it from grpc's run context
+(`spanCtxOk_of_runCtx`) on the request path and from its chain form (`trace.spanCtxOkC`) on the
+stream path.
 (k8s 7f-4, T-f, 2026-11-12) The context may also be a stream handler's weak one (`srvCtxWeak`:
 etcd's `cancellableContext`, whose `Err()` may return `ErrGRPCNoLeader`), and then so is the context
 returned: `ContextWithSpan(ctx, s)` is a `valueCtx`, whose `Deadline`/`Done`/`Err` are `ctx`'s and
 whose `Value(&cancelCtxKey)` is `ctx`'s (otel's key is not `&cancelCtxKey`), or `ctx` itself (the
 no-op tracer). The post's context facts are wands from the premise's (the old triple, from
 `txnCtx`: `traceutil.Tracer.Start.spec_txn`, `Proof/go_etcd_io/etcd/pkg/v3/traceutil/StartLaws.lean`).
-The open note above is not widened: the weak contexts the proofs pass are children of grpc's run
-contexts. -/
+The premise is a disjunction (`txnCtx ∨ srvCtxWeak`), a known departure from the spec principles
+(`notes/decisions.md`, "Tracer.Start's context premise"): `srvCtxWeak` admits program contexts that
+`txnCtx` did not, but `isContext`'s arm of `txnCtx` already admitted the same kind, and with
+`spanCtxOk` in the premise neither arm can refute the triple through the span. -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
   {{ globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr ∗
-      (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) }}
+      (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) ∗ trace.spanCtxOk ctx }}
     (App (App (App (Val #(methods tr.ty go!"Start" tr.v)) (Val #(GoInterface.ok ctx))) (Val #name))
       (Val #opts))
   {{ (ctx' : GoInterfaceOk) (sp : GoInterface), RET (PairV #(GoInterface.ok ctx') #sp);
