@@ -80,7 +80,7 @@ theorem tracecheck_Events_traceAccepts (Hrb : receiptBound GF ≤ 2 ^ 61) (c : L
   inext
   iintro %sl ⟨%L, #Hsl, %Hlen, %Hok⟩
   have hlen : (L.length : Int) < Etcdraft.numBound := by
-    unfold Etcdraft.numBound; omega
+    have := Hlen.lt_of_le Hrb; unfold Etcdraft.numBound; omega
   obtain ⟨-, -, -, -, -, -, -, -, hacc⟩ := mainPure_of_runOk L Hok hlen
   iapply HΦ
   iexists L

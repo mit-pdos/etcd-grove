@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart). Trace-check's layer D, S7 (part 1) (2026-11-11
 
 `RunConcurrent(DefaultCConfig())` returns the cluster with a nil error and the run over
 (`runOver`); `c.Events()` runs its view shift at the recorded trace `L`, giving `RunOk L` and, from
-the recorder's receipts, `L.length < receiptBound GF ≤ 2^61 = numBound`; `mainPure_of_runOk` then
+the recorder's receipts, `traceLenFits GF L` under `tcRunFits GF`, `L.length < 2^61 = numBound`; `mainPure_of_runOk` then
 gives `ConvertEvents`' premise (ASCII), `NewTrace`'s (the events bounded, fewer than `numBound`, the
 bootstrap logs), `newTrace`'s success at `t` (so `NewTrace`'s error is nil), `CheckTrace`'s premise
 `t.CheckTraceOk true`, and the search's only result `{ ok := true }`, whose `TLCOK` is `true`: no
@@ -65,7 +65,7 @@ theorem Main.wp_proof
   wp_apply wp_Events c γt r (fun L => iprop(⌜RunOk L⌝)) $$ [Hvs] as %sl ⟨%L, #Hsl, %Hlen, %Hok⟩
   · iframe Hc Hr Hvs
   have hlen : (L.length : Int) < Etcdraft.numBound := by
-    unfold Etcdraft.numBound; omega
+    have := Hlen.lt_numBound Hrb; unfold Etcdraft.numBound; omega
   obtain ⟨hasc, hb, hl, hbl, t, hnt, hck, hres, -⟩ := mainPure_of_runOk L Hok hlen
   wp_apply wp_ConvertEvents sl L $$ [Hsl] as %out #Hout
   · iframe Hsl
