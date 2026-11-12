@@ -17,6 +17,9 @@ Now the close right's holder gets the closed file back (for a reopen, etcd's def
 database may be closed again (`cleanupTmpDB` after `finishDefrag`'s `Close`). A `Close` by someone
 without the right while the database is open is no longer allowed: the right's holder relies on the
 database staying open (`Path`, `Sync`).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, the close right's share).** The right is
+fractional (`boltOpened db γ q`); `Close` takes the whole (`1`), so no share is out (`Path`,
+`Sync` hold one while they run).
 
 **Margin.** The error (a system call's) is not described: the file is closed either way.
 -/
