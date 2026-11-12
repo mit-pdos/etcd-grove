@@ -22,7 +22,9 @@ trip (D2). This check:
    (the decoder's post D1 of `UnmarshalPb.lean` at raftpb.Message/Entry, with the instances'
    size, levels and decOk of `PerTypeMessage.lean`/raft's `PbEntryType.lean`),
    `TestD2P2EntryEncoder`/`TestD2P2MessageEncoder` (the round trip D2 and the encoder axioms
-   `entryEncC_ok`/`msgEncC_ok`), and `TestSizeBoundCondition` (step 3's size bound condition).
+   `entryEncC_ok`/`msgEncC_ok`), `TestSizeBoundCondition` (step 3's size bound condition), and
+   (out_size B2) `TestB2CCDecoderUf`/`TestB2MustUnmarshalCC` (the conf-change decoders' unknown fields
+   at their schemas) and `TestA3CCLen`/`TestA3CC2Len` (`proto.MarshalConfChange[V2]`'s `ccLenMax`).
 
     etc/pbschema-check.py        prints one line, exits 1 on a failure
 
@@ -138,7 +140,7 @@ def main():
         sys.exit(1)
     print(f"pbschema: ok ({len(table)} schemas, roots {', '.join(sorted(roots))}; "
           f"2 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
-          f"Message) and the size bound condition passed)")
+          f"Message), the size bound condition, and the ConfChange decoders and length bound passed)")
 
 
 if __name__ == "__main__":

@@ -154,7 +154,10 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     `TestB2MustUnmarshalCC` (+ `TestB2CCDecoderUf`) in `etc/pbschema-check.py`'s `POST_TESTS` (9).
     **Hard stop: re-review of freeze-b2.md "Revision 1" before landing.**
   - `notes/confchange-schema-empty.md` (the `[]` finding, decided by etcd-grove-81).
-  - Full build 1 after the lean merge: `/shared/tmp/out-size/c3a-full1.log`.
+  - **Full build 1** after the lean merge (`/shared/tmp/out-size/c3a-full1.log`): **passes** (17488
+    jobs). `etc/tcb-report.py --check` (`/shared/tmp/out-size/c3a-tcb.log`): the only differences are the
+    two branch `sorry`s `ApiImpl.entsOut_insert`, `msgOutR_intro` (new) and `out_size` (gone): P3 closes
+    the first two. Axioms unchanged in name. `etc/pbschema-check.py`: ok (with the 4 ConfChange tests).
   - **Next:** fix full-build failures; P3 (outbox `msgQC`, `raft.send` + callers; discharges the two
     branch `sorry`s `(fun _ _ => sorry)` at `entsOut_insert` (InvApi ~2394) and `msgOutR_intro`
     (MsgOutIns:68); Scope §2 table row "outbox" and §3), P4 (`LogState.sz`/unstable sized, step
