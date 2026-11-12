@@ -24,7 +24,24 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
     `bkRestOf … L "alarm"`, so it needs "no alarm activated in `L`" (the workload, under
     `backendUnderQuota`). Otherwise the axiom must widen: a trusted change, so report it.
     `NewLessor` is the axiom `lease.NewLessor.wp_proof`, already restated for buckets with records.
-- Not started: P1-P3, P5-P7 (Lean probes in `Scratch/S56Probe.lean`, after the baseline build).
+- Baseline build: exit 0 (2026-11-12).
+- R1 decided by 81: option (a), cancellable invariant, as S6a. **CP1 (2026-11-12) found (a) unsound or
+  unprovable**: a stale `SaveDBFrom` of the stopped incarnation outlives `HardStop` + `pl.Close` (Go:
+  `http.Serve` does not wait for in-flight handlers; model: `http.Serve_spec` keeps the handler and its
+  `Rs` for good). Every per-incarnation invariant fails (the kept-file branch of the restarted
+  incarnation's own `SaveDBFrom`). Proposed (b′): one invariant per member, allocated by the first start,
+  carried by the image (persistent), reused at the restart through `snapDBPath bs.ss' = snapDBPathOf dd`
+  (one new conjunct in `bootOk`/`bootOkR`); removal fact a member-level counter `snapRmM γm`; the three
+  axioms unchanged (`purgeFile` never took the directory). Package: `/shared/tmp/restart-s56/freeze-s6a.md`.
+  Waiting for 81.
+- P7 proved in `Scratch/S56Probe.lean` (`probe_P7_alarm`, `probe_P7_auth`): the image's alarm bucket is
+  empty and its auth buckets are `authBoot`/∅/∅ at every log (`restModel_keep`); no `NewAlarmStore`
+  widening.
+- P5 by reading: provable, no premise. A phase-2 invariant (the `members` bucket exactly the encodings of
+  `r.mem`, peer URLs `memBoot`'s, `members_removed` empty) makes every `ccApplyOk` `AddNode` invalid
+  (`membersOf_decode`: the id is present), and `restUpdateAttrs` keeps peer URLs (`withAttrs`). Builds on
+  `RestConf.lean`'s phase 1 (`bootInv`); about 250 lines; not written.
+- Not started: P1-P3, P6.
 
 - Plan: `/shared/tmp/restart-s56/plan.md`: the statements old → new (§1 S5, §2 S6), the hard stops
   (§3), the order and checkpoints CP1-CP3 (§4), the files and collisions (§5), the decisions D1-D4 (§6),
