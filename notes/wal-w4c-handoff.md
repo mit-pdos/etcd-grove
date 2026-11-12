@@ -135,14 +135,16 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
      `copyOps`, `walLastHS`, `readEnt` (premise: the entry's index `< 2^63`), `walSaveSnap`,
      `walFoldChk` (premise `tHistWf h`), `walRead`, `walReadFrom` (premises `tHistWf h`,
      `0 ≤ sint.Z k ≤ |h|`), `walReadCut` (premises `tHistWf h`, `uint.nat k ≤ |h|`), `contentsEq`,
-     `opEq`, `histEq` (return `decide (a = b)`). All build with `lake build` (`71fe42f570`).
+     `opEq`, `histEq` (return `decide (a = b)`), `cutPos` (premise `0 ≤ sint.Z b ≤ |h|`), `lastIdx`.
+     All build with `lake build` (`dd9c68766c`). RefLemmas also has `foldl_take_succ`.
      Rep also has `opsRep_slice` (a subslice, through `ownSlice_slice`), `opsElems_subslice`,
      `DecidableEq` of `TOp`/`TContents`, `list_ne_of_getElem`, `list_take_succ_eq`,
      `val_false_ne_true`; RefLemmas has `tKeep_filter_take_succ`.
    - **Left of step 3, in order** (ref.go first, then oracle.go, then wal.go):
-     - `cutPos`,
-       `lastIdx`, `nameBound`, `openBound` (`tNameBound`, `tOpenBound`), `walImgs` (`tImgs`; needs
-       `opsRep` of `h[:j]`: a lemma from `ownSlice_slice`), `walFold`/`appendEnts` (no-panic, the
+     - `nameBound` (loop `b ≤ len(h)`, calls `cutPos` and `lastIdx(h[:b])` via `opsRep_slice`; invariant
+       `best = W64 (((List.range b).filter p).getLast?.getD 0)`, `List.range_succ`), `openBound` (needs a
+       representation of `[][]walOp`: add `imgsRep s imgs` to Rep, as `opsRep` with `opsRep` elements;
+       `tOpenBound`), `walImgs` (`tImgs`; `copyOps(h[:j])` via `opsRep_slice`, `copyEnts(h[j].ents[:k])`), `walFold`/`appendEnts` (no-panic, the
        result's entries among the history's: `opResend` saves them, so they must be well formed);
      - oracle.go: `putU64`, `decoder.u64`, `putHS`, `decoder.hs`, `putOps`, `decoder.ops`,
        `encodeOracle` (`tEncodeOracle`), `decodeOracle` (round trip on `tEncodeOracle o`),
