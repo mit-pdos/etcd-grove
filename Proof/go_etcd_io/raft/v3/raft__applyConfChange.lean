@@ -23,9 +23,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `r.applyConfChange(cc)`, untraced: the untraced instance (`spec_of_tracedSpec`) of the one proof,
-`raft.applyConfChange.tracedSpec_proof` (`TracedApplyConfChange.lean`; 2026-11-12, trace-check step 4:
-until then the proof was here, the same with the struct opened by `ownRaftPhysC_retrack`). -/
+/-- `r.applyConfChange(cc)`, both modes: the one proof, `raft.applyConfChange.spec_proof`
+(`TracedApplyConfChange.lean`; 2026-11-12, trace-check steps 4 and 5: until then the proof was here, the
+same with the struct opened by `ownRaftPhysC_retrack`). -/
 theorem raft.applyConfChange.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_LeaveJoint : raftpb.ConfChangeV2.LeaveJoint.spec (GF := GF) (hG := hG))
@@ -35,10 +35,9 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) :=
-  raft.applyConfChange.spec_of_tracedSpec
-    (raft.applyConfChange.tracedSpec_proof wp_raftLog_lastIndex wp_ConfChangeV2_LeaveJoint
-      wp_ConfChangeV2_EnterJoint wp_Changer_LeaveJoint wp_Changer_EnterJoint wp_Changer_Simple
-      wp_raft_switchToConfig)
+  raft.applyConfChange.spec_proof wp_raftLog_lastIndex wp_ConfChangeV2_LeaveJoint
+    wp_ConfChangeV2_EnterJoint wp_Changer_LeaveJoint wp_Changer_EnterJoint wp_Changer_Simple
+    wp_raft_switchToConfig
 
 end proof
 

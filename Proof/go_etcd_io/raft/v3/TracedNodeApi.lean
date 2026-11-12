@@ -66,14 +66,33 @@ instance Cluster.traceSim_persistent (γ : Cluster) (vs : List w64) (tn : TraceN
     Persistent (Cluster.traceSim (GF := GF) γ vs tn) := by
   unfold Cluster.traceSim; infer_instance
 
+/-- **The receipts fit a traced cluster's run** (persistent, sealed; 2026-11-12, step 5, review
+`step5-r1.md`'s S1, beside the node API's `readyFits`): the receipts' bound past the bootstrap log and one
+more unit (for a term ceiling raised by a tick or a `Campaign`) is at most `2 ^ 61`, the trace's numbers'
+bound. What a traced node's `run` needs of the cluster (`RunTracedOk`); `traceFits_intro`. -/
+@[no_expose] def traceFits (γ : Cluster) (_N : Namespace) : IProp GF :=
+  iprop(⌜receiptBound GF + max γ.bootLen 2 ≤ 2 ^ 61⌝)
+
+instance traceFits_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (traceFits (GF := GF) γ N) := by
+  unfold traceFits; infer_instance
+
+/-- **A traced cluster fits** from the bound (the harness's `tcRunFits` at three voters). -/
+theorem traceFits_intro (γ : Cluster) (N : Namespace) :
+    receiptBound GF + max γ.bootLen 2 ≤ 2 ^ 61 → ⊢ traceFits (GF := GF) γ N := by
+  intro h
+  unfold traceFits
+  ipureintro; exact h
+
 /-- **What a node brings of the trace to `StartNode`**: the Draft's `startTrace` (word for word, over
-`Cluster.traceSim`). -/
-def startTraceC (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
+`Cluster.traceSim` and `traceFits`). -/
+def startTraceC (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config) : IProp GF :=
   match Cluster.trace γ with
   | none => iprop(⌜cv.TraceLogger' = interface.nil⌝)
   | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗
       ⌜(cv.PreVote' = false ∧ cv.CheckQuorum' = false) ∧ tn.voters = vs ∧ vs.length < 2 ^ 40 ∧
         cv.TraceLogger' ≠ interface.nil⌝ ∗
+      traceFits γ N ∗
       isTraceLogger tn.tr cv.TraceLogger' ∗ Cluster.traceSim γ vs tn ∗
       simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [] ∗
       simBoot tn cv.ID' false none)
@@ -116,7 +135,7 @@ abbrev StartNode.tracedSpec : Prop :=
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q }> ∗
       restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F ∗
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTraceC γ vs cv }}
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTraceC γ N vs cv }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗

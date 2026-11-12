@@ -4,6 +4,7 @@ Port of election_proof/spec_traceInitState.v (feb5c73d4).
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedCap
+public import Proof.go_etcd_io.raft.v3.RaftReadLend
 
 @[expose] public section
 
@@ -33,9 +34,10 @@ gate `TraceFire tr tl E Q`. Its traced instance is the Draft's `traceInitState.t
 abbrev traceInitState.spec : Prop :=
   ∀ (r : Loc) (tl : GoInterface) (tr : Option GName) (E : TraceEv → Prop) (Q R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
-      trOwn tr iprop(∃ (c : CfgM) (id : w64) (s : NState), ownRaftPhysCV c c.voters r id s ∗
-        ⌜s.gh.tr = tr ∧ ∀ e, NodeEvOf (W64 0) id s c e → E e⌝ ∗
-        (ownRaftPhysCV c c.voters r id s -∗ R)) ∗
+      -- (2026-11-12, trace-check step 5; until then the whole struct, `ownRaftPhysCV`) raft's state
+      -- lent read-only out of `P`: `newRaft` calls it before the struct is `ownRaftPhysCV`
+      trOwn tr iprop(∃ (c : CfgM) (id : w64) (s : NState) (P : IProp GF), P ∗ RaftReadLend P c r id s ∗
+        ⌜s.gh.tr = tr ∧ ∀ e, NodeEvOf (W64 0) id s c e → E e⌝ ∗ (P -∗ R)) ∗
       TraceFire tr tl E Q }}
     (App (Val #(functions traceInitState [])) (Val #r))
   {{ RET #(); trOwn tr R ∗ Q }}

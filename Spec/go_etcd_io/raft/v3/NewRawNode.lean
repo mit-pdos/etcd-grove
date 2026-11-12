@@ -90,59 +90,40 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 decision (B); until then raft's view of an empty storage with an `InitialState` closure.) (2026-11-01,
 durability stage I-6: `newRaft`'s generalized premises -- a storage holding a log from a base, a
 hard state, `Applied`, any `ConfState` `Restore` accepts -- and the node open at it, `rawNodeAt`;
-until then an empty storage, `rawNodeFresh`, which `rawNodeAt_fresh` gives back.) -/
+until then an empty storage, `rawNodeFresh`, which `rawNodeAt_fresh` gives back.) (2026-11-12, trace-check step 5) Both modes, `newRaft`'s changes; the node `rawNodeAt` at the struct `r`, with the trace mode, `s.cq`, `trNoCut` and the capability after positions 0-2 beside it. -/
 abbrev NewRawNode.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (sn : StorNames) (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF) (cs' : CCState),
-  -- the Config, as for `newRaft`
+    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF) (cs' : CCState)
+    (γ : RaftNames) (vs : List w64),
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
   cv.DisableProposalForwarding' = false →
-  -- `ReadOnlySafe` (2026-10-12)
   cv.ReadOnlyOption' = W64 0 →
-  -- conf-change validation on (2026-10-13; `newRaft`'s premise)
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  -- synchronous storage writes
   cv.AsyncStorageWrites' = false →
-  -- (durability stage I-6) `newRaft`'s view of the storage, from the base
   LogIndicesOk σ.prev σ.ents → σ.pend = [] →
-  -- (2026-11-02, stage II (o): `restartStorage`'s freeze point) frozen up to at most the commit
-  -- `loadState` restores
   uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
-  -- (2026-11-02, stage II (r): nothing certified yet; until then any terms at most the base, of
-  -- the log's term there, which the catch-up could not certify again without their keys) no term
-  -- certified
   σ.dt = ∅ →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
-  -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
-  -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
-  -- at the recorded indices (from the base)
   AttachRec sn σ.prev σ.ents (uint.nat (committedAfter σ.prev hs))
     (max (uint.nat σ.prev.index') (uint.nat cv.Applied')) →
   (HsEmpty hs ∨ uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
     uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
   (cv.Applied' = W64 0 ∨ uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
     uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
-  -- the persisted ConfState: one `Restore` accepts (possibly empty: a new cluster's)
   restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
     some cs' →
-  -- (2026-11-02, stage II (u)) at most `2^62` ids listed (the progress map `Restore` builds;
-  -- until then at most `2^62` ids in the four lists together, which a valid membership does not give)
   (GMap.size (GMap.listToSet csm.Voters' ∪ GMap.listToSet csm.VotersOutgoing' ∪
     GMap.listToSet csm.Learners' ∪ GMap.listToSet csm.LearnersNext') : Int) ≤ 2 ^ 62 →
-  -- (2026-11-02, stage II (r)) and well-formed, which `assertConfStatesEquivalent` needs (a list
-  -- with a repeat, or `AutoLeave` set with no outgoing voter, makes it panic)
   ConfStateOk csm →
-  -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
-  -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
-  TraceLoggerOk cv.TraceLogger' →
+  -- (step 5) in place of `TraceLoggerOk cv.TraceLogger'`: a traced node is fresh
+  (γ.reTrace ≠ none → BootFresh σ hs csm) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
-      -- (raft-final phase 1) `newRaft`'s start bundle
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
          {{ RET (PairV #(W64 (uint.nat σ.prev.index' + 1)) #interface.nil); R }}) ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
@@ -151,17 +132,16 @@ abbrev NewRawNode.spec : Prop :=
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
             |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn.unrec (interface.ok si) σ ∗
-              R' }}) }}
+              trNoCut γ.reTrace (interface.ok si) ∗ R' }}) ∗
+      trCapStart γ.reTrace γ cv.ID' cv.TraceLogger' (bootCfg vs) (bootPhase vs cv.ID') bootNone }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
-      -- (D17d, 2026-10-18) what the `InitialState` premise's caller gets back
-      R' ∗
-      -- (2026-11-01, durability stage I-6) the node open, at the restored state (`InvBoot.lean`)
-      ∃ s : NState,
-        rawNodeAt rn cv.ID' si cs' cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s ∗
+      R' ∗ trNoCut γ.reTrace (interface.ok si) ∗
+      ∃ (s : NState) (r : Loc),
+        rawNodeAt rn r cv.ID' si cs' cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s ∗
         ⌜err = interface.nil⌝ ∗
-        -- (raft-final phase 2) the log's and the ghost state's storage names, the bundle's
-        ⌜s.logst.sn = sn ∧ s.gh.sn = sn⌝ }}
+        ⌜s.logst.sn = sn ∧ s.gh.sn = sn ∧ s.gh.tr = γ.reTrace ∧ s.cq = cv.CheckQuorum'⌝ ∗
+        trCapB γ.reTrace γ r cv.ID' (bootCfg vs) false (bootPhase vs cv.ID') (bootAt vs cv.ID' 2) }}
 
 end spec
 

@@ -46,40 +46,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. (2026-11-12, trace-check step 5, bootstrap positions 3 to `|ps| + 3`) Both modes: `γ.reTrace = none` replaced by `s.gh.tr = γ.reTrace` and, traced, pre-vote and check-quorum off with fewer than `2^40` peers; the capability after positions 0-2 and `trNoCut` in; the completion witness `bootDoneG` (minted by `trCapB_bootDone` at the last line) out. -/
 abbrev RawNode.Bootstrap.spec : Prop :=
-  ∀ (γ : RaftNames) (md : RNMode) (rn : Loc) (id : w64) (si : GoInterfaceOk) (sdr pre : Bool)
+  ∀ (γ : RaftNames) (md : RNMode) (rn r : Loc) (id : w64) (si : GoInterfaceOk) (sdr pre : Bool)
     (s : NState)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
     (bootLog : List EntryM),
-  -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster
   ps = pv.map Peer.ID' →
   ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
   (ps.length : Int) ≤ 2 ^ 62 →
   id ∈ ps →
   γ.reCfg = GMap.listToSet ps →
-  -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
-  -- (raft-final phase 2) outside the cluster's no-snapshot mode (dropped at raft's level: a node's
-  -- `NGhost.ns` is off, `NsCap`)
   γ.reNoSnap = false →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  γ.reTrace = none →
+  -- (step 5) in place of `γ.reTrace = none`: the node's mode the cluster's, and the traced scope
+  s.gh.tr = γ.reTrace →
+  (γ.reTrace ≠ none → pre = false ∧ s.cq = false ∧ ps.length < 2 ^ 40) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      -- the node `NewRawNode` built on an empty conf state, open
-      rawNodeFresh rn id si ∅ sdr pre s ∗
-      -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
+      rawNodeFresh rn r id si ∅ sdr pre s ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
-      -- this node's ghost state at the bootstrap state in the mode `md` (2026-10-25, T-M M2a;
-      -- until then static), and the committed boot log
       bootInit γ md id (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`; raft-final phase 1, over
-      -- the node's storage names, U8 v2; until then also, D21 M3, the no-snapshot mode's storage cap
-      -- `NsCap`)
-      certLink γ s.gh.sn }}
+      certLink γ s.gh.sn ∗
+      -- (step 5) the capability after positions 0-2, and the storage's no-compaction
+      trCapB γ.reTrace γ r id (bootCfg ps) false (bootPhase ps id) (bootAt ps id 2) ∗
+      trNoCut γ.reTrace (interface.ok si) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Bootstrap")) (Val #peers))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∗
@@ -87,7 +78,9 @@ abbrev RawNode.Bootstrap.spec : Prop :=
         { delivered := [], unpersisted := [], steps := [], term := W64 1,
           storage := interface.ok si, sn := s.gh.sn, mode := md,
           cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 } ∗
-      peers ↦*{dq} pv }}
+      peers ↦*{dq} pv ∗
+      -- (step 5, A8.3) the completion witness
+      bootDoneG γ.reTrace id }}
 
 end spec
 

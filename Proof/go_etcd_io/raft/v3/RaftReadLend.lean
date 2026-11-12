@@ -278,6 +278,19 @@ theorem raftReadLend_self (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   iapply raftReadLend_of_lend
   iapply raftLend_self
 
+/-- (2026-11-12, trace-check step 5) **The whole struct lends itself** under the trace gate (what a
+caller of `traceNodeEvent` at the whole struct hands it). -/
+theorem trOwn_physLend (tr : Option GName) (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    trOwn (GF := GF) tr (ownRaftPhysCV c c.voters r id s) ⊢
+      trOwn tr iprop(ownRaftPhysCV c c.voters r id s ∗
+        RaftReadLend (ownRaftPhysCV c c.voters r id s) c r id s) := by
+  iintro H
+  iapply trOwn_wand
+  iframe H
+  iintro Hp
+  iframe Hp
+  iapply raftReadLend_self
+
 /-- The read view itself, as `P`. -/
 theorem raftReadLend_readT (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv : tracker.ProgressTracker) :
     ⊢ RaftReadLend (ownRaftReadT (GF := GF) c r id s tv) c r id s := by

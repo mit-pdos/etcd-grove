@@ -32,7 +32,7 @@ theorem traceInitState.wp_proof
     isplitl [Hown]
     · iapply trOwn_wand
       iframe Hown
-      iintro ⟨%c, %id, %s, Hp, -, Hb⟩
+      iintro ⟨%c, %id, %s, %P, Hp, -, -, Hb⟩
       iapply Hb $$ Hp
     iapply traceFire_nil $$ Hfire
   | ok l =>
@@ -41,14 +41,14 @@ theorem traceInitState.wp_proof
       icases (traceFire_none _ E Q).1 $$ Hfire with ⟨%Hok, -⟩
       exact absurd Hok (by unfold TraceLoggerOk; exact nofun)
     | some γd =>
-      icases (trOwn_some γd _).1 $$ Hown with ⟨%c, %id, %s, Hphys, %Hp, Hback⟩
+      icases (trOwn_some γd _).1 $$ Hown with ⟨%c, %id, %s, %P, Hphys, #Hlend, %Hp, Hback⟩
       obtain ⟨Hs, HE⟩ := Hp
       wp_auto
-      wp_apply wp_traceNodeEvent (W64 0) c r id s _ Q (by decide) $$ [$Htl Hphys Hfire]
+      wp_apply wp_traceNodeEvent (W64 0) c r id s _ Q P (by decide) $$ [$Htl Hphys Hfire]
         as ⟨Hphys, HQ⟩
       · rw [Hs]
         isplitl [Hphys]
-        · iapply (trOwn_some γd _).2; iexact Hphys
+        · iapply (trOwn_some γd _).2; iframe Hphys Hlend
         iapply traceFire_mono_E _ _ E _ Q HE $$ Hfire
       iapply HΦ
       iframe HQ

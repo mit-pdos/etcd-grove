@@ -48,35 +48,6 @@ private theorem learner_not_voter (c : CfgM) (f : GMap w64 Bool) (H : CfgInv ⟨
   · exact h2 h
   · exact h1 h
 
-/-- (2026-11-12, trace-check step 4) `SimIdle` reads raft's state only through `toPState`. -/
-private theorem simIdle_congr' {s s' : NState} (h : toPState s = toPState s') (C : List w64) :
-    SimIdle C s = SimIdle C s' := by
-  have h1 : s.term = s'.term := congrArg PState.term h
-  have h2 : s.logst.committed = s'.logst.committed := congrArg PState.commit h
-  unfold SimIdle; rw [h1, h2, h]
-
-/-- (step 4) The capability at the end state: untraced nothing; traced, a follower's `switchToConfig`
-keeps `toPState`, at the configuration it keeps. -/
-private theorem switch_cap (c c0 : CfgM) (r : Loc) (id : w64) (s s' : NState) (prs : GMap w64 Loc)
-    (pvs : GMap w64 Progress) (γ : RaftNames)
-    (Htrg : s.gh.tr ≠ none → s.role = .follower ∧ c = c0)
-    (Hsw : SwitchOkC c id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } s') :
-    trCapB (GF := GF) s.gh.tr γ r id c0 true (fun C => SimIdle C s) ⊢
-      trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') := by
-  cases htr : s.gh.tr with
-  | none => exact .rfl
-  | some γd =>
-    obtain ⟨hf, rfl⟩ := Htrg (by rw [htr]; simp)
-    have hs' : s' = { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } := by
-      unfold SwitchOkC at Hsw
-      rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } :
-        NState).role = .leader by simp [hf])] at Hsw
-      exact Hsw
-    have hp : toPState s = toPState s' := by subst hs'; simp [toPState, hf]
-    have e : (fun C => SimIdle C s') = (fun C => SimIdle C s) := by
-      funext C; exact (simIdle_congr' hp C).symm
-    rw [e]
-
 /-- (step 4) The new configuration's halves are small (its progress map's bound). -/
 private theorem ownConfigC_sizeOk (c : CfgM) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc)
     (pvs : GMap w64 Progress) :
@@ -95,52 +66,35 @@ private theorem ownConfigC_sizeOk (c : CfgM) (cfgv : tracker.Config) (prsm : Loc
   iframe Hcfg Hprsm Hprogs
   ipureintro; exact ⟨Hinv, Hdom, Hflags, Hsize⟩
 
-/-- (step 4) **`switchToConfig`'s hook, both modes**: untraced the nil logger; traced, at a follower
-whose configuration stays (`c = c0`), the `ApplyConfChange` line through the capability's gate
-(`trCapB_hookGate_applyCC`, the share unchanged), raft's state lent read-only from the open struct: the
-core, the `trk` field (still the old tracker) and the old configuration's maps. -/
+/-- (step 5) **`switchToConfig`'s hook, both modes, the line's fire the caller's**: untraced the nil
+logger and `Q`; traced, the `ApplyConfChange` line fired with raft's state lent read-only from the open
+struct: the core, the `trk` field (still the old tracker) and the old configuration's maps and size. -/
 private theorem wp_switch_hook (wp_traceConfChangeEvent : traceConfChangeEvent.spec (GF := GF) (hG := hG))
     (c c0 : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
-    (tl : GoInterface) (γ : RaftNames)
-    (Htrg : s.gh.tr ≠ none →
-      s.role = .follower ∧ c = c0 ∧
-      (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed ∧
-      uint.Z s.logst.committed ≤ uint.Z (plastIndex (toPState s)) ∧
-      uint.nat s.term < traceNumBound ∧ uint.nat s.logst.committed < traceNumBound ∧
-      uint.nat (plastIndex (toPState s)) < traceNumBound)
-    (Htlok : s.gh.tr = none → TraceLoggerOk tl) :
+    (tl : GoInterface) (Q : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
         ownRaftCore r id s ∗ r.[raft, go!"trk"] ↦ tv0 ∗ ownConfigC c cfgv prsm prs pvs ∗
-        trOwn s.gh.tr (ownCfgCC tv0.Config' (DFrac.own 1) c0) ∗
-        trCapB s.gh.tr γ r id c0 true (fun C => SimIdle C s) }}
+        trOwn s.gh.tr iprop(ownCfgCC tv0.Config' (DFrac.own 1) c0 ∗ ⌜CfgSizeOk c0⌝) ∗
+        TraceFire s.gh.tr tl (CCEvOf id s c0 c) Q }}
       (App (App (Val #(functions traceConfChangeEvent [])) (Val #cfgv)) (Val #r))
-    {{ RET #(); ownRaftCore r id s ∗ r.[raft, go!"trk"] ↦ tv0 ∗ ownConfigC c cfgv prsm prs pvs ∗
-        trCapB s.gh.tr γ r id c0 true (fun C => SimIdle C s) }} := by
-  iintro %Φ ⟨#Hpkg, #Htl, Hcore, Htrkf, Hnew, Hold, Hcap⟩ HΦ
-  have Hs : s.gh.tr.isSome → s.gh.tr ≠ none := fun h hn => by rw [hn] at h; cases h
-  ihave Hgate := trCapB_hookGate_applyCC s.gh.tr γ r id c0 c0 tl s (fun _ => True) (fun _ => True)
-    (fun _ _ => trivial) (fun h => (Htrg (Hs h)).2.2.1) (fun h => (Htrg (Hs h)).2.2.2.1) (Nat.le_refl _)
-    (fun h => (Htrg (Hs h)).2.2.2.2) Htlok $$ [$Htl $Hcap]
-  iunfold HookGate at Hgate
-  imod Hgate with ⟨%tl', #Htl', Hfire⟩
+    {{ RET #(); ownRaftCore r id s ∗ r.[raft, go!"trk"] ↦ tv0 ∗ ownConfigC c cfgv prsm prs pvs ∗ Q }} := by
+  iintro %Φ ⟨#Hpkg, #Htl, Hcore, Htrkf, Hnew, Hold, Hfire⟩ HΦ
   cases htr : s.gh.tr with
   | none =>
-    iapply wp_traceConfChangeEvent cfgv r tl' none _ _ iprop(emp) $$ [$Hpkg $Htl' $Hfire]
+    iapply wp_traceConfChangeEvent cfgv r tl none _ _ iprop(emp) $$ [$Hpkg $Htl $Hfire]
     · iapply trOwn_none_intro
     inext
-    iintro ⟨-, Hcap⟩
+    iintro ⟨-, HQ⟩
     iapply HΦ
     iframe
   | some γd =>
-    obtain ⟨-, rfl, -⟩ := Htrg (by rw [htr]; simp)
-    icases ownConfigC_sizeOk c cfgv prsm prs pvs $$ Hnew with ⟨%Hsz, Hnew⟩
-    ihave Hold := (trOwn_some γd _).1 $$ Hold
-    iapply wp_traceConfChangeEvent cfgv r tl' (some γd) _ _
-        iprop(ownRaftReadT c r id s tv0 ∗ ownConfigC c cfgv prsm prs pvs)
-      $$ [$Hpkg $Htl' $Hfire Hcore Htrkf Hold Hnew]
+    icases (trOwn_some γd _).1 $$ Hold with ⟨Hold, %Hsz⟩
+    iapply wp_traceConfChangeEvent cfgv r tl (some γd) _ _
+        iprop(ownRaftReadT c0 r id s tv0 ∗ ownConfigC c cfgv prsm prs pvs)
+      $$ [$Hpkg $Htl $Hfire Hcore Htrkf Hold Hnew]
     · iapply (trOwn_some γd _).2
-      iexists c, c, id, s, prsm, prs, pvs, ownRaftReadT c r id s tv0
+      iexists c0, c, id, s, prsm, prs, pvs, ownRaftReadT c0 r id s tv0
       iframe Hnew
       isplitl [Hcore Htrkf Hold]
       · iunfold ownRaftReadT; iframe; ipureintro; exact Hsz
@@ -150,7 +104,7 @@ private theorem wp_switch_hook (wp_traceConfChangeEvent : traceConfChangeEvent.s
       · ipureintro; exact fun _ h => h
       iintro H; iexact H
     inext
-    iintro ⟨HR, Hcap⟩
+    iintro ⟨HR, HQ⟩
     icases (trOwn_some γd _).1 $$ HR with ⟨Hrd, Hnew⟩
     iunfold ownRaftReadT at Hrd
     icases Hrd with ⟨Hcore, Htrkf, -, -⟩
@@ -178,14 +132,14 @@ theorem raft.switchToConfig.wp_proof
   -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
   have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
   have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
-  intro c r id s tv0 cfgv prsm prs pvs tl c0 γ Hlead Hltz Hcand Hpok Htrg
+  intro c r id s tv0 cfgv prsm prs pvs tl c0 Q Hlead Hltz Hcand Hpok Htrg
   wp_start as H
   iNamed H
   wp_auto
-  -- (2026-11-12, trace-check step 4) the hook, both modes
-  wp_apply (wp_switch_hook wp_traceConfChangeEvent c c0 r id s tv0 cfgv prsm prs pvs tl γ Htrg Htlok)
-    $$ [$Htl $Hcore $Htrkf $Hnew $Hold $Hcap] as ⟨Hcore, Htrkf, Hnew, Hcap⟩
-  -- the capability at the end state, whatever it is (`switch_cap`): the post without it
+  -- (2026-11-12, trace-check step 5) the hook, both modes, its fire the caller's
+  wp_apply (wp_switch_hook wp_traceConfChangeEvent c c0 r id s tv0 cfgv prsm prs pvs tl Q)
+    $$ [$Htl $Hcore $Htrkf $Hnew $Hold $Hfire] as ⟨Hcore, Htrkf, Hnew, Hcap⟩
+  -- `Q` set aside: the post without it
   ihave HΦ : ▷ (∀ (cs : Loc) (xs os ls lns : List w64) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗
       csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
@@ -201,12 +155,12 @@ theorem raft.switchToConfig.wp_proof
     · ipureintro; exact Hperm
     isplitr
     · ipureintro; exact Hsw
-    iapply switch_cap c c0 r id s s' prs pvs γ (fun h => ⟨(Htrg h).1, (Htrg h).2.1⟩) Hsw $$ Hcap
+    iexact Hcap
   have HtrL : s.role = .leader → s.gh.tr = none := fun hl => by
     cases h : s.gh.tr with
     | none => rfl
     | some _ =>
-      have := (Htrg (by rw [h]; simp)).1
+      have := Htrg (by rw [h]; simp)
       rw [hl] at this; cases this
   -- `r.trk.Config = cfg; r.trk.Progress = trk`: the one change of configuration
   icases typedPointsto_not_null_dup _ _ _ $$ Htrkf with ⟨Htrkf, %Hnn⟩

@@ -55,13 +55,13 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
-    Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Htlk
-  wp_start as ⟨Hc, #Hlg, HR, HFI, HLI, HInit⟩
+  intro c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
+    Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Hfresh
+  wp_start as ⟨Hc, #Hlg, HR, HFI, HLI, HInit, Hcs0⟩
   wp_auto
-  wp_apply wp_newRaft c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs
-    Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Htlk
-    $$ [$Hc $Hlg $HR $HFI $HLI $HInit] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost⟩
+  wp_apply wp_newRaft c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs
+    Hidx Hpend Hfr1 Hfr2 Hfl Hsg Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok Hfresh
+    $$ [$Hc $Hlg $HR $HFI $HLI $HInit $Hcs0] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost, #Hnc, Hcap⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   try wp_auto
   wp_apply wp_softState _ r cv.ID' s $$ Hphys as Hphys
@@ -70,7 +70,7 @@ theorem NewRawNode.wp_proof
   icases ownRaftPhysC_core _ r cv.ID' s $$ Hphys with ⟨Hcore, Hpb⟩
   wp_apply wp_hardState r cv.ID' s $$ Hcore as %hp ⟨#Hhp, Hcore⟩
   ihave Hphys := Hpb $$ Hcore
-  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Happ', Hun, Hsn, Hsg', Hlsn, Hgh,
+  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hcq, Hp, Hse, Hue, Hsd, Hcm, Hap, Happ', Hun, Hsn, Hsg', Hlsn, Hgh,
     Hrst, Hrpd, Hsdr', Hdom, Hdtk⟩ := Hpost
   have Hrel : NStateRel s (restartPState hs σ) :=
     newRaft_post_restart hs σ s ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ Hp Hse Hue Hcm Hrst Hrpd
@@ -79,13 +79,15 @@ theorem NewRawNode.wp_proof
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
   ihave Hphys := Hback $$ Hlog
   iapply HΦ $$ %«$r0_ptr» %interface.nil
-  iframe HR
-  iexists s
+  iframe HR Hnc
+  iexists s, r
   isplitl [«$r0» Hphys]
   · unfold rawNodeAt
     iexists _, _, _
     simp only [named]
     iframe «$r0» Hphys ss Hhp
+    isplitr
+    · ipureintro; rfl
     isplitr
     · ipureintro; simp only; rw [HAW, Hasync]
     isplitr
@@ -102,7 +104,9 @@ theorem NewRawNode.wp_proof
       omega
   isplitr
   · ipureintro; rfl
-  ipureintro; exact ⟨Hlsn, by rw [Hgh]⟩
+  isplitr
+  · ipureintro; exact ⟨Hlsn, by rw [Hgh], by rw [Hgh], Hcq⟩
+  iexact Hcap
 
 end proof
 

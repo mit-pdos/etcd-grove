@@ -1,11 +1,14 @@
 /-
 Lean-first (no Rocq counterpart). Trace-check, step 4 (2026-11-12; `notes/trace-check-design.md`, "Step
-4", the `confc` row; §3.4): **`r.applyConfChange(cc)` in both modes** (`hCC`), proved from the code:
-`raft.applyConfChange.tracedSpec_proof`, today's proof with the struct opened at its tracker *and* at its
-header and log (`ownRaftPhysCV_reconfigCore`), the `Changer`'s given-back old configuration lent to
-`switchToConfig`'s hook (traced), and the capability threaded through the one `switchToConfig.spec`. Its
-untraced instance is `raft.applyConfChange.spec` (`spec_of_tracedSpec`, at `raftNames0`), of which
-`raft.applyConfChange.wp_proof` is the instance: one proof of `applyConfChange`. Raft-internal.
+4", the `confc` row; §3.4) and step 5 (2026-11-12, "Step 5"): **`r.applyConfChange(cc)` in both modes**,
+proved from the code: `raft.applyConfChange.spec_proof` (the one proof; `raft.applyConfChange.wp_proof` is
+it), the struct opened at its tracker *and* at its header and log (`ownRaftPhysCV_reconfigCore`), the
+`Changer`'s given-back old configuration lent to `switchToConfig`'s hook (traced) with its size, and the
+caller's gate fired by the one `switchToConfig.spec`. Its instances: step 4's `hCC`
+(`raft.applyConfChange.tracedSpec_of_spec`: the gate from `trCapB_hookGate_applyCC` traced, from the nil
+logger untraced, the capability moved to the end state through `ApplyCCOkC`'s follower arm), and the old
+untraced statement from `hCC` (`raft.applyConfChange.specU_of_tracedSpec`, `run`'s static arm).
+Raft-internal.
 -/
 module
 
@@ -17,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
 public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
+public import Proof.go_etcd_io.raft.v3.TracedApplyCC
 
 @[expose] public section
 
@@ -34,12 +38,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`raft.applyConfChange.spec` is the untraced instance of the traced statement** (the capability
-`emp`, the gated premises vacuous; the names `raftNames0`, which the capability does not read
-untraced). -/
-theorem raft.applyConfChange.spec_of_tracedSpec
+/-- **The old untraced statement from `hCC`** (`run`'s static `confc` arm): the capability `emp`, the
+gated premises vacuous; the names `raftNames0`, which the capability does not read untraced. -/
+theorem raft.applyConfChange.specU_of_tracedSpec
     (h : raft.applyConfChange.tracedSpec (GF := GF) (hG := hG)) :
-    raft.applyConfChange.spec (GF := GF) (hG := hG) := by
+    raft.applyConfChange.specU (GF := GF) (hG := hG) := by
   intro c r id s cc ccm dq c' Happ Hsz Hltz Hcand Hli2 Htr
   iintro %Φ ⟨#Hpkg, Hphys, Hcc⟩ HΦ
   iapply h c r id s cc ccm dq c' raftNames0 Happ Hsz Hltz Hcand Hli2 (fun hn => absurd Htr hn)
@@ -51,8 +54,62 @@ theorem raft.applyConfChange.spec_of_tracedSpec
   iframe H1 H2 H3
   ipureintro; exact ⟨H4, H5⟩
 
-/-- **`hCC`, from the code.** -/
-theorem raft.applyConfChange.tracedSpec_proof
+/-- A follower's `applyConfChange` keeps the protocol reading (`ApplyCCOkC`'s non-leader arm). -/
+private theorem applyCC_follower_pstate {c' : CfgM} {id : w64} {s s' : NState}
+    (hf : s.role = .follower) (H : ApplyCCOkC c' id s s') : toPState s = toPState s' := by
+  obtain ⟨prs, pvs, -, -, Hsw⟩ := H
+  unfold SwitchOkC at Hsw
+  rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+    NState).role = .leader by simp [hf])] at Hsw
+  subst Hsw; simp [toPState, hf]
+
+/-- **Step 4's `hCC` from the one proof**: traced, the gate from the capability
+(`trCapB_hookGate_applyCC` at `c'.cfg = c`), the capability moved to the end state (a follower keeps
+`toPState`, `simIdle_congr`); untraced, the gate from the struct's nil logger, the capability `emp`. -/
+theorem raft.applyConfChange.tracedSpec_of_spec (h : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
+    raft.applyConfChange.tracedSpec (GF := GF) (hG := hG) := by
+  intro c r id s cc ccm dq c' γ Happ Hsz Hltz Hcand Hli2 Htrg
+  iintro %Φ ⟨#Hpkg, Hphys, Hcc, Hcap⟩ HΦ
+  icases ownRaftPhysC_traceLoggerG _ _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  cases htr : s.gh.tr with
+  | none =>
+    iapply h c r id s cc ccm dq c' iprop(emp) Happ Hsz Hltz Hcand Hli2 (fun hn => absurd htr hn)
+      $$ [$Hpkg $Hphys $Hcc]
+    · rw [htr]
+      iapply hookGate_none r _ tl iprop(emp) (Htlok htr)
+      iframe Htl
+    inext
+    iintro %cs %xs %os %ls %lns %s' ⟨H1, H2, H3, %H4, %H5, -⟩
+    iapply HΦ $$ %cs %xs %os %ls %lns %s'
+    iframe H1 H2 H3
+    isplitr
+    · ipureintro; exact H4
+    isplitr
+    · ipureintro; exact H5
+    simp only [trCapB]; iempintro
+  | some γd =>
+    obtain ⟨hf, hc, hboot, hcl, hb1, hb2, hb3⟩ := Htrg (by rw [htr]; simp)
+    have Hs : s.gh.tr.isSome → s.gh.tr ≠ none := fun h hn => by rw [hn] at h; cases h
+    ihave Hgate := trCapB_hookGate_applyCC s.gh.tr γ r id c c'.cfg tl s (fun _ => True) (fun _ => True)
+      (fun _ _ => trivial) (fun _ => hboot) (fun _ => hcl) (by rw [hc]; exact Nat.le_refl _) (fun _ => ⟨hb1, hb2, hb3⟩) Htlok
+      $$ [$Htl Hcap]
+    · rw [htr]; iexact Hcap
+    iapply h c r id s cc ccm dq c' _ Happ Hsz Hltz Hcand Hli2 (fun _ => hf) $$ [$Hpkg $Hphys $Hcc $Hgate]
+    inext
+    iintro %cs %xs %os %ls %lns %s' ⟨H1, H2, H3, %H4, %H5, Hcap⟩
+    iapply HΦ $$ %cs %xs %os %ls %lns %s'
+    iframe H1 H2 H3
+    isplitr
+    · ipureintro; exact H4
+    isplitr
+    · ipureintro; exact H5
+    have hp := applyCC_follower_pstate hf H5
+    have e : (fun C => SimIdle C s) = (fun C => SimIdle C s') := funext (simIdle_congr hp)
+    rw [hc, ← e]
+    iExactEq Hcap; rw [htr]
+
+/-- **`r.applyConfChange(cc)`, both modes, from the code** (the one proof). -/
+theorem raft.applyConfChange.spec_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_LeaveJoint : raftpb.ConfChangeV2.LeaveJoint.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_EnterJoint : raftpb.ConfChangeV2.EnterJoint.spec (GF := GF) (hG := hG))
@@ -60,17 +117,26 @@ theorem raft.applyConfChange.tracedSpec_proof
     (wp_Changer_EnterJoint : confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG))
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
-    raft.applyConfChange.tracedSpec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccm dq c' γ Happ0 Hsz Hltz Hcand Hli2 Htrg
+    raft.applyConfChange.spec (GF := GF) (hG := hG) := by
+  intro c r id s cc ccm dq c' Q Happ0 Hsz Hltz Hcand Hli2 Htrg
   wp_start as H
   iNamed H
-  icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
-  icases ownRaftPhysC_traceLoggerG _ _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+  iunfold HookGate at Hgate
+  imod Hgate with ⟨%tl, #Htl, Hfire⟩
   -- (stage R8a) the leader's progress bound of the old values, for the new ones (`PrKept`)
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   icases ownRaftPhysCV_reconfigCore c c'.cfg c.voters (c'.cfg.voters ∪ {[id]}) r id s
       (fun _ _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) $$ Hphys
     with ⟨%tv, Htrkf, Htrk, Hcore, Hback⟩
+  icases ownTrackerC_pure c _ _ $$ Htrk with ⟨%Hpure, Htrk⟩
+  have Hsz0 : CfgSizeOk c := by
+    obtain ⟨-, Hdom, -, Hsize, -⟩ := Hpure
+    simp only at Hdom Hsize
+    constructor
+    · have := size_le_of_sub_dom c.incoming s.progress (by rw [Hdom]; exact incoming_sub_ids c)
+      omega
+    · have := size_le_of_sub_dom c.outgoing s.progress (by rw [Hdom]; exact outgoing_sub_ids c)
+      omega
   icases ownTrackerC_toCC c tv ⟨s.votes, s.progress, s.prvals⟩ $$ Htrk
     with ⟨%pvs, Htc, HR, Hvotes, %Hfl, %Hmi, %Hg⟩
   obtain ⟨Hgood, -, -, -⟩ := Hg
@@ -115,20 +181,19 @@ theorem raft.applyConfChange.tracedSpec_proof
     -- `r.switchToConfig(cfg, trk)`
     iunfold ownTrackerCC at Hotc
     icases Hotc with ⟨Hocfg, -, -⟩
-    ihave Hold : trOwn (GF := GF) s.gh.tr (ownCfgCC tv.Config' (DFrac.own 1) c) $$ [Hocfg]
+    ihave Hold : trOwn (GF := GF) s.gh.tr iprop(ownCfgCC tv.Config' (DFrac.own 1) c ∗ ⌜CfgSizeOk c⌝)
+      $$ [Hocfg]
     · cases s.gh.tr
       · iclear Hocfg; simp only [trOwn]; iempintro
-      · simp only [trOwn]; iexact Hocfg
-    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl c γ
+      · simp only [trOwn]; iframe Hocfg; ipureintro; exact Hsz0
+    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl c Q
         (fun _ _ => Hmk) Hltz Hcand
         (fun hl => by
           simp only at Hpk; rw [Hli'] at Hpk
           exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-      Htrg $$ [$Htrkf $Hcore $Hback $Hvotes $Hnew $Htl $Hold $Hcap]
+      Htrg $$ [$Htrkf $Hcore $Hback $Hvotes $Hnew $Htl $Hold $Hfire]
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw, Hcap⟩
-    · isplitr
-      · ipureintro; exact Hmi
-      ipureintro; exact Htlok
+    · ipureintro; exact Hmi
     try wp_auto
     iapply HΦ $$ %cs %xs %os %ls %lns %s'
     iframe Hphys Hcc Hcs Hcap
@@ -174,20 +239,19 @@ theorem raft.applyConfChange.tracedSpec_proof
         -- `r.switchToConfig(cfg, trk)`
         iunfold ownTrackerCC at Hotc
         icases Hotc with ⟨Hocfg, -, -⟩
-        ihave Hold : trOwn (GF := GF) s.gh.tr (ownCfgCC tv.Config' (DFrac.own 1) c) $$ [Hocfg]
+        ihave Hold : trOwn (GF := GF) s.gh.tr iprop(ownCfgCC tv.Config' (DFrac.own 1) c ∗ ⌜CfgSizeOk c⌝)
+          $$ [Hocfg]
         · cases s.gh.tr
           · iclear Hocfg; simp only [trOwn]; iempintro
-          · simp only [trOwn]; iexact Hocfg
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl c γ
+          · simp only [trOwn]; iframe Hocfg; ipureintro; exact Hsz0
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl c Q
             (fun _ _ => Hmk) Hltz Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          Htrg $$ [$Htrkf $Hcore $Hback $Hvotes $Hnew $Htl $Hold $Hcap]
+          Htrg $$ [$Htrkf $Hcore $Hback $Hvotes $Hnew $Htl $Hold $Hfire]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw, Hcap⟩
-        · isplitr
-          · ipureintro; exact Hmi
-          ipureintro; exact Htlok
+        · ipureintro; exact Hmi
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
         iframe Hphys Hcc Hcs Hcap
@@ -220,20 +284,19 @@ theorem raft.applyConfChange.tracedSpec_proof
         -- `r.switchToConfig(cfg, trk)`
         iunfold ownTrackerCC at Hotc
         icases Hotc with ⟨Hocfg, -, -⟩
-        ihave Hold : trOwn (GF := GF) s.gh.tr (ownCfgCC tv.Config' (DFrac.own 1) c) $$ [Hocfg]
+        ihave Hold : trOwn (GF := GF) s.gh.tr iprop(ownCfgCC tv.Config' (DFrac.own 1) c ∗ ⌜CfgSizeOk c⌝)
+          $$ [Hocfg]
         · cases s.gh.tr
           · iclear Hocfg; simp only [trOwn]; iempintro
-          · simp only [trOwn]; iexact Hocfg
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl c γ
+          · simp only [trOwn]; iframe Hocfg; ipureintro; exact Hsz0
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' tl c Q
             (fun _ _ => Hmk) Hltz Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          Htrg $$ [$Htrkf $Hcore $Hback $Hvotes $Hnew $Htl $Hold $Hcap]
+          Htrg $$ [$Htrkf $Hcore $Hback $Hvotes $Hnew $Htl $Hold $Hfire]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw, Hcap⟩
-        · isplitr
-          · ipureintro; exact Hmi
-          ipureintro; exact Htlok
+        · ipureintro; exact Hmi
         try wp_auto
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
         iframe Hphys Hcc Hcs Hcap

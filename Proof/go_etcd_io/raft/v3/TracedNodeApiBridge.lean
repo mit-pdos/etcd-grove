@@ -30,14 +30,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The client's precondition is the Draft's. -/
-theorem startTraceC_eq (γ : Cluster) (vs : List w64) (cv : Config) :
-    startTraceC (GF := GF) γ vs cv = startTrace γ vs cv := by
-  unfold startTraceC startTrace Cluster.traceSim TracedConfigOk
+theorem startTraceC_eq (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config) :
+    startTraceC (GF := GF) γ N vs cv = startTrace γ N vs cv := by
+  unfold startTraceC startTrace Cluster.traceSim TracedConfigOk traceFits
   rfl
 
 /-- The client's completion witness is the Draft's (amendment A8.3). -/
 theorem startDone_eq (γ : Cluster) (id : w64) : startDone (GF := GF) γ id = startDoneB γ id := by
-  unfold startDone startDoneB
+  unfold startDone startDoneB bootDoneG
   rfl
 
 /-- **`StartNode.tracedSpec` from the Draft's `StartNode.gatedSpec`.** -/

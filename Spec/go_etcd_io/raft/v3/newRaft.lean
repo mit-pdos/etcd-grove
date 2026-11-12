@@ -85,6 +85,7 @@ public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Spec.go_etcd_io.raft.v3.Config__validate
 public import Proof.go_etcd_io.raft.v3.InvRestore
+public import Proof.go_etcd_io.raft.v3.TracedBootVocab
 
 @[expose] public section
 
@@ -116,7 +117,7 @@ end defs
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -135,63 +136,39 @@ decision (B), `notes/u8v2/step4-boot-newLogWithSize.patch`) Over a fresh storage
 `InitialState`), and `InitialState` answering the hard state and conf state, after which the caller
 makes raft's view of the storage (`isStorageD sn ∗ ownStorage sn σ`, `σ` fresh) and gets back its
 frame `R'`; the API's `bootStorage` is this at the contract `isStorage γ id`. (Until then raft's view
-of a possibly non-empty storage as a premise, with an `InitialState` closure over `ownStorage`.) -/
+of a possibly non-empty storage as a premise, with an `InitialState` closure over `ownStorage`.) (2026-11-12, trace-check step 5, bootstrap positions 0-2) Both modes: the binders `γ` (the cluster's raft names: the trace mode `γ.reTrace`) and `vs` (the voters); `TraceLoggerOk cv.TraceLogger'` replaced by the capability's start (`trCapStart`, untraced that premise) and, traced, a fresh node (`BootFresh`); the `InitialState` answer also gives the storage's `trNoCut`, handed on; the post's ghost at the trace mode, `s.cq`, and the capability after the three lines (`bootAt vs cv.ID' 2`). -/
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (sn : StorNames) (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF) (cs' : CCState),
-  -- the Config
+    (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF) (cs' : CCState)
+    (γ : RaftNames) (vs : List w64),
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
   cv.DisableProposalForwarding' = false →
-  -- `ReadOnlySafe` (2026-10-12): lease-based reads need bounded clock drift
   cv.ReadOnlyOption' = W64 0 →
-  -- conf-change validation on (2026-10-13)
   cv.DisableConfChangeValidation' = false →
-  -- a positive applying-size limit (2026-10-05)
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  -- (durability stage I-6) the storage's view raft makes: from the base (contiguous indices,
-  -- nothing pending, frozen from the base up to at most the restored commit, the floor, the snapshot handed out and the terms
-  -- certified at most the base), within 64 bits
   LogIndicesOk σ.prev σ.ents → σ.pend = [] →
-  -- (2026-11-02, stage II (o): `restartStorage`'s freeze point) frozen up to at most the commit
-  -- `loadState` restores
   uint.nat σ.prev.index' ≤ σ.fr → σ.fr ≤ uint.nat (committedAfter σ.prev hs) →
   uint.Z σ.fl ≤ uint.Z σ.prev.index' → σ.sg ≤ uint.nat σ.prev.index' →
-  -- (2026-11-02, stage II (r): nothing certified yet; until then any terms at most the base, of
-  -- the log's term there, which the catch-up could not certify again without their keys) no term
-  -- certified
   σ.dt = ∅ →
   uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 < 2 ^ 64 →
-  -- (2026-11-01, durability stage I-6) the storage key's attach record (`restartStorage`'s
-  -- continuation): the applied bound `max b A`, the commit `loadState` restores, the view's terms
-  -- at the recorded indices (from the base)
   AttachRec sn σ.prev σ.ents (uint.nat (committedAfter σ.prev hs))
     (max (uint.nat σ.prev.index') (uint.nat cv.Applied')) →
-  -- `loadState`'s bound (it panics otherwise), unless the hard state is empty
   (HsEmpty hs ∨ uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
     uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
-  -- `appliedTo`'s (it panics otherwise): `Applied` `0` or within `[prev.index, committed]`
   (cv.Applied' = W64 0 ∨ uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
     uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
-  -- the persisted ConfState: one `Restore` accepts, at the tracker's state `cs'`
   restoreM csm.VotersOutgoing' csm.Voters' csm.Learners' csm.LearnersNext' csm.AutoLeave' =
     some cs' →
-  -- (2026-11-02, stage II (u)) at most `2^62` ids listed (the progress map `Restore` builds;
-  -- until then at most `2^62` ids in the four lists together, which a valid membership does not give)
   (GMap.size (GMap.listToSet csm.Voters' ∪ GMap.listToSet csm.VotersOutgoing' ∪
     GMap.listToSet csm.Learners' ∪ GMap.listToSet csm.LearnersNext') : Int) ≤ 2 ^ 62 →
-  -- (2026-11-02, stage II (r)) and well-formed, which `assertConfStatesEquivalent` needs (a list
-  -- with a repeat, or `AutoLeave` set with no outgoing voter, makes it panic)
   ConfStateOk csm →
-  -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
-  -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
-  TraceLoggerOk cv.TraceLogger' →
+  -- (step 5) in place of `TraceLoggerOk cv.TraceLogger'` (now in `trCapStart`): a traced node is fresh
+  (γ.reTrace ≠ none → BootFresh σ hs csm) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
-      -- (raft-final phase 1) the start bundle (`restartStorage`'s shape; durability stage I-6: at
-      -- the view's base and last index)
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
          {{ RET (PairV #(W64 (uint.nat σ.prev.index' + 1)) #interface.nil); R }}) ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
@@ -200,11 +177,13 @@ abbrev newRaft.spec : Prop :=
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
             |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn.unrec (interface.ok si) σ ∗
-              R' }}) }}
+              -- (step 5) the storage's no-compaction, from the client's contract (traced)
+              trNoCut γ.reTrace (interface.ok si) ∗ R' }}) ∗
+      -- (step 5) the capability before the struct (untraced: the nil logger)
+      trCapStart γ.reTrace γ cv.ID' cv.TraceLogger' (bootCfg vs) (bootPhase vs cv.ID') bootNone }}
     (App (Val #(functions newRaft [])) (Val #c))
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
       R' ∗ ownRaftPhysC cs'.cfg r cv.ID' s ∗
-      -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
       c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
       ⌜NStateWf s ∧
         s.term = hs.Term' ∧
@@ -212,32 +191,25 @@ abbrev newRaft.spec : Prop :=
         s.lead = W64 0 ∧ s.role = .follower ∧
         s.votes = ∅ ∧ s.outbox = [] ∧
         s.prevote = cv.PreVote' ∧
-        -- the log, as the storage and the `HardState` give it (2026-10-09, for
-        -- `NewRawNode`): the stored entries, nothing unstable, the commit index the
-        -- `HardState` restores, applying from `Config.Applied`, nothing handed out
+        -- (step 5) the check-quorum flag, for `rnTrace`
+        s.cq = cv.CheckQuorum' ∧
         s.logst.prev = σ.prev ∧ s.logst.sents = σ.ents ∧ s.logst.uents = [] ∧
         s.logst.stored = σ.ents ∧
         s.logst.committed = committedAfter σ.prev hs ∧
         s.logst.applying = w64Max σ.prev.index'
           (if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied') ∧
-        -- (2026-11-02, stage II (o), for `rawNodeAt`) `appliedTo` moves both
         s.logst.applied = s.logst.applying ∧
         s.logst.unpersisted = [] ∧ s.logst.snap = none ∧
-        -- the storage it reads (2026-10-10, for `RNState.storage`)
         s.logst.storage = interface.ok si ∧
-        -- (U8 v2) and its names
         s.logst.sn = sn ∧
-        -- no ghost lower bound yet (2026-10-10, `NGhost`); (U8 v2) the storage names mirrored
-        s.gh = { sn := sn } ∧
-        -- no read state (2026-10-13)
+        -- (step 5) the trace mode the cluster's (was `s.gh = { sn := sn }`)
+        s.gh = { sn := sn, tr := γ.reTrace } ∧
         s.rd.states = [] ∧ s.rd.pend = [] ∧
-        -- (2026-10-14, reconfiguration stage B7 part 2, for a dynamic `NewRawNode`) the
-        -- `Config`'s `StepDownOnRemoval`, and the voters tracked, no learner
         s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = domSet cs'.prs ∧
-        -- (raft-final phase 2; durability stage I-6: raft certified the attach record's terms,
-        -- up to the commit `loadState` restored) the certification bound (for `SdtTie` at
-        -- `RestartNode`)
-        s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ }}
+        s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ ∗
+      -- (step 5) the storage's no-compaction, handed on, and the capability after positions 0-2
+      trNoCut γ.reTrace (interface.ok si) ∗
+      trCapB γ.reTrace γ r cv.ID' (bootCfg vs) false (bootPhase vs cv.ID') (bootAt vs cv.ID' 2) }}
 
 end spec
 

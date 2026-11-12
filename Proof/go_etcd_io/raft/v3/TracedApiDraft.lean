@@ -18,6 +18,8 @@ public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TracedCap
 public import Proof.go_etcd_io.raft.v3.TraceSimEnd
 import Proof.go_etcd_io.raft.v3.TracedNodeBoot
+public import Proof.go_etcd_io.raft.v3.TracedBootVocab
+public import Proof.go_etcd_io.raft.v3.TraceFits
 import all Proof.go_etcd_io.raft.v3.InvNode
 import all Proof.go_etcd_io.raft.v3.InvNodeRule
 import Proof.go_etcd_io.raft.v3.InvApi
@@ -65,18 +67,21 @@ instance Cluster.traceSimInv_persistent (γ : Cluster) (vs : List w64) (tn : Tra
 
 /-- What a node brings of the trace to `StartNode`: in an untraced cluster, no logger; in a traced
 one, the configuration's premise, the voters the trace's names record and fewer than `2^40` of them
-(the bootstrap lines' log, `TraceEv.OkBoot`: raft's bootstrap log has one entry per voter), a logger
-that is not nil with the logger's contract for the trace, the simulation's invariant
-(`Cluster.traceSimInv`), the node's share at the bootstrap state (`simInit`, nothing pending) and its
-`booted` flag unset with no event yet (`simBoot`). (Amendment A4, Q20 (a).) With `nodeBoot` and
-`newRaft`'s logger field, the names, the logger, the invariant, the share and the flag make the
-capability (`startTrace_trCapB`); the bound is for the bootstrap lines' gates (`TraceEv.OkBoot`), the
-configuration's premise for the node's later lines. -/
-def startTrace (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
+(the bootstrap lines' log, `TraceEv.OkBoot`: raft's bootstrap log has one entry per voter), the receipts'
+fit with the ceiling's headroom (`receiptBound GF + max γ.bootLen 2 ≤ 2^61`: the node API's `readyFits`
+and one more unit for a term ceiling raised by a tick or `Campaign`; `node.run.gatedSpec`'s
+`RunTracedOk`; 2026-11-12, step 5, review `step4-r1.md`'s S1 and `step5-r1.md`'s S1), a logger that is
+not nil with the logger's contract for the trace, the simulation's invariant (`Cluster.traceSimInv`), the
+node's share at the bootstrap state (`simInit`, nothing pending) and its `booted` flag unset with no
+event yet (`simBoot`). (Amendment A4, Q20 (a).) With `nodeBoot` they make the capability's start
+(`startTrace_trCapStart`), which `newRaft` turns into the capability once it has written its logger
+field. -/
+def startTrace (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config) : IProp GF :=
   match Cluster.trace γ with
   | none => iprop(⌜cv.TraceLogger' = interface.nil⌝)
   | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗
       ⌜TracedConfigOk cv ∧ tn.voters = vs ∧ vs.length < 2 ^ 40 ∧ cv.TraceLogger' ≠ interface.nil⌝ ∗
+      ⌜receiptBound GF + max γ.bootLen 2 ≤ 2 ^ 61⌝ ∗
       isTraceLogger tn.tr cv.TraceLogger' ∗ Cluster.traceSimInv γ vs tn ∗
       simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [] ∗
       simBoot tn cv.ID' false none)
@@ -84,16 +89,17 @@ def startTrace (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
 /-- **What `StartNode` returns of the trace** (amendment A8.3, Q37 (a)): nothing in an untraced cluster;
 in a traced one, the node's completion witness `bootDone` at the cluster's trace names (raft logs the
 voter's whole bootstrap inside `StartNode`, before `go n.run()`; `trCapB_bootDone` mints the witness at
-the end of `setupNode`). -/
-def startDoneB (γ : Cluster) (id : w64) : IProp GF :=
-  match Cluster.trace γ with
-  | none => iprop(True)
-  | some γd => iprop(∃ tn : TraceNames, traceDir γd tn ∗ bootDone tn id)
+the end of `RawNode.Bootstrap`, the last point where the capability records the last bootstrap event:
+2026-11-12, step 5, superseding A8.2's "at the end of `setupNode`"). Raft's `bootDoneG` at the cluster's
+trace mode (review `step5-r1.md`'s N3). -/
+def startDoneB (γ : Cluster) (id : w64) : IProp GF := bootDoneG (Cluster.trace γ) id
 
 /-- **`StartNode`, gated** (Q6 item 1): `StartNode.spec` with its premises `TraceLoggerOk
 cv.TraceLogger'` and `Cluster.trace γ = none` replaced by `startTrace` in the precondition (an
 untraced cluster's is the first premise, `startTrace_untraced`), its post also giving the node's
-completion witness `startDoneB γ cv.ID'` (amendment A8.3). -/
+completion witness `startDoneB γ cv.ID'` (amendment A8.3). (2026-11-12, step 5) `startTrace` takes the
+cluster's namespace and carries the receipts' fit. Proved in `StartNode.lean` (`StartNode.gatedSpec_proof`,
+from `setupNode.spec` and `node.run.gatedSpec`); `StartNode.spec` is its instance. -/
 abbrev StartNode.gatedSpec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF)
@@ -116,7 +122,7 @@ abbrev StartNode.gatedSpec : Prop :=
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q }> ∗
       restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F ∗
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTrace γ vs cv }}
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ startTrace γ N vs cv }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
@@ -127,9 +133,9 @@ abbrev StartNode.gatedSpec : Prop :=
 
 /-- For an untraced cluster, the gated statement is `StartNode.spec`'s: the gate's only content is
 the nil logger, `StartNode.spec`'s premise (and the post's `startDoneB` is `True`, `startDoneB_untraced`). -/
-theorem startTrace_untraced (γ : Cluster) (vs : List w64) (cv : Config)
+theorem startTrace_untraced (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config)
     (h : Cluster.trace γ = none) :
-    startTrace (GF := GF) γ vs cv ⊣⊢ iprop(⌜TraceLoggerOk cv.TraceLogger'⌝) := by
+    startTrace (GF := GF) γ N vs cv ⊣⊢ iprop(⌜TraceLoggerOk cv.TraceLogger'⌝) := by
   unfold startTrace TraceLoggerOk
   rw [h]
   exact .rfl
@@ -137,31 +143,76 @@ theorem startTrace_untraced (γ : Cluster) (vs : List w64) (cv : Config)
 /-- An untraced cluster's completion witness is `True`. -/
 theorem startDoneB_untraced (γ : Cluster) (id : w64) (h : Cluster.trace γ = none) :
     startDoneB (GF := GF) γ id ⊣⊢ iprop(True) := by
-  unfold startDoneB; rw [h]; exact .rfl
+  unfold startDoneB bootDoneG; rw [h]; exact .rfl
 
 /-! ## Sufficiency (amendment A4): the capability from `startTrace`, the invariant at the start -/
 
-/-- **`StartNode`'s capability** (amendment A4's check of Q20 (a)): `startTrace` of a traced cluster,
-the node's `nodeBoot` (raft's commit log invariant, the node a voter) and `newRaft`'s logger field make
-the capability `newRaft` starts with (`trCapB_intro`), unbooted, at the bootstrap share in any phase
-`Φ` it satisfies, any `Λ` of no event, for raft's configuration `c` once it holds the voters. -/
-theorem startTrace_trCapB (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
-    (cv : Config) (γd : GName) (r : Loc) (c : CfgM)
-    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop)
-    (htr : Cluster.trace γ = some γd) (hc : (elements c.incoming).Perm vs ∧ c.outgoing = ∅)
-    (hΦ : Φ vs (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) []) (hΛ : Λ none) :
-    (startTrace γ vs cv ∗ nodeBoot γ N vs ctxs cv.ID' ∗ r.[raft, go!"traceLogger"] ↦□ cv.TraceLogger' :
-        IProp GF) ⊢
-      trCapB (some γd) γ.raftNames r cv.ID' c false Φ Λ := by
+/-- **`StartNode`'s capability's start** (amendment A4's check of Q20 (a); 2026-11-12, step 5: the
+capability before the struct, `trCapStart`, which `newRaft` turns into `trCapB` once it has written its
+logger field; until then `startTrace_trCapB`, which needed the field): `startTrace` and the node's
+`nodeBoot` (raft's commit log invariant, the node a voter, the bootstrap log one entry per voter) make the
+capability's start at the voters' configuration, the bootstrap phase and no event; and, traced, what
+`setupNode` and `node.run` need of the cluster: the configuration's scope, fewer than `2^40` voters, the
+receipts' fit and the ceiling's headroom. -/
+theorem startTrace_trCapStart (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (cv : Config) :
+    (startTrace γ N vs cv ∗ nodeBoot γ N vs ctxs cv.ID' : IProp GF) ⊢
+      ⌜(Cluster.raftNames γ).reTrace ≠ none → TracedConfigOk cv ∧ vs.length < 2 ^ 40 ∧
+        traceReadyFits GF (Cluster.raftNames γ) ∧ receiptBound GF + 2 ≤ traceNumBound⌝ ∗
+      trCapStart (Cluster.raftNames γ).reTrace (Cluster.raftNames γ) cv.ID' cv.TraceLogger' (bootCfg vs)
+        (bootPhase vs cv.ID') bootNone := by
   unfold startTrace nodeBoot ApiImpl.nodeBootU ApiImpl.isClusterU ApiImpl.clusterInv raftCommitInv
-    Cluster.traceSimInv Cluster.raftNames
-  rw [htr]
-  iintro ⟨⟨%tn, #Hdir, %Hp, #Hlog, #Hinv, Hnode, Hboot⟩, Hb, #Htl⟩
-  obtain ⟨-, hv, -, hnil⟩ := Hp
-  icases Hb with ⟨⟨-, ⟨-, ⟨#Hli, -⟩, -⟩, -⟩, %Hpb, -⟩
-  iapply trCapB_intro γd tn vs cv.TraceLogger' _ [] none (ApiImpl.Cluster.raft γ) r cv.ID' c Φ Λ
-    ⟨hv, hc.1, hc.2, Hpb.1, Nat.le_of_eq Hpb.2.2.2.2.2.2.1.symm⟩ hnil hΦ hΛ
-  iframe Hdir Htl Hlog Hinv Hli Hnode Hboot
+    Cluster.traceSimInv Cluster.raftNames Cluster.trace Cluster.bootLen
+  cases htr : (ApiImpl.Cluster.raft γ).reTrace with
+  | none =>
+    iintro ⟨%Hnil, -⟩
+    isplitr
+    · ipureintro; intro h; exact absurd rfl h
+    unfold trCapStart
+    ipureintro; exact Hnil
+  | some γd =>
+    iintro ⟨⟨%tn, #Hdir, %Hp, %Hfit, #Hlog, #Hinv, Hnode, Hboot⟩, Hb⟩
+    obtain ⟨Hcfg, hv, Hlen, hnil⟩ := Hp
+    icases Hb with ⟨⟨-, ⟨-, ⟨#Hli, -⟩, -⟩, -⟩, %Hpb, -⟩
+    have Hbl := Hpb.2.2.2.2.2.2.1
+    isplitr
+    · ipureintro
+      intro _
+      refine ⟨Hcfg, Hlen, ?_, ?_⟩
+      · show receiptBound GF + _ ≤ traceNumBound
+        unfold traceNumBound; have := Nat.le_max_left (ApiImpl.Cluster.raft γ).reBoot.length 2; omega
+      · unfold traceNumBound; have := Nat.le_max_right (ApiImpl.Cluster.raft γ).reBoot.length 2; omega
+    unfold trCapStart
+    iexists tn, vs, _, [], none
+    iframe Hdir Hlog Hinv Hli Hnode Hboot
+    ipureintro
+    refine ⟨⟨hv, ?_, rfl, Hpb.1, Nat.le_of_eq Hbl.symm⟩, hnil, rfl, rfl, rfl, rfl⟩
+    exact ((perm_elements_listToSet vs Hpb.2.1).symm)
+
+/-- **The storage's no-compaction from the client's contract** (2026-11-12, step 5; `StartNode`'s traced
+`InitialState` answer, before `storBnd_raftBnd` converts the contract to raft's `raftBnd`): `#Hbound` at
+`c ≥ 1` gives `storBnd γ K c`, whose traced arm is `⌜c = 0⌝`. -/
+theorem isStorage_trNoCut (γ : Cluster) (K : GName) (st : Storage) :
+    (isStorage γ K st : IProp GF) ⊢ isStorage γ K st ∗ trNoCut (Cluster.raftNames γ).reTrace st := by
+  unfold isStorage
+  iintro #Hs
+  iframe Hs
+  iunfold trNoCut
+  iintro !> %Htr Hp
+  iunfold isStorageP at Hs
+  iNamed Hs
+  iunfold storPast at Hp
+  icases Hp with ⟨%n, %Hn, #Hc⟩
+  iunfold storCut at Hc
+  imod Hbound $$ %n.toNat Hc with Hb
+  unfold storBnd
+  unfold Cluster.raftNames at Htr
+  cases htr : Cluster.trace γ with
+  | none => unfold Cluster.trace at htr; exact absurd htr Htr
+  | some γd =>
+    rw [htr]
+    icases Hb with %H0
+    omega
 
 omit [StorageModel GF] sem package_sem in
 /-- The empty bag represents the empty list. -/

@@ -123,29 +123,17 @@ the end state, at `c`. The hook `traceConfChangeEvent` reads raft's state at ent
 open at its tracker: so the header's fields and the log (`ownRaftCore`) come outside the wand `Hback`
 (which takes them back), and, traced, the old configuration's maps (`ownCfgCC tv0.Config' 1 c0`, which
 the `Changer` gives back), so that the hook's read view (`ownRaftReadT c0`) is lent from them. The
-logger's contract is the nil logger's untraced only. -/
+logger's contract is the nil logger's untraced only. (2026-11-12, trace-check step 5: `notes/decisions.md`, "Step 5: the traced constructors") The hook in gate form, as `raft.becomeFollower.spec`: the caller hands in the `ApplyConfChange` line's fire (`TraceFire s.gh.tr tl (CCEvOf id s c0 c) Q`, untraced the nil logger and `Q`) and gets `Q` back; the traced premise only a follower (step 4's capability form, a booted follower keeping its configuration, is the instance at `trCapB_hookGate_applyCC`; `Bootstrap`'s at `trCapB_hookGate_ccBoot`); the traced loan holds the old configuration's size (`CfgSizeOk c0`). -/
 abbrev raft.switchToConfig.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
-    (tl : GoInterface) (c0 : CfgM) (γ : RaftNames),
-  -- (2026-10-25, T-M M2c; until then `id ∉ c.voters` only with `s.sdr = true`) a leader that stays a
-  -- voter keeps its peers' `Match` values
+    (tl : GoInterface) (c0 : CfgM) (Q : IProp GF),
   (s.role = .leader → id ∈ c.voters → MatchKept s.prvals pvs) →
-  -- (2026-10-29, stage U7) a leader's term past `0` (`send`'s stamp: `maybeSendAppend`, `bcastAppend`)
   (s.role = .leader → s.term ≠ W64 0) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c.voters) →
-  -- (2026-10-16, stage R8a, D11) at a leader the new `Progress` values are within its log (the
-  -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a
-  -- fresh one is at `max(lastIndex, 1)` (`applyConfChange`, `PrKept`)
   (s.role = .leader → ∀ v p, pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
-  -- (2026-11-12, trace-check step 4; until then `s.gh.tr = none`) at a traced node, a follower whose
-  -- configuration stays, with the `ApplyConfChange` line's numbers
-  (s.gh.tr ≠ none →
-    s.role = .follower ∧ c = c0 ∧
-    (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed ∧
-    uint.Z s.logst.committed ≤ uint.Z (plastIndex (toPState s)) ∧
-    uint.nat s.term < traceNumBound ∧ uint.nat s.logst.committed < traceNumBound ∧
-    uint.nat (plastIndex (toPState s)) < traceNumBound) →
+  -- (step 5) in place of step 4's traced premise: at a traced node, a follower
+  (s.gh.tr ≠ none → s.role = .follower) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hcore" ∷ ownRaftCore r id s ∗
@@ -156,12 +144,11 @@ abbrev raft.switchToConfig.spec : Prop :=
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
       "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
       "Hnew" ∷ ownConfigC c cfgv prsm prs pvs ∗
-      -- (2026-11-08) the trace logger, shared: the caller has the struct open
-      -- (`ownRaftPhysC_traceLogger` before it opens it), `traceConfChangeEvent` reads it
-      "#Htl" ∷ r.[raft, go!"traceLogger"] ↦□ tl ∗ "%Htlok" ∷ ⌜s.gh.tr = none → TraceLoggerOk tl⌝ ∗
-      -- (step 4) traced, the old configuration's maps, which the hook reads
-      "Hold" ∷ trOwn s.gh.tr (ownCfgCC tv0.Config' (DFrac.own 1) c0) ∗
-      "Hcap" ∷ trCapB s.gh.tr γ r id c0 true (fun C => SimIdle C s) }}
+      "#Htl" ∷ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      -- traced, the old configuration's maps and size, which the hook reads (`ownRaftReadT c0`)
+      "Hold" ∷ trOwn s.gh.tr iprop(ownCfgCC tv0.Config' (DFrac.own 1) c0 ∗ ⌜CfgSizeOk c0⌝) ∗
+      -- (step 5) the `ApplyConfChange` line's fire, the caller's (untraced: the nil logger and `Q`)
+      "Hfire" ∷ TraceFire s.gh.tr tl (CCEvOf id s c0 c) Q }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
   {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
@@ -171,7 +158,7 @@ abbrev raft.switchToConfig.spec : Prop :=
         lns ≡ₚ elements c.learnersNext⌝ ∗
       ⌜SwitchOkC c id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id }
         s'⌝ ∗
-      trCapB s.gh.tr γ r id c true (fun C => SimIdle C s') }}
+      Q }}
 
 end spec
 

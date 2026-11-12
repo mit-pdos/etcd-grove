@@ -605,12 +605,16 @@ private theorem wp_RestartNode_impl
       have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'
       have := uint_nat_eq cv.Applied'; omega
   wp_apply wp_NewRawNode c cv lok si sn σv σ.hs csm iprop(Rb ∗ storAuths sn.unrec σv)
-    iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) H1 H2 H3 H4 H5 H6 H7 H8 H9
+    iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) γ.raft [] H1 H2 H3 H4 H5 H6 H7 H8 H9
     (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
-    rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk Htlk
+    rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk (fun h => absurd HtrG h)
     $$ [Hc HRb HA]
-    as %rn %err ⟨⟨%K, #HKn, HFK⟩, %s, Hrn, %Herr, %Hsn2⟩
-  · iframe Hc Hlg
+    as %rn %err ⟨⟨%K, #HKn, HFK⟩, -, %s, %r, Hrn, %Herr, %Hsn2, -⟩
+  · -- (2026-11-12, trace-check step 5) untraced: the capability's start is the nil logger
+    ihave Htc : trCapStart (GF := GF) γ.raft.reTrace γ.raft cv.ID' cv.TraceLogger' (bootCfg [])
+        (bootPhase [] cv.ID') bootNone $$ []
+    · rw [HtrG]; unfold trCapStart; ipureintro; exact Htlk
+    iframe Hc Hlg Htc
     isplitl [HRb HA]
     · iframe HRb HA
     isplitr
@@ -633,6 +637,9 @@ private theorem wp_RestartNode_impl
     iintro %hp %cs %al ⟨Hhs, Hcs, Hk⟩
     iapply HΦ'
     iframe Hhs Hcs
+    -- (2026-11-12, trace-check step 5) untraced: no compaction to refute
+    ihave #Hnc := trNoCut_none (GF := GF) (interface.ok si)
+    rw [HtrG]; iframe Hnc
     -- the attach: a fresh key recording raft's storage names
     imod dghostVar_alloc (GF := GF)
       ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct) :
@@ -720,7 +727,7 @@ private theorem wp_RestartNode_impl
     iexists K
     iframe HKn HFK
   subst Herr
-  obtain ⟨Hlsn, Hgsn⟩ := Hsn2
+  obtain ⟨Hlsn, Hgsn, Hgtr0, -⟩ := Hsn2
   -- the committed log handed out at the start: up to `max b A`
   have Ha0c : max σ.b (uint.nat cv.Applied') ≤ σ.commit := by omega
   have HDlen : ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))).length =
@@ -749,6 +756,9 @@ private theorem wp_RestartNode_impl
   iunfold rawNodeAt at Hrn
   icases Hrn with ⟨%rnv, %sv, %hprev, Hrn⟩
   iNamed Hrn
+  -- (2026-11-12, trace-check step 5) the trace mode, untraced
+  have Hgh : s.gh = { sn := s.gh.sn } := by
+    have h := Hgh; rw [Hgtr0, HtrG] at h; exact h
   obtain ⟨Ht, Hv, Hr, Ho, Hst0, Hpd⟩ := Hterm
   obtain ⟨Hlp, Hse0, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn0, Hsg, Hdtk⟩ := Hlog
   -- the term ceiling raised to the term, which the budget covers (`termLB`)
@@ -1041,9 +1051,10 @@ private theorem wp_RestartNode_impl
     ipureintro; rfl
   -- `go n.run()`
   wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1 Hbw Hfree]
-  · wp_apply wp_node_run γn cv.ID' n_ptr HtrG $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1
-      Hdur1 Hbw Hfree]
-    · iframe Hnode
+  · ihave Hrtk0 := gateTr_none (GF := GF) γn.raft.reTrace (rtkRun γn.esc none) HtrG
+    wp_apply wp_node_run γn cv.ID' n_ptr (fun h => absurd HtrG h) $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1
+      Hcam Hpend Hlive1 Hdur1 Hbw Hfree Hrtk0]
+    · iframe Hnode Hrtk0
       unfold runPre
       iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
         HardStateM × Option SnapLoan)
