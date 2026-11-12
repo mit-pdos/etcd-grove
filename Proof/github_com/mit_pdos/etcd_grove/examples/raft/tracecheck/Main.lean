@@ -33,12 +33,12 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- `DefaultCConfig()` is a workload of the closed theorem. -/
 theorem workload_defaultCConfig [GooseExts] : Workload defaultCConfig := by
-  refine ⟨rfl, rfl, rfl, rfl, ?_, ?_⟩ <;> (unfold defaultCConfig; simp only; word)
+  refine ⟨rfl, rfl, rfl, rfl, ?_, ?_, ?_⟩ <;> (unfold defaultCConfig; simp only; word)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
 
@@ -51,14 +51,15 @@ theorem Main.wp_proof
     (wp_CheckTrace : Etcdraft.CheckTrace.spec (GF := GF) (hG := hG))
     (wp_TLCOK : Etcdraft.Result.TLCOK.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro Hrb
-  wp_start as #Hcc
+  intro _ Hrb boot Hbf
+  wp_start as ⟨#Hcc, #Hprem⟩
   ihave #Hed : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft $$ []
   · iPkgInit
   wp_apply wp_DefaultCConfig
-  wp_apply (wp_RunConcurrent Hrb defaultCConfig workload_defaultCConfig) $$ [Hcc] as %c Hrun
-  · iframe Hcc
+  wp_apply (wp_RunConcurrent Hrb boot Hbf defaultCConfig workload_defaultCConfig) $$ [Hcc Hprem]
+    as %c Hrun
+  · iframe Hcc Hprem
   iunfold runOver at Hrun
   icases Hrun with ⟨%γt, %r, #Hc, #Hr, Hvs⟩
   try wp_auto

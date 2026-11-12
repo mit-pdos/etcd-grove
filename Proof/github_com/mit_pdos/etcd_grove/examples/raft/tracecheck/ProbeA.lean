@@ -138,7 +138,7 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
     ⊢ bootMarshal (GF := GF) tcVoters tcCtxs (LogEntry.toEntries boot 0) -∗ traceFrag γt [] ={E}=∗
       ∃ (γ : Cluster) (γd : GName) (tn : TraceNames),
         ⌜Cluster.trace γ = some γd ∧ tn.tr = γt ∧ tn.voters = tcVoters ∧
-          γ.snapLoc = (fun _ => none)⌝ ∗
+          γ.snapLoc = (fun _ => none) ∧ γ.dup = false ∧ γ.bootLen = boot.length⌝ ∗
         traceDir γd tn ∗ Cluster.traceSim γ tcVoters tn ∗ isCluster γ N ∗
         tcOpsInv γ boot ∗ confPolicy γ tcConfN tcRule ∗ tcSnapsInv γ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet tcVoters)) ∗ isCommittedLogLb γ boot ∗
@@ -147,7 +147,7 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
   iintro #Hm Hfr
   imod harness_alloc (GF := GF) N tcVoters tcCtxs boot γt E hE Hrb Hne Hnd Hnz Hlen HB $$ Hm Hfr
     with ⟨%γ, %γd, %tn, %Hγ, #Hd, #Hinv, Hops, -, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hvs⟩
-  obtain ⟨Htr, Htn, Hvs', -, Hsl, -⟩ := Hγ
+  obtain ⟨Htr, Htn, Hvs', Hdup, Hsl, Hbl⟩ := Hγ
   imod inv_alloc tcOpsN E (tcOpsBody (GF := GF) γ boot) $$ [Hops] with #Hops
   · inext
     unfold tcOpsBody
@@ -162,7 +162,7 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
   imodintro
   iexists γ, γd, tn
   isplitr
-  · ipureintro; exact ⟨Htr, Htn, Hvs', Hsl⟩
+  · ipureintro; exact ⟨Htr, Htn, Hvs', Hsl, Hdup, Hbl⟩
   unfold tcOpsInv tcSnapsInv
   iframe Hd Hinv Hcl Hops Hpol Hsn Hca Hlb Hvs
 

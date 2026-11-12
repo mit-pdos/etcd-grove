@@ -12,22 +12,24 @@ holds a view shift that, at the recorder's half of the trace `L` (under the reco
 and its events have the facts the simulation keeps: `MainPure.lean`).
 
 The premises: package initialization, `context`'s `isClosedchanInit` (the proposer's
-`context.WithTimeout(context.Background(), ...)`, as `raft_kv.Main.spec`), and the time receipts'
-bound past the bootstrap log (`receiptBound GF + 3 ≤ 2^61`: the traced cluster's `cluster_alloc`
-with the voters' three bootstrap entries, raft's `readyFits`; with the adequacy theorem's
-`receiptBound = n + 1`, executions of `n + 4 ≤ 2^61` steps).
+`context.WithTimeout(context.Background(), ...)`, as `raft_kv.Main.spec`), the bootstrap log's facts
+and premise (`tracecheck.BootLogFacts boot`, `tracecheck.premises boot`: `proto.Marshal`'s contract
+at its conf changes, `Defs.lean`), the time receipts' bound past the bootstrap log
+(`receiptBound GF + 3 ≤ 2^61`: the traced cluster's `cluster_alloc` with the voters' three bootstrap
+entries, raft's `readyFits`), and the thread bound `ThreadBoundLe GF (2^31)` (the network's
+`sync.WaitGroup` counts a goroutine per message in flight, and panics past `2^31`: `NetJoin.lean`).
+With the adequacy theorem's `receiptBound = n + 1` and `threadBound = n + 2`, executions of
+`n + 2 ≤ 2^31` steps (Q38, 2026-11-11).
 
-Not proved yet (S7 (part 1) states it; its proof is the harness's, over the traced node API: the
-recorder and the trace's names allocated, the traced cluster (`reTrace := some γd`), the shared
-invariant `Cluster.traceSimInv_alloc`, three `StartNode`s with `startTrace`, the goroutines over the
-traced `RawNode`/`node` triples, and at the end `Cluster.traceSimInv_end` with the bootstrap facts
-(`MainSim.lean`, `runOk_of_sim`)). `Main`'s proof and the closed theorem take it as a hypothesis
-(`Results.lean`, `raft_tracecheck_safe_of`).
+Proved (2026-11-12, `Proof/.../tracecheck/RunConcurrent.lean`), over the traced node API's
+statements (`HarnessDefs.lean`, `HarnessApi`; `Results.lean`, `HarnessOpen`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Recorder
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.MainPure
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Defs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -48,10 +50,11 @@ abbrev G.CConfig := github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.CCon
 
 /-- **The workload the closed theorem runs**: three voters and no other node, no configuration
 change, no snapshot (the simulation's premises: no restart, compaction or `ChangeConf`), and a
-delay bound the network's `below(int(MaxDelay)+1)` can draw from (`below(0)` divides by zero). -/
+delay bound the network's `below(int(MaxDelay)+1)` can draw from (`below(0)` divides by zero), and
+(Q35 (a), 2026-11-12) a positive tick (`time.NewTicker` panics otherwise). -/
 def Workload (cfg : G.CConfig) : Prop :=
   cfg.Nodes' = W64 3 ∧ cfg.ExtraNodes' = 0 ∧ cfg.ConfChanges' = 0 ∧ cfg.SnapshotEvery' = 0 ∧
-    0 ≤ sint.Z cfg.MaxDelay' ∧ sint.Z cfg.MaxDelay' < 2 ^ 62
+    0 ≤ sint.Z cfg.MaxDelay' ∧ sint.Z cfg.MaxDelay' < 2 ^ 62 ∧ 0 < sint.Z cfg.Tick'
 
 end defs
 
@@ -68,16 +71,26 @@ def runOver (c : Loc) : IProp GF :=
   iprop(∃ (γt : GName) (r : Loc), c.[G.Cluster, go!"rec"] ↦□ r ∗ isSyncRecorder γt r ∗
     (∀ L, traceAuth γt L ={⊤}=∗ traceAuth γt L ∗ ⌜RunOk L⌝))
 
+end spec
+
+section spec2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
+
 /-- See the file header. -/
 abbrev RunConcurrent.spec : Prop :=
-  receiptBound GF + 3 ≤ 2 ^ 61 →
+  ∀ [ThreadBoundLe GF (2 ^ 31)], receiptBound GF + 3 ≤ 2 ^ 61 →
+  ∀ (boot : List LogEntry), tracecheck.BootLogFacts boot →
   ∀ (cfg : G.CConfig), Workload cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
-      context.isClosedchanInit }}
+      context.isClosedchanInit ∗ tracecheck.premises boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.RunConcurrent)) (Val #cfg))
   {{ (c : Loc), RET (PairV #c #interface.nil); runOver c }}
 
-end spec
+end spec2
 
 end TraceCheck
 end EtcdGrove

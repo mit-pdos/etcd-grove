@@ -37301,3 +37301,45 @@ thread enters `SndPending`.
 problems found that three review rounds had not: P1 (the escrow as designed could not do its own
 deposit), P3 (the escrow's import position), P6 (N1's scope). No `sorry`, no axiom, no client-visible
 statement changed (the interface of `RawNode.Advance`'s proof file changes by the new conjunct).
+
+## The harness (RunConcurrent): proved over the traced node API's statements, bundled as `HarnessOpen`; §1's statements from it; the `ConfChangeV2` arm refuted, so no `applyChange_leaveJoint` (2026-11-12 · trace-check, layer D of `notes/trace-check-design.md` §2, decided by the agent under the user's delegation (intermediate statements; §1 unchanged but for the hypothesis) · branch `trace-check-harness`)
+
+**What.** The harness's Go (`concurrent.go`: `RunConcurrent`, `app`, `handleReady`, `send`, the
+isolation driver and the proposer) is proved against §2's specs, with Q34's network join (`netJoin`,
+`join3` over the raw `WaitGroup` specs under `ThreadBoundLe GF (2^31)`, `NetJoin.lean`), Q35's
+`0 < Tick` and Q33's existing `strconv.Itoa` axiom. Everything the proof calls is a linked result but
+the traced node-API statements steps 1 and 3-5 of the design's §9 will prove; those are hypotheses,
+bundled in one `Prop`:
+
+- `HarnessApi` (`HarnessDefs.lean`): `StartNode.tracedSpec ∧ StepInIntroTr ∧ TrTokType ∧ ∃ claim,
+  RecvTracedSpec claim ∧ AdvanceTracedSpec claim` (Probe A's forms of the design's statements);
+- `HarnessOpen` (`Results.lean`): `HarnessApi` at every instance context and storage model, as raft's
+  linked results are stated, so that both the closed theorem (at `tcGF`) and the corollary (at any
+  `GF`) use it.
+
+`Results.lean` states §1.2 and §1.3 word for word with `(h : HarnessOpen)` first
+(`raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`); `TcOpen` (the harness's whole spec as a
+hypothesis) is gone. When steps 1 and 3-5 land, `HarnessOpen` is a theorem and the `_of`s are applied
+to it.
+
+**Why one bundle, at every instance.** The harness's proofs (`app`, `send`, `RunConcurrent`) each take
+only the statements they use, as specs take their callees'; the bundle is only for the results, so
+that what is open is one named thing a reader checks against §9. Quantifying it over the instance
+context (not fixing `tcGF`) costs nothing (the statements will be proved generically, as every linked
+result) and lets the corollary, which is stated at any `GF`, use the same hypothesis.
+
+**The `ConfChangeV2` arm refuted (Probe A's P1 not needed).** Probe A found that applying a committed
+empty `ConfChangeV2` needs `Membership.applyChange_leaveJoint`, and §9's step 1 was to add it. The proof
+does not apply it: `app`'s view of its node's configuration (`ViewOk`) is always the voters' simple
+membership (every committed `ConfChange` is a bootstrap `AddNode` of a voter, `tc_conf1`), and an empty
+`ConfChangeV2` is committed only at a joint configuration (`committed_emptyV2_joint`), so the arm is
+dead (`tc_noConf2`). Step 1 may drop the law unless another client needs it.
+
+**Smaller choices.** `tc_storBnd_zero` (`HarnessStorage.lean`) proves the storage bound from today's
+ungated `storBnd` (to be replaced by step 1's `storBnd_zero`); the goroutines share one persistent
+`tcWorld c W`; the three `app`s' network-adder shares are `½, ¼, ¼` (`Qp` halves, not thirds);
+`RunConcurrent.wp_proof` takes the node specs whose statements need a storage model as
+`∀ [StorageModel GF]`, since the run allocates the storage registry itself; `probeA_alloc`'s post also
+gives `γ.dup = false` and `γ.bootLen = |boot|`. B4 (`PbMessage.lean` into raft's tree) is not done:
+`ProbeA.lean` still imports rafthttp's module. Recorded in the design (`notes/trace-check-design.md`,
+"The harness (2026-11-12)", H1-H5).

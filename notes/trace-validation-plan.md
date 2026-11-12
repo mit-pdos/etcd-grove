@@ -3117,3 +3117,15 @@ S3) into `newTrace`'s success at `simInit vs`: `HarnessEnd.lean`'s `BootEnd` hyp
 theorem `bootEnd`. Not done: minting at the end of `setupNode`, which waits on the traced
 `newRaft`/`Bootstrap` (§5.2 of `notes/trace-check-design.md`). No axiom, no `sorry`, no closed statement
 changed. Reviews `a8-r1.md` (no first-tier finding), `a8-r2.md` (`notes/decisions.md`, "Amendment A8 (Q36, Q37)").
+
+**The harness (2026-11-12, branch `trace-check-harness`): done over the node API's traced statements.**
+`RunConcurrent`, `app`, `handleReady`, `send` and the drivers are proved (layer D,
+`notes/trace-check-design.md` §2), with the network's join over the raw `WaitGroup` under
+`ThreadBoundLe GF (2^31)` (Q34), `0 < Tick` in `Workload` (Q35) and the existing `strconv.Itoa` axiom
+(Q33). `Results.lean` states the design's §1.2 and §1.3 word for word, each from one hypothesis
+`HarnessOpen` (`raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`): the traced statements steps 1
+and 3-5 of the design's §9 prove (`StartNode.tracedSpec`, `stepIn_intro` with the token, `trTok_type`,
+the traced `Ready` receive and `Advance` over one claim). No axiom, no `sorry`. The empty
+`ConfChangeV2` arm is refuted rather than applied, so `Membership.applyChange_leaveJoint` is not needed
+(`notes/decisions.md`, "The harness (RunConcurrent)"). Left: B4 (`PbMessage.lean` into raft's tree), and
+`tc_storBnd_zero` to replace by step 1's `storBnd_zero`.
