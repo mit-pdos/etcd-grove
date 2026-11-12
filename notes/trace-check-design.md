@@ -19,7 +19,10 @@ first section below (I9: `storBnd`'s gate left for a decision).
 Implementation step 3 (2026-11-12): branch `trace-check-impl3`; what the clauses and the physical half
 changed, J1-J5, in the first section below.
 Step 4 (2026-11-12): branch `trace-check-s4`; the three statements of step 4 (`node.run.gatedSpec`,
-`RawNode.Advance.tracedSpec`, `raft.applyConfChange.tracedSpec`), in the first section below.
+`RawNode.Advance.tracedSpec`, `raft.applyConfChange.tracedSpec`), in the second section below.
+Step 5 (2026-11-12): branch `trace-check-s5`; the constructors' statements (`newRaft`, `NewRawNode`,
+`RawNode.Bootstrap`, `setupNode`, `StartNode`, and `switchToConfig`/`applyConfChange` in gate form), in the
+first section below.
 
 Reading order: §1 is the only part the user reviews (settled: Q32 and Q38 decided by the user). §2-§6
 are the agent's (intermediate statements, recorded per "The gates, delegated"). §7 is the whole chain
@@ -30,6 +33,211 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 `MsgHeartbeat`, `MsgHeartbeatResp`), `AckTy` (`MsgStorageAppendResp`, `MsgStorageApplyResp`),
 `recvTokOf` (`TracedRecvTok.lean`), `trTok` (today `TracedNodeApi.lean`; revision 1 moves it to
 `InvNode.lean`, §3.1), the capability `trCapB` (`TracedCap.lean`), `rnTrace` (`InvRawnode.lean`).
+
+---
+
+## Step 5 (2026-11-12): the constructors' statements
+
+Branch `trace-check-s5`, from `trace-check` at `d7943a4cc3` (§9's step 5, phase 1: statements and design,
+no proof; `notes/decisions.md`, "Step 5: the traced constructors"). In Lean, typechecked, nothing proved
+(the laws are `abbrev ….statement : Prop`): `Proof/go_etcd_io/raft/v3/TracedBootSpecs.lean`
+(raft-internal; `etc/api/raft.txt` untouched; nothing imports it yet). The goal is `StartNode.gatedSpec`
+proved, hence `HarnessOpen` a theorem. **Every statement is one statement for both modes**: today's spec
+with its untraced premise replaced by gated content vacuous at an untraced node; at proof time each
+`X.gatedSpec` replaces `X.spec` in its `Spec/` file in place. Nothing below changes §1
+(`raft_tracecheck_safe`, `raft_tracecheck_accepts`): `HarnessOpen` changes (one predicate, `startTraceC`,
+gains the fit), and the harness discharges it (below).
+
+**What the step-4 statements do not cover (the reason for a new form of two of them).** §5.2 planned
+`Bootstrap` "through the traced `raft.applyConfChange`/`switchToConfig`". The proved ones (`hCC`) are for a
+*booted* follower *keeping* its configuration with the capability *at raft's configuration*
+(`trCapB s.gh.tr γ r id c true (SimIdle · s)`, `c'.cfg = c`). During the bootstrap the flag is unset
+(`b = false`), each `AddNode` grows raft's configuration, and the capability is at the voters'
+configuration `bootCfg vs`, apart from raft's (A1; `raft.becomeFollower.traced`'s `hcC : b = true → cC =
+c`). So neither applies at positions `k + 4`. Taken: the hook in **gate form**, as
+`raft.becomeFollower.spec` has it since slice 3 (the caller hands in the `ApplyConfChange` line's gate and
+gets its `Q` back; the traced premise only `s.role = .follower`, since a follower's `switchToConfig`
+neither commits nor broadcasts). Step 4's form is then an instance (`trCapB_hookGate_applyCC`'s gate,
+`Q` the capability, moved from `s` to `s'` by `simIdle_congr`), and so is the bootstrap's
+(`trCapB_hookGate_ccBoot`'s gate). Rejected: a boot-mode twin of `applyConfChange` beside `hCC`'s
+(twins); inlining `applyConfChange` in `Bootstrap`'s proof as `newRaft` inlines `switchToConfig` (a second
+copy of `Changer.Simple` + `switchToConfig`).
+
+### The statements (all in `TracedBootSpecs.lean`)
+
+**Vocabulary.** `bootPhase vs id C cs P := C = vs ∧ cs = toC (confAbs vs) ((simInit vs).s (idAbs id)) ∧ P
+= []` (the capability's phase from `StartNode` to the end of `Bootstrap`: the bootstrap lines keep the
+share; `simIdle_boot` turns it into `SimIdle C s` at the end; it fixes `C = vs`, which `BootNext` and
+`trCapB_bootDone`'s `hΛ` need); `bootAt vs id k o := ∃ x, o = some x ∧ BootEvAt vs id k x`; `bootNone o :=
+o = none`; `bootCfg vs := (cfgState (GMap.listToSet vs) ∅).cfg`; `BootFresh cv σ hs csm` (no hard state,
+base `⟨0, 0⟩`, no entry, `Applied = 0`, the empty conf state: what positions 0-2's `0`s need).
+
+**`trCapStart tr γ id tl c Φ Λ`** (the capability before the struct): untraced `⌜TraceLoggerOk tl⌝` (today's
+premise); traced `trCapB`'s body unbooted with the logger `tl` in place of the struct's `traceLogger`
+field. Law `trCapStart_trCapB`: with `r.[raft, "traceLogger"] ↦□ tl` it is `trCapB tr γ r id c false Φ Λ`
+(`trCapB_intro`). **`trNoCut tr st := □ (⌜tr ≠ none⌝ -∗ storPast st 1 -∗ |={⊤}=> False)`** (the storage-level
+`TrNoSnap`); laws `trNoCut_trNoSnap` (at `prev.index = 0`), `trNoCut_none`, `isStorage_trNoCut` (from the
+client's `isStorage`: `#Hbound` and the traced `storBnd = ⌜c = 0⌝`). **`bootDoneG tr id`** (A8.3's
+`startDoneB` at raft's level). **`rawNodeAtT rn r …`, `rawNodeFreshT rn r …`**: `rawNodeAt`/`rawNodeFresh`
+word for word but `s.gh = { sn := s.gh.sn, tr := s.gh.tr }` (was `{ sn := s.gh.sn }`) and `rnv.raft' = r`
+(the struct named, so the capability keyed by `r` can be stated beside); they replace the two in place.
+
+**`raft.switchToConfig.gatedSpec`** (replaces `raft.switchToConfig.spec` in place): step 4's statement with
+the binder `γ` dropped, the traced premise `s.role = .follower ∧ c = c0 ∧ …` reduced to `s.role =
+.follower`, `%Htlok` and `trCapB … c0 true (SimIdle · s)` replaced by `"Hfire" ∷ TraceFire s.gh.tr tl
+(CCEvOf id s c0 c) Q`, the post's `trCapB … c true (SimIdle · s')` by `Q`, and the traced loan `trOwn
+s.gh.tr (ownCfgCC tv0.Config' 1 c0)` gaining `⌜CfgSizeOk c0⌝` (for `ownRaftReadT c0`; step 4 read it off
+the new configuration's maps, equal to the old).
+
+**`raft.applyConfChange.gatedSpec`** (replaces `raft.applyConfChange.spec` in place as the one proof):
+today's with `s.gh.tr = none` replaced by `s.gh.tr ≠ none → s.role = .follower`, `"Hgate" ∷ HookGate
+s.gh.tr r (CCEvOf id s c c'.cfg) Q` in the pre and `Q` in the post. Derived theorems (to write):
+`raft.applyConfChange.spec_of_gatedSpec` (today's untraced statement, for its 4 untraced callers, `Q :=
+emp`, `hookGate_none`) and `raft.applyConfChange.tracedSpec_of_gatedSpec` (step 4's `hCC` statement,
+unchanged, for `run`'s `confc` arm).
+
+**`newRaft.gatedSpec`** (replaces `newRaft.spec`; positions 0-2): new binders `γ : RaftNames`, `vs`;
+`TraceLoggerOk cv.TraceLogger'` → `γ.reTrace ≠ none → BootFresh cv σ hs csm` and the pre's
+`trCapStart γ.reTrace γ cv.ID' cv.TraceLogger' (bootCfg vs) (bootPhase vs cv.ID') bootNone`; the boot
+bundle's `InitialState` answer also gives `trNoCut γ.reTrace (interface.ok si)`; the post's `s.gh = { sn :=
+sn }` → `{ sn := sn, tr := γ.reTrace }`, plus `s.cq = cv.CheckQuorum'` (true today; `rnTrace` reads the
+field), `trNoCut` handed on, and `trCapB γ.reTrace γ r cv.ID' (bootCfg vs) false (bootPhase vs cv.ID')
+(bootAt vs cv.ID' 2)`. Proof (traced): `trCapStart_trCapB` once the struct is written;
+`trCapB_hookGate_init` (0); `traceConfChangeEvent.spec` in `newRaft`'s switch window with
+`trCapB_hookGate_ccBoot` (1); `raft.becomeFollower.traced` at `b = false` (2).
+
+**`NewRawNode.gatedSpec`** (replaces `NewRawNode.spec`): `newRaft`'s changes; post `R' ∗ trNoCut … ∗ ∃ s r,
+rawNodeAtT rn r … s ∗ ⌜err = nil⌝ ∗ ⌜s.logst.sn = sn ∧ s.gh.sn = sn ∧ s.gh.tr = γ.reTrace ∧ s.cq =
+cv.CheckQuorum'⌝ ∗ trCapB γ.reTrace γ r cv.ID' (bootCfg vs) false (bootPhase vs cv.ID') (bootAt vs cv.ID'
+2)`.
+
+**`RawNode.Bootstrap.gatedSpec`** (replaces `RawNode.Bootstrap.spec`; positions 3 to `|ps| + 3`): new binder
+`r`; `γ.reTrace = none` → `s.gh.tr = γ.reTrace` and `γ.reTrace ≠ none → pre = false ∧ s.cq = false ∧
+|ps| < 2^40`; pre `rawNodeFreshT rn r …` and, new, `trCapB γ.reTrace γ r id (bootCfg ps) false (bootPhase ps
+id) (bootAt ps id 2) ∗ trNoCut γ.reTrace (interface.ok si)`; post also `bootDoneG γ.reTrace id`. Proof
+(traced): `raft.becomeFollower.traced` at `b = false` (3); per peer `k`, `raft.applyConfChange.gatedSpec`
+with `trCapB_hookGate_ccBoot` (raft at the first `k` peers before, `k + 1` after; the line's term `1`,
+commit and log size `|ps|`; `OkBoot` from `|ps| < 2^40`; position `k + 4`); then **`trCapB_bootDone`** (its
+`hΛ` from `bootPhase`'s `C = ps` and `bootAt ps id (|ps| + 3)`); then `rnTrace` packed inside `ownRawNode`:
+`trCapB_cfg` to the struct's configuration, `Λ` weakened to the default, the phase to `SimIdle · s`
+(`simIdle_boot`, `id ∈ ps`), `TrNoSnap` by `trNoCut_trNoSnap`, 1(a) (nothing delivered), 1(b) (`lt = 0`, no
+read, the outbox empty), 1(c) (a follower), 1(d) (a simple configuration; `BootLogOk`'s conf entries),
+`s.prevote = false ∧ learners = ∅`, `checkQuorum ↦□ false` (`ownRaftPhysC_cq` at `s.cq = false`).
+
+**`setupNode.gatedSpec`** (replaces `setupNode.spec`): `TraceLoggerOk` and `γ.reTrace = none` →
+`γ.reTrace ≠ none → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧ |ps| < 2^40` and the pre's
+`trCapStart γ.reTrace γ cv.ID' cv.TraceLogger' (bootCfg ps) (bootPhase ps cv.ID') bootNone`; `trNoCut` in
+the `InitialState` answer; post also `bootDoneG γ.reTrace cv.ID'`.
+
+**`startTraceF γ N vs cv`, `StartNode.gatedSpecF`** (replace the Draft's `startTrace`/`StartNode.gatedSpec` in
+place, and `TracedNodeApi.lean`'s `startTraceC`/`StartNode.tracedSpec` the same way; review `step4-r1.md`'s
+S1): `startTrace` with the namespace `N` and, in the traced branch, `readyFits γ N` and `2 ≤ vs.length`
+(beside `vs.length < 2^40`). `StartNode.gatedSpecF` is the Draft's word for word but `startTraceF γ N vs
+cv`. Laws: `startTraceF_trCapStart` (`startTraceF ∗ nodeBoot ⊢ ⌜traced → TracedConfigOk cv ∧ |vs| < 2^40 ∧
+traceReadyFits GF (raftNames γ) ∧ receiptBound GF + 2 ≤ traceNumBound⌝ ∗ trCapStart …`; it replaces
+`startTrace_trCapB`, which needed the struct) and `startTraceF_untraced` (what makes `StartNode.spec` an
+instance).
+
+### Premise → source, at each caller
+
+**`setupNode.gatedSpec` and `node.run.gatedSpec` at `StartNode`** (traced arm; untraced: as today, with
+`trCapStart none` the `TraceLoggerOk` that `startTraceF_untraced` gives, `trNoCut_none`, `gateTr_none`):
+
+| Premise | Source in `StartNode`'s proof |
+|---|---|
+| today's (Config, storage, peers, boot log) | as today |
+| `setupNode`: `PreVote`/`CheckQuorum` off, `|ps| < 2^40` | `startTraceF_trCapStart`'s pure part (`TracedConfigOk`, `vs.length < 2^40`) |
+| `setupNode`: `trCapStart … (bootCfg vs) (bootPhase vs id) bootNone` | `startTraceF_trCapStart` (the traced branch's names, logger, invariant, share, flag; `nodeBoot`'s `raftLogInv`, `id ∈ vs`, `|vs| ≤ |boot|`) |
+| `setupNode`: the `InitialState` answer's `trNoCut` | `isStorage_trNoCut` on the `isStorage γ K st` of `restartStorage`'s continuation, before `storBnd_raftBnd` |
+| `run`: `RunTracedOk GF γn`, first conjunct | `HdynOk` (`StartNode.lean:327`) |
+| `run`: `traceReadyFits GF γn.raft`, `receiptBound GF + 2 ≤ traceNumBound` | `startTraceF_trCapStart`'s pure part (`readyFits γ N`, `bootLen = |boot| = |vs| ≥ 2`) |
+| `run`: `gateTr … (rtkRun γn.esc none)`; `isNodeChan`'s and `adv_start`'s `gateTr (rtkInv …)`; `nodeDriver`'s `rq` halves | `rtk_alloc` (`InvRtk.lean`, proved), before `γn` is built (`esc := γe`) |
+| post `startDoneB γ cv.ID'` | `setupNode`'s `bootDoneG (raftNames γ).reTrace cv.ID'` (equal, unfolding the sealed names) |
+
+**`NewRawNode.gatedSpec` at `setupNode` and at `RestartNode`:**
+
+| Premise | `setupNode` | `RestartNode` (untraced, `Cluster.trace γ = none`) |
+|---|---|---|
+| `γ.reTrace ≠ none → BootFresh …` | its premises (`Applied = 0`, `σ` fresh, `HsEmpty`, the empty conf state) | vacuous |
+| `trCapStart …` | its pre (`vs := ps`) | its `TraceLoggerOk` premise (`trCapStart none`) |
+| the `InitialState` answer's `trNoCut` | its pre's answer | `trNoCut_none`, framed into its answer |
+| post: `trCapB`, `trNoCut`, mode | to `Bootstrap` | `trCapB none = emp`; `s.gh.tr = none` gives back `rawNodeAt`'s `Hgh` |
+
+**`RawNode.Bootstrap.gatedSpec` at `setupNode`:**
+
+| Premise | Source |
+|---|---|
+| `s.gh.tr = γ.reTrace` | `NewRawNode`'s post |
+| traced `pre = false ∧ s.cq = false ∧ |ps| < 2^40` | `setupNode`'s traced premise, with `NewRawNode`'s `s.prevote = cv.PreVote'` (`rawNodeAtT`'s `pre`) and `s.cq = cv.CheckQuorum'` |
+| `rawNodeFreshT rn r …` | `rawNodeAtT` by `rawNodeAt_fresh`'s argument (as today) |
+| `trCapB … (bootAt ps id 2)`, `trNoCut` | `NewRawNode`'s post |
+| the rest | as today |
+
+**`raft.applyConfChange.gatedSpec` at each caller:**
+
+| Caller | `s.gh.tr ≠ none → follower` | `HookGate … Q` |
+|---|---|---|
+| `Bootstrap`, per peer (traced) | `becomeFollower(1, None)` before, kept by each follower's `ApplyCCOkC` | `trCapB_hookGate_ccBoot`: `hBN` from `bootAt ps id (k + 3)` and `bootPhase`; `hΛ` to `bootAt ps id (k + 4)`; `hOk` from `|ps| < 2^40` |
+| `run`'s `confc` (through `tracedSpec_of_gatedSpec`) | step 4's table, unchanged | `trCapB_hookGate_applyCC` from `tracedSpec`'s premises |
+| untraced (`InvNodeRun`, `RawNode__ApplyConfChange`, `node__run`, through `spec_of_gatedSpec`) | vacuous | `hookGate_none` (`ownRaftPhysC_traceLogger`), `Q := emp` |
+
+**`raft.switchToConfig.gatedSpec` at its callers:** in `applyConfChange`'s proof the fire comes from the
+`HookGate`'s update (`imod`), `CfgSizeOk c` of the struct's configuration from the tracker's bound (to
+check at proof time; it is `ownTrackerC`'s `Hcfg_size`), the follower from the premise; at `appliedSnap`
+(untraced) `TraceFire none` is its `TraceLoggerOk`, `Q := emp`.
+
+### Call sites a unified statement re-opens (`etc/importers.py --uses NAME FILE`; `Link.lean` regenerated in every case, not counted)
+
+| Statement replaced in place | Files re-opened | Clients |
+|---|---|---|
+| `newRaft.spec` | 2: `Proof/newRaft.lean` (the proof), `Proof/NewRawNode.lean` | 0 |
+| `NewRawNode.spec` | 4: its proof, `RestartNode.lean` (1 call), `setupNode`'s spec and proof | 0 |
+| `RawNode.Bootstrap.spec` | 3: its proof, `setupNode`'s spec and proof | 0 |
+| `setupNode.spec` | 2: its proof, `StartNode.lean` | 0 |
+| `raft.switchToConfig.spec` | 4: its proof, `raft__applyConfChange.lean`, `TracedApplyConfChange.lean`, `raft__appliedSnap.lean` (1 call) | 0 |
+| `raft.applyConfChange.spec` | 2 + `Bootstrap`'s proof (with today's statement and `tracedSpec` derived theorems, its other 4 users, and `run`'s branch, are untouched) | 0 |
+| `rawNodeAt`, `rawNodeFresh` (definitions) | 5: `InvBoot.lean` (`rawNodeAt_fresh`, `rawNodeFresh_intro*`), `NewRawNode.lean`, `RestartNode.lean`, `RawNode__Bootstrap.lean`, `setupNode.lean` | 0 |
+| Draft `startTrace`/`StartNode.gatedSpec`, API `startTraceC`/`StartNode.tracedSpec` | raft 3: `TracedApiDraft.lean` (`startTrace_trCapB` replaced by the new law), `TracedNodeApi.lean`, `TracedNodeApiBridge.lean` (`rfl`); harness 3: `HarnessAlloc.lean`, `ProbeA.lean`, `RunConcurrent.lean`; one interface file (`TracedNodeApi`) | the harness only |
+| `StartNode.spec` | 0 (an instance of `StartNode.gatedSpecF`; the server's 5 files untouched) | 0 |
+| `RestartNode.spec` | 0 (unchanged; its proof is in the `NewRawNode` row) | 0 |
+
+**Recommendation: unified for every statement.** Each re-opens at most 5 raft-internal files and no client:
+the constructors are called only by each other, `RestartNode` and the two `Start*` statements, which keep
+their client-facing text (`StartNode.spec` an instance; `RestartNode.spec` unchanged). No cheaper form is
+needed. For `applyConfChange`, today's statement and step 4's `tracedSpec` survive as derived theorems
+(one proof), so its 4 untraced callers and `run` are not re-opened.
+
+### `HarnessOpen`: how it changes and how the harness discharges it
+
+`StartNode.tracedSpec` (hence `HarnessOpen`) changes only through `startTraceC`, which becomes
+`startTraceF` over `Cluster.traceSim` (the namespace `N` an argument; in the traced branch `readyFits γ N`
+and `2 ≤ vs.length`). The harness: `startTraceC_intro` (`HarnessAlloc.lean:197`) gains `(Hfit : receiptBound
+GF + γ.bootLen ≤ 2 ^ 61) (H2 : 2 ≤ vs.length)` and frames `readyFits_intro γ N Hfit`; `probeA_startPre`
+(`ProbeA.lean:173`) passes `Hfit` and `by decide` (`tcVoters = [1, 2, 3]`); its call in `RunConcurrent.lean`
+(:443) passes `Hfit` from `RunConcurrent.spec`'s `tcRunFits` (`receiptBound GF + 3 ≤ 2^61`) and
+harness_alloc's `Hbl : γ.bootLen = boot.length` with `Hbf.1 : boot.length = 3` (both already in that
+proof, :384 and :568). `RunConcurrent.spec`, `Main.spec` and §1's statements do not change.
+
+### Departures from §5.2 / A8, and what is unsettled
+
+- **`bootDone` is minted at `Bootstrap`'s end, not `setupNode`'s** (A8.2's text, §5.3 "Nothing below is to
+  do but the minting at the end of `setupNode`"): `Bootstrap`'s post is `ownRawNode`, which holds the
+  capability inside `rnTrace` at the default `Λ`; `trCapB_bootDone` needs `Λ = bootAt ps id (|ps| + 3)`, so
+  the last point it can run is `Bootstrap`'s end. `Bootstrap` returns `bootDoneG`; `setupNode` passes it on.
+- **`TrNoSnap`'s source travels through the `InitialState` answer** (`trNoCut`): the client's contract exists
+  only from that answer on, inside `newRaft`, and the boot frame `R'` is abstract to `setupNode`; so the
+  boot bundles of `newRaft`, `NewRawNode` and `setupNode` name it, and `newRaft`/`NewRawNode` return it.
+  Rejected: gating raft's `raftBnd`/`isStorageD` (the design's A4 chose to keep `raftBnd` ungated).
+- **`2 ≤ vs.length`** in `startTraceF`, where review S1 offered `2 ≤ vs.length ∨ receiptBound GF + 2 ≤
+  traceNumBound`: the harness has three voters; the disjunct only admits a single traced voter whose
+  receipt bound has slack, which nothing uses. Revisit if `run`'s third conjunct is dropped (S2: kept by
+  `trace-check-run`, the tick and `Campaign`'s `MsgHup` raise the ceiling).
+- **`CfgSizeOk c0`** in `switchToConfig.gatedSpec`'s traced loan: its source at `applyConfChange`
+  (the struct's tracker bound) is to check at proof time.
+- The proofs re-open `hCC`'s just-proved `raft.switchToConfig.wp_proof` (the gate applied inside it,
+  `wp_switch_hook`, moves to `tracedSpec_of_gatedSpec`); the capability arithmetic (`switch_cap`) moves with it.
+- No bug in raft's Go code or in a spec found (the `validate` call does not touch `TraceLogger`, so the
+  logger `trCapStart` names is the one `newRaft` writes).
 
 ---
 
