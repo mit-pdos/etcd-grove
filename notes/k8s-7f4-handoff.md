@@ -33,6 +33,35 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Fifth agent (2026-11-12): item 7 started; STOPPED for two trust-base questions (81)
+
+Done (lean-checked `-a`, 0 errors; NOT in a build; the importers of `srvStreamIs` are broken until
+the Watch chain is re-proved):
+- `InvGrpcStream.lean`: imports `v3rpc/SrvCtxWeak` (no move: its imports reach no grpc module;
+  trusted text untouched); a section variable `context.Assumptions` in the second `defs` section;
+  `srvRawStreamIsW` (RecvMsg/SendMsg/Context clauses, `srvCtxWeak ci cd ∗ libCtxOk ci ∗
+  spanCtxOk ci`), `srvRawStreamIsW_of_raw`; `srvStreamIs`'s context part the weak one;
+  `srvStreamIs_of_raw` over `srvRawStreamIsW`; `srvStreamInterceptorWOk ic R` (strong raw end in,
+  the handler on a weak end at `ci'` with `incomingOf ci' = incomingOf ci`); the chain lemma
+  `srvStreamChainWP_of_okW` for `ics ++ [icW]` (resources `[∗list] Rs ++ [RW]`).
+- `_Watch_Watch_Handler.spec` on `srvRawStreamIsW` (its proof unchanged, checks).
+
+Blockers found (reported to 81, see questions.md):
+1. T-c gives `rawStreamKeyTy si.ty` (a pointer type) but not `si.v = #ls`; `v3rpc.sKey t ls l` and
+   `safeMapKey_sKey` need the raw stream as `interface.mkOk (PointerType t) #ls`. The interceptor's
+   insert cannot be proved without strengthening T-c (trusted).
+2. `trace.SpanFromContext.spec` (axiom) takes `isContext ctx cd ∗ spanCtxOk ctx`; mvcc's
+   `watchStream.Watch` calls it on the traced weak context (recvLoop, W5). Go reads only
+   `ctx.Value(currentSpanKey)`.
+
+Next once decided: the interceptor's W proof (`handler_tail` on `srvRawStreamIsW_of_raw`; the
+branch: `FromIncomingContext` real spec from `libCtxOk_of_runCtx`'s `incomingCtxOk`, `Leader`,
+`newCancellableContext`, the `serverStreamWithCtx` literal, insert under `smap.mu` with
+`attribute [local instance 1100] v3rpc.streamKeys`, the defer's delete and `Cancel(nil)`, the
+handler on `sKey` with `srvCtxWeak_cc`, `wrapperLibCtx`, `incomingOf_wrapper`); then the handlers'
+`Err` level tokens (Watch main thread from `S`, the recv goroutine from `Ht4`, sendLoop from its
+`threadTok`, LeaseKeepAlive/leaseKeepAlive), mvcc's contract, Results.
+
 ## Handoff point (2026-11-12, end of the fourth agent's context): items 1-6 done; item 7 next
 
 Done (each lean-checked `-a`; items 1-5 in a full build, `95c4778916`; item 6 in the build of the

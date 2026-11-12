@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 `WatchServer` (a method-set fact) and whose `Watch` meets `Spec` with the client's content `Up`
 and the resource `S` (`grpcStreamHandlerOk`, on the wrapped server end), for messages whose types
 are `*WatchRequest`/`*WatchResponse` (a fresh `new(WatchRequest)` is a message the receiver owns),
-on a raw server end `stream` of a fresh stream (`srvRawStreamIs`, both tokens at `[]`, its
+on a raw server end `stream` of a fresh stream with a weak context (`srvRawStreamIsW`, k8s 7f-4
+item 7; both tokens at `[]`, its
 auxiliary name unset: `streamAuxTok`) with the specification at the run's incoming metadata,
 `Spec (incomingOf ci) γ Dn` (metadata-indexed, G2), and `S`: wraps the stream and runs `srv.Watch` on it; returns the handler's error, one grpc's `status` takes (`srvErrOk`, `grpcStreamHandlerOk`'s; premise fixes 7), and `S` (per-type stage B3: the handler returns its resource). -/
 abbrev etcdserverpb._Watch_Watch_Handler.spec : Prop :=
@@ -42,7 +43,7 @@ abbrev etcdserverpb._Watch_Watch_Handler.spec : Prop :=
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.WatchRequest) -∗ Req.own l) ∗
       grpcStreamHandlerOk #(methods srv.ty go!"Watch" srv.v) S Up Spec ∗
       Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn ∗ S ∗
-      srvRawStreamIs st γ Req Rep Up Dn ci cd ∗ srvRecvTok (Req := Req) γ [] ∗
+      srvRawStreamIsW st γ Req Rep Up Dn ci cd ∗ srvRecvTok (Req := Req) γ [] ∗
       srvSendTok (Rep := Rep) γ [] ∗ streamAuxTok γ }}
     (streamHandlerCall (@! etcdserverpb._Watch_Watch_Handler) #(GoInterface.ok srv) #st)
   {{ (err : GoInterface), RET #err; go_etcd_io.etcd.cache.v3.srvErrOk err ∗ S }}
