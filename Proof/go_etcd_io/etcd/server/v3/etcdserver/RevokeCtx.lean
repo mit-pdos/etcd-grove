@@ -72,21 +72,22 @@ def srvRevokeLevels : Prop := srvRevokeK ≤ threadBound GF
 
 /-- **The level bound a serving member needs** (per-type stage B, r5 §3.3): levels
 `0 … srvLevelK - 1` of a thread token exist. Taken only where a gRPC run's adapter borrows level 3
-(the served theorems, the serving Main/Start specs); the same bound as `srvRevokeLevels`
-(`srvLevels_iff`). -/
+(the served theorems, the serving Main/Start specs) and a stream run lends level 4 (k8s 7f-4); one
+more than `srvRevokeLevels` (`srvRevokeLevels_of_srvLevels`). -/
 def srvLevels : Prop := srvLevelK ≤ threadBound GF
 
-theorem srvLevels_iff : srvLevels (GF := GF) ↔ srvRevokeLevels (GF := GF) := Iff.rfl
+theorem srvRevokeLevels_of_srvLevels (h : srvLevels (GF := GF)) : srvRevokeLevels (GF := GF) := by
+  unfold srvLevels srvLevelK at h; unfold srvRevokeLevels; omega
 
 /-- `srvLevels` at a thread bound `max m srvLevelK`. -/
 theorem srvLevels_of_max {m : Nat} (h : threadBound GF = max m srvLevelK) :
     srvLevels (GF := GF) := by
   unfold srvLevels; rw [h]; exact Nat.le_max_right _ _
 
-/-- `srvRevokeLevels` at a thread bound `max m srvRevokeK` (the etcd examples' adequacy lemmas'). -/
-theorem srvRevokeLevels_of_max {m : Nat} (h : threadBound GF = max m srvRevokeK) :
-    srvRevokeLevels (GF := GF) := by
-  unfold srvRevokeLevels; rw [h]; exact Nat.le_max_right _ _
+/-- `srvRevokeLevels` at a thread bound `max m srvLevelK` (the etcd examples' adequacy lemmas'). -/
+theorem srvRevokeLevels_of_max {m : Nat} (h : threadBound GF = max m srvLevelK) :
+    srvRevokeLevels (GF := GF) :=
+  srvRevokeLevels_of_srvLevels (srvLevels_of_max h)
 
 /-- The copies in each of the revocation's pools: one fewer than the server's thread bound's limit
 (`threadBound GF ≤ backend.rdPoolN`, `isServerBuilt`'s `%Hbound`), what `threadPool.initL` needs. -/

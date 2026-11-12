@@ -1848,7 +1848,8 @@ server at `addr` built with the stream interceptors `ics` (transparent, with the
 and the `Watch` stream of `Watch_ServiceDesc` registered with the `*watchServer` `p`
 (`grpcStreamServerAt`, the registration `RegisterWatchServer` makes), with the server's pools
 (`srvRevokeBuilt`, `srvRunPool`; per-type stage B3, in place of `n` run slots: each run borrows the
-bundle `srvRunBundle`, which holds the interceptors' resources and a store reader token, `h1`/`h2`,
+stream bundle `srvStreamBundle`, which holds the interceptors' resources and a store reader token,
+`h1`/`h2`,
 and its receive loop borrows its own), serves the method: its stream specification is
 `watchStreamSpec` at the server's names and ids, and each request the client sends carries
 `watchUp` (restricted, a watch token and the auth bound with each create). Since G2 (2026-10-30) the
@@ -1857,8 +1858,10 @@ the stream's metadata (`auth.mdTokenOf`), for which each create's check passed. 
 theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (W : SrvW GF) (ics : List GoFunc)
     (Rs : List (IProp GF)) (sregs : List (GoString × GoFunc × GoInterface)) (γ : GName)
     (γr : ReadNames) (F : IProp GF)
-    (h1 : srvRunBundle R.s R.E γr ⊢ iprop(mvcc.api.mvccReaders W.γm 1 ∗ [∗list] R' ∈ Rs, R') ∗ F)
-    (h2 : iprop(mvcc.api.mvccReaders W.γm 1 ∗ [∗list] R' ∈ Rs, R') ∗ F ⊢ srvRunBundle R.s R.E γr)
+    (h1 : srvStreamBundle R.s R.E γr ⊢
+      iprop(mvcc.api.mvccReaders W.γm 1 ∗ [∗list] R' ∈ Rs, R') ∗ F)
+    (h2 : iprop(mvcc.api.mvccReaders W.γm 1 ∗ [∗list] R' ∈ Rs, R') ∗ F ⊢
+      srvStreamBundle R.s R.E γr)
     (hγ : W.γm = R.E.γ) (Htb : threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders)
     (HL : srvLevels (GF := GF))
     (hset : go.typeSetContains
@@ -1883,7 +1886,7 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (W : SrvW GF
   iintro ⟨#Hpb, #Hinit, #Hws, #HW, #Hics, #Hsrv, #Hb, #Hrp⟩
   ihave ⟨%γ₁, %γ₂, -, #Hp2⟩ := srvRevokeBuilt_runPools R.s R.E $$ Hb
   ihave ⟨%γ₃, #Hp3⟩ := hpool $$ Hrp
-  ihave #Hok := etcd_watchMethodOk p R W ics Rs (srvRunBundle R.s R.E γr) F srvRevokeInnerN srvRunN
+  ihave #Hok := etcd_watchMethodOk p R W ics Rs (srvStreamBundle R.s R.E γr) F srvRevokeInnerN srvRunN
     γ₂ γ₃ (srvLeadTimeReader R.s) iprop(srvReadReader R.s γr ∗ srvBemuReader R.s) h1 h2 Htb HT hset
     $$ [Hpb Hinit Hws HW Hics Hp2 Hp3]
   · iframe #
@@ -1916,16 +1919,16 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (W : SrvW GF
   simp only [m, pbWatchRequestT, pbWatchResponseT]
   iexact Hs
 
-/-- **etcd's run bundle as the watch method's slot** under a chain of two resource-free
+/-- **etcd's stream run bundle as the watch method's slot** under a chain of two resource-free
 interceptors: a store reader token, the two interceptors' `True`, and the rest. -/
-theorem srvRunBundle_watchSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    srvRunBundle s E γr ⊣⊢
+theorem srvStreamBundle_watchSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvStreamBundle s E γr ⊣⊢
       iprop(mvcc.api.mvccReaders E.γ 1 ∗ [∗list] R' ∈ [iprop(True), iprop(True)], R') ∗
-      iprop(levelTok 0 ∗ srvLgReader s ∗ (srvLeadTimeReader s ∗ E.RD) ∗
+      iprop(levelTok 0 ∗ levelTok 4 ∗ srvLgReader s ∗ (srvLeadTimeReader s ∗ E.RD) ∗
         (srvReadReader s γr ∗ srvBemuReader s)) := by
-  unfold srvRunBundle
+  unfold srvStreamBundle
   constructor
-  · iintro ⟨H0, Hlg, Hlt, Hrd, Hrr, Hbe⟩
+  · iintro ⟨H0, H4, Hlg, Hlt, Hrd, Hrr, Hbe⟩
     isplitl [Hrd]
     · iframe Hrd
       iapply BigSepL.bigSepL_cons.2
@@ -1937,7 +1940,7 @@ theorem srvRunBundle_watchSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
       iapply BigSepL.bigSepL_nil.2
       itrivial
     iframe
-  · iintro ⟨⟨Hrd, -⟩, H0, Hlg, Hlt, Hrr, Hbe⟩
+  · iintro ⟨⟨Hrd, -⟩, H0, H4, Hlg, Hlt, Hrr, Hbe⟩
     iframe
 
 /-- **The watch service is served by etcd's server** (`etcd_watch_served` at the stream chain
@@ -1964,7 +1967,7 @@ theorem etcd_watch_served_chain (addr : GoString) (p : Loc) (R : WSrv GF) (W : S
       go!"/etcdserverpb.Watch/Watch" (watchUp R)
       (fun md γs Dn => watchStreamSpec γs R W (auth.mdTokenOf md) Dn) := by
   have := srvWOk_persistent (mvcc.api.mvccApi_persistent_law_holds (GF := GF)) W R.wsl wsN
-  have hb := srvRunBundle_watchSlot (GF := GF) R.s R.E γr
+  have hb := srvStreamBundle_watchSlot (GF := GF) R.s R.E γr
   rw [← hγ] at hb
   iintro ⟨#Hpb, #Hinit, #Hws, #HW, #Him, #His, #Hsrv, #Hb, #Hrp⟩
   iapply (etcd_watch_served addr p R W [im, is] [iprop(True), iprop(True)] sregs γ γr _ hb.1 hb.2
