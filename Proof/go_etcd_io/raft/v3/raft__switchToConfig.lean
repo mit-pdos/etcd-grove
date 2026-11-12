@@ -99,7 +99,7 @@ private theorem wp_switch_hook (wp_traceConfChangeEvent : traceConfChangeEvent.s
       isplitl [Hcore Htrkf Hold]
       · iunfold ownRaftReadT; iframe; ipureintro; exact Hsz
       isplitr
-      · iapply raftReadLend_readT
+      · iapply raftReadLend_frame; iapply raftReadLend_readT
       isplitr
       · ipureintro; exact fun _ h => h
       iintro H; iexact H

@@ -38,7 +38,11 @@ abbrev traceConfChangeEvent.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
       trOwn tr iprop(∃ (c cn : CfgM) (id : w64) (s : NState) (prsm : Loc) (prs : GMap w64 Loc)
           (pvs : GMap w64 Progress) (P : IProp GF),
-        P ∗ RaftReadLend P c r id s ∗ ownConfigC cn cfgv prsm prs pvs ∗
+        -- (2026-11-12, trace-check step 5; until then `RaftReadLend P c r id s`) raft's state lent
+        -- out of `P` with the new configuration: in `newRaft`, `Restore` of the empty conf state
+        -- returns the tracker's own configuration, so the old one is read through the new one's maps
+        P ∗ RaftReadLend iprop(P ∗ ownConfigC cn cfgv prsm prs pvs) c r id s ∗
+        ownConfigC cn cfgv prsm prs pvs ∗
         ⌜∀ e, CCEvOf id s c cn e → E e⌝ ∗ (P ∗ ownConfigC cn cfgv prsm prs pvs -∗ R)) ∗
       TraceFire tr tl E Q }}
     (App (App (Val #(functions traceConfChangeEvent [])) (Val #cfgv)) (Val #r))
