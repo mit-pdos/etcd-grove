@@ -10,11 +10,25 @@ the restart point, `run` at `⟨|P|, A₀⟩`.
 - r2db's Scope copied to `/shared/tmp/restart-s4/r2db-scope.md` (from branch `r2db`).
 - No Lean edited, nothing built yet.
 
+## Done
+
+- Baseline build at `b877c74340` (lean `51e51adb99` + notes): clean, 14035 jobs, exit 0
+  (`/shared/tmp/restart-s4/base.log`).
+- Probe (CP1), `Scratch/S4Probe.lean` (untracked; copy `/shared/tmp/restart-s4/S4Probe.lean`),
+  `etc/lean-check.py -a` (kernel included): 0 errors, no `sorry`:
+  - P1 `srvRunRows_of_rn` (Q38 (a)): `isRaftNode E γn r ⊢ ⌜(∀ m ∈ γn.a0, typ 0 ∨ 1) ∧ 0 + |a0| + 1 < 2^64⌝`
+    (row 8 from `rnRestartOk`, `readyFits` from `rnEnvOk`'s `srvClusterOk`, `isCommittedLogLb_length`);
+  - P2 `applyBuiltR` (drafted, plan §1.3) and `applyBuiltR_first`; `srvSnapOwn_of_boot` at `W64 |P|`
+    and `acRes_read` at any auth state (both already generic);
+  - P3 `goIdx_P`: `uint.Z (W64 |P|) = 0 + |P|` from row 6 and `P <+: A₀`;
+  - P4 by reading: `stopCleanupImage.spec`, `stop_split`, `applyResR_start`, `srvRestR_start`,
+    `restReplay(_closeI)`, `kvBatchR`, `restReplay_snoc` are generic in `rp`/`P`; `run`'s stop arithmetic
+    (`EtcdServer__run.lean:1614-1630`) does not read `rp.b`; `raftNode.start.spec` is generic in `L`.
+
 ## Next, in order
 
-0. Baseline build (the worktree's `.lake/build` came from `49fff2f95c`; stage B's changes rebuild).
-1. After the go: the probe P1-P4 (`Scratch/S4Probe.lean`, untracked, never committed), CP1.
-2. Then plan §3 steps 2-6.
+1. CP1 reported to etcd-grove-81; on its go, plan §3 steps 2-6 (move `applyBuiltR`, P1 into
+   `AuthCompRows.lean`; then `start`, `run`, the callers).
 
 ## Build
 
