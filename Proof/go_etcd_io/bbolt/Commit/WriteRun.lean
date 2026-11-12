@@ -132,16 +132,16 @@ variable [sem : go.Semantics]
 def cAny (b : Loc) (lo n : Nat) : IProp GF := iprop(∃ vf, cellsR b lo n vf)
 
 /-- The page-cache bytes `[lo, lo + n)` of the file `p`, whole, holding anything. -/
-def oAny (p : GoString) (lo n : Nat) : IProp GF :=
+def oAny (p : BFile) (lo n : Nat) : IProp GF :=
   iprop(∃ xs : List ByteG, osBytes p.ino lo (DFrac.own 1) xs ∗ ⌜xs.length = n⌝)
 
 /-- A slot of a write, holding anything: some 4096 bytes in the page cache, any cells. -/
-def slotAny (b : Loc) (p : GoString) (s : Nat) : IProp GF :=
+def slotAny (b : Loc) (p : BFile) (s : Nat) : IProp GF :=
   iprop(∃ bs : List w8, ⌜bs.length = 4096⌝ ∗ osSlot p s bs ∗ cAny b (4096 * s) 4096)
 
 /-- A slot written with `a`: its cells' client halves and its page-cache bytes hold `a`
 (`slotsOwn`'s per-slot resource). -/
-def slotDone (b : Loc) (p : GoString) (s : Nat) (a : List w8) : IProp GF :=
+def slotDone (b : Loc) (p : BFile) (s : Nat) (a : List w8) : IProp GF :=
   iprop(bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) a ∗ osSlot p s a)
 
 theorem cAny_app (b : Loc) (lo n1 n2 : Nat) :
@@ -155,7 +155,7 @@ theorem cAny_app (b : Loc) (lo n1 n2 : Nat) :
     · iexists vf; iexact H2
   · exact cellsR_join b lo n1 n2
 
-theorem oAny_app (p : GoString) (lo n1 n2 : Nat) :
+theorem oAny_app (p : BFile) (lo n1 n2 : Nat) :
     oAny (GF := GF) p lo (n1 + n2) ⊣⊢ oAny p lo n1 ∗ oAny p (lo + n1) n2 := by
   unfold oAny
   constructor
@@ -172,7 +172,7 @@ theorem oAny_app (p : GoString) (lo n1 n2 : Nat) :
     · iapply e.2; iframe
     · ipureintro; simp only [List.length_append]; omega
 
-theorem oAny_zero (p : GoString) (lo : Nat) : ⊢ oAny (GF := GF) p lo 0 := by
+theorem oAny_zero (p : BFile) (lo : Nat) : ⊢ oAny (GF := GF) p lo 0 := by
   unfold oAny
   iexists []
   isplitl
@@ -185,7 +185,7 @@ theorem cAny_zero (b : Loc) (lo : Nat) : ⊢ cAny (GF := GF) b lo 0 := by
   simp only [List.range'_zero]
   iapply BigSepL.bigSepL_nil.2; iempintro
 
-theorem slotAny_run (b : Loc) (p : GoString) (s : Nat) :
+theorem slotAny_run (b : Loc) (p : BFile) (s : Nat) :
     slotAny (GF := GF) b p s ⊣⊢ oAny p (4096 * s) 4096 ∗ cAny b (4096 * s) 4096 := by
   unfold slotAny oAny osSlot
   constructor
@@ -204,7 +204,7 @@ theorem slotAny_run (b : Loc) (p : GoString) (s : Nat) :
     · iexact Hc
 
 /-- **A page's slots holding anything are a run** of the page cache and of the cells. -/
-theorem slotsAny_run (b : Loc) (p : GoString) : ∀ (c k : Nat),
+theorem slotsAny_run (b : Loc) (p : BFile) : ∀ (c k : Nat),
     ([∗list] s ∈ List.range' k c, slotAny (GF := GF) b p s) ⊣⊢
       oAny p (4096 * k) (4096 * c) ∗ cAny b (4096 * k) (4096 * c)
   | 0, k => by
@@ -239,7 +239,7 @@ theorem slotsAny_run (b : Loc) (p : GoString) : ∀ (c k : Nat),
       · iapply IH.2; iframe
 
 /-- The target slots of the spec, as slots holding anything. -/
-theorem wrSlots_any (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8)
+theorem wrSlots_any (b : Loc) (p : BFile) (S : List Nat) (wb : Nat → List w8)
     (h : ∀ s ∈ S, (wb s).length = 4096) :
     wrSlots (GF := GF) b p S wb ⊢ [∗list] s ∈ S, slotAny b p s := by
   unfold wrSlots
@@ -253,7 +253,7 @@ theorem wrSlots_any (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w
   iframe
 
 /-- A written slot, as a slot holding anything. -/
-theorem slotDone_any (b : Loc) (p : GoString) (s : Nat) (a : List w8) (h : a.length = 4096) :
+theorem slotDone_any (b : Loc) (p : BFile) (s : Nat) (a : List w8) (h : a.length = 4096) :
     slotDone (GF := GF) b p s a ⊢ slotAny b p s := by
   unfold slotDone slotAny cAny
   iintro ⟨Hb, Hs⟩
@@ -278,7 +278,7 @@ theorem bytes_cut (l : Loc) (lo : Nat) (dq : DFrac) (P : List w8) (n : Nat) (h :
   exact a
 
 /-- **A written run is the page's slots**, each holding its chunk. -/
-theorem run_done (b : Loc) (p : GoString) : ∀ (c k : Nat) (P : List w8) (ys : List ByteG),
+theorem run_done (b : Loc) (p : BFile) : ∀ (c k : Nat) (P : List w8) (ys : List ByteG),
     ys.map Prod.fst = P → P.length = 4096 * c →
     osBytes (GF := GF) p.ino (4096 * k) (DFrac.own 1) ys ∗
       bytesPointsto (b +ₗ ((4096 * k : Nat) : Int)) (DFrac.own (1 : Qp).half) P ⊢
@@ -319,7 +319,7 @@ theorem run_done (b : Loc) (p : GoString) : ∀ (c k : Nat) (P : List w8) (ys : 
       iframe
 
 /-- Two slots holding anything are not the same slot. -/
-theorem slotAny_excl (b : Loc) (p : GoString) (s : Nat) :
+theorem slotAny_excl (b : Loc) (p : BFile) (s : Nat) :
     slotAny (GF := GF) b p s ∗ slotAny b p s ⊢ False := by
   unfold slotAny osSlot
   iintro ⟨⟨%a1, %h1, ⟨%x1, H1, %hx1⟩, -⟩, ⟨%a2, %h2, ⟨%x2, H2, %hx2⟩, -⟩⟩
@@ -340,7 +340,7 @@ theorem slotAny_excl (b : Loc) (p : GoString) (s : Nat) :
   exact (dfrac_own_one_op_invalid _ Hv.1).elim
 
 /-- **Slots holding anything have no repeats.** -/
-theorem slotsAny_nodup (b : Loc) (p : GoString) : ∀ S : List Nat,
+theorem slotsAny_nodup (b : Loc) (p : BFile) : ∀ S : List Nat,
     ([∗list] s ∈ S, slotAny (GF := GF) b p s) ⊢ ⌜S.Nodup⌝
   | [] => by iintro -; ipureintro; exact List.nodup_nil
   | s :: S => by
@@ -437,7 +437,7 @@ theorem wr_bigSepM_keys {V : Type} (Φ : w64 → V → IProp GF) (keys : List w6
 
 /-- **The target slots, per key**: their slots have no repeats, and each page's slots hold
 anything. -/
-theorem wr_start (b : Loc) (p : GoString) (bufs : GMap w64 (List w8)) (wb : Nat → List w8)
+theorem wr_start (b : Loc) (p : BFile) (bufs : GMap w64 (List w8)) (wb : Nat → List w8)
     (keys : List w64) (hnd : keys.Nodup) (hk : ∀ k, k ∈ keys ↔ (bufs !! k).isSome)
     (hwb : ∀ s ∈ bufSlots bufs, (wb s).length = 4096) :
     wrSlots (GF := GF) b p (bufSlots bufs) wb ⊢ ⌜(bufSlots bufs).Nodup⌝ ∗
@@ -455,7 +455,7 @@ theorem wr_start (b : Loc) (p : GoString) (bufs : GMap w64 (List w8)) (wb : Nat 
       slotAny (GF := GF) b p s))).2
 
 /-- **On an error**: every page's slots holding anything are the spec's `wrSlots`. -/
-theorem err_final (b : Loc) (p : GoString) (bufs : GMap w64 (List w8))
+theorem err_final (b : Loc) (p : BFile) (bufs : GMap w64 (List w8))
     (L : List (w64 × Loc × List w8)) (hperm : (L.map Prod.fst).Perm (bufs.toList.map Prod.fst))
     (hmem : ∀ e ∈ L, bufs !! e.1 = some e.2.2) :
     ([∗list] e ∈ L, [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2),
@@ -491,7 +491,7 @@ theorem err_final (b : Loc) (p : GoString) (bufs : GMap w64 (List w8))
   iexact H
 
 /-- **On success**: every page's slots, each holding its chunk, are the spec's `slotsOwn`. -/
-theorem done_final (b : Loc) (l : Nat) (p : GoString) (bufs : GMap w64 (List w8))
+theorem done_final (b : Loc) (l : Nat) (p : BFile) (bufs : GMap w64 (List w8))
     (L : List (w64 × Loc × List w8)) (hperm : (L.map Prod.fst).Perm (bufs.toList.map Prod.fst))
     (hmem : ∀ e ∈ L, bufs !! e.1 = some e.2.2) (hnd : (bufSlots bufs).Nodup)
     (hlen : ∀ id pg, bufs !! id = some pg → pg.length = 4096 * (1 + pageOverflow pg)) :

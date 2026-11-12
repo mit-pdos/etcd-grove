@@ -164,25 +164,25 @@ theorem grow_cells_in (C : CommitSt) (fl : FLPg) (b : Loc) (L lo k : Nat) (hlo :
 
 omit go_gctx in
 /-- A file's page-cache bytes, cut in two. -/
-theorem growBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
+theorem growBytes_app (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
     osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊣⊢
       osBytes (GF := GF) p.ino off dq xs ∗ osBytes (GF := GF) p.ino (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
 omit go_gctx in
-theorem growBytes_nil (p : GoString) (off : Nat) (dq : DFrac) :
+theorem growBytes_nil (p : BFile) (off : Nat) (dq : DFrac) :
     ⊢ osBytes (GF := GF) p.ino off dq [] := by
   unfold osBytes; exact (bytesG_nil _ _ _ _).2
 
 /-- The new zeros of slot `s` after the file grew from `size`: from `size` or the slot's start, to
 its end. -/
-def zSlot (p : GoString) (size s : Nat) : IProp GF :=
+def zSlot (p : BFile) (size s : Nat) : IProp GF :=
   osBytes p.ino (max size (4096 * s)) (DFrac.own 1)
     (List.replicate (4096 * (s + 1) - max size (4096 * s)) ((0 : w8), false))
 
 omit go_gctx in
 /-- New zeros from `size` (or slot `j`'s start) to the end of slot `j + k - 1`, by slot. -/
-theorem zeros_split (p : GoString) (size : Nat) :
+theorem zeros_split (p : BFile) (size : Nat) :
     ∀ (k j : Nat), size / 4096 ≤ j →
       osBytes (GF := GF) p.ino (max size (4096 * j)) (DFrac.own 1)
         (List.replicate (4096 * (j + k) - max size (4096 * j)) ((0 : w8), false)) ⊢
@@ -209,7 +209,7 @@ theorem zeros_split (p : GoString) (size : Nat) :
 /-- **The writer's page-cache bytes after the file grew from `size` to `S`** (whole pages): the
 new zeros join the `W` slots reaching past the old end (`growWb`), given that the partial last
 page's bytes are the file's whole. -/
-theorem wBytes_grow (p : GoString) (W : List Nat) (wb : Nat → List w8) (size S : Nat)
+theorem wBytes_grow (p : BFile) (W : List Nat) (wb : Nat → List w8) (size S : Nat)
     (hn : W.Nodup) (hS : S % 4096 = 0) (hle : size ≤ S)
     (hp : ∀ s ∈ W, 4096 * s < size → size < 4096 * (s + 1) → size - 4096 * s ≤ (wb s).length) :
     wBytes (GF := GF) p W wb size ∗

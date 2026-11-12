@@ -56,20 +56,20 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`db.init()` on an empty, unmapped file** `p` (`Open`'s fresh case): on success the file
 holds `initImg` (still unmapped); on an error (`fmt` formats it) only its `OsMeta` is left. -/
 abbrev DB.init.spec : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (lg : GoInterface) (m : OsMeta) (dqf dqw : DFrac),
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (lg : GoInterface) (m : OsMeta) (dqf dqw : DFrac),
   db ≠ null → m.size = 0 → m.maps = ∅ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"pageSize"] ↦□ W64 4096 ∗ db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
       osBytes p.ino 0 (DFrac.own 1) [] }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"init")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (m' : OsMeta) (xs : List ByteG),
           osMeta p.ino (DFrac.own 1) m' ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
@@ -252,7 +252,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 omit package_sem go_gctx sem in
 /-- A file's page-cache bytes, cut in two. -/
-theorem osBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
+theorem osBytes_app (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
     osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊣⊢
       osBytes (GF := GF) p.ino off dq xs ∗ osBytes (GF := GF) p.ino (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
@@ -567,7 +567,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         rw [this, initPages_length]
       try wp_auto
       -- the first sync
-      ihave Hfo : fileOwn f fd p (DFrac.own 1) $$ [Hfo]
+      ihave Hfo : fileOwn f fd p.path (DFrac.own 1) $$ [Hfo]
       · rw [fileOwn_eq]; iexact Hfo
       wp_apply hSync db f fd p _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
         as %e2 ⟨Hf, Hfo, Hfd, ⟨%m2, Hm, %Hm2⟩, Hr⟩
@@ -697,7 +697,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         rw [hsz2, hm20] at *
         try wp_auto
         -- the second sync
-        ihave Hfo : fileOwn f fd p (DFrac.own 1) $$ [Hfo]
+        ihave Hfo : fileOwn f fd p.path (DFrac.own 1) $$ [Hfo]
         · rw [fileOwn_eq]; iexact Hfo
         wp_apply hSync db f fd p _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
           as %e3 ⟨Hf, Hfo, Hfd, ⟨%m3, Hm, %Hm3⟩, Hr⟩

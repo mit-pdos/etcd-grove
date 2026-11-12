@@ -192,7 +192,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (DFrac.own 1) ⟨K.p.ino, true, true⟩ w.m (mapLen w.ms) (wdbOK'_fd fr w hok) rfl hS0 hSge hbelow
     $$ [Hfo Hfd Hosm Htail] as %e ⟨Hfo, Hfd, Htr, #HeOk⟩
   · rw [← fileOwn_eq]; iframe; iframe #
-  ihave Hfo : fileOwn w.f w.fd K.p (DFrac.own 1) $$ [Hfo]
+  ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own 1) $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo
   generalize hSdef : growSizeOf (W64 (mapLen w.ms : Int)) sz = S at *
   have hGrown : osGrown (GF := GF) K.p w.m S.toNat (mapLen w.ms) ⊢
@@ -218,11 +218,11 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     wp_apply hSync w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) ⟨K.p.ino, true, true⟩ (w.m.grown S.toNat) 0 []
       $$ [Hfo Hfd Hosm Hnil] as %e2 ⟨Hfo, Hfd, Hsy, #He2⟩
     · rw [← fileOwn_eq]; iframe; iframe #
-    ihave Hfo : fileOwn w.f w.fd K.p (DFrac.own 1) $$ [Hfo]
+    ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own 1) $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     have hfin : ∀ m' : OsMeta, m'.size = S.toNat → m'.maps = w.m.maps →
         growCloser (GF := GF) fr K tx v w -∗
-        K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
+        K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
         osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
         K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
         ([∗list] s ∈ wSlots (min w.m.size (mapLen w.ms) / 4096) w.C w.fl,

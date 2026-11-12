@@ -87,7 +87,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
     (m' : OsMeta) (hsz : w.m.size ≤ m'.size) (hmaps : m'.maps = w.m.maps) (hS : m'.size % 4096 = 0)
     (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63) (S : Nat) (hSz : m'.size = S) :
     growCloser (GF := GF) fr K tx v w -∗
-    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
+    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
     osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
@@ -137,7 +137,7 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
     (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size)
     (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = w.m.maps) :
     growCloser (GF := GF) fr K tx v w -∗
-    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
+    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
     osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,

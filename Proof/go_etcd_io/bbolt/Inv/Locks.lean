@@ -78,6 +78,7 @@ One record, so that the invariants keep one file parameter. -/
 structure BFile where
   path : GoString
   ino : Ino
+deriving Inhabited
 
 /-- A share of the meta slots' page-cache bytes, holding `C`'s metas (their crash candidates
 any). -/

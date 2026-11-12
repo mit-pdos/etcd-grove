@@ -258,7 +258,7 @@ theorem wCells_ext (b : Loc) (l : Nat) (W ws : List Nat) (hn : ws.Nodup) (hsub :
   iapply Hback $$ Hws
 
 /-- The extent's slots' page-cache bytes out of `wBytes`, and back. -/
-theorem wBytes_ext (p : GoString) (W ws : List Nat) (wb : Nat → List w8) (size : Nat)
+theorem wBytes_ext (p : BFile) (W ws : List Nat) (wb : Nat → List w8) (size : Nat)
     (hn : ws.Nodup) (hsub : ∀ s ∈ ws, s ∈ W) (hl : ∀ s ∈ ws, 4096 * (s + 1) ≤ size) :
     wBytes (GF := GF) p W wb size ⊢
       ([∗list] s ∈ ws, ∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
@@ -313,7 +313,7 @@ theorem ext_cells_back (b : Loc) (wb : Nat → List w8) :
 
 /-- **The extent's mapped cells hold its page-cache bytes** (`cellsR_agree_bytes` slot by slot,
 around any step `e`): the cells give the extent's bytes at a half. -/
-theorem ext_agree {st : Stuckness} {E : CoPset} (e : Expr) (htv : toVal e = none) (p : GoString)
+theorem ext_agree {st : Stuckness} {E : CoPset} (e : Expr) (htv : toVal e = none) (p : BFile)
     (dqm : DFrac) (m : OsMeta) (b : Loc) (len : Nat) (hb : m.maps !! b = some len)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) (wb : Nat → List w8) :
     ∀ (k f : Nat), (∀ s, f ≤ s → s < f + k → 4096 * (s + 1) ≤ len ∧ (wb s).length = 4096) →

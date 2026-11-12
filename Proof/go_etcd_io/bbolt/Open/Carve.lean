@@ -82,7 +82,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The file's page-cache bytes, by slot. -/
-theorem osBytes_slots (p : GoString) (xs : List ByteG) :
+theorem osBytes_slots (p : BFile) (xs : List ByteG) :
     osBytes (GF := GF) p.ino 0 (DFrac.own 1) xs ⊢
       [∗list] s ∈ List.range xs.length, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1)
         (runSlot xs s) := by
@@ -148,7 +148,7 @@ theorem runSlot_length_full {α : Type} (ys : List α) (s : Nat) (h : 4096 * (s 
   unfold runSlot; simp only [List.length_take, List.length_drop]; omega
 
 /-- The metas' page-cache bytes, from slots 0 and 1. -/
-theorem open_metaOs (p : GoString) (C : CommitSt) (xs : List ByteG)
+theorem open_metaOs (p : BFile) (C : CommitSt) (xs : List ByteG)
     (himg : fileImage (xs.map Prod.fst) C) (h8 : 8192 ≤ xs.length) :
     osBytes (GF := GF) p.ino (4096 * 0) (DFrac.own 1) (runSlot xs 0) ∗
       osBytes (GF := GF) p.ino (4096 * 1) (DFrac.own 1) (runSlot xs 1) ⊢
@@ -171,7 +171,7 @@ theorem open_metaOs (p : GoString) (C : CommitSt) (xs : List ByteG)
   · iexists _; iframe H2; ipureintro; exact hm
 
 /-- The store slots' page-cache bytes. -/
-theorem open_slotsOs (p : GoString) (xs : List ByteG) (S : List Nat) :
+theorem open_slotsOs (p : BFile) (xs : List ByteG) (S : List Nat) :
     ([∗list] s ∈ S, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) (runSlot xs s)) ⊢
       [∗list] s ∈ S, osSlot (GF := GF) p s (bytesAt (xs.map Prod.fst) (4096 * s) 4096) := by
   refine BigSepL.bigSepL_mono fun {_ s} _ => ?_
@@ -180,7 +180,7 @@ theorem open_slotsOs (p : GoString) (xs : List ByteG) (S : List Nat) :
   iexists _; iframe H; ipureintro; exact runSlot_map_fst xs s
 
 /-- The writer's slots' page-cache bytes (those inside the file). -/
-theorem open_wOs (p : GoString) (xs : List ByteG) (W : List Nat) :
+theorem open_wOs (p : BFile) (xs : List ByteG) (W : List Nat) :
     ([∗list] s ∈ W.filter (fun s => decide (4096 * s < xs.length)),
         osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) (runSlot xs s)) ⊢
       wBytes (GF := GF) p W (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096) xs.length := by
@@ -221,7 +221,7 @@ theorem open_metaCells (b : Loc) (L : Nat) (C : CommitSt) (ys : List w8) (vf : N
 
 /-- **`Open`'s carving**: the file `xs` (at least its two metas, at most the mapping `(b, L)`)
 and the mapping's client halves, as `open_core`'s per-slot inputs. -/
-theorem open_carve (p : GoString) (b : Loc) (L : Nat) (C : CommitSt) (xs : List ByteG)
+theorem open_carve (p : BFile) (b : Loc) (L : Nat) (C : CommitSt) (xs : List ByteG)
     (vf : Nat → val) (himg : fileImage (xs.map Prod.fst) C) (htree : treeOK C)
     (hhwm : C.hwm * 4096 ≤ xs.length) (h8 : 8192 ≤ xs.length) (hL : xs.length ≤ L) :
     osBytes (GF := GF) p.ino 0 (DFrac.own 1) xs ∗

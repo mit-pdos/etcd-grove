@@ -64,7 +64,7 @@ def lfOK (N : Namespace) (db : Loc) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMe
 
 /-- **What `loadFreelist` takes at `Open`**: `open_core`'s inputs, the mapping's client halves
 not yet carved (the file's bytes at a half, the rest any cells). -/
-def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : GoString) (b : Loc)
+def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) (b : Loc)
     (L : Nat) (m : OsMeta) (xs : List ByteG) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed γbq N db sp ∗
       ghostVar γbq 1 () ∗
@@ -74,10 +74,10 @@ def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : GoStrin
       db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p ∗
+      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p.path ∗
       db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
       mapFields db (DFrac.own 1) (some (b, L)) ∗
-      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p (DFrac.own 1) ∗
+      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ Ps sp 1 ∗
       osBytes p.ino 0 (DFrac.own 1) xs ∗
       bytesPointsto b (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
@@ -89,7 +89,7 @@ def lfW (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG) (f : L
   { openW C b L m (openWb xs) f fd with fl := fl, fli := fli }
 
 /-- **What `loadFreelist` gives at `Open`**: `open_writer`'s inputs but `rwlock`. -/
-def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : GoString)
+def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG) : IProp GF :=
   iprop(∃ (B : BNs) (fl : FLPg) (fli : GoInterface),
     isBoltCoreP B N db p sp C.txid ∗
@@ -102,7 +102,7 @@ def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : GoStri
 /-- **`db.loadFreelist()` at `Open`**. -/
 abbrev DB.loadFreelist.spec_open : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq : GName) (N : Namespace)
-    (db sp f : Loc) (fd : w64) (p : GoString)
+    (db sp f : Loc) (fd : w64) (p : BFile)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG),
   lfOK N db C b L m xs → 0 ≤ fd.toInt →
   {{ lfPre (GF := GF) γbq N db sp f fd p b L m xs ∗
@@ -188,7 +188,7 @@ theorem pt_join_lf {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
 omit package_sem in
 /-- The idle writer side's parts `loadFreelist` touches (for `freepages` and the publish), and
 the side back with any freelist. -/
-theorem wdbCore_lf (B : BNs) (db : Loc) (p : GoString) (w : WDb) :
+theorem wdbCore_lf (B : BNs) (db : Loc) (p : BFile) (w : WDb) :
     wdbCore (GF := GF) B db p w ⊢
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half w.ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗

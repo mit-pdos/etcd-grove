@@ -54,6 +54,7 @@ namespace EtcdGrove
 namespace bbolt
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
+open Fs
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

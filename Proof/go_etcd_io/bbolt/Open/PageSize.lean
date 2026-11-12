@@ -133,16 +133,16 @@ theorem DB.pageInBuffer.wp_proof_own : DB.pageInBuffer.spec_own (GF := GF) (hG :
 page): the page size of the meta in page 0, or `ErrInvalid` if it is not valid, or a read error (a
 `*PathError`). -/
 abbrev DB.getPageSizeFromFirstMeta.spec_own : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqdb dqf dq dqb : DFrac) (d : OsFd)
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqdb dqf dq dqb : DFrac) (d : OsFd)
     (xs : List ByteG),
-  d.readable = true → d.path = p → 4096 ≤ xs.length → xs.length < 2 ^ 63 →
+  d.readable = true → d.ino = p.ino → 4096 ≤ xs.length → xs.length < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs }}
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"getPageSizeFromFirstMeta")) (Val #()))
   {{ (sz : w64) (cr : Bool) (err : GoInterface), RET (PairV (PairV #sz #cr) #err);
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs ∗
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs ∗
       ((⌜err = interface.nil ∧ metaValid (metaOf (bytesAt (xs.map Prod.fst) 0 4096)) ∧
           sz = W64 ((metaOf (bytesAt (xs.map Prod.fst) 0 4096)).pageSize'.toNat : Int)⌝) ∨
        (globalAddr go_etcd_io.bbolt.errors.ErrInvalid ↦□ err ∗
@@ -255,20 +255,20 @@ theorem DB.getPageSizeFromFirstMeta.wp_proof_own
 page 1 holds a valid meta of page size 4096 (`C.metaOk` with meta 0 invalid): the page size 4096,
 or an error (`Stat`'s, or a read's `*PathError`). -/
 abbrev DB.getPageSizeFromSecondMeta.spec_own : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqdb dqf dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqdb dqf dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
     (xs : List ByteG),
-  d.readable = true → d.path = p → xs.length = m.size → 8192 ≤ m.size → m.size < 2 ^ 62 →
+  d.readable = true → d.ino = p.ino → xs.length = m.size → 8192 ≤ m.size → m.size < 2 ^ 62 →
   ¬ metaValid (metaOf (bytesAt (xs.map Prod.fst) 1024 4096)) →
   ¬ metaValid (metaOf (bytesAt (xs.map Prod.fst) 2048 4096)) →
   metaValid (metaOf (bytesAt (xs.map Prod.fst) 4096 4096)) →
   (metaOf (bytesAt (xs.map Prod.fst) 4096 4096)).pageSize'.toNat = 4096 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs }}
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"getPageSizeFromSecondMeta")) (Val #()))
   {{ (sz : w64) (cr : Bool) (err : GoInterface), RET (PairV (PairV #sz #cr) #err);
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs ∗
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs ∗
       ((⌜err = interface.nil ∧ sz = W64 4096⌝) ∨
        (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err)) }}
 
@@ -441,17 +441,17 @@ def errInvalidStr : Prop :=
 committed state's (`C.metaOk`), held whole with its `OsMeta`: the page size 4096, or an error
 (`Stat`'s or a read's; `fmt` formats it). -/
 abbrev DB.getPageSize.spec_own : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqdb dqf dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqdb dqf dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
     (xs : List ByteG) (C : CommitSt),
-  d.readable = true → d.path = p → xs.length = m.size → 8192 ≤ m.size → m.size < 2 ^ 62 →
+  d.readable = true → d.ino = p.ino → xs.length = m.size → 8192 ≤ m.size → m.size < 2 ^ 62 →
   C.metaOk → C.m0 = bytesAt (xs.map Prod.fst) 0 4096 → C.m1 = bytesAt (xs.map Prod.fst) 4096 4096 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs }}
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"getPageSize")) (Val #()))
   {{ (sz : w64) (err : GoInterface), RET (PairV #sz #err);
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs ∗
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs ∗
       ((⌜err = interface.nil ∧ sz = W64 4096⌝) ∨ (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.getPageSize.wp_proof_own

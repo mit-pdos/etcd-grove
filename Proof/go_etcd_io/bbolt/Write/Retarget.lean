@@ -40,7 +40,7 @@ structure XclKeep (X X' : WX) : Prop where
 
 /-- **The exclusive part, retargeted** to the records `X'` and the view `c'` (both halves of the
 agreed state updated). -/
-theorem txExcl_retarget (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
+theorem txExcl_retarget (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
     (c c' : TxViewC) (X X' : WX) (E : CoPset) (hk : XclKeep X X')
     (hsh : ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra) :
     txExcl (GF := GF) B p sp t0 tx r ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ⊢
@@ -72,7 +72,7 @@ private instance txX_inhabited_rt : Inhabited TxX := ⟨TxX.rd default (zeroValD
 
 /-- The writer branch of `txExcl` (its body after the agreed state and the `done` half), kept from
 `X` to `X'`. -/
-theorem txExcl_wbody_keep (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
+theorem txExcl_wbody_keep (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
     (X X' : WX) (hk : XclKeep X X')
     (hsh : ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra) :
     iprop(sync.ownMutex r.db.[DB, go!"rwlock"] ∗ ghostVar B.cls (1 : Qp).half false ∗
@@ -97,7 +97,7 @@ theorem txExcl_wbody_keep (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : L
 
 /-- **`txExcl_retarget` under the later** `txExcl_take` leaves the exclusive part at (it is not
 timeless: `wdbLive`). -/
-theorem txExcl_retarget_later (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc)
+theorem txExcl_retarget_later (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc)
     (r : TxReg) (c c' : TxViewC) (X X' : WX) (E : CoPset) (hk : XclKeep X X')
     (hsh : ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra) :
     ▷ txExcl (GF := GF) B p sp t0 tx r ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ⊢
@@ -120,7 +120,7 @@ theorem txExcl_retarget_later (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx
   iframe Hv' Hd Hx
 
 /-- Open `txsInv` at a registered transaction's entry (`Inv/Txs`' private `txs_open_i`). -/
-theorem txs_open_rt (B : BNs) (N : Namespace) (p : GoString) (sp : Loc) (t0 : Nat) (E : CoPset)
+theorem txs_open_rt (B : BNs) (N : Namespace) (p : BFile) (sp : Loc) (t0 : Nat) (E : CoPset)
     (hE : ↑(txsN N) ⊆ E) (tx : Loc) (r : TxReg) :
     inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ⊢
     |={E, E \ ↑(txsN N)}=> ▷ txEntry B p sp t0 tx r ∗
@@ -146,7 +146,7 @@ theorem txs_open_rt (B : BNs) (N : Namespace) (p : GoString) (sp : Loc) (t0 : Na
 
 /-- **The exclusive part goes back under a later** (`txExcl_put` for `▷ txExcl`), for the whole
 `ex` token. -/
-theorem txExcl_put_later (B : BNs) (N : Namespace) (p : GoString) (sp : Loc) (t0 : Nat)
+theorem txExcl_put_later (B : BNs) (N : Namespace) (p : BFile) (sp : Loc) (t0 : Nat)
     (E : CoPset) (hE : ↑(txsN N) ⊆ E) (tx : Loc) (r : TxReg) :
     inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ∗ ▷ txExcl B p sp t0 tx r ⊢
     |={E}=> ghostVar r.n.ex 1 () := by

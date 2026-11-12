@@ -33,7 +33,7 @@ def mergeWb (S : List Nat) (bs wb : Nat → List w8) : Nat → List w8 :=
 
 /-- **Slots `S` join the `W` slots**: `S` disjoint from `W`, each slot of `S` whole inside the
 file and the mapping, its bytes a page. -/
-theorem wjoin (p : GoString) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List w8) (size : Nat)
+theorem wjoin (p : BFile) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List w8) (size : Nat)
     (hdisj : ∀ s ∈ S, s ∉ W)
     (hS : ∀ s ∈ S, 4096 * (s + 1) ≤ size ∧ (∀ b l, ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧
       (bs s).length = 4096) :

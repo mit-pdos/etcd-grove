@@ -47,7 +47,7 @@ slots. On success the mapping `base`/`L` (`mmapSize`'s of the larger of the file
 bytes (as bytes at a half), the rest any values. On an error (`fmt` formats it) nothing is mapped
 in the fields (OsFs may keep a leaked mapping). -/
 abbrev DB.mmapUnlocked.spec_own : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
     (m : OsMeta) (xs : List ByteG) (minsz : w64),
   db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 →
   (mf = W64 0 ∨ mf = W64 0x8000) →
@@ -55,13 +55,13 @@ abbrev DB.mmapUnlocked.spec_own : Prop :=
     metaValid (metaOf (bytesAt (xs.map Prod.fst) 4096 4096))) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       mmapOwnFix (GF := GF) db lg mf mx dq ∗
-      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p (DFrac.own 1) ∗
+      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
       osBytes p.ino 0 (DFrac.own 1) xs ∗
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"mmapUnlocked")) (Val #minsz))
   {{ (err : GoInterface), RET #err; mmapOwnFix db lg mf mx dq ∗
-      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p (DFrac.own 1) ∗
+      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (L : Nat),
           ⌜mmapSizeOf (max m.size (sint.nat minsz)) = some L ∧ m.size ≤ L ∧ sint.nat minsz ≤ L ∧

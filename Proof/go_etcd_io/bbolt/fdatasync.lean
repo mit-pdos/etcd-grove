@@ -42,7 +42,7 @@ theorem fdatasync.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   have hemp : osBytes (GF := GF) p.ino 0 (DFrac.own 1) [] ⊣⊢ emp := .rfl
   wp_apply hSync fd dq ⟨p.ino, true, true⟩ m 0 [] $$ [Hfd Hm] as %e ⟨Hfd, Hr⟩
   · iframe; iframe #; iapply hemp.2; iempintro
-  ihave Hfo : fileOwn f fd p dq $$ [Hfo]
+  ihave Hfo : fileOwn f fd p.path dq $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo
   icases Hr with (⟨%he, Hm, -⟩ | ⟨%he, Hm, -⟩)
   · subst he

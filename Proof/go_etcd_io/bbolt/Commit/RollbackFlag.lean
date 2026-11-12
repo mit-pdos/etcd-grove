@@ -153,7 +153,7 @@ theorem wdbOK_rolledBack_f (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
 
 omit sem in
 /-- **`wdb_rollback'`, flagged.** -/
-theorem wdb_rollback_f (p : GoString) (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
+theorem wdb_rollback_f (p : BFile) (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
     (bs : Nat → List w8) (F : GMap Nat (List w8))
     (hok : wdbOK' fr w) (hF : fbRel w F) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
     (hpa : ∀ pd, w.fl.pending !! W64 ((w.C.txid + 1 : Nat) : Int) = some pd → ∀ a ∈ pd.alloctx,

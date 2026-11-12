@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 cell's client half): the fields cleared (`mapFields … none`, `datasz` 0); the mapping gone from
 OsFs, or, on an error (`fmtErrorOk`), possibly still there with its cells. -/
 abbrev DB.munmap.spec : Prop :=
-  ∀ (db base : Loc) (l : Nat) (lg : GoInterface) (p : GoString) (m : OsMeta) (vf : Nat → val),
+  ∀ (db base : Loc) (l : Nat) (lg : GoInterface) (p : BFile) (m : OsMeta) (vf : Nat → val),
   db ≠ null → 0 < l → m.maps !! base = some l →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗

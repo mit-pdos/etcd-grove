@@ -236,7 +236,7 @@ instance reg_persistent' (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
-private theorem isBoltCoreP_pkgInit (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+private theorem isBoltCoreP_pkgInit (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) :
     isBoltCoreP (GF := GF) B N db p sp t0 ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt := by
   unfold isBoltCoreP
@@ -411,7 +411,7 @@ theorem viewCells_slices_acc (q : Qp) (v : View) (L : List (GoSlice × List w8))
 -- (`Rebalance/Heap.lean`); `wtxHeap_bkt_acc` (with the new record's `tx` field): U5's
 -- `Txn/Heap.lean` (batch 11).
 
-private instance isBoltP_persistent_c (B : BNs) (N : Namespace) (db : Loc) (p : GoString)
+private instance isBoltP_persistent_c (B : BNs) (N : Namespace) (db : Loc) (p : BFile)
     (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 

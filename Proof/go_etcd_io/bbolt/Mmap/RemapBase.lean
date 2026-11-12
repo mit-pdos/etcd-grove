@@ -178,7 +178,7 @@ theorem wCells_carve (C : CommitSt) (fl : FLPg) (b : Loc) (L k : Nat) (hk : L / 
 
 /-- **The writer's page-cache bytes for a new slot list** `W'` (without repeats) whose slots
 inside the file are old `W` slots. -/
-theorem wBytes_restrict (p : GoString) (W W' : List Nat) (wb : Nat → List w8) (size : Nat)
+theorem wBytes_restrict (p : BFile) (W W' : List Nat) (wb : Nat → List w8) (size : Nat)
     (hn : W'.Nodup) (hsub : ∀ s ∈ W', 4096 * s < size → s ∈ W) :
     wBytes (GF := GF) p W wb size ⊢ wBytes (GF := GF) p W' wb size := by
   unfold wBytes

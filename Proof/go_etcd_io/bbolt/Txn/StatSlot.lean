@@ -34,13 +34,13 @@ private instance reg_persistent_slot (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
-instance isBoltP_persistent' (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+instance isBoltP_persistent' (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
 /-- **The caller's `statlock` reader token** (`DB.Stats`): with the database `db` of `γ` at its
 statistics pointer `sp`, the token (after a step) and its way back. -/
-theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × Data)) (p : GoString) (sp : Loc)
+theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × Data)) (p : BFile) (sp : Loc)
     (t0 : Nat) :
     isBoltP (GF := GF) (bnsOf γ.gs) γ.ns db p sp t0 ∗ statSlot γ o ⊢
     |={⊤}=> ▷ (sync.ownRWMutex db.[DB, go!"statlock"] (Ps sp) ∗

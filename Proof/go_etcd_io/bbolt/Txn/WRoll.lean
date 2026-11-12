@@ -31,7 +31,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 omit go_gctx sem in
-private theorem pagesInv_timeless_w (B : BNs) (p : GoString) : Timeless (pagesInv (GF := GF) B p) := by
+private theorem pagesInv_timeless_w (B : BNs) (p : BFile) : Timeless (pagesInv (GF := GF) B p) := by
   have h1 : ∀ σ : StoreSt, Timeless (storeCells (GF := GF) σ) := by
     intro σ; unfold storeCells; split <;> infer_instance
   have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
@@ -68,7 +68,7 @@ theorem FLPg.rollback_pending_none (fl : FLPg) (txid : w64) :
   · unfold FLPg.rollbackEntry; simp
 
 section store
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+variable (B : BNs) (N : Namespace) (p : BFile) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
 
 omit sem in
@@ -211,7 +211,7 @@ freelist rolled back, the slots leaving the store (`store_rollback`'s `S`, B3: a
 freelist page) joining the `W` slots with their cells and page-cache bytes (`slotsOwn`), the rest
 unchanged; `wdbOK` kept (`wdbOK_rolledBack`, `wjoin`: the slots were pending, so below the
 high-water mark, inside the mapping and the file). `hbs`: `store_rollback`'s. -/
-theorem wdb_rollback (p : GoString) (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → List w8)
+theorem wdb_rollback (p : BFile) (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → List w8)
     (hok : wdbOK w) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
     (hpend : ∀ b l, w.ms = some (b, l) → ∀ s ∈ pendSlots w.fl, 2 ≤ s ∧ s < l / 4096)

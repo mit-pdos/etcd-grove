@@ -111,10 +111,10 @@ theorem wdbW'_remap_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ K.db.[DB, go!"path"] ↦ K.p -∗
+      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ K.db.[DB, go!"path"] ↦ K.p.path -∗
       K.db.[DB, go!"datasz"] ↦ W64 (L' : Int) -∗
       mapFields K.db (DFrac.own (1 : Qp).half.half) (some (b, L') : MapSt) -∗
-      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
+      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
       osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗
       metaCellsQ (1 : Qp).half.half (some (b, L')) w.C -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
@@ -166,9 +166,9 @@ theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ K.db.[DB, go!"path"] ↦ K.p -∗
+      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ K.db.[DB, go!"path"] ↦ K.p.path -∗
       K.db.[DB, go!"datasz"] ↦ W64 (L' : Int) -∗
-      osMeta K.p.ino (DFrac.own 1) m2 -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
+      osMeta K.p.ino (DFrac.own 1) m2 -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
       osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗
       metaCellsQ (1 : Qp).half.half (some (base, L')) w.C -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗

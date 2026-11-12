@@ -84,7 +84,7 @@ theorem mapFields_agree (db : Loc) (dq1 dq2 : DFrac) (b1 b2 : Loc) (l1 l2 : Nat)
 /-- **The remap's gather** (with `Pm 1`'s `map` quarter and `mtok`, the writer side's `map` half,
 its view `v` lent and its meta quarter): the old mapping's cells, the view home, the store's slots
 out (`store_gather`'s witness and facts). Batch 44.1: over the flagged facts `wdbOK' fr`. -/
-theorem remap_gather (B : BNs) (N : Namespace) (p : GoString) (v : View) (w : WDb) (b0 : Loc)
+theorem remap_gather (B : BNs) (N : Namespace) (p : BFile) (v : View) (w : WDb) (b0 : Loc)
     (L : Nat) {fr : Bool} (hok : wdbOK' fr w) (hms : w.ms = some (b0, L)) (hL : 8192 ≤ L) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ viewCells wq v -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗

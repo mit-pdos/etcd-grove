@@ -80,7 +80,7 @@ theorem ro_insert_perm (F : GMap Nat w64) (k : Nat) (t : w64) (ro : List w64)
   exact (List.perm_append_singleton t ro).trans ((hro.cons t).trans h1.symm)
 
 omit go_gctx sem in
-private theorem pagesInv_timeless_r (B : BNs) (p : GoString) : Timeless (pagesInv (GF := GF) B p) := by
+private theorem pagesInv_timeless_r (B : BNs) (p : BFile) : Timeless (pagesInv (GF := GF) B p) := by
   have h1 : ∀ σ : StoreSt, Timeless (storeCells (GF := GF) σ) := by
     intro σ; unfold storeCells; split <;> infer_instance
   have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
@@ -116,7 +116,7 @@ theorem ro_delete_perm (F : GMap Nat w64) (k : Nat) (t : w64) (ro ro' : List w64
   exact hro'.trans h2
 
 section store
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+variable (B : BNs) (N : Namespace) (p : BFile) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
 
 omit sem in

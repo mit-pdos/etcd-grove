@@ -90,7 +90,7 @@ def metaCopyOK (mv : Meta) (C : CommitSt) : Prop :=
   well-formed (`treeOK`);
 - a reader's: `mmaplock` read-locked, the pool loan (for `loan`), its `statlock` token, its
   registry entry in the store. -/
-def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
+def txExcl (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
   iprop(∃ (c : TxViewC) (x : TxX), ghostVar r.n.v (1 : Qp).half (c, x) ∗
     ghostVar r.n.done (1 : Qp).half false ∗
     match x with
@@ -122,7 +122,7 @@ statistics and its exclusive part or the checked-out token; once done, the token
 holder of a fraction remains) and the statistics read-only (batch 17: no share of `tx.db`, which
 `Tx.close` sets to nil with a plain store, outside the invariant). A registered entry excludes a
 new registration's whole `tx.db` (live) or whole `tx.stats` (done). -/
-def txEntry (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
+def txEntry (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
   iprop((tx.[Tx, go!"db"] ↦{DFrac.own (1 : Qp).half.half} r.db ∗
       ghostVar r.n.done (1 : Qp).half false ∗ (∃ s : TxStats, tx.[Tx, go!"stats"] ↦ s) ∗
       (txExcl B p sp t0 tx r ∨ ghostVar r.n.ex 1 ()) ∗ readerHandles r) ∨
@@ -130,7 +130,7 @@ def txEntry (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg
       ∃ s : TxStats, tx.[Tx, go!"stats"] ↦□ s))
 
 /-- **The transactions' invariant** (design §3.7). -/
-def txsInv (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) : IProp GF :=
+def txsInv (B : BNs) (p : BFile) (sp : Loc) (t0 : Nat) : IProp GF :=
   iprop(∃ M : GMap Loc TxReg, ghostMapAuth B.txs 1 M ∗
     [∗map] tx ↦ r ∈ M, txEntry B p sp t0 tx r)
 
@@ -199,7 +199,7 @@ private theorem qp_three_halves_i (q : Qp) :
   rw [Qp.le_iff]; simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind
 
 section lemmas
-variable (B : BNs) (N : Namespace) (p : GoString) (sp : Loc) (t0 : Nat) (E : CoPset)
+variable (B : BNs) (N : Namespace) (p : BFile) (sp : Loc) (t0 : Nat) (E : CoPset)
   (hE : ↑(txsN N) ⊆ E)
 include hE
 

@@ -36,17 +36,17 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 offset 0: whether its first `min(size, 8192)` bytes are all zero, or a read error (`fmt` formats
 it). -/
 abbrev DB.metasZero.spec_own : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqdb dqf dq dqb : DFrac) (d : OsFd)
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqdb dqf dq dqb : DFrac) (d : OsFd)
     (xs : List ByteG),
-  d.readable = true → d.path = p → xs.length < 2 ^ 62 →
+  d.readable = true → d.ino = p.ino → xs.length < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs }}
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"metasZero"))
       (Val #(W64 (xs.length : Int))))
   {{ (z : Bool) (err : GoInterface), RET (PairV #z #err);
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
-      fileOwn f fd p dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs ∗
+      fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs ∗
       ((⌜err = interface.nil ∧ (z = true ↔ ∀ b ∈ (xs.map Prod.fst).take 8192, b = W8 0)⌝) ∨
        (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
 

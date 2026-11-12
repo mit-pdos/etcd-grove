@@ -39,7 +39,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- Two halves of the same bytes of a file, as the whole (they agree). -/
-theorem osBytes_join_h (p : GoString) :
+theorem osBytes_join_h (p : BFile) :
     ∀ (xs ys : List ByteG) (off : Nat), xs.length = ys.length →
     osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs ∗
       osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) ys ⊢
@@ -61,7 +61,7 @@ theorem osBytes_join_h (p : GoString) :
     · iapply osBytes_join_h p xs ys (off + 1) (by simpa using h); iframe
 
 omit sem in
-theorem osBytes_halves_h (p : GoString) (off : Nat) (xs : List ByteG) :
+theorem osBytes_halves_h (p : BFile) (off : Nat) (xs : List ByteG) :
     osBytes (GF := GF) p.ino off (DFrac.own 1) xs ⊢
       osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs ∗
         osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs :=
@@ -69,7 +69,7 @@ theorem osBytes_halves_h (p : GoString) (off : Nat) (xs : List ByteG) :
 
 /-- **The meta slots' page-cache bytes, whole, as slot `s` and the other slot** (from the two
 halves: `metalock`'s and the writer's). -/
-theorem metaOsBytes_take (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
+theorem metaOsBytes_take (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096) :
     metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
       metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ⊢
@@ -98,7 +98,7 @@ theorem metaOsBytes_take (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
     ipureintro; simp [CommitSt.slot, e0, e1]
 
 /-- **The meta slots' bytes back as the two halves**, holding `C`. -/
-theorem metaOsBytes_put (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
+theorem metaOsBytes_put (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096) (xa xb : List ByteG)
     (ha : xa.map Prod.fst = C.slot s) (hb : xb.map Prod.fst = C.slot (s + 1)) :
     osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xa ∗

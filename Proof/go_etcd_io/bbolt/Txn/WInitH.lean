@@ -31,7 +31,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 omit go_gctx sem in
-private theorem pagesInv_timeless_w (B : BNs) (p : GoString) : Timeless (pagesInv (GF := GF) B p) := by
+private theorem pagesInv_timeless_w (B : BNs) (p : BFile) : Timeless (pagesInv (GF := GF) B p) := by
   have h1 : ∀ σ : StoreSt, Timeless (storeCells (GF := GF) σ) := by
     intro σ; unfold storeCells; split <;> infer_instance
   have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
@@ -47,7 +47,7 @@ private theorem pagesInv_timeless_w (B : BNs) (p : GoString) : Timeless (pagesIn
   infer_instance
 
 section store
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+variable (B : BNs) (N : Namespace) (p : BFile) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
 
 omit sem in

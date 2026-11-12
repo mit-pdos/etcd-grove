@@ -48,7 +48,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
 /-- The target slots `S` of a write at the mapping `b`, holding `wb`: their page-cache bytes
 (whole, `osSlot`) and their mapped cells' client halves (any values). -/
-def wrSlots (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) : IProp GF :=
+def wrSlots (b : Loc) (p : BFile) (S : List Nat) (wb : Nat → List w8) : IProp GF :=
   iprop([∗list] s ∈ S, osSlot p s (wb s) ∗ ∃ vf, cellsR b (4096 * s) 4096 vf)
 
 end res

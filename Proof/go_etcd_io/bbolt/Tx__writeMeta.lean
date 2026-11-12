@@ -83,7 +83,7 @@ abbrev Tx.writeMeta.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
       osMeta K.p.ino (DFrac.own 1) om ∗
       commitStep K (mv.txid'.toNat % 2) b (metaBuf mv) Ψ }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
@@ -92,7 +92,7 @@ abbrev Tx.writeMeta.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
       (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
       ∃ j : Nat, Ψ j ∗ ⌜(j = 0 ∨ j = 4096) ∧ (err = interface.nil → j = 4096)⌝ ∗
@@ -318,7 +318,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       rcases hres with ⟨h1, -, -⟩ | ⟨-, h2⟩
       · rw [metaBuf_length] at h1; exact h1
       · exact absurd rfl h2
-    ihave Hfo : fileOwn f fd K.p (DFrac.own 1) $$ [Hfo]
+    ihave Hfo : fileOwn f fd K.p.path (DFrac.own 1) $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     -- the sync (unless `NoSync`), then the statistics
     cases ns with

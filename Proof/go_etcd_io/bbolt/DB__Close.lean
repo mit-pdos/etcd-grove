@@ -72,7 +72,7 @@ theorem mapFields_join2 (db : Loc) (ms : MapSt) :
 
 /-- **The idle writer's gather** (`Close`, with `Pm 1`'s `map` quarter and `mtok`, the writer
 side's `map` half and meta quarter): the mapping's cells, the store's slots out. -/
-theorem close_gather (B : BNs) (N : Namespace) (p : GoString) (w : WDb) (b : Loc) (L : Nat)
+theorem close_gather (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (b : Loc) (L : Nat)
     (hok : wdbOK w) (hms : w.ms = some (b, L)) (hL : 8192 ≤ L) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
@@ -131,7 +131,7 @@ theorem close_gather (B : BNs) (N : Namespace) (p : GoString) (w : WDb) (b : Loc
 
 /-- **What `Close` unmaps, gathered** (the idle writer side's resources and `Pm 1`'s): the
 mapping's `closeMapRes`, the mapping's ghost state cleared. -/
-theorem close_res (B : BNs) (N : Namespace) (p : GoString) (w : WDb) (hok : wdbOK w)
+theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w)
     (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗

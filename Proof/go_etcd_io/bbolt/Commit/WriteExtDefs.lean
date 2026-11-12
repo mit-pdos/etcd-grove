@@ -65,15 +65,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
 /-- The page-cache bytes of `[lo, lo + n)` that lie inside a file of size `sz`, whole. -/
-def oAnyZ (p : GoString) (sz lo n : Nat) : IProp GF :=
+def oAnyZ (p : BFile) (sz lo n : Nat) : IProp GF :=
   oAny p (min lo sz) (min (lo + n) sz - min lo sz)
 
 /-- A target slot holding anything at the file's size `sz`: its bytes inside the file, all its
 cells' client halves. -/
-def slotAnyZ (b : Loc) (p : GoString) (sz s : Nat) : IProp GF :=
+def slotAnyZ (b : Loc) (p : BFile) (sz s : Nat) : IProp GF :=
   iprop(oAnyZ p sz (4096 * s) 4096 ∗ cAny b (4096 * s) 4096)
 
-theorem oAnyZ_app (p : GoString) (sz lo n1 n2 : Nat) :
+theorem oAnyZ_app (p : BFile) (sz lo n1 n2 : Nat) :
     oAnyZ (GF := GF) p sz lo (n1 + n2) ⊣⊢ oAnyZ p sz lo n1 ∗ oAnyZ p sz (lo + n1) n2 := by
   unfold oAnyZ
   have e := oAny_app (GF := GF) p (min lo sz) (min (lo + n1) sz - min lo sz)
@@ -83,18 +83,18 @@ theorem oAnyZ_app (p : GoString) (sz lo n1 n2 : Nat) :
       min (lo + (n1 + n2)) sz - min lo sz by omega] at e
   exact e
 
-theorem oAnyZ_zero (p : GoString) (sz lo : Nat) : ⊢ oAnyZ (GF := GF) p sz lo 0 := by
+theorem oAnyZ_zero (p : BFile) (sz lo : Nat) : ⊢ oAnyZ (GF := GF) p sz lo 0 := by
   unfold oAnyZ
   rw [show min (lo + 0) sz - min lo sz = 0 by omega]
   exact oAny_zero p _
 
-theorem oAnyZ_in (p : GoString) (sz lo n : Nat) (h : lo + n ≤ sz) :
+theorem oAnyZ_in (p : BFile) (sz lo n : Nat) (h : lo + n ≤ sz) :
     oAnyZ (GF := GF) p sz lo n ⊣⊢ oAny p lo n := by
   unfold oAnyZ
   rw [show min lo sz = lo by omega, show min (lo + n) sz - lo = n by omega]
   exact .rfl
 
-theorem oAnyZ_of (p : GoString) (sz lo n : Nat) (h : lo + n ≤ sz ∨ n = 0) :
+theorem oAnyZ_of (p : BFile) (sz lo n : Nat) (h : lo + n ≤ sz ∨ n = 0) :
     oAny (GF := GF) p lo n ⊢ oAnyZ p sz lo n := by
   rcases h with h | h
   · exact (oAnyZ_in p sz lo n h).2
@@ -102,7 +102,7 @@ theorem oAnyZ_of (p : GoString) (sz lo n : Nat) (h : lo + n ≤ sz ∨ n = 0) :
     iintro -
     iapply oAnyZ_zero
 
-theorem oAnyZ_congr (p : GoString) (sz sz' lo n : Nat)
+theorem oAnyZ_congr (p : BFile) (sz sz' lo n : Nat)
     (h : (min lo sz = min lo sz' ∧ min (lo + n) sz = min (lo + n) sz') ∨ (sz ≤ lo ∧ sz' ≤ lo)) :
     oAnyZ (GF := GF) p sz lo n ⊢ oAnyZ p sz' lo n := by
   rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩
@@ -112,13 +112,13 @@ theorem oAnyZ_congr (p : GoString) (sz sz' lo n : Nat)
     rw [show min (lo + n) sz' - min lo sz' = 0 by omega]
     iapply oAny_zero
 
-theorem slotAnyZ_congr (b : Loc) (p : GoString) (sz sz' s : Nat)
+theorem slotAnyZ_congr (b : Loc) (p : BFile) (sz sz' s : Nat)
     (h : 4096 * (s + 1) ≤ min sz sz' ∨ (sz ≤ 4096 * s ∧ sz' ≤ 4096 * s) ∨ sz = sz') :
     slotAnyZ (GF := GF) b p sz s ⊢ slotAnyZ b p sz' s := by
   unfold slotAnyZ
   exact sep_mono (oAnyZ_congr p sz sz' _ _ (by omega)) .rfl
 
-theorem poolZ_resize (b : Loc) (p : GoString) (U : List Nat) (sz sz' : Nat)
+theorem poolZ_resize (b : Loc) (p : BFile) (U : List Nat) (sz sz' : Nat)
     (h : ∀ s ∈ U, 4096 * (s + 1) ≤ min sz sz' ∨ (sz ≤ 4096 * s ∧ sz' ≤ 4096 * s) ∨ sz = sz') :
     ([∗list] s ∈ U, slotAnyZ (GF := GF) b p sz s) ⊢ [∗list] s ∈ U, slotAnyZ b p sz' s := by
   apply BigSepL.bigSepL_mono
@@ -126,14 +126,14 @@ theorem poolZ_resize (b : Loc) (p : GoString) (U : List Nat) (sz sz' : Nat)
   exact slotAnyZ_congr b p sz sz' s (h s (List.mem_of_getElem? hs))
 
 /-- A slot inside the file holding anything, at any larger size. -/
-theorem slotAny_Z (b : Loc) (p : GoString) (sz s : Nat) (h : 4096 * (s + 1) ≤ sz) :
+theorem slotAny_Z (b : Loc) (p : BFile) (sz s : Nat) (h : 4096 * (s + 1) ≤ sz) :
     slotAny (GF := GF) b p s ⊢ slotAnyZ b p sz s := by
   refine (slotAny_run b p s).1.trans ?_
   unfold slotAnyZ
   exact sep_mono (oAnyZ_in p sz _ _ (by omega)).2 .rfl
 
 /-- **Slots holding anything at a size are a run.** -/
-theorem slotsAnyZ_run (b : Loc) (p : GoString) (sz : Nat) : ∀ (c k : Nat),
+theorem slotsAnyZ_run (b : Loc) (p : BFile) (sz : Nat) : ∀ (c k : Nat),
     ([∗list] s ∈ List.range' k c, slotAnyZ (GF := GF) b p sz s) ⊣⊢
       oAnyZ p sz (4096 * k) (4096 * c) ∗ cAny b (4096 * k) (4096 * c)
   | 0, k => by
@@ -171,7 +171,7 @@ theorem slotsAnyZ_run (b : Loc) (p : GoString) (sz : Nat) : ∀ (c k : Nat),
 the cells of `[min off sz, off)` (none unless the write starts past the end, at a slot boundary,
 every slot of the gap being waiting); given back with the gap's bytes after the write (the file
 then of size `sz3`), the slots are at the size `max sz (min off sz3)`. -/
-theorem gap_acc (b : Loc) (p : GoString) (U : List Nat) (sz off : Nat) (hnd : U.Nodup)
+theorem gap_acc (b : Loc) (p : BFile) (U : List Nat) (sz off : Nat) (hnd : U.Nodup)
     (hal : sz < off → off % 4096 = 0)
     (hcov : sz < off → ∀ s, sz < 4096 * (s + 1) → 4096 * s < off → s ∈ U) :
     ([∗list] s ∈ U, slotAnyZ (GF := GF) b p sz s) ⊢
@@ -249,7 +249,7 @@ theorem gap_acc (b : Loc) (p : GoString) (U : List Nat) (sz off : Nat) (hnd : U.
 
 /-- **The target slots in the writer's form, holding anything at the file's size** (a slot across
 the end must hold at least its part inside the file: `h2`, the spec's `hpart`). -/
-theorem wrSlotsSz_toZ (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) (sz : Nat)
+theorem wrSlotsSz_toZ (b : Loc) (p : BFile) (S : List Nat) (wb : Nat → List w8) (sz : Nat)
     (h1 : ∀ s ∈ S, 4096 * (s + 1) ≤ sz → (wb s).length = 4096)
     (h2 : ∀ s ∈ S, 4096 * s < sz → sz < 4096 * (s + 1) → sz - 4096 * s ≤ (wb s).length) :
     wrSlotsSz (GF := GF) b p S wb sz ⊢ [∗list] s ∈ S, slotAnyZ b p sz s := by
@@ -286,7 +286,7 @@ theorem wrSlotsSz_toZ (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List
 
 /-- **Slots holding anything at the file's size, in the writer's form**, each holding some 4096
 bytes. -/
-theorem Z_toWrSlotsSz (b : Loc) (p : GoString) (S : List Nat) (sz : Nat) (hnd : S.Nodup) :
+theorem Z_toWrSlotsSz (b : Loc) (p : BFile) (S : List Nat) (sz : Nat) (hnd : S.Nodup) :
     ([∗list] s ∈ S, slotAnyZ (GF := GF) b p sz s) ⊢
       ∃ f : Nat → List w8, ⌜∀ s ∈ S, (f s).length = 4096⌝ ∗ wrSlotsSz b p S f sz := by
   let Ψ : Nat → List w8 → IProp GF := fun s a => iprop(⌜a.length = 4096⌝ ∗
@@ -337,7 +337,7 @@ theorem Z_toWrSlotsSz (b : Loc) (p : GoString) (S : List Nat) (sz : Nat) (hnd : 
   iapply BigSepL.bigSepL_sep_eqv.1
   iexact H
 
-theorem wrSlotsSz_perm (b : Loc) (p : GoString) (S S' : List Nat) (wb : Nat → List w8) (sz : Nat)
+theorem wrSlotsSz_perm (b : Loc) (p : BFile) (S S' : List Nat) (wb : Nat → List w8) (sz : Nat)
     (h : S.Perm S') : wrSlotsSz (GF := GF) b p S wb sz ⊢ wrSlotsSz b p S' wb sz := by
   unfold wrSlotsSz wBytes
   exact sep_mono (BigSepL.bigSepL_perm h).1 (BigSepL.bigSepL_perm h).1
@@ -368,7 +368,7 @@ theorem wr_entryB (pm : GMap w64 Loc) (bufs : GMap w64 (List w8))
 
 /-- **A waiting page, with its header and its slots at the file's size, for its write**: its whole
 buffer, and its slots as one run. -/
-theorem rest_runZ (b : Loc) (p : GoString) (sz : Nat) (e : w64 × Loc × List w8)
+theorem rest_runZ (b : Loc) (p : BFile) (sz : Nat) (e : w64 × Loc × List w8)
     (h16 : 16 ≤ e.2.2.length) :
     e.2.1 ↦ pageHdr e.2.2 ∗ pgBufR (GF := GF) e ∗ ([∗list] s ∈ extE e, slotAnyZ b p sz s) ⊢
       ⌜0 < e.2.1.addr⌝ ∗ bytesPointsto e.2.1 (DFrac.own 1) e.2.2 ∗
@@ -383,7 +383,7 @@ theorem rest_runZ (b : Loc) (p : GoString) (sz : Nat) (e : w64 × Loc × List w8
   iapply (slotsAnyZ_run b p sz _ _).1; iexact Hs
 
 /-- A written page inside the file: its slots, holding anything at the file's size. -/
-theorem pgDone_Z (b : Loc) (p : GoString) (sz : Nat) (e : w64 × Loc × List w8)
+theorem pgDone_Z (b : Loc) (p : BFile) (sz : Nat) (e : w64 × Loc × List w8)
     (hl : e.2.2.length = 4096 * (1 + pageOverflow e.2.2))
     (hin : 4096 * (e.1.toNat + (1 + pageOverflow e.2.2)) ≤ sz) :
     pgDone (GF := GF) b p e ⊢ [∗list] s ∈ extE e, slotAnyZ b p sz s := by
@@ -396,7 +396,7 @@ theorem pgDone_Z (b : Loc) (p : GoString) (sz : Nat) (e : w64 × Loc × List w8)
 
 /-- **A page interrupted by a failed write**: its slots, holding anything at the file's size `sz`
 (its written prefix inside the file). -/
-theorem cur_anyZ (b : Loc) (p : GoString) (sz k c' w cs r : Nat) (ysd : List ByteG)
+theorem cur_anyZ (b : Loc) (p : BFile) (sz k c' w cs r : Nat) (ysd : List ByteG)
     (P : List w8) (hysd : ysd.length = w) (hP : P.length = w) (hw : 4096 * k + w ≤ sz ∨ w = 0)
     (htot : w + cs + r = 4096 * c') :
     osBytes (GF := GF) p.ino (4096 * k) (DFrac.own 1) ysd ∗
@@ -423,7 +423,7 @@ theorem cur_anyZ (b : Loc) (p : GoString) (sz k c' w cs r : Nat) (ysd : List Byt
     iframe
 
 /-- Written pages inside the file, their slots holding anything at its size. -/
-theorem pagesAny_Z (b : Loc) (p : GoString) (sz : Nat) (L : List (w64 × Loc × List w8))
+theorem pagesAny_Z (b : Loc) (p : BFile) (sz : Nat) (L : List (w64 × Loc × List w8))
     (hin : ∀ e ∈ L, 4096 * (e.1.toNat + (1 + pageOverflow e.2.2)) ≤ sz) :
     ([∗list] e ∈ L, [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2),
         slotAny (GF := GF) b p s) ⊢ [∗list] s ∈ L.flatMap extE, slotAnyZ b p sz s := by
@@ -448,7 +448,7 @@ theorem tInOut_perm (T : List Nat) (sz0 : Nat) : T.Perm (tIn T sz0 ++ tOut T sz0
 /-- **On an error**: every target slot (the pages' `A`, a permutation of `bufSlots`, the tail's
 outside the old file) holding anything at the size `sz`, and the tail's slots inside the old file
 untouched, are the spec's slots, each holding a whole page's bytes. -/
-theorem errZ_final (b : Loc) (p : GoString) (bufs : GMap w64 (List w8)) (A T : List Nat)
+theorem errZ_final (b : Loc) (p : BFile) (bufs : GMap w64 (List w8)) (A T : List Nat)
     (wb : Nat → List w8) (sz0 sz : Nat) (hA : A.Perm (bufSlots bufs))
     (hnd : (bufSlots bufs ++ T).Nodup) (hle : sz0 ≤ sz)
     (hwb : ∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ sz0 → (wb s).length = 4096) :
@@ -495,7 +495,7 @@ theorem errZ_final (b : Loc) (p : GoString) (bufs : GMap w64 (List w8)) (A T : L
     iexact Hin
 
 /-- `slotsOwn` only reads the bytes on its slots. -/
-theorem slotsOwn_congrZ (ms : MapSt) (p : GoString) (S : List Nat) (bs bs' : Nat → List w8)
+theorem slotsOwn_congrZ (ms : MapSt) (p : BFile) (S : List Nat) (bs bs' : Nat → List w8)
     (h : ∀ s ∈ S, bs s = bs' s) : slotsOwn (GF := GF) ms p S bs ⊢ slotsOwn ms p S bs' := by
   unfold slotsOwn
   apply BigSepL.bigSepL_mono
@@ -506,7 +506,7 @@ theorem slotsOwn_congrZ (ms : MapSt) (p : GoString) (S : List Nat) (bs bs' : Nat
 /-- **On success**: the pages' slots (`slotsOwn`, holding `wb''`) and the tail: the tail's slots
 outside the old file holding anything at the size `sz`, those inside untouched; every slot then
 holds a whole page's bytes. -/
-theorem okZ_final (b : Loc) (l : Nat) (p : GoString) (bufs : GMap w64 (List w8)) (T : List Nat)
+theorem okZ_final (b : Loc) (l : Nat) (p : BFile) (bufs : GMap w64 (List w8)) (T : List Nat)
     (wb wb'' : Nat → List w8) (sz0 sz : Nat) (hnd : (bufSlots bufs ++ T).Nodup) (hle : sz0 ≤ sz)
     (hwb : ∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ sz0 → (wb s).length = 4096)
     (hwb'' : ∀ s ∈ bufSlots bufs, (wb'' s).length = 4096) :

@@ -30,7 +30,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 private instance isBoltP_persistent_i [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (db : Loc)
-    (p : GoString) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
+    (p : BFile) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
 private instance reg_persistent_i [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (B : BNs) (r : TxReg) :

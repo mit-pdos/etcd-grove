@@ -52,16 +52,16 @@ def mapCells (base : Loc) (sz : w64) (m : OsMeta) : IProp GF :=
 
 /-- **`mmap(db, sz)`** (over the fields it writes, the file and its `OsMeta`). -/
 abbrev mmapF.spec : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (dqf dqo dqd : DFrac) (mf : w64) (m : OsMeta)
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqf dqo dqd : DFrac) (mf : w64) (m : OsMeta)
     (sz : w64) (x : GoSlice) (y : Loc) (z : w64),
   (mf = W64 0 ∨ mf = W64 0x8000) → 0 < sz.toInt →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd ⟨p.ino, true, true⟩ ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dqo ∗ osFd fd dqd ⟨p.ino, true, true⟩ ∗
       db.[DB, go!"MmapFlags"] ↦□ mf ∗ osMeta p.ino (DFrac.own 1) m ∗
       db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z }}
     (App (App (Val #(functions mmap [])) (Val #db)) (Val #sz))
   {{ (err : GoInterface), RET #err;
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd ⟨p.ino, true, true⟩ ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dqo ∗ osFd fd dqd ⟨p.ino, true, true⟩ ∗
       ((∃ base : Loc, ⌜err = interface.nil ∧ 0 < base.addr⌝ ∗
           db.[DB, go!"dataref"] ↦ (⟨base, sz, sz⟩ : GoSlice) ∗ db.[DB, go!"data"] ↦ base ∗
           db.[DB, go!"datasz"] ↦ sz ∗
@@ -101,7 +101,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     try wp_auto
     have hszn : 0 < sz.toNat := by have := hsz; simp [BitVec.toInt] at this; omega
     icases cellsR_pos _ _ _ hszn $$ Hc with ⟨Hc, %Hpos⟩
-    ihave Hfo : fileOwn f fd p dqo $$ [Hfo]
+    ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     by_cases h0 : e2 = 0
     · subst h0
@@ -178,7 +178,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   · obtain ⟨he, rfl⟩ := Hbe
     simp only [errnoErr, he, ↓reduceIte]
     wp_auto
-    ihave Hfo : fileOwn f fd p dqo $$ [Hfo]
+    ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     iapply HΦ
     iframe Hf Hfo Hfd

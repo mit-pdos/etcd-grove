@@ -68,7 +68,7 @@ abbrev Tx.write.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
       osMeta K.p.ino (DFrac.own 1) om ∗ wrSlots b K.p (bufSlots bufs) wb }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗ tx.[Tx, go!"db"] ↦{dq} K.db ∗
@@ -76,7 +76,7 @@ abbrev Tx.write.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
       (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
       ∃ wb' : Nat → List w8, ⌜∀ s ∈ bufSlots bufs, (wb' s).length = 4096⌝ ∗

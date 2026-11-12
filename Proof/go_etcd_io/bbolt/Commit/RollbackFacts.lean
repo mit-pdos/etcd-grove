@@ -30,7 +30,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 omit go_gctx sem in
-private theorem pagesInv_timeless_c (B : BNs) (p : GoString) : Timeless (pagesInv (GF := GF) B p) := by
+private theorem pagesInv_timeless_c (B : BNs) (p : BFile) : Timeless (pagesInv (GF := GF) B p) := by
   have h1 : ∀ σ : StoreSt, Timeless (storeCells (GF := GF) σ) := by
     intro σ; unfold storeCells; split <;> infer_instance
   have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
@@ -52,7 +52,7 @@ def cFacts (C : CommitSt) (fl : FLPg) (ws : WSt) : Prop :=
   (∀ x a, fl.allocs !! x = some a → a.toNat ≤ C.txid + 1)
 
 section store
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+variable (B : BNs) (N : Namespace) (p : BFile) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
 
 omit sem in
@@ -180,7 +180,7 @@ theorem wdbOK_rolledBack' (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Li
 
 omit sem in
 /-- **`wdb_rollback` without a mapping** (`Txn/WRoll`'s, more general). -/
-theorem wdb_rollback' (p : GoString) (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → List w8)
+theorem wdb_rollback' (p : BFile) (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → List w8)
     (hok : wdbOK w) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
     (h2s : ∀ s ∈ pendSlots w.fl, 2 ≤ s) (hbs : ∀ s ∈ S, (bs s).length = 4096) :

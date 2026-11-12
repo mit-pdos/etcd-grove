@@ -33,7 +33,7 @@ private instance reg_persistent_d (tx : Loc) (B : BNs) (r : TxReg) :
   unfold reg; infer_instance
 
 private instance isBoltP_persistent_d [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (db : Loc)
-    (p : GoString) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
+    (p : BFile) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
 private instance viewOf_persistent_d (r : TxReg) (v : View) :

@@ -71,9 +71,9 @@ theorem BC.core_mmapFields (K : BC) :
 
 /-- The writer side's file, for `fileSize`, and back. -/
 theorem wdbW'_file_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
-    wdbW' (GF := GF) fr K tx v w ⊢ (K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
+    wdbW' (GF := GF) fr K tx v w ⊢ (K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) ∗
         osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗ osMeta K.p.ino (DFrac.own 1) w.m) ∗
-      ((K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
+      ((K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) ∗
         osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗ osMeta K.p.ino (DFrac.own 1) w.m) -∗
         wdbW' fr K tx v w) ∗
       ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ := by

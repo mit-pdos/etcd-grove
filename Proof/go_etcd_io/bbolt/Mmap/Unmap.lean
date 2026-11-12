@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`munmap(db)` of the mapping `base`/`len`**: the cells' client halves and the file's
 `OsMeta` given, the fields cleared; the error is `unix.Munmap`'s errno. -/
 abbrev munmapM.spec : Prop :=
-  ∀ (db base : Loc) (len : w64) (data : Loc) (dsz : w64) (p : GoString) (m : OsMeta)
+  ∀ (db base : Loc) (len : w64) (data : Loc) (dsz : w64) (p : BFile) (m : OsMeta)
     (vf : Nat → val),
   0 < len.toInt → m.maps !! base = some len.toNat →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗

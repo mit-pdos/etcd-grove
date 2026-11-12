@@ -57,7 +57,7 @@ theorem qp_three_halves (q : Qp) :
   rw [Qp.le_iff]; simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind
 
 section lemmas
-variable (B : BNs) (N : Namespace) (p : GoString) (sp : Loc) (t0 : Nat) (E : CoPset)
+variable (B : BNs) (N : Namespace) (p : BFile) (sp : Loc) (t0 : Nat) (E : CoPset)
   (hE : ↑(txsN N) ⊆ E)
 include hE
 

@@ -103,7 +103,7 @@ theorem pt_halves {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
 Every ghost share is as `Inv/Names` lists it; the store's cells and witness are allocated mapped
 (no reader, so nothing lent), so `store_carve` is not needed. -/
 theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : CoPset) (N : Namespace) (db sp f : Loc)
-    (fd : w64) (p : GoString) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
+    (fd : w64) (p : BFile) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
     (wb : Nat → List w8) (fl : FLPg) (fli : GoInterface) (hpend : fl.pending = ∅)
     (hok : storeOK { openSigma b L C wb with fl := fl })
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null)
@@ -116,10 +116,10 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ fli ∗ flRoOpt fli ∅ ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p ∗
+      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p.path ∗
       db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
       mapFields db (DFrac.own 1) (some (b, L)) ∗
-      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p (DFrac.own 1) ∗
+      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ Ps sp 1 ∗
       metaOsBytes p (DFrac.own (1 : Qp).half) C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) C ∗
       ([∗list] s ∈ slotsOf C FLPg.empty, osSlot p s (wb s)) ∗
@@ -296,7 +296,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
 
 /-- **The core phase's ghost step** with no freelist yet (`db.freelist` nil). -/
 theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : CoPset) (N : Namespace) (db sp f : Loc)
-    (fd : w64) (p : GoString) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
+    (fd : w64) (p : BFile) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
     (wb : Nat → List w8)
     (hok : storeOK (openSigma b L C wb))
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null)
@@ -309,10 +309,10 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : 
       db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p ∗
+      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p.path ∗
       db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
       mapFields db (DFrac.own 1) (some (b, L)) ∗
-      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p (DFrac.own 1) ∗
+      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ Ps sp 1 ∗
       metaOsBytes p (DFrac.own (1 : Qp).half) C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) C ∗
       ([∗list] s ∈ slotsOf C FLPg.empty, osSlot p s (wb s)) ∗
@@ -348,7 +348,7 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : 
 /-- **The writer phase** (design §3.11 "Open", step 4): `rwlock`'s resource, the writer side
 idle with its freelist (after `loadFreelist`), the spare pair, no receipt yet (`t0` the current
 txid), the opening over (`opnShot`, batch 41), and the full database. -/
-theorem open_writer (E : CoPset) (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+theorem open_writer (E : CoPset) (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (w : WDb) (hw : wdbOK w) :
     isBoltCoreP (GF := GF) B N db p sp w.C.txid ∗
       threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
