@@ -1078,6 +1078,10 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   over it**, replacing the preface-based design (C1); C5's trusted error table accepted while grpc
   is a trusted model.
 
+- **The network, option B (2026-11-12):** a trusted TCP extension plus trusted Go models of grpc-go
+  and net/http over it (`tcp-extension-design.md`); option A (verifying the real libraries,
+  `option-a-cost.md`: ~0.55-0.75M Lean lines vs B's ~60-110k) stays possible later, piece by piece.
+
 ### Needs your approval
 
 New client-visible ghost state, or a change to an API or decision you approved.
