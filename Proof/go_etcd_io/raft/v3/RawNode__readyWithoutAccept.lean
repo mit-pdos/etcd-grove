@@ -152,7 +152,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iNamed Hv
   -- (D22 S-b′3) the queued messages' certificates, through the storage's link
   imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
-  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2, #Hsuf1, #Hsuf2⟩
+  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
@@ -431,7 +431,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
                  ownSliceCap Loc msl (DFrac.own 1) -∗
                  sl1 ↦* ms1.map QMsg.loc ∗ ownSliceCap Loc sl1 (DFrac.own 1)) ∗
       "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
-      "Hown2" ∷ ([∗list] q ∈ ms2, qOwn q) ∗
+      "Hown2" ∷ ([∗list] q ∈ ms2, qOwn s.gh.sn.sz q) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms2.length : Int)⌝)
     $$ [i m rd Hmsgs Hmsgs_cap HmsgsAA Hown2]
   · iexists W64 0, sl1, null
@@ -458,12 +458,16 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · iframe
       ipureintro
       exact Hmml
-    icases bigSepL_acc_same (fun q => qOwn (GF := GF) q) ms2 _ mm Hmm_lookup $$ Hown2
+    icases bigSepL_acc_same (fun q => qOwn (GF := GF) s.gh.sn.sz q) ms2 _ mm Hmm_lookup $$ Hown2
       with ⟨Hmm, Hown2⟩
-    wp_apply (wp_Message_GetTo.1 mm.loc (DFrac.own 1) DFrac.discard false mm.st) $$ [$Hmm]
+    icases msgOwnZ_read s.gh.sn.sz mm.loc mm.st $$ Hmm
+      with ⟨Hmm, Hmmb⟩
+    wp_apply (wp_Message_GetTo.1 mm.loc dqh DFrac.discard false mm.st) $$ [$Hmm]
       as Hmm
+    ihave Hmm := Hmmb $$ Hmm
     ihave Hown2 := Hown2 $$ Hmm
-    have HnS : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+    have HnB := sint_loop_succ n sl2.len ms2.length Hn Hl2 Hlt
+    have HnS : sint.nat (n + W64 1) = sint.nat n + 1 := HnB.1
     wp_if_destruct
     · -- to oneself: kept for `acceptReady`
       wp_for_post
@@ -471,7 +475,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       iexists n + W64 1, msl, mm.loc
       rw [HnS, nonself_take_succ _ _ _ _ Hmm_lookup, ite_pos' rfl, List.append_nil]
       iframe
-      ipureintro; word
+      ipureintro; exact HnB.2
     · -- to another node: handed out
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
@@ -493,11 +497,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
       rw [HnS, nonself_take_succ _ _ _ _ Hmm_lookup, ite_neg' Hif, ← List.append_assoc,
         List.map_append (l₁ := ms1 ++ _), List.map_cons, List.map_nil]
       iframe
-      ipureintro; word
+      ipureintro; exact HnB.2
   -- the loop is done: every message of `msgsAfterAppend` seen
   have Hn2 : sint.nat n = ms2.length := by
     have : ¬ sint.Z n < sint.Z sl2.len := by simpa using Hif
-    word
+    exact sint_loop_done n sl2.len ms2.length Hn Hl2 this
   rw [show ms2.take (sint.nat n) = ms2 from List.take_of_length_le (by omega)]
   -- the messages handed out: those of `r.msgs` and those of `msgsAfterAppend` to others, at
   -- `readyDq`; kept, the halves of the responses (`respHalf` of `r.msgs`'s, inside `Hundo`;
@@ -508,11 +512,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases qOwns_other_ready id ms2 Hresp2 $$ Hown2 with ⟨H2r, Hother⟩
   ihave Hundo : iprop(msl ↦* (ms1 ++ nonself id ms2).map QMsg.loc -∗
       ownSliceCap Loc msl (DFrac.own 1) -∗
-      ([∗list] q ∈ ms1 ++ nonself id ms2, msgOwn q.loc (readyDq q.st) q.st) -∗
+      ([∗list] q ∈ ms1 ++ nonself id ms2, msgOwnZ s.gh.sn.sz q.loc (readyDq q.st) q.st) -∗
       sl1 ↦* ms1.map QMsg.loc ∗ ownSliceCap Loc sl1 (DFrac.own 1) ∗
-      ([∗list] q ∈ ms1, qOwn q) ∗
+      ([∗list] q ∈ ms1, qOwn s.gh.sn.sz q) ∗
       ([∗list] q ∈ ms2.filter (fun q => !isSelfQ id q),
-        msgOwn q.loc (DFrac.own (1 : Qp).half) q.st)) $$ [Hundo H1h]
+        msgOwnZ s.gh.sn.sz q.loc (DFrac.own (1 : Qp).half) q.st)) $$ [Hundo H1h]
   · iintro Hm Hc Ho
     icases BigSepL.bigSepL_append.1 $$ Ho with ⟨Ho1, Ho2⟩
     icases Hundo $$ Hm Hc with ⟨Hm, Hc⟩
@@ -527,7 +531,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, rdyLog, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert Hsuf1 Hsuf2
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert
     ipureintro
     refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
     simp only [List.length_append]
@@ -720,6 +724,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
         show (fp0.length : Int) ≤ _
         omega
   icases Hsnl with ⟨%L, Hrdz, Hsnapz, %Hpsn, %HLc⟩
+  -- (out_size C3) the node's size flag is the cluster's (`certLink`)
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl⟩
   ihave Hphys := ownRaftPhysReady_lt0 cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false L.isSome
     $$ Hphys
   iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)
@@ -751,9 +758,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitl [Hmsgs_cap]
   · iexact Hmsgs_cap
   isplitl [H1r H2r]
-  · iapply BigSepL.bigSepL_append.2; iframe H1r H2r
-  isplitr
-  · iapply snapUfs_ready id ms1 ms2 $$ [Hsuf1 Hsuf2]; iframe Hsuf1 Hsuf2
+  · rw [← Hszl]; iapply BigSepL.bigSepL_append.2; iframe H1r H2r
   isplitr
   · ipureintro; exact Hmsgs_term
   isplitr

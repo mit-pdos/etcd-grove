@@ -239,7 +239,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     iexists rsl, sl1, sl2, ms1, ms2
     simp only [named]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose Hscert Hsuf1 Hsuf2
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose Hscert
     ipureintro
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
@@ -430,7 +430,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan)
     (Hsteps0 : rs.steps = []) (Hunp0 : rs.unpersisted = []) :
     ⊢ rd.Messages' ↦* ms.map QMsg.loc -∗ ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
-      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
+      ([∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) -∗
       ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L -∗
       ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
       (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
@@ -463,13 +463,21 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
+  -- (out_size C3) the node's size flag is the cluster's (`certLink`)
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s $$ [Hghost]
+  · iExactEq Hghost; simp
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hcl, Hghost⟩
+  iunfold certLink at Hcl
+  icases Hcl with ⟨-, -, %Hszl⟩
+  ihave Hown : ([∗list] q ∈ ms, msgOwnZ s.gh.sn.sz q.loc (readyDq q.st) q.st) $$ [Hown]
+  · rw [Hszl]; iexact Hown
   icases Hundo $$ Hmsgs Hmsgs_cap Hown with ⟨Hm1, Hc1, Hown1, Hhalf⟩
   ihave Hoth := (qOwns_other_halves id ms2).1 $$ [Hhalf Hother]
   · iframe Hhalf Hother
   ihave Hown2 := (qOwns_self_split id ms2).2 $$ [Hself Hoth]
   · iframe Hself Hoth
   ihave Hob := outboxRel_join s.outbox ms1 ms2 $$ [Hown1 Hown2]
-  · iframe Hown1 Hown2 Hsuf1 Hsuf2; ipureintro; exact Houtbox
+  · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
   · iExactEq Hlog; rfl
@@ -1871,9 +1879,8 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
     entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
     ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-    -- (raft-entsize §2) their `snapUf`s
-    ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
+    -- (out_size C3, 2026-11-12; until then `msgOwn` with their `snapUf`s) at a content (`msgOwnZ`)
+    ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st) ∗
     -- (2026-11-01, durability stage II (n)) the messages' `isRaftMsg` no longer here: they come
     -- with the cut, at the send (`ownRawNodeReady_handout`, `readyCut`)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
@@ -2126,7 +2133,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     · ipureintro; exact ⟨Hac, Hsteps, Hunp, Hsl⟩
     ileft; ipureintro; exact Hrc
   · unfold freshOk
-    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, -, #Hrsts,
+    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hrsts,
       ⟨%hrd0, #Hrdh0, #Hhsw⟩, Hsnz, %Hfacts⟩
     -- (D22 S-d4) no snapshot unless one is handed out (`rdSnapOut`)
     -- (2026-10-31) and the witness's committed log at least the one before it
@@ -2198,8 +2205,10 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
 stage R5: with the messages' ownership, as `readyData` holds them.) -/
 theorem readyMsgs_termLB (γ : NodeNames) (t : w64) (ms : List QMsg)
     (H : ∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z t) :
-    ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st) -∗ termLB γ.bud t -∗
-      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ termLB γ.bud q.st.msg.Term' := by
+    ⊢ ([∗list] q ∈ ms, msgOwnZ (GF := GF) γ.raft.maxData.isSome q.loc (readyDq q.st) q.st) -∗
+      termLB γ.bud t -∗
+      [∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗
+        termLB γ.bud q.st.msg.Term' := by
   induction ms with
   | nil =>
     iintro - -

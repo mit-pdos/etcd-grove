@@ -189,7 +189,7 @@ theorem node.run.wp_proof
         iexists ce, es, ms, L
         iframe Hrn
         unfold freshOk
-        iframe Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_uf Hsnapz
+        iframe Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hsnapz
         isplitr
         · iexists sts
           iframe Hrs Hrs_ok
@@ -870,8 +870,7 @@ theorem node.run.wp_proof
         ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false L ∗
         entsRO rdv'.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
         entsRO rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
-        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-        ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
+        ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
@@ -881,10 +880,10 @@ theorem node.run.wp_proof
       $$ [Hst]
     · icases Hst with (⟨%ce, %es, %ms, %L, Hrn, Hf⟩ | ⟨Hrn, Hstale⟩)
       · iunfold freshOk at Hf
-        icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, Hown, #Hsuf, #Hrsts, #Hhd,
+        icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, Hown, #Hrsts, #Hhd,
           Hsnz, %Hfacts⟩
         iexists ce, es, ms, L
-        iframe Hrn Hce Hcommitted Hents Hmsgs Hown Hsuf Hrsts Hhd Hsnz
+        iframe Hrn Hce Hcommitted Hents Hmsgs Hown Hrsts Hhd Hsnz
         ipureintro; exact Hfacts
       · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs Hsl0 $$ Hrn with ⟨%Hidf, Hrn⟩
         iunfold staleOk at Hstale
@@ -920,9 +919,6 @@ theorem node.run.wp_proof
         isplitl []
         · iapply BigSepL.bigSepL_nil.2
           iempintro
-        isplitl []
-        · iapply BigSepL.bigSepL_nil.2
-          iempintro
         isplitr
         · iexists sts
           iframe Hrs Hrs_ok
@@ -934,7 +930,7 @@ theorem node.run.wp_proof
         · simp only [rdSnapOut]; ipureintro; exact Hrdz
         ipureintro; exact ⟨by simp, fun _ => rfl⟩
     icases Hg with
-      ⟨%ce, %es, %ms, %L, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hsuf, #Hrsts,
+      ⟨%ce, %es, %ms, %L, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hrsts,
         ⟨%h, #Hhh, #Hhw⟩, Hsnz, %Hfacts⟩
     icases rdSnapOut_pure γ.raft rs rdv' ce es L $$ Hsnz with ⟨%HLo, Hsnz⟩
     -- (raft-final phase 2) the batch's indices, and a snapshot's certificate (a `⊤` update first)
@@ -1031,7 +1027,7 @@ theorem node.run.wp_proof
           icases Hsnz with %Hrdz
           ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length $$ []
           · iExactEq Hhw; rfl
-          iframe Hce Hcommitted Hents Hmsgs Hmt Hsuf Hcr Htk Hrsts Hhw' Hss Hri
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri
           isplitl [Happ]
           · rw [← Hstor, ← Hsnγ]
             iexact Happ
@@ -1052,7 +1048,7 @@ theorem node.run.wp_proof
           · iapply Hcert $$ %l %rfl
           ihave #Hhw' : hsWit γ.raft (phsNext rs.phs h) l.dlv.length $$ []
           · iExactEq Hhw; rfl
-          iframe Hce Hcommitted Hents Hmsgs Hmt Hsuf Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
+          iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw' Hss Hri Hhalf Hdc Hll Hcl
           isplitr
           · iexists h; iframe Hhh; ipureintro; rfl
           isplitr

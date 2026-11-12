@@ -2344,16 +2344,18 @@ theorem api_sentMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ 
 bounds apart. -/
 theorem readyMsgs_own_split (γ : Cluster) (N : Namespace) (γn : NodeNames)
     (Hγr : γn.raft = γ.raft) (ms : List QMsg) :
-    ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ termLB γn.bud q.st.msg.Term') -∗
+    ⊢ ([∗list] q ∈ ms, msgOwnZ (GF := GF) γn.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗
+        termLB γn.bud q.st.msg.Term') -∗
       ([∗list] q ∈ ms, stTks γn.raft q.st) -∗
-      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
       [∗list] q ∈ ms, termLB γn.bud q.st.msg.Term' := by
+  rw [← Hγr]
   induction ms with
   | nil =>
     iintro - -
     isplitl []
-    · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc
-        (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
+    · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOwnZ (GF := GF)
+        γn.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
       iempintro
     · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(termLB (GF := GF) γn.bud
         q.st.msg.Term'))).2
@@ -2499,25 +2501,24 @@ theorem readyEntsU_sized (γ : Cluster) (s : GoSlice) (es : List EntryM) (b : Na
   ipureintro; exact ⟨Hcs, Hsz⟩
 
 /-- (raft-entsize §2) **A `Ready`'s messages into the handed-out set**, each at a content raft pins
-(its `snapUf`'s). -/
+(out_size C3: held at it, `msgOwnZ`; until then owned with its `snapUf`). -/
 theorem msgOuts_insert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) :
     ∀ ms : List QMsg,
     ⊢ raftOutInv (GF := GF) γ.raft -∗
-      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) -∗
-      ([∗list] q ∈ ms, snapUf q.loc q.st) ={E}=∗
+      ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗
+        msgCredits γ N q.st) ={E}=∗
       [∗list] q ∈ ms, msgOutU γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st
   | [] => by
-    iintro #_ - -
+    iintro #_ -
     imodintro
     iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOutU (GF := GF) γ q.loc
       (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
     iempintro
   | q :: ms => by
-    iintro #Hinv H #Hu
+    iintro #Hinv H
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨Ho, Hc⟩, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ Hu with ⟨#Hu1, #Hu⟩
-    imod msgOutR_intro γ.raft q.loc (readyDq q.st) q.st E HE $$ Hinv Ho Hu1 with Ho
-    imod msgOuts_insert γ N E HE ms $$ Hinv H Hu with H
+    imod msgOutR_intro γ.raft q.loc (readyDq q.st) q.st E HE $$ Hinv Ho with Ho
+    imod msgOuts_insert γ N E HE ms $$ Hinv H with H
     imodintro
     iapply BigSepL.bigSepL_cons.2
     iframe H Hc
@@ -2765,12 +2766,12 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   | none =>
     iunfold readyDataL at Hdata
     iunfold readyData at Hdata
-    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, #Hsuf, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
       ⟨%h, Hhs, %Hp'⟩, #Hhw, -, %Hnull, #Hidx, %Hix⟩
     icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
     -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
     ihave #Hoinv := clusterInv_out γ N $$ Hci
-    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo Hsuf with Hmo
+    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo with Hmo
     imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
     · rw [Hγr]; iexact Hcom
@@ -2881,14 +2882,14 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   | some l =>
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
-    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, #Hsuf, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
       ⟨%h, Hhs, %Hp'⟩, #Hhw, -, #Hidx, Hsnap, #Hdlv, #Hloc, %Hbl, #HD, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
     icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
     -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
     ihave #Hoinv := clusterInv_out γ N $$ Hci
-    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo Hsuf with Hmo
+    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo with Hmo
     imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
     ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
         storLog γn.stor k (DFrac.own 1) old ∗ storEnd γn.stor (k + old.length)) ∗

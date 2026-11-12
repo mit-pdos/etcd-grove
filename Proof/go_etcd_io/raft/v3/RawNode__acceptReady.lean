@@ -452,7 +452,7 @@ theorem RawNode.acceptReady.wp_proof
       "Hsteps" ∷ stl ↦* (selfmsgs id (ms2.take (sint.nat n))).map QMsg.loc ∗
       "Hsteps_cap" ∷ ownSliceCap Loc stl (DFrac.own 1) ∗
       "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
-      "Hself" ∷ ([∗list] q ∈ ms2, selfOwn id q) ∗
+      "Hself" ∷ ([∗list] q ∈ ms2, selfOwn s.gh.sn.sz id q) ∗
       "Hother" ∷ ([∗list] q ∈ ms2, otherHalf id q) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ms2.length : Int)⌝)
     $$ [i m Hrn Hsteps Hsteps_cap HmsgsAA Hself Hother]
@@ -479,15 +479,18 @@ theorem RawNode.acceptReady.wp_proof
     · iframe
       ipureintro
       exact Hmml
-    have HnS : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+    have HnB := sint_loop_succ n sl2.len ms2.length Hn Hl3 Hlt
+    have HnS : sint.nat (n + W64 1) = sint.nat n + 1 := HnB.1
     by_cases hs : mm.st.msg.To' = id
     · have hsq : isSelfQ id mm = true := decide_eq_true hs
-      icases bigSepL_acc_same (fun q => selfOwn (GF := GF) id q) ms2 _ mm Hmm_lookup $$ Hself
+      icases bigSepL_acc_same (fun q => selfOwn (GF := GF) s.gh.sn.sz id q) ms2 _ mm Hmm_lookup $$ Hself
         with ⟨Hmm, Hself⟩
-      ihave Hmm : qOwn mm $$ [Hmm]
+      ihave Hmm : qOwn s.gh.sn.sz mm $$ [Hmm]
       · unfold selfOwn; simp only [hsq, ↓reduceIte]; iexact Hmm
-      wp_apply (wp_Message_GetTo.1 mm.loc (DFrac.own 1) DFrac.discard false mm.st) $$ [$Hmm]
+      icases msgOwnZ_read s.gh.sn.sz mm.loc mm.st $$ Hmm with ⟨Hmm, Hmmb⟩
+      wp_apply (wp_Message_GetTo.1 mm.loc dqh DFrac.discard false mm.st) $$ [$Hmm]
         as Hmm
+      ihave Hmm := Hmmb $$ Hmm
       ihave Hself := Hself $$ [Hmm]
       · unfold selfOwn; simp only [hsq, ↓reduceIte]; iexact Hmm
       rw [hs]
@@ -504,7 +507,7 @@ theorem RawNode.acceptReady.wp_proof
       rw [HnS, selfmsgs_take_succ _ _ _ _ Hmm_lookup, ite_pos' hs, List.map_append,
         List.map_cons, List.map_nil]
       iframe
-      ipureintro; word
+      ipureintro; exact HnB.2
     · have hsq : isSelfQ id mm = false := decide_eq_false hs
       icases bigSepL_acc_same (fun q => otherHalf (GF := GF) id q) ms2 _ mm Hmm_lookup $$ Hother
         with ⟨Hmm, Hother⟩
@@ -521,10 +524,10 @@ theorem RawNode.acceptReady.wp_proof
       iexists n + W64 1, stl, mm.loc
       rw [HnS, selfmsgs_take_succ _ _ _ _ Hmm_lookup, ite_neg' hs, List.append_nil]
       iframe
-      ipureintro; word
+      ipureintro; exact HnB.2
   have Hn2 : sint.nat n = ms2.length := by
     have : ¬ sint.Z n < sint.Z sl2.len := by simpa using Hif
-    word
+    exact sint_loop_done n sl2.len ms2.length Hn Hl3 this
   rw [show ms2.take (sint.nat n) = ms2 from List.take_of_length_le (by omega)]
   -- `needStorageAppendRespMsg(r, rd)`: unstable entries, or (D22 S-d3a) a snapshot handed out
   wp_apply (wp_needStorageAppendRespMsg rnv.raft' s.log (logHanded ls0) rd _ (L.map SnapLoan.snap)
