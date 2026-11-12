@@ -26,12 +26,11 @@ Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1
   `walDiskAt_crash_img_any`, `walDiskAt_crash_graceful`, `walDiskAt_walDisk`, `walDisk_excl`.
 - Probes R1/R2: instrumented copy of the W3 tester (`tester-fixed` + `r2.go`) under
   `/shared/tmp/wal-spec/w4b/r2/` (`run.sh`; logs `*.log`, `*.r2log`). Findings (CP2 report):
-  R2: every `ReleaseLockTo` meets `walRelGuard` except 10 (clause 2, dormant records); 446 of 685
-  restart `Open`s fail it (436 clause 1 at `j = p+1`: a received snapshot's record precedes the Save
+  R2 (full runs, 3 models x 150 chains, per candidate history): `ReleaseLockTo` 8018 OK / 116 fail
+  (clause 2, dormant records); `Open` 4166 OK / 6982 fail (6946 clause 1 at `j = p+1`: a received snapshot's record precedes the Save
   that commits it; 3 clause 2). R1: C2 as stated is false (entries above `a` saved before the
   snapshot record, purged with `k ≤ p`; the model's `walReleasePos` is coarser than Go's file naming).
 - CP2 report sent (R1: C2 holds in every run under guard + Go file-naming bound `enti(H.take k)+1 < a`; R2: Open clause-1 failures at `j = p+1`); waiting for etcd-grove-81.
-  `walReleasePos`, or premises).
 
 ## Next, in order (after CP2)
 
