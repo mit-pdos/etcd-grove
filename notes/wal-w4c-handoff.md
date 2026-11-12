@@ -43,14 +43,24 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
 ## Next, in order
 
 1. (CP1 done.)
-2. The purgeRound Freeze (hard stop):
-   - `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/purgeRound.lean`: the axiom (plan §5),
-     plus its Spec file;
-   - Go tests (purge after `Open` at a snapshot, after `ReleaseLockTo`, then a graceful restart; a
-     purge with no handle shows the right is needed);
-   - the Freeze package in `/shared/tmp/wal-spec/w4c/freeze-purge.md`. etcd-grove-81 reviews it with
-     the axiom skill.
-3. Steps 2-4 as in plan §8.
+2. The purgeRound Freeze (hard stop): **written, at `7d75b77fa7`; STOPPED for etcd-grove-81's
+   axiom-skill review.**
+   - `Spec/.../examples/etcd/wal/purgeRound.lean` (the spec), `Proof/.../wal/purgeRound.lean` (the
+     axiom), `Proof/.../wal/PurgeBody.lean` (the body, proved: `purgeRound_commit`, and `cut ≤ pur`
+     in every reachable state, `absCutLePur_*`);
+   - `examples/etcd/wal/purge_test.go` (five tests, PASS);
+   - `etc/goose.py`: `etcd-wal`'s `lean_roots` gained `os=`, `io/fs=` (step 0's translation imported
+     Perennial's `os`, which clashes with this repository's when imported with the WAL specs);
+     retranslated;
+   - Freeze package `/shared/tmp/wal-spec/w4c/freeze-purge.md`.
+   - The purge-biased run (81's addition): `runs/purgebias.sh`, patch `runs/purgebias.patch` (not
+     committed: applied, binary `/shared/tmp/wal-spec/w4c/purgebias.test` built, reverted), logs
+     `runs/purgebias/*.log`; read `violations N` and `strict-rejected/relaxed-accepted N` (the count
+     of restarts accepted only through a purged prefix). Result in the Freeze package §6.
+   - After the review: apply its fixes; then step 2.
+3. Steps 2-4 as in plan §8. Step 2 starts with Q1 (`GooseLang/Ext/Durable`): **tell etcd-grove-81
+   first** (rung 3). R1: the tester's `Base.lean` (IsPkgInit, fact `True`) fails today on
+   `raftpb`'s missing instance: it needs the instance modules of its imports first.
 
 ## Pitfalls
 
