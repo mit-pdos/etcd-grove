@@ -199,17 +199,27 @@ func walRead(h []walOp) (contents, bool) {
 // k entries of operation j when it is a Save (its state record, written last, lost).
 func walImgs(h []walOp, n int) [][]walOp {
 	out := make([][]walOp, 0)
-	for j := n; j <= len(h); j++ {
+	if n > len(h) {
+		return out
+	}
+	// T-10: the counters stop at len(h) and len(h[j].ents) (a `<=` loop would wrap at MaxInt).
+	for j := n; ; j++ {
 		out = append(out, copyOps(h[:j]))
 		if j < len(h) && !h[j].snap {
-			for k := 0; k <= len(h[j].ents); k++ {
+			for k := 0; ; k++ {
 				if k == len(h[j].ents) && hsEmpty(h[j].hs) {
 					break
 				}
 				img := copyOps(h[:j])
 				img = append(img, walOp{ents: copyEnts(h[j].ents[:k])})
 				out = append(out, img)
+				if k == len(h[j].ents) {
+					break
+				}
 			}
+		}
+		if j == len(h) {
+			break
 		}
 	}
 	return out
@@ -351,9 +361,13 @@ func cutPos(h []walOp, b int) bool {
 // walReleasePos <= it).
 func nameBound(h []walOp, a uint64) uint64 {
 	var best uint64
-	for b := 0; b <= len(h); b++ {
+	// T-10: the counter stops at len(h) (a `b <= len(h)` loop would wrap at len(h) = MaxInt).
+	for b := 0; ; b++ {
 		if cutPos(h, b) && lastIdx(h[:b])+1 <= a {
 			best = uint64(b)
+		}
+		if b == len(h) {
+			break
 		}
 	}
 	return best

@@ -1587,6 +1587,7 @@ noncomputable def walImgs.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Var "out"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1597,8 +1598,7 @@ noncomputable def walImgs.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType walOp.ty)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Val #true))) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Var "out"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType walOp.ty)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
@@ -1606,14 +1606,19 @@ noncomputable def walImgs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.SliceType walOp.ty) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.SliceType walOp.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType walOp.ty)]))) (Val #())) (Var "$a0"))))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
   (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType walOp.ty)]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"snap"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType walOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))) (Val #false))
   (Let "$r0" (Val #(W64 0))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"ents"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType walOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType entry.ty)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Val #true))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType walOp.ty)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
@@ -1632,8 +1637,14 @@ noncomputable def walImgs.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "img"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.SliceType walOp.ty) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.SliceType walOp.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType entry.ty)))) (App (Val (GoInstruction (StructFieldRef walOp.ty go!"ents"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType walOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType entry.ty)]))) (Val #())) (Var "$a0"))))))
+  (App (Val doBreak) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Pair (Var "out") (Var "$r0")))))))
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Pair (Var "out") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType walOp.ty)))) (Pair (Var "img") (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1650,7 +1661,7 @@ noncomputable def walImgs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #())))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Pair (Var "out") (Var "$r0"))))))))
   (Lam BAnon
@@ -1658,6 +1669,16 @@ noncomputable def walImgs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType walOp.ty)]))) (Val #())) (Var "$a0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Var "out"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Pair (Var "out") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType walOp.ty))))) (Var "$res0"))))))
@@ -1665,7 +1686,7 @@ noncomputable def walImgs.impl [GooseExts] [GoGlobalContext] : val :=
 /-- walFold is the previous model (walSave/walSaveSnap folded); opResend picks re-sent entries
     from it (any entries are fine for Save).
 
-    go: ref.go:220:6 -/
+    go: ref.go:230:6 -/
 noncomputable def walFold.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc contents.ty))) (App (Val (GoInstruction (GoZeroVal contents.ty))) (Val #())))
@@ -1728,7 +1749,7 @@ noncomputable def walFold.impl [GooseExts] [GoGlobalContext] : val :=
 /-- appendEnts is RaftState's appendEnts: the entries at or below the base dropped, the rest
     replacing the log from their first index on.
 
-    go: ref.go:237:6 -/
+    go: ref.go:247:6 -/
 noncomputable def appendEnts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "old"
@@ -1834,7 +1855,7 @@ noncomputable def appendEnts.impl [GooseExts] [GoGlobalContext] : val :=
     records is the whole history's (W1.5's version used the suffix's own: zero when it has no
     state record). False if no snapshot record remains, or the fold fails.
 
-    go: ref.go:268:6 -/
+    go: ref.go:278:6 -/
 noncomputable def walReadFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "k"
@@ -2028,7 +2049,7 @@ noncomputable def walReadFrom.impl [GooseExts] [GoGlobalContext] : val :=
 /-- walReadCut is the spec's relaxed reader (WalHist.lean): the whole history (k = 0), or the read
     from a purged prefix k.
 
-    go: ref.go:311:6 -/
+    go: ref.go:321:6 -/
 noncomputable def walReadCut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "k"
@@ -2075,7 +2096,7 @@ noncomputable def walReadCut.impl [GooseExts] [GoGlobalContext] : val :=
 /-- lastIdx is walLastIdx (WalDisk.lean): the larger of the last entry record's index and the
     highest snapshot record's index of h (0 if none).
 
-    go: ref.go:320:6 -/
+    go: ref.go:330:6 -/
 noncomputable def lastIdx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -2131,7 +2152,7 @@ noncomputable def lastIdx.impl [GooseExts] [GoGlobalContext] : val :=
 /-- cutPos is walCutPos (WalDisk.lean): a WAL file can start at position b of h (0, or right after
     a Save that writes a record).
 
-    go: ref.go:340:6 -/
+    go: ref.go:350:6 -/
 noncomputable def cutPos.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "b"
@@ -2169,7 +2190,7 @@ noncomputable def cutPos.impl [GooseExts] [GoGlobalContext] : val :=
     most a); Open at a unlocks only records before it, and ReleaseLockTo(a) too (walOpenPos,
     walReleasePos <= it).
 
-    go: ref.go:352:6 -/
+    go: ref.go:362:6 -/
 noncomputable def nameBound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "a"
@@ -2189,8 +2210,13 @@ noncomputable def nameBound.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "b" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType walOp.ty)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType walOp.ty)]))) (Val #())) (Var "$a0"))))))
+  (App (Val doBreak) (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
   (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "b"))
   (App (App (App (Val (GoInstruction (FuncResolve cutPos []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType walOp.ty)))) (Var "h"))
@@ -2200,7 +2226,7 @@ noncomputable def nameBound.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "best") (Var "$r0")))))
   (App (Val doExecute)
-  (Val #())))))
+  (Val #()))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "b") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (Val #(W64 1)))))))))))
@@ -2211,7 +2237,7 @@ noncomputable def nameBound.impl [GooseExts] [GoGlobalContext] : val :=
 /-- openBound is the largest nameBound at a of the images imgs (an Open at a after a crash unlocks
     below nameBound of the image it opened, one of them).
 
-    go: ref.go:364:6 -/
+    go: ref.go:378:6 -/
 noncomputable def openBound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "imgs"
   (Lam "a"

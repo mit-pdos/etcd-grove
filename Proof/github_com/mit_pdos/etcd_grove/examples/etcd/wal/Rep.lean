@@ -185,6 +185,72 @@ theorem opsRep_slice (s : GoSlice) (h : List TOp) (lo hi : w64)
   iapply opsElems_subslice
   iexact Hel
 
+/-- The Go operation slices `vs` are the histories `imgs`, element by element. -/
+def imgsElems (vs : List GoSlice) (imgs : List (List TOp)) : IProp GF :=
+  iprop(⌜vs.length = imgs.length⌝ ∗ □ ∀ (i : Nat) (v : GoSlice) (img : List TOp),
+    ⌜vs[i]? = some v ∧ imgs[i]? = some img⌝ -∗ opsRep v img)
+
+instance imgsElems_persistent (vs : List GoSlice) (imgs : List (List TOp)) :
+    Persistent (imgsElems (GF := GF) vs imgs) := by
+  unfold imgsElems; infer_instance
+
+theorem imgsElems_length (vs : List GoSlice) (imgs : List (List TOp)) :
+    imgsElems (GF := GF) vs imgs ⊢ ⌜vs.length = imgs.length⌝ := by
+  unfold imgsElems
+  iintro ⟨%hl, -⟩; ipureintro; exact hl
+
+theorem imgsElems_lookup (vs : List GoSlice) (imgs : List (List TOp)) (i : Nat) (v : GoSlice)
+    (hv : vs[i]? = some v) :
+    imgsElems (GF := GF) vs imgs ⊢ ∃ img, ⌜imgs[i]? = some img⌝ ∗ opsRep v img := by
+  unfold imgsElems
+  iintro ⟨%hl, #Hall⟩
+  have hi : i < imgs.length := by rw [← hl]; exact (List.getElem?_eq_some_iff.1 hv).1
+  iexists imgs[i]
+  isplitr
+  · ipureintro; exact List.getElem?_eq_getElem hi
+  iapply Hall
+  ipureintro; exact ⟨hv, List.getElem?_eq_getElem hi⟩
+
+theorem imgsElems_snoc (vs : List GoSlice) (imgs : List (List TOp)) (v : GoSlice) (img : List TOp) :
+    imgsElems (GF := GF) vs imgs ∗ opsRep v img ⊢ imgsElems (vs ++ [v]) (imgs ++ [img]) := by
+  unfold imgsElems
+  iintro ⟨⟨%hl, #Hall⟩, #Ho⟩
+  isplitr
+  · ipureintro; simp [hl]
+  imodintro
+  iintro %i %v' %o' %hi
+  obtain ⟨h1, h2⟩ := hi
+  by_cases hlt : i < vs.length
+  · rw [List.getElem?_append_left hlt] at h1
+    rw [List.getElem?_append_left (by omega)] at h2
+    iapply Hall; ipureintro; exact ⟨h1, h2⟩
+  · rw [List.getElem?_append_right (by omega)] at h1
+    rw [List.getElem?_append_right (by omega)] at h2
+    have : i - vs.length = 0 := by
+      have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
+    rw [this] at h1
+    rw [show i - imgs.length = 0 by omega] at h2
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h1 h2
+    subst h1 h2
+    iexact Ho
+
+theorem imgsElems_nil : ⊢ imgsElems (GF := GF) [] [] := by
+  unfold imgsElems
+  iintro
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %v %o %h
+  simp at h
+
+/-- The slice of operation slices `s` is the histories `imgs` (read-only). -/
+def imgsRep (s : GoSlice) (imgs : List (List TOp)) : IProp GF :=
+  iprop(∃ vs : List GoSlice, s ↦*□ vs ∗ imgsElems vs imgs)
+
+instance imgsRep_persistent (s : GoSlice) (imgs : List (List TOp)) :
+    Persistent (imgsRep (GF := GF) s imgs) := by
+  unfold imgsRep; infer_instance
+
 /-- The Go candidate `v` is `c`. -/
 def candRep (v : cand) (c : TCand) : IProp GF :=
   iprop(⌜v.unl' = c.unl ∧ v.pur' = c.pur⌝ ∗ opsRep v.h' c.h)
