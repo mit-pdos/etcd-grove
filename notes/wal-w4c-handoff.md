@@ -8,30 +8,43 @@ Goal (the user, 2026-11-11): the first rung of the crash ladder. Prove that the 
 the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd_wal_adequate` and
 `etcd_wal_safe`.
 
-## State (2026-11-12, first agent)
+## State (2026-11-12)
 
-- Plan written: `/shared/tmp/wal-spec/w4c/plan.md`. **Hard stop: waiting for etcd-grove-81** on its
-  §7 decisions:
-  - Q1: durable crash interpretation with fresh ghost names per generation, plus keep views (shared
-    with rung 3);
-  - Q2: purgeRound names-only with one axiom (PR-a);
-  - Q3: the tester's check tracks the model's purge bounds;
-  - Q4: `walCreateOk` as a premise;
-  - Q5: tester changes T-1..T-9.
-- No Lean edited or built. No scratch probe was needed.
+- Plan `/shared/tmp/wal-spec/w4c/plan.md` approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4,
+  `walCreateOk` as a listed world-assumption premise; its docstring names Create's cleanup I/O,
+  wal.go:294-309). Recorded in `questions.md` (untracked, gitignored).
+- **Tell etcd-grove-81 before touching `GooseLang/Ext/Durable`** (Q1 is shared with rung 3).
+- Step 0 done in `c9840f1022`:
+  - the tester is in `examples/etcd/wal` with T-1..T-9;
+  - the driver beside it (`*_test.go`, `crashtest/`) sets `SegmentSizeBytes` (`segSizeFor`), and
+    `walSaveOk` moved there;
+  - goose project `etcd-wal` and `wal.toml` (`purgeRound` names-only); the translation builds
+    (`GeneratedProof...examples.etcd.wal`).
+- CP1 matrix: `/shared/tmp/wal-spec/w4c/runs/matrix.sh`, logs in `runs/cp1/*.log`, binary
+  `/shared/tmp/wal-spec/w4c/wal.test` (built at the commit, before a doc-only edit and gofmt).
+  - 9 runs: the W3b matrix seeds plus `l-*`, 10 incarnations x 40 ops.
+  - Read each log's `violations N` line. **Any violation is a soundness finding: stop.**
+- R1 (gen-init) finding: `etc/gen-init.py` needs an `IsPkgInit` instance module for the tester (a
+  `Base.lean` as `examples/etcd/restart/Base.lean`, fact `True`) and one for `fileutil` (none exists:
+  the "instance modules" W4a hit). With them, add the root
+  `github_com.mit_pdos.etcd_grove.examples.etcd.wal` to `ROOTS` and run
+  `etc/gen-init.py github_com.mit_pdos.etcd_grove.examples.etcd.wal go_etcd_io.etcd.client.pkg.v3.fileutil`.
+  Tried, then reverted (it crashes on the missing instance: `gen`, `imods[0]`). Do this at step 2
+  (Lean), with the other `Defs`.
+- Not done in step 0: the count of restarts the bounds accept only through a purged prefix (needs
+  instrumentation; optional); R4's `entRoC` probe (deferred to step 2).
 
-## Next, in order (after approval; plan §8)
+## Next, in order
 
-0. Step 0 (Go; no Lean), then CP1:
-   - create `examples/etcd/wal` from `/shared/tmp/wal-spec/w3b/tester/etcd/wal` with T-1..T-9, and
-     move the driver beside it;
-   - add the goose project `etcd-wal` (as `restart3`) and run the translation;
-   - run `etc/gen-init.py` over the closure (risk R1: `fileutil`);
-   - rerun the W3b matrix with the new check: 0 violations required.
-1. PR-a's axiom and its Freeze (hard stop).
-2. Q1, `Defs`/`RefLemmas`/`Crash`, then CP2.
-3. Per-function proofs, then CP3.
-4. `Results`/`Link`/Init/tcb collection, then the hard stop on the closed theorem.
+1. CP1 report to etcd-grove-81 once the matrix ends (0 violations required).
+2. The purgeRound Freeze (hard stop):
+   - `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/purgeRound.lean`: the axiom (plan §5),
+     plus its Spec file;
+   - Go tests (purge after `Open` at a snapshot, after `ReleaseLockTo`, then a graceful restart; a
+     purge with no handle shows the right is needed);
+   - the Freeze package in `/shared/tmp/wal-spec/w4c/freeze-purge.md`. etcd-grove-81 reviews it with
+     the axiom skill.
+3. Steps 2-4 as in plan §8.
 
 ## Pitfalls
 
