@@ -26,8 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 slice, no key twice. By the lease owner (`.owner I`: its half of the set, `leaseItemsOwn l I id`,
 and a reader slot of the lease's lock), the keys are those the owner's item map `I` puts on `id`; by
 a reader (`.reader m`, the lease-keys plan's Part B, 2026-10-31: `l` the lease of `id` at an index
-no earlier than `m`, and a thread token, with which it borrows a slot of the lock from the lease's
-pool, at most `2^30 - 1` live threads), the keys the item map puts on `id` at an index no earlier than
+no earlier than `m`, and the level-0 token of the lease's leveled pool (`levelTok leaseLvl`), with
+which it borrows a slot of the lock from that pool, at most `2^30 - 1` live threads), the keys the item map puts on `id` at an index no earlier than
 `m` where the lease map has `l` (`leaseKeysFrom`; the last such index, `setsOk`). -/
 abbrev lease.Lease.Keys.spec : Prop :=
   ∀ (γl : GName) (l : Loc) (id : w64) (K : KeysBy),

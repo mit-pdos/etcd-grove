@@ -178,7 +178,7 @@ theorem EtcdServer.checkLeaseRenew.wp_proof
   (try wp_auto)
   wp_apply (hK γl l id (.reader m)) $$ [Htok] as %sl %ks ⟨Hks, Hpre, Hpost, %Hnd⟩
   · iframe Hlo; rw [lease.keysPre_reader]; iframe Htok Hlive; ipureintro; exact Hbound
-  ihave Hpre : iprop(lease.leaseLiveFrom γl m id l ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝)
+  ihave Hpre : iprop(lease.leaseLiveFrom γl m id l ∗ levelTok lease.lessorLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝)
     $$ [Hpre]
   · rw [← lease.keysPre_reader]; iexact Hpre
   icases Hpre with ⟨-, Htok, -⟩

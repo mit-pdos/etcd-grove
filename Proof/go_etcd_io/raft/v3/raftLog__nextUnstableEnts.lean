@@ -35,7 +35,7 @@ theorem raftLog.nextUnstableEnts.wp_proof
   isplitl
   · reseal_raftLog
   simp only [nextUnstable, logOffset, ← Hoffset]
-  iexact Hs
+  iapply entsROz_entsRO $$ Hs
 
 end proof
 

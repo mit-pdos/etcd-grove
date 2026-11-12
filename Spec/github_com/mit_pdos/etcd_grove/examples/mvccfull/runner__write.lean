@@ -37,7 +37,7 @@ abbrev runner.write.spec : Prop :=
     (cfg : Config) (wr : List w64) (h : Loc) (γ : FullNames) (mp0 mp1 : Loc) (f0 f1 : GoFunc)
     (ops : List OpM) (v0 v1 : MemS) (nv nb : Nat) (q qs : Qp),
   nv + 3 * (sint.Z cfg.Ops').toNat < 2 ^ 62 →
-  backend.dbOpenOk → backend.dbCloseOk → ckptEffectsOk →
+  backend.dbOpenOk → backend.dbCloseOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γ.h ∗
       envVerifyOff ∗ threadTok ∗ writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs }}

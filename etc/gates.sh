@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
-# and every collection, the translations (and the examples' go.mod pins), the generated
+# and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
 # initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
@@ -82,6 +82,20 @@ for c in etc/tcb-collections/*.txt; do
   fi
 done
 echo "collections: $coll_ok match, $coll_bad differ"; [ "$coll_bad" = 0 ] || fail=1
+# 3b. the axiom-tok gate (per-type stage B, Scope r5 §5.1): no trusted statement lets its user
+# obtain tokens or resources it chose beyond what it gives, but for the entries of
+# etc/axiom-tok-allow.txt; reads the .lake/tcb.json the trust-base check above wrote (so after it,
+# in this section). A full run: about 6 minutes, 9 GiB peak (2026-11-11); its own memory cap
+# (systemd-run, where there is one).
+cap=()
+if command -v systemd-run > /dev/null 2>&1; then cap=(systemd-run --scope -q -p MemoryMax=24G); fi
+if "${cap[@]}" python3 etc/axiom-tok-check.py --check --raw "$tmp/atok.jsonl" > "$tmp/atok.log" 2>&1; then
+  echo "axiom-tok: $(tail -1 "$tmp/atok.log" | sed 's/^axiom-tok: //')"
+else
+  echo "axiom-tok: FAILED"; grep -A40 "need an entry (rule 8)\|^Unknown\|^Truncations\|^Entry keys\|^Stale\|FAILED\|Error\|error" "$tmp/atok.log" | head -40; fail=1
+fi
+# its selftests, and the real axioms they name (`real-pass`) in the run above
+"${cap[@]}" python3 etc/axiom-tok-check.py --selftest --reuse-raw "$tmp/atok.jsonl" > "$tmp/atoks.log" 2>&1 || { echo "axiom-tok selftest: FAILED"; grep "FAIL\|error" "$tmp/atoks.log" | head -20; fail=1; }
 return $fail
 }
 
@@ -224,11 +238,23 @@ fail=0
 # error kubernetes.Client returns has one of clientErrTys' four dynamic types, under partitions,
 # deadlines and a closed client (TestClientErrorTypes, about 4 minutes), and etcd's per-RPC
 # credential never errs (TestCredentialNilError, perRPCCredsOk)
-if (cd examples/k8s/etcd3 && GOWORK=off go test -count=1 -timeout 30m \
-    -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
-  echo "k8s client error types: ok"
+# A run whose in-process cluster fails to start ("StartCluster failed": a port taken by another
+# gate run's cluster under the parallel load, 2026-11-12, three times) is retried, up to 3 attempts;
+# any other failure fails at once.
+cet_try=0; cet_ok=0; cet_miss=
+while [ $cet_try -lt 3 ]; do
+  cet_try=$((cet_try + 1))
+  if (cd examples/k8s/etcd3 && GOWORK=off go test -count=1 -timeout 30m \
+      -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
+    cet_ok=1; break
+  fi
+  grep -q "StartCluster failed" "$tmp/cet.log" || break
+  cet_miss="$cet_miss attempt $cet_try: StartCluster failed;"
+done
+if [ $cet_ok = 1 ]; then
+  echo "k8s client error types: ok (attempt $cet_try of 3${cet_miss:+;$cet_miss})"
 else
-  echo "k8s client error types: FAILED"; tail -20 "$tmp/cet.log"; fail=1
+  echo "k8s client error types: FAILED (attempt $cet_try${cet_miss:+;$cet_miss})"; tail -20 "$tmp/cet.log"; fail=1
 fi
 
 # 9e. the attack programs behind grpcInvokerOk's attempt-level error types (k8s 7e Freeze review):

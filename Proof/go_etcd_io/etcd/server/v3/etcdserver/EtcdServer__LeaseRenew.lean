@@ -28,6 +28,7 @@ public import Spec.go_opentelemetry_io.otel.attribute.Int64
 public import Spec.errors.Is
 public import Spec.errors.IsCtxErr
 public import Spec.context.ErrDone
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.StartLaws
 
 @[expose] public section
 
@@ -173,7 +174,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   (try wp_auto)
   -- `leader, lerr := s.waitLeader(cctx)`
   wp_apply (hWl s E ρ γr cctx _) $$ [] as %ldr %lerr Hl
-  · iframe #
+  · iframe #; iapply srvCtxWeak_of_isContext; iassumption
   (try wp_auto)
   icases Hl with (⟨%Hln, %mv, %urls, #Hm, #Hurls⟩ | ⟨%Hln, #Hle⟩)
   rotate_left
@@ -220,7 +221,9 @@ local macro "renew_forward" : tactic => `(tactic| (
     (try wp_auto)
     -- `ttl, err := leasehttp.RenewHTTP(cctx, id, lurl, s.peerRt)`
     wp_apply hHttp cctx _ id _ rt $$ [] as %ttl %herr Hh
-    · iframe #; ipureintro; exact Hrt
+    · iframe #; isplitl []
+      · iapply srvCtxWeak_of_isContext; iassumption
+      ipureintro; exact Hrt
     (try wp_auto)
     -- `if err == nil || errorspkg.Is(err, lease.ErrLeaseNotFound) { return ttl, err }`
     icases Hh with (%Hhn | ⟨%Hhn, #Hhe⟩)
@@ -373,7 +376,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
@@ -405,12 +408,10 @@ theorem EtcdServer.LeaseRenew.wp_proof
   | true =>
     (try wp_auto)
     -- `if !s.ensureLeadership() { return -1, lease.ErrNotPrimary }`
-    -- (revoke-open Q5, 2026-11-06) `ensureLeadership` takes a level of the thread token: level 0
-    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩
-    wp_apply (hEns s E ρ γr 0) $$ [$Hlgr $Hrrd $Htok] as %b ⟨Hlgr, Hrrd, Htok⟩
+    -- (revoke-open Q5, 2026-11-06) `ensureLeadership` takes a level of the thread token: level 0,
+    -- the one the spec takes (`lessorLvl`), returned before the check and `Renew`
+    wp_apply (hEns s E ρ γr lease.lessorLvl) $$ [$Hlgr $Hrrd $Htok] as %b ⟨Hlgr, Hrrd, Htok⟩
     · iframe #; ipureintro; exact Hbound
-    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Htok Htok1]
-    · iframe Htok Htok1
     (try wp_auto)
     cases b with
     | false =>
@@ -419,7 +420,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     | true =>
     (try wp_auto)
     -- `if s.FeatureEnabled(features.FastLeaseKeepAlive)`
-    wp_apply (hFE s rv.fg) as %fe -
+    wp_apply (hFE s rv.fg _ none) as %fe -
     · iframe #; ipureintro; simp [serverFeatures]
     (try wp_auto)
     cases fe with

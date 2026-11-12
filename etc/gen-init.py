@@ -1923,7 +1923,7 @@ names) and the four
              '  ileft', '  ipureintro; rfl',
              '-- the six `ServiceDesc`s, from `etcdserverpb`\'s fact',
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
-             'obtain ⟨rfl, HWp, -⟩ := HWp',
+             'obtain ⟨rfl, HWp, HWc⟩ := HWp',
              'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
              '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods',
             
@@ -1933,7 +1933,7 @@ names) and the four
              '  iframe HK HL HC HA HM',
              '  iexists ws',
              '  iframe HW',
-             '  ipureintro; exact HWp',
+             '  ipureintro; exact ⟨HWp, HWc⟩',
              '-- (D19j) what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`\'s errors',
              'ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd3',

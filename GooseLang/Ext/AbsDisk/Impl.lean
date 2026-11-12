@@ -1,0 +1,286 @@
+/-
+The abstract-disk extension of GooseLang [Trusted definitions!] (WAL W4a, 2026-11-11; the approved
+W4 Draft's §1.1 and §1.6, `notes/decisions.md`, "WAL W4").
+
+The durable state of etcd's write-ahead logs, one per directory, at the level of the records a
+restart reads: the history of `Save`/`SaveSnapshot` calls (`WalOpG`), how much of it is synced, the
+purge positions, and whether the directory's entry is durable. Its name is the path of the Go
+package whose functions move it, `go.etcd.io/etcd/server/v3/storage/wal`: the WAL is names-only (its
+functions' specs are axioms, `Spec/go_etcd_io/etcd/server/v3/storage/wal/`), and an axiomatized body
+is read as one that performs this extension's steps (`AbsDiskStep`). No translated code reaches the
+steps: only the WAL's axiomatized bodies and trusted models (the tester's `purgeRound`) perform them.
+Rung 3 (bbolt) adds a `bolt` field to `AbsDiskState`.
+
+**The world assumptions** the crash relation (`walCrash`, `walImg`) rests on (the user's decisions of
+2026-11-11, `notes/decisions.md`, "WAL W3"; the Go evidence is the WAL tester under the
+ptrace-recorded crash file system, kill, posix, ordered and kill-then-power-loss models):
+* **The bare fsync(2) contract** for files and directories: once `fsync`/`fdatasync` of a file
+  returns 0, its content and size as of the call are durable, truncates and fallocates included;
+  a create, mkdir, rename or unlink in a directory `d` is durable once an `fsync(d)` returns after
+  it (no journal ordering is assumed). etcd's fork at the pin makes the WAL's names durable with it
+  (F-N1, F-N2, F-N4: `wal.tmp` synced before its rename, the parents of `TouchDirAll`'s
+  directories, and at a write-mode `ReadAll` the WAL directory and its parent).
+* **Unsynced bytes are arbitrary** after a power loss (any content, per byte), and a kill keeps
+  exactly what was written (the page cache).
+* **Rewriting a sector never corrupts bytes of it that were already synced** (a record appended
+  into a partly written, synced sector leaves the synced part intact).
+* **No CRC32-Castagnoli collision** on torn or arbitrary data: a record that was not written whole
+  never passes the WAL's CRC chain.
+* **Paths** (approved by the user, 2026-11-12, via etcd-grove-81): during the run, no other process
+  creates, renames or removes files in the directories etcd and the tester use; no path the run uses
+  has a symbolic link at or below the data directory (symlinked ancestors are fine); file names are
+  case-sensitive. The run names each file at or below the data directory by one spelling: no two
+  distinct clean absolute paths the run uses name the same file (no symlinked or bind-mounted alias
+  of an ancestor is used besides the data directory's own spelling; names are compared byte for
+  byte, with no case folding or Unicode normalization). (The last sentence approved by the user,
+  2026-11-12, via etcd-grove-81, after the third Freeze review's B1. The paths are clean absolute
+  strings, `Paths.lean`; by the one-spelling clause, two distinct ones the run uses at or below the
+  data directory name distinct files.)
+Under them, what a restart decodes is a record-granular prefix of what was written that reaches the
+last sync (F-Z makes a restart's read itself synced); an image outside that set fails the restart's
+read (bootstrap's error, or `Fatal`), which every read spec allows.
+
+**The WAL area** (the revision after the Freeze review, `notes/decisions.md`, "WAL W4a revision"):
+the state's `area` is the directory the WAL directories lie in, fixed (no step changes it, a crash
+keeps it). Every WAL directory is a single element `area/n` with `n` free of `/` and `.`
+(`walAreaDir`); `"WalCreate"` requires all of `Create`'s footprint free (`walCreateRegion`), and
+`"DirDurable"` (`TouchDirAll`) is never under the area. The durable extension's names stay outside the
+area through a one-shot reservation in its ghost state (`durableReserved`), which the WAL functions
+that take a directory require. **What this covers, precisely**: of the program's other path users,
+only the durable extension (its names, in the reserved mode) and `TouchDirAll` (its directory, its
+parents' fsyncs and its probe `d/.touch`, which no durable name in the reserved mode and no WAL
+directory can be) are kept out of the WAL directories' footprint; the WAL functions' own footprint
+is the area's WAL directories and `Create`'s region (`walCreateRegion`), plus the area's and its
+parent's fsyncs, and, when the area or its ancestors are missing, `Create`'s mkdir of them (outermost
+first) and the fsyncs of their parents (`CreateDirAll` of `dir.tmp` is `TouchDirAll`); a durable name
+at such an ancestor only makes that mkdir, so `Create`, fail. No other extension is constrained: a closed theorem that combines this extension
+with another one that names paths (`osFsExt`, rung 3's bbolt; the server's WAL axioms, C6) must
+first extend the reservation to it (a gate, `notes/decisions.md`, "WAL W4a revision round 2").
+"Paths" constrains the paths at or below the data directory only: a closed theorem's area must lie at
+or below its data directory (as the tester's `root/data/member` does), and C6 with a dedicated WAL
+directory (`--wal-dir`, outside the data directory) must first extend "Paths" to it, a change for
+the user to approve (a gate, `notes/decisions.md`, "WAL W4a review 4 minors"). The adequacy theorem
+covers only starts meeting `absDiskInitOk`.
+-/
+module
+
+public import Perennial.GooseLang.Lang
+public import Proof.go_etcd_io.raft.v3.PbModel
+public import GooseLang.Ext.AbsDisk.Paths
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open go_etcd_io.raft.v3 EtcdGrove
+
+/-- One WAL operation's records (CRC, metadata, cut-header and `Create`'s records omitted: the
+reader ignores them, or they repeat a state, §1.3). `save h es`: `Save(h, es)` writes each entry's
+record, then `h`'s unless `h` is empty (`saveState`, S/wal.go:1022-1030). `snap m`:
+`SaveSnapshot(m)`, one record (its `ConfState` ignored: the reader reads index and term only). -/
+inductive WalOpG (E : Type) where
+  | save (h : HardStateM) (es : List E)
+  | snap (m : SnapshotMetadataM)
+
+/-- A raw entry: what an entry record holds (`raftpb.Entry`'s term, index, type, data). -/
+structure WalEnt where
+  term : w64
+  index : w64
+  typ : w32
+  data : List w8
+
+/-! Injective encodings (the steps' arguments, `walCode`; the ghost state's values). -/
+
+instance : Pos.Countable HardStateM :=
+  .ofInjective (fun h => Pos.Countable.encode (h.Term', h.Vote', h.Commit'))
+    (by intro a b h; cases a; cases b; simp_all)
+
+instance : Pos.Countable ConfStateM :=
+  .ofInjective (fun c => Pos.Countable.encode
+      (c.Voters', c.Learners', c.VotersOutgoing', c.LearnersNext', c.AutoLeave'))
+    (by intro a b h; cases a; cases b; simp_all)
+
+instance : Pos.Countable SnapshotMetadataM :=
+  .ofInjective (fun m => Pos.Countable.encode (m.ConfState', m.Index', m.Term'))
+    (by intro a b h; cases a; cases b; simp_all)
+
+instance {E : Type} [Pos.Countable E] : Pos.Countable (WalOpG E) :=
+  .ofInjective (fun o => Pos.Countable.encode (match o with
+      | .save h es => (Sum.inl (h, es) : (HardStateM × List E) ⊕ SnapshotMetadataM)
+      | .snap m => Sum.inr m))
+    (by intro a b h; cases a <;> cases b <;> simp_all)
+
+instance : Pos.Countable WalEnt :=
+  .ofInjective (fun e => Pos.Countable.encode (e.term, e.index, e.typ, e.data))
+    (by intro a b h; cases a; cases b; simp_all)
+
+/-- **The value naming a step's argument** (an operation, a mark, a position): an injective code
+as a string of `encode a` zero bytes. Any injective code gives the same semantics up to renaming
+the values; no translated code builds one (only the WAL's axiomatized bodies, which pass the
+operation, mark or position their axiom names). A body computes `walCode a` from `a`'s
+representation in the heap by a loop (`encode` is computable, and GooseLang strings are unbounded);
+only the consistency argument (that some body performs the steps an axiom names) needs it. -/
+def walCode {A : Type} [Pos.Countable A] (a : A) : GoString :=
+  List.replicate (Pos.Countable.encode a).toNat (0 : w8)
+
+theorem walCode_inj {A : Type} [Pos.Countable A] {a b : A} (h : walCode a = walCode b) : a = b := by
+  have h' := congrArg List.length h
+  simp only [walCode, List.length_replicate] at h'
+  exact Pos.encode_inj (Pos.Pos_toNat_inj h')
+
+/-- **What a crash can leave of a WAL whose history is `H` with its first `n` operations synced**:
+the first `j` operations (`n ≤ j ≤ |H|`), then possibly the first `k` entry records of operation `j`
+when it is a `Save` (its state record, written last, lost). Power loss: P1, P4, P5 and the sector
+assumption (notes/decisions.md "WAL W3"); a kill: the page cache, which holds a record-granular
+prefix of what was written; a kill then a power loss: an image of an image (`walImg_trans`). An
+image whose decodable records end below the mark (a sector garbled against the sector assumption, a
+purge gap, C-P6) is not here: the restart's read then fails (bootstrap's error or `Fatal`), which
+every read spec allows. -/
+def walImg {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Prop :=
+  ∃ j, n ≤ j ∧ j ≤ H.length ∧
+    (I = H.take j ∨
+     ∃ h es k, H[j]? = some (.save h es) ∧ k ≤ es.length ∧
+       I = H.take j ++ [.save ⟨0, 0, 0⟩ (es.take k)])
+
+/-- **The durable state of the WAL in one directory**. `H`: every `Save`/`SaveSnapshot` since
+`Create`, across restarts (after a crash, the image the crash left). `m`: how many operations of `H`
+are synced. `unl`: while a handle of the directory with its purge right is live, every record from
+position `unl` on is in a file it keeps locked (records before it may be in unlocked files:
+`ReleaseLockTo`, and a restart's `Open`, which locks from the opened snapshot's file on and raises
+`unl` to `walOpenPos H s.1`, a position at or after the start of the file `Open` locks from (the smaller of `|H|` if an index may wrap (unreachable), else 0 at index 0, else the snapshot record's last position under `walRelGuard`, else `|H|`, and the last position a file named at most `s.1` can start at; WAL W4a.2)); an upper bound on what is unlocked while the right is
+held. After `Close` or a crash no file is locked, and nothing may purge until a handle exists again
+(the purge right, `walPurgeW`, exists only with a live handle). `pur`: no record from position `pur`
+on has been deleted (records before it may have been: a purge round ran while `unl` was that).
+`cut`: the next restart reads from position `cut` on (chosen at a crash, `≤ pur`). `metadata`: `Create`'s
+metadata. `named`: the WAL directory's entry, and its ancestors', are durable. `sized`: as today's
+`walRecs` flag (WalRecs.lean), every entry record of a successful `Save` is the encoding of an entry
+object of bounded size. No step clears it (the third review's m3: the `"WalUnsize"` step, which no
+axiom performed, was dropped): `walDurFresh` is sized, so a `Save` of unsized entries (`sized =
+false`) has no WAL to apply to: a caller saves sized entries (`walSaveEnts true`; a W4c obligation on the
+tester, recorded in `notes/decisions.md`). -/
+structure WalDur where
+  H : List (WalOpG WalEnt)
+  m : Nat
+  unl : Nat
+  pur : Nat
+  cut : Nat
+  metadata : List w8
+  named : Bool
+  sized : Bool
+
+/-- The state of a WAL that `Create` has just renamed into place: no operation, nothing synced,
+locked, nothing purged, its entry not yet durable, sized (no entry record). -/
+def walDurFresh (md : List w8) : WalDur :=
+  { H := [], m := 0, unl := 0, pur := 0, cut := 0, metadata := md, named := false, sized := true }
+
+/-- The extension's state: the WAL area, the WAL directories (rung 3 adds
+`bolt : GMap GoString BoltDur`), and the directories whose entries (and ancestors') are durable
+(`TouchDirAll`, F-N2). -/
+structure AbsDiskState where
+  /-- The WAL area: the directory the WAL directories lie in (`walAreaDir`). No step changes it; a
+  crash keeps it. -/
+  area : GoString
+  wal : GMap GoString WalDur
+  dirs : GSet GoString
+
+instance : Inhabited AbsDiskState := ⟨⟨[], ∅, ∅⟩⟩
+
+/-- **The start's paths** [trusted: the adequacy theorem's premise, through `absDisk_interp.initP`]:
+the area is a clean absolute path, every WAL directory lies in it, no durable directory lies under it,
+and **no WAL exists at the start** (`s.wal = ∅`; WAL W4a.2 revision 2, decided by etcd-grove-81: the
+re-review found that a WAL present at the start may hold an index `2^64-1`, or be named by an older
+etcd, which brings back the name wrap's false `ReadAll` and breaks `walOpenPos`; so every WAL history
+is one the run builds from `Create`, under `Save`'s and `SaveSnapshot`'s premises). A crash's next
+generation is not a start: it gets the crashed state (`absDisk_local_crash`). The adequacy theorem
+covers only such starts; the program's own directories are constrained by the closed theorem (W4c).
+**C6 gate:** a start with a WAL present needs a stronger condition ("written by etcd at the pin from
+its `Create`, under the `Save`/`SaveSnapshot` premises"); a WAL named by an older etcd does not meet it
+(a soundness problem, not only liveness). -/
+def absDiskInitOk (s : AbsDiskState) : Prop :=
+  cleanAbsPath s.area ∧ (∀ k d, s.wal !! k = some d → walAreaDir s.area k) ∧
+  (∀ k, s.dirs !! k = some () → cleanAbsPath k ∧ ¬ underDir s.area k) ∧
+  s.wal = ∅
+
+/-- The abstract-disk extension. No values of its own, no global state. -/
+@[reducible] def absDiskExt : GooseExt where
+  name := "go.etcd.io/etcd/server/v3/storage/wal"
+  Val := Empty
+  LocalState := AbsDiskState
+  GlobalState := Unit
+
+/-- **The crash relation of one WAL directory** [trusted]: a WAL whose entry is not yet durable
+(`Create` between its rename and the parent's fsync, and after a kill until the next write-mode
+`ReadAll`) may vanish; otherwise the history becomes an
+image `I` at or past the mark, the mark stays (a kill keeps unsynced records unsynced; F-Z makes the
+restart's read durable, `ReadAll`'s post), `unl` and `pur` are clamped to the image's length, and the
+next read's purged prefix is any `k ≤ min pur |I|`. The clamp (revision round 2, m-1): every record
+in an unlocked or deleted file is synced, since `cut` fdatasyncs a file before it starts the next
+(S/wal.go:876, 909) and only whole files before the one holding `unl` are unlocked; a crash keeps
+the synced records (`|I| ≥` what was synced), so `min unl |I|` and `min pur |I|` still bound what
+is unlocked and what was deleted. -/
+def walCrash (d : WalDur) (d' : Option WalDur) : Prop :=
+  (d.named = false ∧ d' = none) ∨
+  ∃ I k, walImg d.H d.m I ∧ k ≤ min d.pur I.length ∧
+    d' = some { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }
+-- `named` kept: a WAL that survived a kill between `Create`'s rename and its parent's fsync is seen
+-- through a name in the page cache only, and a later power loss can still revert the rename. F-N4
+-- (b18c2d500) makes the name durable at a write-mode `ReadAll` (its model's `"WalNamed"` step).
+
+section absDisk
+variable [GooseExts] [GoGlobalContext]
+
+/-- The WAL in `dir`'s state, updated by `f` (no change if there is none). -/
+def absDiskUpd (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur) : AbsDiskState :=
+  match s.wal !! dir with
+  | some d => { s with wal := <[dir := f d]> s.wal }
+  | none => s
+
+/-- **The steps** [trusted] (§1.6): one external operation per abstract step, each returning `()`
+and leaving the heap alone. `"WalCreate"` of `(dir, meta)` puts a fresh WAL at a WAL directory of the area whose
+`Create` region (`walCreateRegion`) holds no WAL;
+`"WalNamed"` makes `dir`'s entry durable; `"WalAppend"` appends an operation (the one the calling
+WAL function writes: its spec says which); `"WalSync"` raises the synced mark to a position at most
+the history's length; `"WalUnlock"` raises `unl` (`ReleaseLockTo`, a restart's `Open`: the files
+before a snapshot record's position); `"WalPurge"` of `(dir, k)` raises `pur` to `unl`, and moves the read position
+`cut` to `k`, the start of the first file the round left (deleted files hold only records before
+`unl`, and files are deleted oldest first: `cut ≤ k ≤ max pur unl`; a purge round);
+`"DirDurable"` of `d`, a directory
+not under the area, records that `d`'s entry and its ancestors' are durable (`TouchDirAll`). The operation, mark and position a step takes
+are passed as the second component of the argument, by their code (`walCode`): the WAL
+function's spec (an axiom) says which ones its body passes. -/
+def AbsDiskStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (s : AbsDiskState)
+    (_g : Unit) (e' : Expr) (h' : GMap Loc (NonAtomic val)) (s' : AbsDiskState) (_g' : Unit) :
+    Prop :=
+  h' = h ∧ e' = Val (#()) ∧
+  match op with
+  | "WalCreate" => ∃ (dir : GoString) (md : List w8), v = PairV (#dir) (#md) ∧
+      walAreaDir s.area dir ∧ (∀ k, walCreateRegion dir k → s.wal !! k = none) ∧
+      s' = { s with wal := <[dir := walDurFresh md]> s.wal }
+  | "WalNamed" => ∃ dir : GoString, v = #dir ∧ s' = absDiskUpd s dir (fun d => { d with named := true })
+  | "WalAppend" => ∃ (dir : GoString) (o : WalOpG WalEnt), v = PairV (#dir) (#(walCode o)) ∧
+      s' = absDiskUpd s dir (fun d => { d with H := d.H ++ [o] })
+  | "WalSync" => ∃ (dir : GoString) (n : Nat), v = PairV (#dir) (#(walCode n)) ∧
+      (∀ d, s.wal !! dir = some d → n ≤ d.H.length) ∧
+      s' = absDiskUpd s dir (fun d => { d with m := max d.m n })
+  | "WalUnlock" => ∃ (dir : GoString) (p : Nat), v = PairV (#dir) (#(walCode p)) ∧
+      s' = absDiskUpd s dir (fun d => { d with unl := max d.unl p })
+  | "WalPurge" => ∃ (dir : GoString) (k : Nat), v = PairV (#dir) (#(walCode k)) ∧
+      (∀ d, s.wal !! dir = some d → d.cut ≤ k ∧ k ≤ max d.pur d.unl) ∧
+      s' = absDiskUpd s dir (fun d => { d with pur := max d.pur d.unl, cut := k })
+  | "DirDurable" => ∃ d : GoString, v = #d ∧ ¬ underDir s.area d ∧
+      s' = { s with dirs := <[d := ()]> s.dirs }
+  | _ => False
+
+end absDisk
+
+/-- The extension's semantics: its steps, and at a crash every WAL directory's `walCrash` (the
+area and the directories' durability kept; no WAL appears). -/
+instance absDisk_semantics : ExtSemantics absDiskExt where
+  step := AbsDiskStep
+  crash s s' := s'.area = s.area ∧ s'.dirs = s.dirs ∧
+    (∀ dir d, s.wal !! dir = some d → walCrash d (s'.wal !! dir)) ∧
+    (∀ dir, s.wal !! dir = none → s'.wal !! dir = none)
+
+end Perennial

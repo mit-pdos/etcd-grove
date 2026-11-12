@@ -17,6 +17,7 @@
 module
 
 public import Proof.go_etcd_io.raft.v3.PbContentOwn
+public import Proof.go_etcd_io.raft.v3.PbSized
 public import Proof.go_etcd_io.raft.v3.Protocol.GhostState
 
 @[expose] public section
@@ -112,17 +113,11 @@ non-snapshot message's included: raft forwards it whole). -/
 def hdrBytes (c : MsgC) : Nat :=
   (c.f.context.getD []).length + c.f.uf.length + optSnapSize c.f.snapshot
 
-/-- **An entry's bytes**: its `Data` and its unknown fields. -/
-def entBytes (e : EntryC) : Nat := (e.data.getD []).length + e.uf.length
-
 /-- **A message's content is of bounded size**: no responses, its header bytes and each entry's
 bytes at most `2^31`, and its entries' framed sum at most `2^36`. -/
 def msgSizeOk (c : MsgC) : Prop :=
   c.resps = [] ∧ hdrBytes c ≤ 2 ^ 31 ∧ (∀ e ∈ c.f.entries, entBytes e ≤ 2 ^ 31) ∧
     (c.f.entries.map (fun e => entBytes e + 64)).sum ≤ 2 ^ 36
-
-/-- **An entry's content is of bounded size**. -/
-def entSizeOk (e : EntryC) : Prop := entBytes e ≤ 2 ^ 31
 
 /-- **The size law's conclusion** of an element of the handed-out set: a message, unless a
 `MsgSnap` (sent by `msgSnapC`, never through the stream writer), is `msgSizeOk`; an entry is
@@ -188,7 +183,7 @@ their entries are its log's entry objects, whose content comes from proposals (a
 node API's `Propose`/`ReadIndex` premises), raft-internal constants, the storage (bounded by the
 storage contract, raft-entsize §5) and stepped messages (`msgSizeOk` by `stepIn_intro`'s and
 `RawNode.Step`'s premise, raft-entsize §4); it re-emits received objects only after changing their
-scalar fields, which the measure does not count (`hdrBytes`, `entBytes`), and cuts a `MsgApp`'s
+scalar fields, which the measure does not count (`hdrBytes`, `entBytes`, `PbSized.lean`), and cuts a `MsgApp`'s
 entries at `MaxSizePerMsg ≤ 2^20` (the starters' premise) or sends one entry. Harness `H4`, `H5`,
 `H9′`: 0 violations over 26,471 non-snapshot messages, adversarial snapshots included.
 

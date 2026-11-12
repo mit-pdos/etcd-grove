@@ -455,8 +455,9 @@ instance rnSnapTermAbove_persistent (γ : RNNames) :
 
 /-- (R2d'a A6, 2026-11-06; DRAFT) **The restart data** (persistent): a first start (`a0 = []`, and
 (A10 item 5, Q28 (i)) the start term `t0 = 0`; (S1, 2026-11-11) the restart point's WAL commit and
-snapshot index `commit0 = snap0 = 0`), or a restart before the WAL's first snapshot (`pre = []`,
-R2d'a's `σ.b = 0` restriction) whose backend log `a0` is committed (`srvRLogLb`), between the
+snapshot index `commit0 = snap0 = 0`), or a restart (`pre = []`; R2d'a's `σ.b = 0` restriction
+lifted by restart S3/S4, 2026-11-11/12: the server's hubs carry Go's start log `P`, `srvRunRestartR`)
+whose backend log `a0` is committed (`srvRLogLb`), between the
 restored records' snapshot index and commit (`snap0 ≤ |a0| ≤ commit0`), with (A10 item 5, Q29 (d))
 this incarnation's `MsgSnap`s above `t0` (`rnSnapTermAbove`).
 

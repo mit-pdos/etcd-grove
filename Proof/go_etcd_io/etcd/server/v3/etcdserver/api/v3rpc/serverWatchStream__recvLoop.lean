@@ -19,6 +19,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Error
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchLemmas
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.StartLaws
 
 @[expose] public section
 
@@ -54,7 +55,7 @@ set_option hygiene false in
 stream's producer at its sends). -/
 macro "recv_next" : tactic => `(tactic| (
   wp_for_post
-  iframe HΦ HRD Htt Hrdr sws «$res0»
+  iframe HΦ HRD Hrdr sws «$res0»
   iexists _, _
   iframe Hrt Hprod Hpool))
 
@@ -63,7 +64,7 @@ set_option hygiene false in
 macro "recv_ret_nil" : tactic => `(tactic| (
   wp_for_post
   iapply HΦ
-  iframe Htt Hrdr
+  iframe Hrdr HRD
   isplitr
   · ileft; ipureintro; rfl
   iexists _; iexact Hprod))
@@ -194,7 +195,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd L0 sent0
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Htt, Hrdr⟩
+  wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Hrdr⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
   have := v3rpc.srvWOk_persistent hP r.W r.srv.wsl v3rpc.wsN
@@ -268,7 +269,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       iapply HΦ
       isplitr
       · ileft; ipureintro; rfl
-      iframe Htt Hrdr
+      iframe Hrdr HRD
       iexists sent; iexact Hprod
     iunfold v3rpc.watchReqRecv at Hreq
     icases Hreq with ⟨%u, #Hu, Hm⟩
@@ -449,7 +450,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        wp_apply hStart tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
+        ihave #Hlibr := libCtxOk_of_runCtx ci $$ Hrunctx
+        wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
         · iframe #
           iunfold mvcc.txnCtx
           iright; iexact Hctxis
@@ -857,7 +859,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       isplitr
       · iright; iframe Hse0 Hso
 
-      iframe Htt Hrdr
+      iframe Hrdr HRD
       iexists _; iexact Hprod
     · exact absurd rfl Hne
 

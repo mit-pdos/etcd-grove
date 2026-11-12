@@ -34,7 +34,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev runner.newMember.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString)
     (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames) (id : w64) (path : GoString),
-  0 ≤ sint.Z id → sint.Z id ≤ 2 → backend.dbOpenOk → ckptEffectsOk →
+  0 ≤ sint.Z id → sint.Z id ≤ 2 → backend.dbOpenOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γh ∗
       envVerifyOff ∗ threadTok ∗ histRd h γh ∗ monoListLbOwn γh.l hist0 ∗ backend.fileHolds path ∅ }}

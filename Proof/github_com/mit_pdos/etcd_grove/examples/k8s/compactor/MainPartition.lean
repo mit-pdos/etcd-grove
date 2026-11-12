@@ -99,7 +99,7 @@ theorem MainPartition.wp_proof
     (wp_writer : writer.spec (GF := GF) (hG := hG))
     (wp_apiserver : apiserver.spec (GF := GF) (hG := hG)) :
     MainPartition.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot sched steps Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
     Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, #Hsched, Htok,
     #Hprem, Hreg⟩
@@ -132,7 +132,7 @@ theorem MainPartition.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in compaction mode
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Htb
-      Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
+      HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -255,11 +255,11 @@ theorem MainPartition.wp_proof
     itrivial
   imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave %Hb₁' : ⌜noRefusalAt clusterCfg.Bridge1'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂' : ⌜noRefusalAt clusterCfg.Bridge2'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃' : ⌜noRefusalAt clusterCfg.Bridge3'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ cluster3.bridges clusterCfg, noRefusalAt a := by
     intro a ha
     simp only [cluster3.bridges, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha

@@ -45,13 +45,13 @@ theorem unstable.slice.wp_proof
     $$ [$Hun] as Hun
   open_unstable
   ihave #Hents := Hents
-  ihave %Hlen := entsPts_len $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
   ihave Hents' := Hents
-  iunfold entsRO at Hents'
-  iunfold entsPts at Hents'
+  iunfold entsROz at Hents'
+  iunfold entsPtsZ at Hents'
   icases Hents' with ⟨%ls, #Hls, #Hb⟩
   ihave %Hwf := ownSlice_wf $$ Hls
-  ihave %Hbl := entsBig_length $$ Hb
+  ihave %Hbl := entsBigZ_length _ _ _ $$ Hb
   wp_auto
   obtain ⟨Hlen1, Hlen2⟩ := Hlen
   obtain ⟨-, Hwf⟩ := Hwf
@@ -87,10 +87,10 @@ theorem unstable.slice.wp_proof
   isplitl [Hu Hents_cap]
   · close_unstable
   isplitr
-  · iunfold entsRO; iunfold entsPts
+  · iunfold entsROz; iunfold entsPtsZ
     iexists _
     iframe Hs
-    iapply entsBig_subslice $$ Hb
+    iapply entsBigZ_subslice $$ Hb
   ipureintro
   refine ⟨?_, ?_, rfl, ?_⟩
   · rw [Hsublen]; word

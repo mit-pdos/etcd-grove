@@ -46,11 +46,18 @@ reader slots (`watchRunSlot` was `recvRes ∗ sendRes`, the store's reader slots
 its invariant `wsInv` allocated from `NewWatchStream`'s `wsState ι wsStart ∗ wsRecv ι []`; (the
 store's readers as client-held tokens, 2026-11-07) two reader tokens of the store
 (`mvccReaders W.γm 2`), one for each loop (`lean`'s two store reader slots, `recvRes`/`sendRes`),
-not given back (the receive loop is not joined). -/
+not given back (the receive loop is not joined). Per-type stage B3 (2026-11-11, the grpc handler
+pool, Scope r5 §4.3): the run returns what it holds. The send loop's reader token (`mvccReaders W.γm
+1`) comes back through the wait group `close` waits on; the receive loop, which is not joined,
+borrows its own resources with its goroutine's thread token: the auth store's reader `R.E.RD` from a
+level-2 pool (`F₂ ∗ R.E.RD`: etcd's `I`, `F₂` its `leadTimeMu` reader) and a store reader token from a
+level-3 pool (`mvccReaders W.γm 1 ∗ F₃`: the run pool, `F₃` its `readMu` and `bemu` readers), both
+given back when it returns; so the levels need `4 ≤ threadBound`. -/
 abbrev v3rpc.watchServer.Watch.spec : Prop :=
   ∀ (p : Loc) (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) (st : GoInterface) (γs : v3rpc.StreamNames)
     (Up : Nat → v3rpc.WatchReqM → IProp GF) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (N₂ N₃ : Namespace) (γ₂ γ₃ : GName)
+    (F₂ F₃ : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.isWatchServer p R ∗ v3rpc.srvWOk W R.wsl v3rpc.wsN ∗
       v3rpc.srvStreamIs st γs v3rpc.pbWatchRequest v3rpc.pbWatchResponse Up Dn ci cd ∗
@@ -58,11 +65,15 @@ abbrev v3rpc.watchServer.Watch.spec : Prop :=
       v3rpc.upOk R.E.authMode Up ∗
       v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) γs [] ∗
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-      v3rpc.streamAuxTok γs ∗ R.E.RD ∗ ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
-      mvcc.api.mvccReaders W.γm 2 }}
+      v3rpc.streamAuxTok γs ∗
+      ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders ∧ 4 ≤ threadBound GF⌝ ∗
+      threadPool.isThreadPoolL N₂ 2 γ₂ iprop(F₂ ∗ R.E.RD) ∗
+      threadPool.isThreadPoolL N₃ 3 γ₃ iprop(mvcc.api.mvccReaders W.γm 1 ∗ F₃) ∗
+      mvcc.api.mvccReaders W.γm 1 }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
   {{ (err : GoInterface), RET #err; go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-      v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}
+      v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
+      mvcc.api.mvccReaders W.γm 1 }}
 
 
 end spec

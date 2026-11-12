@@ -46,7 +46,7 @@ theorem newServerMode.wp_proof
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
-    HU HU8 Hmode Hck Haf Hbuq Hdbo
+    HU HU8 Hmode Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
@@ -68,7 +68,7 @@ theorem newServerMode.wp_proof
   iintro %curls ⟨Hcurls, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
-  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc⟩
+  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc, #Hflc⟩
   (try wp_auto)
   -- (2026-10-27, the server port) the member's storage registry (D19r (B)), its `bootstrap`'s to
   -- join, is the member's names' (`memberBoot`; until then allocated here)
@@ -94,7 +94,7 @@ theorem newServerMode.wp_proof
       (fun h => absurd h (by decide))
       -- (2026-11-04, the lease-expiry plan's Part C) the lease slot, at the mode of `memberBoot`'s
       -- running-server premise (`lease.runCfg`), auth off
-      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)) Hck)
+      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (bootCfgOk_of _ rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)
@@ -123,8 +123,8 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
-  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlsrv, #Httl, -, -, Hkeep⟩)
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, Hstk,
+    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, #Hlsrv, #Httl, -, -, Hkeep⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr
@@ -154,8 +154,13 @@ theorem newServerMode.wp_proof
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, _, γk, τ
   simp only [Bool.false_eq_true, ↓reduceIte]
-  iframe
-  iframe #
+  -- (per-type stage B2) the raw stocks framed explicitly (`srvServeStock`)
+  isplitr
+  rotate_left
+  · isplitl [Hstk]
+    · iexact Hstk
+    iframe
+    iframe #
   ipureintro
   exact ⟨HE.1, HE.2.1, rfl, rfl, rfl⟩
 

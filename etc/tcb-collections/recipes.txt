@@ -10,11 +10,11 @@ roots ^Proof/go_etcd_io/etcd/client/v3/experimental/recipes/(Link|Results)\.lean
 axiom fmt.Sscanf.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.StaticMethod.wp_proof
+axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcPeerOpt
-axiom grpcServes
-axiom grpcServes_persistent
+axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom pbDeleteRangeRequestT_reg
 axiom pbDeleteRangeResponseT_reg

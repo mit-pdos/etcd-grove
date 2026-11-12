@@ -155,7 +155,7 @@ theorem durableFiles_read_au (γ : GName) (N : Namespace) (E : CoPset) (HN : ↑
     ⊢ durableFilesInv γ N -∗
       (|={E \ ↑N,∅}=> ∃ o : Option GoString, dfile γ f o ∗
         (dfile γ f o ={∅,E \ ↑N}=∗ Φ (durableReadVal o))) -∗
-      |={E,∅}=> ∃ fs : DurableState, durableOwn (L := L) fs ∗
+      |={E,∅}=> ∃ fs : DurableState, durableOwn (L := L) fs ∗ ⌜durableModeStep none none fs⌝ ∗
         (durableOwn fs ={∅,E}=∗ Φ (durableReadResult fs f)) := by
   iintro #Hinv HAU
   unfold durableFilesInv
@@ -169,6 +169,8 @@ theorem durableFiles_read_au (γ : GName) (N : Namespace) (E : CoPset) (HN : ↑
   imodintro
   iexists fs
   iframe Hown
+  isplitr
+  · ipureintro; exact durableModeStep_refl _ _
   iintro Hown
   rw [durableReadResult_eq, Hfo]
   imod Hcl $$ Hf with HΦ

@@ -44,7 +44,7 @@ theorem etcd_adequate [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoLocalCo
     body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv : verifyEnvOff (init
     (intoVal ()) ;; body)) (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
-    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvRevokeK → progOk
+    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvLevelK → progOk
     read.readRegPerm iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
     ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) init body φ) : (∀ (v : val) (t2' : List Expr),
     t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 → RealNotStuck e2 σ2) ∧ ∀ (v : val), v ∈ t2 →
@@ -60,7 +60,7 @@ theorem etcd_adequate_alloc [GoGlobalContext] [hPre : GooseGpreS GF] [lctx : GoL
     body) As) (HDs : dataDirsAbsent (init (intoVal ()) ;; body) Ds) (HEnv : verifyEnvOff (init
     (intoVal ()) ;; body)) (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init (intoVal ()) ;; body], σ, g) κs (t2, σ2)) (Hprog : ∀ (hG : HeapGS
-    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvRevokeK → ∃ X T, (⊢
+    HasLC.hasLC GF), receiptBound GF = n + 1 → threadBound GF = max (n + 2) srvLevelK → ∃ X T, (⊢
     |==> ∃ x, T x) ∧ ∀ (x : X), progOk read.readRegPerm iprop((([∗list] a ∈ As, netAddrFree a) ∗
     ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x) init
     body φ) : (∀ (v : val) (t2' : List Expr), t2 = v :: t2' → φ v) ∧ (∀ (e2 : Expr), e2 ∈ t2 →

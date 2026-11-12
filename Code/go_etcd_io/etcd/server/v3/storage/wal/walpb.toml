@@ -1,0 +1,10 @@
+# Types and names only (WAL W4a, 2026-11-11): function and method bodies are axiomatized. The
+# WAL's snapshot record (`Snapshot`), which the WAL's specs name (`SaveSnapshot`, `Open`,
+# `ValidSnapshotEntries`), is listed explicitly, as leasepb's `Lease`: translate_types never
+# translates a struct with a field of another package's alias type (`state
+# protoimpl.MessageState`, ...).
+translate = ["!*", "Snapshot"]
+imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl", "go.etcd.io/raft/v3/raftpb"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

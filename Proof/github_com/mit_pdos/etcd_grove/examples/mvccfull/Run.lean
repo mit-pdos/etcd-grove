@@ -70,7 +70,7 @@ theorem Run.wp_proof
     (wp_open : runner.open.spec (GF := GF) (hG := hG))
     (wp_checkAll : runner.checkAll.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro cfg wr _ _ hcfg hck hdbo hdbc
+  intro cfg wr _ _ hcfg hdbo hdbc
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   haveI := isInc_persistent hpers
   haveI := hpers.1
@@ -281,7 +281,7 @@ theorem Run.wp_proof
   try rw [hPfx]
   wp_apply (wp_memberPath _ (W64 0) (by decide))
   wp_apply (wp_newMember x ks cfgN wr h γh (W64 0) (memberPathM cfgN.Prefix' 0)
-      (by decide) (by decide) hdbo hck hlimN' hcblN') $$ [Htok Hrd Hf0]
+      (by decide) (by decide) hdbo hlimN' hcblN') $$ [Htok Hrd Hf0]
     as %mp0 ⟨Htok, Hrd, %m0, %f0, %v0, %k0, %Hv0, Hm0, Hst0, #Hreg0⟩
   · iframe #; iframe
   (try wp_auto)
@@ -299,7 +299,7 @@ theorem Run.wp_proof
   try rw [hPfx]
   wp_apply (wp_memberPath _ (W64 1) (by decide))
   wp_apply (wp_newMember x ks cfgN wr h γh (W64 1) (memberPathM cfgN.Prefix' 1)
-      (by decide) (by decide) hdbo hck hlimN' hcblN') $$ [Htok Hrd Hf1]
+      (by decide) (by decide) hdbo hlimN' hcblN') $$ [Htok Hrd Hf1]
     as %mp1 ⟨Htok, Hrd, %m1', %f1, %v1, %k1, %Hv1, Hm1', Hst1, #Hreg1⟩
   · iframe #; iframe
   (try wp_auto)
@@ -517,7 +517,7 @@ theorem Run.wp_proof
     isplitl [Hst0 Hsl0 Hcap0 Hes0]
     · iexists sl0, ss0; iframe; ipureintro; exact Hssl0
     · iexists sl1, ss1; iframe; ipureintro; exact Hssl1
-  wp_apply (wp_write x ks cfgN wr h γ mp0 mp1 f0 f1 [] v0 v1 0 0 u u (by omega) hdbo hdbc hck hlimN'
+  wp_apply (wp_write x ks cfgN wr h γ mp0 mp1 f0 f1 [] v0 v1 0 0 u u (by omega) hdbo hdbc hlimN'
       hcblN') $$ [Htok Hw] as ⟨Htok, %ops, %v0', %v1', %nv', %nb', %q', %qs', %Hops, Hw⟩
   · iframe #; iframe
   (try wp_auto)
@@ -681,7 +681,7 @@ theorem Run.wp_proof
     -- `x.open(m)`
     wp_apply (wp_open x ks cfgN wr h γ.h ops ii mp mm f v.ops v.path D u v.b Hl'
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-          #v.bk.be) (lease.lessorIface v.lp) v.kv hlogOk Hvops hlen hdbo hck hlimN' hcblN')
+          #v.bk.be) (lease.lessorIface v.lp) v.kv hlogOk Hvops hlen hdbo hlimN' hcblN')
       $$ [Htok Hrd Hpath Hbe Hle Hkv Hrev Hcmp Hleases Hfile Himg HhookOk Hσc Hc1 Hc2 Hc3 Hc4 Hbc
         Hc5 Hc6 Hc7 Hc8 Hσw Hbw]
       as ⟨Htok, Hrd, %v', %k', %Hv', Hc'⟩

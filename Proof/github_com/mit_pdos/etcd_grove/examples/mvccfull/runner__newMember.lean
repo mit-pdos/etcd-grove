@@ -38,7 +38,7 @@ theorem runner.newMember.wp_proof
     (hfresh : mvccImage_fresh.law (GF := GF))
     (wp_open : runner.open.spec (GF := GF) (hG := hG)) :
     runner.newMember.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γh id path hid0 hid2 hdbo hck hlim hcbl
+  intro _ _ x ks cfg wr h γh id path hid0 hid2 hdbo hlim hcbl
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   wp_start as ⟨#Hctx, #Hvoff, Htok, Hrd, #Hlb, Hfile⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull $$ []
@@ -193,7 +193,7 @@ theorem runner.newMember.wp_proof
   have hl0 : leasesAfter ks ([] : List OpM) 0 = [] := by simp only [leasesAfter, runM_zero]; rfl
   wp_apply (wp_open x ks cfg wr h γh [] (sint.nat id) mp ⟨γσ, γr, γc, γn, γb⟩ f 0 path ∅ false
       (W64 1, W64 1, W64 (-1), W64 (-1)) hist0 GoInterface.nil GoInterface.nil GoInterface.nil hlog0
-      (Nat.le_refl _) (by simp) hdbo hck hlim hcbl)
+      (Nat.le_refl _) (by simp) hdbo hlim hcbl)
     $$ [Htok Hrd HhookOk pathM beM leM kvM revM cmpM leasesM Hfile Himg Hσ1 Hσ2 Hb1 Hb2 HrevLo HrevHi
       HcmpLo HcmpHi Hr Hc Hn]
     as ⟨Htok, Hrd, %v, %k, %Hv, Hcore⟩

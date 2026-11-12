@@ -487,18 +487,6 @@ theorem swsIs_persistent (hP : mvcc.api.persistent.law (GF := GF)) (sws : Loc) (
   have := srvWOk_persistent hP r.W r.srv.wsl wsN
   unfold swsIs; infer_instance
 
-/-- **A run's resources** (what grpc's run slot holds for a watch stream; the draft's
-`R.E.RD ∗ ⌜threadBound …⌝`): the auth store's reader resource (`isWatchPermitted`) and the thread
-bound under which `GetProgressReportInterval` borrows a reader slot of the progress interval's lock
-from the package's pool, and (the store's readers as client-held tokens, 2026-11-07) two reader
-tokens of the store at the watch path's names (`mvccReaders W.γm 2`, one per loop: `lean`'s
-`recvRes`/`sendRes` store reader slots; the API's `Watch`, `Rev`, `RequestProgress(All)` take one,
-since 2026-11-07 without a thread token: the reader tokens carry the store's lock slots). No
-thread token: `watchServer.Watch` needs none (the API's `Close` takes none). -/
-def watchRunSlot (R : WSrv GF) (W : SrvW GF) : IProp GF :=
-  iprop(R.E.RD ∗ mvcc.api.mvccReaders W.γm 2 ∗
-    ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝)
-
 /-- **The watch method's stream specification** (unit W-W: `Spec` of the registered method):
 `watchStreamSpec` at the server and its side of the watch path `W`, and (G2, 2026-10-30) the
 stream's token `tok` its watchers' authorizations name (`watchAuthed`); the registration is at

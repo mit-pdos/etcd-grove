@@ -19,5 +19,11 @@ namespace EtcdGrove
 header). -/
 @[word_unfold] def srvRevokeK : Nat := 4
 
+/-- **The levels of a thread token a serving member uses** (per-type stage B, r5 §3.3): the
+revocation's levels `0 … 3`, which a gRPC run shares (level 1 `raftPool`, level 2 the inner pool
+`I`, level 3 the run pool). The etcd examples' adequacy lemmas are written with it, so a new level
+changes one number. -/
+@[word_unfold] def srvLevelK : Nat := srvRevokeK
+
 end EtcdGrove
 end Perennial

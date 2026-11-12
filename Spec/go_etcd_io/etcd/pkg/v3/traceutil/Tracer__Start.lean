@@ -11,6 +11,7 @@ public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Proof.google_golang_org.grpc.metadata.Incoming
 public import Proof.context.ReqKeys
 public import Proof.context.LibKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -50,22 +51,37 @@ grpc's keys (`mdIncomingKey{}`, `mdOutgoingKey{}`, `peerKey{}`, not otel's key's
 `ctx` does, and at otel's `currentSpanKey` either `ctx`'s value or the span the tracer made, one of
 otel's (`trace.otelSpan`) (checked against the noop and the SDK tracers,
 `examples/premisefix/tracerctx`).
-**Open** (2026-11-06, found with that fix): `isSpan sp` and the run's return are not justified for
-every `txnCtx`: the tracers call `SpanContext()` (and the no-op one `IsRecording()`) on `ctx`'s span,
-and the no-op tracer can return `ctx`'s span itself, so a context of the program's own whose
-`Value(currentSpanKey)` is a span with a panicking method refutes it, as it refuted
-`SpanFromContext`'s `isContext` arm. The contexts the proofs pass (grpc's run contexts, derived
-from them, `Background()`'s children) hold a genuine span or none. -/
+(k8s 7f-4, Revisions 1-2, decided by etcd-grove-81, 2026-11-12) `ctx`'s span is otel's
+(`trace.spanValOk ctx`, in the premise: `Value(currentSpanKey)` returns nil or `trace.otelSpan`, a
+span whose methods return, `SpanContext` and `IsRecording` among them): the tracers call
+`SpanContext()` (and the no-op one `IsRecording()`) on `ctx`'s span, and the no-op tracer can return
+`ctx`'s span itself, so without it a context of the program's own whose `Value(currentSpanKey)` is a
+span with a panicking `SpanContext` refuted the triple (the former **Open** note of 2026-11-06;
+`examples/premisefix/tracerspan`). Revision 1's `trace.spanCtxOk` did not exclude it (`isSpan` covers
+only `End`, `AddEvent`, `RecordError`). Callers have it inside `context.libCtxOk`, from grpc's run
+context on the request path and from its chain form (`context.libCtxOkC`) on the stream path.
+(k8s 7f-4, T-f, 2026-11-12) The context may also be a stream handler's weak one (`srvCtxWeak`:
+etcd's `cancellableContext`, whose `Err()` may return `ErrGRPCNoLeader`), and then so is the context
+returned: `ContextWithSpan(ctx, s)` is a `valueCtx`, whose `Deadline`/`Done`/`Err` are `ctx`'s and
+whose `Value(&cancelCtxKey)` is `ctx`'s (otel's key is not `&cancelCtxKey`), or `ctx` itself (the
+no-op tracer). The post's context facts are wands from the premise's (the old triple, from
+`txnCtx`: `traceutil.Tracer.Start.spec_txn`, `Proof/go_etcd_io/etcd/pkg/v3/traceutil/StartLaws.lean`).
+The premise is a disjunction (`txnCtx ∨ srvCtxWeak`), a known departure from the spec principles
+(`notes/decisions.md`, "Tracer.Start's context premise"): `srvCtxWeak` admits program contexts that
+`txnCtx` did not, but `isContext`'s arm of `txnCtx` already admitted the same kind, and with
+`spanValOk` in the premise neither arm can refute the triple through the span. -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
   {{ globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr ∗
-      mvcc.txnCtx ctx cd }}
+      (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) ∗ trace.spanValOk ctx }}
     (App (App (App (Val #(methods tr.ty go!"Start" tr.v)) (Val #(GoInterface.ok ctx))) (Val #name))
       (Val #opts))
   {{ (ctx' : GoInterfaceOk) (sp : GoInterface), RET (PairV #(GoInterface.ok ctx') #sp);
-      (∃ vs : GMap GoInterface GoInterface, mvcc.txnCtx ctx' { cd with Values := vs } ∗
+      (∃ vs : GMap GoInterface GoInterface,
+        □ (mvcc.txnCtx ctx cd -∗ mvcc.txnCtx ctx' { cd with Values := vs }) ∗
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
+      □ (srvCtxWeak ctx cd -∗ srvCtxWeak ctx' cd) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
       ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗

@@ -33,7 +33,8 @@ close token, exclusive, shows the stream open and is deposited in the run's inva
 and waits for the send loop (the wait group's adder). The mvcc API migration (2026-11-05, the draft
 `notes/mvcc-api-clients/WatchSpecs.lean` §6): the close token in place of mvcc's
 `watchStreamOpen`. (No thread token since mvcc's reader tokens carry the store's lock slots,
-2026-11-07: the API's `Close` takes none.) -/
+2026-11-07: the API's `Close` takes none.) Per-type stage B3 (2026-11-11): the wait returns what
+the send loop's `Done` deposited (`▷ P`: its store reader token, back to the run). -/
 abbrev v3rpc.serverWatchStream.close.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
@@ -43,7 +44,7 @@ abbrev v3rpc.serverWatchStream.close.spec : Prop :=
       ownBroadcastChan r.cc r.γcc iprop(True) .Pending ∗
       sync.join.ownAdder (v3rpc.swsF sws go!"wg") n P }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"close")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); ▷ P }}
 
 end spec
 

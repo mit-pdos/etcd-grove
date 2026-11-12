@@ -39,7 +39,8 @@ the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` str
 `*watchServer` `pw` (`watchSReg`), and the Auth service's five admin methods on the `*AuthServer`
 `pa` over the server (`authRegs`, `authServerIs`), and (the lease-src plan, 2026-11-02) the Lease
 service's four methods and its `LeaseKeepAlive` stream on the `*quotaLeaseServer` `ql` over the
-`*LeaseServer` `pl` (`leaseRegs`, `leaseSReg`; `NewQuotaLeaseServer`'s objects), given the service values' method sets (`ServerMethodSets`, Go's
+`*LeaseServer` `pl` (`leaseRegs`, `leaseSReg`; `NewQuotaLeaseServer`'s objects), all registrations with distinct full names (stage B: what
+`grpc.start` takes), given the service values' method sets (`ServerMethodSets`, Go's
 type checker's facts). The server's resources come back (J8a-3: the progress interval read-only,
 `NewWatchServer` no longer writes it). -/
 abbrev v3rpc.Server.spec : Prop :=
@@ -53,11 +54,12 @@ abbrev v3rpc.Server.spec : Prop :=
     (App (App (App (App (Val (@! v3rpc.Server)) (Val #s)) (Val #(null : Loc)))
       (Val #(func.nil : GoFunc))) (Val #gsl))
   {{ (gs : Loc), RET #gs; ∃ (q p pw pa ql pl : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
-      (regs sregs : List (GoString × val × GoInterface)) (cid mid lcid lmid : w64) (R : v3rpc.WSrv GF),
+      (regs sregs : List (GoString × GoFunc × GoInterface)) (cid mid lcid lmid : w64) (R : v3rpc.WSrv GF),
       grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
       ⌜(∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
         (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
-        (∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) ∧ v3rpc.leaseSReg ql ∈ sregs⌝ ∗
+        (∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) ∧ v3rpc.leaseSReg ql ∈ sregs ∧
+        ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
       v3rpc.authServerIs pa s ∗
       v3rpc.quotaLeaseServerAt ql ⟨go.GoType.PointerType v3rpc.LeaseServer.ty, #pl⟩ s ∗
       v3rpc.leaseServerAt pl s C.A lcid lmid ∗

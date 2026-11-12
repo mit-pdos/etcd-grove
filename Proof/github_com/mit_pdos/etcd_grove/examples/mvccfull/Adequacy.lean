@@ -36,7 +36,6 @@ the tester's lease checks compare the lessor's list against the model's without 
   do not fail for the environment's reasons), `dbFilesAbsent` of `Main`'s files (absent at start,
   touched only by the backend) and `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
-* a pure fact of the lessor's configuration: `ckptEffectsOk` (`lease.NewLessor`'s);
 * the semantics: `go.Semantics` and the package assumptions (`mvccfull`'s, mvcc's, the server's,
   the cache's).
 Nothing beyond mvccrand's. (Until premise fixes 5, 2026-11-10, also the store's key-count premise
@@ -211,7 +210,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (Hck : ckptEffectsOk) (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
+    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (HFs : dbFilesAbsent mvccfullProgram
       (mvccfull.filePathsM (mvccfull.mainConfigM go!"mvccfull"
         (zeroValDef : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix))))
@@ -250,7 +249,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold mvccfullProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
-  wp_apply (mvccfull.wp_Main Hck Hdbo Hdbc) $$ [Hfiles Htok]
+  wp_apply (mvccfull.wp_Main Hdbo Hdbc) $$ [Hfiles Htok]
   · iframe Hfiles Htok Hvoff
   ipureintro
   rfl

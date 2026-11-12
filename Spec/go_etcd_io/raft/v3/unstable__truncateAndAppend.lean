@@ -80,7 +80,7 @@ abbrev unstable.truncateAndAppend.spec : Prop :=
   uint.Z us.offset + (us.ents.length : Int) < 2 ^ 64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us ∗
-      "Hes" ∷ entsPts es dq ents ∗
+      "Hes" ∷ entsPtsZ us.sz es dq ents ∗
       "Hadopt" ∷ (if uint.Z e0.Index' ≤ uint.Z us.offset ∧
                      uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)
                   then iprop(⌜dq = DFrac.discard⌝ ∗
@@ -96,7 +96,7 @@ abbrev unstable.truncateAndAppend.spec : Prop :=
         inprogress := truncOffsetInProgress us e0.Index' } ∗
       (if uint.Z e0.Index' ≤ uint.Z us.offset ∧
           uint.Z e0.Index' ≠ uint.Z us.offset + (us.ents.length : Int)
-       then True else entsPts es dq ents) }}
+       then True else entsPtsZ us.sz es dq ents) }}
 
 end spec
 

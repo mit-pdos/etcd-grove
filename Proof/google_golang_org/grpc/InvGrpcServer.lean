@@ -1,8 +1,9 @@
 /-
 **grpc's server, built and started** (item 4 of the client→server path, 2026-10-17; Lean-first,
-no Rocq counterpart): what produces the tokens `grpcServerAt addr ics regs` (`InvGrpc.lean`) and
-`grpcStreamServerAt addr sics sregs` (`InvGrpcStream.lean`) that `grpc.serve` and
-`grpc.serveStream` consume. The Go-level specs of grpc's `NewServer`, its options,
+no Rocq counterpart; restated in per-type stage B, B1b): what produces Go's configuration of a
+server (`grpcSrvCfg γ c`, `InvGrpc.lean`), from which `grpc.start'` makes the facts
+`grpcServerAt addr ics regs γ` and `grpcStreamServerAt addr sics sregs γ` that `grpc.serve` and
+`grpc.serveStream` (theorems) use. The Go-level specs of grpc's `NewServer`, its options,
 `Server.RegisterService` and `Server.Serve`, and of `net.Listen`, are trust-boundary axioms
 (`Spec/google_golang_org/grpc/`, `Spec/net/Listen.lean`); this file is their vocabulary.
 
@@ -24,25 +25,31 @@ only by the option constructors' specs): what `NewServer` does with it, `k`:
 `sics`, the services `svcs` registered (their names), and their unary methods `regs` and streams
 `sregs` (full method name `/<service>/<method>`, `MethodDesc.Handler`/`StreamDesc.Handler`,
 service value). `RegisterService` adds a service (`grpcDescIs`: its `ServiceDesc`, read-only; a
-service name not registered yet, a service value implementing the descriptor's `HandlerType`, its
-method and stream names distinct: grpc's `logger.Fatalf` otherwise).
+service name not registered yet, a service value implementing the descriptor's `HandlerType`:
+grpc's `logger.Fatalf` otherwise; its method and stream names distinct, and every stream descriptor
+setting `ClientStreams` or `ServerStreams`: premises stronger than grpc checks, which registers equal
+method and stream names, the unary one winning (test T9b), and runs an unflagged stream's handler
+without the stream interceptor, `server.go:1446-1450` (test T10b)).
 
-**The start** (`grpc.start`, an axiom): the server being built and a listener bound at `addr`
-(`netListenerAt`, `Proof/net/InvNet.lean`) become the server at `addr` (`grpcServerAt`,
-`grpcStreamServerAt`: the chains and registrations are fixed from now on) and the right to serve
-(`grpcServeTok gs lis`, what `gs.Serve(lis)` takes). A ghost step, before the `go
-gs.Serve(lis)`: the server's methods are served at `addr` once `Serve` runs (`grpc.serve`'s facts
-are about the calls `addr` answers; a call before `Serve` accepts waits, or fails: an error for
-the client). After it the server can no longer register a service (grpc's `RegisterService`
-after `Serve` is fatal).
+**The start** (`grpc.start`, an axiom): the server being built, whose full method and stream names
+are jointly distinct, and a listener bound at `addr` (`netListenerAt`, `Proof/net/InvNet.lean`)
+become a server `γ` listening at `addr` (`grpcAddrIs addr γ`), with Go's configuration
+(`grpcSrvCfg γ c`: the chains and registrations, fixed from now on), and the right to accept its
+calls on the listener (`grpcSrvLink gs lis γ`); `grpc.start'` packages them as `grpcServerAt`,
+`grpcStreamServerAt` and `grpcServeTok gs lis γ` (what `gs.Serve(lis)` takes). A ghost step, before
+the `go gs.Serve(lis)`: the server's methods are served at `addr` once `Serve` runs (a call before
+`Serve` accepts waits, or fails: an error for the client). After it the server can no longer
+register a service (grpc's `RegisterService` after `Serve` is fatal).
 
 **The replies' size** (`grpcRepliesFit`, a premise of `grpc.start`, 2026-10-31,
 `notes/reply-size.md`): grpc marshals a reply before any size check, and the codec's `make` panics
 above Go's `maxAlloc` (`grpcReplyMax`). The start takes the named workload premise that no reply of
-the run (the replies to the program's own clients' calls) exceeds it; the three tokens it makes
-exist only in such a run, so `grpc.serve`, `grpc.serveStream` and `grpc.Server.Serve.wp_proof`,
-which consume them, are true under it, and so is every result built on the tokens (the served results `etcd_kv_served`, `ServedOn`, `AuthnServedOn`,
-v3rpc's, whose statements do not show it). No law turns a token back into the premise.
+the run (the replies to the program's own clients' calls) exceeds it; the facts it makes exist only
+in such a run, so the trusted `Serve` model's leaves (`respond`'s size claim), reached through
+`grpcServeTok`, are true under it, and so is every result built on them (the served results
+`etcd_kv_served`, `ServedOn`, `AuthnServedOn`, v3rpc's, whose statements do not show it). The token
+yields `grpcRepliesFit` (it is a conjunct of `grpcServeTok`), which holds wherever the token is made:
+it is `grpc.start`'s premise.
 
 **The health service** (`grpcHealthSrv hs`, persistent, axiomatized): grpc's `*health.Server`
 `hs` (`health.NewServer()`), whose `SetServingStatus` is safe from any goroutine.
@@ -108,14 +115,15 @@ presumes of the stats handlers in front of a method's handler. Since 2026-11-06 
 its tracer's, `End`, `AddEvent`, `RecordError` returning). -/
 axiom grpcStatsHandlerOk [GooseExts] (h : GoInterface) : Prop
 
-/-- **The server being built** (exclusive; see the file header). -/
+/-- **The server being built** (exclusive; see the file header). A handler in `regs`/`sregs` is
+Go's `MethodDesc.Handler`/`StreamDesc.Handler`, a `GoFunc`. **Invariant every producer upholds**
+(per-type stage B, B1b): every `sregs` entry comes from a stream descriptor setting `ClientStreams`
+or `ServerStreams` (`RegisterService`'s premise; `RegisterHealthServer`'s one stream, health's
+`Watch`, is `ServerStreams`), since grpc runs an unflagged stream descriptor's handler directly,
+without the stream interceptor (`server.go:1446-1450`, test T10b), which the `Serve` model does not
+represent. -/
 axiom grpcSrvNew {GF : BundledGFunctors} [GooseExts] (gs : Loc) (ics sics : List GoFunc)
-  (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) : IProp GF
-
-/-- **The right to serve `gs` on the listener `lis`** (exclusive; `grpc.start`'s, what
-`gs.Serve(lis)` takes). Exists only in a run satisfying `grpcRepliesFit`: made only by
-`grpc.start`, which takes it. -/
-axiom grpcServeTok {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) : IProp GF
+  (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF
 
 /-- **grpc's health server `hs`** (persistent; see the file header). -/
 axiom grpcHealthSrv {GF : BundledGFunctors} [GooseExts] (hs : Loc) : IProp GF
@@ -145,19 +153,93 @@ def grpcFullName (sn mn : GoString) : GoString := go!"/" ++ sn ++ go!"/" ++ mn
 /-- The unary methods a `ServiceDesc` with the service name `sn` and the methods `mds` registers,
 for the service value `ss`. -/
 def descRegs (sn : GoString) (mds : List google_golang_org.grpc.MethodDesc) (ss : GoInterface) :
-    List (GoString × val × GoInterface) :=
-  mds.map fun md => (grpcFullName sn md.MethodName', #md.Handler', ss)
+    List (GoString × GoFunc × GoInterface) :=
+  mds.map fun md => (grpcFullName sn md.MethodName', md.Handler', ss)
 
 /-- The streams a `ServiceDesc` with the service name `sn` and the streams `sds` registers, for
 the service value `ss`. -/
 def descSRegs (sn : GoString) (sds : List google_golang_org.grpc.StreamDesc) (ss : GoInterface) :
-    List (GoString × val × GoInterface) :=
-  sds.map fun sd => (grpcFullName sn sd.StreamName', #sd.Handler', ss)
+    List (GoString × GoFunc × GoInterface) :=
+  sds.map fun sd => (grpcFullName sn sd.StreamName', sd.Handler', ss)
 
 /-- The method and stream names of a `ServiceDesc`. -/
 def descNames (mds : List google_golang_org.grpc.MethodDesc)
     (sds : List google_golang_org.grpc.StreamDesc) : List GoString :=
   mds.map (·.MethodName') ++ sds.map (·.StreamName')
+
+theorem grpc_sep_inj {α : Type} (c : α) : ∀ (a a' b b' : List α), c ∉ a → c ∉ a' →
+    a ++ c :: b = a' ++ c :: b' → a = a' ∧ b = b'
+  | [], [], b, b', _, _, h => by simpa using h
+  | [], x :: a', b, b', _, h2, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (h.1 ▸ List.mem_cons_self) h2
+  | x :: a, [], b, b', h1, _, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    exact absurd (h.1.symm ▸ List.mem_cons_self) h1
+  | x :: a, y :: a', b, b', h1, h2, h => by
+    simp only [List.cons_append, List.cons.injEq] at h
+    obtain ⟨rfl, h⟩ := h
+    have := grpc_sep_inj c a a' b b' (fun hm => h1 (List.mem_cons_of_mem _ hm))
+      (fun hm => h2 (List.mem_cons_of_mem _ hm)) h
+    exact ⟨by rw [this.1], this.2⟩
+
+theorem grpc_go_slash : (go!"/" : GoString) = [(47 : w8)] := rfl
+
+/-- **Slash-free service names are recovered from full names** (`grpcFullName sn mn =
+"/" ++ sn ++ "/" ++ mn`): what separates the services of `v3rpc.Server` in B2's joint `Nodup`. -/
+theorem grpcFullName_inj (sn sn' mn mn' : GoString) (h1 : (47 : w8) ∉ sn) (h2 : (47 : w8) ∉ sn')
+    (h : grpcFullName sn mn = grpcFullName sn' mn') : sn = sn' ∧ mn = mn' := by
+  unfold grpcFullName at h
+  rw [grpc_go_slash] at h
+  simp only [List.cons_append, List.nil_append, List.append_assoc, List.cons.injEq, true_and] at h
+  exact grpc_sep_inj (47 : w8) sn sn' mn mn' h1 h2 h
+
+
+theorem grpc_nodup_map_on {α β : Type} (f : α → β) : ∀ (l : List α),
+    (∀ x ∈ l, ∀ y ∈ l, f x = f y → x = y) → l.Nodup → (l.map f).Nodup
+  | [], _, _ => List.nodup_nil
+  | a :: l, hinj, hnd => by
+    rw [List.nodup_cons] at hnd
+    rw [List.map_cons, List.nodup_cons]
+    refine ⟨fun hm => ?_, grpc_nodup_map_on f l
+      (fun x hx y hy => hinj x (List.mem_cons_of_mem _ hx) y (List.mem_cons_of_mem _ hy)) hnd.2⟩
+    obtain ⟨b, hb, hfb⟩ := List.mem_map.mp hm
+    exact hnd.1 (hinj b (List.mem_cons_of_mem _ hb) a List.mem_cons_self hfb ▸ hb)
+
+/-- The full names of services: service `s.1`'s methods `s.2.1` and streams `s.2.2`. -/
+def grpcNames (S : List (GoString × List GoString × List GoString)) : List GoString :=
+  S.flatMap fun s => (s.2.1 ++ s.2.2).map (grpcFullName s.1)
+
+/-- Distinct slash-free services with per-service distinct names have distinct full names. -/
+theorem grpcNames_nodup (S : List (GoString × List GoString × List GoString))
+    (hS : ∀ s ∈ S, (47 : w8) ∉ s.1 ∧ (s.2.1 ++ s.2.2).Nodup) (hsn : (S.map (·.1)).Nodup) :
+    (grpcNames S).Nodup := by
+  induction S with
+  | nil => simp [grpcNames]
+  | cons s S ih =>
+    simp only [grpcNames, List.flatMap_cons, List.map_cons, List.nodup_cons] at hsn ⊢
+    have hs := hS s List.mem_cons_self
+    refine List.nodup_append.mpr ⟨?_, ih (fun t ht => hS t (List.mem_cons_of_mem _ ht)) hsn.2, ?_⟩
+    · refine grpc_nodup_map_on _ _ ?_ hs.2
+      intro x _ y _ hxy
+      exact (grpcFullName_inj s.1 s.1 x y hs.1 hs.1 hxy).2
+    · intro a ha b hb hab
+      subst hab
+      obtain ⟨x, _, rfl⟩ := List.mem_map.mp ha
+      obtain ⟨t, ht, hb⟩ := List.mem_flatMap.mp hb
+      obtain ⟨y, _, hy⟩ := List.mem_map.mp hb
+      have := (grpcFullName_inj s.1 t.1 x y hs.1 (hS t (List.mem_cons_of_mem _ ht)).1 hy.symm).1
+      exact hsn.1 (this ▸ List.mem_map_of_mem ht)
+
+theorem descRegs_names (sn : GoString) (mds : List google_golang_org.grpc.MethodDesc)
+    (ss : GoInterface) :
+    (descRegs sn mds ss).map Prod.fst = (mds.map (·.MethodName')).map (grpcFullName sn) := by
+  simp [descRegs, List.map_map, Function.comp_def]
+
+theorem descSRegs_names (sn : GoString) (sds : List google_golang_org.grpc.StreamDesc)
+    (ss : GoInterface) :
+    (descSRegs sn sds ss).map Prod.fst = (sds.map (·.StreamName')).map (grpcFullName sn) := by
+  simp [descSRegs, List.map_map, Function.comp_def]
 
 /-- **The service value `ss` implements the handler type `ht`** (grpc's `RegisterService` check,
 `reflect.TypeOf(ss).Implements(reflect.TypeOf(ht).Elem())`): `ht` is a nil pointer to an
@@ -263,18 +345,23 @@ nothing about such runs. The client's send side has its own checked premise (`gr
 `Req.wireLen m < grpcMsgMax`). -/
 opaque grpcRepliesFit : Prop
 
-/-- **The start** (an axiom; see the file header): the server being built and a listener bound
-at `addr` become the server at `addr`, with its chains and registrations, and the right to serve
-it on the listener. True of grpc: `Serve(lis)` serves every call accepted on `lis` with the
-server's chains and its registered methods (`handleStream`: the method of the call's path
-`/<service>/<method>` in `services[service]`), and no registration is made after it. Under the
-named workload premise `grpcRepliesFit` (2026-10-31, `notes/reply-size.md`), which the three
-tokens carry: what makes `grpc.serve`, `grpc.serveStream` and `grpc.Server.Serve.wp_proof` true. -/
+/-- **The start** (an axiom; see the file header; restated in per-type stage B, B1b): the server
+being built, with jointly distinct full names, and a listener bound at `addr` become a server `γ`
+listening at `addr`, with Go's configuration, and the right to accept its calls on the listener.
+True of grpc: `Serve(lis)` serves every call accepted on `lis` with the server's chains and its
+registered methods (`handleStream`: the method of the call's path `/<service>/<method>` in
+`services[service]`, its methods before its streams), and no registration is made after it; the
+joint distinctness makes the one entry named by a path the handler grpc's split lookup finds (test
+T9b). One server per address: `netListenerAt` is consumed (`grpcAddrIs_agree`). Under the named
+workload premise `grpcRepliesFit` (2026-10-31, `notes/reply-size.md`), which `grpcServeTok`
+carries. -/
 axiom grpc.start (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
-    (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) :
-  grpcRepliesFit →
+    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
+  grpcRepliesFit → ((regs ++ sregs).map Prod.fst).Nodup →
   grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-    |={⊤}=> grpcServerAt addr ics regs ∗ grpcStreamServerAt addr sics sregs ∗ grpcServeTok gs lis
+    |={⊤}=> ∃ γ : GName, grpcAddrIs addr γ ∗
+      grpcSrvCfg γ ({ ics := ics, sics := sics, regs := regs, sregs := sregs } : GrpcSrvCfg GF) ∗
+      grpcSrvLink gs lis γ
 
 end defs
 

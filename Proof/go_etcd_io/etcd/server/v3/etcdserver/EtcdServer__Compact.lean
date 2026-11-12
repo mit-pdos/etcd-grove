@@ -27,6 +27,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetPhysical
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetRevision
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.StartLaws
 
 @[expose] public section
 
@@ -274,7 +275,7 @@ theorem EtcdServer.Compact.wp_proof
   iintro %osl ⟨-, -⟩
   (try wp_auto)
   -- the span, over the caller's context (which carries no trace: `Htrc`, kept by `Start`)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib

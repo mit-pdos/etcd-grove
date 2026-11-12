@@ -99,12 +99,10 @@ axiom grpc.GenericServerStream.Context.wp_proof
 axiom grpc.GenericServerStream.Recv.wp_proof
 axiom grpc.GenericServerStream.Send.wp_proof
 axiom grpc.StaticMethod.wp_proof
-axiom grpc.serveStream
+axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcServesStream
-axiom grpcServesStream_persistent
-axiom grpcStreamServerAt
+axiom grpcSrvCfgRaw
 axiom metadata.MD.Get.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof

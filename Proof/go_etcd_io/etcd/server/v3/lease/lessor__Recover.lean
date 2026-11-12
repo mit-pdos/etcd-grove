@@ -51,7 +51,7 @@ theorem lease.lessor.Recover.wp_proof
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %cp, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, -, Hbl⟩
+  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, -, Hbl⟩
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im0, #Hp, %HC, Him0, HI0, -, -, Hcs, Hch⟩
   -- `le.b`, `le.rd`, `le.itemMap`: the two halves made whole
@@ -136,7 +136,7 @@ theorem lease.lessor.Recover.wp_proof
   icases ptsto_halves_split _ _ $$ Hb with ⟨Hb, Hbl⟩
   icases ptsto_halves_split _ _ $$ Hrdw with ⟨Hrdw, Hrdf⟩
   ihave Hx : lessorExtra lp (recMap (recs.zip ls)) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmetas Hbl]
-  · iunfold lessorExtra; iexists dc, np, h', hx', cp, _; iframe
+  · iunfold lessorExtra; iexists dc, np, h', hx', _; iframe
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM' Himw HI' Hrdf Ha Hg Hx Hhist]
   · iframe #
     inext

@@ -51,7 +51,7 @@ theorem runner.restart.wp_proof
     (wp_startEpoch : runner.startEpoch.spec (GF := GF) (hG := hG))
     (wp_startReaders : runner.startReaders.spec (GF := GF) (hG := hG)) :
     runner.restart.spec (GF := GF) (hG := hG) := by
-  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs j mp hj hdbo hdbc hck hlim hcbl
+  intro _ _ x ks cfg wr h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs j mp hj hdbo hdbc hlim hcbl
   haveI : Persistent (runnerMs (GF := GF) x mp0 mp1) := by unfold runnerMs; infer_instance
   haveI : ∀ N l, Persistent (ctrInv (GF := GF) N l) := by intro N l; unfold ctrInv; infer_instance
   haveI := isInc_persistent hpers
@@ -157,7 +157,7 @@ theorem runner.restart.wp_proof
     (try wp_auto)
     wp_apply (wp_open x ks cfg wr h γ.h ops 0 mp0 γ.m0 f0 v0.ops v0.path D u v0.b Hl'
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-          #v0.bk.be) (lease.lessorIface v0.lp) v0.kv hlogOk Hvops hlen hdbo hck hlim hcbl)
+          #v0.bk.be) (lease.lessorIface v0.lp) v0.kv hlogOk Hvops hlen hdbo hlim hcbl)
       $$ [Htok Hrd Hpath Hbe Hle Hkv Hrev Hcmp Hleases Hfile Himg HhookOk Hσc Hc1 Hc2 Hc3 Hc4 Hbc
         Hc5 Hc6 Hc7 Hc8 Hσw Hbw]
       as ⟨Htok, Hrd, %v', %k', %Hv', Hc'⟩
@@ -302,7 +302,7 @@ theorem runner.restart.wp_proof
     (try wp_auto)
     wp_apply (wp_open x ks cfg wr h γ.h ops 1 mp1 γ.m1 f1 v1.ops v1.path D u v1.b Hl'
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-          #v1.bk.be) (lease.lessorIface v1.lp) v1.kv hlogOk Hvops hlen hdbo hck hlim hcbl)
+          #v1.bk.be) (lease.lessorIface v1.lp) v1.kv hlogOk Hvops hlen hdbo hlim hcbl)
       $$ [Htok Hrd Hpath Hbe Hle Hkv Hrev Hcmp Hleases Hfile Himg HhookOk Hσc Hc1 Hc2 Hc3 Hc4 Hbc
         Hc5 Hc6 Hc7 Hc8 Hσw Hbw]
       as ⟨Htok, Hrd, %v', %k', %Hv', Hc'⟩

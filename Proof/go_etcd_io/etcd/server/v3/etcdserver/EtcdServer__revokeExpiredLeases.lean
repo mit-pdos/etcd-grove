@@ -212,13 +212,14 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
           iintro !> %Ψ ⟨-, Irun, Ifr⟩ HΨ
           iapply wp_fupd
           icases (threadTokFrom_succ (GF := GF) 1 (by word)).1 $$ Ifr with ⟨I1, It2⟩
+          icases (threadTokFrom_succ (GF := GF) 2 (by word)).1 $$ It2 with ⟨I2, It3⟩
           wp_auto_lc 1
           imod srvRevokeCtx_innerBorrow s E ρ γr γg ⊤ (fun _ _ => CoPset.mem_full)
-            $$ [Hlc1 Hrvk I1] with ⟨⟨Ilt, IRD⟩, IloanI⟩
-          · iframe Hlc1 I1; iexact Hrvk
+            $$ [Hlc1 Hrvk I2] with ⟨⟨Ilt, IRD⟩, IloanI⟩
+          · iframe Hlc1 I2; iexact Hrvk
           -- (`wp_apply hWR stl E.RD …` aborts without an error: the call by hand)
           wp_bind (App (Val _) (Val #(GoInterface.ok ctx)))
-          iapply hWR stl E.RD (GoInterface.ok ctx) $$ [IRD] [Irun HΨ It2 Ilt IloanI]
+          iapply hWR stl E.RD (GoInterface.ok ctx) $$ [IRD] [Irun HΨ I1 It3 Ilt IloanI]
           · iframe #; iframe IRD
           inext
           iintro IRD
@@ -232,14 +233,16 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
             iframe ID
             ipureintro; exact Hrnn
           (try wp_auto)
-          ihave Hdone : iprop(|={⊤}=> Ψ #()) $$ [HΨ Irun It2 IloanI Ilt IRD]
+          ihave Hdone : iprop(|={⊤}=> Ψ #()) $$ [HΨ Irun I1 It3 IloanI Ilt IRD]
           · imod srvRevokeInnerLoan_giveBack s E ⊤ (fun _ _ => CoPset.mem_full)
-              $$ [IloanI Ilt IRD] with I1
+              $$ [IloanI Ilt IRD] with I2
             · iframe IloanI Ilt IRD
             imodintro
             iapply HΨ
             iframe Irun
             iapply (threadTokFrom_succ (GF := GF) 1 (by word)).2
+            iframe I1
+            iapply (threadTokFrom_succ (GF := GF) 2 (by word)).2
             iframe
           icases Hres with (⟨%Herr, -⟩ | ⟨%Herr, -⟩)
           · -- revoked: the counter
