@@ -20,14 +20,23 @@ Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1
   - A5: `walReadCut_ents_sub`, `walReadCut_ents_sub_raw`.
   - A6: `walLastSnapPos_le`, `walLastSnapPos_snoc`, `walLastSnapPos_img`, `walReleasePos_le_length`,
     `walRelGuard_snoc`.
-- CP1 report sent to etcd-grove-81; waiting for its go.
+- CP1 approved by etcd-grove-81 (forms included).
+- Part B (`ecb6bfac64`): B3 `walImg_append_cases`, `walImg_snoc_cases` (pure, in `WalHistLemmas.lean`,
+  no mark premise needed); new module `WalViews.lean`: `walCrashKeeps`, `walDiskAt_crash_img`,
+  `walDiskAt_crash_img_any`, `walDiskAt_crash_graceful`, `walDiskAt_walDisk`, `walDisk_excl`.
+- Probes R1/R2: instrumented copy of the W3 tester (`tester-fixed` + `r2.go`) under
+  `/shared/tmp/wal-spec/w4b/r2/` (`run.sh`; logs `*.log`, `*.r2log`). Findings (CP2 report):
+  R2: every `ReleaseLockTo` meets `walRelGuard` except 10 (clause 2, dormant records); 446 of 685
+  restart `Open`s fail it (436 clause 1 at `j = p+1`: a received snapshot's record precedes the Save
+  that commits it; 3 clause 2). R1: C2 as stated is false (entries above `a` saved before the
+  snapshot record, purged with `k ≤ p`; the model's `walReleasePos` is coarser than Go's file naming).
+- CP2 report: waiting for etcd-grove-81 (R1/R2 decisions: trusted refinement of `walRelGuard` /
+  `walReleasePos`, or premises).
 
-## Next, in order (after CP1)
+## Next, in order (after CP2)
 
-1. Part B (`WalViews.lean`): B2 `walDiskAt_crash_img` (+ `_any`), `walDiskAt_crash_graceful`; B3
-   `walImg_snoc_cases`, `walImg_append_cases`; B1's `walDisk` half. B1's `walDiskM` half after W4a.1 lands.
-2. Probes R1, R2 (Go, scratch under `/shared/tmp/wal-spec/w4b/`); CP2.
-3. Part C (C1-C4); full checks; CP3.
+1. B1's `walDiskM` half after W4a.1 lands.
+2. Part C per CP2's decision on R1; full checks; CP3.
 
 ## Pitfalls
 
