@@ -7,7 +7,7 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 ## Phase: plan approved (D1-D4, etcd-grove-81 under the user's delegation, 2026-11-12; `questions.md`); Phase A, probe
 
 - The WAL interface note got its §5 (S6 introduces `wal.restartOk`; C6 owns its body), commit `8f055a306b`.
-- Baseline build started 2026-11-12, log `/shared/tmp/restart-s56/base.log` (an `exit N` line at the end).
+- Baseline build at `90c3e25e77` + notes: clean, 17552 jobs, exit 0 (`/shared/tmp/restart-s56/base.log`).
 - **P4 (R1) done, by reading: a gap that needs a decision** (`/shared/tmp/restart-s56/p4-snapdir.md`).
   The snapshot directory's authority (`ghostMapAuth γd`) and its files are locked in the stopped
   incarnation's plain `inv snapDirN (snapDirInv ss γd …)`. `γd` is fixed by raft's `Cluster.snapLoc`,
@@ -33,7 +33,7 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 
 ## Next, in order (once approved)
 
-1. A0: baseline build (running, see above).
+1. A0: baseline build done (clean).
 2. A1: probe (P4 done; wait for 81's decision on R1; P1-P3, P5-P7 next) `Scratch/S56Probe.lean` (untracked; P1-P7 of the plan). CP1: report.
 3. A2: texts in the files that are not the auth fix's. CP2: Freeze package, spec-reviewer, axiom skill. STOP.
 4. Phase B, only after the auth fix lands: merge lean, edit `NewServer.lean`/`AuthSrv.lean`. CP3: STOP before land.
