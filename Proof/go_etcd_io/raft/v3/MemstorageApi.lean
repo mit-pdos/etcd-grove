@@ -91,9 +91,10 @@ theorem memStorage_isStorage
   · have e : γ.maxData.isSome = false := by simpa using h
     rw [e]
     iintro #Hinv #Hreg
-    iapply isStorageP_unsize
-    iapply memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
+    ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
       (memStorJ γ K) $$ Hinv Hreg
+    ihave #H2 := isStorageP_unsize _ _ _ _ _ $$ H
+    iExactEq H2; rfl
 
 end api
 
