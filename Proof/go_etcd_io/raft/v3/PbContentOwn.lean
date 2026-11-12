@@ -911,6 +911,37 @@ theorem own_ccPtsCC (c : GoInterface) (dq : DFrac) (o : ConfChangeIM) :
     · ipureintro
       simp only [ConfChangeIC.model, hchs]
 
+/-- (out_size C3, P5) **A conf change interface at an optional content**: `nil` (`none`), or a
+`*ConfChange`/`*ConfChangeV2` at its content (`ccPtsCC`). What `raftpb.MarshalConfChange` and
+`confChangeToMsg` take, so that the encoding's length can name the content. -/
+def ccPtsCCo (c : GoInterface) (dq : DFrac) : Option ConfChangeIC → IProp GF
+  | none => iprop(⌜c = interface.nil⌝)
+  | some cc => ccPtsCC c dq cc
+
+/-- The optional content form is today's conf change at its model. -/
+theorem ccPtsCCo_own (c : GoInterface) (dq : DFrac) (oc : Option ConfChangeIC) :
+    ccPtsCCo (GF := GF) c dq oc ⊢ ownConfChangeI c dq (oc.map ConfChangeIC.model) := by
+  cases oc with
+  | none => simp only [ccPtsCCo, Option.map_none, ownConfChangeI]; exact .rfl
+  | some cc => simp only [ccPtsCCo, Option.map_some]; exact ccPtsCC_own c dq cc
+
+/-- Today's conf change has an optional content form. -/
+theorem own_ccPtsCCo (c : GoInterface) (dq : DFrac) (o : Option ConfChangeIM) :
+    ownConfChangeI (GF := GF) c dq o ⊢ ∃ oc, ccPtsCCo c dq oc ∗ ⌜oc.map ConfChangeIC.model = o⌝ := by
+  cases o with
+  | none =>
+    iintro H
+    iexists none
+    simp only [ccPtsCCo, ownConfChangeI, Option.map_none]
+    iframe H
+  | some o =>
+    iintro H
+    ihave ⟨%cc, Hc, %Hm⟩ := own_ccPtsCC c dq o $$ H
+    iexists (some cc)
+    simp only [ccPtsCCo, Option.map_some]
+    iframe Hc
+    ipureintro; rw [Hm]
+
 end ccDefs
 
 end EtcdGrove

@@ -431,9 +431,12 @@ it hands out from them, a `MsgSnap`'s `raft.Step` pins its snapshot's. Until U8 
 mode needed no link (`⌜γ.reNoSnap = true⌝ ∨ …`); the mode is dropped at raft's level (a node's
 `NGhost.ns` is off, `ownRaftPhys`'s `Hnsoff`). (out_size C2) And the storage is sized exactly
 when the cluster bounds proposed data (`sn.sz`, the node API's `isStorage`): what raft's log
-invariant on entry objects reads the storage's sizes from. -/
+invariant on entry objects reads the storage's sizes from. (out_size C3) With the cluster's bound on
+proposed data at most `2^31` and met by the bootstrap log's entries (`clusterInv`): what sizes the
+entries a node builds from proposals and from the bootstrap log. -/
 def certLink (γ : RaftNames) (sn : StorNames) : IProp GF :=
-  iprop(storCertOk γ sn ∗ ctCommitted γ sn ∗ ⌜sn.sz = γ.maxData.isSome⌝)
+  iprop(storCertOk γ sn ∗ ctCommitted γ sn ∗ ⌜sn.sz = γ.maxData.isSome⌝ ∗
+    ⌜∀ b, γ.maxData = some b → b ≤ 2 ^ 31 ∧ ∀ e ∈ γ.reBoot, e.Data'.length ≤ b⌝)
 
 instance certLink_persistent (γ : RaftNames) (sn : StorNames) :
     Persistent (certLink (GF := GF) γ sn) := by

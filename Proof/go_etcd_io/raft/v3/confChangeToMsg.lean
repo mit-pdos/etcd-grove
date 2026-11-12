@@ -36,10 +36,20 @@ theorem confChangeToMsg.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG))
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG)) :
     confChangeToMsg.spec (GF := GF) (hG := hG) := by
-  intro c o dq
-  wp_start as Hc
+  intro c oc dq sz
+  wp_start as ⟨Hc, %Hsz⟩
   wp_auto
-  wp_apply wp_raftpb_MarshalConfChange $$ [$Hc] as %data %bs ⟨Hc, Hdata, %Hbs⟩
+  wp_apply wp_raftpb_MarshalConfChange $$ [$Hc] as %data %bs ⟨Hc, Hdata, %Hbs, %Hlen⟩
+  -- (out_size C3, P5) the encoding within `entBytesMax` when sized: `ccLenMax_le`
+  have Hbl : sz = true → (ccEntryM (oc.map ConfChangeIC.model) bs).Data'.length ≤ entBytesMax := by
+    intro hs
+    simp only [ccEntryM]
+    rcases oc with _ | cc
+    · simp only [Option.map_none, MarshalsConfChange] at Hbs; subst Hbs; simp
+    · have h1 := Hsz hs cc rfl
+      have h2 := Hlen cc rfl (by simp only [entBytesMax] at h1; omega)
+      have h3 := ccLenMax_le cc (by simp only [entBytesMax] at h1; omega)
+      omega
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 2) as %pty Hpty
   wp_method_call
@@ -59,36 +69,33 @@ theorem confChangeToMsg.wp_proof
   imod cellRO_alloc $$ Hpety with #cY
   imod cellRO_alloc $$ Hpty with #cTy
   imod ownSlice_persist $$ Hdata with #Hdata
-  imod entOwn_of_struct l0 (⟨zero_val _, null, null, pety, data, slice.nil, 0⟩ : raftpb.Entry)
-      (ccEntryM o bs) ⊤ rfl $$ [Hl0] with He
+  imod entRZ_of_struct sz l0 (⟨zero_val _, null, null, pety, data, slice.nil, 0⟩ : raftpb.Entry)
+      (ccEntryM (oc.map ConfChangeIC.model) bs) ⊤ rfl Hbl $$ [Hl0] with #He
   · iframe Hl0
     simp only [ccEntryM]
     iframe cY Hdata
     isplitl [] <;> (iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
-  imod entOwn_freeze $$ He with #He
   iapply wp_fupd
   wp_auto
   irename «$r0» => Hml
   generalize «$r0_ptr» = ml at *
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-  imod msgPtsC_of_struct ml (⟨zero_val _, pty, null, null, null, null, null,
+  imod msgInC_of_struct sz ml (⟨zero_val _, pty, null, null, null, null, null,
       slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
-      0⟩ : raftpb.Message) (DFrac.own 1) false [l0] ⟨propMsgM, [ccEntryM o bs], none, [], []⟩ ⊤ rfl $$ [Hml Hsl] with Hm
+      0⟩ : raftpb.Message) (DFrac.own 1) [l0]
+      ⟨propMsgM, [ccEntryM (oc.map ConfChangeIC.model) bs], none, [], []⟩ ⊤ rfl rfl rfl rfl rfl
+      (fun _ => ⟨by simp, by simp [entBytesMax]⟩) $$ [Hml Hsl] with Hm
   · iframe Hml Hsl Hnilb
     simp only [propMsgM, show MsgProp = W32 2 from rfl]
     iframe cTy
     msg_nulls
-    simp only [Bool.false_eq_true, ↓reduceIte, snapOpt]
-    iframe He
-    isplitl []; · iapply entsBig_nil
-    isplitl []; · iempintro
-    isplitl []; · ipureintro; trivial
+    isplitl []
+    · iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ p e => entRZ (GF := GF) sz p e)).2
+      iexact He
     iapply ownSlice_nil
   imodintro
   iapply HΦ $$ %ml %bs
-  iframe Hc
-  simp only [msgIn, show needsCap propMsgM = false from rfl]
-  isplitl; · iexact Hm
+  iframe Hc Hm
   ipureintro; exact Hbs
 end proof
 

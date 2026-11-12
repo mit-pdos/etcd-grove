@@ -184,11 +184,16 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
       ctCommitted γ.raft sn -∗ certLink γ.raft sn := by
   iintro #Hci #Hsv #Hgk #Hct
   have HcN : raftCertN γ.raft = N := HU.2.1
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨-, -, -, -, %Hmb⟩
   unfold certLink
   iframe Hct
   isplitr
   rotate_left
-  · ipureintro; exact hsz
+  · isplitr
+    · ipureintro; exact hsz
+    ipureintro; exact Hmb
   unfold storCertOk
   isplitr
   · iintro !> %sv %E %HE Hc

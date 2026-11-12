@@ -727,7 +727,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases Hsnl with ⟨%L, Hrdz, Hsnapz, %Hpsn, %HLc⟩
   -- (out_size C3) the node's size flag is the cluster's (`certLink`)
   iunfold certLink at Hlink
-  icases Hlink with ⟨-, -, %Hszl⟩
+  icases Hlink with ⟨-, -, %Hszl, -⟩
   ihave Hphys := ownRaftPhysReady_lt0 cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false L.isSome
     $$ Hphys
   iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)

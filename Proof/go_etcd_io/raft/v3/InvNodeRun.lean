@@ -468,7 +468,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   · iExactEq Hghost; simp
   icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hcl, Hghost⟩
   iunfold certLink at Hcl
-  icases Hcl with ⟨-, -, %Hszl⟩
+  icases Hcl with ⟨-, -, %Hszl, -⟩
   ihave Hown : ([∗list] q ∈ ms, msgOwnZ s.gh.sn.sz q.loc (readyDq q.st) q.st) $$ [Hown]
   · rw [Hszl]; iexact Hown
   icases Hundo $$ Hmsgs Hmsgs_cap Hown with ⟨Hm1, Hc1, Hown1, Hhalf⟩

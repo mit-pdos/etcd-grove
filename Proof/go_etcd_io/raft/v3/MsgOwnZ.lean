@@ -635,6 +635,74 @@ theorem msgOwnZ_to_msgInC (sz : Bool) (l : Loc) (st : MsgSt) (hcap : needsCap st
   ipureintro
   refine ⟨Hm, Hok.1, fun hs ht => Hz hs (by rw [Hm]; exact ht)⟩
 
+/-- (out_size C3) **A message raft builds with entries, handed to `Step`** (`RawNode.Propose`,
+`ReadIndex`, `ProposeConfChange`): a fresh literal with no snapshot, no responses and no unknown
+fields, its entries at `entRZ sz` (each within the bound when `sz`), its context within the bound,
+and few enough entries for the framed sum (`2^36`): a received message at a content of bounded
+size (`msgInC sz`), no capacity needed (not a `MsgApp`). -/
+theorem msgInC_of_struct (sz : Bool) (l : Loc) (v : raftpb.Message) (dqe : DFrac) (els : List Loc)
+    (ms : MsgSt) (E : CoPset) (Hu : v.unknownFields' = slice.nil) (Hsn : v.Snapshot' = null)
+    (hs : ms.snap = none) (hr : ms.resps = []) (hcap : needsCap ms.msg = false)
+    (Hsz : sz = true → ms.ctx.length ≤ entBytesMax ∧ ms.ents.length * (entBytesMax + 64) ≤ 2 ^ 36) :
+    (l ↦ v ∗ cellRO v.Type' ms.msg.Type' ∗ cellRO v.To' ms.msg.To' ∗
+      cellRO v.From' ms.msg.From' ∗ cellRO v.Term' ms.msg.Term' ∗
+      cellRO v.LogTerm' ms.msg.LogTerm' ∗ cellRO v.Index' ms.msg.Index' ∗
+      cellRO v.Commit' ms.msg.Commit' ∗ cellRO v.Vote' ms.msg.Vote' ∗
+      cellRO v.Reject' ms.msg.Reject' ∗ cellRO v.RejectHint' ms.msg.RejectHint' ∗
+      v.Entries' ↦*{dqe} els ∗ ([∗list] p;e ∈ els;ms.ents, entRZ sz p e) ∗
+      v.Context' ↦*□ ms.ctx ∗ v.Responses' ↦* ([] : List Loc) : IProp GF) ⊢
+      |={E}=> msgInC sz l dqe ms := by
+  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, Hes, #Hents, #Hcx, Hrs⟩
+  ihave ⟨%oTy, #oTy, %hTy⟩ := cellRO_optCell _ _ $$ cTy
+  ihave ⟨%oTo, #oTo, %hTo⟩ := cellRO_optCell _ _ $$ cTo
+  ihave ⟨%oFr, #oFr, %hFr⟩ := cellRO_optCell _ _ $$ cFr
+  ihave ⟨%oTe, #oTe, %hTe⟩ := cellRO_optCell _ _ $$ cTe
+  ihave ⟨%oLt, #oLt, %hLt⟩ := cellRO_optCell _ _ $$ cLt
+  ihave ⟨%oIx, #oIx, %hIx⟩ := cellRO_optCell _ _ $$ cIx
+  ihave ⟨%oCo, #oCo, %hCo⟩ := cellRO_optCell _ _ $$ cCo
+  ihave ⟨%oVo, #oVo, %hVo⟩ := cellRO_optCell _ _ $$ cVo
+  ihave ⟨%oRj, #oRj, %hRj⟩ := cellRO_optCell _ _ $$ cRj
+  ihave ⟨%oRh, #oRh, %hRh⟩ := cellRO_optCell _ _ $$ cRh
+  ihave ⟨%oCx, #oCx, %hCx⟩ := ownSlice_bytesC _ _ $$ Hcx
+  ihave ⟨%cs, #Hcs, %hcs⟩ := entsBigZ_entsBigC sz els ms.ents $$ Hents
+  imod msgPtsCC_of_struct l v dqe false els
+      ⟨oTy, oTo, oFr, oTe, oLt, oIx, cs, oCo, oVo, none, oRj, oRh, oCx, []⟩ E Hu rfl
+      $$ [Hl Hes Hrs] with Hm
+  · iframe Hl Hes Hrs oTy oTo oFr oTe oLt oIx oCo oVo oRj oRh oCx Hcs
+    simp only [Bool.false_eq_true, ↓reduceIte, snapOptCC]
+    isplitl []; · iempintro
+    ipureintro; exact Hsn
+  imodintro
+  unfold msgInC
+  iexists _
+  rw [hcap]
+  iframe Hm
+  ipureintro
+  obtain ⟨mm, ents, snap, ctx, resps⟩ := ms
+  simp only at hs hr hcs hCx Hsz hTy hTo hFr hTe hLt hIx hCo hVo hRj hRh
+  subst hs hr
+  obtain ⟨hcs1, hcs2⟩ := hcs
+  refine ⟨?_, ?_, fun hsz _ => ?_⟩
+  · simp only [MsgC.model, MsgC.f, MsgC.resps, MsgFC.msgM, List.map_nil, Option.map_none, hcs1, hCx,
+      hTy, hTo, hFr, hTe, hLt, hIx, hCo, hVo, hRj, hRh]
+  · intro s hs'; simp [MsgC.f] at hs'
+  · obtain ⟨hc, hn⟩ := Hsz hsz
+    have he : ∀ e ∈ cs, entBytes e ≤ entBytesMax := fun e he => hcs2 hsz e he
+    refine ⟨rfl, ?_, he, ?_⟩
+    · simp only [hdrBytes, MsgC.f, optSnapSize, List.length_nil, Nat.add_zero, hCx]; exact hc
+    · simp only [MsgC.f]
+      have hlen : cs.length = ents.length := by rw [← hcs1, List.length_map]
+      have : (cs.map (fun e => entBytes e + 64)).sum ≤ cs.length * (entBytesMax + 64) := by
+        clear hlen hcs1 hcs2
+        induction cs with
+        | nil => simp
+        | cons c cs ih =>
+          simp only [List.map_cons, List.sum_cons, List.length_cons]
+          have h1 := he c (by simp)
+          have h2 := ih (fun e he' => he e (by simp [he']))
+          rw [Nat.add_mul, Nat.one_mul]; omega
+      rw [hlen] at this; omega
+
 end recv
 
 end EtcdGrove

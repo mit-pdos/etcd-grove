@@ -143,7 +143,7 @@ theorem RawNode.Step.wp_proof
         with ⟨%Hdag, Hghost⟩
       icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
       iunfold certLink at Hlink
-      icases Hlink with ⟨-, -, %Hszl⟩
+      icases Hlink with ⟨-, -, %Hszl, -⟩
       wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
         (RNMode.pre_net Hpf (by not_net)) (fun _ => Hns0.1)

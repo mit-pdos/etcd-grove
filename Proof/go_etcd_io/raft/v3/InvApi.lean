@@ -522,10 +522,14 @@ def apiInv (γ : Cluster) (N : Namespace) : IProp GF := inv (apiN N) (apiInvBody
 instance apiInv_persistent (γ : Cluster) (N : Namespace) : Persistent (apiInv (GF := GF) γ N) := by
   unfold apiInv; infer_instance
 
-/-- **The cluster's invariants**: raft's, in `N .@ "raft"`, and the adapter's. -/
+/-- **The cluster's invariants**: raft's, in `N .@ "raft"`, and the adapter's. (out_size C3) It
+records the allocation's premises on the bound on proposed data (`maxData`): at most `2^31`, and met
+by the bootstrap log's entries; a node reads them (`certLink`) to size the entries it builds from
+proposals and from the bootstrap log. -/
 def clusterInv (γ : Cluster) (N : Namespace) : IProp GF :=
   iprop(⌜γ.raft.reNs = N .@ "raft"⌝ ∗ raftCommitInv γ.raft ∗ apiInv γ N ∗
-    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)))
+    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)) ∗
+    ⌜∀ b, γ.raft.maxData = some b → b ≤ 2 ^ 31 ∧ ∀ e ∈ γ.raft.reBoot, e.Data'.length ≤ b⌝)
 
 instance clusterInv_persistent (γ : Cluster) (N : Namespace) :
     Persistent (clusterInv (GF := GF) γ N) := by
@@ -3111,7 +3115,7 @@ theorem api_key_register (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   iintro #Hci
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
-  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, #HspT⟩
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, #HspT, -⟩
   ihave Hat : |={E}=> propIsAt γ.raft k γ.trueQ $$ []
   · unfold apiInv apiInvBody
     have Ha := apiN_sub N HE
