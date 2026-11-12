@@ -28,32 +28,27 @@ func ReqReopen() {
 }
 
 // REQ backend/force-commit-durable: a write unlocked before ForceCommit returns survives a crash
-// after it. A crash target: ReqForceCommitDurable, then ReqForceCommitRecover after any crash
-// (also one during a recovery), does not panic. The marker file, created after ForceCommit
-// returns, records that it did; the directory is synced after the backend's file is created, so
-// that the file's name survives (bbolt does not sync it,
+// after it. A crash target: the program is also its own recovery, run again after any crash (also
+// one during a recovery); no run panics. The marker file, created after ForceCommit returns,
+// records that it did: a run that finds it only checks. The directory is synced after the
+// backend's file is created, so that the file's name survives (bbolt does not sync it,
 // nonissues/etcd-backend-name-lost-restart-panic.md).
 // Users: storage/mvcc/kvstore.go:213-216 (the scheduled compaction committed before it runs),
 // :289 (Commit, before the merged snapshot: etcdserver/snapshot_merge.go:36), lease/lessor.go:834,
 // etcdserver/v3_server.go:412.
 func ReqForceCommitDurable() {
-	be := openWith("specreq-backend-durable.db", schema.Meta)
-	if d, err := os.Open("."); err != nil || d.Sync() != nil || d.Close() != nil {
-		return
-	}
-	put(be, schema.Meta, "k", "v")
-	be.ForceCommit()
-	if f, err := os.Create("specreq-backend-durable.marker"); err == nil {
-		f.Close()
-	}
-	be.Close()
-}
-
-// ReqForceCommitRecover is ReqForceCommitDurable's recovery: once the marker exists, the backend
-// holds the write.
-func ReqForceCommitRecover() {
-	if _, err := os.Stat("specreq-backend-durable.marker"); err != nil {
-		return // ForceCommit may not have returned
+	if _, err := os.Stat("specreq-backend-durable.marker"); err != nil { // ForceCommit has not returned
+		be := openWith("specreq-backend-durable.db", schema.Meta)
+		if d, err := os.Open("."); err != nil || d.Sync() != nil || d.Close() != nil {
+			return
+		}
+		put(be, schema.Meta, "k", "v")
+		be.ForceCommit()
+		f, err := os.Create("specreq-backend-durable.marker")
+		be.Close()
+		if err != nil || f.Close() != nil {
+			return
+		}
 	}
 	be := openWith("specreq-backend-durable.db")
 	if get(be.ReadTx(), schema.Meta, "k") != "v" {
