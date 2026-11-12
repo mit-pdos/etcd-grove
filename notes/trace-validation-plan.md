@@ -22,8 +22,7 @@ the read-only lending of the trace hooks, B4's module, Q39's premise); `etc/goos
 every project under amd64 but raft, whose translation regenerates identically from the unpushed fork
 commit `e8f9566` (`--src raft=.lake/raft-trace`); the tracecheck Go tests pass with `-tags with_tla` and
 (the subpackages) without. Not green, and not in the acceptance test: `etc/gates.sh`'s goose line (the
-unpushed fork commit: landing on `lean` needs the push, the user's) and `etc/reader-slot-check.py`'s floor
-(199 < 200, identical at `a660e8e6a5`: this machine's Go sources). Steps 4 and 5: the design's "Step 4" and
+unpushed fork commit: landing on `lean` needs the push, the user's). (`etc/reader-slot-check.py`'s floor, 199 < 200, also failed; it was this branch's: Q9's `9237a72654` turned `MessageType.String`'s axiom into a proof without lowering the floor; lowered to 199 on 2026-11-12, the check passes). Steps 4 and 5: the design's "Step 4" and
 "Step 5" sections; `notes/decisions.md`'s step-4 and step-5 entries. Left, not needed by the result:
 `tcRunFits` as a `ReceiptBoundLe` instance (needs §1.3's premise restated: the user's); one statement for
 `RawNode.Tick` (step-4 review F3, a cleanup: done 2026-11-12, branch `trace-check-clean`,

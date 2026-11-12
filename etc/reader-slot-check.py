@@ -142,7 +142,7 @@ THIRD_PARTY = (
 # the scanned axioms' count may not fall below this (a tree or package gone, or the layout's
 # mapping broken, would move axioms out of the scan): when axioms are added and the count rises,
 # raise it to the count `reader-slot: ok (...)` prints; lower it only with a reason in the commit
-MIN_SCANNED = 200
+MIN_SCANNED = 199
 
 
 def under(a, prefix):
