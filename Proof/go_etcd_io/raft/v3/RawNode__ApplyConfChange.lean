@@ -6,6 +6,7 @@ raft v3.7 (2026-10-16, stage R5): the conf change is a pointer (`ownConfChangeI`
 `*pb.ConfState` (`csPts cs 1 … true`), handed to the caller. -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApplyConfChangeUntraced
 public import Spec.go_etcd_io.raft.v3.RawNode__ApplyConfChange
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
