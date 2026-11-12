@@ -385,6 +385,28 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     `etc/pbschema-check.py`), and the C3 checks. rafthttp/server/kv not rebuilt by agent 8 (no textual
     users of the changed names outside raft but comments).
 
+- **C3 continued**, 2026-11-12 (agent 9; commit `08534f1fdf`, then the C3 checks): **steps 3 and 4 done;
+  no TODO sorry left** (the four `*_sized_TODO` lemmas deleted). raft `Results` builds
+  (`/shared/tmp/out-size/c3-a9-raft2.log`).
+  - Decided by etcd-grove-81: the boot half of `clusterInv`/`certLink`'s conjunct accepted.
+  - **Step 3**: `ownReadreq`/`ownPendRI`/`ownReadOnly`/`ownRaftMisc` take the flag `sz` and hold the
+    stored request at `msgOwnZ sz … □` with `Type' ≠ MsgSnap`; `stepLeader`'s `MsgReadIndex` branch
+    keeps `msgInC` and freezes it (`msgInC_freeze`); `responseToReadIndexReq` builds the response at
+    the request's entry contents (`msgPtsCC_acc_entries`, `wp_Message_GetEntries_field`,
+    `msgOwnZ_of_structC`); `sendHeartbeat`/`bcastHeartbeatWithCtx` take `cl.length ≤ entBytesMax`
+    (`bcastHeartbeat`: nil or eight bytes). The view's closure carries `g.sn.sz = s.gh.sn.sz`.
+  - **Step 4**: `raftLog.slice`/`entries` return `entsCutRO ls.sn.sz maxSize` (contents, sized, cut);
+    `extend` at contents; the extend exit's cut is `extend_cut` (slice file). `ownRaftPhys` records
+    `s.gh.sn.sz → maxMsgSize ≤ entsCutMax` (`Hmms`; from the starters' premise through `setupNode`
+    (new premise `sn.sz = γ.maxData.isSome`), `NewRawNode`, `newRaft`, `ConfigPreserved`);
+    `maybeSendAppend` builds the `MsgApp` with `msgOwnZ_of_structC`, the sum by `msgApp_sum` (cut +
+    entry index ≥ 1 ⇒ protobuf size ≥ 2 ⇒ ≤ 2^19 entries).
+  - Forms decided: questions.md, "agent 9".
+  - **Next**: full build (`/shared/tmp/out-size/c3-a9-full1.log`), fix rafthttp/server/kv; P6 is
+    expected to be done already (agent 3's restart clause made `bootstrappedWAL.MemoryStorage` `∀ sz`,
+    both paths at `true`); then the C3 checks (tcb `--check`, collections, gates, gen-interface) and
+    the report.
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s

@@ -927,7 +927,7 @@ raftpb_Message__GetIndex: @
 raftpb_Message__GetTerm: @
 raftpb_Message__GetSnapshot: @
 raftpb_MessageType__Enum: @
-proto_ClonePb:
+proto_ClonePb: @
 pbutil_MustUnmarshalMessagePb: proto_UnmarshalPb
 raftpb_Message__GetLogTerm: @
 raftpb_Message__GetCommit: @

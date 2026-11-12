@@ -35,12 +35,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The size condition of a message raft holds at the content `c`, under the node's flag `sz`. -/
-def msgSzC (sz : Bool) (c : MsgC) : Prop :=
+def msgSzOk (sz : Bool) (c : MsgC) : Prop :=
   c.sentOk ∧ (sz = true → c.model.msg.Type' ≠ MsgSnap → msgSizeOk c)
 
 /-- **A message raft holds, at a content** (see the file header). -/
 def msgOwnZ (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF :=
-  iprop(∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧ msgSzC sz c⌝)
+  iprop(∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧ msgSzOk sz c⌝)
 
 /-- (out_size C3, Scope §2.3) **A received message at a content**, as `msgIn` holds it (the struct
 owned, the entries slice at `dqe`, its capacity when `needsCap`), of bounded size under the node's flag

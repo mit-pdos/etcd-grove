@@ -351,7 +351,6 @@ public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__W
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
-public import Proof.google_golang_org.protobuf.proto.ClonePb
 public import Proof.google_golang_org.protobuf.proto.MarshalAppendPb
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
@@ -1094,10 +1093,6 @@ theorem proto.wp_MarshalAppendPb :
 theorem binary.wp_WriteUint8 :
     binary.WriteUint8.spec (GF := GF) (hG := hG) :=
   binary.WriteUint8.wp_proof
-
-theorem proto.wp_ClonePb :
-    proto.ClonePb.spec (GF := GF) (hG := hG) :=
-  proto.ClonePb.wp_proof
 
 theorem pbutil.wp_MustUnmarshalMessagePb :
     pbutil.MustUnmarshalMessagePb.spec (GF := GF) (hG := hG) :=
