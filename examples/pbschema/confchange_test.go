@@ -1,25 +1,20 @@
 package pbschema
 
-// out_size C3, B2 (the Freeze package /shared/tmp/out-size/freeze-b2.md): the Go evidence for the
-// per-type instances of raftpb.ConfChange and raftpb.ConfChangeV2 (Proof/go_etcd_io/raft/v3/
-// PbConfChangeType.lean, drafted in the package), tested against protobuf-go (examples/go.mod's pin)
-// and the raft fork's raftpb. The Lean statements these tests check, all trusted:
+// out_size C3, B2 (the Freeze package /shared/tmp/out-size/freeze-b2.md, Revision 1): the Go evidence
+// for the trusted conf-change statements, tested against protobuf-go (examples/go.mod's pin) and the
+// raft fork's raftpb. Only these tests are evidence for current axioms (all gated in
+// etc/pbschema-check.py's POST_TESTS):
 //
-//   - ccEncC_ok / cc2EncC_ok, the encoders' facts (TestB2CCEncoder, TestB2CC2Encoder): for a random
-//     content (every optional scalar present or not, the enums any int32, Context nil, empty or
-//     not, ConfChangeV2's changes each with its own unknown fields, unknown fields satisfying
-//     `ufWire` at every level's schema), proto.Marshal's length and proto.Size are the instance's
-//     size (ccSizeC / cc2SizeC, transcribing `ccSizeE` / `cc2SizeE`), and Unmarshal of the encoding
-//     gives back exactly the content (the `wire` conjunct, the round trip; also against the
-//     independent reference decoders below), with the getters' model.
-//   - the pure bound (TestB2CCBound, not trusted: proved in Lean, `ccSizeE_le`/`cc2SizeE_le`):
-//     the encoding is at most `ccSize cc + 64` bytes (ccMeasure transcribes `ccSize`), on random
-//     contents and on the extremes (every scalar present at its widest value, negative enums,
-//     long Context, many changes).
 //   - the schemas' D1 at the decoder (TestB2CCDecoderUf): what protobuf-go's Unmarshal leaves in
 //     the unknown fields of a ConfChange, a ConfChangeV2 and each of its ConfChangeSingles satisfies
-//     `ufWire` at the schemas the package adds to `pbSchemaOf` (proposal A1), on random encodings
-//     with unknown fields interleaved, mutated, and every input of length at most 2.
+//     `ufWire` at the schemas of `pbSchemaOf` (ccSchema, cc2Schema, ccsSchema), on random encodings
+//     with unknown fields interleaved, mutated, and every input of length at most 2;
+//   - pbutil.MustUnmarshalMessage's ConfChange case (TestB2MustUnmarshalCC);
+//   - proto.MarshalConfChange[V2]'s length bound `ccLenMax` (TestA3CCLen, TestA3CC2Len), on random
+//     contents.
+//
+// The encoder and size helpers below (ccC, cc2C, the reference decoders) serve those tests; the
+// per-type instances they were first written for (Revision 0's A1) were not adopted.
 
 import (
 	"fmt"
@@ -344,141 +339,6 @@ func randCC2C(t *testing.T, r *rand.Rand) cc2C {
 }
 
 // ---------------- the tests ----------------
-
-func TestB2CCEncoder(t *testing.T) {
-	r := rand.New(rand.NewSource(41))
-	fails := map[string]int{}
-	ex := map[string]string{}
-	f := func(k string, c ccC) {
-		fails[k]++
-		if _, ok := ex[k]; !ok {
-			ex[k] = c.show()
-		}
-	}
-	for it := 0; it < nEncCC; it++ {
-		c := randCCC(t, r)
-		m := toPbCC(c)
-		enc, err := proto.Marshal(m)
-		if err != nil {
-			f("marshal error", c)
-			continue
-		}
-		if len(enc) != ccSizeC(c) {
-			f(fmt.Sprintf("len(Marshal) != ccSizeE (enc %x)", enc), c)
-		}
-		if proto.Size(m) != ccSizeC(c) {
-			f("proto.Size != ccSizeE", c)
-		}
-		var d pb.ConfChange
-		if proto.Unmarshal(enc, &d) != nil {
-			f("Unmarshal(Marshal) fails", c)
-			continue
-		}
-		if contentOfCC(&d).show() != c.show() {
-			f("Unmarshal(Marshal) content differs", c)
-		}
-		if ccGetters(&d) != ccModel(c) {
-			f("decoded getters != the content's model", c)
-		}
-		var rc ccC
-		if !refDecodeCC(enc, &rc) || rc.show() != c.show() {
-			f("reference decode of Marshal differs", c)
-		}
-	}
-	t.Logf("B2 ConfChange: %d random contents: %d failure kinds", nEncCC, len(fails))
-	for k, n := range fails {
-		t.Errorf("B2 ConfChange FAIL %s: %d (first: %s)", k, n, ex[k])
-	}
-}
-
-func TestB2CC2Encoder(t *testing.T) {
-	r := rand.New(rand.NewSource(42))
-	fails := map[string]int{}
-	ex := map[string]string{}
-	f := func(k string, c cc2C) {
-		fails[k]++
-		if _, ok := ex[k]; !ok {
-			ex[k] = c.show()
-		}
-	}
-	for it := 0; it < nEncCC; it++ {
-		c := randCC2C(t, r)
-		m := toPbCC2(c)
-		enc, err := proto.Marshal(m)
-		if err != nil {
-			f("marshal error", c)
-			continue
-		}
-		if len(enc) != cc2SizeC(c) {
-			f(fmt.Sprintf("len(Marshal) != cc2SizeE (enc %x)", enc), c)
-		}
-		if proto.Size(m) != cc2SizeC(c) {
-			f("proto.Size != cc2SizeE", c)
-		}
-		var d pb.ConfChangeV2
-		if proto.Unmarshal(enc, &d) != nil {
-			f("Unmarshal(Marshal) fails", c)
-			continue
-		}
-		if contentOfCC2(&d).show() != c.show() {
-			f("Unmarshal(Marshal) content differs", c)
-		}
-		if cc2Getters(&d) != cc2Model(c) {
-			f("decoded getters != the content's model", c)
-		}
-		var rc cc2C
-		if !refDecodeCC2(enc, &rc) || rc.show() != c.show() {
-			f("reference decode of Marshal differs", c)
-		}
-	}
-	t.Logf("B2 ConfChangeV2: %d random contents: %d failure kinds", nEncCC, len(fails))
-	for k, n := range fails {
-		t.Errorf("B2 ConfChangeV2 FAIL %s: %d (first: %s)", k, n, ex[k])
-	}
-}
-
-func TestB2CCBound(t *testing.T) {
-	r := rand.New(rand.NewSource(43))
-	worst1, worst2 := 0, 0
-	check1 := func(c ccC) {
-		n := proto.Size(toPbCC(c))
-		if n > ccMeasure(c)+64 {
-			t.Errorf("ConfChange: size %d > ccSize %d + 64: %s", n, ccMeasure(c), c.show())
-		}
-		if d := n - ccMeasure(c); d > worst1 {
-			worst1 = d
-		}
-	}
-	check2 := func(c cc2C) {
-		n := proto.Size(toPbCC2(c))
-		if n > cc2Measure(c)+64 {
-			t.Errorf("ConfChangeV2: size %d > ccSize %d + 64: %s", n, cc2Measure(c), c.show())
-		}
-		if d := n - cc2Measure(c); d > worst2 {
-			worst2 = d
-		}
-	}
-	for it := 0; it < nEncCC; it++ {
-		check1(randCCC(t, r))
-		check2(randCC2C(t, r))
-	}
-	neg := int32(math.MinInt32)
-	maxU := uint64(math.MaxUint64)
-	for _, n := range []int{0, 127, 128, 16383, 16384, 1 << 21} {
-		ctx := make([]byte, n)
-		check1(ccC{typ: &neg, nodeID: &maxU, id: &maxU, ctx: &ctx})
-		c2 := cc2C{trans: &neg, ctx: &ctx}
-		for k := 0; k < 50; k++ {
-			c2.changes = append(c2.changes, ccsC{typ: &neg, nodeID: &maxU})
-		}
-		check2(c2)
-		// one change with long unknown fields (its length varint widest)
-		uf := protowire.AppendTag(nil, 1000, 2)
-		uf = protowire.AppendBytes(uf, make([]byte, n))
-		check2(cc2C{trans: &neg, ctx: &ctx, changes: []ccsC{{typ: &neg, nodeID: &maxU, uf: uf}}})
-	}
-	t.Logf("B2 bound: worst size - ccSize: ConfChange %d, ConfChangeV2 %d (bound 64)", worst1, worst2)
-}
 
 func TestB2CCDecoderUf(t *testing.T) {
 	r := rand.New(rand.NewSource(44))

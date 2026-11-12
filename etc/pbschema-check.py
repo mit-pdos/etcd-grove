@@ -16,8 +16,8 @@ trip (D2). This check:
    and no reachable type has a proto2 unpacked repeated int32 or enum field, nor another unpacked
    repeated scalar numbered 16 or more (D1's 2x size bound);
 4. negative tests: the Go test must fail on the dump with a field added to a schema
-   (over-declared: `(5,[0])` in `raftpb.Entry`'s), and with a wire type removed
-   (under-declared: `ConfState`'s packed `2`);
+   (over-declared: `(5,[0])` in `raftpb.Entry`'s, and in the unreached `raftpb.ConfChange`'s), and
+   with a wire type removed (under-declared: `ConfState`'s packed `2`);
 5. runs the tests of `examples/pbschema` that need no dump: `TestD1PostMessage`/`TestD1PostEntry`
    (the decoder's post D1 of `UnmarshalPb.lean` at raftpb.Message/Entry, with the instances'
    size, levels and decOk of `PerTypeMessage.lean`/raft's `PbEntryType.lean`),
@@ -29,7 +29,7 @@ trip (D2). This check:
     etc/pbschema-check.py        prints one line, exits 1 on a failure
 
 Never builds: the `.olean`s must be up to date (`lake build`). `$LAKE_OPTS` is passed to lake.
-Needs go (`GOTOOLCHAIN`, `GOWORK=off` are set).
+Needs go (`GOTOOLCHAIN`, etc/goose.py's `GO_TOOLCHAIN` unless set, and `GOWORK=off` are set).
 """
 import os
 import re
@@ -62,8 +62,16 @@ def lake(*args):
 POST_TESTS = "^(TestD1PostMessage|TestD1PostEntry|TestD2P2EntryEncoder|TestD2P2MessageEncoder|TestSizeBoundCondition|TestB2CCDecoderUf|TestB2MustUnmarshalCC|TestA3CCLen|TestA3CC2Len)$"
 
 
+def go_toolchain():
+    """etc/goose.py's pinned `GO_TOOLCHAIN` (`$GOTOOLCHAIN` overrides)."""
+    m = re.search(r'^GO_TOOLCHAIN = "([^"]+)"', open(os.path.join(ROOT, "etc", "goose.py")).read(), re.M)
+    if not m:
+        sys.exit("pbschema: FAILED: no GO_TOOLCHAIN in etc/goose.py")
+    return os.environ.get("GOTOOLCHAIN", m.group(1))
+
+
 def go_test(dump, run="^TestSchemas$"):
-    env = dict(os.environ, GOWORK="off", GOTOOLCHAIN=os.environ.get("GOTOOLCHAIN", "go1.27.1"),
+    env = dict(os.environ, GOWORK="off", GOTOOLCHAIN=go_toolchain(),
                PATH="/usr/local/go/bin:" + os.path.expanduser("~/go/bin") + ":" + os.environ["PATH"])
     if dump is not None:
         env["PBSCHEMA_DUMP"] = dump
@@ -116,7 +124,10 @@ def main():
         # negative tests: an over-declared and an under-declared schema must be refused
         over = re.sub(r"^(schema raftpb\.Entry \S+) ", r"\1 5:0 ", dump, flags=re.M)
         under = re.sub(r"^(schema raftpb\.ConfState \S+ 1:)0,2", r"\g<1>0", dump, flags=re.M)
-        for name, d in (("over-declared", over), ("under-declared", under)):
+        # (out_size B2 review m2) a schema no root reaches, checked against its own descriptor
+        unreached = re.sub(r"^(schema raftpb\.ConfChange \S+) ", r"\1 5:0 ", dump, flags=re.M)
+        for name, d in (("over-declared", over), ("under-declared", under),
+                        ("over-declared-unreached", unreached)):
             if d == dump:
                 fail.append(f"negative test {name}: the mutation did not apply")
                 continue
@@ -139,7 +150,7 @@ def main():
             print("  " + f)
         sys.exit(1)
     print(f"pbschema: ok ({len(table)} schemas, roots {', '.join(sorted(roots))}; "
-          f"2 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
+          f"3 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
           f"Message), the size bound condition, and the ConfChange decoders and length bound passed)")
 
 

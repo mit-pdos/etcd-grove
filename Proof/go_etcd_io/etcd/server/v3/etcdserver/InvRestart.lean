@@ -88,7 +88,10 @@ which rests on the server's configuration premise `etcdMaxRequestBytesOk`, `InvR
 the allocation's `maxData`, `NewServerAlloc.lean`; Go's `--max-request-bytes` is itself unbounded),
 whose raft loop saved every `Ready`'s entries as handed-out objects of bounded size
 (`walSaveSized_spec`; the durability invariant's records are sized, `walAsViewed`) and whose stop
-closed them (`rnWalClosedW`). A data directory written by an etcd with a larger
+closed them (`rnWalClosedW`). Every member of the cluster ran under the same bounded configuration
+(each meets `etcdMaxRequestBytesOk`; the entries a follower appends are sized through the peers'
+`Sz` on the network, `rafthttp/Net.lean`, since msgappv2's decoder enforces no limit itself). A
+data directory written by an etcd with a larger
 `--max-request-bytes`, or by any other program, is outside what these files describe. -/
 def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
   iprop((∃ cid : w64, walFiles (config.walDirOf dd "") id cid σ true) ∗

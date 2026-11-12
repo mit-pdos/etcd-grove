@@ -47,7 +47,9 @@ as protobuf-go's decoder leaves them, which a re-decode puts back among the unkn
 wire type overrides that field, and garbage does not decode (the premise attack; Go:
 `examples/premisefix/confchange`, `TestRoundTripArbitraryUnknownFails` and
 `TestRoundTripUnmarshalLeftovers`). Until then `pbMsg` admitted any bytes and this axiom was false
-of `ProtoReflect().SetUnknown`'s objects (which no translated code makes).  (out_size B2, 2026-11-12: `notes/confchange-schema-empty.md`) The schemas were `[]` until then (the
+of `ProtoReflect().SetUnknown`'s objects (which no translated code makes).
+
+(out_size B2, 2026-11-12: `notes/confchange-schema-empty.md`) The schemas were `[]` until then (the
 message's and each change's), under which the claim above did not hold; they are now `cc2Schema` and
 `ccsSchema` (`PbSchema.lean`).
 

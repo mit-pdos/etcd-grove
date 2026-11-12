@@ -71,8 +71,11 @@ over a nil WAL, or one opened and not read, `Close`, `Save`, `SaveSnap` and `Syn
 opaque walReady (w : Loc) : Prop
 
 /-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL records a snapshot** (opaque, a named
-premise about the program's environment, as `releaseOk`): `wal.SaveSnapshot`'s write and sync of a
-well-formed snapshot record do not fail (I/O). -/
+premise about the program's environment, as `releaseOk`): no write or sync of the WAL's records by
+`wal.Save` or `wal.SaveSnapshot` fails (I/O), in any incarnation of the program. Its uses: the `Save`
+and `SaveSnapshot` laws commit only under it (a failure gives `¬ walSaveOk`: `WAL__Save`'s post,
+`walSaveRn_spec`), and `bootstrapRestartContract`'s premise takes it (out_size C3, the restart clause:
+no `Save` into the sized WAL failed, `walRecs`' and `walFiles`' `sized`). -/
 opaque walSaveOk : Prop
 
 /-- (2026-10-31, `notes/axiom-review/savesnap.md`) **The WAL closes** (opaque, a named premise about

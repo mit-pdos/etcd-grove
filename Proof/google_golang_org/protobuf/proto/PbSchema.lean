@@ -29,7 +29,8 @@ below 16, so every tag is one byte):
   (varints).
 - `ConfState` (`raft.proto:127-142`): `voters` 1, `learners` 2, `voters_outgoing` 3,
   `learners_next` 4 (repeated `uint64`, proto2 so unpacked; the decoder takes both the unpacked
-  varint and the packed `LEN`), `auto_leave` 5 (varint).- `ConfChange` (`raft.proto:151-160`): `id` 1, `type` 2, `node_id` 3 (varints), `context` 4
+  varint and the packed `LEN`), `auto_leave` 5 (varint).
+- `ConfChange` (`raft.proto:151-160`): `id` 1, `type` 2, `node_id` 3 (varints), `context` 4
   (length-delimited).
 - `ConfChangeSingle` (`raft.proto:164-167`): `type` 1, `node_id` 2 (varints).
 - `ConfChangeV2` (`raft.proto:201-205`): `transition` 1 (varint), `changes` 2, `context` 3
