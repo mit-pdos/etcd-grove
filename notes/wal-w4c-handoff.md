@@ -43,8 +43,10 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
 ## Next, in order
 
 1. (CP1 done.)
-2. The purgeRound Freeze (hard stop): **written, at `7d75b77fa7`; STOPPED for etcd-grove-81's
-   axiom-skill review.**
+2. The purgeRound Freeze: **approved by etcd-grove-81 (axiom review READY WITH CHANGES; minors
+   m1-m5 applied, text and evidence only: docstrings, `notes/decisions.md` "WAL W4c" with the C6
+   gate, the review's resurrect tests in `purge_test.go`, run 4's classification of the failed
+   restarts).** Done.
    - `Spec/.../examples/etcd/wal/purgeRound.lean` (the spec), `Proof/.../wal/purgeRound.lean` (the
      axiom), `Proof/.../wal/PurgeBody.lean` (the body, proved: `purgeRound_commit`, and `cut ≤ pur`
      in every reachable state, `absCutLePur_*`);
@@ -65,8 +67,9 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
    - Pitfall: pass `-scratch` as an absolute path (a relative one makes the driver see no WAL
      files).
    - After the review: apply its fixes; then step 2.
-3. Steps 2-4 as in plan §8. Step 2 starts with Q1 (`GooseLang/Ext/Durable`): **tell etcd-grove-81
-   first** (rung 3). R1: the tester's `Base.lean` (IsPkgInit, fact `True`) fails today on
+3. Steps 2-4 as in plan §8. Step 2 starts with Q1 (`GooseLang/Ext/Durable`): **send etcd-grove-81
+   a short message and wait for its reply before editing it** (rung 3 may be touching the same
+   area). Asked at the end of the purgeRound revision. R1: the tester's `Base.lean` (IsPkgInit, fact `True`) fails today on
    `raftpb`'s missing instance: it needs the instance modules of its imports first.
 
 ## Pitfalls

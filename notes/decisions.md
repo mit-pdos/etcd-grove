@@ -35254,3 +35254,26 @@ trusted text; trust base unchanged.
   consumers (C3's crash clause, C6's `walFiles`) discharge it from raft's `Ready` invariants; it is a
   premise of pure lemmas only, of no spec.
 
+
+## WAL W4c: the WAL robustness tester under crashes (2026-11-12 · plan approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4), `/shared/tmp/wal-spec/w4c/plan.md` · branch `wal-w4c`; in progress)
+
+- **purgeRound is names-only, with one trust-boundary axiom** (Q2, PR-a; the Freeze approved by
+  etcd-grove-81 after its axiom-skill review, READY WITH CHANGES, no blocker or major;
+  `/shared/tmp/wal-spec/w4c/freeze-purge.md`). The landed `"WalPurge"` step takes its position by
+  value, so no `TrustedCode` model can perform it. `etcd_wal.purgeRound.spec` takes `walOpenW` and
+  `walPurgeW`, framed (the W4a revision round 3 gate M1). Its update raises `pur` to `unl` and moves
+  `cut` to the first remaining file's start `k`, `cut ≤ k ≤ max pur unl`. The body is proved
+  (`PurgeBody.lean`): `"WalPurge"` of `k` at the access, with `cut ≤ pur` kept by the semantics so the
+  guard is satisfiable. The commit at the round's first step uses a prophesied `k`, which is sound
+  because a crash re-chooses `cut` (m1).
+- **C6 gate (the review's m5).** The commit point is sound only because `walOpenW` excludes
+  `ReleaseLockTo` while the round runs. etcd's server purge goroutine (`fileutil.purgeFile`) runs
+  concurrently with `Save` and `ReleaseLockTo`. If `unl` rose after the commit, Go's later locks would
+  delete files above the committed bound. The server's purge needs its own spec, with a commit at
+  each removal or a commit that reads `unl` when each lock is taken. It cannot reuse this one.
+- **The tester's purged-prefix check is not observed to matter** (`freeze-purge.md` §6, runs
+  `purgebias{,2,3,4}`): no restart was accepted only through a purged prefix, and the model's
+  purged-prefix arm never offered a `ReadAll` read other than the full one. It is argued unreachable
+  under the tester's invariants (`walCommitLe`, and `pur` at most the name bound of a snapshot record
+  in the image, within its commit), which are not proved. The claim covers `ReadAll` only:
+  `ValidSnapshotEntries` depends on `cut` exactly (m3).

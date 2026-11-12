@@ -55,11 +55,24 @@ the round left. Why that is what Go does:
   tester's own process conflicts with itself, as etcd's purge goroutine does with its WAL). So the
   round stops at or before that file: every deleted file holds only records before `unl`, and
   `k ≤ unl` when it deleted any; otherwise `k = cut ≤ pur`.
-* Removes undone by a power loss (no directory fsync) and partial rounds only leave fewer files
-  deleted: the crash relation (`walCrash`) lets the next read's purged prefix be any position up to
-  `min pur |I|`, and the round raised `pur` before it removed anything (the commit is the round's
-  first step; between it and the return no other thread can read `cut`: `w`'s token excludes
-  every other `Open`).
+* The commit is the round's first step, and it uses the round's outcome `k`, which Go only knows
+  once the round ends (the first lock or remove that fails): a prophesied value, sound because only
+  the guard constrains `k`, and between the commit and the return no other thread reads `cut` or
+  raises `unl` (`w`'s token excludes every other `Open`; `ReleaseLockTo` and `Save` need `walOpenW`,
+  which the round holds). A crash mid-round needs no particular `k`: the crash relation
+  (`walCrash`) chooses the next read's purged prefix afresh, any position up to `min pur |I|`, and
+  the round raised `pur` before it removed anything. So removes undone by a power loss (no directory
+  fsync) and partial rounds are covered.
+* A power loss may make the unlinks durable out of order and leave a non-suffix set of files (the
+  oldest file, a gap, then the rest). Every later read of such a directory fails
+  (`ValidSnapshotEntries` on the CRC chain, `Open` on `isValidSeq`) or equals the full read, which
+  the crash's `cut := 0` describes (Go tests `TestPurgeRoundResurrectHole*`;
+  `nonissues/etcd-wal-purge-unlink-gap.md`). The next round, under a new handle, deletes the files
+  before the gap and restores a suffix.
+* (A gate for the server, C6: this commit point is sound only because `walOpenW` excludes
+  `ReleaseLockTo` during the round. etcd's purge goroutine runs concurrently with `Save` and
+  `ReleaseLockTo`, so a server spec needs its own linearization, a commit at each removal or one
+  that reads `unl` when each lock is taken, and cannot reuse this one.)
 * Raising `pur` to `unl` when the round deletes less (an error, a locked file, `keep`) only allows
   more: `pur` bounds what may be missing.
 

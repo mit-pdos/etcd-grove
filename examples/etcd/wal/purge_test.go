@@ -278,3 +278,102 @@ func equalStrings(a, b []string) bool {
 	}
 	return true
 }
+
+// copyFile copies src to dst (a file a power loss brings back).
+func copyFile(t *testing.T, src, dst string) {
+	t.Helper()
+	b, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dst, b, 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// purgeResurrect: a power loss after a round may undo any subset of its removes (no directory
+// fsync; the unlinks can become durable out of order). After ReleaseLockTo(20) and a round, the
+// deleted files numbered which (in the old listing) come back. A gap in the files (hole) makes
+// ValidSnapshotEntries fail on the CRC chain (allowed: every read may fail;
+// nonissues/etcd-wal-purge-unlink-gap.md), while Open+ReadAll at 20 still reads the full read
+// (21..40, walReadCut I 0); a clean suffix keeps ValidSnapshotEntries working. The next round
+// restores a suffix and a graceful restart reads 21..45. (From etcd-grove-81's axiom review of
+// purgeRound, m4.)
+func purgeResurrect(t *testing.T, which []int, hole bool) {
+	lg, dir, w := newPurgeWAL(t)
+	if err := w.ReleaseLockTo(20); err != nil {
+		t.Fatal(err)
+	}
+	before := walFiles(t, dir)
+	save := t.TempDir()
+	for _, f := range before {
+		copyFile(t, filepath.Join(dir, f), filepath.Join(save, f))
+	}
+	purgeRound(lg, dir, 1)
+	if n := len(walFiles(t, dir)); n != len(before)-3 {
+		t.Fatalf("the round deleted %d files, the test expects 3", len(before)-n)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for _, i := range which {
+		copyFile(t, filepath.Join(save, before[i]), filepath.Join(dir, before[i]))
+	}
+	t.Logf("resurrected %v: %v", which, walFiles(t, dir))
+	_, err := etcdwal.ValidSnapshotEntries(lg, dir)
+	if hole && err == nil {
+		t.Fatalf("ValidSnapshotEntries succeeded across a gap")
+	}
+	if !hole && err != nil {
+		t.Fatalf("ValidSnapshotEntries on a suffix: %v", err)
+	}
+	w2, got, err := readAt(lg, dir, 20)
+	if err != nil {
+		t.Fatalf("restart read: %v", err)
+	}
+	wantRange(t, got, 21, 40)
+	purgeRound(lg, dir, 0)
+	saveEnts(t, w2, 41, 45)
+	if err := w2.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := etcdwal.ValidSnapshotEntries(lg, dir); err != nil {
+		t.Fatalf("ValidSnapshotEntries after the second round: %v", err)
+	}
+	w3, got, err := readAt(lg, dir, 20)
+	if err != nil {
+		t.Fatalf("graceful restart: %v", err)
+	}
+	defer w3.Close()
+	wantRange(t, got, 21, 45)
+}
+
+func TestPurgeRoundResurrectNone(t *testing.T)   { purgeResurrect(t, nil, false) }
+func TestPurgeRoundResurrectSuffix(t *testing.T) { purgeResurrect(t, []int{2}, false) }
+func TestPurgeRoundResurrectHole0(t *testing.T)  { purgeResurrect(t, []int{0}, true) }
+func TestPurgeRoundResurrectHole1(t *testing.T)  { purgeResurrect(t, []int{1}, true) }
+func TestPurgeRoundResurrectHole02(t *testing.T) { purgeResurrect(t, []int{0, 2}, true) }
+
+// Open at snapshot 0 (older than the one released to before) locks every file: nothing goes.
+func TestPurgeRoundOpenOld(t *testing.T) {
+	lg, dir, w := newPurgeWAL(t)
+	if err := w.ReleaseLockTo(20); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	w2, err := etcdwal.Open(lg, dir, &walpb.Snapshot{Index: newU64(0), Term: newU64(0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w2.Close()
+	if _, _, _, err := w2.ReadAll(); err != nil {
+		t.Fatal(err)
+	}
+	n := len(walFiles(t, dir))
+	purgeRound(lg, dir, 0)
+	if m := len(walFiles(t, dir)); m != n {
+		t.Fatalf("deleted %d files with every file locked", n-m)
+	}
+}

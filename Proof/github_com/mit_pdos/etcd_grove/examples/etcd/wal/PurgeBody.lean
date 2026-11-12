@@ -20,6 +20,14 @@ and its body is read as one that performs the abstract-disk extension's step `"W
   exact), so the body is never stuck. What `k` Go's round produces is argued in the axiom's
   docstring (oldest first, stopping at the first locked file), as the other axioms argue their
   steps' arguments (`walCode`'s docstring).
+
+**What the lemma does not show** (the axiom review's m1). `d` and `k` are parameters fixed before
+the access. `d` is a function of the state, as in `WalBodies.lean`. `k` is a function of the future:
+Go's round learns where it stops only after the commit, at its first lock or remove that fails. So
+the commit at the round's first step uses a prophesied `k`. That is sound, because only the guard
+constrains `k`, and a crash mid-round needs no particular `k` (`walCrash` chooses the read position
+afresh, at most `min pur |I|`). A step `"WalPurge"` that chose `k` itself, within the guard, would
+make a body realizable without fixing `d` (a possible later change to `Impl.lean`, not made).
 -/
 module
 
