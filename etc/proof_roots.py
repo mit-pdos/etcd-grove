@@ -42,6 +42,8 @@ import goose  # noqa: E402  (etc/goose.py: the projects, their parts)
 # their own (`<root>/Code/`, ..., `<root>/Proof/`).
 PART_ROOTS = sorted({root for p in goose.PROJECTS for root, _, _, _ in goose.pieces(p) if root})
 # This repository's specs and proofs, as module prefixes and directories.
+# (`SpecPlan/`, the spec plan, is not a project's root: specs only, no proofs, no roots, no
+# axioms or `sorry`s; the scripts built on these lists ignore it. CLAUDE.md, Layout.)
 PROJECT_MODS = tuple(["Spec.", "Proof."] + [f"{r}.{d}." for r in PART_ROOTS
                                              for d in ("Spec", "Proof")])
 PROJECT_DIRS = tuple(m.rstrip(".").replace(".", "/") for m in PROJECT_MODS)
