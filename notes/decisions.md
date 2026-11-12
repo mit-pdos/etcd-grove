@@ -37367,3 +37367,28 @@ lemma (i) (`TracedConfExcl.lean`); Probe B item 6 (`raft.Step.traced_booted`).
   2", G3): (a1)'s minting site sees no trace fact, so the premise has to be threaded through the ghost
   step layers or come with `isMessage`'s proposal case (the node API's, step 1's files); (a2) needs the
   decoder's value on the bootstrap entries, not stated at the protocol level.
+
+## Trace-check's receipt bounds as instances: named fits where no power of two is exact (2026-11-12 · trace-check, `etc/bounds-check.py --check`'s five new `spec-receipt` matches; decided by the agent under the coordinator's task (intermediate statements, same strength; no closed statement changed) · branch `trace-check-bounds`)
+
+**Context.** The trace-check branch put `receiptBound` into five Spec files (`etc/bounds-check.py
+--check`: 394 against the baseline's 389): `RawNode.acceptReady.spec`'s traced premise `receiptBound GF
++ γ.reBoot.length ≤ traceNumBound`, `RunConcurrent.spec`'s and `Main.spec`'s `receiptBound GF + 3 ≤
+2^61`, and `SyncRecorder.Events.spec`'s and `Cluster.Events.spec`'s post `L.length < receiptBound GF`.
+`notes/bounds-plan.md` (B1) wants each as an instance `[ReceiptBoundLe GF (2^k)]` or a named `…Fits`
+predicate, with the margins derived inside the owner.
+
+**Decision.** Named predicates, each its old text as its definition (so the same strength, and every
+caller meets it by its definition): raft's receipt fit `traceReadyFits GF γ`
+(`Proof/go_etcd_io/raft/v3/TraceFits.lean`, raft-internal, beside the node API's `readyFits`); the
+harness's `tcRunFits GF` and `traceLenFits GF L` (`Proof/.../tracecheck/Fits.lean`, with
+`traceLenFits.lt_numBound`, the event count below the checker's `numBound` from the two, and
+`traceLenFits.lt_of_le`). The proofs change only where `omega` read the bound: `Main.wp_proof` and
+`tracecheck_Events_traceAccepts` (whose statement keeps its `receiptBound GF ≤ 2^61`).
+
+**Rejected.** Instances: `receiptBound GF + 3 ≤ 2^61` is not a power-of-two bound;
+`[ReceiptBoundLe GF (2^60)]` is stronger, and the closed theorem's present step bound `n + 4 ≤ 2^61`
+(`receiptBound = n + 1`) does not give it, so `Main.spec` under it would change `raft_tracecheck_safe_of`.
+`[ReceiptBoundLe GF (2^61 - 3)]` is exact but not a power of two (no `pow_succ` weakening, nothing
+gained over a name). `acceptReady`'s margin `γ.reBoot.length` is the cluster's, not a constant. A
+post (`Events`') cannot be an instance. After Q38 (a) lands (`n + 2 ≤ 2^31`), `tcRunFits` can become
+`[ReceiptBoundLe GF (2^60)]` with the `+ 3` derived in `Fits.lean`, at no cost to a closed result.

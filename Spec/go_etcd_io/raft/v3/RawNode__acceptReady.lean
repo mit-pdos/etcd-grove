@@ -7,6 +7,7 @@ Lean notes: as `RawNode.Ready.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.TraceFits
 
 @[expose] public section
 
@@ -54,9 +55,10 @@ abbrev RawNode.acceptReady.spec : Prop :=
     (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan),
   -- (2026-11-11, trace-check Q8 stage 1 slice 28n; from 2026-11-09, Q8 stage 0, until then the
   -- premise `γ.reTrace = none`) one spec for both modes: at a traced cluster the `Ready` line's
-  -- numbers within the trace's bound (the term below the ceiling, the log by the receipts' fit)
-  (γ.reTrace ≠ none →
-    uint.Z rs.tc + 1 < traceNumBound ∧ receiptBound GF + γ.reBoot.length ≤ traceNumBound) →
+  -- numbers within the trace's bound (the term below the ceiling, the log by the receipts' fit;
+  -- (2026-11-12) named, `traceReadyFits`, until then `receiptBound GF + γ.reBoot.length ≤
+  -- traceNumBound` spelled out)
+  (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}

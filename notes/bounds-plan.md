@@ -130,6 +130,20 @@ the premises are packaged and which resources the specs take.
   - the lessor's `Remaining`, `Less` and `Leases` (`2 ^ 30 - 1`; their caller `LeaseLeases` is in
     etcdserver, whose statements wait for the snapshot branches);
   - v3rpc's `GetProgressReportInterval` (its bound travels in `watchRunSlot`, B2's v3rpc pool).
+- **Trace-check's receipt bounds (2026-11-12, branch `trace-check-bounds`).** The trace-check branch
+  added five Spec mentions of `receiptBound` (394 against the baseline's 389), all named now at the
+  same strength (`notes/decisions.md`, "Trace-check's receipt bounds as instances"): raft's
+  `RawNode.acceptReady` takes `traceReadyFits GF γ` (`receiptBound GF + γ.reBoot.length ≤
+  traceNumBound`, raft's receipt fit at a traced node, `Proof/go_etcd_io/raft/v3/TraceFits.lean`);
+  the harness's `RunConcurrent` and `Main` take `tcRunFits GF` (`receiptBound GF + 3 ≤ 2^61`), and
+  `SyncRecorder.Events`/`Cluster.Events` return `traceLenFits GF L` (`L.length < receiptBound GF`, the
+  recorder's lock holds a receipt per event; both `tracecheck/Fits.lean`). None is an instance: each
+  is a sum or a strict bound that no power of two restates without weakening a result (`tcRunFits` as
+  `[ReceiptBoundLe GF (2^60)]` would not follow from the closed theorem's current `n + 4 ≤ 2^61`, and
+  `γ.reBoot.length` is per cluster). Once the closed theorem takes `n + 2 ≤ 2^31` (Q38 (a)),
+  `tcRunFits` could become `[ReceiptBoundLe GF (2^60)]` at no cost to a closed result, the `+ 3`
+  derived in `Fits.lean`; the corollary (`notes/trace-check-design.md` §1.3) states `receiptBound GF +
+  3 ≤ 2^61` and meets `tcRunFits` by its definition.
 
 ### B2. Reader slots in pools owned by their package (D2)
 
