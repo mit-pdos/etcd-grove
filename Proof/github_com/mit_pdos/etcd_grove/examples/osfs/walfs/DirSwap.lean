@@ -1024,7 +1024,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
       (by decide) (by decide) (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
     as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
-  obtain ⟨hj, hys, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne

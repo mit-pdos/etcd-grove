@@ -5,6 +5,7 @@ the file as a write of the first `j` bytes left it (`pwPost_step`, `pwOut_step`)
 -/
 module
 
+public import Proof.os.ErrorOk
 public import Spec.os.File__WriteAt
 
 @[expose] public section
@@ -184,6 +185,33 @@ theorem pwOut_step (m : OsMeta) (off nn : Nat) (data : List w8) (j k nst : Nat)
         refine ⟨_, [(data.getD i 0, nst)], rfl, by simp, fun q hq => by
           rw [List.mem_singleton] at hq; subst hq; rfl, fun h => absurd h (by omega)⟩
 
+/-- The bytes a write has landed after one more attempt are a page cut, from those before and the
+attempt's. -/
+theorem pwCut_step (off len nn j k : Nat) (hj : PwCut off len j)
+    (hnn : nn = 0 ∨ (off + nn) % osPageSize = 0) (hk : k ≤ len - nn) (hnl : nn < len)
+    (hpc : PwCut (off + nn) (len - nn) k) : PwCut off len (max j (nn + k)) := by
+  unfold PwCut at *
+  unfold osPageSize at *
+  rcases Nat.le_total j (nn + k) with h | h
+  · rw [Nat.max_eq_right h]
+    rcases hpc with h0 | h0 | h0
+    · subst h0; rcases hnn with h1 | h1
+      · left; omega
+      · right; right; simpa using h1
+    · right; left; omega
+    · right; right; rw [← Nat.add_assoc]; exact h0
+  · rw [Nat.max_eq_left h]; exact hj
+
+/-- After a short attempt that succeeded, the next starts on a page boundary. -/
+theorem pwCut_short (off len nn k : Nat) (hk0 : 0 < k) (hfull : nn + k ≠ len)
+    (hpc : PwCut (off + nn) (len - nn) k) (hk : k ≤ len - nn) :
+    nn + k = 0 ∨ (off + (nn + k)) % osPageSize = 0 := by
+  unfold PwCut at hpc
+  rcases hpc with h0 | h0 | h0
+  · omega
+  · omega
+  · right; rw [← Nat.add_assoc]; exact h0
+
 theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) := by
   intro f fd name dqf sl data dqs off dq d m xs hwr hoff hgap hbig hn hn2 hxl
   have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
@@ -226,8 +254,11 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   have hinv : (j = 0 ∧ nnv.toNat = 0 ∧ mj = m ∧ ys = xs) ∨
       (mj = pwPost m off.toNat data.length j ∧ os.PwOut m off.toNat data j xs ys) :=
     .inl ⟨hj0.symm, by subst hnnv; rfl, hmj, hy⟩
+  have hcj : PwCut off.toNat data.length j := by unfold PwCut; left; exact hj0.symm
+  have hcn : nnv.toNat = 0 ∨ (off.toNat + nnv.toNat) % osPageSize = 0 := by
+    left; subst hnnv; rfl
   clear hmj hy hj0 hnnv
-  iloeb as IH generalizing %j %nnv %mj %ys %hnn %hnl %hj %hinv Hm Hbs Hc Hosfd Hsl Hfd HΦ
+  iloeb as IH generalizing %j %nnv %mj %ys %hnn %hnl %hj %hinv %hcj %hcn Hm Hbs Hc Hosfd Hsl Hfd HΦ
   -- one attempt, from `nn`
   have hnnz : sint.Z nnv = nnv.toNat := by
     simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
@@ -292,6 +323,10 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     (ys.drop nnv.toNat) nst CoPset.subseteq_top $$ Hinv Ht as %k %e %zs %hke %hpc Hm Hbs2 Hc2
   obtain ⟨hk, hke, -, -⟩ := hke
   rw [hdl] at hk
+  have hpc' : PwCut (off.toNat + nnv.toNat) (data.length - nnv.toNat) k := by
+    rw [hoffv, hdl] at hpc; exact hpc
+  have hcj' : PwCut off.toNat data.length (max j (nnv.toNat + k)) :=
+    pwCut_step _ _ _ _ _ hcj hcn hk hnl hpc'
   -- the file as a write of the first `max j (nn + k)` bytes left it
   have hmeta : pwPost mj (off + nnv).toNat (data.drop nnv.toNat).length k =
       pwPost m off.toNat data.length (max j (nnv.toNat + k)) := by
@@ -331,7 +366,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   · rw [decide_eq_true he4]
     wp_pure
     iapply IH $$ %(max j (nnv.toNat + k)) %nnv %_ %_ %(by omega) %hnl %hj' %(.inr ⟨rfl, hys'⟩)
-      Hm Hbs Hc Hosfd Hsl Hfd HΦ
+      %hcj' %hcn Hm Hbs Hc Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
     have hWk : (W64 k).toNat = k := by
@@ -347,23 +382,27 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
         wp_auto
+        ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', .inl ⟨by omega, hsln, rfl⟩⟩
+          exact ⟨hj', hys', hcj', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false he0]
         wp_auto
         simp only [decide_eq_false he0, Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
     · rw [decide_eq_false hfull]
       wp_auto
       by_cases he0 : e = W64 0
@@ -385,21 +424,26 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
             intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
             rw [hnk, hsln]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
           omega
+        have hcn' : (nnv + W64 k).toNat = 0 ∨ (off.toNat + (nnv + W64 k).toNat) % osPageSize = 0 := by
+          rw [hnk]
+          exact pwCut_short _ _ _ _ hk0 (by rw [hnk] at hnl'; omega) hpc' hk
         iapply IH $$ %(max j (nnv.toNat + k)) %(nnv + W64 k) %_ %_ %(by rw [hnk]; omega) %hnl'
-          %hj' %(.inr ⟨rfl, hys'⟩) [Hm] [Hbs] [Hc] Hosfd Hsl Hfd HΦ
+          %hj' %(.inr ⟨rfl, hys'⟩) %hcj' %hcn' [Hm] [Hbs] [Hc] Hosfd Hsl Hfd HΦ
         · iexact Hm
         · iexact Hbs
         · iexact Hc
       · rw [decide_eq_false he0]
         simp only [Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
 
 end proof
 

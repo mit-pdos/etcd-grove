@@ -250,7 +250,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
   wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d m xs hwr h0 hle h63 hn hn2 hxs
-    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %Hres, Hm, Hbs, Hmc⟩
+    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %ys, %Hres, Hm, Hbs, Hmc, -⟩
   · iframe; iexact Hinv
   cases err with
   | nil =>
@@ -261,7 +261,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     · iexists j, ys
       iframe
       ipureintro
-      obtain ⟨h1, h2, h5⟩ := Hres
+      obtain ⟨h1, h2, -, h5⟩ := Hres
       exact ⟨h1, h2, h5.imp_right (fun h => h.2)⟩
     ileft
     isplitr
@@ -276,7 +276,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     · iexists j, ys
       iframe
       ipureintro
-      obtain ⟨h1, h2, -⟩ := Hres
+      obtain ⟨h1, h2, -, -⟩ := Hres
       exact ⟨h1, h2, .inr (fun h => by cases h)⟩
     iright
     isplitr

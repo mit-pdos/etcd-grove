@@ -14,11 +14,15 @@ short is followed by one from where it stopped, and a failed one may have writte
 durable, a crash bound to the end of the write), and the bytes of the range (`os.PwOut`): their
 values, the zero gap past the old end, then `b`'s first `j` bytes, then the old bytes; their
 candidates, the old ones, then the data's byte (once per attempt that announced it). On success
-`j = n` and the result is `(n, nil)`; on failure, `(0, err)` with a non-nil `err`. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
+`j = n` and the result is `(n, nil)`; on failure, `(0, err)` with a non-nil `err`, its `Error()` a
+`fmt`-printable string (`fmtErrorOkOrNil`). Whatever the result, `j` is a page cut of the write
+(`PwCut`: `0`, `n`, or ending on a 4096-byte page boundary of the file; the page-cut rule of each
+`pwrite`, carried through Go's retries), so one aligned page lands whole or not at all. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -53,12 +57,13 @@ abbrev os.File.WriteAt.spec : Prop :=
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
       ∃ (j : Nat) (ys : List ByteG),
-        ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧
+        ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧ PwCut off.toNat data.length j ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
         osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length j) ∗
         osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
-        mcellsAny m.maps (off.toNat) (off.toNat + data.length) }}
+        mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

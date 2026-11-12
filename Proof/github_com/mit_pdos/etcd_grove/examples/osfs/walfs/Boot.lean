@@ -1305,7 +1305,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
       (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
     as %n %err ⟨Hf, Hsl, Hfd, %k, %ys, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
-  obtain ⟨hj, hys, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne

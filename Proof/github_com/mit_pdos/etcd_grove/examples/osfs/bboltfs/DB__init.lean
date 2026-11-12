@@ -147,10 +147,10 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
       (xs.take 16384) rfl hw0' (by rw [hw00]; omega) (by rw [hw00, hF]; omega) (by rw [hF]; omega)
       (by rw [hF]; omega) he2
       $$ [Hinv Hf Hfirst Hfd Hm Hw Hc]
-    as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %Hres, Hm, Hw, Hc⟩
+    as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %Hres, Hm, Hw, Hc, -⟩
   · rw [hw00]; iframe Hf Hm Hw Hc Hfirst Hfd; iframe #
   (try rw [hw00] at *)
-  obtain ⟨-, hpw, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨-, hpw, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne
@@ -241,9 +241,9 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
       (DFrac.own 1) (W64 4096) dq ⟨i, true, true⟩ m1 ((A.drop 4096).take 4096) rfl hw4'
       (by rw [hw4, hm1s]; omega) (by rw [hw4, hD1l]; omega) (by rw [hD1l]; omega) (by rw [hD1l]; omega)
       he2 $$ [Hinv Hf Hbuf1 Hfd Hm HbW Hc]
-    as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %Hres2, Hm, Hw, Hc⟩
+    as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %Hres2, Hm, Hw, Hc, -⟩
   · rw [hw4]; iframe Hf Hm HbW Hc Hbuf1 Hfd; iframe #
-  obtain ⟨-, hpw2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
+  obtain ⟨-, hpw2, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
   · cases err2 with
     | nil => exact absurd rfl hne2
@@ -329,10 +329,10 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 0) (W64 4096)) D0
       (DFrac.own 1) (W64 0) dq ⟨i, true, true⟩ m2 (B.take 4096) rfl hw0z'
       (by rw [hw0z]; omega) (by rw [hw0z, hD0l]; omega) he0 (by omega) he3 $$ [Hinv Hf Hbuf0 Hfd Hm Hb0 Hc]
-    as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %Hres3, Hm, Hw, Hc⟩
+    as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %Hres3, Hm, Hw, Hc, -⟩
   · rw [hw0z]; iframe Hf Hm Hb0 Hc Hbuf0 Hfd; iframe #
   (try rw [hw0z] at *)
-  obtain ⟨-, hpw3, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne3⟩⟩ := Hres3
+  obtain ⟨-, hpw3, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne3⟩⟩ := Hres3
   rotate_left
   · cases err3 with
     | nil => exact absurd rfl hne3

@@ -773,7 +773,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       ⟨γ.ino, true, true⟩ m2 (tail2.take 4096) rfl hoffI (by rw [hoff]; omega)
       (by rw [hoff, hdl]; omega) (by rw [hdl]; omega) (by rw [hdl]; omega)
       (by rw [hoff, htk, hdl]; omega) $$ [Hf Hbuf Hfd Hm Hpg Hpc]
-    as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %Hres, Hm, Hpg, Hpc⟩
+    as %n %err ⟨Hf, Hbuf, Hfd, %j, %ys, %Hres, Hm, Hpg, Hpc, -⟩
   · rw [hoff, hdl]
     iframe Hf Hbuf Hfd Hm Hpg Hpc; iframe #
   rw [hoff, dataPage_length] at *
@@ -790,7 +790,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
     (by omega)).1 $$ [Hpc] with Hpc
   · rw [Hmaps]; iexact Hpc
   rw [show 4096 * hwm + 4096 - 4096 * hwm = 4096 by omega]
-  obtain ⟨-, hpw, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨-, hpw, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne
@@ -954,7 +954,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
       (by rw [metaPageOf_length]; omega) (by rw [metaPageOf_length]; omega)
       (by rw [hoffm, metaPageOf_length, hwl]; omega)
       $$ [Hf Hmb Hfd Hm Wi Hpi]
-    as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %Hres2, Hm, Wi, Hpi⟩
+    as %n2 %err2 ⟨Hf, Hmb, Hfd, %j2, %ys2, %Hres2, Hm, Wi, Hpi, -⟩
   · rw [hoffm, metaPageOf_length]
     iframe Hf Hmb Hfd Hm Wi Hpi; iframe #
   rw [hoffm, metaPageOf_length] at *
@@ -991,7 +991,7 @@ theorem DB.commit.wp_proof (wp_mmap : DB.mmap.spec (GF := GF) (hG := hG))
   iapply window_agree _ rfl γ.ino _ _ base len hb5 (by simp) _ _ X 4112 64 v1 (by omega) (by omega)
     $$ Hos Hm Hmxw Hc1
   iintro Hm Hmxw Hc1
-  obtain ⟨-, hpw2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
+  obtain ⟨-, hpw2, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
   · -- the meta `WriteAt` failed: fail the handle
     cases err2 with
