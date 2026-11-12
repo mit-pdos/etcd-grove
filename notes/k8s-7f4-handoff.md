@@ -33,6 +33,16 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Addendum T-f' written (2026-11-12): STOPPED for 81's review
+
+81 decided option (A) with a level token. `829eb68b92`: `v3rpc.ctxErrLvl := 4` and `srvCtxWeak`'s
+`"#HErr"`/`"#HErrDone"` take and return `levelTok v3rpc.ctxErrLvl`; T-f' sentences in the
+docstrings of `waitLeader`, `RenewHTTP`, `Tracer.Start`; `notes/k8s-7f4-freeze.md` "Addendum T-f'"
+(the level's choice, the Go reasoning, checks). Full build passes, tcb --check matches, goose --check
+passes. **Next after the review:** the wrapper's handle (the plan below), handing `levelTok 4` to
+the stream handler in `grpcStreamRunOk_of_pools` (`threadTokFrom 4 ⊣⊢ levelTok 4 ∗ threadTokFrom
+5`, `5 ≤ threadBound`), the wrapper's `RWMutex` reader tokens in `init_RWMutex_threadPoolL _ 4`.
+
 ## Steps 3-4, third agent (2026-11-12): STOPPED at a blocker in step 4 (for etcd-grove-81)
 
 Done (lean-checked, `etc/lean-check.py -a`, 0 errors; a targeted `lake build` of `SrvCtxWeakLaws`):

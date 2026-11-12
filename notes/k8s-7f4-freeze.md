@@ -372,7 +372,15 @@ etcd-grove-81 (questions.md).
   and the local `WithTimeout` lemma (`propagateCancel`'s `parent.Err()`).
 - **Checks:** `SrvCtxWeak.lean` and every module that mentions `srvCtxWeak`
   (`Tracer__Start`, `StartLaws`, `SrvCtxWeakLaws`, `EtcdServer__waitLeader`, `RenewHTTP`) pass
-  `etc/lean-check.py -a`; build and gates below.
+  `etc/lean-check.py -a`; full build (`etc/timed-build.py`, 64G cap, build lock) passes (17492
+  jobs); `etc/tcb-report.py --check` matches the baseline unchanged (865 axioms, 5 sorries: the
+  statements of the axioms are textually the same); `etc/goose.py --check` passes (with the Goose
+  configuration's promoted methods, below). Not run: axiom-tok, collections, gen-interface (none of
+  the six API lists exposes these texts; to run with the next gates).
+- **Goose configuration** (accepted by etcd-grove-81): `Code/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc.toml`
+  lists the wrapper's promoted methods (`cancellableContext.{Deadline,Done,Value}`,
+  `serverStreamWithCtx.{RecvMsg,SendMsg}`), regenerated with `etc/goose.py --project etcd`
+  (`8227d410c2`).
 
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
