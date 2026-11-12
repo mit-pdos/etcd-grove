@@ -74,6 +74,57 @@ instance opsElems_persistent (vs : List walOp) (h : List TOp) :
     Persistent (opsElems (GF := GF) vs h) := by
   unfold opsElems; infer_instance
 
+theorem opsElems_length (vs : List walOp) (h : List TOp) :
+    opsElems (GF := GF) vs h ⊢ ⌜vs.length = h.length⌝ := by
+  unfold opsElems
+  iintro ⟨%hl, -⟩; ipureintro; exact hl
+
+/-- The `i`-th Go operation is the `i`-th operation. -/
+theorem opsElems_lookup (vs : List walOp) (h : List TOp) (i : Nat) (v : walOp)
+    (hv : vs[i]? = some v) :
+    opsElems (GF := GF) vs h ⊢ ∃ o, ⌜h[i]? = some o⌝ ∗ opRep v o := by
+  unfold opsElems
+  iintro ⟨%hl, #Hall⟩
+  have hi : i < h.length := by rw [← hl]; exact (List.getElem?_eq_some_iff.1 hv).1
+  iexists h[i]
+  isplitr
+  · ipureintro; exact List.getElem?_eq_getElem hi
+  iapply Hall
+  ipureintro; exact ⟨hv, List.getElem?_eq_getElem hi⟩
+
+/-- Appending an operation. -/
+theorem opsElems_snoc (vs : List walOp) (h : List TOp) (v : walOp) (o : TOp) :
+    opsElems (GF := GF) vs h ∗ opRep v o ⊢ opsElems (vs ++ [v]) (h ++ [o]) := by
+  unfold opsElems
+  iintro ⟨⟨%hl, #Hall⟩, #Ho⟩
+  isplitr
+  · ipureintro; simp [hl]
+  imodintro
+  iintro %i %v' %o' %hi
+  obtain ⟨h1, h2⟩ := hi
+  by_cases hlt : i < vs.length
+  · rw [List.getElem?_append_left hlt] at h1
+    rw [List.getElem?_append_left (by omega)] at h2
+    iapply Hall; ipureintro; exact ⟨h1, h2⟩
+  · rw [List.getElem?_append_right (by omega)] at h1
+    rw [List.getElem?_append_right (by omega)] at h2
+    have : i - vs.length = 0 := by
+      have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
+    rw [this] at h1
+    rw [show i - h.length = 0 by omega] at h2
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h1 h2
+    subst h1 h2
+    iexact Ho
+
+theorem opsElems_nil : ⊢ opsElems (GF := GF) [] [] := by
+  unfold opsElems
+  iintro
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %v %o %h
+  simp at h
+
 /-- The operation slice `s` is `h` (read-only). -/
 def opsRep (s : GoSlice) (h : List TOp) : IProp GF :=
   iprop(∃ vs : List walOp, s ↦*□ vs ∗ opsElems vs h)
@@ -109,6 +160,18 @@ def contentsRep (v : contents) (c : TContents) : IProp GF :=
 instance contentsRep_persistent (v : contents) (c : TContents) :
     Persistent (contentsRep (GF := GF) v c) := by
   unfold contentsRep; infer_instance
+
+/-- A read's result: the contents `c` and `true`, or `false` when the read fails (`none`). -/
+def readRes (r : Option TContents) (v : contents) (ok : Bool) : IProp GF :=
+  match r with
+  | some c => iprop(⌜ok = true⌝ ∗ contentsRep v c)
+  | none => iprop(⌜ok = false⌝)
+
+/-- An entry step's result: the entries `x` (read-only) and `true`, or `false` (`none`). -/
+def entsRes (r : Option (List TEnt)) (s : GoSlice) (ok : Bool) : IProp GF :=
+  match r with
+  | some x => iprop(⌜ok = true⌝ ∗ s ↦*□ x)
+  | none => iprop(⌜ok = false⌝)
 
 /-- **The Go oracle `v` is `o`**: the candidates owned, `since` read-only with its capacity, the
 pending opens read-only with their capacity. -/

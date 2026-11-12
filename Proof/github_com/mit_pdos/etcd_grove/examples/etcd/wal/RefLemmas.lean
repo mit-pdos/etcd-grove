@@ -527,6 +527,60 @@ theorem tNameBound_eq {h : List TOp} (hw : tHistWf h) (hl : h.length < 2 ^ 64) (
     simp only [Option.getD_some]
     word
 
+/-! ## The fold, step by step (for the loops of `walFoldChk` and `walReadFrom`) -/
+
+theorem tFoldChkFrom_append : ∀ (l1 l2 : List TOp) (s : TContents),
+    tFoldChkFrom s (l1 ++ l2) = (tFoldChkFrom s l1).bind (fun s' => tFoldChkFrom s' l2) := by
+  intro l1
+  induction l1 with
+  | nil => intro l2 s; rfl
+  | cons o l1 ih =>
+    intro l2 s
+    simp only [List.cons_append, tFoldChkFrom]
+    split
+    · exact ih _ _
+    · cases o.ents.foldlM (fun ents e => tReadEnt s.baseIdx ents e) s.ents with
+      | none => rfl
+      | some x => exact ih _ _
+
+/-- The fold of one more operation. -/
+theorem tFoldChkFrom_take_succ (s : TContents) (h : List TOp) (i : Nat) (o : TOp) (ho : h[i]? = some o) :
+    tFoldChkFrom s (h.take (i + 1)) = (tFoldChkFrom s (h.take i)).bind (fun s' => tFoldChkFrom s' [o]) := by
+  rw [List.take_add_one, ho, Option.toList_some, tFoldChkFrom_append]
+
+theorem tFoldChkFrom_snap (s : TContents) (o : TOp) (hs : o.snap = true) :
+    tFoldChkFrom s [o] = some (tSaveSnap s o.idx o.term) := by
+  simp [tFoldChkFrom, hs]
+
+theorem tFoldChkFrom_save (s : TContents) (o : TOp) (hs : o.snap = false) :
+    tFoldChkFrom s [o] = (o.ents.foldlM (fun ents e => tReadEnt s.baseIdx ents e) s.ents).map
+      (fun x => { s with hs := tPhsNext s.hs o.hs, ents := x }) := by
+  simp only [tFoldChkFrom, hs, Bool.false_eq_true, ↓reduceIte]
+  cases o.ents.foldlM (fun ents e => tReadEnt s.baseIdx ents e) s.ents <;> rfl
+
+/-- The entry fold, one more entry. -/
+theorem tReadEnts_take_succ (b : w64) (es : List TEnt) (j : Nat) (e : TEnt) (he : es[j]? = some e)
+    (ents : List TEnt) :
+    (es.take (j + 1)).foldlM (fun ents e => tReadEnt b ents e) ents =
+      ((es.take j).foldlM (fun ents e => tReadEnt b ents e) ents).bind (fun x => tReadEnt b x e) := by
+  rw [List.take_add_one, he, Option.toList_some, List.foldlM_append]
+  simp only [List.foldlM_cons, List.foldlM_nil]
+  cases (es.take j).foldlM (fun ents e => tReadEnt b ents e) ents with
+  | none => rfl
+  | some x =>
+    show (tReadEnt b x e).bind (fun y => some y) = (tReadEnt b x e)
+    cases tReadEnt b x e <;> rfl
+
+theorem tFoldChkFrom_prefix_none (s : TContents) (h : List TOp) (n : Nat)
+    (hn : tFoldChkFrom s (h.take n) = none) : tFoldChkFrom s h = none := by
+  rw [← List.take_append_drop n h, tFoldChkFrom_append, hn]; rfl
+
+
+theorem tReadEnts_prefix_none (b : w64) (es : List TEnt) (n : Nat) (ents : List TEnt)
+    (hn : (es.take n).foldlM (fun ents e => tReadEnt b ents e) ents = none) :
+    es.foldlM (fun ents e => tReadEnt b ents e) ents = none := by
+  rw [← List.take_append_drop n es, List.foldlM_append, hn]; rfl
+
 end pure
 
 end etcd_wal
