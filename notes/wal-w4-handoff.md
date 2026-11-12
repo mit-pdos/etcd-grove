@@ -149,7 +149,10 @@ Next, in order:
    no GOWORK=off), move examples' go.mod/go.sum (as W4a step 2 did for b18c2d500), `goose.py --check`.
    Until then the axioms' headers name `c90b03b56` while the pin is `b18c2d500` (Exist's spec is false
    of `b18c2d500` under a `ReadDir` failure): do not land before the bump.
-2. Checks after the full build: tcb `--check` (+ collections), gen-interface `--check`, api-check,
-   gen-init `--check`, goose `--check`, bounds, issues.
-3. Freeze package "Revision after review" (`/shared/tmp/wal-spec/w4/gen/rev-head.md` + diffs), then
-   the second independent review; STOP before land.sh.
+2. (done at `d883fe86fb`) full build passes (14055 jobs); tcb `--check` unchanged (865/5), 54
+   collections, interfaces, api-check, gen-init, goose `--check`, bounds, issues: clean. After the pin
+   bump: rerun goose `--check`, the build of the regenerated modules, tcb.
+3. (done) Freeze package "Revision after review" appended to `/shared/tmp/wal-spec/w4/freeze-w4a.md`
+   (R1 closing table, R2 diffs, R2b vocabulary, R3 Go tests, R4 checks, R5 open items; parts in
+   `/shared/tmp/wal-spec/w4/gen/rev-*.md`). Waiting for the second independent review; STOP before
+   land.sh.
