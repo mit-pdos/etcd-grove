@@ -37,9 +37,26 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
 
 Re-review: B1, T-e' and the gates READY; the blocker (Tracer.Start's `spanCtxOk` did not exclude the
 refutation) fixed by `trace.spanValOk` (freeze "Revision 2"); Revision 1's knock-on premises reverted.
-Landing the trusted package on its own (81's go). **Next: steps 3-6 of the re-baseline's §4**, starting
-with the weakening interceptor contract (`v3rpc.incomingOf_wrapper`, `v3rpc.wp_WithCancel_cancelCtx`,
-`context.libCtxOkC_from`, `trace.spanCtxOkC_from`).
+**Landed: lean `2f8cf80b7e`** (2026-11-12, `etc/land.sh`, all gates). **Next: steps 3-6 of the
+re-baseline's §4** (`notes/k8s-7f4-rebaseline.md`), on this branch (merge lean first):
+
+3. `srvCtxWeak` laws exist (`SrvCtxWeak.lean`: `srvCtxWeak_of_isContext`, `ctxDoneAny_of_srvCtxWeak`);
+   add R-4's lemma (`isCtxErr ∨ noLeaderErr` ⊢ `srvErrOk`: `applyErrIs_srvErrOk`,
+   `watchServer__Watch.lean:392`; `SeNL` in `newStreamInterceptor.lean`), and the wrapper's library
+   facts: from `srvRawStreamIs`'s `libCtxOkC ci`/`spanCtxOkC ci`, `v3rpc.wp_WithCancel_cancelCtx`'s
+   `ctxValueFrom`, `context.libCtxOkC_from`/`trace.spanCtxOkC_from` give the `WithCancel` child's; the
+   wrapper's `Value` is promoted (load `ccField l`, then the child's `Value`): prove its
+   `libCtxOk`/`spanCtxOk` (WP form) via `libCtxOk_of_libCtxOkC`-style reasoning over the promoted
+   method (needs `isPkgInit context`).
+4. The interceptor's require-leader branch and `monitorLeader` (the `sKey` map-key instance first,
+   `notes/k8s-7f4-mapkey-check.lean.txt`): the weakening contract `srvStreamInterceptorWOk`
+   (freeze §2 "Not trusted"), the handler on a weak end with `⌜incomingOf ci' = incomingOf ci⌝` from
+   `v3rpc.incomingOf_wrapper` (`newCancellableContext`'s proof must persist `ccField l ↦□` and use
+   `v3rpc.wp_WithCancel_cancelCtx` for `ctxField c ↦□ ci`); the chain lemma for `ics ++ [icW]`;
+   `grpcStreamHandlerOk` on the weak end. Using the two field axioms changes the baseline at step 6.
+5. Watch's chain (mvcc's `WatchStream.Watch.contract`, Q-RB4: interface diff, **checkpoint for 81**),
+   then LeaseKeepAlive with `LeaseRenew` over `srvCtxWeak` and the local `WithTimeout` lemma.
+6. Delete `runsNoRequireLeader`; interfaces; `etc/tcb-report.py --check --update`. **Hard stop.**
 
 ## Revision 1 (2026-11-12, the second 7f-4 agent): steps 1-6 of 81's decisions done
 
