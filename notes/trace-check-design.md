@@ -29,6 +29,72 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 
 ---
 
+## G3 (a) (2026-11-12): no conf entry past the bootstrap log, the design taken
+
+Branch `trace-check-g3`, from `trace-check` at `fcc535af34` (`notes/decisions.md`, "G3 (a): no conf
+entry past the bootstrap log"). Supersedes §3.4 item 4 (a)'s two parts and its "Order" paragraph.
+
+**What is stated: a stronger (a), with no empty-`ConfChangeV2` exception, so no (a2).** At a traced
+cluster *no* entry a leader mints is a conf entry (`IsConfEnt`, type `1` or `2`, empty or not); the
+bootstrap entries are the only ones. Every way a leader appends an entry (Go, the pinned
+`raft37-goose-lean-a2`'s raft.go: `stepLeader`'s `MsgProp`, :1312-1371, the refused change's empty
+normal replacement at :1356, `appendEntry` at :1367; `becomeLeader`'s empty normal entry, :951-980;
+`appliedTo`'s automatic leave, :737-763, which goes through `r.Step(MsgProp)`)
+is excluded at a traced node already: a proposal's conf entries by `raft.Step.spec`'s premise
+`MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e` (and by the refusal of `ProposeConfChange`,
+whose specs, `node`'s and `RawNode`'s, take `γ.reTrace = none`), the automatic leave by `raft.Step.spec`'s
+premise `MsgStorageApplyResp → ents ≠ [] → c.autoLeave = true → s.gh.tr = none`. So revision 3's (a2)
+(the empty `ConfChangeV2` from `ev2Rec`, needing the decoder's value on the bootstrap entries' bytes)
+is not needed: the automatic leave is never minted at a traced node, rather than admitted. (`γ.reTrace`
+and the node's `s.gh.tr` agree: `ownStepGhost`'s `NsLink`.)
+
+**Where the trace fact enters: a gated clause of `isMessage`'s proposal case** (the option the step-2
+agent listed second). The minting site, `ownRaftGhost_step_propose`, is reached from `ghostR_stepR`'s
+`StepR.propose` arm (and the static `StepC.propose` arm, `ownRaftGhost_stepC`), which see the proposal
+only through `isMessage` of the received message (`recv_one`); threading a premise down from
+`raft.Step`'s `MsgProp` branch instead would add a premise to `ghost_step_md` and its layers, whose
+~20 callers (every `raft.Step` branch) would each discharge it. The clause's producers are few (below),
+and each has the fact.
+
+Statements, old → new (all raft-internal or in raft's importable "debt" modules `Protocol.*`; none in
+`Spec/` changes):
+1. `TrNoConf γ e : Prop := γ.reTrace ≠ none → ¬ IsConfEnt e` (new, `Protocol/Ghost.lean`).
+2. `isMessage`'s `.propose` case (`Protocol/GhostState.lean`): `⌜m.term = W64 0 ∧ m.entries ≠ [] ∧
+   len < 2^61⌝ ∗ [∗list] e ∈ m.entries, propData γ e` → the pure conjunct gains `∧ ∀ e ∈ m.entries,
+   TrNoConf γ e` (gated: vacuous at `γ.reTrace = none`).
+3. `ev2Rec γ e pt` (`Protocol/Ghost.lean`, the last conjunct of `isEntryR`'s leader-minted disjunct):
+   `∀ (_ : γ.reDyn ≠ none ∧ IsEmptyV2 e), …` → `⌜TrNoConf γ e⌝ ∗ ∀ (_ : …), …`. So every leader-minted
+   record carries it; a boot record (`BootRec`, index `≤ |γ.reBoot|`) does not need it.
+   `isEntryR_of_core` (unused) gains the hypothesis `TrNoConf γ e`.
+4. `ownRaftGhost_step_propose` (`Protocol/Refinement.lean`) gains the premise `(∀ e ∈ ents, TrNoConf γ
+   e)` (the batch as appended). Callers: the static and dynamic `propose` arms, from `isMessage`'s clause
+   through `PropRepl` (a replaced entry is `zero_val`, normal: `PropRepl.trNoConf`); `ghost_stepProp`
+   (`TracedRaftStepProp.lean`), from its `hnc`. The win step's record (`becomeLeader`'s empty normal
+   entry): `TrNoConf` of a type-`0` entry.
+5. The clause's producers: `isMessage_propMsg` (`node.Propose`'s one normal entry); the proofs of
+   `RawNode.Propose`, `RawNode.ProposeConfChange` and `node.ProposeConfChange` (each under its existing
+   premise `γ.reTrace = none`); `ownRaftGhost_step_prop_forward` (the forwarded message has the received
+   one's entries); and `isMessage_leave` (the automatic leave), which gains `γ.reTrace = none →`. Its one
+   use, `raft.Step`'s `MsgStorageApplyResp` arm, gets that from `wp_Step_MsgStorageApplyResp`'s post
+   `%Hrecv`, which gains `recv ≠ [] → s.gh.tr = none` (the leave is received only from `appliedTo`'s
+   `LeaveStep` second disjunct, `c.autoLeave = true`, at `ents ≠ []`, so by its premise), and `NsLink`.
+   Every other `isMessage` of a proposal passes one through (`isMessage_propose_from`, `fwdP`, `node.run`).
+6. **G3 (a), the lemmas** (`TracedConfExcl.lean`): `isEntryR_trNoConf : γ.reTrace ≠ none → isEntryR γ e
+   pt ⊢ ⌜IsConfEnt e → uint.Z e.Index' ≤ γ.reBoot.length⌝`; over a node's log,
+   `ownStepGhost_trNoConf : γ.reTrace ≠ none → ownStepGhost γ md c id s ⊢ ⌜∀ k e, (s.logst.sents ++
+   s.logst.uents)[k]? = some e → IsConfEnt e → uint.Z s.logst.prev.index' + k + 1 ≤ γ.reBoot.length⌝ ∗
+   ownStepGhost γ md c id s` (index `prev + k + 1`; at `prev = 0`, position `k < |γ.reBoot|`, lemma (i)'s
+   shape).
+
+**Checked against the consumers** (§3.4): (b)'s keeping at the `confc` arm reads "the applied conf entry
+at position `k` of the node's log has `k < |γ.reBoot|`" off `ownStepGhost_trNoConf` (the entry is in the
+node's log: no snapshot at a traced node, `TrNoSnap`); item 5 likewise. **Order:** (a)'s statement does
+not mention (b), and its keeping uses only `raft.Step.spec`'s existing premises; the automatic-leave
+premise's discharge at the traced `RawNode.Advance` was already (b)'s job (§3.4, "Read"), so step 3's
+obligations are unchanged: (a) at every record by the minting premises, (b) at a `confc` step from (a).
+Each holds of the state before a step, so the two are one induction over time, not a circular proof.
+`raft.Step.spec`'s `MsgProp` premise is now derivable from `#Hmsg` and `NsLink`; it is left as it is.
+
 ## Implementation step 2 (2026-11-12): what the Lean changed
 
 Branch `trace-check-impl2`, from `trace-check` at `a38252c9f0` (§9's step 2; `notes/decisions.md`,
