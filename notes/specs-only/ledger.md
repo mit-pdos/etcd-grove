@@ -145,7 +145,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Accepted (coordinator, 2026-11-12; follows the pinned code). Applied in
   `ac1de7621a`: with `NoSync` off (`IgnoreNoSync` is false on Linux) `Open` takes a sync update
   (`σ.sync ok`, as `DB.Sync.spec`'s), the success post gives `Ss true`, an error `Ss` of the outcome
-  or the update back.
+  or the update back. With `NoFreelistSync` off too, the freelist commit's updates are nested in
+  the sync update's `COMM` (a holder of one `boltState` builds both; the review's finding 2):
+  applied in the commit that adds this sentence.
 
 ## 2026-11-12: `Open.spec`, `DB.Close.spec` -- their errors cannot be excluded, and the server panics on both
 
