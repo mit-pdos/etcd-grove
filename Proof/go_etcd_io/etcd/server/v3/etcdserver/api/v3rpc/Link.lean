@@ -82,6 +82,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenan
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Status
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__isPermitted
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__requireAuthInfo
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext__Cancel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext__Err
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkDeleteRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkPutRequest
@@ -128,6 +130,7 @@ public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.google_golang_org.grpc.metadata.MD__Get
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.monitorLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newBackendQuota
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newCancellableContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHealthNotifier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryInterceptor
@@ -791,6 +794,14 @@ theorem authMaintenanceServer.wp_Status :
     EtcdGrove.v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.authMaintenanceServer.Status.wp_proof authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
 
+theorem cancellableContext.wp_Cancel :
+    EtcdGrove.v3rpc.cancellableContext.Cancel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.cancellableContext.Cancel.wp_proof
+
+theorem cancellableContext.wp_Err :
+    EtcdGrove.v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.cancellableContext.Err.wp_proof
+
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsCtxErr.wp_proof
@@ -814,6 +825,10 @@ theorem storage.wp_NewBackendQuota :
 theorem wp_newBackendQuota :
     EtcdGrove.v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.newBackendQuota.wp_proof EtcdServer.wp_Logger EtcdServer.wp_Backend storage.wp_NewBackendQuota
+
+theorem wp_newCancellableContext :
+    EtcdGrove.v3rpc.newCancellableContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newCancellableContext.wp_proof
 
 theorem quotaAlarmer.wp_check :
     EtcdGrove.v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) :=

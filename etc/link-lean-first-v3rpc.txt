@@ -163,11 +163,15 @@ watchServer__Watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_la
 # `GoAttach`, over Perennial's `time.After`, which its proof uses directly) and
 # `newStreamInterceptor`; the server's `GoAttach` and `StoppingNotify` are linked in the server's
 # Link (`@`). `metadata.FromIncomingContext` is not a callee: the premise
-# `runsNoRequireLeader` (InvStreamInterceptor.lean) states it at the run's context. Not linked:
-# `newCancellableContext`, `cancellableContext.Cancel`/`Err`, `serverStreamWithCtx.Context`
-# (reached only in the require-leader branch the premise excludes).
+# `runsNoRequireLeader` (InvStreamInterceptor.lean) states it at the run's context.
+# k8s 7f-4: the require-leader branch's wrapper, `newCancellableContext` (over Perennial's
+# `WithCancel` and `RWMutex`, which its proof uses directly), `cancellableContext.Cancel`/`Err`
+# (InvCancellable.lean, CancellableLaws.lean).
 EtcdServer__GoAttach: @
 EtcdServer__StoppingNotify: @
+newCancellableContext:
+cancellableContext__Cancel:
+cancellableContext__Err:
 monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader
 newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues
 #
