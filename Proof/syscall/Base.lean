@@ -1,13 +1,13 @@
 /-
 Shared definitions of the specs of `syscall`'s trusted models (`TrustedCode/syscall.lean`), used
 by `os`'s and `golang.org/x/sys/unix`'s too: the errors they return (`errnoErr`). The models call
-the Linux file extension (`GooseLang/Ext/Fs`), whose resources the specs use.
+the Linux file extension (`GooseLang/Ext/OsFs`), whose resources the specs use.
 -/
 module
 
 public import GeneratedProof.syscall
-public import Proof.FsPrelude
-public import GooseLang.Ext.Fs.Write
+public import Proof.OsFsPrelude
+public import GooseLang.Ext.OsFs.Write
 
 @[expose] public section
 
@@ -16,7 +16,6 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open Fs
 
 /-- `errnoErr(e)`: `nil` for 0, else the `Errno` `e` as an `error`. -/
 def errnoErr [GooseExts] [GoGlobalContext] (e : w64) : GoInterface :=

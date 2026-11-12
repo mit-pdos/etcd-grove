@@ -13,7 +13,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open Fs
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

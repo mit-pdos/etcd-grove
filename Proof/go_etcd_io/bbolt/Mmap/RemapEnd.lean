@@ -17,8 +17,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 /-- The writer side on the new mapping `(b, L')`, the file's `OsMeta` `m'`. -/
@@ -73,7 +71,7 @@ theorem wdbRemap_remap' [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b
 section remap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
+variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 

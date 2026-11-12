@@ -19,8 +19,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 namespace WOpen
 
 open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common

@@ -17,8 +17,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 namespace Write
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common

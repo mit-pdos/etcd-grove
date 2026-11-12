@@ -26,8 +26,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
@@ -38,7 +36,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **A reader's `Seek`.** -/
-theorem Cursor.Seek.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Cursor.Seek.wp_reader [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_r.spec (GF := GF) (hG := hG))
     (hnx : Cursor.next_r.spec (GF := GF) (hG := hG))
@@ -206,7 +204,7 @@ theorem Cursor.Seek.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 
 /-- **A writer's `Seek`** (U6aa): `Read/PubWSeek`'s, over `seek_w`/`next_w`; `gensOK`'s third
 clause by `gensOK_handle_bktLoc` (the cursor's writer facts are `wtxFrac`'s). -/
-theorem Cursor.Seek.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Cursor.Seek.wp_writer [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hseekw : Cursor.seek_w.specQ (GF := GF) (hG := hG))
     (hnxw : Cursor.next_w.specQ (GF := GF) (hG := hG))
@@ -223,11 +221,11 @@ theorem Cursor.Seek.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 
 theorem Cursor.Seek.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
-    (hseek : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_r.spec (GF := GF) (hG := hG))
-    (hnx : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.next_r.spec (GF := GF) (hG := hG))
+    (hseek : ∀ [HasExt osFsExt], Cursor.seek_r.spec (GF := GF) (hG := hG))
+    (hnx : ∀ [HasExt osFsExt], Cursor.next_r.spec (GF := GF) (hG := hG))
     (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
-    (hseekw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))
-    (hnxw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.next_w.specQ (GF := GF) (hG := hG)) :
+    (hseekw : ∀ [HasExt osFsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))
+    (hnxw : ∀ [HasExt osFsExt], Cursor.next_w.specQ (GF := GF) (hG := hG)) :
     Cursor.Seek.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos key kb dk
   by_cases hrw : T.rw = true

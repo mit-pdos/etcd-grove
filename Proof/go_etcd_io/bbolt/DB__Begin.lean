@@ -15,8 +15,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -27,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem DB.Begin.wp_proof
-    (wp_Begin_err : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG)) :
+    (wp_Begin_err : ∀ [HasExt osFsExt], DB.Begin_err.spec (GF := GF) (hG := hG)) :
     DB.Begin.spec (GF := GF) (hG := hG) := by
   intro hos db γ w Q
   wp_start_folded as Hpre

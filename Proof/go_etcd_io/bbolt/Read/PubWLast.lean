@@ -33,8 +33,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 namespace WLastPub
@@ -99,7 +97,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **A writer's `Last`** at any fraction, over `pageNode_w`, `last_w`, `prev_w` and `keyValue_ws`
 (`hD1`: `gensOK`'s third clause). -/
-theorem Cursor.Last.wp_writerW [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Cursor.Last.wp_writerW [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
     (hpn : Bucket.pageNode_w.specQ (GF := GF) (hG := hG))

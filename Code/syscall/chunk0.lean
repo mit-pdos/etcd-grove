@@ -1070,8 +1070,7 @@ axiom F_ULOCK [GooseExts] [GoGlobalContext] : val
 
 axiom F_UNLCK [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def F_WRLCK [GooseExts] [GoGlobalContext] : val :=
-  #(1 : Int)
+axiom F_WRLCK [GooseExts] [GoGlobalContext] : val
 
 axiom ICMPV6_FILTER [GooseExts] [GoGlobalContext] : val
 

@@ -17,8 +17,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open go_etcd_io.bbolt.internal.freelist
 
 /-- The ids of the spans whose starts satisfy `V`. -/

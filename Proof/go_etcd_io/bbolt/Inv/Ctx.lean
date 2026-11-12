@@ -23,27 +23,22 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 /-- **A database's parameters** (what `isBoltCoreP` takes): its decoded names, the client's
-namespace, its location, its file's path (the name `db.path` and the `*os.File` hold) and inode
-(what the file extension's resources are keyed by), its statistics pointer and its receipts'
-base. -/
+namespace, its location, its file's path, its statistics pointer and its receipts' base. -/
 structure BC where
   B : BNs
   N : Namespace
   db : Loc
   p : GoString
-  i : Ino
   sp : Loc
   t0 : Nat
 
 section ctx
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
+variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 

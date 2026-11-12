@@ -20,8 +20,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
@@ -33,7 +31,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Cursor.Prev.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
-    (hprev : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.prev_r.spec (GF := GF) (hG := hG)) :
+    (hprev : ∀ [HasExt osFsExt], Cursor.prev_r.spec (GF := GF) (hG := hG)) :
     Cursor.Prev.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos
   wp_start as ⟨Ht, Hc, %hro⟩

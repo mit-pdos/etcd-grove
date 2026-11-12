@@ -17,8 +17,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -32,7 +30,7 @@ private instance reg_persistent_d (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
-private instance isBoltP_persistent_d [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (db : Loc)
+private instance isBoltP_persistent_d [HasExt osFsExt] (B : BNs) (N : Namespace) (db : Loc)
     (p : GoString) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
@@ -41,7 +39,7 @@ private instance viewOf_persistent_d (r : TxReg) (v : View) :
   unfold viewOf; infer_instance
 
 /-- A live transaction's `db` field, at its share, with its registration, and back. -/
-private theorem boltTxDef_db_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (tx : Loc) (q : Qp)
+private theorem boltTxDef_db_acc [HasExt osFsExt] (B : BNs) (N : Namespace) (tx : Loc) (q : Qp)
     (T : TxView) :
     boltTxDef (GF := GF) B N tx q T ⊢ ∃ r : TxReg,
       reg tx B r ∗ tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗

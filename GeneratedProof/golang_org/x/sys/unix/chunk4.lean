@@ -274,118 +274,12 @@ variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance Flock_t_typed_pointsto :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Flock_t where
-  typedPointstoDef l v dq := iprop(
-    "Type'" ∷ typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) v.Type' dq ∗
-    "Whence" ∷ typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) v.Whence' dq ∗
-    "Start" ∷ typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) v.Start' dq ∗
-    "Len" ∷ typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) v.Len' dq ∗
-    "Pid" ∷ typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) v.Pid' dq ∗
-    "«_#5»" ∷ typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) v.«_#5'» dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
+    TypedPointsto (GF := GF) golang_org.x.sys.unix.Flock_t :=
+  sorry -- axiomatized type
 
 noncomputable instance Flock_t_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Flock_t golang_org.x.sys.unix.Flock_t.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance Flock_t_access_load_Type (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) v.Type' dq)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) v.Type' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Type' : w16) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_load_Whence (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) v.Whence' dq)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) v.Whence' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_store_Whence (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Whence' : w16) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) v.Whence' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Whence" l) Whence' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Whence' := Whence' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_load_Start (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) v.Start' dq)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) v.Start' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_store_Start (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Start' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Start" l) Start' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := Start' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_load_Len (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) v.Len' dq)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) v.Len' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Len' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) v.Len' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Len" l) Len' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Len' := Len' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_load_Pid (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) v.Pid' dq)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) v.Pid' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Flock_t_access_store_Pid (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (Pid' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) v.Pid' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"Pid" l) Pid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pid' := Pid' } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance «Flock_t_access_load__#5» (l : Loc) (v : golang_org.x.sys.unix.Flock_t) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) v.«_#5'» dq)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) v.«_#5'» dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance «Flock_t_access_store__#5» (l : Loc) (v : golang_org.x.sys.unix.Flock_t) («_#5'» : (GoArray w8 4)) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) v.«_#5'» (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.sys.unix.Flock_t go!"_#5" l) «_#5'» (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#5'» := «_#5'» } : golang_org.x.sys.unix.Flock_t) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
+    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Flock_t golang_org.x.sys.unix.Flock_t.underlying :=
+  sorry -- axiomatized type
 
 end def_
 end Flock_t

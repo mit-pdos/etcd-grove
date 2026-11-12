@@ -15,15 +15,13 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 /- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
-whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` at
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
 the head of each triple (a section variable is dropped from a definition that does not use it),
 and in the signature of each vocabulary predicate, so that every statement carries it (checked
 with `#check`). -/
@@ -53,7 +51,7 @@ D22 (round 11): a meta write is one aligned OS page (`boltPageSize_eq_osPageSize
 writes all-or-nothing in-process, so after a failed `writeMeta` the page holds the old meta or the
 whole new one, never a mix; the fork's `rollback` keeps the new one if it became current. -/
 abbrev Tx.Commit.spec : Prop :=
-  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (T : TxView) (Q : IProp GF),
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (Q : IProp GF),
   {{ boltTx (GF := GF) tx γ 1 T ∗ ⌜T.rw = true⌝ ∗
       AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
         <{ ⌜D' = T.base⌝ ∗ boltState γ 1 T.cur, COMM Q }> }}

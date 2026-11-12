@@ -18,8 +18,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 namespace Read
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode

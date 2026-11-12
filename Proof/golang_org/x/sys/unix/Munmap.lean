@@ -14,16 +14,15 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [golang_org.x.sys.unix.Assumptions]
 
-omit [HasExt Fs.fsExt] [sem : go.Semantics] [golang_org.x.sys.unix.Assumptions] in
+omit [HasExt osFsExt] [sem : go.Semantics] [golang_org.x.sys.unix.Assumptions] in
 /-- A mapping with a cell is at a positive address (its first cell's points-to says so). -/
 theorem cellsR_pos (base : Loc) (n : Nat) (vf : Nat → val) (hn : 0 < n) :
     cellsR (GF := GF) base 0 n vf ⊢ cellsR (GF := GF) base 0 n vf ∗ ⌜0 < base.addr⌝ := by

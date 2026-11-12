@@ -18,8 +18,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -29,21 +27,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-private instance isBoltP_persistent_i [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (db : Loc)
+private instance isBoltP_persistent_i [HasExt osFsExt] (B : BNs) (N : Namespace) (db : Loc)
     (p : GoString) (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
-private instance reg_persistent_i [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (B : BNs) (r : TxReg) :
+private instance reg_persistent_i [HasExt osFsExt] (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
-private instance viewOf_persistent_i [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (r : TxReg) (v : View) :
+private instance viewOf_persistent_i [HasExt osFsExt] (r : TxReg) (v : View) :
     Persistent (viewOf (GF := GF) r v) := by
   unfold viewOf; infer_instance
 
 /-- What `DB.Info` reads through a live transaction: its database's core and the `data` field at
 some fraction (the mapping's base, positive), and back. -/
-private theorem boltTxDef_data_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (tx : Loc) (q : Qp)
+private theorem boltTxDef_data_acc [HasExt osFsExt] (B : BNs) (N : Namespace) (tx : Loc) (q : Qp)
     (T : TxView) :
     boltTxDef (GF := GF) B N tx q T ⊢ ∃ (db b : Loc) (dq : DFrac),
       isBoltCore B N db ∗ db.[DB, go!"data"] ↦{dq} b ∗ ⌜0 < b.addr⌝ ∗

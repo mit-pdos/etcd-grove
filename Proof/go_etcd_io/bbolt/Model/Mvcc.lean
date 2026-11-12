@@ -18,8 +18,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 section mvcc
 variable [GooseExts]
 

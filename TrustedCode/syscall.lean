@@ -1,7 +1,7 @@
 /-
 Trusted Go model of `syscall` (namespace of the generated package; project bboltfs of
 `etc/goose.py`, `Code/syscall.toml`), in terms of the Linux file extension of
-`GooseLang.Ext.Fs.Impl` (`Fs.fsExt`, `ExternalOp Fs.fsExt.name "Fsync"`, ...), for any program
+`GooseLang.Ext.OsFs.Impl` (`osFsExt`, `ExternalOp osFsExt.name "Fsync"`, ...), for any program
 whose extensions include it. linux/amd64.
 
 The functions are `zsyscall_linux_amd64.go`'s system-call stubs: one `Syscall` and
@@ -13,7 +13,7 @@ a `w64`, the value of an `Errno` (`uintptr`).
 module
 
 public import Perennial.Golang.Defn
-public import GooseLang.Ext.Fs.Impl
+public import GooseLang.Ext.OsFs.Impl
 public import Perennial.TrustedCode.fmt
 
 @[expose] public section
@@ -38,7 +38,7 @@ noncomputable def model.errno : val :=
 all the metadata the extension has): its `Fsync` (stuck on an fd that is not open, else success
 or any nonzero errno). -/
 noncomputable def Fdatasync.impl : val :=
-  λ: "fd", model.errno (ExternalOp Fs.fsExt.name "Fsync" "fd")
+  λ: "fd", model.errno (ExternalOp osFsExt.name "Fsync" "fd")
 
 /-- `Flock(fd int, how int) error`: `flock(2)`, trivial (`notes/osfs-ext-plan.md`, D7): the
 specifications are about one process, which never contends with itself for a lock it holds
@@ -48,7 +48,7 @@ held elsewhere (`EWOULDBLOCK` with `LOCK_NB`), `EINTR`, `EINVAL` for a bad `how`
 stuck on an fd that is not open (D6). A blocking `flock` that never returns is a run the model
 need not contain. -/
 noncomputable def Flock.impl : val :=
-  λ: "fd" "how", model.errno (ExternalOp Fs.fsExt.name "Flock" ("fd", "how"))
+  λ: "fd" "how", model.errno (ExternalOp osFsExt.name "Flock" ("fd", "how"))
 
 /-- `(Errno).Error() string` (`syscall_unix.go`): some string. Go's body
 
@@ -152,15 +152,12 @@ It raises the process's soft limit on open files through the raw `prlimit` syste
 `Setrlimit` and `exec` (`forkExec`, to restore the child's limit) read. It cannot panic. The model
 does nothing: the changed limit and `origRlimitNofile` are observable only through `exec`, a
 `Getrlimit` system call (neither modelled) or running out of file descriptors. The model does not
-model the limit: the Linux file extension's `Open` (`GooseLang/Ext/Fs/Impl.lean`) may fail with
+model the limit: the Linux file extension's `Open` (`GooseLang/Ext/OsFs/Impl.lean`) may fail with
 any errno, `EMFILE` included, whatever the limit. Running out is not only an errno in Go, though:
 the first file `os` opens starts the runtime's netpoller, and if its `epoll_create1` or `eventfd`
-fails (a hard `ulimit -n` of 4 or 5; measured, `notes/axiom-review/fs-lean-merge/netpoll/`) Go
-dies with `fatal error: runtime: netpollinit failed`, after `open(2)` created the file: a run of
-the model's (`Open`'s step) that the process ends. A Hoare triple is partial correctness, so a
-process that stops after a prefix of a model run contradicts none (as `os.Exit` does not); under
-the file extension's restart assumption (`GooseLang/Ext/Fs/Impl.lean`'s header, "Restarts") the
-death is a machine crash, which the crash results cover. So it is not a gap. (The
+fails (`ulimit -n` of 5 or 6, soft = hard, so this raise does not help) Go dies with `fatal error:
+runtime: netpollinit failed`, which the model does not have (an open model gap, recorded in
+`GooseLang/Ext/OsFs/Impl.lean` and `notes/STATUS.md`; not this model's: it concerns `Open`). (The
 user's decision, Perennial fix-semantics Case 33: "P1: (ii)", 2026-11-04.) -/
 def init.«0».impl : val :=
   λ: <>, #()

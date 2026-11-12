@@ -18,8 +18,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 theorem View.with_base_self (v : View) : { v with base := v.base } = v := by cases v; rfl
@@ -57,7 +55,7 @@ theorem wdbOK'_lost [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : 
 section lost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
+variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 

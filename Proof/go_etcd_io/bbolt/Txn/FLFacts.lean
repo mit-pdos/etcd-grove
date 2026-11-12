@@ -17,8 +17,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 section flfacts
 variable [GooseExts]
 set_option linter.unusedSectionVars false

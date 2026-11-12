@@ -12,8 +12,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 namespace Read
 
 /-- The length of the leading run of `f` over `[s, s + m)`, when `f` holds below `s + idx` and

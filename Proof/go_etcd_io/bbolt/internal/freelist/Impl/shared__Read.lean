@@ -19,8 +19,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace bbolt
-
-open Fs
 namespace internal
 namespace freelist
 

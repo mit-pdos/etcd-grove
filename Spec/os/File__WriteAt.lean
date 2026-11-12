@@ -1,23 +1,23 @@
 /-
 `f.WriteAt(b, off)` on an open `*os.File` (this repository's `os`, project `bboltfs`), for a
-non-negative offset and a non-empty `b` of at most `maxRW` (1 GiB) bytes, so that Go's
-`poll.FD.Pwrite` makes one `pwrite(2)` per attempt (retried on `EINTR`). The model
-(`TrustedCode/os.lean`) makes the extension's two steps per attempt (`wp_osPWriteStart`,
-`wp_osPWriteFinish`), so the spec takes what they take: the fd, writable; the whole of the
-file's `OsMeta` `m`; the bytes the write may change
-below the size, `[min off size, min (off + n) size)`, whole; and the client's halves of the cells
-of every mapping over `[min off size, off + n)`.
+non-negative offset and a non-empty `b` that ends below `2 ^ 63` (`off + len(b)`, so that no
+offset overflows `int64`). Go's `poll.FD.Pwrite` writes `b` in chunks of at most `maxRW` (1 GiB),
+one `pwrite(2)` per attempt, each retried on `EINTR`; the model (`TrustedCode/os.lean`) loops
+over the chunks the same way, making the extension's two steps per attempt
+(`wp_osPWriteStart`, `wp_osPWriteFinish`), so the spec takes what they take, for the whole range:
+the fd, writable; a fraction `q` of the file's `OsMeta` `m`, all of it if the write may extend
+the file; the bytes the write may change below the size, `[min off size, min (off + n) size)`,
+whole; and the client's halves of the cells of every mapping over `[min off size, off + n)`.
 
-After it, the file is as a write of the first `j` bytes of `b` left it (an attempt that wrote
-short is followed by one from where it stopped, and a failed one may have written a prefix): its
-`OsMeta` as the write announced it (`pwPost`: the size `pwSize m.size off j`, the range not
-durable, a crash bound to the end of the write), and the bytes of the range (`os.PwOut`): their
-values, the zero gap past the old end, then `b`'s first `j` bytes, then the old bytes; their
-candidates, the old ones, then the data's byte (once per attempt that announced it). On success
-`j = n` and the result is `(n, nil)`; on failure, `(0, err)` with a non-nil `err`, its `Error()` a
-`fmt`-printable string (`fmtErrorOkOrNil`). Whatever the result, `j` is a page cut of the write
-(`PwCut`: `0`, `n`, or ending on a 4096-byte page boundary of the file; the page-cut rule of each
-`pwrite`, carried through Go's retries), so one aligned page lands whole or not at all. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
+After it, the file is as a write of the first `j` bytes of `b` left it (an attempt that fails
+may have written a prefix of its chunk; the chunks before it were written whole): its size
+`pwSize m.size off j`, the bytes of the range `pwBytes` (the zero gap past the old end, then
+`b`'s first `j` bytes, then the old bytes), not clean. On success `j = n` and the result is
+`(n, nil)`; on failure, `(0, err)` with a non-nil `err`. A write within one aligned OS page
+(`off % osPageSize = 0`, at most `osPageSize` bytes, hence one chunk) wrote all of `b` or
+nothing, whatever it returns (`j = 0 ∨ j = n`: OsFs's all-or-nothing in-page `pwrite`, bbolt
+D22; each attempt writes `0` or all of the same data, and `j` is the largest of them). Proved in
+`Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -32,10 +32,9 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI
-open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -44,25 +43,28 @@ variable [os.Assumptions]
 /-- See the file header. -/
 abbrev os.File.WriteAt.spec : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
-    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG),
-  d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
-  0 < data.length → data.length ≤ 0x40000000 →
-  xs.length = min (off.toNat + data.length) m.size - off.toNat →
+    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (q : Qp) (m : OsMeta)
+    (xs : List (w8 × Bool)),
+  d.writable = true → 0 ≤ off.toInt → 0 < data.length → off.toNat + data.length < 2 ^ 63 →
+  xs.length = min (off.toNat + data.length) m.size - min off.toNat m.size →
+  (m.size < off.toNat + data.length → q = 1) →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
-      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
-      osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
-      mcellsAny (GF := GF) m.maps (off.toNat) (off.toNat + data.length) }}
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.path (DFrac.own q) (some m) ∗
+      osBytes (GF := GF) d.path (min off.toNat m.size) (DFrac.own 1) xs ∗
+      mcellsAny (GF := GF) m.maps (min off.toNat m.size) (off.toNat + data.length) }}
     (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      ∃ (j : Nat) (ys : List ByteG),
-        ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧ PwCut off.toNat data.length j ∧
+      ∃ (j : Nat) (ys : List (w8 × Bool)) (h : Nat),
+        ⌜j ≤ data.length ∧
+          ys.map Prod.fst = (pwBytes m.size off.toNat data j xs).map Prod.fst ∧ m.hi ≤ h ∧
+          (off.toNat % osPageSize = 0 ∧ data.length ≤ osPageSize → j = 0 ∨ j = data.length) ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length j) ∗
-        osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
-        mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗
+        osMeta d.path (DFrac.own q) (some { m with size := pwSize m.size off.toNat j, hi := h }) ∗
+        osBytes d.path (min off.toNat m.size) (DFrac.own 1) ys ∗
+        mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length) ∗
       fmtErrorOkOrNil err }}
 
 end spec

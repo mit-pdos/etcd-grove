@@ -513,35 +513,13 @@ attribute [instance] Dirent.TypeAssumptions.type_repr
 class Flock_t.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Flock_t.underlying Flock_t
   underlying : go.UnderlyingDirectedEq Flock_t.ty Flock_t.underlying
-  get_Type : ∀ (x : Flock_t), go.IsGoStepPureDetTagged under (StructFieldGet Flock_t.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Flock_t) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Flock_t.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Flock_t)))
-  get_Whence : ∀ (x : Flock_t), go.IsGoStepPureDetTagged under (StructFieldGet Flock_t.underlying go!"Whence") #x (Val #(x.Whence'))
-  set_Whence : ∀ (x : Flock_t) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Flock_t.underlying go!"Whence") (PairV #x #y) (Val #(({ x with Whence' := y } : Flock_t)))
-  get_Start : ∀ (x : Flock_t), go.IsGoStepPureDetTagged under (StructFieldGet Flock_t.underlying go!"Start") #x (Val #(x.Start'))
-  set_Start : ∀ (x : Flock_t) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Flock_t.underlying go!"Start") (PairV #x #y) (Val #(({ x with Start' := y } : Flock_t)))
-  get_Len : ∀ (x : Flock_t), go.IsGoStepPureDetTagged under (StructFieldGet Flock_t.underlying go!"Len") #x (Val #(x.Len'))
-  set_Len : ∀ (x : Flock_t) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Flock_t.underlying go!"Len") (PairV #x #y) (Val #(({ x with Len' := y } : Flock_t)))
-  get_Pid : ∀ (x : Flock_t), go.IsGoStepPureDetTagged under (StructFieldGet Flock_t.underlying go!"Pid") #x (Val #(x.Pid'))
-  set_Pid : ∀ (x : Flock_t) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Flock_t.underlying go!"Pid") (PairV #x #y) (Val #(({ x with Pid' := y } : Flock_t)))
-  «get__#5» : ∀ (x : Flock_t), go.IsGoStepPureDetTagged under (StructFieldGet Flock_t.underlying go!"_#5") #x (Val #(x.«_#5'»))
-  «set__#5» : ∀ (x : Flock_t) (y : (GoArray w8 4)), go.IsGoStepPureDetTagged under (StructFieldSet Flock_t.underlying go!"_#5") (PairV #x #y) (Val #(({ x with «_#5'» := y } : Flock_t)))
+  isUnderlying : go.IsUnderlying Flock_t.underlying Flock_t.underlying
   method_set : go.MethodSetIs Flock_t.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Flock_t.ty) []
 
 attribute [instance] Flock_t.TypeAssumptions.type_repr
   Flock_t.TypeAssumptions.underlying
-  Flock_t.TypeAssumptions.get_Type
-  Flock_t.TypeAssumptions.set_Type
-  Flock_t.TypeAssumptions.get_Whence
-  Flock_t.TypeAssumptions.set_Whence
-  Flock_t.TypeAssumptions.get_Start
-  Flock_t.TypeAssumptions.set_Start
-  Flock_t.TypeAssumptions.get_Len
-  Flock_t.TypeAssumptions.set_Len
-  Flock_t.TypeAssumptions.get_Pid
-  Flock_t.TypeAssumptions.set_Pid
-  Flock_t.TypeAssumptions.«get__#5»
-  Flock_t.TypeAssumptions.«set__#5»
+  Flock_t.TypeAssumptions.isUnderlying
   Flock_t.TypeAssumptions.method_set
   Flock_t.TypeAssumptions.ptr_method_set
 

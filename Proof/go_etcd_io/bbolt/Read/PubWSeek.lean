@@ -27,8 +27,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pubWSeek
@@ -43,7 +41,7 @@ theorem seekIdx_le' (es : List BoltEnt) (k : List w8) : seekIdx es k ≤ es.leng
   List.IsPrefix.length_le (List.takeWhile_prefix _)
 
 /-- `curAt` of a nil key: the value is nil too. -/
-theorem curAt_nil_key [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (tx : Loc) (es : List BoltEnt) (j : Nat)
+theorem curAt_nil_key [HasExt osFsExt] (γ : BoltName) (tx : Loc) (es : List BoltEnt) (j : Nat)
     (vl : GoSlice) : curAt (GF := GF) tx γ es j slice.nil vl ⊢ ⌜vl = slice.nil⌝ := by
   unfold curAt
   split
@@ -51,7 +49,7 @@ theorem curAt_nil_key [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltNa
   · iintro %h; ipureintro; exact h.2
 
 /-- `curAt` on an entry: the key is not nil. -/
-theorem curAt_some_key [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (tx : Loc) (es : List BoltEnt) (j : Nat)
+theorem curAt_some_key [HasExt osFsExt] (γ : BoltName) (tx : Loc) (es : List BoltEnt) (j : Nat)
     (k vl : GoSlice) (x : BoltEnt) (h : es[j]? = some x) :
     curAt (GF := GF) tx γ es j k vl ⊢ ⌜k ≠ slice.nil⌝ := by
   unfold curAt
@@ -60,7 +58,7 @@ theorem curAt_some_key [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltN
 
 /-- **A writer's `Seek`** at any fraction, over `seek_w` and `next_w` (`hD1`: `gensOK`'s third
 clause). -/
-theorem Cursor.Seek.wp_writerW [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Cursor.Seek.wp_writerW [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_w.specQ (GF := GF) (hG := hG))
     (hnx : Cursor.next_w.specQ (GF := GF) (hG := hG))

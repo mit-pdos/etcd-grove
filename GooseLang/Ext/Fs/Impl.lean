@@ -128,7 +128,7 @@ crashes more than this rule gives, as a stated premise on its executions. `Secto
 each 512-byte sector of the files it covers comes back as one state of that sector (`valAt` at one
 stamp). It is false of Linux in general (the measurements above) and a known limitation, stated
 only for etcd's WAL, whose recovery (`isTornEntry`) assumes it. The other, used by a proved
-theorem, is minibolt's P1 (`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`):
+theorem, is minibolt's P1 (`LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`):
 a meta slot of a crash image that validates is the slot as of one change (a torn meta does not
 collide on its checksum); it removes no crash of minibolt's real runs (`notes/axiom-review/fs-final.md`).
 Both are listed in `notes/STATUS.md`, "Known limitations".
@@ -190,7 +190,7 @@ short landing's state (a prefix of the change new, the rest as before) is no sta
 def valAt (l : Cands) (n : Nat) : w8 := ((l.filter (·.2 ≤ n)).getLast?.map (·.1)).getD 0
 
 /-- An open file description: its file and access mode. (The file offset of `Seek`/`Write`/`Read`
-is the Go model's, `TrustedCode/os.lean`: every step here is positional.) -/
+is the Go model's, `LinuxFs/TrustedCode/os.lean`: every step here is positional.) -/
 structure OsFd where
   ino : Ino
   readable : Bool

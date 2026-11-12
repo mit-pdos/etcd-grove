@@ -23,8 +23,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
@@ -34,7 +32,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Cursor.First.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Cursor.First.wp_reader [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hfirst : Cursor.first_r.spec (GF := GF) (hG := hG))
     (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
@@ -88,7 +86,7 @@ theorem Cursor.First.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 
 /-- **A writer's `First`** (U6z): `Read/PubWFirst`'s, over `first_w`; `gensOK`'s third clause by
 `gensOK_handle_bktLoc` (the cursor's writer facts are `wtxFrac`'s). -/
-theorem Cursor.First.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Cursor.First.wp_writer [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hfw : Cursor.first_w.specQ (GF := GF) (hG := hG))
     (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
@@ -101,8 +99,8 @@ theorem Cursor.First.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 
 theorem Cursor.First.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
-    (hfirst : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.first_r.spec (GF := GF) (hG := hG))
-    (hfw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.first_w.specQ (GF := GF) (hG := hG)) :
+    (hfirst : ∀ [HasExt osFsExt], Cursor.first_r.spec (GF := GF) (hG := hG))
+    (hfw : ∀ [HasExt osFsExt], Cursor.first_w.specQ (GF := GF) (hG := hG)) :
     Cursor.First.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos
   by_cases hrw : T.rw = true

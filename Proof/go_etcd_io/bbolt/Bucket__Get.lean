@@ -26,8 +26,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
@@ -37,7 +35,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Bucket.Get.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (hagree : ViewOfRdAgree (GF := GF))
+theorem Bucket.Get.wp_reader [HasExt osFsExt] (hagree : ViewOfRdAgree (GF := GF))
     (hcur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_r.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG))
@@ -193,7 +191,7 @@ handle's bucket (its registry entry, `wtxWQ_handle`, and `hD1`: the bucket `n` i
 `Bucket.Cursor_i`, `seek_w.specQ` on it, the flags, `bytes.Equal`; the key's lookup is decided by
 the entry `seek` returns (`PubW.wget_lookup`). `hD1` is `gensOK`'s third clause (maintainer 14),
 worded as it will be; once it lands it is discharged by `gensOK`. -/
-theorem Bucket.Get.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Bucket.Get.wp_writer [HasExt osFsExt]
     (hcur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_w.specQ (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG))
@@ -338,9 +336,9 @@ theorem Bucket.Get.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
       rw [hnone]
       ipureintro; rfl
 
-theorem Bucket.Get.wp_proof (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
-    (hseek : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_r.spec (GF := GF) (hG := hG))
-    (hseekw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))
+theorem Bucket.Get.wp_proof (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
+    (hseek : ∀ [HasExt osFsExt], Cursor.seek_r.spec (GF := GF) (hG := hG))
+    (hseekw : ∀ [HasExt osFsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Get.spec (GF := GF) (hG := hG) := by
   intro _ tx γ q T b n m key kb dk

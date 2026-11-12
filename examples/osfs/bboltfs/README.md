@@ -37,7 +37,7 @@ transactions under bbolt's locks. It differs from bbolt in two places, both bbol
   refuses every later transaction.
 
 **The premise of the crash property, P1: no checksum collision on a torn meta**
-(`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`). A meta slot is the 64
+(`LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`). A meta slot is the 64
 bytes at offset 16 of page 0 or 1. A crash may leave each of its bytes any of its candidates, so a
 slot may come back as a byte-wise mix of two states (a torn write). P1: if the crash image's slot
 passes `Validate` (`magic` and `version` match, and `checksum` is the FNV-64a of the first 56 bytes),

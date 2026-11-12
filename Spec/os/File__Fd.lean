@@ -15,7 +15,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI
-open Fs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

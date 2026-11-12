@@ -30,8 +30,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
@@ -41,7 +39,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Tx.Bucket.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (hmint : RdHandleMint (GF := GF))
+theorem Tx.Bucket.wp_reader [HasExt osFsExt] (hmint : RdHandleMint (GF := GF))
     (hBr : Bucket.Bucket_r.spec (GF := GF) (hG := hG))
     (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (name : GoSlice) (n : GoString) (dq : DFrac)
     (hro : T.rw = false) :
@@ -115,7 +113,7 @@ cached child's handle at `T.gen n` by `gensOK`); a miss is no bucket of the data
 (`wtxData_none_of`), a cached child leaves the records as they are, and an open closes the new
 records back (`boltTxDef_wclose`: `txShape_bktOpened`, `gensOK_bktOpened`, `wrFacts_bktOpened`,
 and `flViewU_bktOpened_root'`, `Read/PubWBktFl`). -/
-theorem Tx.Bucket.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+theorem Tx.Bucket.wp_writer [HasExt osFsExt]
     (hBw : Bucket.Bucket_w.spec (GF := GF) (hG := hG))
     (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (name : GoSlice) (n : GoString) (dq : DFrac)
     (hrw : T.rw = true) :
@@ -250,8 +248,8 @@ theorem Tx.Bucket.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
       iframe #
       ipureintro; exact ⟨hsome, hbn⟩
 
-theorem Tx.Bucket.wp_proof (hBr : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Bucket_r.spec (GF := GF) (hG := hG))
-    (hBw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Bucket_w.spec (GF := GF) (hG := hG)) :
+theorem Tx.Bucket.wp_proof (hBr : ∀ [HasExt osFsExt], Bucket.Bucket_r.spec (GF := GF) (hG := hG))
+    (hBw : ∀ [HasExt osFsExt], Bucket.Bucket_w.spec (GF := GF) (hG := hG)) :
     Tx.Bucket.spec (GF := GF) (hG := hG) := by
   intro _ tx γ q T name n dq
   by_cases hrw : T.rw = true

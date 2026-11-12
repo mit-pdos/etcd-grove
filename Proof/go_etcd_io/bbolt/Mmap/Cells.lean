@@ -20,8 +20,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
-
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 /-- **The slots below `k` partitioned**: the metas `0`, `1`, the store slots `S` (in `[2, k)`)
@@ -79,7 +77,7 @@ end slots
 section cells
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
+variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
 /-- The values of the cells holding `bs` from `lo` on. -/

@@ -1,0 +1,9 @@
+# Project bboltfs's `internal/syscall/unix` (etc/goose.py; Perennial's imports Perennial's
+# `syscall`): the types, and the package-level variable initializers (what importing it runs):
+# `faccessat = syscall.Faccessat`, a function value. As Perennial's internal/syscall/unix.toml.
+translate = ["!*", "faccessat", "_"]
+
+imports = ["!*", "syscall"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
