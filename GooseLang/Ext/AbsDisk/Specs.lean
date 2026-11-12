@@ -30,12 +30,17 @@ approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a", and its revision aft
   longer what makes `Create` sound (cross-key effects are gone, M2 of the Freeze review's aliasing
   lens): a per-directory split (rung 3) would only need the invariant.
 * **The start** (`absDiskInitOk`, the adequacy theorem's premise through `initP`): the area clean,
-  the WAL keys in it, no durable directory under it; `absDiskStart` still hands `walOwn s0.wal` for
-  a concrete `s0`. **W4c gate:** the tester's adequacy quantifies `s0` universally, constrained only
-  at its own directories (`s0.area = root/data/member`, `s0.wal !! (area/wal) = none`, the real disk
-  empty under the area), never fixing `s0.wal = ∅`. **C6 gate:** a restart start with a WAL present
-  names its directories by premise (B3-1), and hands the durable reservation from the start or
-  proves that no durable operation precedes it.
+  the WAL keys in it, no durable directory under it, and no WAL (`s0.wal = ∅`, WAL W4a.2 revision 2:
+  every WAL history is one the run builds from `Create`, so `Save`'s and `SaveSnapshot`'s index
+  premises cover it; a crash's next generation gets the crashed state, not a start); `absDiskStart`
+  hands `walOwn s0.wal` (empty) for a concrete `s0`. **W4c gate:** the tester's adequacy quantifies
+  `s0` constrained at its own directories (`s0.area = root/data/member`, the real disk empty under the
+  area). **C6 gate:** a restart start with a WAL present names its directories by premise (B3-1),
+  hands the durable reservation from the start or proves that no durable operation precedes it, and
+  needs a stronger start condition than `s0.wal = ∅`: every WAL present "written by etcd at the pin
+  from its `Create`, under the `Save`/`SaveSnapshot` premises"; a WAL named by an older etcd does not
+  meet it (its names can sit below a snapshot record before them: `walOpenPos` and `ReadAll`'s read
+  would be unsound, not only the restart's liveness).
 * **Facts** (persistent): `absPast s`, the extension's state was `s` at some point of this
   generation; the state only grows (`absLe`: the area kept, marks, lengths, `named` and the durable
   directories do not decrease, no WAL disappears), so a past state bounds the present one.
@@ -56,7 +61,7 @@ approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a", and its revision aft
   **Revision round 3** (the third Freeze review): `walHandleP`, `walOpenW`, `walOpening` and
   `walReadFailed` are sealed (`@[no_expose]`) and the split of a handle into the open WAL and its
   right is private and of append handles only (F1: no right from an opening or failed handle);
-  `Open` raises `unl` to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`) (`wp_WalOpenHandle` performs `"WalUnlock"` of that position,
+  `Open` raises `unl` to `walOpenPos H s.1`, a position at or after the start of the file `Open` locks from (the smaller of `|H|` if an index may wrap (unreachable), else 0 at index 0, else the snapshot record's last position under `walRelGuard`, else `|H|`, and the last position a file named at most `s.1` can start at; WAL W4a.2) (`wp_WalOpenHandle` performs `"WalUnlock"` of that position,
   F1 (b)), so `unl` is current wherever a right exists. **The lock token**
   (`walUnlockedTok`, B2): one per generation (`absDiskStart`, `absDiskCrashStart`), taken by the
   handle a successful `Create`/`Open` allocates, carried by every handle predicate and given back
@@ -691,7 +696,7 @@ opaque `walPurgeRight` in the extension's axioms): the purge of old WAL files th
 while it is held, and `Close` (which unlocks every file) consumes it with the handle. It is handed
 out only with `walOpenW` (by `Create`, by a successful `ReadAll`: the handle predicates that carry it
 before that are sealed, revision round 3, F1); while it is held, every record from the WAL's `unl`
-on is in a file the handle keeps locked (`Open` raises `unl` to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`),
+on is in a file the handle keeps locked (`Open` raises `unl` to `walOpenPos H s.1`, a position at or after the start of the file `Open` locks from (the smaller of `|H|` if an index may wrap (unreachable), else 0 at index 0, else the snapshot record's last position under `walRelGuard`, else `|H|`, and the last position a file named at most `s.1` can start at; WAL W4a.2),
 `ReleaseLockTo` to `walReleasePos` of its index too). With the lock token (`walUnlockedTok`) at most
 one handle, so one right, is live per generation; so `Close` and `wp_WalCloseHandle` need not ask
 that the `walOpenW` and `walPurgeW` they consume share a ghost name: no other right is outstanding. **W4c gate:** the tester's `purgeRound` spec takes
@@ -1305,7 +1310,7 @@ theorem wp_WalNoop (dir : GoString) (R R' : IProp GF)
   iapply Hk $$ HR
 
 /-- **`Open`'s handle** (revision round 3: F1 (b), B2): the `"WalUnlock"` step of `p` (`Open`'s
-axiom passes `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`); every record from it on is in a file `Open` locks), which
+axiom passes `walOpenPos H s.1`, a position at or after the start of the file `Open` locks from (the smaller of `|H|` if an index may wrap (unreachable), else 0 at index 0, else the snapshot record's last position under `walRelGuard`, else `|H|`, and the last position a file named at most `s.1` can start at; WAL W4a.2); every record from it on is in a file `Open` locks), which
 allocates the handle `w`, opened in `dir` for reading at `s`, taking the generation's lock token. -/
 theorem wp_WalOpenHandle (w : Loc) (dir : GoString) (s : w64 × w64) (p : Nat) (d : WalDur)
     (Φ : val → IProp GF) :
