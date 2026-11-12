@@ -1051,6 +1051,130 @@ theorem walRelGuard_snoc {H : WalHist} {a : w64} {p : Nat} (o : WalOp) (hg : wal
         Option.some.injEq] at hj
       exact h3 m hj hpj
 
+
+/-! ## C (first half). The purged read against the unpurged read: what needs no release bound
+
+C2 (`walReadFrom_compacts`) waits for W4a.2's release bound; these are the relation and its laws, the
+read's relaxed form, and the read's base below its commit. -/
+
+/-- **C1**: the read from position 0 is the unpurged read. -/
+theorem walReadCut_zero (I : WalHist) : walReadCut I 0 = walRead I := by
+  simp only [walReadCut, ite_true]
+
+theorem walReadCut_pos {I : WalHist} {k : Nat} (hk : k ≠ 0) : walReadCut I k = walReadFrom I k := by
+  simp only [walReadCut, hk, ite_false]
+
+/-- **C1: the relaxed read is monotone in the purge bound.** -/
+theorem walReadR_mono {I : WalHist} {p p' : Nat} {σ : StorContents} (hp : p ≤ p')
+    (h : walReadR I p σ) : walReadR I p' σ := by
+  obtain ⟨k, hk, h⟩ := h
+  exact ⟨k, Nat.le_trans hk hp, h⟩
+
+/-- Nothing purged: the relaxed read is the unpurged read. -/
+theorem walReadR_zero {I : WalHist} {σ : StorContents} : walReadR I 0 σ ↔ walRead I = some σ := by
+  constructor
+  · intro ⟨k, hk, h⟩
+    rw [Nat.le_zero.1 hk, walReadCut_zero] at h
+    exact h
+  · intro h
+    exact ⟨0, Nat.le_refl _, by rw [walReadCut_zero]; exact h⟩
+
+theorem walReadR_of_read {I : WalHist} {p : Nat} {σ : StorContents} (h : walRead I = some σ) :
+    walReadR I p σ :=
+  walReadR_mono (Nat.zero_le p) (walReadR_zero.2 h)
+
+/-- **A read's base is at or below its commit** (every kept snapshot record is, and the commit is the
+history's last, `walReadCut_hs`). -/
+theorem walReadCut_b_le_commit {I : WalHist} {k : Nat} {σ : StorContents}
+    (h : walReadCut I k = some σ) : σ.b ≤ σ.commit := by
+  have hc : σ.commit = uint.nat (walLastHS I).Commit' := by
+    simp only [StorContents.commit, walReadCut_hs h]
+  rw [hc]
+  have hkept : ∀ (H : WalHist) m, WalOpG.snap m ∈ H.filter (walKeep (uint.nat (walLastHS I).Commit')) →
+      uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit' := by
+    intro H m hm
+    have := (List.mem_filter.1 hm).2
+    simpa [walKeep] using this
+  unfold walReadCut at h
+  split at h
+  · unfold walRead at h
+    exact walFoldChkFrom_b_le (hkept I) (by simp [walFresh, StorContents.b]) h
+  · unfold walReadFrom at h
+    simp only at h
+    split at h
+    · cases h
+    · next m hm =>
+      refine walFoldChkFrom_b_le (hkept _) ?_ h
+      obtain ⟨m', h1, h2⟩ := walNewest_mem hm
+      simp only [StorContents.b]
+      rw [← h2]
+      exact hkept _ m' h1
+
+/-- **`σ`'s snapshot is a record at its base** (what a purged read starts from). -/
+def walSnapAtBase (σ : StorContents) : Prop :=
+  ∃ m, σ.snap = some (SnapshotM.mk [] m) ∧ σ.base = entryID.mk m.Term' m.Index'
+
+/-- **A purged read's snapshot is at its base.** -/
+theorem walReadCut_snapAtBase {I : WalHist} {k : Nat} {σ : StorContents} (hk : k ≠ 0)
+    (h : walReadCut I k = some σ) : walSnapAtBase σ := by
+  rw [walReadCut_pos hk] at h
+  unfold walReadFrom at h
+  simp only at h
+  split at h
+  · cases h
+  · next m _ =>
+    exact walFoldChkFrom_snapInv (fun sn b => ∃ m, sn = some (SnapshotM.mk [] m) ∧
+      b = entryID.mk m.Term' m.Index') (fun m => ⟨m, rfl, rfl⟩) ⟨m, rfl, rfl⟩ h
+
+/-- **`σ'` is a compaction of `σ`** (the plan's `StorCompacts`, C2's conclusion): its base at or above
+`σ`'s and at most `σ`'s commit, the same hard state, `σ`'s entries above its base, and its snapshot
+`σ`'s at the same base or a record at its own base. -/
+def StorCompacts (σ σ' : StorContents) : Prop :=
+  σ.b ≤ σ'.b ∧ σ'.b ≤ σ.commit ∧ σ'.hs = σ.hs ∧ σ'.ents = σ.ents.drop (σ'.b - σ.b) ∧
+  ((σ'.base = σ.base ∧ σ'.snap = σ.snap) ∨ walSnapAtBase σ')
+
+theorem StorCompacts_refl {σ : StorContents} (h : σ.b ≤ σ.commit) : StorCompacts σ σ :=
+  ⟨Nat.le_refl _, h, rfl, by rw [Nat.sub_self, List.drop_zero], Or.inl ⟨rfl, rfl⟩⟩
+
+theorem StorCompacts_trans {σ σ' σ'' : StorContents} (h1 : StorCompacts σ σ')
+    (h2 : StorCompacts σ' σ'') : StorCompacts σ σ'' := by
+  obtain ⟨a1, b1, c1, d1, e1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2⟩ := h2
+  have hcm : σ'.commit = σ.commit := by simp only [StorContents.commit, c1]
+  refine ⟨Nat.le_trans a1 a2, hcm ▸ b2, c2.trans c1, ?_, ?_⟩
+  · rw [d2, d1, List.drop_drop]
+    congr 1
+    omega
+  · rcases e2 with ⟨hb, hs⟩ | hs
+    · rcases e1 with ⟨hb', hs'⟩ | ⟨m, hm1, hm2⟩
+      · exact Or.inl ⟨hb.trans hb', hs.trans hs'⟩
+      · exact Or.inr ⟨m, hs.trans hm1, hb.trans hm2⟩
+    · exact Or.inr hs
+
+/-- **C4's identity shape**: a compaction at the same base and snapshot is the read itself. -/
+theorem StorCompacts_eq {σ σ' : StorContents} (h : StorCompacts σ σ') (hb : σ'.base = σ.base)
+    (hs : σ'.snap = σ.snap) : σ' = σ := by
+  obtain ⟨-, -, hh, he, -⟩ := h
+  have hbb : σ'.b = σ.b := by simp only [StorContents.b, hb]
+  rw [hbb, Nat.sub_self, List.drop_zero] at he
+  cases σ; cases σ'
+  simp only at hb hs hh he
+  rw [hb, hs, hh, he]
+
+/-- A compaction keeps the entries consecutive from the base. -/
+theorem StorCompacts_wf {σ σ' : StorContents} (h : StorCompacts σ σ') (hw : walEntsWf σ) :
+    walEntsWf σ' := by
+  obtain ⟨ha, -, -, he, -⟩ := h
+  intro j e hj
+  rw [he, List.getElem?_drop] at hj
+  have := hw _ _ hj
+  omega
+
+/-- **C3's `k = 0` case**: the unpurged read is a compaction of itself. -/
+theorem walRead_compacts_self {I : WalHist} {σ : StorContents} (h : walRead I = some σ) :
+    StorCompacts σ σ :=
+  StorCompacts_refl (walReadCut_b_le_commit (k := 0) (by rw [walReadCut_zero]; exact h))
+
 end reader
 
 end EtcdGrove

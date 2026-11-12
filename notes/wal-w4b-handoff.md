@@ -62,6 +62,26 @@ Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1
      `StorCompacts` and its basic laws; C4's identity shape where it needs no release bound);
   5. targeted builds of both modules; checkpoint report to etcd-grove-81 and stop.
 
+## Resumed steps 1-5 done (2026-11-12, third agent; CP3a report sent, waiting for etcd-grove-81)
+
+- Step 1: lean `9b00c0c988` merged (`bbe8f1c484`, clean).
+- Step 2: `WalHistLemmas`/`WalViews` built against the lower-bound `walDiskAt` with no change: the
+  crash lemmas (`walDiskAt_crash*`) kept their statements (they speak of the program's copy, whose
+  `m`/`named` the crash keeps), and `walReleasePos`/`walRelGuard` did not change in W4a.1 (R1/R2 are
+  W4a.2's), so A6 needs no restating yet.
+- Step 3 (B1, `WalViews.lean`): `walDisk_walDiskAt`, `walDiskAt_lower_m`, `walDiskAt_forget_named`,
+  `walDiskAt_excl`; and `walCrashKeeps_trans` (kill then power loss).
+- Step 4 (C first half, end of `WalHistLemmas.lean`): `walReadCut_zero`, `walReadCut_pos`,
+  `walReadR_mono`, `walReadR_zero`, `walReadR_of_read`, `walReadCut_b_le_commit`, `walSnapAtBase`,
+  `walReadCut_snapAtBase`, `StorCompacts` (+ `_refl`, `_trans`, `_eq` = C4's identity shape, `_wf`),
+  `walRead_compacts_self` (C3's `k = 0` case).
+- Step 5: targeted `lake build ...WalViews` clean; `#print axioms` of the new lemmas: `propext`,
+  `Quot.sound`, `Classical.choice` only. Nothing imports either module.
+- Next (after W4a.2 lands with the release bound): C2 `walReadFrom_compacts` (premises: guard +
+  file-naming bound, as W4a.2 states them), C3 `walReadCut_compacts`/`walReadR_compacts`, C4 in full
+  (`walNoDormant`); A6 restated if `walReleasePos`/`walRelGuard` change; then plan step 6 (full checks,
+  decisions.md "WAL W4b", STATUS, CP3).
+
 ## Pitfalls
 
 - `walImg` is over raw `WalOpG WalEnt` in the extension, the readers over `WalHist` (`EntryM`): state

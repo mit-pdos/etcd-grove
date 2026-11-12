@@ -2,7 +2,8 @@
 **Views over the WAL's axioms** (WAL W4b, 2026-11-12; `/shared/tmp/wal-spec/w4b/plan.md` §2 B, approved
 by etcd-grove-81). Proved; no trusted text. The crash in the tester's terms (B2: the new generation's
 WAL is at an image of the history, its purge positions bounded by the old ones), its graceful instance,
-and the conversion to `walDisk` (B1's first half; the `walDiskM` half waits for W4a.1).
+the composition of two crashes, and the conversions (B1: to and from `walDisk`, and the lowering of
+`walDiskAt`'s lower bounds, the mark and `named`, since W4a.1 revision 1; W4a.1 dropped `walDiskM`).
 -/
 module
 
@@ -37,6 +38,18 @@ theorem walCrashKeeps_of {d : WalDur} {n : Nat} {I : List (WalOpG WalEnt)} {k : 
     (hI : walImg d.H n I) (hk : k ≤ min d.pur I.length) :
     walCrashKeeps d { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } n :=
   ⟨hI, walImg_map WalOpG.toM WalEnt.toM (fun _ _ => rfl) hI, hk, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+/-- **Two crashes compose** (a kill, then a power loss, or a restart's crash): what each keeps at the
+mark `n`, the first's WAL to the second's. -/
+theorem walCrashKeeps_trans {d d' d'' : WalDur} {n : Nat} (h1 : walCrashKeeps d d' n)
+    (h2 : walCrashKeeps d' d'' n) : walCrashKeeps d d'' n := by
+  obtain ⟨i1, j1, -, p1, u1, m1, md1, nm1, s1⟩ := h1
+  obtain ⟨i2, j2, c2, p2, u2, m2, md2, nm2, s2⟩ := h2
+  have hl := walImg_length_le i2
+  refine ⟨walImg_trans i1 i2, walImg_trans j1 j2, c2, ?_, ?_, m2.trans m1, md2.trans md1,
+    nm2.trans nm1, s2.trans s1⟩
+  · rw [p2, p1]; omega
+  · rw [u2, u1]; omega
 
 /-- **The crash of a named WAL, in the tester's terms** (`walDiskAt_crash` with A1): the new
 generation's WAL is at some `d'` that `walCrashKeeps` relates to `d` at the synced mark `n`. -/
@@ -101,6 +114,33 @@ theorem walDiskAt_walDisk (dir : GoString) (d : WalDur) :
   iexists d
   iframe Hd
   ipureintro; exact ⟨rfl, rfl⟩
+
+/-- **The history view as the durable state** (`walDisk`'s definition, as a law). -/
+theorem walDisk_walDiskAt (dir : GoString) (H : WalHist) (s : Bool) :
+    walDisk dir H s ⊢@{IProp GF} ∃ d : WalDur, walDiskAt dir d ∗ ⌜d.H.map WalOpG.toM = H ∧ d.sized = s⌝ := by
+  unfold walDisk
+  iintro Hd; iexact Hd
+
+/-- **The mark is a lower bound** (W4a.1 revision 1): it may be lowered. -/
+theorem walDiskAt_lower_m (dir : GoString) (d : WalDur) {m : Nat} (hm : m ≤ d.m) :
+    walDiskAt dir d ⊢@{IProp GF} walDiskAt dir { d with m := m } := by
+  iintro Hd
+  iapply walDiskAt_weaken dir { d with m := m } d
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, hm, fun h => h⟩ $$ Hd
+
+/-- **`named` is a lower bound**: it may be forgotten. -/
+theorem walDiskAt_forget_named (dir : GoString) (d : WalDur) :
+    walDiskAt dir d ⊢@{IProp GF} walDiskAt dir { d with named := false } := by
+  iintro Hd
+  iapply walDiskAt_weaken dir { d with named := false } d
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun h => by cases h⟩ $$ Hd
+
+/-- **One durable state of a directory** (of any directory: the view owns the whole WAL map). -/
+theorem walDiskAt_excl (dir dir' : GoString) (d d' : WalDur) :
+    ⊢@{IProp GF} walDiskAt dir d -∗ walDiskAt dir' d' -∗ False := by
+  unfold walDiskAt
+  iintro Hd Hd'
+  iapply walDirIs_excl $$ Hd Hd'
 
 /-- **One history view of a directory** (of any directory: the view owns the whole WAL map). -/
 theorem walDisk_excl (dir dir' : GoString) (H H' : WalHist) (s s' : Bool) :
