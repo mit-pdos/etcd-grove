@@ -47,6 +47,22 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
   module (`/shared/tmp/out-size/c2/scratch/RNCheck.lean`). Branch-only `sorry`s: `entsPtsC_entsPtsZ`,
   `entsPtsZ_entsPtsC`, `memStorage_isStorage`, the size fact at `entsOut_insert`/`msgOutR_intro`.
 
+- **C2 review addressed**, 2026-11-12, commit `6465f380e0`: Freeze revision 2 (same path). `bootOk`
+  (`InvBoot.lean`) and `NodeStartSpec`'s pre gain `⌜γs.sz = true⌝`; `srvMem_bootStorage` gains `hsz`
+  (user-approved). `entsCutMax := 2^20`, `entBytesMax := 2^31` (`@[word_unfold]`, PbSized) in the
+  contracts, `entSizeOk`, the starters' premise. `out_size`'s docstring rewritten. **C3 approved to
+  start** (raft fully proved, P2-P6): next checkpoint C3. NodeStart and InvBoot may be edited; tell
+  etcd-grove-81 before touching anything else outside raft.
+
+## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
+
+freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
+`srvFiles … true`, HardStop/restart specs' stronger post, `rnDurInv`/`walAsViewed` at `true`,
+`wal.bootOk_start` no longer unsizing), MIN-3 (`srvFiles`' provenance docstring; `maxData = 2^30` rests
+on the MaxRequestBytes config premise), MIN-5 (second restart: narrowing recorded), m4
+(`bootstrappedWAL.MemoryStorage.spec` `∀ sz`), m5 (axiom review after P2's `memstorageFields`),
+`NodeStart.lean:658`'s `hsz` from `bootOkR`.
+
 ## Next, in order (Scope §4)
 
 C1 LANDED: lean `ec6fd114d2` (2026-11-12, gates all passed, with etcd-grove-81's `gates.sh` retry
@@ -87,7 +103,14 @@ commit `3a986545ae` cherry-picked; not pushed). The branch continues from there 
    and `certLink`'s new conjunct at `StartNode.lean:186`/`RestartNode.lean:200`), `NewMemoryStorage`'s
    anonymous `MemStorNames` constructor, `memstorageFields`' `Hents` (`entsROz γs.sz`, needs a `sz`
    argument), every `HEntries` reader (`raftLog__slice`, ...), kv's storage instances (`sz = false`),
-   `isRNMemStor_of_memstorage` (`entsPtsZ_true`).
+   `isRNMemStor_of_memstorage` (`entsPtsZ_true`); the server's callers of the starters' premise now
+   `≤ entsCutMax` (`word` unfolds it); server users of `entSizeOk` (`WalApi`, `WalRecs`, `InvBoot`,
+   `InvRaftNode`) now see `entBytesMax`; `NewServer`'s proof passes `bootOk`'s `Hγsz` to
+   `NodeStartSpec`; the `InvBoot`/`NodeStart` edits are not built yet (server).
+   Suggested C3 order: P2 (`memstorageFields` `sz` + `Hents`, `MemoryStorage__{Append,Entries}`,
+   `NewMemoryStorage`, `limitSize`/`entsSize` onto `SizePb` with the cut, the two `PbSized` bridges,
+   `memStorage_isStorage`, kv instances with `hmd`), then a raft build to list the remaining breakage
+   (`etc/importers.py --uses isStorageWith --uses HEntries ...`), P3-P5, P6.
 
 ## Pitfalls
 
