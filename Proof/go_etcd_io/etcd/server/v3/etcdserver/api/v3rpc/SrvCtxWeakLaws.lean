@@ -65,6 +65,50 @@ theorem v3rpc.srvErrOk_of_weakErr :
     iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
     iexact Se
 
+/-- **A thread token lends its level 4** (k8s 7f-4 item 7: a goroutine holding a whole thread token
+pays a weak context's `Err()`, `levelTok v3rpc.ctxErrLvl`, from it and takes it back). -/
+theorem threadTok_lend4 (HT : 5 ≤ threadBound GF) :
+    threadTok (GF := GF) ⊢ levelTok 4 ∗ (levelTok 4 -∗ threadTok) := by
+  iintro H
+  icases (threadTok_level0 (GF := GF)).1 $$ H with ⟨H0, H⟩
+  icases (threadTokFrom_succ (GF := GF) 1 (by omega)).1 $$ H with ⟨H1, H⟩
+  icases (threadTokFrom_succ (GF := GF) 2 (by omega)).1 $$ H with ⟨H2, H⟩
+  icases (threadTokFrom_succ (GF := GF) 3 (by omega)).1 $$ H with ⟨H3, H⟩
+  icases (threadTokFrom_succ (GF := GF) 4 (by omega)).1 $$ H with ⟨H4, H⟩
+  iframe H4
+  iintro H4
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe H0
+  iapply (threadTokFrom_succ (GF := GF) 1 (by omega)).2
+  iframe H1
+  iapply (threadTokFrom_succ (GF := GF) 2 (by omega)).2
+  iframe H2
+  iapply (threadTokFrom_succ (GF := GF) 3 (by omega)).2
+  iframe H3
+  iapply (threadTokFrom_succ (GF := GF) 4 (by omega)).2
+  iframe
+
+/-- **etcd's no-leader error is a status error** (`rpctypes.ErrGRPCNoLeader`, from the package's
+error facts): what `errors.Is` takes of it (`errors.IsStatusErr.spec`). -/
+theorem v3rpc.statusErrOk_of_noLeaderErr :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ⊢
+      □ ∀ err : GoInterface, noLeaderErr err -∗ go_etcd_io.etcd.cache.v3.statusErrOk err := by
+  iintro #Hpv
+  ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpv
+  icases Hinit with ⟨-, -, -, -, #Hiv, -, -⟩
+  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorVars at Hiv
+  icases Hiv with ⟨-, -, -, -, #HeNoL, -⟩
+  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeNoL
+  icases HeNoL with ⟨%e, #He, #Se⟩
+  iintro !> %err #Hn
+  iunfold noLeaderErr at Hn
+  icases Hn with ⟨%e', #He', %Heq⟩
+  icombine He He' gives %h
+  subst Heq
+  rw [← h]
+  iexact Se
+
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **The wrapper's promoted `Value` is its embedded context's**: `(*cancellableContext).Value(k)`

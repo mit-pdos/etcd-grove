@@ -140,7 +140,7 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isServerReadM true s E γr ∗ v3rpc.isWatchServer pw V.R ∗
         v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
-        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
         grpcStreamServerAt addr [ims, is] sregs γ ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗ client.eofOk ⊢
       |={⊤}=> watchAddrFacts V ∗ auth.modeTag V.R.tag E.authMode := by

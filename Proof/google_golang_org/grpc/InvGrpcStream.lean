@@ -538,6 +538,39 @@ instance srvStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep :
     Persistent (srvStreamIs st γ Req Rep Up Dn ci cd) := by
   unfold srvStreamIs; infer_instance
 
+/-- (TEMPORARY, k8s 7f-4 item 7: until step 5 re-proves `LeaseKeepAlive` over the weak end; nothing
+produces it) `srvStreamIs` with grpc's strong run context, as it was before item 7. -/
+def srvStreamIsStrong (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
+    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
+    □ (∀ L : List Req.M,
+      {{ srvRecvTok (Req := Req) γ L }}
+        (App (Val #(methods si.ty go!"Recv" si.v)) (Val #()))
+      {{ (req : Loc) (err : GoInterface), RET (PairV #req #err);
+          (⌜err = GoInterface.nil⌝ ∗ ∃ m : Req.M, Req.recv req m ∗ Up L.length m ∗
+            srvRecvTok (Req := Req) γ (L ++ [m])) ∨
+          (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
+            upClosed (Req := Req) γ L) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+            srvRecvTok (Req := Req) γ L) }}) ∗
+    □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
+      {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
+        (App (Val #(methods si.ty go!"Send" si.v)) (Val #l))
+      {{ (err : GoInterface), RET #err;
+          (⌜err = GoInterface.nil⌝ ∗ srvSendTok (Rep := Rep) γ (L ++ [m])) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ ∃ L' : List Rep.M,
+            ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L') }}) ∗
+    □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
+      {{ RET #(GoInterface.ok ci); True }}) ∗
+    context.isContext ci cd ∗ grpcRunCtx ci)
+
+instance srvStreamIsStrong_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
+    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) :
+    Persistent (srvStreamIsStrong st γ Req Rep Up Dn ci cd) := by
+  unfold srvStreamIsStrong; infer_instance
+
 /-! ## The client end -/
 
 /-- **The client end of a stream, raw** (persistent): grpc's `ClientStream` `cs` that

@@ -8,6 +8,7 @@ mvcc responses it sends is `WatchSendModel`'s (`SendInv`, `send_claim_direct`,
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeakLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__sendLoop
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__newResponseHeader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
@@ -607,7 +608,15 @@ local macro "send_fail" k:tactic : tactic => `(tactic| (
   · itrivial
   iintro !> -
   wp_auto
-  wp_apply +noauto HErrU $$ [] as %cerr - -
+  iunfold v3rpc.sendTok at Htt
+  icases Htt with ⟨Htok, Hrdr'⟩
+  icases (threadTok_lend4 (GF := GF) HT5) $$ Htok with ⟨Hl4, Hback⟩
+  wp_apply +noauto HErr $$ [Hl4] as %cerr Hl4
+  · iexact Hl4
+  ihave Htok := Hback $$ Hl4
+  ihave Htt : v3rpc.sendTok r $$ [Htok Hrdr']
+  · iunfold v3rpc.sendTok
+    iframe
   wp_auto
   wp_apply hICE as %bc -
   wp_if_destruct
@@ -1553,7 +1562,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd
   have := v3rpc.swsIs_persistent (GF := GF) hP
-  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, HA, %Hiv, Hmu, Htt, Hrdr⟩
+  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, HA, %Hiv', Hmu, Htt, Hrdr⟩
+  obtain ⟨Hiv, HT5⟩ := Hiv'
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
   have := v3rpc.srvWOk_persistent hP r.W r.srv.wsl v3rpc.wsN
@@ -1597,10 +1607,10 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   icases Hh4 with ⟨%hs4, #Hg4, #Ho4⟩
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
-  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
-  ihave #Hctx2 := Hctxis
+  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc⟩
+  ihave #Hctx2 := Hctxw
+  iunfold srvCtxWeak at Hctx2
   iNamed Hctx2
-  ihave #HErrU := HErr $$ %Broadcast.Unknown
   icases HstreamF with ⟨%cvF, #HcvF, %HcvFl⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

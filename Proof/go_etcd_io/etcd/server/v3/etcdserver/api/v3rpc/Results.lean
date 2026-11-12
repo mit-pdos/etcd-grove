@@ -1961,7 +1961,7 @@ theorem etcd_watch_served_chain (addr : GoString) (p : Loc) (R : WSrv GF) (W : S
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isWatchServer p R ∗ srvWOk W R.wsl wsN ∗ srvStreamInterceptorOk im iprop(True) ∗
-      srvStreamInterceptorOk is iprop(True) ∗ grpcStreamServerAt addr [im, is] sregs γ ∗
+      srvStreamInterceptorWOk is iprop(True) ∗ grpcStreamServerAt addr [im, is] sregs γ ∗
       srvRevokeBuilt R.s R.E ∗ srvRunPool R.s R.E γr ⊢
     |={⊤}=> isGrpcStreamMd (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
       go!"/etcdserverpb.Watch/Watch" (watchUp R)

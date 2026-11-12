@@ -152,7 +152,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         (∃ (pw : Loc) (ims is : GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
           ⌜v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E⌝ ∗
           grpcStreamServerAt addr [ims, is] sregs γ ∗ v3rpc.isWatchServer pw R ∗
-          srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+          srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
           srvRevokeBuilt s E ∗ srvRunPool s E γr) ∗
         client.etcdLeaseReadAt addr ∗ etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
