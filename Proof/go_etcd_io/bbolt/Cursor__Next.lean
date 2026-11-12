@@ -178,7 +178,7 @@ theorem Cursor.Next.wp_proof
     (hnxw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.next_w.specQ (GF := GF) (hG := hG))
     (hnxe : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.next_we.specQ (GF := GF) (hG := hG)) :
     Cursor.Next.spec (GF := GF) (hG := hG) := by
-  intro _ tx c γ q T es pos
+  intro _ _ _ tx c γ q T es pos
   by_cases hrw : T.rw = true
   · exact Cursor.Next.wp_writer hA hnxw hnxe tx c γ q T es pos hrw
   · exact Cursor.Next.wp_reader hA hnx hnx0 tx c γ q T es pos (Bool.eq_false_iff.2 hrw)

@@ -1,6 +1,6 @@
 /-
 The proof of `Spec/go_etcd_io/bbolt/fdatasync.lean`: U4 (`notes/bbolt-proof-plan.md`), over `os.File.Fd` and
-`syscall.Fdatasync`, with `errnoErrOk` (`Mmap/Infra`: a failed sync's errno is `fmtErrorOk`).
+`syscall.Fdatasync` (its byte-less `specB`: bbolt holds none of the file's bytes here), with `errnoErrOk` (`Mmap/Infra`: a failed sync's errno is `fmtErrorOk`).
 -/
 module
 
@@ -30,26 +30,25 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem fdatasync.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
-    (hSync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
+    (hSync : syscall.Fdatasync.specB (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     fdatasync.spec (GF := GF) (hG := hG) := by
-  intro db f fd p m dqf dq
+  intro db f fd p i m dqf dq
   wp_start as ⟨#Hos, Hf, Hfo, Hfd, Hm⟩
   wp_auto
-  wp_apply hFd f fd p dq $$ [Hfo] as Hfo
+  wp_apply hFd f fd p.path dq $$ [Hfo] as Hfo
   · rw [← fileOwn_eq]; iexact Hfo
   try wp_auto
-  have hemp : osBytes (GF := GF) p.ino 0 (DFrac.own 1) [] ⊣⊢ emp := .rfl
-  wp_apply hSync fd dq ⟨p.ino, true, true⟩ m 0 [] $$ [Hfd Hm] as %e ⟨Hfd, Hr⟩
-  · iframe; iframe #; iapply hemp.2; iempintro
+  wp_apply hSync fd dq ⟨i, true, true⟩ m $$ [Hfd Hm] as %e ⟨Hfd, Hr⟩
+  · iframe; iframe #
   ihave Hfo : fileOwn f fd p.path dq $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo
-  icases Hr with (⟨%he, Hm, -⟩ | ⟨%he, Hm, -⟩)
+  icases Hr with (⟨%he, %c, Hm⟩ | ⟨%he, Hm⟩)
   · subst he
     iapply HΦ
     iframe Hf Hfd Hfo
     isplitl [Hm]
-    · iexists m.synced 0 []; iframe; ipureintro; exact ⟨rfl, rfl⟩
+    · iexists m.bsynced c; iframe; ipureintro; exact ⟨rfl, rfl⟩
     · ileft; ipureintro; simp [errnoErr]
   · iapply HΦ
     iframe Hf Hfd Hfo

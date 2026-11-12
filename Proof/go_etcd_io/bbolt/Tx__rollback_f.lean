@@ -154,19 +154,20 @@ theorem rbWp_meta_Txid (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG 
     ihave H1 := C1 $$ M1
     iapply HΦ; iframe
 
+omit [ExtSemantics fsExt] [FsSemOk] hos in
 theorem Tx.rollback_f.wp_proof
-    (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
-    (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
-    (wp_Freelist : internal.common.Meta.Freelist.spec (GF := GF) (hG := hG))
-    (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
-    (wp_hasSynced : DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (wp_freepages : DB.freepages.spec (GF := GF) (hG := hG))
-    (wp_NSR : internal.freelist.Interface.NoSyncReload.spec (GF := GF) (hG := hG))
-    (wp_Reload : internal.freelist.Interface.Reload.spec (GF := GF) (hG := hG))
-    (wp_page : DB.page.spec (GF := GF) (hG := hG))
-    (wp_close : Tx.close_w.spec (GF := GF) (hG := hG)) :
+    (wp_meta : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.meta.spec (GF := GF) (hG := hG))
+    (wp_Txid : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
+    (wp_Freelist : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.common.Meta.Freelist.spec (GF := GF) (hG := hG))
+    (wp_FlRollback : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
+    (wp_hasSynced : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
+    (wp_freepages : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.freepages.spec (GF := GF) (hG := hG))
+    (wp_NSR : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.freelist.Interface.NoSyncReload.spec (GF := GF) (hG := hG))
+    (wp_Reload : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], internal.freelist.Interface.Reload.spec (GF := GF) (hG := hG))
+    (wp_page : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.page.spec (GF := GF) (hG := hG))
+    (wp_close : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
     Tx.rollback_f.spec (GF := GF) (hG := hG) := by
-  intro _ fr K tx r X ws w hrb hpbf
+  intro _ _ _ fr K tx r X ws w hrb hpbf
   obtain ⟨v, wt, pb, wl, rfl, htid, hwl, hwlv, hpbms⟩ := hrb
   wp_start as Hend
   iunfold wtxEnd' at Hend
@@ -488,11 +489,11 @@ theorem Tx.rollback_f.wp_proof
         ipureintro; exact ⟨hwok, hwr, hrl⟩
       iapply HΦ; iexact Hdone
 
-omit hos package_sem in
+omit [ExtSemantics fsExt] [FsSemOk] hos package_sem in
 /-- **`Tx.rollback.spec` from the flagged one** (at `fr = false`). -/
 theorem Tx.rollback.spec_of_f (h : Tx.rollback_f.spec (GF := GF) (hG := hG)) :
     Tx.rollback.spec (GF := GF) (hG := hG) := by
-  intro _ K tx r X ws w hrb
+  intro _ _ _ K tx r X ws w hrb
   iintro %Φ Hend HΦ
   ihave Hend := wtxEnd_wtxEnd' K tx r X ws w $$ Hend
   wp_apply h false K tx r X ws w hrb (fun h => absurd h (by simp)) $$ [Hend] as Hdone

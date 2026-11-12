@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 theorem DB.Begin.wp_proof
     (wp_Begin_err : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG)) :
     DB.Begin.spec (GF := GF) (hG := hG) := by
-  intro hos db γ w Q
+  intro _ _ _ db γ w Q
   wp_start_folded as Hpre
   wp_apply wp_Begin_err db γ w Q $$ [Hpre] as %tx %err Hpost
   · iexact Hpre

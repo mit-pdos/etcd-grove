@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 theorem Tx.Commit.wp_proof
     (wp_Commit_err : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG)) :
     Tx.Commit.spec (GF := GF) (hG := hG) := by
-  intro hos tx γ T Q
+  intro _ _ _ tx γ T Q
   wp_start_folded as Hpre
   wp_apply wp_Commit_err tx γ T Q _ .rfl $$ [Hpre] as %err ⟨Hdone, Hpost⟩
   · iexact Hpre

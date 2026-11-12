@@ -337,7 +337,7 @@ theorem Cursor.Last.wp_proof
     (hprevw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.prev_w.specQ (GF := GF) (hG := hG))
     (hkvw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.keyValue_ws.specQ (GF := GF) (hG := hG)) :
     Cursor.Last.spec (GF := GF) (hG := hG) := by
-  intro _ tx c γ q T es pos
+  intro _ _ _ tx c γ q T es pos
   by_cases hrw : T.rw = true
   · exact Cursor.Last.wp_writer hA hRP hpnw hCnt hlastw hprevw hkvw tx c γ q T es pos hrw
   · exact Cursor.Last.wp_reader hA hRP hpn hCnt hlast hkv hkv0 tx c γ q T es pos

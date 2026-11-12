@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Bucket.Cursor.wp_proof (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG)) :
     Bucket.Cursor.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ q T b n m
+  intro _ _ _ tx γ q T b n m
   iintro %Φ ⟨Ht, #Hb, %Hm⟩ HΦ
   unfold boltTx boltBkt boltCur boltTxDef boltBktDef boltCurDef at *
   icases Hb with ⟨%r', #Hreg', #Hbtx, #Hh, Hrb⟩

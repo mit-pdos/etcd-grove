@@ -104,7 +104,7 @@ theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BN
 
 theorem Tx.Size.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG)) :
     Tx.Size.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ q T
+  intro _ _ _ tx γ q T
   wp_start as Ht
   unfold boltTx
   icases boltTxDef_size_acc _ _ tx q T $$ Ht with ⟨%m, %mv, %db, %dq, %dq', Hm, Hmv, Hdb, #Hps, #Hpk, Hcl⟩

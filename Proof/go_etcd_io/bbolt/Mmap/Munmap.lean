@@ -46,9 +46,9 @@ abbrev DB.munmap.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
       ((⌜err = interface.nil⌝ ∗
-          osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
+          osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps }) ∨
        (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
-        (osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
+        (osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps } ∨
          (osMeta p.ino (DFrac.own 1) m ∗ cellsR base 0 l vf)))) }}
 
 theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))

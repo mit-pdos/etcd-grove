@@ -67,7 +67,7 @@ abbrev DB.mmapUnlocked.spec_own : Prop :=
           ⌜mmapSizeOf (max m.size (sint.nat minsz)) = some L ∧ m.size ≤ L ∧ sint.nat minsz ≤ L ∧
             8192 ≤ m.size⌝ ∗
           mapFields db (DFrac.own 1) (some (base, L)) ∗ db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
-          osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.singleton base L }) ∗
+          osMeta p.ino (DFrac.own 1) { m with maps := GMap.singleton base L } ∗
           bytesPointsto base (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
           ∃ vf, cellsR base m.size (L - m.size) vf) ∨
        (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
@@ -354,11 +354,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     rw [hnszE, show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by
       rw [loc_add_assoc]; rfl]
     iframe
-    isplitr
-    · ipureintro; exact hL'p.2.2.1
-    isplitr
-    · ipureintro; exact hbpos
-    ipureintro; exact hL'p.2.2.2
+    ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
 
 end own
 

@@ -161,7 +161,7 @@ theorem open_metaOs (p : BFile) (C : CommitSt) (xs : List ByteG)
       osBytes (GF := GF) p.ino (0 + (runSlot xs 0).length) (DFrac.own 1) (runSlot xs 1) ⊢
       osBytes (GF := GF) p.ino 0 (DFrac.own 1) (runSlot xs 0 ++ runSlot xs 1) := by
     unfold osBytes; exact (bytesG_append _ _ _ _ _ _).2
-  refine hj.trans ((osBytes_halves p 0 _).1.trans ?_)
+  refine hj.trans ((osBytes_halves p.ino 0 _).1.trans ?_)
   have hm : (runSlot xs 0 ++ runSlot xs 1).map Prod.fst = C.m0 ++ C.m1 := by
     rw [List.map_append, runSlot_map_fst, runSlot_map_fst, himg.1, himg.2.1]
   unfold metaOsBytes

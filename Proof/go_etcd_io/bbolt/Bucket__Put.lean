@@ -35,7 +35,7 @@ theorem Bucket.Put.wp_proof (hclone : cloneBytes.spec (GF := GF) (hG := hG))
     (hput : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], node.put.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Put.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T b n m key value kb vb dk
+  intro _ _ _ tx γ T b n m key value kb vb dk
   exact Write.Bucket.Put.wp_writer hclone hcur hseek hnode hput hEq tx γ T b n m key value kb vb dk
     (fun X h => gensOK_handle_bktLoc T X h)
 

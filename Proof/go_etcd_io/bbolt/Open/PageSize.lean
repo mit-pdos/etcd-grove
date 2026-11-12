@@ -157,7 +157,7 @@ theorem DB.getPageSizeFromFirstMeta.wp_proof_own
     (hPageSize : internal.common.Meta.PageSize.spec (GF := GF) (hG := hG)) :
     DB.getPageSizeFromFirstMeta.spec_own (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqb d xs hrd hp hlen hx
-  subst hp
+  rcases p with ⟨pp, pi⟩; dsimp only at hp ⊢; subst hp
   wp_start as ⟨#Hos, Hf, Hps, Hfo, Hfd, Hb⟩
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
@@ -179,7 +179,7 @@ theorem DB.getPageSizeFromFirstMeta.wp_proof_own
     show W64 (4096 : Int) = W64 4096 from rfl] at *
   simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
     show W64 4096 - W64 0 = W64 4096 from rfl]
-  wp_apply os.File.ReadAt.wp_held hRead f fd d.path dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
+  wp_apply os.File.ReadAt.wp_held hRead f fd pp dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
     (List.replicate 4096 (W8 0)) (W64 0) dq dqb d xs _ hrd
     (by decide) (by rw [List.length_replicate]; omega)
     (by rw [List.length_replicate, show (W64 0).toNat = 0 from rfl]; omega) hx $$ [Hfo Hsl Hfd Hb] as %n %err
@@ -281,7 +281,7 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
     (hPageSize : internal.common.Meta.PageSize.spec (GF := GF) (hG := hG)) :
     DB.getPageSizeFromSecondMeta.spec_own (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqm dqb d m xs hrd hp hxl hsz hsz' hv0 hv1 hv2 hps2
-  subst hp
+  rcases p with ⟨pp, pi⟩; dsimp only at hp ⊢; subst hp
   wp_start as ⟨#Hos, Hf, Hps, Hfo, Hfd, Hm, Hb⟩
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
@@ -289,7 +289,7 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
   isimp only [_root_.Perennial.errors.newVar] at Hn
   icases Hn with ⟨%eofl, #Heof, -⟩
   wp_auto
-  wp_apply hStat f fd d.path dqf dq dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, %Hptr⟩
+  wp_apply hStat f fd pp dqf dq dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, %Hptr⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   try wp_auto
   icases Hr with (⟨%fs, %Hfs, Hst⟩ | %Hfs)
@@ -299,8 +299,8 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
     · iframe
     try wp_auto
     ihave IH : (∃ (j : w64) (cr : Bool), "i" ∷ i_ptr ↦ j ∗ "metaCanRead" ∷ metaCanRead_ptr ↦ cr ∗
-        "%Hj" ∷ ⌜j.toNat ≤ 2⌝ ∗ "Hfo" ∷ os.ownFile f fd d.path dqf ∗ "Hfd" ∷ osFd fd dq d ∗
-        "Hb" ∷ osBytes d.path 0 dqb xs ∗ "Hps" ∷ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 :
+        "%Hj" ∷ ⌜j.toNat ≤ 2⌝ ∗ "Hfo" ∷ os.ownFile f fd pp dqf ∗ "Hfd" ∷ osFd fd dq d ∗
+        "Hb" ∷ osBytes d.ino 0 dqb xs ∗ "Hps" ∷ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 :
         IProp GF) $$ [i metaCanRead Hfo Hfd Hb Hps]
     · iexists W64 0, zero_val Bool
       simp only [named]
@@ -327,7 +327,7 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
     simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
       show W64 4096 - W64 0 = W64 4096 from rfl]
     have hPn : (W64 (P : Int)).toNat = P := by word
-    wp_apply os.File.ReadAt.wp_held hRead f fd d.path dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
+    wp_apply os.File.ReadAt.wp_held hRead f fd pp dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
       (List.replicate 4096 (W8 0)) (W64 (P : Int)) dq dqb d xs _ hrd
       (by word) (by rw [List.length_replicate]; omega)
       (by rw [List.length_replicate, hPn]; omega) (by omega) $$ [Hfo Hsl Hfd Hb] as %n %err

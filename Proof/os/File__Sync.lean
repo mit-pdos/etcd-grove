@@ -1,6 +1,6 @@
 /-
-The proof of `Spec/os/File__Sync.lean`: the model's `EINTR` loop runs once over `wp_osFsync`, which never
-fails with `EINTR`.
+The proof of `Spec/os/File__Sync.lean`: the model's `EINTR` loop runs once over `wp_osFsync` (`wp_osFsyncB` for
+the byte-less `specB`), which never fails with `EINTR`.
 -/
 module
 
@@ -42,6 +42,51 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   rw [decide_eq_false he4]
   wp_auto
   icases Hr with (⟨%he, Hm, Hbs⟩ | ⟨%he, Hm, Hbs⟩)
+  · subst he
+    rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
+    simp only [Bool.not_true]
+    wp_auto
+    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
+    iapply HΦ
+    iframe Hokn
+    iframe
+    isplitl []
+    · isplitl [] <;> iassumption
+    ileft
+    isplitr; · ipureintro; rfl
+    iframe
+  · have he0' : ¬ e = W64 0 := he.1
+    simp only [decide_eq_false he0', Bool.not_false]
+    wp_auto
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+    ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
+    iapply HΦ
+    iframe Hokn
+    iframe
+    isplitl []
+    · isplitl [] <;> iassumption
+    iright
+    iframe
+    ipureintro; intro h; cases h
+
+theorem os.File.Sync.wp_proofB : os.File.Sync.specB (GF := GF) (hG := hG) := by
+  intro f fd name dqf dq d m
+  unfold os.ownFile
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  unfold os.model.inner
+  rw [os.file_ty_eq, os.File_ty_eq]
+  ihave #Hf2 := Hf
+  iStructNamed Hf2
+  wp_auto
+  wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  wp_apply wp_osFsyncB fd dq d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %e Hr Hosfd
+  by_cases he4 : e = W64 4
+  · icases Hr with (⟨%he, -⟩ | ⟨%he, -⟩)
+    · exact absurd (he4 ▸ he) (by decide)
+    · exact absurd he4 he.2
+  rw [decide_eq_false he4]
+  wp_auto
+  icases Hr with (⟨%he, Hm⟩ | ⟨%he, Hm⟩)
   · subst he
     rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]

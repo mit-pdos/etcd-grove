@@ -1,5 +1,6 @@
 /-
-The proof of `Spec/syscall/Fdatasync.lean`: the extension's `Fsync` (`wp_osFsync`), then `errnoErr`.
+The proof of `Spec/syscall/Fdatasync.lean`: the extension's `Fsync` (`wp_osFsync`, and
+`wp_osFsyncB` for the byte-less `specB`), then `errnoErr`.
 -/
 module
 
@@ -26,6 +27,14 @@ theorem syscall.Fdatasync.wp_proof : syscall.Fdatasync.spec (GF := GF) (hG := hG
   intro fd dq d m lo xs hcov
   wp_start as ⟨#Hinv, Hfd, Hm, Hbs⟩
   wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
+  iapply wp_errno
+  iapply HΦ
+  iframe
+
+theorem syscall.Fdatasync.wp_proofB : syscall.Fdatasync.specB (GF := GF) (hG := hG) := by
+  intro fd dq d m
+  wp_start as ⟨#Hinv, Hfd, Hm⟩
+  wp_apply wp_osFsyncB fd dq d m CoPset.subseteq_top $$ Hinv Hfd Hm as %e Hr Hfd
   iapply wp_errno
   iapply HΦ
   iframe

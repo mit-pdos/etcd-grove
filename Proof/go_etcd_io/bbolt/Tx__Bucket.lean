@@ -253,7 +253,7 @@ theorem Tx.Bucket.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 theorem Tx.Bucket.wp_proof (hBr : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Bucket_r.spec (GF := GF) (hG := hG))
     (hBw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Bucket_w.spec (GF := GF) (hG := hG)) :
     Tx.Bucket.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ q T name n dq
+  intro _ _ _ tx γ q T name n dq
   by_cases hrw : T.rw = true
   · exact Tx.Bucket.wp_writer hBw tx γ q T name n dq hrw
   · exact Tx.Bucket.wp_reader rdHandleMint_holds hBr tx γ q T name n dq (Bool.eq_false_iff.2 hrw)

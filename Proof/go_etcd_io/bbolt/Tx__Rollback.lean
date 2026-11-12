@@ -209,7 +209,7 @@ theorem Tx.Rollback.wp_proof' (hgap : TxExclWGap (GF := GF))
     (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
     (wp_close : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
     Tx.Rollback.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T
+  intro _ _ _ tx γ T
   by_cases hrw : T.rw = true
   · exact Tx.Rollback.wp_writer hgap wp_Assert wp_Txid wp_FlRollback wp_close tx γ T hrw
   · exact Tx.Rollback.wp_reader wp_Rollback_r tx γ T (Bool.eq_false_iff.2 hrw)
@@ -217,7 +217,7 @@ theorem Tx.Rollback.wp_proof' (hgap : TxExclWGap (GF := GF))
 /-- **`TxExclWGap` holds** (batch 34: `txExcl`'s writer branch carries the closed flag's half,
 `ws = wLive X.v w.C`, `wdbOK w`, the mapping at the view's base and the view `w.C`'s). -/
 theorem txExclWGap_holds : TxExclWGap (GF := GF) := by
-  intro _ K tx r X c hdb
+  intro _ _ _ K tx r X c hdb
   iintro ⟨Hx, Hv⟩
   iunfold txExcl at Hx
   icases Hx with ⟨%c', %x, Hv', Hd, Hx⟩

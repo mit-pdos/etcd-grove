@@ -41,9 +41,9 @@ abbrev munmapM.spec : Prop :=
     (App (Val #(functions munmap [])) (Val #db))
   {{ (e : w64), RET #(errnoErr e);
       db.[DB, go!"dataref"] ↦ slice.nil ∗ db.[DB, go!"data"] ↦ null ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-      ((⌜e = 0⌝ ∗ osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
+      ((⌜e = 0⌝ ∗ osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps }) ∨
       (⌜e ≠ 0⌝ ∗
-        (osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
+        (osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps } ∨
          (osMeta p.ino (DFrac.own 1) m ∗ cellsR base 0 len.toNat vf)))) }}
 
 theorem munmapM.wp_proof (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)) :
@@ -55,7 +55,7 @@ theorem munmapM.wp_proof (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF)
     intro h; have := congrArg GoSlice.len h; simp [slice.nil] at this; subst this; simp at hlen
   rw [decide_eq_false hne]
   wp_auto
-  wp_apply hMunmap base len p m vf hlen hmap $$ [Hm Hc] as %e Hr
+  wp_apply hMunmap base len p.ino m vf hlen hmap $$ [Hm Hc] as %e Hr
   · iframe; iframe #
   try wp_auto
   iapply HΦ

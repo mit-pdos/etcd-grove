@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Tx.Stats.wp_proof : Tx.Stats.spec (GF := GF) (hG := hG) := by
-  intro _ tx
+  intro _ _ _ tx
   wp_start as Hd
   unfold txDone txDoneDef
   icases Hd with ⟨%s, #Hs⟩

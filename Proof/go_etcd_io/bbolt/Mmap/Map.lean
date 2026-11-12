@@ -65,13 +65,13 @@ abbrev mmapF.spec : Prop :=
       ((∃ base : Loc, ⌜err = interface.nil ∧ 0 < base.addr⌝ ∗
           db.[DB, go!"dataref"] ↦ (⟨base, sz, sz⟩ : GoSlice) ∗ db.[DB, go!"data"] ↦ base ∗
           db.[DB, go!"datasz"] ↦ sz ∗
-          osMeta p.ino (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
+          osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
           mapCells base sz m) ∨
        (db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z ∗
          ⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
          (osMeta p.ino (DFrac.own 1) m ∨
           (∃ base : Loc, ⌜0 < base.addr⌝ ∗
-            osMeta p.ino (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
+            osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
             mapCells base sz m)))) }}
 
 theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
@@ -83,7 +83,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   intro db f fd p dqf dqo dqd mf m sz x y z hmf hsz
   wp_start as ⟨#Hos, Hf, Hfo, Hfd, #Hmf, Hm, Hdr, Hd, Hsz⟩
   wp_auto
-  wp_apply hFd f fd p dqo $$ [Hfo] as Hfo
+  wp_apply hFd f fd p.path dqo $$ [Hfo] as Hfo
   · rw [← fileOwn_eq]; iexact Hfo
   try wp_auto
   have hfl : (W64 1 ||| mf).toNat = MAP_SHARED ∨ (W64 1 ||| mf).toNat = MAP_SHARED + MAP_POPULATE := by

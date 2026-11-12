@@ -41,7 +41,7 @@ theorem Tx.CreateBucketIfNotExists.wp_proof
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG))
     (hopen : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.openBucket_w.spec (GF := GF) (hG := hG)) :
     Tx.CreateBucketIfNotExists.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T name n dq
+  intro _ _ _ tx γ T name n dq
   wp_start as ⟨Ht, Hname, %Hpre⟩
   obtain ⟨hrw, hkm⟩ := Hpre
   unfold boltTx boltBkt at *

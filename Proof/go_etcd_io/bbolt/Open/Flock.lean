@@ -88,7 +88,7 @@ theorem flock.wp_proof [syscall.Assumptions]
     ihave Ht : (∃ tt : time.Time, t_ptr ↦ tt : IProp GF) $$ [t]
     · iexists _; iexact t
     icases Ht with ⟨%tt, t⟩
-    wp_apply hFd f fd p (DFrac.own 1) $$ [Hfo] as Hfo
+    wp_apply hFd f fd p.path (DFrac.own 1) $$ [Hfo] as Hfo
     · rw [← fileOwn_eq]; iexact Hfo
     try wp_auto
     cases ex
@@ -96,7 +96,7 @@ theorem flock.wp_proof [syscall.Assumptions]
       try wp_auto
       ihave IH : (∃ fl : w64, "flag" ∷ flag_ptr ↦ fl ∗ "fd" ∷ fd_ptr ↦ fd ∗ "t" ∷ t_ptr ↦ tt ∗
           "timeout" ∷ timeout_ptr ↦ tmo ∗ "Hf" ∷ db.[DB, go!"file"] ↦{dqf} f ∗
-          "Hfo" ∷ os.ownFile f fd p (DFrac.own 1) ∗ "Hfd" ∷ osFd fd (DFrac.own 1) d ∗
+          "Hfo" ∷ os.ownFile f fd p.path (DFrac.own 1) ∗ "Hfd" ∷ osFd fd (DFrac.own 1) d ∗
           "res" ∷ «$res0_ptr» ↦ (GoInterface.nil : GoInterface) : IProp GF)
         $$ [flag fd t timeout Hf Hfo Hfd «$res0»]
       · iexists _; simp only [named]; iframe

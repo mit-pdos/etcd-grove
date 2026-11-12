@@ -39,7 +39,7 @@ theorem Tx.CreateBucket.wp_proof
     (hClone : cloneBytes.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Tx.CreateBucket.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T name n dq
+  intro _ _ _ tx γ T name n dq
   wp_start as ⟨Ht, Hname, %Hpre⟩
   obtain ⟨hrw, hkm⟩ := Hpre
   unfold boltTx boltBkt at *

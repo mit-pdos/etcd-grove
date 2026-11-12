@@ -35,7 +35,7 @@ theorem Cursor.Prev.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hprev : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.prev_r.spec (GF := GF) (hG := hG)) :
     Cursor.Prev.spec (GF := GF) (hG := hG) := by
-  intro _ tx c γ q T es pos
+  intro _ _ _ tx c γ q T es pos
   wp_start as ⟨Ht, Hc, %hro⟩
   unfold boltTx boltCur
   icases rdCur_open _ _ tx c q T es pos hro $$ [Ht Hc] with

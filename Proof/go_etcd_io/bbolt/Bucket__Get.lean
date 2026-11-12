@@ -343,7 +343,7 @@ theorem Bucket.Get.wp_proof (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt f
     (hseekw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Get.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ q T b n m key kb dk
+  intro _ _ _ tx γ q T b n m key kb dk
   by_cases hrw : T.rw = true
   · exact Bucket.Get.wp_writer hcur hseekw hEq tx γ q T b n m key kb dk hrw
       (fun X h => gensOK_handle_bktLoc T X h)

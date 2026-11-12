@@ -59,7 +59,7 @@ theorem Tx.DeleteBucket.wp_proof
     (hClone : cloneBytes.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Tx.DeleteBucket.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T name n dq
+  intro _ _ _ tx γ T name n dq
   wp_start as ⟨Ht, Hname, %hrw⟩
   unfold boltTx at *
   ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht

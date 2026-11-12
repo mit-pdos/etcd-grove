@@ -54,7 +54,7 @@ theorem DB.metasZero.wp_proof_own
     (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG)) :
     DB.metasZero.spec_own (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqb d xs hrd hp hx
-  subst hp
+  rcases p with ⟨pp, pi⟩; dsimp only at hp ⊢; subst hp
   wp_start as ⟨#Hos, Hf, Hps, Hfo, Hfd, Hb⟩
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
@@ -92,7 +92,7 @@ theorem DB.metasZero.wp_proof_own
     have hsn : sint.nat (W64 (N : Int)) = N := by word
     rw [hsn]
     try wp_auto
-    wp_apply os.File.ReadAt.wp_held hRead f fd d.path dqf sl (List.replicate N (W8 0)) (W64 0) dq dqb
+    wp_apply os.File.ReadAt.wp_held hRead f fd pp dqf sl (List.replicate N (W8 0)) (W64 0) dq dqb
       d xs _ hrd (by decide) (by rw [List.length_replicate]; omega)
       (by rw [List.length_replicate, show (W64 0).toNat = 0 from rfl]; omega) (by omega)
       $$ [Hfo Hsl Hfd Hb] as %n %err ⟨Hfo, Hfd, Hb, %vs', Hsl, %hr, #Hek⟩

@@ -42,12 +42,12 @@ theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG
     (hrd : d.readable = true) (hoff : 0 ≤ off.toInt) (hn : vs.length ≤ 0x40000000)
     (hin : off.toNat + vs.length ≤ xs.length) (hx : xs.length < 2 ^ 63) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
-        osFd (GF := GF) fd dq d ∗ osBytes (GF := GF) d.path 0 dqb xs ∗
+        osFd (GF := GF) fd dq d ∗ osBytes (GF := GF) d.ino 0 dqb xs ∗
         globalAddr io.EOF ↦□ eof }}
       (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
         (Val #off))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osBytes d.path 0 dqb xs ∗
+        os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osBytes d.ino 0 dqb xs ∗
         ∃ vs' : List w8, sl ↦* vs' ∗
           ⌜(err = interface.nil ∧ n = W64 (vs.length : Int) ∧
               vs' = ((xs.map Prod.fst).drop off.toNat).take vs.length) ∨

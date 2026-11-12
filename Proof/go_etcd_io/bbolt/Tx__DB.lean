@@ -78,7 +78,7 @@ private theorem boltTxDef_db_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (
     ipureintro; exact Hf
 
 theorem Tx.DB.wp_proof : Tx.DB.spec (GF := GF) (hG := hG) := by
-  intro _ tx db γ q T
+  intro _ _ _ tx db γ q T
   wp_start as ⟨Ht, #Hd⟩
   unfold boltTx
   unfold txDB txDBDef

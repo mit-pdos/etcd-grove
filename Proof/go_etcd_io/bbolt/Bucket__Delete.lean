@@ -36,7 +36,7 @@ theorem Bucket.Delete.wp_proof
     (hdel : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], node.del.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Delete.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T b n m key kb dk own
+  intro _ _ _ tx γ T b n m key kb dk own
   exact Write.Bucket.Delete.wp_writer hcur hseek hnode hdel hEq tx γ T b n m key kb dk own
     (fun X h => gensOK_handle_bktLoc T X h)
 

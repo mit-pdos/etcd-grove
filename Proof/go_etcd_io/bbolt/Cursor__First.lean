@@ -104,7 +104,7 @@ theorem Cursor.First.wp_proof
     (hfirst : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.first_r.spec (GF := GF) (hG := hG))
     (hfw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.first_w.specQ (GF := GF) (hG := hG)) :
     Cursor.First.spec (GF := GF) (hG := hG) := by
-  intro _ tx c γ q T es pos
+  intro _ _ _ tx c γ q T es pos
   by_cases hrw : T.rw = true
   · exact Cursor.First.wp_writer hA hfw tx c γ q T es pos hrw
   · exact Cursor.First.wp_reader hA hfirst tx c γ q T es pos (Bool.eq_false_iff.2 hrw)

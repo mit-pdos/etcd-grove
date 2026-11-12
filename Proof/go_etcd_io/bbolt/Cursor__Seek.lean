@@ -229,7 +229,7 @@ theorem Cursor.Seek.wp_proof
     (hseekw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))
     (hnxw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.next_w.specQ (GF := GF) (hG := hG)) :
     Cursor.Seek.spec (GF := GF) (hG := hG) := by
-  intro _ tx c γ q T es pos key kb dk
+  intro _ _ _ tx c γ q T es pos key kb dk
   by_cases hrw : T.rw = true
   · exact Cursor.Seek.wp_writer hA hseekw hnxw hCnt tx c γ q T es pos key kb dk hrw
   · exact Cursor.Seek.wp_reader hA hseek hnx hCnt tx c γ q T es pos key kb dk

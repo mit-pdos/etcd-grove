@@ -177,9 +177,11 @@ instance Pm_timeless' (B : BNs) (db : Loc) (q : Qp) : Timeless (Pm (GF := GF) B 
     intro ms; rcases ms with _ | ⟨b, l⟩ <;> simp only [mapFields] <;> infer_instance
   unfold Pm; infer_instance
 
-theorem DB.Close.wp_proof (hOwned : DB.close.spec_owned (GF := GF) (hG := hG)) :
+omit [ExtSemantics fsExt] [FsSemOk] hos in
+theorem DB.Close.wp_proof
+    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG)) :
     DB.Close.spec (GF := GF) (hG := hG) := by
-  intro _ db γ
+  intro _ _ _ db γ
   wp_start as #Hdb
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
@@ -268,11 +270,11 @@ theorem DB.Close.wp_proof (hOwned : DB.close.spec_owned (GF := GF) (hG := hG)) :
     omega
   imod close_res _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
-  wp_apply hOwned db lg DFrac.discard w.fli _ p w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
+  wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
     Hres Hfile Hfo Hfd]
     as %err ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
   · iframe; iframe #
-    iright; iexists w.fd, p, _; iframe
+    iright; iexists w.fd, p.path, _; iframe
   try wp_auto
   -- the deferred unlocks
   icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩

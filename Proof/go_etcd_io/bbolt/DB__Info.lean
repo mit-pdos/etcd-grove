@@ -106,7 +106,7 @@ private theorem boltTxDef_data_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 
 theorem DB.Info.wp_proof (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG)) :
     DB.Info.spec (GF := GF) (hG := hG) := by
-  intro _ db tx γ q T
+  intro _ _ _ db tx γ q T
   wp_start as ⟨#Hdb, -, Ht⟩
   unfold boltTx
   icases boltTxDef_data_acc _ _ tx q T $$ Ht with ⟨%db', %b, %dq, #Hc, Hd, %Hb, Hcl⟩
