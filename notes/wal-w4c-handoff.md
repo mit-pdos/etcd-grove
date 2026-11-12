@@ -8,6 +8,40 @@ Goal (the user, 2026-11-11): the first rung of the crash ladder. Prove that the 
 the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd_wal_adequate` and
 `etcd_wal_safe`.
 
+## Paused 2026-11-12
+
+The user paused the WAL effort (2026-11-12, via etcd-grove-81) after landing everything done on
+`lean`: the branch was merged into `lean` by `etc/land.sh` with no `sorry` and no axiom beyond the
+approved purgeRound axiom and the 4 standard generated init axioms of `fileutil`/`walpb` (reached by no
+root). The closed theorems `etcd_wal_adequate`/`etcd_wal_safe` are not reached. Scratch (drafts,
+tooling, run logs) stays in `/shared/tmp/wal-spec/w4c/` (step-3 drafts in `step3/wip/`, if any).
+
+To resume: a fresh worktree and branch off `lean` (the `wal-w4c` branch is deleted after landing), the
+plan `/shared/tmp/wal-spec/w4c/plan.md` and this file; tell etcd-grove-81 (or the coordinator then)
+before touching `GooseLang/Ext/Durable`. The next steps, in order:
+
+1. **oracle.go** (Spec/ and Proof/ `.../examples/etcd/wal/<fn>.lean`; `putU64` is done):
+   `decoder.u64` (pointer method; define `tGetU64 bs off` and prove
+   `tGetU64 (pre ++ tU64 x ++ post) pre.length = x`; see "Left of step 3" below for the spec form),
+   `putHS`, `decoder.hs`, `putOps`, `decoder.ops`, `encodeOracle` (returns `tEncodeOracle o`),
+   `decodeOracle` (the round trip on `tEncodeOracle o`), `freshOracle`, `loadOracle`, `storeOracle`.
+2. **The open question: the oracle's length bound.** The round trip needs every length of `o` below
+   `2^64` and the decoder's `[]byte(s)` below `2^63`; `TInvBody` has no such bound. The proposal: add
+   "the encoded oracle string is shorter than 2^63", `(tEncodeOracle o).length < 2^63`, to
+   `tOracleFile`'s first arm (or a conjunct beside it); `storeOracle` establishes it from the
+   encoded slice's existence (append's model bounds a slice below `2^63`), and each list length of
+   `o` is at most the encoding's length / 8 (a pure lemma). It changes an internal invariant only
+   (no axiom, no exported statement): a form the agent may decide, but report it at CP3. Decide it
+   before `decodeOracle`/`loadOracle`.
+3. **wal.go:** `newRnd`/`rnd.next`/`rnd.choose`, `entData`, `newU64`, `toRaft` (`entRoC`, R4),
+   `fromRaft` (the read-back `fromRaft (absEnt e) = e` for `tEntWf e`), `toHS`, `restartRead`,
+   `addCand`, `checkRestart` (plan §2.5), the member operations, `Boot`, `Main`.
+4. **CP3** (report to the coordinator): the specs proved, trusted text (none beyond purgeRound), a
+   full build, `etc/tcb-report.py --check`, `etc/api-check.py`, `etc/gen-init.py --check`.
+5. **The closed theorem `etcd_wal_safe`** (and `etcd_wal_adequate`, plan §8 step 4): a **hard stop**
+   before stating it (an exported statement, and it makes the purgeRound and init axioms reachable:
+   the tcb baseline changes).
+
 ## State (2026-11-12, after T-10)
 
 - Plan `/shared/tmp/wal-spec/w4c/plan.md` approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4,

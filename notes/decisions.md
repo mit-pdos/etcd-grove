@@ -35299,7 +35299,7 @@ reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Rang
 `EtcdServer.LeaseRenew.spec` and `v3rpc.raftLeaseRenew` are back to `lean`'s text. Strengthening
 `isSpan` instead would recheck every `isSpan` producer for a property only `Start` needs.
 
-## WAL W4c: the WAL robustness tester under crashes (2026-11-12 · plan approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4), `/shared/tmp/wal-spec/w4c/plan.md` · branch `wal-w4c`; in progress)
+## WAL W4c: the WAL robustness tester under crashes (2026-11-12 · plan approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4), `/shared/tmp/wal-spec/w4c/plan.md` · branch `wal-w4c`; paused 2026-11-12)
 
 - **purgeRound is names-only, with one trust-boundary axiom** (Q2, PR-a; the Freeze approved by
   etcd-grove-81 after its axiom-skill review, READY WITH CHANGES, no blocker or major;
@@ -35321,3 +35321,9 @@ reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Rang
   under the tester's invariants (`walCommitLe`, and `pur` at most the name bound of a snapshot record
   in the image, within its commit), which are not proved. The claim covers `ReadAll` only:
   `ValidSnapshotEntries` depends on `cut` exactly (m3).
+- **Paused, 2026-11-12 (the user's decision, via etcd-grove-81).** The effort stops after landing
+  what is done (the tester, the purgeRound axiom and its body, Q1's Durable crash, the package inits,
+  `Defs`/`Crash`/`RefLemmas`/`Rep`, ref.go's and `putU64`'s proofs), with no `sorry`; `etcd_wal_safe`
+  is not reached, and the new axioms (purgeRound, the 4 init axioms) are reached by no root until it
+  is. The plan and its decisions stand; a resumption starts from `notes/wal-w4c-handoff.md`, "Paused
+  2026-11-12".
