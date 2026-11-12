@@ -6,6 +6,46 @@ Branch `trace-check`. Background, harness, transcription and its checks:
 before the user's freeze, the tag `trace-check-frozen`); amendments after the freeze are dated,
 below the section they amend.
 
+## Resume point (2026-11-12, before the user's machine restart)
+
+**Where things stand.** `trace-check` at the commit with this paragraph: full build green (13888 jobs),
+`etc/tcb-report.py --check` 806/4, all 54 collections, api/interface/layout/links/gen-init clean,
+`etc/bounds-check.py --check` at 389. The frozen layer-B Draft is tag `trace-check-frozen-a8` (amendments
+A1-A8). The closed statements are decided by the user and stated word for word in
+`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean` as `raft_tracecheck_safe_of` and
+`raft_tracecheck_accepts_of`, proved from one hypothesis, `HarnessOpen` (= the traced
+`StartNode.tracedSpec`). Done: layer C (checker, linked), layer B (laws), the traced `raft.Step` (every
+path, `stepBundle_traced`, `raft.Step.traced`), the traced `RawNode` triples but `Advance` and
+`ApplyConfChange`, the harness (`RunConcurrent`), implementation steps 1-3 of
+`notes/trace-check-design.md` §9, G3 (a), A8, the bounds repackaging.
+
+**What is next, in order** (`notes/trace-check-design.md` §9, with the "Implementation step 1/2/3" and
+"G3 (a)" sections that record what landed and how it differs):
+1. Step 4: the traced `node.run` arms as a theorem `node.run.gated_of (hAdv : RawNode.Advance.tracedSpec)
+   (hCC : raft.applyConfChange.tracedSpec) : node.run.gatedSpec` (the escrow is threaded, step 1; the
+   `confc` arm's leader exclusion from `ownStepGhost_trNoConf`, G3 (a), lemma (i), and the open point:
+   tie the `confc` arm's delivered entry to raft's log position).
+2. Prove `hAdv` (the traced `RawNode.Advance`: the `.self` messages over `stepBundle_traced` with their
+   tokens; the storage acknowledgements through `AckEnd`; the strengthened `ca` post) and `hCC` (the
+   traced `switchToConfig`/`raft.applyConfChange`, non-leader; the read-only lending of `traceEvent`).
+3. Step 5: `node.run.spec` becomes the gated statement; then the traced `newRaft`, `Bootstrap`,
+   `setupNode` (minting A8's `bootDone`, building `rnTrace` with `RnTrBoot`'s boot fact) and
+   `StartNode.gatedSpec`, which discharges `HarnessOpen`; then `raft_tracecheck_safe` and
+   `raft_tracecheck_accepts` with no hypothesis, `#print axioms`, the tracecheck collection, and the
+   goal's acceptance test (`notes/trace-check-goal.md`, including `etc/goose.py --check` with
+   `--src raft=.lake/raft-trace` and the tracecheck Go tests with and without `-tags with_tla`).
+4. Small items: `storBnd`'s gate (Q39, taken: kv's exported `kv_storage_isStorage` gains the allowed
+   `reTrace = none` premise), then the harness's `tc_storBnd_zero` replaced by raft's `storBnd_zero`;
+   B4 (`PbMessage.lean` into raft's tree); after Q38's bound, `tcRunFits` as a `ReceiptBoundLe` instance;
+   re-tag the Draft (step 3 strengthened `raft.send.tracedSpec`'s premise, accepted by the coordinator).
+
+**How work has been run** (keep doing it): one coordinator merging agent branches into `trace-check`
+(worktrees, `--no-ff`, the commit trailer), a full build after each set of merges, agents briefed to
+seed `.lake/build` from the main checkout, never kill processes by pattern or wait with `pgrep`
+loops, at most one build per worktree, no edits to `notes/STATUS.md` (the coordinator writes it).
+Design before plumbing: a change that runs through many sites is designed as text and reviewed
+first (the design pass, three reviews, two probes, `notes/trace-check-design.md`).
+
 ## Paused (the user's decision, 2026-11-08)
 
 Draft, Review, Test and Probe are done; nothing is frozen and Prove has not started. The reason:
