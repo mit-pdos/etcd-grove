@@ -1,5 +1,5 @@
 /-
-The trust boundary: `wal.Open` (names-only; WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds). An axiom: why the statement is true
+The trust boundary: `wal.Open` (names-only; WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.2). An axiom: why the statement is true
 of the Go code is in its spec's docstring.
 -/
 module

@@ -85,7 +85,7 @@ def Perennial.walDurFresh (md : List w8) : WalDur :=
 def Perennial.absDiskInitOk (s : AbsDiskState) : Prop :=
   cleanAbsPath s.area ∧
     (∀ (k : GoString) (d : WalDur), s.wal !! k = some d → walAreaDir s.area k) ∧
-      ∀ (k : GoString), s.dirs !! k = some () → cleanAbsPath k ∧ ¬underDir s.area k
+      (∀ (k : GoString), s.dirs !! k = some () → cleanAbsPath k ∧ ¬underDir s.area k) ∧ s.wal = ∅
 
 theorem Perennial.walCode_inj {A : Type} [Pos.Countable A] {a b : A} (h : walCode a = walCode b) : a
     = b

@@ -1,0 +1,36 @@
+// fs-v2-r6 wal (from ../e2e/tear.bt, for the walw processes): the torn window in the page cache, and writeback inside it.
+// A tear: ext4_da_write_end of a "walw" process with 0 < copied < len whose cut (pos + copied)
+// is inside the page; the file's page is then torn in the page cache (unlocked, dirty, a prefix
+// new and the rest old) until the next write_end with copied > 0 of the same inode lands the rest.
+// ext4_bio_write_folio is writeback taking the folio (locked, about to be submitted).
+//   @tears[cut]      tears, by cut
+//   @zero_retry      write_end with copied = 0 (the copy faulted at once; nothing landed)
+//   @wb_ours         writebacks of a walw file's folio
+//   @wb_torn         writebacks of the torn folio (its page index) while it is torn
+//   @window_us       how long each torn window lasted (us)
+kprobe:ext4_da_write_end /comm == "walw"/ {
+  $ino = ((struct address_space *)arg1)->host->i_ino;
+  @ours[$ino] = 1;
+  @calls = count();
+  if (arg4 == 0) {
+    @zero_retry = count();
+  } else if (arg4 < arg3 && (arg2 + arg4) % 4096 != 0) {
+    @tears[(arg2 + arg4) % 4096] = count();
+    @torn[$ino] = nsecs;
+    @tornidx[$ino] = (arg2 + arg4) / 4096;
+  } else if (@torn[$ino] != 0) {
+    @window_us = hist((nsecs - @torn[$ino]) / 1000);
+    @torn[$ino] = 0;
+  }
+}
+kprobe:ext4_bio_write_folio {
+  $ino = ((struct folio *)arg1)->mapping->host->i_ino;
+  if (@ours[$ino] == 1) {
+    @wb_ours = count();
+    if (@torn[$ino] != 0 && ((struct folio *)arg1)->index == @tornidx[$ino]) {
+      @wb_torn = count();
+      printf("WB-TORN ino %d page %d at +%d us\n", $ino, @tornidx[$ino], (nsecs - @torn[$ino]) / 1000);
+    }
+  }
+}
+END { clear(@ours); clear(@torn); clear(@tornidx); }

@@ -1,5 +1,5 @@
 /-
-`(*wal.WAL).Save` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81); the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`(*wal.WAL).Save` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user; revision 1 after the Freeze review: no index `2^64-1` in `Save`/`SaveSnapshot`, decided by etcd-grove-81) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `0b50f0426` (S/ = `server/storage/wal/`, line numbers of `c90b03b56`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
 -/
 module
 
@@ -29,7 +29,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
-/-- **`w.Save(st, ents)`** (S/wal.go:1075-1117): no premise on the entries. The atomic update commits
+/-- **`w.Save(st, ents)`** (S/wal.go:1075-1117): one premise on the entries: every index is below
+`2^64-1` (WAL W4a.2 revision 1, the review's B1, decided by etcd-grove-81: at that index a cut's file
+name `max(w.enti, w.snapi)+1` wraps to 0, a restart's `Open` can then select the wrapped file, and
+`ReadAll`'s read of the whole history is false, Go tests `zz_review_wrap0_test.go`; raft never reaches
+the index, nonissue `etcd-wal-segment-name-wraps`). The atomic update commits
 before the call writes a record (a crash mid-call leaves an image of `H ++ [op]` past the mark,
 `walImg`): the entries' records, then `st`'s unless it is empty (`saveState`). On success the WAL has
 written the history up to its new length (`walLenLb`), and if the save must sync (`walMustSync`:
@@ -55,7 +59,7 @@ abbrev wal.WAL.Save.spec : Prop :=
   ∀ (w : Loc) (dir : GoString) (hp : Loc) (hs : HardStateM) (sl : GoSlice) (esL : List Loc)
     (es : List EntryM) (sized : Bool) (Q : WalDur → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ walOpenW w dir ∗ hsOpt hp hs ∗ sl ↦*□ esL ∗
-      walSaveEnts sized esL es ∗
+      walSaveEnts sized esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
       AU <{ ∃∃ d : WalDur, walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ ⊤, ∅
         <{ walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }> }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))

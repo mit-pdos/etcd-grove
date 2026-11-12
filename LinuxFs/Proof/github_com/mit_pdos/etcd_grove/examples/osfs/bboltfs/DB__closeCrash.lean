@@ -1,0 +1,57 @@
+/- Lean-first (no Rocq counterpart). The proof of `db.close()`'s crash-aware spec: as
+`DB__close.lean`'s, with `DB.munmap.specCrash`. -/
+module
+
+public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__closeCrash
+public import LinuxFs.Spec.os.File__Fd
+public import LinuxFs.Spec.os.File__Close
+public import LinuxFs.Spec.syscall.Flock
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace osfs_bboltfs
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
+open Fs
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
+
+theorem DB.close.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_Flock : syscall.Flock.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
+    DB.close.specCrash (GF := GF) (hG := hG) := by
+  intro db dq sl dsz m0 m1 f dqd fd name d p R i γc m bs fa fb Hdq
+  wp_start as ⟨#Hinv, Hd, Hs, H0, H1, Hm, Hfile, Hf, Hfd⟩
+  (try wp_auto)
+  wp_apply wp_munmap db dq sl dsz m0 m1 p R i γc m bs fa fb Hdq $$ [Hd Hs H0 H1 Hm] as %err ⟨Hd, Hs, H0, H1, Hun⟩
+  · iframe
+  (try wp_auto)
+  wp_apply wp_Fd f fd name _ $$ [Hf] as Hf
+  · iexact Hf
+  (try wp_auto)
+  wp_apply wp_Flock fd _ _ d $$ [Hinv Hfd] as %e Hfd
+  · iframe; iframe #
+  (try wp_auto)
+  wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd] as %err2 ⟨Hf, -⟩
+  · iframe; iframe #
+  cases err with
+  | nil =>
+    (try wp_auto)
+    iapply HΦ
+    iframe
+    ipureintro; intro _; rfl
+  | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    iframe
+    ipureintro; intro h; exact h
