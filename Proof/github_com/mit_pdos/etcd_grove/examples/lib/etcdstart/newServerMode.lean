@@ -46,7 +46,7 @@ theorem newServerMode.wp_proof
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
-    HU HU8 Hmode Hck Haf Hbuq Hdbo
+    HU HU8 Hmode Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
@@ -94,7 +94,7 @@ theorem newServerMode.wp_proof
       (fun h => absurd h (by decide))
       -- (2026-11-04, the lease-expiry plan's Part C) the lease slot, at the mode of `memberBoot`'s
       -- running-server premise (`lease.runCfg`), auth off
-      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)) Hck)
+      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (bootCfgOk_of _ rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8⟩ HwbN)

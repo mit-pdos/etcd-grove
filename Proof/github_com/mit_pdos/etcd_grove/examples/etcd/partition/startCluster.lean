@@ -43,7 +43,7 @@ theorem startCluster.wp_proof
     (wp_StartCluster : cluster3.StartCluster.spec (GF := GF) (hG := hG))
     (wp_NewClient : cluster3.NewClient.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ ps ctxs boot lg pfx Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
+  intro CS N id₁ id₂ id₃ ps ctxs boot lg pfx Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨#Hzlg, Hstart, Htok, #Hprem⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold premises at Hprem
@@ -53,7 +53,7 @@ theorem startCluster.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`: the members and the bridges
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .none clusterCfg_ok Hbf Htb HLv Hrb48
-      HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
+      HrbN HwbN Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)

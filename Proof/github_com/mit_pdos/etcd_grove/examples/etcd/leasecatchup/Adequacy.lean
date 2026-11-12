@@ -130,7 +130,7 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ContextErrsClient (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
+    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasecatchupProgram leasecatchupNames)
@@ -174,7 +174,7 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe; iframe #
     ipureintro
     exact ⟨Hbf, ⟨by rw [HT]; word, srvLevels_of_max HT, by rw [HN]; omega, by rw [HN]; omega,
-      by unfold bootWB backend.wbInit; omega⟩, ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩, ⟨Hlp, Hlne⟩,
+      by unfold bootWB backend.wbInit; omega⟩, ⟨Haf, Hbuq, Hrf, Hdbo⟩, ⟨Hlp, Hlne⟩,
       ⟨inferInstance, EtcdGrove.rpctypesEtcdError_asTarget⟩⟩
   ipureintro
   rfl

@@ -33,7 +33,6 @@ program's package table `PkgTable.lean`) and `mvccrand.wp_Main` (`Link.lean`; `R
   the backend opening doesn't panic"), `dbFilesAbsent` (`mvccrand.db` absent at start and touched
   only by the backend) and `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
-* a pure fact of the lessor's configuration: `ckptEffectsOk` (`lease.NewLessor`'s);
 * the semantics: `go.Semantics` and the package assumptions (`mvccrand`'s, mvcc's, the server's,
   the cache's);
 * at every ghost-state instance: `sort.Slice`'s spec (`Spec/sort/Slice.lean`: specified, neither
@@ -115,7 +114,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
-    (Hck : ckptEffectsOk) (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
+    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (HFs : dbFilesAbsent mvccrandProgram [go!"mvccrand.db"])
     (HEnv : verifyEnvOff mvccrandProgram)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -155,7 +154,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold mvccrandProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
-  wp_apply (mvccrand.wp_Main Hsort' Hck Hdbo Hdbc) $$ [Hfile Htok]
+  wp_apply (mvccrand.wp_Main Hsort' Hdbo Hdbc) $$ [Hfile Htok]
   · iframe Hfile Htok Hvoff
   ipureintro
   rfl

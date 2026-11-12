@@ -419,7 +419,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (2026-11-04, the lease-expiry plan's Part C) what the construction takes of the lease slot
   have Hlgon : on = true → ρ.rd.kv.lg = false := fun h => by
     rw [KVNames.lg_eq, lease.bootCfg_auth Hlbc h]; rfl
-  have Hckok : ckptEffectsOk := lease.bootCfg_ckpt Hlbc
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
   letI : MemStorReg GF := ⟨γ.reg⟩
@@ -743,7 +742,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iunfold backend.rbOwn at Hrbo
     iframe Hopen Hwl Hrbo
     isplitr; · iright; iexact Hzlg
-    isplitr; · ipureintro; exact Hckok
     isplitr; · ipureintro; simp
     imodintro; rw [List.map_nil]; iapply BigSepL.bigSepL_nil.2; itrivial
   rw [List.map_nil]

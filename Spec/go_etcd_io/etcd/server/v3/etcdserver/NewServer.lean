@@ -233,9 +233,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- premise at the mode `m` (`lease.bootCfg`, `LeaseApi.lean`): the KV names' grant flag the mode's,
   -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring (and
   -- until the lease-expiry plan's S2–S4, 2026-11-05, the open cases, `srvGrantOpen`; lease-grant
-  -- D2), and the lessor's checkpointer's effects
-  -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here (stage B3,
-  -- 2026-11-12: no checkpointer is installed, `Hlcp`, so it covers no call; its removal is planned)
+  -- D2); until 2026-11-12 also the lessor's checkpointer's effects (the opaque `ckptEffectsOk`,
+  -- `NewLessor`'s premise; D14e, unit N4), deleted: no checkpointer is installed (`Hlcp`), so it
+  -- covered no call
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a mappable quota, a batch
@@ -307,7 +307,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`)
       "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the auth store's record
-      -- bound (the lessor's checkpointer's effects: `lease.bootCfg`)
+      -- bound (until 2026-11-12 also the lessor's checkpointer's effects, through `lease.bootCfg`)
       "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       -- (D22 S-j2, 2026-10-20; an environment assumption the user approved) bbolt's `Open`

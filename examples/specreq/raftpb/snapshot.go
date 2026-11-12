@@ -1,0 +1,74 @@
+package raftpb
+
+import (
+	"bytes"
+
+	pb "go.etcd.io/raft/v3/raftpb"
+	"google.golang.org/protobuf/proto"
+)
+
+// REQ raftpb/ensure: EnsureSnapshot of a client-built snapshot (metadata or conf state missing)
+// fills what is missing and keeps what the getters read; of an ensured snapshot it changes
+// nothing, so it may be called on a snapshot shared read-only (raft's handleSnapshot on a
+// received message's snapshot; MemoryStorage.InitialState unlocked).
+// Users: storage.go:124/212/222/255 (MemoryStorage), raft.go:1859 (handleSnapshot), raft.go:774,
+// 1898 (EnsureConfState of a snapshot's conf state).
+// Specs: EnsureSnapshot.spec (both cases), EnsureConfState.spec, Snapshot.GetMetadata.spec,
+// SnapshotMetadata.GetConfState.spec, ConfState.GetAutoLeave.spec.
+func ReqEnsure(index uint64) {
+	s := &pb.Snapshot{Metadata: &pb.SnapshotMetadata{Index: new(index)}}
+	s = pb.EnsureSnapshot(s)
+	if s.GetMetadata().GetIndex() != index || s.GetMetadata().GetConfState() == nil ||
+		s.GetMetadata().GetConfState().GetAutoLeave() {
+		panic("ensure")
+	}
+	if pb.EnsureSnapshot(s) != s || pb.EnsureConfState(s.GetMetadata().GetConfState()) != s.GetMetadata().GetConfState() {
+		panic("ensure of an ensured snapshot moved it")
+	}
+	if pb.EnsureSnapshot(nil).GetMetadata().GetIndex() != 0 {
+		panic("ensure of nil")
+	}
+}
+
+// REQ raftpb/clone-snapshot: a clone of a stored snapshot is a fresh, ensured snapshot with the
+// same metadata and data (MemoryStorage.Snapshot/CreateSnapshot hand out clones; unstable keeps one).
+// Users: storage.go:213/234/262, log_unstable.go:114/196, log.go:295; etcd raft.go:228.
+// Specs: proto's Clone.spec (the copy holds norm c), snapshotPts_msgAt.spec, raftpb_norm.spec,
+// mergeDst_msgAt.spec, the getters.
+func ReqCloneSnapshot(s *pb.Snapshot) *pb.Snapshot {
+	s = pb.EnsureSnapshot(s)
+	c := proto.Clone(s).(*pb.Snapshot)
+	if c == s || c.GetMetadata().GetTerm() != s.GetMetadata().GetTerm() || !bytes.Equal(c.GetData(), s.GetData()) {
+		panic("clone")
+	}
+	if pb.EnsureSnapshot(c) != c {
+		panic("clone not ensured")
+	}
+	return c
+}
+
+// REQ raftpb/bootstrap-bytes: the bootstrap entry of a peer is the same bytes at every founder
+// (RawNode.Bootstrap marshals ConfChange{AddNode, id, ctx} at each founder; raft's log matching
+// needs equal entries at equal index and term).
+// Users: bootstrap.go:52-56 (RawNode.Bootstrap), etcd's bootstrap through StartNode.
+// Assumes: ctx is non-empty (etcd's member JSON) and below 2^40 bytes (Marshal.spec's size premise,
+// c.fits: encSize ≤ 64 + len(ctx); as ReqMarshalDecode).
+// Specs: bootCC_lit.spec, bootCC_facts.spec (the two literals hold the one bootstrap content),
+// proto's Marshal.spec (`noMaps t → bs = marshalOut t c`); laws: noMaps_raftpb.spec,
+// bootEntryData_marshal.spec (both outputs are bootEntryData id ctx).
+func ReqBootstrapBytes(id uint64, ctx []byte) {
+	mk := func() []byte {
+		cc := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(id), Context: ctx}
+		data, err := proto.Marshal(cc)
+		if err != nil {
+			panic("bootstrap marshal")
+		}
+		return data
+	}
+	if len(ctx) == 0 {
+		return
+	}
+	if !bytes.Equal(mk(), mk()) {
+		panic("founders disagree on the bootstrap entry")
+	}
+}

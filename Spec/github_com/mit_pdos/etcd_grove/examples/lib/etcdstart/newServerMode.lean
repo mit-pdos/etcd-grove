@@ -55,7 +55,7 @@ abbrev newServerMode.spec : Prop :=
   -- the compactor's slot (`v3compactor.bootCfg`, `NewServer`'s premise; K1 of
   -- `notes/k8s-compactor-plan.md`): off in either compaction mode, or on in compaction mode
   v3compactor.bootCfg mode retention cmp ρ.rd.kv.cret →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗

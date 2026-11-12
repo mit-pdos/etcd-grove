@@ -108,7 +108,7 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
@@ -151,7 +151,7 @@ theorem Main.wp_proof
   -- (hub step 7) no peer address: the start bundle is the fresh bundle at the network `γn`
   ihave Hfresh := etcdstart.memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_startServer N lg (LogEntry.toEntries boot 0) ctxs (akDir id) id γ ρ E₀ Φs γn Htb
-      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) (rafthttp.bootCfg_dirOne id _) Hck Haf
+      Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok (by simp [akDir, dirOne]) (rafthttp.bootCfg_dirOne id _) Haf
       Hbuq Hdbo)
     $$ [Htok Hmb Hfresh] as %srv %err Hr
   · iframe; iframe #

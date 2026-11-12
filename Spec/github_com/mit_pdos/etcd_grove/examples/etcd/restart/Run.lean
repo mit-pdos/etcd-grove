@@ -40,7 +40,7 @@ and `Main.spec` take as instances). -/
 def runPure (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     Prop :=
   BootFacts id₁ id₂ id₃ ps ctxs boot ∧
-  ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk
+  authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk
 
 /-- `Run`'s and `Main`'s resources (putget3's `Main`'s, with all three client addresses and a
 second thread token): each member's start bundle (`etcdstart.memberStartRes`, at its peer and its

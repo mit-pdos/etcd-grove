@@ -14,8 +14,7 @@ the lessor of a cluster that grants leases is monotone).
 
 **The pure premises:** as `leasekv`'s (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/lease/Main.lean`):
 the member id and bootstrap log Go computes (`etcd_leasegrant.BootFacts`); the thread and time-receipt
-bounds; the named workload and effect premises of the server's construction (`ckptEffectsOk`,
-`authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`, `storage.diskOk`); the deployment's
+bounds; the named workload and effect premises of the server's construction (`authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`, `storage.diskOk`); the deployment's
 peers answering the lease handler's path (`leasePeersOk`: the served Lease service's `TimeToLive`
 handler takes it, `etcdstart.kv_lease_served`); **no lease the cluster grants expires while
 the program runs** (`lease.leasesNoExpiry`, the lease-grant plan's S2 (a): the lease is granted for
@@ -60,7 +59,7 @@ abbrev Main.spec : Prop :=
   srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   leasePeersOk → lease.leasesNoExpiry →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

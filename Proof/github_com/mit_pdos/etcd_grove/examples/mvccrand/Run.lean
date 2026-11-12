@@ -32,10 +32,10 @@ theorem Run.wp_proof
     (wp_Close : backend.backend.Close.spec (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hckpt hdbo hdbc
+  intro cfg _ _ hops0 hops hrd0 hrd hw0 hw hdbo hdbc
   wp_start as ⟨Hfile, Htok, #Hvoff⟩
   (try wp_auto)
-  wp_apply (wp_runChecks cfg hops0 hops hrd0 hrd hw0 hw hckpt hdbo) $$ [Hfile Htok]
+  wp_apply (wp_runChecks cfg hops0 hops hrd0 hrd hw0 hw hdbo) $$ [Hfile Htok]
     as %rep %lp %b %γB %P %W ⟨Hstop, #Hisb, #Hsc, Hopen⟩
   · iframe Hfile Htok Hvoff
     (try iPkgInit)

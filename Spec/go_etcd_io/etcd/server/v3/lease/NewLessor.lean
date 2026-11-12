@@ -154,8 +154,9 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   `lessorCkptOk`, a contract for `SetCheckpointer`.)
 * `go l.runLoop()`: until the lessor is promoted it only takes its lock, finds no expired lease
   and no due checkpoint; once promoted it sends expired leases on `expiredC` (the server's `run`
-  receives them) and would call the checkpointer if one were installed (`ckptEffectsOk`; with `cp`
-  nil, `findDueScheduledCheckpoints` returns `nil`, `lessor.go:772-775`, and nothing is proposed). **The grant
+  receives them) and would call the checkpointer if one were installed; with `cp` nil (above),
+  `findDueScheduledCheckpoints` returns `nil` (`lessor.go:772-775`) and nothing is proposed (until
+  2026-11-12 the pre took the opaque `ckptEffectsOk` for these calls; deleted, as they never happen). **The grant
   guard** (D19n, 2026-10-18): the caller picks a predicate `GA` on lease ids, saved and pinned in
   the lessor's ghost map (`lessorGuard γl GA`); `Grant` adds a lease only with `leaseGranted`
   (`GA` of its id, under the guard), which the lock keeps for every lease of the map
@@ -236,7 +237,7 @@ abbrev lease.NewLessor.spec : Prop :=
   (∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) → Lr.Perm (recs.map (·.1)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       (⌜lg = null⌝ ∨ zapLoggerOk lg) ∗
-      ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
+      ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
       backend.rbPart d.γB S r ∗ □ ([∗list] id ∈ recs.map (·.1), GA id) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg))

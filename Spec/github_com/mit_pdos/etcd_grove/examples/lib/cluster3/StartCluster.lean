@@ -60,7 +60,7 @@ abbrev StartCluster.spec : Prop :=
   srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   -- (lease-mono3) the lease mode: the subsystem's premise at it, not revocable (a scope premise,
   -- see the file header), and the lease reads' deployment premise in a mode that grants leases
