@@ -160,6 +160,17 @@ pure premise, e.g. `Cluster.trace γ ≠ none → receiptBound GF + vs.length �
 (`|γ.raft.reBoot| = |vs|` by `BootLogOk`), which the harness discharges from `tcRunFits` with its three
 voters. A change to `HarnessOpen`'s text, not to §1's statements.
 
+**`hCC` proved as stated (2026-11-12, branch `trace-check-hcc`).** `raft.applyConfChange.tracedSpec_proof`
+(`TracedApplyConfChange.lean`), with today's `raft.applyConfChange.wp_proof` its untraced instance
+(`spec_of_tracedSpec`). §3.4's read-only lending as designed (`RaftReadLend.lean`: `ownRaftCore`,
+`ownRaftReadT`, `RaftReadLend`, `raftReadLend_of_lend`, `ownRaftPhysCV_reconfigCore`), with two additions
+the design did not list: `raft.hardState.spec` and `makeTracingState.spec` on the core (`traceEvent` reads
+the hard state through them), and `switchToConfig.spec` takes the core outside its wand (the hook runs
+with the struct open at its tracker). `switchToConfig.spec` is one spec for both modes (a traced
+follower keeping its configuration, the capability in and out, stated at `hasLC`);
+`trCapB_hookGate_applyCC`'s `hboot`/`hcl` traced only. Old → new statements: `notes/decisions.md`, the
+step-4 entry's amendment. No change to the three step-4 statements.
+
 ## G3 (a) (2026-11-12): no conf entry past the bootstrap log, the design taken
 
 Branch `trace-check-g3`, from `trace-check` at `fcc535af34` (`notes/decisions.md`, "G3 (a): no conf

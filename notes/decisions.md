@@ -37558,3 +37558,35 @@ has the premise → source tables).
   `StartNode.tracedSpec` (`HarnessOpen`) does not give the fit `run` needs: a gated pure premise such as
   `Cluster.trace γ ≠ none → receiptBound GF + vs.length ≤ traceNumBound ∧ 2 ≤ vs.length`, from the
   harness's `tcRunFits`. Neither changes §1.
+
+*Amendment (2026-11-12, `hCC` proved, decided by the agent; branch `trace-check-hcc`).*
+`raft.applyConfChange.tracedSpec` is proved **as stated** (`raft.applyConfChange.tracedSpec_proof`,
+`TracedApplyConfChange.lean`); today's `raft.applyConfChange.wp_proof` is its untraced instance
+(`spec_of_tracedSpec`, at the names `raftNames0`), so there is one proof of `applyConfChange` (review
+`step4-r1.md`'s F2). The callee statements it needed changed (all raft-internal, none on
+`etc/api/raft.txt`; slice 29n's finding 1, option (a), as the design's §3.4 has it):
+- *Read-only lending* (`RaftReadLend.lean`, new): `ownRaftCore r id s` (the `id`, `Term`, `Vote`, `state`,
+  `raftLog` fields and the log), `ownRaftReadT c r id s tv` (that, the `trk` field and its configuration's
+  maps, `CfgSizeOk c`), `RaftReadLend P c r id s` (a persistent loan of it out of `P`);
+  `raftReadLend_of_lend : RaftLend P … ⊢ RaftReadLend P …` (every hook's caller unchanged but for one
+  line); `ownRaftPhysCV_reconfigCore` (`ownRaftPhysCV_reconfig` with the core outside the wand).
+- `traceEvent.spec`: `RaftLend P c r id s` → `RaftReadLend P c r id s`.
+- `raft.hardState.spec`, `makeTracingState.spec`: on `ownRaftCore r id s` instead of `ownRaftPhysCV c
+  c.voters r id s` (binder `c` dropped): what they read; callers take it out with `ownRaftPhysC_core`.
+  Rejected: a second, read-view triple beside each (twins), or inlining `hardState` in `makeTracingState`.
+- `traceConfChangeEvent.spec`: the untraced statement (nil logger, giving `True`) → one spec for both
+  modes in `traceEvent.spec`'s form (`trOwn tr (∃ c cn id s prsm prs pvs P, P ∗ RaftReadLend P c r id s ∗
+  ownConfigC cn … ∗ ⌜CCEvOf id s c cn ⊆ E⌝ ∗ (P ∗ ownConfigC … -∗ R)) ∗ TraceFire tr tl E Q`, giving
+  `trOwn tr R ∗ Q`); its proof is slice 29n's traced one (moved from `TracedConfChangeHook.lean`, whose
+  Draft statement is now an instance, `tracedSpec_of_spec`); `newRaft` through
+  `traceConfChangeEvent.untraced`.
+- `raft.switchToConfig.spec`: one spec for both modes: new binders `c0 γ`; `s.gh.tr = none` → `s.gh.tr ≠
+  none → s.role = .follower ∧ c = c0 ∧ |γ.reBoot| ≤ committed ∧ committed ≤ lastIndex ∧ term, committed,
+  lastIndex < traceNumBound`; the core (`ownRaftCore r id s`) outside `Hback`, which takes it back;
+  `⌜TraceLoggerOk tl⌝` → `⌜s.gh.tr = none → TraceLoggerOk tl⌝`; new `trOwn s.gh.tr (ownCfgCC tv0.Config' 1
+  c0)` (the old configuration's maps, which the `Changer` gives back) and `trCapB s.gh.tr γ r id c0 true
+  (SimIdle · s)` in the pre, `trCapB s.gh.tr γ r id c true (SimIdle · s')` in the post; stated at
+  `HeapGS HasLC.hasLC GF` (the capability's invariants), so `switchToConfig`'s and `applyConfChange`'s
+  linked results moved to `Link.lean`'s `hasLC` section (their callers were all there).
+- `trCapB_hookGate_applyCC`: `hboot`, `hcl` taken traced only (`tr.isSome →`; review S3).
+`appliedSnap` (untraced) passes `raftNames0` and the `emp` capability. No axiom, no `sorry`.
