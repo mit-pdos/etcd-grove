@@ -278,11 +278,14 @@ PROJECTS = [
         # Then (WAL W4a.2, 2026-11-12) 1aaca041c on `goose-lean-exist`: a write-mode `ReadAll` reports
         # `ErrSnapshotNotFound` when no record matched its start snapshot
         # (nonissues/etcd-wal-readall-snapshot-not-found-masked.md).
+        # Then (WAL W4a.2, 2026-11-12) 0b50f0426 on `goose-lean-exist`: a cut names its segment
+        # max(w.enti, the highest snapshot index saved or read)+1, so that Open at a snapshot of the
+        # WAL starts at or before its record (the same nonissue).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="1aaca041ca5575aa0a1b562fe8c2499ab6a482e9",
+        rev="0b50f04262d971553fc559f2f030c16a95904298",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

@@ -44,10 +44,11 @@ func TestReadAllSnapshotNotFound(t *testing.T) {
 }
 
 // ValidSnapshotEntries lists every snapshot record of the directory, but Open reads from the last
-// file named at or below the snapshot's index. An entry saved below a snapshot after its record makes
-// the next segment's name lower than the snapshot's index, so Open at that (valid) snapshot starts
-// after its record. ReadAll must report it rather than succeed without the start record (which
-// leaves w.enti, and so the next segment's name, below the snapshot).
+// file named at or below the snapshot's index. An entry saved below a snapshot after its record (a
+// follower re-saving entries a leader re-sent) used to name the next segment below the snapshot's
+// index, so Open at that (valid) snapshot started after its record. A cut now names its segment
+// above every snapshot record saved or read, so Open starts at or before the record and ReadAll
+// matches it.
 func TestReadAllStartRecordBeforeOpenedFile(t *testing.T) {
 	old := SegmentSizeBytes
 	SegmentSizeBytes = 64 * 1000 * 1000
@@ -62,7 +63,7 @@ func TestReadAllStartRecordBeforeOpenedFile(t *testing.T) {
 	require.NoError(t, w.Save(hs(5), []*raftpb.Entry{ent(1), ent(2), ent(3), ent(4), ent(5)}))
 	require.NoError(t, w.SaveSnapshot(&walpb.Snapshot{Index: new(uint64(5)), Term: new(uint64(1)), ConfState: cs}))
 	SegmentSizeBytes = 1
-	require.NoError(t, w.Save(hs(5), []*raftpb.Entry{ent(3)})) // the cut names the next segment 4
+	require.NoError(t, w.Save(hs(5), []*raftpb.Entry{ent(3)})) // the cut names the next segment 6, not 4
 	SegmentSizeBytes = 64 * 1000 * 1000
 	require.NoError(t, w.Close())
 
@@ -72,7 +73,12 @@ func TestReadAllStartRecordBeforeOpenedFile(t *testing.T) {
 	w, err = Open(lg, dir, &walpb.Snapshot{Index: new(uint64(5)), Term: new(uint64(1))})
 	require.NoError(t, err)
 	defer w.Close()
-	require.Equal(t, walName(1, 4), filepath.Base(w.tail().Name()))
-	_, _, _, err = w.ReadAll()
-	require.ErrorIs(t, err, ErrSnapshotNotFound)
+	require.Equal(t, walName(1, 6), filepath.Base(w.tail().Name()))
+	require.Len(t, w.locks, 2) // Open starts at the first segment, which holds the record of 5
+	_, st, ents, err := w.ReadAll()
+	require.NoError(t, err)
+	require.Equal(t, uint64(5), st.GetCommit())
+	require.Empty(t, ents)
+	require.Equal(t, uint64(3), w.enti) // the last entry read
+	require.Equal(t, uint64(5), w.snapi)
 }

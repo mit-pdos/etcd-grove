@@ -30,27 +30,32 @@ records unlocked for the purge. etcd can reach the unmatched read: a follower th
 snapshot's record and crashes before the hard state that commits it restarts at an older snapshot,
 then saves the entries the leader re-sends below the snapshot's index after its record; once the
 commit reaches the snapshot, the next restart opens a segment after its record
-(`/shared/tmp/wal-spec/w4a2/tests/w4a2_forgotsnap_test.go`, seen once in the W4a.2 probe). There the
-masked read happens to be right (the re-sent entries are at or below the start, so they truncate),
-which is why this stays a nonissue for etcd; the unsound cases need histories etcd does not write (an
-entry below a committed snapshot after its record and a lowered commit, or an index of 2^64-1). The test in
-[etcd-wal-readall-snapshot-not-found-masked/](etcd-wal-readall-snapshot-not-found-masked/)
-(`TestReadAllSnapshotNotFound`, a WAL of entries 1-5 with no snapshot record, opened at (3,1)) fails at
-`c90b03b56`: `ReadAll` returns no error and 2 entries.
+(`TestRestartAtSnapshotSavedBeforeReSentEntries`, seen once in the W4a.2 probe). There the masked read
+happens to be right (the re-sent entries are at or below the start, so they truncate), which is why
+this stays a nonissue for etcd; the unsound cases need histories etcd does not write (an entry below
+a committed snapshot after its record and a lowered commit, or an index of 2^64-1). The tests in
+[etcd-wal-readall-snapshot-not-found-masked/](etcd-wal-readall-snapshot-not-found-masked/) assert the
+fixed behaviour (below) and fail at `c90b03b56`: `TestReadAllSnapshotNotFound` (a WAL of entries 1-5
+with no snapshot record, opened at (3,1)): `ReadAll` returns no error and 2 entries;
+`TestReadAllStartRecordBeforeOpenedFile` and `TestRestartAtSnapshotSavedBeforeReSentEntries`: the cut
+names its segment after the last entry (4, resp. 39), below the snapshot (5, resp. 41).
 
 ## Proof
 
-no: fixed on the fork (`goose-lean-exist` `1aaca041c`, on `c90b03b56`): a write-mode `ReadAll`
-returns `ErrSnapshotNotFound` when no record matched its start snapshot (the one-line fix after
-`newFileEncoder`), with the two tests above. `(*WAL).ReadAll`'s trust-boundary spec
-(`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReadAll.lean`) relies on it: its premise that the
-opened snapshot is the newest valid one does not exclude an unmatched read (the earlier claim that it
-did was wrong: WAL W4a.2, finding F-W4a2-2, `notes/decisions.md`), and without the fix its result
+no: fixed on the fork by two commits on `goose-lean-exist` (on `c90b03b56`): `1aaca041c`, a
+write-mode `ReadAll` returns `ErrSnapshotNotFound` when no record matched its start snapshot (the
+one-line fix after `newFileEncoder`); and `0b50f0426`, a cut names its segment
+`max(w.enti, w.snapi)+1`, `w.snapi` the highest snapshot index saved or read, so every segment is named
+above every snapshot record before it and `Open` at a snapshot of the WAL starts at or before its
+record (the restart above succeeds, as the masked read did, instead of failing as with the first
+commit alone). `(*WAL).ReadAll`'s trust-boundary spec
+(`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReadAll.lean`) relies on the first: its premise that
+the opened snapshot is the newest valid one does not exclude an unmatched read (the earlier claim that
+it did was wrong: WAL W4a.2, finding F-W4a2-2, `notes/decisions.md`), and without the fix its result
 (`walReadCut` of the whole history) differs from Go's, and the purge bounds of `Open`, `ReadAll` and
-`ReleaseLockTo` (`walReleasePos`) are unsound. With the fix every successful write-mode `ReadAll`
-matched, and the spec needs no history premise. **Open (2026-11-12, for etcd-grove-81):** the fix
-makes the etcd restart above fail (`ErrSnapshotNotFound`) where the masked read was right; a cut
-that names its segment above every snapshot record before it would avoid both.
+`ReleaseLockTo` are unsound. With the fix every successful write-mode `ReadAll` matched, and the spec
+needs no history premise. The purge bounds' name lower bound (`walLastIdx`, `WalDisk.lean`) counts
+snapshot records too, which relies on the second.
 
 ## Notes
 
