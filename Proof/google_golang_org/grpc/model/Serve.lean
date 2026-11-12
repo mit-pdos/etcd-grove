@@ -54,8 +54,8 @@ theorem grpc.model.runCall_wp
   iintro ⟨HT, Hlc, #Hc, Hacc⟩
   iunfold grpcAccepted at Hacc
   icases Hacc with (⟨%name, %mh, %srv, %ci, %cd, %dec, %ui, %Req, %Rep, %Spec, %m, %Φ, %Ψe, %Hr,
-      %Hin, Hat, Hctx, Hrc, Hd, Hch, HSpec, Hrep⟩ |
-    ⟨%name, %mh, %srv, %ci, %cd, %st, %info, %si, %Req, %Rep, %Up, %Spec, %γs, %Dn, %Hr, %Hin,
+      %Hin, %Hreg, Hat, Hctx, Hrc, Hd, Hch, HSpec, Hrep⟩ |
+    ⟨%name, %mh, %srv, %ci, %cd, %st, %info, %si, %Req, %Rep, %Up, %Spec, %γs, %Dn, %Hr, %Hin, %Hreg,
       Hat, Hsch, #HSpec, Hraw, HRt, HSt, HAt, Hinfo⟩)
   · -- unary
     iunfold isGrpcRpcAt at Hat

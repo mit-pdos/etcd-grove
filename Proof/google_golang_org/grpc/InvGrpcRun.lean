@@ -46,6 +46,15 @@ caller-chosen resource, no count, no ghost registry, no saved predicate.
 - **Streams.** `NewStream`'s post and the server end share the stream's names `γs`, `Dn` and the
   persistent `Spec md γs Dn`; the server half is `acceptRun`'s stream arm, and the stream
   registration (`isGrpcStreamAt`) is deposited as in the unary case.
+- **The message models are the client's registered ones** (model-param, decided by etcd-grove-81,
+  2026-11-12, option C'): `Invoke`'s invoker contract (`grpcInvokerOk`) takes `grpcReqModelOf GF
+  Req.ty = some Req` and `grpcRepModelOf GF Rep.ty = some Rep` from its caller before the deposit,
+  and `NewStream` the stream registries; the pair hands the server only what a client deposited, so
+  the models `acceptRun`/`acceptRunConns` return in `grpcAccepted`, with those registry facts, were
+  fixed by the client's registration and are chosen by no one (the registry is a function of the Go
+  type, and each of its entries is one registration axiom). `respond` works at the model the carrier
+  took from `grpcAccepted`. The gate's pair entries (`etc/model-param-allow.txt`) accept exactly
+  these returned atoms, each only while its depositing axiom's pre requires the same atom.
 - **Go facts, not pair facts:** `(name, mh, srv) ∈ c.regs` (Go's dispatch), `grpcSrvChain c.ics`
   and `grpcSrvStreamChain c.sics` (Go's chains), `grpcDecOk` (grpc's codec), `grpcRunCtx` (no etcd
   keys in a run's context).
@@ -113,10 +122,13 @@ instance grpcSrvStreamChain_persistent (sics : List GoFunc) (si : GoFunc) :
 
 /-- **An accepted call** `r` of server `γ` with Go's configuration `c` (what `acceptRun` returns
 with `runOk`). Unary: the run value of Go's handler `(name, mh, srv) ∈ c.regs` for the call's path;
-the registration the client deposited (`isGrpcRpcAt γ name Spec`) and its request precondition
+the registration the client deposited (`isGrpcRpcAt γ name Spec`), at the message models whose
+registration the client's `Invoke` required before depositing (`grpcReqModelOf`/`grpcRepModelOf`,
+transferred: "The pair"), and its request precondition
 `▷ Spec md m Φ Ψe` at the metadata the run's context carries; grpc's context, decoder and chain
 (Go facts); the reply channel `grpcReplyTo r Rep Φ Ψe`. Stream: the run value of Go's handler
-`(name, mh, srv) ∈ c.sregs`; the deposited stream registration; Go's composed stream interceptor;
+`(name, mh, srv) ∈ c.sregs`; the deposited stream registration, at the models whose registration
+`NewStream` required (`streamReqModelOf`/`streamRepModelOf`, transferred); Go's composed stream interceptor;
 the stream's shared persistent `Spec md γs Dn` and its raw server end with both tokens at `[]`;
 grpc's `info`. -/
 def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
@@ -125,6 +137,7 @@ def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
         (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF)
         (Ψe : GoString → IProp GF),
       ⌜r = google_golang_org.grpc.model.runUnary mh srv ci dec ui⌝ ∗ ⌜(name, mh, srv) ∈ c.regs⌝ ∗
+      ⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcRpcAt γ name Spec ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req.toProtoMsg m ∗
       grpcSrvChain c.ics ui ∗
@@ -137,6 +150,7 @@ def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
         (Dn : Nat → Rep.M → IProp GF),
       ⌜r = google_golang_org.grpc.model.runStream mh srv st info ci si⌝ ∗
       ⌜(name, mh, srv) ∈ c.sregs⌝ ∗
+      ⌜streamReqModelOf GF Req.ty = some Req ∧ streamRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcStreamAt γ name Up Spec ∗
       grpcSrvStreamChain c.sics si ∗
       □ Spec (metadata.incomingOf (GoInterface.ok ci)) γs Dn ∗

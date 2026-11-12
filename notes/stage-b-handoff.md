@@ -351,6 +351,32 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     without a list of models supplied in `acceptRun`'s pre and a pair-side link from every deposit to it
     (a new trusted predicate and changes to `Invoke`/`NewStream`'s deposits, `isGrpcRpcAt`, `grpc.start`
     or `GrpcSrvCfg`). Options in the report to etcd-grove-81.
+    **Decided (C')** by etcd-grove-81 (questions.md, 2026-11-12). **Step 1 done** (this commit):
+    `grpcAccepted`'s unary arm carries `⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty =
+    some Rep⌝`, its stream arm `⌜streamReqModelOf … ∧ streamRepModelOf …⌝` (after the `∈ c.regs`/`sregs`
+    conjunct), docstrings and the pair docstring ("The message models are the client's registered
+    ones", which names `etc/model-param-allow.txt`, still to be made); `model/Serve.lean`'s two `icases`
+    gained `%Hreg`. Targeted build of `InvGrpcRun` + `model/Serve`: ok (importers not rebuilt yet).
+    **Step 2, next** (the checker's pair entries, mirroring `etc/axiom-tok-allow.txt`'s pairs):
+    - Lean (`etc/ModelParamCheck.lean`): emit, per walked axiom, the registry atoms it *requires* (the
+      supplied occurrences `judge` already collects in `vals`/`keys`, with registry and binder path) as a
+      new line `{"t":"supp","axiom":…,"registry":…,"path":…}`; the received ones are already the rule-2
+      `atom` lines (`where` = `+atom <registry>`, from `noteAtom`, :339). With the new conjuncts, expect
+      on `acceptRun`/`acceptRunConns.wp_proof` both rule-2 `atom` lines and the old rule-1 hits (a
+      received atom does not cover a hit: `judge` counts only supplied occurrences): the exception must
+      cover both, for exactly the listed binder paths.
+    - Python (`etc/model-param-check.py`): read `etc/model-param-allow.txt`, lines `pair <returner>
+      <depositor> <registry> <binder path> : <reason>` (returners `grpc.model.acceptRun.wp_proof`,
+      `acceptRunConns.wp_proof`, `respond.wp_proof`; depositors `grpc.ClientConn.Invoke.wp_proof` for
+      `grpcReqModelOf`/`grpcRepModelOf`, `grpc.ClientConn.NewStream.wp_proof` for the stream
+      registries); accept a returner's `atom`/uncovered `hit` on that path and registry only if the
+      depositor's `supp` lines require the same registry; a stale entry fails.
+    - Selftests (`SELFTESTS`, :808, or the driver's): an unpaired returned registry atom refused; a pair
+      whose depositor lacks the registration refused; the real pair passes.
+    - Then step 3: rebuild importers (full build under the lock/cap), gates locally (`model-param`,
+      `errdesc`, `axiom-tok --check`, `tcb --check`), merge lean if moved, `etc/land.sh` with
+      `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc`
+      (go given if every gate passes and the trusted change is step 1 plus docstrings).
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
