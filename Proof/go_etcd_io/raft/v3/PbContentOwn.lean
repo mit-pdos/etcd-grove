@@ -38,7 +38,7 @@ def MsgC.blank [GooseExts] : MsgC :=
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- A `bytes` field owned at `dq`: `nil`, or a non-nil slice holding the bytes at `dq`. -/

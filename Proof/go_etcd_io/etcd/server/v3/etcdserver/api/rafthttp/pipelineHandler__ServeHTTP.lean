@@ -18,7 +18,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
+public import Proof.go_etcd_io.raft.v3.MsgRead
 
 @[expose] public section
 

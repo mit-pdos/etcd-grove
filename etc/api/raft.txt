@@ -110,6 +110,10 @@ importable Proof.go_etcd_io.raft.v3.PbContentOwn
 # (out_size, 2026-11-12) entry objects at a content of bounded size: `entBytes`/`entSizeOk` (moved
 # from `MsgOut`), `entRZ`, `entsPtsZ`/`entsROz` (the storage contract and `MsgOut` speak of them)
 importable Proof.go_etcd_io.raft.v3.PbSized
+# (out_size C3, 2026-11-12, decided by etcd-grove-81) a message at a content read through today's
+# specs (`msgPtsCC_split`/`_join`/`_read`) and built from a literal (`msgPtsCC_of_struct`): moved
+# from rafthttp's `MsgRead`/`MsgAppV2` (raft's outbox holds its messages at contents)
+importable Proof.go_etcd_io.raft.v3.MsgRead
 # (raft-entsize §2 step 3) the objects a `Ready` hands out: `snapUf` (a `MsgSnap`'s unknown fields
 # none, the literal's), the handed-out set's elements `outObjR`/`outEntR` (`RaftNames.out`), and a
 # message handed out at a content raft pins (`msgOutR`, with the `MsgSnap` law `msgOutR_snap`)
