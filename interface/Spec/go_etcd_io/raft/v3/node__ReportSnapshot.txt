@@ -4,15 +4,16 @@
 
 def node.ReportSnapshot.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP
-              (((intoVal
-                    (methods node.ty.PointerType
-                      go!"ReportSnapshot"
-                      (intoVal n)))
-                  (intoVal to))
-                (intoVal status))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+            ▷ (True -∗ Φ (intoVal ())) -∗
+              WP
+                (((intoVal
+                      (methods node.ty.PointerType
+                        go!"ReportSnapshot"
+                        (intoVal n)))
+                    (intoVal to))
+                  (intoVal status))
+                {{ Φ }}

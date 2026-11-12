@@ -14,6 +14,8 @@ Revision 3: branch `trace-check-design4`, from `trace-check` at `344537cee1`, af
 Probe A (2026-11-11): branch `trace-check-probeA`, from `trace-check` at `31058ad33c`: §8's Probe A as a
 Lean proof (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/ProbeA.lean`); its
 corrections, P1-P5, in the section below.
+Implementation step 1 (2026-11-12): branch `trace-check-impl1`; what threading changed, I1-I9, in the
+first section below (I9: `storBnd`'s gate left for a decision).
 
 Reading order: §1 is the only part the user reviews (settled: Q32 and Q38 decided by the user). §2-§6
 are the agent's (intermediate statements, recorded per "The gates, delegated"). §7 is the whole chain
@@ -71,6 +73,61 @@ points below; each is fixed in the text here (`notes/decisions.md`, "Probe A (ha
 `stepIn_intro` with `trTok` and `node.Step.spec`; `trTok_type` through the clone's type; the thread
 tokens (`netJoin.wp_Add`, `wp_fork_tok_self`, `netJoin.wp_Done`; `wp_fork_tok_body` for `app`); and
 `startDone` ×3 into `runOver_intro`.
+
+## Implementation step 1 (2026-11-12): what threading the gates changed
+
+Branch `trace-check-impl1`, from `trace-check` at `a38252c9f0` (§9's step 1; `notes/decisions.md`,
+"Implementation step 1 (gates)"). Done, no `sorry`, no axiom: the gates with their `none` arms today's
+bodies, the escrow threaded, the client premises and every L3 call site, `node.Advance.tracedSpec` as
+the one proof, `isReadyChan_recvAu.tracedSpec` proved, the leave-joint law. Where the text above does
+not hold in Lean, the fix (each the smallest that builds):
+
+- **I1 (`trTok`'s name).** Raft's sealed token is `sentTok` (`InvNode.lean`): every client imports
+  `InvNode`, and etcd's rafthttp already has a `trTok` (`TransportState.lean`) in the same namespace.
+  `TracedNodeApi.lean`'s `trTok` is an abbreviation of it, with `trTok_untraced`, `trTok_type`; the
+  untraced clients use `sentTok_untraced`. Its body is §3.1's (`trTokR γ.raft`, with `TrSent`).
+- **I2 (the gates' form).** Each gate is a conjunct `gateTr o X` (`InvRtk.lean`: `True` at `o = none`),
+  so the `none` arm is today's body `∗ True`, not a `match` with today's body as an arm: `fwdP` and
+  `netP` end with `fwdGate`/`netGate`, `readyP` with the element (`rtkElem`), `advInv`'s `SndPending`
+  and `RcvCommit` with the request's payload (`escPay`), `advDep`/`advRet` are `advDep0`/`advRet0` (today's
+  bodies, renamed) `∗` `run`'s lent half, `nodeDriverChan`/`nodeDriverBusy` hold the request whole
+  (`escReq`), `isAdvChan` the escrow (`rtkInv`, in `isNodeChan` through it). An untraced proof frames
+  `gateTr_none`; the two every-`γ` proofs (`node.Advance`, the `Ready` receive) thread the gated
+  escrow lemmas (`esc_send_prep`, `esc_recv_commit`, `esc_send_rcvPending`, `esc_send_rcvCommit`).
+- **I3 (`AdvReq`).** Unchanged: the escrow's request is a ghost name of its own, `NodeNames.esc.rq`
+  (`RtkNames`, every escrow name defaulting to `0`, so no untraced allocation changes), in halves as
+  §3.2 item 4's request; `AdvReq`'s users are untouched.
+- **I4 (the claim's node).** `readyToksClaim n γ N ms` (traced) is `⌜ms = []⌝ ∨ ∃ γn, NodeOk γ γn ∗
+  nodeTabOk γ n γn ∗ rtkElem γn.esc ms`; the node table's entry (`cfgNamesOf`) records the escrow's
+  names, so that at `Advance` the claim names the escrow of the node `nodeDriver` holds
+  (`readyToksClaim_at`). §3.1's `isNodeChan γn …` in the claim is not needed.
+- **I5 (P1's law).** `Membership.applyChange_leaveJoint` takes `m.Restorable` (`confAt_restorable`):
+  a valid joint membership with a staged learner that is an incoming voter is one `LeaveJoint`
+  refuses (raft's `checkInvariants`, the model), and `Valid` does not exclude it. In
+  `ConfchangeApi.lean` (where `Restorable` is), proved from `ccApplyM_leaveJoint` and
+  `leaveJointState_inv` (`ConfchangeApiImpl.lean`). Probe A's `probeA_confV2` reads both facts off
+  `confAt`.
+- **I6 (`node.Advance`'s one proof, where).** `node.Advance.tracedSpec_proof` is in an internal module,
+  `NodeAdvanceTraced.lean` (a proof file of the layout exposes only its `wp_proof`); `node__Advance.lean`
+  proves `node.Advance.wp_proof` as its instance, and `TracedLinked.lean` (a new importable module: `Linked` would bring `TracedNodeApi`'s `trTok` into the server) exports `node.wp_Advance_traced` and
+  `node.wp_Step_traced` (`node.Step.tracedSpec_of_spec`) to clients.
+- **I7 (`netP_local`).** Takes `γ.raft.reTrace = none ∨ MsgUnreachable`: the four refused senders pass
+  their refusal premise, `ReportUnreachable` its type.
+- **I8 (the clients' facts).** As L3 left "to check at threading": kv, kvreconf and kvdurable read the
+  untraced fact from their cluster predicates (`kvCluster`, `kvrCluster`, `kdCluster` gain
+  `⌜Cluster.trace … = none⌝`, from `cluster_alloc`'s at their one construction; `kv…Cluster_untraced`),
+  not their replica predicates; kv's `kvPeerOk` gains it (§3.1). The server reads `srvClusterOk`'s last
+  conjunct (`srvClusterOk_untraced`); `rnStepIfc_of_isNode`, which holds only `rnIsNode`, takes it as a
+  premise from `NodeStart`'s `Cluster.trace γr.cl = none`.
+- **I9 (`storBnd`'s gate: not made; the coordinator's).** Gating `storBnd` (B2) makes kv's **closed**
+  `kv_storage_isStorage` (`examples/raft/kv/Results.lean`) false without a new premise
+  `Cluster.trace γ = none` (its `kvJ`'s bound gives no `c = 0` at a traced cluster), a closed-statement
+  change §9's L3 did not list. Step 1 adds the laws (`storBnd_zero`, `storBnd_intro_untraced`) over the
+  ungated body and leaves the gate, `memStorage_isStorage`'s premise and the three kv-family lemmas for
+  a decision: (a) the kv results gain the premise; (b) the gate goes into kv's own `kvJ`
+  (`B k := nodeAppliedLb γ K k ∗ ⌜k = 0 ∨ untraced⌝`), the closed text unchanged but its premise
+  stronger; (c) `TrNoSnap`'s source at `setupNode` (A4) found elsewhere. Recommendation: (a), the
+  premise every kv result already has from `cluster_alloc`. Nothing before step 3 reads the gate.
 
 ## Probe B (2026-11-11): what the proofs found
 

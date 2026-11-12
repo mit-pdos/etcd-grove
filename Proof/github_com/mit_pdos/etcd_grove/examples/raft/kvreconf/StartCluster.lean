@@ -96,6 +96,7 @@ theorem StartCluster.wp_proof
   imod kvrSnapInv_alloc γr ⊤ $$ Hsm with #Hsinv
   ihave #Hcl : kvrCluster γr (bootVoters (uint.nat o.Voters')) $$ []
   · unfold kvrCluster; iframe #
+    ipureintro; exact Htr
   try wp_auto
   icases typedPointsto_split _ _ _ $$ opts with Hopt
   simp only [TypedPointsto.typedPointstoDef]

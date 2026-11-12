@@ -59,7 +59,7 @@ theorem Replica.persist.wp_proof
   iNamed Hrep'
   ihave #Hcl' := Hcl
   iunfold kdCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, -, #Hfiles⟩
+  icases Hcl' with ⟨-, -, -, -, -, #Hfiles, -⟩
   ihave #Hst' := Hstats
   iunfold isStats at Hst'
   ihave #Hfw := BigSepL.bigSepL_mem (x := go!"FileWrites") (by decide) $$ Hst'
@@ -209,7 +209,7 @@ theorem Replica.persist.wp_proofRun
   iNamed Hrep'
   ihave #Hcl' := Hcl
   iunfold kdCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, -, #Hfiles⟩
+  icases Hcl' with ⟨-, -, -, -, -, #Hfiles, -⟩
   ihave #Hst' := Hstats
   iunfold isStats at Hst'
   ihave #Hfw := BigSepL.bigSepL_mem (x := go!"FileWrites") (by decide) $$ Hst'

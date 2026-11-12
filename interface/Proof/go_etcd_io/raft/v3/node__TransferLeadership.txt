@@ -7,16 +7,17 @@ theorem node.TransferLeadership.wp_proof [package_sem : Assumptions] (wp_Message
   -- `Perennial.EtcdGrove.node.TransferLeadership.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id lead transferee : w64) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP
-              ((((intoVal
-                      (methods node.ty.PointerType
-                        go!"TransferLeadership"
-                        (intoVal n)))
-                    (intoVal (GoInterface.ok ctx)))
-                  (intoVal lead))
-                (intoVal transferee))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+            ▷ (True -∗ Φ (intoVal ())) -∗
+              WP
+                ((((intoVal
+                        (methods node.ty.PointerType
+                          go!"TransferLeadership"
+                          (intoVal n)))
+                      (intoVal (GoInterface.ok ctx)))
+                    (intoVal lead))
+                  (intoVal transferee))
+                {{ Φ }}

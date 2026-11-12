@@ -59,10 +59,10 @@ receipt is the loan's (`snapReceipt`), which passes to `run` for `RawNode.Advanc
 was restored since (`RNState.psnap`; D22 S-d4 item 3, the storage's extent `StorExtOk`). -/
 theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List EntryM)
     (L : Option SnapLoan) (x : Nat × CCState) :
-    ⊢ dlvLb (GF := GF) γ ds -∗ advDep γ rn id -∗ advanceP γ L x ==∗
-      advRet γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x) := by
+    ⊢ dlvLb (GF := GF) γ ds -∗ advDep0 γ rn id -∗ advanceP γ L x ==∗
+      advRet0 γ rn id ∗ reqWit γ (reqOf L ds) ∗ capAns γ (loanReq γ.mode L x) := by
   iintro #Hlb Hdep HP
-  iunfold advDep at Hdep
+  iunfold advDep0 at Hdep
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, Hbw, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
@@ -103,7 +103,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       $$ Hrn with ⟨Hrn, %x, %Hx, #Hfw⟩
     imodintro
     isplitr [Hfw]
-    · iunfold advRet
+    · iunfold advRet0
       iexists { { rs with unpersisted := [] } with flw := true }, ca_d
       iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
       isplitl [Hcfg]
@@ -162,7 +162,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       rw [loanCfg_static hd]
       imodintro
       isplitl [Hrn Hcfg Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
-      · iunfold advRet
+      · iunfold advRet0
         iexists rs, ca_d
         iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
         isplitl [Hcfg]
@@ -196,7 +196,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       rw [Hlc]
       imodintro
       isplitl [Hrn Hdlm Hcap_r Hcam Hdlv Hrof Hrof' Hrcpt Hdur Hbw1 Hfree]
-      · iunfold advRet
+      · iunfold advRet0
         iexists rs, ca_d
         iframe Hrn Htlb Hcamlb Hdur Hbw1 Hfr Hfree
         isplitl [Hdlm Hcap_r Hcam]
@@ -226,7 +226,7 @@ theorem adv_recv_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc)
     ⊢ £ 1 ∗ £ 1 -∗ isAdvChan γ rn id ch -∗ advDep γ rn id -∗ ▷ (advRet γ rn id -∗ Φ () true) -∗
       recvAu γ.advancec Unit Φ := by
   unfold isAdvChan recvAu
-  iintro ⟨Hlc1, Hlc2⟩ ⟨#Hchan, #Hinv⟩ Hdep Hau
+  iintro ⟨Hlc1, Hlc2⟩ ⟨#Hchan, #Hinv, #Hrtk⟩ Hdep Hau
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑advN) $$ Hlc1 Hi with Hi
   unfold advInv
@@ -270,33 +270,49 @@ theorem adv_recv_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc)
   case SndPending =>
     iintro H
     imod Hmask with -
-    icases Hi with ⟨%L, %x, HP, %ds, Hreq, #Hlb⟩
+    icases Hi with ⟨⟨%L, %x, HP, %ds, Hreq, #Hlb⟩, Hpay⟩
+    iunfold advDep at Hdep
+    icases Hdep with ⟨Hdep, Hrun⟩
     imod advance_complete γ rn id ds L x $$ Hlb Hdep HP with ⟨Hret, #Hw, Hans⟩
-    imod Hclose $$ [H Hreq Hans] with -
+    -- (2026-11-12, trace-check implementation step 1) at a traced node, `run`'s answer to the
+    -- driver's escrow request (`rtkInv` opened inside `advInv`)
+    imod esc_recv_commit γ.raft γ.esc (⊤ \ ↑advN) rtkN_sub_advN $$ Hrtk Hrun Hpay
+      with ⟨Hrun, Hpay⟩
+    imod Hclose $$ [H Hreq Hans Hpay] with -
     · inext
       iexists .RcvCommit
-      iframe H
-      iexists ((reqOf L ds, loanReq γ.mode L x) : AdvReq)
-      iframe Hreq Hw Hans
+      isplitl [H]
+      · iexact H
+      isplitl [Hreq Hans]
+      · iexists ((reqOf L ds, loanReq γ.mode L x) : AdvReq)
+        iframe Hreq Hw Hans
+      iexact Hpay
     imodintro
-    iapply Hau $$ Hret
+    iapply Hau
+    iunfold advRet
+    iframe Hret Hrun
   all_goals first | itrivial | (iexfalso; iexact Hi)
 
 /-- **The driver's send on `advancec`** (`node.Advance`), with its payload for its `Ready`'s loan
 `L`, its lower bound `ds` on the committed log and its request: back with `run`'s answer for `ds`
 (`reqWit`: the floor's witness after a `Ready` without a snapshot, D22 S-d4). -/
 theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List EntryM)
-    (L : Option SnapLoan) (x : Nat × CCState) (q0 : AdvReq) (Φ : IProp GF) :
+    (L : Option SnapLoan) (x : Nat × CCState) (q0 : AdvReq) (ms : List QMsg) (Φ : IProp GF) :
     ⊢ £ 1 ∗ £ 1 ∗ £ 1 -∗ isAdvChan γ rn id ch -∗ advanceP γ L x -∗ dlvLb γ ds -∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) q0 -∗ dghostVar γ.req (DFrac.own (1 : Qp).half) q0 -∗
+      -- (2026-11-12, trace-check implementation step 1) at a traced node, the escrow's request and
+      -- the driver's claim on the messages `ms`
+      gateTr γ.raft.reTrace (escReq γ.esc) -∗ gateTr γ.raft.reTrace (rtkClaim γ.esc ms) -∗
       ▷ (reqWit γ (reqOf L ds) -∗ capAns γ (loanReq γ.mode L x) -∗
           (∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
-            dghostVar γ.req (DFrac.own (1 : Qp).half) q) -∗ Φ) -∗
+            dghostVar γ.req (DFrac.own (1 : Qp).half) q) -∗
+          gateTr γ.raft.reTrace (escReq γ.esc) -∗ ([∗list] q ∈ ms, trTokR γ.raft q.st) -∗ Φ) -∗
       sendAu γ.advancec () Φ := by
   unfold isAdvChan sendAu
-  iintro ⟨Hlc1, Hlc2, Hlc3⟩ ⟨#Hchan, #Hinv⟩ HP #Hlb Hr1 Hr2 Hau
+  iintro ⟨Hlc1, Hlc2, Hlc3⟩ ⟨#Hchan, #Hinv, #Hrtk⟩ HP #Hlb Hr1 Hr2 Hesc Hcl Hau
   imod dghostVar_update_halves ((reqOf L ds, loanReq γ.mode L x) : AdvReq) γ.req q0 q0
     $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
+  imod esc_send_prep γ.raft.reTrace γ.esc ms $$ Hcl Hesc with ⟨Hpay, Hheld⟩
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑advN) $$ Hlc1 Hi with Hi
   unfold advInv
@@ -311,16 +327,18 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
   case Idle =>
     iintro H
     imod Hmask with -
-    imod Hclose $$ [H HP Hr1] with -
+    imod Hclose $$ [H HP Hr1 Hpay] with -
     · inext
       iexists .SndPending ()
       isplitl [H]
       · iexact H
-      iexists L, x
-      isplitl [HP]
-      · iexact HP
-      iexists ds
-      iframe Hr1 Hlb
+      isplitl [HP Hr1]
+      · iexists L, x
+        isplitl [HP]
+        · iexact HP
+        iexists ds
+        iframe Hr1 Hlb
+      iexact Hpay
     imodintro
     unfold sendNestedAu
     iinv Hinv with Hi Hclose
@@ -336,15 +354,18 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
     case RcvCommit =>
       iintro Hid
       imod Hmask with -
-      icases Hi with ⟨%q, Hr1, #Hw, Hans⟩
+      icases Hi with ⟨⟨%q, Hr1, #Hw, Hans⟩, Hpay⟩
       ihave %Hk := dghostVar_agree _ _ _ _ _ $$ Hr1 Hr2
       subst Hk
       imod Hclose $$ [Hid] with -
       · inext
         iexists .Idle
         iframe
+      -- (2026-11-12) at a traced node, the driver's swap, at `⊤`, from `run`'s answer
+      imod esc_send_rcvCommit γ.raft γ.esc ms ⊤ (fun _ _ => CoPset.mem_full) $$ Hrtk Hpay Hheld
+        with ⟨Ht, Hesc⟩
       imodintro
-      iapply Hau $$ [] [Hans] [Hr1 Hr2]
+      iapply Hau $$ [] [Hans] [Hr1 Hr2] Hesc Ht
       · iexact Hw
       · iexact Hans
       · iexists _; iframe Hr1 Hr2
@@ -352,13 +373,23 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
   case RcvPending =>
     iintro Hsd
     imod Hmask with -
+    iunfold advDep at Hi
+    icases Hi with ⟨Hi, Hrun⟩
     imod advance_complete γ rn id ds L x $$ Hlb Hi HP with ⟨Hret, #Hw, Hans⟩
-    imod Hclose $$ [Hsd Hret] with -
+    -- (2026-11-12) at a traced node, the driver's swap with `run`'s lent half, inside `advInv`
+    imod esc_send_rcvPending γ.raft γ.esc ms (⊤ \ ↑advN) rtkN_sub_advN $$ Hrtk Hrun Hpay Hheld
+      with ⟨Hrun, Ht, Hesc⟩
+    imod Hclose $$ [Hsd Hret Hrun] with -
     · inext
       iexists .SndCommit ()
-      iframe
+      isplitl [Hsd]
+      · iexact Hsd
+      iunfold advRet
+      isplitl [Hret]
+      · iexact Hret
+      iexact Hrun
     imodintro
-    iapply Hau $$ [] [Hans] [Hr1 Hr2]
+    iapply Hau $$ [] [Hans] [Hr1 Hr2] Hesc Ht
     · iexact Hw
     · iexact Hans
     · iexists _; iframe Hr1 Hr2
@@ -366,10 +397,12 @@ theorem adv_send_au (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) (ds : List
 
 /-- The protocol, on an idle channel. -/
 theorem adv_start (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) :
-    ⊢ isChan ch γ.advancec Unit -∗ ownChan γ.advancec Unit .Idle ={⊤}=∗ isAdvChan (GF := GF) γ rn id ch := by
-  iintro #Hch Hchan
+    ⊢ isChan ch γ.advancec Unit -∗ ownChan γ.advancec Unit .Idle -∗
+      -- (2026-11-12, trace-check implementation step 1) at a traced node, the escrow
+      gateTr γ.raft.reTrace (rtkInv γ.raft γ.esc) ={⊤}=∗ isAdvChan (GF := GF) γ rn id ch := by
+  iintro #Hch Hchan #Hrtk
   unfold isAdvChan
-  iframe Hch
+  iframe Hch Hrtk
   iapply inv_alloc
   inext
   unfold advInv

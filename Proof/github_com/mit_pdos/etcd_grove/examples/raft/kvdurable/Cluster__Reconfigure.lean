@@ -87,7 +87,7 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
     ihave #Hpau := kd_ccAu_dup γ o Hto $$ Hinv
     ihave #Hnc : nodeCtx ctx' cd $$ []
     · unfold nodeCtx; iright; iexact Hctx
-    wp_apply wp_ProposeConfChange n γ.r.cluster kdRaftN id cc o (DFrac.own 1) ctx' cd
+    wp_apply wp_ProposeConfChange n γ.r.cluster kdRaftN id cc o (DFrac.own 1) ctx' cd Htr0
       $$ [$Hraftinit $HisNode $Hnc $Hcc $Hpau] as %err -
     try wp_auto
     wp_apply Hcancel

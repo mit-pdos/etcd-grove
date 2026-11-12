@@ -133,7 +133,7 @@ theorem Cluster.start.wp_proof
   iNamed Hc'
   ihave #Hcl' := Hcl
   iunfold kdCluster at Hcl'
-  icases Hcl' with ⟨#HisC, -, #Hca0, -, -, #Hfiles⟩
+  icases Hcl' with ⟨#HisC, -, #Hca0, -, -, #Hfiles, -⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []

@@ -55,7 +55,7 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
   iNamed Hc'
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, #Hinv⟩
+  icases Hcl' with ⟨-, -, -, -, #Hinv, -⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hctxinit : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -87,7 +87,7 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
     ihave #Hpau := kvr_ccAu_dup γr o Hto $$ Hinv
     ihave #Hnc : nodeCtx ctx' cd $$ []
     · unfold nodeCtx; iright; iexact Hctx
-    wp_apply wp_ProposeConfChange n γr.cluster kvrRaftN id cc o (DFrac.own 1) ctx' cd
+    wp_apply wp_ProposeConfChange n γr.cluster kvrRaftN id cc o (DFrac.own 1) ctx' cd Htr0
       $$ [$Hraftinit $HisNode $Hnc $Hcc $Hpau] as %err -
     try wp_auto
     wp_apply Hcancel

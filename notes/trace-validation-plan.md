@@ -2707,6 +2707,30 @@ escrow as designed could not do its deposit (`np`/`pend` replaced by a halved `p
 P1); `TrNetTy` must move below `InvNodeChan` (P3); item 6 needs N1's statement change, which also changes
 the families' `lineF` (P6), not proved. Next: Probe A, then step 2 with P6's wider file list.
 
+**Implementation step 1 (2026-11-12, branch `trace-check-impl1`): the gates, in one landing**
+(`notes/decisions.md`, "Implementation step 1 (gates)"; the design's "Implementation step 1" section,
+I1-I9). Every sealed definition of §9's list a gate (a conjunct `gateTr`, `True` untraced) but
+`storBnd`: `stepP` through `fwdP`/`netP`, `readyP` (the claim's element), `advInv`/`advDep`/`advRet` (the
+escrow's request and `run`'s lent half), the escrow (`InvRtk.lean`, Probe B's, `pk` in halves) in
+`isNodeChan` through `isAdvChan`, `trTok` (raft's `sentTok`, I1); `handshake_send_au_fupd`;
+`stepIn_intro` with the token and the five refusals, every call site (server, kv, kvreconf, kvdurable)
+discharged from the cluster predicates' new untraced fact (I8); `isReadyChan_recvAu.tracedSpec` and
+`node.Advance.tracedSpec` proved for every cluster, `node.Advance.spec` its instance (I6);
+`Membership.applyChange_leaveJoint` (with `Restorable`, I5); Probe A over the real statements. No
+`sorry`, no axiom, no closed statement changed. Left (Q39): `storBnd`'s gate. Next: step 2 (merging
+with `trace-check-impl2`), then step 3, where the gate is first read.
+
+- **Q39 (2026-11-12, implementation step 1, I9): `storBnd`'s gate changes a closed kv result.** Gating
+  `storBnd` (Q6 item 8, the design's B2) makes kv's exported `kv_storage_isStorage`
+  (`examples/raft/kv/Results.lean`) need `Cluster.trace γ = none`. Options: (a) the kv result gains the
+  premise (every kv caller has it from `cluster_alloc`); (b) the gate moves into kv's own `kvJ` (the
+  closed text unchanged, its `memStorInvP` premise stronger); (c) `TrNoSnap`'s source at `setupNode`
+  (A4) found without the gate. Recommendation: (a). Not taken (a closed statement): step 1 adds
+  `storBnd_zero` and `storBnd_intro_untraced` only; nothing before step 3 reads the gate.
+
+  **Taken by the coordinator: (a)**, within the user's acceptance test (Q6: `interface/` may differ by "the
+  untraced clients' pure fact `γ.raft.reTrace = none`"); `kv_storage_isStorage` is an exported spec-level
+  result, not a closed adequacy theorem, and every kv caller has the fact from `cluster_alloc`.
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and

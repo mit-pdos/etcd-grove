@@ -14,11 +14,12 @@ traced node API that are not proved yet, as `Prop`s the harness takes as hypothe
 - `StartNode.tracedSpec`: `StartNode.gatedSpec` over `startTraceC`, its post giving the voter's completion
   witness `startDone γ id` (amendment A8.3, Q37 (a): sealed over the simulation's `bootDone`; the
   Draft's `startDoneB`, `StartNode.tracedSpec_of_gated`, `TracedNodeApiBridge.lean`);
-- `isReadyChan_recvAu.tracedSpec`: the law `isReadyChan_recvAu` with each of the `Ready`'s messages
-  carrying its token (`readyGotT`: `readyGot` and `trTok` of each message; the node API slices'
-  `recvTokOf` from `Ready`, `trCap_fire_ready`, `readyToks_queues`);
-- `node.Step.tracedSpec`: `node.Step.spec` with `stepIn_intro`'s premises inlined and the message's
-  token (`trTok`), which the traced receive line consumes.
+- (2026-11-12, trace-check implementation step 1) the messages' tokens and the driver's claim: `trTok`
+  (raft's sealed `sentTok`, `InvNode.lean`), `trTok_untraced`, `trTok_type`; `isReadyChan_recvAu.tracedSpec`
+  (`readyGotT`: `readyGot` with the claim `readyToksClaim`), **proved**; `node.Step.tracedSpec`, a
+  corollary of `stepIn_intro` (with the token) and `node.Step.spec`; `node.Advance.tracedSpec`, the one
+  proof of `node.Advance` (`NodeAdvanceTraced.lean`, linked in `TracedLinked.lean`), of which
+  `node.Advance.spec` is the instance at `ms = []` (`node.Advance.spec_of_traced`).
 
 Untraced (`Cluster.trace γ = none`) each says what the current statement says (`trTok` is `True`).
 The other node-API functions the harness calls (`Tick`, `Advance`, `ApplyConfChange`, `Propose`,
@@ -28,6 +29,9 @@ is internal to the node (`node.run`'s, inside `isNode`).
 module
 
 public import Spec.go_etcd_io.raft.v3.StartNode
+public import Spec.go_etcd_io.raft.v3.node__Step
+public import Spec.go_etcd_io.raft.v3.node__Advance
+public import Proof.go_etcd_io.raft.v3.TracedAdvanceSpec
 public import Proof.go_etcd_io.raft.v3.TraceSimGhost
 public import Proof.go_etcd_io.raft.v3.TraceSimEnd
 public import Proof.go_etcd_io.raft.v3.InvTrace
@@ -197,43 +201,27 @@ theorem Cluster.traceSim_bootEnd (γ : Cluster) (N : Namespace) (vs : List w64) 
   iapply Cluster.traceSimInv_bootEnd γ N vs ctxs id tn L E hE hne hlen
   iframe Hb Hinv Hbd Ha
 
-/-! ## The messages' tokens -/
+/-! ## The messages' tokens (2026-11-12, trace-check implementation step 1: the node API's statements) -/
 
-/-- **A sent message's token** (gated): untraced, nothing; traced, the token of its specification
-message in flight (`recvTokOf`), which `Ready` hands out with the message and the traced receive line
-consumes. Sealed: a client only carries it from `Ready` to `node.Step`. -/
-@[no_expose] def trTok (γ : Cluster) (st : MsgSt) : IProp GF :=
-  match Cluster.trace γ with
-  | none => iprop(True)
-  | some γd => recvTokOf γd st.msg st.ents st.ctx
+/-- **A sent message's token** (the design's `trTok`): raft's sealed `sentTok` (`InvNode.lean`).
+Untraced nothing; traced, the message's type handed out (`TrSent`) and the token of its specification
+message in flight, which the traced receive line consumes. A client carries it from `node.Advance`
+(`node.Advance.tracedSpec`) to `stepIn_intro`. -/
+abbrev trTok (γ : Cluster) (st : MsgSt) : IProp GF := sentTok γ st
 
 /-- An untraced cluster's tokens are free. -/
 theorem trTok_untraced (γ : Cluster) (st : MsgSt) (h : Cluster.trace γ = none) :
-    ⊢ trTok (GF := GF) γ st := by
-  unfold trTok; rw [h]; iintro; ipureintro; trivial
+    ⊢ trTok (GF := GF) γ st :=
+  sentTok_untraced γ st h
 
-/-- **A received `Ready`, traced** (`readyGot` and, for each of its messages, its token `trTok`). -/
-def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
-    (rd : Ready) : IProp GF :=
-  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
-      (ms : List QMsg) (ss : Option (w64 × StateType)),
-    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-    isCommittedLogLb γ (st.delivered ++ ce) ∗
-    (∃ rs, readStatesPts rd.ReadStates' rs ∗
-      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-    readyRest γ N id rd st ce es h L ms ss ∗
-    readyLeaderMsgs γ N id st ms ss ∗
-    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
-    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    (⌜phsNext st.hardState h = hsZero⌝ ∨
-      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
-      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-        uint.Z (phsNext st.hardState h).Commit'⌝) ∗
-    -- the messages' tokens
-    [∗list] q ∈ ms, trTok γ q.st)
+/-- **A token says its message is no `MsgSnap`** at a traced cluster. -/
+theorem trTok_type (γ : Cluster) (st : MsgSt) :
+    trTok (GF := GF) γ st ⊢ trTok γ st ∗ ⌜Cluster.trace γ ≠ none → st.msg.Type' ≠ MsgSnap⌝ :=
+  sentTok_type γ st
 
-/-- **Receiving a `Ready` as a channel's receive, traced** (a hypothesis of the harness until the
-traced `Ready` is proved): the law `isReadyChan_recvAu` with `readyGotT` for `readyGot`. -/
+/-- **Receiving a `Ready` as a channel's receive, traced**: the law `isReadyChan_recvAu` with
+`readyGotT` (`InvNode.lean`: `readyGot` and the driver's claim on its messages' tokens,
+`readyToksClaim`) for `readyGot`. Proved (`isReadyChan_recvAu.tracedSpec_proof`). -/
 abbrev isReadyChan_recvAu.tracedSpec : Prop :=
   ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (Φ : Ready → Bool → IProp GF),
@@ -244,9 +232,12 @@ abbrev isReadyChan_recvAu.tracedSpec : Prop :=
         ▷ (∀ rd : Ready, readyGotT n γ N id st rd -∗ Φ rd true) -∗
         recvAu γc Ready Φ)
 
-/-- **`node.Step(ctx, m)`, traced** (a hypothesis of the harness until the traced `node.Step` is
-proved): `node.Step.spec` at `stepIn_intro`'s premises (a copy of a message node `src` sent, to `id`,
-with its credits and its snapshot local to `id`), and the message's token. -/
+theorem isReadyChan_recvAu.tracedSpec_proof : isReadyChan_recvAu.tracedSpec (GF := GF) :=
+  fun n ch γ N id st Φ Hh => isReadyChan_recvAuT n ch γ N id st Φ Hh
+
+/-- **`node.Step(ctx, m)`, traced**: `node.Step.spec` at `stepIn_intro`'s premises (a copy of a message
+node `src` sent, to `id`, with its credits, its snapshot local to `id`, and its token). A corollary
+(`node.Step.tracedSpec_of_spec`). -/
 abbrev node.Step.tracedSpec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -258,6 +249,17 @@ abbrev node.Step.tracedSpec : Prop :=
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
       (Val #(interface.ok ctx))) (Val #ml))
   {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
+
+open Iris.ProofMode in
+/-- `node.Step.tracedSpec` is `stepIn_intro` then `node.Step.spec` (the design's F2). -/
+theorem node.Step.tracedSpec_of_spec (h : node.Step.spec (GF := GF) (hG := hG)) :
+    node.Step.tracedSpec (GF := GF) := by
+  intro n γ N id ml src st ctx cd Hto
+  iintro %Φ ⟨#Hi, #Hn, #Hc, #Hs, Hm, Hcr, #Hl, Ht⟩ HΦ
+  imod stepIn_intro γ N id ml src st Hto $$ [Hm Hcr Ht] with Hst
+  · iframe Hs Hm Hcr Hl Ht
+  iapply (h n γ N id ml ctx cd) $$ [Hst] HΦ
+  iframe Hi Hn Hc Hst
 
 end spec
 

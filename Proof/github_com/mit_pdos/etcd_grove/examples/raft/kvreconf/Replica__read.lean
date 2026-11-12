@@ -56,7 +56,7 @@ theorem Replica.read.wp_proof
   iNamed Hrep'
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, #Hinv⟩
+  icases Hcl' with ⟨-, -, -, -, #Hinv, -⟩
   iunfold kvLb at HL0
   icases HL0 with ⟨%l0, #Hl0, %HL0⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -130,8 +130,9 @@ theorem Replica.read.wp_proof
   · unfold isHandoff; icases Hho with ⟨$, -⟩
   ihave #Hctx' := Hctx
   iNamed Hctx'
+  ihave %Htr0 := kvrCluster_untraced γr vs $$ Hcl
   wp_apply wp_node_ReadIndex n γr.cluster kvrRaftN id b (readCtxB id (ns + W64 1) key)
-    (fun _ => iprop(True)) ctx' cd $$ [$Hraftinit $HisNode $Hnc $Hb $Hrc] as %err -
+    (fun _ => iprop(True)) ctx' cd Htr0 $$ [$Hraftinit $HisNode $Hnc $Hb $Hrc] as %err -
   try wp_auto
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone
   wp_auto_lc 1

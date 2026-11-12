@@ -15,6 +15,9 @@ theorem ownTrackerM_assemble [package_sem : Assumptions] (trk : tracker.Progress
 theorem Membership.applyChange_restorable {o : ConfChangeIM} {m m' : Membership} : m.WellFormed →
     m.Restorable → Membership.applyChange o m = some m' → m'.Restorable
 
+theorem Membership.applyChange_leaveJoint (m : Membership) : m.Valid → m.Restorable → m.isJoint → ∃
+    m', Membership.applyChange (ConfChangeIM.v2 ConfChangeV2M.empty) m = some m'
+
 theorem Membership.applyChange_of_applyGo {o : ConfChangeIM} {m m' : Membership} (h :
     Membership.applyGo o m = some m') : Membership.applyChange o m = if GMap.size m'.ids < 2 ^ 62
     then some m' else none

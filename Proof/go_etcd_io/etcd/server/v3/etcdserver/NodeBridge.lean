@@ -681,8 +681,9 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       iexact Hctx
     ihave #Hrc' : isReadCtx γ.node.cl srvClusterN (beBytes id) (srvReadQ E.γr.raft Qr) $$ []
     · rw [← Hraft]; iexact Hrc
+    ihave %Htr := srvClusterOk_untraced (γ := γ.srv) $$ Hcl
     wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
-      (srvReadQ E.γr.raft Qr) ctx cd $$ [] as %err #Herr
+      (srvReadQ E.γr.raft Qr) ctx cd Htr $$ [] as %err #Herr
     · iframe #
     ihave #Herr' := nodeErrS_nodeErr _ _ _ cd err $$ Herr
     iapply HΦ
@@ -707,7 +708,10 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
     (wp_ReportUnreachable : letI := srvStor (GF := GF) γ.node;
       node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (wp_ReportSnapshot : letI := srvStor (GF := GF) γ.node;
-      node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster: `ReportSnapshot` is
+    -- refused at a traced one
+    (htr : Cluster.trace γ.node.cl = none) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rnIsNode γ ⊢
       rnStepIfc γ (rnNodeIface γ) := by
   letI := srvStor (GF := GF) γ.node
@@ -732,7 +736,7 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
     iapply HΦ
     itrivial
   · iintro !> %x %st %Φ !> - HΦ
-    wp_apply wp_ReportSnapshot γ.nl γ.node.cl srvClusterN γ.id x st $$ []
+    wp_apply wp_ReportSnapshot γ.nl γ.node.cl srvClusterN γ.id x st htr $$ []
     · iframe #
     iapply HΦ
     itrivial

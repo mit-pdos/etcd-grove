@@ -577,7 +577,8 @@ private theorem wp_StartNode_impl
   imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
   imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
   imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
-  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
+  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa [] with #Hha
+  · iapply gateTr_none _ _ HtrG
   imod alloc_broadcast_chan (nodeStoppedRaw γn) γd nv.done' $$ Hcd Hod with Hpend
   icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
   imod start_handshake nv.stop' (fun (_ : Unit) => dghostVar γn.live (DFrac.own (1 : Qp).half) false)
@@ -672,6 +673,8 @@ private theorem wp_StartNode_impl
     iframe Hnode Hdlv2 Hdlb
     isplitr
     · iapply dlvKeysAt_nil
+    isplitr
+    · iapply gateTr_none _ _ HtrG
     iexists _
     iframe Hreq1 Hreq2
   isplitl [Hcap2 Hccq1 Hccq2]
