@@ -230,6 +230,13 @@ def Perennial.walDiskAt [HasExt absDiskExt] [L : GooseLocalGS GF] (dir : GoStrin
     IProp GF :=
   walDirIs dir (some d)
 
+theorem Perennial.walDiskAt_crash_keep [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj
+    GoString] [L : GooseLocalGS GF] (L' : GooseLocalGS GF) (dir : GoString) (d : WalDur) (n : Nat) :
+    ⊢ absDiskCrashWal gooseAbsDiskGS gooseAbsDiskGS -∗ walDiskAt dir d -∗ walSyncedLb dir n -∗
+    walNamed dir -∗ walDiskAt dir d ∗ ∃ I k, ⌜walImg d.H n I ∧ k ≤ min d.pur I.length⌝ ∗ walDiskAt
+    dir { H := I, m := d.m, unl := min d.unl I.length, pur := min d.pur I.length, cut := k, metadata
+    := d.metadata, named := d.named, sized := d.sized } ∗ walSyncedLb dir n ∗ walNamed dir
+
 theorem Perennial.wp_WalAppend [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj GoString] [G :
     GooseGlobalGS hlc GF] [L : GooseLocalGS GF] {st : Stuckness} {E : CoPset} (dir : GoString) (o :
     WalOpG WalEnt) (d : WalDur) (Φ : val → IProp GF) : (|={E,∅}=> walDiskAt dir d ∗ (walDiskAt dir {
@@ -274,6 +281,10 @@ def Perennial.absPastAuth (hL : AbsDiskGS GF) (s : AbsDiskState) : IProp GF :=
   iprop(∃ F,
       ghostMapAuth hL.γf 1 F ∗
         ([∗map] p ↦ _u ∈ F, p ↪[hL.γf]□ ()) ∗ ⌜∀ (p : AbsDiskState), F !! p = some () → absLe p s⌝ ∗ () ↪[hL.γa]□ s.area)
+
+theorem Perennial.walAbsent_crash_keep [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj
+    GoString] [L : GooseLocalGS GF] (L' : GooseLocalGS GF) (dir : GoString) : ⊢ absDiskCrashWal
+    gooseAbsDiskGS gooseAbsDiskGS -∗ walAbsent dir -∗ walAbsent dir ∗ walAbsent dir
 
 theorem Perennial.wp_WalCloseHandle [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj GoString]
     [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF] {st : Stuckness} {E : CoPset} (w : Loc) (dir :
@@ -335,6 +346,12 @@ theorem Perennial.wp_WalNamed [HasExt absDiskExt] [GoGlobalContext] [go.IntoValI
     unl := d.unl, pur := d.pur, cut := d.cut, metadata := d.metadata, named := true, sized :=
     d.sized } d'⌝ -∗ ▷ |={∅,E}=> Φ (intoVal ()))) ⊢ WP (ExternalOp absDiskExt.name "WalNamed" (Val
     (intoVal dir))) @ st ; E {{ Φ }}
+
+theorem Perennial.absDisk_crash_view_keep [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj
+    GoString] [L : GooseLocalGS GF] (L' : GooseLocalGS GF) (M : GMap GoString WalDur) : ⊢
+    absDiskCrashWal gooseAbsDiskGS gooseAbsDiskGS -∗ walOwn M -∗ walOwn M ∗ ∃ s s',
+    ⌜ExtSemantics.crash s s' ∧ walMapLe M s.wal⌝ ∗ absPastAuth gooseAbsDiskGS s ∗ walOwn s'.wal ∗
+    absPast s'
 
 theorem Perennial.absDiskUpd_wal (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur) (d :
     WalDur) (hd : s.wal !! dir = some d) : (absDiskUpd s dir f).wal = <[dir := f d]>s.wal
@@ -433,6 +450,14 @@ def Perennial.absDiskCrashWal (hL hL' : AbsDiskGS GF) : IProp GF :=
 theorem Perennial.absPast_ctx_le [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj GoString] [L :
     GooseLocalGS GF] (s p : AbsDiskState) : ⊢ absDiskCtx gooseAbsDiskGS s -∗ absPast p -∗ ⌜absLe p
     s⌝
+
+theorem Perennial.walDiskAt_crash_any_keep [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj
+    GoString] [L : GooseLocalGS GF] (L' : GooseLocalGS GF) (dir : GoString) (d : WalDur) (n : Nat) :
+    ⊢ absDiskCrashWal gooseAbsDiskGS gooseAbsDiskGS -∗ walDiskAt dir d -∗ walSyncedLb dir n -∗
+    walDiskAt dir d ∗ (walAbsent dir ∗ ⌜d.named = false⌝ ∨ ∃ I k, ⌜walImg d.H n I ∧ k ≤ min d.pur
+    I.length⌝ ∗ walDiskAt dir { H := I, m := d.m, unl := min d.unl I.length, pur := min d.pur
+    I.length, cut := k, metadata := d.metadata, named := d.named, sized := d.sized } ∗ walSyncedLb
+    dir n)
 
 theorem Perennial.walSyncedLb_persistent [HasExt absDiskExt] [L : GooseLocalGS GF] (dir : GoString)
     (n : Nat) : Persistent (walSyncedLb dir n)

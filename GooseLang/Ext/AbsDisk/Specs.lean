@@ -79,6 +79,9 @@ approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a", and its revision aft
   facts' authority, and the new generation's half and start fact, with the crash relation between
   them. `walDiskAt_crash` is the Draft's `walDisk_crash` in these terms, `walDiskAt_crash_any` the
   same without `walNamed` (the WAL may vanish).
+  The `_keep` forms (`walDiskAt_crash_keep`, `walDiskAt_crash_any_keep`, `walAbsent_crash_keep`;
+  WAL W4c, Q1) also give back the old generation's copy unchanged, so a crash obligation can close
+  the old generation's invariant with its contents (crashlog's `cfInv_crash_keep`).
 -/
 module
 
@@ -1703,6 +1706,125 @@ theorem walAbsent_crash (dir : GoString) :
     have h := HMs dir
     rw [(walOptLe_none_iff _).1 HMd] at h
     exact (walOptLe_none_iff _).1 h
+  iexists s'.wal; iframe HM'; ipureintro; rw [hc.2.2.2 dir hs]; trivial
+
+/-- **`absDisk_crash_view`, keeping the old generation's WAL map** (WAL W4c, Q1): the program's
+copy comes back unchanged (only its agreement with the old half is used), so a crash obligation can
+close the old generation's invariant with its contents. -/
+theorem absDisk_crash_view_keep (M : GMap GoString WalDur) :
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      walOwn (L := L) M -∗ walOwn (L := L) M ∗
+        ∃ s s' : AbsDiskState, ⌜absDisk_semantics.crash s s' ∧ walMapLe M s.wal⌝ ∗
+        absPastAuth (gooseAbsDiskGS (L := L)) s ∗ walOwn (L := L') s'.wal ∗ absPast (L := L') s' := by
+  unfold absDiskCrashWal walOwn absPast
+  letI := (gooseAbsDiskGS (L := L)).absDiskAllG
+  iintro ⟨%s, %s', %hc, ⟨%G, Hs, %HG⟩, HP, HM', Hp'⟩ HM
+  unfold walOwnAt
+  icases HM with ⟨HM, Ht⟩
+  have hag : ghostVar (GF := GF) (gooseAbsDiskGS (L := L)).γs (1 : Qp).half M ∗
+      ghostVar (gooseAbsDiskGS (L := L)).γs (1 : Qp).half G ⊢ ⌜M = G⌝ := by
+    iintro ⟨H1, H2⟩; iapply ghostVar_agree $$ H1 H2
+  icases persistent_entails_right hag $$ [HM Hs] with ⟨%HMs, HM, -⟩
+  · isplitl [HM]; iexact HM; iexact Hs
+  iframe HM Ht
+  iexists s, s'
+  iframe HP HM' Hp'
+  ipureintro; subst HMs; exact ⟨hc, HG⟩
+
+/-- **`walDiskAt_crash`, keeping the old generation's copy** (WAL W4c, Q1). The Draft's `walDisk_crash`: the old generation's WAL in `dir` at `d`, synced to `n`, its
+entry durable, is the new generation's at an image of its history at or past `n`, with a purged
+prefix `k ≤ min pur |I|` to read from (`unl`, `pur` clamped to `|I|`), still synced to `n` and named (`named` kept: it is `true`). -/
+theorem walDiskAt_crash_keep (dir : GoString) (d : WalDur) (n : Nat) :
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      walDiskAt (L := L) dir d -∗ walSyncedLb (L := L) dir n -∗ walNamed (L := L) dir -∗
+      walDiskAt (L := L) dir d ∗ ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H n I ∧ k ≤ min d.pur I.length⌝ ∗
+        walDiskAt (L := L') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } ∗
+        walSyncedLb (L := L') dir n ∗ walNamed (L := L') dir := by
+  unfold walDiskAt walDirIs walSyncedLb walNamed absPast
+  iintro Hcs ⟨%M, HM, %HMd⟩ ⟨%p, %dp, Hp, %Hdp⟩ ⟨%q, %dq, Hq, %Hdq⟩
+  icases absDisk_crash_view_keep (L := L) L' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, HP, HM', #Hp'⟩
+  iunfold absPast at Hp'
+  obtain ⟨dr, hdr, hle⟩ := walDiskAt_crash_real HMd HMs
+  icases absPast_le _ s p $$ HP Hp with %Hlp
+  icases absPast_le _ s q $$ HP Hq with %Hlq
+  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2 dir dp Hdp.1
+  obtain ⟨d2, h2, -, -, hn2⟩ := Hlq.2.2 dir dq Hdq.1
+  rw [hdr] at h1 h2; cases h1; cases h2
+  have hn : n ≤ dr.m := Nat.le_trans Hdp.2 hm1
+  have hnamed : dr.named = true := hn2 Hdq.2
+  obtain ⟨-, -, hcw, -⟩ := hc
+  rcases hcw dir dr hdr with ⟨hnf, -⟩ | ⟨I, k, hI, hk, hs'⟩
+  · rw [hnamed] at hnf; cases hnf
+  obtain ⟨j, hj1, hj2, hj3⟩ := hI
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
+  iexists I, k
+  isplitr
+  · ipureintro
+    refine ⟨⟨j, Nat.le_trans hn hj1, ?_, ?_⟩, ?_⟩
+    · rw [hle.1]; exact hj2
+    · rw [hle.1]; exact hj3
+    · rw [hle.2.2.1]; exact hk
+  isplitl [HM']
+  · iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
+  isplitr
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hnamed⟩
+
+/-- **`walDiskAt_crash_any`, keeping the old generation's copy** (WAL W4c, Q1). The crash of a WAL whose entry may not be durable: it vanishes (only if its entry was not
+durable), or it is the new generation's as in `walDiskAt_crash`. -/
+theorem walDiskAt_crash_any_keep (dir : GoString) (d : WalDur) (n : Nat) :
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      walDiskAt (L := L) dir d -∗ walSyncedLb (L := L) dir n -∗
+      walDiskAt (L := L) dir d ∗ ((walAbsent (L := L') dir ∗ ⌜d.named = false⌝) ∨
+        ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H n I ∧ k ≤ min d.pur I.length⌝ ∗
+          walDiskAt (L := L') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } ∗ walSyncedLb (L := L') dir n) := by
+  unfold walDiskAt walAbsent walDirIs walSyncedLb absPast
+  iintro Hcs ⟨%M, HM, %HMd⟩ ⟨%p, %dp, Hp, %Hdp⟩
+  icases absDisk_crash_view_keep (L := L) L' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, HP, HM', #Hp'⟩
+  iunfold absPast at Hp'
+  obtain ⟨dr, hdr, hle⟩ := walDiskAt_crash_real HMd HMs
+  icases absPast_le _ s p $$ HP Hp with %Hlp
+  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2 dir dp Hdp.1
+  rw [hdr] at h1; cases h1
+  have hn : n ≤ dr.m := Nat.le_trans Hdp.2 hm1
+  obtain ⟨-, -, hcw, -⟩ := hc
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
+  rcases hcw dir dr hdr with ⟨hnf, hnone⟩ | ⟨I, k, hI, hk, hs'⟩
+  · ileft
+    isplitl [HM']
+    · iexists s'.wal; iframe HM'; ipureintro; rw [hnone]; trivial
+    · ipureintro
+      cases hdn : d.named
+      · rfl
+      · rw [hle.2.2.2.2.2.2.2 hdn] at hnf; cases hnf
+  obtain ⟨j, hj1, hj2, hj3⟩ := hI
+  iright
+  iexists I, k
+  isplitr
+  · ipureintro
+    refine ⟨⟨j, Nat.le_trans hn hj1, ?_, ?_⟩, ?_⟩
+    · rw [hle.1]; exact hj2
+    · rw [hle.1]; exact hj3
+    · rw [hle.2.2.1]; exact hk
+  isplitl [HM']
+  · iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
+
+/-- **`walAbsent_crash`, keeping the old generation's copy** (WAL W4c, Q1). -/
+theorem walAbsent_crash_keep (dir : GoString) :
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      walAbsent (L := L) dir -∗ walAbsent (L := L) dir ∗ walAbsent (L := L') dir := by
+  unfold walAbsent walDirIs
+  iintro Hcs ⟨%M, HM, %HMd⟩
+  icases absDisk_crash_view_keep (L := L) L' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, -, HM', -⟩
+  have hs : s.wal !! dir = none := by
+    have h := HMs dir
+    rw [(walOptLe_none_iff _).1 HMd] at h
+    exact (walOptLe_none_iff _).1 h
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
   iexists s'.wal; iframe HM'; ipureintro; rw [hc.2.2.2 dir hs]; trivial
 
 /-- A durable directory stays durable (from the old generation's past states' authority, which
