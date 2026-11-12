@@ -20,7 +20,8 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
 
 ## Next, in order
 1. **STOP: the Freeze package for 81's independent review** (freeze §2, the commit, the interface
-   diffs, the tcb diff: one new axiom `metadata.incomingOf_of_value`). Hard stop (trusted text).
+   diffs: none; tcb baseline unchanged, the new axiom `metadata.incomingOf_of_value` is not yet
+   reached, it enters at step 3). Hard stop (trusted text). Commit `783fd4c8c8`.
 2. After the review: steps 3-6 of the re-baseline's §4 (laws: `libCtxOkC`/`spanCtxOkC` from
    `ctxValueFrom`, back to the WP forms; R-4's lemma; interceptor branch and monitor, `sKey` first;
    Watch, with the mvcc API checkpoint; LeaseKeepAlive with LeaseRenew and the local `WithTimeout`
