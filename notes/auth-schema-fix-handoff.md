@@ -1,4 +1,4 @@
-# auth-schema-fix: handoff (2026-11-12)
+# auth-schema-fix: handoff (2026-11-12, updated after F4)
 
 Stage of etcd-grove-81: make the auth results non-vacuous (S1: remove `auth.ValidSpec`; S0's F1-F4
 in `authSchemaSrv`). Worktree `/shared/etcd-grove-authfix`, branch `auth-schema-fix` (from lean
@@ -38,40 +38,52 @@ contract, NewServer discharges it) fails: the waiter closure reads `srv.applyWai
 only in `start` (server.go:568), so at NewServer the field is nil and the closure panics if called.
 Waiting for 81's decision (questions.md).
 
-## Next, in order (81's decisions of 2026-11-12 in questions.md; F4/F1 first, they do not depend on S1)
+## F4 done (commit 350baf65a5; targeted builds pass, see "Build status")
 
-1. **F4** (UTF-8 roles; nothing started). Trusted: UnsafePutUser's premise in `authBatchTxLkR`
-   (InvAuth ~1399) and the store view `authBatchTxLk` (~1344) gains `∀ x ∈ ur.roles, utf8Valid x`
-   (`Proof/unicode/utf8/Valid.lean:45`). Design found by reading (cheapest route):
-   - `auth.rolesUtf8 st := ∀ u rs, st.users !! u = some rs → ∀ x ∈ rs, utf8Valid x` (Model.lean,
-     beside `permKeysOk`, 289). Keep it in the history: `authHist` (Model.lean:399) holds
-     `∀ st ∈ hs, permKeysOk st`; make it `permKeysOk st ∧ rolesUtf8 st`, or bundle as one
-     predicate `stWf` and replace `permKeysOk` in authHist/`authOwnF_revCur_append`'s `hk`/
-     `authOwnF_last_permKeysOk`/`authOwn_last_permKeysOk` (InvAuth 1729, 2329, 2437, 2475) by it:
-     the pass-through sites (most of the 92 mentions, ~25 files: `grep -rn permKeysOk`) then
-     change by name only; the constructors are Steps.lean:246-279 (`permKeysOk_putUser` needs the
-     roles' UTF-8) and Boot.lean:38.
-   - Store methods that put a user: UserAdd (roles `[]`), UserGrantRole (existing roles + `role`),
-     UserRevokeRole/UserChangePassword/RoleDelete (subsets of existing roles: from `rolesUtf8` of
-     `histLast`). The new role's UTF-8: add `utf8Valid role` to `stepOk` for the grant (or a
-     premise of `UserGrantRole.spec`/`specTB`, LatestTie.lean:457, discharged in
-     `apply/AuthFuel.lean:200` / `AuthSteps`/`AuthStepsX`). Off/any modes: `histLast` is any
-     (disabled) state; the methods' other latest-state facts are already caller premises
-     (`u.length < 2^62`), so take `rolesUtf8` the same way (a pure premise over `histLast`).
-   - Supply: NEW trust-boundary law `apply.irrDecode_utf8` (beside `opaque irrDecode`,
-     `etcdserver/apply/InvRequest.lean:178`): a decoded request's UserGrantRole role/user, UserAdd
-     name, RoleAdd name are valid UTF-8. Go evidence: `/shared/tmp/auth-safe/fix-tests/
-     irr_utf8_test.go` (passes). Also needed by the snapshot image's induction
-     (`etcdserver/SnapAuthRecover.lean:121` `histWf`, 126 `hK`, 157-209): add `rolesUtf8` to
-     `histWf`, the grant step needs the entry's decode law.
-   - nonissue already written: `nonissues/etcd-auth-putuser-invalid-utf8-role.md`.
-2. **F1** (plan step 5, decided): `Wb` parameter on the write contracts (authBatchTxLkR/OkR,
-   authWBackendOkR and the store views); batch Unlock `Wb ∗ Wb`, ForceCommit `Wb`,
-   CreateAuthBuckets `Wb`; at the server `Wb := backend.wbTok d.γB`; authSchemaSrv drops
-   `ownToks d.γB.wb 2`; boot's 2 extra tokens from the server's write-back pool
-   (`□ (⧗ 1 ={⊤}=∗ wbTok)`, srvWTPool/srvWTStockInv, receipts) into authStoreKit's on-mode
-   `authKitIn`. ~17 store method specs take the per-batch charge.
-3. **S1 option A** (decided): `auth.tpReady M` (`.on γa`: persistent one-shot "shot" at a new
+Form differs from the plan's "bundled with permKeysOk" (recorded in questions.md as a form decided
+by the agent): `auth.rolesUtf8` (Model.lean) lives in the fuel's `authSmall` (field `utf8`,
+Fuel.lean), which every `StepSmall` already preserves and the snapshot's `histWf` includes;
+`stepOk` (Steps.lean) gives the found state's and a `next` state's `rolesUtf8`, so no store spec
+gained a premise. Trusted: UnsafePutUser's `∀ x ∈ ur.roles, utf8Valid x` (authBatchTxLkR and
+authBatchTxLk); NEW law `apply.irrDecode_utf8` (apply/InvRequest.lean: only the grant's role).
+Supply path: `irrWrapperIs` carries `⌜irrUtf8 rq⌝` (Apply.lean/ApplyFnAdmin.lean discharge it
+from `Hdec`), DispatchAdmin → `AdminReq.nameOk` (grant: `∧ utf8Valid ro`) → AdminChain →
+`UserGrantRole.fuelSpec(X)` (new premise `utf8Valid role`) → `stepSmall_userGrantRole … hu8`;
+SnapAuthRecover's `adminStateR_wf`/`adminNext_wf` take `irrUtf8 rq` (from `irrDecode_utf8`).
+Statement changes (weaker; to report): Results' `apply_UserGrantRole_fuel` (+`utf8Valid role`),
+`stepOk` stronger (the `apply_*_step` results). Freeze package F4 section written.
+
+## Next, in order
+
+1. **F1** (not started; the biggest step). Decided: `Wb` parameter on the write contracts
+   (authBatchTxLkR/OkR, authWBackendOkR, and the store views authBatchTxLk/authBatchTxOk/
+   authWBackendOk/authBackendReads (GetAllRoles is a batch: `Wb ∗ Wb`)/authWR; InvAuth
+   ~1336-1625); batch Unlock `Wb ∗ Wb`, ForceCommit `Wb`, CreateAuthBuckets `Wb`
+   (AuthSrv.lean `authSchemaSrv` ~81-106, and authSchemaSnap, AuthSnapKit.lean); at the server
+   `Wb := backend.wbTok d.γB`; authSchemaSrv drops `ownToks d.γB.wb 2` (AuthSrv:91, and
+   authStoreKit:195). Store methods that Unlock a batch (UserAdd(+_sure,_tieSure),
+   UserChangePassword, UserDelete, UserGrantRole, UserRevokeRole, RoleAdd, RoleDelete,
+   RoleGrantPermission, RoleRevokePermission, AuthEnable, AuthDisable, HasRole?, plus
+   NewAuthStoreOn's boot: Create 1 + batch 2 + ForceCommit 1) take `Wb ∗ Wb` per batch (their
+   specs, Spec/…/auth/authStore__*.lean, LatestTie's specT/specTB, and the step contracts
+   `backendAuthSteps(X)` in apply/AuthSteps(X).lean).
+   **Where the per-request tokens come from (found, not done):** the apply loop gets receipts at
+   Go steps (`wp_go_step_receipt'`, EtcdServer__apply.lean:1443 takes the admin step's `⧗ 1`,
+   passed as `Hlc` through `applyEntryNormal.specOn` → `adminEntryOn.spec` (AdminEntryOn.lean:76)
+   → Apply.adminSpecL/uberAdmC (ApplyFnAdminL) → dispatch.adminSpec → AdminChain → fuelSpecX).
+   Take two more receipts (and later credits: `srvWTPool_take_extra` needs `⧗ 1 ∗ £ 1` each;
+   `srvWTPool_take_two`, InvApplier.lean:1523) at further Go steps there, convert to two
+   `srvWT E` (= `bkWT d` = `wbTok d.γB` at the current backend, `apply.bkWT`, Contracts.lean:127),
+   and thread them down that chain to the store call. Boot's 2 extra: from
+   `□ (⧗ 1 ={⊤}=∗ wbTok)` (srvWTPool / srvWTStockInv) into `authKitIn`'s on row (AuthSrv:114),
+   discharged by NewServer. Expect ~40 files; check `etc/importers.py --uses`.
+2. **S1 option A** (unchanged from below; decided, not started).
+3. The finish (notes, interfaces, tcb, collections + `irrDecode_utf8` in authkv's, gates, Freeze
+   F1 section, full build), then STOP for 81's axiom re-review. Do not land.
+
+### S1 option A (details, decided)
+
+`auth.tpReady M` (`.on γa`: persistent one-shot "shot" at a new
    ghost name, e.g. a field of `AuthNames` or a name allocated with them; other modes `True`) in
    the info clause of `tokenProviderOkA`/`tokenProviderOk` (InvAuth ~740-790) and so in the store
    specs `authInfoFromToken`/`AuthInfoFromCtx`; `simpleWaitOk p` becomes
@@ -88,10 +100,18 @@ Waiting for 81's decision (questions.md).
    server's read view. STOP if a closed theorem's statement changes (81 expects none). Then
    AuthSrv `authSrvTP_on` drops `hValid`; Results `srv_auth_tp_on`/`server_new_auth_on`, authkv
    Results (exported, strictly stronger: CP).
-4. Notes (`notes/auth-validspec-false.md`, `notes/auth-schema-srv-refuted.md` status, decisions.md
-   entry, STATUS.md), interfaces (`etc/gen-interface.py etc/api/<pkg>.txt`), tcb collections
-   (authkv: + `irrDecode_utf8`), Freeze package `/shared/tmp/auth-safe/freeze-fix.md` complete
-   (F4 and F1 old → new with Go evidence); full build; STOP for 81's axiom re-review. Do not land.
+Finish details: `notes/auth-validspec-false.md`, `notes/auth-schema-srv-refuted.md` status,
+decisions.md entry, STATUS.md; `etc/gen-interface.py etc/api/<pkg>.txt`; tcb collections (authkv:
++ `irrDecode_utf8`); Freeze package F1 section.
+
+## Build status (2026-11-12)
+
+F4 targeted builds pass: auth Fuel/Boot and all store methods; apply AdminChain, DispatchAdmin,
+Apply, ApplyFnAdmin, AuthFuel, AuthStepsX, DispatchKVL, authApplierV3__Apply, ApplyAdminL,
+uberApplier__dispatch; etcdserver SnapAuthRecover; and the mid-level importers
+(auth LatestTie/TieRes/NewAuthStoreOn, apply.Link, StoreLatest, AdminEntryOn, ApplyNormalOn,
+EtcdServer__applyEntryNormal, UberOn, UberKit, SnapRecvOn, ApplyAllSnap: 5134 jobs, pass). AuthSrv and everything importing it (etcdserver Results/Link,
+the examples) still fail on S1's `hValid` (expected until S1 option A).
 
 ## Pitfalls
 
