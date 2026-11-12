@@ -135,8 +135,8 @@ theorem MemoryStorage.Entries.wp_proof
   have Hσents : σ.ents = ents := by rw [← Hσ]; rfl
   iNamed Hfields_inv
   icases Hents with #Hents
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es (dummy :: σ.ents) 0 dummy rfl $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  icases entsROz_lookup _ es (dummy :: σ.ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   wp_auto
   rw [ite_eq_left ⟨by word, by word⟩]
@@ -183,19 +183,19 @@ theorem MemoryStorage.Entries.wp_proof
       ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo) := by
     rw [Hσprev, Hσents, ← HEw]
     congr 2 <;> word
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms γs.sz σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists _, _, _, _, _, _, _, _
     iframe HhardState Hents_f Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hents Hents_cap
     ipureintro
     exact ⟨Hd0, Hd1⟩
-  wp_apply wp_MemoryStorage_lastIndex ms σ Hpb' $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms γs.sz σ Hpb' $$ [$Hf] as %li ⟨%Hli, Hf⟩
   rw [Hd0]
   unfold memstorageFields
   iNamed Hf
   icases Hents with #Hents
   clear Hcl Hl0
-  ihave %Hcl := entsRO_cons_len $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
   obtain ⟨Hd0', Hd1'⟩ := Hdummy
   wp_if_destruct
   · exfalso; word
@@ -261,7 +261,7 @@ theorem MemoryStorage.Entries.wp_proof
           go.arrayIndexRef_0])
     (by simp only [slice.fullSlice]; word)
     (by simp only [slice.fullSlice]; word) $$ Hs1
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms γs.sz σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists _, _, _, _, _, _, _, _
     iframe HhardState Hents_f Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hents_cap

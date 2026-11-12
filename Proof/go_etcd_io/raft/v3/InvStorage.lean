@@ -294,6 +294,43 @@ instance isStorageP_pers (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd : Nat �
     (DL : Nat → IProp GF) (st : Storage) : Persistent (isStorageP sz SV Bnd DL st) := by
   unfold isStorageP; infer_instance
 
+/-- (out_size C3) A sized storage's contract is the unsized one's. -/
+theorem entsPtsC_unsize (sz : Bool) (s : GoSlice) (dq : DFrac) (cs : List EntryC) :
+    entsPtsC (GF := GF) sz s dq cs ⊢ entsPtsC false s dq cs := by
+  unfold entsPtsC
+  iintro ⟨%ls, Hs, Hb, -⟩
+  iexists ls
+  iframe Hs Hb
+  ipureintro; intro h; exact absurd h (by simp)
+
+/-- (out_size C3) A sized storage meets the unsized contract (`Entries`' extra facts dropped). -/
+theorem isStorageP_unsize (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF)
+    (DL : Nat → IProp GF) (st : Storage) :
+    isStorageP sz SV Bnd DL st ⊢ isStorageP false SV Bnd DL st := by
+  unfold isStorageP
+  iintro ⟨%i, %Hi, #HL, #HT, #HE, #HF, #HS, #Hb, #Hlen⟩
+  iexists i
+  iframe HL HT HF HS Hb Hlen
+  isplitr
+  · ipureintro; exact Hi
+  iintro %k %dq1 %dq2 %a %b %lo %hi %maxSize %ec
+  imodintro
+  iintro %Φ Hpre HΦ
+  wp_apply HE $$ %k %dq1 %dq2 %a %b %lo %hi %maxSize %ec [$Hpre] as %sl %es %err ⟨H1, H2, Hres⟩
+  iapply HΦ $$ %sl %es %err
+  iframe H1 H2
+  icases Hres with (Hl | ⟨%Herr, ⟨%cs, Hcs, %Hcs⟩, %Hpost⟩)
+  · ileft; iexact Hl
+  · iright
+    isplitr
+    · ipureintro; exact Herr
+    isplitl
+    · iexists cs
+      isplitl
+      · iapply entsPtsC_unsize $$ Hcs
+      · ipureintro; exact ⟨Hcs.1, fun h => absurd h (by simp)⟩
+    · ipureintro; exact Hpost
+
 end rangeContract
 
 /-! ## The snapshots' certificates as raft carries them (U8 v2; γ-free pins) -/

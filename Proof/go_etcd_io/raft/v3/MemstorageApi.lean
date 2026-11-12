@@ -82,9 +82,18 @@ theorem memStorage_isStorage
     (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
     (hsz : γ.maxData.isSome = true → γs.sz = true) :
     ⊢ memStorInv (GF := GF) ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms) := by
-  -- out_size C2: the proof (P2) weakens `memStorage_isStorageP` at `γs.sz` to `γ.maxData.isSome`
-  -- by `hsz` (a sized storage's contract implies the unsized one's)
-  sorry
+  unfold memStorInv isStorage
+  by_cases h : γ.maxData.isSome = true
+  · have e : γ.maxData.isSome = γs.sz := by rw [h, hsz h]
+    rw [e]
+    exact memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
+      (memStorJ γ K)
+  · have e : γ.maxData.isSome = false := by simpa using h
+    rw [e]
+    iintro #Hinv #Hreg
+    iapply isStorageP_unsize
+    iapply memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
+      (memStorJ γ K) $$ Hinv Hreg
 
 end api
 

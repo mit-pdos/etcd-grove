@@ -152,6 +152,53 @@ theorem entRZ_true (sz : Bool) (l : Loc) (e : EntryM) :
   ipureintro
   exact ⟨Hm.1, fun _ => Hm.2 rfl⟩
 
+section alloc
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (out_size C3) **A freshly allocated `*pb.Entry`**, as `entOwn_of_struct` takes it, frozen at the
+content it was built with (no unknown fields, so its bytes are its `Data`'s): an `entRZ sz` when its
+data is within the bound. -/
+theorem entRZ_of_struct (sz : Bool) (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) (hd : sz = true → e.Data'.length ≤ entBytesMax) :
+    (l ↦ v ∗ cellRO v.Term' e.Term' ∗ cellRO v.Index' e.Index' ∗ cellRO v.Type' e.Type' ∗
+      v.Data' ↦*□ e.Data' : IProp GF) ⊢ |={E}=> entRZ sz l e := by
+  iintro ⟨Hl, #cT, #cI, #cY, #Hd⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hl
+  icases typedPointsto_split _ _ _ $$ Hl with Hl
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hl with ⟨state, Term, Index, Ty, Data, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.Entry l v.state' v.sizeCache' slice.nil [] E (ufWire_nil _)
+    $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Term with #HT
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Index with #HI
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ty with #HY
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Data with #HD
+  ihave ⟨%oT, #oT', %hT⟩ := cellRO_optCell _ e.Term' $$ cT
+  ihave ⟨%oI, #oI', %hI⟩ := cellRO_optCell _ e.Index' $$ cI
+  ihave ⟨%oY, #oY', %hY⟩ := cellRO_optCell _ e.Type' $$ cY
+  ihave ⟨%oD, #oD', %hD⟩ := ownSlice_bytesC _ e.Data' $$ Hd
+  imodintro
+  unfold entRZ
+  iexists ⟨oT, oI, oY, oD, []⟩
+  isplitl
+  · unfold entRoC
+    iexists v.Term', v.Index', v.Type', v.Data'
+    iframe HT HI HY HD Hpb oT' oI' oY' oD'
+    ipureintro; exact Hnn
+  ipureintro
+  refine ⟨?_, fun h => ?_⟩
+  · obtain ⟨a, b, c, d⟩ := e
+    simp only [EntryC.model] at *
+    rw [hT, hI, hY, hD]
+  · simp only [entSizeOk, entBytes, List.length_nil, Nat.add_zero]
+    rw [hD]; exact hd h
+
+end alloc
+
 /-! ### Lists of entries -/
 
 theorem entsBigZ_length (sz : Bool) (ls : List Loc) (es : List EntryM) :
@@ -307,16 +354,73 @@ theorem entsPtsZ_nil (sz : Bool) (dq : DFrac) : ⊢ entsPtsZ (GF := GF) sz slice
   · iapply ownSlice_nil
   · iapply BigSepL2.bigSepL2_nil.2; iempintro
 
-/-- (out_size C2; proof at P2) The list form hides its contents. -/
+theorem entsBigC_entsBigZ (sz : Bool) : ∀ (ls : List Loc) (cs : List EntryC),
+    (sz = true → ∀ c ∈ cs, entSizeOk c) →
+    ([∗list] l;c ∈ ls;cs, entRoC (GF := GF) l c) ⊢ [∗list] l;e ∈ ls;cs.map EntryC.model, entRZ sz l e
+  | [], [], _ => by
+    iintro -
+    simp only [List.map_nil]
+    iapply BigSepL2.bigSepL2_nil.2; iempintro
+  | [], _ :: _, _ => false_elim
+  | _ :: _, [], _ => false_elim
+  | l :: ls, c :: cs, h => by
+    iintro ⟨#H, #Hr⟩
+    simp only [List.map_cons, BigSepL2.bigSepL2_cons]
+    isplitl
+    · unfold entRZ
+      iexists c
+      iframe H
+      ipureintro
+      exact ⟨rfl, fun hs => h hs c (by simp)⟩
+    · iapply entsBigC_entsBigZ sz ls cs (fun hs c' hc' => h hs c' (by simp [hc'])) $$ Hr
+
+theorem entsBigZ_entsBigC (sz : Bool) : ∀ (ls : List Loc) (es : List EntryM),
+    ([∗list] l;e ∈ ls;es, entRZ (GF := GF) sz l e) ⊢
+      ∃ cs : List EntryC, ([∗list] l;c ∈ ls;cs, entRoC l c) ∗
+        ⌜cs.map EntryC.model = es ∧ (sz = true → ∀ c ∈ cs, entSizeOk c)⌝
+  | [], [] => by
+    iintro -; iexists []
+    isplitl
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    · ipureintro; simp
+  | [], _ :: _ => false_elim
+  | _ :: _, [] => false_elim
+  | l :: ls, e :: es => by
+    iintro ⟨#H, #Hr⟩
+    iunfold entRZ at H
+    icases H with ⟨%c, #Hc, %hc⟩
+    ihave ⟨%cs, #Hcs, %hcs⟩ := entsBigZ_entsBigC sz ls es $$ Hr
+    iexists (c :: cs)
+    simp only [BigSepL2.bigSepL2_cons, List.map_cons]
+    iframe Hc Hcs
+    ipureintro
+    refine ⟨by rw [hc.1, hcs.1], fun hs c' hc' => ?_⟩
+    rcases List.mem_cons.1 hc' with rfl | hc'
+    · exact hc.2 hs
+    · exact hcs.2 hs c' hc'
+
+/-- (out_size C2) The list form hides its contents. -/
 theorem entsPtsC_entsPtsZ (sz : Bool) (s : GoSlice) (dq : DFrac) (cs : List EntryC) :
     entsPtsC (GF := GF) sz s dq cs ⊢ entsPtsZ sz s dq (cs.map EntryC.model) := by
-  sorry
+  unfold entsPtsC entsPtsZ
+  iintro ⟨%ls, Hs, #Hb, %Hz⟩
+  iexists ls
+  iframe Hs
+  iapply entsBigC_entsBigZ sz ls cs Hz $$ Hb
 
-/-- (out_size C2; proof at P2) ... and recovers them, by induction as `entsRO_entsRoC`. -/
+/-- (out_size C2) ... and recovers them. -/
 theorem entsPtsZ_entsPtsC (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :
     entsPtsZ (GF := GF) sz s dq es ⊢
       ∃ cs : List EntryC, entsPtsC sz s dq cs ∗ ⌜cs.map EntryC.model = es⌝ := by
-  sorry
+  unfold entsPtsC entsPtsZ
+  iintro ⟨%ls, Hs, #Hb⟩
+  ihave ⟨%cs, #Hcs, %hcs⟩ := entsBigZ_entsBigC sz ls es $$ Hb
+  iexists cs
+  isplitl
+  · iexists ls
+    iframe Hs Hcs
+    ipureintro; exact hcs.2
+  · ipureintro; exact hcs.1
 
 /-- An entry slice, frozen read-only. -/
 theorem entsPtsZ_persist (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :

@@ -63,8 +63,8 @@ theorem MemoryStorage.Compact.wp_proof
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   icases Hents with #Hents
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es (dummy :: (memPhys p ents).ents) 0 dummy rfl $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  icases entsROz_lookup _ es (dummy :: (memPhys p ents).ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   have Hd0i : dummy.Index' = p.index' := Hdummy.1
   have Hd0t : dummy.Term' = p.term' := Hdummy.2
@@ -138,14 +138,14 @@ theorem MemoryStorage.Compact.wp_proof
     rw [← Hok.2.2.1 _ Hgt Hlt]; exact HMe
   have Hei : uint.nat e.Index' = uint.nat ci := by
     have := Hok.2.2.2.2.2 _ e HeE; omega
-  ihave Hf : memstorageFields ms (memPhys p ents) $$ [HhardState Hents_f Hents_cap
+  ihave Hf : memstorageFields ms γs.sz (memPhys p ents) $$ [HhardState Hents_f Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists hp, es, dummy, nfi, nli, nen, nte, nsn
     simp only [named]
     iframe # ∗
     ipureintro; exact Hdummy
-  wp_apply wp_MemoryStorage_lastIndex ms (memPhys p ents) Hpb $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms γs.sz (memPhys p ents) Hpb $$ [$Hf] as %li ⟨%Hli, Hf⟩
   simp only [memPhys] at Hli
   wp_if_destruct
   · exfalso; word
@@ -154,7 +154,7 @@ theorem MemoryStorage.Compact.wp_proof
   iNamedSuffix Hf "_1"
   have Hd1i : dummy1.Index' = p.index' := Hdummy_1.1
   icases Hents_1 with #Hents_1
-  ihave %Hcl1 := entsRO_cons_len $$ Hents_1
+  ihave %Hcl1 := entsROz_cons_len _ _ _ _ $$ Hents_1
   have Hcl1' : ents.length + 1 = sint.Z es1.len := Hcl1.2
   wp_auto
   wp_apply wp_slice_make3 (V := Loc) (W64 1) _ as %sl ⟨Hsl, Hsl_cap, %Hslcap⟩
@@ -165,11 +165,12 @@ theorem MemoryStorage.Compact.wp_proof
       (uint.nat ci - uint.nat p.index' - 1) + 1 by word]
     exact HeE
   ihave #Hents1 := Hents_1
-  iunfold entsRO at Hents1
-  iunfold entsPts at Hents1
+  iunfold entsROz at Hents1
+  iunfold entsPtsZ at Hents1
   icases Hents1 with ⟨%ls1, #Hls1, #Hbig1⟩
-  icases entsBig_lookup ls1 (dummy1 :: (memPhys p ents).ents) _ e He' $$ Hbig1 with ⟨%lk, %Hlk, #Hek⟩
-  ihave %Hbl1 := entsBig_length $$ Hbig1
+  icases entsBigZ_lookup_RO γs.sz ls1 (dummy1 :: (memPhys p ents).ents) _ e He' $$ Hbig1
+    with ⟨%lk, %Hlk, #Hek⟩
+  ihave %Hbl1 := entsBigZ_length γs.sz _ _ $$ Hbig1
   rw [ite_eq_left ⟨by word, by word⟩]
   wp_apply wp_load_slice_index es1 (sint.Z (ci - p.index')) ls1 DFrac.discard lk (by word) $$ [Hls1] with -
   · iframe Hls1; ipureintro; exact Hlk
@@ -184,11 +185,10 @@ theorem MemoryStorage.Compact.wp_proof
   imod cellRO_alloc $$ «$v0» with #cI
   imod cellRO_alloc $$ «$v1» with #cT
   let d' : EntryM := EntryM.mk e.Term' e.Index' (zero_val raftpb.EntryType) []
-  imod entOwn_of_struct «$r0_ptr» (raftpb.Entry.mk zeroValDef «$v1_ptr» «$v0_ptr» null slice.nil slice.nil 0) d' ⊤ rfl $$ [«$r0»] with Hd'
+  imod entRZ_of_struct γs.sz «$r0_ptr» (raftpb.Entry.mk zeroValDef «$v1_ptr» «$v0_ptr» null slice.nil slice.nil 0) d' ⊤ rfl (fun _ => Nat.zero_le _) $$ [«$r0»] with #Hd'
   · iframe «$r0» cT cI
     isplitl []; · iapply cellRO_null
     iapply ownSlice_nil
-  imod entOwn_freeze $$ Hd' with #Hd'
   ihave %Hsllen := ownSlice_len $$ Hsl
   simp only [List.length_replicate] at Hsllen
   rw [ite_eq_left ⟨by word, by word⟩]
@@ -208,11 +208,11 @@ theorem MemoryStorage.Compact.wp_proof
     rw [List.take_of_length_le (by simp only [List.length_cons]; word)]
     rw [show sint.nat (ci - p.index' + W64 1) = (uint.nat ci - uint.nat p.index') + 1 by word]
     rfl
-  ihave #Hb2 := entsBig_subslice (sint.nat (ci - p.index' + W64 1)) (sint.nat es1.len)
+  ihave #Hb2 := entsBigZ_subslice γs.sz (sint.nat (ci - p.index' + W64 1)) (sint.nat es1.len)
     ls1 (dummy1 :: (memPhys p ents).ents) $$ Hbig1
-  ihave #Hes2 : entsRO es' (d' :: subslice (sint.nat (ci - p.index' + W64 1))
+  ihave #Hes2 : entsROz γs.sz es' (d' :: subslice (sint.nat (ci - p.index' + W64 1))
       (sint.nat es1.len) (dummy1 :: (memPhys p ents).ents)) $$ []
-  · iunfold entsRO; iunfold entsPts
+  · iunfold entsROz; iunfold entsPtsZ
     iexists («$r0_ptr» :: subslice (sint.nat (ci - p.index' + W64 1)) (sint.nat es1.len) ls1)
     isplitr
     · iExactEq Hes'
