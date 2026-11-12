@@ -7,6 +7,7 @@ so far (exact at every held byte) and the rest of `b` (anything).
 -/
 module
 
+public import Proof.os.ErrorOk
 public import Spec.os.File__ReadAt
 
 @[expose] public section
@@ -140,7 +141,9 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
     · iframe
     ihave Hbs := hbsj $$ [Hbs1 Hbs2]
     · iframe
+    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
     iapply HΦ
+    iframe Hokn
     iframe
     isplitl []
     · isplitl [] <;> iassumption
@@ -191,12 +194,14 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
         have he0' : ¬ e = W64 0 := he0
         simp only [decide_eq_false he0', Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         ihave Hsl := hcomb cur $$ [Hpre Hcur]
         · iframe
         ihave Hbs := hbsj $$ [Hbs1 Hbs2]
         · iframe
         iapply HΦ
+        iframe Hokn
         iframe
         isplitl []
         · isplitl [] <;> iassumption
@@ -283,12 +288,14 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+          ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
           ihave Hsl := hcomb _ $$ [Hpre Hcur]
           · iframe
           ihave Hbs := hbsj $$ [Hbs1 Hbs2]
           · iframe
           iapply HΦ
+          iframe Hokn
           iframe
           isplitl []
           · isplitl [] <;> iassumption

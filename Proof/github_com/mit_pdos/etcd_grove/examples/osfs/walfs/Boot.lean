@@ -1243,7 +1243,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
       (by rw [List.length_replicate, h8]; decide) (by rw [List.length_replicate, h8]; decide)
       (by rw [List.length_replicate, h8]; simp; omega)
       (by rw [List.length_replicate, h8]; exact hbl) $$ [Hos Hf Hbuf Hfd Hm Hb]
-    as %n %err ⟨Hf, Hfd, Hm, Hb, %vs', Hbuf, %Hres⟩
+    as %n %err ⟨Hf, Hfd, Hm, Hb, %vs', Hbuf, %Hres, -⟩
   · iframe; iexact Hos
   (try wp_auto)
   wp_apply wp_Close f fd (child d segB) ⟨i, true, false⟩ $$ [Hos Hf Hfd] as %e -

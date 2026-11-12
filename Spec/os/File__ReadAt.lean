@@ -10,6 +10,7 @@ anything. Proved in `Proof/os/File__ReadAt.lean`. Lean-first (no Rocq counterpar
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -45,7 +46,8 @@ abbrev os.File.ReadAt.spec : Prop :=
       ∃ vs' : List w8, sl ↦* vs' ∗
         ⌜vs'.length = vs.length ∧
           ((n = W64 vs.length ∧ err = interface.nil ∧ vs' = xs.map Prod.fst) ∨
-           err ≠ interface.nil)⌝ }}
+           err ≠ interface.nil)⌝ ∗
+        fmtErrorOkOrNil err }}
 
 /-- A racing `f.ReadAt(b, off)` (minibolt's `Snapshot`, which reads while the writer may write
 past what it knows, or a meta page it does not hold): no `OsMeta`, and bytes of the file held at
