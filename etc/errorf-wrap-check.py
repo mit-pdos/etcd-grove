@@ -34,7 +34,8 @@ def main():
     bad = []
     for f in sorted(ROOT.glob('**/*.lean')):
         rel = f.relative_to(ROOT)
-        if rel.parts[0] in ('.lake', 'old', 'Code', 'GeneratedProof') or 'Code' in rel.parts[:2]:
+        # SpecPlan/: the spec plan, specs only (no proof steps into any model)
+        if rel.parts[0] in ('.lake', 'old', 'Code', 'GeneratedProof', 'SpecPlan') or 'Code' in rel.parts[:2]:
             continue
         s = f.read_text()
         if MODEL.search(s) and STEP.search(s) and str(rel) not in REVIEWED:

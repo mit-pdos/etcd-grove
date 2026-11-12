@@ -17,6 +17,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
+
+Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
+the input. Go's sort (pdqsort) is deterministic: the output is a function of the input slice and
+the comparator. etcd's sorted ranges (`txn.sortRangeResults`) need the reply to be a function of the
+store, so that a writing transaction's answer is fixed at commit (`notes/specs-only/batch-3b.md`,
+decision 1: `Txn.goSort`, and 2c's read registry, 3a's `applyStep_fun`). The general change: state
+the sort's result as `goSort less xs` for a pure, opaque-but-functional `goSort` with the
+sorted-permutation law, so any client can use determinism. Not shaped by one proof: determinism is
+a fact of Go's implementation every caller may rely on. Not yet proposed upstream.
+
+### Goose leaves a `select` case's variable unbound in the `default:` branch (2026-11-09, specs-only batch 2b)
+
+In etcd's `serverWatchStream.recvLoop` (`server/etcdserver/api/v3rpc/watch.go`), a type switch's
+`default:` branch reads the switched variable `uv`; the translation leaves `uv` unbound in that
+branch, so the branch is stuck in the model (a model artifact: Go runs it). Found while writing the
+specs-only branch's watch-server specs, which restrict the scope to well-formed client requests
+partly because of it (`notes/specs-only/batch-2b.md`). To fix in Goose (bind the switched value in
+every branch, `default` included); not yet reported upstream.
+
 ### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
 
 - **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)
@@ -2134,3 +2154,86 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
 - **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
 - **Status.** Local lemma; to be proposed.
+
+## `fmt.Errorf`'s spec does not admit an error argument (`%w`) or a `Stringer` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's `fmt.Errorf.spec` requires `ArgsWf` (basic-typed arguments). Three calls the
+  specs-only branch specifies fall outside it: mvcc's `rangeKeys` (`fmt.Errorf("…: %w", ctx.Err())`,
+  `kvstore_txn.go:121`), raft confchange's `Changer.apply` (a `ConfChangeType`, which has `String`) and
+  raftpb's `ConfState.Equivalent` (four `*ConfState`s).
+- **Local workaround.** raftpb states a local assumed spec, `RaftPb.fmtErrorf.spec`
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`); mvcc's `rangeKeys` proof will rest on the model at
+  that step (`Mvcc.rangeCtxErr`'s laws: non-nil, fresh, none of mvcc's sentinels). Related: the entry
+  above (the model can be unfolded to learn false facts).
+- **Proposed (general; record only, nothing changed in Perennial).** `fmt.Errorf.spec` for a `%w` argument
+  (a fresh wrapping error whose `Unwrap` is the argument) and for arguments with a `String`/`Error`
+  method (the method's spec called with the caller's ownership).
+- **Status.** Recorded only.
+
+## OsFs: no `rename`, and no crash case reverting an unsynced rename (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's OsFs model has no `rename`, and its crash relation cannot bring back the file a
+  rename replaced when the directory was not fsynced afterwards. etcd renames onto live paths: defrag
+  (`os.Rename(tdbp, dbp)`, `backend.go:557`) and the snapshot install (`snap.dbFile_rename`), and fsyncs
+  the directory only in some paths.
+- **Local workaround.** The specs-only branch states `Snap.dbFile_rename` as a trusted triple and gives the
+  backend a `beRevert`/`beNoRevert` token with a revert case in `beCrash`
+  (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/`); that case's realization is open until OsFs has it.
+  The second crash pass (`notes/specs-only/verify/repair5-crash.md`, G-b) adds two more uses of the same
+  gap: a file renamed over while still open (`Backend.beDetached`, `applySnapshot`'s old backend, whose
+  open handle keeps the unlinked inode until `Close`), and its close or crash folding that inode's image
+  into the revert list (`beCloseUpd`'s detached form, `beDetached_crash`): both need OsFs's files to be
+  inodes a rename can unlink while open, not paths.
+- **Proposed (general; record only, nothing changed in Perennial).** OsFs `rename` with POSIX semantics,
+  its crash case (the old directory entry survives unless the directory was fsynced after the rename),
+  and a directory fsync.
+- **Status.** Recorded only.
+
+## The crash frame cannot take client-owned durable state out of an invariant opened inside atomic updates (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's crash frame (`CrashAdequacy.lean`) is proved at boot and gets only invariants
+  and its own closure. A program keeps its durable resources (etcd's `EtcdServer.diskState`; 4a's
+  `beHist`, 4c's `boltState`, the WAL's and the snapshotter's) in an invariant that the running code
+  opens inside callees' atomic updates (the WAL's `Save`, `SaveDBFrom`, bbolt commits). To apply a crash
+  law, the frame must take those resources out of the invariant; an accessor fired inside a callee's
+  atomic update cannot rule out that the frame already took them, since that needs the generation's
+  `notCrashed`, which only a thread's step owns (through the state interpretation).
+- **Local workaround.** The specs-only branch states the crash laws (`disk_crash`, `beCrash`,
+  `boltCrash`, ...) over resources held in the invariant and records the extraction as a gap
+  (`notes/specs-only/verify/repair2-crash.md`, decision 1; `top.md` K6).
+- **Proposed (general; record only, nothing changed in Perennial).** A crash-aware invariant: opened only
+  at a thread's step (which refutes `crashed`), and handed whole to the crash frame. Alternative: durable
+  extension operations whose atomic updates admit a `crashed` answer, refuted at their own step.
+- **Status.** Recorded only.
+
+## No WP step lemma refutes the generation's `crashed` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Every thread step's state interpretation holds the generation's `notCrashed`
+  (`Lifting.lean:752`, `goose_bstateInterp_eq`), and `notCrashed_crashed` (`CrashToken.lean:50`)
+  refutes `crashed` with it, but no lemma hands a WP step that fact: nothing proves
+  `crashed -∗ WP e {{ Φ }}` for an expression that takes a step, or lets an atomic step's proof use
+  `notCrashed` (a grep for uses of `notCrashed_crashed`, or for `crashed -∗ WP`, finds none).
+- **Who needs it.** The specs-only branch's per-generation tokens are a token **or the generation's
+  `crashed`** (raft's `nodeVacant`, 2e's `diskIdle`; `notes/specs-only/verify/repair4-raft-crash.md`,
+  open question D28), so that the crossing laws hold at every next generation, the current one
+  included; their realizations refute the `crashed` disjunct at the consumer's first step (raft's
+  `StartNode`/`RestartNode`, `NewServer`), which needs this lemma (`verify/F2-crash.md`, second tier
+  s1). Distinct from the crash-aware invariant entry above, which is about the crash frame taking
+  resources out of an invariant; this one is about a running thread ruling out `crashed`.
+- **Local workaround.** None needed in the statements: the realizations' text cites the step fact,
+  and the laws are stated as obligations.
+- **Proposed (general; record only, nothing changed in Perennial).** A lifting lemma
+  `wp_crashed_elim : ¬ IsValue e → crashed ⊢ WP e @ s; E {{ Φ }}` (the first step's state
+  interpretation gives `notCrashed`, hence `False`), and its atomic-step form for a step proof that
+  opens an invariant holding a `token ∨ crashed` disjunction.
+- **Status.** Recorded only.
+
+## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
+
+- **The gap.** raft's `DescribeConfChange` and raftpb's `ConfChangesToString` build strings with a
+  `strings.Builder` and `fmt.Fprintf`, which Perennial does not specify.
+- **Local workaround.** Both are stated as assumed trust-boundary specs on the specs-only branch
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/DescribeConfChange.lean`, `raftpb/ConfChangesToString.lean`).
+- **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
+  and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
+- **Status.** Recorded only.
