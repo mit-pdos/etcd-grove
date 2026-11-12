@@ -54,11 +54,13 @@ the restart point, `run` at `⟨|P|, A₀⟩`.
   in by etcd-grove-81; full build under the lock and the cap: 17301 jobs, exit 0
   (`/shared/tmp/restart-s4/full2.log`).
 
-## Next, in order
+## Next, in order (etcd-grove-81's plan, 2026-11-12)
 
-1. `etc/gates.sh` only when etcd-grove-81 says (the gates' Go tests collide on ports with another
-   landing's), then `etc/gen-interface.py --check` x5.
-2. STOP before `etc/land.sh` with the reviewer's verdict (approve with fixes; fixed).
+1. Wait for 81's message that WAL W4a has landed.
+2. Merge `lean` again; `etc/gen-interface.py --check` for raft, mvcc, backend, bbolt, etcdstart.
+3. `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh`
+   (81's go, given for after that merge; it runs the gates). If a Go gate fails with StartCluster or a
+   port error: rerun that test alone, then land.sh once more. Report the new `lean` hash; never push.
 
 ## Build
 
