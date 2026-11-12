@@ -697,7 +697,7 @@ The Draft regenerates the exact list (`etc/importers.py --uses runsNoRequireLead
   (`interface/Proof/.../lib/etcdstart/*.txt`).
 - Each Draft shows the diff.
 
-**Vacuity**, as for 7e: until the per-type landing (`pbEnc_ok`), sweep repairs 1 and the grpc serve
+**Vacuity (resolved 2026-11-12: per-type stages A and B and sweep repairs 1 landed)**, as for 7e: until the per-type landing (`pbEnc_ok`), sweep repairs 1 and the grpc serve
 pool's fix, these theorems are vacuous or rest on false axioms. 7f's value arrives with them.
 
 ## 8. The Go prototype

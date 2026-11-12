@@ -343,7 +343,7 @@ binders.
   `NewTooLargeResourceVersionError`, told apart from the client's errors by 7c's T2(c)). The
   driver's `errOut`, `call` and `Apply` proofs follow.
 
-**Vacuity.** Like every `_safe` theorem, these are vacuous until the `pbEnc_ok` per-type fix
+**Vacuity (resolved 2026-11-12: per-type stages A and B and sweep repairs 1 landed).** Like every `_safe` theorem, these are vacuous until the `pbEnc_ok` per-type fix
 lands. They rest on false axioms until sweep repairs 1, among them the `DefaultFeatureGate`
 initializer that §4.1 restates jointly. 7e's results have their value once both land.
 

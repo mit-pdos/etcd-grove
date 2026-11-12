@@ -1,11 +1,11 @@
 // Package bboltfs is the acceptance test of the Linux file extension of
-// notes/osfs-ext-plan.md (files, fsync, mmap): minibolt (minibolt.go), a
+// notes/fs-semantics-v2.md (files, fsync, mmap): minibolt (minibolt.go), a
 // two-meta-page store that calls the operating system exactly as
 // go.etcd.io/bbolt does (bolt_unix.go, bolt_linux.go, db.go, tx.go), with
 // bbolt's flags, and three programs to verify over it (programs.go). README.md
 // says what each exercises. Every program takes the directory it works in as
-// its parameter and opens only dir+"/db": the model's set of allowed paths is
-// fixed, and a program's precondition says that path is allowed.
+// its parameter and opens only dir+"/db": dir is one of the model's roots, and
+// a program's precondition says dir is a directory and dir+"/db" names nothing.
 //
 // The page and meta layout below is internal/common's, as in Perennial's
 // goose/testdata/examples/unsafememory (meta.go, page.go).

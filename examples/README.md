@@ -67,6 +67,7 @@ names).
 |---|---|---|
 | `osfs/bboltfs` | `bboltfs` | minibolt, the file extension's acceptance test |
 | `osfs/crashlog` | `crashlog` | the smallest crash-safe program: a commit flag guarding 8 bytes |
+| `osfs/semantics` | – | not a program: one Go example per decision of the file extension's semantics, saying why (not translated) |
 
 ## `goose/`: proof techniques over goose's primitives
 

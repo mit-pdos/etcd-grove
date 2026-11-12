@@ -1,0 +1,16 @@
+// fs-v2-r6 wal: mechanism B's precondition, counted directly: a write(2) copying into a page-cache
+// folio that is under writeback (PG_writeback, bit 1 of folio->flags) when the copy is committed
+// (ext4_da_write_end). Without stable pages the device may read such a folio while the copy changes
+// it, and write a mix of the two versions. COMM is the writer's command name (walw, or tearw as
+// the positive control).
+//   @writes        write_end calls of COMM
+//   @under_wb      of them, into a folio under writeback
+//   @under_wb_off  the same, by the write's in-page start offset (bucketed)
+kprobe:ext4_da_write_end /comm == str($1)/ {
+  @writes = count();
+  $f = (struct folio *)arg5;
+  if ($f->flags.f & 2) {
+    @under_wb = count();
+    @under_wb_off = lhist(arg2 % 4096, 0, 4096, 512);
+  }
+}

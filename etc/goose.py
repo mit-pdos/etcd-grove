@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -598,42 +598,73 @@ PROJECTS = [
     ),
     Project(
         name="bboltfs",
-        # minibolt and its programs (`examples/osfs/bboltfs`), the acceptance test of the Linux file
-        # extension osFsExt (GooseLang/Ext/OsFs, notes/osfs-ext-plan.md). Its `os`, `syscall` and
-        # `golang.org/x/sys/unix` are this repository's translations, not Perennial's (whose
-        # `os.toml` trusts nothing): the constants and types minibolt needs, and the functions it
-        # calls trusted, modeled by the extension's operations (TrustedCode/os.lean,
-        # TrustedCode/syscall.lean, TrustedCode/golang_org/x/sys/unix.lean). A package of the
+        # This repository's translations of `os`, `syscall`, `golang.org/x/sys/unix`, `io/fs`,
+        # `internal/poll` and `internal/syscall/unix` (not Perennial's, whose `os.toml` trusts
+        # nothing): the constants and types their users need, and the functions they call trusted
+        # (`TrustedCode/os.lean`, `TrustedCode/syscall.lean`, `TrustedCode/golang_org/x/sys/unix.lean`),
+        # translated twice:
+        # * into the main tree, configured by `Code/**.toml`, modeled by the first Linux file extension
+        #   `osFsExt` (`GooseLang/Ext/OsFs`, path-keyed): real bbolt's (project bbolt) and the other
+        #   projects' `os`;
+        # * into the part `LinuxFs/` (`LinuxFs/Code/**.toml`), modeled by the per-byte extension
+        #   `fsExt` (`GooseLang/Ext/Fs`, notes/fs-semantics-v2.md), with minibolt and its programs
+        #   (`examples/osfs/bboltfs`), the extension's acceptance test.
+        # The two coexist until real bbolt is ported onto `fsExt` (branch `bbolt-port-wip`,
+        # notes/bbolt-port-plan.md). (`io/fs`: the types `os` names; `internal/poll`,
+        # `internal/syscall/unix`: what `os`'s translated initializer reads.) A package of the
         # examples' Go module (examples/go.mod).
         repo=None,
         rev=None,
         local=os.path.join("examples", "osfs", "bboltfs"),
-        # (`io/fs`, which Perennial does not translate: the types `os` names, `FileInfo`,
-        # `FileMode` and `PathError`, the errors the models return)
-        # (`internal/poll` and `internal/syscall/unix`, 2026-11-07: what `os`'s translated
-        # initializer reads; Perennial's import its own `syscall`)
         lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
                     "io/fs=", "internal/poll=", "internal/syscall="],
-        packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
+        packages=["os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
                   "internal/syscall/unix"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),
-               "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs"),
+        owned=["os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs"),
                os.path.join("internal", "poll"), os.path.join("internal", "syscall")],
+        parts=[Part(
+            root="LinuxFs",
+            lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
+                        "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
+                        "internal/syscall=LinuxFs"],
+            packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
+                      "internal/syscall/unix"],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),
+                   "os", "syscall", os.path.join("golang_org", "x", "sys"), os.path.join("io", "fs"),
+                   os.path.join("internal", "poll"), os.path.join("internal", "syscall")])],
     ),
     Project(
         name="crashlog",
-        # the smallest crash-safe program over the Linux file extension (`examples/osfs/crashlog`): a
-        # commit flag guarding 8 bytes of data, proved crash-safe end to end
-        # (Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/). Its `os` and `syscall` are
-        # project bboltfs's translations (the same lean roots), which own them; only the package
-        # itself is translated here. A package of the examples' Go module (examples/go.mod).
+        # the smallest crash-safe program over the per-byte Linux file extension
+        # (`examples/osfs/crashlog`): a commit flag guarding 8 bytes of data, proved crash-safe end to
+        # end (LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/). In the part
+        # `LinuxFs/`: its `os` and `syscall` are project bboltfs's translations there, which own them.
+        # A package of the examples' Go module (examples/go.mod).
         repo=None,
         rev=None,
         local=os.path.join("examples", "osfs", "crashlog"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs=", "internal/poll=", "internal/syscall="],
+        root="LinuxFs",
+        lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
+                    "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
+                    "internal/syscall=LinuxFs"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "crashlog")],
+    ),
+    Project(
+        name="walfs",
+        # the WAL's file-system calls (`examples/osfs/walfs`, notes/walfs-ext-plan.md): a segment
+        # committed by rename (segdir.go), a directory made to appear by rename (dirswap.go), a
+        # segment's own calls (seglog.go). In the part `LinuxFs/`, as crashlog. A package of the
+        # examples' Go module.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "osfs", "walfs"),
+        root="LinuxFs",
+        lean_roots=["github.com/mit-pdos/etcd-grove=LinuxFs", "os=LinuxFs", "syscall=LinuxFs",
+                    "golang.org/x/sys=LinuxFs", "io/fs=LinuxFs", "internal/poll=LinuxFs",
+                    "internal/syscall=LinuxFs"],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "walfs")],
     ),
     Project(
         name="durablekv",

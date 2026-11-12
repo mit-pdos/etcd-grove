@@ -102,6 +102,15 @@ counter and thread tokens").
    - *A wrong package-init fact* (`opaqueInitsOk`, `*_init`): read the variable after init and check
      the claimed value.
    If no gap is found, try the claims one by one anyway: the axiom survives only the attacks tried.
+   *A trusted semantics of an OS interface* (a GooseLang extension's `Impl`, such as the Linux file
+   extension): every claim about the kernel is about the extension's one target configuration
+   (for the file extension, C: `notes/axiom-review/fs-config/README.md`). Test it there: make the
+   filesystem with the configuration's helper (`fs-config/mkfs-mount.sh`, `check.sh`), never with
+   ad-hoc `mkfs`/mount options. Vary the starting state (an empty file, a file ending inside a
+   block, one ending on a block boundary, after a sync or a crash) and include the client's exact
+   case: one starting state can hide the behaviour (round 4's U1: a one-byte file's tail zeroing
+   made ext4 look ordered). A claim argued "from the source" or "from memory" gets a test before a
+   proof relies on it.
 4. **Make it real in Go first.** Write the package and the test; run it at the pinned toolchain and
    library revision; keep the output. If Go does not panic, the gap was not one: back to step 3.
 5. **Prove it.** Add a temporary project to `etc/goose.py` for the package (on the branch only;
