@@ -33,6 +33,55 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Handoff point (2026-11-12, end of the third agent's context): T-f' approved; the handle started
+
+T-f' approved by 81 (level 4 accepted). Gates still owed with the next landing: axiom-tok (+selftest),
+the 55 collections, gen-interface on the six lists, model-param, errdesc.
+
+Done since (lean-checked `-a`, 0 errors; not yet in a full build):
+- `Proof/.../v3rpc/InvCancellable.lean`: `v3rpc.ccLockF`/`ccCancelF`/`ccReasonF`, `v3rpc.ccPoolN`,
+  `v3rpc.reasonOk e r` (`nil` or `e`), `v3rpc.ccReasonP l e q` (fractional, timeless:
+  `fractional_exists_agree` over the subtype of good reasons), `v3rpc.ccHandle l c1 cd`
+  (persistent; fields `↦□`, `isContext c1 cd`, `isCancelCtxOf c γ True`, `cancelSpec`, `noLeaderErr`,
+  the writer guard `isRWMutexGuard`, the reader pool `isThreadPoolL ccPoolN ctxErrLvl`).
+- `v3rpc.wp_WithCancel_cancelCtx` (`WrapperMd.lean`) also returns `isCancelCtxOf c γ' True`.
+
+**Next, in order** (each Go function a `Spec/.../v3rpc/<fn>.lean` + `Proof/.../v3rpc/<fn>.lean`, linked
+through `etc/link-lean-first-v3rpc.txt` and `etc/gen-link.py --v3rpc`-style regeneration; check
+`etc/gen-link.py`'s flag for v3rpc):
+1. `newCancellableContext.spec`: `{{ isPkgInit v3rpc ∗ isContext parent cd }} → (l : Loc), ∃ γ',
+   ccHandle l c1 {cd with PDone := True, Done_gn := γ'} ∗ ctxValueFrom parent c1 ∗ ctxField c ↦□
+   parent }}` (c1 the `*cancelCtx`). Proof: `v3rpc.wp_WithCancel_cancelCtx`; the struct alloc gives
+   the fields (persist `Context`, `cancel`); `sync.init_RWMutex_threadPoolL (ccReasonP l e) ccPoolN 4
+   (ccLockF l) Hb` with `Hb : threadBound GF ≤ 2^30` (find where the server's proofs get it:
+   `grep -rn 'threadBound GF ≤ 2 ^ 30'`); `e` from `interceptorVars`' `errVarSet ErrGRPCNoLeader`.
+2. `cancellableContext.Cancel.spec`: `ccHandle l c1 cd ∗ ⌜reasonOk e reason⌝` (state it as `reason =
+   nil ∨ noLeaderErr reason`, and get `= e` by the global's agreement) → `ContextClosed cd.Done_gn`.
+   Lock via `sync.RWMutex.wp_Lock_guard` (no token), store, `wp_Unlock_guard`, then `cancelSpec`.
+3. `cancellableContext.Err.spec`: `ccHandle ∗ levelTok 4` → `err`, token back, and after
+   `ContextClosed`: non-nil, `isCtxErr ∨ noLeaderErr`. Template: `lease/Lease__Remaining.lean`
+   (`threadPool.borrowL`, `wp_RLock`, defer `wp_RUnlock`, `giveBackL`). `c1.Err()` through
+   `isContext`'s `#HErr`/`#HErrDone` (wp_method_call on `*cancellableContext`'s promoted path is not
+   needed: `Err` is declared; `Context.Err()` is a `MethodResolve` on the loaded field).
+4. `v3rpc.srvCtxWeak_cc : ccHandle l c1 cd ⊢ srvCtxWeak (ccCtx l) cd` (plus the `Err` triple as a
+   hypothesis): Deadline/Done/Value promoted (`rw [method_unfold (t := ptr cancellableContext)]`,
+   as `v3rpc.valueAt_cc`) to `c1`'s `isContext` clauses; `#HDoneFresh`, `#HClosedchan` are `c1`'s;
+   `#HParentCC`: `parentCancelCtx(l)` re-proved from its code as Perennial's
+   `wp_parentCancelCtx_self_of` (`CancelCtxContext.lean:40`), the wrapper's `Done`/`Value` stepping
+   to `c1`'s (`cancelCtx.wp_Done`, `cancelCtx.wp_Value`, `wp_done_Load_known`); `c.ty ≠ stopCtx.ty`
+   by `decide`/`simp`.
+5. Hand `levelTok 4` to the stream handler: `grpcStreamRunOk_of_pools` (`InvGrpcRun.lean:310`)
+   splits `threadTokFrom 4 ⊣⊢ levelTok 4 ∗ threadTokFrom 5` (`threadTokFrom_succ`, `5 ≤ threadBound`)
+   and the bundle becomes `levelTok 0 ∗ levelTok 4 ∗ R₁ ∗ R₂ ∗ R₃` (or `levelTok 4` inside `S`):
+   follow its users (`etc/importers.py --uses grpcStreamRunOk_of_pools ... --files`).
+6. `streamsMapInv` over `v3rpc.streamKeys` (`attribute [local instance 1100] v3rpc.streamKeys`):
+   `[∗map] k ↦ _ ∈ m, ∃ t ls l c1 cd, ⌜k = sKey t ls l⌝ ∗ ccHandle l c1 cd`; `monitorLeader`'s range
+   body (`ss.(serverStreamWithCtx)`, `Cancel(ErrGRPCNoLeader)`, `<-ss.Context().Done()`:
+   `serverStreamWithCtx.Context` then the promoted `Done`, received with `isContextDone`).
+7. The weakening contract `srvStreamInterceptorWOk` and the weak stream end, the interceptor's
+   branch (`newCancellableContext`, the map insert under `smap.mu`, the `defer`'s delete and
+   `Cancel(nil)`), then step 5 (mvcc checkpoint) and step 6 (hard stop).
+
 ## Addendum T-f' written (2026-11-12): STOPPED for 81's review
 
 81 decided option (A) with a level token. `829eb68b92`: `v3rpc.ctxErrLvl := 4` and `srvCtxWeak`'s
