@@ -234,7 +234,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring (and
   -- until the lease-expiry plan's S2–S4, 2026-11-05, the open cases, `srvGrantOpen`; lease-grant
   -- D2), and the lessor's checkpointer's effects
-  -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here
+  -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here (stage B3,
+  -- 2026-11-12: no checkpointer is installed, `Hlcp`, so it covers no call; its removal is planned)
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a mappable quota, a batch
@@ -249,6 +250,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- for the pooled readers of the next stage
       "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
+      -- (stage B3, 2026-11-12) the lease checkpointer off: `NewServer` installs none, so `le.cp`
+      -- stays nil (`NewLessor.spec`, `lease.lessor.Renew.spec`); `NewDefaultServerFeatureGate` gives it
+      "#Hlcp" ∷ featureIs cfg.ServerFeatureGate' go!"LeaseCheckpoint" false ∗
       -- `bootstrap`'s contract (D13b)
       -- (M2's item 15, stage B3) at `N` write tokens in both modes (until then `N + N` in
       -- compaction mode, `N` more for the compaction's own stock, `srvCmpStock`)

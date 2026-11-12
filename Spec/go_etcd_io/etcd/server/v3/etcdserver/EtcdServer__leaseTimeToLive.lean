@@ -33,7 +33,11 @@ lock until the lease-src plan, 2026-11-02: on the leader the slot is borrowed fo
 back before `Remaining()`, `Keys()` and `Demoted()`, which take the token one after another, each
 releasing its lock on return, `v3_server.go:636-675`; a follower takes no lessor lock) and the
 level-0 token of the lessor's and the leases' leveled pools (`levelTok lease.lessorLvl`), which it
-returns, reading `r`: on
+returns (stage B3, 2026-11-12: on the leader each lock it read-locks is a level-0 pool's; a follower
+read-locks none that a pool lends: `waitLeader` takes the cluster's `sync.Mutex`, `cluster.go:134-138`,
+and reads the leader atomically, `server.go:1734,1760`; `leasehttp.TimeToLiveHTTP`, `http.go:224-278`,
+marshals, posts through `s.peerRt` and unmarshals under no etcd lock, and Go's HTTP client takes no
+read lock; neither path calls `lessor.Renew` or a checkpointer), reading `r`: on
 `nil`, a fresh response (owned) with a fresh header (owned, not nil: the leader's
 `&pb.ResponseHeader{}`, under `// TODO: fill out ResponseHeader`; a follower's decoded by
 `proto.Unmarshal` from the leader's reply, whose header etcd's lease handler sets, empty too;

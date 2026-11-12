@@ -908,15 +908,14 @@ def leaseMeta (id : w64) (l : Loc) (q : Qp) : IProp GF :=
 
 /-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
 the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
-`cp`, and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
+`cp`, `nil` (no checkpointer is installed: `NewLessor.spec`; stage B3, 2026-11-12), and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
 fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it). -/
 def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (cp : GoFunc)
-      (b : GoInterface),
+  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface),
     lF go!"demotec" lp ↦{DFrac.own q} dc ∗
     lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
     lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
-    lF go!"cp" lp ↦{DFrac.own q} cp ∗
+    lF go!"cp" lp ↦{DFrac.own q} func.nil ∗
     ([∗map] id ↦ l ∈ M, leaseMeta id l q) ∗
     lF go!"b" lp ↦{DFrac.own q.half} b)
 

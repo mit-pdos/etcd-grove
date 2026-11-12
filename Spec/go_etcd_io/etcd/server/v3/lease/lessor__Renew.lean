@@ -42,21 +42,20 @@ and `stopC` (receives only); under `le.mu`'s write lock, which it takes through 
 (`lessorInv`), it reads the lease map again and updates the lease's `expiry` (`refresh`, holding
 `l.expiryMu` too, as `leaseMeta` and `leaseExpiry` split it), `remainingTTL`, and the expiry
 notifier's heap (`RegisterOrUpdate`, `notifierAt`'s shape kept); then `leaseRenewed.Inc()`, a
-metric (not in `leaseInit`: no effect the model sees). It reads `le.cp` without the lock; the
-field is written once, by `SetCheckpointer` (under the lock) in `NewServer`
-(`etcdserver/server.go:397-410`), before any request goroutine runs. It calls the checkpointer
-only if `remainingTTL > 0`; the only checkpointer is `NewServer`'s, which proposes a
-`LeaseCheckpoint` request (`raftRequest`, whose result it drops) and returns `nil`, or
-`ErrNotPrimary` when `ensureLeadership` fails.
+metric (not in `leaseInit`: no effect the model sees). It reads `le.cp` under `le.mu`'s read lock (`lessor.go:412`), which `lessorMu` holds at `nil`
+(`lessorExtra`; stage B3, 2026-11-12): `newLessor` does not set it (`lessor.go:225-242`), its only
+writer is `SetCheckpointer` (`lessor.go:274-279`), which `NewServer` calls only with the
+`LeaseCheckpoint` feature on (`etcdserver/server.go:393-405`), and the model has no contract for it
+(`NewServer.spec` takes the feature off, `featureIs … go!"LeaseCheckpoint" false`, which
+`features.NewDefaultServerFeatureGate` gives: its default, `server/features/etcd_features.go:104`).
+So `clearRemainingTTL` is `false` and `Renew` never calls a checkpointer (`lessor.go:436-440`): on
+its path the lessor's reader slot and the level-0 token are all the locks it takes need.
 
-**Its assumption**: that proposal bypasses the proposers' workload (`apply.rqOk` admits no
-`LeaseCheckpoint`, D14h); it is covered by the checkpointer's premise `ckptEffectsOk`
-(`etcdserver/InvBoot.lean`), which `NewLessor` takes and every closed result carries, whose
-docstring names this call too (widened 2026-11-01, approved by the user). It is not exercised by the closed results: in a cluster that grants
-no lease (the server's grant guard `False`, `srvGrantGuard`) the lessor has no lease and `Renew`
-returns before it reads `cp`; in one that grants leases (`examples/etcd/leasegrant`, ...) the
-examples leave the `LeaseCheckpoint` feature off (`examples/lib/etcdstart/common.go:96`), so `cp` is
-`nil` and `Renew` never calls it. -/
+**Out of scope**: a lessor with a checkpointer installed. Its call (`NewServer`'s closure:
+`ensureLeadership`, then `raftRequest` of a `LeaseCheckpoint`, `server.go:395-404`) takes the
+server's reader slots, among them `srvLeadTimeReader s ∗ E.RD` of the level-2 pool, and proposes a
+request the proposers' workload does not admit (`apply.rqOk`, D14h); a change that turns the
+feature on must give the checkpointer a contract and revisit this one. -/
 abbrev lease.lessor.Renew.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗

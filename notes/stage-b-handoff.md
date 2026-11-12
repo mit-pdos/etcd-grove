@@ -308,6 +308,27 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `/shared/tmp/stageB/gate10/proposed-server-entries.txt`; run output `/shared/tmp/stageB/gate10/`.
     Next: triage those keys (decision asked of etcd-grove-81), rerun the gate, then land via etc/land.sh
     when etcd-grove-81 says go.
+  - **B3, fifth agent** (2026-11-12): the level-0 overclaim of `lessor.Renew`/`leaseTimeToLive` closed
+    by option (b), T1-T5 of `/shared/tmp/stageB/lease-level-fix.md` (approved by etcd-grove-81, in
+    `questions.md`): `NewDefaultServerFeatureGate` post `+ featureIs … "LeaseCheckpoint" false`;
+    `NewServer.spec` pre `#Hlcp` (callers `newServerMode`, `auth/startServer`: `#Hflc` from the gate);
+    `FeatureEnabled.spec` takes `ob : Option Bool` (callers pass `none`); `lessorExtra`'s `cp` fixed at
+    `func.nil` (lessor proofs Grant/Recover/Revoke/Leases/Checkpoint adjusted); `lessorCkptOk` deleted
+    (`InvBoot`, `NewLessor` post; mvccfull `runner__open`, mvccrand `runChecks` patterns); `Renew` and
+    `leaseTimeToLive` docstrings; STATUS entry closed (moved to status-history), decisions.md "Stage B:
+    the lessor's checkpointer is nil" (with the planned `ckptEffectsOk` removal, not in stage B).
+    Targeted build: modules in `/shared/tmp/stageB/lease-fix-targets.txt`, log
+    `/shared/tmp/stageB/logs/lease-fix-build*.log` (build2: 0 errors). Gate: the five server entries
+    added to `etc/axiom-tok-allow.txt` with etcd-grove-81's reason (independent triage: artefacts),
+    `NewAuthStore`/`NewAlarmStore` `3:Pre` reasons rewritten (hook vs no-lock exclusivity); follow-ups
+    (purgeFile/adjustTicks `Logger()`, binder-path gate keys, `ckptEffectsOk`) in STATUS/decisions.
+    **Next (steps 4-5 of etcd-grove-81's 2026-11-12 message)**: merge `lean` (`49fff2f95c` or later);
+    full build under the lock and the 64G cap; `tcb-report --check` (net 0 vs CP3 expected; report);
+    collections; interfaces (`etc/gen-interface.py` per affected `etc/api/*.txt`: features, lease,
+    etcdserver); the gate `axiom-tok-check.py --check` must pass; then, if no trusted change goes
+    beyond CP1a/§8, the B2 lease specs and T1-T5, `etc/land.sh` with
+    `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc`,
+    logging to `/shared/tmp/stageB/land.log` (go given by etcd-grove-81 under those conditions).
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
@@ -372,4 +393,5 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
   `lake env lean --run etc/AxiomTokCheck.lean --axioms=names.txt <modules>`, then
   `etc/axiom-tok-check.py --json names.json --reuse-raw raw.jsonl`).
 - `Scratch/StageB/Spike.lean` predates the `GoFunc` typing (not rechecked; scratch).
-- The examples pin etcd at `a4d2bb1720b9` (not `673da07c8f` as the brief said).
+- The etcd pin is `etc/goose.py`'s `71f99a4bf` (checked 2026-11-12, on `lean` too; the examples' `go.mod`
+  replaces etcd by it). Earlier briefs' `673da07c8f` and this file's former `a4d2bb1720b9` are stale.

@@ -68,7 +68,7 @@ theorem newServerMode.wp_proof
   iintro %curls ⟨Hcurls, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
-  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc⟩
+  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc, #Hflc⟩
   (try wp_auto)
   -- (2026-10-27, the server port) the member's storage registry (D19r (B)), its `bootstrap`'s to
   -- join, is the member's names' (`memberBoot`; until then allocated here)

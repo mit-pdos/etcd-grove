@@ -148,7 +148,7 @@ theorem runChecks.wp_proof
       [] (fun _ => W64 0) [] trivial (rcP_lease _) hrecs (by simp) (List.Perm.refl _))
     $$ [Hoh Hw1 Hrbo]
     as %l ⟨Hoh, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, #Hexp, #Hguard, Hlrds, Hlown, Hever,
-      Hrvk, Hrdo, #Hckpt, Hbeon, #Happly, Hstop, -, -, #Hlookup⟩
+      Hrvk, Hrdo, Hbeon, #Happly, Hstop, -, -, #Hlookup⟩
   · rw [rcKB_P, rcKB_γB, rcKB_be]
     iframe Hcl Hisb Hoh Hw1
     isplitr

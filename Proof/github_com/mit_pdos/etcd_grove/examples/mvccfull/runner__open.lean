@@ -128,7 +128,7 @@ theorem runner.open.wp_proof
       (leasesAfter ks ops n) rfl (mvccrand.rcP_lease _) hrecs1 hreq (by rw [hrecs2]))
     $$ [Hnoh Hwb1 Hrbn]
     as %l ⟨Hnoh, Hrbn, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, -, #Hguard, Hlrds, Hlown, Hever,
-      Hrvk, Hrdo, -, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
+      Hrvk, Hrdo, Hbeon, #Happly, Hstop, #HreqN, -, -⟩
   · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
     iframe #; iframe
     isplitr

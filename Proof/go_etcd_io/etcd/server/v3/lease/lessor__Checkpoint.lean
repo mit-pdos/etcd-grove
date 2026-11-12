@@ -52,7 +52,7 @@ theorem lease.lessor.Checkpoint.wp_proof
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %cp, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
   (try wp_auto)
   wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   cases hM : M !! id with
@@ -60,7 +60,7 @@ theorem lease.lessor.Checkpoint.wp_proof
     simp only [Option.getD_none, Option.isSome_none]
     (try wp_auto)
     ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h, hx, cp, bl; iframe
+    · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext
@@ -105,12 +105,12 @@ theorem lease.lessor.Checkpoint.wp_proof
       iframe le l Hrem Hrtk Hln
       ileft; iframe HPost; iexists t; iexact HRb
     wp_apply (hPrim lp dc (DFrac.own 1)) $$ [$Hdc] as Hdc
-    wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗ lF go!"cp" lp ↦ cp ∗
+    wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗ lF go!"cp" lp ↦ func.nil ∗
         ∃ (h' : GoSlice) (hx' : List (Loc × w64)), lF go!"leaseCheckpointHeap" lp ↦ h' ∗
           queueAt h' hx' 1)
       with [le l Hrem Hcp Hh Hhq] as ⟨le, l, Hrem, Hcp, %h', %hx', Hh, Hhq⟩
     · (try wp_auto)
-      wp_apply (hSched lp l cp h hx rem t (DFrac.own 1) (DFrac.own 1) DFrac.discard)
+      wp_apply (hSched lp l func.nil h hx rem t (DFrac.own 1) (DFrac.own 1) DFrac.discard)
         $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
       wp_join_done
     (try wp_auto)
@@ -124,7 +124,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       · iexists _; iexact Hrem
       iexact Hexp
     ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h', hx', cp, bl; iframe
+    · iunfold lessorExtra; iexists dc, np, h', hx', bl; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext

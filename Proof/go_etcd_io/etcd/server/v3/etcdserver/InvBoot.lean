@@ -793,16 +793,6 @@ theorem isRNTransport_of_live (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr
   iintro #HM #Htr
   rw [← hST] at *
   iapply isRNTransport_of_net γn lid E tr $$ HM Htr
-/-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
-checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
-closure over `raftRequest`). -/
-def lessorCkptOk (l : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
-    □ (∀ cp : GoFunc,
-      {{ True }} (App (Val #(methods li.ty go!"SetCheckpointer" li.v)) (Val #cp)) {{ RET #(); True }}))
-
-instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (GF := GF) l) := by
-  unfold lessorCkptOk; infer_instance
 
 end transport
 

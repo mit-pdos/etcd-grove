@@ -417,7 +417,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     | true =>
     (try wp_auto)
     -- `if s.FeatureEnabled(features.FastLeaseKeepAlive)`
-    wp_apply (hFE s rv.fg) as %fe -
+    wp_apply (hFE s rv.fg _ none) as %fe -
     · iframe #; ipureintro; simp [serverFeatures]
     (try wp_auto)
     cases fe with

@@ -158,7 +158,7 @@ theorem lease.lessor.Leases.wp_proof
   ihave %Hszlt := preceipt_lt _ $$ Hsz
   -- the leases' `ID` facts, from their `leaseMeta`s
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %cp, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
   icases lease.leaseMeta_ids M _ $$ Hmeta with ⟨Hmeta, #Hids⟩
   wp_apply (hUL lp lm M _) $$ [$Hlm $HM] as %sl %ls ⟨Hlm, HM, Hsl, %Hls0⟩
   obtain ⟨Hnd, Hpairs⟩ := Hls0
@@ -189,7 +189,7 @@ theorem lease.lessor.Leases.wp_proof
     · ipureintro; exact HL
     iframe Hsz Hls
     isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h, hx, cp, bl; iframe
+    · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
     iexists γr, hs
     iframe Hpr Hhl
     ipureintro; exact ⟨Tq, Hlast⟩

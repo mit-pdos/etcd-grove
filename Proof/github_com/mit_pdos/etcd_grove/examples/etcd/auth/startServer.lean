@@ -74,7 +74,7 @@ theorem startServer.wp_proof
   iintro %curls ⟨Hcurls, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
-  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc⟩
+  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc, #Hflc⟩
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hpeer with #Hpeer
   imod ownMap_persist _ _ _ $$ Hpm with #Hpm

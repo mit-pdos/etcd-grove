@@ -34624,3 +34624,49 @@ crash before it was). The tester gained `crashsim.Compose`/`KillInodes` and `-ki
 the base when an entry at or below it was read; `ReadAll` truncates the log there (`ents[:0]`),
 as W0's `walref.ReadEnt` and the Scope's reader say. It explains W1.5's unanalyzed ordered
 violation (chain 2145), which was not a garbage effect.
+
+## Stage B: the lessor's checkpointer is nil; `lessor.Renew`/`leaseTimeToLive` at level 0 (2026-11-12 · T1-T5 approved by etcd-grove-81 under the user's delegation, `/shared/tmp/stageB/lease-level-fix.md` · branch `stage-b`)
+
+Since B2 the trusted `lease.lessor.Renew.spec` and `EtcdServer.leaseTimeToLive.spec` take only the
+level-0 token. Two paths were not argued (STATUS's known overclaim of 2026-11-11, now in
+`status-history.md`). Go at the pin `71f99a4bf`:
+
+- `leaseTimeToLive` (`v3_server.go:636-696`) never reaches a checkpointer. Its leader path read-locks
+  only level-0 pool locks (`Lookup`, `Remaining`, `Demoted`, `Keys`). Its follower path takes the
+  cluster's `sync.Mutex` (`cluster.go:134-138`), reads the leader atomically, and posts through
+  `leasehttp.TimeToLiveHTTP` (`http.go:224-278`) under no etcd lock. So the claim was true but not
+  argued. Fix: docstring only.
+- `Renew` calls `le.cp` when `cp != nil && remainingTTL > 0` (`lessor.go:412,436-440`).
+  `NewServer`'s closure (`server.go:393-405`) runs `ensureLeadership` and a `raftRequest` of a
+  `LeaseCheckpoint`, which needs server reader slots (`srvLeadTimeReader s ∗ E.RD`, level 2) and a
+  request the proposers' workload does not admit (D14h). The lessor package cannot name those, and
+  the model has no spec of `cp`. So no lending makes that path provable (option (a)), and its
+  callers hold no whole `threadTok` after B3 (option (c)).
+
+**Decision** (option (b)): the checkpointer is not installed, and the model says so.
+`features.NewDefaultServerFeatureGate`'s trusted post gains `featureIs … "LeaseCheckpoint" false` (its
+default, `etcd_features.go:104`). `NewServer.spec` takes that fact (`#Hlcp`), and its proof finds the
+`SetCheckpointer` branch dead (`FeatureEnabled.spec` now takes an optional known answer `ob`).
+`newServerMode` and `auth/startServer` discharge it from the gate's post. `NewLessor`'s trusted post
+drops `lessorCkptOk` (deleted), so no contract can set `cp`. `lessorExtra` fixes `le.cp` at
+`func.nil` (`newLessor` leaves it unset, `lessor.go:225-242`). Both triples are unchanged. `Renew`'s
+docstring argues the nil checkpointer and puts a lessor with a checkpointer out of scope; a change
+that turns the feature on must give the checkpointer a contract. No axiom or `sorry` added or removed.
+
+**Planned premise removal** (a follow-up, not in stage B; etcd-grove-81, 2026-11-12): `ckptEffectsOk`
+(`InvBoot.lean`, opaque), a premise of `NewLessor` and of about 33 closed results, now covers no call
+in any closed program: with `cp` nil the lessor loop never proposes (`findDueScheduledCheckpoints`
+returns `nil`, `lessor.go:772-775`) and `Renew` never calls `cp`. Deleting it removes an opaque premise
+from every closed result. It changes exported statements, so it needs its own decision.
+
+**The gate's five server entries** (2026-11-12, etcd-grove-81 on an independent triage): the `axiom-tok` keys of
+`EtcdServer.{ensureLeadership,leaseTimeToLive,purgeFile,waitAppliedIndex,waitLeader}` are artefacts: every binder
+is two or more flips deep inside the handles `isServerReqM`/`isServerReadM` consumes (the uber-applier contracts,
+the revoke's batch-transaction callbacks, the wait registry's trigger), whose methods and wands the Go of these
+functions never uses (`server.go:608,912`; `v3_server.go:458,636,785`). Entries added to `etc/axiom-tok-allow.txt`.
+`NewAuthStore`/`NewAlarmStore`'s `3:Pre` reasons rewritten: the binders are in the produced
+`authApplyOk`/`alarmApplyOk` → `isAuthStore`/`isAlarmStore`, and the post-lock hook and the no-lock path are
+exclusive. **Follow-ups, not in stage B**: `purgeFile.spec` takes no `lgMu` slot or thread token though Go calls
+`s.Logger()` and starts a goroutine (`adjustTicks` reads `Logger()` too; low severity, no false conclusion today,
+67 roots); gate keys naming the binder path, so an entry cannot silently accept a future real duplication in
+`isServerReadM`; deleting `ckptEffectsOk` (above).

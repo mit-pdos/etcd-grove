@@ -735,7 +735,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
       [] (fun _ => W64 0) [] trivial HlP hrecs (by simp) (List.Perm.refl _))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlEv, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, Hlstop, -, -, #Hllk'⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlEv, Hlrvk, Hro, HleOn, #Hlbe, Hlstop, -, -, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
@@ -1089,19 +1089,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iframe #; iframe be HalOn
   ihave HalOn := alarmEmpty_beOn alst d.be $$ HalOn
   (try wp_auto)
-  -- the checkpointer, if the feature is on (`lessorCkptOk`; its later calls: `ckptEffectsOk`)
-  ihave #Hlck' := Hlck
-  iunfold lessorCkptOk at Hlck'
-  icases Hlck' with ⟨%lci, %Hlci, #Hsetcp⟩
-  wp_apply h21 as %fe -
-  · iframe ServerFeatureGateS Hfg; ipureintro; simp [serverFeatures]
-  unfold lease.lessorIface at Hlci
-  cases Hlci
-  wp_join iprop(srv_ptr ↦ s) with [srv] as srv
-  · wp_func_lits
-    wp_apply Hsetcp
-    (try wp_auto)
-    wp_join_done
+  -- the checkpointer: none, the `LeaseCheckpoint` feature off (`Hlcp`; stage B3, 2026-11-12)
+  wp_apply (h21 _ _ _ (some false)) as %fe %Hfe
+  · iframe ServerFeatureGateS Hfg Hlcp; ipureintro; simp [serverFeatures]
+  obtain rfl := Hfe false rfl
   (try wp_auto)
   -- the post-lock hook: `srv.be.SetTxPostLockInsideApplyHook(srv.getTxPostLockInsideApplyHook())`
   ihave #HsCI : isServerCI s γA cil $$ []
