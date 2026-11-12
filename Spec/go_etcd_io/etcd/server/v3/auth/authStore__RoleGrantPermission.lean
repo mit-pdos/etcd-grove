@@ -50,14 +50,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.RoleGrantPermission(r)`** for a request naming the role `name` (within bbolt's key
 bound) and the wire permission `w` (or none): the step `roleGrantPermissionR name w`. -/
 abbrev auth.authStore.RoleGrantPermission.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
-      authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+      authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleGrantPermissionR name w)⌝ ∗ capNextM M hs (roleGrantPermissionR name w) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
       adminOut M hs (roleGrantPermissionR name w) noExtra err }}
 

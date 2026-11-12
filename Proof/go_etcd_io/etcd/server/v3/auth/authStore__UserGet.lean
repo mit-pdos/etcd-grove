@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.UserGet.wp_proof :
     auth.authStore.UserGet.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs r name
+  intro st R M P f T Wb hs r name
   wp_start as ⟨#Hinv, Hreq, Hown, HWR⟩
   iunfold userGetReqIs at Hreq
   icases Hreq with ⟨%Hr, #Hname⟩

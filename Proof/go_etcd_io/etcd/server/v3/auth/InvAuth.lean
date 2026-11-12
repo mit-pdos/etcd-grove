@@ -1326,14 +1326,18 @@ D14f) and the mode `M`:
   roles; `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
   revision;
 - `Unlock()`, with the whole authority at a history whose latest state is the token's (the
-  admin side appends the step's state before unlocking): `X`, the token and the admin side's
-  authority back (the lock keeps its share).
+  admin side appends the step's state before unlocking) and two write-back tokens `Wb`: `X`, the
+  token and the admin side's authority back (the lock keeps its share). (auth-schema-fix F1,
+  2026-11-12, decided by etcd-grove-81: schema's `authBatchTx.Unlock` is the backend batch
+  transaction's `Unlock()` then `Commit()`, each of which writes back and spends one of the backend's
+  write-back tokens, `backend.wbTok`, the server's `Wb`; until F1 `Unlock` took none, so the
+  realization had to make them from nothing: S0's F1.)
 This is the store's view of the backend's contract (`authBatchTxLkR`, which states `Lock()` and
 `Unlock()` without the admin side's authority: `authBatchTxLk_of_R`).
 The records' sizes are not bounded here (the real backend's put of a record above bbolt's value
 bound is fatal: `nonissues/etcd-auth-record-too-large-fatal.md`, the premise `authRecordsFit` of
 `NewAuthStore`'s axiom, which the derivation of this contract from the real backend will take). -/
-def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (Lk : AuthState → IProp GF → IProp GF) : IProp GF :=
   iprop(□ (∀ (hs : List AuthState) (Pre Q Post : IProp GF),
       {{ srvApi.csContractA P f Pre Q Post ∗ T ∗ authOwn M hs }}
@@ -1363,7 +1367,7 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (hs : List AuthState),
-      {{ Lk st X ∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ }}
+      {{ Lk st X ∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ ∗ Wb ∗ Wb }}
         (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
       {{ RET #(); X ∗ T ∗ authOwn M hs }}) ∗
     -- the reads with the message as `proto.Unmarshal` returns it, the caller's (appended; the
@@ -1378,8 +1382,8 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
       {{ (r : Loc), RET #r; Lk st X ∗ roleOutX r st name }}))
 
 instance authBatchTxLk_persistent (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
-    Persistent (authBatchTxLk ti M P f T Lk) := by
+    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
+    Persistent (authBatchTxLk ti M P f T Wb Lk) := by
   unfold authBatchTxLk; infer_instance
 
 /-- **The backend's batch transaction's lock** (the auth plan's S4f, 2026-10-25; what the real
@@ -1389,7 +1393,7 @@ history whose latest state is `st` (`authLockI`), and `Unlock()` takes it back w
 state. A real backend meets it with `∃ st, buckets(st) ∗ authLockI M st` among what its batch
 lock protects; the store's view (`authBatchTxLk`) follows by joining the share with the admin
 side's authority (`authBatchTxLk_of_R`). -/
-def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (Lk : AuthState → IProp GF → IProp GF) : IProp GF :=
   iprop(□ (∀ (Pre Q Post : IProp GF),
       {{ srvApi.csContractA P f Pre Q Post ∗ T }}
@@ -1419,7 +1423,7 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF),
-      {{ Lk st X ∗ authLockI M st }}
+      {{ Lk st X ∗ authLockI M st ∗ Wb ∗ Wb }}
         (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
       {{ RET #(); X ∗ T }}) ∗
     -- the reads with the message as `proto.Unmarshal` returns it, the caller's (appended; the
@@ -1434,18 +1438,18 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
       {{ (r : Loc), RET #r; Lk st X ∗ roleOutX r st name }}))
 
 instance authBatchTxLkR_persistent (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
-    Persistent (authBatchTxLkR ti M P f T Lk) := by
+    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
+    Persistent (authBatchTxLkR ti M P f T Wb Lk) := by
   unfold authBatchTxLkR; infer_instance
 
 /-- **The backend's batch transaction** `tx` (a contract): some lock token (`authBatchTxLk`). -/
-def authBatchTxOk (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
+def authBatchTxOk (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
-    ∃ Lk : AuthState → IProp GF → IProp GF, authBatchTxLk ti M P f T Lk)
+    ∃ Lk : AuthState → IProp GF → IProp GF, authBatchTxLk ti M P f T Wb Lk)
 
 instance authBatchTxOk_persistent (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) : Persistent (authBatchTxOk tx M P f T) := by
+    (T Wb : IProp GF) : Persistent (authBatchTxOk tx M P f T Wb) := by
   unfold authBatchTxOk; infer_instance
 
 /-- What `GetAllUsers()` returns of the state `st` (the auth plan's E2j): a slice of messages, one
@@ -1485,7 +1489,7 @@ keeps the token and the authority.
   `Unlock()`: `LockInsideApply` runs the hook, so the hook's post `Post`): its read
   transaction's twin panics (`nonissues/etcd-auth-readtx-getallroles-panics.md`), the batch
   transaction's range of the roles' bucket does not. -/
-def authBackendReads (bi : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
+def authBackendReads (bi : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     IProp GF :=
   iprop(□ (∀ (hs : List AuthState) (name : GoString),
       {{ T ∗ authOwn M hs }} (App (Val #(methods bi.ty go!"GetUser" bi.v)) (Val #name))
@@ -1500,40 +1504,41 @@ def authBackendReads (bi : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoF
       {{ (s : GoSlice), RET #s; T ∗ authOwn M hs ∗
           ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ usersOut s sta }}) ∗
     □ (∀ (hs : List AuthState) (Pre Q Post : IProp GF),
-      {{ srvApi.csContractA P f Pre Q Post ∗ T ∗ authOwn M hs }}
+      {{ srvApi.csContractA P f Pre Q Post ∗ T ∗ Wb ∗ Wb ∗ authOwn M hs }}
         (App (Val #(methods bi.ty go!"GetAllRoles" bi.v)) (Val #()))
       {{ (s : GoSlice), RET #s; Post ∗ T ∗ authOwn M hs ∗
           ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ rolesOut s sta }}))
 
 instance authBackendReads_persistent (bi : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) : Persistent (authBackendReads (GF := GF) bi M P f T) := by
+    (T Wb : IProp GF) : Persistent (authBackendReads (GF := GF) bi M P f T Wb) := by
   unfold authBackendReads; infer_instance
 
 /-- **The auth backend's write side** `be` (an `AuthBackend`; a contract, as the lessor's
 `leaseBackend`) with the hook `P f` and the write token `T` in the mode `M`: `BatchTx()` returns a
-batch transaction (`authBatchTxOk`), `ForceCommit()` keeps the token (the real backend's commit
-writes nothing back on its own: `NewAuthStore`'s axiom), and its reads (`authBackendReads`). -/
-def authWBackendOk (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
+batch transaction (`authBatchTxOk`), `ForceCommit()` keeps the token and spends a write-back token
+`Wb` (auth-schema-fix F1: the backend's `ForceCommit` commits, which writes back), and its reads
+(`authBackendReads`; `GetAllRoles`, a batch transaction, spends two, as `Unlock`). -/
+def authWBackendOk (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜be = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
-      {{ (tx : GoInterface), RET #tx; authBatchTxOk tx M P f T }}) ∗
-    □ ({{ T }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}) ∗
-    authBackendReads bi M P f T)
+      {{ (tx : GoInterface), RET #tx; authBatchTxOk tx M P f T Wb }}) ∗
+    □ ({{ T ∗ Wb }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}) ∗
+    authBackendReads bi M P f T Wb)
 
 instance authWBackendOk_persistent (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) : Persistent (authWBackendOk be M P f T) := by
+    (T Wb : IProp GF) : Persistent (authWBackendOk be M P f T Wb) := by
   unfold authWBackendOk; infer_instance
 
 /-- **The backend's batch transaction** `tx` as the backend states it (the auth plan's S4f): some
 lock token of the backend's contract (`authBatchTxLkR`). -/
-def authBatchTxOkR (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
+def authBatchTxOkR (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
-    ∃ Lk : AuthState → IProp GF → IProp GF, authBatchTxLkR ti M P f T Lk)
+    ∃ Lk : AuthState → IProp GF → IProp GF, authBatchTxLkR ti M P f T Wb Lk)
 
 instance authBatchTxOkR_persistent (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) : Persistent (authBatchTxOkR tx M P f T) := by
+    (T Wb : IProp GF) : Persistent (authBatchTxOkR tx M P f T Wb) := by
   unfold authBatchTxOkR; infer_instance
 
 /-- **The auth backend's write side as the backend states it** (the auth plan's S4f, 2026-10-25;
@@ -1542,23 +1547,23 @@ the provisional boundary D22 discharges, `notes/decisions.md`, "S4f of the auth 
 history's lock share under its lock); its reads (`authBackendReads`) as the store's view's. (Until
 E2j this said `GetUser` was schema's batch transaction, `Lock()`, `UnsafeGetUser`, `Unlock()`; it
 is the read transaction, `schema/auth_users.go`.) -/
-def authWBackendOkR (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
+def authWBackendOkR (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜be = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
-      {{ (tx : GoInterface), RET #tx; authBatchTxOkR tx M P f T }}) ∗
-    □ ({{ T }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}) ∗
-    authBackendReads bi M P f T)
+      {{ (tx : GoInterface), RET #tx; authBatchTxOkR tx M P f T Wb }}) ∗
+    □ ({{ T ∗ Wb }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}) ∗
+    authBackendReads bi M P f T Wb)
 
 instance authWBackendOkR_persistent (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) : Persistent (authWBackendOkR be M P f T) := by
+    (T Wb : IProp GF) : Persistent (authWBackendOkR be M P f T Wb) := by
   unfold authWBackendOkR; infer_instance
 
 /-- **The store's view of the backend's lock** (the auth plan's S4f): `Lock()` joins the lock's
 share with the admin side's authority, `Unlock()` splits it off again. -/
 theorem authBatchTxLk_of_R (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
-    authBatchTxLkR (GF := GF) ti M P f T Lk ⊢ authBatchTxLk ti M P f T Lk := by
+    (T Wb : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :
+    authBatchTxLkR (GF := GF) ti M P f T Wb Lk ⊢ authBatchTxLk ti M P f T Wb Lk := by
   iintro #H
   iunfold authBatchTxLkR at H
   icases H with ⟨#HL, #HRd, #H1, #H2, #H3, #H4, #H5, #H6, #HU, #H7, #H8⟩
@@ -1572,16 +1577,16 @@ theorem authBatchTxLk_of_R (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f
     iapply HΦ
     iexists st; iframe HLk Hown; ipureintro; exact Hl
   iframe #
-  iintro !> %st %X %hs %Φ !> ⟨HLk, Hown, %Hl⟩ HΦ
+  iintro !> %st %X %hs %Φ !> ⟨HLk, Hown, %Hl, Hw1, Hw2⟩ HΦ
   ihave ⟨Hown, HI⟩ := authOwnF_lockI_split M hs st Hl $$ Hown
-  iapply HU $$ %st %X [$HLk $HI]
+  iapply HU $$ %st %X [$HLk $HI $Hw1 $Hw2]
   inext
   iintro ⟨HX, HT⟩
   iapply HΦ
   iframe HX HT Hown
 
 theorem authBatchTxOk_of_R (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) : authBatchTxOkR (GF := GF) tx M P f T ⊢ authBatchTxOk tx M P f T := by
+    (T Wb : IProp GF) : authBatchTxOkR (GF := GF) tx M P f T Wb ⊢ authBatchTxOk tx M P f T Wb := by
   iintro H
   iunfold authBatchTxOkR at H
   icases H with ⟨%ti, %Hti, %Lk, #H⟩
@@ -1595,7 +1600,7 @@ theorem authBatchTxOk_of_R (tx : GoInterface) (M : AuthMode) (P : IProp GF) (f :
 /-- **The store's view of the backend's write side** (the auth plan's S4f): its transactions
 seen through `authBatchTxOk_of_R`. -/
 theorem authWBackendOk_of_R (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) : authWBackendOkR (GF := GF) be M P f T ⊢ authWBackendOk be M P f T := by
+    (T Wb : IProp GF) : authWBackendOkR (GF := GF) be M P f T Wb ⊢ authWBackendOk be M P f T Wb := by
   iintro H
   iunfold authWBackendOkR at H
   icases H with ⟨%bi, %Hbi, #HB, #HFC, #HGU⟩
@@ -1617,8 +1622,8 @@ theorem authWBackendOk_of_R (be : GoInterface) (M : AuthMode) (P : IProp GF) (f 
 is `beMu`'s, `beP`; `Recover` takes both) with the backend's write side, the write token, and the
 admin side's halves of `enabled` (`enabledHalf`) and of the permission cache (`cacheHalf`, the
 auth plan's E2r). -/
-def authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) : IProp GF :=
-  iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
+def authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) : IProp GF :=
+  iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T Wb) ∗
     T ∗ enabledHalf st M ∗ cacheHalf st M)
 
 /-- A writer that did not write gives the caller's resources back. -/

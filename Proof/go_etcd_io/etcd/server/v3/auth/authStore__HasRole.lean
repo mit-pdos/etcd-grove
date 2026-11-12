@@ -32,8 +32,8 @@ theorem auth.authStore.HasRole.wp_proof
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     auth.authStore.HasRole.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post user rn
-  wp_start as ⟨#Hinv, Hown, HWR, Hcs⟩
+  intro st R M P f T Wb hs Pre Q Post user rn
+  wp_start as ⟨#Hinv, Hown, HWR, Hw1, Hw2, Hcs⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
@@ -65,7 +65,7 @@ theorem auth.authStore.HasRole.wp_proof
   inext
   iintro %u ⟨HL, Hu⟩
   (try wp_auto)
-  wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+  wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
   · ipureintro; exact Hl0
   (try wp_auto)
   wp_if_destruct

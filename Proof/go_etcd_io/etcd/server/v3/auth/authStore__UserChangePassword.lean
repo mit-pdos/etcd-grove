@@ -40,8 +40,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserChangePassword.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name b0 sc0
-  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post r name b0 sc0
+  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hw1, Hw2, Htpa, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
   simp only [AuthErr.var]
@@ -89,7 +89,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
   wp_if_destruct
   · -- no such user
     ihave %Hnone := userOut_null st0 name $$ Hu
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -156,7 +156,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     | ok ei =>
       -- no password could be selected: `ErrNoPasswordUser`
       (try wp_auto)
-      wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+      wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
       · ipureintro; exact Hl0
       (try wp_auto)
       iapply HΦ
@@ -219,7 +219,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       have Hfit' := (Hfit _ _ rfl hstep).1
       ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
         (by rw [hstep]; try simp_all) $$ Hcap
-      wp_apply (h_commitRevision st R M P f T ti Lk st0 Post hs st0)
+      wp_apply (h_commitRevision st R M P f T Wb ti Lk st0 Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
@@ -272,7 +272,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump st0]) [HL $Hown]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump st0]) [HL $Hown $Hw1 $Hw2]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL
@@ -338,7 +338,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     have Hfit' := (Hfit _ _ rfl hstep).1
     ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
       (by rw [hstep]; try simp_all) $$ Hcap
-    wp_apply (h_commitRevision st R M P f T ti Lk st0 Post hs st0)
+    wp_apply (h_commitRevision st R M P f T Wb ti Lk st0 Post hs st0)
       $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
     · ipureintro
       refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
@@ -391,7 +391,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hresp
     (try wp_auto)
-    wp_apply HUnlock $$ %_ %Post %(hs ++ [bump st0]) [HL $Hown]
+    wp_apply HUnlock $$ %_ %Post %(hs ++ [bump st0]) [HL $Hown $Hw1 $Hw2]
       as ⟨HPost, HT, Hown⟩
     · isplitl [HL]
       · iExactEq HL

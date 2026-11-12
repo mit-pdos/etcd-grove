@@ -26,16 +26,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`as.RoleList(r)`**, with the admin side's authority at `hs`: the backend's `GetAllRoles` (its
-batch transaction: the lock runs the hook, `Post`) and the latest state's roles' names
+batch transaction: the lock runs the hook, `Post`; two write-back tokens `Wb`, spent by its
+`Unlock`, auth-schema-fix F1) and the latest state's roles' names
 (`roleListOut`); the authority and the write resource kept. -/
 abbrev auth.authStore.RoleList.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post }}
+      authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleList")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); Post ∗ authOwn M hs ∗
-      authWR st M P f T ∗ ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ roleListOut sta resp err }}
+      authWR st M P f T Wb ∗ ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ roleListOut sta resp err }}
 
 end spec
 

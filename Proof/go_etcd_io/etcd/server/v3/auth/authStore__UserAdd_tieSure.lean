@@ -31,31 +31,31 @@ variable [sem : go.Semantics]
 /-- `UserAdd.specT` of a request whose password choice cannot fail (`userAddSure`): no
 `ErrNoPasswordUser` (`noExtra`). -/
 abbrev auth.authStore.UserAdd.specTSure : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T Wb b0 sc0 ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T Wb b sc ∗
       respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOutP M hs (stepOf (userAddF name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
 /-- `UserAdd.specTSure` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
 abbrev auth.authStore.UserAdd.specTSureB : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T Wb b0 sc0 be ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T Wb b sc be ∗
       respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOutP M hs (stepOf (userAddF name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
 theorem auth.authStore.UserAdd.specTSure_of_TB [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
     (h : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG)) :
     auth.authStore.UserAdd.specTSure (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name b0 sc0
-  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hcs, %Hok, #Hcap⟩ HΦ
-  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T b0 sc0 $$ HWR
-  iapply (h st R M P f T hs Pre Q Post r name b0 sc0 be) $$ [Hown HWR Hcs]
+  intro st R M P f T Wb hs Pre Q Post r name b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T Wb b0 sc0 $$ HWR
+  iapply (h st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Hown HWR Hw1 Hw2 Hcs]
   · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
   iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hrest⟩
   iapply HΦ
@@ -79,8 +79,8 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name b0 sc0 be
-  wp_start as ⟨#Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post r name b0 sc0 be
+  wp_start as ⟨#Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩
   icases authErrVar_of_init .userEmpty $$ Hpkg with ⟨%eUE, #HeUE⟩
   icases authErrVar_of_init .userAlreadyExist $$ Hpkg with ⟨%eUAE, #HeUAE⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
@@ -164,7 +164,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
   · -- an existing user
     ihave Hu' := userOut_some _ st0 name Hif $$ Hu
     icases Hu' with ⟨%roles, %ur, %Hur, -⟩
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -270,7 +270,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       have Hfit' := (Hfit _ _ rfl hstep).1
       ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
         (by rw [hstep]; try simp_all) $$ Hcap
-      wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 urN.name urN.roles) Post hs st0)
+      wp_apply (h_commitRevision st R M P f T Wb ti Lk (putUser st0 urN.name urN.roles) Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -313,7 +313,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 urN.name urN.roles)]) [HL $Hown]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 urN.name urN.roles)]) [HL $Hown $Hw1 $Hw2]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL; rfl
@@ -369,7 +369,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     have Hfit' := (Hfit _ _ rfl hstep).1
     ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
       (by rw [hstep]; try simp_all) $$ Hcap
-    wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 urN.name urN.roles) Post hs st0)
+    wp_apply (h_commitRevision st R M P f T Wb ti Lk (putUser st0 urN.name urN.roles) Post hs st0)
       $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
     · ipureintro
       refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -412,7 +412,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hresp
     (try wp_auto)
-    wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 urN.name urN.roles)]) [HL $Hown]
+    wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 urN.name urN.roles)]) [HL $Hown $Hw1 $Hw2]
       as ⟨HPost, HT, Hown⟩
     · isplitl [HL]
       · iExactEq HL; rfl

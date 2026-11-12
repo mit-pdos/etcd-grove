@@ -53,6 +53,34 @@ SnapAuthRecover's `adminStateR_wf`/`adminNext_wf` take `irrUtf8 rq` (from `irrDe
 Statement changes (weaker; to report): Results' `apply_UserGrantRole_fuel` (+`utf8Valid role`),
 `stepOk` stronger (the `apply_*_step` results). Freeze package F4 section written.
 
+## F1 in progress (2026-11-12, second agent)
+
+Done, not committed until the auth package builds: InvAuth's contracts take `Wb` after `T`
+(`authBatchTxLk(R)`/`authBatchTxOk(R)`/`authWBackendOk(R)`/`authBackendReads`/`authWR`): `Unlock`
+`∗ Wb ∗ Wb`, `ForceCommit` `{{ T ∗ Wb }}`, `GetAllRoles` `∗ Wb ∗ Wb`. A subagent propagates it
+through the auth package (store specs take `Wb ∗ Wb` per batch, AuthEnable/AuthDisable `Wb ∗ Wb ∗
+Wb` with ForceCommit; boot 4; CreateAuthBuckets `{{ T ∗ Wb }}`).
+
+Design for the apply and server layers (decided by the agent within 81's route; form only):
+- apply/Chain.lean, beside `bkRTOf`: `bkWTFor E := ∃ d, ⌜∀ B, (E.BkTie B ⊢ ⌜B = d⌝)⌝ ∗ bkWT d`
+  (a write-back token of whichever backend the tie names); a split lemma
+  `mPre E c a info log Pre Q Post ∗ bkWTFor E ⊢ ∃ cr B, … ∗ bkWT B ∗ …` (B = d from the tie,
+  `pure_and_sep` keeps `E.BkTie B`).
+- isAuthSteps(X) take `Wb`; each method's pre `Wb ∗ Wb` (AuthEnable/AuthDisable 3, Authenticate 0);
+  `backendAuthSteps(X) E p …` instantiate `Wb := bkWT B` under their `∀ B`.
+- stepSpec/fuelSpec(X) take the count they need as `bkWTFor E` conjuncts; AdminChain/DispatchAdmin/
+  ApplyFnAdmin(L)/Apply.adminSpecL/uberAdmC/AdminEntryOn take three (`bkWTFor E ∗ bkWTFor E ∗
+  bkWTFor E`; the six on-mode admin requests: UserAdd, RoleAdd, UserGrantRole, RoleGrantPermission 2,
+  AuthEnable 3, Authenticate 0), dropping the unused ones.
+- Server: `srvWT E ⊢ bkWTFor E` (srvBkTie d B = ⌜B = d⌝); EtcdServer__apply's entry loop takes
+  three more receipts (`wp_go_step_receipt'` at the `FuncResolve` of the later `hU64` calls, as at
+  line ~1466) and `srvWTPool_take_extra`-style lemma over `srvApplyKVOn` (as `srvWTPool_take_nOn`,
+  without the count) into three `srvWT E` for `applyEntryNormal.specOn` (on mode).
+- The auth realization's Wb at the server: `backend.wbTok d.γB` (authSchemaSrv/authWAtHook/
+  authSchemaSnap at their `d`); authApplyRes(At/B/Pre) carry `authWBackendOk … (authWTok T)
+  (backend.wbTok d.γB)` with the row's `d` (authApplyRes/At: `∃ d` or the tie; check which way the
+  conversions go before choosing).
+
 ## Next, in order
 
 1. **F1** (not started; the biggest step). Decided: `Wb` parameter on the write contracts

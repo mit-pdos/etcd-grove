@@ -179,8 +179,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     (h_ByteString : zap.ByteString.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name w b0 sc0 be
-  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post r name w b0 sc0 be
+  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap⟩
   ihave #Htn : auth.typeNamesOk (GF := GF) $$ []
   · iapply auth.typeNamesOk_of_init
     iPkgInit
@@ -302,7 +302,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     wp_if_destruct
     · ihave %Hrnone := auth.roleOutX_null st0 name $$ Hrl
       (try wp_auto)
-      wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+      wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
       · ipureintro; exact Hl0
       (try wp_auto)
       iapply HΦ
@@ -557,7 +557,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       obtain ⟨Hrevfit, Hfit, -⟩ := Hok st0 Hl0
       have Hfit' := (Hfit _ _ hstep rfl).1
       ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstep $$ Hcap
-      wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 name (grantPerms ps w)) Post hs st0)
+      wp_apply (h_commitRevision st R M P f T Wb ti Lk (putRole st0 name (grantPerms ps w)) Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 =>
@@ -616,7 +616,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 name (grantPerms ps w))]) [HL $Hown]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 name (grantPerms ps w))]) [HL $Hown $Hw1 $Hw2]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL

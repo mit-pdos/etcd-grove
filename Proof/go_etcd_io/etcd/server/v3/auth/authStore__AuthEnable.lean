@@ -38,8 +38,8 @@ theorem auth.authStore.AuthEnable.wp_tieB
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post en sc0 be
-  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post en sc0 be
+  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Hw1, Hw2, Hw3, Htpa, Hcs, %Hok, #Hcap⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   icases authErrVar_of_init .rootUserNotExist $$ Hpkg with ⟨%eRUN, #HeRUN⟩
@@ -139,11 +139,11 @@ theorem auth.authStore.AuthEnable.wp_tieB
   · -- no root user
     ihave %Hnone := userOut_null st0 (go!"root") $$ Hu
     (try wp_auto)
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-    iapply HFC $$ HT
+    iapply HFC $$ [$HT $Hw3]
     inext
     iintro HT
     (try wp_auto)
@@ -188,11 +188,11 @@ theorem auth.authStore.AuthEnable.wp_tieB
     have hn : ¬ isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_false Hroot.symm
     simp only [Bool.not_false]
     (try wp_auto)
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-    iapply HFC $$ HT
+    iapply HFC $$ [$HT $Hw3]
     inext
     iintro HT
     (try wp_auto)
@@ -304,7 +304,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   · iexact Hlgnn
   (try wp_auto)
   simp only [List.append_nil]
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [{ st0 with enabled := true }]) [HL $Hown]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [{ st0 with enabled := true }]) [HL $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL
@@ -312,7 +312,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
     ipureintro; exact Hl1
   (try wp_auto)
   wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-  iapply HFC $$ HT
+  iapply HFC $$ [$HT $Hw3]
   inext
   iintro HT
   (try wp_auto)

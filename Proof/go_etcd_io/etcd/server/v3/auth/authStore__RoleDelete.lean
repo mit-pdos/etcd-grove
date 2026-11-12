@@ -106,8 +106,8 @@ theorem auth.authStore.RoleDelete.wp_tie
     (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.RoleDelete.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r role en sc0
-  wp_start as ⟨#Hinv, #Hr, Hown, HWR, Hcs, %Hok, #Hcap, %Hnames⟩
+  intro st R M P f T Wb hs Pre Q Post r role en sc0
+  wp_start as ⟨#Hinv, #Hr, Hown, HWR, Hw1, Hw2, Hcs, %Hok, #Hcap, %Hnames⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
   icases authErrVar_of_init .invalidAuthMgmt $$ Hpkg with ⟨%eIAM, #HeIAM⟩
   simp only [AuthErr.var]
@@ -208,7 +208,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   wp_if_destruct
   · -- no such role
     ihave %Hnone := roleOut_null st0 role $$ Hrole
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -476,7 +476,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   ihave #Hcap1 := Hcap $$ %en
   ihave #Hcn := capNextM_step M hs (roleDeleteF en role) st0 (bump (delRole st0 role)) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1
-  wp_apply (h_commitRevision st R M P f T ti Lk (delRole st0 role) Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk (delRole st0 role) Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_delRole _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -522,7 +522,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (delRole st0 role)]) [HL $Hown]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (delRole st0 role)]) [HL $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL

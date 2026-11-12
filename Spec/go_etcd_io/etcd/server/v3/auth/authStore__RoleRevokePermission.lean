@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- **`as.RoleRevokePermission(r)`** for a request naming `role` (within bbolt's key bound) and
 the range `[key, rangeEnd)`: the step `roleRevokePermissionR role key rangeEnd`. -/
 abbrev auth.authStore.RoleRevokePermission.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (role key rangeEnd : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       roleRevokePermissionReqIs r role key rangeEnd ∗ ⌜role.length ≤ backend.maxKeySize⌝ ∗
-      authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+      authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (roleRevokePermissionR role key rangeEnd)⌝ ∗ capNextM M hs (roleRevokePermissionR role key rangeEnd) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleRevokePermission")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗
       adminOut M hs (roleRevokePermissionR role key rangeEnd) noExtra err }}
 

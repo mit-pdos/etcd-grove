@@ -46,8 +46,8 @@ theorem auth.authStore.UserGrantRole.wp_tieB
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r user rn b0 sc0 be
-  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hbound, %Hok, #Hcap⟩
+  intro st R M P f T Wb hs Pre Q Post r user rn b0 sc0 be
+  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hw1, Hw2, Hcs, %Hbound, %Hok, #Hcap⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
   simp only [AuthErr.var]
@@ -91,7 +91,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   wp_if_destruct
   · -- no such user
     ihave %Hnone := userOutX_null st0 user $$ Hu
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -137,7 +137,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   wp_if_destruct
   · ihave %Hrnone := roleOut_null st0 rn0 $$ Hrl
     (try wp_auto)
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -242,7 +242,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         simp only [TypedPointsto.typedPointstoDef]
         iNamed Hresp
         (try wp_auto)
-        wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
+        wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
         · ipureintro; exact Hl0
         (try wp_auto)
         iapply HΦ
@@ -332,7 +332,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
       have Hfit' := (Hfit _ _ hstepR rfl).1
       ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstepR $$ Hcap
-      wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 user xs') Post hs st0)
+      wp_apply (h_commitRevision st R M P f T Wb ti Lk (putUser st0 user xs') Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -389,7 +389,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 user xs')]) [HL $Hown]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 user xs')]) [HL $Hown $Hw1 $Hw2]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL
