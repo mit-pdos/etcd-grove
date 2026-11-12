@@ -67,3 +67,10 @@ export TMPDIR=/shared/tmp
 systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc.json build Proof.go_etcd_io.etcd.server.v3.storage.WalBodies
 # full: flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc.json build
 ```
+
+## Revision 2 and landing (2026-11-12)
+
+Revision 2 (`3029417ac0`): `absDiskInitOk` requires no WAL at the start; C6 gate; premise discharge;
+minors. Merged lean (`4016b569d0`; STATUS ten entries, stage B3's moved to status-history); go.sum
+for the pushed fork (`9f74f21e33`); absdisk interface (`f27c2c5699`). Full build ok. Then
+`etc/land.sh` (go from etcd-grove-81).
