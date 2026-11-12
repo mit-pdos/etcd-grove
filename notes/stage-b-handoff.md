@@ -357,7 +357,18 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     conjunct), docstrings and the pair docstring ("The message models are the client's registered
     ones", which names `etc/model-param-allow.txt`, still to be made); `model/Serve.lean`'s two `icases`
     gained `%Hreg`. Targeted build of `InvGrpcRun` + `model/Serve`: ok (importers not rebuilt yet).
-    **Step 2, next** (the checker's pair entries, mirroring `etc/axiom-tok-allow.txt`'s pairs):
+    **Step 2 done** (`26b60b77cf`): `ModelParamCheck.lean` emits `supp`/`recv` lines (registry, value
+    path, `keyed`) and `other` on `atom` lines (a received `GrpcMethod` binder, bare registry, or an atom
+    off a binder path); `PAIRTESTS` (scratch returner/depositors, lines tagged `"pt":true`);
+    `model-param-check.py`'s `judge_pairs` reads `etc/model-param-allow.txt` (9 entries: acceptRun and
+    acceptRunConns x {grpcReq,grpcRep}@`grpcAccepted/Req|Rep` (Invoke), {streamReq,streamRep} (NewStream);
+    respond grpcRep@`spec/Rep` (Invoke)): a hit accepted when its path extends the entry's and its type
+    is the registry's family (ProtoMsg/StreamMsg), an atom line only when `other` is false and every
+    `recv` is keyed and listed exactly; a depositor without a keyed `supp` of the registry, an entry
+    accepting nothing, or naming an unwalked axiom fails. `PAIR_SELFTESTS` (8). On the five grpc axioms'
+    run: ok, 11 findings accepted (9 hits, 2 atom lines). Limitation: the two arms of `grpcAccepted`
+    bind `Req`/`Rep` under the same walk path, so the family check (not the path) separates unary from
+    stream. The plan as it was:
     - Lean (`etc/ModelParamCheck.lean`): emit, per walked axiom, the registry atoms it *requires* (the
       supplied occurrences `judge` already collects in `vals`/`keys`, with registry and binder path) as a
       new line `{"t":"supp","axiom":…,"registry":…,"path":…}`; the received ones are already the rule-2
