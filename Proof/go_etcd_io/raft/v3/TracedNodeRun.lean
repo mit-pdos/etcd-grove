@@ -1235,6 +1235,20 @@ theorem wp_RawNode_Tick_g (wp_RawNode_Tick : RawNode.Tick.spec (GF := GF) (hG :=
     obtain ⟨Htcb, Hfit⟩ := Htr (by rw [HtrG]; simp)
     exact RawNode.Tick.traced wp_tickElection wp_tickHeartbeat γ rn id rs γd Hterm Hflw HtrG Htcb Hfit.le
 
+/-- **`raft.applyConfChange.spec` is `raft.applyConfChange.tracedSpec`'s instance** at any names
+(untraced, the capability is `emp` on both sides): the static `confc` arm's untraced call. -/
+theorem raft.applyConfChange.spec_of_tracedSpec (γ0 : RaftNames)
+    (h : raft.applyConfChange.tracedSpec (GF := GF) (hG := hG)) :
+    raft.applyConfChange.spec (GF := GF) (hG := hG) := by
+  intro c r id s cc ccm dq c' H1 H2 H3 H4 H5 Htr
+  iintro %Φ ⟨#Hpkg, Hphys, Hcc⟩ HΦ
+  iapply h c r id s cc ccm dq c' γ0 H1 H2 H3 H4 H5 (fun hne => absurd Htr hne) $$ [$Hpkg $Hphys $Hcc]
+  · rw [Htr]; unfold trCapB; iempintro
+  iintro !> %cs %xs %os %ls %lns %s' ⟨Hphys, Hcc, Hcs, %Hl, %Hok, -⟩
+  iapply HΦ $$ %cs %xs %os %ls %lns %s'
+  iframe Hphys Hcc Hcs
+  ipureintro; exact ⟨Hl, Hok⟩
+
 end lemmas
 
 end EtcdGrove
