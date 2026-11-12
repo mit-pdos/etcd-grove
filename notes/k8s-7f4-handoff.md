@@ -33,6 +33,14 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Revision 2 and the landing (2026-11-12)
+
+Re-review: B1, T-e' and the gates READY; the blocker (Tracer.Start's `spanCtxOk` did not exclude the
+refutation) fixed by `trace.spanValOk` (freeze "Revision 2"); Revision 1's knock-on premises reverted.
+Landing the trusted package on its own (81's go). **Next: steps 3-6 of the re-baseline's §4**, starting
+with the weakening interceptor contract (`v3rpc.incomingOf_wrapper`, `v3rpc.wp_WithCancel_cancelCtx`,
+`context.libCtxOkC_from`, `trace.spanCtxOkC_from`).
+
 ## Revision 1 (2026-11-12, the second 7f-4 agent): steps 1-6 of 81's decisions done
 
 `notes/k8s-7f4-freeze.md`, "Revision 1", per finding. B1 by per-constructor preservation (option (b);

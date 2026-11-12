@@ -327,6 +327,13 @@ etcd-grove-81 (questions.md).
   (`#HParentCC` excludes the `afterFuncer`/`stopCtx` rewrite). m2: the per-execution reading sentence
   (the same as `WithValue.spec`'s `incomingOf` post).
 
+### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
+
+Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5
+sorries: the two field axioms are used by no root yet); 55 collections match; axiom-tok ok (811 walked:
+779 pass, 32 by an entry or pair) and its selftest; model-param, errdesc ok; gen-interface `--check` on
+the six lists: no diff; `examples/premisefix/{streamctx,tracerspan}` pass at go1.27.3.
+
 ### Checks run, Revision 1 (2026-11-12)
 
 - Targeted build of the changed modules, then the full build (`etc/timed-build.py`, 64G cap, under
