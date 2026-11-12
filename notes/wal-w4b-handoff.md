@@ -3,35 +3,31 @@
 Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1` (W4a landed;
 `wal-w4` deleted). Coordinator: etcd-grove-81. Scratch: `/shared/tmp/wal-spec/w4b/`.
 
-## State (2026-11-12, first agent; handoff at about 2/3 of its context)
+## State (2026-11-12, second agent: checkpoint 1 reached)
 
 - Plan approved (etcd-grove-81; `/shared/tmp/wal-spec/w4b/plan.md`). Its findings F-W4b-1/2 are fixed
-  in W4a.1 (branch `wal-w4a1`, `91e927b08f` + `58817cfeaa`, under the delta Freeze review; see
-  `notes/wal-w4a1-handoff.md` on that branch). Part B's `walDiskM` views (B1) wait for W4a.1 to land.
+  in W4a.1 (branch `wal-w4a1`, under the delta Freeze review; do not check it out here while the
+  review runs). Part B's `walDiskM` views (B1) wait for W4a.1 to land.
 - This worktree serves both branches: switching only rebuilds `WalDisk.lean` and four axiom files.
-- Part A in `Proof/go_etcd_io/etcd/server/v3/storage/WalHistLemmas.lean` (checked with
-  `etc/lean-check.py -a`, 0 errors):
-  - A1 done: `getElem?_some_lt`, `walImg_refl`, `walImg_mono`, `walImg_length_le`, `walImg_snoc`,
-    `walImg_full`, `walImg_prefix`, `walImg_trans`.
-  - A2 done: `walHsStep`, `walLastHS_eq`, `walSaveSnap_hs`, `walFoldChkFrom_hs`, `walHsStep_filter`,
-    `walReadCut_hs`.
-  - A4 first half done: `walEntsWf`, `readEnt_wf`, `readEnts_wf`, `walSaveSnap_wf`,
-    `walFoldChkFrom_wf`, `walReadCut_wf` (no premise).
-  - A3 `walReadCut_base`: stated, `sorry` (the only one).
+- Part A complete in `Proof/go_etcd_io/etcd/server/v3/storage/WalHistLemmas.lean` (no `sorry`; targeted
+  build clean; `#print axioms` of the main lemmas: `propext`, `Quot.sound` only):
+  - A1: `walImg_refl/_mono/_length_le/_snoc/_full/_prefix/_trans`, `walImg_map`, `walImg_getElem?`,
+    `walImg_toM_iff`, `walImg_toM_ex`.
+  - A2: `walReadCut_hs` (+ `walHsStep`, `walFoldChkFrom_hs`, ...).
+  - A3: `walNewestPair_mem/_max/_last/_none`, `walNewestPair_fold_self`, `walNewest_pair`,
+    `walNewest_eq_newestPair`, `walFoldChkFrom_base`, `walReadCut_base`, `walReadCut_snap`.
+  - A4: `walEntsWf`, `walReadCut_wf`; `walIdxLe`, `walReadCut_last_le`.
+  - A5: `walReadCut_ents_sub`, `walReadCut_ents_sub_raw`.
+  - A6: `walLastSnapPos_le`, `walLastSnapPos_snoc`, `walLastSnapPos_img`, `walReleasePos_le_length`,
+    `walRelGuard_snoc`.
+- CP1 report sent to etcd-grove-81; waiting for its go.
 
-## Next, in order (to checkpoint 1)
+## Next, in order (after CP1)
 
-1. A3 `walReadCut_base` (plan §2 A3): newest-pair lemmas (`walNewestPair_mem/_max/_last`),
-   `walNewest_eq_newestPair` (the filtered rest's `walNewest` vs `walNewestPair (walValidSnaps I k)`
-   for `k ≥ 1`), then the fold keeps the running maximum (`k = 0`: start `walFresh` at `(0,0)`, which
-   is `walValidSnaps`'s head). Watch: `walSaveSnap` resets base at `idx ≥ b` (equal indexes too: the
-   last of equal wins, as `walNewestPair`'s `≤`).
-2. A4 second half: `walIdxLe B I` (every entry/snapshot index of `I` at most `B`) and
-   `walReadCut_last_le` (`σ.last ≤ B`), from `walReadCut_wf` plus "entries come from `I`" (A5).
-3. A5 `walReadCut_ents_sub`; A6 `walLastSnapPos_snoc`, `walLastSnapPos_img`,
-   `walReleasePos_le_length`, `walRelGuard_snoc`; A1's `walImg_map` / `walImg_toM_iff`.
-4. Remove the draft header line ("DRAFT (unchecked)") from the module docstring; targeted build
-   (`lake build Proof.go_etcd_io.etcd.server.v3.storage.WalHistLemmas`); CP1 report.
+1. Part B (`WalViews.lean`): B2 `walDiskAt_crash_img` (+ `_any`), `walDiskAt_crash_graceful`; B3
+   `walImg_snoc_cases`, `walImg_append_cases`; B1's `walDisk` half. B1's `walDiskM` half after W4a.1 lands.
+2. Probes R1, R2 (Go, scratch under `/shared/tmp/wal-spec/w4b/`); CP2.
+3. Part C (C1-C4); full checks; CP3.
 
 ## Pitfalls
 

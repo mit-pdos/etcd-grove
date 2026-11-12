@@ -2,7 +2,6 @@
 **Lemmas over the WAL's history and its reader** (WAL W4b, 2026-11-12; `/shared/tmp/wal-spec/w4b/plan.md`
 §2 A, approved by etcd-grove-81). Proved; no trusted text. For the tester's proof (W4c), rung 2's crash
 clause (C3) and the server's restart (S2/C6).
-DRAFT (unchecked): starting point for Part A.
 -/
 module
 
@@ -795,6 +794,215 @@ theorem walReadCut_last_le {B : Nat} {I : WalHist} {k : Nat} {σ : StorContents}
     obtain ⟨hs, es, h1, h2⟩ := walReadCut_ents_sub h _ (List.getElem_mem hlt)
     have := hB.1 hs es _ h1 h2
     omega
+
+/-! ## A6. The purge bound's lemmas -/
+
+theorem lastFilt_succ (P : Nat → Bool) (n : Nat) :
+    ((List.range (n + 1)).filter P).getLast? =
+      if P n then some n else ((List.range n).filter P).getLast? := by
+  rw [List.range_succ, List.filter_append]
+  by_cases hp : P n
+  · simp [hp]
+  · simp [hp]
+
+theorem lastFilt_some (P : Nat → Bool) : ∀ (n p : Nat), ((List.range n).filter P).getLast? = some p →
+    p < n ∧ P p ∧ ∀ i, p < i → i < n → P i = false := by
+  intro n
+  induction n with
+  | zero => intro p h; simp at h
+  | succ n ih =>
+    intro p h
+    rw [lastFilt_succ] at h
+    by_cases hp : P n
+    · simp only [hp, ite_true, Option.some.injEq] at h; subst h
+      exact ⟨by omega, hp, fun i h1 h2 => by omega⟩
+    · simp only [hp, Bool.false_eq_true, ite_false] at h
+      obtain ⟨h1, h2, h3⟩ := ih p h
+      refine ⟨by omega, h2, fun i hi1 hi2 => ?_⟩
+      rcases Nat.lt_or_ge i n with hin | hin
+      · exact h3 i hi1 hin
+      · have : i = n := by omega
+        subst this; simpa using hp
+
+theorem lastFilt_none (P : Nat → Bool) : ∀ (n : Nat), ((List.range n).filter P).getLast? = none →
+    ∀ i, i < n → P i = false := by
+  intro n
+  induction n with
+  | zero => intro _ i hi; omega
+  | succ n ih =>
+    intro h i hi
+    rw [lastFilt_succ] at h
+    by_cases hp : P n
+    · simp [hp] at h
+    · simp only [hp, Bool.false_eq_true, ite_false] at h
+      rcases Nat.lt_or_ge i n with hin | hin
+      · exact ih h i hin
+      · have : i = n := by omega
+        subst this; simpa using hp
+
+theorem lastFilt_eq_some (P : Nat → Bool) : ∀ (n p : Nat), p < n → P p = true →
+    (∀ i, p < i → i < n → P i = false) → ((List.range n).filter P).getLast? = some p := by
+  intro n
+  induction n with
+  | zero => intro p hp; omega
+  | succ n ih =>
+    intro p hpn hp hi
+    rw [lastFilt_succ]
+    rcases Nat.lt_or_ge p n with hlt | hge
+    · have : P n = false := hi n hlt (by omega)
+      simp only [this, Bool.false_eq_true, ite_false]
+      exact ih p hlt hp (fun i h1 h2 => hi i h1 (by omega))
+    · have : p = n := by omega
+      subst this; simp [hp]
+
+theorem lastFilt_eq_none (P : Nat → Bool) : ∀ (n : Nat), (∀ i, i < n → P i = false) →
+    ((List.range n).filter P).getLast? = none := by
+  intro n
+  induction n with
+  | zero => intro _; rfl
+  | succ n ih =>
+    intro hi
+    rw [lastFilt_succ, hi n (by omega)]
+    simp only [Bool.false_eq_true, ite_false]
+    exact ih (fun i h => hi i (by omega))
+
+/-- Whether position `i` of `H` holds a snapshot record of index `a` (`walLastSnapPos`'s filter). -/
+def walSnapIdxAt {E : Type} (H : List (WalOpG E)) (a : w64) (i : Nat) : Bool :=
+  match H[i]? with
+  | some (WalOpG.snap m) => decide (m.Index' = a)
+  | _ => false
+
+theorem walLastSnapPos_eq {E : Type} (H : List (WalOpG E)) (a : w64) :
+    walLastSnapPos H a = (((List.range H.length).filter (walSnapIdxAt H a)).getLast?).getD 0 := rfl
+
+theorem walSnapIdxAt_ge {E : Type} {H : List (WalOpG E)} {a : w64} {i : Nat} (h : H.length ≤ i) :
+    walSnapIdxAt H a i = false := by
+  simp [walSnapIdxAt, List.getElem?_eq_none h]
+
+/-- The last snapshot position is at most the length (below it when a record exists). -/
+theorem walLastSnapPos_le {E : Type} (H : List (WalOpG E)) (a : w64) :
+    walLastSnapPos H a ≤ H.length := by
+  rw [walLastSnapPos_eq]
+  cases h : ((List.range H.length).filter (walSnapIdxAt H a)).getLast? with
+  | none => simp
+  | some p => simp only [Option.getD_some]; exact Nat.le_of_lt (lastFilt_some _ _ _ h).1
+
+/-- **One more operation**: a snapshot record of index `a` is the new last; anything else keeps it. -/
+theorem walLastSnapPos_snoc {E : Type} (H : List (WalOpG E)) (o : WalOpG E) (a : w64) :
+    walLastSnapPos (H ++ [o]) a =
+      (match o with | .snap m => if m.Index' = a then H.length else walLastSnapPos H a
+                    | .save _ _ => walLastSnapPos H a) := by
+  have hc : ∀ i, i < H.length → walSnapIdxAt (H ++ [o]) a i = walSnapIdxAt H a i := by
+    intro i hi; simp only [walSnapIdxAt, List.getElem?_append_left hi]
+  have hfl : (List.range H.length).filter (walSnapIdxAt (H ++ [o]) a) =
+      (List.range H.length).filter (walSnapIdxAt H a) :=
+    List.filter_congr (fun i hi => hc i (List.mem_range.1 hi))
+  have hn : walSnapIdxAt (H ++ [o]) a H.length =
+      (match o with | .snap m => decide (m.Index' = a) | .save _ _ => false) := by
+    simp only [walSnapIdxAt, List.getElem?_append_right (Nat.le_refl _), Nat.sub_self,
+      List.getElem?_cons_zero]
+    cases o <;> rfl
+  rw [walLastSnapPos_eq, List.length_append, List.length_singleton, lastFilt_succ, hfl, hn]
+  cases o with
+  | save h es => rfl
+  | snap m =>
+    by_cases hm : m.Index' = a
+    · simp [hm]
+    · simp [hm, walLastSnapPos_eq]
+
+/-- **A crash keeps the last snapshot position when it is synced.** -/
+theorem walLastSnapPos_img {E : Type} {H I : List (WalOpG E)} {n : Nat} {a : w64}
+    (hI : walImg H n I) (hp : walLastSnapPos H a < n) : walLastSnapPos I a = walLastSnapPos H a := by
+  obtain ⟨hnI, htake⟩ := walImg_prefix hI
+  have hpre : ∀ i, i < n → I[i]? = H[i]? := by
+    intro i hi
+    rw [← List.getElem?_take_of_lt hi, htake, List.getElem?_take_of_lt hi]
+  -- past the last position, `I` holds no snapshot record of index `a`
+  have hlate : ∀ i, (∀ j, i ≤ j → walSnapIdxAt H a j = false) → ∀ j, i ≤ j → walSnapIdxAt I a j = false := by
+    intro i hH j hj
+    unfold walSnapIdxAt
+    cases ho : I[j]? with
+    | none => rfl
+    | some o =>
+      rcases walImg_getElem? hI ho with hh | ⟨h, es, rfl⟩
+      · have := hH j hj
+        unfold walSnapIdxAt at this
+        rw [hh] at this
+        exact this
+      · rfl
+  rw [walLastSnapPos_eq] at hp ⊢
+  rw [walLastSnapPos_eq]
+  cases hH : ((List.range H.length).filter (walSnapIdxAt H a)).getLast? with
+  | none =>
+    have hn := lastFilt_none _ _ hH
+    rw [lastFilt_eq_none _ _ (fun i _ => hlate 0 (fun j _ => by
+      rcases Nat.lt_or_ge j H.length with hj | hj
+      · exact hn j hj
+      · exact walSnapIdxAt_ge hj) i (Nat.zero_le _))]
+  | some p =>
+    rw [hH, Option.getD_some] at hp
+    obtain ⟨h1, h2, h3⟩ := lastFilt_some _ _ _ hH
+    rw [lastFilt_eq_some _ _ p (by omega) ?_ ?_]
+    · unfold walSnapIdxAt at h2 ⊢; rw [hpre p hp]; exact h2
+    · intro i hi1 _
+      exact hlate (p + 1) (fun j hj => by
+        rcases Nat.lt_or_ge j H.length with hjl | hjl
+        · exact h3 j (by omega) hjl
+        · exact walSnapIdxAt_ge hjl) i (by omega)
+
+/-- The release position is within the history. -/
+theorem walReleasePos_le_length (H : WalHist) (a : w64) : walReleasePos H a ≤ H.length := by
+  unfold walReleasePos
+  split
+  · exact Nat.zero_le _
+  · split
+    · exact walLastSnapPos_le H a
+    · exact Nat.le_refl _
+
+/-- **The release guard for one more operation**: the guard of `H`, the new last commit at least `a`
+(when the operation is after `p`), a new `Save`'s entries above `a` (when a snapshot record of index
+`≥ a` precedes it), and a new snapshot record at least `a` (when after `p`). -/
+theorem walRelGuard_snoc {H : WalHist} {a : w64} {p : Nat} (o : WalOp) (hg : walRelGuard H a p)
+    (h1 : p < H.length + 1 → uint.nat a ≤ uint.nat (walLastHS (H ++ [o])).Commit')
+    (h2 : ∀ hs es, o = .save hs es → (∃ (q : Nat) (m : SnapshotMetadataM), H[q]? = some (WalOpG.snap m) ∧ uint.nat a ≤ uint.nat m.Index') →
+      ∀ e ∈ es, uint.nat a < uint.nat e.Index')
+    (h3 : ∀ m, o = .snap m → p < H.length → uint.nat a ≤ uint.nat m.Index') :
+    walRelGuard (H ++ [o]) a p := by
+  obtain ⟨g1, g2, g3⟩ := hg
+  refine ⟨?_, ?_, ?_⟩
+  · intro j hpj hj
+    simp only [List.length_append, List.length_singleton] at hj
+    rcases Nat.lt_or_ge j (H.length + 1) with hlt | hge
+    · rw [List.take_append_of_le_length (by omega)]
+      exact g1 j hpj (by omega)
+    · have : j = H.length + 1 := by omega
+      subst this
+      rw [List.take_of_length_le (by simp)]
+      exact h1 (by omega)
+  · intro q j m hs es e hq ham hqj hj he
+    have hjl := getElem?_some_lt hj
+    simp only [List.length_append, List.length_singleton] at hjl
+    rcases Nat.lt_or_ge j H.length with hlt | hge
+    · rw [List.getElem?_append_left hlt] at hj
+      rw [List.getElem?_append_left (by omega)] at hq
+      exact g2 q j m hs es e hq ham hqj hj he
+    · have : j = H.length := by omega
+      subst this
+      rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
+        Option.some.injEq] at hj
+      rw [List.getElem?_append_left hqj] at hq
+      exact h2 hs es hj ⟨q, m, hq, ham⟩ e he
+  · intro j m hpj hj
+    have hjl := getElem?_some_lt hj
+    simp only [List.length_append, List.length_singleton] at hjl
+    rcases Nat.lt_or_ge j H.length with hlt | hge
+    · rw [List.getElem?_append_left hlt] at hj
+      exact g3 j m hpj hj
+    · have : j = H.length := by omega
+      subst this
+      rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_cons_zero,
+        Option.some.injEq] at hj
+      exact h3 m hj hpj
 
 end reader
 
