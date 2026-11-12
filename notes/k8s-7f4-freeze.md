@@ -139,6 +139,23 @@ axiom metadata.incomingOf_of_value (c c' : GoInterfaceOk) (v : GoInterface) :
 - **Go:** `AuthInfoFromCtx`/`AuthInfoFromTLS` (fork `673da07c8f` `server/auth/store.go`) read only
   the metadata and the peer, never `Done`/`Err`/`Deadline`.
 
+### T-e'. `isReqAuth` takes the context's `Done()` fact (decided by etcd-grove-81, 2026-11-12; DRAFT, not built)
+
+- **Vocabulary** (new module `Proof/go_etcd_io/etcd/server/v3/auth/CtxDone.lean`, imports only
+  Perennial's context proofs): `auth.ctxDoneAny ctx := □ {{ True }} ctx.Done() {{ ch, RET #ch;
+  ⌜ch = chan.nil⌝ ∨ ∃ s γch, context.isContextDone s ch γch }}`, and `auth.ctxDoneAny_of_isContext`.
+  Laws: `auth.ctxDoneAny_of_srvCtxWeak` (`SrvCtxWeak.lean`), `auth.ctxDoneAny_of_txnCtx`
+  (`InvRequest.lean`, `doneNil` → nil, `isContext` → its `#HDone`).
+- **Text:** `isReqAuth`'s two triples and `isReqAuthBound`'s take `context.libCtxOk ctx ∗
+  auth.ctxDoneAny ctx (∗ RD)`. Relative to lean this is still a **stronger post** of
+  `auth.NewAuthStore` (it asks `ctxDoneAny` where lean asks `txnCtx`, which gives it); relative to
+  T-e, a weaker one.
+- **Go:** `isValidSimpleToken` selects on `ctx.Done()`, which Go evaluates on entry
+  (`notes/auth-validspec-false.md`); nil blocks that case forever, a context's Done channel is
+  received on with `isContextDone`'s spec. The auth stage S1 reuses the definition.
+- Status: `CtxDone.lean` and `SrvCtxWeak.lean` checked with `etc/lean-check.py` (0 errors);
+  `InvRequest`, `AuthReqDerive`, `AuthInfoFromCtx` edited but not built (waiting for the review).
+
 ### T-f. The weak handler context and the three weakened trust-boundary premises (Draft §2, §4)
 
 - **Vocabulary** (new module `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SrvCtxWeak.lean`;

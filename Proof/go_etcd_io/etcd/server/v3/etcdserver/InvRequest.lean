@@ -92,6 +92,7 @@ public import Perennial.Ghost.Token
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.auth.CtxDone
 
 @[expose] public section
 
@@ -2622,6 +2623,22 @@ def authInfoIs (a : Loc) (user : GoString) (rev : w64) : IProp GF :=
 def authInfoOpt (a : Loc) : IProp GF :=
   iprop(⌜a = null⌝ ∨ ∃ user rev, authInfoIs a user rev)
 
+/-- **A `txnCtx`'s `Done()` is one the auth store may select on** (T-e'): `nil` (`doneNil`) or an
+`isContext`'s. -/
+theorem auth.ctxDoneAny_of_txnCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    mvcc.txnCtx ctx cd ⊢ auth.ctxDoneAny ctx := by
+  iintro #H
+  unfold mvcc.txnCtx
+  icases H with (#Hn | #Hc)
+  · unfold auth.ctxDoneAny mvcc.doneNil
+    iintro !> %Φ !> - HΦ
+    iapply Hn $$ []
+    · itrivial
+    iintro !> -
+    iapply HΦ
+    ileft; ipureintro; rfl
+  · iapply auth.ctxDoneAny_of_isContext ctx cd $$ Hc
+
 /-- **The auth store's request side** (persistent): `AuthInfoFromCtx(ctx)`, with the caller's
 reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method read-locks
 `enabledMu`), returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer can take:
@@ -2632,16 +2649,19 @@ context). Of the real store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The 
 apply package's `isAuthStore`. (k8s 7f-4, T-e) Nothing of the context but its library values: the
 store's `AuthInfoFromCtx`/`AuthInfoFromTLS` read only the metadata and the peer (`Value` at grpc's
 keys), never `Done`/`Err`/`Deadline` (fork `673da07c8f` `server/auth/store.go`), so a stream
-handler's weak context (`srvCtxWeak`) is one too. -/
+handler's weak context (`srvCtxWeak`) is one too. (T-e', decided by etcd-grove-81) And its
+`Done()` returns nil or a context's Done channel (`auth.ctxDoneAny`): the token check
+(`isValidSimpleToken`) selects on it; a `txnCtx` gives it (`auth.ctxDoneAny_of_txnCtx`), and so does
+`srvCtxWeak` (`auth.ctxDoneAny_of_srvCtxWeak`). -/
 def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ ctx : GoInterfaceOk,
-      {{ context.libCtxOk ctx ∗ RD }}
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
           authApplyErrIs err }}) ∗
     □ (∀ ctx : GoInterfaceOk,
-      {{ context.libCtxOk ctx }}
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc), RET #a; authInfoOpt a }}))
 
@@ -2661,7 +2681,7 @@ plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrL
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ ctx : GoInterfaceOk,
-      {{ context.libCtxOk ctx ∗ RD }}
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
           authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))

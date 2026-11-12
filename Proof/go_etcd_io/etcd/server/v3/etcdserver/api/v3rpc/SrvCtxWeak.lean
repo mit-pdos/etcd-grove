@@ -16,6 +16,7 @@ module
 
 public import Perennial.Proof.context
 public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
+public import Proof.go_etcd_io.etcd.server.v3.auth.CtxDone
 
 @[expose] public section
 
@@ -115,6 +116,22 @@ theorem srvCtxWeak_of_isContext (c : GoInterfaceOk) (s : context.ContextDesc (IP
   iapply HΦ
   · ipureintro; exact context.isTypedErr_ne_nil Hty
   ileft; iexact He
+
+/-- **A weak context's `Done()` is one the auth store may select on** (T-e'). -/
+theorem auth.ctxDoneAny_of_srvCtxWeak (c : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) :
+    srvCtxWeak c s ⊢ auth.ctxDoneAny c := by
+  iintro #H
+  unfold auth.ctxDoneAny
+  iintro !> %Φ !> - HΦ
+  unfold srvCtxWeak
+  icases H with ⟨-, #HDone, -⟩
+  iapply HDone $$ []
+  · itrivial
+  iintro !> %ch %γch Hd
+  iapply HΦ
+  iright
+  iexists s, γch
+  iexact Hd
 
 end defs
 
