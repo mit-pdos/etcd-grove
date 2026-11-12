@@ -18,11 +18,13 @@ model is the meaning of the specs.
   (`dur`), with the two flags the durability argument needs (`busy`, `lost`); the transitions of a
   commit, a failed commit attempt and a sync (`BoltSt.commit`, `attempt`, `settle`, `sync`).
 * The size bounds (`maxKeySize`, `bboltEntryMax`) and the options (`OptsM`).
+* **Laws** over the data model (`Ent.atPath_modAt.spec`, ..., at the end): pure obligations the
+  clients use (lookup after a put or a delete, the cursor order after a put, well-formedness kept).
 
 **Changes (2026-11-12, `notes/specs-only/ledger.md`).** `TxView.gen`/`gens` removed (a generation
 counter in the view was unobservable state, redundant with the ownership of a write transaction's
 bucket handles, `Api.lean`'s `bktOwn`): `dropBkt` only changes the data. Added: the bucket paths
-(`Ent.bktPaths`, `Ent.bktsUnder`, `TxView.bktNames`), `Ent.curVal`.
+(`Ent.bktPaths`, `Ent.bktsUnder`, `TxView.bktNames`), `Ent.curVal`, and the model's laws.
 -/
 module
 
@@ -367,6 +369,94 @@ def OptsM.ok (o : OptsM) : Prop :=
     (o.mmapFlags.toNat = 0 ∨ o.mmapFlags.toNat = mapPopulate) ∧ loggerPtrOk o.logger
 
 end opts
+
+/-! ## Laws of the data model (2026-11-12, `notes/specs-only/ledger.md`)
+
+Pure obligations over the transparent model, which the clients use instead of re-deriving them
+(the backend's range after a put, its compaction's deletes). Each is true of the definitions;
+the comments say why, for the edge cases. -/
+
+namespace Ent
+
+/-- **`atPath` after `modAt` at the same path and below it**: the entry at `p` is `f` of the old
+one, and the entries below are `f`'s (`r = []`: the same path). If there is no entry at `p`
+(a missing key, or a value on the way), `modAt` changes nothing and both sides are `none`. -/
+def atPath_modAt.spec : Prop :=
+  ∀ (e : Ent) (p r : BPath) (f : Ent → Ent),
+    (e.modAt p f).atPath (p ++ r) = ((e.atPath p).map f).bind (fun c => c.atPath r)
+
+/-- **`atPath` after `modAt` at another path**: unchanged when neither path is a prefix of the
+other (`modAt` replaces only the first entry of each key on its way, so another key's first
+entry, which `lookup` finds, stays). An ancestor of `p` is changed (its subtree is). -/
+def atPath_modAt_other.spec : Prop :=
+  ∀ (e : Ent) (p p' : BPath) (f : Ent → Ent),
+    ¬ p.IsPrefix p' → ¬ p'.IsPrefix p → (e.modAt p f).atPath p' = e.atPath p'
+
+/-- **Lookup after `setKey`** in a bucket: the key gives what was set (`some x`: put, inserted or
+replaced; `none`: deleted), every other key what it gave before. (A value's `setKey` is the value,
+whose `lookup` is `none`: hence the bucket premise.) -/
+def lookup_setKey.spec : Prop :=
+  ∀ (e : Ent) (k k' : GoString) (x : Option Ent), e.isBkt = true →
+    (e.setKey k x).lookup k' = if k' = k then x else e.lookup k'
+
+/-- **A put or delete at a bucket, seen at its key's path** (`Get` after `Put`/`Delete`): with a
+bucket at `p`, the key's path holds what was set. Other keys' paths are unchanged
+(`atPath_modAt_other.spec`: `p.child k` and `p.child k'` are not prefixes of each other). -/
+def atPath_child_setKey.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString) (x : Option Ent), e.bktAt p →
+    (e.modAt p (fun b => b.setKey k x)).atPath (p.child k) = x
+
+/-- **The cursor order after a put** (`curEnts`, what `Seek`/`Next` return): in a well-formed
+bucket (keys strictly sorted, so the entries before `k` are the `seekIdx` first, and at most the
+next one has the key `k`), the entry `(k, x.curVal)` is at `seekIdx`, after the entries below `k`
+and before those above it, replacing the old entry of `k` if there was one. (A bucket: a value's
+`setKey` is the value, whose `curEnts` stays `[]`.) -/
+def curEnts_put.spec : Prop :=
+  ∀ (e : Ent) (k : GoString) (x : Ent), e.isBkt = true → e.wf →
+    (e.setKey k (some x)).curEnts =
+      e.curEnts.take (seekIdx e.curEnts k) ++ (k, x.curVal) ::
+        (e.curEnts.drop (seekIdx e.curEnts k)).filter (fun c => decide (c.1 ≠ k))
+
+/-- **The cursor order after a delete**: the entries without the key (in order; a value's
+`setKey` is the value, whose `curEnts` is `[]` either way). -/
+def curEnts_del.spec : Prop :=
+  ∀ (e : Ent) (k : GoString),
+    (e.setKey k none).curEnts = e.curEnts.filter (fun c => decide (c.1 ≠ k))
+
+/-- **A put keeps an entry well-formed** under the entry bounds (a key non-empty and at most
+`maxKeySize`; a value's key and value together at most `bboltEntryMax`; a nested bucket itself
+well-formed): what `Put`'s and `CreateBucket*`'s premises give. Sorted insertion: `GoStringLt`,
+the bytes' lexicographic order, is a strict total order. -/
+def wf_setKey.spec : Prop :=
+  ∀ (e : Ent) (k : GoString) (x : Ent), e.wf → k ≠ [] → k.length ≤ maxKeySize → x.wf →
+    (∀ v, x = Ent.val v → k.length + v.length ≤ bboltEntryMax) → (e.setKey k (some x)).wf
+
+/-- **A delete keeps an entry well-formed** (a filter keeps the order and the bounds). -/
+def wf_delKey.spec : Prop :=
+  ∀ (e : Ent) (k : GoString), e.wf → (e.setKey k none).wf
+
+/-- **`modAt` keeps an entry well-formed** when it changes a bucket into a well-formed bucket
+(the key on the way to it unchanged, a bucket's entry not under the value bound). With no entry
+at `p` it changes nothing. (A value at `p` is excluded: a longer value could break its parent's
+entry bound.) -/
+def wf_modAt.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (f : Ent → Ent), e.wf →
+    (∀ c, e.atPath p = some c → c.isBkt = true ∧ (f c).isBkt = true ∧ (f c).wf) →
+    (e.modAt p f).wf
+
+/-- **The bucket paths are the paths of buckets** (not the root), without duplicates, in a
+well-formed entry (distinct keys: `lookup` finds the one entry of each key). -/
+def bktPaths_mem.spec : Prop :=
+  ∀ (e : Ent), e.wf →
+    (∀ q, q ∈ e.bktPaths ↔ q ≠ [] ∧ e.bktAt q) ∧ e.bktPaths.Nodup
+
+/-- **The buckets under `q`** are the buckets at paths extending `q`, without duplicates, in a
+well-formed entry. -/
+def bktsUnder_mem.spec : Prop :=
+  ∀ (e : Ent) (q : BPath), e.wf →
+    (∀ d, d ∈ e.bktsUnder q ↔ q.IsPrefix d ∧ e.bktAt d) ∧ (e.bktsUnder q).Nodup
+
+end Ent
 
 end Bbolt
 end EtcdGrove
