@@ -91,6 +91,32 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
      d. `Crash.lean`: `tester_crash`, using the keep lemmas (the crash obligation opens the old
         generation's invariant at `⊤` and closes it with its contents).
      Then CP2 (report).
+   - **Done (2026-11-12, fresh agent step 2):**
+     a. R1 at `efd2541007`: instance modules (facts `True`) `Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/Base.lean`,
+        `Proof/go_etcd_io/etcd/server/v3/storage/wal/walpb/Base.lean` (imports raft's `Base` for raftpb/protoimpl),
+        `Proof/.../examples/etcd/wal/Base.lean` (imports `wal.Init`, which the WAL specs import anyway); root added
+        to `etc/gen-init.py`'s `ROOTS`; `Init.lean` generated for the three (fileutil's and walpb's carry the
+        standard generated `opaqueInitsOk`/`initFuncsOk`, plan §4's "wal/fileutil/walpb initializer axioms";
+        reached by no root yet). `gen-init --check` clean; `...examples.etcd.wal.Init` builds.
+     b. `Defs.lean` at `f009626d5d`: `TOp`/`TContents`/`TCand`/`TOracle` (over the Go structs `hardState`,
+        `entry`), `ref.go` transliterated (`tRead`, `tReadFrom`, `tReadCut`, `tImgs`, `tLastIdx`, `tCutPos`,
+        `tNameBound`, `tOpenBound`, ...; `w64` where Go uses `uint64`), `tEncodeOracle`, `absOp`/`absC`/`projC`,
+        `tHistWf`, `tCandOk`/`tPreOk`, `tRelI`, `TInvBody`/`TInv`/`TBoot` (plan §2.3).
+     d. `Crash.lean` at `f009626d5d`: `tester_crash` proved (plan §2.4), over the keep lemmas plus new proved
+        lemmas in `AbsDisk/Specs.lean`: `dirDurable_crash_keep`, `walArea_crash_keep`,
+        `walDiskAt_crash_any_keep0` (Create's committed WAL has no `walSyncedLb` until Create returns),
+        Timeless instances of `absPast`/`walArea`/`walSyncedLb`/`walNamed`/`dirDurable`.
+     c. `RefLemmas.lean`: part A at `bde0b3afe5` (`tReadCut_abs`: the reads commute with `absOp`, no bound
+        needed), part B at `e5b1d150ab` (`tImgs_complete`).
+   - **Left of step 2 (next agent, in order):**
+     c'. RefLemmas part C: `tLastIdx_abs` (`uint.nat (tLastIdx h) = walLastIdx (h.map absOp)`), `tCutPos_abs`
+        (`tCutPos h b = true ↔ walCutPos (h.map absOp) b`), `tNameBound_eq` (under `¬ walHasMaxIdx`, i.e. from
+        `tHistWf`, and `h.length < 2^64`: `uint.nat (tNameBound h a) = walNameBound (h.map absOp) (uint.nat a)
+        false`); part D: `tNameBound_le_openBound` (`img ∈ imgs → uint.nat (tNameBound img a) ≤ uint.nat
+        (tOpenBound imgs a)`); readback (`fromRaft (absEnt e) = e` for `tEntWf e`) can wait for step 3 (it needs
+        `fromRaft`'s Lean model).
+     e. Regenerate `interface/GooseLang/Ext/AbsDisk/Specs.txt` (the new lemmas), api-check, tcb `--check`.
+     Then CP2 (report).
 4. Steps 3-4 as in plan §8.
 
 ## Pitfalls
