@@ -160,6 +160,14 @@ pure premise, e.g. `Cluster.trace γ ≠ none → receiptBound GF + vs.length �
 (`|γ.raft.reBoot| = |vs|` by `BootLogOk`), which the harness discharges from `tcRunFits` with its three
 voters. A change to `HarnessOpen`'s text, not to §1's statements.
 
+**`hAdv` proved (2026-11-12, branch `trace-check-hadv`).** `RawNode.Advance.tracedSpec_proof`
+(`TracedRawNodeAdvance.lean`), statement unchanged; `RawNode.Advance.wp_proof` its instance. Each queued
+message goes through `wp_raft_Step_adv` (`raft.Step.untraced` or `raft.Step.traced` over the proved
+`stepBundle_traced`, `rnTrace` from the state before to the state after); the snapshot arm is untraced.
+Two raft-internal definitions changed for the self-addressed responses (`notes/decisions.md`, the step-4
+entry's amendment): `selfTok`'s traced body gains `⌜TrSent st⌝`, `pendingRel`'s self arm keeps the
+message's `isRaftMsg` (behind `durFrags`).
+
 ## G3 (a) (2026-11-12): no conf entry past the bootstrap log, the design taken
 
 Branch `trace-check-g3`, from `trace-check` at `fcc535af34` (`notes/decisions.md`, "G3 (a): no conf

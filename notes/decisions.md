@@ -37558,3 +37558,25 @@ has the premise → source tables).
   `StartNode.tracedSpec` (`HarnessOpen`) does not give the fit `run` needs: a gated pure premise such as
   `Cluster.trace γ ≠ none → receiptBound GF + vs.length ≤ traceNumBound ∧ 2 ≤ vs.length`, from the
   harness's `tcRunFits`. Neither changes §1.
+
+**Amendment (2026-11-12, `hAdv` proved; decided by the agent · branch `trace-check-hadv`).**
+`RawNode.Advance.tracedSpec` is proved unchanged (`RawNode.Advance.tracedSpec_proof`,
+`TracedRawNodeAdvance.lean`), and `RawNode.Advance.wp_proof` is now its instance (one proof; its
+statement unchanged; the proof and its lemmas moved out of the proof file, so the three `ackSnapLog_*`
+layout violations are gone). Two internal facts the traced self-addressed responses need had no source
+in `ownRawNode`, so two raft-internal definitions of `InvRawnode.lean` changed (no statement, no
+interface file):
+- *`selfTok`'s traced body gains `⌜TrSent st⌝`* (kept from the `Ready`'s `readyTok` by
+  `selfToks_of_readyToks`): `raft.Step.traced`'s bundle covers no `MsgPreVoteResp` (`StepEndTy`), and
+  nothing else said that a traced node queues no self pre-vote response.
+- *`pendingRel`'s self arm keeps `□ (durFrags γ id W -∗ isRaftMsg γ id st)`* in place of the `isMessage`
+  of the abstraction (which `isRaftMsg_isMessage` gives back): the traced step needs the message's
+  numbers (`MsgTrOk`, from `isRaftMsg_trRecv`), which `self_pending` had (the outbox's `OutTr`) and dropped.
+Rejected: deriving either from the node's state at `Advance` (the abstraction carries every field of the
+message, and no invariant bounds a past self response's index or records its type). The self
+`MsgAppResp`'s `StepNodeOk` comes from the capability's `id ∈ C` and the tracker's domain
+(`trCapB_idIn`, `ownRaftPhysC_stepNode`). On review S6 (the empty entry `becomeLeader` appends when a
+self `MsgVoteResp` wins the election inside `Advance`): no premise beyond `tracedSpec`'s is needed: the
+step goes through the proved `stepBundle_traced`, whose premises are only the term's bound, the
+message term's bound and the receipts' fit, which the loop supplies from `rs.tc + 1 < traceNumBound`
+(`TermInv` keeps every intermediate term within `rs.tc`) and `traceReadyFits`.
