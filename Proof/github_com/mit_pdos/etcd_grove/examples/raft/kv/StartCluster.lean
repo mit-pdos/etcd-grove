@@ -403,6 +403,8 @@ theorem StartCluster.wp_proof
       iframe HisNode
       isplitr
       · ipureintro; rw [Hsl0]
+      isplitr
+      · ipureintro; exact Htr0
       ipureintro; rfl
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),

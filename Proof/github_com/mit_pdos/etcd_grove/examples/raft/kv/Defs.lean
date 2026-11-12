@@ -358,10 +358,21 @@ conf entries decided by `kvRule`, the membership of no entry the voters', and th
 of the snapshots made. -/
 def kvCluster (γr : RKVNames) : IProp GF :=
   iprop(isCluster γr.cluster kvRaftN ∗ confPolicy γr.cluster kvConfN kvRule ∗
-    confAt γr.cluster 0 kvMembership ∗ kvSnapInv γr)
+    confAt γr.cluster 0 kvMembership ∗ kvSnapInv γr ∗
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster (`cluster_alloc`'s): the
+    -- node API's `ReadIndex` and `TransferLeadership` are refused at a traced one
+    ⌜Cluster.trace γr.cluster = none⌝)
 
 instance kvCluster_persistent (γr : RKVNames) : Persistent (kvCluster (GF := GF) γr) := by
   unfold kvCluster; infer_instance
+
+open Iris.ProofMode in
+/-- (2026-11-12, trace-check implementation step 1) The store's cluster is untraced. -/
+theorem kvCluster_untraced (γr : RKVNames) :
+    kvCluster (GF := GF) γr ⊢ ⌜Cluster.trace γr.cluster = none⌝ := by
+  unfold kvCluster
+  iintro ⟨-, -, -, -, %H⟩
+  ipureintro; exact H
 
 end clusterI
 

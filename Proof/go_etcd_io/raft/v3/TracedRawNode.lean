@@ -46,34 +46,14 @@ open RawNodeOwnAccess
 section pure
 variable [GooseExts]
 
-/-- **The network types a traced node steps** (`node.Step`'s, in the harness): the replication and
-election messages of a cluster with pre-vote and check-quorum off, no snapshot, no read-index, no
-leader transfer. -/
-def TrNetTy (t : w32) : Prop :=
-  t = MsgApp ∨ t = MsgAppResp ∨ t = MsgVote ∨ t = MsgVoteResp ∨ t = MsgHeartbeat ∨ t = MsgHeartbeatResp
+-- (2026-11-12, trace-check implementation step 1) `TrNetTy`, `TrNetTy.ne` and `trnet_ne` moved to
+-- `TracedRecvTok.lean` (below `InvNodeChan`, the design's Probe B, P3).
 
 theorem TrNetTy.stepEndTy {t : w32} (h : TrNetTy t) : StepEndTy t := by
   unfold StepEndTy
   rcases h with h | h | h | h | h | h <;> simp [h]
 
-/-- A traced network type is none of the listed others. -/
-theorem TrNetTy.ne {t : w32} (h : TrNetTy t) {u : w32}
-    (hu : u ≠ MsgApp ∧ u ≠ MsgAppResp ∧ u ≠ MsgVote ∧ u ≠ MsgVoteResp ∧ u ≠ MsgHeartbeat ∧
-      u ≠ MsgHeartbeatResp) : t ≠ u := by
-  intro e; subst e
-  rcases h with h | h | h | h | h | h
-  · exact hu.1 h
-  · exact hu.2.1 h
-  · exact hu.2.2.1 h
-  · exact hu.2.2.2.1 h
-  · exact hu.2.2.2.2.1 h
-  · exact hu.2.2.2.2.2 h
-
 end pure
-
-/-- `TrNetTy.ne` at a constant: the six inequalities by `decide`. -/
-macro "trnet_ne" h:term:max : tactic =>
-  `(tactic| exact TrNetTy.ne $h ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩)
 
 section traced
 variable [GooseExts] [GooseSemantics] [GooseInterp]

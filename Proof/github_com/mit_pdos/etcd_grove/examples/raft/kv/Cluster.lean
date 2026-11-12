@@ -98,7 +98,11 @@ variable [StorageModel GF]
 
 /-- The node `nd` is node `id` of the store's cluster `γ` (persistent). -/
 def kvPeerOk (γ : Cluster) (id : w64) (nd : GoInterface) : IProp GF :=
-  iprop(∃ (n : Loc), ⌜γ.snapLoc id = none⌝ ∗ ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+  iprop(∃ (n : Loc), ⌜γ.snapLoc id = none⌝ ∗
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster: `stepIn_intro` takes the
+    -- message's token, free there (`sentTok_untraced`)
+    ⌜Cluster.trace γ = none⌝ ∗
+    ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     isNode n γ kvRaftN id)
 
 instance kvPeerOk_persistent (γ : Cluster) (id : w64) (nd : GoInterface) :

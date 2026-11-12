@@ -4,6 +4,9 @@
 
 def (sealed) isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF
 
+theorem sentTok_untraced [package_sem : Assumptions] (γ : Cluster) (st : MsgSt) (h : γ.trace = none)
+    : ⊢ sentTok γ st
+
 def (sealed) statusOwn (st : Status) : IProp GF
 
 theorem nodeSnapLocal_of_elem [package_sem : Assumptions] (γ : Cluster) (id : w64) (γd : GName) (h :
@@ -101,6 +104,26 @@ theorem node.wp_readyRecv [package_sem : Assumptions] (n ch : Loc) (γ : Cluster
 
 def (sealed) readCtxAfter (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) : IProp
     GF
+
+def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready)
+    : IProp GF :=
+  iprop(∃ ce es h L ms ss,
+      committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+        isCommittedLogLb γ (st.delivered ++ ce) ∗
+          (∃ rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+            readyRest γ N id rd st ce es h L ms ss ∗
+              readyLeaderMsgs γ N id st ms ss ∗
+                readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+                  deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+                    (⌜phsNext st.hardState h = hsZero⌝ ∨
+                        committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+                          ⌜↑(st.afterReady ce es h L ss).delivered.length ≤ uint.Z (phsNext st.hardState h).Commit'⌝) ∗
+                      readyToksClaim n γ N ms)
+
+theorem isReadyChan_recvAuT [package_sem : Assumptions] (n ch : Loc) (γ : Cluster) (N : Namespace)
+    (id : w64) (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) : st.handling = none → ⊢
+    isReadyChan n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗ ∃ γc, isChan ch γc Ready ∗ (£
+    1 ∗ £ 1 -∗ (▷ ∀ rd, readyGotT n γ N id st rd -∗ Φ rd true) -∗ recvAu γc Ready Φ)
 
 def (sealed) ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF
 
@@ -241,6 +264,8 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
                       committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
                         ⌜↑(st.afterReady ce es h L ss).delivered.length ≤ uint.Z (phsNext st.hardState h).Commit'⌝))
 
+def (sealed) readyToksClaim (n : Loc) (γ : Cluster) (N : Namespace) (ms : List QMsg) : IProp GF
+
 theorem propErrS_propErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : propErrS n γ N cd err ⊢ propErr cd err
 
@@ -308,6 +333,9 @@ theorem readyFits_persistent (γ : Cluster) (N : Namespace) : Persistent (readyF
 
 theorem msgCredits_copy [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (st : MsgSt) :
     γ.dup = true → msgCredits γ N st ⊢ □ msgCredits γ N st
+
+theorem readyToksClaim_nil [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) : ⊢
+    readyToksClaim n γ N []
 
 theorem readyRest_facts [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (rd :
     Ready) (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L :
@@ -379,7 +407,7 @@ def readyLeaderMsgs (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverSt
 theorem stepIn_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
     (src : w64) (st : MsgSt) : st.msg.To' = id → sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1)
     (DFrac.own 1) true { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := []
-    } ∗ msgCredits γ N st ∗ snapLocalMsg γ id st ⊢ |==> stepIn γ N id ml
+    } ∗ msgCredits γ N st ∗ snapLocalMsg γ id st ∗ sentTok γ st ⊢ |==> stepIn γ N id ml
 
 theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (l : List
     LogEntry) : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜↑l.length + 1 < 2 ^ 64⌝
@@ -387,6 +415,9 @@ theorem isCommittedLogLb_length [package_sem : Assumptions] (γ : Cluster) (N : 
 def (sealed) Cluster.trace (γ : Cluster) : Option GName
 
 def (sealed) raftState (γ : Cluster) (id : w64) (S : RaftState) : IProp GF
+
+theorem sentTok_type [package_sem : Assumptions] (γ : Cluster) (st : MsgSt) : sentTok γ st ⊢ sentTok
+    γ st ∗ ⌜γ.trace ≠ none → st.msg.Type' ≠ MsgSnap⌝
 
 def (sealed) isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF
 
@@ -439,6 +470,8 @@ theorem Membership.applyChange_removeVoter (vs : GSet w64) (cm : ConfChangeM) : 
 
 theorem sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : Persistent
     (sentMsg γ N src st)
+
+def (sealed) sentTok (γ : Cluster) (st : MsgSt) : IProp GF
 
 theorem sentMsg_shape [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (src : w64) (st :
     MsgSt) : sentMsg γ N src st ⊢ ⌜SentMsgShape st ∧ (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some

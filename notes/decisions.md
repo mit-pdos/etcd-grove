@@ -37301,3 +37301,39 @@ thread enters `SndPending`.
 problems found that three review rounds had not: P1 (the escrow as designed could not do its own
 deposit), P3 (the escrow's import position), P6 (N1's scope). No `sorry`, no axiom, no client-visible
 statement changed (the interface of `RawNode.Advance`'s proof file changes by the new conjunct).
+
+## Implementation step 1 (gates): the gates as conjuncts, the escrow threaded, the traced `Ready`/`Advance` proved, the clients' untraced facts; `storBnd`'s gate left for a decision (2026-11-12 · trace-check, §9's step 1 of `notes/trace-check-design.md`, decided by the agent under the user's delegation (raft-internal), but I9, which touches a closed statement and is left to the coordinator/user · branch `trace-check-impl1`)
+
+**Context.** §9's step 1: every sealed definition a gate whose untraced arm is today's body, the escrow
+(Probe B's, `pk` in halves) in `isNodeChan`, the client-side premises (`stepIn_intro`'s token, the five
+refusals) with every L3 call site, the traced `Ready` receive and `node.Advance.tracedSpec` as the one
+proof, the leave-joint law, every untraced result re-proved by rewriting its gate.
+
+**Decisions (each recorded in the design's "Implementation step 1" section, I1-I9).**
+- *The gate's form* (I2): a conjunct `gateTr (γ.raft.reTrace) X`, `True` untraced, rather than a
+  `match` with today's body as an arm: the untraced proofs then change by one `gateTr_none` (or a `-`
+  in a pattern), and the every-`γ` proofs (`node.Advance`, the `Ready` receive) thread gated lemmas
+  instead of splitting on the trace (one proof each, not two). `advDep`/`advRet` keep today's bodies as
+  `advDep0`/`advRet0`, so `advance_complete` is untouched. Rejected: the `match` form (every untraced
+  proof would rewrite the gate before unfolding; the every-`γ` proofs would be proved twice).
+- *The escrow's place* (I2, I3): `rtkInv` in `isAdvChan` (in `isNodeChan` through it, where
+  `adv_recv_au`/`adv_send_au`, the two openers at `⊤ ∖ ↑advN`, already look); its request a ghost
+  name of its own (`NodeNames.esc.rq`) rather than a third component of `AdvReq` (whose users would
+  all change); every escrow name defaulting to `0`, so no untraced allocation changes.
+- *The claim's node* (I4): the node table records the escrow's names (`cfgNamesOf`), so a claim taken
+  from one `nodeDriver`'s names is at the escrow of the next one's (`readyToksClaim_at`).
+- *`sentTok`* (I1): the design's `trTok` would clash with rafthttp's `trTok` in every server module;
+  raft's is `sentTok`, the harness's name an abbreviation in `TracedNodeApi`.
+- *P1's law* (I5): `Restorable` added (the law is false without it: a staged learner that is an
+  incoming voter makes `LeaveJoint` fail `checkInvariants`); `confAt` gives it.
+- *`node.Advance`'s one proof* (I6): an internal module, linked in a new importable `TracedLinked.lean` (not `Linked`, which the server imports: `TracedNodeApi`'s `trTok` clashes with rafthttp's there): a second public
+  theorem in the proof file would be a layout violation (`etc/api/raft-layout.txt`: "don't add").
+- *The clients' facts* (I8): the cluster predicates of kv, kvreconf and kvdurable hold the untraced
+  fact (one construction each, from `cluster_alloc`), not their replica predicates (many
+  constructions); the server's from `srvClusterOk`.
+- *I9, not decided here*: `storBnd`'s gate would change kv's closed `kv_storage_isStorage`; the laws
+  are added, the gate and its three client lemmas' premises wait (options and recommendation in the
+  design's I9). Nothing before step 3 reads it.
+
+**Rejected.** Gating the escrow off entirely (P5's "no gate needed for soundness"): `run`'s untraced
+proof would then hold `run`'s half, a change to `node.run.spec`'s untraced proof for nothing.

@@ -50,6 +50,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 private abbrev node.ReportSnapshot.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64) (st : SnapshotStatus),
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
       (Val #st))
@@ -72,7 +74,7 @@ built into `msgIn` by `msgIn_of_scalar_struct`; `MsgSnapStatus.Enum()` is a new 
 private theorem node.ReportSnapshot.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReportSnapshot.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n to st
+  intro γ id n to st Htr
   wp_start as #Hnode
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -106,7 +108,7 @@ private theorem node.ReportSnapshot.wp_raw
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
-    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl rfl
+    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl rfl (.inl Htr)
         $$ Hmsg Hlb Hcr Htc
     inext
     iintro -
@@ -149,11 +151,11 @@ private theorem node.wp_ReportSnapshot_impl
     (hR : EtcdGrove.node.ReportSnapshot.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ReportSnapshot.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ReportSnapshot.spec EtcdGrove.Cluster EtcdGrove.isNode
-  intro n γ N id to status
+  intro n γ N id to status Htr
   iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
   iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hR γn id n to status) $$ []
+  icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
+  iapply (hR γn id n to status (by rw [Hf.1]; exact Htr)) $$ []
   · iframe Hinit Hrn
   iexact HΦ
 

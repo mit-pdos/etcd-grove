@@ -75,6 +75,8 @@ private abbrev node.ProposeConfChange.specRaw : Prop :=
     -- (2026-10-28) the node in the API's cluster `γc`: what the clean `node.Step` takes
     (γc : ApiImpl.Cluster) (N : Namespace),
   ApiImpl.NodeOk γc γ →
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       ApiImpl.isNode n γc N id ∗ nodeCtx ctx cd ∗
       ownConfChangeI c dq (some o) ∗
@@ -106,7 +108,7 @@ private theorem node.ProposeConfChange.wp_raw
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n c o dq ctx cd γc N HNo
+  intro γ id n c o dq ctx cd γc N HNo Htr
   wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, Harg⟩
   wp_auto
   wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
@@ -138,8 +140,11 @@ private theorem node.ProposeConfChange.wp_raw
         exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ.raft e)).2
       iexact Hent
-    iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
-    iexact Htk
+    isplitl [Htk]
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
+      iexact Htk
+    -- (2026-11-12, trace-check implementation step 1) `fwdP`'s gate, untraced (the refusal)
+    iapply fwdGate_none _ _ Htr
   iintro %err Herr
   wp_auto
   iapply HΦ
@@ -165,7 +170,7 @@ private theorem node.wp_ProposeConfChange_impl
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
-  intro n γ N id c o dq ctx cd
+  intro n γ N id c o dq ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, Hau⟩ HΦ
   ihave #HnodeA := Hnode
   iunfold isNode at Hnode
@@ -175,7 +180,7 @@ private theorem node.wp_ProposeConfChange_impl
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
-  iapply (hP γn id n c o dq ctx cd γ N Hf0) $$ [Hcc Hau]
+  iapply (hP γn id n c o dq ctx cd γ N Hf0 (by rw [Hγr]; exact Htr)) $$ [Hcc Hau]
   · iframe Hinit Hrn HnodeA Hctx Hcc
     unfold ccPropArg
     iintro %bs %Hm

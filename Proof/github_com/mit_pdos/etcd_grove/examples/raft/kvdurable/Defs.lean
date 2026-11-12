@@ -389,7 +389,18 @@ the files. -/
 def kdCluster (γ : KdNames) (vs : List w64) : IProp GF :=
   iprop(isCluster γ.r.cluster kdRaftN ∗ confPolicy γ.r.cluster kdConfN raft_kvreconf.kvrRule ∗
     confAt γ.r.cluster 0 (Membership.simple (GMap.listToSet vs)) ∗ kdSnapInv γ ∗ rkvInv γ ∗
-    durableFilesInv γ.files kdFilesN)
+    durableFilesInv γ.files kdFilesN ∗
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster (`cluster_alloc`'s): the
+    -- node API's `ReadIndex` is refused at a traced one
+    ⌜Cluster.trace γ.r.cluster = none⌝)
+
+open Iris.ProofMode in
+/-- (2026-11-12, trace-check implementation step 1) The store's cluster is untraced. -/
+theorem kdCluster_untraced (γ : KdNames) (vs : List w64) :
+    kdCluster (GF := GF) γ vs ⊢ ⌜Cluster.trace γ.r.cluster = none⌝ := by
+  unfold kdCluster
+  iintro ⟨-, -, -, -, -, -, %H⟩
+  ipureintro; exact H
 
 /-! ## The durable part -/
 

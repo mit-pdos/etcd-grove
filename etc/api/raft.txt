@@ -157,6 +157,11 @@ importable Proof.go_etcd_io.raft.v3.TraceSimLemmas
 # statements not yet proved (`StartNode.tracedSpec`, `isReadyChan_recvAu.tracedSpec`,
 # `node.Step.tracedSpec`), which the harness takes as hypotheses
 importable Proof.go_etcd_io.raft.v3.TracedNodeApi
+# (2026-11-12, trace-check implementation step 1) the traced node API's linked results
+# (`node.Advance.tracedSpec`, `node.Step.tracedSpec`), apart from `Linked` (the server imports that)
+importable Proof.go_etcd_io.raft.v3.TracedLinked
+# (2026-11-12) `node.Advance.tracedSpec` stated over `sentTok` (re-exported by `TracedNodeApi`)
+importable Proof.go_etcd_io.raft.v3.TracedAdvanceSpec
 
 ## Debt: proof internals clients reach today (take them out of the list)
 # tactics and lemma files the server, the examples or other packages' specs import

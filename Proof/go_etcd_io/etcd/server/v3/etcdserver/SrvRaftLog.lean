@@ -770,6 +770,15 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
 
+open Iris.ProofMode in
+/-- (2026-11-12, trace-check implementation step 1) The server's cluster is untraced: what the node
+API's `stepIn_intro` (the message's token) and refused calls (`ReadIndex`, `ReportSnapshot`) take. -/
+theorem srvClusterOk_untraced (γ : ServerRaftNames) :
+    srvClusterOk (GF := GF) γ ⊢ ⌜Cluster.trace γ.raft.cl = none⌝ := by
+  unfold srvClusterOk
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+  ipureintro; exact H
+
 /-- **Raft's committed log, at the server** (persistent; the contract's ghost interface): the
 server's log invariant, the cluster, the start log committed and the start index its length; and
 (2026-10-30, the repair: one mode, the old dynamic mode's fresh start) the start log empty, so the
