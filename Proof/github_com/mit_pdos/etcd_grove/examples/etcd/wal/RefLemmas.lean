@@ -262,6 +262,67 @@ theorem tReadCut_abs (h : List TOp) (k : w64) :
     rw [if_neg hk, if_neg hk']
     exact tReadFrom_abs h _
 
+/-! ## The images -/
+
+theorem mem_tImgs {h : List TOp} {n j : Nat} {img : List TOp} (hn : n ≤ j) (hj : j ≤ h.length)
+    (himg : img ∈ h.take j :: tTornImgs h j) : img ∈ tImgs h n := by
+  unfold tImgs
+  rw [List.mem_flatMap]
+  exact ⟨j, by rw [List.mem_range'_1]; omega, himg⟩
+
+theorem absOp_save {o : TOp} {hs : HardStateM} {es : List EntryM}
+    (h : absOp o = .save hs es) : o.snap = false ∧ hs = absHs o.hs ∧ es = o.ents.map absEnt := by
+  unfold absOp at h
+  cases ho : o.snap
+  · simp only [ho, Bool.false_eq_true, ite_false, WalOpG.save.injEq] at h
+    exact ⟨rfl, h.1.symm, h.2.symm⟩
+  · simp only [ho, ite_true] at h; cases h
+
+theorem absHs_empty {h : THs} (he : tHsEmpty h = true) : absHs h = ⟨0, 0, 0⟩ := by
+  have := (tHsEmpty_iff h).1 he
+  obtain ⟨h1, h2, h3⟩ := this
+  simp only [absHs] at h1 h2 h3
+  simp only [absHs, h1, h2, h3]; rfl
+
+/-- **`walImgs` enumerates the images** (plan §2.5, item 1): every image of the abstraction of `h` at
+the mark `n` is the abstraction of an image `walImgs h n` lists. -/
+theorem tImgs_complete {h : List TOp} {n : Nat} {I : WalHist} (hI : walImg (h.map absOp) n I) :
+    ∃ img ∈ tImgs h n, I = img.map absOp := by
+  obtain ⟨j, h1, h2, h3 | ⟨hs, es, k, hj, hk, h3⟩⟩ := hI
+  · simp only [List.length_map] at h2
+    exact ⟨h.take j, mem_tImgs h1 h2 (List.mem_cons_self ..), by rw [h3, List.map_take]⟩
+  · rw [List.getElem?_map] at hj
+    cases hoj : h[j]? with
+    | none => rw [hoj] at hj; cases hj
+    | some o =>
+      rw [hoj] at hj
+      simp only [Option.map_some, Option.some.injEq] at hj
+      obtain ⟨hsn, hhs, hes⟩ := absOp_save hj
+      have hjl : j < h.length := getElem?_some_lt hoj
+      subst hes hhs
+      simp only [List.length_map] at hk h2
+      by_cases hlast : k = o.ents.length ∧ tHsEmpty o.hs = true
+      · obtain ⟨rfl, he⟩ := hlast
+        refine ⟨h.take (j + 1), mem_tImgs (by omega) hjl (List.mem_cons_self ..), ?_⟩
+        rw [h3, List.map_take, List.take_succ, List.getElem?_map, hoj, Option.map_some, hj,
+          absHs_empty he]
+        rw [List.take_of_length_le (l := o.ents.map absEnt) (by simp)]
+        rfl
+      · refine ⟨h.take j ++ [tTornOp (o.ents.take k)], mem_tImgs h1 h2 (List.mem_cons_of_mem _ ?_), ?_⟩
+        · unfold tTornImgs
+          rw [hoj]
+          simp only [hsn, Bool.false_eq_true, ite_false, List.mem_map, List.mem_range]
+          refine ⟨k, ?_, rfl⟩
+          split
+          · rename_i he
+            have : k ≠ o.ents.length := fun hk' => hlast ⟨hk', he⟩
+            omega
+          · omega
+        · rw [h3, List.map_append, List.map_take]
+          simp only [List.map_cons, List.map_nil, absOp, tTornOp, Bool.false_eq_true, ite_false,
+            List.map_take]
+          rfl
+
 end pure
 
 end etcd_wal
