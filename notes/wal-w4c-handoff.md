@@ -141,22 +141,27 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
      `DecidableEq` of `TOp`/`TContents`, `list_ne_of_getElem`, `list_take_succ_eq`,
      `val_false_ne_true`; RefLemmas has `tKeep_filter_take_succ`.
    - **Left of step 3, in order** (ref.go first, then oracle.go, then wal.go):
-     - **OPEN (asked of etcd-grove-81, 2026-11-12): the `<=`-loops over `len(h)`.** `nameBound`
-       (`for b := 0; b <= len(h); b++`) and `walImgs` (`for j := n; j <= len(h); j++`) need
-       `len(h) < MaxInt64`: at `len(h) = 2^63-1` the counter wraps to `MinInt64` and `cutPos(h, b)` /
-       `h[:j]` panics, and nothing in Perennial's model bounds a slice's length below `2^63` (append's
-       model gives only `len < 2^63`). Recommended: T-10, an equivalent loop form whose counter never
-       passes `len(h)` (`for b := 0; ; b++ { …; if b == len(h) { break } }`), retranslated; the
-       alternative is a premise `|h| < 2^63-1` that nothing upstream can discharge. The draft spec and
-       proof of `nameBound` (all but the counter's `+1`, which fails at `b = len(h) = 2^63-1`) are in
-       `/shared/tmp/wal-spec/w4c/step3/wip/nameBound.{spec,proof}.lean`.
-     - `nameBound` (loop `b ≤ len(h)`, calls `cutPos` and `lastIdx(h[:b])` via `opsRep_slice`; invariant
-       `best = W64 (((List.range b).filter p).getLast?.getD 0)`, `List.range_succ`), `openBound` (needs a
-       representation of `[][]walOp`: add `imgsRep s imgs` to Rep, as `opsRep` with `opsRep` elements;
-       `tOpenBound`), `walImgs` (`tImgs`; `copyOps(h[:j])` via `opsRep_slice`, `copyEnts(h[j].ents[:k])`), `walFold`/`appendEnts` (no-panic, the
-       result's entries among the history's: `opResend` saves them, so they must be well formed);
+     - **T-10 done (approved by etcd-grove-81, 2026-11-12) at `093bd69730`:** `nameBound`'s and
+       `walImgs`'s `<=`-loops (outer and inner `k <= len(h[j].ents)`) break once the counter reaches
+       the bound; `walImgs` returns early when `n > len(h)`. Retranslated, `etc/goose.py --check`
+       clean, equivalence test on 200,000 random histories (scratch
+       `/shared/tmp/wal-spec/w4c/t10/t10eq_test.go`, not committed), Go matrix `runs/t10.sh` (logs
+       `runs/t10/*.log`: f-kill, f-posix, k-posix 0 violations; l-posix see its log).
+     - **ref.go done:** `nameBound`, `openBound`, `walImgs` (`093bd69730`), `walFold`, `appendEnts`
+       (`73812b17af`). Rep gained `imgsElems`/`imgsRep` (+ `_length`/`_lookup`/`_snoc`/`_nil`).
+       Specs: `nameBound`/`openBound` return `tNameBound`/`tOpenBound`; `walImgs` takes
+       `0 ≤ sint.Z n` and returns `imgsRep s' (tImgs h (sint.nat n))`; `appendEnts`/`walFold` return
+       read-only entries, each among the inputs' (`walFold`: `∃ o ∈ h, o.snap = false ∧ e ∈ o.ents`).
      - oracle.go: `putU64`, `decoder.u64`, `putHS`, `decoder.hs`, `putOps`, `decoder.ops`,
-       `encodeOracle` (`tEncodeOracle`), `decodeOracle` (round trip on `tEncodeOracle o`),
+       `encodeOracle` (`tEncodeOracle`), `decodeOracle` (round trip on `tEncodeOracle o`).
+       **Design note (2026-11-12):** the round trip needs every length of `o` below `2^64` (the
+       encoding writes `W64 len`) and the decoder's `[]byte(s)` a string below `2^63`; `TInvBody`
+       has no such bound. Plan: add `(tEncodeOracle o).length < 2^63` to `tOracleFile`'s first arm
+       (or a conjunct beside it): `storeOracle` establishes it because `encodeOracle`'s byte slice
+       exists (append's model bounds a slice below `2^63`), and every list length of `o` is at most
+       the encoding's length / 8 (a pure lemma). Internal invariant change (form decided, report at CP3).
+       The decoder's lemma: decoding `tU64 x` gives `x` (byte recombination; try `bv_decide` or
+       `BitVec` extensionality).
        `freshOracle`, `loadOracle` (first `durable.Read`, mode `none → some area` via
        `durableModeStep`), `storeOracle` (opens `TInv`, updates `γo`; each call site gives the
        `tRelI` step);
