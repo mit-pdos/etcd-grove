@@ -1,5 +1,5 @@
 /-
-`wal.Create` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
+`wal.Create` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81); the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
 -/
 module
 
@@ -32,7 +32,11 @@ variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 (`dir = r/n`, a WAL directory of the area `r`, which is durable). The atomic update commits at
 the rename of `dir.tmp` onto `dir` (`walDurFresh md`: no record past `Create`'s own, which the
 reader ignores); `dir.tmp`'s first segment and entry are synced before it (F-N1), and the parent's
-fsync after it makes `dir`'s entry durable (`walNamed`). An error before the rename leaves `dir`
+fsync after it makes `dir`'s entry durable (`walNamed`). The committed copy's `named = false` is a
+lower bound (W4a.1 revision 1, the delta review's B1): the body performs `"WalNamed"` after the
+commit from its handle's fact alone (`wp_WalNamedLen`; `WalBodies.walCreate_body`), which raises the
+real `named` and not the client's copy; with an exact copy this post contradicted the commit at a
+crash (the reviewers' Go test `axcx_named_test.go`). An error before the rename leaves `dir`
 untouched (the update not committed; `Exist`'s check failing to read `dir` is such an error,
 `os.ErrExist`). After the rename, any error is an I/O failure (`¬ storage.walCreateOk`, the server's
 environment premise): the WAL may stay at `dir` (`renameWAL`'s `OpenDir`, `renameWALUnlock`'s

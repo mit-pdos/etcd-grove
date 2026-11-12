@@ -179,7 +179,7 @@ theorem startServer.wp_proof
   have hL := acLessor_on (GF := GF) (.on γa) γa rfl srv
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_true] at hB
-  ihave Hsb := hB.1 $$ [Hsb Hkeep]
+  ihave Hsb := hB $$ [Hsb Hkeep]
   · iframe Hsb
     iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
   ihave #HLnil := hL.2 $$ HLnil

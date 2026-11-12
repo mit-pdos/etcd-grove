@@ -34926,6 +34926,33 @@ exclusive. **Follow-ups, not in stage B**: `purgeFile.spec` takes no `lgMu` slot
 67 roots); gate keys naming the binder path, so an entry cannot silently accept a future real duplication in
 `isServerReadM`; deleting `ckptEffectsOk` (above).
 
+
+## Restart S4: the hubs at the restart point, `P` existential (2026-11-12 · plan approved by etcd-grove-81 under the user's delegation, `/shared/tmp/restart-s4/plan.md` · branch `restart-s4`)
+
+**Problem.** The hubs between `NewServer` and `run` (`isServerBuiltC`, `srvRunRestartR`,
+`isServerRunC`) pinned Go's start index to `ai₀ = 0` and the loop's tokens to `[]`, so `run.spec`'s
+restart meaning covered only `σ.b = 0`. r2db's Q40 (F1, decided 2026-11-07) said `snap0` would replace
+`|P|` in the hubs: `P := γn.a0.take γn.snap0`, a name.
+
+**Decision (D1; supersedes Q40's hub form).** `P`, the log raft handed before the incarnation, is an
+existential of the hubs (`srvRunRestartR`: `∃ A₀ P, ⌜… P <+: A₀ ∧ lastTermIs P at₀ …⌝`, Go's index
+`W64 |P|`, `rnLoopTok γn P ∗ rnApplyTok γn P`; `isServerBuiltC`'s new `srvBuiltRestartR`, `∃ P`).
+Why not the name:
+- the existential makes the frozen `run.spec` a pure widening (the old precondition is the instance
+  `P = []`); with the name, an old state with tokens at `[]` and `snap0 > 0` (constructible from
+  `newRaftNode.spec`, whose `L₀` and `snap0` are independent binders) would no longer be covered;
+- `P` is not a free witness: the tokens agree with the raft loop's `cum` authority, and
+  `rnSnapOnceR`'s index is `|P|`;
+- S7 reuses the window at a snapshot install point, which does not start at boot;
+- a crash image needs no change.
+`snap0` stays in `RNNames` (for `rnRestartOk` and the loop fact); S6's `NewServer` instantiates
+`P := A₀.take snap0`.
+
+**Also decided.** D2: the four built hubs and `NewServer` stay at a first start until S6. D3:
+`lastTermIs P at₀` is a hub conjunct (Go's `appliedt` is the storage snapshot's term; S6 supplies it
+from `walSnapCert`), `rnSnapOnceR` unchanged. D4: the hub texts and the widened meanings of
+`run.spec`, `start.spec`, `Start.spec` approved in principle, with a Freeze package at CP3.
+
 ## Deleting `ckptEffectsOk` (2026-11-12 · accepted, approved by the user via etcd-grove-81)
 
 Supersedes the part of D14h (and D14e/D14g's named premise) that kept `ckptEffectsOk`, the opaque
@@ -34949,3 +34976,93 @@ pushes nothing, `:753-756`), and `Renew` never calls `cp` (`clearRemainingTTL` n
 `(Hck : ckptEffectsOk)`; `lease.bootCfg` loses its last conjunct, and `bootCfg_none`/`_mono`/`_of_run`
 their `hck` argument. A change that turns the feature on must give the checkpointer a contract
 (stage B3's note), not restore this premise.
+
+## WAL W4a.1: `walDiskM`, and `ValidSnapshotEntries` with the lock token (2026-11-12 · findings F-W4b-1/F-W4b-2 of the W4b plan; the fixes decided by etcd-grove-81 under the user's delegation; the trusted texts await the delta Freeze review, `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md` · branch `wal-w4a1`)
+
+Two strength gaps in W4a's landed axioms, found while planning W4b (`/shared/tmp/wal-spec/w4b/plan.md`
+§1); neither is a soundness problem, both blocked the tester's proof (W4c):
+
+- **F-W4b-1.** `Save`, `SaveSnapshot` and `Close` were stated over `walDisk dir H sized`, which hides
+  every field but the history and the flag, so after one of them nothing bounded `pur` (the crash's
+  read position `k ≤ pur` was then any `k ≤ |I|`, and the exact purge positions of the Draft's §9
+  decision 2 had no force) and the metadata was lost. Only the mark needs hiding: an atomic update
+  aborts back to the same binder (`atomic_acc`), and the bodies sync behind an aborted access. *[Superseded
+in part by "WAL W4a.1 revision 1" below: that argument is wrong (a commit consumes the update, so no
+body can sync after it), and `walDiskM` is gone: `walDiskAt` itself bounds the mark and `named`.]* Now
+  `walDiskM dir d` (`WalDisk.lean`: `d` exactly, the mark at least `d.m`), and the three axioms move
+  only `d.H` (the mark through `walSyncedLb`). Go: a cut unlocks no file holding a record (it re-locks
+  its new segment under its final name, S/wal.go:928-930, while the old tail stays locked); the
+  metadata is rewritten at each cut.
+- **F-W4b-2.** VSE's prefix `H.take j` (review 2's B1, needed while an append handle buffers records)
+  also applied after a crash, where `ReadAll`'s premise needs the whole history's newest pair. A second
+  conjunct: a caller holding the generation's lock token (no handle of the generation live: `Close`
+  flushes and syncs before returning it, a dropped handle takes it) reads the whole history.
+
+Go tests: `/shared/tmp/wal-spec/w4a1/tests/` (pur bound via lockable files across cuts; VSE after
+`Close`, on a kill image with unsynced records, and the dropped-handle control where the token is
+gone). The axiom generator: `/shared/tmp/wal-spec/w4a1/gen/genspecs.py`. 12 axioms, unchanged in number.
+
+## WAL W4a.1 revision 1: the mark and `named` as lower bounds; `Close` and VSE logically atomic (2026-11-12 · the delta review's findings, the fixes decided by etcd-grove-81 · branch `wal-w4a1`; the trusted texts await the re-review, `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, "Revision 1")
+
+**An inconsistency in landed trusted text (B1).** Landed W4a's `Create` commits its atomic update with
+the exact `walDiskAt dir (walDurFresh md)`, whose `named` is `false`, and its success post also gives
+`walNamed dir` (a past state with `named = true`). `named` only grows (`absLe`), and the public
+`absDisk_crash_view` identified the client's map with the crashed state, so at any crash a client
+holding both derived `False` (the steps of `walDiskAt_crash`'s own proof). In landed W4a the window ran
+from `Create` to the first `Save` or `Close` (which repacked into `walDisk`, hiding `named`); W4a.1's
+`walDiskM` would have stretched it over the whole first generation. The reviewers' Go program (Create,
+a synced Save, a kill, then a recovery that panics if it reads an entry; `axcx_named_test.go`) panics
+in Go while its no-panic triple was provable. No closed theorem reached these axioms (the WAL axioms
+are unlinked; `etc/tcb-report.py --check` unchanged), so nothing proved was affected. The root cause is
+M1's: `Create`'s body must perform `"WalNamed"` after its commit, and no step spec allowed it without
+the `walDiskAt` the commit hands to the client.
+
+**M1.** The same holds for every post-commit step: `Save`/`SaveSnapshot` commit at `"WalAppend"` and
+must then sync for `walSyncedLb`; the landed `Sync` gives `walSyncedLb` with no WAL resource at all.
+The fix, in the proved `Specs.lean` (`Impl.lean` unchanged, no new trusted mechanism; reviewer 2's
+route): the interpretation holds its half of the WAL map at a map *below* the real one (`walMapLe`:
+the same directories, every field equal but the synced mark and `named`, which it bounds from below),
+and `walDirIs` is closed under lowering those two. Then `"WalSync"` and `"WalNamed"` have specs from a
+handle's persistent length fact alone (`wp_WalSyncLen`, `wp_WalNamedLen`), which raise only the real
+values. `walSyncedLb`/`walNamed` stay facts of real past states, so a copy with `named = false` next to
+`walNamed` is consistent; the crash lemmas keep their statements (the new generation's copy may be
+lowered). `walDiskM` is dropped: `walDiskAt` is the lower-bound view, so `Save`/`SaveSnapshot`/`Close`
+are stated over it and `Create`'s text is unchanged. Every step-performing body of a past-state post is
+now a Lean lemma (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean`: `Create`, `Save` and
+`SaveSnapshot`, `Sync`, `Close`'s commit, `ReadAll`'s sync and name). Not modelled there, as before: how
+a body computes a step's argument (a tracked length), and the reads (every step returns `#()`; a read's
+result is argued logically). Rejected: reviewer 1's re-access update (a second atomic update in each
+axiom: trusted surface, and every client would have to supply it).
+
+**M2.** `Close`'s first conjunct and `ValidSnapshotEntries` are now logically atomic (an atomic update
+over `walDiskAt`, resp. `walDirIs`), so W4c's tester can keep the WAL in an invariant and still find
+it there at a crash during the call. VSE's token-free conjunct (a prefix while an append handle is
+live) is dropped: no caller (the tester and etcd's bootstrap call VSE with the token, before `Open`),
+and a plain triple would not compose. **W4c gate (unconditional; the re-review's M-R1):** the landed
+`Open`, `ReadAll`, `ReleaseLockTo`, `Repair` and `Exist` are still plain triples over
+`walDirIs`/`walDiskAt`. W4c's restart proof (VSE → `Open` → `ReadAll`, and `Repair` on its retry path)
+runs under the crash model, which kills during recovery too, so `Open`, `ReadAll` and `Repair` (and
+`Exist`, if the caller's runs under the invariant) must be restated as logically atomic: a trusted
+change, scheduled with W4a.2 or W4c's Freeze. VSE's atomic form pays off only once they land. Under
+the lower bounds an atomic `ReadAll` is realizable (commit at the read, then sync and name from the
+handle's fact: `walOpening_lenLb`, proved; a handle-only `wp_WalNamedOpen` variant still to add).
+**W4c option (m-c/m3):** `Close`'s update could carry the sync (`<{ walDiskAt dir {d with m := max d.m
+|d.H|}, COMM Q d }>`, realizable by `walClose_commit` without the weakening), so a crash between its
+fdatasync and its return sees the synced mark; not done now. **W4c obligation (fresh m1):** the
+tester's `purgeRound` deletes oldest first and stops at the first file it cannot lock, as
+`fileutil.purgeFile` does (a cut's new segment is briefly unlocked before its re-lock, holding only
+header records).
+
+**C6 gate (m2).** Every `walSyncedLb` post (`Save`, `SaveSnapshot`, `Sync`, `Close`, `ReadAll`) assumes
+the WAL's `unsafeNoSync` is false: `SetUnsafeNoFsync` (etcd's `--unsafe-no-fsync`) makes `sync` return
+after the flush without fdatasync (S/wal.go:956-958). No spec of `SetUnsafeNoFsync` exists, so no
+proved program calls it; C6 must state the server's configuration without it (an explicit premise or
+an assumed config) before it links the server's WAL to these axioms.
+
+**Review checklist (for the next WAL axiom):** no axiom post may give a past-state fact
+(`walSyncedLb`, `walNamed`, `walLenLb`, `dirDurable`) that bounds a field of the state above the value
+fixed exactly by the resource it hands over at the same point; the mark and `named` are lower bounds in
+`walDiskAt`, `H` is exact, so a `walLenLb n` must satisfy `n ≤` the committed `|H|`.
+
+**Revision 1b (R1/R2, purge-model completeness): deferred to W4a.2** (the coordinator's fallback),
+`/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, "Revision 1b".
