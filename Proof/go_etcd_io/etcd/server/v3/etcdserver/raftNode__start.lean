@@ -227,7 +227,7 @@ theorem raftNode.start.wp_proof
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61, Hbwa⟩ := Hbs
         icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
-        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
+        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa, #Hesz,
           #Hmsl, %HmsL, Hraw, ⟨%ss, #Hss, %Hr'⟩, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
         subst HmsL
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
@@ -613,7 +613,7 @@ theorem raftNode.start.wp_proof
             with #HsvW
           ihave HAU := rnDur_saveSnap_au γ.node.cl γ.wal _ _ _ HwSteps.1 $$ Hdur Hwv Hwok HsvW
           -- (R2b-1 stage 4) the received snapshot's `SaveSnap` (`rnDur_saveSnap_au`)
-          ihave #HSaveSnap := walSaveSnap_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+          ihave #HSaveSnap := walSaveSnap_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ true $$ Hsti
           wp_apply HSaveSnap $$ [$Hwo $HM1 $Hm1 $HAU] as %err ⟨Hwo, -, -, Hres⟩
           icases Hres with (⟨%Herr, Hwv, Hwok, #Hwblb⟩ | %Hbad)
           rotate_left
@@ -630,8 +630,8 @@ theorem raftNode.start.wp_proof
           icases Hwv with ⟨Hwv, Hwok⟩
           ihave HAU := rnDur_save_au γ.node.cl γ.wal _ _ _ _ _ HwSteps.2 $$ Hdur Hwv Hwok
           -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
-          ihave #HSave := walSave_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
-          wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa $HAU] as %err ⟨Hwo, Hres⟩
+          ihave #HSave := walSaveRn_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+          wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesz $HAU] as %err ⟨Hwo, Hres⟩
           icases Hres with (⟨%Herr, Hwv, Hwok, #Hwlb⟩ | %Hbad)
           rotate_left
           · exact absurd Hwso Hbad
@@ -748,8 +748,9 @@ theorem raftNode.start.wp_proof
               rw [hes] at Hf
               simp only [List.length_cons] at Hf ⊢
               word
-          ihave #Hpts : entsPts rd.Entries' DFrac.discard (es.map EntryModel.toM) $$ []
-          · iunfold entsPts; iexists esL; iframe Hes; iapply entRO_of_entriesAt esL es $$ Hesa
+          ihave #Hpts : entsPtsZ γ.γs.sz rd.Entries' DFrac.discard (es.map EntryModel.toM) $$ []
+          · iapply entsPtsZ_true
+            iapply rnEntsSized_entsROz rd.Entries' esL es $$ [$Hes $Hesz]
           wp_apply wp_MSAppend ms γ.γs (uint.nat l.snap.Metadata'.Index' + 1) []
               (es.map EntryModel.toM) rd.Entries' DFrac.discard h1 h2
             $$ [$Hrpkg $Hlock $Hrange $Hpts] as ⟨-, Hb⟩
@@ -995,7 +996,7 @@ theorem raftNode.start.wp_proof
       iunfold rnBusyP at Hbusy
       icases Hbusy with ⟨Hpend, Hcv⟩
       iunfold rnReadyData at Hdata
-      icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, %HmsL, Hraw,
+      icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, #Hesz, Happ, #Hms, %HmsL, Hraw,
         ⟨%ss, #Hss, %Hr'⟩, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil, #Hcfz, %HwStep⟩
       subst HmsL
       wp_auto
@@ -1350,8 +1351,8 @@ theorem raftNode.start.wp_proof
         icases Hwv with ⟨Hwv, Hwok⟩
         ihave HAU := rnDur_save_au γ.node.cl γ.wal _ _ _ _ _ HwStep $$ Hdur Hwv Hwok
         -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
-        ihave #HSave := walSave_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
-        wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa $HAU] as %err ⟨Hwo, Hres⟩
+        ihave #HSave := walSaveRn_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+        wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesz $HAU] as %err ⟨Hwo, Hres⟩
         icases Hres with (⟨%Herr, Hwv, Hwok, #Hwlb⟩ | %Hbad)
         rotate_left
         · exact absurd Hwso Hbad
@@ -1378,8 +1379,9 @@ theorem raftNode.start.wp_proof
         -- `r.raftStorage.Append(rd.Entries)`: the right becomes the receipt
         ihave #HApp := Hmsi
         iunfold isRNMemStor at HApp
-        ispecialize HApp $$ %rd.Entries' %esL %es
-        wp_apply HApp $$ [$Hes $Hesa $Happ] as Hrcpt
+        ispecialize HApp $$ %rd.Entries' %es
+        ihave #Hesz' := rnEntsSized_entsROz rd.Entries' esL es $$ [$Hes $Hesz]
+        wp_apply HApp $$ [$Hesz' $Happ] as Hrcpt
         -- (2026-10-30, the repair) the batch's committed entries frozen before `Advance`: the
         -- frozen range for `raftAdvancedC`, the receipt with the frozen prefix
         iunfold rnCeFrozen at Hcfz

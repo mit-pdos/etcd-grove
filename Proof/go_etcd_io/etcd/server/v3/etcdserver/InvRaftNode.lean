@@ -380,6 +380,27 @@ def rnRawMsgs (γ : RNNames) (ms : List QMsg) (r' : StateType) : IProp GF :=
     -- (`rnSnapTermAbove`, at the receive)
     ⌜rnSnapTermOk γ ms⌝)
 
+/-- A `Ready`'s entries in a sized cluster: the slice, the objects at sized contents, and today's
+`entRO` list. -/
+theorem readyEnts_rn [StorageModel GF] (γc : Cluster) (s : GoSlice) (es : List EntryM) (b : Nat)
+    (hmd : γc.maxData = some b) :
+    readyEnts (GF := GF) γc s es ⊢
+      ∃ esL : List Loc, s ↦*□ esL ∗ rnEntsSized esL (es.map EntryModel.ofM) ∗
+        [∗list] l;e ∈ esL;es, entRO l e := by
+  iintro #H
+  icases readyEnts_sized γc s es b hmd $$ H with ⟨%esL, %cs, #Hs, #Hb, %Hcs⟩
+  iexists esL
+  iframe Hs
+  isplitr
+  · unfold rnEntsSized
+    iexists cs
+    iframe Hb
+    ipureintro
+    rw [EntryModel.map_toM_ofM]; exact Hcs
+  rw [← Hcs.1]
+  iapply entsBigZ_entsBig false esL (cs.map EntryC.model)
+  iapply entsBigC_entsBigZ false esL cs (fun h => by cases h) $$ Hb
+
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`C (d ++ ce)`), the entries `es` to append with the right
 to, the messages, each one raft may send; a `SoftState`, a `HardState` (`p'` the last non-empty
@@ -390,7 +411,7 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
     (p p' : HardStateM) (S S' : RaftState) (r r' : StateType) (ms : List QMsg) : IProp GF :=
   iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
     rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (d ++ ce) ∗
-    rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnAppendRight γ es ∗
+    rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnEntsSized esL es ∗ rnAppendRight γ es ∗
     -- (2026-11-03, R2b-3: *enter* at the `Save`) the messages as the node API hands them out, not yet
     -- sent (`rnRawMsgs`: *enter* sends them, or at role leader `readyLeaderMsgs`)
     rd.Messages' ↦*□ msL ∗ ⌜msL = ms.map QMsg.loc⌝ ∗ rnRawMsgs γ ms r' ∗
@@ -798,7 +819,7 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' : List Entry
         uint.Z e0.Index' + ((es.map EntryModel.toM).length : Int) ≤ 2 ^ 61) ∧
       Option.map EntryModel.term A'.getLast? = some l.snap.Metadata'.Term'⌝ ∗ □ E.C A' ∗
     snapshotValid γ.node.cl l.snap ∗
-    rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗
+    rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnEntsSized esL es ∗
     rd.Messages' ↦*□ msL ∗ ⌜msL = ms.map QMsg.loc⌝ ∗ rnRawMsgs γ ms r' ∗
     (∃ ss, softStateIs rd.SoftState' ss ∗ ⌜r' = roleAfter r ss⌝) ∗
     hardStateAt rd.HardState' hs ∗ ⌜p' = phsNext p hs.toM⌝ ∗
@@ -1216,6 +1237,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
   ihave #Hcl : srvClusterOk E.γr.raft $$ []
   · iunfold srvRaftLogInv at Hinv; icases Hinv with ⟨-, #H, -⟩; iexact H
+  -- (out_size C3) the server's cluster bounds proposed data: a `Ready`'s entries are sized
+  ihave %Hmd := srvRaftLogInv_maxData E.γr.raft $$ Hinv
+  have Hmd' : γ.node.cl.maxData = some (2 ^ 30) := by rw [← Hraft]; exact Hmd
   cases Lo with
   | some l =>
     -- a snapshot `Ready`: the snapshot's log `A'` (the loan's delivered log after the start log),
@@ -1229,7 +1253,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     simp only [readyRest, readySnap]
     icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
       Hgiv⟩, %Hrrf⟩
-    ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
+    icases readyEnts_rn _ _ _ _ Hmd' $$ HesO with ⟨%esL, #HesL, #Hesz, #Hesro⟩
     obtain ⟨Hdlv, Hptr, Hce0, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩ := Hsp
     subst Hce0
     obtain ⟨A', HA'⟩ : ∃ A', A' = (l.dlv.drop γ.pre.length).map EntryModel.ofM := ⟨_, rfl⟩
@@ -1311,7 +1335,6 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       simp only [srvLE, ← List.append_assoc, List.map_append, List.map_cons, List.map_nil,
         List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.map_some] at hlast ⊢
       exact hlast
-    icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
     icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
     imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
     ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft A') $$ []
@@ -1369,6 +1392,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       isplitr
       · iapply entriesAt_of_entRO esL es $$ Hesro
       isplitr
+      · iexact Hesz
+      isplitr
       · ipureintro; rfl
       isplitl [Hmo Hlead]
       · iunfold rnRawMsgs; iframe Hmo; isplitl [Hlead]; iexact Hlead; ipureintro; exact Hsb
@@ -1410,7 +1435,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
   icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
-  ihave #Hes := readyEnts_entsRO _ _ _ $$ HesO
+  icases readyEnts_rn _ _ _ _ Hmd' $$ HesO with ⟨%esL, #HesL, #Hesz, #Hesro⟩
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce
@@ -1426,7 +1451,6 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       simp [srvLE]; omega
     omega
   icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
-  icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
   imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
   -- `E.C (L ++ ce)` from the committed log, the next index fitting
   ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []
@@ -1476,6 +1500,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       iapply entriesAt_of_entRO ceL _ $$ Hcero
     isplitr
     · iapply entriesAt_of_entRO esL es $$ Hesro
+    isplitr
+    · iexact Hesz
     isplitl [Happ]
     · iunfold rnAppendRight
       rw [EntryModel.map_toM_ofM]
@@ -2116,9 +2142,10 @@ def rnStopN : Namespace := nroot.@"rnStop"
 
 /-- **The WAL `w`, closed, its files holding the records `σ`** (R2b-3b; until then an opaque draft):
 `Close`'s files (`walFiles`) in the WAL's directory, its metadata naming the member `γ.id`. What
-the stop image's `srvFiles` is made of (R2b-3c). -/
+the stop image's `srvFiles` is made of (R2b-3c). (out_size C3, MAJ-2) Sized (`walFiles … true`): the
+records the durability invariant holds are (`walAsViewed`), and `Close` keeps the flag. -/
 def rnWalClosedW (γ : RNNames) (w : Loc) (σ : StorContents) : IProp GF :=
-  iprop(∃ cid : w64, walFiles (walDirOf w) γ.id cid σ)
+  iprop(∃ cid : w64, walFiles (walDirOf w) γ.id cid σ true)
 
 /-- **The wrapper `r`'s WAL, closed, its records `σ`** (`raftNode.stop.spec`'s): `rnWalClosedW` at
 the WAL of `r`'s storage. -/

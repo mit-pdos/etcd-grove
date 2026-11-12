@@ -2450,6 +2450,54 @@ theorem readyEntsU_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
   subst Hcs
   iapply entsCC_entRO γ ls cs $$ H
 
+/-- A read-only entry object at a content is frozen at it (the same predicate). -/
+theorem entPtsCC_discard_entRoC (l : Loc) (c : EntryC) :
+    entPtsCC (GF := GF) l DFrac.discard c ⊢ entRoC l c := by
+  unfold entPtsCC entRoC; exact .rfl
+
+/-- (out_size C3) Handed-out entry objects are frozen at their contents, each of bounded size in a
+cluster with a bound on proposed data (`outEntR_size`). -/
+theorem entsCC_sized (γ : Cluster) (b : Nat) (hmd : γ.raft.maxData = some b) :
+    ∀ (ls : List Loc) (cs : List EntryC),
+    ([∗list] p;c ∈ ls;cs, entPtsCC (GF := GF) p DFrac.discard c ∗ outEntR γ.raft p c) ⊢
+      ([∗list] l;c ∈ ls;cs, entRoC l c) ∗ ⌜∀ c ∈ cs, entSizeOk c⌝
+  | [], cs => by
+    iintro H
+    ihave %Hc := BigSepL2.bigSepL2_nil_inv_left $$ H
+    subst Hc
+    isplitl
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    · ipureintro; intro c hc; cases hc
+  | l :: ls, cs => by
+    iintro H
+    icases BigSepL2.bigSepL2_cons_inv_left.1 $$ H with ⟨%c, %cs', %Hc, ⟨#H1, #Ho⟩, H⟩
+    subst Hc
+    ihave %Hsz := outEntR_size γ.raft l c b $$ Ho
+    icases entsCC_sized γ b hmd ls cs' $$ H with ⟨H, %Hs⟩
+    isplitl
+    · iapply BigSepL2.bigSepL2_cons.2
+      iframe H
+      iapply entPtsCC_discard_entRoC l c $$ H1
+    · ipureintro
+      intro c' hc'
+      rcases List.mem_cons.1 hc' with h | h
+      · subst h; exact Hsz hmd
+      · exact Hs c' h
+
+/-- (out_size C3) **A `Ready`'s entries, sized** in a cluster with a bound on proposed data: the slice
+of objects frozen at contents of bounded size holding `es`. -/
+theorem readyEntsU_sized (γ : Cluster) (s : GoSlice) (es : List EntryM) (b : Nat)
+    (hmd : γ.raft.maxData = some b) :
+    readyEntsU (GF := GF) γ s es ⊢
+      ∃ (ls : List Loc) (cs : List EntryC), s ↦*□ ls ∗ ([∗list] l;c ∈ ls;cs, entRoC l c) ∗
+        ⌜cs.map EntryC.model = es ∧ ∀ c ∈ cs, entSizeOk c⌝ := by
+  unfold readyEntsU
+  iintro ⟨%ls, %cs, #Hs, #H, %Hcs⟩
+  icases entsCC_sized γ b hmd ls cs $$ H with ⟨#H, %Hsz⟩
+  iexists ls, cs
+  iframe Hs H
+  ipureintro; exact ⟨Hcs, Hsz⟩
+
 /-- (raft-entsize §2) **A `Ready`'s messages into the handed-out set**, each at a content raft pins
 (its `snapUf`'s). -/
 theorem msgOuts_insert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) :

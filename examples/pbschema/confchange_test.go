@@ -27,6 +27,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"go.etcd.io/etcd/pkg/v3/pbutil"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 
@@ -532,4 +533,167 @@ func TestB2CCDecoderUf(t *testing.T) {
 		}
 	}
 	t.Logf("B2 decoder: %d random encodings (and mutations, every input of length <= 2) of ConfChange and ConfChangeV2: %d ufWire violations", nEncCC, bad)
+}
+
+// --- out_size B2 Revision 1 (A3'): the length bound of proto.MarshalConfChange[V2]'s post ---
+
+// fieldVarintSize, enumWire (PbContentOwn.lean): a varint field's tag and value; an int32 enum
+// sign-extended to 64 bits.
+func fieldVarintSize(v uint64) int { return 1 + protowire.SizeVarint(v) }
+func enumWire(t int32) uint64      { return uint64(int64(t)) }
+
+func derefI32(p *int32) int32 {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+func derefU64(p *uint64) uint64 {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+func derefB(p *[]byte) []byte {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
+
+func lenSizeGo(n int) int { return 1 + protowire.SizeVarint(uint64(n)) + n }
+
+// ccLenMaxGo: an independent transcription of ccLenMax (R1.2): every field counted present, at the
+// model's values (what ccPtsCC's cellRO cells give: an unset field reads as zero).
+func ccLenMaxGo(c ccC) int {
+	return fieldVarintSize(derefU64(c.id)) + fieldVarintSize(enumWire(derefI32(c.typ))) +
+		fieldVarintSize(derefU64(c.nodeID)) + lenSizeGo(len(derefB(c.ctx))) + len(c.uf)
+}
+
+func cc2LenMaxGo(c cc2C) int {
+	s := fieldVarintSize(enumWire(derefI32(c.trans))) + lenSizeGo(len(derefB(c.ctx))) + len(c.uf)
+	for _, ch := range c.changes {
+		s += lenSizeGo(fieldVarintSize(enumWire(derefI32(ch.typ))) + fieldVarintSize(derefU64(ch.nodeID)) + len(ch.uf))
+	}
+	return s
+}
+
+func a3Extremes() ([]ccC, []cc2C) {
+	neg := int32(math.MinInt32)
+	m1 := int32(-1)
+	maxI := int32(math.MaxInt32)
+	maxU := uint64(math.MaxUint64)
+	zero := uint64(0)
+	var c1 []ccC
+	var c2 []cc2C
+	for _, n := range []int{0, 127, 128, 16383, 16384, 1 << 21} {
+		ctx := make([]byte, n)
+		empty := []byte{}
+		for _, ty := range []*int32{nil, &neg, &m1, &maxI} {
+			c1 = append(c1, ccC{typ: ty, nodeID: &maxU, id: &maxU, ctx: &ctx},
+				ccC{typ: ty, nodeID: &zero, id: nil, ctx: &empty}, ccC{typ: ty})
+			x := cc2C{trans: ty, ctx: &ctx}
+			for k := 0; k < 50; k++ {
+				x.changes = append(x.changes, ccsC{typ: &neg, nodeID: &maxU})
+			}
+			c2 = append(c2, x, cc2C{trans: ty})
+		}
+		uf := protowire.AppendTag(nil, 1000, 2)
+		uf = protowire.AppendBytes(uf, make([]byte, n))
+		c1 = append(c1, ccC{typ: &neg, nodeID: &maxU, id: &maxU, ctx: &ctx, uf: uf})
+		c2 = append(c2, cc2C{trans: &neg, ctx: &ctx, uf: uf, changes: []ccsC{{typ: &neg, nodeID: &maxU, uf: uf}}})
+	}
+	return c1, c2
+}
+
+func TestA3CCLen(t *testing.T) {
+	r := rand.New(rand.NewSource(45))
+	worst := 0
+	check := func(c ccC) {
+		bs, err := proto.Marshal(toPbCC(c))
+		if err != nil {
+			t.Fatalf("Marshal: %v", err)
+		}
+		if len(bs) > ccLenMaxGo(c) {
+			t.Errorf("ConfChange: len(Marshal) %d > ccLenMax %d: %s", len(bs), ccLenMaxGo(c), c.show())
+		}
+		if ccLenMaxGo(c) > ccMeasure(c)+64 {
+			t.Errorf("ConfChange: ccLenMax %d > ccSize %d + 64: %s", ccLenMaxGo(c), ccMeasure(c), c.show())
+		}
+		if d := ccLenMaxGo(c) - ccMeasure(c); d > worst {
+			worst = d
+		}
+	}
+	for it := 0; it < nEncCC; it++ {
+		check(randCCC(t, r))
+	}
+	c1, _ := a3Extremes()
+	for _, c := range c1 {
+		check(c)
+	}
+	t.Logf("A3' ConfChange: len(Marshal) <= ccLenMax <= ccSize + 64 on %d random contents and %d extremes; worst ccLenMax - ccSize %d", nEncCC, len(c1), worst)
+}
+
+func TestA3CC2Len(t *testing.T) {
+	r := rand.New(rand.NewSource(46))
+	worst := 0
+	check := func(c cc2C) {
+		bs, err := proto.Marshal(toPbCC2(c))
+		if err != nil {
+			t.Fatalf("Marshal: %v", err)
+		}
+		if len(bs) > cc2LenMaxGo(c) {
+			t.Errorf("ConfChangeV2: len(Marshal) %d > ccLenMax %d: %s", len(bs), cc2LenMaxGo(c), c.show())
+		}
+		if cc2LenMaxGo(c) > cc2Measure(c)+64 {
+			t.Errorf("ConfChangeV2: ccLenMax %d > ccSize %d + 64: %s", cc2LenMaxGo(c), cc2Measure(c), c.show())
+		}
+		if d := cc2LenMaxGo(c) - cc2Measure(c); d > worst {
+			worst = d
+		}
+	}
+	for it := 0; it < nEncCC; it++ {
+		check(randCC2C(t, r))
+	}
+	_, c2 := a3Extremes()
+	for _, c := range c2 {
+		check(c)
+	}
+	t.Logf("A3' ConfChangeV2: len(Marshal) <= ccLenMax <= ccSize + 64 on %d random contents and %d extremes; worst ccLenMax - ccSize %d", nEncCC, len(c2), worst)
+}
+
+// pbutil.MustUnmarshalMessage's ConfChange case (applyConfChange): etcd's decoder (proto.Unmarshal
+// into the given message, panicking on an error) leaves the unknown fields routed at ccSchema.
+func TestB2MustUnmarshalCC(t *testing.T) {
+	r := rand.New(rand.NewSource(47))
+	bad, decoded := 0, 0
+	check := func(bs []byte) {
+		var d pb.ConfChange
+		if proto.Unmarshal(bs, &(pb.ConfChange{})) != nil {
+			return // MustUnmarshalMessage panics: not a case of its post
+		}
+		pbutil.MustUnmarshalMessage(&d, bs)
+		decoded++
+		if why := ufPred(cpUF(&d), schemas["ConfChange"], innerMax, true); why != "" {
+			bad++
+			if bad < 5 {
+				t.Errorf("MustUnmarshalMessage(ConfChange) of %x: uf violates ufWire: %s", trunc(bs), why)
+			}
+		}
+	}
+	o := ufOpts{nonMinOuter: true, takenOK: true, innerNumMax: 1<<31 - 1}
+	for it := 0; it < nEncCC; it++ {
+		b := encodeWithUF(r, "ConfChange", 0, o)
+		check(b)
+		check(mutate(r, b))
+	}
+	for a := 0; a < 256; a++ {
+		check([]byte{byte(a)})
+		for b := 0; b < 256; b++ {
+			check([]byte{byte(a), byte(b)})
+		}
+	}
+	t.Logf("B2 MustUnmarshalMessage(ConfChange): %d decoded inputs, %d ufWire violations", decoded, bad)
 }
