@@ -32,7 +32,7 @@ the ids `L` a remote may be started for (D43 M5c; `c.L = L`), and (J8a-6, 2026-1
 (`raftPool`, Perennial's thread pool), from which each of the peers' goroutines that call `Process`
 borrows one with its thread token for its life (until then four `R`s for each id of `L`, for the
 remotes' pipelines, and eight from each `AddPeer`): an error, or the transport live with no peer or remote yet (`trLive`: `AddPeer`, `RemovePeer` and
-`RemoveAllPeers` record the peers' ids), all its lock's reader tokens (`trTok`), the network's
+`RemoveAllPeers` record the peers' ids), all its lock's reader tokens (`transportTok`), the network's
 transport of its member (`netTransport`: `Send` of the member's messages with a token,
 `SendSnapshot`, and `Stop` with the live right, `Stop_live`; or, once frozen, `trFrozen`,
 `trLive_freeze`, a `Stop` taking the freeze's stop token, `trFrozenTok`, D43 M5e, 2026-10-26:
@@ -60,13 +60,13 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
       ⌜err ≠ GoInterface.nil⌝ ∨
       ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
         trLive γn t c [] ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), transportTok γn t c) ∗
         netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
-          (trTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗
+          (transportTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗
         rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) ∗
         □ (∀ rs : trIds, trFrozen γn t c rs -∗
           netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
-            (trTok γn t c) (trFrozenTok c.γr rs)) }}
+            (transportTok γn t c) (trFrozenTok c.γr rs)) }}
 
 end spec
 

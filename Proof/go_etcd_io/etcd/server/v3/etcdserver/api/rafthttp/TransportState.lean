@@ -6,7 +6,7 @@
   with the raft protocol (the program's start, D39a), what a transport's peers post to.
 * `trState` (persistent): a started transport: its fixed fields (`trFixed`), probers, stop rights'
   invariant, the guard of its lock, the snapshotter's directory; `trLive` with the half of `γr`
-  that `AddPeer`/`AddRemote` update; `trFrozen` after the freeze (`trRemotesFrozen`); `trTok`, a
+  that `AddPeer`/`AddRemote` update; `trFrozen` after the freeze (`trRemotesFrozen`); `transportTok`, a
   reader's token of its lock. (Until J8a-7, 2026-11-01, also the no-remote tokens and the opening
   flag, D22 J-T: `trNoRem`, `trNoRemOr`, `trPeersNoRem`, `trUnopened`, `trOpened`.)
 -/
@@ -151,7 +151,7 @@ instance trFrozen_persistent (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : tr
 
 /-- **A reader's token of the transport's lock** (exclusive): what `Send`, `Get`, `CutPeer` and
 `MendPeer` take. -/
-def trTok (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
+def transportTok (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
   trReadTok (netRh γn) t c.lid c.γd c.R c.γs c.γr
 
 /-- **The freeze**: a live transport given up for good, with the stop token (D43 M5e). -/
@@ -180,8 +180,8 @@ theorem trToks_mk (γn : NetNames GF) (t : Loc) (lid : w64) (γd : GName) (R : I
     (γs γr : GName) (L : List w64) (n : Nat) :
     ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (t.[rafthttp.Transport, go!"mu"])
       (trLockP (netRh γn) t lid γd R γs γr)) ⊢
-      [∗list] _x ∈ List.replicate n (), trTok γn t ⟨lid, γd, R, γs, γr, L⟩ := by
-  unfold trTok trReadTok
+      [∗list] _x ∈ List.replicate n (), transportTok γn t ⟨lid, γd, R, γs, γr, L⟩ := by
+  unfold transportTok trReadTok
   exact .rfl
 
 end defs
@@ -224,7 +224,7 @@ theorem rafthttp.Transport.Start_full
         ⌜err ≠ GoInterface.nil⌝ ∨
         ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
           trLive γn t c [] ∗
-          [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c }} := by
+          [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), transportTok γn t c }} := by
   wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HrPool⟩
   iStructNamed Ht
   obtain ⟨Hlgnn, Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls⟩ := Hpre

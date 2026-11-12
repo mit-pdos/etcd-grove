@@ -156,6 +156,9 @@ forms), which steps 1 and 3-5 of §9 provide. Where the text above differs from 
   results.
 - **H5 (§2.2, `probeA_alloc`).** Its post also gives `γ.dup = false` and `γ.bootLen = |boot|`
   (`node.Propose.spec`'s AU and `readyFits`).
+- **H6 (the TCB report, a name clash).** raft's `trTok` and rafthttp's (`TransportState.lean`) were
+  both `Perennial.EtcdGrove.trTok`; no root reached raft's before, so only the TCB report's one Lean
+  run over every root saw it. rafthttp's is renamed `transportTok`.
 - **Not done: B4.** `PbMessage.lean` is still in rafthttp's tree (`ProbeA.lean` imports it); the move
   is a raft-tree change, left to the landing that touches raft's API list.
 

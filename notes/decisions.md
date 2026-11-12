@@ -37342,4 +37342,10 @@ ungated `storBnd` (to be replaced by step 1's `storBnd_zero`); the goroutines sh
 `∀ [StorageModel GF]`, since the run allocates the storage registry itself; `probeA_alloc`'s post also
 gives `γ.dup = false` and `γ.bootLen = |boot|`. B4 (`PbMessage.lean` into raft's tree) is not done:
 `ProbeA.lean` still imports rafthttp's module. Recorded in the design (`notes/trace-check-design.md`,
-"The harness (2026-11-12)", H1-H5).
+"The harness (2026-11-12)", H1-H6).
+
+**A name clash, found by the TCB report.** Once `Results.lean` reaches raft's `TracedNodeApi` (no
+root did before), `etc/tcb-report.py`'s one Lean run over the main tree's roots failed: raft's
+`trTok` and rafthttp's `trTok` (`TransportState.lean`, the transport lock's reader token) are both
+`Perennial.EtcdGrove.trTok`. rafthttp's is renamed `transportTok` (10 server files, no statement
+changed but the name).
