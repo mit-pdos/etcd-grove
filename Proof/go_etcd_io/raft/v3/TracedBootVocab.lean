@@ -67,6 +67,55 @@ def BootFresh (σ : StorState) (hs : HardStateM) (csm : ConfStateM) : Prop :=
   csm.Voters' = [] ∧ csm.VotersOutgoing' = [] ∧ csm.Learners' = [] ∧ csm.LearnersNext' = [] ∧
   csm.AutoLeave' = false
 
+/-! ### The bootstrap lines' events, at their positions (`BootEvAt`, §5.1's table) -/
+
+/-- **Position 0**: `newRaft`'s `InitState` at the fresh state (term, vote, commit and log size `0`, a
+follower). -/
+theorem nodeEvOf_bootEvAt0 (C : List w64) (id : w64) (s : NState) (c : CfgM) (e : TraceEv)
+    (h : NodeEvOf (W64 0) id s c e) (ht : s.term = W64 0) (hv : s.vote = W64 0)
+    (hc : s.logst.committed = W64 0) (hl : plastIndex (toPState s) = W64 0)
+    (hr : s.role = .follower) : BootEvAt C id 0 e := by
+  obtain ⟨hname, hnid, hterm, hvote, hcommit, hrole, hlog, -⟩ := h
+  simp only [evtNames] at hname
+  have hn : e.name = go!"InitState" := by have := hname; simp at this; exact this.symm
+  refine ⟨hnid, by rw [hn]; rfl, by rw [hterm, ht], by rw [hvote, hv], by rw [hcommit, hc],
+    by rw [hlog, hl], by rw [hrole, hr]; rfl⟩
+
+/-- **Positions 2 and 3**: a `BecomeFollower` at term `0` (`newRaft`'s) or `1` (`Bootstrap`'s). -/
+theorem nodeEvOf_bootEvAtBF (C : List w64) (id : w64) (s : NState) (c : CfgM) (e : TraceEv)
+    (h : NodeEvOf (W64 2) id s c e) :
+    (s.term = W64 0 → BootEvAt C id 2 e) ∧ (s.term = W64 1 → BootEvAt C id 3 e) := by
+  obtain ⟨hname, hnid, hterm, -⟩ := h
+  simp only [evtNames] at hname
+  have hn : e.name = go!"BecomeFollower" := by have := hname; simp at this; exact this.symm
+  exact ⟨fun ht => ⟨hnid, by rw [hn]; rfl, by rw [hterm, ht]⟩,
+    fun ht => ⟨hnid, by rw [hn]; rfl, by rw [hterm, ht]⟩⟩
+
+/-- **Position 1**: `newRaft`'s `ApplyConfChange` to the empty configuration at term `0`. -/
+theorem ccEvOf_bootEvAt1 (C : List w64) (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv)
+    (h : CCEvOf id s c cn e) (ht : s.term = W64 0) (hcn : elements cn.incoming = []) :
+    BootEvAt C id 1 e := by
+  obtain ⟨hname, hnid, hterm, -, -, -, -, -, -, -, ⟨ns, hns, hcc⟩, -⟩ := h
+  simp only [evtNames] at hname
+  have hn : e.name = go!"ApplyConfChange" := by have := hname; simp at this; exact this.symm
+  rw [hcn] at hns
+  have : ns = [] := List.perm_nil.1 hns
+  subst this
+  exact ⟨hnid, by rw [hn]; rfl, by rw [hterm, ht], by rw [hcc]; rfl⟩
+
+/-- **Position `k + 4`**: `Bootstrap`'s `ApplyConfChange` of the `k`-th peer, at term `1`, the bootstrap
+log committed, raft's new configuration the first `k + 1` voters. -/
+theorem ccEvOf_bootEvAtK (C : List w64) (id : w64) (s : NState) (c cn : CfgM) (e : TraceEv) (k : Nat)
+    (hk : k < C.length) (h : CCEvOf id s c cn e) (ht : s.term = W64 1) (hv : s.vote = W64 0)
+    (hc : s.logst.committed = W64 C.length) (hl : plastIndex (toPState s) = W64 C.length)
+    (hr : s.role = .follower) (hcn : (elements cn.incoming).Perm (C.take (k + 1))) :
+    BootEvAt C id (k + 4) e := by
+  obtain ⟨hname, hnid, hterm, hvote, hcommit, hrole, hlog, -, -, -, ⟨ns, hns, hcc⟩, -⟩ := h
+  simp only [evtNames] at hname
+  have hn : e.name = go!"ApplyConfChange" := by have := hname; simp at this; exact this.symm
+  exact ⟨hk, hnid, by rw [hn]; rfl, by rw [hterm, ht], by rw [hvote, hv], by rw [hcommit, hc],
+    by rw [hlog, hl], by rw [hrole, hr]; rfl, ns, hns.trans hcn, hcc⟩
+
 end vocab
 
 /-! ## The capability before the struct, the storage's no-compaction, the completion witness -/
