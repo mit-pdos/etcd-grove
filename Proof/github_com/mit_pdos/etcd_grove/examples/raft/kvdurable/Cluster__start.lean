@@ -428,9 +428,10 @@ theorem Cluster.start.wp_proof
   have Hnid0 : id ≠ W64 0 := by intro h; rw [h] at Hid1; simp at Hid1
   wp_apply wp_config γ vs dir c id s ap0 Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
   obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
+  ihave %Htr := kdCluster_untraced γ vs $$ Hcl
   ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries s ms bp γs F (raft_kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
-    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) HFok He0
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Htr HFok He0
     (by word) Hsc
     $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
   · iintro %K Hm Hi; iframe Hm Hi

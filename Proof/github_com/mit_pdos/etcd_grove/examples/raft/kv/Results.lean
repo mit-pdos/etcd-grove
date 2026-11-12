@@ -120,13 +120,16 @@ theorem kv_NewStorage : raft_kv.NewStorage.spec (GF := GF) (hG := hG) :=
 until then `isStorage (kvStorIface s)` over the owner's view; 2026-11-01, durability layer 4: keyed
 by the storage's key `K`, which raft names at the attach, not the node's id): the storage
 `NewStorage` returns (its record, `kvStorRec`), its `MemoryStorage`'s invariant at the
-justifications of key `K` (`kvJ`), meets raft's `Storage` contract of key `K` (`isStorage γ K`). -/
-theorem kv_storage_isStorage (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+justifications of key `K` (`kvJ`), meets raft's `Storage` contract of key `K` (`isStorage γ K`).
+(2026-11-12, trace-check, Q39 (a)) At an untraced cluster (`kvCluster_alloc`'s): raft's compaction
+bound is gated on the trace. -/
+theorem kv_storage_isStorage (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (htr : Cluster.trace γ = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv -∗
       kvStorRec (GF := GF) s ms γs -∗ memStorInvP ms γs (kvJ γ K) -∗
       isStorage γ K (kvStorIface s) :=
   kvStorage_isStorage raft_kv.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex
-    MemoryStorage.wp_Term MemoryStorage.wp_Entries s ms γs γ K
+    MemoryStorage.wp_Term MemoryStorage.wp_Entries s ms γs γ K htr
 
 /-- **... and a fresh one is what `RestartNode` takes** (`bootStorage`, 2026-10-30, replacing
 `kv_storage_initialState`; 2026-11-01, durability layer 4: `restartStorage` at the empty contents,
@@ -134,9 +137,10 @@ which `bootStorage` became): from `NewStorage`'s records and tokens, `FirstIndex
 `LastIndex` `0`, and `InitialState` the empty hard state and the voters' conf state, read-only for
 good, with -- at the key `K` raft names the storage by, allocating its `MemoryStorage`'s invariant
 at `kvJ γ K` -- the contract and the empty log; the client's frame `F`, made from the invariant at
-the key (an argument, depending on the key: until 2026-11-01 the frame was the invariant itself). -/
+the key (an argument, depending on the key: until 2026-11-01 the frame was the invariant itself).
+(2026-11-12, trace-check, Q39 (a)) At an untraced cluster, as `kv_storage_isStorage`. -/
 theorem kv_bootStorage (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters : List w64)
-    (γ : Cluster) (F : GName → IProp GF) :
+    (γ : Cluster) (F : GName → IProp GF) (htr : Cluster.trace γ = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv -∗
       kvStorRec (GF := GF) s ms γs -∗ s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗
@@ -147,7 +151,7 @@ theorem kv_bootStorage (s ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (voters
         (raft_kv.kvConfState voters) 0 F :=
   kvStorage_bootStorage raft_kv.Storage.wp_InitialState raft_kv.Storage.wp_Snapshot
     MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term
-    MemoryStorage.wp_Entries s ms γs vsl voters γ F
+    MemoryStorage.wp_Entries s ms γs vsl voters γ F htr
 
 /-- `StartCluster(ids)` (`Spec/github_com/mit_pdos/etcd_grove/examples/raft/kv/StartCluster.lean`). -/
 theorem kv_StartCluster : raft_kv.StartCluster.spec (GF := GF) (hG := hG) :=

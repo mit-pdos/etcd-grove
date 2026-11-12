@@ -1,5 +1,6 @@
 /-
-**raft's message at the bytes** (2026-10-22, rafthttp stage 3): the `PbType` of a `*raftpb.Message`
+**raft's message at the bytes** (2026-10-22, rafthttp stage 3; 2026-11-12, trace-check B4: moved from
+rafthttp's tree to raft's, beside `InvPbMsg`, its import of rafthttp's `Net` dropped): the `PbType` of a `*raftpb.Message`
 (`pbMessage`), the trusted wire model the codecs' proofs use with the generic protobuf specs
 (`Proof/google_golang_org/protobuf/proto/InvProto.lean`). Lean-first.
 
@@ -27,7 +28,6 @@ Read it against `raftpb/raft.proto` (raft v3.7, `syntax = "proto2"`):
 module
 
 public import Proof.google_golang_org.protobuf.proto.InvProto
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
 
 @[expose] public section
@@ -46,6 +46,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+
+/-- **A received copy agrees with the message sent**: its scalars, entries, snapshot and context
+(not the `Responses` pointers: an unmarshalled copy's are fresh). (2026-11-12, trace-check B4: moved
+here from rafthttp's `Net.lean`, so that this module needs nothing of rafthttp.) -/
+def wireEq (st st' : MsgSt) : Prop :=
+  st'.msg = st.msg ∧ st'.ents = st.ents ∧ st'.snap = st.snap ∧ st'.ctx = st.ctx
 
 /-- **A message's wire content**: what decoding its encoding gives back. -/
 structure MsgWire where

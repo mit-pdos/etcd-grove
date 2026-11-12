@@ -1211,11 +1211,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- (2026-11-11, slice 26n, plan Q26 (a)) **A self-addressed message's token**, at a traced cluster
-(`recvTokOf` at no entries and no context, the abstraction `pendingRel` reads); nothing untraced. -/
+(`recvTokOf` at no entries and no context, the abstraction `pendingRel` reads); nothing untraced.
+(2026-11-12, trace-check step 4, `hAdv`) With its type one a traced node hands out (`TrSent`, which the
+`Ready`'s `readyTok` carries): the traced `Advance` steps it over `raft.Step.traced`, whose bundle
+covers no `MsgPreVoteResp` (`StepEndTy`). -/
 def selfTok (γ : RaftNames) (st : MsgSt) : IProp GF :=
   match γ.reTrace with
   | none => iprop(True)
-  | some γd => recvTokOf γd st.msg [] []
+  | some γd => iprop(⌜TrSent st⌝ ∗ recvTokOf γd st.msg [] [])
 
 theorem selfTok_none (γ : RaftNames) (st : MsgSt) (h : γ.reTrace = none) : ⊢ selfTok (GF := GF) γ st := by
   unfold selfTok; rw [h]; exact BI.true_intro
@@ -1248,8 +1251,10 @@ def pendingRel (γ : RaftNames) (id : w64) (W : DurMaps) (st : MsgSt) (p : Pendi
     match p with
     -- (2026-11-01, durability stage II (k), fix C) behind the fragments of the maps `W` of the
     -- batch the `Ready` cut (`RNState.bw`): a response is legitimate once its promise is entered
-    | .self _ _ => iprop(□ (durFrags γ id W -∗ ∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
-        isMessage γ (absMsg ty st.msg [] [])) ∗ selfTok γ st)
+    -- (2026-11-12, trace-check step 4, `hAdv`) the message's `isRaftMsg` (until then the `isMessage`
+    -- of its abstraction, which it gives, `isRaftMsg_isMessage`): at a traced cluster its numbers and
+    -- certificate (`isRaftMsg_trRecv`), which the traced `raft.Step` takes
+    | .self _ _ => iprop(□ (durFrags γ id W -∗ isRaftMsg γ id st) ∗ selfTok γ st)
     | _ => iprop(True))
 
 -- (2026-10-26, raft's signature, stage 1) `msgDat` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.

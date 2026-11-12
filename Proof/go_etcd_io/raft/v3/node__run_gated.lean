@@ -570,7 +570,7 @@ theorem node.run.gated_of
       rw [Hb]
       try wp_auto
       -- `cs := r.applyConfChange(cc)`
-      wp_apply wp_rn_raft_applyConfChange (raft.applyConfChange.spec_of_tracedSpec γ.raft hCC) γ.raft nv.rn' id rs r cc ccs
+      wp_apply wp_rn_raft_applyConfChange (raft.applyConfChange.spec_of_tracedSpec hCC) γ.raft nv.rn' id rs r cc ccs
         Hstatic Hn
         HtrG $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %ls ⟨Hrn, -, Hcsp, %Hcs⟩
       -- `_, okAfter := r.trk.Progress[r.id]`: still a voter

@@ -37598,3 +37598,114 @@ has the premise → source tables).
   (`node.run.spec_of_gatedSpec` composes once the two are proved; the replacement is step 5's).
 - *`raft.applyConfChange.spec_of_tracedSpec (γ0 : RaftNames)`*: the static `confc` arm's untraced call
   from `hCC`, at the node's names.
+
+*Amendment (2026-11-12, `hCC` proved, decided by the agent; branch `trace-check-hcc`).*
+`raft.applyConfChange.tracedSpec` is proved **as stated** (`raft.applyConfChange.tracedSpec_proof`,
+`TracedApplyConfChange.lean`); today's `raft.applyConfChange.wp_proof` is its untraced instance
+(`spec_of_tracedSpec`, at the names `raftNames0`), so there is one proof of `applyConfChange` (review
+`step4-r1.md`'s F2). The callee statements it needed changed (all raft-internal, none on
+`etc/api/raft.txt`; slice 29n's finding 1, option (a), as the design's §3.4 has it):
+- *Read-only lending* (`RaftReadLend.lean`, new): `ownRaftCore r id s` (the `id`, `Term`, `Vote`, `state`,
+  `raftLog` fields and the log), `ownRaftReadT c r id s tv` (that, the `trk` field and its configuration's
+  maps, `CfgSizeOk c`), `RaftReadLend P c r id s` (a persistent loan of it out of `P`);
+  `raftReadLend_of_lend : RaftLend P … ⊢ RaftReadLend P …` (every hook's caller unchanged but for one
+  line); `ownRaftPhysCV_reconfigCore` (`ownRaftPhysCV_reconfig` with the core outside the wand).
+- `traceEvent.spec`: `RaftLend P c r id s` → `RaftReadLend P c r id s`.
+- `raft.hardState.spec`, `makeTracingState.spec`: on `ownRaftCore r id s` instead of `ownRaftPhysCV c
+  c.voters r id s` (binder `c` dropped): what they read; callers take it out with `ownRaftPhysC_core`.
+  Rejected: a second, read-view triple beside each (twins), or inlining `hardState` in `makeTracingState`.
+- `traceConfChangeEvent.spec`: the untraced statement (nil logger, giving `True`) → one spec for both
+  modes in `traceEvent.spec`'s form (`trOwn tr (∃ c cn id s prsm prs pvs P, P ∗ RaftReadLend P c r id s ∗
+  ownConfigC cn … ∗ ⌜CCEvOf id s c cn ⊆ E⌝ ∗ (P ∗ ownConfigC … -∗ R)) ∗ TraceFire tr tl E Q`, giving
+  `trOwn tr R ∗ Q`); its proof is slice 29n's traced one (moved from `TracedConfChangeHook.lean`, whose
+  Draft statement is now an instance, `tracedSpec_of_spec`); `newRaft` through
+  `traceConfChangeEvent.untraced`.
+- `raft.switchToConfig.spec`: one spec for both modes: new binders `c0 γ`; `s.gh.tr = none` → `s.gh.tr ≠
+  none → s.role = .follower ∧ c = c0 ∧ |γ.reBoot| ≤ committed ∧ committed ≤ lastIndex ∧ term, committed,
+  lastIndex < traceNumBound`; the core (`ownRaftCore r id s`) outside `Hback`, which takes it back;
+  `⌜TraceLoggerOk tl⌝` → `⌜s.gh.tr = none → TraceLoggerOk tl⌝`; new `trOwn s.gh.tr (ownCfgCC tv0.Config' 1
+  c0)` (the old configuration's maps, which the `Changer` gives back) and `trCapB s.gh.tr γ r id c0 true
+  (SimIdle · s)` in the pre, `trCapB s.gh.tr γ r id c true (SimIdle · s')` in the post; stated at
+  `HeapGS HasLC.hasLC GF` (the capability's invariants), so `switchToConfig`'s and `applyConfChange`'s
+  linked results moved to `Link.lean`'s `hasLC` section (their callers were all there).
+- `trCapB_hookGate_applyCC`: `hboot`, `hcl` taken traced only (`tr.isSome →`; review S3).
+`appliedSnap` (untraced) passes `raftNames0` and the `emp` capability. No axiom, no `sorry`.
+
+**Amendment (2026-11-12, `hAdv` proved; decided by the agent · branch `trace-check-hadv`).**
+`RawNode.Advance.tracedSpec` is proved unchanged (`RawNode.Advance.tracedSpec_proof`,
+`TracedRawNodeAdvance.lean`), and `RawNode.Advance.wp_proof` is now its instance (one proof; its
+statement unchanged; the proof and its lemmas moved out of the proof file, so the three `ackSnapLog_*`
+layout violations are gone). Two internal facts the traced self-addressed responses need had no source
+in `ownRawNode`, so two raft-internal definitions of `InvRawnode.lean` changed (no statement, no
+interface file):
+- *`selfTok`'s traced body gains `⌜TrSent st⌝`* (kept from the `Ready`'s `readyTok` by
+  `selfToks_of_readyToks`): `raft.Step.traced`'s bundle covers no `MsgPreVoteResp` (`StepEndTy`), and
+  nothing else said that a traced node queues no self pre-vote response.
+- *`pendingRel`'s self arm keeps `□ (durFrags γ id W -∗ isRaftMsg γ id st)`* in place of the `isMessage`
+  of the abstraction (which `isRaftMsg_isMessage` gives back): the traced step needs the message's
+  numbers (`MsgTrOk`, from `isRaftMsg_trRecv`), which `self_pending` had (the outbox's `OutTr`) and dropped.
+Rejected: deriving either from the node's state at `Advance` (the abstraction carries every field of the
+message, and no invariant bounds a past self response's index or records its type). The self
+`MsgAppResp`'s `StepNodeOk` comes from the capability's `id ∈ C` and the tracker's domain
+(`trCapB_idIn`, `ownRaftPhysC_stepNode`). On review S6 (the empty entry `becomeLeader` appends when a
+self `MsgVoteResp` wins the election inside `Advance`): no premise beyond `tracedSpec`'s is needed: the
+step goes through the proved `stepBundle_traced`, whose premises are only the term's bound, the
+message term's bound and the receipts' fit, which the loop supplies from `rs.tc + 1 < traceNumBound`
+(`TermInv` keeps every intermediate term within `rs.tc`) and `traceReadyFits`.
+
+## Trace-check small items (storBnd's gate, B4, tcRunFits) (2026-11-12 · trace-check, the plan's resume point item 4; Q39 (a) taken by the coordinator, the rest decided by the agent · branch `trace-check-small`)
+
+**`storBnd`'s gate (Q39 (a); the design's B2, `notes/trace-validation-q6.md` §7).** `storBnd`
+(`InvNodeRule.lean`) is now sealed (`@[no_expose]`) and matches on `Cluster.trace γ`: untraced, its
+old body (`∃ k, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k`); traced, `⌜c = 0⌝`. The design wrote the gate as a
+conjunct, `(∃ k, …) ∗ ⌜c = 0 ∨ untraced⌝`; at a traced cluster that is equivalent to `⌜c = 0⌝`
+(`nodeAppliedLb_zero`), and the match keeps the untraced arm literally today's body, which is what
+`TrNoSnap`'s source at `setupNode` (A4) reads (`c ≥ 1` refuted at a traced cluster) and what
+`storBnd_raftBnd` (`StartNode`, `RestartNode`, one new case each) converts. Sealed, since clients
+now go through the laws (PRINCIPLES' no unfolding): `storBnd_zero` (any cluster) and
+`storBnd_intro_untraced` (its premise now used). Who gained `Cluster.trace γ = none`:
+- raft's exported `memStorage_isStorage` (its proof converts `memBnd (memStorJ γ K)` into the gated
+  bound through `storBnd_intro_untraced`; until now it was `rfl`); the server's `srvMem_bootStorage`
+  passes it on, discharged in `raftNode_of_StartNode` from `NodeStartSpec`'s existing
+  `Cluster.trace γr.cl = none` (`srvClusterOk`'s, Q8 stage 0);
+- the clients' `kvJ_bnd`, `kvrJ_bnd`, `kdJ_bnd` (re-proved through `storBnd_intro_untraced`), their
+  `kvStorage_isStorage`, `kvrStorage_isStorage`, `kdStorage_isStorage`, and the boot lemmas that
+  call them, `kvStorage_bootStorage`, `kvr_bootStorage`, `kd_restartStorage`; each call site
+  discharges it from its cluster fact: kv's `StartCluster` from `kvCluster_alloc`'s `%Htr0`, kvreconf's
+  `StartCluster`/`Cluster.startNew` from `kvrCluster_untraced`, kvdurable's `Cluster.start` from
+  `kdCluster_untraced`;
+- kv's exported `kv_storage_isStorage` (Q39 (a)) **and `kv_bootStorage`**, which the coordinator's
+  decision did not name: it is `kvStorage_bootStorage` restated, whose continuation builds the
+  contract at the attach, and there is no untraced fact in its premises to read (its `restartStorage`
+  continuation gets only raft's bounds). The same kind of result as `kv_storage_isStorage` (an
+  exported spec-level result, not a closed adequacy theorem), and every kv caller has the fact.
+No closed adequacy theorem changed. Interface: `storBnd` shows as `def (sealed)`, and
+`storBnd_intro_untraced`'s binder `_h` became `h` (now used). The harness's local `tc_storBnd_zero` is gone; it uses raft's
+`storBnd_zero`. No law reading the traced arm (`storBnd γ K c ⊢ ⌜c = 0⌝` at a traced cluster) is
+added yet: its reader, the traced `setupNode` (step 5), is inside raft and can unfold the sealed
+definition; export one if a client needs it.
+
+**B4.** `PbMessage.lean` moved from `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/` to
+`Proof/go_etcd_io/raft/v3/` (module `Proof.go_etcd_io.raft.v3.PbMessage`), its import of rafthttp's
+`Net` dropped, listed in `etc/api/raft.txt`. The design (B4) said the body used nothing of `Net`; it
+used one definition, `wireEq` (a received copy's agreement with the sent message, a pure relation on
+raft's `MsgSt`, the conclusion of `pbMessage_wire_eq`), which moved with it into `PbMessage.lean`
+(same name, `Perennial.EtcdGrove.wireEq`); `Net` now imports `PbMessage` for it; rafthttp's importers (`Codec`, `Pipe`,
+`isMsgApp`, `isMsgSnap`, each also importing `Net`, which they had reached through `PbMessage`) and
+the harness's `ProbeA` import the new path. One more server import was on the harness's path:
+`Spec/context/WithTimeoutBackground.lean` imported the server's `BaseApply` and used nothing of it
+(dropped; full build green). The harness (`RunConcurrent`, `app`, `handleReady`, `send`, the drivers,
+the recorder, `Main`) now reaches no `go_etcd_io.etcd.server` module; the package's `Adequacy.lean`
+still does, through the shared adequacy machinery it imports (`examples/lib/etcdstart/Adequacy`,
+`Proof/runtime/Start`: `read.Metrics`, `RevokeLevels`, `storage.WalDir`), which is not the harness
+and was left as it is.
+
+**`tcRunFits` stays a named fit, not a `ReceiptBoundLe` instance** (supersedes, in part, the last
+sentence of "Trace-check's receipt bounds as instances"). That entry expected Q38's `n + 2 ≤ 2^31`
+to make `[ReceiptBoundLe GF (2^60)]` free; it is free for the adequacy theorem (`receiptBound = n + 1
+< 2^31`) but not for `raft_tracecheck_accepts_of`, whose statement (§1.3, the user's, word for word)
+takes `Hrb : receiptBound GF + 3 ≤ 2^61` and hands it to `RunConcurrent.spec`; `2^60` does not follow
+from it, and no power of two is exact. So `RunConcurrent.spec` keeps `tcRunFits GF`. `Main.spec`
+alone could take the instance (its only caller is the adequacy), but two forms of the one fit in the
+two neighbouring specs gain nothing (`etc/bounds-check.py` does not count `tcRunFits`). It can
+become an instance if the corollary's premise is ever restated as one (the user's decision).

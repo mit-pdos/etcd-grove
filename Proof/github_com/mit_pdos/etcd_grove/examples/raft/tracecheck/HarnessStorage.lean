@@ -7,7 +7,7 @@ API**. The harness hands raft a `*MemoryStorage` itself (no wrapper), registered
 * `tcJ γ K`: the storage's justifications, as raft's `memStorJ` but **never compacting**: a
   compaction right only at `0` (`B k := ⌜k = 0⌝`; the harness never calls `Compact`,
   `SnapshotEvery = 0`). The contract's compaction bound is then `storBnd γ K 0` only
-  (`tc_storBnd_zero`; the design's `storBnd_zero`, B2).
+  (raft's `storBnd_zero`, the design's B2).
 * `tc_isStorage`: a registered storage with its invariant at `tcJ γ K` meets the storage contract of
   key `K` (`memStorage_isStorageP`, its bound weakened to `storBnd`: `isStorageP_bnd`).
 * `tc_bootStorage`: `StartNode`'s `restartStorage` premise at the empty contents, from what
@@ -61,16 +61,6 @@ def tcJ (γ : Cluster) (K : GName) : MemJust GF where
   B_timeless := fun k => by infer_instance
   DL_pers := fun i => by infer_instance
 
-/-- **No compaction past `0`** (the design's `storBnd_zero`, B2): the node API's storage bound at
-`0`, from raft's applied bound at `0`. -/
-theorem tc_storBnd_zero (γ : Cluster) (K : GName) : ⊢ storBnd (GF := GF) γ K 0 := by
-  unfold storBnd
-  iintro
-  iexists 0
-  isplitr
-  · ipureintro; exact Nat.le_refl 0
-  iapply nodeAppliedLb_zero γ K
-
 /-- The storage contract with a weaker compaction bound. -/
 theorem isStorageP_bnd (SV : SnapshotM → IProp GF) (B1 B2 : Nat → IProp GF) (DL : Nat → IProp GF)
     (st : Storage) :
@@ -113,7 +103,7 @@ theorem tc_isStorage
   have : c = 0 := by omega
   subst this
   imodintro
-  iapply tc_storBnd_zero γ K
+  iapply storBnd_zero γ K
 
 /-- The empty contents a fresh storage starts a node from. -/
 abbrev tcBootContents : StorContents :=

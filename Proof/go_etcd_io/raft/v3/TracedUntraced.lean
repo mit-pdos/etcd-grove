@@ -25,6 +25,7 @@ public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Spec.go_etcd_io.raft.v3.traceSendMessage
 public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
+public import Spec.go_etcd_io.raft.v3.traceConfChangeEvent
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
@@ -153,6 +154,33 @@ theorem traceSendMessage.untraced (h : traceSendMessage.spec (GF := GF) (hG := h
     isplitr
     · iapply trOwn_none_intro
     simp only [TraceFireOpt]
+    itrivial
+  inext
+  iintro -
+  iapply HΦ
+  itrivial
+
+/-- (2026-11-12, trace-check step 4) `traceConfChangeEvent.spec` at an untraced node (the statement
+before step 4: the nil logger, giving `True`), for `newRaft`'s call. -/
+abbrev traceConfChangeEvent.untracedTriple : Prop :=
+  ∀ (cfgv : tracker.Config) (r : Loc) (tl : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ⌜TraceLoggerOk tl⌝ }}
+    (App (App (Val #(functions traceConfChangeEvent [])) (Val #cfgv)) (Val #r))
+  {{ RET #(); True }}
+
+/-- `traceConfChangeEvent.spec`'s untraced instance. -/
+theorem traceConfChangeEvent.untraced (h : traceConfChangeEvent.spec (GF := GF) (hG := hG)) :
+    traceConfChangeEvent.untracedTriple (GF := GF) (hG := hG) := by
+  intro cfgv r tl
+  iintro %Φ ⟨#Hpkg, #Htl, %Hok⟩ HΦ
+  iapply h cfgv r tl none (fun _ => True) iprop(True) iprop(True) $$ [Hpkg Htl]
+  · iframe Hpkg Htl
+    isplitr
+    · iapply trOwn_none_intro
+    simp only [TraceFire]
+    isplitr
+    · ipureintro; exact Hok
     itrivial
   inext
   iintro -

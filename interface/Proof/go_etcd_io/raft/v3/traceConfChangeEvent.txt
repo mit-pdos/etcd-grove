@@ -2,15 +2,23 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem traceConfChangeEvent.wp_proof [package_sem : Assumptions] : traceConfChangeEvent.spec
+theorem traceConfChangeEvent.wp_proof [package_sem : Assumptions] (wp_traceEvent : traceEvent.spec)
+    (wp_Slice : quorum.MajorityConfig.Slice.spec) (wp_formatConf : formatConf.spec) :
+    traceConfChangeEvent.spec
   -- `Perennial.EtcdGrove.traceConfChangeEvent.spec`, unfolded:
-  ∀ (c : tracker.Config) (r : Loc) (tl : GoInterface),
+  ∀ (cfgv : tracker.Config) (r : Loc) (tl : GoInterface) (tr : Option GName) (E : TraceEv → Prop) (Q R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             typedPointsto
                 (structFieldRef raft go!"traceLogger" r) tl
                 DFrac.discard ∗
-              ⌜TraceLoggerOk tl⌝ -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP (((intoVal (functions traceConfChangeEvent [])) (intoVal c)) (intoVal r)) {{ Φ }}
+              trOwn tr
+                  iprop(∃ c cn id s prsm prs pvs P,
+                      P ∗
+                        RaftReadLend P c r id s ∗
+                          ownConfigC cn cfgv prsm prs pvs ∗
+                            ⌜∀ (e : TraceEv), CCEvOf id s c cn e → E e⌝ ∗ (P ∗ ownConfigC cn cfgv prsm prs pvs -∗ R)) ∗
+                TraceFire tr tl E Q -∗
+          ▷ (trOwn tr R ∗ Q -∗ Φ (intoVal ())) -∗
+            WP (((intoVal (functions traceConfChangeEvent [])) (intoVal cfgv)) (intoVal r)) {{ Φ }}

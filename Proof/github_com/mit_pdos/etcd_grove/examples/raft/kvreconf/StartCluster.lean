@@ -245,10 +245,11 @@ theorem StartCluster.wp_proof
       (fun _ _ => CoPset.mem_full) $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
     wp_apply wp_config γr _ cl k «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
     obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
+    ihave %Htr := kvrCluster_untraced γr _ $$ Hcl
     ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries «$r0_ptr» ms «$v3_ptr» γs' _ (bootCS (bootVoters (uint.nat o.Voters'))) γr.cluster
       (fun K => iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-        memStorInvP ms γs' (kvrJ γr.cluster K)))
+        memStorInvP ms γs' (kvrJ γr.cluster K))) Htr
       $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
     · iintro %K Hm Hi; iframe Hm Hi
     ihave Hau := kvr_restartAu γr.cluster kvrRaftN k kvrBootContents kvrBoot_holds $$ [HrS]

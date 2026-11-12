@@ -16,7 +16,8 @@ host names the message's destination and the receiver's host its own id.
 module
 
 public import Perennial.Golang.Theory.TypeSet
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
+public import Proof.go_etcd_io.raft.v3.PbMessage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.net.http.Boundary
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
