@@ -8039,6 +8039,8 @@ constructor contracts false. D14 settles the three.
   excluded: with no lease granted, `checkLeasePuts` finds none and the txn package's check fails
   with `ErrLeaseNotFound`, both in the model. `ckptEffectsOk` stays a premise of `NewLessor`'s
   axiom (a statement about the Go code, whatever the workload); under D14h it is never exercised.
+  *(Superseded in part, 2026-11-12: `ckptEffectsOk` is deleted, "Deleting `ckptEffectsOk`" at the
+  end of this file.)*
   `NewUberApplier.spec` names the raft status and the snapshot server (the server itself) in its
   premise, which was undischargeable.
 - **D14i (adopted 2026-10-17, the user's approval): the applier contracts carry the apply
@@ -28829,7 +28831,8 @@ Frozen and linked:
   a peer's reply small enough to buffer). And `LeasePrefix_init` (leasehttp's `LeasePrefix` holds
   some string), with leasehttp's generated `opaqueInitsOk`: etcdserver now imports leasehttp, as
   Go's does, so every closed result's initialization (cachekv, putget, m2, ...) runs its initializer.
-- **`ckptEffectsOk` covers `Renew`'s checkpointer call** too (its docstring widened; no statement
+- *(Superseded 2026-11-12: `ckptEffectsOk` deleted, "Deleting `ckptEffectsOk`" at the end of this
+  file.)* **`ckptEffectsOk` covers `Renew`'s checkpointer call** too (its docstring widened; no statement
   changes): the call proposes a `LeaseCheckpoint` outside the proposers' workload (`apply.rqOk`),
   as the lessor loop's does. Not exercised while `srvGrantGuard` is `False`; the lease-grant work
   must revisit C1.
@@ -34682,7 +34685,8 @@ drops `lessorCkptOk` (deleted), so no contract can set `cp`. `lessorExtra` fixes
 docstring argues the nil checkpointer and puts a lessor with a checkpointer out of scope; a change
 that turns the feature on must give the checkpointer a contract. No axiom or `sorry` added or removed.
 
-**Planned premise removal** (a follow-up, not in stage B; etcd-grove-81, 2026-11-12): `ckptEffectsOk`
+**Planned premise removal** (a follow-up, not in stage B; etcd-grove-81, 2026-11-12; done, "Deleting
+`ckptEffectsOk`" below): `ckptEffectsOk`
 (`InvBoot.lean`, opaque), a premise of `NewLessor` and of about 33 closed results, now covers no call
 in any closed program: with `cp` nil the lessor loop never proposes (`findDueScheduledCheckpoints`
 returns `nil`, `lessor.go:772-775`) and `Renew` never calls `cp`. Deleting it removes an opaque premise
@@ -34700,3 +34704,26 @@ exclusive. **Follow-ups, not in stage B**: `purgeFile.spec` takes no `lgMu` slot
 67 roots); gate keys naming the binder path, so an entry cannot silently accept a future real duplication in
 `isServerReadM`; deleting `ckptEffectsOk` (above).
 
+## Deleting `ckptEffectsOk` (2026-11-12 · accepted, approved by the user via etcd-grove-81)
+
+Supersedes the part of D14h (and D14e/D14g's named premise) that kept `ckptEffectsOk`, the opaque
+premise "the lessor's checkpointer's effects" (`InvBoot.lean`), on `lease.NewLessor`'s axiom and so on
+`NewServer.specG` (inside `lease.bootCfg`), on the example specs that build a server or a lessor
+(`etcdstart`, `cluster3`, `restart`, `mvccrand`, `mvccfull`, ...), and on every closed result
+(the ~33 `*_adequate`/`*_safe` theorems of `examples/etcd`, `examples/k8s`, `mvccrand`, `mvccfull`).
+It is deleted, with `lease.bootCfg_ckpt`.
+
+**Why it covered no call.** Stage B3 (above) made the model say that no checkpointer is installed:
+`NewServer.spec` takes the `LeaseCheckpoint` feature off (`#Hlcp`), `NewLessor`'s post no longer
+offers a contract for `SetCheckpointer`, and `lessorInv`'s `lessorExtra` fixes `le.cp` at `func.nil`
+(`InvLessor.lean`). With `cp` nil, the loop's `checkpointScheduledLeases` proposes nothing
+(`findDueScheduledCheckpoints` returns `nil`, `lessor.go:772-775`; `scheduleCheckpointIfNeeded`
+pushes nothing, `:753-756`), and `Renew` never calls `cp` (`clearRemainingTTL` needs `le.cp != nil`, `:412`;
+`lease.lessor.Renew.spec`'s docstring). No closed program calls `SetCheckpointer` (only a Go test,
+`examples/sweeprepairs/logger/logger_test.go`, does). So the premise constrained no behaviour, and
+`NewLessor`'s axiom without it is the same statement about the Go code, minus a vacuous assumption.
+
+**Effect.** One opaque fewer in the trust base; every closed result loses the hypothesis
+`(Hck : ckptEffectsOk)`; `lease.bootCfg` loses its last conjunct, and `bootCfg_none`/`_mono`/`_of_run`
+their `hck` argument. A change that turns the feature on must give the checkpointer a contract
+(stage B3's note), not restore this premise.
