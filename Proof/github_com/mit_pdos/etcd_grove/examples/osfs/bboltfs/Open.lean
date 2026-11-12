@@ -80,7 +80,7 @@ theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   icases Hf with (%Ha | ⟨%i, %m, %hl, Hm, Hst⟩)
   · obtain ⟨hn, rfl, rfl, rfl⟩ := Ha
     wp_apply wp_Create d b (W32 438) R V j hb hd hn $$ [Ht]
-      as %f %err (⟨%fd, %i, %h, Ht, Hm, Hf, Hfd⟩ | ⟨%h, (Ht | ⟨%i, Ht, Hm⟩)⟩)
+      as %f %err ⟨(⟨%fd, %i, %h, Ht, Hm, Hf, Hfd⟩ | ⟨%h, (Ht | ⟨%i, Ht, Hm⟩)⟩), -⟩
     · iframe; iframe #
     · iapply HΦ
       iexists _; iframe Ht
@@ -103,7 +103,7 @@ theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       iexists i, newMeta; iframe Hm
       ipureintro; exact lookupH_create _ hr hd hb hn
   · wp_apply wp_OpenFile (child d b) (W32 438) 1 R V i hl $$ [Ht]
-      as %f %err ⟨Ht, (⟨%fd, %h, Hf, Hfd⟩ | %h)⟩
+      as %f %err ⟨Ht, (⟨%fd, %h, Hf, Hfd⟩ | %h), -⟩
     · iframe; iframe #
     · iapply HΦ
       iexists V; iframe Ht

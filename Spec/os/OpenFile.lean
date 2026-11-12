@@ -17,6 +17,7 @@ Proved in `Proof/os/OpenFile.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Spec.fmt.ErrorOk
 public import Proof.os.Base
 
 @[expose] public section
@@ -45,7 +46,8 @@ abbrev os.OpenFile.spec : Prop :=
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osTree (DFrac.own q) R V ∗
       ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd path (DFrac.own 1) ∗
           osFd fd (DFrac.own 1) ⟨i, true, true⟩) ∨
-       ⌜err ≠ interface.nil ∧ f = null⌝) }}
+       ⌜err ≠ interface.nil ∧ f = null⌝) ∗
+      fmtErrorOkOrNil err }}
 
 /-- See the file header. -/
 abbrev os.OpenFile.specCreate : Prop :=
@@ -54,13 +56,14 @@ abbrev os.OpenFile.specCreate : Prop :=
   {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own 1) R V }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
-      (∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗
+      ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗
           osTree (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
           osMeta i (DFrac.own 1) newMeta ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
           osFd fd (DFrac.own 1) ⟨i, true, true⟩) ∨
       (⌜err ≠ interface.nil ∧ f = null⌝ ∗ (osTree (DFrac.own 1) R V ∨ ∃ i : Ino,
           osTree (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
-          osMeta i (DFrac.own 1) newMeta)) }}
+          osMeta i (DFrac.own 1) newMeta))) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 

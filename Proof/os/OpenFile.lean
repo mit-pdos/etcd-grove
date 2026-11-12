@@ -7,6 +7,8 @@ attempt opens it (`lookupH_create`).
 -/
 module
 
+public import Proof.os.ErrorOk
+public import Proof.syscall.ErrorOk
 public import Spec.os.OpenFile
 
 @[expose] public section
@@ -111,7 +113,9 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
     ipersist f
     imodintro
     have hfd0 : 0 ≤ fd.toInt := by rcases hres with ⟨-, h⟩ | ⟨h, -⟩; exact h; exact absurd rfl h
+    ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
     iapply HΦ
+    iframe Hokn
     iframe Hh
     ileft
     iexists fd
@@ -134,8 +138,18 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
     · rw [decide_eq_false he4]
       wp_auto
       unfold os.model.pathError
+      iapply wp_fupd
       wp_apply wp_errno
+      iStructNamed pe
+      ipersist Op
+      ipersist Path
+      ipersist Err
+      imodintro
+      ihave Hok := (os.pathError_fmtErrorOk pe_ptr _ _ (errnoErr e)) $$ Op Path Err []
+      · iapply (errnoErr_fmtErrorOk e (by assumption))
+      ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
       iapply HΦ
+      iframe Hokn
       iframe Hh
       iright
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
@@ -176,7 +190,9 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
       ipersist name
       ipersist f
       imodintro
+      ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
       iapply HΦ
+      iframe Hokn
       ileft
       iexists fd, i
       iframe
@@ -203,8 +219,18 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
       · rw [decide_eq_false he4]
         wp_auto
         unfold os.model.pathError
+        iapply wp_fupd
         wp_apply wp_errno
+        iStructNamed pe
+        ipersist Op
+        ipersist Path
+        ipersist Err
+        imodintro
+        ihave Hok := (os.pathError_fmtErrorOk pe_ptr _ _ (errnoErr e)) $$ Op Path Err []
+        · iapply (errnoErr_fmtErrorOk e (by assumption))
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iright
         iframe Hst
         ipureintro; exact ⟨(fun h => by cases h), rfl⟩
@@ -238,7 +264,9 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
       ipersist f
       imodintro
       have hfd0 : 0 ≤ fd.toInt := by rcases hres with ⟨-, h⟩ | ⟨h, -⟩; exact h; exact absurd rfl h
+      ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
       iapply HΦ
+      iframe Hokn
       ileft
       iexists fd, i
       iframe
@@ -263,8 +291,18 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
       · rw [decide_eq_false he4]
         wp_auto
         unfold os.model.pathError
+        iapply wp_fupd
         wp_apply wp_errno
+        iStructNamed pe
+        ipersist Op
+        ipersist Path
+        ipersist Err
+        imodintro
+        ihave Hok := (os.pathError_fmtErrorOk pe_ptr _ _ (errnoErr e)) $$ Op Path Err []
+        · iapply (errnoErr_fmtErrorOk e (by assumption))
+        ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
+        iframe Hokn
         iright
         isplitr
         · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
