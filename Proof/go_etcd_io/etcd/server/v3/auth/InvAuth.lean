@@ -1448,11 +1448,20 @@ def usersOut (s : GoSlice) (st : AuthState) : IProp GF :=
     ⌜us.length = names.length ∧ names.Nodup ∧ ∀ n, n ∈ names ↔ (st.users.lookup n).isSome⌝ ∗
     [∗list] x ∈ us.zip names, userOut x.1 st x.2)
 
+/-- **A role name `GetAllRoles()` lists** (auth-schema-fix F3, 2026-11-12, decided by
+etcd-grove-81): schema's `unsafeGetAllRoles` ranges the roles' bucket over `[0x00, 0xff)`
+(`schema/auth_roles.go:91`; `unsafeRange` keeps keys below the end), so it lists a role whose name
+is non-empty and below `"\xff"`; a name starting with the byte `0xff` (never valid UTF-8, which
+etcd's request strings are) is skipped (`nonissues/etcd-auth-getallroles-ff-names.md`). -/
+def roleListed (n : GoString) : Prop := n ≠ [] ∧ go.GoStringLt n [W8 255]
+
 /-- What `GetAllRoles()` returns of the state `st` (the auth plan's E2j): as `usersOut`, the
-state's roles (`roleOut`). -/
+state's roles (`roleOut`) whose names it lists (`roleListed`; until auth-schema-fix F3 every role,
+false of a role named `"\xff"`: S0's F3). -/
 def rolesOut (s : GoSlice) (st : AuthState) : IProp GF :=
   iprop(∃ (rs : List Loc) (names : List GoString), s ↦* rs ∗
-    ⌜rs.length = names.length ∧ names.Nodup ∧ ∀ n, n ∈ names ↔ (st.roles.lookup n).isSome⌝ ∗
+    ⌜rs.length = names.length ∧ names.Nodup ∧
+      ∀ n, n ∈ names ↔ (st.roles.lookup n).isSome ∧ roleListed n⌝ ∗
     [∗list] x ∈ rs.zip names, roleOut x.1 st x.2)
 
 /-- **The auth backend's reads** `bi` with the hook `P f` and the write token `T` in the mode `M`

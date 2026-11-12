@@ -48,7 +48,7 @@ theorem auth.authStore.RoleList.wp_proof :
   icases Hus with ⟨%us, %names, Hs, %Hn, Hmsgs⟩
   obtain ⟨Hlen, Hnd, Hmem⟩ := Hn
   ihave Hmsgs := rolesOut_names sta (us.zip names)
-    (fun x hx => (Hmem x.2).1 (List.of_mem_zip hx).2) $$ Hmsgs
+    (fun x hx => ((Hmem x.2).1 (List.of_mem_zip hx).2).1) $$ Hmsgs
   imod Hmsgs with #Hmsgs
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   (try wp_auto)
