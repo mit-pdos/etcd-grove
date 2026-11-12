@@ -33,7 +33,7 @@ masked read right, `1aaca041c` restart fails). Prototype: `/shared/tmp/wal-spec/
 restart succeeds; all wal tests pass except the name assertions of `TestReadAllStartRecordBeforeOpenedFile`
 and `TestW4a2ForgottenSnapshotRestart`, whose scenarios are no longer unmatched.
 
-**Probes still running** (started on the `1aaca041c` build): `/shared/tmp/wal-spec/w4a2/r2/run.sh`, output
+**Probes (killed, exit 143, before finishing: no summary lines; partial `.r2log` only)** (started on the `1aaca041c` build): `/shared/tmp/wal-spec/w4a2/r2/run.sh`, output
 `/shared/tmp/wal-spec/w4a2/r2/{kill,ordered,posix,target}.log` (summary line at the end) and `.r2log`
 (`EV`, `EVBAD`, `C2FAIL`, `UNMATCHED`, `ADOPT` lines). Interim: 0 EVBAD; C2FAIL with inp=true in all
 runs (a higher snapshot in a purged prefix: the entries-only lower bound is too weak; step 3 fixes
