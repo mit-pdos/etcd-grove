@@ -65,13 +65,6 @@ def Perennial.AbsDiskStep [GoGlobalContext] (op : String) (v : val) (h : GMap Lo
                 absDiskUpd s dir fun d =>
                   { H := d.H, m := d.m, unl := d.unl, pur := max d.pur d.unl, cut := k, metadata := d.metadata,
                     named := d.named, sized := d.sized }
-      | "WalUnsize" =>
-        ∃ dir,
-          v = intoVal dir ∧
-            s' =
-              absDiskUpd s dir fun d =>
-                { H := d.H, m := d.m, unl := d.unl, pur := d.pur, cut := d.cut, metadata := d.metadata, named := d.named,
-                  sized := false }
       | "DirDurable" =>
         ∃ d, v = intoVal d ∧ ¬underDir s.area d ∧ s' = { area := s.area, wal := s.wal, dirs := <[d := ()]>s.dirs }
       | x => False

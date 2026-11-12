@@ -34773,3 +34773,43 @@ minted per call (M1). What changed, and why:
   directories; `Exist`'s docstring names `cleanupWAL`; the empty-`Save` shortcut is shown invisible to
   readers (`walRead_phantom` …); the `ReadAll` `ErrSnapshotNotFound` bug is a nonissue
   (`etcd-wal-readall-snapshot-not-found-masked`), excluded by its premise. The etcd pin is `c90b03b56`.
+
+## WAL W4a revision round 3: the lock token, sealed handles, `Open` raises `unl`, one spelling per file (2026-11-12 · the third Freeze review's fixes decided by etcd-grove-81; the "one spelling" clause of "Paths" approved by the user, 2026-11-12, via etcd-grove-81 · branch `wal-w4`)
+
+The third review (`/shared/tmp/coord-81/wal-w4a-review3/findings-full.md`) found F1, B1, B2 (blockers),
+M1, M2 and minors. Each closed (the Freeze package's "Revision round 3" maps them to file:line):
+
+- **The purge right only with an open WAL, and `unl` current from `Open` on** (F1). `walHandleP`,
+  `walOpenW`, `walOpening`, `walReadFailed` are `@[no_expose]`; splitting a handle into the open WAL
+  and its right is private and of append handles only, so the right is reached only through
+  `Create` and a successful `ReadAll`. And `Open`'s success performs `"WalUnlock"` of `walReleasePos H
+  s.1` (`wp_WalOpenHandle`), since Go's `Open` locks only from the opened snapshot's file on: `unl` is
+  current wherever a right exists. The reviewer's `TestRev3PurgeWhileOpening` is now within the
+  model (there `walRelGuard` fails, so `unl = |H|`).
+- **One handle per generation: the lock token** (B2, closes M2). `walUnlockedTok`, a `token` at a
+  ghost name of the generation, is in `absDiskStart` and `absDiskCrashStart`; a successful `Create`
+  or `Open` puts it in the new handle (every handle predicate carries it); only `Close`'s success
+  arms give it back (`wp_WalCloseHandle`; Go's `Close` returns before unlocking when its sync
+  fails). Why: Go releases a dropped `*WAL`'s flocks by `os.File` finalizers without `Close`, losing
+  its buffered records (`TestRev3LeakedHandleThenOpen`: `Open` succeeds after GC, `ReadAll` misses
+  the unsynced commit); a dropped handle now takes the token with it, so no second `Open` is
+  provable until a crash, as if the process had died. With one live handle there is one live purge
+  right. Not an authority in `absHandleAuth`: no lemma mints the token, and the sealing makes it
+  inseparable from the handle.
+- **W4c gate on the purge right** (M1): `wp_WalPurge` takes no right; the right constrains only through
+  its consumers. `purgeRound`'s spec must take `walPurgeW w dir` and `walOpenW w dir`, consumed or
+  framed, never derived (recorded in `Specs.lean`'s header and `walPurge_step`'s docstring). `unl`'s
+  docstring now says what holds: while a handle with its right is live, every record from `unl` on
+  is in a file it keeps locked.
+- **One spelling per file** (B1): appended to "Paths" (the user's text): the run names each file at or
+  below the data directory by one spelling (no symlinked or bind-mounted alias of an ancestor besides
+  the data directory's own spelling; byte comparison). The parenthetical in `Impl.lean` and `Exist`'s
+  docstring now rest on it.
+- Minors: `Create`'s footprint includes `TouchDirAll`'s mkdir of missing ancestors and their parents'
+  fsyncs; `Repair`'s blocking argument restated (it blocks until no handle holds the tail's lock, a
+  concurrent `Close` of an opening or failed handle releases it; `TestReview3RepairLive`); the
+  `"WalUnsize"` step dropped (no axiom performed it; a `Save` with `sized = false` needs a WAL whose
+  flag is false, which none reaches: a W4c obligation, the tester saves sized entries) and
+  `walDisk`'s default argument removed; `etc/api-check.py` scans every `lean_lib`'s directories.
+- W4c gates added: the step spec `wp_WalCloseHandle` joins the handle-step list; the tester's
+  boot holds the token from `absDiskStart`/`absDiskCrashStart` (`absDiskCrashStart_split`).
