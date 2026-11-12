@@ -1,6 +1,9 @@
 /-
 `b.Writable()` (`bucket.go`). **Users.** bbolt itself. **Proof sketch.** `b.tx.writable`.
 **Changes.** New.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` without the
+generations (any handle: it reads only `b.tx.writable`) (the per-path generation counter it replaces
+was unobservable state, redundant with ownership).
 -/
 module
 
@@ -25,8 +28,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.Writable()`: whether its transaction is a write transaction. -/
 def Bucket.Writable.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Writable")) (Val #()))
   {{ RET #T.rw; boltTx tx γ q T }}
 

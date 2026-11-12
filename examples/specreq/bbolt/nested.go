@@ -21,7 +21,10 @@ import (
 // Bucket.CreateBucketIfNotExists.spec, Bucket.Bucket.spec, Bucket.Put.spec, Bucket.Get.spec,
 // Bucket.NextSequence.spec, Bucket.Sequence.spec, Bucket.ForEach.spec,
 // Bucket.ForEachBucket.spec, Bucket.DeleteBucket.spec, Tx.DeleteBucket.spec, Tx.ForEach.spec,
-// Cursor.Last.spec, Cursor.Prev.spec; laws: bktH_live.
+// Cursor.Last.spec, Cursor.Prev.spec; laws: bktH_live, bktOwn_frac, bktOwn_bktH (a write
+// transaction's handles by their tokens: Update's for the buckets of its data, CreateBucket's for a
+// new one; CreateBucketIfNotExists of "c" returns the cached c), Ent.bktPaths_mem,
+// Ent.bktsUnder_mem (DeleteBucket of "p" takes the tokens of "p" and "p"/"c" out of Update's).
 func ReqNested(db *bolt.DB) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		p, err := tx.CreateBucket([]byte("p"))
@@ -147,7 +150,8 @@ func ReqReadOnlyPut(db *bolt.DB) {
 // REQ bbolt/cursor-delete: deleting while iterating: Delete at the cursor, then reposition by Seek
 // (Go: "reposition your cursor after mutating data"); every key is gone at the end.
 // Users: bbolt's documented API (no etcd user).
-// Assumes: tx a write transaction; b a current handle of a bucket holding no nested bucket.
+// Assumes: tx a write transaction; b a handle of a bucket holding no nested bucket, with its handle
+// premise (bktUse: in a write transaction, a share of the bucket's token bktOwn … (some b)).
 // Specs: Bucket.Cursor.spec, Cursor.First.spec, Cursor.Delete.spec, Cursor.Seek.spec,
 // Bucket.Get.spec; laws: txBytes_acc.
 func ReqCursorDelete(b *bolt.Bucket) {

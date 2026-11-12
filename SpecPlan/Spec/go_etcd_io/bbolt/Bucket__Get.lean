@@ -13,6 +13,10 @@ node, valid while the transaction is live).
 
 **Margin.** A value written with a nil slice in this transaction is returned as nil (indistinguishable
 from an absent key, as in Go).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(the bucket's ownership share in a write transaction) in place of `bktH … gs` and the generation
+check, given back (the per-path generation counter it replaces was unobservable state, redundant
+with ownership).
 -/
 module
 
@@ -38,10 +42,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `b.Get(key)`, any transaction, any fraction: the value at `key` in the bucket at `p` (valid
 while the transaction is live), or nil if there is none or it is a nested bucket. -/
 def Bucket.Get.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ key ↦*{dk} kb ∗ ⌜T.gens p = gs⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Get")) (Val #key))
-  {{ (v : GoSlice), RET #v; boltTx tx γ q T ∗ key ↦*{dk} kb ∗
+  {{ (v : GoSlice), RET #v; bktUse tx γ T.rw b p qb ∗ boltTx tx γ q T ∗ key ↦*{dk} kb ∗
       (match T.cur.atPath (p.child kb) with
        | some (Ent.val vb) => txBytes tx γ v vb
        | _ => iprop(⌜v = slice.nil⌝)) }}

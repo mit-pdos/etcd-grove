@@ -4,6 +4,9 @@
 
 **Changes** (integration I7): also from the state `seek` leaves (`curSt`'s `curPath`, at a leaf's
 end: `Cursor.Seek` calls `next` there).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The cursor names its handle
+`b` in place of the generations `gs` (the per-path generation counter it replaces was unobservable
+state, redundant with ownership).
 -/
 module
 
@@ -28,10 +31,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- (internal) the next entry with its flags. -/
 def Cursor.next.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (p : BPath) (gs : List Nat) (st : Option Nat ⊕ GoString),
-  {{ boltTx (GF := GF) tx γ q T ∗ curSt tx γ c p gs T st }}
+  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (st : Option Nat ⊕ GoString),
+  {{ boltTx (GF := GF) tx γ q T ∗ curSt tx γ c b p T st }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"next")) (Val #()))
-  {{ (k v : GoSlice) (fl : w32), RET (PairV #k (PairV #v #fl)); boltTx tx γ q T ∗ ∃ pos', boltCur tx γ c p gs T pos' }}
+  {{ (k v : GoSlice) (fl : w32), RET (PairV #k (PairV #v #fl)); boltTx tx γ q T ∗ ∃ pos', boltCur tx γ c b p T pos' }}
 
 end spec
 

@@ -1,6 +1,9 @@
 /-
 `c.keyValue()` (`cursor.go`): the stack's current element.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The cursor names its handle
+`b` in place of the generations `gs` (the per-path generation counter it replaces was unobservable
+state, redundant with ownership).
 -/
 module
 
@@ -25,10 +28,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- (internal) the entry at the position (nil past the end), with its flags. -/
 def Cursor.keyValue.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (p : BPath) (gs : List Nat) (i : Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c p gs T (some i) }}
+  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (i : Nat),
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c b p T (some i) }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"keyValue")) (Val #()))
-  {{ (k v : GoSlice) (fl : w32), RET (PairV #k (PairV #v #fl)); boltTx tx γ q T ∗ boltCur tx γ c p gs T (some i) ∗ ((⌜(T.ents p)[i]? = none ∧ k = slice.nil⌝) ∨ (∃ e, ⌜(T.ents p)[i]? = some e⌝ ∗ txBytes tx γ k e.1)) }}
+  {{ (k v : GoSlice) (fl : w32), RET (PairV #k (PairV #v #fl)); boltTx tx γ q T ∗ boltCur tx γ c b p T (some i) ∗ ((⌜(T.ents p)[i]? = none ∧ k = slice.nil⌝) ∨ (∃ e, ⌜(T.ents p)[i]? = some e⌝ ∗ txBytes tx γ k e.1)) }}
 
 end spec
 
