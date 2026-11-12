@@ -56,7 +56,14 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
    - The purge-biased run (81's addition): `runs/purgebias.sh`, patch `runs/purgebias.patch` (not
      committed: applied, binary `/shared/tmp/wal-spec/w4c/purgebias.test` built, reverted), logs
      `runs/purgebias/*.log`; read `violations N` and `strict-rejected/relaxed-accepted N` (the count
-     of restarts accepted only through a purged prefix). Result in the Freeze package §6.
+     of restarts accepted only through a purged prefix). Runs 2-3 (`purgebias2/3`, targeted mode
+     asked for by 81: 1 KiB segments, a round after every own snapshot, crashes right after a
+     deleting round) add PURGESTATS/PURGEDIFF. Result (Freeze package §6): 0 violations in 21,969
+     restarts; 12,725 restarts on purged directories; PURGEHITS 0 and PURGEDIFF 0: the purged arm
+     never offers a read other than the full one (W4b's `walReadFrom_eq`), so the case is
+     unreachable for the tester by construction.
+   - Pitfall: pass `-scratch` as an absolute path (a relative one makes the driver see no WAL
+     files).
    - After the review: apply its fixes; then step 2.
 3. Steps 2-4 as in plan §8. Step 2 starts with Q1 (`GooseLang/Ext/Durable`): **tell etcd-grove-81
    first** (rung 3). R1: the tester's `Base.lean` (IsPkgInit, fact `True`) fails today on
