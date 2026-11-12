@@ -1082,6 +1082,12 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   and net/http over it (`tcp-extension-design.md`); option A (verifying the real libraries,
   `option-a-cost.md`: ~0.55-0.75M Lean lines vs B's ~60-110k) stays possible later, piece by piece.
 
+- **TCP design and trust boundaries (2026-11-12):** U1 (a crash reaches peers by
+  nondeterminism), U2 (models as patches of the real grpc/net/http packages), U3 (one stream or
+  request per connection), U5-U7 (the over-approximations) accepted. E3: a trusted per-type model of
+  `encoding/json`. E5: the WAL's torn-tail/CRC assumption is handled on the user's own `wal` branch;
+  do not design it here. E2 (protobuf-go): open, discussed.
+
 ### Needs your approval
 
 New client-visible ghost state, or a change to an API or decision you approved.
