@@ -1,5 +1,5 @@
 /-
-`wal.Open` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fix `1aaca041c` approved by the user) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `1aaca041c` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`wal.Open` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `0b50f0426` (line numbers of `c90b03b56`) (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
 -/
 module
 
@@ -36,11 +36,14 @@ snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`) a
 (the last position a file named at most `s.1` can start at, `walNameBound … false`; WAL W4a.2, R1:
 `Open` locks from a file named exactly `s.1`, where `ReleaseLockTo` would not, so the two bounds
 differ) (the step `"WalUnlock"` of that position, `wp_WalOpenHandle`; revision round 3, F1: the purge
-right in the handle is then backed by a current `unl`). The name bound rests on `w.enti` being at
-least `walLastEntIdx` at every cut, across restarts: true because a successful write-mode `ReadAll`
-matched its start record (the fork's `1aaca041c`; finding F-W4a2-2: before it, an unmatched restart
-left `w.enti` low, and the landed guard argument failed too, Go test `w4a2-tests`
-`TestW4a2UnmatchedRestartUnlocksGuardedRecord` at `c90b03b56`) and no index wraps (guard clause 4,
+right in the handle is then backed by a current `unl`). The name bound rests on a cut naming its
+file `max(w.enti, w.snapi) + 1` (the fork's `0b50f0426`) and that maximum being at least `walLastIdx`
+of the prefix (the larger of its last entry's index and its highest snapshot index) at every cut,
+across restarts: true because a successful write-mode `ReadAll` matched its start record (the fork's
+`1aaca041c`; finding F-W4a2-2: before it, an unmatched restart left `w.enti` low, and the landed
+guard argument failed too, Go test `w4a2-tests` `TestW4a2UnmatchedRestartUnlocksGuardedRecord` at
+`c90b03b56`; with `1aaca041c` alone, a raft-like restart failed, the fork's
+`TestRestartAtSnapshotSavedBeforeReSentEntries`, which `0b50f0426` makes succeed) and no index wraps (guard clause 4,
 `walHasMaxIdx`; finding F-W4a2-1, `TestW4a2NameWrapUnlocksGuardedRecord`). Go tests `rev3-tests`:
 `TestRev3PurgeWhileOpening` (the `|H|` branch) and `TestReview4OpenGuardPurge` (the guard branch);
 the W4a.2 probe (every restart's `Open` of the WAL tester, the first locked file at or below

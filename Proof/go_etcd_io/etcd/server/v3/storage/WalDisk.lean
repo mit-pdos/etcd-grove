@@ -52,15 +52,22 @@ def walLastSnapPos {E : Type} (H : List (WalOpG E)) (a : w64) : Nat :=
     | some (WalOpG.snap m) => decide (m.Index' = a)
     | _ => false)).getLast?.getD 0
 
-/-- **The index of the last entry record of `P`** (0 if none; WAL W4a.2): a lower bound of Go's
-`w.enti` at the end of `P` when a file starts there (`walNameBound`). -/
-def walLastEntIdx (P : WalHist) : Nat :=
-  P.foldl (fun x o => match o with
-    | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
-    | .snap _ => x) 0
+/-- **The highest index a cut at the end of `P` names its file above** (WAL W4a.2): the larger of
+the last entry record's index and the highest snapshot record's index of `P` (0 if none). A cut
+names its file `max(w.enti, w.snapi) + 1`, `w.enti` the last entry saved or read (raised by a
+snapshot), `w.snapi` the highest snapshot index saved or read (the fork's `0b50f0426`); `walLastIdx`
+of the prefix before a cut is at most that maximum, across restarts (`walNameBound`). -/
+def walLastIdx (P : WalHist) : Nat :=
+  max
+    (P.foldl (fun x o => match o with
+      | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
+      | .snap _ => x) 0)
+    (P.foldl (fun x o => match o with
+      | .save _ _ => x
+      | .snap m => max x (uint.nat m.Index')) 0)
 
-/-- **Some record of `H` has index `2^64-1`** (WAL W4a.2, F-W4a2-1): then `w.enti` may be `2^64-1`
-at a cut, whose file name `enti + 1` wraps to 0. -/
+/-- **Some record of `H` has index `2^64-1`** (WAL W4a.2, F-W4a2-1): then `max(w.enti, w.snapi)` may
+be `2^64-1` at a cut, whose file name, that plus one, wraps to 0. -/
 def walHasMaxIdx (H : WalHist) : Prop :=
   ∃ o ∈ H, match o with
     | .save _ es => ∃ e ∈ es, uint.nat e.Index' = 2 ^ 64 - 1
@@ -77,11 +84,11 @@ above `a`** (a sufficient condition, by the Go code; M1 of the Freeze review; cl
 every saved commit from `p` on is at least `a` (so `a` is a valid snapshot of every image holding
 `p`, and a restart starts at or above it); every entry record after a snapshot record of index
 `≥ a` has index `> a`; every snapshot record after `p` has index `≥ a`; no record of `H` has index
-`2^64-1` (`walHasMaxIdx`: a cut names its file `w.enti + 1` in `uint64`, which wraps to 0 there,
-finding F-W4a2-1). Then `w.enti ≥ a` at every cut after `p`, across restarts (`SaveSnapshot` and a
-successful `ReadAll` raise it to the snapshot's index, S/wal.go:1158, :578; a write-mode `ReadAll`
-succeeds only when its start record matched, the fork's `1aaca041c`, finding F-W4a2-2), and the file
-names (`enti + 1`) exceed `a`. -/
+`2^64-1` (`walHasMaxIdx`: a cut names its file `max(w.enti, w.snapi) + 1` in `uint64`, which wraps
+to 0 there, finding F-W4a2-1). Then `w.enti ≥ a` at every cut after `p`, across restarts
+(`SaveSnapshot` and a successful `ReadAll` raise it to the snapshot's index, S/wal.go:1158, :578; a
+write-mode `ReadAll` succeeds only when its start record matched, the fork's `1aaca041c`, finding
+F-W4a2-2), and the file names (`max(w.enti, w.snapi) + 1`) exceed `a`. -/
 def walRelGuard (H : WalHist) (a : w64) (p : Nat) : Prop :=
   (∀ j, p < j → j ≤ H.length → uint.nat a ≤ uint.nat (walLastHS (H.take j)).Commit') ∧
   (∀ (q j : Nat) (m : SnapshotMetadataM) (h : HardStateM) (es : List EntryM) (e : EntryM),
@@ -101,14 +108,21 @@ def walGuardPos (H : WalHist) (a : w64) : Nat :=
 
 open Classical in
 /-- **The last position that can start a WAL file whose name may be below `a` (`strict`) or at most
-`a`** (WAL W4a.2, R1): a file starts at a `walCutPos`, and is named `w.enti + 1` (`Create`'s file 0,
-named 0, starts at 0, which the default covers); `walLastEntIdx` of the prefix before it bounds
-`w.enti` from below; so every file named below (at most) `a` starts at a position of the filter
-set, and at or before its last element. `|H|` when an index may wrap (`walHasMaxIdx`). -/
+`a`** (WAL W4a.2, R1): a file starts at a `walCutPos`, and is named `max(w.enti, w.snapi) + 1`
+(`Create`'s file 0, named 0, starts at 0, which the default covers); `walLastIdx` of the prefix before
+it bounds that maximum from below; so every file named below (at most) `a` starts at a position of
+the filter set, and at or before its last element. `|H|` when an index may wrap (`walHasMaxIdx`).
+The lower bound, by induction on the cuts, with every successful restart matched (the fork's
+`1aaca041c`) and no index wrapping: a snapshot record saved, or read by a restart's `ReadAll`, raises
+`w.snapi` to its index (the fork's `0b50f0426`), and the last entry record before the cut sets
+`w.enti` (later snapshot records only raise it); a record before the file a restart's `Open` at `s`
+opened is below that file's name (induction), which is at most `s`, and the matched start record
+raised `w.snapi` to `s`. So every file is named above every record before it, and `Open` at a
+snapshot of the history starts at or before its last record. -/
 def walNameBound (H : WalHist) (a : Nat) (strict : Bool) : Nat :=
   if walHasMaxIdx H then H.length else
   ((List.range (H.length + 1)).filter (fun b => decide (walCutPos H b ∧
-      (if strict then walLastEntIdx (H.take b) + 1 < a else walLastEntIdx (H.take b) + 1 ≤ a)))).getLast?.getD 0
+      (if strict then walLastIdx (H.take b) + 1 < a else walLastIdx (H.take b) + 1 ≤ a)))).getLast?.getD 0
 
 /-- **A position before which `ReleaseLockTo(a)` may leave records unlocked, and from which every
 record stays locked** (WAL W4a.2: the guard's position and the name bound, strict: `ReleaseLockTo`

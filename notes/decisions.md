@@ -35099,13 +35099,16 @@ named `≥ a`; `Open(a)` locks from the last file named `≤ a`: a file named ex
 `walReleasePos H a := min (walGuardPos H a) (walNameBound H a true)` and `walOpenPos H a := min
 (walGuardPos H a) (walNameBound H a false)`; `walGuardPos` is the landed body with clause 4;
 `walNameBound` is the last `walCutPos` (0, or after a `Save` that writes a record) whose prefix's
-`walLastEntIdx` (the last entry's index) plus one is below (at most) `a`. The argument: with every
-successful restart matched and no wrap, `walLastEntIdx` of the prefix is at most Go's `w.enti` at
-every cut, across restarts (by induction on the cuts: an entry of the cut's generation sets it, a
-snapshot only raises it; otherwise `ReadAll` left at least the last entry decoded and the start,
-and an entry before the opened file is below that file's name, so below the start). `walLastEntIdx`
-ignores snapshot raises on purpose: a raise is lost at a restart before the snapshot is committed
-(W4b's R1 probe used one; unsound across restarts).
+`walLastIdx` (the larger of the last entry's index and the highest snapshot index) plus one is below
+(at most) `a`. The argument: a cut names its file `max(w.enti, w.snapi) + 1` (the fork's `0b50f0426`,
+below); with every successful restart matched and no wrap, `walLastIdx` of the prefix is at most that
+maximum at every cut, across restarts (by induction on the cuts: an entry of the cut's generation
+sets `w.enti`, a snapshot only raises it; a snapshot record saved or decoded raises `w.snapi`; a
+record before the file a restart opened is below that file's name, so below the start, which the
+matched start record put in `w.snapi`). The first version (`walLastEntIdx`, the last entry only)
+ignored snapshot records on purpose: before `0b50f0426` a raise of `w.enti` by a snapshot record was
+lost at a restart before the snapshot was committed (W4b's R1 probe used one; unsound across
+restarts). `w.snapi` keeps every record decoded, committed or not, so counting them is sound now.
 
 **R2: no clause relaxed.** Dropping clause 1 at `j = p+1` is unsound (`TestW4a2RelaxedClause1Unsound`:
 a restart right after a received snapshot's record, below the commit, then a commit-only `Save` cuts
@@ -35119,17 +35122,19 @@ more purging, which needs a handle). `ReadAll` no longer restates `Open`'s raise
 its read cannot also unlock); its body commits at `"WalNamed"` with the handle and syncs after
 (`WalBodies.walReadAll_commit`). Bodies: `walOpen_commit`, `walReleaseLockTo_commit`.
 
-Evidence: the W4a.2 probe (`/shared/tmp/wal-spec/w4a2/r2/`: the W3 tester on the fork at `1aaca041c`,
+Evidence: the W4a.2 probe (`/shared/tmp/wal-spec/w4a2/r2/`: the W3 tester on the fork at `0b50f0426`,
 true file positions across restarts per candidate; every restart's `Open`, every `ReleaseLockTo` and
 every purge checked against the new bounds); Go tests in `/shared/tmp/wal-spec/w4a2/tests/`.
 
-**Open (hard stop, 2026-11-12): the fork fix costs etcd a restart.** The W4a.2 probe (posix model)
-hit one unmatched restart in a raft-like history, reproduced in
-`/shared/tmp/wal-spec/w4a2/tests/w4a2_forgotsnap_test.go`: a follower persists a received snapshot's
-record (41, above its commit) and crashes before the hard state; it restarts at 0, saves the
-re-sent entries 37..41 after the record, and a cut between them names its file 39; once the commit
-is 41, the restart at 41 opens that file. At `c90b03b56` the masked read is right; at `1aaca041c`
-the restart fails. Proposed instead (or in addition): a cut names its file above every snapshot
-record before it (`max(w.enti, the highest snapshot index saved or decoded) + 1`), which makes every
-restart at a snapshot of the history matched, keeps etcd's restart, and lets the model's lower bound
-count snapshot records (stronger bounds). Awaiting etcd-grove-81 and the user.
+**The naming fix (approved by the user, 2026-11-12, via etcd-grove-81): the first fork fix cost etcd
+a restart.** The W4a.2 probe (posix model) hit one unmatched restart in a raft-like history: a
+follower persists a received snapshot's record (41, above its commit) and crashes before the hard
+state; it restarts at 0, saves the re-sent entries 37..41 after the record, and a cut between them
+names its file 39; once the commit is 41, the restart at 41 opens that file. At `c90b03b56` the
+masked read is right; at `1aaca041c` the restart fails. The second fork commit `0b50f0426`
+(`goose-lean-exist`, after `1aaca041c`, local): a cut names its file `max(w.enti, w.snapi) + 1`,
+`w.snapi` the highest snapshot index saved or decoded, so every file is named above every snapshot
+record before it, every restart at a snapshot of the history matches, etcd's restart succeeds (the
+fork's `TestRestartAtSnapshotSavedBeforeReSentEntries`, which fails before at the name, 39), and the
+model's lower bound counts snapshot records (`walLastIdx`, stronger bounds). `1aaca041c` stays: the
+spec's soundness rests on it (an `Open` at a pair the WAL never recorded still fails).
