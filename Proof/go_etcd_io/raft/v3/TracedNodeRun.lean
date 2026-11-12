@@ -25,7 +25,6 @@ public import Proof.go_etcd_io.raft.v3.InvNodeRunHup
 public import Proof.go_etcd_io.raft.v3.Protocol.SnapCertDyn
 public import Proof.go_etcd_io.raft.v3.InvRtk
 public import Proof.go_etcd_io.raft.v3.TracedEscrow
-public import Spec.go_etcd_io.raft.v3.RawNode__Tick
 public import Proof.go_etcd_io.raft.v3.TracedApplyConfChange
 import all Proof.go_etcd_io.raft.v3.InvNodeChan
 
@@ -1216,25 +1215,6 @@ theorem wp_rn_raft_Step_net_g (wp_raft_Step : raft.Step.spec (GF := GF) (hG := h
     ipureintro
     refine ⟨Ht.1, Ht.2.1, fun _ => ?_⟩
     rw [ite_eq_right HnT]; omega
-
-/-- **`rn.Tick()`, in both modes** (`RawNode.Tick.spec`, `RawNode.Tick.traced`). -/
-theorem wp_RawNode_Tick_g (wp_RawNode_Tick : RawNode.Tick.spec (GF := GF) (hG := hG))
-    (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
-    (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG))
-    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (Hterm : uint.Z rs.term + 1 ≤ uint.Z rs.tc) (Hflw : rs.flw = false)
-    (Htr : γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hrn" ∷ ownRawNode γ rn id rs }}
-      (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Tick")) (Val #()))
-    {{ (t : w64), RET #();
-        "Hrn" ∷ ownRawNode γ rn id { rs with term := t } ∗
-        "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }} := by
-  cases HtrG : γ.reTrace with
-  | none => exact wp_RawNode_Tick γ rn id rs Hterm Hflw HtrG
-  | some γd =>
-    obtain ⟨Htcb, Hfit⟩ := Htr (by rw [HtrG]; simp)
-    exact RawNode.Tick.traced wp_tickElection wp_tickHeartbeat γ rn id rs γd Hterm Hflw HtrG Htcb Hfit.le
 
 -- (merge of `trace-check`) `raft.applyConfChange.spec_of_tracedSpec` is `TracedApplyConfChange.lean`'s.
 

@@ -1074,7 +1074,12 @@ lines' events are of raft's configuration, their law's bound of the capability's
 `trCapB_hookGate_bf`; `trCapB_cfg` re-keys it). (Amendment A6, Q24) The voters fit the bootstrap log
 (`C.length ≤ γ.reBoot.length`: one bootstrap entry per voter, `BootLogOk`, known where the capability is
 made; every law keeps it, `C` and `γ.reBoot` being fixed), so that an accepted append request's entries
-lie past the specification's bootstrap positions. -/
+lie past the specification's bootstrap positions.
+
+**Coupled to `trCapStart`** (`TracedBootVocab.lean`, the capability before the `raft` struct exists): its
+traced arm copies this body, with the logger as a parameter in place of the field. Keep the two in step: a
+conjunct added here must be added there, and the law `trCapStart_trCapB` re-proved (review `step5-r1.md`'s
+S3). -/
 def trCapB (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
     (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop := fun _ => True) :
     IProp GF :=

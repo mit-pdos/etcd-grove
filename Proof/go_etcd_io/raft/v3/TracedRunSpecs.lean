@@ -6,7 +6,7 @@ Raft-internal (not on `etc/api/raft.txt`).
 
 (2026-11-12, step 5) `node.run.gatedSpec` (with `RunTracedOk`) and `RawNode.Advance.tracedSpec` replaced
 `node.run.spec` and `RawNode.Advance.spec` in their `Spec/` files in place, so one statement and one proof
-each. What is left:
+each; neither name exists any more. What is left:
 
 - `raft.applyConfChange.tracedSpec`: step 4's `hCC`, the capability form at a booted follower keeping its
   configuration: what `run`'s `confc` arm calls (`TracedNodeRun.lean`). Since step 5 an instance of the

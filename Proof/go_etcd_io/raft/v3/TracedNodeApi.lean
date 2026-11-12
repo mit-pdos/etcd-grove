@@ -9,11 +9,12 @@ and gives the client what the harness (`examples/raft/tracecheck`, `RunConcurren
 in: the simulation's invariant sealed again (`Cluster.traceSim`, the Draft's `Cluster.traceSimInv`), the
 gate's precondition over it (`startTraceC`, the Draft's `startTrace`), its laws (`_alloc`, `_end`, and
 (amendment A8) `_bootEnd`, over the voters' completion witnesses `startDone`), and the statements of the
-traced node API that are not proved yet, as `Prop`s the harness takes as hypotheses:
+traced node API, as `Prop`s the harness takes as hypotheses (all proved since trace-check step 5):
 
 - `StartNode.tracedSpec`: `StartNode.gatedSpec` over `startTraceC`, its post giving the voter's completion
   witness `startDone γ id` (amendment A8.3, Q37 (a): sealed over the simulation's `bootDone`; the
-  Draft's `startDoneB`, `StartNode.tracedSpec_of_gated`, `TracedNodeApiBridge.lean`);
+  Draft's `startDoneB`, `StartNode.tracedSpec_of_gated`, `TracedNodeApiBridge.lean`); proved since step 5
+  (`TracedLinked.lean`'s `wp_StartNode_traced`);
 - (2026-11-12, trace-check implementation step 1) the messages' tokens and the driver's claim: `trTok`
   (raft's sealed `sentTok`, `InvNode.lean`), `trTok_untraced`, `trTok_type`; `isReadyChan_recvAu.tracedSpec`
   (`readyGotT`: `readyGot` with the claim `readyToksClaim`), **proved**; `node.Step.tracedSpec`, a
@@ -110,8 +111,8 @@ instance startDone_persistent (γ : Cluster) (id : w64) : Persistent (startDone 
   unfold startDone
   cases Cluster.trace γ <;> infer_instance
 
-/-- **`StartNode` of a traced cluster** (a hypothesis of the harness until the traced `StartNode` is
-proved): `StartNode.gatedSpec` (`TracedApiDraft.lean`) over `startTraceC`, its post also giving the
+/-- **`StartNode` of a traced cluster** (the harness's hypothesis, proved since trace-check step 5:
+`TracedLinked.lean`'s `wp_StartNode_traced`): `StartNode.gatedSpec` (`TracedApiDraft.lean`) over `startTraceC`, its post also giving the
 voter's completion witness `startDone γ cv.ID'`. -/
 abbrev StartNode.tracedSpec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config)

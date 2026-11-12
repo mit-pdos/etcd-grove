@@ -1653,7 +1653,7 @@ theorem raft.wp_hasLeader :
 
 theorem node.wp_run [StorageModel GF] :
     node.run.spec (GF := GF) (hG := hG) :=
-  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_tickElection raft.wp_tickHeartbeat raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom wp_getStatus
+  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom wp_getStatus
 
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=

@@ -9,12 +9,19 @@ entries to persist and the queue `Advance` steps are kept, so a tick may come be
 `Ready` and `Advance`. Go panics when a campaign wraps the term, hence
 `rs.term + 1 < 2^64`.
 
+Both modes (2026-11-12, trace-check cleanup, review F3 of step 4): until then the spec took
+`γ.reTrace = none` and a traced node's tick was a separate statement (`RawNode.Tick.tracedTriple`,
+`TracedRawNode.lean`) with its own proof. Now one statement, as `RawNode.Advance.spec`: at a traced node
+the term ceiling below the trace's bound (the tick's campaign is at most the ceiling) and the receipts'
+fit (`traceReadyFits`, `acceptReady`'s bounds); the trace capability is inside `ownRawNode` (`rnTrace`).
+
 Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` and has
 `[AllG GF]`.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import Proof.go_etcd_io.raft.v3.TraceFits
 
 @[expose] public section
 
@@ -41,10 +48,8 @@ abbrev RawNode.Tick.spec : Prop :=
   uint.Z rs.term + 1 ≤ uint.Z rs.tc →
   -- (D19i part 1) the floor not raised past `applied` (a tick may campaign: `Campaign`'s)
   rs.flw = false →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  γ.reTrace = none →
+  -- (2026-11-12, in place of `γ.reTrace = none`) at a traced node, `acceptReady`'s bounds
+  (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Tick")) (Val #()))

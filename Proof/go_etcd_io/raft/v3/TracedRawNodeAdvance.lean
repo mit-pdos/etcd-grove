@@ -1,7 +1,7 @@
 /- **`RawNode.Advance` in both modes** (2026-11-12, trace-check step 4, `hAdv`): the proof of
-`RawNode.Advance.tracedSpec` (`TracedRunSpecs.lean`), `RawNode.Advance.tracedSpec_proof`, of which
-`RawNode.Advance.wp_proof` (`RawNode__Advance.lean`) is the instance (`RawNode.Advance.spec_of_tracedSpec`):
-one proof. Until then this was `RawNode__Advance.lean`'s proof, untraced only; moved here so that the
+`RawNode.Advance.spec` (since step 5 step 4's statement for both modes, until then
+`RawNode.Advance.tracedSpec`, `TracedRunSpecs.lean`), `RawNode.Advance.tracedSpec_proof`, which
+`RawNode.Advance.wp_proof` (`RawNode__Advance.lean`) is: one proof. Until then this was `RawNode__Advance.lean`'s proof, untraced only; moved here so that the
 proof file exposes only `wp_proof`. What step 4 changed:
 
 - each queued message goes through `wp_raft_Step_adv`: `raft.Step.untraced` at an untraced node,
@@ -59,7 +59,7 @@ public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 -- (step 4) the traced step (`raft.Step.traced`, `stepBundle_traced`), the self response's numbers
--- (`isRaftMsg_trRecv`), the statement (`RawNode.Advance.tracedSpec`)
+-- (`isRaftMsg_trRecv`), the traced bounds (`TraceFits`)
 public import Proof.go_etcd_io.raft.v3.TracedRaftStepBundle
 public import Proof.go_etcd_io.raft.v3.TracedNodeRecv
 public import Proof.go_etcd_io.raft.v3.TracedReady

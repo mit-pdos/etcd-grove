@@ -1,19 +1,16 @@
 /-
 The trace check's results (`examples/raft/tracecheck`, the closed program of
 `notes/trace-validation-plan.md`; `notes/trace-check-design.md` §1). The closed statements are
-`notes/trace-check-design.md` §1.2 and §1.3, word for word, each **from one open obligation**,
-`HarnessOpen`, with no `sorry`:
+`notes/trace-check-design.md` §1.2 and §1.3, word for word, proved with no hypothesis and no `sorry`:
+`raft_tracecheck_safe` and `raft_tracecheck_accepts`, the `_of` results below at `harnessOpen`.
 
-* **`HarnessOpen`**: the traced node-API statement the harness's proof still takes
-  (`HarnessDefs.lean`, `HarnessApi`): `StartNode.tracedSpec`, at every instance context and storage
-  model. Steps 3-5 of the design's §9 (the gated `node.run` and the traced constructors) prove it
-  (`StartNode.tracedSpec_of_gated`); nothing else is open. The other traced statements the harness
-  uses are proved since implementation step 1 (`stepIn_intro` with the token, `trTok_type`,
-  `isReadyChan_recvAu.tracedSpec_proof`, the linked `node.Advance.tracedSpec`, `TracedLinked.lean`).
-  When it lands, `HarnessOpen` is a theorem and the two results below lose their `_of`. (2026-11-12,
-  trace-check step 5: landed. `harnessOpen` proves it from raft's linked traced `StartNode`
-  (`TracedLinked.lean`'s `wp_StartNode_traced`), and `raft_tracecheck_safe`/`raft_tracecheck_accepts`
-  are §1.2/§1.3's statements, hypothesis-free, the `_of` results at it.)
+* **`HarnessOpen`**: the traced node-API statement the harness's proof takes (`HarnessDefs.lean`,
+  `HarnessApi`): `StartNode.tracedSpec`, at every instance context and storage model. Open until
+  trace-check step 5 (2026-11-12); now the theorem `harnessOpen`, from raft's linked traced `StartNode`
+  (`TracedLinked.lean`'s `wp_StartNode_traced`, through `StartNode.tracedSpec_of_gated`). The other
+  traced statements the harness uses are proved since implementation step 1 (`stepIn_intro` with the
+  token, `trTok_type`, `isReadyChan_recvAu.tracedSpec_proof`, the linked `node.Advance.tracedSpec`,
+  `TracedLinked.lean`).
 * **`raft_tracecheck_safe_of`**: §1.2's `raft_tracecheck_safe` (no execution of the package's
   initialization then `Main()`, of `n + 2 ≤ 2^31` steps, panics or gets stuck; the main thread's
   result is `#()`), given the bootstrap log's facts and premises (`Defs.lean`). Everything `Main`
@@ -100,17 +97,17 @@ theorem tracecheck_Events_traceAccepts (Hrb : receiptBound GF ≤ 2 ^ 61) (c : L
 
 end corollary
 
-/-! ## The open obligation, and the harness linked over it -/
+/-! ## The harness's obligation (proved: `harnessOpen`), and the harness linked over it -/
 
-/-- **The open obligation** (see the file header): the traced `StartNode` the harness's proof takes
+/-- **The harness's obligation** (see the file header): the traced `StartNode` the harness's proof takes
 (`HarnessApi`), at every instance context and storage model, as raft's linked results are stated.
-Steps 3-5 of `notes/trace-check-design.md` §9 prove it. -/
+Proved: `harnessOpen` (open until trace-check step 5). -/
 abbrev HarnessOpen : Prop :=
   ∀ [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
     [HeapGS HasLC.hasLC GF] [go.Semantics] [go_etcd_io.raft.v3.Assumptions] [StorageModel GF],
     HarnessApi (GF := GF)
 
-/-- **The open obligation, discharged** (2026-11-12, trace-check step 5): raft's traced `StartNode`,
+/-- **The obligation, discharged** (2026-11-12, trace-check step 5): raft's traced `StartNode`,
 linked (`TracedLinked.lean`'s `wp_StartNode_traced`: the one proof `StartNode.gatedSpec_proof` over the
 linked `setupNode` and `node.run`). -/
 theorem harnessOpen : HarnessOpen := by
@@ -124,8 +121,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
 
-/-- **The harness, linked** (`RunConcurrent`, its `app`s, `handleReady`, `send`), from the open
-obligation and raft's linked results. -/
+/-- **The harness, linked** (`RunConcurrent`, its `app`s, `handleReady`, `send`), from `HarnessOpen`
+and raft's linked results. -/
 theorem tc_wp_RunConcurrent (h : HarnessOpen) : RunConcurrent.spec (GF := GF) (hG := hG) := by
   have wp_app : ∀ [MemStorReg GF], Cluster.app.spec (GF := GF) (hG := hG) := by
     intro _
@@ -151,7 +148,7 @@ theorem tc_wp_RunConcurrent (h : HarnessOpen) : RunConcurrent.spec (GF := GF) (h
     RaftLink.MemoryStorage.wp_Snapshot (fun {_} => RaftLink.node.wp_Propose)
     (fun {_} => RaftLink.node.wp_Stop) strconv.wp_Itoa context.WithTimeoutBackground.wp_proof
 
-/-- **Every run's trace is accepted, from the open obligation** (`raft_tracecheck_accepts`,
+/-- **Every run's trace is accepted, from `HarnessOpen`** (`raft_tracecheck_accepts`,
 `notes/trace-check-design.md` §1.3, given `HarnessOpen`): `RunConcurrent(defaultCConfig)`, from the
 package initialized and the premises, returns a cluster `c` on which `c.Events()` returns a slice
 holding a trace `L` whose converted events satisfy `TraceAccepts` (TLC's verdict on raft's TLA+
@@ -200,13 +197,13 @@ theorem raft_tracecheck_accepts [ThreadBoundLe GF (2 ^ 31)]
 
 end harness
 
-/-! ## The closed theorem, from the open obligation -/
+/-! ## The closed theorem, from `HarnessOpen` -/
 
 section closed
 attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 variable [go_gctx : GoGlobalContext]
 
-/-- **`Main`'s spec at `tcGF`, from the open obligation**: `Main`'s callees, the harness and the
+/-- **`Main`'s spec at `tcGF`, from `HarnessOpen`**: `Main`'s callees, the harness and the
 checker, linked. -/
 theorem tcMainSpec_of (h : HarnessOpen) : tcMainSpec := by
   intro hG _ _
@@ -214,7 +211,7 @@ theorem tcMainSpec_of (h : HarnessOpen) : tcMainSpec := by
     (Cluster.Events.wp_proof (SyncRecorder.Events.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock))
     ConvertEvents.wp_proof Etcdraft.wp_NewTrace Etcdraft.wp_CheckTrace Etcdraft.Result.wp_TLCOK
 
-/-- **The trace check never fails, from the open obligation** (`raft_tracecheck_safe`,
+/-- **The trace check never fails, from `HarnessOpen`** (`raft_tracecheck_safe`,
 `notes/trace-check-design.md` §1.2, given `HarnessOpen`): every real execution of
 `tracecheckProgram` -- the tracecheck package's initialization, then `Main()`: a three-voter raft
 cluster run concurrently (`RunConcurrent(DefaultCConfig())`: proposals, drops, delays and

@@ -3,9 +3,10 @@ Lean-first (no Rocq counterpart). Trace-check's layer D (the harness, 2026-11-12
 `notes/trace-check-design.md` §2; `notes/decisions.md`, "The harness (RunConcurrent)"): **what the
 harness's goroutines share**, and **the node-API statements the harness takes as hypotheses**.
 
-* `HarnessApi` (at a storage model): the traced node-API statement the harness's proof still takes as
-  a hypothesis, `StartNode.tracedSpec` (`TracedNodeApi.lean`; steps 3-5 of the design's §9 prove it,
-  through `StartNode.tracedSpec_of_gated`). The other traced statements it uses are raft's, proved
+* `HarnessApi` (at a storage model): the traced node-API statement the harness's proof takes as a
+  hypothesis, `StartNode.tracedSpec` (`TracedNodeApi.lean`; proved since trace-check step 5: raft's
+  linked `wp_StartNode_traced`, through `StartNode.tracedSpec_of_gated`; `Results.lean`'s
+  `harnessOpen`). The other traced statements it uses are raft's, proved
   since implementation step 1 (2026-11-12): `stepIn_intro` with the token and the law `trTok_type`
   (`TracedNodeApi.lean`), `isReadyChan_recvAu.tracedSpec_proof` and the linked
   `node.Advance.tracedSpec` (`TracedLinked.lean`). The law `Membership.applyChange_leaveJoint` is not
