@@ -341,6 +341,50 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     with entries at `entRZ` + `msgInC` directly); channels (`stepP`, `InvNodeChan`, `node__run`,
     `InvNodeRun`); then steps 3-7 of the plan.
 
+- **C3 continued**, 2026-11-12 (agent 8; commits `4988e96faa`, `281a170bdc`, then this handoff): **steps 1,
+  2 and P5 done; raft `Results` builds** (`/shared/tmp/out-size/c3-a8-raft1.log`).
+  - **The maxData bound (decided by etcd-grove-81)**: `clusterInv` (InvApi) gains
+    `⌜∀ b, γ.raft.maxData = some b → b ≤ 2^31 ∧ ∀ e ∈ γ.raft.reBoot, e.Data'.length ≤ b⌝` (the boot
+    half: needed by `RawNode.Bootstrap`, same pattern: the alloc lemmas' `HmxdB` premise), established
+    in `InvApiBoot`/`InvApiDecAlloc` (`Protocol/Facts` unchanged: it already returns `reBoot`/`maxData`);
+    `certLink` (StepGhostMode) the same over `γ.maxData`/`γ.reBoot`, read by `certLink_make`
+    (StartNode, RestartNode). Patterns: `⟨-, -, %Hszl, %Hmb⟩` on `certLink`, `⟨…, -, %Hmb⟩` (5th) on
+    `clusterInv`.
+  - **Step 1**: `msgInC_of_struct` (MsgOwnZ: a literal with entries at `entRZ sz`, ctx/entry-count
+    bounds → `msgInC sz`); `RawNode.Propose`/`ReadIndex` build their entry with `entRZ_of_struct
+    s.gh.sn.sz` (bound from `Hmd` + `certLink`), `RawNode.ProposeConfChange` via `confChangeToMsg`.
+  - **P5**: `ccPtsCCo` (PbContentOwn: `nil` or `ccPtsCC`, with `ccPtsCCo_own`/`own_ccPtsCCo`);
+    `raftpb.MarshalConfChange.spec` over `ccPtsCCo` with post `∀ cc, oc = some cc → ccSize cc + 64 <
+    2^63 → bs.length ≤ ccLenMax cc` (freeze-b2 m1); `confChangeToMsg.spec` over `ccPtsCCo c dq oc` and a
+    flag `sz` (premise `sz → ccSize cc + 64 ≤ entBytesMax`), post `msgInC sz`; callers
+    `RawNode.ProposeConfChange`, `node.ProposeConfChange` (specRaw takes `ccPtsCC`+bound; wrapper from
+    `clusterInv`), `raft.appliedTo` (`none`). `RawNode.Bootstrap`: boot entries built at `entRZ
+    s.gh.sn.sz` (bound from `certLink`'s boot half, `R8`), its TODO gone.
+  - **Step 2 (channels)**: `fwdP`, `propP` at `msgInC γ.raft.maxData.isSome`; `netP` at `msgInC
+    (γ.raft.maxData.isSome && movesB st.msg.Type') … discard` (`hupP` stays `msgIn`); `netP_local` takes
+    `msgInC γ.raft.maxData.isSome`; `netP_split`/`stepP_split` hand out half (`msgPtsC ml dqh …
+    false`, `msgInC_halfD`/`_halfO`) with the closing wand; `stepArg`/`node.stepWait.spec` at `msgInC`;
+    `node.Propose`/`node.ReadIndex` specRaw gain `⌜γ.raft.maxData.isSome → len ≤ entBytesMax⌝`
+    (wrappers: `Hmd` + `clusterInv`); `msgInC_of_scalar_struct` (LemmasNodeR) for the local senders;
+    `stepIn_intro_impl` keeps the content (`msgPtsCC_nn`, `msgPtsCC_cap_any`, `msgPtsCC_persist_els`,
+    `msgInC_of_CC`, MsgOwnZ); `InvNodeRun`'s `wp_rn_raft_Step_net`/`_prop` take `msgInC` and rewrite with
+    `certLink`'s `Hszl`; `node.run` stamps with `msgInC_store_From`.
+  - **Remaining TODO uses** (all `msgOwnZ_sized_TODO`): `raft__maybeSendAppend` (step 4: MsgApp sum),
+    `sendMsgReadIndexResponse`, `stepLeader/Rest:992`, `raft__sendHeartbeat` (step 3).
+  - **Step 3 design (not started)**: give the read-index state a flag: `ownReadreq sz p q` and
+    `ownPendRI sz l p` hold `msgOwnZ sz … DFrac.discard` (was `msgOwn`); `ownReadOnly sz ro r`,
+    `ownRaftMisc sz …` (InvRaftPhys passes `s.gh.sn.sz`; ~20 files: `grep -rln "ownReadOnly\|ownRaftMisc\|
+    ownReadreq\|ownPendRI"`, specs of `readOnly.*`, `newReadOnly` (∀ sz)). A stored request comes from a
+    received `msgInC (sz && movesB MsgReadIndex)` (= `msgInC sz`), frozen: needs a `msgInC_freeze` (as in
+    `msgInC_store_To`). `sendMsgReadIndexResponse.spec`'s `#Hm` → `msgOwnZ s.gh.sn.sz`;
+    `raft.responseToReadIndexReq` post `msgOwnZ sz` (the response shares the request's entries, fresh
+    header: `msgSizeOk` from the request's); `releasePendingReadIndexMessages` passes `ownPendRI`'s
+    `msgOwnZ`; `readOnly.heartbeatCtx`'s post bounds the ctx (`sz → len ≤ entBytesMax`, the last
+    request's first entry's data: `entRZ`), for `raft.sendHeartbeat` via `msgOwnZ_lit`.
+  - Then steps 4-7 as before (entries/slice + cut + MsgApp sum; P6; rebuild rafthttp and the server;
+    `etc/pbschema-check.py`), and the C3 checks. rafthttp/server/kv not rebuilt by agent 8 (no textual
+    users of the changed names outside raft but comments).
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
