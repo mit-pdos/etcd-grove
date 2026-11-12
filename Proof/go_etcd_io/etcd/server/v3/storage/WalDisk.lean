@@ -138,19 +138,6 @@ instance walDisk_timeless (dir : GoString) (H : WalHist) (sized : Bool) :
     Timeless (walDisk (GF := GF) dir H sized) := by
   unfold walDisk; infer_instance
 
-/-- **The WAL in `dir` is `d` up to its synced mark** (W4a.1, 2026-11-12; finding F-W4b-1): `d`'s
-history, flag, purge positions `unl`/`pur`, read position `cut`, metadata and `named` exactly, and
-a synced mark at least `d.m`. The view `Save`, `SaveSnapshot` and `Close` are stated over: it hides
-only the mark, so that their bodies can sync behind an aborted access (an atomic update aborts back
-to the same `d`, and a sync only raises the real mark), while a client keeps every other field
-(`walDisk` hid them all, so after one `Save` nothing bounded `pur`). -/
-def walDiskM (dir : GoString) (d : WalDur) : IProp GF :=
-  iprop(∃ m : Nat, walDiskAt dir { d with m := m } ∗ ⌜d.m ≤ m⌝)
-
-instance walDiskM_timeless (dir : GoString) (d : WalDur) :
-    Timeless (walDiskM (GF := GF) dir d) := by
-  unfold walDiskM; infer_instance
-
 /-- **`sp` points to a `walpb.Snapshot` of index `md.Index'` and term `md.Term'`, whose conf
 state is non-nil iff `cs`** (persistent: the object frozen). -/
 def walSnapAt (sp : Loc) (md : SnapshotMetadataM) (cs : Bool) : IProp GF :=
