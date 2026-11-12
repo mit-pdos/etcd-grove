@@ -17,8 +17,7 @@ from lean `491baacae1`. Coordinator: etcd-grove-81. Scratch: `/shared/tmp/wal-sp
 - Checks: full build passes (`rev1/build.log`); tcb baseline unchanged; api-check clean; interfaces
   checked, absdisk `Specs.txt` regenerated (`rev1/checks.log`); Go tests 20/20 plus the reviewers'
   counterexample (`rev1/gotests.log`).
-- Freeze package: `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, section "Revision 1". **Waiting for the
-  re-review; STOP before `etc/land.sh`** (merge lean first, rerun the checks, then add a STATUS.md entry).
+- Freeze package: `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, section "Revision 1". The re-review was READY WITH CHANGES; its text fixes are applied, lean merged; landing via `etc/land.sh` (go from etcd-grove-81).
 - R1/R2 (purge-model completeness): deferred, proposed as W4a.2 (freeze "Revision 1b": `Open` needs
   `≤ a` and `ReleaseLockTo` needs `< a`; the model's `enti` must lower-bound Go's across restarts).
 
