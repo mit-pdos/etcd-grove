@@ -21,6 +21,7 @@ public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Bool
 public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
 
 @[expose] public section
 
@@ -76,7 +77,7 @@ local macro "dl_dropped" : tactic => `(tactic| (
     | "zap.Bool" => (wp_apply hZBool as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)))
 
@@ -117,15 +118,17 @@ local macro "dl_send" C:term "," G:term : tactic => `(tactic| (
       · iapply is_bag_is_chan $$ Hbag
       unfold nonblockingSendAu
       isplit
-      · ihave Hpay : netRecv Rh.γn lid γd ml $$ [Hm HO]
+      · ihave Hm := Hback $$ Hm
+        ihave Hpay : netRecv Rh.γn lid γd ml $$ [Hm HO]
         · iunfold netRecv
-          iexists st0, st
+          iexists st0, c
           iframe Hm HO HP
           isplitr
           · ipureintro
             have hw : wireOf st0 = wireOf st := Hst0.1.trans Hw.symm
-            simp only [wireOf, MsgWire.mk.injEq] at hw
-            exact ⟨⟨hw.1.symm, hw.2.1.symm, hw.2.2.1.symm, hw.2.2.2.symm⟩, Hst0.2.1, Hres⟩
+            have hr : st.resps = [] := by rw [← hst]; simp [MsgC.model, Hres]
+            exact ⟨by rw [hst]; exact MsgSt.eq_of_wire hw hr, Hcs, Hst0.2.1,
+              fun hs _ => Hsz hs (by rw [← hst] at HnHB; exact HnHB)⟩
           iunfold netSnapRecv
           iintro %hs
           exact absurd hs Hst0.2.2.1
@@ -164,10 +167,10 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
       iframe
       iright; iexact Hcl
     wp_auto_lc 3
-    ihave HI : (∃ (decv : GoInterface) (fr : List (MsgWire × List w8)) (s : (StreamTy.codec $T pid lid).S),
-        "dec" ∷ dec_ptr ↦ decv ∗ "HdecO" ∷ decOwn lid pid $T decv rc s ∗
+    ihave HI : (∃ (decv : GoInterface) (fr : List (MsgWire × List w8)) (s : (StreamTy.codec Rh.γn.N.Sz $T pid lid).S),
+        "dec" ∷ dec_ptr ↦ decv ∗ "HdecO" ∷ decOwn Rh.γn.N.Sz lid pid $T decv rc s ∗
         "Hrr" ∷ http.respReader (raftHttpNet Rh) rc R γk (W64 200) (chainBytes fr) ∗
-        "%Hc" ∷ ⌜Chain (StreamTy.codec $T pid lid) (StreamTy.codec $T pid lid).init fr s⌝ ∗
+        "%Hc" ∷ ⌜Chain (StreamTy.codec Rh.γn.N.Sz $T pid lid) (StreamTy.codec Rh.γn.N.Sz $T pid lid).init fr s⌝ ∗
         "Hrd" ∷ streamRd γw fr.length ∗ "cr" ∷ cr_ptr ↦ cr ∗
         "Hlc1" ∷ £ 1 ∗ "Hlc2" ∷ £ 1 ∗ "Hlc3" ∷ £ 1) $$ [dec HdecO Hrr Hrd cr Hlc1 Hlc2 Hlc3]
     · iexists _, [], _
@@ -180,7 +183,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
     irename Hlc3 => Ho3
     (try simp only [_root_.decide_true, ↓reduceIte])
     (try wp_auto)
-    ihave ⟨HdecO, %Hei⟩ := decOwn_ok _ _ _ _ _ _ $$ HdecO
+    ihave ⟨HdecO, %Hei⟩ := decOwn_ok _ _ _ _ _ _ _ $$ HdecO
     obtain ⟨ei, rfl⟩ := Hei
     (try wp_auto)
     ihave #Hrf := respReader_readFullAt (raftHttpNet Rh) (hReadFull _) rc R γk (W64 200)
@@ -214,8 +217,11 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
       iframe Herr
       ipureintro; simp
     | nil =>
-      ihave ⟨%w, %bs, %st, %Hfr, #HB, Hm⟩ := Hok $$ %rfl
-      obtain ⟨Hf, rfl, Hw, Hres⟩ := Hfr
+      ihave ⟨%w, %bs, %c, %Hfr, #HB, Hm⟩ := Hok $$ %rfl
+      obtain ⟨Hf, rfl, Hw, Hres, Hcs, Hsz⟩ := Hfr
+      -- (raft-entsize §4) read through half of it, keeping the content for `netRecv`
+      icases msgPtsCC_read ml true c Hcs $$ Hm with ⟨Hm, Hback⟩
+      generalize hst : c.model = st at Hw Hsz ⊢
       ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
       icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -⟩
@@ -265,6 +271,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
       wp_if_destruct
       · -- a link heartbeat: dropped
         dl_skip
+      have HnHB : ¬ isHB st.msg := fun h => by apply Hif; first | exact h | simpa using h
       -- the frame's facts: a message to `lid` with its deposit
       ihave #Hss := stream_known Rh R γk γw $T lid pid _ Hown Hpath $$ Hreg HB
       ihave #Hdep := streamSent_frame _ Rh.γn.N γw lid fr s s' w bs Hc Hf $$ Hss
@@ -356,8 +363,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
   wp_start as ⟨#Hf, Hrr, #Hcl, %Hrcnn, #Hreg, Hrd⟩
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
-  icases Hf' with ⟨%lg, %tr, %ps, %rcv, %pcv, %γr, %γp, %ctx, %cd, #Hlg, %Hlgnn, #Hpid, #Htr,
+  icases Hf' with ⟨%lg, %tr, %ps, %rcv, %pcv, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
     #Hlid, #Hps, #Hpsok, #Hrcv, #Hrbag, #Hpcv, #Hpbag, #Hmu, #Hctxf, #Hctx⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -369,9 +377,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     (try wp_auto)
     wp_apply hNewDec _ lid pid as %d Hd
     (try wp_auto)
-    ihave HdecO : decOwn lid pid .msgAppV2
+    ihave HdecO : decOwn Rh.γn.N.Sz lid pid .msgAppV2
         (interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Decoder.ty) #d) rc
-        (StreamTy.msgAppV2.codec pid lid).init $$ [Hd]
+        (StreamTy.msgAppV2.codec Rh.γn.N.Sz pid lid).init $$ [Hd]
     · simp only [decOwn]
       iexists d
       iframe
@@ -385,9 +393,9 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     ipersist r_d
     iclear __d
     (try wp_auto)
-    ihave HdecO : decOwn lid pid .message
+    ihave HdecO : decOwn Rh.γn.N.Sz lid pid .message
         (interface.mkOk (go.GoType.PointerType rafthttp.messageDecoder.ty) #d) rc
-        (StreamTy.message.codec pid lid).init $$ []
+        (StreamTy.message.codec Rh.γn.N.Sz pid lid).init $$ []
     · simp only [decOwn]
       iexists d
       iframe #

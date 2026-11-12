@@ -105,8 +105,8 @@ public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Panic
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Stringer
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 
 @[expose] public section
 
@@ -123,7 +123,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem pbutil.wp_MustUnmarshalMessage :
@@ -223,7 +222,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem wp_noSideEffect :
@@ -274,19 +272,19 @@ theorem applierV3backend.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.Txn.wp_proof context.wp_TODO txn.wp_Txn
 
-theorem applierV3backend.wp_newHeader :
+theorem applierV3backend.wp_newHeader [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3backend.newHeader.wp_proof mvcc.store.wp_Rev
+  EtcdGrove.apply.applierV3backend.newHeader.wp_proof mvcc.api.mvccApi_shapes_law
 
-theorem applierV3backend.wp_LeaseRevoke :
+theorem applierV3backend.wp_LeaseRevoke [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.LeaseRevoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.LeaseRevoke.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_LeaseGrant :
+theorem applierV3backend.wp_LeaseGrant [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.LeaseGrant.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.LeaseGrant.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_LeaseCheckpoint :
+theorem applierV3backend.wp_LeaseCheckpoint [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.LeaseCheckpoint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.LeaseCheckpoint.wp_proof applierV3backend.wp_newHeader
 
@@ -298,71 +296,71 @@ theorem context.wp_WithValue :
     EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithValue.wp_proof
 
-theorem applierV3backend.wp_Authenticate :
+theorem applierV3backend.wp_Authenticate [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Authenticate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.Authenticate.wp_proof context.wp_WithValue applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_UserAdd :
+theorem applierV3backend.wp_UserAdd [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserAdd.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserAdd.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_UserDelete :
+theorem applierV3backend.wp_UserDelete [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserDelete.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_UserChangePassword :
+theorem applierV3backend.wp_UserChangePassword [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserChangePassword.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserChangePassword.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_UserGrantRole :
+theorem applierV3backend.wp_UserGrantRole [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserGrantRole.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserGrantRole.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_UserGet :
+theorem applierV3backend.wp_UserGet [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserGet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserGet.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_UserRevokeRole :
+theorem applierV3backend.wp_UserRevokeRole [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserRevokeRole.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_RoleAdd :
+theorem applierV3backend.wp_RoleAdd [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleAdd.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleAdd.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_RoleGrantPermission :
+theorem applierV3backend.wp_RoleGrantPermission [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_RoleGet :
+theorem applierV3backend.wp_RoleGet [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleGet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleGet.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_RoleRevokePermission :
+theorem applierV3backend.wp_RoleRevokePermission [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleRevokePermission.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleRevokePermission.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_RoleDelete :
+theorem applierV3backend.wp_RoleDelete [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleDelete.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_UserList :
+theorem applierV3backend.wp_UserList [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserList.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_RoleList :
+theorem applierV3backend.wp_RoleList [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.RoleList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleList.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_AuthEnable :
+theorem applierV3backend.wp_AuthEnable [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.AuthEnable.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthEnable.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_AuthDisable :
+theorem applierV3backend.wp_AuthDisable [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.AuthDisable.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthDisable.wp_proof applierV3backend.wp_newHeader
 
-theorem applierV3backend.wp_AuthStatus :
+theorem applierV3backend.wp_AuthStatus [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.AuthStatus.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthStatus.wp_proof applierV3backend.wp_newHeader
 
@@ -384,7 +382,7 @@ theorem traceutil.wp_EnsureTrace :
 
 theorem applierV3backend.wp_Compaction [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Compaction.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3backend.Compaction.wp_proof context.wp_TODO traceutil.wp_EnsureTrace mvcc.store.wp_Compact mvcc.readView.wp_Range
+  EtcdGrove.apply.applierV3backend.Compaction.wp_proof context.wp_TODO traceutil.wp_EnsureTrace mvcc.api.mvccApi_shapes_law
 
 theorem wp_newApplierV3Backend [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.newApplierV3Backend.spec (GF := GF) (hG := hG) :=

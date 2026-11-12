@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -26,7 +27,7 @@ descriptor usage until `done` is closed; it calls `lg.Warn`, so a nil `lg` panic
 since audit B4b, 2026-10-18). -/
 abbrev monitorFileDescriptor.spec : Prop :=
   ∀ (lg : Loc) (done : GoChan),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜lg ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ zapLoggerOk lg }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor)) (Val #lg))
       (Val #done))
   {{ RET #(); True }}

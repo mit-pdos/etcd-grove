@@ -61,20 +61,20 @@ structure StreamCodec where
 /-- The message codec's frame (`messageEncoder`'s): an encoding of a message of the content,
 below `2^63` bytes, after its length. -/
 def MsgFrameOf (w : MsgWire) (bs : List w8) : Prop :=
-  ∃ (st : MsgSt) (mbs : List w8), wireOf st = w ∧ MsgWireOk st mbs ∧ mbs.length < 2 ^ 63 ∧
-    bs = msgFrame mbs
+  ∃ (st : MsgSt) (mbs : List w8), wireOf st = w ∧ MsgWireOk st mbs ∧ MsgEnc st mbs ∧
+    mbs.length < 2 ^ 63 ∧ bs = msgFrame mbs
 
 theorem MsgFrameOf.uniq {w1 w2 : MsgWire} {b1 b2 x y : List w8} (h1 : MsgFrameOf w1 b1)
     (h2 : MsgFrameOf w2 b2) (h : b1 ++ x = b2 ++ y) : w1 = w2 ∧ b1 = b2 ∧ x = y := by
-  obtain ⟨s1, m1, rfl, hm1, hl1, rfl⟩ := h1
-  obtain ⟨s2, m2, rfl, hm2, hl2, rfl⟩ := h2
+  obtain ⟨s1, m1, rfl, hm1, -, hl1, rfl⟩ := h1
+  obtain ⟨s2, m2, rfl, hm2, -, hl2, rfl⟩ := h2
   obtain ⟨rfl, rfl⟩ := chunk_eq hl1 hl2 (by simpa only [msgFrame, List.append_assoc] using h)
   exact ⟨Option.some.inj (hm1.2.symm.trans hm2.2), rfl, rfl⟩
 
 /-- The message encoder's frame, and the decoder's, is the message codec's. -/
-theorem MsgFrameOf.of_wire {st : MsgSt} {bs : List w8} (h : MsgWireOk st bs)
+theorem MsgFrameOf.of_wire {st : MsgSt} {bs : List w8} (h : MsgWireOk st bs) (he : MsgEnc st bs)
     (hl : bs.length < 2 ^ 63) : MsgFrameOf (wireOf st) (msgFrame bs) :=
-  ⟨st, bs, rfl, h, hl, rfl⟩
+  ⟨st, bs, rfl, h, he, hl, rfl⟩
 
 /-- **The message stream's codec** (`messageEncoder`/`messageDecoder`): no state. -/
 def msgCodec : StreamCodec where
@@ -85,20 +85,21 @@ def msgCodec : StreamCodec where
     obtain ⟨hw, hb, hx⟩ := MsgFrameOf.uniq h1 h2 h
     exact ⟨hw, hb, rfl, hx⟩
   nonempty h := by
-    obtain ⟨_, _, _, _, _, rfl⟩ := h
+    obtain ⟨_, _, _, _, _, _, rfl⟩ := h
     intro he
     have hl := congrArg List.length he
     simp [msgFrame, u64Be_length] at hl
 
 /-- **The msgappv2 stream's codec** on the connection from `frm` to `to`: from the zero state
-(`newMsgAppV2Encoder`'s and `newMsgAppV2Decoder`'s). -/
-def v2Codec (frm to : w64) : StreamCodec where
+(`newMsgAppV2Encoder`'s and `newMsgAppV2Decoder`'s); (raft-entsize §4, 2026-11-10) its frames'
+encodings of bounded size when `Sz` (`V2Frame`). -/
+def v2Codec (Sz : Prop) (frm to : w64) : StreamCodec where
   S := V2St
   init := ⟨W64 0, W64 0⟩
-  F := V2Frame frm to
+  F := V2Frame Sz frm to
   uniq h1 h2 h := V2Frame.unique h1 h2 h
   nonempty h := by
-    rcases h with ⟨-, rfl, -⟩ | ⟨_, -, -, -, rfl, -⟩ | ⟨_, _, -, -, -, rfl, -⟩ <;> simp
+    rcases h with ⟨-, rfl, -⟩ | ⟨_, -, -, -, rfl, -⟩ | ⟨_, _, -, -, -, -, rfl, -⟩ <;> simp
 
 /-- **A chain of frames** from `s` to `s'`: each frame from the state the previous one leads to. -/
 inductive Chain (C : StreamCodec) : C.S → List (MsgWire × List w8) → C.S → Prop
@@ -234,9 +235,10 @@ def StreamTy.endpoint : StreamTy → GoString
   | .msgAppV2 => go!"/raft/stream/msgapp"
   | .message => go!"/raft/stream/message"
 
-/-- The codec of a stream of type `t` from `frm` to `to`. -/
-def StreamTy.codec : StreamTy → w64 → w64 → StreamCodec
-  | .msgAppV2, frm, to => v2Codec frm to
+/-- The codec of a stream of type `t` from `frm` to `to` (raft-entsize §4: the msgappv2 frames'
+encodings of bounded size when `Sz`). -/
+def StreamTy.codec (Sz : Prop) : StreamTy → w64 → w64 → StreamCodec
+  | .msgAppV2, frm, to => v2Codec Sz frm to
   | .message, _, _ => msgCodec
 
 /-- The path of the stream of type `t` read by `rid` (`streamReader.dial`'s
@@ -363,7 +365,7 @@ request's registered connection, from the member owning the request's host to it
 def streamResp (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64) (w : List w8) :
     IProp GF :=
   iprop(⌜st = W64 200⌝ → ∃ c : StreamKey, streamReg Rh γk c ∗
-    streamSent (c.2.1.codec (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
+    streamSent (c.2.1.codec Rh.γn.N.Sz (Rh.owner R.host) c.2.2) Rh.γn.N c.1 c.2.2 w)
 
 instance streamResp_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) : Persistent (streamResp Rh R γk st w) := by
@@ -418,7 +420,7 @@ stream contract is this one; what the handler decodes of the prefix is `st`, and
 def snapSReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (Pre Φ : List w8 → Prop) :
     IProp GF :=
   iprop(∃ (st : MsgSt) (bs : List w8) (sn : SnapshotM) (D : backend.Data),
-    ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63 ∧ st.msg.To' = Rh.owner R.host ∧
+    ⌜MsgWireOk st bs ∧ MsgEnc st bs ∧ bs.length < 2 ^ 63 ∧ st.msg.To' = Rh.owner R.host ∧
       st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = [] ∧
       (∀ x, Pre x → x <+: msgFrame bs ∨ msgFrame bs <+: x) ∧
       (∀ x, Φ x → ∃ t, x = msgFrame bs ++ t ∧ backend.boltImage t D)⌝ ∗
@@ -773,8 +775,9 @@ theorem streamSent_compat (C : StreamCodec) (N : NetPayload GF) (γw : GName) (r
 /-- **The msgappv2 decoder's premise** from a stream's bytes. -/
 theorem streamSent_v2Compat (N : NetPayload GF) (γw : GName) (frm to : w64)
     (fr : List (MsgWire × List w8)) (s : V2St) (ys : List w8)
-    (Hfr : Chain (v2Codec frm to) (v2Codec frm to).init fr s) :
-    ⊢ streamSent (v2Codec frm to) N γw to (chainBytes fr ++ ys) -∗ ⌜V2Compat frm to s ys⌝ := by
+    (Hfr : Chain (v2Codec N.Sz frm to) (v2Codec N.Sz frm to).init fr s) :
+    ⊢ streamSent (v2Codec N.Sz frm to) N γw to (chainBytes fr ++ ys) -∗
+      ⌜V2Compat N.Sz frm to s ys⌝ := by
   iintro Hs
   ihave %H := streamSent_compat _ N γw to fr s ys Hfr $$ Hs
   ipureintro

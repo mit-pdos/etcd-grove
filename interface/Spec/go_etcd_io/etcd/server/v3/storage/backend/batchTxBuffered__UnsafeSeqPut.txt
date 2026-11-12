@@ -14,7 +14,8 @@ def backend.batchTxBuffered.UnsafeSeqPut.spec : Prop :=
                 P.RB bi.name = false →
                   ¬backend.fkKey bi.name kb →
                     (P.SB bi.name = true →
-                        ∀ (kc vc : GoString), backend.bktOf st.C bi.name !! kc = some vc → backend.strLt kc kb) →
+                        (∀ (kc vc : GoString), backend.bktOf st.C bi.name !! kc = some vc → backend.strLt kc kb) ∧
+                          st.dl !! (bi.name, kb) = none) →
                       ⊢
                         ∀ Φ,
                           isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -23,12 +24,8 @@ def backend.batchTxBuffered.UnsafeSeqPut.spec : Prop :=
                                     DFrac.discard ∗
                                   backend.batchLocked γ P b st ∗
                                     backend.isBucket bk bi ∗
-                                      ownSlice key kb DFrac.discard ∗
-                                        ownSlice value vb DFrac.discard ∗ backend.pvPut γ P bi.name st.S -∗
-                            ▷
-                                (backend.batchLocked γ P b (st.put bi kb vb true) ∗
-                                    backend.pvPut γ P bi.name (st.put bi kb vb true).S -∗
-                                  Φ (intoVal ())) -∗
+                                      ownSlice key kb DFrac.discard ∗ ownSlice value vb DFrac.discard -∗
+                            ▷ (backend.batchLocked γ P b (st.put bi kb vb true) -∗ Φ (intoVal ())) -∗
                               WP
                                 ((((intoVal
                                         (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType

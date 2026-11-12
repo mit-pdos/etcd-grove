@@ -291,7 +291,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩
-  ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs $$ Hd1
+  ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1
   ihave #HCD := EtcdGrove.ContextReadErrs.descs $$ Hd1
   ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
       ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []
@@ -310,7 +310,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     ipureintro; rfl
   -- the six `ServiceDesc`s, from `etcdserverpb`'s fact
   icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩
-  obtain ⟨rfl, HWp, -⟩ := HWp
+  obtain ⟨rfl, HWp, HWc⟩ := HWp
   ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []
   · unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods EtcdGrove.v3rpc.leaseDescMethods
     iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC
@@ -318,7 +318,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iframe HK HL HC HA HM
     iexists ws
     iframe HW
-    ipureintro; exact HWp
+    ipureintro; exact ⟨HWp, HWc⟩
   -- (D19j) what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s errors
   ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd3
@@ -342,7 +342,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ihave #MRW1 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW1
   ihave #MRW2 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW2
   ihave #MRW3 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW3
-  ihave #MRW4 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW4
+  ihave #MRW4 := EtcdGrove.v3rpc.statusMsgErrVar_of_spec _ $$ RW4
   -- the metrics
   ipersist HstreamFailures
   ipersist HwatchSendLoopWatchStreamDuration

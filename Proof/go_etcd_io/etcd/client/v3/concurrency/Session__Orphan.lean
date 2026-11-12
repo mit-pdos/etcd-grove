@@ -29,7 +29,7 @@ theorem Session.Orphan.wp_proof : Session.Orphan.spec (GF := GF) (hG := hG) := b
   ihave #Hs' := Hs
   unfold isSession
   icases Hs' with ⟨%ops, %o, %octx, %ocs, %ctx, %cs, %cancel, %donec, #HC, #HO, #HI, #Hx, #Hcn,
-    #HD, #Hops, %Ho, #Hoctx, #Hctx, #Hcancel, #Hdone, #Hlease⟩
+    #HD, #Hops, %Ho, #Hoctx, #HoctxC, #Hctx, #HctxC, #Hcancel, #Hdone, #Hlease⟩
   wp_auto
   unfold cancelSpec
   wp_apply Hcancel

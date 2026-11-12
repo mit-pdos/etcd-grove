@@ -100,7 +100,7 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
   rcases hph with ⟨X, rfl⟩ | ⟨si, rfl⟩
   · -- registered: re-created from its resume revision
     simp only [wsRest]
-    icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, Hst, Hc2⟩
+    icases Hrest with ⟨%B, %rg, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, Hst, Hc2⟩
     icases Hst with (#Hx | ⟨%HCl, -, Hps⟩)
     · ihave %Hv := dghostVar_agree _ _ _ _ _ $$ Hgx Hx
       cases Hv
@@ -244,7 +244,7 @@ theorem recon_dead (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.W
   iframe Hstp
   rcases hph with ⟨X, rfl⟩ | ⟨si, rfl⟩
   · simp only [wsRest]
-    icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, -, Hc2⟩
+    icases Hrest with ⟨%B, %rg, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, -, Hc2⟩
     unfold cur2St
     icases Hc2 with ⟨%C2, Hauth2, -⟩
     ihave ⟨Hauth2, -⟩ := cur2Places_auth P C2 $$ Hauth2
@@ -584,7 +584,7 @@ theorem isWGS_atIdx (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (i : Nat) (
   have e3 : respcE (V.atIdx i) G.γep = respcE V G.γep := rfl
   unfold isWGS
   rw [e1, e2, e3]
-  icases H with ⟨%H1, #H2, #Hsf, %H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14,
+  icases H with ⟨%H1, #H2, #Hsf, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14,
     #H15, #H16, #H17, #H18, #H19, #H20, #H21, #H22, #H23⟩
   iunfold watchSrvFacts at Hsf
   icases Hsf with ⟨#Hstub, #Hconn⟩
@@ -593,9 +593,7 @@ theorem isWGS_atIdx (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (i : Nat) (
   iframe #
   isplitr
   · ipureintro; exact H1
-  isplitr
-  · iunfold watchSrvFacts; iframe #
-  ipureintro; exact H4
+  iunfold watchSrvFacts; iframe #
 
 /-- **A reconnection's substream at any member** (W3b): every substream is queued, orphan or
 closed (`RunSt.reconnect`), whose state reads no member. -/

@@ -13,14 +13,16 @@ sched)`: the links between members cut and mended, in both directions, with etcd
 `CutPeer`/`MendPeer`, and the links between each client and its member blackholed, unblackholed or
 dropped, with the bridge's `Blackhole`/`Unblackhole`/`DropConnections`, as its steps say;
 `notes/client-cut-plan.md`),
-linkvtxn's workload with each operation through a random member (`Check(clis, clients, ops,
+linkvtxn's workload with each operation through one of the clients, to the member grpc's balancer
+picks (`Check(clis, clients, ops,
 0)`: `clients` clients of `ops` random operations each -- gets, lists, puts, deletes,
 transactions and compare-and-sets, robustness's KV traffic without leases and stale reads --
 the history checked by porcupine against the model of etcd's KV, `linkvtxn/TxnModel.lean`; until
 2026-10-20 linkv's Puts and Gets, `notes/linkv3p-txn-plan.md`), and a panic ("linkv3p: porcupine found the history not linearizable") if
 porcupine answers `Illegal` -- started from a fresh state (no package initialized, one thread):
 for every real execution of `n` steps, the main thread's result, if it has one, is `Ok` or
-`Unknown`, no thread is stuck, and no thread has ended in a panic.
+`Unknown`, no thread is stuck, and no thread has ended in a panic (a process exit, zap's `Fatal`'s
+`os.Exit`, is not a panic: `Results.lean`, "What "no panic" does not cover").
 
 **The schedule is any list of steps** (`steps`, each a delay, a kind -- a peer cut or mend, a
 client blackhole, unblackhole or drop -- and member indices): the program builds it as a slice literal (`schedLit`, what a Go caller of `Main` would
@@ -139,14 +141,13 @@ the main thread has finished, its result is `Ok` (porcupine found the history li
 theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
-    -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_partition.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -230,7 +231,7 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf
-    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

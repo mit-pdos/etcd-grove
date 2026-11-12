@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := GF) (hG := hG)) :
     auth.newTokenProviderSimple.spec (GF := GF) (hG := hG) := by
   intro lg iw ttl
-  wp_start
+  wp_start as #Hzl
   iapply wp_fupd
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -40,7 +40,6 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
   (try wp_auto)
   wp_if_destruct
   · wp_apply h_NewNop as %lg' #Hlg'z
-    ihave %Hlg' := zapLoggerOk_ne_null lg' $$ Hlg'z
     (try wp_auto)
     wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mp Hm
     (try wp_auto)
@@ -79,7 +78,6 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
       · iunfold simpleOk
         iexists lg', γk
         iframe #
-        ipureintro; exact Hlg'
       iunfold simpleAdmin
       iexists null
       iframe Hk2
@@ -125,8 +123,8 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
       isplitr
       · iunfold simpleOk
         iexists lg, γk
+        ihave #Hok := zapLoggerOrNil_ok lg Hif $$ Hzl
         iframe #
-        ipureintro; exact Hif
       iunfold simpleAdmin
       iexists null
       iframe Hk2

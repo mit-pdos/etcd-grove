@@ -44,47 +44,6 @@ theorem mvcc.keyImageM_off (L : mvcc.Log) (r : mvcc.CmpRecs) (D : backend.Data) 
     mvcc.keyImageM false L r D ↔ mvcc.keyImage L D ∧ r = mvcc.CmpRecs.empty := by
   unfold mvcc.keyImageM; simp
 
-/-! ### The image and the compaction tracking (F2, stage 2; review round 2's T2-3) -/
-
-section tracked
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-
-/-- **The tracked facts are the image** (pure; moved from `ImageCmpF2Draft`): a committed `D` whose
-`Key` bucket, as the real instance `d`'s clients see it, is a cut physical view and whose
-compaction keys hold the records' bytes is the image `keyImageM true` (what a snapshot's
-observation gives the snapshot's sender). -/
-theorem mvcc.keyImageM_of_tracked (d : mvcc.KBReal) (L : mvcc.Log) (r : mvcc.CmpRecs)
-    (D : backend.Data) (hcut : mvcc.physCut L r (backend.sData d.P D))
-    (hv : backend.fkVals D = (mvcc.recBytes r.fin, mvcc.recBytes r.sched)) :
-    mvcc.keyImageM true L r D := by
-  obtain ⟨ents, hk, hok, hpos, hc⟩ := hcut
-  unfold mvcc.keyImageM
-  simp only [↓reduceIte]
-  refine ⟨ents, fun k => ?_, ?_, ?_, hok, hpos, hc⟩
-  · rw [← hk k, backend.sData_lookup]; simp [mvcc.KBReal.P]
-  · have := congrArg Prod.fst hv
-    simp only [backend.fkVals] at this
-    exact this
-  · have := congrArg Prod.snd hv
-    simp only [backend.fkVals] at this
-    exact this
-
-/-- **The image is tracked facts** (the converse, for the snapshot walk's open: `snap_create` takes
-the image, the supplier's terms, and gives the lock's tracking its cut): the image `keyImageM true`
-of `D` makes the instance's clients' view of `D` a physical cut at the records, whose bytes the
-compaction keys hold. -/
-theorem mvcc.tracked_of_keyImageM (d : mvcc.KBReal) (L : mvcc.Log) (r : mvcc.CmpRecs)
-    (D : backend.Data) (h : mvcc.keyImageM true L r D) :
-    mvcc.physCut L r (backend.sData d.P D) ∧
-      backend.fkVals D = (mvcc.recBytes r.fin, mvcc.recBytes r.sched) := by
-  unfold mvcc.keyImageM at h
-  simp only [↓reduceIte] at h
-  obtain ⟨ents, hk, hf, hs, hok, hpos, hc⟩ := h
-  refine ⟨⟨ents, fun k => ?_, hok, hpos, hc⟩, Prod.ext hf hs⟩
-  rw [backend.sData_lookup]; simp [mvcc.KBReal.P, hk k]
-
-end tracked
-
 /-! ### The image between the modes (#7-cmp's Freeze, 2026-11-02) -/
 
 section modes
@@ -232,9 +191,9 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
     rcases hk' with rfl | rfl
     · rw [hsched'] at hv; exact mvcc.recBytes_metaRevVal hpos.2 hv
     · rw [hfin'] at hv; exact mvcc.recBytes_metaRevVal hpos.1 hv
-  iintro ⟨Hv, Hfk⟩
-  icases backend.fkCl_open d'.γB d'.P D $$ Hfk with ⟨Ho, Hw, #Hop⟩
+  unfold backend.fkCl
   rw [backend.fkWInit_of_wf hwf, hfv]
+  iintro ⟨Hv, Ho, Hd, Hx, #Hvr⟩
   unfold mvcc.restoreImageM
   simp only [hcm, ↓reduceIte]
   iexists ents
@@ -243,35 +202,36 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
     iexists _
     iframe Hv
     ipureintro; exact mvcc.keyView_of_dget hbr hk
-  isplitl [Ho]
-  · unfold mvcc.kbRecs
-    by_cases hr : r = mvcc.CmpRecs.empty
-    · have habs : backend.fkAbsD D := by
-        intro n k hk'
-        obtain ⟨rfl, hk'⟩ := hk'
-        subst hr
-        rcases hk' with rfl | rfl
-        · rw [hsched']; rfl
-        · rw [hfin']; rfl
-      simp only [hr, ↓reduceIte]
-      rw [mvcc.kbNoCmp_some, backend.fkInit_of_abs habs]
-      unfold mvcc.bkNoCmp
-      iexact Ho
-    · simp only [hr, ↓reduceIte]
-      iexists _
-      iframe Ho
-      unfold backend.fkOpenD backend.fkVD
-      iunfold backend.fkOpen at Hop
-      icases Hop with ⟨%w, Hop⟩
-      iexists w
-      iunfold backend.fkVR at Hop
-      iexact Hop
-  isplitl [Hw]
+  isplitl [Ho Hd Hx]
+  · isplitl [Ho]
+    · unfold mvcc.kbRecs
+      by_cases hr : r = mvcc.CmpRecs.empty
+      · have habs : backend.fkAbsD D := by
+          intro n k hk'
+          obtain ⟨rfl, hk'⟩ := hk'
+          subst hr
+          rcases hk' with rfl | rfl
+          · rw [hsched']; rfl
+          · rw [hfin']; rfl
+        simp only [hr, ↓reduceIte]
+        rw [mvcc.kbNoCmpF_some, backend.fkInit_of_abs habs]
+        unfold mvcc.bkNoCmpF backend.fkFlag
+        iexact Ho
+      · simp only [hr, ↓reduceIte]
+        iexists _
+        unfold backend.fkFlag
+        iframe Ho
+        unfold backend.fkOpenD backend.fkVD
+        iexists true
+        iunfold backend.fkVR at Hvr
+        iexact Hvr
+    · simp only [mvcc.kbVals]
+      iframe Hd Hx
+  isplitr
   · unfold backend.fkVM backend.fkVD
-    iunfold backend.fkV at Hw
-    icases Hw with ⟨%n, %v, Hw⟩
-    iexists n, v
-    iexact Hw
+    iexists _, _
+    iunfold backend.fkVR at Hvr
+    iexact Hvr
   ipureintro; exact ⟨hok, hpos, hcut⟩
 
 /-- **Off, the image `Restore` takes, from the backend's open** (what the walk built inline until

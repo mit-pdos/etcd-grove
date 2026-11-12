@@ -7,9 +7,12 @@ Lean-first (no Rocq counterpart); C1's A4 (2026-10-31, `notes/c1-plan.md`).
 -/
 module
 
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthnStore
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -51,7 +54,8 @@ abbrev EtcdServer.Authenticate.spec : Prop :=
       isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗
       authnStoreOk (GoInterface.ok ast) E.RD ∗
-      □ (|==> idCred ρ.ids 1) ∗ mvcc.idxCert E.γ.idx F ∗ context.isContext ctx cd ∗
+      □ (|==> idCred ρ.ids 1) ∗ srvApi.kvLogLb E.γs F ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗
+      context.startTimeOk ctx ∗
       ⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthenticateRequest go!"Name" r ↦□ name ∗
       structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ pw ∗
       srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ E.RD }}
@@ -63,7 +67,7 @@ abbrev EtcdServer.Authenticate.spec : Prop :=
         ⌜err = GoInterface.nil → pw' = []⌝) ∗
       applyErrIs err ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ v : etcdserverpb.AuthenticateResponse,
-          resp ↦ v ∗ auth.tokIssued γa v.Token' name) ∨
+          resp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' name) ∨
        ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec

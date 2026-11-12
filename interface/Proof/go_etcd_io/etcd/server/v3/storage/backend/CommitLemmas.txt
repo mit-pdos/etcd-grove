@@ -66,14 +66,15 @@ def backend.BSess.setHw (st : backend.BSess) (x : Bool) : backend.BSess :=
   { C := st.C, S := st.S, R := st.R, W := st.W, pend := st.pend, ndel := st.ndel, tx := st.tx,
     cnt :=
       have __src := st.cnt;
-      { k := __src.k, c := __src.c, p0 := __src.p0, e := __src.e, hw := x } }
+      { k := __src.k, c := __src.c, p0 := __src.p0, e := __src.e, hw := x },
+    dl := st.dl, win := st.win }
 
 theorem backend.agree_of_vData_eq (P : backend.BParams) (rv rv' : backend.RView) (h : backend.vData
     P rv = backend.vData P rv') : backend.agreeOff P.HB (backend.vOf P rv) (backend.vOf P rv')
 
 def backend.commitSt (st : backend.BSess) (C' : backend.Data) (tx' : Loc) (cnt' : backend.BCnt) :
     backend.BSess :=
-  { C := C', S := st.S, R := st.R.reset, W := st.W, pend := W64 0, ndel := W64 0, tx := tx', cnt := cnt' }
+  { C := C', S := st.S, R := st.R.reset, W := st.W, pend := W64 0, ndel := W64 0, tx := tx', cnt := cnt', dl := st.dl }
 
 theorem backend.hookWin_of {P : backend.BParams} {st : backend.BSess} {n w u : Nat} (hb :
     backend.bgOk P st false n w u) (hp0 : st.cnt.p0 = sint.nat st.pend) (i : w64) : backend.bkOf

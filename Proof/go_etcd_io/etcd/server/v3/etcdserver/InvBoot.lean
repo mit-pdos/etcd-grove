@@ -196,25 +196,10 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
 -- (D22 J1a) the stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
 -- `lessorApplyOk`, `clusterApplyOk`) moved to `SnapRO.lean`.
 
-/-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
-lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
-over `raftRequest`, installed when the `LeaseCheckpoint` feature is on), which proposes outside the
-request path's model; and so does `lessor.Renew` (`lessor.go:436-439`: a renewal of a lease whose
-`remainingTTL` is set proposes its checkpoint through it; the lease-renew plan, 2026-11-01,
-approved by the user: `lease.lessor.Renew.spec` cites this premise). A premise of
-`lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in the model proves or refutes it.
-When it is exercised (revisited for a cluster that grants leases, the lease-grant plan's review
-S2, 2026-11-02): only with a lease in the lessor and the `LeaseCheckpoint` feature on. A cluster
-that grants none (`KVNames.lg = false`, the server's grant guard `False`) never has a lease, so
-neither call happens. In a granting cluster with the feature on, `Grant` on a primary lessor
-schedules a checkpoint (`le.cp != nil`, `lessor.go:318-321, 753-770`) and after
-`checkpointInterval` (300 s by default) the loop proposes `LeaseCheckpoint` through `raftRequest`
-(`server.go:394-406`): outside the verified request path, so the premise then has content. The
-examples leave the feature off (`examples/lib/etcdstart/etcdstart.go:96`: `le.cp == nil`, nothing is ever
-proposed), so for `examples/etcd/leasegrant` it holds vacuously. Pending: the `axiom` skill's review of
-this restatement (the lease-grant plan). (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
-the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
-opaque ckptEffectsOk : Prop
+-- (2026-11-12, approved by the user via etcd-grove-81) The opaque `ckptEffectsOk`, the lessor's
+-- checkpointer's effects (D14g), is deleted: no checkpointer is ever installed (`NewServer.spec`
+-- takes the `LeaseCheckpoint` feature off, `lessorInv` records `cp = nil`), so the loop never
+-- proposes and `Renew` never calls `cp`: it covered no call (`notes/decisions.md`, D14g superseded).
 
 /-- **The auth store's records fit bbolt's value bound** (opaque, a workload premise; unit N4,
 2026-10-17): a user's record grows with its roles and a role's with its permissions, each grant
@@ -234,7 +219,7 @@ which `Hraft`'s `ConfigValid` needs). Until then the last came only from the exa
 (2026-11-03, the final whole-`bootOk` review's S2: until then also `TickMs ≠ 0`, for `Hraft`'s
 `heartbeat ≠ 0`, false of Go at `TickMs = 2 ^ 58`, where the wrapping heartbeat is `0`; `Hraft` now
 states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which starts the ticker,
-takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/etcdstart.go`)
+takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/common.go`)
 meets all. (Sweep repairs 1, R1-2, L4, 2026-11-07: until then also `cfg.Logger' ≠ null`, which a
 zero `&zap.Logger{}` meets and on which `bootstrap` panics at its first log line; the logger is now
 `zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) -/
@@ -279,7 +264,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (2026-11-05: until then `rnStartCfg`'s conjuncts spelled out) the configuration and the
     -- peers (`rnStartCfg`), this node's id, the peers distinct, non-zero, this node among them,
     -- the cluster's voters, and the bootstrap log theirs
+    -- (premise-fixes-6) the wrapper's logger the configuration's (`bootstrapRaft`'s
+    -- `lg: cfg.Logger`, `bootstrap.go:546,557`), so a zap logger by the contracts' precondition
+    -- (`newRaftNode` logs through it; until then only `rnStartCfg`'s `bv.lg' ≠ null`)
     "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      bv.lg' = cfg.Logger' ∧
       cv.ID' = id ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
@@ -414,9 +403,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- tokens (`N` for the entries, seven for the construction) and the open token (`bootLeft`),
     -- not every token (`bFresh`: false after `bootstrap`'s own two write-backs; the bound is the
     -- contract's premise, `N + 7 + bootWB ≤ wbInit`, until then the post's `%HN`); and what
-    -- `bootstrap` adds: the store's registration right, `keySized` (`bootBackend_of_bootLeft`
+    -- `bootstrap` adds: the store's registration right (`bootBackend_of_bootLeft`
     -- turns `newPostK` into the resources `NewServer` uses)
-    "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => mvcc.lateWB d.gx γB)
+    "Hnew" ∷ backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
     -- protocol's initial ones: the consistent index and term stored in `D`'s `Meta` bucket are
@@ -424,10 +413,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0⌝ ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
-    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
-    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
-    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
-    "Hlate" ∷ mvcc.lateReg d.gx ∗
+    -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
+    -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
+    "Hlate" ∷ mvcc.api.mvccWReg d.gx ∗
     -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
     -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest
     -- bucket of the fresh file empty (absent or empty), the membership's three present
@@ -505,7 +493,15 @@ call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). (Sweep repairs
 2026-11-07) With a zap logger (`zapLoggerOk cfg.Logger'`): `bootstrap` logs through it from its first
 line (`bootstrap.go:64`, `:92`), and on a zero `&zap.Logger{}` panics; until then the contract
 covered any non-nil logger (`bootCfgOk`'s `cfg.Logger' ≠ null`), so it was false of Go there and
-every closed theorem assuming it held vacuously on that account. -/
+every closed theorem assuming it held vacuously on that account. (Premise fixes 1, 2026-11-10) With
+the feature gate `nil` or a feature gate (`isFeatureGate`, which answers `NonBlockingDefrag`, as
+`storage.openPre`): `newBackend` (`storage/backend.go:50-51`) asks a non-`nil` gate for it, and
+`featuregate` panics on an unregistered feature; until then the contract covered every gate, so it
+was false of Go there (the premise attack; `examples/premisefix/bootfg`, `featuregate.New`'s empty
+gate panics in `bootstrap`). The other configuration fields `bootstrap` reads and no precondition
+fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`, `UnsafeNoFsync`,
+`MaxRequestBytes`, `PreVote`, `PeerTLSInfo`, `BootstrapTimeout`) make it return an error or do
+what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
@@ -513,6 +509,9 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
           storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
         -- (sweep repairs 1, L4) a zap logger
         zapLoggerOk cfg.Logger' ∗
+        -- (premise fixes 1) the feature gate `nil` or one that answers `NonBlockingDefrag`
+        -- (`storage.openPre`'s)
+        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off: its backend's lock checks return (`bootOk`'s
         -- `isBackend` carries it)
         envVerifyOff ∗
@@ -779,16 +778,6 @@ theorem isRNTransport_of_live (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr
   iintro #HM #Htr
   rw [← hST] at *
   iapply isRNTransport_of_net γn lid E tr $$ HM Htr
-/-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
-checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
-closure over `raftRequest`). -/
-def lessorCkptOk (l : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
-    □ (∀ cp : GoFunc,
-      {{ True }} (App (Val #(methods li.ty go!"SetCheckpointer" li.v)) (Val #cp)) {{ RET #(); True }}))
-
-instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (GF := GF) l) := by
-  unfold lessorCkptOk; infer_instance
 
 end transport
 

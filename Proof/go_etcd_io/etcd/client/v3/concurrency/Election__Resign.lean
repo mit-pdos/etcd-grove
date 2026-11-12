@@ -92,7 +92,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     (hDel : EtcdGrove.OpDelete.spec (GF := GF) (hG := hG)) :
     Election.Resign.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx st ctx cs lo
-  wp_start as ⟨#He, Hst, #Hctx, #Hlo⟩
+  wp_start as ⟨#He, Hst, #Hctx, #HctxC, #Hlo⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -136,10 +136,10 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   ipersist HslC
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, #HTxn, -, -⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, -, #HTxn, -, -⟩
   (try wp_auto)
   iunfold isEtcdTxnKV at HTxn
-  wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
   iunfold txnBuilderSpec at HBs
   icases HBs with ⟨#HIf, #HThen, -, #HCommit, #HCommitAny⟩
   wp_apply_raw HIf $$ %TxnBuild.empty %_ %([compareM (cmpKeyM .create st.key) .eq (.num st.rev)] : List CmpModel) [$HB]

@@ -1,12 +1,12 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: the
+KV's `Rev()` by `KV.Rev.contract` at the KV's type, from `shapes.law`, at the writer's read update,
+`envAus`.)
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
@@ -29,51 +29,49 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.newHeader.wp_proof
-    (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG)) :
     apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG) := by
-  intro E p log
-  wp_start as ⟨#Hb, Hrd, Hsw⟩
+  intro E p log c
+  -- ours' proof (`KV.Rev.contract` at `envAus`'s read update) with `lean`'s stronger post (2.11a:
+  -- `hdrFields`, the `Revision` the log's last, `E.Nx log` in place of `certOk`, from `envAus`'s
+  -- writer facts)
+  wp_start as ⟨#Hb, Htt, Hsw⟩
+  iunfold apply.applyTok at Htt
+  icases Htt with Hmr
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -, -, -, -, #Hcl, #Hrs, -⟩
+  icases Hok with ⟨#Hlg, #Hkv, -, #Haus, -, -, -, #Hcl, #Hrs, -⟩
   iStructNamed Hopts
   iunfold apply.isCluster at Hcl
   icases Hcl with ⟨%Hcn, -, #HID, -⟩
   iunfold apply.isRaftStatus at Hrs
   icases Hrs with ⟨%ri, %Hri, #HMem, #HLead, #HTerm⟩
   iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#HisKV, %rv, #HRV, #Hrv⟩
-  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ HisKV
-  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
-  ihave ⟨#Hko0, #Hst⟩ := txn.isKV_kvOver _ E.s E.γ $$ HisKV
-  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
-  · rw [← Hkveq]; iexact Hko0
+  icases Hkv with #Hkv
+  icases txn.isMvcc_shape hsh opts.KV' E.γ $$ Hkv with ⟨%Hsh, -⟩
+  obtain ⟨kty, kvv, Hkveq, -, -, hRevC, -⟩ := Hsh
+  ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq]; imodintro; iexact Hkv
+  icases Hkv' with #Hkv'
+  iunfold apply.envAus at Haus
+  icases Haus with ⟨-, #HauR, -, -, #Hfacts, -⟩
+  ihave Hau := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hsw []
+  · iintro Hsw; iexact Hsw
+  iunfold srvApi.auRead at Hau
+  ihave #Hmi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+  · iPkgInit
   wp_auto
   wp_apply HID as %cid -
   rw [Hri]
   wp_auto
   wp_apply HMem as %mid -
   rw [Hkveq]
-  wp_auto
-  iunfold txn.kvWriter at Hsw
-  icases Hsw with ⟨Hsw, Hwl⟩
-  iunfold txn.soleWriter at Hsw
-  icases Hsw with ⟨#Hcert, Htoks, %Hl2⟩
-  wp_bind (App (Val #(methods kty _ kvv)) _)
-  iapply mvcc.kvOver_rev_wp kty kvv E.s
-  iframe Hko
-  ihave Hrd := mvcc.storeReader_toC E.s E.γ $$ Hrd
-  wp_apply (hRev E.s rv E.γ (txn.soleBudget log) log) $$ [$Hrd $Htoks]
-    as %v ⟨Hrd, Htoks, %log', -, #Hc', %Hl'⟩
-  · iframe #
-  ihave Hrd := mvcc.storeReader_of E.s E.γ $$ Hrd
-  obtain ⟨Hpre, Hbud, -, Hv⟩ := Hl'
-  have Hlen2 : 2 ≤ log.length := Hl2.1.1
-  have Hlen := Hpre.length_le
-  have Hle : log.length + 3 ≤ 2 ^ 63 := by unfold txn.soleBudget at Hbud; omega
-  have Heq : log' = log := (Hpre.eq_of_length (by unfold txn.soleBudget at Hbud; omega)).symm
-  subst Heq
+  simp only [interface.mkOk]
+  wp_apply (hRevC E.γ _) $$ [$Hkv' $Hmr $Hau] as %v ⟨Hmr, %σ, ⟨%Hσ, Hsw⟩, %Hv⟩
+  -- the writer's facts: its log's witness, reachable (so at least `NewStore`'s two revisions)
+  imod Hfacts $$ %log %c Hsw with ⟨Hsw, Hlb, #Hnx, -, %Hreach⟩
+  have Hlen2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   wp_apply HTerm as %tm -
   wp_apply HLead as %ld -
   irename «$r0» => Hh
@@ -81,23 +79,21 @@ theorem apply.applierV3backend.newHeader.wp_proof
   ihave %Hhn := typedPointsto_not_null $$ Hh
   iStructNamed Hh
   iapply HΦ
-  iframe Hrd
-  isplitl [Htoks Hwl]
-  · iunfold txn.kvWriter
-    iframe Hwl
-    iunfold txn.soleWriter
-    iframe Htoks
-    iframe #
-    ipureintro; exact Hl2
+  iunfold apply.applyTok
+  iframe Hmr Hsw Hnx Hlb
   isplitr
   · ipureintro; exact Hhn
   isplitl [ClusterId MemberId RaftTerm LeaderId]
   · iunfold apply.hdrFields
     iexists _, _, _, _
     iframe
-  rw [← Hv]
-  iframe Revision Hc'
-  ipureintro; exact ⟨Hlen2, Hle⟩
+  -- `v` is the read state's revision, `log.length - 1` at `σ = stAt log c`
+  subst Hσ
+  have hrv : ((srvApi.stAt log c).rev : Int) = (log.length : Int) - 1 := by
+    simp only [srvApi.stAt, mvcc.api.MvccState.rev]; omega
+  rw [← hrv, ← Hv]
+  iframe Revision
+  ipureintro; exact ⟨Hlen2, Hreach.2⟩
 
 end proof
 

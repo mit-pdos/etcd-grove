@@ -112,7 +112,8 @@ theorem newCache.wp_proof
   -- the internal context
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Hctxp $Hcci]
-    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hcc⟩
+    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hcc, #Hif⟩
+  ihave #HoCi := metadata.outgoingCtxOkC_bgFrom ictx $$ Hif
   ihave #Hcancel := context.cancel_spec_forget _ _ _ $$ Hcancel
   -- the client's fields
   ihave #Hcl' := Hcl
@@ -212,6 +213,8 @@ theorem newCache.wp_proof
     · iexists _
       isplitl []
       · iexact Hictx
+      isplitl []
+      · iexact HoCi
       · iexact Hcc
     ipureintro; exact ⟨hP, Hthr, Hpl⟩
   ihave #HwgInv' : inv cacheWgN (cacheWgInv cf) $$ [HwgInv]
@@ -254,7 +257,7 @@ theorem newCache.wp_proof
   · wp_apply wp_with_defer as %defer defer
     try wp_auto
     wp_apply wp_run pr w clk cfg.ProgressRequestInterval' ictx _
-      $$ [$Hpkg $HisPR $HprRun $Hclk $HisPN $Hictx]
+      $$ [$Hpkg $HisPR $HprRun $Hclk $HisPN $Hictx $HoCi]
     wp_apply wp_cacheWg_DoneOwed «$r0_ptr» cf $$ [$Hsync $HisWg' $HwgInv' Hr1'] as -
     · unfold cacheWgRunningOwed; iexact Hr1'
     itrivial

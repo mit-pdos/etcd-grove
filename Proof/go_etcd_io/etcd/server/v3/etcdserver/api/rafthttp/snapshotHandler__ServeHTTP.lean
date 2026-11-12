@@ -112,18 +112,12 @@ theorem msgPtsC_snapMeta (ml : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) (
 theorem argOk_of_errStrOk [_root_.Perennial.fmt.Assumptions] (e : GoInterface) :
     http.errStrOk (GF := GF) e ⊢ fmt.argOk e := by
   unfold http.errStrOk
-  iintro (%h | ⟨%ei, %h, #HE, -⟩)
+  iintro (%h | ⟨%ei, %h, #HE, -, %hF⟩)
   · subst h; unfold fmt.argOk; itrivial
-  · subst h; unfold fmt.argOk; iright; ileft; unfold fmt.stringMethodSpec; iexact HE
-
-/-- One error whose `Error()` returns is a formatting argument list (`fmt.argsOk`). -/
-theorem argsOk_of_errStrOk [_root_.Perennial.fmt.Assumptions] (e : GoInterface) :
-    http.errStrOk (GF := GF) e ⊢ fmt.argsOk [e] := by
-  iintro #He
-  unfold fmt.argsOk fmt.argsOk
-  isplitr
-  · iapply argOk_of_errStrOk $$ He
-  itrivial
+  · subst h; unfold fmt.argOk; iright; ileft
+    isplitr
+    · unfold fmt.stringMethodSpec; iexact HE
+    · ipureintro; exact hF
 
 /-- An application to a panic is that panic. -/
 theorem wp_app_panic (e : Expr) (q : val) (Φ : val → IProp GF) :
@@ -202,8 +196,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "go_humanize.Bytes" => (wp_apply hBytes as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
-    | "Warn" => (wp_apply hWarn hv.lg' _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Info" => (wp_apply hInfo hv.lg' _ _ $$ []; (iframe #))
+    | "Warn" => (wp_apply hWarn hv.lg' _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -217,7 +211,10 @@ local macro "sprintf_err" e:term:max : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hSprintf _ _ _ (DFrac.own 1) $$ [Hasl] as %msg -
   · iframe
-    iapply argsOk_of_errStrOk $$ He))
+    fmt_args_intro
+    isplitl
+    · fmt_arg_method; iapply argOk_of_errStrOk $$ He
+    · itrivial))
 
 set_option hygiene false in
 /-- The deferred `snapshotReceiveInflights.WithLabelValues(from).Dec()`. -/
@@ -270,7 +267,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
   intro Rh a γd Rs h wi r R γk rd Hhost Hpath
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd HRs
   iunfold snapHandlerOk at Hh
-  icases Hh with ⟨%hv, %Rm, #Hhv, %Hhvok, #Hraft, #Hss, #Hdir, #Haddr⟩
+  icases Hh with ⟨%hv, %Rm, #Hhv, #Hhvlg, %Hhvok, #Hraft, #Hss, #Hdir, #Haddr⟩
   rw [method_unfold (t := go.GoType.PointerType rafthttp.snapshotHandler.ty) (m := go!"ServeHTTP")]
   wp_auto
   ihave #HR0 := HR
@@ -296,7 +293,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
     have Hver : verHdrOk (http.hdrSet [] go!"X-Etcd-Cluster-ID" cs) :=
       verHdrOk_set _ _ _ (by decide) verHdrOk_nil
     -- the header check
-    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
+    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr $$ [$Hhs $Hhvlg] as %rv Hrv
     icases Hrv with (%Hrv | ⟨%e, %Hre, #He⟩)
     · rcases Hrv with rfl | ⟨p, rfl⟩
       · -- `nil`: `addRemoteFromRequest(h.tr, r)`
@@ -307,7 +304,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         iunfold snapReq at Hsr0
         icases Hsr0 with %Hfrom
         wp_apply Haddr $$ [$HR0]
-        · ipureintro; rw [← Hhvok.2, ← Hhost]; exact Hfrom
+        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hfrom
         -- the body: a stream of the protocol's contract
         iunfold http.reqBody at Hbody
         icases Hbody with (⟨%Hns, -⟩ | ⟨-, %Pre, %Φ, #Hsreq, %Hpc, Hbs⟩)
@@ -315,7 +312,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         rw [show ((raftHttpNet Rh).proto a).sreq R γk Pre Φ = snapSReq Rh R γk Pre Φ from rfl]
         iunfold snapSReq at Hsreq
         icases Hsreq with ⟨%st0, %bs0, %sn, %D, %Hs0, #HP, #Hdep, #Himg⟩
-        obtain ⟨Hw0, Hbl0, Hto0, Hty0, Hsn0, Hrs0, HPre, HPhi⟩ := Hs0
+        obtain ⟨Hw0, Hwe0, Hbl0, Hto0, Hty0, Hsn0, Hrs0, HPre, HPhi⟩ := Hs0
         -- `dec := &messageDecoder{r: r.Body}`; `dec.decodeLimit(snapshotLimitByte)`
         iStructNamedSuffix «$r0» "_d"
         ipersist r_d
@@ -330,7 +327,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           intro hl
           have := msgFrame_prefix_eq Hbl0 hl (HPre _ Hb)
           subst this
-          exact ⟨st0, Hw0⟩
+          exact ⟨st0, Hw0, Hwe0⟩
         ihave #Hzp : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
         · iPkgInit
         ihave #Hrpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -356,9 +353,13 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           (try wp_auto)
           iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
         | nil =>
-          ihave ⟨%bs, %st, %Hb, #HB, Hm⟩ := Hok $$ %rfl
+          ihave ⟨%bs, %c, %Hb, #HB, Hm⟩ := Hok $$ %rfl
           ihave %HBp := HB
-          obtain ⟨Hrs', Hbl, Hwire⟩ := Hb
+          obtain ⟨Hrs', Hbl, Hwire, -, Hcs, -⟩ := Hb
+          -- a `MsgSnap`: its content is not needed (no size fact for it)
+          ihave Hm := msgPtsCC_msgPtsC _ _ _ _ _ Hcs $$ Hm
+          clear Hcs
+          generalize c.model = st at Hwire ⊢
           simp only [List.nil_append] at Hrs'
           subst Hrs'
           have hbs : bs = bs0 := msgFrame_prefix_eq Hbl0 (by word) (HPre _ HBp)
@@ -448,13 +449,17 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
               iapply wp_todoCtx_Done'
             wp_apply HProc $$ %todoCtxVal %bgCd %ml [$HRs HO Hm] as %perr ⟨#Hperr, HRs⟩
             · iframe #
+              icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hm with ⟨%c2, Hm, %Hc2⟩
               iunfold netRecv
-              iexists st0, st
+              iexists st0, c2
               iframe Hm HO HP
               isplitr
               · ipureintro
-                refine ⟨Hweq, ?_, Hwire.1⟩
-                rw [Hto0, Hhost]; exact Hhvok.2
+                refine ⟨?_, Hc2.2, ?_, fun _ hne => absurd Hty0 hne⟩
+                · rw [Hc2.1]
+                  exact MsgSt.eq_of_wire (by simp [wireOf, Hweq.1, Hweq.2.1, Hweq.2.2.1, Hweq.2.2.2])
+                    Hwire.1
+                · rw [Hto0, Hhost]; exact Hhvok
               iunfold netSnapRecv
               iintro -
               iexists sn

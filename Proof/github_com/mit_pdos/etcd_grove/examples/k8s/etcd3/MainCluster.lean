@@ -18,6 +18,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.clusterConfig
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seed
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.noStreaming
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.New
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.New
@@ -55,6 +56,7 @@ theorem MainCluster.wp_proof
     (wp_StartCluster : cluster3.StartCluster.spec (GF := GF) (hG := hG))
     (wp_kNew : kubernetes.New.spec (GF := GF) (hG := hG))
     (wp_seed : seed.spec (GF := GF) (hG := hG))
+    (wp_noStreaming : noStreaming.spec (GF := GF) (hG := hG))
     (wp_sNew : k8s.New.spec (GF := GF) (hG := hG))
     (wp_lmc : k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG))
     (wp_newObj : newObj.spec (GF := GF) (hG := hG))
@@ -72,7 +74,7 @@ theorem MainCluster.wp_proof
     (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainCluster.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops ThB RcB RcN Hbf HwbN Hck
+  intro CS EK RT SC ST VA N id₁ id₂ id₃ ps ctxs boot clients ops ThB RcB RcN HLv Hbf HwbN
     Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -102,7 +104,7 @@ theorem MainCluster.wp_proof
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, compaction off
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false .none clusterCfg_ok Hbf
-      Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
+      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide)
       (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
@@ -119,9 +121,9 @@ theorem MainCluster.wp_proof
   icases Hcl with ⟨#Hsrvs, #Hbrs, #Hm₁, #Hm₂, #Hm₃, -, -, -, -, -, -, Hetcd, %Hal⟩
   obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -⟩
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -, -⟩
   obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- the members at their bridges: their registrations there, refusal-free (D29)
   let ms : List (client.SrvAt GF) :=
@@ -141,7 +143,7 @@ theorem MainCluster.wp_proof
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
+      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₁ HRange₁]; iframe #
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
       isplitr
@@ -153,7 +155,7 @@ theorem MainCluster.wp_proof
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
+      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₂ HRange₂]; iframe #
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
       isplitr
@@ -165,7 +167,7 @@ theorem MainCluster.wp_proof
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
+      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₃ HRange₃]; iframe #
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
       isplitr
@@ -174,11 +176,11 @@ theorem MainCluster.wp_proof
     iapply BigSepL.bigSepL_nil.2
     itrivial
   ihave %Hb₁' : ⌜noRefusalAt clusterCfg.Bridge1'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂' : ⌜noRefusalAt clusterCfg.Bridge2'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃' : ⌜noRefusalAt clusterCfg.Bridge3'⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ cluster3.bridges clusterCfg, noRefusalAt a := by
     intro a ha
     simp only [cluster3.bridges, List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
@@ -196,7 +198,7 @@ theorem MainCluster.wp_proof
   ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
   · iPkgInit
   let V : client.WEnv GF :=
-    EtcdGrove.client.srvWEnv R₁ clusterCfg.Bridge1' [] null null [] null default
+    EtcdGrove.client.srvWEnv R₁ (etcdstart.srvWOf E₁ ρ₁.rd false) ρ₁.rd clusterCfg.Bridge1' [] null null [] null default
   wp_apply (wp_kNew _ [clusterCfg.Bridge1', clusterCfg.Bridge2', clusterCfg.Bridge3'] V (fun _ => iprop(True))) $$ []
     as %kc %cerr Hcl
   · iframe #
@@ -238,15 +240,24 @@ theorem MainCluster.wp_proof
   ihave #Hkc' := Hkc
   iStructNamed Hkc'
   (try wp_auto)
-  wp_apply (wp_seed cl ms V γs hAs (by simp [ms])) $$ [Hs] as %st0 %ok Hsd
+  wp_apply (wp_seed cl ms V γs hAs (by simp [ms])) $$ [Hs] as %st0 %h0 %ok Hsd
   · simp only [ms, List.map_cons, List.map_nil]
     iframe #
     iframe Hs
-  icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0⟩)
+  icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0, %hs, #Hh0, #Hhs⟩)
   · subst Hok
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hok
+  wp_auto
+  wp_apply wp_noStreaming as %b Hb
+  cases b with
+  | false =>
+    wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  | true =>
+  ihave #Hrs : (k8s.rangeStreamOff : IProp GF) $$ [Hb]
+  · iExactEq Hb; rfl
   wp_auto
   iclear Hsis
   imod (seedInv_cancel γs ρ₁.rd.kv σs2) $$ [Hs] with Hetcd
@@ -282,7 +293,8 @@ theorem MainCluster.wp_proof
   rw [e1, e2, e3, e4]
   have hpc : path.PathCleanAbs go!"/registry" := by unfold path.PathCleanAbs; decide
   wp_apply (wp_sNew DObj driverSpec kc cl ms V γh _ codecI _ func.nil func.nil go!"/registry"
-      go!"/objs" ⟨[], go!"objs"⟩ versionerI identityI decoderI lmc hpc (by decide) (by decide))
+      go!"/objs" ⟨[], go!"objs"⟩ versionerI identityI decoderI lmc hpc (by decide) (by decide)
+      (by rfl) (by rfl) (by omega) (by rfl))
     as %sp %err Hnew
   · simp only [ms, List.map_cons, List.map_nil]
     iframe #
@@ -303,10 +315,18 @@ theorem MainCluster.wp_proof
   · iframe
     iexact Hsr
   ihave #Hinvs := kInvs_of_same γ c g0s ρ₁.rd.kv ms hsame $$ Hinv
-  wp_apply (wp_Check γ sp c g0s st0 clients ops (W64 0) rfl rfl rfl hAs hse (by simp [c, ms])
-      (by omega) H0 H31 Hops Hmul (by rw [g0s_items]; simp)) $$ [Hks] as %r %hr
+  wp_apply (wp_Check γ sp c g0s st0 h0 hs clients ops (W64 0) rfl rfl rfl rfl rfl hAs hse
+      (by omega)
+      (by intro y hy; apply hnr; simp only [c, ms, List.mem_cons, List.not_mem_nil, _root_.or_false] at hy
+          rcases hy with rfl | rfl | rfl <;> simp [cluster3.bridges])
+      (by simp [c, ms]) (by omega) H0 H31 Hops Hmul
+      (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp))
+    $$ [Hks] as %r %hr
   · iframe #
     iframe Hks
+    isplitr
+    · iExactEq Hst0; rfl
+    iExactEq Hhs; rfl
   have hok : r = go!"Ok" := hr.2 (by decide)
   subst hok
   wp_auto

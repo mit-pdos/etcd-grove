@@ -83,7 +83,7 @@ theorem EtcdServer.applyEntries.wp_proofBatch
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g sa hM hRB Hms
     Hai1 Hok hEok hdv Hg0
   unfold EtcdServer.apply.spec EtcdServer.apply.specAt at hApply
-  wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
+  wp_start as ⟨#Hsrv, #Hlnil, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv, Hst, Hbe, Happ, Hlr, Hgr, Hmr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -210,11 +210,11 @@ theorem EtcdServer.applyEntries.wp_proofBatch
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
       (ai + 1) ep cs rac st a t x γr rp A γp dv w g sa hM hRB hne' hfrom' hok' hEok hdv
-      $$ [Hst Hbe Happ Hcs Hcv Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
-      as %appt %appi %stop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, %g', Hst, HtokR, Hbe, Happ, Hcs, #Hcv', Hlr, Hgr, Hao, #HWA',
+      $$ [Hst Hbe Happ Hcs Hcv Hlr Hgr Hmr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
+      as %appt %appi %stop ⟨Hfs, Hdv, Hrun, HAR, %st', %a', %at', %csl, %g', Hst, HtokR, Hbe, Happ, Hcs, #Hcv', Hlr, Hgr, Hmr, Hao, #HWA',
         ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
-      iframe Hsrv Hlnil Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hcv Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
+      iframe Hsrv Hlnil Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hcv Hlr Hgr Hmr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
         Hdv Hdvr2 Hrun HAR HtokR
       ipureintro; exact Hg0
     obtain ⟨hg', hli, hlt, hok2, hci2, hstop⟩ := Hpost

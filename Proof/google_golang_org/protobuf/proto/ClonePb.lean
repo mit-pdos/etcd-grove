@@ -1,6 +1,6 @@
 /-
-The trust boundary: `proto.Clone` of any message type (names-only; the message types are
-`PbType`s, `InvProto.lean`).
+The trust boundary: `proto.ClonePb.spec` (names-only; registered message types at their wire content,
+`InvProto.lean`; per-type models, stage A, CP2).
 -/
 module
 

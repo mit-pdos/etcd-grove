@@ -89,6 +89,10 @@ theorem RawNode.Step.wp_proof
     fun h => (Bool.or_eq_false_iff.1 h).1
   wp_start as H
   iNamed H
+  icases Hm with ⟨%cm, Hm, %Hcm⟩
+  obtain ⟨Hcmod, Hccs, -⟩ := Hcm
+  ihave Hm := msgPtsCC_msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap m) cm Hccs $$ Hm
+  rw [Hcmod]
   iNamed Hrn
   ihave #HI := isInitialized_access $$ Hpkg
   iNamed HI

@@ -212,30 +212,26 @@ theorem ghost_batch (A₀ G ce : List EntryModel) (hc : G ++ ce <+: A₀ ∨ A�
       refine ⟨t, ht.symm, fun m hm => ?_⟩
       rw [← hut]; exact List.mem_append_right _ hm
 
-/-- (R2d'a A6, 2026-11-06) The restart data is part of the view. -/
-theorem rnCfgAt_restart (γ : RNNames) (L : List EntryModel) :
-    rnCfgAt (GF := GF) γ L ⊢ rnView γ L ∗ rnRestartOk γ := by
-  unfold rnCfgAt; exact .rfl
-
 /-- (D43 M3; R2d'a A6, 2026-11-06: over the ghost log, given the batch committed, `srvRLogLb` at
 the environment's names `γs`, `rnEnvOk`'s) **A batch of normal entries keeps the view**: at a first
 start the ghost log is the handed one; at a restart (`pre = []`) the batch's log and the backend's
 are prefix-comparable (`srvRLogLb_prefix`) and the ghost log grows by a suffix of the batch
-(`ghost_batch`). -/
+(`ghost_batch`). (Restart S3 item 7, 2026-11-11: the restart data a premise, `isRaftNode`'s; until
+then in the view.) -/
 theorem rnCfgAt_normal (γ : RNNames) (γs : ServerRaftNames) (L ce : List EntryModel)
     (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
     (h : ∀ m, m ∈ ce → m.typ = W32 0) :
-    srvRLogLb γs (L ++ ce) ∗ rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
+    rnRestartOk γ ∗ srvRLogLb γs (L ++ ce) ∗ rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
   unfold rnCfgAt rnRestartOk
-  iintro ⟨#Hlb, Hv, #Hr⟩
-  iframe Hr
+  iintro ⟨#Hr, #Hlb, Hv⟩
   icases Hr with (%Ha | ⟨%Hp, #HA, -⟩)
   · unfold rnView rnGhost
     rw [Ha.1]
     simp only [List.drop_nil, List.append_nil]
     rw [← List.append_assoc]
     iapply srvCfgView_nil_normal γ.srv γ.nl ce h $$ Hv
-  · have hγs : γs = γ.srv := by
+  · replace Hp := Hp.1
+    have hγs : γs = γ.srv := by
       obtain ⟨h1, h2, h3⟩ := hnm
       rw [Hp] at h2 h3
       simp only [List.length_nil] at h3
@@ -270,7 +266,8 @@ is false), and the batch, of the server's committed log, is normal entries. -/
 theorem rnCfgAt_back_false (γ : RNNames) (γs : ServerRaftNames) (ai₀ : w64) (L ce : List EntryModel)
     (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
     (hidx : srvIdxOkW ai₀ (L ++ ce)) (hcc : ccIn ce = false) :
-    srvRLogLb γs (L ++ ce) ∗ (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ⊢
+    rnRestartOk γ ∗ srvRLogLb γs (L ++ ce) ∗
+      (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ⊢
       rnCfgAt γ (L ++ ce) := by
   have hh : rnHands γ ce = false := by unfold rnHands; simp [hcc]
   rw [ite_eq_right (by rw [hh]; decide)]
@@ -279,13 +276,13 @@ theorem rnCfgAt_back_false (γ : RNNames) (γs : ServerRaftNames) (ai₀ : w64) 
 /-- (D43 M3) **The view after a batch with a `ConfChange` entry**: the second `notifyc` send's
 (`rnApR`; 2026-10-30, the repair: one mode, until then in the static mode the one the loop kept). -/
 theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce = true) :
-    rnRestartOk γ ∗ (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
+    (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
       rnCfgAt γ (L ++ ce) := by
   have hh : rnHands γ ce = true := hcc
   unfold rnApR rnCfgAt
   rw [ite_eq_left hh, ite_eq_left hh]
-  iintro ⟨#Hr, -, H⟩
-  iframe H Hr
+  iintro ⟨-, H⟩
+  iexact H
 
 /-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
 (`rnHands`). -/

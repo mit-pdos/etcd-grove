@@ -94,7 +94,7 @@ abbrev EtcdServer.apply.specAt (P : auth.AuthMode → Prop) : Prop :=
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
     (rp : RestartPt) (A : List EntryModel) (γp : WTNames) (dv : Option Loc) (w : Nat) (g : w64)
     (sa : auth.AuthState),
-  P E.authMode → (E.authOn = true → receiptBound GF ≤ 2 ^ 48) →
+  P E.authMode → receiptBound GF ≤ 2 ^ 48 →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn E.lm ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -102,7 +102,7 @@ abbrev EtcdServer.apply.specAt (P : auth.AuthMode → Prop) : Prop :=
       es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
       epCsAt ρ.raft (ghostOf rp A) cs ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗
+      srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗
       appliedLogAt γr g x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTTaken γp.cnt w ∗ srvFS s ∗
       kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestR E γr rp A ∗
@@ -124,7 +124,7 @@ abbrev EtcdServer.apply.specAt (P : auth.AuthMode → Prop) : Prop :=
           applyThread γ st' ∗ srvTokRights E (ciEff γ st'.k) ∗ applyBackend γ ci b ∗
           ciApplying ci a' at' ∗
           epConfState ep csl ∗ epCsAt ρ.raft (ghostOf rp (A ++ ms)) csl ∗ srvLgReader s ∗
-          srvGoRes s ∗ srvAppliedOwn γr g' ∗
+          srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvAppliedOwn γr g' ∗
           srvWTTaken γp.cnt (w + ms.length) ∗
           (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVM E.authOn s E ρ.wait x' sa' ∗
             ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr g' x'.log ∗

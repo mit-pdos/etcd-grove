@@ -27,12 +27,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`hc.startServe()`** on a health notifier over grpc's health server `hs` with a non-nil
-logger: it logs and sets the health server's status. -/
+/-- **`hc.startServe()`** on a health notifier over grpc's health server `hs` with a zap
+logger (premise fixes 6): it logs and sets the health server's status. -/
 abbrev v3rpc.healthNotifier.startServe.spec : Prop :=
   ∀ (hc hs lg : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ structFieldRef v3rpc.healthNotifier go!"hs" hc ↦□ hs ∗ grpcHealthSrv hs ∗
-      structFieldRef v3rpc.healthNotifier go!"lg" hc ↦□ lg ∗ ⌜lg ≠ null⌝ }}
+      structFieldRef v3rpc.healthNotifier go!"lg" hc ↦□ lg ∗ zapLoggerOk lg }}
     (App (Val (hc @!! go.GoType.PointerType v3rpc.healthNotifier.ty @!! go!"startServe"))
       (Val #()))
   {{ RET #(); True }}

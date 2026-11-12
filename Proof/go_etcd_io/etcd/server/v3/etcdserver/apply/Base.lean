@@ -67,8 +67,17 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 `errors.IsPointerError`: Go's `==` on it is Lean's equality), a leaf of an error tree without an
 `Is` method (`*errorString` has only `Error`; the model's method sets are uninterpreted, so this
 is stated, not derived; as the recipes' `errNewLeaf`), nor a `GRPCStatus` method (k8s etcd3 7c,
-HS-6: grpc's `status.FromError` accepts it, `statusErrOk`). -/
+HS-6: grpc's `status.FromError` accepts it, `statusErrOk`), nor a `Format` method (premise-fixes-4,
+2026-11-10: `fmt` prints it with its `Error`, `statusErrOk`). -/
 def errLeaf (e : GoInterfaceOk) : Prop :=
+  _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
+    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
+    methodSet e.ty !! go!"GRPCStatus" = none ∧ methodSet e.ty !! go!"Format" = none
+
+/-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
+`EtcdGrove.ContextReadErrs` states of `context.Canceled` (`errVarLeafW`), unchanged; the `Format`
+fact follows from Perennial's `context.isInit` (`ContextReadErrs.errs_strong`). -/
+def errLeafW (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
     methodSet e.ty !! go!"GRPCStatus" = none
@@ -235,7 +244,7 @@ theorem applyErrIs_srvErrOk (err : GoInterface) :
 accepts** (k8s etcd3 7c, HS-6). -/
 theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
     errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
@@ -245,6 +254,9 @@ theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors
   · iapply errMsgOk_msgIs $$ Hm
   isplitr
   · ipureintro; exact hl
+  isplitr
+  rotate_left
+  · ipureintro; exact hF
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -309,7 +321,7 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
       · ipureintro; exact safeMapKey_ptrErr e h.1
       iexists e; iframe Hm; ipureintro; rfl
     · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
-      iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2 $$ Hm
+      iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2 $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -326,7 +338,7 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
     (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
     errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
   iintro #Hm
   iunfold applyErrIs
@@ -338,7 +350,7 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
       · ipureintro; exact hkey
       iexists e; iframe Hm; ipureintro; rfl
     · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
-      iapply statusErrOk_of_leafMsg e hleaf hIs hG $$ Hm
+      iapply statusErrOk_of_leafMsg e hleaf hIs hG hF $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -548,6 +560,14 @@ def errVarLeaf (g : GoString) : IProp GF :=
 
 instance errVarLeaf_persistent (g : GoString) : Persistent (errVarLeaf (GF := GF) g) := by
   unfold errVarLeaf; infer_instance
+
+/-- `errVarLeaf` over `errLeafW` (premise-fixes-4): what the premise `EtcdGrove.ContextReadErrs`
+states, unchanged. -/
+def errVarLeafW (g : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜errLeafW e⌝ ∗ errMsgOk e)
+
+instance errVarLeafW_persistent (g : GoString) : Persistent (errVarLeafW (GF := GF) g) := by
+  unfold errVarLeafW; infer_instance
 
 /-- The error the variable `g` holds (as the txn package's `errVarIs` states it) is one
 `errors.Is` can take, if `g` holds an `errors.New` error. -/

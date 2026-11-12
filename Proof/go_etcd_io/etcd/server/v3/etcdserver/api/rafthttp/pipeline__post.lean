@@ -49,11 +49,12 @@ theorem rafthttp.pipeline.post.wp_proof
     (hBackground : context.Background.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG)) :
     rafthttp.pipeline.post.spec (GF := GF) (hG := hG) := by
-  intro Rh p to d bs st Hw Hto Hns Hrs
+  intro Rh p to d bs st Hw Hwe Hto Hns Hrs
   wp_start as ⟨#Hs, Hd, #HP, HO⟩
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, #Hpk, #Hsc, #Hec,
-    #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem, %Hturls⟩
+    #Hto, #Hlg, #Hlgz, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem, %Hturls⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -63,7 +64,7 @@ theorem rafthttp.pipeline.post.wp_proof
   (try wp_auto)
   wp_apply hNewBuffer d bs $$ [$Hd] as %bf Hbf
   (try wp_auto)
-  wp_apply hCreate lg u go!"/raft" _ (.fixed bs) _ urls uvs lid cid Hlgnn Hu.1 $$ [Hbf $Huvs]
+  wp_apply hCreate lg u go!"/raft" _ (.fixed bs) _ urls uvs lid cid Hlgnn Hu.1 rfl $$ [Hbf $Huvs]
     as %req ⟨%hdrs, Hreq, Hstr, %Hfrom⟩
   · rw [http.bodyHas_fixed]; iexact Hbf
   wp_apply (chan.wp_make2 (V := Unit) (W64 1))
@@ -145,7 +146,7 @@ theorem rafthttp.pipeline.post.wp_proof
     iexists st
     iframe #
     ipureintro
-    exact ⟨Hw, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom.1, Hmem.1,
+    exact ⟨Hw, Hwe, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom.1, Hmem.1,
       by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
   iunfold pipeReg at Hreg
   ihave #Hpa0 := Hreg $$ %u.Host' %Hu.2
@@ -196,8 +197,8 @@ theorem rafthttp.pipeline.post.wp_proof
     iapply HΦ; iexact HberrS
   | nil =>
   wp_auto
-  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to (fun _ => True) Hlgnn
-    $$ [$Hbsl $Hreq] as %cerr #Hcerr
+  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to (fun _ => True)
+    $$ [$Hbsl $Hreq $Hlgz] as %cerr #Hcerr
   · unfold http.respAt
     iframe #
     ipureintro; exact Hrdnn

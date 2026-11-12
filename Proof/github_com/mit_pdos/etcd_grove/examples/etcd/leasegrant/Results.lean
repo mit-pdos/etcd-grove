@@ -42,7 +42,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_leasegrant.wp_Main`). -/
-theorem leasegrant_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem leasegrant_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leasegrant.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasegrant.wp_Main
 
@@ -57,13 +57,13 @@ file header and `Adequacy.lean`). -/
 theorem etcd_leasegrant_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leasegrantGF, ContextReadErrs (GF := leasegrantGF) (hG := heapAtLgr hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leasegrantGF, ContextErrsClient (GF := leasegrantGF) (hG := heapAtLgr hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_leasegrant.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasegrantProgram leasegrantNames)
@@ -83,7 +83,7 @@ theorem etcd_leasegrant_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_leasegrant_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp Hlne HNs HAs HDs HEnv n Hprem σ g
+  etcd_leasegrant_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp Hlne HNs HAs HDs HEnv n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

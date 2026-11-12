@@ -39,7 +39,7 @@ abbrev EtcdServer.sendMergedSnap.spec : Prop :=
   ∀ (s mg ml : Loc) (rc : GoInterface) (lg : Loc) (id : w64) (stg : Loc) (tr : GoInterface)
     (γn : NetNames GF) (S TS : IProp GF) (lid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvGoRes s ∗ srvLgReader s ∗ srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      srvGoRes s ∗ srvLgReader s ∗ srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗
       srvMemberIDAddr s ↦□ id ∗ srvInflight s ∗ srvStoppingAddr s ↦□ stg ∗ stopChan stg ∗
       rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S TS ∗
       mergedMsg mg ml rc ∗ netSnapBundle γn.N ml rc }}

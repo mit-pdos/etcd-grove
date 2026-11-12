@@ -84,6 +84,7 @@ axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
@@ -116,19 +117,20 @@ axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
+axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom os.Rename.wp_proof
-axiom pbEnc_ok
+axiom pbEntryC_reg
+axiom pbMessageC_reg
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
-axiom proto.EqualConfState.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
@@ -144,7 +146,6 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
-axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
@@ -173,6 +174,7 @@ axiom strconv.FormatUint.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.Unix.wp_proof
+axiom trace.SpanFromContext.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom types.ID.String.wp_proof

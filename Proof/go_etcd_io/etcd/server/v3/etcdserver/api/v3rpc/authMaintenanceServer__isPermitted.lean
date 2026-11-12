@@ -31,7 +31,7 @@ theorem v3rpc.authMaintenanceServer.isPermitted.wp_proof
     (hP : v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG) := by
   intro p ms aa s E ctx cd
-  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, HRD⟩
+  wp_start as ⟨#Hams, #Haa, #Hnil, #Hctx, #Hlib, HRD⟩
   iunfold v3rpc.amsIs at Hams
   icases Hams with ⟨%Hpn, #Hms, #Haaf⟩
   (try wp_auto)

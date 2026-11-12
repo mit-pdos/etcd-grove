@@ -57,7 +57,9 @@ theorem store.deleteOnce.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  iunfold storeListOk at Hlst
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
@@ -88,7 +90,8 @@ theorem store.deleteOnce.wp_proof
     (itemAt c key s)
     (fun σ hw hb hA => ⟨(delStepOk_item c key s hr pre validate hpre hval σ hw hb hA).1,
       fun hf => ⟨(delStepOk_item c key s hr pre validate hpre hval σ hw hb hA).2 hf,
-        fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]
+        fun hh => by simpa [stepHand] using hh⟩⟩)
+    (fun σ hw => keysIn_optDel _ _ _ _ hk σ hw.1)) $$ [HW Hau]
   · iframe HW HA Hau
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
     (m := go!"OptimisticDelete")]
@@ -101,9 +104,12 @@ theorem store.deleteOnce.wp_proof
   · iframe #
     iexact Hau'
   (try wp_auto)
-  wp_apply wp_txnError as %te -
+  icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split derr _ _ _) $$ Hdel with ⟨#Hse0, Hdel⟩
+  wp_apply wp_txnError as %te Hte
+  ihave #Hse := Hte $$ Hse0
   (try wp_auto)
-  wp_apply wp_RecordEtcdRequest
+  wp_apply (wp_RecordEtcdRequest go!"delete" c.gr _ _ (by decide) Hutf.1 Hutf.2)
+  · iexact Hse
   (try wp_auto)
   icases Hdel with (⟨%Hde, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hde, %Hdce, #Hdse, #Hdcl⟩)
   · subst Hde

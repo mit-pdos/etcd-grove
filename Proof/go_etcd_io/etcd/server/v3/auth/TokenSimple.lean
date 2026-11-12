@@ -96,7 +96,7 @@ def simpleLk (p : Loc) (γt γf γk : GName) : IProp GF :=
 
 /-- The provider's read-only fields and its mutex (persistent). -/
 def simpleOk (p : Loc) (γt γf : GName) : IProp GF :=
-  iprop(∃ (lg : Loc) (γk : GName), tsF go!"lg" p ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+  iprop(∃ (lg : Loc) (γk : GName), tsF go!"lg" p ↦□ lg ∗ zapLoggerOk lg ∗
     sync.isMutex (tsF go!"simpleTokensMu" p) (simpleLk p γt γf γk))
 
 instance simpleOk_persistent (p : Loc) (γt γf : GName) :
@@ -287,7 +287,7 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     itrivial
   (try wp_auto)
   iunfold simpleOk at Hok
-  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
+  icases Hok with ⟨%lg, %γk, #Hlg, #Hlgnn, #Hmu⟩
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HI⟩
   iunfold simpleLk at HI
   icases HI with ⟨%mp, %m, %k, %ks, %ttl, %S, Hmp, Hm, Hbig, Hauth, Hk, %Hkks, HKa, Hks, Httl, %Httlpos⟩
@@ -373,7 +373,7 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
   subst hγt hγf
   wp_start as ⟨#Hok, Hfr⟩
   iunfold simpleOk at Hok
-  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
+  icases Hok with ⟨%lg, %γk, #Hlg, #Hlgnn, #Hmu⟩
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

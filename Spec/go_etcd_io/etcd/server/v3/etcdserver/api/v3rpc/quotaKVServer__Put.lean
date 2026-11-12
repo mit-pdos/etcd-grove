@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`q.Put(ctx, r)`** on a `*quotaKVServer` over a service `kv` whose `Put` meets `Spec` with
 the resource `S` (`grpcHandlerOkMd`: at the run's metadata, E3zb), for the server `s`: the quota check (over the current
 backend, `quotaAlarmer.check`), then `kv.Put(ctx, r)`: `S` and the check's reader slots
-(`quotaRd`: of `lgMu` and `bemu`; until D22g (A) the alarm's request-path view, id budget,
+(`quotaRd`: of `lgMu` and `bemu`; per-type stage B3: the inner call takes the check's `lgMu` reader with `S`, in turn; until D22g (A) the alarm's request-path view, id budget,
 `leadTimeMu` slot and `E.RD`) come back, and on success the response is `kv.Put`'s (at some `m'`
 with `Φ m'`). -/
 abbrev v3rpc.quotaKVServer.Put.spec : Prop :=
@@ -39,7 +39,7 @@ abbrev v3rpc.quotaKVServer.Put.spec : Prop :=
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOkMd #(methods kv.ty go!"Put" kv.v) S Spec ∗
+      v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOkMd #(methods kv.ty go!"Put" kv.v) iprop(S ∗ srvLgReader s) Spec ∗
       S ∗ v3rpc.quotaRd s ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗
       Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}

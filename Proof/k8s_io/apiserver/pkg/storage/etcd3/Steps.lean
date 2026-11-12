@@ -116,6 +116,53 @@ theorem kvOpStep_optDel (k : GoString) (rev : w64) (g : Bool) (σ : KVState) :
       kvOpStep (linkv.opOf [] [] (delTxn k rev g)) σ := by
   cases g <;> rfl
 
+/-- **A step that changes the map view at one key under the prefix keeps the other keys**
+(stage 7e-4, `KeysIn`). -/
+theorem keysIn_of_absM (pfx k : GoString) (hk : pfx <+: k) (σ σ' : KVState)
+    (hs' : σ'.kvs.Pairwise etcdKvLess)
+    (h : ∀ k', k' ≠ k → linkv.absM σ'.kvs k' = linkv.absM σ.kvs k') : KeysIn pfx σ σ' := by
+  intro v hv
+  by_cases e : v.key = k
+  · right; rw [e]; exact hk
+  left
+  have hf' := txn.findKey_of_mem_sorted hs' hv
+  have := h v.key e
+  simp only [linkv.absM, hf'] at this
+  cases hf : mvcc.findKey v.key σ.kvs with
+  | none => rw [hf] at this; cases this
+  | some w => exact ⟨w, mvcc.findKey_mem hf, mvcc.findKey_key hf⟩
+
+/-- **`OptimisticPut`'s step writes only its key** (stage 7e-4). -/
+theorem keysIn_optPut (pfx k v : GoString) (rev : w64) (g : Bool) (hk : pfx <+: k) (σ : KVState)
+    (hs : σ.kvs.Pairwise etcdKvLess) :
+    KeysIn pfx σ (kvOpStep (.txn (kubernetes.optPutTxn k v rev g)) σ) := by
+  apply keysIn_of_absM pfx k hk σ _ (linkv.kvOpStep_sorted _ σ)
+  intro k' hk'
+  have habs := linkv.absSt_kvOpStep [] [] [] σ hs (putTxn k v rev g)
+  have e : linkv.absM (kvOpStep (.txn (kubernetes.optPutTxn k v rev g)) σ).kvs =
+      (linkv.absSt (kvOpStep (.txn (kubernetes.optPutTxn k v rev g)) σ)).kv := rfl
+  rw [e, kvOpStep_optPut, habs, mStep_putTxn]
+  split
+  · simp [linkv.MStore.put, hk', linkv.absSt]
+  · rfl
+
+/-- **`OptimisticDelete`'s step adds no key** (stage 7e-4). -/
+theorem keysIn_optDel (pfx k : GoString) (rev : w64) (g : Bool) (hk : pfx <+: k) (σ : KVState)
+    (hs : σ.kvs.Pairwise etcdKvLess) :
+    KeysIn pfx σ (kvOpStep (.txn (kubernetes.optDelTxn k rev g)) σ) := by
+  apply keysIn_of_absM pfx k hk σ _ (linkv.kvOpStep_sorted _ σ)
+  intro k' hk'
+  have habs := linkv.absSt_kvOpStep [] [] [] σ hs (delTxn k rev g)
+  have e : linkv.absM (kvOpStep (.txn (kubernetes.optDelTxn k rev g)) σ).kvs =
+      (linkv.absSt (kvOpStep (.txn (kubernetes.optDelTxn k rev g)) σ)).kv := rfl
+  rw [e, kvOpStep_optDel, habs]
+  unfold delTxn
+  simp only [linkv.mStep]
+  split
+  · simp only [linkv.runOps, linkv.MOp.run, linkv.absSt]
+    split <;> simp [linkv.MStore.del, hk']
+  · cases g <;> simp [linkv.runOps, linkv.MOp.run, linkv.absSt]
+
 /-- **`deleteOnce`'s transaction** (`OptimisticDelete(key, r, GetOnFailure: true)`, `r` a mod
 revision, so not `0`) at a state of the store: if it fails, nothing changed; if it succeeds, the
 key had a key-value at mod revision `r`, and the key is gone at the next revision, a state of the

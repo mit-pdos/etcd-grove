@@ -180,7 +180,7 @@ theorem kvStorage.wp_ApplySnapshot (wp : MemoryStorage.ApplySnapshot.spec (GF :=
   iunfold kvStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs J none j old sp dq sv eood h1 h2 $$ [Hold Hend Hsnap] as HQ
+  wp_apply wp.1 ms γs J none j old sp dq sv eood h1 h2 $$ [Hold Hend Hsnap] as HQ
   · iframe Hold Hend Hsnap Hlb Herr
     iapply memStorAt_none_intro $$ Hsi
     iframe HB HSV HDL

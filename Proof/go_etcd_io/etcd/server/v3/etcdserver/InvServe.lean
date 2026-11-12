@@ -9,14 +9,20 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
   `WarningUnaryRequestDuration`, `Metrics`, `EnableDistributedTracing`, `TracerOptions`,
   `MaxConcurrentStreams`, and since J8a-3 `WatchProgressNotifyInterval`), at `cfg`'s values,
   read-only.
-* `srvServeBuilt s E cfg K`: those, the KV field as the watchable store `NewServer` built
-  (`isWatchableStore`), a reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
-  the auth store (`E.RD`) and the store (`mvcc.storeReader`), which `NewServer`'s proof dropped
-  until D19g, and of `bemu` (the quota checks', which read the current backend: D22g (A)).
+* `srvServeBuilt s E cfg`: those, the KV field as the watchable store `NewServer` built
+  (`srvServeFacts`), a reader slot of `bemu` (`v3rpc.Server`'s) and `Start`'s two reader slots of
+  `lgMu`. (Until per-type stage B3, 2026-11-11, also `K` reader slots each of `leadTimeMu`,
+  `lgMu`, the auth store (`E.RD`), `bemu` and the store's reader tokens, one per request slot: the
+  gRPC runs now borrow them from the server's run pools, `srvRunPool`.)
   (Until J8a-3, 2026-11-01, also the progress interval's field, owned: `NewWatchServer` wrote it;
   the fork's `NewWatchServer` keeps the adjusted interval local, and the field is read-only in
   `srvServeCfg`.)
 * `replicate_takeN`, `replicate_sepL`: splitting and pairing replicated resources.
+* (Per-type stage B2, 2026-11-11, r5 §3.2-§3.3 and §4.2) `srvServeStock s E`: the raw stocks
+  `NewServer` hands out beside `srvServeBuilt` (the revocation's built part, `srvRevokePoolN`
+  store tokens with `bemu` slots); `srvRunReadStock`, the read loop's
+  share; the gRPC run pool `srvRunPool` (level 3), built from both at the serve step
+  (`srvRunPool_init`).
 -/
 module
 
@@ -64,6 +70,12 @@ theorem replicate_mono (P Q : IProp GF) (n : Nat) (h : P ⊢ Q) :
     · iapply h $$ HP1
     · iapply ih $$ HP
 
+/-- `n` copies of `P` and `n` of `Q` are `n` of `P ∗ Q` (as `InvBoot`'s `replicate_sep`). -/
+theorem replicate_pair (P Q : IProp GF) (n : Nat) :
+    ([∗list] _x ∈ List.replicate n (), P) ∗ ([∗list] _x ∈ List.replicate n (), Q) ⊢
+      [∗list] _x ∈ List.replicate n (), iprop(P ∗ Q) :=
+  BigSepL.bigSepL_sep_eqv.2
+
 end lemmas
 
 section defs
@@ -93,13 +105,16 @@ instance srvServeCfg_persistent (s : Loc) (cfg : go_etcd_io.etcd.server.v3.confi
   unfold srvServeCfg; infer_instance
 
 /-- **The facts `NewServer` leaves for serving** (persistent): the KV field as the watchable
-store it built, and the configuration fields `srvServeCfg`. -/
+store it built (strict M1, 2026-11-06: the API's handle, `srvWatchBuilt`'s; until then
+`mvcc.isWatchableStore wsl E.s γ`), and the configuration fields `srvServeCfg`. -/
 def srvServeFacts (s : Loc) (E : apply.AEnv GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop((∃ (wsl : Loc) (γ : mvcc.WsNames),
+  iprop((∃ wsl : Loc,
       srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-      mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝) ∗
+      ⌜E.kv = interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl⌝ ∗
+      □ mvcc.api.isMvcc E.kv E.γ) ∗
     srvServeCfg s cfg)
 
 instance srvServeFacts_persistent (s : Loc) (E : apply.AEnv GF)
@@ -120,17 +135,101 @@ theorem srvServeFacts_interval (s : Loc) (E : apply.AEnv GF)
   iexact H
 
 /-- **What `NewServer` leaves for serving** (see the file header). -/
-def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (K : Nat) : IProp GF :=
-  iprop(srvServeFacts s E cfg ∗
-    srvBemuReader s ∗
-    ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
-    ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
-    ([∗list] _x ∈ List.replicate K (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate K (), mvcc.storeReader E.s E.γ) ∗
-    ([∗list] _x ∈ List.replicate K (), srvBemuReader s))
+def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
+    IProp GF :=
+  iprop(srvServeFacts s E cfg ∗ srvBemuReader s ∗ srvLgReader s ∗ srvLgReader s)
+
+/-- **The serving stocks `NewServer` hands out raw** (per-type stage B2, 2026-11-11; r5 §3.2 and
+§4.2): the revocation's built part (`srvRevokeBuilt`, persistent: the inner pool `I` of
+`leadTimeMu` and `E.RD` a gRPC run borrows at level 2, `srvRevokeBuilt_innerBorrow`, and `raftPool`
+at level 1, `srvRevokeBuilt_raftPool`); and `srvRevokePoolN` copies of a store reader token with a
+reader slot of `bemu`, the raw stock the gRPC run pool is made of (`srvRunPool_init`, at the serve
+step: r5's D6, so that a member that never serves returns the store's tokens to its stop,
+`srvStopReaders_intro`). (Until stage B3 also `Start`'s two `lgMu` reader slots, now in
+`srvServeBuilt`.) -/
+def srvServeStock (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(srvRevokeBuilt s E ∗
+    ([∗list] _x ∈ List.replicate srvRevokePoolN (),
+      iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)))
+
+/-- **The read loop's reader slots a started member keeps for its gRPC runs** (per-type stage B2,
+r5 §3.2's row `readMu`): `srvRevokePoolN` of them, the run pool's other raw stock
+(`srvRunPool_init`), carved from `start`'s by `etcdstart`'s `memberUp`. -/
+def srvRunReadStock (s : Loc) (γr : ReadNames) : IProp GF :=
+  iprop([∗list] _x ∈ List.replicate srvRevokePoolN (), srvReadReader s γr)
+
+/-- The gRPC run pool's namespace. -/
+def srvRunN : Namespace := nroot .@ "srvRun"
+
+/-- **The gRPC run pool** (per-type stage B2, r5 §3.3: level 3; persistent): a store reader token,
+a reader slot of the read loop's lock and one of `bemu`, which a KV or lease run (and the watch
+loops) borrows with level 3 of its thread token (`threadPool.borrowL`). Built at the serve step from
+the raw stocks (`srvRunPool_init`: r5's D6). Not sealed: the gRPC adapters are generic in the
+pools (r5 §3.4). -/
+def srvRunPool (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL srvRunN 3 γ
+    iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s))
+
+instance srvRunPool_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvRunPool (GF := GF) s E γr) := by
+  unfold srvRunPool; infer_instance
 
 end defs
+
+section runPool
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The revocation's built part, out of the raw stocks** (persistent; the stock kept): what a gRPC
+run borrows the inner pool `I` from at level 2 (`srvRevokeBuilt_innerBorrow`) and `raftPool` at
+level 1 (`srvRevokeBuilt_raftPool`). -/
+theorem srvServeStock_built (s : Loc) (E : apply.AEnv GF) :
+    srvServeStock (GF := GF) s E ⊢ srvRevokeBuilt s E ∗ srvServeStock s E := by
+  iintro Hst
+  iunfold srvServeStock at Hst
+  icases Hst with ⟨#Hb, Hp⟩
+  iframe Hb
+  iunfold srvServeStock
+  iframe Hb
+  iexact Hp
+
+/-- **The gRPC run pool, from the raw stocks** (per-type stage B2, r5 §3.3): `threadPool.initL` at
+level 3 over `srvServeStock`'s `srvRevokePoolN` store tokens with `bemu` slots and the read loop's
+`srvRunReadStock`, paired; the bound `threadBound GF ≤ srvRevokePoolN + 1` from the built part
+(`srvRevokeBuilt_bound`). The built part comes back. -/
+theorem srvRunPool_init (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Em : CoPset) :
+    srvServeStock (GF := GF) s E ∗ srvRunReadStock s γr ⊢
+      |={Em}=> srvRunPool s E γr ∗ srvRevokeBuilt s E := by
+  iintro ⟨Hst, Hrd⟩
+  iunfold srvServeStock at Hst
+  icases Hst with ⟨#Hb, Hp⟩
+  ihave %Hbd := srvRevokeBuilt_bound s E $$ Hb
+  iunfold srvRunReadStock at Hrd
+  -- (paired at the elements' own forms, then rearranged element by element: no bare `iframe`
+  -- over these `srvRevokePoolN`-long lists)
+  ihave Hpr := replicate_pair iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)
+    (srvReadReader s γr) srvRevokePoolN $$ [Hp Hrd]
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact Hrd
+  ihave Hpr := replicate_mono
+    iprop((mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s) ∗ srvReadReader s γr)
+    iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s) srvRevokePoolN
+    (by iintro ⟨⟨H1, H2⟩, H3⟩; iframe H1 H2 H3) $$ Hpr
+  imod threadPool.initL srvRunN 3
+      iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvReadReader s γr ∗ srvBemuReader s) Em srvRevokePoolN
+      (by simp only [srvRevokePoolN, backend.rdPoolN] at Hbd ⊢; omega) $$ Hpr with ⟨%γ, #Hpool⟩
+  imodintro
+  isplitr
+  · iunfold srvRunPool
+    iexists γ
+    iexact Hpool
+  iexact Hb
+
+end runPool
 
 end EtcdGrove
 end Perennial

@@ -47,7 +47,8 @@ theorem WaitPrefixEvents.wp_proof (wp_WithPrefix : EtcdGrove.WithPrefix.spec (GF
   (try wp_auto)
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Hctxp $Hcci]
-      as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', -⟩
+      as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', -, #Hfrom'⟩
+  ihave #HctxC' := metadata.outgoingCtxOkC_bgFrom ctx' $$ Hfrom'
   ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
   (try wp_auto)
   wp_apply wp_WithPrefix $$ [$Hcv] as %f0 #Hf0
@@ -78,7 +79,7 @@ theorem WaitPrefixEvents.wp_proof (wp_WithPrefix : EtcdGrove.WithPrefix.spec (GF
   have Hw3 := prefixWatchOp_under pfx key rev Hp.2.1
   unfold prefixWatchOp at Hw1 Hw3
   wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
-  · iframe Hctx' Hopts
+  · iframe Hctx' HctxC' Hopts
     ipureintro
     exact ⟨Hw1, Hw2, Hp.2.2.1, Hw3, prefixWatchOp_size rev Hp.2.2.2⟩
   ihave %Hnn : ⌜wch ≠ null⌝ $$ [Hwch]

@@ -103,7 +103,7 @@ theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γ
   iintro ⟨#Hro, #Hrn⟩
   iunfold srvSnapRO at Hro
   icases Hro with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d, %Hp,
-    #HL, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
+    #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
   iunfold isRaftNode at Hrn
   iNamed Hrn
   icombine HSt Hst gives %Heq
@@ -111,7 +111,7 @@ theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γ
   iexists stp, ss, γd, srvImageM γr.raft.raft.authOn γr.raft.raft, srvSnapRm γt γr
   iframe HSt Hinv
   isplitr
-  · ipureintro; exact Hp.2.2.1
+  · ipureintro; exact Hp.2.1
   isplitr
   · rw [Heq]; iexact Hsti
   iintro !> %j #Hj

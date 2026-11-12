@@ -14,10 +14,17 @@ etcdstart_NewMember: @
 EtcdServer__Start: @
 v3rpc_Server: @
 net_Listen:
-grpc_Server__Serve:
+# (per-type stage B) `Serve` is the trusted model (`Server.Serve.impl := model.Serve`), proved over
+# its leaves' axioms (model-only names, `google.golang.org/grpc#model.*`)
+grpc_Server__Serve: model_Serve
+model_Serve: model_acceptRun model_acceptRunConns model_respond model_finishStream
+model_acceptRun:
+model_acceptRunConns:
+model_respond:
+model_finishStream:
 grpc_KeepaliveEnforcementPolicy:
 cluster3_holdToken:
-cluster3_StartMember: etcdstart_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve cluster3_holdToken
+cluster3_StartMember: etcdstart_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve cluster3_holdToken =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds
 # `StartBridge`: `net.Listen` and the bridge's `New` (the bridge's trust-boundary axioms, D26)
 bridge_New:
 cluster3_StartBridge: net_Listen bridge_New
@@ -33,7 +40,7 @@ bridge__DropConnections:
 cluster3_ClientStep: bridge__Blackhole bridge__Unblackhole bridge__DropConnections
 cluster3_Partitioner: cluster3_PeerStep cluster3_ClientStep
 # `StartCluster`: the members and the bridges (W4 of `notes/watch-cut-plan.md`)
-cluster3_StartCluster: cluster3_StartMember cluster3_StartBridge
+cluster3_StartCluster: cluster3_StartMember cluster3_StartBridge =mvcc.api.mvccApi_names_nonempty_law_holds
 # `NewClient`: the examples' client constructor (common's `Link.lean`; notes/client-timeouts-plan.md)
 etcdstart_NewClients: @
 cluster3_NewClient: etcdstart_NewClients

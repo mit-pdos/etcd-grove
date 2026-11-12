@@ -28,7 +28,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -47,7 +47,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
   iunfold tpAdmin at Htpa
   icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
   ihave #Htpok := HtpokA
@@ -78,7 +78,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   · -- enabled already: nothing
     (try wp_auto)
     wp_apply h_Info
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
@@ -301,7 +301,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
     all_goals simp
   (try wp_auto)
   wp_apply h_Info
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   simp only [List.append_nil]
   wp_apply HUnlock $$ %_ %Post %(hs ++ [{ st0 with enabled := true }]) [HL $Hown]

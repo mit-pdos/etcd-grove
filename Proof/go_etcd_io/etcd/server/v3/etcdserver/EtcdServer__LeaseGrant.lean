@@ -53,7 +53,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
   obtain ⟨hlg, hoff⟩ := hg
   have hRR := hRR0 s E ρ
   rw [hoff] at hRR
-  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, Hreq⟩
+  wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hlib, #Hspc, #Hst, Hreq⟩
   iunfold leaseGrantReqOwn at Hreq
   icases Hreq with ⟨%hr, #HTTL, HID⟩
   ihave #Hsrv' := Hsrv
@@ -120,9 +120,14 @@ theorem EtcdServer.LeaseGrant.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
+  ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
+  ihave #Hspc1 := Hspw $$ Hspc
+  -- (sweep repairs 1, B2) the request context's start time, kept by `Start`
+  ihave #Hstc1 := Hst1 $$ Hst
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
@@ -193,7 +198,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
       rw [h0]; iexact ID
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; first | exact hr | simp))
     iexists _; iframe #; try (ipureintro; first | exact hr | simp)
-  imod mvcc.idxCert_nil E.γ.idx with #HF
+  imod monoListLbOwn_nil (GF := GF) E.γs.slog with #HF0
+  ihave #HF : srvApi.kvLogLb E.γs [] $$ []
+  · iunfold srvApi.kvLogLb; iexact HF0
   imod Hcred with Hc
   wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
       (apply.irrDepthOk_of_txnW_none rfl)
@@ -233,7 +240,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     have Hrq : rq' = apply.withHeader rq hm := Hwire.2.2.2 HnzW
     subst Hrq
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, Hans, -⟩
+    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, -, -, Hans, -⟩
     have Hk' : apply.dispatchKind (apply.withHeader rq hm) = .leaseGrant := by
       rw [← Hk]; exact Hwire.2.2.1.trans rfl
     iunfold grantAnsM at Hans

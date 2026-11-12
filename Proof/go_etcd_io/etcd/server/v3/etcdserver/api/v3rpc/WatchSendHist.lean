@@ -9,6 +9,7 @@ completeness (`fwdEvs`, `fwdIdx`, `InvWatchStream.lean`).
   once, `hnew_direct`; from the buffer, `hnew_flush`).
 * `fwdEvs_direct`/`fwdEvs_flush`: when a response is sent, a watcher's responses with events
   sent are those received before it, for a live id it concerns (its own, or any for `-1`;
+  by id, the mvcc API migration, 2026-11-05: a response's source is its index and its `WResp`;
   `sentEvs_idx`); `fwdIdx_direct`/`fwdIdx_flush`: every
   response sent before it, while its id was live (any, for `-1`), was received before it.
 Lean-first (no Rocq counterpart).
@@ -16,7 +17,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchSendModel
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatchStream
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchMsgModel
 
 @[expose] public section
 
@@ -26,44 +27,75 @@ namespace Perennial
 namespace EtcdGrove
 namespace v3rpc
 
-/-- **The send loop's history** (see the file header). -/
-def SendHist (rcv : List mvcc.RespM) (D : List WatchRespM) (S : List Nat) : Prop :=
-  ∀ (i : Nat) (m' : WatchRespM) (y : mvcc.RespM) (X : w64) (k : Nat), D[i]? = some m' →
-    m'.src = some y → X ≠ W64 (-1) → idLive (D.take i) X → k ∈ idxOf rcv X → k ∉ S → y.idx < k
+/-- The mvcc responses sent, with their indices: the sent indices' responses (`S`'s, in order). -/
+def srcOf (rcv : List mvcc.api.WResp) (S : List Nat) : List (Nat × mvcc.api.WResp) :=
+  S.filterMap (fun n => (rcv[n]?).map (fun x => (n, x)))
 
-theorem sendHist_nil (rcv : List mvcc.RespM) (S : List Nat) : SendHist rcv [] S := by
-  intro i m' _ _ _ hi; simp at hi
+/-- **The send loop's history** (see the file header). -/
+def SendHist (rcv : List mvcc.api.WResp) (D : List WatchRespM) (S : List Nat) : Prop :=
+  ∀ (i : Nat) (m' : WatchRespM) (n' : Nat) (y : mvcc.api.WResp) (X : w64) (k : Nat), D[i]? = some m' →
+    m'.src = some (n', y) → X ≠ W64 (-1) → idLive (D.take i) X → k ∈ idxOf rcv X → k ∉ S → n' < k
+
+theorem sendHist_nil (rcv : List mvcc.api.WResp) (S : List Nat) : SendHist rcv [] S := by
+  intro i m' _ _ _ _ hi; simp at hi
 
 /-- The responses sent were received (each at its own index). -/
-theorem sent_idx {rcv : List mvcc.RespM} {S : List Nat} {D : List WatchRespM}
-    (hD : D.filterMap WatchRespM.src = S.filterMap (fun n => rcv[n]?))
-    (hb : ∀ m ∈ S, m < rcv.length)
-    (hidx : ∀ (i : Nat) (x : mvcc.RespM), rcv[i]? = some x → x.idx = i) :
-    ∀ y ∈ D.filterMap WatchRespM.src, y.idx < rcv.length := by
-  intro y hy
-  rw [hD] at hy
-  obtain ⟨m, hm, hmy⟩ := List.mem_filterMap.1 hy
-  rw [hidx m y hmy]; exact hb m hm
+theorem sent_idx {rcv : List mvcc.api.WResp} {S : List Nat} {D : List WatchRespM}
+    (hD : D.filterMap WatchRespM.src = srcOf rcv S)
+    (hb : ∀ m ∈ S, m < rcv.length) :
+    ∀ p ∈ D.filterMap WatchRespM.src, p.1 < rcv.length := by
+  intro p hp
+  rw [hD] at hp
+  obtain ⟨m, hm, hmp⟩ := List.mem_filterMap.1 hp
+  cases h : rcv[m]? with
+  | none => rw [h] at hmp; cases hmp
+  | some x => rw [h] at hmp; cases hmp; exact hb m hm
 
-theorem sendHist_recv {rcv : List mvcc.RespM} {D : List WatchRespM} {S : List Nat}
-    (x : mvcc.RespM) (hsent : ∀ y ∈ D.filterMap WatchRespM.src, y.idx < rcv.length)
+/-- The sources of the responses sent read the same after a receipt. -/
+theorem srcOf_snoc (rcv : List mvcc.api.WResp) (x : mvcc.api.WResp) (S : List Nat)
+    (hb : ∀ m ∈ S, m < rcv.length) : srcOf (rcv ++ [x]) S = srcOf rcv S := by
+  unfold srcOf
+  induction S with
+  | nil => rfl
+  | cons a S ih =>
+    simp only [List.filterMap_cons]
+    rw [List.getElem?_append_left (hb a List.mem_cons_self),
+      ih (fun m hm => hb m (List.mem_cons_of_mem _ hm))]
+
+/-- The sent responses (without their indices) are the sent indices' responses. -/
+theorem srcOf_snd (rcv : List mvcc.api.WResp) (S : List Nat) :
+    (srcOf rcv S).map Prod.snd = S.filterMap (fun m => rcv[m]?) := by
+  unfold srcOf
+  rw [List.map_filterMap]
+  congr 1
+  funext n
+  cases rcv[n]? <;> rfl
+
+theorem srcOf_append (rcv : List mvcc.api.WResp) (S : List Nat) (n : Nat) (x : mvcc.api.WResp)
+    (hx : rcv[n]? = some x) : srcOf rcv (S ++ [n]) = srcOf rcv S ++ [(n, x)] := by
+  unfold srcOf
+  rw [List.filterMap_append]
+  simp [hx]
+
+theorem sendHist_recv {rcv : List mvcc.api.WResp} {D : List WatchRespM} {S : List Nat}
+    (x : mvcc.api.WResp) (hsent : ∀ p ∈ D.filterMap WatchRespM.src, p.1 < rcv.length)
     (h : SendHist rcv D S) : SendHist (rcv ++ [x]) D S := by
-  intro i m' y X k hi hs hX hl hk hkS
+  intro i m' n' y X k hi hs hX hl hk hkS
   rw [idxOf_snoc] at hk
   rcases List.mem_append.1 hk with hk | hk
-  · exact h i m' y X k hi hs hX hl hk hkS
+  · exact h i m' n' y X k hi hs hX hl hk hkS
   · split at hk
     · rw [List.mem_singleton] at hk; subst hk
-      exact hsent y (List.mem_filterMap.2 ⟨m', List.mem_of_getElem? hi, hs⟩)
+      exact hsent (n', y) (List.mem_filterMap.2 ⟨m', List.mem_of_getElem? hi, hs⟩)
     · cases hk
 
-theorem sendHist_ctrl {rcv : List mvcc.RespM} {D : List WatchRespM} {S : List Nat}
+theorem sendHist_ctrl {rcv : List mvcc.api.WResp} {D : List WatchRespM} {S : List Nat}
     (c : WatchRespM) (hc : c.src = none) (h : SendHist rcv D S) : SendHist rcv (D ++ [c]) S := by
-  intro i m' y X k hi hs hX hl hk hkS
+  intro i m' n' y X k hi hs hX hl hk hkS
   by_cases hlt : i < D.length
   · rw [List.getElem?_append_left hlt] at hi
     rw [List.take_append_of_le_length (by omega)] at hl
-    exact h i m' y X k hi hs hX hl hk hkS
+    exact h i m' n' y X k hi hs hX hl hk hkS
   · rcases Nat.lt_or_ge i (D.length + 1) with h' | h'
     · have : i = D.length := by omega
       subst this
@@ -72,17 +104,17 @@ theorem sendHist_ctrl {rcv : List mvcc.RespM} {D : List WatchRespM} {S : List Na
     · rw [List.getElem?_eq_none (by simp; omega)] at hi; cases hi
 
 /-- **A response `x` sent** (its index `n`): `hnew`, what it says of the ids live then. -/
-theorem sendHist_send {rcv : List mvcc.RespM} {D : List WatchRespM} {S : List Nat}
-    (m : WatchRespM) (x : mvcc.RespM) (n : Nat) (hm : m.src = some x)
+theorem sendHist_send {rcv : List mvcc.api.WResp} {D : List WatchRespM} {S : List Nat}
+    (m : WatchRespM) (x : mvcc.api.WResp) (n : Nat) (hm : m.src = some (n, x))
     (hnew : ∀ (X : w64) (k : Nat), X ≠ W64 (-1) → idLive D X → k ∈ idxOf rcv X → k ∉ S ++ [n] →
-      x.idx < k)
+      n < k)
     (h : SendHist rcv D S) : SendHist rcv (D ++ [m]) (S ++ [n]) := by
-  intro i m' y X k hi hs hX hl hk hkS
+  intro i m' n' y X k hi hs hX hl hk hkS
   have hkS' : k ∉ S := fun h' => hkS (List.mem_append_left _ h')
   by_cases hlt : i < D.length
   · rw [List.getElem?_append_left hlt] at hi
     rw [List.take_append_of_le_length (by omega)] at hl
-    exact h i m' y X k hi hs hX hl hk hkS'
+    exact h i m' n' y X k hi hs hX hl hk hkS'
   · rcases Nat.lt_or_ge i (D.length + 1) with h' | h'
     · have : i = D.length := by omega
       subst this
@@ -94,7 +126,7 @@ theorem sendHist_send {rcv : List mvcc.RespM} {D : List WatchRespM} {S : List Na
     · rw [List.getElem?_eq_none (by simp; omega)] at hi; cases hi
 
 /-- The indices of a live id are all sent (no flush under way). -/
-theorem live_sent {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem live_sent {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {D : List WatchRespM} (hI : SendInv rcv S pend ids none)
     (hL : ∀ X, X ≠ W64 (-1) → (ids X = true ↔ idLive D X)) (X : w64) (hX : X ≠ W64 (-1))
     (hl : idLive D X) {k : Nat} (hk : k ∈ idxOf rcv X) : k ∈ S := by
@@ -102,17 +134,17 @@ theorem live_sent {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Na
   exact (List.mem_filter.1 hk).1
 
 /-- The indices of an id, in order. -/
-theorem idxOf_sorted (rcv : List mvcc.RespM) (X : w64) : (idxOf rcv X).Pairwise (· < ·) := by
+theorem idxOf_sorted (rcv : List mvcc.api.WResp) (X : w64) : (idxOf rcv X).Pairwise (· < ·) := by
   unfold idxOf
   exact (List.pairwise_lt_range).filter _
 
 /-- `sendHist_send`'s `hnew` for a buffered response `n` of `X0` flushed. -/
-theorem hnew_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem hnew_flush {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {D : List WatchRespM} {X0 : w64} {n : Nat} {P : List Nat}
     (hI : SendInv rcv S pend ids (some X0)) (hp : pend X0 = n :: P)
-    (hL : ∀ X, X ≠ W64 (-1) → (ids X = true ↔ idLive D X)) (x : mvcc.RespM) (hx : x.idx = n) :
+    (hL : ∀ X, X ≠ W64 (-1) → (ids X = true ↔ idLive D X)) :
     ∀ (X : w64) (k : Nat), X ≠ W64 (-1) → idLive D X → k ∈ idxOf rcv X → k ∉ S ++ [n] →
-      x.idx < k := by
+      n < k := by
   intro X k hX hl hk hkS
   have hkS' : k ∉ S := fun h' => hkS (List.mem_append_left _ h')
   by_cases h : X = X0
@@ -123,8 +155,7 @@ theorem hnew_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List N
     · exact absurd (List.mem_filter.1 hk).1 hkS'
     · rcases List.mem_cons.1 hk with rfl | hk
       · exact absurd (List.mem_append_right _ (List.mem_singleton_self _)) hkS
-      · rw [hx]
-        have := List.pairwise_append.1 hs
+      · have := List.pairwise_append.1 hs
         exact List.rel_of_pairwise_cons this.2.1 hk
   · rw [hI.split X, hI.noPend X (Or.inl ((hL X hX).2 hl)) (by simp [Ne.symm h]),
       List.append_nil] at hk
@@ -132,7 +163,7 @@ theorem hnew_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List N
 
 /-- **A buffered index was not sent** (K1b): the indices of id `X` are those sent and those
 buffered, without repetition. -/
-theorem pend_not_sent {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem pend_not_sent {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {ex : Option w64} (hI : SendInv rcv S pend ids ex) {X : w64}
     {n : Nat} {t : List Nat} (hp : pend X = n :: t) : n ∉ S := by
   intro hn
@@ -152,17 +183,16 @@ theorem pend_not_sent {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → Lis
 
 /-! ## What a send says of the order -/
 
-/-- **The sent responses with events of a watcher of the id `X`, by index**: those of the sent
-indices `S` whose indices of `X` are the first ones up to `n`. -/
-theorem sentEvs_idx {rcv : List mvcc.RespM} {S : List Nat} {D : List WatchRespM}
-    (hD : D.filterMap WatchRespM.src = S.filterMap (fun n => rcv[n]?)) (w : Loc) (X : w64)
-    (hw : ∀ (k : Nat) (y : mvcc.RespM), rcv[k]? = some y → y.w = w → y.evs ≠ [] → y.id = X)
+/-- **The sent responses with events of the id `X`, by index**: those of the sent indices `S`
+whose indices of `X` are the first ones up to `n`. -/
+theorem sentEvs_idx {rcv : List mvcc.api.WResp} {S : List Nat} {D : List WatchRespM}
+    (hD : D.filterMap WatchRespM.src = srcOf rcv S) (X : w64)
     (n : Nat) (hn : n ≤ rcv.length)
     (hS : S.filter (idOf rcv X) = (List.range n).filter (idOf rcv X)) :
-    sentEvsOf D w =
-      ((rcv.take n).filter (fun y => decide (y.w = w))).filter (fun y => decide (y.evs ≠ [])) := by
-  let f : Nat → Option mvcc.RespM := fun m => rcv[m]?
-  let p : mvcc.RespM → Bool := fun x => decide (x.w = w ∧ x.evs ≠ [])
+    sentEvsOf D X =
+      ((rcv.take n).filter (fun y => decide (y.id = X))).filter (fun y => decide (y.evs ≠ [])) := by
+  let f : Nat → Option mvcc.api.WResp := fun m => rcv[m]?
+  let p : mvcc.api.WResp → Bool := fun x => decide (x.id = X ∧ x.evs ≠ [])
   let q : Nat → Bool := fun m => (f m).any p
   have hq : ∀ m, q m = true → idOf rcv X m = true := by
     intro m hm
@@ -172,7 +202,7 @@ theorem sentEvs_idx {rcv : List mvcc.RespM} {S : List Nat} {D : List WatchRespM}
     | some x =>
       rw [hfm] at hm
       have hx := of_decide_eq_true (by simpa [p] using hm)
-      unfold idOf; rw [hfm]; simp [hw m x hfm hx.1 hx.2]
+      unfold idOf; rw [hfm]; simp [hx.1]
   have hfilt : ∀ L : List Nat, L.filter q = (L.filter (idOf rcv X)).filter q := by
     intro L
     rw [List.filter_filter]
@@ -182,8 +212,8 @@ theorem sentEvs_idx {rcv : List mvcc.RespM} {S : List Nat} {D : List WatchRespM}
     · simp
     · simp [hq m hqm]
   unfold sentEvsOf
-  rw [hD, List.filter_filter, take_eq_filterMap rcv n hn]
-  rw [show (fun x : mvcc.RespM => decide (x.evs ≠ []) && decide (x.w = w)) = p by
+  rw [hD, srcOf_snd, List.filter_filter, take_eq_filterMap rcv n hn]
+  rw [show (fun x : mvcc.api.WResp => decide (x.evs ≠ []) && decide (x.id = X)) = p by
     funext x; simp [p, Bool.and_comm]]
   show (S.filterMap f).filter p = ((List.range n).filterMap f).filter p
   rw [filter_filterMap, filter_filterMap]
@@ -191,29 +221,26 @@ theorem sentEvs_idx {rcv : List mvcc.RespM} {S : List Nat} {D : List WatchRespM}
   rw [hfilt S, hfilt (List.range n), hS]
 
 /-- **`fwdEvs`, for a response sent at once on its receipt** (the received ones before it, `rcv`). -/
-theorem fwdEvs_direct {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem fwdEvs_direct {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {D : List WatchRespM} (hI : SendInv rcv S pend ids none)
     (hL : ∀ X, X ≠ W64 (-1) → (ids X = true ↔ idLive D X))
-    (hD : D.filterMap WatchRespM.src = S.filterMap (fun n => rcv[n]?)) (r : mvcc.RespM) (w : Loc)
-    (X : w64)
-    (hw : ∀ (k : Nat) (y : mvcc.RespM), rcv[k]? = some y → y.w = w → y.evs ≠ [] → y.id = X) :
-    fwdEvs D rcv r w X := by
+    (hD : D.filterMap WatchRespM.src = srcOf rcv S) (r : mvcc.api.WResp) (X : w64) :
+    fwdEvs D rcv r X := by
   intro hX hl _
   rw [← List.take_length (l := rcv)]
-  refine sentEvs_idx hD w X hw rcv.length (Nat.le_refl _) ?_
+  refine sentEvs_idx hD X rcv.length (Nat.le_refl _) ?_
   have := hI.split X
   rw [hI.noPend X (Or.inl ((hL X hX).2 hl)) (by simp), List.append_nil] at this
   rw [← this]; rfl
 
 /-- **`fwdEvs`, for a buffered response `n` of `X0` flushed** (the received ones before it,
 `rcv.take n`). -/
-theorem fwdEvs_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem fwdEvs_flush {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {D : List WatchRespM} {X0 : w64} {n : Nat} {P : List Nat}
     (hI : SendInv rcv S pend ids (some X0)) (hp : pend X0 = n :: P)
-    (hD : D.filterMap WatchRespM.src = S.filterMap (fun n => rcv[n]?)) (r : mvcc.RespM)
-    (hid : r.id = X0) (hX0 : X0 ≠ W64 (-1)) (w : Loc) (X : w64)
-    (hw : ∀ (k : Nat) (y : mvcc.RespM), rcv[k]? = some y → y.w = w → y.evs ≠ [] → y.id = X) :
-    fwdEvs D (rcv.take n) r w X := by
+    (hD : D.filterMap WatchRespM.src = srcOf rcv S) (r : mvcc.api.WResp)
+    (hid : r.id = X0) (hX0 : X0 ≠ W64 (-1)) (X : w64) :
+    fwdEvs D (rcv.take n) r X := by
   intro _ _ hr
   have hXX : X = X0 := by
     rcases hr with h | h
@@ -222,7 +249,7 @@ theorem fwdEvs_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List
   subst hXX
   have hn : n ∈ idxOf rcv X := by rw [hI.split X, hp]; simp
   have hnl := (mem_idxOf hn).1
-  refine sentEvs_idx hD w X hw n (by omega) ?_
+  refine sentEvs_idx hD X n (by omega) ?_
   have hidn := (mem_idxOf hn).2
   have h1 : (List.range n).filter (idOf rcv X) ++ [n] <+: idxOf rcv X := by
     have := range_filter_prefix (idOf rcv X) (show n + 1 ≤ rcv.length by omega)
@@ -234,28 +261,26 @@ theorem fwdEvs_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List
   exact (prefix_last_eq (idxOf_nodup rcv X) h1 h2).symm
 
 /-- **`fwdIdx`, for a response sent at once on its receipt** (its index `rcv.length`). -/
-theorem fwdIdx_direct {rcv : List mvcc.RespM} {D : List WatchRespM} (r : mvcc.RespM)
-    (hr : r.idx = rcv.length) (hsent : ∀ y ∈ D.filterMap WatchRespM.src, y.idx < rcv.length) :
-    fwdIdx D r := by
-  intro i m' y hi hs _
-  rw [hr]
-  exact hsent y (List.mem_filterMap.2 ⟨m', List.mem_of_getElem? hi, hs⟩)
+theorem fwdIdx_direct {rcv : List mvcc.api.WResp} {D : List WatchRespM} (r : mvcc.api.WResp)
+    (hsent : ∀ p ∈ D.filterMap WatchRespM.src, p.1 < rcv.length) :
+    fwdIdx D rcv.length r := by
+  intro i m' n' y hi hs _
+  exact hsent (n', y) (List.mem_filterMap.2 ⟨m', List.mem_of_getElem? hi, hs⟩)
 
 /-- **`fwdIdx`, for a buffered response `n` of `X0 ≠ -1` flushed.** -/
-theorem fwdIdx_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem fwdIdx_flush {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {D : List WatchRespM} {X0 : w64} {n : Nat} {P : List Nat}
     (hI : SendInv rcv S pend ids (some X0)) (hp : pend X0 = n :: P) (hH : SendHist rcv D S)
-    (r : mvcc.RespM) (hr : r.idx = n) (hid : r.id = X0) (hX0 : X0 ≠ W64 (-1)) :
-    fwdIdx D r := by
-  intro i m' y hi hs hl
+    (r : mvcc.api.WResp) (hid : r.id = X0) (hX0 : X0 ≠ W64 (-1)) :
+    fwdIdx D n r := by
+  intro i m' n' y hi hs hl
   have hl' : idLive (D.take i) X0 := by
     rcases hl with h | h
     · rw [hid] at h; exact absurd h hX0
     · rw [hid] at h; exact h
   have hn : n ∈ idxOf rcv X0 := by rw [hI.split X0, hp]; simp
   have hnS : n ∉ S := pend_not_sent hI hp
-  rw [hr]
-  exact hH i m' y X0 n hi hs hX0 hl' hn hnS
+  exact hH i m' n' y X0 n hi hs hX0 hl' hn hnS
 
 end v3rpc
 end EtcdGrove

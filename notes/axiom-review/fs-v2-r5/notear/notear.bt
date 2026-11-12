@@ -1,0 +1,11 @@
+// fs-v2-r5 (a): short atomic copies of a buffered write by the process "notear": ext4's
+// write_end (ext4_da_write_end, delalloc: C's default) called with copied < len, keyed by
+// where the copied prefix ends in the file page ((pos + copied) % 4096) and copied: a cut at 0
+// is a page cut, anything else a mid-page cut, which write_end commits when the folio is
+// uptodate (the file's page cached, as here: the file was written and synced first). copied = 0
+// is a copy that stopped at once (generic_perform_write then faults the source in).
+// (copy_folio_from_iter_atomic and fault_in_iov_iter_readable are not traceable on this kernel.)
+kprobe:ext4_da_write_end /comm == "notear"/ {
+  @calls = count();
+  if (arg4 < arg3) { @short[(arg2 + arg4) % 4096, arg4] = count(); }
+}

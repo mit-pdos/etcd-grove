@@ -6,6 +6,7 @@ vocabulary `v3rpc/InvAuthAdmin.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -37,7 +38,7 @@ abbrev v3rpc.authMaintenanceServer.Downgrade.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (Pin : IProp GF)
     (Q : Loc → GoInterface → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ Pin ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗
       v3rpc.guardedOk2 (adminRes E.authMode) Pin E.RD
         (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"Downgrade" ms (GoInterface.ok ctx) r
         Q }}

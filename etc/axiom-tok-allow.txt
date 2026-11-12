@@ -1,0 +1,112 @@
+# The `axiom-tok` gate's declared entries (rule 8) and pairs (rule 7): etc/axiom-tok-check.py,
+# Scope r5 §5.1 (per-type stage B). Each entry says why the finding is not a soundness finding;
+# reviewed at the Freeze (CP1a) and at CP3, when the gate becomes `--check`.
+#
+#   entry NAME KEY[,KEY...]  reason   the axiom's findings with these keys are accepted, for the
+#                                     reason given; any other finding of it is still reported, and
+#                                     a key no finding has is reported as stale (CP1a review M2)
+#   pair NAME PARTNER                 a transfer of NAME (rule 7) is matched by PARTNER consuming
+#                                     the type
+#   trunc NAME                        the ratchet of truncated walks: NAME's walk truncates today (a
+#                                     subterm it could not open, counted as nothing: unknown); listed
+#                                     so that `--check` fails on a new one, and on a listed walk that
+#                                     no longer truncates (remove the line)
+# Keys (etc/axiom-tok-check.py, `finding_key`; no spaces): `2:<level>:<counts>`;
+# `3:<atom>:<counts>` (the counted atom, without its `#n` index); the counts as the finding states
+# them, `, ` written `/` (`produced1/consumed0`; `produced∞` for a persistent production,
+# `handedtoacallback1/supplieddirectly0` for a token handed to a callback), so a changed count or
+# a mint turning persistent needs a new key; `5:<opaque>`; `7:<binder>:<type>` (the `∃` binder and
+# its type, spaces removed). An entry or pair naming an axiom that no longer exists is reported
+# stale.
+
+# --- rule 2: the one token mint ---
+entry Perennial.EtcdGrove.goose_adequacy_start_files 2:*:produced1/consumed0  the first thread's token, from `σ.threads = 1` at the start of the run (Proof/runtime/Start.lean); the adequacy theorem's own premise
+
+# --- the grpc pair (Scope r5 §2.2, "The pair"; InvGrpcRun.lean's header) ---
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
+pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
+pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof
+
+# --- B1a triage of B0's report-only run (2026-11-11; /shared/tmp/stageB/freeze-cp1a.md §1) ---
+# Checker artefacts: a callback the Go code never calls (the pre's handle carries a method contract
+# whose pre the walk counts as produced), an observation callback with a pure conclusion, or an
+# abstract family bound together with the one handle that uses it (rule 7's neutral case, not
+# recognized through a defined, non-opaque handle).
+entry Perennial.EtcdGrove.grpc.NewClient.wp_proof 3:Q:produced1/consumedlen(credsOfDialds)  Q is produced only as `□ Q cm` in the one-credential arm of `connCredsOk`, where the credential's `perRPCCredsOk` (consumed) gives it; with no credential nothing is produced (the walk does not see the `match` on the list)
+entry Perennial.EtcdGrove.heap.Init_.wp_proof 3:E:produced1/consumed0  E occurs only in the pre of the `Push` method of the consumed `heapIface`; `heap.Init` never calls `Push` (container/heap/heap.go: `Len`, `down`'s `Less`/`Swap`)
+entry Perennial.EtcdGrove.heap.Pop.wp_proof 3:E:produced2/consumed1  as `heap.Init_`: `heap.Pop` never calls `Push`; the post's `E x a` is the `Pop` method's own (consumed `heapPopIface`)
+entry Perennial.EtcdGrove.http.CloseIdleConnections_ok 3:H.proto.req:produced1/consumed0,3:H.proto.sreq:produced1/consumed0  H.proto's fields occur only in the pre of the `RoundTrip` method of the consumed `roundTripperOk`; `CloseIdleConnections` never calls `RoundTrip`, and the axiom produces only `True` and a pointer equality
+entry Perennial.EtcdGrove.backend.backend.Snapshot.wp_proof 3:R:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  R is passed to the caller's observation function `R -∗ … -∗ ⌜Q …⌝`, whose conclusion is pure (an observation, `R ⊢ R ∗ ⌜Q⌝`); the `∃ Φ` is `dlIs`'s, bound with `dlReg`'s saved predicate at the backend's own name (fixed by the creator; `saved_pred_agree`)
+entry Perennial.EtcdGrove.lease.NewLessor.wp_proof 3:GA:produced1/consumedlen(List.map(funx=>x.fst)recs),7:Lk:IPropGF→IPropGF,7:Φ:GoString×GoString→IPropGF  GA is the caller's: produced (Lookup's post) only for leases in the map, each of which consumed `□ GA id` (here `recs`; later grants consume `leaseGranted`, pinned by `lessorGuard`'s saved predicate); `Lk`/`R` are `leaseBatchTx`'s abstract lock family, bound with its three methods; `∃ Φ` as backend.Snapshot's (`dlIs`)
+entry Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  Pre is bound in the produced `alarmApplyOk` → `isAlarmStore`: the store's write runs its critical-section contract either inside the backend's post-lock hook or on the no-lock path, never both (the two are exclusive), so the two productions are one `Pre` on one of two exclusive paths; `∃ Φ` as backend.Snapshot's (`dlIs`) (reason rewritten 2026-11-12, stage B gate triage)
+entry Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  the `∃ Φ : Unit -n> IProp` is an atomic update's greatest fixpoint (`atomic_update` = `bi_greatest_fixpoint`), bound with its own coinduction hypothesis, inside the consumed server handle; the post is `True`
+entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle; post `True`)
+entry Perennial.EtcdGrove.etcd_noRefusal 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle)
+entry Perennial.EtcdGrove.io.MultiReader.wp_proof 7:Src:Listw8→IPropGF  `∃ Src` is `streamHas`'s representation predicate, bound with the one reader contract (`streamReaderOk`) that uses it and its start `Src []`
+
+# --- CP1a: the stream content's transfer (freeze-cp1a.md §4, review m4/m1) ---
+entry Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof 7:Dn:Nat→Rep.M→IPropGF  Dn is the stream's content family, fixed by the client's `NewStream` (its post) and shared through the stream's names `γs` with the server end `srvRawStreamIs st γs … Dn` and the persistent `Spec md γs Dn` that `acceptRun` hands to the one run of that stream; the `srvRecvTok`/`srvSendTok`/`streamAuxTok` halves at `γs` are those `NewStream` allocated (the old `grpc.serveStream`'s pattern); rule 7's neutral case, not recognized through the defined handle (gate fix at CP3)
+entry Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof 7:Dn:Nat→Rep.M→IPropGF  as acceptRun's (the same stream arm, on an open connection after the listener failed)
+
+# --- CP3 (2026-11-11): the walks the scenario cap collapsed, now decided; the same reasons as above ---
+entry Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle; post `True`); `∃ P` is a `*cancelCtx`'s Done proposition, held only by `isCancelCtxOf`'s mutex and invariant (neutral handles; the walk stops there at `--depth`)
+entry Perennial.EtcdGrove.EtcdServer.publishV3.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as monitorClusterVersions (post `True`)
+# `∃ Φ : GoString × GoString → IProp` is `dlIs`'s (`InvBackend.lean:877`), bound with `dlReg`'s saved predicate at the backend's own name (fixed by the backend's creator; `saved_pred_agree`), as backend.Snapshot's; reached through the consumed `isBackend`/`openPre`
+entry Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.membership.RaftCluster.SetBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.storage.OpenBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.v3alarm.AlarmStore.restore.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
+entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 3:Pre:produced2/consumed1  as v3alarm.NewAlarmStore's: Pre is bound in the produced `authApplyOk` → `isAuthStore`; the hook path and the no-lock path are exclusive, so the two productions are one `Pre` on one of them (reason rewritten 2026-11-12, stage B gate triage)
+entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:RD:IPropGF  the auth store's reader permit: its copies are produced together with the handles that alone use it (`isReqAuth st RD`, `authApplyOk stl RD`, each call consuming a copy and returning it), the Scope's rule 7 first case (§5.1, "`NewAuthStore`'s `RD` inside `isReqAuth`"), which the walk does not recognize through the defined handles
+entry Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof 7:Dn:Nat→Rep.M→IPropGF,7:cd':context.ContextDesc(IPropGF)  the Scope's rule 7 first case (§5.1: "NewStream (its `Dn`, `cd'` neutral)"), not recognized through the defined handle: `Dn` is the stream's content family, fixed with the client end `cliStreamIs cs γ … Dn cd'` and the client's own `Spec a md γ Dn` (the server end gets the same `Dn` through `acceptRun`'s `□ Spec md γs Dn`, the pair); `cd'.PDone` occurs only inside `cliStreamIs`'s `isContextDone` (irreducible: Perennial's context handle)
+entry Perennial.EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof 3:Up:produced1/consumed0  `Up L.length m` occurs in the `RecvMsg` post of `srvRawStreamIs`, consumed for the stream `st` the interceptor is given and produced for the stream `st'` it hands the handler; the walk takes the max over the produced post's three branches and the min over the consumed one's, uncorrelated, though `st'` (go-grpc-middleware's `monitoredServerStream`) forwards `RecvMsg` to `st`'s: `Up L.length m` is produced only when the inner `RecvMsg` gave it
+
+# --- CP3: the five server-handle axioms the scenario cap used to collapse (triaged 2026-11-12 by an
+# independent agent for etcd-grove-81: all keys artefacts). Every finding sits inside the handles
+# isServerReqM/isServerReadM consumes, in the pres of methods or wands of those persistent handles; the
+# Go of these functions never calls those methods, and the posts return exactly the pre's
+# srvLgReader/srvReadReader/levelTok. ---
+entry Perennial.EtcdGrove.EtcdServer.ensureLeadership.wp_proof 3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Locked:produced7/consumed6,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Rd:produced1/consumed0,3:Rd:produced4/consumedlen(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi))+len(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi)),3:U:produced2/consumed1,3:Y:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:GA:w64→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:R:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Φ:Unit-n>IPropGF  every binder is two or more flips deep, inside the premises or methods of persistent handles consumed by isServerReadM/isServerReqM. The Go of the function never calls those methods or discharges those wands (server.go:608,912; v3_server.go:458,636,785). Tokens and readers come back exactly. Per pattern: `Pre`/`A`/`Y` under `srvKVInvsM`>`srvUberOn` (the apply thread's uber-applier contracts), `Rd`/`U`/`Locked`/`Dep` under `isApplyLessor`>`revokeClause`>…>`batchTxSpecG` (the revoke's backend batch-transaction callbacks), `Ψ` under `srvReqFieldsAtM`>`waitInvM`>`waitTrig` (the wait registry's trigger), the `7:` binders those handles' own
+entry Perennial.EtcdGrove.EtcdServer.leaseTimeToLive.wp_proof 3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Locked:produced7/consumed6,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Rd:produced1/consumed0,3:Rd:produced4/consumedlen(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi))+len(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi)),3:U:produced2/consumed1,3:Y:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:GA:w64→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:R:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Φ:Unit-n>IPropGF  every binder is two or more flips deep, inside the premises or methods of persistent handles consumed by isServerReadM/isServerReqM. The Go of the function never calls those methods or discharges those wands (server.go:608,912; v3_server.go:458,636,785). Tokens and readers come back exactly. Per pattern: `Pre`/`A`/`Y` under `srvKVInvsM`>`srvUberOn` (the apply thread's uber-applier contracts), `Rd`/`U`/`Locked`/`Dep` under `isApplyLessor`>`revokeClause`>…>`batchTxSpecG` (the revoke's backend batch-transaction callbacks), `Ψ` under `srvReqFieldsAtM`>`waitInvM`>`waitTrig` (the wait registry's trigger), the `7:` binders those handles' own
+entry Perennial.EtcdGrove.EtcdServer.purgeFile.wp_proof 3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Locked:produced7/consumed6,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Rd:produced1/consumed0,3:Rd:produced4/consumedlen(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi))+len(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi)),3:U:produced2/consumed1,3:Y:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:GA:w64→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:R:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Φ:Unit-n>IPropGF  every binder is two or more flips deep, inside the premises or methods of persistent handles consumed by isServerReadM/isServerReqM. The Go of the function never calls those methods or discharges those wands (server.go:608,912; v3_server.go:458,636,785). Tokens and readers come back exactly. Per pattern: `Pre`/`A`/`Y` under `srvKVInvsM`>`srvUberOn` (the apply thread's uber-applier contracts), `Rd`/`U`/`Locked`/`Dep` under `isApplyLessor`>`revokeClause`>…>`batchTxSpecG` (the revoke's backend batch-transaction callbacks), `Ψ` under `srvReqFieldsAtM`>`waitInvM`>`waitTrig` (the wait registry's trigger), the `7:` binders those handles' own
+entry Perennial.EtcdGrove.EtcdServer.waitAppliedIndex.wp_proof 3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Locked:produced7/consumed6,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Rd:produced1/consumed0,3:Rd:produced4/consumedlen(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi))+len(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi)),3:U:produced2/consumed1,3:Y:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:GA:w64→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:R:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Φ:Unit-n>IPropGF  every binder is two or more flips deep, inside the premises or methods of persistent handles consumed by isServerReadM/isServerReqM. The Go of the function never calls those methods or discharges those wands (server.go:608,912; v3_server.go:458,636,785). Tokens and readers come back exactly. Per pattern: `Pre`/`A`/`Y` under `srvKVInvsM`>`srvUberOn` (the apply thread's uber-applier contracts), `Rd`/`U`/`Locked`/`Dep` under `isApplyLessor`>`revokeClause`>…>`batchTxSpecG` (the revoke's backend batch-transaction callbacks), `Ψ` under `srvReqFieldsAtM`>`waitInvM`>`waitTrig` (the wait registry's trigger), the `7:` binders those handles' own
+entry Perennial.EtcdGrove.EtcdServer.waitLeader.wp_proof 3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Locked:produced7/consumed6,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Rd:produced1/consumed0,3:Rd:produced4/consumedlen(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi))+len(List.take(sint.Zlimit).toNat(mvcc.bucketRangem'klokhi)),3:U:produced2/consumed1,3:Y:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:GA:w64→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:R:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Φ:Unit-n>IPropGF  every binder is two or more flips deep, inside the premises or methods of persistent handles consumed by isServerReadM/isServerReqM. The Go of the function never calls those methods or discharges those wands (server.go:608,912; v3_server.go:458,636,785). Tokens and readers come back exactly. Per pattern: `Pre`/`A`/`Y` under `srvKVInvsM`>`srvUberOn` (the apply thread's uber-applier contracts), `Rd`/`U`/`Locked`/`Dep` under `isApplyLessor`>`revokeClause`>…>`batchTxSpecG` (the revoke's backend batch-transaction callbacks), `Ψ` under `srvReqFieldsAtM`>`waitInvM`>`waitTrig` (the wait registry's trigger), the `7:` binders those handles' own
+
+# --- CP3: the ratchet of truncated walks (the walk could not open a subterm: a definition past
+# `--depth` whose body reaches a token, an IProp-valued opaque or an Iris binder; an irreducible
+# definition holding an atom; a projection of a program-picked record such as a triple's `cd`).
+# Known unknowns, not reviewed one by one; none may be added. ---
+trunc Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.ensureLeadership.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.leaseTimeToLive.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.publishV3.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.purgeFile.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.waitAppliedIndex.wp_proof
+trunc Perennial.EtcdGrove.EtcdServer.waitLeader.wp_proof
+trunc Perennial.EtcdGrove.appsv1.DaemonSet.DeepCopyObject.wp_proof
+trunc Perennial.EtcdGrove.context.WithTimeoutBackgroundMd.wp_proof
+trunc Perennial.EtcdGrove.context.WithValue.wp_proof
+trunc Perennial.EtcdGrove.corev1.Node.DeepCopyObject.wp_proof
+trunc Perennial.EtcdGrove.corev1.Pod.DeepCopyObject.wp_proof
+trunc Perennial.EtcdGrove.etcd_noRefusal
+trunc Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof
+trunc Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof
+trunc Perennial.EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
+trunc Perennial.EtcdGrove.lease.NewLessor.wp_proof
+trunc Perennial.EtcdGrove.metadata.AppendToOutgoingContext.wp_proof
+trunc Perennial.EtcdGrove.proto.MarshalAppendPb.wp_proof
+trunc Perennial.EtcdGrove.proto.MarshalPb.wp_proof
+trunc Perennial.EtcdGrove.rafthttp.Transport.ActiveSince.wp_proof
+trunc Perennial.EtcdGrove.snap.NewMessage.wp_proof
+trunc Perennial.EtcdGrove.storage.OpenBackend.wp_proof
+trunc Perennial.EtcdGrove.traceutil.Tracer.Start.wp_proof
+trunc Perennial.EtcdGrove.tracing.Start.wp_proof
+trunc Perennial.EtcdGrove.withVersion.wp_proof

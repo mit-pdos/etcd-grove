@@ -32,9 +32,9 @@ theorem apply.NewUberApplier.wp_proof
     (hR : apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG)) :
     apply.NewUberApplier.spec (GF := GF) (hG := hG) := by
   intro opts T z Hbuq
-  wp_start as ⟨#HGet, HT⟩
+  wp_start as ⟨#HGet, HT, #Hlg⟩
   wp_auto
-  wp_apply (hN opts Hbuq) $$ [] as %base ⟨#Hshape, #Hbase, #HbAuth⟩
+  wp_apply (hN opts Hbuq) $$ [$Hlg] as %base ⟨#Hshape, #Hbase, #HbAuth⟩
   ihave ⟨Hu, %Hun⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hu
   ipersist lg

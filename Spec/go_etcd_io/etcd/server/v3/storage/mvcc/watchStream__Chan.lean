@@ -1,9 +1,10 @@
 /-
-`watchStream.Chan` (watcher.go). Lean-first (no Rocq counterpart); see `InvWatchStream.lean`.
+`watchStream.Chan` (watcher.go). Lean-first (no Rocq counterpart); see `InvWatchStream.lean` and the
+mvcc API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -21,13 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`ws.Chan()`**: the stream's channel (receive-only), with the store's facts of it: the
-channel in the stream's `ch` field (read-only for good). -/
+/-- **`ws.Chan`**: the API's contract at `*watchStream` (`mvcc.api.WatchStream.Chan.contract`,
+`Spec/.../mvcc/Api.lean`; stage 2 of the mvcc API, 2026-11-05: the stream's internal spec replaced
+by the API's, strict M1). -/
 abbrev mvcc.watchStream.Chan.spec : Prop :=
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames),
-  {{ mvcc.isWatchStream ws wa P γ }}
-    (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Chan")) (Val #()))
-  {{ (ch : GoChan), RET #ch; P.C ch ∗ ws.[watchStream, go!"ch"] ↦□ ch }}
+  ∀ w : Loc, mvcc.api.WatchStream.Chan.contract (GF := GF)
+    (go.GoType.PointerType watchStream.ty) #w
 
 end spec
 

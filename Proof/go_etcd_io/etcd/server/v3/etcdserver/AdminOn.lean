@@ -131,12 +131,14 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 `P`; the permission of an admitted admin request is its client's update of the auth history,
 `reqPropOkM_true_admin`): (5b) `□ Hh`, which gives that update (`histAu`, at the server's header
 bound for `ctx`) for the request proposed (`authRaftOk_on`'s `hh`; `UserAdd`'s for every model of
-its request). -/
+its request). (Sweep repairs 1, B2) The context's start time is a time (`context.startTimeOk`), and
+(premise-fixes-8) its library values are well formed (`context.libCtxOk`). -/
 def adminPreOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (Hh : IProp GF) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
     isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-    context.isContext ctx cd ∗ mvcc.idxCert E.γ.idx F ∗ □ Hh)
+    context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗
+    srvApi.kvLogLb E.γs F ∗ □ Hh)
 
 /-- **An admin request's client update of the auth history, at the server's header bound for
 `ctx`** (persistent; 5b): `histAu` with `Gb` the bound the server stamps a header under
@@ -224,7 +226,21 @@ theorem dispatchAnswer_admin (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool
   cases apply.dispatchKind rq <;> intro hT <;> simp only [adminRespTy, reduceCtorEq] at hT <;>
     (cases hT; iintro ⟨%r, %h⟩; isplitl
      · iexists r; ipureintro; exact h
-     ipureintro; exact ⟨r, h⟩)
+     ipureintro; exact ⟨r, h.1⟩)
+
+omit package_sem in
+/-- **Without an error, `dispatch`'s answer to an admitted admin request is not `nil`** (a fresh
+response). -/
+theorem dispatchAnswer_admin_nn (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
+    (tr : Loc) (o : apply.Outcome) (T : go.GoType) (l : Loc)
+    (hT : adminRespTy (apply.dispatchKind rq) = some T) :
+    apply.dispatchAnswer (GF := GF) rq log skip (interface.mkOk (go.GoType.PointerType T) #l)
+      GoInterface.nil tr o ⊢ ⌜l ≠ null⌝ := by
+  unfold apply.dispatchAnswer
+  revert hT
+  cases apply.dispatchKind rq <;> intro hT <;> simp only [adminRespTy, reduceCtorEq] at hT <;>
+    (cases hT; iintro ⟨%r, %h⟩; ipureintro
+     rw [apply.mkOk_ptr_inj _ _ _ h.1]; exact h.2 rfl)
 
 /-- **The Auth entry points' contract, in the mode `on`** (see the file header): for an admitted
 admin request (`adminRespTy`, `adminPropOk`), `raftRequest.spec` with auth on is `authRaftOk` over
@@ -243,7 +259,7 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
   iunfold authRaftOk
   iintro %p !> %Φ ⟨HP, Hirr, Hh⟩ HΦ
   iunfold adminPreOn at HP
-  icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #HF, #Hhh⟩
+  icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Hspc, #Hst, #HF, #Hhh⟩
   ihave %hon := isServerReqM_authOn true s E ρ $$ Hsrv
   have hRR := hRR s E ρ
   rw [hon] at hRR

@@ -117,6 +117,7 @@ theorem KV.Read.wp_proof
   wp_apply +noauto wp_node_ReadIndex n γr.cluster kvRaftN id b cx
     (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) context.backgroundCtxVal
     bgCd $$ [$Hraftinit $HisNode $Hbg $Hb $Hrc] as %err -
+  · ipureintro; intro b h; simp [Hmd] at h
   -- the answer: a read state of the context, and the value after a committed log at least that
   -- long; the read took effect at a committed log that long (`readStateOk_ctx`), whose
   -- requested entries extend `l0`'s

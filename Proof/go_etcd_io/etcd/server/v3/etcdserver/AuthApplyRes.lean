@@ -45,7 +45,7 @@ what publication takes, `authPublishM`.) `NewServer.specM`'s construction hands 
 thread (`applyBuiltNA`, then `srvApplyKV`). -/
 def authApplyRes (M : auth.AuthMode) (stl : Loc) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : val) (T : auth.AuthBkNames)
+  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : auth.AuthBkNames)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
       auth.authWBackendOk be (.on γa) P f (auth.authWTok T) ∗ auth.authWHeld γa T ∗
       (∃ K : IProp GF, auth.authBkLife γa T K) ∗ auth.authPubTok γa ∗
@@ -65,7 +65,7 @@ server's start, the store's history `[bootState, bump bootState]` (`authStoreKit
 `bump bootState`, `srvAuthSt0`). -/
 def authApplyResAt (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : val) (T : auth.AuthBkNames)
+  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : auth.AuthBkNames)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
       auth.authWBackendOk be (.on γa) P f (auth.authWTok T) ∗ auth.authWHeld γa T ∗
       (∃ K : IProp GF, auth.authBkLife γa T K) ∗ auth.authPubTok γa ∗

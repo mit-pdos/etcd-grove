@@ -53,8 +53,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
-    | "Debug" => (wp_apply hDebug hlg _ _ $$ []; (iframe #; ipureintro; exact Hhvok.1))
+    | "Warn" => (wp_apply hWarn hlg _ _ $$ []; (iframe #))
+    | "Debug" => (wp_apply hDebug hlg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -92,7 +92,7 @@ local macro "stream_rest" : tactic => `(tactic| (
   iintro -
   · -- not removed (no member is: `netRaftOk`'s `IsIDRemoved`): the peer
     (try wp_auto)
-    rw [Hhvok.2.2]
+    rw [Hhvok.2]
     (try wp_auto)
     ihave #HG1 := HGet $$ %rid
     wp_bind (App (Val #(methods gi.ty go!"Get" gi.v)) (Val #rid))
@@ -124,7 +124,7 @@ local macro "stream_rest" : tactic => `(tactic| (
         · iframe Hsl
           ipureintro
           refine ⟨Hrmem, ?_, Hrurls⟩
-          rw [← Hhvok.2.1, ← Hhost]; exact Hrne
+          rw [← Hhvok.1, ← Hhost]; exact Hrne
         inext
         iintro -
         (try wp_auto)
@@ -172,7 +172,7 @@ local macro "stream_rest" : tactic => `(tactic| (
           iframe #
           iframe Hw
           isplitr
-          · ipureintro; exact ⟨Hhost ▸ Hhvok.2.1, Hhost, Hpath⟩
+          · ipureintro; exact ⟨Hhost ▸ Hhvok.1, Hhost, Hpath⟩
           iunfold closeRight
           iexists _
           isplitr
@@ -234,7 +234,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
   intro Rh a γd Rs h wi r R γk rd Hhost Hnp
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd %hfl HRs
   iunfold streamHandlerOk at Hh
-  icases Hh with ⟨%hv, %gi, #Hhv, %Hhvok, #HtrID, #Hraft, #HGet, #HAddR, #HPfx⟩
+  icases Hh with ⟨%hv, %gi, #Hhv, #Hhvlg, %Hhvok, #HtrID, #Hraft, #HGet, #HAddR, #HPfx⟩
   iunfold netRaftOk at Hraft
   icases Hraft with ⟨%ri, %Hri, -, #HIR, -, -⟩
   obtain ⟨hlg, htr, hpg, hr, hid, hcid⟩ := hv
@@ -300,7 +300,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
     rw [http.hdrGet_hdrSet_eq]
     exact semver.semverValid_simple _ (by decide)
   -- the header check
-  wp_apply hCheck hlg hid hcid hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
+  wp_apply hCheck hlg hid hcid hm R.hdr $$ [$Hhs $Hhvlg] as %rv Hrv
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, -⟩

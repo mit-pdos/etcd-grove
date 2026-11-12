@@ -59,6 +59,8 @@ theorem emptyState_hsRO :
   isplitr
   · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   unfold pbMsg pbN
+  isplitr
+  · ipureintro; exact Or.inl rfl
   iexact Hpb
 
 /-- The getters of a `nil`-or-read-only hard state. -/

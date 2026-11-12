@@ -31,9 +31,9 @@ theorem EtcdServer.requireAuthInfo.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG)) :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) := by
   intro s E ctx cd
-  wp_start as ⟨#Hau, #Hctx, HRD⟩
+  wp_start as ⟨#Hau, #Hctx, #Hlib, HRD⟩
   iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
+  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
   iunfold apply.isAuthStore at Hast
   icases Hast with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
   subst Hai

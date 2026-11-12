@@ -211,7 +211,8 @@ theorem rafthttp.Transport.Start_full
     (Rm : w64 → IProp GF) (uvs : List net.url.URL) (L : List w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         t ↦ tv ∗
-        ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
+        zapLoggerOk tv.Logger' ∗
+        ⌜tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
           tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
         trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
         tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
@@ -225,9 +226,9 @@ theorem rafthttp.Transport.Start_full
         ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
           trLive γn t c [] ∗
           [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c }} := by
-  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HrPool⟩
+  wp_start_folded as ⟨Ht, #Hlgz, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HrPool⟩
   iStructNamed Ht
-  obtain ⟨Hlgnn, Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls⟩ := Hpre
+  obtain ⟨Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls⟩ := Hpre
   iapply wp_fupd
   wp_apply (rafthttp.Transport.Start_core hNSRT hNRT hNewProber hEvery (raftHttpNet (netRh γn)) t
       tv.TLSInfo' tv.DialTimeout' (DFrac.own 1) (DFrac.own 1) tv.streamRt' tv.pipelineRt'
@@ -318,7 +319,7 @@ theorem rafthttp.Transport.Start_full
         tv.ErrorC', srt, prt, drf, pp, sp
       simp only [netRh]
       iframe #
-      ipureintro; exact ⟨Hlgnn, Hlsnn, Hssnn, Hmem, Hturls⟩
+      ipureintro; exact ⟨Hlsnn, Hssnn, Hmem, Hturls⟩
     isplitr
     · iunfold trProbers
       iexists pp, sp

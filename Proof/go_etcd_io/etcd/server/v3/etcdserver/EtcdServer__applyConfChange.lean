@@ -276,19 +276,22 @@ local macro "succ_tail" : tactic => `(tactic| (
   ihave #HbeSave : membership.beSaveOk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
       («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m)
-      iprop(Pre ∗ (Q ={⊤}=∗ E.P ∗ Post) ∗ mvcc.storeWT E.γ ∗ mvcc.storeRT E.γ ∗
+      iprop(Pre ∗ (Q ={⊤}=∗ E.Pk d ∗ Post) ∗ apply.bkWT d ∗ apply.bkRT d ∗
         backend.rbPart d.γB membership.clusterBkts rs.bk)
-      iprop(Post ∗ mvcc.storeRT E.γ ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
+      iprop(Post ∗ apply.bkRT d ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
         (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) $$ []
   · iunfold membership.beSaveOk
     iintro !> %Φ' !> ⟨⟨Hp, Hu, Hw, Ht, Hb⟩, Hmm⟩ HΦ'
-    wp_apply (hSave mbl lgm E.γ d E.P E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) (mvcc.lateWD d) Pk Hkb (Or.inl (Or.inl rfl)) Hmem)
+    wp_apply (hSave mbl lgm d (E.Pk d) E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) W (Or.inl (Or.inl rfl)) Hmem)
       $$ [Hp Hu Hw Ht Hb Hmm] as ⟨Hpo, Ht, Hb, Hmm⟩
     · iframe #; iframe
       isplitr
       · ipureintro; exact Hlgmnn
-      iunfold mvcc.csContract
+      isplitr
+      · ipureintro; exact Hfnn
+      iunfold srvApi.csContractA
       iframe Hp Hu
+      rw [mvcc.api.hookRun, if_neg Hfnn]
       iexact Hhook
     iapply HΦ'
     iframe
@@ -302,14 +305,12 @@ local macro "succ_tail" : tactic => `(tactic| (
   ihave Hrb := backend.rbOwnIn_part (GF := GF) _ _ _ $$ Hrb
   wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
-    iprop(Pre ∗ (Q ={⊤}=∗ E.P ∗ Post) ∗ mvcc.storeWT E.γ ∗ mvcc.storeRT E.γ ∗
+    iprop(Pre ∗ (Q ={⊤}=∗ E.Pk d ∗ Post) ∗ apply.bkWT d ∗ apply.bkRT d ∗
       backend.rbPart d.γB membership.clusterBkts rs.bk)
-    iprop(Post ∗ mvcc.storeRT E.γ ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
+    iprop(Post ∗ apply.bkRT d ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
       (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) (rcStatic_insert _ _) (Hsz hty0)) $$ [Hcm Hm Hbef Hpre Hupd Hwt Hrt Hrb]
     as ⟨Hbef, Hpost⟩
   · iframe #; iframe
-    isplitr
-    · ipureintro; exact Hclgnn
     try simp only [↓reduceIte]
     iframe #
     iframe
@@ -500,13 +501,13 @@ theorem EtcdServer.applyConfChange.wp_proof
     clear Hv3p Hloc
     obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
         membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
-    wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hcl, #Hclg, %Hclgnn, #Hcid, Hcc, Hcs, #Hbh, #Hbhi, #Htr, #Hmid,
+    wp_start as ⟨#Hlg, #Hlgnn, Hlr, #Hcl, #Hclg, #Hclgnn, #Hcid, Hcc, Hcs, #Hbh, #Hbhi, #Htr, #Hmid,
       Hmr, HRS⟩
     try wp_method_call
     try wp_call
     wp_auto
     wp_apply hLogger $$ [Hlr] as ⟨-, Hlr⟩
-    · iframe #; iframe; ipureintro; exact Hlgnn
+    · iframe Hlg; iframe #; iframe
     rw [HRO]
     iunfold srvRestOwnH at HRS
     iunfold srvRestOwn at HRS
@@ -585,8 +586,6 @@ theorem EtcdServer.applyConfChange.wp_proof
       iprop(True) iprop(True) (rcStatic_insert _ _) (Hsz hty0)) $$ [Hcm Hm Hbef]
       as ⟨Hbef, Hpost⟩
     · iframe #; iframe
-      isplitr
-      · ipureintro; exact Hclgnn
       simp only [Bool.false_eq_true, ↓reduceIte]
       itrivial
     try simp only [Bool.false_eq_true, ↓reduceIte]
@@ -656,13 +655,14 @@ theorem EtcdServer.applyConfChange.wp_proof
   obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
       membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
   clear Hdyn Hdv Hloc
-  wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
-    #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hwt, #Hhook, Hupd, Hlens, Hsci, Hpre⟩
+  wp_start as ⟨#Hlg, #Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, #Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
+    #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hwt, ⟨%W, #HisBk⟩, #Hplh, %Hfnn, Hhook, Hupd,
+    Hlens, Hsci, Hpre⟩
   wp_method_call
   wp_call
   wp_auto
   wp_apply hLogger $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe; ipureintro; exact Hlgnn
+  · iframe Hlg; iframe #; iframe
   -- the rest buckets, the members and the cluster's backend field
   subst HγB
   rw [HRO]
@@ -674,7 +674,7 @@ theorem EtcdServer.applyConfChange.wp_proof
   -- (2026-11-02, the backend-auth-split stage) the members' buckets idle, for the read
   icases (clusterBkts_split d.γB rs.bk).1 $$ Hcl with ⟨Hmb, Hcv⟩
   iunfold srvBeRO at HbeRO
-  icases HbeRO with ⟨%Pk, #HisB⟩
+  icases HbeRO with ⟨%gx, %Pk, #HisB⟩
   ihave #Pmem : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -688,7 +688,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 $$ []
   · iunfold membership.beReadOk
     iintro !> %Φ' !> ⟨Hmb, Hpl, Htk⟩ HΦ'
-    wp_apply (hRead mbl lgm d (mvcc.lateWD d) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
+    wp_apply (hRead mbl lgm d (mvcc.api.mvccW gx) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
       as %mp %rp ⟨Hpl, Htk, Hmb, Hmr, Hrm⟩
     · iframe #; iframe; ipureintro; exact Hlgmnn
     iapply HΦ'
@@ -702,15 +702,10 @@ theorem EtcdServer.applyConfChange.wp_proof
   · iPkgInit
   ihave #Pstor : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
-  -- the hook's facts, from the uber applier's options
-  ihave #HhookOk : mvcc.hookOk E.γ E.P E.f $$ []
-  · iunfold apply.applierFor at Happ
-    icases Happ with ⟨%up, %uopts, -, #Hui⟩
-    iunfold apply.uberIs at Hui
-    icases Hui with ⟨-, #Hbo, -⟩
-    iunfold apply.backendOptsOk at Hbo
-    icases Hbo with ⟨-, -, #Hh, -⟩
-    iexact Hh
+  -- the backend at the batch lock `E.Pk d` and its frozen hook `E.f` (R8: the caller's, in place of
+  -- `mvcc.hookOk` from the uber applier), the hook's triple
+  rw [mvcc.api.hookRun, if_neg Hfnn]
+  icases Hhook with #Hhook
   wp_apply (hValid cl cc (DFrac.own 1) (DFrac.own 1) m true
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
     iprop(backend.rbOwnIn d.γB membership.memberBkts rs.bk ∗ backend.bkRPool d.γB d.P d.be ∗
@@ -750,7 +745,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       iintro %fsl ⟨-, -⟩
       wp_auto
       wp_apply hError $$ []
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       icases ownConfChange_nodeId_acc cc m $$ Hcc with ⟨%pn, HN, Hcc⟩
       wp_auto
       ipersist «$r0»

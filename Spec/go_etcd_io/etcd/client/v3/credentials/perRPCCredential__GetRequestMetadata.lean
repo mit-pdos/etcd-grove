@@ -25,7 +25,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 /-- `rc.GetRequestMetadata(ctx, s...)` on credentials whose token is `""` or meets `P`
 (`credTokInv`): no error, and a map whose metadata meets `tokMdOk P` (`nil` for `""`, else
-`{"token": t}`). -/
+`{"token": t}`). It does not read `ctx` (`credentials.go:69-77`: it reads the token under the
+credential's lock and builds the map; premise-fixes-7 corrected premise-fixes-5's list, which
+counted it among the axioms reading `ctx.Value`), so it takes any context. -/
 abbrev credentials.perRPCCredential.GetRequestMetadata.spec : Prop :=
   ∀ (rc : Loc) (P : GoString → IProp GF) (ctx : GoInterface) (sl : GoSlice),
   {{ credTokInv (GF := GF) rc P }}

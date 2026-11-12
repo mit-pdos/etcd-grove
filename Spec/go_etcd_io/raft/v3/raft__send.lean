@@ -132,6 +132,8 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
      out = [absMsgFrom ty m id s.term ents ctx])
   ∨
   ((m.Type' = MsgSnap ∧
+    -- (raft-entsize [r3c], 2026-11-09) no entries and no context (`SentMsgShape`)
+    ents = [] ∧ ctx = [] ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
     -- (2026-10-19, D21 M3) not in the no-snapshot mode
@@ -247,8 +249,10 @@ abbrev raft.send.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (D22 S-b′3; U8 v2: valid or received, as the node's storage names pin it, `tsSrc`) a
-      -- `MsgSnap`'s snapshot certified (`tsSrc_ne` for any other type)
-      "#Hsrc" ∷ tsSrc s.gh.sn m.Type' sn }}
+      -- `MsgSnap`'s snapshot certified; (raft-entsize §2, 2026-11-09) and its top-level unknown
+      -- fields none (`snapUfT`: the literal's `pbMsg`, `msgOwn_lit_uf`), which the outbox keeps
+      -- (`msgQ`) for the content a `Ready` hands out (`tsSrcU_ne` for any other type)
+      "#Hsrc" ∷ (tsSrc s.gh.sn m.Type' sn ∗ snapUfT ml m.Type') }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 

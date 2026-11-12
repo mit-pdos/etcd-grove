@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -38,7 +39,7 @@ the mode; the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec). -/
 abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAuthAt s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
+      srvAuthAt s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode (GoInterface.ok ctx) err }}

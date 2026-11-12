@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "LinuxFs", "SpecPlan"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt"]
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "84d5380639a38f56cd517f1e81246fad7be5b21b"
+rev = "ddc0f0acc59a5730ad109be9ecfc4a485dcc4ea0"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -45,6 +45,17 @@ globs = ["RaftWitness.+"]
 name = "PorcupineDag"
 globs = ["PorcupineDag.+"]
 
+# The spec plan (notes/specs-only/README.md): intermediate specs for all of etcd over opaque
+# predicates, without proofs, judged against the Go requirement snippets of examples/specreq/; the
+# real proofs (Spec/, Proof/) converge toward them (CLAUDE.md, "The spec plan and convergence").
+# SpecPlan/Spec/<pkg>/, modules SpecPlan.Spec.*: it imports only the shared translations
+# (GeneratedProof, GooseLang) and Perennial, and nothing outside it imports it (its namespaces are
+# the main tree's). A default target (3238 modules, about 2h20m of CPU, measured 2026-11-12);
+# etc/specs-build.sh builds a few of its modules.
+[[lean_lib]]
+name = "SpecPlan"
+globs = ["SpecPlan.+"]
+
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest
 # into a parallel tree with the same layout (Bbolt/{Code,GeneratedProof,Spec,Proof}/): the main
@@ -54,6 +65,17 @@ globs = ["PorcupineDag.+"]
 [[lean_lib]]
 name = "Bbolt"
 globs = ["Bbolt.+"]
+
+# The per-byte Linux file extension's `os`, `syscall`, `golang.org/x/sys/unix`, `io/fs` and their
+# models (`GooseLang/Ext/Fs`, notes/fs-semantics-v2.md), with the programs proved over it
+# (examples/osfs/{bboltfs,crashlog,walfs}), in a parallel tree with the same layout
+# (LinuxFs/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
+# bboltfs's part and projects crashlog, walfs): the main tree's `os` is the first extension's
+# (`GooseLang/Ext/OsFs`, real bbolt's), so the two declare the same names; nothing outside LinuxFs
+# imports it. Until real bbolt is ported onto the new extension (branch `bbolt-port-wip`).
+[[lean_lib]]
+name = "LinuxFs"
+globs = ["LinuxFs.+"]
 
 [leanOptions]
 linter.unusedSectionVars = false

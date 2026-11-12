@@ -495,6 +495,33 @@ def bootURLsOk (bootLog : List EntryM) : Prop :=
   (∀ mm ∈ bootMembers bootLog, ∀ u ∈ mm.peerURLs, utf8Valid u) ∧
   (bootMembers bootLog).Pairwise fun a b => ∀ u ∈ a.peerURLs, u ∉ b.peerURLs
 
+/-- **The bound on a boot entry's data** (raft-entsize, [r3a'], 2026-11-09): `2 ^ 27` bytes, under
+the cluster's `maxData` (`2 ^ 30`) with room to spare. -/
+@[word_unfold] def bootCtxMax : Nat := 2 ^ 27
+
+/-- **The boot log's entries are small** (raft-entsize, the user's decision of 2026-11-09, [r3a']):
+every entry of the bootstrap log `bl` has data of at most `bootCtxMax - 64` bytes. It bounds the
+boot entries themselves, not their contexts: an entry's data is tied to its context only through
+`MarshalsConfChange`, an opaque encoding that bounds no length. True of every real deployment (a
+boot entry is `ConfChange{0, id, ctx, 0}` with `ctx` a member's JSON, 81 bytes by default, H6). -/
+def bootDataOk (bl : List LogEntry) : Prop := ∀ e ∈ bl, e.data.length + 64 ≤ bootCtxMax
+
+/-- **A bootstrap's results, as Go computes them**, for the peers `ps` with the contexts `ctxs`
+and the bootstrap log `bl` (raft-entsize, [r3a], 2026-11-09): the log is the node API's `BootLog`,
+each entry a conf change of id `0` that the server's `applyConfChange` takes (`ccBootOk`), the boot
+members' peer URLs valid UTF-8 and pairwise disjoint (`bootURLsOk`), the peers' 16 low bits
+distinct and not `0` (D21e (A)), and the entries small (`bootDataOk`). What every example's
+`BootFacts` and the server's cluster allocation take. -/
+structure BootCore (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
+  boot : BootLog ps ctxs bl
+  cc : ∀ e ∈ LogEntry.toEntries bl 0,
+    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
+  urls : bootURLsOk (LogEntry.toEntries bl 0)
+  lowNodup : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup
+  lowNz : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0
+  /-- the one bound on the boot log (`bootDataOk`) -/
+  data : bootDataOk bl
+
 /-- **The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes** (D43 M5d). -/
 def ccPolOk (γ : SrvRaft) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOkR γ m
@@ -762,7 +789,12 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     -- what puts a snapshot `Ready` past `boot` (`readySnap_bootLen`)
     ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝ ∗
     -- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs (`bootURLsOk`)
-    ⌜bootURLsOk γ.raft.boot⌝)
+    ⌜bootURLsOk γ.raft.boot⌝ ∗
+    -- (raft-entsize §2, 2026-11-10) the cluster's bound on proposed data, `2^30` (`cluster_alloc`'s
+    -- `md`): what the node API's size premises (`Propose`'s data, `ReadIndex`'s context,
+    -- `stepIn_intro`'s received message) are checked against; until then (2026-11-09, interim)
+    -- `maxData = none`
+    ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
@@ -783,6 +815,13 @@ def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
   unfold srvRaftLogInv; infer_instance
+
+/-- (raft-entsize §2, 2026-11-10) The server's cluster bounds proposed data at `2^30`. -/
+theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ := by
+  unfold srvRaftLogInv srvClusterOk
+  iintro ⟨-, ⟨-, -, -, -, -, -, -, -, -, -, %H⟩, -⟩
+  ipureintro; exact H
 
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by

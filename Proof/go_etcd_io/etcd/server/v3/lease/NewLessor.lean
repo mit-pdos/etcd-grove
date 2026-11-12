@@ -1,7 +1,8 @@
 /-
 The trust boundary: `lease.NewLessor(lg, b, cluster, cfg)` (names-only). Lean-first (no Rocq counterpart); the
 server-construction unit, an axiom since unit N4 (2026-10-17, D14d/D14e): why the statement is
-true of the Go code is in its spec's docstring.
+true of the Go code is in its spec's docstring. (mvccfull's Freeze, 2026-11-10) The same one axiom,
+its spec restated over a `Lease` bucket holding records (until then an empty one).
 -/
 module
 

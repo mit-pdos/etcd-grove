@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -54,8 +55,9 @@ theorem kVClient.Put.wp_proof
   ihave Hblank : pbPutResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbPutResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Put" pbPutRequest pbPutResponse Spec (putReqOp req k v) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/Put" pbPutRequestT pbPutResponseT pbPutRequestT_reg pbPutResponseT_reg Spec (putReqOp req k v) Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbPutRequestT, pbPutResponseT] at hI
   rw [show (pbPutRequest (GF := GF)).ty = etcdserverpb.PutRequest.ty from rfl,
     show (pbPutResponse (GF := GF)).ty = etcdserverpb.PutResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre
@@ -64,7 +66,7 @@ theorem kVClient.Put.wp_proof
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', %k', %e', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', Hm, -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto
     iapply HΦ

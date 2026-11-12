@@ -3,7 +3,8 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadCbC
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -38,19 +39,28 @@ revision `crev` (`s.compactMainRev`, read under both locks, `firstRev`; fixed un
 `-1`); the reader's tag `Z` (persistent) is carried to `End`. The readers' statement (a store
 never compacted, `storeReader`: `crev = -1`) is `specR`, a corollary (`spec_R`, `ReaderSpecs.lean`). A caller lending a fraction of the committed log's authority
 (`logLent`, unit W-K) learns the log read is the one it names. 
-The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02). -/
+The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02).
+(Stage 2 of the mvcc API, 2026-11-05) the caller's read callback (`readCb`) runs at the read, under
+`s.revMu`, with its slot of the API's view at the log read: a read's update fires there (§3); its
+result `F log` is returned. (M4, track B, 2026-11-06) The callback is given the compaction revision
+too (`readCbC`: the slot's, which is the transaction's), and its result `F log crev` returned. The
+transaction is returned without its trace (`isTxnReadT` at `True`), the trace given back (the API's
+`KV.Read` returns the caller's `ownTrace trace te` itself). (Track A, request 3, 2026-11-06) The
+reader under a later (its first step strips it: a pool's loan, `rdSupply`, is under one). -/
 abbrev mvcc.store.Read.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)
-    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)),
+    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → Int → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa }}
+      mvcc.isStore s γ ∗ ▷ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
+      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa ∗
+      mvcc.readCbC γ F }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
+      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnReadT mw s γ trace log rev crev Z iprop(True) ∗
+        traceutil.ownTrace trace te ∗
         ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ mvcc.certOk γ log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
-        ⌜∀ q L, oa = some (q, L) → log = L⌝ }}
+        ⌜∀ q L, oa = some (q, L) → log = L⌝ ∗ F log crev }}
 
 end spec
 

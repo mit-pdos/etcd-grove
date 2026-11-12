@@ -115,6 +115,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
 
 @[expose] public section
 
@@ -164,7 +165,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
-  ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  ρ.rd.kv.log0 = [[], []] →
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = cmp →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -190,6 +191,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   (cmp = true → on = false) →
   -- the stand-in's mode the server's (`envAgree`'s `E.γ.cm = E.cmp` reads it off the post)
   E₀.cmp = cmp →
+  -- (R8, 2026-11-07) the stand-in's KV witness the server's at the read names (`srvKVInvsM`'s
+  -- `E.Nx = kvNxM on ρ.rd`, `srvApi.kvNx` per mode, which `envAgree`'s `E.Nx = E₀.Nx` reads off the post)
+  E₀.Nx = srvApi.kvNx ρ.rd on →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
   -- 2026-11-01, the user's decision: `2 ^ 28` (until then `2 ^ 31`), the transport's pool of `lgMu`
   -- reader slots, a thread pool, having `2 ^ 28` of them; the backend-auth-split stage, 2026-11-02:
@@ -229,8 +233,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- premise at the mode `m` (`lease.bootCfg`, `LeaseApi.lean`): the KV names' grant flag the mode's,
   -- with auth on no lease granted (lease-grant 2.13), in a granting cluster no lease expiring (and
   -- until the lease-expiry plan's S2–S4, 2026-11-05, the open cases, `srvGrantOpen`; lease-grant
-  -- D2), and the lessor's checkpointer's effects
-  -- (`ckptEffectsOk`, `NewLessor`'s premise; D14e, unit N4); until then inline here
+  -- D2); until 2026-11-12 also the lessor's checkpointer's effects (the opaque `ckptEffectsOk`,
+  -- `NewLessor`'s premise; D14e, unit N4), deleted: no checkpointer is installed (`Hlcp`), so it
+  -- covered no call
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
   -- (2026-11-03, the whole-`bootOk` review, A and C) what `bootstrap`'s contract asks: the
   -- configurations it covers (`bootCfgOk`, `bootCfgFresh`: a mappable quota, a batch
@@ -245,6 +250,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- for the pooled readers of the next stage
       "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
+      -- (stage B3, 2026-11-12) the lease checkpointer off: `NewServer` installs none, so `le.cp`
+      -- stays nil (`NewLessor.spec`, `lease.lessor.Renew.spec`); `NewDefaultServerFeatureGate` gives it
+      "#Hlcp" ∷ featureIs cfg.ServerFeatureGate' go!"LeaseCheckpoint" false ∗
       -- `bootstrap`'s contract (D13b)
       -- (M2's item 15, stage B3) at `N` write tokens in both modes (until then `N + N` in
       -- compaction mode, `N` more for the compaction's own stock, `srvCmpStock`)
@@ -273,15 +281,18 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
-      "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
-      "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      -- (strict M1, 2026-11-06, the draft's `newServerStoreFreshA`) the server's names of the
+      -- store's state fresh (until then mvcc's `idxFresh E₀.γ.idx`), and the KV certificates' map
+      -- the read names' (until then the store's, `ρ.rd.kv.cok = E₀.γ.cok`)
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
@@ -296,7 +307,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`)
       "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the auth store's record
-      -- bound (the lessor's checkpointer's effects: `lease.bootCfg`)
+      -- bound (until 2026-11-12 also the lessor's checkpointer's effects, through `lease.bootCfg`)
       "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       -- (D22 S-j2, 2026-10-20; an environment assumption the user approved) bbolt's `Open`
@@ -310,7 +321,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- snapshot backend
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Hns" ∷ rnNewStorageOk ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
@@ -322,6 +333,9 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
+          -- (per-type stage B2, 2026-11-11, r5 §4.2) the raw serving stocks: the revocation's built
+          -- part, the gRPC run pool's store tokens with `bemu` slots
+          srvServeStock srv E ∗
           srvWatchBuilt srv E ∗
           -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
           -- directory entry are in the built part (`srvSnapBoot`'s `srvSnapRes`)
@@ -331,8 +345,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
           srvBuildGap srv γrn (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
-          -- watchable store, the progress interval's field, and the request slots
-          srvServeBuilt srv E cfg 64 ∗
+          -- watchable store, the progress interval's field, `v3rpc.Server`'s `bemu` slot and
+          -- `Start`'s two `lgMu` slots (until per-type stage B3, 2026-11-11, also 64 request slots:
+          -- the gRPC runs borrow the run pools, `srvRunPool`)
+          srvServeBuilt srv E cfg ∗
           -- (D19i part 2) the storage version monitor's backend access
           srvSVRes srv E ∗
           -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
@@ -346,9 +362,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- `MendPeer`) and what each request the handler serves borrows (`http.Serve`)
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-          -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
-          -- service's run slots (`v3rpc.watchRunSlot`)
-          srvWatchReaders srv E 64 ∗
+          -- (until per-type stage B3, 2026-11-11, also 64 of the store's reader tokens for the
+          -- watch service, `srvWatchReaders`: the watch loops borrow the run pool)
           -- (2026-11-04, the lease-expiry plan's Part C; the slot convention) the lease
           -- subsystem's part (`lease.srvInv`, `LeaseApi.lean`): with auth on its lessor finding no
           -- lease (E3zb, lease-grant D1), the peers' round tripper and the lessor's reader side (K7),

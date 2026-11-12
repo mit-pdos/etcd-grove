@@ -37,7 +37,7 @@ theorem v3rpc.newHealthNotifier.wp_proof
     (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG)) :
     v3rpc.newHealthNotifier.spec (GF := GF) (hG := hG) := by
   intro hs s lg fg
-  wp_start as ⟨%Hhs, #Hh, #Hlg, %Hlgn, Hlr, #Hfg, #Hgate⟩
+  wp_start as ⟨%Hhs, #Hh, #Hlg, #Hlgn, Hlr, #Hfg, #Hgate⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   wp_auto
@@ -45,16 +45,16 @@ theorem v3rpc.newHealthNotifier.wp_proof
   · contradiction
   (try wp_auto)
   wp_apply (hLogger s lg) $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
+  · iframe; iframe #
   (try wp_auto)
-  wp_apply (hFE s fg _) as %b -
+  wp_apply (hFE s fg _ none) as %b -
   · iframe #; ipureintro; simp [serverFeatures]
   (try wp_auto)
   iStructNamed «$r0»
   ipersist hs
   ipersist lg
   wp_apply (hStart «$r0_ptr» _ lg)
-  · iframe #; ipureintro; exact Hlgn
+  · iframe #
   (try wp_auto)
   iapply HΦ
   iframe

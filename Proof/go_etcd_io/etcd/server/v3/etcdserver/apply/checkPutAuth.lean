@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkPutAuth.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.checkPutAuth.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD on RW ai info dq r o L I
+  intro st le γ Pk f BT RD on RW ai info dq r o L I
   wp_start as ⟨#Hst, #Hle, Hai, Hrd, Hu, #Hr⟩
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
@@ -49,7 +49,7 @@ theorem apply.checkPutAuth.wp_proof
   | nil =>
   wp_auto
   rw [← Hsti]
-  wp_apply (hLP st le γ P f RD on RW ai info dq lease L I) $$ [$Hst $Hle $Hai $Hrd $Hu]
+  wp_apply (hLP st le γ Pk f BT RD on RW ai info dq lease L I) $$ [$Hst $Hle $Hai $Hrd $Hu]
     as %err ⟨Hai, Hrd, Hu, #HeI2, %Hoff2, #Hlc⟩
   cases err with
   | ok e =>

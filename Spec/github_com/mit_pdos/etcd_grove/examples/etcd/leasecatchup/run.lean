@@ -12,7 +12,7 @@ then it panics unless that listing also lists `g1`. Lean-first (no Rocq counterp
 the cluster's named premises (`cluster3.premises` at `clusterCfg`), `run(lg)`, at a logger `lg`
 (not null), returns (some `int`): it does not panic. The cluster runs in the monotone lease mode
 (`StartCluster` at `.mono`), so member 3 registers the grant and the listing at its lessor's history
-(`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of `E₃.γ.leases`, forwarded by its bridge): the grant's
+(`etcdLeaseGrantSpec`, `etcdLeaseLeasesSpec` of `(mvcc.api.mvccLeases E₃.γ)`, forwarded by its bridge): the grant's
 reply carries `g1` granted at an index of member 3's lessor history (`leaseGrantedAt`), and any
 listing of member 3 lists every lease granted there. That a listing still lists `g1` after member 3
 has installed the leader's snapshot is the monotone lessor's (S2–S4's `Recover` premise, `mono → L ⊆
@@ -63,9 +63,10 @@ abbrev run.spec : Prop :=
       ⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot⌝ ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
-      ⌜threadBound GF ≤ 2 ^ 28 ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
+      -- (per-type stage B3) with the levels of a thread token the members' gRPC runs use
+      ⌜threadBound GF ≤ 2 ^ 28 ∧ srvLevels (GF := GF) ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
         N + 7 + bootWB ≤ backend.wbInit⌝ ∗
-      ⌜ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk⌝ ∗
+      ⌜authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk⌝ ∗
       ⌜leasePeersOk ∧ lease.leasesNoExpiry⌝ ∗
       ⌜v3rpc.ServerMethodSets ∧ errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.run)) (Val #lg))

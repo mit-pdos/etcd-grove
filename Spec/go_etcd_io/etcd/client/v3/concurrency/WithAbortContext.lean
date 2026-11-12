@@ -28,7 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 does not record which). -/
 abbrev WithAbortContext.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ context.isContext ctx cs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ context.isContext ctx cs ∗
+      metadata.outgoingCtxOkC ctx }}
     (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.WithAbortContext)) (Val #(GoInterface.ok ctx)))
   {{ (f : GoFunc), RET #f; stmOptSpec f id }}
 

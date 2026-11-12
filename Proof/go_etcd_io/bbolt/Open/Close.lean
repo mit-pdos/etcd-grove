@@ -226,9 +226,9 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
       iintro %sl2 ⟨Hsl2, -⟩
       wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei -
       · iframe
-        simp only [fmt.argsOk]
+        fmt_args_intro
         isplitl
-        · iapply fmtErrorOk_argOk $$ HeS
+        · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
         · itrivial
       try wp_auto
       wp_apply wp_slice_literal
@@ -254,9 +254,9 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         iintro %sl2 ⟨Hsl2, -⟩
         wp_apply hErrorf _ _ _ _ $$ [$Hsl2] as %ei -
         · iframe
-          simp only [fmt.argsOk]
+          fmt_args_intro
           isplitl
-          · iapply fmtErrorOk_argOk
+          · fmt_arg_method; iapply fmtErrorOk_argOk
             iapply fmtErrorOkOrNil_ne (GoInterface.ok _) (fun h => nomatch h) $$ HeC
           · itrivial
         try wp_auto

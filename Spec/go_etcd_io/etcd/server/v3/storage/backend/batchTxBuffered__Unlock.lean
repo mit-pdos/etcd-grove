@@ -41,7 +41,8 @@ of session (question 2, option (a), 2026-10-29: one spec, the readers' view the 
   readers between the two); it gives `W ∗ Pk ∗ Q`, and the logical view stays;
 * **a put session**: it gives the clients' whole view `vd` (the logical view) and `Pk`, and gets the
   view back at `relog P vd st` (its writes over the logical view, keys compaction deleted earlier
-  kept), from which it makes `W ∗ Q`.
+  kept), from which it makes `W ∗ Q`; it deleted no safe-range entry the readers see (`sbKept`;
+  the user's decision, 2026-11-04, probe M2: so the deleted entries stay the logical view's).
 A write-back's budget either way. Not in the hook's window, with room for the commit's hook.
 **A part of the tracked buckets handed in comes back idle** (decision 3, 2026-11-01, Q3:
 `rbPart γ S r` in, `rbOwnIn γ S r` out, for any bucket set `S`, the caller's choice; nothing for `S`
@@ -61,7 +62,7 @@ abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
       bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗ rbPart γ S r ∗
       ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
          ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
-       (∃ vd : VData, bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
+       (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
   {{ RET #(); Q ∗ rbOwnIn γ S r }}
 

@@ -58,7 +58,7 @@ local macro "send_drop" : tactic => `(tactic| (
     | "zap.Bool" => (wp_apply hZBool as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)
   all_goals (
@@ -127,12 +127,13 @@ theorem rafthttp.remote.send.wp_proof
   wp_start as ⟨#Hg, Hpay⟩
   ihave #Hg' := Hg
   iunfold remoteOk at Hg'
-  icases Hg' with ⟨%lg, %ps, %pl, #Hlg, %Hlgnn, #Hlid, #Hpid, #Hps, #Hpsok, #Hpl, #Hph, #Hmu⟩
+  icases Hg' with ⟨%lg, %ps, %pl, #Hlg, #Hlgz, #Hlid, #Hpid, #Hps, #Hpsok, #Hpl, #Hph, #Hmu⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hph' := Hph
   iunfold pipeHandleOk at Hph'
   icases Hph' with ⟨-, %ps', %fs', %r, %id', %γd', %wc, %γ, -, -, -, -, -, #Hmc, #Hb⟩
   iunfold pipeMsg at Hpay
-  icases Hpay with ⟨%st, #Hm, #HP, HO, %Hst⟩
+  icases Hpay with ⟨%st, #Hm, #Hbd, #HP, HO, %Hst⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vSF, #HSF, %HSFl⟩, -⟩

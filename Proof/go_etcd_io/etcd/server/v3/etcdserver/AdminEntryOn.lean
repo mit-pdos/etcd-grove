@@ -26,6 +26,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyNormalOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyRec
 
 @[expose] public section
 
@@ -56,28 +57,26 @@ abbrev adminEntryOn.spec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : apply.AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : apply.IRRModel) (id : w64) (RD : IProp GF)
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (γa : auth.AuthNames)
-    (stl bel : Loc) (T : auth.AuthBkNames) (st : auth.AuthState) (rs : apply.RestM)
+    (stl bel : Loc) (T : auth.AuthBkNames) (Pk : IProp GF) (st : auth.AuthState) (rs : apply.RestM)
     (hs : List auth.AuthState),
-    E.authMode = .on γa → apply.noSideEffect rq = false →
+    E.authMode = .on γa → apply.noSideEffect rq = false → E.Pk = (fun _ => Pk) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-        Perennial.EtcdGrove.apply.uberAdmC ua E (adminWC stl bel γa E.P E.f T)
+        Perennial.EtcdGrove.apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestResC stl (.on γa) T) ∗
-        waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
-        (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
-            (Q ={⊤}=∗ E.P ∗ Post))
-         else iprop(True)) ∗ Pre ∗
-        apply.applyKV E ua x ∗
+        waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
+        apply.bkToks v3 E Pre Q Post ∗ Pre ∗
+        apply.applyKV E ua x ∗ apply.applyTok E ∗
         ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
           apply.dispatchOk E.authOn rq ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
         ⌜x.chain = apply.baseChain E.authOn⌝ ∗
         (auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗ ⌜hs.getLast? = some st⌝) ∗
         auth.authWHeld γa T ∗ auth.tpAdmin stl (.on γa) ∗
-        authWBackendAt bel (.on γa) E.P E.f (auth.authWTok T) ∗
+        authWBackendAt bel (.on γa) Pk E.f (auth.authWTok T) ∗
         roLendsAuthBe E.RO stl bel ∗ E.RO rs ∗ ⧗ 1 ∗ (if v3 then apply.adminExtraG E γa rq hs Pre else iprop(True)) }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
         (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-    {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
+    {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ apply.applyTok E ∗ apply.bkRTOf E ∗
         (if v3 then iprop(Post ∨ Pre) else Pre) ∗
         apply.resultErrOk ar ∗ apply.resTrace ar ∗ ⌜id' = id⌝ ∗
         ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
@@ -140,8 +139,8 @@ theorem adminStateR_authn (rq : apply.IRRModel) (st : auth.AuthState)
 theorem apply_admin_entry_on
     (hAL : Perennial.EtcdGrove.apply.Apply.adminSpecL (GF := GF) (hG := hG)) :
     adminEntryOn.spec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot γa stl bel T st rs hs hM hns
-  iintro %Φ ⟨#Hpkg, #Hsteps, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, %Hprem, %Hch,
+  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot γa stl bel T Pk st rs hs hM hns hPk
+  iintro %Φ ⟨#Hpkg, #Hsteps, #Hwok, HRD, HK, #Hlg, #He, Htoks, HPre, Hkv, Htt, %Hprem, %Hch,
     ⟨Hfu, Htie, %Hl⟩, HT, Htp, #Hwa, #Hro, HRO, Hrc, Hx⟩ HΦ
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hrb⟩ := Hprem
   ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -155,26 +154,36 @@ theorem apply_admin_entry_on
   -- (the auth-on snapshot plan's Prove step) with the token's half of the backend's name
   iunfold auth.authWHeld at HT
   icases HT with ⟨HT, Hbk⟩
-  ihave HW : iprop(adminWC stl bel γa E.P E.f T) $$ [Hbe HT Htp Hbk]
+  ihave HW : iprop(adminWC stl bel γa Pk E.f T) $$ [Hbe HT Htp Hbk]
   · iunfold adminWC
     iframe Hbk
     iunfold adminW
     iframe Htp
-    iapply adminW_of_beOn stl bel (.on γa) E.P E.f (auth.authWTok T)
+    iapply adminW_of_beOn stl bel (.on γa) Pk E.f (auth.authWTok T)
     iframe Hbe Hwa HT
-  iapply (hAL lg e m ua w v3 E Pre Q Post x rq id RD K G ot (adminWC stl bel γa E.P E.f T) γa
+  -- the applier state with the tie's backend's tokens and the contract (`kvOwnPre`)
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hp, Hown, Hkv, Hco⟩
+  ihave Hkp := apply.kvOwnPre_of_toks v3 E x.log Pre Q Post $$ [Hkv Htoks HPre]
+  · iframe Hkv Htoks HPre
+  ihave Hkv : iprop(∃ p : Loc, ⌜ua = interface.mkOk
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty) #p⌝ ∗
+      apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.cmpOwn E x.crev)
+    $$ [Hown Hkp Hco]
+  · iexists p; iframe Hown Hkp Hco; ipureintro; exact Hp
+  iapply (hAL lg e m ua w v3 E Pre Q Post x rq id RD K G ot (adminWC stl bel γa Pk E.f T) γa
       hs (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-      (auth.latestResC stl (.on γa) T) (fun h => ownFuT_lendC stl bel γa E.P E.f T h))
-    $$ [HRD HK Hhook HPre Hkv Hfu Htie Hrc HW Hx]
-  · iframe Hpkg Hsteps Hwok HRD HK He HPre Hkv Hrc HW Hhook Hx
+      (auth.latestResC stl (.on γa) T) (fun h => ownFuT_lendC stl bel γa Pk E.f T h))
+    $$ [HRD HK Hkv Htt Hfu Htie Hrc HW Hx]
+  · iframe Hpkg Hsteps Hwok HRD HK He Hkv Htt Hrc HW Hx
     isplitr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     isplitr
     · ipureintro; exact ⟨Hdec, Hid, Hadm, Hdk, hM, Hrb⟩
     isplitr
     · ipureintro; exact Hch
     iframe Hfu Htie
-  iintro !> %ar %id' ⟨HRD, HPP, #Hok, Htr, %Hid', %x', %out, Hkv, %Hst, %Hlat, Hres, Hwv, HW, Hout,
+  iintro !> %ar %id' ⟨Htt, Hrt, HRD, HPP, #Hok, Htr, %Hid', %x', %out, Hkv, %Hst, %Hlat, Hres, Hwv, HW, Hout,
     #HRE⟩
   have hout : out = .rejected ∨ ∃ o b, out = .dispatched o b := by
     cases out with
@@ -197,7 +206,7 @@ theorem apply_admin_entry_on
   icases HW with ⟨HW, Hbk⟩
   iunfold adminW at HW
   icases HW with ⟨⟨%be, HWbe⟩, Htp⟩
-  ihave ⟨Hbe, HT⟩ := beOn_of_adminW stl bel (.on γa) E.P E.f (auth.authWTok T) be $$ HWbe
+  ihave ⟨Hbe, HT⟩ := beOn_of_adminW stl bel (.on γa) Pk E.f (auth.authWTok T) be $$ HWbe
   ihave HT : auth.authWHeld γa T $$ [HT Hbk]
   · iunfold auth.authWHeld; iframe HT Hbk
   ihave HRO := Hback $$ Hbe
@@ -215,7 +224,7 @@ theorem apply_admin_entry_on
     icases Hown with ⟨Hfu, Htie⟩
     simp only [Bool.false_eq_true, ↓reduceIte] at *
     iapply HΦ
-    iframe HRD HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp
+    iframe HRD Htt Hrt HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp
     isplitr
     · ipureintro; exact Hid'
     isplitr
@@ -244,7 +253,7 @@ theorem apply_admin_entry_on
       icases Hown with ⟨Hfu, Htie⟩
       simp only [↓reduceIte] at *
       iapply HΦ
-      iframe HRD HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
+      iframe HRD Htt Hrt HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
       isplitr
       · ipureintro; exact Hid'
       isplitr
@@ -262,7 +271,7 @@ theorem apply_admin_entry_on
     icases Hown with ⟨Hfu, Htie⟩
     simp only [↓reduceIte] at *
     iapply HΦ
-    iframe HRD HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
+    iframe HRD Htt Hrt HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
     isplitr
     · ipureintro; exact Hid'
     isplitr

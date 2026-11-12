@@ -63,7 +63,7 @@ private def keysPerms (ks : List GoString) : List apply.Perm3 := ks.map (fun k =
 
 theorem apply.checkLeasePutsKeys.wp_proof (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) := by
-  intro st γ P f RD on RW ai info dq l id γl L I
+  intro st γ Pk f BT RD on RW ai info dq l id γl L I
   wp_start as ⟨#Hst, Hai, Hv, Hrd⟩
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit

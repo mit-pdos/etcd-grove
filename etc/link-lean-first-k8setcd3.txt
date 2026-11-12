@@ -16,9 +16,10 @@ rvString: rvBytes
 preOk: rvString
 sameObj:
 validateFor:
-updated:
+splitKey:
+updated: splitKey
 tryUpdateFor: updated
-mcreate: lookup setItem storeKey objOut
+mcreate: lookup setItem storeKey objOut splitKey
 mdelete: lookup delItem notFound preOk invalidObj objOut validateFor
 mupdate: lookup setItem notFound preOk invalidObj objOut updated sameObj
 parseRV:
@@ -28,18 +29,52 @@ isWrite:
 outEqual:
 storeEqual:
 inputEqual:
-configEqual: storeEqual inputEqual
+histLen:
+histEqual: histLen storeEqual
+configEqual: storeEqual inputEqual histEqual
 removeAt:
 addConfig: configEqual
-closure: addConfig mstep removeAt
-step: isWrite mstep outEqual
-etcd3_Model: step addConfig closure configEqual
+appendHist: histLen
+advance: appendHist
+histOf: appendHist
+histAt:
+closure: addConfig mstep removeAt advance
+# (stage 7e-3) the model's list: `mlist`, over the store's list helpers (`@`) and the driver's
+# selectors
+pastRead:
+objLabels:
+getAttrs: objLabels
+fieldSelFor:
+predicate: fieldSelFor
+matchOpt:
+listOptions: matchOpt predicate
+TrimSuffix: @
+keyInScope: TrimSuffix
+fields_Set__Get: @
+labels_Set__Get: @
+labels_Set__Has: @
+labelSel__Matches: labels_Set__Get labels_Set__Has
+labelSel__Empty:
+labelSel__RequiresExactMatch:
+fieldSel__Matches: fields_Set__Get
+fieldSel__Empty:
+fieldSel__RequiresExactMatch:
+SelectionPredicate__Matches: @
+SelectionPredicate__Empty: @
+PrepareKey: @
+PrepareContinueToken: @
+mlist: parseRV pastRead histAt predicate storeKey keyInScope listOptions encodeItems SelectionPredicate__Matches SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs PrepareKey PrepareContinueToken
+step: isWrite mstep outEqual mlist advance
+etcd3_Model: step addConfig closure configEqual histOf
 #
 # the codec, versioner, transformer and decoder (`codec.go`)
-encodeWith:
+putField:
+encodeWith: putField
 encodeObj: encodeWith
 encodeV0: encodeWith
-decodeObj:
+encodeItems: encodeObj rvBytes
+getField:
+decodeObj: getField
 # apimachinery's runtime, with bodies (stage 6c): what the driver's contract rests on (the trust
 # boundary: `bytes.Buffer`'s and `reflect`'s specs, and `conversion.EnforcePtr`)
 Buffer__Bytes:
@@ -52,6 +87,9 @@ runtime_Encode: Buffer__Bytes
 SetZeroValue: EnforcePtr reflect_Value__Type reflect_Zero reflect_Value__Set
 codec__Encode: encodeObj Buffer__Write
 decoder__Decode: decodeObj
+# (stage 7e-2) the list contract's decoder and versioner
+decoder__DecodeListItem: decodeObj
+versioner__UpdateList:
 versioner__UpdateObject:
 versioner__PrepareObjectForStorage:
 versioner__ObjectResourceVersion:
@@ -67,28 +105,43 @@ etcd3_store__Create: @
 etcd3_store__Delete: @
 etcd3_store__GuaranteedUpdate: @
 etcd3_store__Get: @
-errOut:
+# (stage 7e-4) the decided pending hypothesis: the client's List (7e-1's), which the store's
+# GetList result takes
+Client__List: @
+etcd3_store__GetList: @ Client__List
+IsTooLargeResourceVersion: @
+# the trust boundary (stage 7e-2): the list contract's apimachinery and reflect functions (axioms)
+meta_GetItemsPtr:
+reflect_MakeSlice:
+reflect_Copy:
+reflect_Append:
+errOut: IsTooLargeResourceVersion
+listOut: encodeItems
 preconditions:
 cachedObj:
-etcd3_call: errOut objOut storeKey preconditions validateFor cachedObj tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get
+etcd3_call: errOut objOut storeKey splitKey preconditions validateFor cachedObj tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get listOptions listOut etcd3_store__GetList SelectionPredicate__Matches SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs meta_GetItemsPtr reflect_MakeSlice reflect_Copy reflect_Append decoder__DecodeListItem versioner__UpdateList
 newCache:
 cache__get:
 cache__put:
-etcd3_Apply: etcd3_call cache__put
+objOf:
+etcd3_Apply: etcd3_call cache__put objOf
 workloadKeys:
 workloadVals:
 pick:
 uidOf:
 withPre: rvString
 minRV: rvBytes
-genFrom: workloadKeys workloadVals pick uidOf withPre minRV
+workloadNodes:
+workloadApps:
+genList: splitKey storeKey pick workloadNodes workloadApps minRV parseRV
+genFrom: workloadKeys workloadVals workloadNodes workloadApps pick uidOf withPre minRV genList
 etcd3_Gen: cache__get genFrom
 Run: @
 CounterClock: @
 etcd3_Check: Run CounterClock etcd3_Model newCache etcd3_Gen etcd3_Apply
 #
 # the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
-seedOne: storeKey encodeV0 setItem
+seedOne: splitKey storeKey encodeV0 setItem
 seed: seedOne
 etcdstart_StartServer: @
 etcdstart_Serve: @
@@ -96,4 +149,5 @@ kubernetes_New: @
 etcd3_New: @
 NewDefaultLeaseManagerConfig: @
 zap_NewNop:
-etcd3_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue Obj__GetUID Obj__GetResourceVersion etcd3_Check
+noStreaming:
+etcd3_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve kubernetes_New seed noStreaming etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue Obj__GetUID Obj__GetResourceVersion etcd3_Check =mvcc.api.mvccApi_names_nonempty_law_holds

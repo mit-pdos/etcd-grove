@@ -57,7 +57,16 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
   and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
   operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
-  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first;
+  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first.
+  Every decision of an extension's trusted semantics (its `Impl`, and any trace-level assumption
+  a theorem over it takes) has a Go example saying why, in the extension's semantics examples
+  package (the Linux file extension `GooseLang/Ext/Fs`: `examples/osfs/semantics/`, indexed in
+  its `doc.go`): the decision, the Lean names, the outcome allowed or excluded, and the evidence
+  (measured, documented with a citation, or assumed). A change to the semantics adds or updates
+  its example in the same commit. An extension of an OS interface claims one target configuration
+  and nothing wider (the Linux file extension: configuration C, Linux 7.0 and ext4 with its
+  defaults, `notes/axiom-review/fs-config/`); every kernel claim is tested on it, with its
+  helper scripts (`mkfs-mount.sh`, `check.sh`);
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);
@@ -121,6 +130,25 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
   --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
+- `LinuxFs/` is another: the per-byte Linux file extension's `os`, `syscall`,
+  `golang.org/x/sys/unix`, `io/fs`, `internal/poll` and `internal/syscall/unix` (their trusted models
+  over `fsExt`, `GooseLang/Ext/Fs`, and their specs and proofs) and the programs proved over it
+  (`examples/osfs/{bboltfs,crashlog,walfs}`: minibolt, crashlog, walfs). The main tree's `os`, ... are
+  the first extension's (`osFsExt`, `GooseLang/Ext/OsFs`, path-keyed), which real bbolt's proof uses,
+  so the part declares the same names and nothing outside it imports it. Translated by project
+  bboltfs's part and projects crashlog and walfs (`LinuxFs/Code/**.toml`); package initializers by
+  `etc/gen-init.py` (`LFS_PKGS`, and a `PkgInitExt` without raft). Links: `etc/gen-link.py
+  --bboltfs`; trust base: `etc/tcb-collections/linuxfs.txt`. Temporary: once real bbolt is ported
+  onto `fsExt` (branch `bbolt-port-wip`, `notes/bbolt-port-plan.md`), the part becomes the main
+  tree's `os` and the first extension goes.
+- `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
+  etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
+  over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one
+  `def … .spec : Prop` per function and per law, no `theorem`/`axiom`/`sorry`; `SpecPlan/Spec/PkgInit/`
+  is generated (`etc/gen-specs-pkginit.py`, `--check`). It builds (`etc/specs-build.sh`,
+  `etc/specs-build-all.sh`), imports only the shared translations (`GeneratedProof`, `GooseLang`) and
+  Perennial, and nothing outside it imports it (its namespaces are the main tree's). No `Link`/`Results`:
+  the trust-base and verified-code scripts see nothing of it.
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`).
 
@@ -192,6 +220,17 @@ The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what mak
 (yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
 principle; and when the user approves a spec, an example (its first version, each critique with
 what it changed, the approved spec). A fix to the spec itself is not enough.
+
+## The spec plan and convergence
+
+`SpecPlan/`'s specs are judged against the requirement snippets of `examples/specreq/` (Go: what a
+caller relies on is a `panic` on its violation, and each snippet must be provable panic-free from the
+specs), and the snippets against what the real code and its users do. New and reworked specs and
+proofs in `Spec/`/`Proof/` converge toward `SpecPlan/`'s: take its statement (vocabulary, premises,
+post) unless the proof shows it wrong. A spec defect a proof finds goes in the change ledger
+`notes/specs-only/ledger.md` (date, spec, defect, evidence, proposed change, decision) before the spec
+is edited, in `SpecPlan/` or in `Spec/`. `notes/specs-only/README.md` is the plan and its conventions,
+`open-questions.md` its decisions.
 
 ## Bounds
 

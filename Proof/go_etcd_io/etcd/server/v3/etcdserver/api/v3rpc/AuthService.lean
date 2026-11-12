@@ -191,6 +191,38 @@ theorem authWrapOut_admin (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : G
     iintro %He
     exact absurd He Hr.2
 
+/-- **An admin request's answer without an error is a response, not `nil`** (`adminOutOn`'s
+`appliedOkM`, `dispatchAnswer_admin_nn`). -/
+theorem adminOutOn_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (rq : apply.IRRModel) (F : mvcc.Log)
+    (Qh : apply.HeaderModel → List EntryModel → IProp GF) (T : go.GoType) (l : Loc)
+    (hT : adminRespTy (apply.dispatchKind rq) = some T) :
+    adminOutOn s E ρ ctx rq F Qh T l GoInterface.nil ⊢ ⌜l ≠ null⌝ := by
+  iintro H
+  iunfold adminOutOn at H
+  icases H with ⟨-, -, H⟩
+  icases H with (⟨-, %hm, %rq', %L, %Hw, -, Hap, -⟩ | ⟨%He, -⟩)
+  · iunfold appliedOkM at Hap
+    icases Hap with ⟨%x, %x', %o, %skip, -, Hans, -⟩
+    have hT' : adminRespTy (apply.dispatchKind rq') = some T := by rw [Hw.2.2.1]; exact hT
+    iapply (dispatchAnswer_admin_nn rq' x.log skip null o T l hT') $$ Hans
+  · exact absurd rfl He
+
+/-- **The `AuthServer`'s answer to an admin request is not `nil` without an error.** -/
+theorem authWrapOut_admin_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (rq : apply.IRRModel) (Qh : apply.HeaderModel → List EntryModel → IProp GF)
+    (F : mvcc.Log) (T : go.GoType) (resp : Loc) (err : GoInterface)
+    (hT : adminRespTy (apply.dispatchKind rq) = some T) :
+    authWrapOut (adminOutOn s E ρ ctx rq F Qh T) resp err ⊢
+      ⌜err = GoInterface.nil → resp ≠ null⌝ := by
+  iintro H
+  iunfold authWrapOut at H
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -⟩)
+  · subst He
+    ihave %Hn := adminOutOn_nn s E ρ ctx rq F Qh T resp hT $$ H
+    ipureintro; intro _; exact Hn
+  · ipureintro; intro He; exact absurd He Hr.2
+
 end lemmas
 
 end v3rpc

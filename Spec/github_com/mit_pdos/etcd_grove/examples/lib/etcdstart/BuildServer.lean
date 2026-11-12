@@ -1,6 +1,6 @@
 /-
 `BuildServer(name, peer, client, cluster, token, snapCount, catchUp, lg)`
-(`examples/lib/etcdstart/etcdstart.go`; 2026-11-02, the restart plan's R2a): member `name` of a new cluster
+(`examples/lib/etcdstart/common.go`; 2026-11-02, the restart plan's R2a): member `name` of a new cluster
 with token `token` built, serving nothing -- `newServer` with the auto-compactor off -- for an
 example that keeps its listeners (`examples/etcd/restart`). Lean-first (no Rocq counterpart).
 
@@ -61,7 +61,7 @@ abbrev BuildServer.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
@@ -99,7 +99,7 @@ abbrev BuildServer.specRestart : Prop :=
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗

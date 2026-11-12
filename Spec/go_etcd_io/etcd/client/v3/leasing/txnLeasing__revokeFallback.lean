@@ -40,7 +40,7 @@ abbrev txnLeasing.revokeFallback.spec : Prop :=
     (kvss : List (List EtcdKv)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
       structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗
-      sessionReady γ ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      sessionReady γ ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗
       sl ↦*□ ps ∗ ⌜ps.length = kvss.length⌝ ∗ ⌜∀ kvs ∈ kvss, ∀ v ∈ kvs, v.key.length ≤ etcdKeyMax⌝ ∗
       [∗list] i ↦ p ∈ ps, ∃ kvs, ⌜kvss[i]? = some kvs⌝ ∗ rangeKvsRO p kvs }}
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"revokeFallback")) (Val #sl))

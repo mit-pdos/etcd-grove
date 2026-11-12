@@ -25,7 +25,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem Obj.GetUID.wp_proof :
     Obj.GetUID.spec (GF := GF) (hG := hG) := by
-  intro p dq name uid val rv
+  intro p dq v
   wp_start as Hp
   icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   iStructNamed Hp

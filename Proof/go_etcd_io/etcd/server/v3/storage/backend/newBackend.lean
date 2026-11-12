@@ -66,12 +66,12 @@ theorem backend.newBackend.wp_proof
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
   intro _ cfg P D W Pk K
-  wp_start as ⟨Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
+  wp_start as ⟨#Hzl, Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
   · ihave Hbi : (go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hbi with ⟨-, -, -, -, #H⟩
+    icases Hbi with ⟨-, -, -, -, #H, -⟩
     iexact H
   iunfold boltOpenOptionsOk at Hboo
   icases Hboo with ⟨%p, #Hgp, #Hpo⟩
@@ -103,13 +103,17 @@ theorem backend.newBackend.wp_proof
     ipureintro; exact Hok0
   -- `bcfg.Logger = zap.NewNop()` when nil
   wp_join iprop(∃ lg : Loc, bcfg_ptr ↦ ({ cfg with Logger' := lg } : BackendConfig) ∗
-    ⌜lg ≠ Loc.null⌝) with [bcfg] as ⟨%lg, bcfg, %Hlg⟩
+    zapLoggerOk lg) with [bcfg] as ⟨%lg, bcfg, #Hlz⟩
   · wp_apply hNop as %l #Hlz
-    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
+    isplitr
+    · ipureintro; rfl
+    iexists l
     iframe
-    ipureintro; exact ⟨rfl, Hl⟩
-  · iframe
-    ipureintro; simp_all
+    iexact Hlz
+  · ihave #Hok := zapLoggerOrNil_ok _ (by simp_all) $$ Hzl
+    iexists cfg.Logger'
+    iframe
+    iexact Hok
   -- the options' fields
   wp_apply (hMmap bcfg_ptr _) $$ [$bcfg] as bcfg
   icases optsAt_int bo o go!"InitialMmapSize" (by simp) $$ Hbo with ⟨%x1, Hf, Hback⟩
@@ -127,8 +131,9 @@ theorem backend.newBackend.wp_proof
   icases optsAt_bool bo o go!"Mlock" (by simp) $$ Hbo with ⟨%x5, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlz
   wp_apply (hLog _) as %l ⟨#Hl, %Hlty⟩
-  · ipureintro; exact Hlg
+  · iexact Hlz
   icases optsAt_logger bo o $$ Hbo with ⟨Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
@@ -159,8 +164,8 @@ theorem backend.newBackend.wp_proof
       iapply HΦ
       iright
       ipureintro
-      exact ⟨_, rfl⟩
-    · exact absurd rfl Herr
+      exact ⟨Herr.2, _, rfl⟩
+    · exact absurd rfl Herr.1
   subst Herr
   wp_auto
   -- the backend's structure
@@ -209,7 +214,6 @@ theorem backend.newBackend.wp_proof
   · unfold beginCtx
     iexists lg
     iframe #
-    ipureintro; exact Hlg
   -- `b.batchTx = newBatchTxBuffered(b)`
   wp_apply (hNew «$r0_ptr» «$v5_ptr» db cfg.BatchLimit' γrw γd D) $$ [hooks rtx Hst Hmu1 Hown Hwr Htok]
     as %t ⟨%wtx, %rtx, Hmx, Htxf, Hpend, Hdel, Hwb, #Hbe, hooks, rtx, Hst, Hmu1, Hown, Hwtx, #Hwdb,
@@ -224,7 +228,7 @@ theorem backend.newBackend.wp_proof
   -- the backend's invariants
   imod backend_init P W Pk K cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
     cfg.Path'
-    γrw D sc dc γsc γdc HP.1 Hlg $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
+    γrw D sc dc γsc γdc HP.1 $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
       Hwtx Hst Hrtoks rtx Hlive Hstats rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco Hsr1]
     with ⟨%γ, %Hγd, #Hbfile, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩

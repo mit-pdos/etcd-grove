@@ -32,7 +32,7 @@ theorem traceutil.Trace.LogIfLong.wp_proof
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   iunfold traceutil.ownTrace at Ht
-  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He⟩
+  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He, #Hlz⟩
   wp_auto
   wp_apply _root_.Perennial.time.wp_Since as %el -
   (try wp_auto)
@@ -48,6 +48,7 @@ theorem traceutil.Trace.LogIfLong.wp_proof
       iexists _, _
       (try simp only)
       iframe
+      (try iframe Hlz)
       ipureintro; exact He
     (try wp_auto)
     iapply HΦ

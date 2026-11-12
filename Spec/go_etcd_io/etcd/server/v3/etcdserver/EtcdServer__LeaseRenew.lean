@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Code.net.http
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -31,7 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.LeaseRenew(ctx, id)`**, any goroutine, at a context, with the server's facts and the key
 check's resources (`LeaseTimeToLive.spec`'s), reader slots of the logger's lock and of the read
 loop's (`srvLgReader`, `srvReadReader`: `ensureLeadership`'s, and an unexpected error of the
-forwarding's context is logged), and the server's peer round tripper (`peerRt`, a
+forwarding's context is logged; `ensureLeadership` is called at level 0, its token returned before
+the check and `Renew` borrow from the level-0 pools), and the server's peer round tripper (`peerRt`, a
 `*http.Transport`: `NewServer` stores the bootstrap's `rafthttp.NewRoundTripper` one; a premise,
 as no construction spec states the field yet): on `nil`, a TTL and the renewal's key check passed
 (the last `checkLeaseRenew`'s: auth disabled at a state no older than `n`, or the principal an
@@ -52,13 +54,13 @@ abbrev EtcdServer.LeaseRenew.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       srvPeerRt s }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRenew"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); E.RD ∗
-      threadTok ∗ srvLgReader s ∗ srvReadReader s γr ∗
+      levelTok lease.lessorLvl ∗ srvLgReader s ∗ srvReadReader s γr ∗
       ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E (GoInterface.ok ctx) n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}

@@ -33,7 +33,7 @@ theorem v3rpc.NewQuotaLeaseServer.wp_proof
     (wp_NewLeaseServer : v3rpc.NewLeaseServer.spec (GF := GF) (hG := hG)) :
     v3rpc.NewQuotaLeaseServer.spec (GF := GF) (hG := hG) := by
   intro s A lg0 lg qb Hbuq
-  wp_start as ⟨#HKV, #Hlg0, #Hlg, %Hlgn, #Hqb⟩
+  wp_start as ⟨#HKV, #Hlg0, #Hlg0z, #Hlg, #Hlgn, #Hqb⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   wp_auto
@@ -61,7 +61,7 @@ theorem v3rpc.NewQuotaLeaseServer.wp_proof
   iunfold v3rpc.quotaAlarmerAt
   iexists go!"lease", lg, qb
   iframe #
-  ipureintro; exact ⟨Hlgn, Hbuq⟩
+  ipureintro; exact Hbuq
 
 end proof
 

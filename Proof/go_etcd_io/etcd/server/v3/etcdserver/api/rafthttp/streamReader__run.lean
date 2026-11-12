@@ -48,8 +48,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -112,8 +112,9 @@ theorem rafthttp.streamReader.run.wp_proof
   wp_start as ⟨#Hf, #Hdial, Hdone⟩
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
-  icases Hf' with ⟨%lg, %tr, %ps, %rcc, %pcc, %γr, %γp, %ctx, %cd, #Hlg, %Hlgnn, #Hpid, #Htr,
+  icases Hf' with ⟨%lg, %tr, %ps, %rcc, %pcc, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
     #Hlid, #Hps, #Hpsok, -, -, -, -, #Hmu, #Hctxf, #Hctx⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hdial' := Hdial
   iunfold srDial at Hdial'
   icases Hdial' with ⟨#Hcfg, -⟩

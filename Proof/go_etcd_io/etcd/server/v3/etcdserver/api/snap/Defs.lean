@@ -24,6 +24,8 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Golang.Theory
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -39,6 +41,11 @@ open Iris Iris.BI
 file header). -/
 opaque snapDBPath [GooseExts] (ss : Loc) (id : w64) : GoString
 
+/-- The address of the snapshotter `ss`'s logger field (`s.lg`; `snap.Snapshotter` is an
+axiomatized type, so the field is named, not modeled). -/
+abbrev snapLgAddr [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (ss : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" ss
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -48,8 +55,11 @@ variable [sem : go.Semantics]
 /-- `ss`'s fields, read-only (opaque; see the file header). -/
 opaque snapshotterRO (ss : Loc) : IProp GF
 
-/-- **`ss` is a snapshotter** (persistent; see the file header). -/
-def isSnapshotter (ss : Loc) : IProp GF := iprop(□ snapshotterRO ss)
+/-- **`ss` is a snapshotter** (persistent; see the file header), its logger a zap logger
+(`zapLoggerOk`; premise fixes 6: `SaveDBFrom` logs through it; `snap.New(lg, dir)` stores `lg`,
+nil replaced by `zap.NewNop()`). -/
+def isSnapshotter (ss : Loc) : IProp GF :=
+  iprop(□ snapshotterRO ss ∗ ∃ lg : Loc, snapLgAddr ss ↦□ lg ∗ zapLoggerOk lg)
 
 /-- **The snapshotter `ss`'s directory reads** (opaque, a named premise about the program's
 environment; D22 receiver epochs, S8d, 2026-10-24): listing `ss`'s directory does not fail

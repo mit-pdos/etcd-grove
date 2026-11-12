@@ -53,7 +53,7 @@ theorem Main.wp_proof
     (wp_partitioner : cluster3.Partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq
+  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
     Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -69,7 +69,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the cluster, its clients' watch environment unused
   wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg [] Hbf
-      Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+      Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms)
     $$ [Hstart Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -87,9 +87,9 @@ theorem Main.wp_proof
     %Hal⟩
   obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -⟩
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, -, -, -, -, -⟩
   obtain ⟨-, -, -, hlog₁, -⟩ := Hp₁
   -- `go cluster3.Partitioner(srvs, brs, sched)`: every member's place in the network
   ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, etcdstart.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
@@ -150,7 +150,7 @@ theorem Main.wp_proof
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
+      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₁ HRange₁]; iframe #
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
       isplitr
@@ -162,7 +162,7 @@ theorem Main.wp_proof
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
+      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₂ HRange₂]; iframe #
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
       isplitr
@@ -174,7 +174,7 @@ theorem Main.wp_proof
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
       isplitr
-      · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
+      · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₃ HRange₃]; iframe #
       isplitr
       · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
       isplitr
@@ -194,11 +194,11 @@ theorem Main.wp_proof
   -- (D29) the bridges' addresses are refusal-free, as their members' are: every client's writes
   -- are sent at most once, whatever its retry bound
   ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
@@ -219,21 +219,21 @@ theorem Main.wp_proof
   · iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd []
+      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁' ρ₁.rd false) (etcdstart.srvWOf E₂' ρ₂.rd false) (etcdstart.srvWOf E₃' ρ₃.rd false) ρ₁.rd []
       rw [hms]
       iframe #
       ipureintro; simp [ms]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd []
+      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁' ρ₁.rd false) (etcdstart.srvWOf E₂' ρ₂.rd false) (etcdstart.srvWOf E₃' ρ₃.rd false) ρ₁.rd []
       rw [hms]
       iframe #
       ipureintro; simp [ms]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd []
+      iexists ms, cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁' ρ₁.rd false) (etcdstart.srvWOf E₂' ρ₂.rd false) (etcdstart.srvWOf E₃' ρ₃.rd false) ρ₁.rd []
       rw [hms]
       iframe #
       ipureintro; simp [ms]

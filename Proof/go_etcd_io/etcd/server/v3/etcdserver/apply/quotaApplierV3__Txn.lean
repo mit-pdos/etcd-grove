@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WrapLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
@@ -31,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.quotaApplierV3.Txn.wp_proof :
     apply.quotaApplierV3.Txn.spec (GF := GF) (hG := hG) := by
   intro E c inner p r skip rq t log F Pre Q Post info
-  wp_start as ⟨#Hq, #Hin, Hpre, #HF⟩
+  wp_start as ⟨#Hq, #Hin, Hpre, #HF, Htt⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
@@ -47,20 +48,21 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
   ihave #Hcp := apply.certPre_quota E c rq log $$ Hcp
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok %Hok
   · ipureintro; exact Or.inr (Or.inl rfl)
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
-  wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
-  · iunfold apply.txnPre
-    iunfold apply.mPre
-    iframe
+  wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Htt Hm Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+  · iframe Htt
+    iunfold apply.txnPre
     iframe #
-    ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hk
+    iapply apply.mPre_of_rest
+    iframe
   iunfold apply.kvPostF at Hpost
   icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
   obtain ⟨Hst, Hfl⟩ := Hst0
@@ -72,6 +74,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   · -- an error: passed on
     wp_auto
     iapply HΦ
+    iframe Htt
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
@@ -90,6 +93,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     · cases Hok
     · wp_auto
       iapply HΦ
+      iframe Htt
       isplitr [Htrc]
       rotate_left
       · iexact Htrc

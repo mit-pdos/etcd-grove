@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier__Apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -32,6 +33,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
+/-- **The backend's tokens and the critical section's contract, at whichever backend the tie
+names** (strict M1, 2026-11-06): for a backend `B` of the tie, a write-back and a reader token of
+`B` (`bkWT`, `bkRT`) and, with `v3`, the hook's run at `B`'s batch lock (`hookRun (E.Pk B) E.f`)
+and the caller's update; the tie given back. What `specRec`'s caller adds to the applier state
+for `uberApplier.Apply`'s `kvOwnPre` (the server: at its tie's backend `d`). -/
+def apply.bkToks (v3 : Bool) (E : AEnv GF) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop(∀ B : mvcc.KBReal, E.BkTie B -∗ E.BkTie B ∗ apply.bkWT B ∗ apply.bkRT B ∗
+    (if v3 then iprop(mvcc.api.hookRun (E.Pk B) E.f Pre Q ∗ (Q ={⊤}=∗ E.Pk B ∗ Post))
+     else iprop(True)))
+
 /-- **The applier's contract, with what an entry does to the KV** (`Apply.spec` at the
 uber-applier's recorded-state triple, `uberApplier.Apply.spec`, through `applierFor`; until step 6
 of the auth-mode merge, 2026-10-30, this was `Apply.spec` itself). `apply.Apply(lg, e, ua, w, v3)`
@@ -41,50 +52,40 @@ the reader's resource `RD` of the wait, `waitOk`, given back; or
 side effects, `noSideEffect`); an outcome waived for want of a waiter (`ApplyOut.waived`: not
 applied, or a transaction's ranges not run) comes with what `IsRegistered`'s `false` told the
 caller about the id (`G ot id`: to one that knew the id registered, that the registration is
-gone; the request path's unit 4d), applies it through the `UberApplier` `ua` (`applierFor ua E`), whose
-backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
+gone; the request path's unit 4d), applies it through the `UberApplier` `ua` (`applierFor ua E`).
 * **The server's protocol** (as before unit 2): for `v3` (`ApplyBoth`) the entry's writes to the
-  backend happen in **one** critical section of the batch lock (`LockInsideApply` ... `Unlock`),
-  or not at all: in the first case the applier takes the lock (`E.P`), runs the hook (its triple,
-  from the caller: `{E.P ∗ Pre} E.f() {Q}`), writes (the caller's update `Q ={⊤}=∗ E.P ∗ Post`,
-  which models the writes) and unlocks; in the second it writes nothing, and the caller keeps
-  `Pre`. Without `v3` (`ApplyV2storeOnly`: an entry already in the backend, replayed) it writes
-  nothing to the backend. The result is `nil` or has a readable `Err` (`resultErrOk`), the id is
-  `rq`'s.
-* **The KV** (unit 2): the apply thread's applier state `applyKV E ua x` (the uber-applier's
-  current chain, the KV's committed log), with the request's premises at `x.log` (`rqOk`: the txn
-  package's for a KV request; `dispatchOk`: not empty; `cmpAdmit`: a compaction's facts), goes to
-  `x'` by
-  `applyStep rq v3 x x' out`: skipped or rejected by the admin check (`x' = x`), or dispatched
-  (`dispatchStep`: a KV request as the chain's `chainStep backendStep`, the txn package's results;
-  without `v3`, nothing), the result `applyResultIs`. It spends one write token of the store
-  (`mvcc.storeWT E.γ`: a KV write or a revocation opens one store write transaction, whose
-  `Unlock` over the real backend may cost a write-back; 2026-10-13, unit 6). The caller certifies
-  the logs the request may commit (`certPre`: the store's `txnEndPre` asks it of every commit;
-  2026-10-14, unit T1). The applier state holds the apply thread's compaction resources at
-  `x.crev` (`cmpOwn`; M2's apply side, A1, 2026-10-31: item 21), which `applyStep` moves. The rest
-  state's premise `restReqOk`, `dispatch`'s (the cluster-rows stage, 2026-11-02). -/
+  backend happen in **one** critical section of the batch lock of the tie's backend `B`
+  (`LockInsideApply` ... `Unlock`), or not at all: in the first case the applier takes the lock
+  (`E.Pk B`), runs the hook (`hookRun (E.Pk B) E.f Pre Q`, from the caller), writes (the caller's
+  update `Q ={⊤}=∗ E.Pk B ∗ Post`) and unlocks; in the second it writes nothing, and the caller keeps
+  `Pre`. Without `v3` (`ApplyV2storeOnly`) it writes nothing to the backend. The result is `nil` or
+  has a readable `Err` (`resultErrOk`), the id is `rq`'s.
+* **The KV** (unit 2): the apply thread's applier state `applyKV E ua x` goes to `x'` by
+  `applyStep rq v3 x x' out`, the result `applyResultIs`. (Strict M1, 2026-11-06: the backend's
+  tokens at the tie's backend, `bkToks`, in place of mvcc's `storeWT`; the reader token given back,
+  `bkRTOf E`; the floor `kvLogLb E.γs F` in place of mvcc's `idxCert`; the thread's token taken and
+  given back.) The caller certifies the logs the request may commit (`certPreV`). The applier
+  state holds the apply thread's compaction resources at `x.crev` (`cmpOwn`), which `applyStep`
+  moves. The rest state's premise `restReqOk`, `dispatch`'s. -/
 abbrev apply.Apply.specRec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF)
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log) (rs : apply.RestM)
     (T U : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
-      (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
-          (Q ={⊤}=∗ E.P ∗ Post))
-       else iprop(True)) ∗ Pre ∗
-      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
+      apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ zapLoggerOk lg ∗ entryAt e m ∗
+      apply.bkToks v3 E Pre Q Post ∗ Pre ∗
+      apply.applyKV E ua x ∗ apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
-        apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit E.γ.kb x.log rq) ∧
+        apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit x.log rq) ∧
         apply.restReqOk rq rs⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
-      apply.revokeOwn E rq ∗
-      mvcc.idxCert E.γ.idx F ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
+      apply.revokeOwn E rq ∗ apply.applyTok E ∗
+      srvApi.kvLogLb E.γs F ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ E.FS ∗
+  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ E.FS ∗ apply.applyTok E ∗ apply.bkRTOf E ∗
       (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
@@ -107,6 +108,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
+/-- **The applier state with the tie's backend's tokens is `uberApplier.Apply`'s** (`kvOwnPre`). -/
+theorem apply.kvOwnPre_of_toks (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    apply.kvOwn E log ∗ apply.bkToks v3 E Pre Q Post ∗ Pre ⊢ apply.kvOwnPre v3 E log Pre Q Post := by
+  iintro ⟨Hk, Ht, HPre⟩
+  iunfold apply.kvOwn at Hk
+  icases Hk with ⟨Hw, Hbk, Hll, Hrd⟩
+  iunfold apply.kvBk at Hbk
+  icases Hbk with ⟨%B, Hmb, Hhk, Htie⟩
+  iunfold apply.bkToks at Ht
+  ihave ⟨Htie, Hwt, Hrt, Hc⟩ := Ht $$ %B Htie
+  iunfold apply.kvOwnPre
+  iframe Hw Hll Hrd
+  iexists B
+  iframe Hmb Hhk Htie Hwt Hrt
+  cases v3
+  · simp only [apply.cPre, Bool.false_eq_true, ↓reduceIte]
+    iexact HPre
+  · simp only [apply.cPre, ↓reduceIte, srvApi.csContractA]
+    iframe HPre Hc
+
 omit package_sem in
 open Iris.ProofMode in
 /-- A persistent premise gives its `v3`-guarded form (R2d'a A3, DRAFT: `Apply.specRec`'s,
@@ -124,7 +145,8 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.specRec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs T U
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem, #Hcpr, #Hgp, HLt, HEv, #HGf, Hrv, #HF, HFS, HSp, HRO⟩
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Htoks, HPre, Hkv, #Hcp, %Hprem, #Hcpr,
+    #Hgp, HLt, HEv, #HGf, Hrv, Htt, #HF, HFS, HSp, HRO⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk, Hca, Hrr⟩ := Hprem
   ihave #Hpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
@@ -135,21 +157,13 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
   subst Hua
   have := apply.mkOk_ptr_inj _ _ _ Hua'
   subst this
-  ihave Hcs : iprop(apply.cPre v3 E.P E.f Pre Q Post) $$ [Hhook HPre]
-  · cases v3
-    · simp only [apply.cPre, Bool.false_eq_true, ↓reduceIte]
-      iexact HPre
-    · simp only [apply.cPre, ↓reduceIte, mvcc.csContract]
-      icases Hhook with ⟨#Htr, Hup⟩
-      iframe HPre Hup
-      imodintro
-      iexact Htr
+  ihave Hkp := apply.kvOwnPre_of_toks v3 E x.log Pre Q Post $$ [Hkv Htoks HPre]
+  · iframe Hkv Htoks HPre
   wp_apply (hA lg e m (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) w v3 rq id RD K G ot
-      iprop(apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗ mvcc.storeWT E.γ ∗
-        apply.cPre v3 E.P E.f Pre Q Post ∗ E.FS ∗
+      iprop(apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗ E.FS ∗
         (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev ∗
         apply.ltHalf E T ∗ apply.everOwn E U ∗ apply.revokeOwn E rq)
-      (fun sk ar => iprop(E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
+      (fun sk ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
         apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
         apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
@@ -161,20 +175,18 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
         apply.resTrace ar ∗ apply.grantResA E rq out ar ∗ apply.revokeAnsRA E rq out ar ∗
         apply.applyResultIs rq v3 x.log ar out ∗
         apply.applyAuthRes E.authMode x.chain rq v3 out)))
-      $$ [HRD HK Hown Hkv Hwt Hcs HFS HSp HRO Hco HLt HEv Hrv] as %ar %id' ⟨HRD, %Hid', Hout⟩
-  · iframe # HRD HK Hown Hkv Hwt Hcs HFS HSp HRO Hco HLt HEv Hrv
-    isplitr
-    · ipureintro; exact Hlg
+      $$ [HRD HK Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv] as %ar %id' ⟨HRD, %Hid', Hout⟩
+  · iframe # HRD HK Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv
     isplitr
     · ipureintro; exact ⟨Hdec, Hid⟩
     iexists ⟨go.GoType.PointerType uberApplier.ty, #p⟩
     isplitr
     · ipureintro; rfl
     iintro !> %r %sk
-    wp_start_folded as ⟨#Hwr, %Hskt, Hown, Hkv, Hwt, Hcs, HFS, HSp, HRO, Hco, HLt, HEv, Hrv⟩
+    wp_start_folded as ⟨#Hwr, %Hskt, Hown, Hkp, Htt, HFS, HSp, HRO, Hco, HLt, HEv, Hrv⟩
     wp_apply (hUA E p opts x r rq sk v3 F Pre Q Post rs T U)
-        $$ [Hown Hkv Hwt Hcs HFS HSp HRO Hco HLt HEv Hrv] as %ar HQ
-    · iframe # Hown Hkv Hwt Hcs HFS HSp HRO Hco HLt HEv Hrv
+        $$ [Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv] as %ar HQ
+    · iframe # Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv
       isplitr
       · ipureintro; exact ⟨Hrq, Hdk, Hca⟩
       isplitr
@@ -182,11 +194,11 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
       ipureintro; exact Hrr
     iapply HΦ; iexact HQ
   subst Hid'
-  icases Hout with (⟨%sk, ⟨HFS, %x', %out, Hown, Hkv, HPP, HLt, HEv, Hrv, HRO, %Hgo, Hco, %Hst, Htr, Hgr, Hvr, Hres, #Hauth⟩, Hwv⟩ |
-    ⟨%Hnil, HG, Hown, Hkv, Hwt, Hcs, HFS, HSp, HRO, Hco, HLt, HEv, Hrv⟩)
+  icases Hout with (⟨%sk, ⟨Htt, Hrt, HFS, %x', %out, Hown, Hkv, HPP, HLt, HEv, Hrv, HRO, %Hgo, Hco, %Hst, Htr, Hgr, Hvr, Hres, #Hauth⟩, Hwv⟩ |
+    ⟨%Hnil, HG, Hown, Hkp, Htt, HFS, HSp, HRO, Hco, HLt, HEv, Hrv⟩)
   · ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
     iapply HΦ
-    iframe HRD HFS
+    iframe HRD HFS Htt Hrt
     isplitl [HPP]
     · iapply cPost_if; iexact HPP
     iframe Hok Htr
@@ -204,10 +216,11 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     · iright; iexact HG
   · obtain ⟨Har, hns⟩ := Hnil
     subst Har
+    icases apply.kvOwnPre_kvOwn v3 E x.log Pre Q Post $$ Hkp with ⟨Hkv, Hrt, HPre⟩
     iapply HΦ
-    iframe HRD HFS
-    isplitl [Hcs]
-    · iapply cPost_if; iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hcs
+    iframe HRD HFS Htt Hrt
+    isplitl [HPre]
+    · iapply cPost_if; iapply apply.cPost_of_pre; iexact HPre
     isplitr
     · iunfold apply.resultErrOk; ileft; ipureintro; rfl
     isplitr

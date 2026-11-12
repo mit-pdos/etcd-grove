@@ -9,7 +9,7 @@ every one needs an instance. The k8s, otel, grpc and klog packages are translate
 `k8s-apiserver` of `etc/goose.py`); the standard-library `encoding/base64`, `encoding/json`,
 `iter` and `path` are not translated by Perennial (`notes/perennial-changes.md`; `encoding/base64`'s instance is in its own `Base.lean`). Every fact is
 `True` but `etcd3`'s own (the compactor registry, `registryFact`, `RegistryDefs.lean`), the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
-`txnError` returns for a failed comparison, holds some error) and `util/feature`'s
+`txnError` returns for a failed comparison, holds `errors.New("transaction conflict")`) and `util/feature`'s
 (`featureInit`: its two variables hold one gate) and `features`' (`featuresInit`, sweep repairs 1,
 B5: the gate, its features registered, with `Enabled`'s and `Set(false)`'s specs,
 `k8sfeature.featureGateOk`; the gate is names-only, `component-base/featuregate`) and
@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.encoding.base64.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 
@@ -51,11 +52,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The store's metrics package's fact: `ErrTransactionConflict` (`errors.New` at init) holds some
-error, for good. -/
+/-- The store's metrics package's fact: `ErrTransactionConflict` holds the error
+`errors.New("transaction conflict")` (`metrics.go:42` at the apiserver pin `9c4ec15b8038`), for
+good: a `*errorString` whose `Error()` returns that message. (Premise fixes 3, 2026-11-10: it was
+some error; `txnError`'s result must be one grpc's `status` accepts, `statusErrOk`, for
+`metrics.RecordEtcdRequest`.) -/
 abbrev metricsInit : IProp GF :=
-  iprop(∃ e : GoInterface,
-    globalAddr k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict ↦□ e)
+  EtcdGrove.errorsNewVar k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict
+    go!"transaction conflict"
 
 /-- `util/feature`'s fact: `DefaultMutableFeatureGate` and `DefaultFeatureGate` hold the same
 feature gate, for good (Go never writes the variables after). (Sweep repairs 1, B5: until then
@@ -144,6 +148,22 @@ instance k8s_io_apimachinery_pkg_util_wait_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
+  build_get_is_pkg_init_wf
+
+-- (version: moved from the cacher's Base, featuregate imports it)
+instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_version_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  build_get_is_pkg_init_wf
+
+-- (pflag: names only, what featuregate's interfaces name)
+instance github_com_spf13_pflag_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.github_com.spf13.pflag :=
+  define_is_pkg_init iprop(True)
+instance github_com_spf13_pflag_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.github_com.spf13.pflag :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_component_base_featuregate_is_pkg_init_inst :
@@ -372,6 +392,65 @@ instance k8s_io_apiserver_pkg_storage_etcd3_get_is_pkg_init_wf_inst [EtcdGrove.k
   build_get_is_pkg_init_wf
 
 end init
+
+section errs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **An `errors.New` error is one grpc's `status` accepts** (`statusErrOk`; premise fixes 3,
+2026-11-10): a `*errorString` is a leaf without `Is` or `GRPCStatus` (`EtcdGrove.ErrorStringLeaf`,
+of the method set goose emits), and its `Error()` returns its message. `metricsInit`'s
+`ErrTransactionConflict`, which `txnError` returns. -/
+theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
+    go_etcd_io.etcd.cache.v3.statusErrOk
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  obtain ⟨-, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
+  iintro #Hm
+  unfold go_etcd_io.etcd.cache.v3.statusErrOk
+  iintro !> %e %he
+  cases he
+  isplitr
+  · iexists msg
+    unfold go_etcd_io.etcd.cache.v3.errorMsgIs
+    iexact Hm
+  isplitr
+  · ipureintro; exact hl
+  isplitr
+  rotate_left
+  · ipureintro; exact EtcdGrove.ErrorStringLeaf.noFormat
+  unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
+  isplitl
+  · iintro %h
+    simp only [hG] at h; cases h
+  · iintro %h
+    exact absurd h hIs
+
+/-- **The client's result error is one grpc's `status` accepts** (premise fixes 3): `nil` on
+success, `statusErrOk` on failure, as `Client.Get`'s, `OptimisticPut`'s and `OptimisticDelete`'s
+posts state it; the post is kept. -/
+theorem statusErrOk_split (err : GoInterface) (P Q : IProp GF) (c : Prop) :
+    ((⌜err = GoInterface.nil⌝ ∗ P) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ ⌜c⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗ Q)) ⊢
+    go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+      ((⌜err = GoInterface.nil⌝ ∗ P) ∨
+        (⌜err ≠ GoInterface.nil⌝ ∗ ⌜c⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗ Q)) := by
+  iintro (⟨%h, HP⟩ | ⟨%h, %hc, #Hs, HQ⟩)
+  · subst h
+    isplitr
+    · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+    · ileft; iframe HP; ipureintro; rfl
+  · iframe Hs
+    iright
+    isplitr; · ipureintro; exact h
+    isplitr; · ipureintro; exact hc
+    iframe HQ
+
+end errs
 
 end k8s_io.apiserver.pkg.storage.etcd3
 end Perennial

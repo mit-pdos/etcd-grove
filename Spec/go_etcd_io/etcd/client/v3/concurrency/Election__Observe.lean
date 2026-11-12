@@ -36,7 +36,7 @@ abbrev Election.Observe.spec : Prop :=
   ∀ (e s : Loc) (γs : SessionNames) (client : Loc) (id : w64) (pfx : GoString)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γs client id pfx ∗
-      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗
       ⌜0 ≤ sint.Z lo⌝ }}
     (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Observe")) (Val #(GoInterface.ok ctx)))
   {{ (ch : Loc), RET #ch; ∃ γ : ObserveNames, isObserveChan ch γ pfx ∗

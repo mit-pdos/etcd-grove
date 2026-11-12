@@ -7,7 +7,10 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   started in process, a kubernetes client configured for one attempt per call, the seed objects,
   the Kubernetes etcd3 store over the client (`etcd3.New`, the driver's codec, versioner,
   transformer and decoder), `Check(s, st0, clients, ops, 0)` (`lintest.Run` with the driver's Go
-  model of the store, `Apply` over the store: `Create`, `Get`, `Delete`, `GuaranteedUpdate`;
+  model of the store, `Apply` over the store: `Create`, `Get`, `Delete`, `GuaranteedUpdate`, and
+  `GetList` (with selectors and the past-revision modes; stage 7e: the store pages through the
+  result itself, but the driver never sends a continue token, so `storage.DecodeContinue` and
+  `GetList`'s continue-key branch are not covered);
   porcupine's checker), and a panic if porcupine answers `Illegal` -- does not panic and returns
   `Ok` or `Unknown`. From `isPkgInit k8setcd3`, the right to listen on `127.0.0.1:23896`, the main
   thread's token and `Main`'s named premises
@@ -41,13 +44,19 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   schedule `steps` built as a slice literal (`schedLit`), for every `steps` of fewer than `2 ^ 63`
   steps, under `k8s_etcd3_cluster_safe`'s hypotheses.
 
-**Vacuous for now (2026-11-07).** Every `_safe` theorem here, `k8s_etcd3_partition_safe` included,
-rests on `pbEnc_ok`, which proves `False` (lean `cffe36ea9d`, `notes/pbenc-ok-inconsistent.md`), and
-on grpc's refuted `ProtoMsg` axioms: until etcd-grove-c9's per-type fix lands, they hold vacuously.
-They also rest on false axioms until the axiom sweep's repairs of batch 1 land (lean `0eda5f10de`,
-`notes/axiom-review/`): `zap.Logger.{Debug,Error,Fatal,Info,Warn}`, `errors.IsCtxErr`,
-`context.ValueStartTime`, `http.Handle_ok`, and the k8s `DefaultFeatureGate` and
-`DefaultFeatureSupportChecker` initializers.
+**No pending hypotheses (k8s 7e-1, 2026-11-10).** The client's `List` spec, `GetAt` spec and
+`clientErrPlain` were hypotheses of every result here during 7e-4; 7e-1 proved `Client.List`
+(`client/v3/kubernetes/Client__List.lean`), restated `Client.Get.spec` at any revision, and made
+`clientErrPlain` a lemma (`clientErrPlain_holds`).
+
+**Resting on refuted axioms (axiom sweep batch 1, 2026-11-07; checked 2026-11-10).** The `_safe`
+theorems rest on `errors.IsCtxErr` (premise `context.isTypedErr`, `notes/axiom-review/isctxerr.md`),
+one of the batch's refuted families that sweep repairs 1 left unrepaired. Another,
+`zap.Logger.{Debug,Error,Fatal,Info,Warn}`, took `⌜l ≠ null⌝`, which a zero `&zap.Logger{}` meets and
+panics on; they take `zapLoggerOk l` since premise fixes 6 (`Panic` keeps `l ≠ null`). The
+batch's other ones this header listed were repaired (`http.Handle`, B3; the default feature gate's and `DefaultFeatureSupportChecker`'s
+initializers, B5; `context.ValueStartTime`, a theorem since B2), and the `pbEnc_ok` axiom and grpc's
+refuted `ProtoMsg` axioms are gone (per-type protobuf models, stage A).
 -/
 module
 
@@ -77,19 +86,19 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `k8s_etcd3.wp_Main`). -/
-theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
     k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_Main
 
 /-- **`MainCluster` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`). -/
-theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
     k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_MainCluster
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainPartition`). -/
-theorem k8setcd3_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem k8setcd3_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
     k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_MainPartition
@@ -108,12 +117,12 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -135,7 +144,7 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_adequate Hctx id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
+  k8s_etcd3_adequate Hctx id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
     Hmul HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 
@@ -147,12 +156,12 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -174,24 +183,24 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_cluster_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops
+  k8s_etcd3_cluster_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops
     Hc0 Hc31 Hops Hmul HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
-header and `Adequacy.lean`; vacuous until the `pbEnc_ok` fix lands, and resting on false axioms until the sweep's batch-1 repairs land: see the file header). -/
+header and `Adequacy.lean`; resting on the refuted `zap.Logger` and `errors.IsCtxErr` axioms: see the file header). -/
 theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -215,7 +224,7 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_etcd3_partition_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops
+  k8s_etcd3_partition_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops
     Hc0 Hc31 Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2
     Hsteps' Hn
 

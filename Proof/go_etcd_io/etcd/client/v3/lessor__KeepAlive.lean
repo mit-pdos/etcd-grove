@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Spec.go_etcd_io.etcd.client.v3.lessor__KeepAlive
 public import Spec.go_etcd_io.etcd.client.v3.lessor__keepAliveCtxCloser
 public import Spec.go_etcd_io.etcd.client.v3.lessor__recvKeepAliveLoop
@@ -38,10 +39,10 @@ theorem lessor.KeepAlive.wp_proof
     (wp_deadlineLoop : lessor.deadlineLoop.spec (GF := GF) (hG := hG)) :
     lessor.KeepAlive.spec (GF := GF) (hG := hG) := by
   intro l addr ctx cd id
-  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hctx⟩
+  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hctx, #HctxO⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -102,10 +103,28 @@ theorem lessor.KeepAlive.wp_proof
     (try wp_auto)
     wp_apply (wp_WithValue ctx ⟨go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty,
         #(zero_val go_etcd_io.etcd.client.v3.keepAliveCtxKey)⟩ _) $$ []
-      as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, -, -, #Hic, -, -⟩
+      as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, -, -, #Hic, -, -, #HVk⟩
     · iframe #; ipureintro; right; right; right; right; rfl
     subst Hc
     ihave #Hctx' := Hic $$ %cd Hctx
+    -- (sweep repairs 1, B2b) the stored context's keep-alive key answers `&ctx`, a `*context.Context`
+    ihave #Hka' : context.keepAliveOk c' $$ []
+    · iunfold context.keepAliveOk
+      imodintro
+      iintro %Φ' HΦ'
+      iapply HVk $$ %keepAliveKeyAny %keepAliveRes
+      · ipureintro; left; rfl
+      · ipureintro; intro _; right; exact ⟨_, rfl⟩
+      · iintro %hne; exact absurd rfl hne
+      · itrivial
+      · iexact HΦ'
+    -- (premise fixes 8) the stored context's outgoing metadata is `ctx`'s (another key)
+    ihave #HoK' : metadata.outgoingCtxOk c' $$ []
+    · ihave #Ho := metadata.outgoingCtxOk_of_C ctx $$ [Hctxp HctxO]
+      · iframe Hctxp HctxO
+      iapply metadata.outgoingCtxOk_of_valueWand ctx c' _ _
+        (by simp [google_golang_org.grpc.metadata.mdOutgoingKey.ty,
+          go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty]) $$ HVk Ho
     (try wp_auto)
     -- register the pair `(ch, c')` at `&ctx` (the variable is not written again)
     imod lessorReg_register ⊤ γr ctx_ptr ch (GoInterface.ok c') $$ [$Hreg $ctx] with ⟨Hreg, #Hkr, #ctx⟩

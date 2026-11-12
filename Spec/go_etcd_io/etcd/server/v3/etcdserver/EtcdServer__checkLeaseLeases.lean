@@ -5,6 +5,7 @@ Part B (2026-10-31), vocabulary `LeaseCheck.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -28,7 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.checkLeaseLeases(ctx, leases)`**, any goroutine, for a slice of leases `ls.map Prod.fst`, each
 the lease of its id (`x.2`) at a lessor index no older than `m` (what `Leases()` returns: its spec waits for the entry points,
-`notes/lease-keys-plan.md`), with the resources of `checkLeaseTimeToLive.spec`: on `nil`, auth
+`notes/lease-keys-plan.md`), with the resources of `checkLeaseTimeToLive.spec` but the lessor's pool (the level-0 token,
+`levelTok lease.leaseLvl`, borrows from each lease's leveled pool for its `Keys()`): on `nil`, auth
 disabled at a state no older than `n`, or the request's principal an admin at one or allowed to read
 every key of each lease `x.1` of `x.2` at a lessor index no older than `m`; on an error, an error the gRPC
 layer can take, and only with auth on (`nil` at once when `IsAuthEnabled` answers `false`,
@@ -39,12 +41,12 @@ abbrev EtcdServer.checkLeaseLeases.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (ls : List (Loc × w64)) (dq : DFrac) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      mvcc.txnCtx ctx cd ∗ E.RD ∗ threadTok ∗
+      mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ levelTok lease.leaseLvl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ sl ↦*{dq} ls.map Prod.fst ∗
       ([∗list] x ∈ ls, lease.isLeaseObj γl x.1 ∗ lease.leaseLiveFrom γl m x.2 x.1) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #sl))
-  {{ (err : GoInterface), RET #err; E.RD ∗ threadTok ∗ sl ↦*{dq} ls.map Prod.fst ∗
+  {{ (err : GoInterface), RET #err; E.RD ∗ levelTok lease.leaseLvl ∗ sl ↦*{dq} ls.map Prod.fst ∗
       ⌜E.authOn = false → err = GoInterface.nil⌝ ∗ applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, leaseCheckFrom s E (GoInterface.ok ctx) n
         (fun info => iprop([∗list] x ∈ ls,

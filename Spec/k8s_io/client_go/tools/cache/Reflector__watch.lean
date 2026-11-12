@@ -16,7 +16,8 @@ some positive version, or the context seen done.
 
 Premises besides the reflector's: `rvuTyOk` (`*RealFIFO` is not a `ResourceVersionUpdater`),
 `bmTyOk` (it is a `ReflectorBookmarkStore`),
-`errIsOk` (`errors.Is` returns), Go's `int64(f)` (`Float64ToInt64Semantics`, the watch timeout).
+`errIsOk` (`errors.Is` returns). (Go's `int64(f)`, the watch timeout, is Perennial's: an arbitrary
+value, `Float64Semantics.convert_float64_to_integer`.)
 -/
 module
 

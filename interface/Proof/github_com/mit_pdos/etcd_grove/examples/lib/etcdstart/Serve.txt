@@ -11,23 +11,23 @@ theorem etcdstart.Serve.wp_proof [HasExt idIssueExt] (wp_KEP : grpc.KeepaliveEnf
     ⊢
       ∀ Φ,
         (isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-            ⌜cfg.Logger' ≠ null ∧
-                  cfg.TracerOptions' = slice.nil ∧
+            zapLoggerOk cfg.Logger' ∗
+              ⌜cfg.TracerOptions' = slice.nil ∧
                     cfg.WatchProgressNotifyInterval' = 0 ∧
                       v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ E.authMode ≠ auth.AuthMode.any⌝ ∗
-              netAddrFree addr ∗
-                isServerReqM E.authOn s E ρ ∗
-                  isServerReadM E.authOn s E γr ∗
-                    srvAuthLb s E ∗
-                      srvServeFacts s E cfg ∗
-                        srvWatchReaders s E 64 ∗
-                          v3rpc.runsNoRequireLeader ∗
-                            srvLgReader s ∗
-                              srvBemuReader s ∗
-                                srvGoRes s ∗
-                                  ∀ gs lis cid mid R,
-                                    etcdstart.grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗
-                                      grpcServeTok gs lis ∗ Q cid mid R) -∗
+                netAddrFree addr ∗
+                  isServerReqM E.authOn s E ρ ∗
+                    isServerReadM E.authOn s E γr ∗
+                      srvAuthLb s E ∗
+                        srvServeFacts s E cfg ∗
+                          srvWatchBuilt s E ∗
+                            v3rpc.runsNoRequireLeader ∗
+                              srvLgReader s ∗
+                                srvBemuReader s ∗
+                                  srvGoRes s ∗
+                                    ∀ gs lis cid mid R,
+                                      etcdstart.grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗
+                                        (∃ γ, grpcServeTok gs lis γ) ∗ Q cid mid R) -∗
           (▷ ∀ err, (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ ∃ cid mid R, Q cid mid R) -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (functions github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve [])) (intoVal s))

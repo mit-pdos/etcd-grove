@@ -37,7 +37,7 @@ theorem v3rpc.kvServer.Compact.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid n aa E ctx cd r Pin Q
-  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hnil, #Hctx, HRD, HPin, #Hin⟩
+  wp_start as ⟨#Hsrv, #Haaf, #Haa, #Hnil, #Hctx, #Hlib, HRD, HPin, #Hin⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.kvServerIs at Hsrv'
   icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, -⟩

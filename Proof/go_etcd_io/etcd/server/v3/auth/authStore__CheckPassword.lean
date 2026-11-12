@@ -48,7 +48,7 @@ theorem auth.authStore.CheckPassword.wp_proof
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   (try wp_auto)
   wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en ⟨Hen, #Hev⟩
   cases en
@@ -141,7 +141,7 @@ theorem auth.authStore.CheckPassword.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Info
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       iapply HΦ
       iframe Hen Hbr HR
@@ -223,7 +223,7 @@ theorem auth.authStore.CheckPassword.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Info
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       iapply HΦ
       iframe Hen Hbr HR

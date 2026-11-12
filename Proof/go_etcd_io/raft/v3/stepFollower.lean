@@ -129,7 +129,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
           (fun h => by simp [Hty, MsgProp, MsgApp] at h)
         (Hnors (.inl Hty)) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
+      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -250,7 +250,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
           (fun h => by simp [Hty, MsgReadIndex, MsgApp] at h)
         (Hnors (.inr (.inl Hty))) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
+      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -419,7 +419,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty))) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
+      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
       iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys

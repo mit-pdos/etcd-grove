@@ -239,7 +239,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     iexists rsl, sl1, sl2, ms1, ms2
     simp only [named]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose Hscert
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose Hscert Hsuf1 Hsuf2
     ipureintro
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
@@ -469,7 +469,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   ihave Hown2 := (qOwns_self_split id ms2).2 $$ [Hself Hoth]
   · iframe Hself Hoth
   ihave Hob := outboxRel_join s.outbox ms1 ms2 $$ [Hown1 Hown2]
-  · iframe Hown1 Hown2; ipureintro; exact Houtbox
+  · iframe Hown1 Hown2 Hsuf1 Hsuf2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
   · iExactEq Hlog; rfl
@@ -1872,6 +1872,8 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
     ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+    -- (raft-entsize §2) their `snapUf`s
+    ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
     -- (2026-11-01, durability stage II (n)) the messages' `isRaftMsg` no longer here: they come
     -- with the cut, at the send (`ownRawNodeReady_handout`, `readyCut`)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
@@ -2124,7 +2126,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     · ipureintro; exact ⟨Hac, Hsteps, Hunp, Hsl⟩
     ileft; ipureintro; exact Hrc
   · unfold freshOk
-    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hrsts,
+    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, -, #Hrsts,
       ⟨%hrd0, #Hrdh0, #Hhsw⟩, Hsnz, %Hfacts⟩
     -- (D22 S-d4) no snapshot unless one is handed out (`rdSnapOut`)
     -- (2026-10-31) and the witness's committed log at least the one before it

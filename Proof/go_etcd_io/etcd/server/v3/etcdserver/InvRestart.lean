@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Spec.go_etcd_io.raft.v3.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseRestartStor
 
 @[expose] public section
 
@@ -127,14 +128,20 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
 compaction mode at records of the committed log's compaction revision. **Open, the restart path's
 (RESTART-RCPT, `notes/image-cmp-plan.md`):** in compaction mode a restart restores the image, whose
 `restoreRcptM` needs the image's KV log's receipt `⧖ (logCh (kvModel ρ.rd.kv A))`, which `dbImage`
-carries and this predicate does not yet.) -/
+carries and this predicate does not yet.) (R6, 2026-11-07, the `lean` merge: the backend's part
+over mvcc's API, as `dbImage`'s since strict M1: the server's parts `imageRestAt`, the state reachable
+and short `imageStOk`, and mvcc's `mvccImage` of the KV model's history at its compaction revision
+(the receipt inside), in place of `imageAt`'s key image `keyImageM` and `IdxWf`, mvcc's internals;
+which also settles RESTART-RCPT's receipt.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
     nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
     ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
-      imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
+      imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
+      imageStOk (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A)⌝ ∗
+    (∃ u : Bool, mvcc.api.mvccImage D (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) u) ∗
     ⌜γ.cl.bootLen ≤ uint.nat i⌝ ∗
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
     -- (R2d review F7, 2026-11-06; DRAFT) the WAL's slot: `StorageHolds S σ`, `σ.b ≤ i ≤ σ.commit`
@@ -196,7 +203,7 @@ theorem isServerRead_applied (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iunfold isServerRead at H
   icases H with ⟨%v, H⟩
   iunfold srvReadFieldsAt at H
-  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hai, -⟩
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hai, -⟩
   iexact Hai
 
 /-- The namespace of the stopped server's escrowed image (R2b-2). -/
@@ -223,20 +230,22 @@ RESTART-RCPT). No compactor follows from the latter (`NewServer` makes one only 
 that every started server's `run` has one spec. -/
 def srvStop.scope (E : apply.AEnv GF) : Prop := E.authOn = false ∧ E.cmp = false
 
-/-- **The stop's serving readers** (R2c-4): the store readers a member's serving stocks hold (the
-API's and the watch server's, `64 + 64`), which the stop request returns for the backend's `Close`
-(`storeReaders_retire`); named here, by the stop's owner, so that a client of the stop request names
-no count (`etc/bounds-check.py`). -/
+/-- **The stop's serving readers** (R2c-4): the store's reader tokens a member's serving stocks
+hold (the gRPC run pool's raw stock, `srvRevokePoolN`, `srvServeStock`'s), which the stop request
+returns for the backend's `Close` (`mvccClosed_rest.law`); named here, by the stop's owner, so that a
+client of the stop request names no count (`etc/bounds-check.py`). (Until per-type stage B3,
+2026-11-11, also the API's and the watch server's `64 + 64`; the `lean` merge, 2026-11-06, the reader
+tokens: until then `64 + 64` of mvcc's `storeReader`s, retired by `storeReaders_retire`.) -/
 abbrev srvStopReaders (E : apply.AEnv GF) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ)
+  mvcc.api.mvccReaders E.γ srvRevokePoolN
 
 /-- **A stop request** (2026-11-05, R2c-2; what `HardStop` sends on `s.stop` and `run` receives):
 evidence that the server at the request names `ρ` applied the bootstrap log (`srvBootApplied`,
 R2b-2 review F2), the stop's scope at the server's apply environment `E` (`srvStop.scope`), and the
 server's data directory `dd` with no dedicated WAL directory (`srvDataDir`, which the image names:
 the scope's other half), and (R2c-4, F-e) the store's readers of the serving stocks the server no
-longer uses (`srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers,
-`mvcc.watchReader_storeReader`): with the slot's and the apply thread's, every reader of the store,
+longer uses (per-type stage B2, `srvServeStock`'s raw stock, `srvStopReaders`; until stage B3
+also `srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers): with the slot's and the apply thread's, every reader of the store,
 for the backend's `Close` (gap 4's census); the sender stopped serving first. Until R2c-2 the
 request carried only `srvBootApplied ρ`, and `run.specStop` took the scope as premises; until R2c-4
 the readers were `run.specStop`'s (`srvShutdownPre`), which a serving member cannot give at its
@@ -307,15 +316,21 @@ def srvCleanupOwn (s : Loc) : IProp GF :=
 instance srvCleanupOwn_persistent (s : Loc) : Persistent (srvCleanupOwn (GF := GF) s) := by
   unfold srvCleanupOwn; infer_instance
 
-/-- (2026-11-05, R2b-3d gap 4) **The store's readers `NewServer` keeps for the stop**: of the
-`rdStockN - nJobRd` readers `NewStore` gives, all but the watch loops' (`wsLoopN`), the request
-goroutines' and the watch service's run slots' (64 each, `memberUp`'s serving stocks), the
-compactor's, the storage version monitor's and the apply thread's retired ones, and the apply
-thread's own (`apply.kvOwn`). Until then `NewServer` dropped them. With every other reader,
-`storeReaders_retire` and `storeRTs_shares` give the backend's `Close` the stock's shares of its
-open token, as `NewServer`'s own error path does (R-D1). -/
-abbrev srvKeepRdN (γst : mvcc.StoreNames) : Nat :=
-  backend.rdStockN - mvcc.nJobRd γst.kb - mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1
+/-- (2026-11-05, R2b-3d gap 4) **The store's reader tokens `NewServer` keeps for the stop**: of
+the `mvccReaderN` tokens `mvcc.New` gives, all but the compactor's and the apply thread's
+(`apply.applyTok`). With every other token, `mvccClosed_rest.law` gives the backend's `Close` the
+storage's shares of its open token, as `NewServer`'s own error path does (R-D1). (The `lean` merge,
+2026-11-06, the reader tokens: until then of mvcc's `storeReader`s, `rdStockN - nJobRd -
+wsLoopN - 64 - 64 - 1 - 1 - 1 - 1`, the monitor's and the apply thread's backend readers retired
+among them; those are now the two counted slots `etcdStorage_open.law` hands the server.)
+(Per-type stage B2, 2026-11-11, r5 §3.2's row of the store's readers) Also less the gRPC run pool's
+raw stock, `srvRevokePoolN` (`srvServeStock`), which a stop of a member that never served gets back
+(`srvStopReaders`). (Until per-type stage B3, 2026-11-11, also less the request goroutines' and the
+watch service's run slots, 64 each: the gRPC runs now borrow the run pool.) Written
+over `backend.rdStockN - 7` (`mvcc.api.mvccReaderN_eq`), not the sealed `mvccReaderN`: a kernel
+`whnf` of `mvccReaderN - srvRevokePoolN` unfolds `Nat.sub` on the literal `srvRevokePoolN` step by
+step (deep recursion), while `rdStockN` evaluates. -/
+abbrev srvKeepRdN : Nat := backend.rdStockN - 7 - srvRevokePoolN - 1 - 1
 
 end defs
 
@@ -327,26 +342,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
-/-- **The `MemoryStorage` `bootstrappedWAL.MemoryStorage` rebuilds** (opaque, DRAFT R2c, R2d's to
-define): `NewMemoryStorage`, then `ApplySnapshot` of the WAL's snapshot record at `σ.b` with the
-conf state `cs`, `SetHardState(σ.hs)`, `Append(σ.ents)`. R2d defines it in raft's storage
-vocabulary (`memLog`, `memEnd`, `memStorMeta`, `memStorFresh` at the snapshot) and proves from it
-`RestartNode`'s `restartStorage`, as kvdurable's `kd_restartStorage`. -/
-opaque memStorRestarted (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs : ConfStateM) :
-    IProp GF
+-- `memStorRestarted` (the `MemoryStorage` `bootstrappedWAL.MemoryStorage` rebuilds from the WAL's
+-- records `σ` and the backend's conf state `cs`): defined in `BaseRestartStor.lean` (restart S3,
+-- 2026-11-11, D2 (b)) as that method's proved post (`bootstrappedWAL__MemoryStorage.lean`); until
+-- then an opaque here.
 
 /-- **The real backend's batch-lock resource, as a restart's `bootstrap` leaves it** (2026-11-03,
-the whole-`bootOk` review, T1-B, option B3): `mvcc.lateWB`'s arms, the unregistered one with the
-client's halves of the backend's exact ghosts at some values (`backend.pvckOwn`), not the empty ones
-of a first start (`pvckEmpty`, false here: the `Key` bucket holds the stopped member's revisions,
-and after a compaction its compaction keys are set; measured, `etc/spec-test/bootstrap/`). A
-restart's `NewStore` (R2d) learns the values under the lock. Nothing on the restart path uses it
-yet: `lateWD`, `KBReal.snap`, `kbBoot` take a backend `bootstrap` opened to carry `lateWB`, so R2d
-merges the two (B1: `lateWB`'s arm at `pvckOwn`, `NewStore` deriving `pvckEmpty` by agreement) when
-the two contracts merge. -/
-def lateWBR (gx : GName) (γB : backend.BNames) : IProp GF :=
-  iprop((dghostVar gx (DFrac.own (1 : Qp).half) (none : Option (Loc × mvcc.StoreNames)) ∗
-      backend.pvckOwn γB) ∨ mvcc.lateWR gx)
+the whole-`bootOk` review, T1-B, option B3; DRAFT, R2d's). (The `lean` merge, 2026-11-06: the
+store's write invariant of mvcc's API, `mvcc.api.mvccW gx`, as a first start's; until then `lean`'s
+F2 arms, `mvcc.lateWB`'s unregistered arm at the backend's exact compaction ghosts `pvckOwn` or
+`mvcc.lateWR`, gone with F2. A restart's store over a non-empty history needs the API's `New` over
+`mvccStorageFor B Pk L c u` at any `(L, c, u)`: `notes/mvcc-client-merge-plan.md`, risk 5.) -/
+def lateWBR (gx : GName) (_γB : backend.BNames) : IProp GF := mvcc.api.mvccW gx
 
 /-- **The bootstrapped record of a restart** (DRAFT, R2c; `bootOk`'s restart case, L3): `bootOk`
 with the changes marked `[R2c]`: no peers (so `RestartNode`), the storage rebuilt from the WAL's
@@ -519,7 +526,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `isBackend` names the apply protocol's batch lock), over the image's data `D`, the stopped
     -- file; (2026-11-03, the whole-`bootOk` review) `N + 7` write-back tokens and the open token
     -- (`bootLeft`, A), the batch lock's resource `lateWBR` (T1-B); and what `bootstrap` adds: the
-    -- store's registration right, `keySized`
+    -- store's registration right
     "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => lateWBR d.gx γB)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- [R2c] the file is the image (`srvDiskImage`), at the consistent index `i`
@@ -528,9 +535,8 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `γA.m0` (what `#Hmeta`'s reads return and `batchLockInv γA`'s mirror starts at; a restart's
     -- `D` holds the last commit's)
     "%Hm0" ∷ ⌜metaIs D γA.m0 ∧ γA.m0.1 = i⌝ ∗
-    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
-    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
-    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    -- (premise fixes 5, 2026-11-10) no `#Hsz`: the Key bucket's size bound `mvcc.keySized` is proved
+    -- (`mvcc.keySized_at`, from bbolt's `rtxSnap_size`); until then assumed here (D22 J1a)
     "Hlate" ∷ mvcc.lateReg d.gx ∗
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
@@ -559,13 +565,14 @@ and client URLs may differ, `publishV3`, `server.go:1828`, updating them once a 
 started). As a first start's, the contract may always return an error, after which `restart3`
 does nothing more: it does not promise the restart succeeds (R2c review, second tier 6).
 (#7-cmp's Freeze: `imageAt` by the mode, in place; the compaction-mode receipt, RESTART-RCPT, as
-`srvDiskImage`'s.) -/
+`srvDiskImage`'s.) (R6, 2026-11-07: the image as `srvDiskImage`'s, over mvcc's API: the store's part,
+`mvccImage` at some image names `γk` and log `A`, with the server's parts; until then `imageAt`
+inside the pure premise.) -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
       (M : GMap Loc MemStorNamesRec),
-    ⌜(∃ (γk : KVNames) (A : List EntryModel), γk.c0 = W64 0 ∧ imageAt γk γ.boot i L A D) ∧
-      σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
+    ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
       bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = (go!"" : GoString) ∧
       -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
       -- `newBackend`'s `lg.Panic`)
@@ -573,8 +580,13 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       N + 7 + bootWB ≤ backend.wbInit ∧
       (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
         ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗
+    (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
+      ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
+      mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
     {{ -- (sweep repairs 1, L4) a zap logger (`bootstrapContract`'s)
         zapLoggerOk cfg.Logger' ∗
+        -- (premise fixes 1) the feature gate (`bootstrapContract`'s)
+        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
         envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗

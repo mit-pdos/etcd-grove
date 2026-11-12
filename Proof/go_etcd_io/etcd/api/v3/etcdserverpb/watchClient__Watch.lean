@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.PerTypeWatch
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.watchClient__Watch
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__NewStream
@@ -67,8 +68,10 @@ theorem watchClient.Watch.wp_proof
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
-  iapply (wp_NewStream conn addrs ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequest
-    v3rpc.pbWatchResponse Up Spec ctx cd _ copts ([sm] ++ vs))
+  have hNS := wp_NewStream conn addrs ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
+    v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg Up Spec ctx cd
+  simp only [v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT] at hNS
+  iapply (hNS _ copts ([sm] ++ vs))
   · iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]

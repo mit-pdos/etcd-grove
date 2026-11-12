@@ -6,9 +6,12 @@ auto-compactor's context, `WithCancel(Background())`, carries no trace, which `E
 -/
 module
 
+public import Proof.context.ReqKeys
+public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Perennial.Proof.context.Results
 public import Spec.context.WithCancelBackground
+public import Proof.go_opentelemetry_io.otel.trace.SpanCtxLaws
 
 @[expose] public section
 
@@ -58,8 +61,10 @@ theorem traceutil.ctxTraceIs_cancelCtx_background (c : Loc) :
 /-- **`WithCancel(Background())`, carrying no trace** (M2's freeze repair): `context.WithCancelBackground`'s
 statement (`Spec/context/WithCancelBackground.lean`) and `traceutil.ctxTraceIs ctx' none`, proved from
 Perennial's `WithCancel` (`wp_WithCancel_gen`, whose post gives the new context's parent field) and
-`ctxTraceIs_cancelCtx_background`; the auto-compactor's constructors use it in place of the
-trust-boundary axiom `context.WithCancelBackground.wp_proof`. -/
+`ctxTraceIs_cancelCtx_background`, and (R8, 2026-11-07) no span either (`trace.spanCtxOk`,
+`trace.spanCtxOk_cancelCtx_background`: what `EtcdServer.Compact` takes); the auto-compactor's constructors use it in place of the
+trust-boundary axiom `context.WithCancelBackground.wp_proof`. (Sweep repairs 1, B2) Its start time too
+(`context.startTimeOk`: `nil`, by Perennial's `ctxValueFrom`). -/
 theorem traceutil.wp_WithCancelBackground_noTrace :
     {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
       (App (Val (@! _root_.Perennial.context.WithCancel))
@@ -69,7 +74,8 @@ theorem traceutil.wp_WithCancelBackground_noTrace :
         _root_.Perennial.context.cancelSpec cancel γ' iprop(True) ∗
         _root_.Perennial.context.isContext ctx'
           { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
-        traceutil.ctxTraceIs ctx' none }} := by
+        traceutil.ctxTraceIs ctx' none ∗ trace.spanCtxOk ctx' ∗ context.startTimeOk ctx' ∗
+        context.libCtxOk ctx' }} := by
   iintro %Φ #Hpkg HΦ
   ihave #Hcci := _root_.Perennial.context.isClosedchanInit_of_init $$ Hpkg
   iapply _root_.Perennial.context.wp_WithCancel_gen
@@ -91,8 +97,23 @@ theorem traceutil.wp_WithCancelBackground_noTrace :
   · iapply _root_.Perennial.context.isContext_cancelCtx c γ iprop(True)
       _root_.Perennial.context.backgroundCtxVal _ rfl rfl
     iframe #
+  isplitl []
   · iapply traceutil.ctxTraceIs_cancelCtx_background c
     iframe #
+  isplitl []
+  · iapply trace.spanCtxOk_cancelCtx_background c
+    iframe #
+  -- (sweep repairs 1, B2) its start time: `nil` (a child of `Background()`, Perennial's `ctxValue`)
+  isplitl []
+  · iapply startTimeOk_of_bgFrom
+    iframe #
+    iapply _root_.Perennial.context.ctxValueFrom_cancel c
+    iexact Hf
+  -- (premise-fixes-8) its library values: `nil`, as its start time's
+  · iapply context.libCtxOk_bgFrom
+    iframe #
+    iapply _root_.Perennial.context.ctxValueFrom_cancel c
+    iexact Hf
 
 end lemmas
 

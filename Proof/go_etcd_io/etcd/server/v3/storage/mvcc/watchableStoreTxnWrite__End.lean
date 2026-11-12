@@ -8,7 +8,6 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Chang
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -46,33 +45,6 @@ theorem mvcc.ownToks_join_pred (γr : GName) (b : Nat) (h : 1 ≤ b) :
   conv => rhs; rw [hb]
   exact (ownToks_add 1 (b - 1) γr).2
 
-/-- A write transaction leaves room for its revision (its token is counted by the budget). -/
-theorem mvcc.isTxnWriteCore_room (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log)
-    (pend : List mvcc.Change) (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc)
-    (b : Bool) (crev : Int) (ld : Bool) :
-    mvcc.isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps b crev (ld := ld) ⊢
-      mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps b crev (ld := ld) ∗
-        ⌜ilog.length + 4 ≤ 2 ^ 63⌝ := by
-  iintro H
-  iunfold mvcc.isTxnWriteCore at H
-  iNamed H
-  iunfold mvcc.storeTxnWriteCore at Htw
-  iNamed Htw
-  unfold mvcc.revToken
-  icombine Htoks Htok gives %Hle
-  isplitl
-  · iunfold mvcc.isTxnWriteCore
-    iexists tw, ranges
-    iframe Hmw Htrc
-    iunfold mvcc.storeTxnWriteCore
-    iexists ti, bt, Locked, ntok
-    simp only [named]
-    unfold mvcc.revToken
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
-    iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
-  ipureintro; omega
-
 /-- The writer's unsealed history bounds every synced watcher's delivery: its lower bound is
 of a log the writer has committed. -/
 theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.WsOk σ)
@@ -105,7 +77,7 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   rw [if_pos hws]
   icases Hpop with ⟨-, Hwf, -⟩
   iunfold mvcc.evsWf at Hwf
-  icases Hwf with ⟨%L, #Hs, -, %Hf⟩
+  icases Hwf with ⟨%L, #Hs, -, %Hfb, #-⟩
   ihave #Hs' := mvcc.evLog_sealed _ _ $$ Hs
   iunfold mvcc.idxSealed at Hs'
   icases Hs' with ⟨#Hlb, -⟩
@@ -115,54 +87,51 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   have hpre := mvcc.histOf_prefix_shape_log hp.2
   rw [hm] at hm'; cases hm'
   rw [he] at he'; cases he'
-  rcases Hf.2 with h | h
+  rcases Hfb with h | h
   · exact Or.inl (Nat.le_trans h hpre.length_le)
   · exact Or.inr h
 
-/-- Under the lock, with the sole writer's transaction: the notified log is the writer's, and
-the synced watchers are delivered at most up to it (before the seal). -/
+/-- Under the lock, with the writer's transaction: the notified log is the writer's (the committed
+log's authority: the lock's quarter at the notified log, the transaction's index writer's half at
+its log; 2026-11-06, until then the sole writer's half of the notified log), and the synced
+watchers are delivered at most up to it (before the seal). -/
 theorem mvcc.body_pin (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (ilog : mvcc.Log)
     (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc) (crev : Int) (ld : Bool) :
-    mvcc.watchStoreBody (GF := GF) s γ 1 σ ∗ monoListAuthOwn γ.wlog (1 : Qp).half ilog ∗
+    mvcc.watchStoreBody (GF := GF) s γ 1 σ ∗
       mvcc.storeTxnWriteCore stw st γ.st trace ilog pend chs ps false crev (ld := ld) ⊢
       ⌜σ.Lmu = ilog ∧ σ.syncedBelow ilog.length⌝ := by
-  iintro ⟨Hb, Hwl, Hc⟩
+  iintro ⟨Hb, Hc⟩
   iunfold mvcc.watchStoreBody at Hb
   iNamed Hb
-  iunfold mvcc.wlogQ at Hwlog
-  icases Hwlog with ⟨Hwlog, -⟩
-  ihave %Hl0 := monoListAuthOwn_agree γ.wlog _ _ _ _ $$ Hwlog Hwl
-  have Hl := Hl0.2
   iunfold mvcc.storeTxnWriteCore at Hc
   iNamed Hc
   simp only [mvcc.idxWriterB_false]
   iunfold mvcc.idxWriter at Hw
-  icases Hw with ⟨Hauth, -, -, -⟩
+  icases Hw with ⟨Hauth, -, -, Hla, -⟩
+  ihave %Hl := mvcc.wlogQ_auth_agree γ 1 _ σ.Lmu ilog $$ [$Hwlog $Hla]
   ihave %Hbel := mvcc.syncedBelow_of γ σ Hok ilog pend $$ [$Hmem $Hauth]
   ipureintro
-  exact ⟨Hl, Hbel⟩
+  exact ⟨Hl.symm, Hbel⟩
 
 /-- **The notified log catches up with the commit** (unit W-K: around it): the lock's outer
 quarter of the committed log's authority at the notified log, lent to the commit
 (`storeTxnWrite.End`'s `logQPre`), and the body at the committed log `L` from the quarter back
-at `L` (`logQPost`). -/
+at `L` (`logQPost`); the notified log, the lock's whole, moved to `L`. -/
 theorem mvcc.body_commit (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) :
     mvcc.watchStoreBody (GF := GF) s γ 1 σ ⊢ mvcc.logQ γ.st σ.Lmu ∗
       (∀ L : mvcc.Log, ⌜σ.syncedAbove L.length ∧ σ.Lmu <+: L⌝ -∗
-        monoListAuthOwn γ.wlog (1 : Qp).half σ.Lmu -∗
         mvcc.idxCert γ.st.idx L -∗ mvcc.logQ γ.st L ==∗
-        mvcc.watchStoreBody s γ 1 { σ with Lmu := L } ∗ monoListAuthOwn γ.wlog (1 : Qp).half L) := by
+        mvcc.watchStoreBody s γ 1 { σ with Lmu := L }) := by
   iintro Hb
   iunfold mvcc.watchStoreBody at Hb
   iNamed Hb
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨Hwlog, Hq⟩
   iframe Hq
-  iintro %L ⟨%hab, %hpre⟩ Hwl #Hc Hq
+  iintro %L ⟨%hab, %hpre⟩ #Hc Hq
   imod ghostVar_update { σ with Lmu := L } γ.wst σ $$ Hσ with Hσ
-  imod mvcc.wlog_update_halves γ σ.Lmu L hpre $$ Hwlog Hwl with ⟨Hwlog, Hwl⟩
+  imod mvcc.wlog_update γ σ.Lmu L hpre $$ Hwlog with Hwlog
   imodintro
-  iframe Hwl
   ihave #Hwfz2 := mvcc.wsWatchFrozen_mono γ σ { σ with Lmu := L } (fun h => h) $$ Hwfz
   iunfold mvcc.watchStoreBody
   simp only [named]
@@ -184,18 +153,21 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     (hRev : mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG))
     (hNotify : mvcc.watchableStore.notify.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
-  intro trace tw s st γ ilog pend puts deletes putSize P f crev ld
-  wp_start as ⟨Hw, Hhook, HPh, #HokN⟩
-  iunfold mvcc.isWatchTxnWrite at Hw
+  intro trace tw s st γ ilog pend puts deletes putSize P crev ld G R Tr
+  wp_start as ⟨Hw, #Hhook, HPh, #HokN, HG, #HFG, Hcb⟩
+  iunfold mvcc.isWatchTxnWriteT at Hw
   iNamed Hw
   iStructNamed Htw
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType watchableStoreTxnWrite.ty) (m := go!"Changes")]; wp_call
   (try wp_auto)
-  wp_apply (hCh trace mw st γ.st ilog pend puts deletes putSize crev iprop(True) ld) $$ [$Htx] as %chs %ps ⟨Hchs, Hkvs, %Hps, Hcore⟩
+  wp_apply (hCh trace mw st γ.st ilog pend puts deletes putSize crev iprop(True) ld Tr) $$ [$Htx] as %chs %ps ⟨Hchs, Hkvs, %Hps, Hcore⟩
+  iunfold mvcc.isTxnWriteCoreY at Hcore
+  icases Hcore with ⟨%stw, %ranges, Hmw, Hcore, Htrc⟩
+  ihave Hcore : mvcc.storeTxnWriteCore stw st γ.st trace ilog pend chs ps false crev iprop(True) ld $$ [Hcore]
+  · rw [mvcc.storeTxnWriteCore_Y]; iexact Hcore
   ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
-  icases mvcc.isTxnWriteCore_room _ _ _ _ _ _ _ _ _ _ _ crev ld $$ Hcore with ⟨Hcore, %Hroom⟩
+  icases mvcc.storeTxnWriteCore_room _ _ _ _ _ _ _ _ _ _ _ _ $$ Hcore with ⟨Hcore, %Hroom⟩
   (try wp_auto)
   have hpend : pend = [] ↔ chs.len = W64 0 := by
     constructor
@@ -211,30 +183,33 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     have hnil : pend = [] := hpend.2 Hif
     subst hnil
     (try wp_auto)
-    ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog [] puts deletes putSize) crev $$ [Hcore]
-    · simp only [mvcc.isTxnEnd]; iexists chs, ps, false, ld; iexact Hcore
-    wp_apply (hEnd trace mw st γ.st (.write ilog [] puts deletes putSize) crev) $$ [$Hte Hhook HPh]
-      as ⟨Hrd, Hpost, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HPh; rw [mvcc.logQPre_nil]
-      isplitl
-      · iunfold mvcc.certOkNext; ileft; ipureintro; rfl
-      itrivial
-    simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte, mvcc.logQPost_nil]
-    icases Hpost with ⟨#Hc, Htok, -, Hfrag, Hpin⟩
+    icases mvcc.storeTxnWriteCore_takeYc _ _ _ _ _ _ _ _ _ _ _ _ $$ Hcore with ⟨HYc, Hcore⟩
+    ihave Hte : mvcc.isTxnEndY mw st γ.st trace (.write ilog [] puts deletes putSize) crev iprop(True)
+        (mvcc.slotYc γ.st ilog crev) Tr $$ [Hmw Hcore HYc Htrc]
+    · simp only [mvcc.isTxnEndY]; iexists chs, ps, false, ld
+      iunfold mvcc.isTxnWriteCoreY; iexists stw, ranges; iframe Hmw Htrc
+      iapply Hcore; iexact HYc
+    ihave Hcb := (mvcc.wsEndCbY_nil_iff γ ilog crev R).1 $$ Hcb
+    wp_apply (hEnd trace mw st γ.st (.write ilog [] puts deletes putSize) crev iprop(True)
+        (mvcc.slotYc γ.st ilog crev) G R Tr) $$ [$Hte HPh HG Hcb]
+      as ⟨Hrd, -, Hpost, Htrc, HX⟩
+    · isplitl [HPh]
+      · simp only [mvcc.txnEndPreH]; iexists P; iframe Hhook HPh; rw [mvcc.logQPre_nil]
+        isplitl
+        · iunfold mvcc.certOkNext; ileft; ipureintro; rfl
+        itrivial
+      simp only [mvcc.txnEndX]
+      iframe HG HFG Hcb
+    simp only [mvcc.txnEndPostH, mvcc.txnEndXPost, mvcc.commitLog, ↓reduceIte, mvcc.logQPost_nil]
+    icases Hpost with ⟨#Hc, -⟩
+    icases HX with ⟨HG, HR⟩
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Hc Htrc Hfrag
-    iunfold mvcc.watchWriter
-    iframe Hc Hwlog Hpin
-    iapply mvcc.ownToks_join_pred γ.st.revs (mvcc.wBudget ilog) (by unfold mvcc.wBudget; omega)
-    unfold mvcc.revToken
-    iframe Htok Htoks
+    iframe Hrd Hc Htrc HG HR
   have hne : pend ≠ [] := fun h => Hif (hpend.1 h)
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType watchableStoreTxnWrite.ty) (m := go!"Rev")]; wp_call
   (try wp_auto)
-  iunfold mvcc.isTxnWriteCore at Hcore
-  icases Hcore with ⟨%stw, %ranges, Hmw, Hcore, Htrc⟩
   wp_bind (App (Val #(methods (go.GoType.PointerType metricsTxnWrite.ty) go!"Rev" #mw)) (Val #()))
   rw [method_unfold (t := go.GoType.PointerType metricsTxnWrite.ty) (m := go!"Rev")]; wp_call
   (try wp_auto)
@@ -474,6 +449,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   rw [hN]
   ihave #Hws0 : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
+  ihave %Hrb := mvcc.isWatchableStore_rb s st γ $$ Hws0
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -486,23 +462,31 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   icases HP with ⟨%σ, HP, Hrel, Hwsf, %HsetR⟩
   obtain ⟨Hset, Hsrb, Hurst⟩ := HsetR
   icases persistent_entails_right (mvcc.body_pin s stw st γ σ ilog pend chs ps crev ld) $$
-    [$HP $Hwlog $Hcore] with ⟨%Hpin, HP, Hwlog, Hcore⟩
+    [$HP $Hcore] with ⟨%Hpin, HP, Hcore⟩
   obtain ⟨hLmu, hbel⟩ := Hpin
   -- the seal: the revision's history lower bound, before the watchers get its events
-  ihave Hcw : mvcc.isTxnWriteCore mw st γ.st trace ilog pend puts deletes putSize chs ps false crev
-      (ld := ld) $$
-    [Hmw Hcore Htrc]
-  · iunfold mvcc.isTxnWriteCore; iexists stw, ranges; iframe
-  imod mvcc.isTxnWriteCore_seal _ _ _ _ _ _ _ _ _ _ hne crev (ld := ld) $$ Hcw with ⟨Hcw, #Hsl⟩
+  imod mvcc.storeTxnWriteCore_seal stw st γ.st ilog pend chs ps hne crev iprop(True) ld $$ Hcore
+    with ⟨Hcore, #Hsl⟩
   -- the caller's certificate of the log after (unit W-M3): the events carry it
   ihave #Hok : mvcc.certOk γ.st (ilog ++ [pend]) $$ []
   · iunfold mvcc.certOkNext at HokN
     icases HokN with (%Hn | #H)
     · exact absurd Hn hne
     · iexact H
-  ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
-  · iunfold mvcc.evLog; iframe Hsl Hok
   -- (D25) the revision released before its events go out: the released length bumped
+  iunfold mvcc.relAuth at Hrel
+  icases Hrel with ⟨Hrel, Hslot⟩
+  -- the caller's notify step, with the writer's slot and the lock's: the revision notified before
+  -- its events go out (a lower bound of the API's notified log at the revision)
+  ihave Hcb := (mvcc.wsEndCbY_cons_iff γ ilog pend hne crev R).1 $$ Hcb
+  icases mvcc.storeTxnWriteCore_takeYc _ _ _ _ _ _ _ _ _ _ _ _ $$ Hcore with ⟨HY, Hcore⟩
+  ihave Hslot : mvcc.wsSlot γ 1 ilog $$ [Hslot]
+  · rw [← hLmu]; iexact Hslot
+  imod Hcb $$ Hsl [HY Hslot] with ⟨#HnlN, %Y, HYn, Hcb⟩
+  · iframe HY Hslot
+  ihave Hcore := Hcore $$ %Y HYn
+  ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
+  · iapply mvcc.evLog_of_sealed γ.st (ilog ++ [pend]) Hrb $$ [$Hsl $Hok $HnlN]
   imod mono_nat_own_update (ilog ++ [pend]).length (by rw [hLmu]; simp) $$ Hrel with ⟨Hrel, #Hrl⟩
   ihave #Hrlb : mvcc.relLb γ (ilog ++ [pend]).length $$ []
   · iunfold mvcc.relLb; iexact Hrl
@@ -513,22 +497,35 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   obtain ⟨hLmu', hab, hbel', hvic', hMeq, hWuEq, hSTEq⟩ := Hσ'
   have hLL : σ.Lmu.length = σ'.Lmu.length := by rw [hLmu, hLmu']
   (try wp_auto)
-  ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog pend puts deletes putSize) crev $$ [Hcw]
-  · simp only [mvcc.isTxnEnd]; iexists chs, ps, true, ld; iexact Hcw
+  ihave Hte : mvcc.isTxnEndY mw st γ.st trace (.write ilog pend puts deletes putSize) crev iprop(True)
+      Y Tr $$ [Hmw Hcore Htrc]
+  · simp only [mvcc.isTxnEndY]; iexists chs, ps, true, ld
+    iunfold mvcc.isTxnWriteCoreY; iexists stw, ranges; iframe Hmw Hcore Htrc
   -- the lock's outer quarter of the committed log's authority, lent to the commit (unit W-K)
   icases mvcc.body_commit s γ σ' $$ HP with ⟨Hq, Hcommit⟩
-  wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize) crev) $$ [$Hte Hhook HPh Hq]
-    as ⟨Hrd, Hpost, Htrc⟩
-  · iapply mvcc.txnEndPre_write; iframe Hhook HPh HokN
-    rw [mvcc.logQPre_ne γ.st ilog pend hne Hwq, ← hLmu']; iexact Hq
+  wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize) crev iprop(True) Y G
+      iprop(mvcc.wsSlot γ 1 (ilog ++ [pend]) ∗ R) Tr) $$ [$Hte HPh Hq HG Hcb]
+    as ⟨Hrd, -, Hpost, Htrc, HX⟩
+  · isplitl [HPh Hq]
+    · simp only [mvcc.txnEndPreH]; iexists P; iframe Hhook HPh HokN
+      rw [mvcc.logQPre_ne γ.st ilog pend hne Hwq, ← hLmu']; iexact Hq
+    simp only [mvcc.txnEndX]
+    iframe HG HFG Hcb
+  simp only [mvcc.txnEndXPost]
+  icases HX with ⟨HG, Hslot, HR⟩
   have hcl : mvcc.commitLog ilog pend = ilog ++ [pend] := by
     unfold mvcc.commitLog; rw [if_neg hne]
-  simp only [mvcc.txnEndPost, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
-  icases Hpost with ⟨#Hc, -, Hq, Hfrag, Hpin⟩
+  simp only [mvcc.txnEndPostH, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
+  icases Hpost with ⟨#Hc, Hq⟩
   rw [← hLmu'] at *
-  imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
-    with ⟨HP, Hwlog⟩
+  imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hc Hq
+    with HP
   (try wp_auto)
+  -- the API's slot at the notified log (moved at the notification, above)
+  ihave Hrel : mvcc.relAuth γ 1 (σ'.Lmu ++ [pend]) $$ [Hrel Hslot]
+  · iunfold mvcc.relAuth; isplitl [Hrel]
+    · iexact Hrel
+    · iexact Hslot
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP Hrel Hwsf]
   · have hs'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).settled := by
       refine ⟨?_, ?_⟩
@@ -555,13 +552,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     exact ⟨hs'', hsr'', hur''⟩
   (try wp_auto)
   iapply HΦ
-  iframe Hrd Hc Htrc Hfrag
-  iunfold mvcc.watchWriter
-  iframe Hc Hwlog Hpin
-  have hb : mvcc.wBudget (σ'.Lmu ++ [pend]) = mvcc.wBudget σ'.Lmu - 1 := by
-    unfold mvcc.wBudget; simp only [List.length_append, List.length_singleton]; omega
-  rw [hb]
-  iexact Htoks
+  iframe Hrd Hc Htrc HG HR
 
 end proof
 

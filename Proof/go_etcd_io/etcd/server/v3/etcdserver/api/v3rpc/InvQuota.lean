@@ -79,7 +79,7 @@ def v3rpc.quotaAlarmerAt (qa s : Loc) : IProp GF :=
   iprop(∃ (name : GoString) (lg : Loc) (qb : w64),
     structFieldRef v3rpc.quotaAlarmer go!"s" qa ↦□ s ∗
     structFieldRef v3rpc.quotaAlarmer go!"name" qa ↦□ name ∗
-    srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb ∗
+    srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb ∗
     ⌜apply.backendUnderQuota⌝)
 
 instance v3rpc.quotaAlarmerAt_persistent (qa s : Loc) :

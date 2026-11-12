@@ -1,5 +1,5 @@
 /-
-`newServer(name, peer, client, cluster, token, retention, snapCount, catchUp, lg)` (`examples/lib/etcdstart/etcdstart.go`; 2026-10-22, D33):
+`newServer(name, peer, client, cluster, token, retention, snapCount, catchUp, lg)` (`examples/lib/etcdstart/common.go`; 2026-10-22, D33):
 member `name` of a new cluster with token `token` built -- its configuration (as putget's, putget3's
 and their followers' were) and `etcdserver.NewServer`. Lean-first (no Rocq counterpart).
 
@@ -64,7 +64,7 @@ abbrev newServer.spec : Prop :=
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
   retention = W64 0 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗

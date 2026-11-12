@@ -414,6 +414,8 @@ written in Lean.
 - Q7f4-5: yes, each premise through the `axiom` skill before use.
 - R1 checked (§6): feasible, with a local `SafeMapKey` instance and F3.
 
+**Re-baseline (2026-11-12):** `notes/k8s-7f4-rebaseline.md` checks this Draft against lean `6803e4e0fd` (after per-type, stage B, premise fixes 7 and 8); its §2 changes Q7f4-1, Q7f4-2 and §3 (pending 81), and its §4 order replaces the order below.
+
 **Handoff to the agent that takes the 7f-4 Lean** (after the per-type landing and stage B of the
 grpc serve pool):
 - **Start state:**

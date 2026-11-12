@@ -74,7 +74,7 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
     try wp_auto
     wp_apply context.wp_Background
     try wp_auto
-    wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx⟩
+    wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
     wp_apply wp_random γ vs dir c $$ [$Hc] as %r ⟨%id, #Hr, -⟩
     iunfold isRep at Hr
@@ -87,8 +87,12 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
     ihave #Hpau := kd_ccAu_dup γ o Hto $$ Hinv
     ihave #Hnc : nodeCtx ctx' cd $$ []
     · unfold nodeCtx; iright; iexact Hctx
-    wp_apply wp_ProposeConfChange n γ.r.cluster kdRaftN id cc o (DFrac.own 1) ctx' cd
+    -- (raft-entsize §3) the conf change at its content
+    icases own_ccPtsCC cc (DFrac.own 1) o $$ Hcc with ⟨%cco, Hcc, %Hcco⟩
+    wp_apply wp_ProposeConfChange n γ.r.cluster kdRaftN id cc o cco (DFrac.own 1) ctx' cd
       $$ [$Hraftinit $HisNode $Hnc $Hcc $Hpau] as %err -
+    · -- (raft-entsize §3) no bound on proposed data (`Hmd`)
+      ipureintro; exact ⟨Hcco, fun b h => by simp [Hmd] at h⟩
     try wp_auto
     wp_apply Hcancel
     try wp_auto

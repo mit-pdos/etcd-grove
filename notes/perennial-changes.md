@@ -17,52 +17,41 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `Context.Value` at keys other than `&cancelCtxKey` (2026-11-08, sweep repairs 1 B2-F1 and k8s 7f P-RL1)
+### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
-- **Missing.** Perennial's `context` specs give `Value` only at `&cancelCtxKey` (`isContext`'s
-  `"#HValue"`, `cancelCtx.Value.spec`); nothing at another key, no `backgroundCtx.Value`, and
-  `WithCancel`'s posts drop the new context's read-only parent field (`withCancel`'s
-  `ctxField c ↦□ parent`), so a client cannot follow `value(c.Context, key)`.
-- **Needed by.** B2/B2b (sweep repairs 1): `startTimeOk`/`keepAliveOk` of `s.ctx =
-  WithCancel(Background())` and of `WithValue`s over it, to delete the axioms
-  `context.ValueStartTime`/`ValueKeepAlive`. k8s 7f's P-RL1 (the entry "Contexts derived from
-  a parent that is not an `isContext`" below, `notes/k8s-7f-scope.md` §3): the
-  child of `WithCancel(parent)` answers `Value(k)`, `k ≠ &cancelCtxKey`, as the parent does, for a
-  `*valueCtx` parent too.
-- **Workaround here.** None yet: the two axioms stay until it lands (B2 waits). A marked local axiom
-  only if the Perennial change is refused.
-- **Proposed change.** One proposal for both: Perennial branch `ctx-value` (off `lean`
-  `84d538063`), `docs/design/context-value.md`. A sealed persistent `ctxValue x k R` (`x.Value(k)`
-  and `context.value(x, k)` both return a result in `R`) with laws proved over the translated
-  package: L1 `Background`/`TODO` give `nil`; L2 `*cancelCtx` from its parent's `ctxValue`, any
-  parent type (which makes P-RL1 true: its first wording, through `parent.Value`, was false since
-  `value` reads the standard types' fields directly); L3 `*timerCtx`; L4 `*valueCtx` from its
-  fields (`WithValue` stays untranslated; a client's `WithValue` spec states the fields); L5 other
-  context types from their `Value` spec. `WithCancel`/`WithDeadline` posts gain the transfer law.
-  No axiom, no trusted code; about 300-500 lines. P-RL2 (weak `Err` contracts) is another family,
-  not covered.
-- **Status.** Design approved in principle by etcd-grove-81 (2026-11-08); held until the goose
-  type-switch fix's plan is settled (both are Perennial changes), then Perennial's own workflow
-  (its `etc/land.sh`; the user pushes). B2/B2b wait for the pin bump.
+Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
+the input. Go's sort (pdqsort) is deterministic: the output is a function of the input slice and
+the comparator. etcd's sorted ranges (`txn.sortRangeResults`) need the reply to be a function of the
+store, so that a writing transaction's answer is fixed at commit (`notes/specs-only/batch-3b.md`,
+decision 1: `Txn.goSort`, and 2c's read registry, 3a's `applyStep_fun`). The general change: state
+the sort's result as `goSort less xs` for a pure, opaque-but-functional `goSort` with the
+sorted-permutation law, so any client can use determinism. Not shaped by one proof: determinism is
+a fact of Go's implementation every caller may rely on. Not yet proposed upstream.
 
-### goose: a type-switch case listing several types tests the first twice, never the last (2026-11-08, found writing the `ctx-value` design)
+### Goose leaves a `select` case's variable unbound in the `default:` branch (2026-11-09, specs-only batch 2b)
 
-- **Missing.** `goose.go`'s `typeSwitchStmt` builds a multi-type case's condition with
-  `for i := range c.List[1:] { ... getCond(i) ... }`, so `i` runs `0 .. n-2`: the last type is never
-  tested (it should be `getCond(i+1)`). Gold: `multiTypeSwitch`'s `case int, string:` is
-  `int || int` (`Perennial/Code/.../unittest.lean:5701`); `context.value`'s
-  `case backgroundCtx, todoCtx:` is `backgroundCtx` twice (`Perennial/Code/context.lean:1777`). The
-  model then skips the case's body for the last type, unsound when that body is the one that
-  panics (`case int, string: panic(..)` with a string).
-- **Needed by.** Soundness of every translation with such a case. In the checked-in translations of
-  this repository and Perennial there are only those two (a grep), and `context.value`'s is harmless
-  (a `todoCtx` reaches `default`, `emptyCtx.Value`, `nil`).
-- **Workaround here.** None needed today (no affected translation in this repository).
-- **Proposed change.** The one-line fix and a gold update, through Perennial's
-  `.agents/skills/fix-semantics/SKILL.md` (the user signs off), with a test that distinguishes the
-  last type.
-- **Status.** Confirmed by etcd-grove-81 (2026-11-08, `goose.go:2413-2418`), who takes the
-  `fix-semantics` plan to the user; not started.
+In etcd's `serverWatchStream.recvLoop` (`server/etcdserver/api/v3rpc/watch.go`), a type switch's
+`default:` branch reads the switched variable `uv`; the translation leaves `uv` unbound in that
+branch, so the branch is stuck in the model (a model artifact: Go runs it). Found while writing the
+specs-only branch's watch-server specs, which restrict the scope to well-formed client requests
+partly because of it (`notes/specs-only/batch-2b.md`). To fix in Goose (bind the switched value in
+every branch, `default` included); not yet reported upstream.
+
+### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
+
+- **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)
+  requires at most `2 ^ 62` elements (its heapsort fallback's index arithmetic), a bound no Go
+  program needs (a slice that long cannot exist in memory).
+- **Needed by.** etcd's `sortRangeResults` (`txn/range.go:125`), through every spec that hands it a
+  range's results.
+- **Workaround here.** The size bound is stated once, locally, where a range's results are produced:
+  `stateOk` in mvcc's `Range` contracts (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiState.lean`),
+  proved from the store's whole-history receipt; not a law of the store's state (the user,
+  2026-11-03: "we're going to ultimately get rid of the explicit size limit assumptions ... by
+  improving perennial itself, so I want those assumptions as local as possible").
+- **Proposed change.** Prove `sort.Sort` without the bound (from the slice's length being an `int`,
+  or the heap indices computed without overflow), then drop `stateOk`'s length conjunct.
+- **Status.** Not started.
 
 ### Contexts derived from a parent that is not an `isContext` (2026-11-08, k8s 7f; to be decided in the 7f-4 Draft)
 
@@ -88,11 +77,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Workaround here.** Today the premise `v3rpc.runsNoRequireLeader` excludes the branch; the user
   decided (2026-11-08) to delete it, so 7f-4 needs these facts, as local lemmas until a Perennial
   change lands.
-- **Status.** P-RL1: covered by the ctx-value proposal (Perennial branch `ctx-value`,
-  `docs/design/context-value.md`, `c3beeb89d`: its L2/L5), checked in `notes/k8s-7f4-draft.md` §8;
-  using it for 7f-4 also needs the grpc model's run context in `ctxValue` form and a fact tying
-  grpc's `incomingOf` to `Value`, so the Draft recommends a narrower reviewed fact first. P-RL2:
-  not started (local lemmas in 7f-4, a Perennial proposal after).
+- **Status.** P-RL1 landed (2026-11-08) as `ctxValue`/`ctxValueFrom` (Perennial `ddc0f0acc`; see
+  "Landed", "`Context.Value` at keys other than `&cancelCtxKey`"): `ctxValueFrom parent child`
+  in `WithCancel`'s and the deadline constructors' posts, for any parent with a `ctxValue`; a
+  `*valueCtx` parent (grpc metadata) through `ctxValue_valueCtx` from its fields, which this
+  repository's `WithValue` spec would have to state. P-RL2 not started; the 7f-4 Draft states it.
+  For 7f-4 (`notes/k8s-7f4-rebaseline.md`, R-1): grpc's run context gives its library facts only in
+  the WP form (`grpcRunCtx`), which does not cross `WithCancel`; the re-baseline proposes the chain
+  form in grpc's model.
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 
@@ -888,6 +880,15 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Translate `reflect`'s type declarations (`translate_types`, or `Type` alone: an
   interface type, whose values Perennial represents as any interface's), keeping its functions
   names only. A Perennial change, designed and reviewed on its own.
+- **Two incoherent instances (2026-11-10, k8s 7e-2).** `Proof/reflect/Values.lean` now gives
+  `reflect.Type'` a higher-priority `TypedPointsto` (`type_typed_pointsto`: `heapTypedPointsto` from
+  the axiom `type_intoVal_inj : go.IntoValInj reflect.Type'`, so it depends on `hG` and `intoVal`) and
+  an `IntoValTypedUnderlying` axiom (`type_into_val_typed`), so that `getNewItemFunc` (which
+  allocates a `reflect.Type` cell) no longer reaches the generated `sorry`s. The generated
+  `Type'_typed_pointsto`/`Type'_into_val_typed` still exist, and the reflector's
+  `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
+  (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
+  unsound, but only a fix at the source (above) gives one instance.
 - **Status.** Not started.
 
 ### Goose: a names-only package's constants are values of unknown shape
@@ -1133,6 +1134,26 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
 ## Landed
+
+### `Context.Value` at keys other than `&cancelCtxKey`; goose's multi-type type-switch case (landed 2026-11-08, Perennial `f137bdd8a` and `ddc0f0acc`; pin bumped 2026-11-08)
+
+- **Was missing.** (1) Perennial's `context` specs gave `Value` only at `&cancelCtxKey`, and
+  `WithCancel`'s posts dropped the new context's read-only parent field, so no proof could follow
+  `value(c.Context, key)` (sweep repairs 1 B2-F1; k8s 7f P-RL1). (2) goose translated a type-switch
+  case `case T1, ..., Tn:` testing `T1` twice and never `Tn` (`typeSwitchStmt`'s `getCond(i)` over
+  `c.List[1:]`), unsound when the case body panics; found writing (1).
+- **Landed in Perennial.** `f137bdd8a` (fix-semantics Case 35, signed off by the user): `getCond(i +
+  1)`, the semantics test `testTypeSwitchLastType`, the unittest `multiTypeSwitchLast`; only
+  `context.value` and goose's unittest re-translated (no translation in this repository has a
+  multi-type case: the pin bump's `etc/goose.py` changed no file). `ddc0f0acc`
+  (`docs/design/context-value.md`): `Proof/context/CtxValue.lean`, `ctxValue x k R` (`x.Value(k)`
+  and `context.value(x, k)` return a result in `R`), `wp_value`, `ctxValue_Value`, the laws
+  `ctxValue_{background,todo,cancel,timer,valueCtx,other}` (L2/L3 for a key that is not a `*int`,
+  `notIntPtrKey`), and `ctxValueFrom parent ctx'` in the posts of `WithCancel.spec`,
+  `wp_WithCancel_any`, `wp_WithCancel_Background`, `WithDeadlineCause`/`WithDeadline`/`WithTimeout`
+  and the `*_Background` deadline results.
+- **Here.** The pin bump adapted nine destructuring patterns (the posts' new trailing conjunct);
+  no statement changed. B2/B2b (the axioms `context.ValueStartTime`/`ValueKeepAlive`) use it next.
 
 ### Package initialization: a monotone package map; `os`'s initializers translated (landed 2026-11-03 to 2026-11-04; used here 2026-11-07)
 
@@ -1862,6 +1883,27 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
 
+## A slice literal of map literals (2026-11-06, the mvcc tester)
+
+`wp_slice_literal` (`Perennial/Golang/Theory/Slice.lean`) fixes the elements `l` before the array
+literal's WP runs, so a literal whose elements are themselves allocated by that WP
+(`[]map[string]kvRec{{}, {}}`, `examples/mvccrand`'s `newHistory`: each element a `make1`) cannot
+name them: the metavariable `?l` is created outside the scope of the maps' locations, and `rfl`
+fails. **Worked around locally** (2026-11-06): `wp_slice_literal_ex` in
+`Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/newHistory.lean`, a copy of
+`wp_slice_literal_nonnull`'s proof whose post takes the elements existentially
+(`∃ l, ⌜v = #(array.mk n l)⌝ ∗ …`), under `set_option goose.wp.unfoldSliceLiterals true` and
+Perennial's section variables (`[GoSemanticsFunctions] [go.PreSemantics]`); `newHistory` is proved
+over it. **The general change**: Perennial's `wp_slice_literal`(`_nonnull`) with `∃ l` in the array
+literal's post (the current statements are its instances at a fixed `l`), then delete the local copy.
+
+## `isSpsc`'s invariant at `nroot`; no `chan.wp_len` (2026-11-06, the mvcc tester)
+
+Met proving `examples/mvccrand`'s ticks channel (`WriterRun.lean`, `notes/mvcc-migration/mvccrand.md`):
+Perennial's single-producer channel `isSpsc` keeps its invariant at `nroot`, so a caller that holds
+another invariant open (the tester's, under its own namespace) cannot send on it; and there is no
+`chan.wp_len` wrapper beside `chan.wp_cap`. Local: the tester sends outside its invariant. The
+general changes: `isSpsc` parameterized by its namespace; a `chan.wp_len` lemma.
 ## `ownMap` is not `DFractional` (2026-11-04, bbolt batch 34)
 
 Perennial has `ownMap_fractional` (the `Fractional` form at `DFrac.own q`) but no `DFractional`
@@ -2029,3 +2071,172 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   term it is given, it should fail with an error naming the mismatch, never close the goal with an
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
+
+## `strings.Cut` has no model (2026-11-08, k8s 7e-3b)
+
+- **What happened.** Perennial's `strings` translates `Cut` names-only (no body, no spec). The k8s
+  etcd3 driver's `splitKey` called it.
+- **Local workaround.** The driver (our test code) splits the key with a byte loop instead; no spec
+  or axiom added.
+- **Proposed (general; record only).** A model of `strings.Cut` (a translated body, or a spec:
+  `s[:i]`, `s[i+len(sep):]`, `true` at the first occurrence `i`; `s`, `""`, `false` if none) is a
+  candidate general addition to Perennial's `strings`.
+- **Status.** Recorded only.
+
+## `func.forRange` (range over a function) has no WP rule (2026-11-10, k8s 7e-2, branch `k8s-7e`)
+
+- **Missing.** Perennial defines `func.forRange n` (`Perennial/Golang/Defn/Loop.lean`, Go 1.23's
+  `for k, v := range f`) but proves no WP rule for it; `doFor` has `wp_for`.
+- **Needed by.** `store.GetList`'s `for chunk, chunkErr := range chunks`
+  (`k8s.io/apiserver/pkg/storage/etcd3/store.go:829`).
+- **Workaround here.** A local, proved lemma `wp_forRange2` (`n = 2`) in
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/ForRange.lean`: the caller proves the iterator's WP for
+  an abstract yield `GoFunc` holding a token `Tok` (forRange's `state` cell at `0` and its `exit`
+  cell untouched), with the yield's spec (the body's outcome `executeVal`/`continueVal` gives `Tok`
+  back and `true`; `breakVal`/`returnVal r` gives `Done bv` and `false`); after the iterator returns
+  with `Tok` or `Done bv`, the loop's outcome follows. Bodies that panic are not covered. Plus
+  `wp_app_recV` (a closure argument as a `GoFunc` value). No axiom.
+- **Proposed change.** The same rule in `Perennial/Golang/Theory/Loop.lean` for `n = 0, 1, 2`, with
+  a sealed postcondition in `wp_for`'s style and a panicking-body case; a `wp_for_range` tactic.
+- **Status.** Candidate; not started in Perennial.
+
+## `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2)
+
+- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
+  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
+  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
+- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
+- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
+  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
+  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
+  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
+  below would remove it.
+- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
+  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
+- **Status.** Recorded; not started in Perennial (the axiom here stands in for it).
+
+## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
+
+- **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
+  compaction mode, `restore()` resumes a compaction (`compactLockfree`) before the deferred
+  `s.mu.Unlock()`. That call takes the store (`isStore`), whose `s.mu` must be a lock
+  (`isRWMutexGuard`); but `sync.init_RWMutex` takes an unlocked `RWMutex` (`zero_val`) and its
+  resource `▷ P 1`, which `NewStore` has only after `restore()` (the index it publishes, the fixed
+  registration).
+- **Local workaround.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/RWMutexWLocked.lean`:
+  `init_RWMutex_wlocked P rw : rw ↦ rwW ={E}=∗ ownRWMutexWLocked rw P ∗ [∗list] … ownRWMutex rw P`
+  (every slot), from the write-locked memory `plain.wp_Lock` leaves; `P 1` is given at the unlock
+  (`RWMutex.wp_Unlock_guard`). Proved over Perennial's sealed RWMutex internals
+  (`rwmutex.ownRWMutexInvariant_unseal`, `isRWMutex_unseal`, `isLock_unseal`, `ownLock_unseal`,
+  `isMutex_unseal`, `ownMutex_unseal`, the guard's `invSt`), mirroring `rwmutex.init_RWMutex` at the
+  protocol's `Locked`/`IsLocked` state, with `init_lock_locked` for the inner `Mutex`. No axiom.
+- **Proposed (general).** `sync.init_RWMutex_wlocked` (and `init_Mutex_locked`) in Perennial, next to
+  `init_RWMutex`: a lock made by its holder.
+- **Status.** Local lemma; to be proposed.
+
+## `Int64.Load` with the fraction chosen inside the update (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `sync.atomic.Int64.Load.spec` (and `LoadInt64.spec`) quantify the fraction `dq` before
+  the atomic update; a caller whose fraction is known only once it opens its invariant (the update's
+  `∃ dq x, ownInt64 u dq x ∗ …`) cannot use them, although their proofs open the update before the
+  load and would prove the stronger form unchanged.
+- **Needed by.** mvccfull's `inBounds.spec` (frozen): `check(v <= hi.Load())` with the caller's
+  accessor picking the fraction.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/AtomicLoad.lean`:
+  `wp_LoadInt64_ex`, `wp_Int64_Load_ex`, Perennial's two proofs re-run with `∃ dq` inside the
+  update (`wp_load_bytes_typed`, the struct field). No axiom.
+- **Proposed (general).** State `LoadInt64`/`Int64.Load` (and the other atomic loads) with the
+  fraction inside the update, the current form a corollary.
+- **Status.** Local lemma; to be proposed.
+
+## `GoStringLe` as the negation of the converse `GoStringLt` (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `go.GoStringLe a b ↔ ¬ go.GoStringLt b a`, a general fact about Perennial's string
+  order.
+- **Workaround here.** `goStringLe_iff_not_lt` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
+- **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
+- **Status.** Local lemma; to be proposed.
+
+## `fmt.Errorf`'s spec does not admit an error argument (`%w`) or a `Stringer` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's `fmt.Errorf.spec` requires `ArgsWf` (basic-typed arguments). Three calls the
+  specs-only branch specifies fall outside it: mvcc's `rangeKeys` (`fmt.Errorf("…: %w", ctx.Err())`,
+  `kvstore_txn.go:121`), raft confchange's `Changer.apply` (a `ConfChangeType`, which has `String`) and
+  raftpb's `ConfState.Equivalent` (four `*ConfState`s).
+- **Local workaround.** raftpb states a local assumed spec, `RaftPb.fmtErrorf.spec`
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`); mvcc's `rangeKeys` proof will rest on the model at
+  that step (`Mvcc.rangeCtxErr`'s laws: non-nil, fresh, none of mvcc's sentinels). Related: the entry
+  above (the model can be unfolded to learn false facts).
+- **Proposed (general; record only, nothing changed in Perennial).** `fmt.Errorf.spec` for a `%w` argument
+  (a fresh wrapping error whose `Unwrap` is the argument) and for arguments with a `String`/`Error`
+  method (the method's spec called with the caller's ownership).
+- **Status.** Recorded only.
+
+## OsFs: no `rename`, and no crash case reverting an unsynced rename (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's OsFs model has no `rename`, and its crash relation cannot bring back the file a
+  rename replaced when the directory was not fsynced afterwards. etcd renames onto live paths: defrag
+  (`os.Rename(tdbp, dbp)`, `backend.go:557`) and the snapshot install (`snap.dbFile_rename`), and fsyncs
+  the directory only in some paths.
+- **Local workaround.** The specs-only branch states `Snap.dbFile_rename` as a trusted triple and gives the
+  backend a `beRevert`/`beNoRevert` token with a revert case in `beCrash`
+  (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/`); that case's realization is open until OsFs has it.
+  The second crash pass (`notes/specs-only/verify/repair5-crash.md`, G-b) adds two more uses of the same
+  gap: a file renamed over while still open (`Backend.beDetached`, `applySnapshot`'s old backend, whose
+  open handle keeps the unlinked inode until `Close`), and its close or crash folding that inode's image
+  into the revert list (`beCloseUpd`'s detached form, `beDetached_crash`): both need OsFs's files to be
+  inodes a rename can unlink while open, not paths.
+- **Proposed (general; record only, nothing changed in Perennial).** OsFs `rename` with POSIX semantics,
+  its crash case (the old directory entry survives unless the directory was fsynced after the rename),
+  and a directory fsync.
+- **Status.** Recorded only.
+
+## The crash frame cannot take client-owned durable state out of an invariant opened inside atomic updates (2026-11-09, branch `specs-only`)
+
+- **The gap.** Perennial's crash frame (`CrashAdequacy.lean`) is proved at boot and gets only invariants
+  and its own closure. A program keeps its durable resources (etcd's `EtcdServer.diskState`; 4a's
+  `beHist`, 4c's `boltState`, the WAL's and the snapshotter's) in an invariant that the running code
+  opens inside callees' atomic updates (the WAL's `Save`, `SaveDBFrom`, bbolt commits). To apply a crash
+  law, the frame must take those resources out of the invariant; an accessor fired inside a callee's
+  atomic update cannot rule out that the frame already took them, since that needs the generation's
+  `notCrashed`, which only a thread's step owns (through the state interpretation).
+- **Local workaround.** The specs-only branch states the crash laws (`disk_crash`, `beCrash`,
+  `boltCrash`, ...) over resources held in the invariant and records the extraction as a gap
+  (`notes/specs-only/verify/repair2-crash.md`, decision 1; `top.md` K6).
+- **Proposed (general; record only, nothing changed in Perennial).** A crash-aware invariant: opened only
+  at a thread's step (which refutes `crashed`), and handed whole to the crash frame. Alternative: durable
+  extension operations whose atomic updates admit a `crashed` answer, refuted at their own step.
+- **Status.** Recorded only.
+
+## No WP step lemma refutes the generation's `crashed` (2026-11-09, branch `specs-only`)
+
+- **The gap.** Every thread step's state interpretation holds the generation's `notCrashed`
+  (`Lifting.lean:752`, `goose_bstateInterp_eq`), and `notCrashed_crashed` (`CrashToken.lean:50`)
+  refutes `crashed` with it, but no lemma hands a WP step that fact: nothing proves
+  `crashed -∗ WP e {{ Φ }}` for an expression that takes a step, or lets an atomic step's proof use
+  `notCrashed` (a grep for uses of `notCrashed_crashed`, or for `crashed -∗ WP`, finds none).
+- **Who needs it.** The specs-only branch's per-generation tokens are a token **or the generation's
+  `crashed`** (raft's `nodeVacant`, 2e's `diskIdle`; `notes/specs-only/verify/repair4-raft-crash.md`,
+  open question D28), so that the crossing laws hold at every next generation, the current one
+  included; their realizations refute the `crashed` disjunct at the consumer's first step (raft's
+  `StartNode`/`RestartNode`, `NewServer`), which needs this lemma (`verify/F2-crash.md`, second tier
+  s1). Distinct from the crash-aware invariant entry above, which is about the crash frame taking
+  resources out of an invariant; this one is about a running thread ruling out `crashed`.
+- **Local workaround.** None needed in the statements: the realizations' text cites the step fact,
+  and the laws are stated as obligations.
+- **Proposed (general; record only, nothing changed in Perennial).** A lifting lemma
+  `wp_crashed_elim : ¬ IsValue e → crashed ⊢ WP e @ s; E {{ Φ }}` (the first step's state
+  interpretation gives `notCrashed`, hence `False`), and its atomic-step form for a step proof that
+  opens an invariant holding a `token ∨ crashed` disjunction.
+- **Status.** Recorded only.
+
+## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
+
+- **The gap.** raft's `DescribeConfChange` and raftpb's `ConfChangesToString` build strings with a
+  `strings.Builder` and `fmt.Fprintf`, which Perennial does not specify.
+- **Local workaround.** Both are stated as assumed trust-boundary specs on the specs-only branch
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/DescribeConfChange.lean`, `raftpb/ConfChangesToString.lean`).
+- **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
+  and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
+- **Status.** Recorded only.

@@ -36,7 +36,7 @@ theorem electionServer.Resign.wp_proof
     (hEH : concurrency.Election.Header.spec (GF := GF) (hG := hG)) :
     electionServer.Resign.spec (GF := GF) (hG := hG) := by
   intro es c req lk name key rev lease ctx cs maxReq
-  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hctx, #Hcc⟩
+  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hctx, #HctxC, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -62,7 +62,7 @@ theorem electionServer.Resign.wp_proof
   wp_auto
   simp only [hlk, decide_false]
   (try wp_auto)
-  wp_apply hSess es c lease ctx cs $$ [$Hes $Hok $Hctx $Hcc] as %s %err Hs
+  wp_apply hSess es c lease ctx cs $$ [$Hes $Hok $Hctx $HctxC $Hcc] as %s %err Hs
   icases Hs with (⟨%Hs, %γ, %id, #Hss, %Hid⟩ | %Hs)
   rotate_left
   · obtain ⟨rfl, Herr⟩ := Hs
@@ -88,7 +88,7 @@ theorem electionServer.Resign.wp_proof
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hER e s γ c id name { key := key, rev := rev, sess := s, hdr := null } ctx cs (W64 0) $$
-      [$Hcpkg $He $Hest $Hctx $Hlo] as %err Hp
+      [$Hcpkg $He $Hest $Hctx $HctxC $Hlo] as %err Hp
   icases Hp with (⟨%Hc, -⟩ | ⟨%Hok2, %hdr, Hest, Hfacts⟩ | ⟨%Hne', -⟩)
   · exact absurd Hc.1 Hsn
   · obtain ⟨-, rfl⟩ := Hok2

@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__RoleGrantPermission
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -48,8 +49,9 @@ theorem etcdserverpb.authClient.RoleGrantPermission.wp_proof
   ihave Hblank : pbAuthRoleGrantPermissionResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthRoleGrantPermissionResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleGrantPermission" pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleGrantPermission" pbAuthRoleGrantPermissionRequestT pbAuthRoleGrantPermissionResponseT pbAuthRoleGrantPermissionRequestT_reg pbAuthRoleGrantPermissionResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT] at hI
   rw [show (pbAuthRoleGrantPermissionRequest (GF := GF)).ty = etcdserverpb.AuthRoleGrantPermissionRequest.ty from rfl,
     show (pbAuthRoleGrantPermissionResponse (GF := GF)).ty = etcdserverpb.AuthRoleGrantPermissionResponse.ty from rfl] at hI
   ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/RoleGrantPermission" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []
@@ -58,7 +60,7 @@ theorem etcdserverpb.authClient.RoleGrantPermission.wp_proof
   · iframe #
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
-  icases Hres with (⟨%Herr, %m', -, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', -, -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto
     iapply HΦ

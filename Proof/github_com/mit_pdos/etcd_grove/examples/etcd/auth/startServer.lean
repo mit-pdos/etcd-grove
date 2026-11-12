@@ -44,15 +44,15 @@ theorem startServer.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
-    Hdirok Hdir Hdirps Hck Haf Hbuq Hdbo
+    Hdirok Hdir Hdirps Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold etcdstart.commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
+  icases Hcom with ⟨#Hzap, #Htd, #Hns, #Hnrl⟩
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hpfx, hΦs, hcmp0, hkcmp, hslg, hlgf⟩ := Hρ
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg, hlgf⟩ := Hρ
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -74,7 +74,7 @@ theorem startServer.wp_proof
   iintro %curls ⟨Hcurls, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
-  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc⟩
+  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc, #Hflc⟩
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hpeer with #Hpeer
   imod ownMap_persist _ _ _ $$ Hpm with #Hpm
@@ -96,11 +96,11 @@ theorem startServer.wp_proof
         [etcdstart.httpURL go!"127.0.0.1:23916"],
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [etcdstart.httpURL go!"127.0.0.1:23926"]⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hkcmp
       ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
-      (fun h => absurd h (by decide)) hcmp0 Htb Hrb48 HrbN
+      (fun h => absurd h (by decide)) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok
       (etcdstart.peerURLsDir_httpURL dir id _ Hdirok Hdir)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
@@ -108,7 +108,7 @@ theorem startServer.wp_proof
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (fun _ => ⟨rfl, by word, by word⟩)
       -- (2026-11-04, the lease-expiry plan's Part C) the lease slot: auth on grants no lease
-      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf) Hck)
+      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl)
@@ -139,8 +139,8 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
-  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, Hstk,
+    #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -172,15 +172,14 @@ theorem startServer.wp_proof
     iexists _
     iframe Hmf Hfgc
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
-  icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
+  icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row, the lessor's
   have hB := isServerBuiltM_C (GF := GF) (.on γa) srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0)
     (W64 0) x₀ N hγa
   have hL := acLessor_on (GF := GF) (.on γa) γa rfl srv
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_true] at hB
-  ihave Hsb := hB.1 $$ [Hsb Hkeep]
+  ihave Hsb := hB $$ [Hsb Hkeep]
   · iframe Hsb
     iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
   ihave #HLnil := hL.2 $$ HLnil
@@ -192,6 +191,8 @@ theorem startServer.wp_proof
   subst hEr hx₀
   iunfold srvStartReaders at Hsr
   icases Hsr with ⟨Hrslots, -⟩
+  -- (per-type stage B2) the run pool's share of the read loop's slots
+  icases etcdstart.srvStartReaders_split srv ρ.rd $$ Hrslots with ⟨Hrslots, Hrun⟩
   (try wp_auto)
   iapply HΦ
   iright
@@ -204,22 +205,28 @@ theorem startServer.wp_proof
   · rw [hon]; iexact Hrd
   iclear Hreq Hrd
   iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
-  unfold etcdstart.kvServeStocks
-  iframe
-  iframe #
+  -- (per-type stage B2) the raw run-pool stocks first, framed explicitly; the pure part last (the
+  -- configuration is found by the framing)
   isplitr
-  · ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
-  isplitl [Htokp]
-  · iunfold etcdstart.srvPeerCtl
-    iexists τ
-    iframe Hnm Htokp
-  -- the TLS fallback off: the configuration's `ClientCertAuthEnabled` is the default `false`
-  isplitr
-  · iintro !> #Ht
-    iapply srvTLSId_false srv $$ [Ht]
-    iframe Ht
-    iExactEq Hcca; rfl
-  iapply HBF; ipureintro; first | rfl | trivial
+  rotate_left
+  · isplitl [Hstk]
+    · iexact Hstk
+    isplitl [Hrun]
+    · iexact Hrun
+    iframe
+    iframe #
+    isplitl [Htokp]
+    · iunfold etcdstart.srvPeerCtl
+      iexists τ
+      iframe Hnm Htokp
+    -- the TLS fallback off: the configuration's `ClientCertAuthEnabled` is the default `false`
+    isplitr
+    · iintro !> #Ht
+      iapply srvTLSId_false srv $$ [Ht]
+      iframe Ht
+      iExactEq Hcca; rfl
+    iapply HBF; ipureintro; first | rfl | trivial
+  ipureintro; exact ⟨hagree, hγa, rfl, rfl, rfl⟩
 
 end proof
 

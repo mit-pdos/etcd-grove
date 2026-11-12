@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Capped
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__Put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__Txn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__LeaseGrant
@@ -64,9 +65,9 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.cappedIs
     iframe #
   isplitr
@@ -74,25 +75,27 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"DeleteRange")]
     wp_call
     wp_auto
     iunfold apply.deletePre at Hpre
-    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
+    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
     ihave #Hcp := apply.certPre_capped _ _ _ _ (by rw [Hk.2.1]; rfl) $$ Hcp
-    iunfold apply.mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HDel $$ %r %rq %o %log %F %Pre %Q %Post %info [Hwt Hkv Hres Hcs]
-    · iunfold apply.deletePre
-      iunfold apply.mPre
-      iframe
+    iapply HDel $$ %r %rq %o %log %F %Pre %Q %Post %info [Htt Hkv Hres]
+    · iframe Htt
+      iunfold apply.deletePre
       iframe #
-      ipureintro; exact Hk
+      isplitr
+      · ipureintro; exact Hk
+      iapply apply.mPre_of_rest
+      iframe
     inext
-    iintro %resp %trace %err ⟨Hpost, Htrc⟩
+    iintro %resp %trace %err ⟨Hpost, Htrc, Htt⟩
     iapply HΦ'
+    iframe Htt
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
@@ -113,21 +116,23 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %r %rq %o %log %info
     imodintro
-    iintro %Φ' Hpre HΦ'
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"Range")]
     wp_call
     wp_auto
     iunfold apply.rangePre at Hpre
     icases Hpre with ⟨%Hk, #Hr, Hkv, Hres⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HRange $$ %r %rq %o %log %info [Hkv Hres]
-    · iunfold apply.rangePre
+    iapply HRange $$ %r %rq %o %log %info [Htt Hkv Hres]
+    · iframe Htt
+      iunfold apply.rangePre
       iframe
       iframe #
       ipureintro; exact Hk
     inext
-    iintro %resp %trace %err ⟨Hpost, Htrc⟩
+    iintro %resp %trace %err ⟨Hpost, Htrc, Htt⟩
     iapply HΦ'
+    iframe Htt
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
@@ -147,9 +152,9 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %r %skip %rq %t %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.cappedIs
     iframe #
   isplitr
@@ -157,25 +162,27 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"LeaseRevoke")]
     wp_call
     wp_auto
     iunfold apply.revokePre at Hpre
-    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm, Hrr⟩
+    icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, Hrr⟩
     ihave #Hcp := apply.certPre_capped _ _ _ _ (by rw [Hk.2.1]; rfl) $$ Hcp
-    iunfold apply.mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HRev $$ %r %rq %id %log %T %rs %Pre %Q %Post %info [Hwt Hkv Hres Hcs Hrr]
-    · iunfold apply.revokePre
-      iunfold apply.mPre
+    iapply HRev $$ %r %rq %id %log %T %rs %Pre %Q %Post %info [Htt Hkv Hres Hrr]
+    · iframe Htt
+      iunfold apply.revokePre
+      iframe # Hrr
+      isplitr
+      · ipureintro; exact Hk
+      iapply apply.mPre_of_rest
       iframe
-      iframe #
-      ipureintro; exact Hk
     inext
-    iintro %resp %err Hpost
+    iintro %resp %err ⟨Hpost, Htt⟩
     iapply HΦ'
+    iframe Htt
     iunfold apply.kvPost at Hpost
     iunfold apply.kvPost
     icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
@@ -193,9 +200,9 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hLG E c (.ok bi) p r rq g log T rs U Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hLG E c (.ok bi) p r rq g log T rs U Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.cappedIs
     iframe #
   isplitr
@@ -211,19 +218,23 @@ theorem apply.newApplierV3Capped.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iunfold apply.mPre at Hm
-      icases Hm with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
       ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-      iapply HResp $$ %_ %r %log %Pre %Q %Post %info [] [HR Hkv Hres Hcs Hwt]
+      iapply HResp $$ %_ %r %log %Pre %Q %Post %info [] [Htt HR Hkv Hres]
       · ipureintro; simp [apply.respMethods]
-      · iframe HR
-        iunfold apply.mPre
-        iframe
+      · iframe Htt HR
         iframe #
+        iapply apply.mPreW_of_rest
+        iframe
       inext
-      iintro %resp %err ⟨Hpost, #HeI⟩
+      iintro %resp %err ⟨Htt, Hpost, #HeI⟩
       iapply HΦ'
+      iframe Htt
+      iunfold apply.mPostW at Hpost
+      icases Hpost with ⟨Hpost, Hrt⟩
+      iunfold apply.mPostW
+      iframe Hrt
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
@@ -241,18 +252,23 @@ theorem apply.newApplierV3Capped.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨Hpre, Hwt, HRW⟩
-      iunfold apply.mPre at Hpre
-      icases Hpre with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨Htt, Hpre, HRW⟩
+      icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hpre with ⟨Hkv, Hres⟩
       ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-      iapply HResp0 $$ %_ %log %Pre %Q %Post %info [] [] [Hkv Hres Hcs Hwt HRW]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post %info [] [] [Htt Hkv Hres HRW]
       · ipureintro; simp [apply.resp0Methods]
       · ipureintro; exact hon
-      · iunfold apply.mPre
+      · iframe Htt HRW
+        iapply apply.mPreW_of_rest
         iframe
       inext
-      iintro %resp %err ⟨Hpost, #HeI⟩
+      iintro %resp %err ⟨Htt, Hpost, #HeI⟩
       iapply HΦ'
+      iframe Htt
+      iunfold apply.mPostW at Hpost
+      icases Hpost with ⟨Hpost, Hrt⟩
+      iunfold apply.mPostW
+      iframe Hrt
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
@@ -263,17 +279,17 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %log %info
     imodintro
-    iintro %Φ' ⟨Hkv, Hres⟩ HΦ'
+    iintro %Φ' ⟨Htt, Hkv, Hres⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"AuthStatus")]
     wp_call
     wp_auto
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HStatus $$ %log %info [Hkv Hres]
+    iapply HStatus $$ %log %info [Htt Hkv Hres]
     · iframe
     inext
-    iintro %resp %err ⟨Hkv, Hres, #HeI⟩
+    iintro %resp %err ⟨Htt, Hkv, Hres, #HeI⟩
     iapply HΦ'
-    iframe HeI Hkv
+    iframe Htt HeI Hkv
     iapply apply.chainRes_capped_in c p (.ok bi) info $$ applierV3 Hres
   isplitr
   · -- the cluster's methods: the inner applier's (promoted)
@@ -287,14 +303,13 @@ theorem apply.newApplierV3Capped.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt, HFS, HRO⟩
-      iunfold apply.mPreV at Hm
-      icases Hm with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨HR, Hm, HFS, HRO⟩
+      icases apply.mPreV_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
       ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post %cr %rs %info [] [HR Hkv Hres Hcs Hwt HFS HRO]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post %cr %rs %info [] [HR Hkv Hres HFS HRO]
       · ipureintro; simp [apply.clusterMethods]
-      · iframe HR
-        iunfold apply.mPreV
+      · iframe HR HFS HRO
+        iapply apply.mPreV_of_rest
         iframe
       inext
       iintro ⟨Hpost, HFS, HRO⟩
@@ -302,8 +317,8 @@ theorem apply.newApplierV3Capped.wp_proof
       iframe HFS HRO
       iunfold apply.mPostV at Hpost
       iunfold apply.mPostV
-      icases Hpost with ⟨Hkv, Hres, HPP⟩
-      iframe Hkv HPP
+      icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+      iframe Hkv HPP Hrt
       iapply apply.chainRes_capped_in c p (.ok bi) info $$ applierV3 Hres
   isplitr
   · -- `Apply`: the inner applier's (promoted), its `applyFunc` under the inner's resources
@@ -342,18 +357,19 @@ theorem apply.newApplierV3Capped.wp_proof
     imodintro
     iintro %cr %rev %log %crev %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨#Hcr, %Hadm, #Hperm, Hm, Hc⟩ HΦ'
+    iintro %Φ' ⟨#Hcr, %Hadm, HCp, Htt, Hm, Hc⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"Compaction")]
     wp_call
     wp_auto
-    iunfold apply.mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info [Hkv Hres Hcs Hc]
-    · iunfold apply.mPre; iframe; iframe #; ipureintro; exact Hadm
+    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info [HCp Htt Hkv Hres Hc]
+    · iframe HCp Htt Hc; iframe #; isplitr; · ipureintro; exact Hadm
+      iapply apply.mPre_of_rest; iframe
     inext
-    iintro %resp %ch %trace %err ⟨Hkv, Hres, HPP, Hc, Hans⟩
+    iintro %resp %ch %trace %err ⟨Htt, Hkv, Hres, HPP, Hc, Hans⟩
     iapply HΦ'
+    iframe Htt
     rw [apply.chainCompacts_capped c, apply.cmpAnswerIs_congr (.capped c) c (apply.chainCompacts_capped c)]
     iframe Hkv HPP
     isplitr [Hc Hans]

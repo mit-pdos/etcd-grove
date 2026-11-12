@@ -114,6 +114,15 @@ structure BSess where
   ndel : w64
   tx : Loc
   cnt : BCnt
+  /-- Ghost data (the user's decision, 2026-11-04, probe M2: a snapshot's observation knows the
+  safe-range buckets exactly): every entry deleted from the writer's contents while present, since
+  the open (bucket and key, to the value deleted). Only `UnsafeDelete` changes it (`BSess.del`);
+  the batch lock tracks its safe-range part (`dlR`) with the client (`dlsOwn`). -/
+  dl : GMap (GoString × GoString) GoString := ∅
+  /-- Ghost data (2026-11-04): the state is an `Unlock`'s commit window (the batch lock's quarter
+  of the view at the exact new physical view until the commit's close moves it to the session's
+  logical view, `relog`), where the deleted entries need not be the logical view's. -/
+  win : Bool := false
 
 /-- What the readers see of a state: the committed data with the read buffer over it. -/
 def viewOf (P : BParams) (st : BSess) : VFun := ovB P.BT st.R.bks (dget st.C)
@@ -330,7 +339,10 @@ def BSess.put (st : BSess) (bi : BucketInfo) (k v : GoString) (seq : Bool) : BSe
 operation and pending delete. -/
 def BSess.del (st : BSess) (bi : BucketInfo) (k : GoString) : BSess :=
   { st with S := st.S.insert bi.name ((bktOf st.S bi.name).delete k),
-            pend := st.pend + W64 1, ndel := st.ndel + W64 1 }
+            pend := st.pend + W64 1, ndel := st.ndel + W64 1,
+            dl := match (bktOf st.S bi.name).lookup k with
+              | some v => st.dl.insert (bi.name, k) v
+              | none => st.dl }
 
 /-- `UnsafeCreateBucket(bucket)`: the bucket, empty if it was absent. -/
 def BSess.create (st : BSess) (bi : BucketInfo) : BSess :=
@@ -342,16 +354,61 @@ and pending delete. -/
 def BSess.delBucket (st : BSess) (bi : BucketInfo) : BSess :=
   { st with S := st.S.delete bi.name, pend := st.pend + W64 1, ndel := st.ndel + W64 1 }
 
+/-! ## The safe-range buckets' deleted entries (the user's decision, 2026-11-04, probe M2)
+
+A snapshot's observation must know the safe-range (`Key`) bucket of the data exactly, not only
+thin of the logical view (`thinV`: each missing entry deletable): `restore()` rebuilds the index
+from whatever the bucket holds. The batch lock tracks the entries deleted from a safe-range bucket
+(`dlR` of the session's `dl`), half with the client (`dlsOwn`), and keeps the logical view `L`, the
+writer's contents and them in agreement (`dlsOk`): exactly the logical entries missing from the
+writer's contents are the deleted ones. -/
+
+/-- The safe-range part (off the hook's buckets) of a set of deleted entries. -/
+def dlR (P : BParams) (X : GMap (GoString × GoString) GoString) : GMap (GoString × GoString) GoString :=
+  GMap.filter (fun nk _ => P.SB nk.1 && !P.HB nk.1) X
+
+/-- **The deleted entries agree with the logical view `L` and the writer's contents**: in a
+safe-range bucket (off the hook's), an entry of `L` missing from the writer's contents was
+deleted, and a deleted entry is missing from them and is `L`'s. -/
+def dlsOk (P : BParams) (st : BSess) (L : GMap (GoString × GoString) GoString) : Prop :=
+  (∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → L.lookup nk ≠ none →
+    (sData P st.S).lookup nk = none → st.dl.lookup nk ≠ none) ∧
+  (∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → st.dl.lookup nk ≠ none →
+    (sData P st.S).lookup nk = none ∧ L.lookup nk ≠ none)
+
+/-- **The deleted entries are missing from the writer's contents** (the agreement's part that
+holds in an `Unlock`'s commit window too). -/
+def dlsS (P : BParams) (st : BSess) : Prop :=
+  ∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → st.dl.lookup nk ≠ none →
+    (sData P st.S).lookup nk = none
+
+/-- **The batch lock's agreement of the deleted entries** with its logical view `L`: missing from
+the writer's contents always; out of an `Unlock`'s commit window (`win`), the full agreement
+`dlsOk`; and a state out of a commit's hook window (`hw`) is out of an `Unlock`'s window. -/
+def dlsW (P : BParams) (st : BSess) (L : GMap (GoString × GoString) GoString) : Prop :=
+  dlsS P st ∧ (st.win = false → dlsOk P st L) ∧ (st.cnt.hw = false → st.win = false)
+
+/-- **A physical view `vd` is the logical view `L` but the deleted entries `X`** (on the safe-range
+buckets; what a snapshot's observation is handed, `backend.Snapshot`): an entry of `L` missing
+from `vd` is in `X`, and an entry of `X` is a safe-range one missing from `vd` and in `L`. -/
+def dlVd (P : BParams) (vd L X : GMap (GoString × GoString) GoString) : Prop :=
+  (∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → L.lookup nk ≠ none → vd.lookup nk = none →
+    X.lookup nk ≠ none) ∧
+  (∀ nk, X.lookup nk ≠ none →
+    P.SB nk.1 = true ∧ P.HB nk.1 = false ∧ vd.lookup nk = none ∧ L.lookup nk ≠ none)
+
 /-- One run of the pre-commit hook, from `st` to `st'`: the committed data and the read buffer
 untouched, the writer's contents changed only in the hook's buckets, the write buffer's
 other buckets untouched, at most `hookMax` operations more, bbolt's write transaction and the
 batch lock's ghost counters unchanged (the hook only calls the batch transaction's operations,
-which keep them); and (D22, 2026-10-23) the tracked buckets untouched (`rbData`). -/
+which keep them); and (D22, 2026-10-23) the tracked buckets untouched (`rbData`); and (2026-11-04)
+no safe-range entry deleted (`dlR`), the window marker kept. -/
 def hookStep (P : BParams) (st st' : BSess) : Prop :=
   st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧ rbData P st'.S = rbData P st.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend ≤ sint.Z st.pend + P.hookMax ∧
-  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt
+  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt ∧
+  dlR P st'.dl = dlR P st.dl ∧ st'.win = st.win
 
 /-- What the pre-commit hook may count on when it runs (`hooksSpec`): the hook's window is open,
 there is room for its operations, and every bucket of the write buffer is empty or has an empty

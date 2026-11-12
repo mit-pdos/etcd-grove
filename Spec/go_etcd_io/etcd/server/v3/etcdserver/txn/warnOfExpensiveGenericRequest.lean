@@ -29,7 +29,7 @@ and a request whose `String()` returns (`stringerOk`): it returns. -/
 abbrev txn.warnOfExpensiveGenericRequest.spec : Prop :=
   ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (req : GoInterface) (pfx resp : GoString)
     (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ zapLoggerOk lg ∗
       txn.stringerOk req }}
     (App (App (App (App (App (App (App
       (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.warnOfExpensiveGenericRequest)) (Val #lg))

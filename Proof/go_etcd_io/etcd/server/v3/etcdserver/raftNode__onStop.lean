@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r Hwco
-  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%S, %p, %L, %sent, HrS, Hwvo, Hprod, #Hidx⟩,
+  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%S, %p, %L, %sent, HrS, Hwvo, Hprod, #Hidx, %Ha0, #HcL⟩,
     ⟨%stm, %cid, #Hstm, Hmeta, Hpurge⟩⟩
   iunfold isRaftNode at Hr
   iNamed Hr
@@ -90,10 +90,20 @@ theorem raftNode.onStop.wp_proof :
     iframe HrS Hprod Hidx Hσc
     isplitl [Hfiles]
     · iunfold rnWalClosedW; iexists cid; iframe Hfiles
-    ipureintro
-    obtain ⟨Hh, Hb, Hc⟩ := Hσ
-    simp only [srvLE_length] at Hb Hc
-    refine ⟨Hh, ?_, ?_⟩ <;> simpa [List.length_append] using ‹_›
+    obtain ⟨Hh, Hb, Hc, Hhs, Hag⟩ := Hσ
+    isplitr
+    · ipureintro
+      have Hb' := Hb
+      simp only [srvLE_length] at Hb' Hc
+      refine ⟨Hh, ?_, ?_, ?_⟩
+      · simpa [List.length_append] using Hb'
+      · simpa [List.length_append] using Hc
+      · -- (S1) `σ.commit` is the view's hard state's (`rnDur_take`'s `σ.hs = v.hs`)
+        unfold StorContents.commit; rw [Hhs]; exact Ha0
+    -- (S1) the committed log: the handed log, which the records' durable log agrees with
+    iexists (srvLE γ.srv L)
+    iframe HcL
+    ipureintro; exact ⟨Hb, Hag⟩
   wp_apply wp_broadcast_chan_close dnc γ.done (rnDoneEsc γ (storage.walOf (GoInterface.ok si)))
     $$ [$Hbc]
   · imodintro; iunfold rnDoneEsc; iexact Hesc

@@ -10,7 +10,7 @@ which has no step. In Go it is the zero `Mutex`, unlocked. `MutexLitSemantics` s
 at the underlying type the model chose: the empty literal of `go.bool` (not Go syntax, only the
 model's image of `sync.Mutex{}`) is its zero value `false`.
 
-A **hypothesis class** on the semantics in use, like `EtcdGrove.Float64ToInt64Semantics`, not an
+A **hypothesis class** on the semantics in use, like Perennial's `go.Semantics`, not an
 axiom: the results that need it take it as an instance argument (`etc/gen-link.py`'s
 `SEM_PREMISES`). (The backend's `backend.wp_mutexLit`, `storage/backend/MutexLit.lean`, states the
 same gap as a trust-boundary axiom of a WP; a premise on the step is the narrower statement, and

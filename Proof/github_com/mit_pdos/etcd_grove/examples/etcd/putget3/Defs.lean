@@ -52,23 +52,29 @@ variable [GooseExts]
 header). (2026-10-27, the server port: the bootstrap log `bl` with the peers' contexts `ctxs` the
 node API's `BootLog`, each entry a conf change of id `0` that the server's `applyConfChange` takes;
 until then `srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog`, under the conf-change
-policy `ccOk`, over raft's records.) -/
+policy `ccOk`, over raft's records.) (2026-11-09, raft-entsize [r3a]/[r3a']: the shared `BootCore`,
+which adds the bound on the boot entries, `bootDataOk`, with the permutation; until then its own
+fields, the ids' low bits over `[id₁, id₂, id₃]`, now theorems.) -/
 structure BootFacts (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8))
-    (bl : List LogEntry) : Prop where
+    (bl : List LogEntry) : Prop extends BootCore ps ctxs bl where
   /-- the peers are a permutation of the members' ids (`bootstrap`'s order is the sorted one, which
   this does not state: only that order meets `bootPremise`'s contract, whose `Hraft` gives
   `γ.vs = MemberIDs()`, so a caller holding the premises has it) (2026-11-03, the final
   whole-`bootOk` review's S1: until then the ids in the members' order, `[id₁, id₂, id₃]`, which
   is not `bootstrap`'s for putget3's or restart3's ids, so that the premise was false) -/
   perm : ps.Perm [id₁, id₂, id₃]
-  idLow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup
-  idLow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog ps ctxs bl
-  cc : ∀ e ∈ LogEntry.toEntries bl 0,
-    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data'
-  /-- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs valid UTF-8 and
-  pairwise disjoint (`bootURLsOk`). -/
-  urls : bootURLsOk (LogEntry.toEntries bl 0)
+
+/-- The members' ids' 16 low bits are distinct (`BootCore.lowNodup`, through `perm`). -/
+theorem BootFacts.idLow {id₁ id₂ id₃ : w64} {ps : List w64} {ctxs : List (List w8)}
+    {bl : List LogEntry} (h : BootFacts id₁ id₂ id₃ ps ctxs bl) :
+    ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup :=
+  (h.perm.map _).nodup_iff.1 h.lowNodup
+
+/-- The members' ids' 16 low bits are not `0` (`BootCore.lowNz`, through `perm`). -/
+theorem BootFacts.idLow0 {id₁ id₂ id₃ : w64} {ps : List w64} {ctxs : List (List w8)}
+    {bl : List LogEntry} (h : BootFacts id₁ id₂ id₃ ps ctxs bl) :
+    ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0 :=
+  fun id hid => h.lowNz id (h.perm.mem_iff.2 hid)
 
 /-- A URL `http://<host>`. -/
 def httpURL (host : GoString) : _root_.Perennial.net.url.URL :=
@@ -149,7 +155,7 @@ instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM
 wrapper's trust-boundary contracts and the deployment's
 `runsNoRequireLeader`. -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     v3rpc.runsNoRequireLeader)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by

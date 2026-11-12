@@ -21,14 +21,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.Logger()` returns the server's (non-nil) logger, read under `s.lgMu`'s read lock (the
+/-- `s.Logger()` returns the server's logger (a zap logger, `zapLoggerOk`), read under `s.lgMu`'s read lock (the
 caller's reader slot, `srvLgReader`, given back). -/
 abbrev EtcdServer.Logger.spec : Prop :=
   ∀ (s l : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗ srvLgReader s }}
+      srvLgAddr s ↦□ l ∗ zapLoggerOk l ∗ srvLgReader s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Logger")) (Val #()))
-  {{ RET #l; ⌜l ≠ null⌝ ∗ srvLgReader s }}
+  {{ RET #l; zapLoggerOk l ∗ srvLgReader s }}
 
 end spec
 

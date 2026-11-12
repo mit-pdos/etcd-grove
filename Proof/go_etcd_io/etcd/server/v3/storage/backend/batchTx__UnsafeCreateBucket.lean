@@ -38,7 +38,7 @@ theorem backend.batchTx.UnsafeCreateBucket.wp_proof
   intro γ P W Pk b t st bk bi Hn0 Hn1
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
+    ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
   icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩

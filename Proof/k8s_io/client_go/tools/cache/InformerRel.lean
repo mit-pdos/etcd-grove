@@ -36,11 +36,11 @@ variable [GooseExts] [GoGlobalContext]
 def slashB : w8 := 47
 
 /-- **The store's key string** of an object key (`MetaNamespaceKeyFunc`). -/
-def keyStr (k : Key) : GoString :=
+def keyStr (k : apimodel.Key) : GoString :=
   if k.Namespace' = [] then k.Name' else k.Namespace' ++ slashB :: k.Name'
 
 /-- A key whose namespace and name have no slash. -/
-def keyGood (k : Key) : Prop := slashB ∉ k.Namespace' ∧ slashB ∉ k.Name'
+def keyGood (k : apimodel.Key) : Prop := slashB ∉ k.Namespace' ∧ slashB ∉ k.Name'
 
 theorem append_slash_inj : ∀ (a b c d : GoString), slashB ∉ a → slashB ∉ c →
     a ++ slashB :: b = c ++ slashB :: d → a = c ∧ b = d
@@ -59,7 +59,7 @@ theorem append_slash_inj : ∀ (a b c d : GoString), slashB ∉ a → slashB ∉
       exact ⟨by rw [this.1], this.2⟩
 
 /-- **`keyStr` is injective on good keys.** -/
-theorem keyStr_inj (k1 k2 : Key) (h1 : keyGood k1) (h2 : keyGood k2) (h : keyStr k1 = keyStr k2) :
+theorem keyStr_inj (k1 k2 : apimodel.Key) (h1 : keyGood k1) (h2 : keyGood k2) (h : keyStr k1 = keyStr k2) :
     k1 = k2 := by
   obtain ⟨n1, m1⟩ := k1
   obtain ⟨n2, m2⟩ := k2
@@ -92,7 +92,7 @@ def rvRel (s : GoString) : Option Nat → Prop
 
 /-- **The store's items are the view's**, by key string: each the registered Go object of the
 view's object at that key; the view's keys good. -/
-def itemsRel (R : Reg) (its : cache.Items) (M : GMap Key Obj) : Prop :=
+def itemsRel (R : Reg) (its : cache.Items) (M : GMap apimodel.Key Obj) : Prop :=
   (∀ key, key ∈ M → keyGood key) ∧ (∀ key o, M !! key = some o → o.key = key) ∧
   ∀ k, (∃ x o, its !! k = some x ∧ R !! x = some o ∧ keyStr o.key = k ∧ M !! o.key = some o) ∨
        (its !! k = none ∧ ∀ key, keyStr key = k → M !! key = none)
@@ -103,7 +103,7 @@ def storeRel (R : Reg) (σs : cache.St) (v : View) : Prop :=
 
 /-- **A list's Go objects are the map `M`'s objects**: each registered with an object of `M` at its
 key, each of `M`'s objects one of them. -/
-def listRel (R : Reg) (xs : List GoInterface) (M : GMap Key Obj) : Prop :=
+def listRel (R : Reg) (xs : List GoInterface) (M : GMap apimodel.Key Obj) : Prop :=
   (∀ x ∈ xs, ∃ o, R !! x = some o ∧ M !! o.key = some o) ∧
   (∀ key o, M !! key = some o → ∃ x ∈ xs, R !! x = some o)
 
@@ -114,7 +114,7 @@ def fdRel (R : Reg) : cache.FD → Delta → Prop
   | .bookmark rvs, .bookmark v => rvRel rvs (some v)
   | _, _ => False
 
-theorem lookup_none_of_good (M : GMap Key Obj) (hg : ∀ key, key ∈ M → keyGood key) (key k0 : Key)
+theorem lookup_none_of_good (M : GMap apimodel.Key Obj) (hg : ∀ key, key ∈ M → keyGood key) (key k0 : apimodel.Key)
     (hk0 : keyGood k0) (hne : key ≠ k0) (heq : keyStr key = keyStr k0) : M !! key = none := by
   cases hl : M !! key with
   | none => rfl
@@ -123,7 +123,7 @@ theorem lookup_none_of_good (M : GMap Key Obj) (hg : ∀ key, key ∈ M → keyG
     exact absurd (keyStr_inj _ _ (hg key hm) hk0 heq) hne
 
 /-- **A put**: the Go object `x` of `o` stored at `o`'s key string. -/
-theorem itemsRel_put (R : Reg) (its : cache.Items) (M : GMap Key Obj) (x : GoInterface) (o : Obj)
+theorem itemsRel_put (R : Reg) (its : cache.Items) (M : GMap apimodel.Key Obj) (x : GoInterface) (o : Obj)
     (h : itemsRel R its M) (hx : R !! x = some o) (hgood : keyGood o.key) :
     itemsRel R (<[keyStr o.key := x]> its) (<[o.key := o]> M) := by
   obtain ⟨hg, hkd, hit⟩ := h
@@ -155,7 +155,7 @@ theorem itemsRel_put (R : Reg) (its : cache.Items) (M : GMap Key Obj) (x : GoInt
         simp [this, hnone key hkey]
 
 /-- **A delete**: the key string of `key0` removed. -/
-theorem itemsRel_delete (R : Reg) (its : cache.Items) (M : GMap Key Obj) (key0 : Key)
+theorem itemsRel_delete (R : Reg) (its : cache.Items) (M : GMap apimodel.Key Obj) (key0 : apimodel.Key)
     (h : itemsRel R its M) (hgood : keyGood key0) :
     itemsRel R (GMap.delete (keyStr key0) its) (GMap.delete key0 M) := by
   obtain ⟨hg, hkd, hit⟩ := h
@@ -333,7 +333,7 @@ theorem keyedItems_none (KF : GoInterface → GoString) :
 
 /-- **A relist's items**: the listed Go objects by key string are the list's map. -/
 theorem itemsRel_keyed (R : Reg) (KF : GoInterface → GoString) (xs : List GoInterface)
-    (M : GMap Key Obj) (hl : listRel R xs M)
+    (M : GMap apimodel.Key Obj) (hl : listRel R xs M)
     (hk : ∀ x ∈ xs, ∀ o, R !! x = some o → KF x = keyStr o.key)
     (hg : ∀ key, key ∈ M → keyGood key) (hkd : ∀ key o, M !! key = some o → o.key = key) :
     itemsRel R (cache.keyedItems KF xs) M := by
@@ -360,7 +360,7 @@ theorem itemsRel_keyed (R : Reg) (KF : GoInterface → GoString) (xs : List GoIn
 
 /-- **A relist's store step is the view's.** -/
 theorem storeRel_replace (R : Reg) (KF : GoInterface → GoString) (σs : cache.St) (v : View)
-    (xs : List GoInterface) (rvs : GoString) (M : GMap Key Obj) (n : Nat)
+    (xs : List GoInterface) (rvs : GoString) (M : GMap apimodel.Key Obj) (n : Nat)
     (hrv : rvRel rvs (some n)) (hl : listRel R xs M)
     (hk : ∀ x ∈ xs, ∀ o, R !! x = some o → KF x = keyStr o.key)
     (hg : ∀ key, key ∈ M → keyGood key) (hkd : ∀ key o, M !! key = some o → o.key = key) :
@@ -373,7 +373,7 @@ theorem storeRel_bookmark (R : Reg) (σs : cache.St) (v : View) (rvs : GoString)
     storeRel R (σs.bookmark rvs) (v.apply (.bookmark n)) := ⟨hrv, hR.2⟩
 
 /-- The log's tables are keyed by their objects' keys. -/
-theorem replay_keyed : ∀ (l : List Change) (M : GMap Key Obj),
+theorem replay_keyed : ∀ (l : List Change) (M : GMap apimodel.Key Obj),
     (∀ key o, M !! key = some o → o.key = key) →
     ∀ key o, (l.foldl applyChange M) !! key = some o → o.key = key
   | [], M, h => h
@@ -639,7 +639,7 @@ theorem storeRel_single (R R0 : Reg) (hsub : ∀ x o, R0 !! x = some o → R !! 
     | replaced _ _ => exact absurd hfd id
 
 /-- The keys of the log's tables are good when the log's are. -/
-theorem replay_good : ∀ (l : List Change) (M : GMap Key Obj),
+theorem replay_good : ∀ (l : List Change) (M : GMap apimodel.Key Obj),
     (∀ key, key ∈ M → keyGood key) → (∀ c ∈ l, keyGood c.obj.key) →
     ∀ key, key ∈ l.foldl applyChange M → keyGood key
   | [], M, h, _ => h

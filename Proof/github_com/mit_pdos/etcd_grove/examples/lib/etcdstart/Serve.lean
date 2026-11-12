@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 
 The steps (the examples' `Main`s' after `Start`): `v3rpc.Server(s, nil, nil, opt)` (its `grpcCfgOk`
 from the started server's views in its mode, `grpcCfgOk_of_startedM` at the mode's KV answers
-`raftKV_serverM` gives, which also gives 64 of the watchable store's readers; `opt` the keepalive policy, a neutral option, D28, as linkv3p's `startMember`);
+`raftKV_serverM` gives; `opt` the keepalive policy, a neutral option, D28, as linkv3p's `startMember`);
 `net.Listen("tcp", addr)`, whose error is returned; the caller's ghost step (`grpcUpM` from
 `Server`'s and `Listen`'s results); `go gs.Serve(l)` with the right to serve it gave.
 -/
@@ -44,8 +44,8 @@ theorem Serve.wp_proof
     (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     Serve.spec (GF := GF) (hG := hG) := by
   intro CS s addr E ρ γr cfg Q
-  wp_start as ⟨%Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, HG⟩
-  obtain ⟨Hlg, Htos, Hwpi, Hms, Hbuq, Hany⟩ := Hpure
+  wp_start as ⟨#Hzlg, %Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, HG⟩
+  obtain ⟨Htos, Hwpi, Hms, Hbuq, Hany⟩ := Hpure
   ihave #Hwp := srvServeFacts_interval s E cfg $$ Hsf
   -- `io.EOF`, from its package's fact; the imports' package facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
@@ -61,11 +61,10 @@ theorem Serve.wp_proof
   -- KV answers in the server's mode
   ihave #Hkv := v3rpc.raftKV_serverM s E ρ γr (W64 0) [] .none 0 none $$ []
   · iframe #; ipureintro; exact Hany
-  ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
-      ⌜C.A = v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E⌝ ∗
-      [∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ $$ [HWR]
-  · iapply (client.grpcCfgOk_of_startedM s E ρ γr cfg [] Hlg 64 E.authOn _)
-    iframe; iframe #
+  imod (client.grpcCfgOk_of_startedM s E ρ γr cfg [] E.authOn
+      (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)) $$ [HWR]
+    with ⟨%C, #Hgc, %HC⟩
+  · iframe; iframe #
     rw [Htos]
     iapply ownSlice_nil
   -- the server option: the keepalive policy, neutral (D28; D-T5)
@@ -106,16 +105,16 @@ theorem Serve.wp_proof
     iexists ql, pl, lcid, lmid
     iframe #
     ipureintro; exact Hregs.2.2.2.1
-  ihave Hup : grpcUpM E.authOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 HWRs Hlis]
+  ihave Hup : grpcUpM E.authOn s E ρ γr gs lis addr cid mid R $$ [Hgsn Hlg4 Hbemu2 Hgo2 Hlis]
   · iunfold grpcUpM
     iexists C, q, p, pw, pa, il, im, iu, ims, is, svcs, regs, sregs
     iframe; iframe #
     ipureintro
-    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
-  imod HG $$ %gs %lis %cid %mid %R Hup with ⟨Hserv, HQ⟩
+    exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.2.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ, Hregs.2.2.2.2.2⟩
+  imod HG $$ %gs %lis %cid %mid %R Hup with ⟨⟨%γ, Hserv⟩, HQ⟩
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]
-  · wp_apply (wp_Serve gs lis) $$ [$Hserv] as %serr -
+  · wp_apply (wp_Serve gs lis γ) $$ [$Hserv] as %serr -
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   iapply HΦ

@@ -5,7 +5,7 @@ counterpart).
 The ghost step putget's, linkv's, linkvtxn's, putget3's and linkv3's `Main`s took between `Listen`
 and `go gs.Serve(l)`, once, for `Serve`'s caller's ghost step (`Serve.spec`'s `G`):
 * `kv_served`: from `v3rpc.Server`'s and `Listen`'s results (`grpcUp`) and the request slots a
-  started member leaves (`memberUp`'s; one gRPC slot, `client.etcdGrpcSlots_of_started`), the right
+  started member leaves (`memberUp`'s raw stocks; the run pools built from them, per-type stage B3), the right
   to serve and etcd's `Put`, `Range`, `DeleteRange` and `Txn` at the address
   (`client.etcd_kv_started`);
 * `grpcUp_noRefusal`: the member never refuses (authentication off, a voter: the members' axiom
@@ -46,7 +46,7 @@ server's cluster and member ids. -/
 def etcdKVAt (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid : w64) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+    isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpecE E γr cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗
     isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid))
@@ -62,7 +62,7 @@ theorem etcdKVAt_eq (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     (cid mid : w64) :
     etcdKVAt (GF := GF) addr E ρ γr cid mid =
       iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid)) :=
@@ -91,7 +91,7 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
   iintro ⟨#Hreq, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo, HWRs,
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo,
     Hlis, #Hlu⟩
   ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
       [ims, is] svcs regs sregs HC.2.2.1 HEo) $$ [Hgsn Hlis]
@@ -103,52 +103,62 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
     ipureintro; exact HC
   ipureintro; exact Hnr
 
-/-- **The reader slots a started member leaves for its gRPC runs** (`memberUp`'s stocks, written
-once for `kv_served` and `kv_lease_served`): of `s.leadTimeMu`, `s.lgMu` (two spent on `Start`),
-the apply environment's reader resource, the store's, the read loop's and `s.bemu`'s, from which
-`client.etcdGrpcSlots_of_started` makes the one gRPC slot. -/
-abbrev kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
-    ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
-    ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
-    ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s γr) ∗
-    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s))
+/-- **The server's watch facts, as the watch path names them** (R9, the `lean` merge: v3rpc's
+`SrvW` of the server at its apply environment `E`, read names `γr` and auth mode `on`): the store's
+handle and names, the store invariant's namespace, the certified bounds of the notified log
+(`srvApi.histLb`, what `client.srvKVFacts` ties `W.histLb` to) and the compaction permits
+(`srvApi.crevOk`). -/
+def srvWOf (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) : v3rpc.SrvW GF :=
+  ⟨E.kv, E.γ, srvApi.kvsN, srvApi.histLb γr on E.γs, srvApi.crevOk γr⟩
+
+/-- **The raw stocks a started member leaves for its gRPC runs** (per-type stage B3, 2026-11-11;
+`memberUp`'s, written once for `kv_served`, `kv_lease_served` and the watch servers): the server's
+serving stock (`srvServeStock`: the revocation's built part, the run pool's raw readers of the store
+and `bemu`) and the read loop's readers for the run pool (`srvRunReadStock`), from which the serve
+step builds the gRPC run pool (`srvRunPool_init`). Until B3: 64 reader slots of each kind, from which
+the served theorems' caller-chosen slots were made. -/
+def kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(srvServeStock s E ∗ srvRunReadStock s γr)
+
+/-- **The run pools, built at the serve step** (per-type stage B3): `srvRunPool_init` on the stocks,
+at any mask. -/
+theorem kvServeStocks_pools (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Em : CoPset) :
+    kvServeStocks (GF := GF) s E γr ⊢ |={Em}=> srvRunPool s E γr ∗ srvRevokeBuilt s E := by
+  iintro H
+  unfold kvServeStocks
+  imod (srvRunPool_init s E γr Em) $$ H with ⟨#Hrp, #Hb⟩
+  imodintro
+  iframe #
 
 /-- **etcd's KV calls registered at the address** (see the file header); under `grpcRepliesFit`
 (`grpc.start`'s). -/
 theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
-    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) :
+    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
+    (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> grpcServeTok gs lis ∗ etcdKVAt addr E ρ γr cid mid := by
-  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hup⟩
+      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ etcdKVAt addr E ρ γr cid mid := by
+  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, -, Hlis, -⟩
-  obtain ⟨HCA, -, Hregs, -⟩ := HC
-  icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
-  icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
-  ihave Hslots := client.etcdGrpcSlots_of_started s E γr 1 (64 - 2) 64
-      memberReadN 64 (by omega) (by omega)
-      one_le_memberReadN
-      (by omega)
-      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
-  · iframe
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+  obtain ⟨HCA, -, Hregs, -, -, -, -, -, Hnd⟩ := HC
+  imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs 1 Hregs Hrf hρ) $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
     iintro !>
     imodintro
     iunfold idCred
     ipureintro; exact Hrb
   imodintro
-  iframe Hserv
+  isplitl [Hserv]
+  · iexists γ; iexact Hserv
   iunfold etcdKVAt
   iframe #
 
@@ -166,10 +176,10 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 examples' ghost steps take of `memberUp`): at its apply environment `E` (agreeing with `E₀`, auth
 off), configuration `cfg` (with the logger `lg`, no tracer options, no progress-notify interval) and
 wait-registry name `γw`, the request and read views, the serving facts, the `GoAttach` resources, an
-`lgMu` and a `bemu` reader slot, the watchable store's readers, the reader stocks the gRPC runs take
-(`kvServeStocks`), the partitioner's part (`srvPeerCtl`) and the lease
-subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, ...) is
-dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
+`lgMu` and a `bemu` reader slot, the watchable store's built part (`srvWatchBuilt`), the raw stocks
+the gRPC run pools are built from (`kvServeStocks`, per-type stage B3), the partitioner's part (`srvPeerCtl`) and the lease
+subsystem's reader side (`srvLeaseRd`). The rest of `memberUp` (the right to stop it, the read
+loop's other slots) is dropped. The examples reach `memberUp` through this law and `memberUp_stop`, never its body, so that
 a new conjunct of `memberUp` changes only these laws' proofs. -/
 theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (m : lease.Mode) :
@@ -178,43 +188,46 @@ theorem memberUp_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : L
         ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
           cfg.WatchProgressNotifyInterval' = 0⌝ ∗
         isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvServeFacts s E cfg ∗
-        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchBuilt s E ∗
         kvServeStocks s E ρ.rd ∗
         srvPeerCtl γn s id ∗ srvLeaseRd s E m := by
   iintro Hup
   iunfold memberUp at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts, Hlgs,
-    Hrds, Hsts, Hbms, Hctl, HWR, #HLR, -⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, Hrun, #Hreq, #Hrd, Hgo, Hlg3, -, #Hwb, #Hsf, Hbemu,
+    Hctl, #HLR, -⟩
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
-  iframe Hreq Hrd Hsf Hgo Hlg3 Hbemu HWR Hctl HLR
+  iframe Hreq Hrd Hsf Hgo Hlg3 Hbemu Hwb Hctl HLR
   unfold kvServeStocks
-  iframe
+  iframe Hstk Hrun
 
 /-- **A member started with auth on, from its parts** (N6, 2026-11-06; `memberUpOn`'s introduction,
-for a starter outside the package, authkv's `startServer`): its conjuncts, the views in its mode (`E.authOn`, `true`), the reader stocks the
-gRPC runs take (`kvServeStocks`). -/
+for a starter outside the package, authkv's `startServer`): its conjuncts (per-type stage B2: with
+the gRPC run pool's raw stocks), the views in its mode (`E.authOn`, `true`). (Until per-type stage
+B3, 2026-11-11, also the reader stocks the gRPC runs took, 64 of each kind, and the watch service's
+reader tokens, `srvWatchReaders`.) -/
 theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) :
     ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
         cfg.WatchProgressNotifyInterval' = 0⌝ ∗
+      srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
       isServerReqM E.authOn s E { ρ with wait := γw } ∗ isServerReadM E.authOn s E ρ.rd ∗
       srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
-      srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
-      kvServeStocks s E ρ.rd ∗
+      srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗
+      ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
       srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ⊢
     memberUpOn (GF := GF) s ρ E₀ lg γn id γa := by
-  unfold kvServeStocks
   iintro ⟨%HEc, H⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   irevert H
   rw [hon]
-  iintro ⟨#Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, HWR,
-    ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hctl, #Htls, #HBF⟩
+  iintro ⟨Hstk, Hrun, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, Hrslots, Hctl, #Htls, #HBF⟩
   iunfold memberUpOn
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
+  isplitl [Hstk]; · iexact Hstk
+  isplitl [Hrun]; · iexact Hrun
   iframe Hreq Hrd Hlb Hwb Hsf Htls HBF
   iframe
 
@@ -230,20 +243,20 @@ theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
           cfg.WatchProgressNotifyInterval' = 0⌝ ∗
         isServerReqM E.authOn s E { ρ with wait := γw } ∗ isServerReadM E.authOn s E ρ.rd ∗
         srvAuthLb s E ∗ srvServeFacts s E cfg ∗
-        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchReaders s E 64 ∗
+        srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchBuilt s E ∗
         kvServeStocks s E ρ.rd ∗
         srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD := by
   iintro Hup
   iunfold memberUpOn at Hup
-  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hrslots, -, #Hsf, Hbemu, Hlts,
-    Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, #Htls, #HBF⟩
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, Hrun, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, -, #Hwb, #Hsf,
+    Hbemu, Hctl, #Htls, #HBF⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
   rw [hon]
-  iframe Hreq Hrd Hlb Hsf Hgo Hlg3 Hbemu HWR Hctl Htls HBF
+  iframe Hreq Hrd Hlb Hsf Hgo Hlg3 Hbemu Hwb Hctl Htls HBF
   unfold kvServeStocks
-  iframe
+  iframe Hstk Hrun
 
 end memberUp
 

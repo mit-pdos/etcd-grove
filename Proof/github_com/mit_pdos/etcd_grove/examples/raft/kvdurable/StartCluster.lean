@@ -99,7 +99,7 @@ theorem StartCluster.wp_proof
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro γ o dir Hok
   dsimp only
-  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, %Hsl, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
+  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, %Hsl, %Hmd, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
     Hrseqs, Hcur⟩
   obtain ⟨HV1, HV5, Hm1, Hm2, Hsz⟩ := Hok
   have HVn : uint.nat o.Voters' ≤ 5 := by word
@@ -168,7 +168,7 @@ theorem StartCluster.wp_proof
   -- the bootstrap conf state, frozen
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfState «$v4_ptr» _ _ slice.nil [] ⊤ $$ [state sizeCache unknownFields Hnil]
+  imod pbMsg_alloc raftpb.ConfState «$v4_ptr» _ _ slice.nil [] ⊤ (ufWire_nil _) $$ [state sizeCache unknownFields Hnil]
     with #Hpb
   · iframe
   ihave HcsB : csPts «$v4_ptr» (DFrac.own 1) (raft_kvreconf.bootCS (raft_kvreconf.bootVoters (uint.nat o.Voters')))
@@ -217,7 +217,7 @@ theorem StartCluster.wp_proof
     unfold isReadSeqs
     iframe #
     ipureintro
-    exact ⟨⟨⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩, Hdup, Hbl0, Hsl⟩
+    exact ⟨⟨⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩, Hdup, Hbl0, Hsl, Hmd⟩
   -- every voter known: the next-id bound raised at once
   imod mono_nat_own_update (uint.nat o.Voters' + 1) (by omega) $$ HnidA with ⟨HnidA, #Hlb⟩
   try wp_auto

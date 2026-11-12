@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) :
     Mutex.Unlock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #Hlo⟩
+  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmpfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -82,11 +82,11 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   wp_if_destruct
   · wp_apply hCl s γ client id $$ [$Hpkg $Hsess]
     iunfold isEtcdMutexClient at Hcl
-    icases Hcl with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, -, #HDel, -⟩
+    icases Hcl with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, -, -, -, -, -, #HDel, -⟩
     wp_auto
     ihave #Hnil := optsAt_nil (GF := GF)
     iunfold isEtcdDeleteKV at HDel
-    wp_apply HDel $$ %ctx %cs %st.key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hctx $Hnil $Hlo] as %dresp %derr #Hd
+    wp_apply HDel $$ %ctx %cs %st.key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hctx $HctxC $Hnil $Hlo] as %dresp %derr #Hd
     · ipureintro
       refine ⟨deleteOp_not_panics st.key, ?_⟩
       rw [(deleteOp_fields st.key).1, (deleteOp_fields st.key).2]

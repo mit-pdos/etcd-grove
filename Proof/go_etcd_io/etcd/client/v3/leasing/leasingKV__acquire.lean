@@ -49,11 +49,11 @@ theorem leasingKV.acquire.wp_proof
     (hFE : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG)) :
     leasingKV.acquire.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key opv o lo
-  wp_start as ⟨#Hlkv, Hrd, #Hctx, #Hop, #Hlo, %Ho⟩
+  wp_start as ⟨#Hlkv, Hrd, #Hctx, #HctxC, #Hop, #Hlo, %Ho⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
+    #Hcancelf, #Hoslf, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #HlctxC, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
   ihave #Hctx' : iprop(context.isContextDef ctx cs) $$ [Hctx]
   · iexact Hctx
   unfold context.isContextDef
@@ -169,7 +169,7 @@ theorem leasingKV.acquire.wp_proof
   (try wp_auto)
   -- the builder
   iunfold isEtcdTxnKVO at HTxn
-  wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
   iunfold txnBuilderSpecO at HBs
   icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit⟩
   have hlk : key ≠ pfx ++ key := by
@@ -262,7 +262,7 @@ theorem leasingKV.acquire.wp_proof
     ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
     · iPkgInit
     obtain ⟨Htarget, Hce⟩ := Hce
-    obtain ⟨Hleaf, Htyped⟩ := Hce e rfl
+    obtain ⟨Hleaf, Htyped, -⟩ := Hce e rfl
     ihave #Htree := errors.isErrorTree_leaf (GF := GF) e Hleaf Htyped
     wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
         (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e)

@@ -31,7 +31,7 @@ theorem txnLeasing.If.wp_proof : txnLeasing.If.spec (GF := GF) (hG := hG) := by
   ihave #Hcmps := cmpsSetAt_cmpsAt sl ms $$ Hcs
   unfold ownTxnLeasing
   icases Hown with ⟨%t, %B, %csl, %tsl, %esl, %tops, %eops, Htxn, HB, #HBs, Hlkv, #HLKV, Hctx,
-    #Hctxok, Hcsf, Hcsown, Hopst, Hopsown, Hopse, Heown, %Hops⟩
+    #Hctxok, #HctxC, Hcsf, Hcsown, Hopst, Hopsown, Hopse, Heown, %Hops⟩
   unfold cmpsOwn
   icases Hcsown with ⟨%cvs, #Hcvs, Hcap, %Hclen, #Hcv⟩
   ihave #Hcs' := Hcs

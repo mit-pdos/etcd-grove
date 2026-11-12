@@ -129,7 +129,7 @@ theorem Cluster.startNew.wp_proof
       (fun S => iprop(raftState γr.cluster nid S ∗ ⌜S = RaftState.init⌝))
       (fun K => iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
         memStorInvP ms γs (kvrJ γr.cluster K)))
-      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (Or.inl (by rw [HcAp]; rfl))
+      HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd))
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
@@ -168,6 +168,7 @@ theorem Cluster.startNew.wp_proof
       Hvl (bootCS_is vs Hvnd))
     $$ [$Hpkg $Hcci $Hcl $Hstats $HisNode' $Hdrv $HrS $Hrun $Hncfg $Hsrec $HmsInv $Hmeta $Hmsnap
       $HbootCS $Hf $Hseq] as %r ⟨#Hr, Hrs⟩
+  · ipureintro; exact Hmd
   have HRn : R !! nid = none := by
     cases h : R !! nid with
     | none => rfl

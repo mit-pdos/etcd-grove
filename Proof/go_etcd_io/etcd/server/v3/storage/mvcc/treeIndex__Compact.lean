@@ -90,6 +90,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
   obtain ⟨Hcr, Hr0, Hrl⟩ := Hc
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   wp_auto
   wp_apply (wp_map_make1 (K := Revision) (V := Unit)) as %m Hm
   (try wp_auto)
@@ -101,7 +102,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply h1 lg _ _ $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   -- `ti.Lock()`: the promoted method, through the guard
   rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Lock")]

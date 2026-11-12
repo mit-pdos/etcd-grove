@@ -68,10 +68,12 @@ theorem store.Create.wp_proof
     (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
     store.Create.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hobj, Hout, Hau⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, #Hk8, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  iunfold storeListOk at Hlst
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -104,7 +106,11 @@ theorem store.Create.wp_proof
   rw [hk] at Hpk
   obtain ⟨rfl, rfl⟩ := Hpk
   (try wp_auto)
-  wp_apply wp_GetAuditIDTruncated as %aid -
+  ihave #Hk8a := Hk8
+  iunfold k8sctx.k8sCtxOk at Hk8a
+  icases Hk8a with ⟨#Haud, -, -⟩
+  wp_apply wp_GetAuditIDTruncated ci $$ [] as %aid -
+  · iframe #
   wp_apply wp_String as %kv0 -
   wp_apply wp_String as %kv1 -
   (try wp_auto)
@@ -120,7 +126,7 @@ theorem store.Create.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce', -⟩
   · iframe #
   (try wp_auto)
   iunfold versionerOk at Hver
@@ -155,7 +161,7 @@ theorem store.Create.wp_proof
     iunfold transformerOk at Htr
     icases Htr with ⟨-, #HtrTo⟩
     wp_apply HtrTo $$ [$Hdsl] as %vsl %terr Htres
-    icases Htres with (⟨%Hterr, %v, %Hv, #Hvsl⟩ | ⟨%Hterr, #Htes⟩)
+    icases Htres with (⟨%Hterr, %v, %Hv, #Hvsl⟩ | ⟨%Hterr, %Htre, #Htes⟩)
     · subst Hterr
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
@@ -173,7 +179,8 @@ theorem store.Create.wp_proof
         fun i x hx => by
           iintro HAU
           unfold kvOpAu1
-          iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial) $$ HAU
+          iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial
+            (fun σ hw => keysIn_optPut _ _ _ _ _ hpfx σ hw.1)) $$ HAU
       ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
       rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
         (m := go!"OptimisticPut")]
@@ -187,9 +194,12 @@ theorem store.Create.wp_proof
       · iframe #
         iexact Hau'
       (try wp_auto)
-      wp_apply wp_txnError as %te -
+      icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split perr _ _ _) $$ Hput with ⟨#Hse0, Hput⟩
+      wp_apply wp_txnError as %te Hte
+      ihave #Hse := Hte $$ Hse0
       (try wp_auto)
-      wp_apply wp_RecordEtcdRequest
+      wp_apply (wp_RecordEtcdRequest go!"create" c.gr _ _ (by decide) Hutf.1 Hutf.2)
+      · iexact Hse
       (try wp_auto)
       icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ, -⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse, #Hpcl⟩)
       · -- the transaction ran at σ
@@ -319,7 +329,7 @@ theorem store.Create.wp_proof
         · iframe #
           ipureintro; exact Hspn
         (try wp_auto)
-        wp_apply wp_NewInternalError ti' $$ [] as %ie -
+        wp_apply wp_NewInternalError ti' $$ [] as %ie %Hie
         · iframe #
           iunfold go_etcd_io.etcd.cache.v3.errorStringSpec
           iexact Hes
@@ -333,7 +343,7 @@ theorem store.Create.wp_proof
         · iexists o, []; iexact Hobj
         ileft
         isplitl []
-        · iapply unkErr_internal
+        · iapply (unkErr_internal _ _ (by rw [Hie]; exact Htre))
         iexists o0, rv0
         iexact Hout
   · -- the encoding failed

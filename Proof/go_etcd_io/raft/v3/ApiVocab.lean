@@ -119,8 +119,8 @@ def sentShapeTypes : List w32 := sentTypes ++ [MsgTimeoutNow, MsgTransferLeader]
 those and a forwarded `MsgTransferLeader` (no term or the forwarder's: `send` stamps the follower's,
 which may be `0`), from a node other than its destination unless it is a read-index request, a vote
 or pre-vote response, an accepting `MsgAppResp` or a transfer request (its `From` is the transferee,
-possibly the leader it is forwarded to); a `MsgApp` of raft's shape; the transfer messages with no
-entries and no context; no responses. (The frozen design's `MsgSnap` index bound below `2^61` is not
+possibly the leader it is forwarded to); a `MsgApp` of raft's shape; the transfer messages and
+(raft-entsize [r3c], 2026-11-09) a `MsgSnap` with no entries and no context; no responses. (The frozen design's `MsgSnap` index bound below `2^61` is not
 here yet: `stepIn_intro` keeps it as a premise; `notes/raft-unified-plan.md`, "Spec changes during
 track A (third)".) -/
 def SentMsgShape (st : MsgSt) : Prop :=
@@ -132,7 +132,8 @@ def SentMsgShape (st : MsgSt) : Prop :=
      st.msg.Type' ≠ MsgTransferLeader →
      (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
   (st.msg.Type' = MsgApp → AppShape st) ∧
-  (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+  (st.msg.Type' = MsgTimeoutNow ∨ st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgSnap →
+    st.ents = [] ∧ st.ctx = []) ∧
   st.resps = []
 
 /-- (2026-10-29, stage U7) A message of a type the model describes (no transfer message) of the
@@ -592,23 +593,69 @@ instance peersCtx_persistent (pv : List Peer) (ctxs : List (List w8)) :
     Persistent (peersCtx (GF := GF) pv ctxs) := by
   unfold peersCtx; infer_instance
 
+/-- **The `k`-th peer's conf change as raft's `Bootstrap` builds it** (premise fixes 1, 2026-11-10):
+`&pb.ConfChange{Type: AddNode.Enum(), NodeId: new(id), Context: ctx}` at `p`, at `dq`: its `Type`
+and `NodeId` cells set (non-`nil`) to `m.type` and `m.nodeId`, its `Id` unset (`nil`), its
+`Context` holding `m.context`, no unknown fields. Unlike `ownConfChange`, which forgets which
+fields are set and the unknown fields, it fixes everything `proto.Marshal`'s bytes depend on. -/
+def bootConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
+  iprop(∃ (pt pn : Loc) (cs : GoSlice),
+    ⌜p ≠ null ∧ pt ≠ null ∧ pn ≠ null⌝ ∗
+    p.[raftpb.ConfChange, go!"Type"] ↦{dq} pt ∗ pt ↦□ m.type ∗
+    p.[raftpb.ConfChange, go!"NodeId"] ↦{dq} pn ∗ pn ↦□ m.nodeId ∗
+    p.[raftpb.ConfChange, go!"Id"] ↦{dq} (null : Loc) ∗
+    p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
+    pbMsg raftpb.ConfChange p [])
+
 /-- `proto.Marshal` of the `k`-th peer's conf change returns the bytes of the `k`-th boot entry
-(see the file header): for a `*pb.ConfChange` at `p` holding `m` with `m.nodeId = ps[k]`,
-`m.context = ctxs[k]`, `Type = AddNode` and `Id` unset, the call returns a fresh slice holding
-`e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the message back. Persistent (one
-call per peer). -/
+(see the file header): for the `*pb.ConfChange` raft's `Bootstrap` builds at `p` (`bootConfChange`:
+`Type = AddNode` and `NodeId = ps[k]` set, `Id` unset, `Context = ctxs[k]`, no unknown fields), the
+call returns a fresh slice holding `e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the
+message back; and the peers' contexts are not empty (an empty one's bytes depend on whether the
+slice is `nil`, proto2 presence). Persistent (one call per peer). (Premise fixes 1, 2026-11-10:
+until then stated over every `ownConfChange p dq m` with these fields, which also covers `Id`
+set to `0`, `Type` unset and unknown fields, which Go marshals to other bytes: the premise attack,
+`examples/premisefix/confchange`, `TestBootBytesDependOnPresence`; so no faithful `proto.Marshal`
+met it and every closed theorem assuming it held vacuously.) -/
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
+  iprop(⌜∀ c ∈ ctxs, c ≠ []⌝ ∗ □ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
     (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
       m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
-    ownConfChange p dq m -∗
-    (∀ (d : GoSlice), ownConfChange p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
+    bootConfChange p dq m -∗
+    (∀ (d : GoSlice), bootConfChange p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
     WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
           (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p))) {{ Φ }})
 
 instance bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) :
     Persistent (bootMarshal (GF := GF) ps ctxs bootLog) := by
   unfold bootMarshal; infer_instance
+
+/-- A freshly allocated `*pb.ConfChange` (hidden fields zero, `Id` unset) with its `Type` and
+`NodeId` cells set: the conf change `Bootstrap` marshals (`bootConfChange`). -/
+theorem bootConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChangeM) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) (Hi : v.Id' = null) :
+    (p ↦ v ∗ v.Type' ↦□ m.type ∗ v.NodeId' ↦□ m.nodeId ∗ v.Context' ↦*□ m.context : IProp GF) ⊢
+      |={E}=> bootConfChange p (DFrac.own 1) m := by
+  iintro ⟨Hp, #cT, #cN, #Hcs⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  ihave %HnT := typedPointsto_not_null $$ cT
+  ihave %HnN := typedPointsto_not_null $$ cN
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, Ty, NodeId, Context, Id, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  rw [Hi]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.ConfChange p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imodintro
+  iunfold bootConfChange
+  iexists v.Type', v.NodeId', v.Context'
+  isplitr
+  · ipureintro; exact ⟨Hnn, HnT, HnN⟩
+  iframe
+  iframe cT cN Hcs Hpb
 
 /-- (2026-10-25, T-M M2a) The ghost state a member of a new cluster starts `Bootstrap` with, in the
 mode `md` (as `rnInit` for `RestartNode`): statically the bootstrap state `bootPState bootLog`

@@ -19,7 +19,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 
 **Its hypotheses** (D19a; `notes/decisions.md`, D19r):
 * pure facts of the program and its environment: `BootFacts id bootLog` (the member id and the
-  bootstrap log Go computes), `ckptEffectsOk`, `authRecordsFit`,
+  bootstrap log Go computes), `authRecordsFit`,
   `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
   `storage.diskOk` (D22 S-j2), `leasePeersOk` (the peers answer the lease handler's path as etcd's
   lease handler does: the trust-boundary `leaseTimeToLive`'s, the axiom review of 2026-11-02),
@@ -28,7 +28,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`leasekv`'s, the cache's), and the
-  model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
+  model classes the proofs take (`DialWithBalancerBody`,
   `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
   `rpctypes.EtcdError`, `ErrorStringLeaf`, `RpctypesEtcdErrorMethods`, are theorems of the
   package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
@@ -118,13 +118,13 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_lease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.lease.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leasekvGF, ContextReadErrs (GF := leasekvGF) (hG := heapAtLkv hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leasekvGF, ContextErrsClient (GF := leasekvGF) (hG := heapAtLkv hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_lease.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
@@ -159,7 +159,8 @@ theorem etcd_lease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Hms, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_lease.wp_Main (GF := leasekvGF) n id ctxs boot Hbf (by rw [HT]; word)
-    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo Hlp inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (srvLevels_of_max HT)
+    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo Hlp inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   ipureintro

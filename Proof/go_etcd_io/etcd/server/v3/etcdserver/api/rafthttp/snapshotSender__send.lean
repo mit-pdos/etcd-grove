@@ -78,8 +78,8 @@ local macro "zap_log" : tactic => `(tactic| (
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | wp_auto)))
 
 set_option hygiene false in
@@ -150,13 +150,14 @@ theorem rafthttp.snapshotSender.send.wp_proof
   intro Rh pid s m ml rc
   wp_start as ⟨#Hs, #Hmsg, Hb⟩
   iunfold snapBundleTo at Hb
-  icases Hb with ⟨%st, %sn, %D, #Hml, #HP, HO, %Hst, Hrs, #Himg⟩
+  icases Hb with ⟨%st, %sn, %D, #Hml, #Hsw, #HP, HO, %Hst, Hrs, #Himg⟩
   obtain ⟨Hsnap, Hsn, Hrsp, Hto⟩ := Hst
   ihave #Hs' := Hs
   iunfold snapSenderOk at Hs'
   icases Hs' with ⟨%tr, %pk, %ps, %r, %ec, %sc, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, %γd, %Rr,
-    #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hrtf,
+    #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, #Hlgz, #Hurls, #Huvs, #Hrtf,
     #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem, %Hturls⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave ⟨#HfM, ⟨%tsz, #HfT, %Htsz⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -172,14 +173,14 @@ theorem rafthttp.snapshotSender.send.wp_proof
   (try wp_auto)
   wp_apply hIDString as %ts %Hts
   (try wp_auto)
-  wp_apply hBody lg m ml rc st _ Hlgnn Hrsp $$ [$Hrs] as %body ⟨%bs, %bi, ⟨%Hbi, %Hwire, %Hbl⟩, Hbody, #Hbc⟩
+  wp_apply hBody lg m ml rc st _ Hlgnn Hrsp $$ [$Hrs Hsw] as %body ⟨%bs, %bi, ⟨%Hbi, %Hwire, %Hwe, %Hbl⟩, Hbody, #Hbc⟩
   · iframe #
   subst Hbi
   (try wp_auto)
   wp_apply hPick pk (peerURL Rh pid) $$ [$Hpick] as %u %Hu
   (try wp_auto)
   wp_apply hCreate lg u go!"/raft/snapshot" _ (.stream (snapPre bs) (snapPhi bs (fun t => backend.boltImage t D)))
-      _ urls uvs lid cid Hlgnn Hu.1 $$ [Hbody $Huvs] as %req ⟨%hdrs, Hreq, Hstr, %Hfrom⟩
+      _ urls uvs lid cid Hlgnn Hu.1 rfl $$ [Hbody $Huvs] as %req ⟨%hdrs, Hreq, Hstr, %Hfrom⟩
   · unfold http.bodyHas; iexact Hbody
   (try wp_auto)
   wp_apply hBytes as %ssz -
@@ -206,7 +207,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
     iexists st, bs, sn, D
     iframe #
     ipureintro
-    refine ⟨Hwire, Hbl, by rw [Hto]; exact Hu.2.symm, Hsnap, Hsn, Hrsp, fun x hx => hx,
+    refine ⟨Hwire, Hwe, Hbl, by rw [Hto]; exact Hu.2.symm, Hsnap, Hsn, Hrsp, fun x hx => hx,
       fun x hx => hx⟩
   ihave #Hso : http.reqSendOk (raftHttpNet Rh) ⟨go!"POST", u.Host', go!"/raft/snapshot", hdrs, []⟩ γk
       (.stream (snapPre bs) (snapPhi bs (fun t => backend.boltImage t D))) $$ []

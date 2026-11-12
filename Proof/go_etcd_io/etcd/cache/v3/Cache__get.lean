@@ -130,7 +130,7 @@ theorem Cache.get.wp_proof
     (wp_Restore : store.Restore.spec (GF := GF) (hG := hG)) :
     Cache.get.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap ctx s B
-  wp_start as ⟨#Hc, #Hctx, Hb⟩
+  wp_start as ⟨#Hc, #Hctx, #HoC, Hb⟩
   iunfold cacheBound at Hb
   icases Hb with ⟨Ha, #HRB, %HB0⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -160,7 +160,7 @@ theorem Cache.get.wp_proof
   iunfold isEtcdKVE at HisKV
   ihave #HG := HisKV $$ %ctx %s %cf.pfx %optsSl %([withPrefixM] : List (OpFull → OpFull)) %B
   wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
-  · iframe Hctx Hopts HRB
+  · iframe Hctx HoC Hopts HRB
     ipureintro
     refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
       (by simp [op_simps] <;> (try split) <;> (try simp)), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),

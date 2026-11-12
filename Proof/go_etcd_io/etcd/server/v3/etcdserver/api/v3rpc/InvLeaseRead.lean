@@ -14,8 +14,8 @@ per-call resources `S` and the KV's revision reader `R` (which `LeaseLeases`' `n
 and the handler's `fill` after it), both given back, at any context and lower bounds `n` (the auth
 store's published index) and `m` (the lessor's history `γl`); their answers are the server's
 (`ttlAns`, `leasesAns`): on success the response with the key check's verdict, on an error an
-`applyErrIs` error. The server meets it with `S := E.RD ∗ threadTok` and
-`R := mvcc.storeReader E.s E.γ`.
+`applyErrIs` error. The server meets it with `S := E.RD ∗ levelTok 0` and
+`R := mvcc.api.mvccReaders E.γ 1`.
 
 **The handlers' answers** (`leaseTTLOut`, `leaseLeasesOut`): the server's response with its header
 filled (`leaseHdrDone`, `leasesHdrDone`) and the server's verdicts carried through; on the
@@ -96,7 +96,7 @@ def leasesAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) 
 def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
       (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
         r ↦{dq} v }}
       (App (App (Val (srvM s go!"LeaseTimeToLive")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗ r ↦{dq} v ∗
@@ -105,7 +105,7 @@ def lessorTTLOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : I
 /-- **The server's `LeaseLeases`** (one conjunct of `raftLeaseRead`). -/
 def lessorLeasesOk (s : Loc) (E : apply.AEnv GF) (γl : GName) (S R : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (n m : Nat),
-    {{ S ∗ R ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+    {{ S ∗ R ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseLeases")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ R ∗
         leasesAns s E γl ci n m resp err }})
@@ -139,12 +139,13 @@ def leaseHdrDone (h : Loc) (cid mid : w64) : IProp GF :=
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦{dq} r)
 
 /-- **`LeaseLeases`' header after the handler's `fill`** (owned): `leaseHdrDone`'s, its revision
-`r` the last of a log the server certified (`newHeader()`'s), unless that was `0` (then the local
+`r` the last of a log the server certified (`newHeader()`'s: a floor of its committed log,
+`srvApi.kvLogLb`), unless that was `0` (then the local
 `Rev()`'s). -/
 def leasesHdrDone (E : apply.AEnv GF) (h : Loc) (cid mid : w64) : IProp GF :=
   iprop(hdrFilled h cid mid ∗ ∃ (dq : DFrac) (r : w64) (log : mvcc.Log),
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦{dq} r ∗
-    mvcc.idxCert E.γ.idx log ∗
+    srvApi.kvLogLb E.γs log ∗
     ⌜log ≠ [] ∧ (W64 ((log.length : Int) - 1) ≠ W64 0 → r = W64 ((log.length : Int) - 1))⌝)
 
 /-- **`LeaseServer.LeaseTimeToLive`'s answer** to the request `v` at the context `ctx`, with the

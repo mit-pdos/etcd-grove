@@ -11,7 +11,7 @@ response answers the `j`th request.
 `LeaseRenew(ctx, id)` at the per-call resources `S'`, given back, at any context and lower bounds
 `n` (the auth store's published index) and `m` (the lessor's history `γl`); its answer the server's
 (`renewAns`): `nil` and the key check's verdict (`.write`), or a non-nil `applyErrIs` error. The
-server meets it with `S' := E.RD ∗ threadTok ∗ srvLgReader s ∗ srvReadReader s γr`
+server meets it with `S' := E.RD ∗ levelTok 0 ∗ srvLgReader s ∗ srvReadReader s γr`
 (`raftLeaseRenew_of_server`, `ServerLeaseRead.lean`).
 
 **The stream specification** (`kaStreamSpec`, K4): the `j`th response `(id, ttl)` answers the `j`th
@@ -139,7 +139,7 @@ def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (
 /-- **The server's `LeaseRenew`** (the keep-alive's contract, persistent; see the file header). -/
 def raftLeaseRenew (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
-    {{ S' ∗ context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+    {{ S' ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseRenew")) (Val #(GoInterface.ok ci))) (Val #id))
     {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); S' ∗
         renewAns s E γl ci n m id err }})

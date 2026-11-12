@@ -1,0 +1,39 @@
+--- a/server/etcdserver/api/rafthttp/http.go
++++ b/server/etcdserver/api/rafthttp/http.go
+@@ -70,7 +70,7 @@
+ }
+ 
+ type writerToResponse interface {
+-	WriteTo(w http.ResponseWriter)
++	WriteTo(w http.ResponseWriter) error
+ }
+ 
+ type pipelineHandler struct {
+--- a/server/etcdserver/api/rafthttp/http_test.go
++++ b/server/etcdserver/api/rafthttp/http_test.go
+@@ -347,8 +347,11 @@
+ 	code int
+ }
+ 
+-func (e *resWriterToError) Error() string                 { return "" }
+-func (e *resWriterToError) WriteTo(w http.ResponseWriter) { w.WriteHeader(e.code) }
++func (e *resWriterToError) Error() string { return "" }
++func (e *resWriterToError) WriteTo(w http.ResponseWriter) error {
++	w.WriteHeader(e.code)
++	return nil
++}
+ 
+ type fakePeerGetter struct {
+ 	peers map[types.ID]Peer
+--- a/server/etcdserver/server.go
++++ b/server/etcdserver/server.go
+@@ -712,7 +712,8 @@
+ 			zap.String("local-member-id", s.MemberID().String()),
+ 			zap.String("mismatch-member-id", types.ID(m.GetTo()).String()),
+ 		)
+-		return httptypes.NewHTTPError(http.StatusForbidden, "cannot process message to mismatch member")
++		// Not 403: the sender reads 403 as "the sender was removed" and stops.
++		return httptypes.NewHTTPError(http.StatusPreconditionFailed, "cannot process message to mismatch member")
+ 	}
+ 	if m.GetType() == raftpb.MsgApp {
+ 		s.stats.RecvAppendReq(types.ID(m.GetFrom()).String(), proto.Size(m))

@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -54,8 +55,9 @@ theorem kVClient.DeleteRange.wp_proof
   ihave Hblank : pbDeleteRangeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbDeleteRangeResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/DeleteRange" pbDeleteRangeRequest pbDeleteRangeResponse Spec (deleteReqOp req k e) Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.KV/DeleteRange" pbDeleteRangeRequestT pbDeleteRangeResponseT pbDeleteRangeRequestT_reg pbDeleteRangeResponseT_reg Spec (deleteReqOp req k e) Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbDeleteRangeRequestT, pbDeleteRangeResponseT] at hI
   rw [show (pbDeleteRangeRequest (GF := GF)).ty = etcdserverpb.DeleteRangeRequest.ty from rfl,
     show (pbDeleteRangeResponse (GF := GF)).ty = etcdserverpb.DeleteRangeResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre
@@ -64,7 +66,7 @@ theorem kVClient.DeleteRange.wp_proof
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', %k', %e', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', Hm, -, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto
     iapply HΦ

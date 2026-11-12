@@ -125,6 +125,9 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages, a response at half
       "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+      -- (raft-entsize §2, 2026-11-09) a `MsgSnap`'s top-level unknown fields none: the `pbMsg` of
+      -- the literal `maybeSendSnapshot` built (`snapUf`), for the content a `Ready` pins
+      "#Hmsgs_uf" ∷ ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
       -- each message's read credit (2026-10-13)
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗

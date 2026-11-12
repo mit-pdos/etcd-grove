@@ -43,7 +43,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_leaseexpiry.wp_Main`). -/
-theorem leaseexpiry_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem leaseexpiry_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leaseexpiry.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiry.wp_Main
 
@@ -58,13 +58,13 @@ file header and `Adequacy.lean`). -/
 theorem etcd_leaseexpiry_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leaseexpiryGF, ContextReadErrs (GF := leaseexpiryGF) (hG := heapAtLex hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leaseexpiryGF, ContextErrsClient (GF := leaseexpiryGF) (hG := heapAtLex hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_leaseexpiry.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leaseexpiryProgram leaseexpiryNames)
@@ -84,7 +84,7 @@ theorem etcd_leaseexpiry_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_leaseexpiry_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n Hprem σ g
+  etcd_leaseexpiry_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

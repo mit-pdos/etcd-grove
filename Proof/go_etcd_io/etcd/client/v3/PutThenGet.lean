@@ -29,6 +29,7 @@ route of D18, not done.
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.client.v3.Results
 
 @[expose] public section
 

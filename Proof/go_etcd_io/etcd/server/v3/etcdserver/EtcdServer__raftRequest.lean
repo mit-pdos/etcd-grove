@@ -56,8 +56,9 @@ local macro "rr_ok" : tactic => `(tactic| (
     · iapply (apply.dispatchAnswer_nil_tr _ _ _ _ v.Trace' _ _)
       rw [← hve]
       iexact Hans
-    isplitl [Hau']
-    · iexact Hau'
+    iframe Hau' Hrcp
+    isplitr
+    · ipureintro; exact Hlwf
     isplitl [Hga']
     · iexact Hga'
     iexact Hva'
@@ -75,7 +76,7 @@ theorem EtcdServer.raftRequest.wp_proof
     (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
     EtcdServer.raftRequest.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, Hhdr, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Hspc, #Hst, #Hirr, Hok, Hhdr, #HF⟩
   ihave #Ptrace : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace $$ []
   · iPkgInit
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -88,7 +89,7 @@ theorem EtcdServer.raftRequest.wp_proof
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau, Hga, Hva⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, Hok, #HtM, Hau, #Hrcp, %Hlwf, Hga, Hva⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn
@@ -178,7 +179,7 @@ theorem EtcdServer.raftRequest.wp_proof
         ihave Hga' := grantAnsM_of_ar E res rq' o skip v hve $$ Hga Hv
         ihave Hva' := revokeAnsM_of_ar E res rq' o skip v hve $$ Hva Hv
         (try wp_auto)
-        wp_apply hV ctx _ cd rfl $$ [] as %val %Hval
+        wp_apply hV ctx $$ [] as %val %Hval
         · iframe #
         rcases Hval with rfl | ⟨tm, rfl⟩
         · (try wp_auto)

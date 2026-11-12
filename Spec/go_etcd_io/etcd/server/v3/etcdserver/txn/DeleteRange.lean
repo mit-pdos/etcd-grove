@@ -3,18 +3,21 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -23,60 +26,42 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- **`DeleteRange(ctx, lg, kv, dr)`**: the delete request `o` as one write transaction, opened
-with a revision token, at a committed log `ilog` the caller's other tokens and certificate pin
-(`Pinned`; at the sole writer, its own log), spending a write token (until D19c, 2026-10-18,
-with fewer than `mvcc.putMax γ` keys in the request's range there, which the store's receipts now
-give: `mvcc.storeTxnWriteIs_small`) (`mvcc.storeWT γ`). The keys of the
-request's range at `ilog`'s state deleted (`delChanges`; the client's delete there:
-`stateAfter_commit_delete`): the committed log `commitLog` (no revision, the token back, if
-nothing was deleted), the response with their number, the revision (`writeRev`: the new one, or
-`ilog`'s last if nothing was deleted) and (`PrevKv`) the deleted key-values; or, with `PrevKv`,
-the range read's context error (`ctx` done): nothing deleted, the token back. The trace is not
-`nil`. The write transaction runs under the store's batch lock by the critical-section contract
-(`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post`. At a context never
-canceled (`nd`: `neverDone`), no context error (2026-10-12: for the apply package's backend).
-2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
-(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
-2026-10-14 (unit T1): the caller certifies the log the delete commits (`certOkNext`). 2026-10-17 (unit N4, D14a): `kv` the plain store or a watchable store over it (`isKV`); for a
-watchable store the caller is the sole writer of the notified log `Lw` (`wlogOwn`), and gets the
-writer's part back at the log it leaves. -/
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- **`DeleteRange(ctx, lg, kv, dr)`**: one write transaction, begun at the state `σ₀` of the
+caller's update (`delAU`), the range's keys at `σ₀` deleted, committed by the caller's two
+updates (`delPend o σ₀ true`), the response; or, with `PrevKv`, the range read's context error
+(not at a context never canceled), nothing deleted (`delPend o σ₀ false = []`). `Post` either way.
+The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.DeleteRange.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
-    (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool) (Lw : mvcc.Log) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
-      mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      txn.wlogOwn s γ Lw ∗ ⌜γ.watchQ = true → m + 1 = txn.soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63⌝ ∗
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
+    (kv : GoInterface) (γ : MvccName) (dr : Loc) (o : OpFull) (q : Qp) (B : MvccStorage)
+    (P Pre Q Post : IProp GF) (f : GoFunc) (ot : Option Loc) (te : Bool) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → Bool → IProp GF),
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.deleteRangeRequestIs dr o ∗
-      lease.leaseOwn γ.leases L I ∗
-      □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
-        ⌜I = mvcc.leaseItemsOf (mvcc.stateAfter ilog)⌝) ∗
-      mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
-        mvcc.certOkNext γ ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
-      mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
+      lease.leaseOwn (mvccLeases γ) L I ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+      traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+      zapLoggerOrNil lg ∗ txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗ txn.delAU γ o I R }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗ mvcc.hookIs γ P f ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗ Post ∗
+      mvcc.api.mvccReaders γ 1 ∗ txn.kvBackend γ q B P f ∗ ⌜trace ≠ null⌝ ∗ Post ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-      ∃ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ ilog ≠ []⌝ ∗
-        ((⌜err = GoInterface.nil⌝ ∗
+      ∃ σ₀ : MvccState, ⌜txn.Reach σ₀ ∧ σ₀.pending = none⌝ ∗
+        ((⌜err = GoInterface.nil⌝ ∗ R σ₀ true ∗
             txn.deleteRangeResponseIs resp
-              (W64 ((mvcc.writeRev ilog (txn.delChanges (mvcc.stateAfter ilog) o) : Nat) : Int))
-              (rangeIn (mvcc.stateAfter ilog) o).length
-              (if o.base.prevKV then rangeIn (mvcc.stateAfter ilog) o else []) ∗
+              (W64 ((mvcc.writeRev σ₀.log (txn.delChanges (mvcc.stateAfter σ₀.log) o) : Nat) : Int))
+              (rangeIn (mvcc.stateAfter σ₀.log) o).length
+              (if o.base.prevKV then rangeIn (mvcc.stateAfter σ₀.log) o else []) ∗
             txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
-            mvcc.idxCert γ.idx (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
-            (if txn.delChanges (mvcc.stateAfter ilog) o = [] then mvcc.revToken γ else True) ∗
-            txn.wlogOwn s γ (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
-            lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter
-              (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o))))) ∨
-         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog ∗ txn.wlogOwn s γ ilog ∗
-            lease.leaseOwn γ.leases L I)) }}
+            lease.leaseOwn (mvccLeases γ) L
+              (mvcc.pendItems σ₀.log (txn.delChanges (mvcc.stateAfter σ₀.log) o))) ∨
+         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗ R σ₀ false ∗
+            lease.leaseOwn (mvccLeases γ) L I)) }}
 
 end spec
 

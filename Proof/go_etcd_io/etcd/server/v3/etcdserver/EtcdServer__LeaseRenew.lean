@@ -105,7 +105,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) rv.electionTicks rv.tickMs as %tmo -
   · iframe #
   (try wp_auto)
-  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx⟩
+  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx, -⟩
   · iframe #
   (try wp_auto)
   ihave #Hcc := Hcctx
@@ -122,8 +122,14 @@ local macro "renew_forward" : tactic => `(tactic| (
     cleanup_bool_decide
     (try wp_auto)
     -- `err := cctx.Err()`: `Canceled` or `DeadlineExceeded`, the context being done
-    wp_apply hErrDone cctx _ $$ [] as %cerr ⟨%Hty, #Hcv⟩
+    wp_apply hErrDone cctx _ $$ [] as %cerr ⟨%-, #Hcv⟩
     · iframe #; iexact Hcl
+    ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+    · iPkgInit
+    ihave #HcE : (context.isCtxErr cerr : IProp GF) $$ []
+    · icases Hcv with (#H | #H)
+      · iapply context.isCtxErr_of_Canceled $$ Pctx H
+      · iapply context.isCtxErr_of_DeadlineExceeded $$ Pctx H
     ihave #Prd : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
     · iPkgInit
     ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.read.readInit : IProp GF) $$ []
@@ -137,7 +143,7 @@ local macro "renew_forward" : tactic => `(tactic| (
     ihave ⟨%eTo, #HeTo, #HeToE⟩ := errVarLeaf_get _ $$ HETo
     (try wp_auto)
     -- `case errorspkg.Is(err, context.DeadlineExceeded): return -1, errors.ErrTimeout`
-    wp_apply hIsC cerr (GoInterface.ok eD) Hty $$ [] as %b1 %Hb1
+    wp_apply hIsC cerr (GoInterface.ok eD) $$ [] as %b1 %Hb1
     · iframe #
     (try wp_auto)
     cases b1 with
@@ -147,7 +153,7 @@ local macro "renew_forward" : tactic => `(tactic| (
     | false =>
       (try wp_auto)
       -- `case errorspkg.Is(err, context.Canceled): return -1, errors.ErrCanceled`
-      wp_apply hIsC cerr (GoInterface.ok eC) Hty $$ [] as %b2 %Hb2
+      wp_apply hIsC cerr (GoInterface.ok eC) $$ [] as %b2 %Hb2
       · iframe #
       (try wp_auto)
       cases b2 with
@@ -339,7 +345,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     (hIsC : errors.IsCtxErr.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr γl ctx cd id n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, Hlgr, Hrrd,
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, Htok, Hlgr, Hrrd,
     %Hbound, #Hprt⟩
   iunfold srvPeerRt at Hprt
   icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩
@@ -367,9 +373,10 @@ theorem EtcdServer.LeaseRenew.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp⟩
+  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
+  ihave #Hlib1 := Hlibw $$ Hlib
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
@@ -398,12 +405,10 @@ theorem EtcdServer.LeaseRenew.wp_proof
   | true =>
     (try wp_auto)
     -- `if !s.ensureLeadership() { return -1, lease.ErrNotPrimary }`
-    -- (revoke-open Q5, 2026-11-06) `ensureLeadership` takes a level of the thread token: level 0
-    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩
-    wp_apply (hEns s E ρ γr 0) $$ [$Hlgr $Hrrd $Htok] as %b ⟨Hlgr, Hrrd, Htok⟩
+    -- (revoke-open Q5, 2026-11-06) `ensureLeadership` takes a level of the thread token: level 0,
+    -- the one the spec takes (`lessorLvl`), returned before the check and `Renew`
+    wp_apply (hEns s E ρ γr lease.lessorLvl) $$ [$Hlgr $Hrrd $Htok] as %b ⟨Hlgr, Hrrd, Htok⟩
     · iframe #; ipureintro; exact Hbound
-    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Htok Htok1]
-    · iframe Htok Htok1
     (try wp_auto)
     cases b with
     | false =>
@@ -412,7 +417,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     | true =>
     (try wp_auto)
     -- `if s.FeatureEnabled(features.FastLeaseKeepAlive)`
-    wp_apply (hFE s rv.fg) as %fe -
+    wp_apply (hFE s rv.fg _ none) as %fe -
     · iframe #; ipureintro; simp [serverFeatures]
     (try wp_auto)
     cases fe with

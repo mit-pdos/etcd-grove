@@ -305,7 +305,7 @@ theorem ownSnapW_of_struct (p : Loc) (v : raftpb.Snapshot) (s : SnapshotM) (E : 
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold ownSnapW

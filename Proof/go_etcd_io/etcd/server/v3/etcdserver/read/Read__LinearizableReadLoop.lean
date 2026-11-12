@@ -127,7 +127,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     iintro %u -
     wp_auto
     wp_apply context.wp_Background
-    wp_apply HLg $$ [$HLR] as %lg ⟨%Hlg, HLR⟩
+    wp_apply HLg $$ [$HLR] as %lg ⟨#Hlg, HLR⟩
     wp_apply hET context.backgroundCtxVal mvcc.neverCd none false lg _ slice.nil $$ []
       as %ctx' %t ⟨⟨%Ht, -⟩, Htrc, -⟩
     · iframe #
@@ -142,7 +142,9 @@ theorem read.Read.LinearizableReadLoop.wp_proof
       · iapply traceutil.ctxTraceIs_background
       isplitl []
       · simp only [traceutil.ownTraceOpt]; itrivial
-      iapply traceutil.ownFields_nil
+      isplitl []
+      · iapply traceutil.ownFields_nil
+      iapply zapLoggerOk_orNil; iexact Hlg
     wp_apply hNN γr as %nc' ⟨%γn', #Hnis', Hown', Hauth', Hlist'⟩
     wp_apply sync.RWMutex.wp_Lock_guard (readMuAddr r) (readMuP r γr) $$ [] as ⟨Hwl, HP⟩
     · iframe #

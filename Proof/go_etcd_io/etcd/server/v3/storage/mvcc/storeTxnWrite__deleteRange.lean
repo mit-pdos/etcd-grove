@@ -62,9 +62,9 @@ local macro "del_range_tail" : tactic => `(tactic| (
       iapply HΦ
       iframe Hown
       iunfold mvcc.storeTxnWriteIs
-      iexists ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -72,11 +72,11 @@ local macro "del_range_tail" : tactic => `(tactic| (
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
       · iunfold mvcc.storeTxnWriteIs
-        iexists ti, bt, Locked, chs, ps, ntok
+        iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       (try wp_auto)
@@ -198,8 +198,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ) (mvcc.storeRb γ)
-      (mvcc.kbMW γ.kb γ.bucket) (PV := mvcc.storePV γ) (PVx := mvcc.storePVx γ)
-      (CK := mvcc.storeCK γ) $$ []
+      (mvcc.kbMWv γ.kb γ.bucket) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩

@@ -37,7 +37,7 @@ theorem backend.backend.unsafeBegin.wp_proof
   intro γd b db q D w
   wp_start as ⟨#Hb, Hdb, Hown, Hwr⟩
   unfold beginCtx
-  icases Hb with ⟨%lg, #Hlg, %Hlgn, #-⟩
+  icases Hb with ⟨%lg, #Hlg, #Hlgn, #-⟩
   wp_auto
   wp_apply (hBegin db γd D w) $$ [$Hown $Hwr] as %tx %err ⟨Hown, #Hisdb, Hr⟩
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, #Htxdb, Htx⟩)
@@ -49,7 +49,7 @@ theorem backend.backend.unsafeBegin.wp_proof
       try iintro %_ ⟨_, -⟩
       try wp_auto
       wp_apply hFatal lg $$ [] as %v Hf
-      · ipureintro; exact Hlgn
+      · iexact Hlgn
       iexfalso
       iexact Hf
     · exact absurd rfl Herr

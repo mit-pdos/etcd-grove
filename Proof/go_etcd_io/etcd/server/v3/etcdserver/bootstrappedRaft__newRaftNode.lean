@@ -34,13 +34,15 @@ set_option maxHeartbeats 0 in
 theorem bootstrappedRaft.newRaftNode.wp_proof
     (wp_StartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       StartNode.spec (GF := GF) (hG := hG))
+    (wp_RestartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      RestartNode.spec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q
+  intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q bt
   letI := srvStor (GF := GF) γr
   wp_start as Hpre
   iNamed Hpre
-  obtain ⟨Hcfg, Hhb, Hwal⟩ := Hraft
+  obtain ⟨Hhb, Hwal⟩ := Hraft
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hbnn⟩
   iStructNamedSuffix Hb "B"
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -53,52 +55,140 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   (try wp_auto)
-  -- `len(b.peers) == 0`: no, the new cluster's path
   ihave %Hlen := ownSlice_len _ _ _ $$ Hpeers
-  have Hpvne : pv ≠ [] := by
-    intro h; have := Hcfg.peers; subst h; simp at this; exact Hcfg.peersNe this
-  have Hlen0 : decide (bv.peers'.len = W64 0) = false := by
-    apply decide_eq_false
-    intro h
-    apply Hpvne
-    apply List.eq_nil_of_length_eq_zero
-    rw [Hlen.1, h]
-    rfl
-  rw [Hlen0]
-  (try wp_auto)
-  -- `raft.StartNode(b.config, b.peers)`: the node API's unified `StartNode`
-  ihave Hau : AU <{ ∃∃ (S : RaftState), raftState γr.cl cv.ID' S ∗ ⌜S = RaftState.init⌝ }>
-      @ ⊤ \ ↑srvClusterN, ∅
-      <{ raftState γr.cl cv.ID' S, COMM raftState γr.cl cv.ID' RaftState.init }> $$ [Hrst]
-  · iauintro
-    unfold atomic_acc
-    iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑srvClusterN from
-      Std.LawfulSet.empty_subset)
-    iintro Hclose
-    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-    iexists RaftState.init
-    iframe Hrst
-    isplitr
-    · ipureintro; rfl
-    isplit
-    · iintro ⟨H, -⟩
-      imod Hclose with -
-      imodintro
-      iexact H
-    · iintro H
-      imod Hclose with -
-      imodintro
-      iexact H
-  wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
-      ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
-      memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
-      bv.peers' dq pv Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
-      Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync Hcfg.applied
-      rfl rfl rfl rfl rfl Hcfg.peers) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-    as %nd ⟨%n, %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
-  · iframe #; iframe Hc Hpeers Hboot Hvac Hau
-    iExactEq Hbs; rfl
-  subst Hnd
+  -- (restart S3 item 5) `len(b.peers) == 0`: `RestartNode` at a restart, `StartNode` fresh; joined
+  -- at the node `nn`, its key `K` and what the start gives of the boot
+  wp_join iprop(∃ (nn : Loc) (K : GName),
+      n_ptr ↦ interface.mkOk (go.GoType.PointerType node.ty) #nn ∗ b_ptr ↦ b ∗
+      b.[bootstrappedRaft, go!"config"] ↦{dq} bv.config' ∗
+      b.[bootstrappedRaft, go!"peers"] ↦{dq} bv.peers' ∗ bv.peers' ↦*{dq} pv ∗
+      isNode nn γr.cl srvClusterN cv.ID' ∗ nodeRunning nn γr.cl srvClusterN 1 ∗
+      rnBootPost γr nn K bv cv ps ctxs bt ∗ Q K)
+    at next with [n b configB peersB Hc Hpeers Hboot] as ⟨%nn, %K, n, b, configB, peersB, Hpeers,
+      #Hnode, Hrun, Hbpost, HQ⟩
+  · cases bt with
+    | fresh =>
+      iunfold rnBootPre at Hboot
+      icases Hboot with ⟨%Hcfg, Hbs, Hboot, Hvac, Hrst⟩
+      have Hpvne : pv ≠ [] := by
+        intro h; have := Hcfg.peers; subst h; simp at this; exact Hcfg.peersNe this
+      have Hlen0 : decide (bv.peers'.len = W64 0) = false := by
+        apply decide_eq_false
+        intro h
+        apply Hpvne
+        apply List.eq_nil_of_length_eq_zero
+        rw [Hlen.1, h]
+        rfl
+      rw [Hlen0]
+      (try wp_auto)
+      -- `raft.StartNode(b.config, b.peers)`: the node API's unified `StartNode`
+      ihave Hau : AU <{ ∃∃ (S : RaftState), raftState γr.cl cv.ID' S ∗ ⌜S = RaftState.init⌝ }>
+          @ ⊤ \ ↑srvClusterN, ∅
+          <{ raftState γr.cl cv.ID' S, COMM raftState γr.cl cv.ID' RaftState.init }> $$ [Hrst]
+      · iauintro
+        unfold atomic_acc
+        iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑srvClusterN from
+          Std.LawfulSet.empty_subset)
+        iintro Hclose
+        isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+        iexists RaftState.init
+        iframe Hrst
+        isplitr
+        · ipureintro; rfl
+        isplit
+        · iintro ⟨H, -⟩
+          imod Hclose with -
+          imodintro
+          iexact H
+        · iintro H
+          imod Hclose with -
+          imodintro
+          iexact H
+      wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
+          ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
+          memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
+          bv.peers' dq pv Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
+          Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg) Hcfg.applied
+          rfl rfl rfl rfl rfl Hcfg.peers) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
+        as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
+      · iframe #; iframe Hc Hpeers Hboot Hvac Hau
+        iExactEq Hbs; rfl
+      subst Hnd
+      (try wp_auto)
+      isplitr
+      · itrivial
+      iexists n', K
+      iframe n b configB peersB Hpeers Hnode Hrun HQ
+      simp only [rnBootPost]
+      iframe Hfresh Hrst Hncfg
+      iExactEq Hdrv; rfl
+    | restart σ cs S a m A₀ =>
+      iunfold rnBootPre at Hboot
+      icases Hboot with ⟨%Hpure, Hbs, #Hclu, #Hfits, Hvac, Hrst, #Hconf⟩
+      obtain ⟨Hcfg, Hba, Hac, Hboot, Hcs, Hhold⟩ := Hpure
+      have Hlen0 : decide (bv.peers'.len = W64 0) = true := by
+        apply decide_eq_true
+        have h1 := Hlen.1
+        rw [Hcfg.peersNil] at h1
+        simp at h1
+        word
+      rw [Hlen0]
+      (try wp_auto)
+      -- `raft.RestartNode(b.config)`: the update checks that the storage holds `S` (under a later:
+      -- `raftState` is not timeless)
+      ihave Hrst : ▷ raftState γr.cl cv.ID' S $$ [Hrst]
+      · imodintro; iexact Hrst
+      ihave Hau : AU <{ ∃∃ (S' : RaftState), ▷ raftState γr.cl cv.ID' S' ∗ ⌜StorageHolds S' σ⌝ }>
+          @ ⊤ \ ↑srvClusterN, ∅
+          <{ raftState γr.cl cv.ID' S',
+            COMM (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) S' }> $$ [Hrst]
+      · iauintro
+        unfold atomic_acc
+        iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑srvClusterN from
+          Std.LawfulSet.empty_subset)
+        iintro Hclose
+        isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+        iexists S
+        isplitl [Hrst]
+        · isplitl [Hrst]
+          · iexact Hrst
+          · ipureintro; exact Hhold
+        isplit
+        · iintro ⟨H, -⟩
+          imod Hclose with -
+          imodintro
+          iexact H
+        · iintro H
+          imod Hclose with -
+          imodintro
+          iframe H
+          ipureintro; rfl
+      wp_apply (wp_RestartNode γr γr.cl srvClusterN bv.config' cv lok
+          ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ σ cs a m
+          (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
+          Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
+          Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
+          (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs)
+        $$ [Hc Hbs Hvac Hau]
+        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, Hrst, HQ⟩
+      · iframe #; iframe Hc Hvac Hau
+        rw [Hcfg.applied]
+        iExactEq Hbs; rfl
+      subst Hnd
+      (try wp_auto)
+      isplitr
+      · itrivial
+      iexists n', K
+      iframe n b configB peersB Hpeers Hnode Hrun HQ
+      simp only [rnBootPost]
+      iexists l
+      iframe Hl Hncfg
+      isplitr
+      · ipureintro; rw [Hll, Hcfg.applied]; simp
+      icases Hrst with ⟨Hrst, %HSS⟩
+      subst HSS
+      iframe Hrst
+      iExactEq Hdrv; rfl
   (try wp_auto)
   -- `raftStatus = n.Status` under `raftStatusMu`
   iunfold rnRaftStatusOk at Hrs
@@ -120,27 +210,26 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   · ipureintro; exact Hwal
   (try wp_auto)
   -- `newRaftNode(cfg)`
-  wp_apply (wp_newRaftNode E γr cv.ID' n pre bv.storage' γs K ν
-    (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
-      bv.heartbeat' GoInterface.nil)) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
+  wp_apply (wp_newRaftNode E γr cv.ID' nn pre bv.storage' γs K ν
+    (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #nn) bv.storage' st
+      bv.heartbeat' GoInterface.nil) bt.a0 bt.t0 bt.P bt.commit0 bt.snap0) $$ []
+    as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
-    ipureintro; exact ⟨Hcfg.lg, Hhb⟩
+    ipureintro; exact ⟨Hhb, bt.P_prefix⟩
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn
     simp only [TypedPointsto.typedPointstoDef, named]
     iframe
   iapply HΦ
-  iexists n, γw, _, st
+  iexists nn, γw, _, st
   isplitr
   · ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, -, h8, h9, h10⟩ := Hγw
     exact ⟨h1, h2, h3, h4, h5, h6, h8, h9, h10⟩
   obtain ⟨-, -, -, -, -, -, hkey, -⟩ := Hγw
   subst hkey
-  iframe Hfresh Hnode Hst Hbuilt Hb Hpeers HQ Hrun Hncfg Hrst
-  isplitl [Hdrv]
-  · iExactEq Hdrv; rfl
+  iframe Hnode Hst Hbuilt Hb Hpeers HQ Hrun Hbpost
   isplitr
   · -- the closure meets `isRNIDRemoved`
     iunfold isRNIDRemoved

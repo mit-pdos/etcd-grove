@@ -54,7 +54,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
     (wp_Bool : zap.Bool.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG) := by
   intro c γ rm mem id dqb v3 lg cid bi Pd Qd
-  wp_start as ⟨#Hrc, Hw, Hcm, #Hlg, %Hlgnn, #Hcid, Hbe, Hd⟩
+  wp_start as ⟨#Hrc, Hw, Hcm, #Hlg, #Hlgnn, #Hcid, Hbe, Hd⟩
   iunfold membership.isRaftClusterG at Hrc
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -90,7 +90,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply wp_Info $$ []
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     wp_method_call
     wp_call
@@ -162,7 +162,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply wp_Warn $$ []
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       have Hmem0 : mem !! id = none := by
         have := Hdom.1 id; rw [Hm] at this; cases h : mem !! id <;> simp_all
       ihave Hmem : membership.memAt c 1 (GMap.delete id mm) (GMap.delete id mem)
@@ -219,7 +219,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply wp_Info $$ []
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       wp_method_call
       wp_call

@@ -39,7 +39,7 @@ abbrev EtcdServer.restoreAlarms.spec : Prop :=
     (S : GoString → Prop) (r : GMap GoString backend.BktData),
   S go!"alarm" → d.P.has mvcc.alarmBI →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗
       srvBeAddr s ↦{dq} (interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be :
           GoInterface) ∗

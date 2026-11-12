@@ -46,7 +46,7 @@ theorem client_Get_round (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEn
         kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γf (i + 1) ∗ monoNatLbOwn γv r ∗
-        mvcc.idxCert E.γ.idx F }}
+        srvApi.kvLogLb E.γs F }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -91,7 +91,7 @@ theorem client_Get_rev (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
-        roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γv r ∗ mvcc.idxCert E.γ.idx F }}
+        roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γv r ∗ srvApi.kvLogLb E.γs F }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

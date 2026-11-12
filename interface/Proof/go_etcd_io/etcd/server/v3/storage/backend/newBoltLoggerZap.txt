@@ -7,7 +7,7 @@ axiom backend.newBoltLoggerZap.wp_proof : backend.newBoltLoggerZap.spec
   ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ⌜cfg.Logger' ≠ null⌝ -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ zapLoggerOk cfg.Logger' -∗
           (▷
               ∀ l,
                 backend.boltLogger l ∗

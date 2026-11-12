@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send
 public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchSendLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchSendApi
 
 @[expose] public section
 
@@ -74,7 +75,7 @@ end mvcc
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
   intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs qa nl CS
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, Hnl, %Hnle, %Hown,
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, Hnl, #Hra, %Hnle, %Hown,
     Hidp, #Hidc,
     %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
@@ -82,8 +83,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
   iunfold mvcc.watcherFixed at Hfix'
   icases Hfix' with ⟨%Hwnn, %ks, %ens, #Hkey, #Hks, #Hend, #Hens, #HstartRev, #Hidf, #Hfcs⟩
   ihave #Hfok' := Hfok
-  iunfold mvcc.filtersOk at Hfok'
-  icases Hfok' with ⟨%fs, #Hfi⟩
+  iunfold mvcc.watcherFilters at Hfok'
+  icases Hfok' with ⟨%fs, #Hfi, #Hsf⟩
   ihave #Hfi' := Hfi
   iunfold mvcc.filtersImpl at Hfi'
   icases Hfi' with ⟨%fps, #Hfps, %Hfpl, #Hfsp⟩
@@ -341,12 +342,12 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
       simp [Deliv.sent, hA.1, hA.2]
     imod mvcc.entries_deliver γ γw.wc (EtcdGrove.chanIsClosed s) sent L w γw r fcs fs evsw d evm
       (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ Hnd.1 Hwl rfl rfl rfl
-      $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
+      $$ Hmeta Hfix Hfi Hsf Hevs Hws with ⟨Hevs, Hws⟩
     have hsent : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
         [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)] else []) = sent := by
       rw [hds]; simp
     irevert Hws; rw [hsent]; iintro Hws
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
     · inext
       iunfold mvcc.watchChanInv
       iexists s, sent, recv, vs, L
@@ -427,7 +428,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
             icases mvcc.respRev_new γ γw.wc sent L nl
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)
               (fun h => Hnle (Classical.byContradiction fun hne => hA ⟨hne, h⟩)) rfl
-              $$ [$Hsentl $Hnl] with ⟨Hsentl, Hnl, #Hrr⟩
+              $$ [$Hsentl $Hnl $Hra] with ⟨Hsentl, Hnl, #Hrr⟩
             ihave #Hrc := mvcc.respCov_of_list γ γw.wc sent
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)
               cs rfl (fun h => Hown (Classical.byContradiction fun hne => hA ⟨hne, h⟩))
@@ -468,7 +469,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                     fun h => absurd rfl h⟩
               imod mvcc.entries_deliver γ γw.wc _ sent L w γw r fcs fs evsw d evm
                 (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ Hnd.1 Hwl
-                rfl rfl rfl $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
+                rfl rfl rfl $$ Hmeta Hfix Hfi Hsf Hevs Hws with ⟨Hevs, Hws⟩
               have hs2 : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
                   [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)] else []) =
                   sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩] := by
@@ -480,8 +481,31 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               imod mvcc.sentAuth_snoc γ γw.wc sent L (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ :
                 mvcc.RespM) (fun _ w' hw' => hw') rfl $$ Hsentl Hrc
                 with Hsentl
+              -- the send's premises on the stream's history (`stepOk`, stage 2)
+              ihave #Hok' : □ ([∗list] y ∈ sent ++ [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)],
+                  mvcc.respOk y) $$ []
+              · iintro !>; iapply BigSepL.bigSepL_snoc.2; iframe Hok Hrok
+              ihave %Hidx : ⌜wr.WatchID' = r.id ∨ wr.WatchID' = W64 (-1)⌝ $$ []
+              · icases Hidc with (%h | ⟨%h, -⟩)
+                · ipureintro; exact Or.inl h
+                · ipureintro; exact Or.inr h
+              ihave %Hnl0 := mvcc.notifiedLent_ne γ nl $$ Hnl
+              have hrev0 : mvcc.filtered fs evm = [] → 0 ≤ sint.Z wr.Revision' := by
+                intro hf
+                have he0 : evm = [] := Classical.byContradiction fun hne => hA ⟨hne, hf⟩
+                obtain ⟨q0, L0, hnl0, hlen0⟩ := Hnle he0
+                have := List.length_pos_iff.2 (Hnl0 q0 L0 hnl0)
+                omega
+              imod mvcc.chanApi_send_resp γ ch γw.wc _ sent recv L ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩
+                cs w wr.Revision' γw r fcs fs rfl rfl Hwl
+                (fun y hy => by
+                  rcases List.mem_append.1 hy with h | h
+                  · exact Hnd.2 y h
+                  · rw [List.mem_singleton] at h; subst h; exact Hwl)
+                rfl rfl Hidx rfl hrev0 (fun ev hev => Hrevle ev (mvcc.mem_filtered hev))
+                $$ [$Hapi $Hws $Hreg $Hok' $Hrf $Hrt $Hmeta $Hfix $Hsf $Hrc $Hcov] with ⟨Hapi, Hws, Hreg⟩
               imod Hmask with -
-              imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+              imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
               · inext
                 iunfold mvcc.watchChanInv
                 iexists _, sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩], recv,
@@ -516,12 +540,16 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                 isplitr
                 · iexact Hrf
                 isplitr
+                · iexact Hrt
+                isplitr
                 · iintro !>
                   iapply BigSepL.bigSepL_snoc.2
                   iframe Hpf Hpnew
                 isplitl [Hsentl]
                 · iexact Hsentl
-                iapply mvcc.chanWatchers_congr γ γw.wc (by simp [EtcdGrove.chanIsClosed]) $$ Hws
+                isplitl [Hws]
+                · iapply mvcc.chanWatchers_congr γ γw.wc (by simp [EtcdGrove.chanIsClosed]) $$ Hws
+                iexact Hapi
               imodintro
               wp_auto
               iapply HΦ

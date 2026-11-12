@@ -43,7 +43,7 @@ def isClientWatcherCore (V : WEnv GF) (w : Loc) : IProp GF :=
     watcherF w go!"remote" ↦□ wcIface V.wc ∗ watcherF w go!"callOpts" ↦□ callSl ∗
     callSl ↦*□ vs ∗ callOptsOk vs ∗ watcherF w go!"lg" ↦□ V.lg ∗
     sync.isMutex (watcherF w go!"mu") (watcherMu V w callSl) ∗
-    v3rpc.watchStubAt V.wc V.conn ∗ ⌜V.lg ≠ null ∧ threadBound GF ≤ 2 ^ 31⌝)
+    v3rpc.watchStubAt V.wc V.conn ∗ zapLoggerOk V.lg ∗ ⌜threadBound GF ≤ 2 ^ 31⌝)
 
 instance isClientWatcherCore_persistent (V : WEnv GF) (w : Loc) :
     Persistent (isClientWatcherCore V w) := by
@@ -77,7 +77,7 @@ theorem watcherConnAt_of_watcher (V : WEnv GF) (w : Loc) :
 theorem isClientWatcher_of_core (V : WEnv GF) (w : Loc) :
     isClientWatcherCore V w ∗ watchConnFacts V ⊢ isClientWatcher V w := by
   unfold isClientWatcherCore isClientWatcher watchSrvFacts
-  iintro ⟨⟨%callSl, %vs, %Hw, #H1, #H2, #H3, #H4, #H5, #H6, #Hst, %Hp⟩, #Hf⟩
+  iintro ⟨⟨%callSl, %vs, %Hw, #H1, #H2, #H3, #H4, #H5, #H6, #Hst, #Hlg, %Hp⟩, #Hf⟩
   iexists callSl, vs
   iframe #
   isplitr

@@ -78,11 +78,13 @@ def pbAuthenticateRequest : ProtoMsg GF where
   own l := iprop(∃ v : etcdserverpb.AuthenticateRequest, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
 
-/-- **A `*pb.AuthenticateResponse`** on the wire: its token. -/
+/-- **A `*pb.AuthenticateResponse`** on the wire: its token; the sender's has no unknown fields
+(the stage A Freeze review's A2: the server's is fresh). -/
 def pbAuthenticateResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateResponse.ty
   M := GoString
-  send r t := iprop(∃ v : etcdserverpb.AuthenticateResponse, r ↦ v ∗ ⌜v.Token' = t⌝)
+  send r t := iprop(∃ v : etcdserverpb.AuthenticateResponse, r ↦ v ∗
+    ⌜v.Token' = t ∧ v.unknownFields' = slice.nil⌝)
   recv r t := iprop(⌜r ≠ null⌝ ∗
     structFieldRef etcdserverpb.AuthenticateResponse go!"Token" r ↦□ t)
   recv_persistent _ _ := inferInstance
@@ -232,8 +234,9 @@ def lessorAtS (l conn : Loc) : IProp GF :=
       (scd : context.ContextDesc (IProp GF)) (lg : Loc) (d : time.Duration) (γr : GName)
       (rlc : Loc) (sl : GoSlice),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
-    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗ context.isContext sc scd ∗
-    lsF go!"lg" l ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    lsF go!"stopCtx" l ↦□ GoInterface.ok sc ∗
+    (context.isContext sc scd ∗ metadata.outgoingCtxOkC sc) ∗
+    lsF go!"lg" l ↦□ lg ∗ zapLoggerOk lg ∗
     lsF go!"firstKeepAliveTimeout" l ↦□ d ∗
     structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty) #rlc :
@@ -250,12 +253,10 @@ instance lessorAtS_persistent (l conn : Loc) : Persistent (lessorAtS (GF := GF) 
 theorem lessorAt_of (l conn : Loc) (addr : List GoString) :
     lessorAtS (GF := GF) l conn ∗ isEtcdConn conn addr ⊢ lessorAt l addr := by
   unfold lessorAtS lessorAt lessorRemoteAt
-  iintro ⟨⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, %rlc, %sl, #H1, #H2, #H3, #H4, #H5, %H6, #H7, #H8,
+  iintro ⟨⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, %rlc, %sl, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
     #H9, #H10, #H11, #H12, #H13⟩, #He⟩
   iexists dc, γd, sc, scd, lg, d, γr
-  iframe H1 H2 H3 H4 H5 H7 H12 H13
-  isplitr
-  · ipureintro; exact H6
+  iframe H1 H2 H3 H4 H5 H6 H7 H12 H13
   iexists rlc, conn, sl
   iframe #
 
@@ -465,6 +466,7 @@ theorem ctxErrClient_quiet (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.r
     simp at Hag
   | _ =>
     iunfold ctxQuiet at Hq
+    icases Hq with ⟨-, #Hq, -⟩
     iapply Hq
     inext
     iapply HΦ
@@ -479,18 +481,16 @@ theorem ctxErrClient_quiet (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.r
 token fetch calls `Authenticate` with a quiet caller's context at it). -/
 theorem quiet_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (ci : GoInterfaceOk) :
-    ctxQuiet (GF := GF) ci ⊢ |==> ∃ cd : context.ContextDesc (IProp GF),
+    ctxQuiet (GF := GF) ci ∗ metadata.outgoingCtxOkC ci ⊢ |==> ∃ cd : context.ContextDesc (IProp GF),
       ctxOk ci cd ∗ ctxErrClient ci cd := by
-  iintro #Hq
+  iintro ⟨#Hq, #Ho⟩
   imod dghostVar_alloc (GF := GF) false with ⟨%γc, Hc⟩
   imod dghostVar_persist γc 1 false $$ Hc with #Hc
   imodintro
   iexists (quietCd ⟨γc, γc⟩)
   isplitl []
-  · unfold ctxOk
-    iright
-    ileft
-    iexact Hq
+  · iapply ctxOk_of_quiet
+    iframe Hq Ho
   iapply ctxErrClient_quiet hAs ci ⟨γc, γc⟩
   iframe #
 

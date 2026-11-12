@@ -360,7 +360,7 @@ theorem raft.campaign.wp_proof
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgApp, MsgVoteResp, MsgPreVoteResp]))
         rfl $$ [$Hphys $Hm]
-      · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
+      · iapply tsSrcU_ne; exact (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r y
           (sendMsgs { campRoleState y s pre with prvals := pvs }
@@ -436,7 +436,7 @@ theorem raft.campaign.wp_proof
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgApp, MsgVote, MsgPreVote]))
         rfl $$ [$Hphys $Hm]
-      · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
+      · iapply tsSrcU_ne; exact (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r id
           (sendMsgs { campRoleState id s pre with prvals := pvs }

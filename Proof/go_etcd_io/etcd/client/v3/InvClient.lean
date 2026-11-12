@@ -5,12 +5,14 @@ What a caller assumes of a `*clientv3.Client`'s own fields, beyond its embedded 
 
 **The logger.** `Client.lg` is an `atomic.Pointer[zap.Logger]`, set by `newClient` and replaced
 only by `WithLogger` (with a caller's logger); `isClientLogger cl` is an invariant holding it,
-whatever it is, non-nil. `GetLogger()` (`c.lg.Load()`) returns some non-nil logger.
+whatever it is, a zap logger (`zapLoggerOk`; premise fixes 6: until then only non-nil).
+`GetLogger()` (`c.lg.Load()`) returns a zap logger.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
 public import Perennial.Proof.sync.atomic
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -41,13 +43,14 @@ variable [sem : go.Semantics]
 /-- The invariant's namespace. -/
 def clientLgN : Namespace := nroot .@ "clientv3_lg"
 
-/-- **The client's logger** (persistent): the client's `lg` holds, at every point, a non-nil
-`*zap.Logger` (an invariant: `WithLogger` may replace it). -/
+/-- **The client's logger** (persistent): the client's `lg` holds, at every point, a zap logger
+(`zapLoggerOk`; premise fixes 6: until then only non-nil; an invariant: `WithLogger` may replace
+it). -/
 def isClientLogger (cl : Loc) : IProp GF :=
   inv clientLgN iprop(∃ lg : Loc,
     sync.atomic.ownPointer (hG := hG) (T' := go_uber_org.zap.Logger) (clientLgAddr cl)
       (DFrac.own 1) lg ∗
-    ⌜lg ≠ null⌝)
+    zapLoggerOk lg)
 
 instance isClientLogger_persistent (cl : Loc) : Persistent (isClientLogger (GF := GF) cl) := by
   unfold isClientLogger; infer_instance

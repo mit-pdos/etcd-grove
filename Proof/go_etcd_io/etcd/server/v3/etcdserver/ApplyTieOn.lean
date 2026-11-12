@@ -285,6 +285,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
+        icases Hres with ⟨Hres, -⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
         obtain ⟨h1, h2, h3⟩ := h
         rw [hl] at h1; cases h1
@@ -311,6 +312,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
+        icases Hres with ⟨Hres, -⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
         obtain ⟨h1, h2, h3⟩ := h
         rw [hl] at h1; cases h1
@@ -337,6 +339,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
+        icases Hres with ⟨Hres, -⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
         obtain ⟨h1, h2, h3⟩ := h
         rw [hl] at h1; cases h1
@@ -363,6 +366,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
+        icases Hres with ⟨Hres, -⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
         obtain ⟨h1, h2, h3⟩ := h
         rw [hl] at h1; cases h1
@@ -385,7 +389,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
     · -- `AuthEnable`
       cases had
       simp only [apply.AdminReq.result]
-      icases Hres with ⟨%en, -, Hx⟩
+      icases Hres with ⟨%en, -, Hx, -⟩
       ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hx
       obtain ⟨h1, h2, h3⟩ := h
       rw [hl] at h1; cases h1

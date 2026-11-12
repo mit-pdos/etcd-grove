@@ -28,7 +28,7 @@ theorem traceutil.Trace.IsEmpty.wp_proof :
   intro t e
   wp_start as Ht
   iunfold traceutil.ownTrace at Ht
-  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He⟩
+  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He, #Hlz⟩
   wp_auto
   rw [He]
   iapply HΦ
@@ -36,6 +36,7 @@ theorem traceutil.Trace.IsEmpty.wp_proof :
   iexists _, _
   (try simp only)
   iframe
+  (try iframe Hlz)
   ipureintro; exact He
 
 end proof

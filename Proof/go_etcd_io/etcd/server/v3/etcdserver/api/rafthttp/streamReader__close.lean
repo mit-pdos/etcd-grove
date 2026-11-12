@@ -37,8 +37,9 @@ theorem rafthttp.streamReader.close.wp_proof
   intro Rh lid pid γd cr c
   wp_start as ⟨#Hf, Hcl, Hc⟩
   iunfold srFixed at Hf
-  icases Hf with ⟨%lg, %tr, %ps, %rc, %pc, %γr, %γp, %ctx, %cd, #Hlg, %Hlgnn, #Hpid, #Htr,
+  icases Hf with ⟨%lg, %tr, %ps, %rc, %pc, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
     #Hlid, -, -, -, -, -, -, -, -, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   wp_auto
   icases Hc with (%Hc | #Hc)
   · subst Hc
@@ -70,7 +71,7 @@ theorem rafthttp.streamReader.close.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply hWarn lg _ _ $$ []
-        · iframe #; ipureintro; exact Hlgnn
+        · iframe #
         (try wp_auto)
         iapply HΦ
         iframe
