@@ -1,0 +1,134 @@
+diff --git a/tests/robustness/kill_then_powerfailure_test.go b/tests/robustness/kill_then_powerfailure_test.go
+new file mode 100644
+index 0000000..fd7d80c
+--- /dev/null
++++ b/tests/robustness/kill_then_powerfailure_test.go
+@@ -0,0 +1,128 @@
++//go:build linux
++
++package robustness
++
++import (
++	"fmt"
++	"os"
++	"os/exec"
++	"path"
++	"path/filepath"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++
++	bolt "go.etcd.io/bbolt"
++	"go.etcd.io/bbolt/tests/dmflakey"
++)
++
++// TestRestartFromKillThenPowerFailure kills bbolt between a commit's meta
++// write and the meta's fdatasync, reopens the database without a reboot, and
++// then simulates a power failure. The meta the killed process wrote is still in
++// the page cache, so the reopened database sees that commit; the commits after
++// the reopen may reuse pages only the previous meta references. Unless Open
++// makes what it read durable, the power failure brings back the previous meta,
++// possibly over those reused pages.
++//
++// The test checks that the state the reopened database saw survives the power
++// failure, and that the database is consistent.
++func TestRestartFromKillThenPowerFailure(t *testing.T) {
++	for _, tc := range []struct {
++		name       string
++		fsType     dmflakey.FSType
++		fsMountOpt string
++	}{
++		{name: "ext4_commit1000s", fsType: dmflakey.FSTypeEXT4, fsMountOpt: "commit=1000"},
++		{name: "xfs_no_opts", fsType: dmflakey.FSTypeXFS},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			doKillThenPowerFailure(t, tc.fsType, tc.fsMountOpt)
++		})
++	}
++}
++
++func doKillThenPowerFailure(t *testing.T, fsType dmflakey.FSType, fsMountOpt string) {
++	flakey := initFlakeyDevice(t, strings.ReplaceAll(t.Name(), "/", "_"), fsType, "", fsMountOpt)
++	dbPath := filepath.Join(flakey.RootFS(), "boltdb")
++
++	args := []string{"bbolt", "bench",
++		"--work", // keep the database
++		"--path", dbPath,
++		"--count=1000000000",
++		"--batch-size=5",
++		"--value-size=512",
++	}
++
++	logPath := filepath.Join(t.TempDir(), fmt.Sprintf("%s.log", t.Name()))
++	require.NoError(t, os.MkdirAll(path.Dir(logPath), 0600))
++	logFd, err := os.Create(logPath)
++	require.NoError(t, err)
++	defer logFd.Close()
++
++	fpURL := "127.0.0.1:12345"
++	cmd := exec.Command(args[0], args[1:]...)
++	cmd.Stdout = logFd
++	cmd.Stderr = logFd
++	cmd.Env = append(cmd.Env, "GOFAIL_HTTP="+fpURL)
++	t.Logf("start %s", strings.Join(args, " "))
++	require.NoError(t, cmd.Start(), "args: %v", args)
++
++	errCh := make(chan error, 1)
++	go func() {
++		errCh <- cmd.Wait()
++	}()
++
++	defer func() {
++		if t.Failed() {
++			logData, err := os.ReadFile(logPath)
++			assert.NoError(t, err)
++			t.Logf("dump log:\n: %s", string(logData))
++		}
++	}()
++
++	time.Sleep(2 * time.Second)
++
++	// The process dies after writing a meta page and before syncing it, as a
++	// kill -9 (or any crash of the process) at that point does.
++	t.Log("panic at beforeSyncMetaPage")
++	activeFailpoint(t, "http://"+fpURL, "beforeSyncMetaPage", "panic")
++	select {
++	case <-time.After(10 * time.Second):
++		t.Log("bbolt is supposed to be already stopped, but actually not yet; forcibly kill it")
++		assert.NoError(t, cmd.Process.Kill())
++		<-errCh
++	case err := <-errCh:
++		require.Error(t, err)
++	}
++
++	// Restart without a reboot: Open reads the meta from the page cache.
++	db, err := bolt.Open(dbPath, 0600, nil)
++	require.NoError(t, err)
++	var seen int
++	require.NoError(t, db.View(func(tx *bolt.Tx) error {
++		seen = tx.ID()
++		return nil
++	}))
++	require.NoError(t, db.Close())
++	t.Logf("reopened at txid %d", seen)
++
++	t.Log("simulate power failure")
++	require.NoError(t, flakey.PowerFailure(""))
++
++	db, err = bolt.Open(dbPath, 0600, &bolt.Options{ReadOnly: true})
++	require.NoError(t, err)
++	var got int
++	require.NoError(t, db.View(func(tx *bolt.Tx) error {
++		got = tx.ID()
++		return nil
++	}))
++	require.NoError(t, db.Close())
++	require.GreaterOrEqual(t, got, seen,
++		"the power failure lost the commit the reopened database had already seen")
++
++	output, err := exec.Command("bbolt", "check", dbPath).CombinedOutput()
++	require.NoError(t, err, "bbolt check output: %s", string(output))
++}
