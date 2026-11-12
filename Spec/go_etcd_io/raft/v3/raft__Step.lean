@@ -273,16 +273,27 @@ def HupFact [GooseExts] (s s' : NState) : Prop :=
   uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied ∧
   uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64
 
+/-- (2026-11-12, trace-check implementation step 3; design §3.4 item 2, clause 1(c) of `rnTrace`) **A
+follower leaves the follower role only by `hup`'s campaign** (a `MsgHup`'s, or a `MsgTimeoutNow`'s
+after its step-down, which keeps the log): with `hup`'s check (`HupFact`: the log kept, no conf entry
+committed and not applied). In raft v3.7 a campaign makes a candidate whose own vote is a queued
+self-addressed response (`msgsAfterAppend`), so no single step makes a follower a leader. -/
+def RoleUp [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
+  s'.role ≠ .follower → s.role = .follower →
+    (m.Type' = MsgHup ∨ m.Type' = MsgTimeoutNow) ∧ HupFact s s'
+
 /-- (2026-10-25, T-M M2b) and a pre-candidate that stays one keeps its log, commit and pending
 snapshot (`PreKeep`: nothing of its term reached it, which would have made it a follower), and
 one that a `MsgHup` made one has `hup`'s check (`HupFact`): what keeps `StepR.campaign`'s guard
-from the pre-campaign to the campaign a won pre-vote runs (`PreGuard`). -/
+from the pre-campaign to the campaign a won pre-vote runs (`PreGuard`). (2026-11-12) And `RoleUp`. -/
 def PreCandStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   (s'.role = .preCandidate → s'.term = s.term ∧
     ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))) ∧
-  SnapRoleBack s s'
+  SnapRoleBack s s' ∧
+  -- (2026-11-12, trace-check implementation step 3) `RoleUp`
+  RoleUp m s s'
 
-macro "pc_tac" : tactic => `(tactic| (refine ⟨?_, ?_⟩; pc1_tac; srb_tac))
+macro "pc_tac" : tactic => `(tactic| (refine ⟨?_, ?_, ?_⟩; pc1_tac; srb_tac; ru_tac))
 
 def TermStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
@@ -305,7 +316,8 @@ theorem TermStep.of_term [GooseExts] {m : MessageM} {s s' : NState}
 
 theorem TermStep.refl [GooseExts] (m : MessageM) (s : NState) : TermStep m s s :=
   TermStep.of_term rfl (fun _ => Int.le_refl _)
-    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩,
+      fun h1 h2 => absurd h2 h1⟩
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
@@ -325,7 +337,8 @@ theorem TermStep.of_local [GooseExts] {m : MessageM} {s s' : NState}
   TermStep.of_term h.1 (fun _ => h.2.1) ⟨fun hp =>
     have hr : s.role = .preCandidate := h.2.2.2.2.2.2.2.2.2.1 ▸ hp
     ⟨h.1, .inl ⟨hr, hk hr⟩⟩,
-    fun h1 h2 => ⟨h.2.2.2.2.2.2.2.2.2.1 ▸ h1, h.2.2.2.1 ▸ h2⟩⟩
+    fun h1 h2 => ⟨h.2.2.2.2.2.2.2.2.2.1 ▸ h1, h.2.2.2.1 ▸ h2⟩,
+    fun h1 h2 => absurd (h.2.2.2.2.2.2.2.2.2.1.trans h2) h1⟩
 
 /-- (2026-10-25, T-M M2b) **A step keeps a pre-candidate's campaign guard** (`PreGuardF`: over a
 full prefix of the log's boundary's length): a pre-candidate that stays one kept its boundary, log,
@@ -418,7 +431,8 @@ theorem AppTrunc.of_ip [GooseExts] {m : MessageM} {ents : List EntryM} {s s' : N
 /-- A dropped snapshot's step. -/
 theorem SnapStep.refl [GooseExts] (m : MessageM) (s : NState) : SnapStep m s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
-    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩⟩
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩,
+      fun h1 h2 => absurd h2 h1⟩⟩
 
 /-- (D22 S-d3b, 2026-10-21) **What a `MsgSnap`'s step does to the log**, for its snapshot `sv`: the
 log's boundary, entries, pending snapshot and `offsetInProgress` kept (a stale snapshot, or one the
@@ -662,6 +676,13 @@ abbrev raft.Step.spec : Prop :=
   -- change (P3), is untraced-only
   (m.Type' = MsgStorageApplyResp → ents ≠ [] → c.autoLeave = true → s.gh.tr = none) →
   (m.Type' = MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e) →
+  -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) a traced node
+  -- queues nothing the model does not describe (`raft.send.spec`'s traced premise, `XfOk`'s clause):
+  -- it steps no transfer request (a leader's `MsgTimeoutNow`, a follower's forward), and steps an
+  -- append response only with no transferee (a leader's `From == leadTransferee` branch sends a
+  -- `MsgTimeoutNow`; `From ≠ 0`)
+  (m.Type' = MsgTransferLeader → s.gh.tr = none) →
+  (m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗

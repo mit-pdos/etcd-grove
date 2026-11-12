@@ -437,6 +437,12 @@ abbrev stepLeader.spec : Prop :=
   -- (2026-11-10, slice 14) the caller's resources indexed by the outbox, ignoring it untraced where
   -- they reach `maybeSendAppend` (its snapshot fallback, untraced only, queues through no gate)
   IdxFree s.gh.tr G → IdxFree s.gh.tr Gp2 → (∀ b N, IdxFree s.gh.tr (Gc b N)) →
+  -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) a traced node
+  -- sends no `MsgTimeoutNow` (a type the model does not describe, which `sendTimeoutNow` takes only
+  -- untraced): it steps no transfer request, and has no transferee when it steps an append
+  -- response (whose `From == leadTransferee` branch sends one): `raft.Step.spec`'s premises
+  (m.Type' = MsgTransferLeader → s.gh.tr = none) →
+  (m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a

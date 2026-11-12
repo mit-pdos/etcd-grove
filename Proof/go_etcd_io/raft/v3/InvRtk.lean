@@ -149,15 +149,13 @@ theorem gateTr_sep (o : Option GName) (P Q : IProp GF) :
 
 /-! ### The escrow -/
 
-/-- `acceptReady`'s token (`readyTok`), with its type handed out (`TrSent`: step 3's `rnTrace` 1(b)
-with `XfOk`'s clause), is the escrow's. -/
-theorem readyTok_trTokR (ρ : RaftNames) (st : MsgSt) (h : TrSent st) :
-    readyTok (GF := GF) ρ st ⊢ trTokR ρ st := by
+/-- `acceptReady`'s token (`readyTok`) is the escrow's (`trTokR`): (2026-11-12, implementation step 3)
+the same body, `readyTok` carrying its type handed out (`TrSent`) since `rnTrace`'s clause (b) and
+`XfOk`'s traced clause give it at the `Ready` (until then a premise here). -/
+theorem readyTok_trTokR (ρ : RaftNames) (st : MsgSt) :
+    readyTok (GF := GF) ρ st ⊣⊢ trTokR ρ st := by
   unfold readyTok trTokR
-  rcases ρ.reTrace with _ | γd
-  · iintro _; itrivial
-  · dsimp only
-    iintro H; iframe H; ipureintro; exact h
+  exact .rfl
 
 /-- A key's slot: below the deposited count, the tokens, or the driver's element swapped in. -/
 def rtkSlot (ρ : RaftNames) (γe : RtkNames) (dc j : Nat) (ms : List QMsg) : IProp GF :=

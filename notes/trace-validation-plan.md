@@ -2742,6 +2742,17 @@ filter their families (the design's `¬ ReadIdle` premise had no source). Not do
 site sees no trace fact; its fold needs the decoder's value on the bootstrap entries). Next: G3 (a), then
 step 3.
 
+**Implementation step 3 (2026-11-12, branch `trace-check-impl3`): `rnTrace`'s clauses** (`notes/decisions.md`,
+"Implementation step 3 (rnTrace's clauses)"; the design's "Implementation step 3"). The node's capability
+now says the flag is set once anything is delivered (a), the node is in the traced scope with only
+traced-type or normal-proposal messages queued (b), no follower has left the role before applying the
+bootstrap log (c), and its configuration has no automatic leave (d); (e) is a lemma of the ghost state.
+A `Ready`'s tokens carry their message's type (`TrSent`), from (b) and the physical half (`XfOk`'s typed
+clause; `send`, `sendTimeoutNow`, `Step`, `stepLeader`, `stepFollower` refusing a transfer at a traced
+node). One gap of the design fixed raft-internally: (c) needed a role-step fact, `RoleUp`, in
+`raft.Step.spec`'s `PreCandStep` and the ticks' `TickStep`. Next: G3 (a) (on `trace-check-g3`), then
+step 4.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and

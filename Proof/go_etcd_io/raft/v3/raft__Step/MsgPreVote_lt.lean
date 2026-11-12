@@ -156,7 +156,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ (R.GE (sendMsgs s [Msg.plain .preVoteResp id m.From' s.term true]).outbox) (Or.inl rfl) Hok
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
-    rfl (fun _ h => absurd (mtypeOf_Snap _ h) (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+    rfl (fun _ => ⟨_, rfl, by decide⟩)
     $$ [$Hphys $Hresp Hglow HG]
   · isplitr
     · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))

@@ -269,7 +269,9 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgAppResp)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ (m.Reject' = true → m.From' ≠ id))
-    (Hnsb : s.gh.ns = true → γ.reBoot ≠ []) :
+    (Hnsb : s.gh.ns = true → γ.reBoot ≠ [])
+    -- (2026-11-12, trace-check implementation step 3) `raft.Step.spec`'s premise
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -349,7 +351,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
   icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc0, Hphys⟩
   icases ghostRest_dynFacts γ md c id s $$ Hrest with ⟨%Hdyn0, Hrest⟩
   ihave HG := gate_open γ md c id s R $$ Hghost Hrest HG
-  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hlrd Hack Hty Hto Hterm Hfnz Hrej Hwf)
+  wp_apply (wp_Step_MsgAppResp P Q c r id s ml m sn ctx rs ents (ghostIn γ md c id s R) Hlrd Hack Hltr Hty Hto Hterm Hfnz Hrej Hwf)
     $$ [$Hphys $Hmsg $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm, HGo⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   -- (slice 28c) the ghost state back at `s`, or past `maybeCommit` (`CloseMid`'s third case); (slice
@@ -784,7 +786,7 @@ theorem raft.Step.wp_proof
      wp_Message_GetIndex, wp_Message_GetReject, wp_Message_GetContext, wp_MessageType_Enum⟩
   intro c md γ r id s ml m ents ctx sn rs R Gout Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
-    Hsnaptr Hsartr Hsaptr Hp3
+    Hsnaptr Hsartr Hsaptr Hp3 Hxtr Hltr
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hxfer, Hm, Hcred, Hlc, #Hsnap, HG, Hgates, Hclose⟩ HΦ
   -- (2026-10-14, stage B7) the ghost state in its mode: `ownRaftGhost` (what the protocol facts
   -- below read) and the rest
@@ -1089,7 +1091,8 @@ theorem raft.Step.wp_proof
       · ipureintro
         obtain ⟨Hk1, Hk2⟩ := ackSnapLog_keep s.logst m s.term sv
         exact fun _ => TermStep.of_term rfl (fun _ => Hp5)
-          ⟨fun h => ⟨rfl, .inl ⟨h, Hp1, Hp2, Hp3, Hk1, Hk2⟩⟩, fun h1 h2 => ⟨h1, fun hn => h2 (Hk1 hn)⟩⟩
+          ⟨fun h => ⟨rfl, .inl ⟨h, Hp1, Hp2, Hp3, Hk1, Hk2⟩⟩, fun h1 h2 => ⟨h1, fun hn => h2 (Hk1 hn)⟩,
+            fun h1 h2 => absurd h2 h1⟩
       isplitr
       · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
           (by rw [HtyA]; w32_ne)
@@ -1304,7 +1307,7 @@ theorem raft.Step.wp_proof
           by rw [hg], fun p hp => by rw [hg]; exact HX p hp⟩,
         Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
     wp_apply (wp_Step_MsgTransferLeader (B := plogLastIndexZ (toPState s).base (toPState s).log) P PB c r id
-      { s with gh := { s.gh with xw := X } } ml m ents sn ctx rs (ghostIn γ md c id s R) HtyX Hent Hctx0 Hxo Htr
+      { s with gh := { s.gh with xw := X } } ml m ents sn ctx rs (ghostIn γ md c id s R) Hxtr HtyX Hent Hctx0 Hxo Htr
       Hlok Hwf (Hnors (.inr (.inr HtyX))) HLT) $$ [$Hphys $Hmi $HG $Hgates]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, HGo⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -1464,7 +1467,7 @@ theorem raft.Step.wp_proof
   · -- MsgAppResp: `dispatch_AppResp`.
     ihave #Hm' := Hmsg $$ %MsgType.appResp %(by rw [Hty]; exact mtypeOf_MsgAppResp) %(And.intro (by decide) (by decide))
     icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnl, Hrest⟩
-    iapply dispatch_AppResp P Q γ c r id s ml m ents sn ctx rs Φ R Gout md Hdh Hwf Hty (Happresp Hty) Hnl.boot
+    iapply dispatch_AppResp P Q γ c r id s ml m ents sn ctx rs Φ R Gout md Hdh Hwf Hty (Happresp Hty) Hnl.boot Hltr
       $$ Hinit Hphys Hghost Hrest Hmi Hm' HG Hgates Hclose HΦ
   by_cases Hty : m.Type' = MsgHeartbeat
   · -- MsgHeartbeat: `dispatch_Heartbeat`.

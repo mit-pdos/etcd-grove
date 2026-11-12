@@ -37367,3 +37367,40 @@ lemma (i) (`TracedConfExcl.lean`); Probe B item 6 (`raft.Step.traced_booted`).
   2", G3): (a1)'s minting site sees no trace fact, so the premise has to be threaded through the ghost
   step layers or come with `isMessage`'s proposal case (the node API's, step 1's files); (a2) needs the
   decoder's value on the bootstrap entries, not stated at the protocol level.
+
+## Implementation step 3 (rnTrace's clauses): clauses (a)-(d) in `rnTrace`, (e) a lemma, `RoleUp` in `raft.Step.spec`'s `PreCandStep` for (c), `readyTok`'s `TrSent` body, the physical half (2026-11-12 · trace-check, §9's step 3 of `notes/trace-check-design.md`; decided by the agent under the user's delegation (raft-internal statements) · branch `trace-check-impl3`)
+
+**Context.** Step 3 of the design's order of work: the node's traced clauses, the handed-out
+messages' types at the `Ready`, and the physical half that excludes untyped queued messages.
+
+**Done** (no `sorry`, no axiom; the design's "Implementation step 3", J1-J5): `rnTrace γ r id c dl s`
+with `RnTrPure` ((b) the scope and the outbox's `TrOutMsg`s, (d) no automatic leave, (c) `RnTrBoot`)
+and (a) on the existential flag; `XfOk.typed`; `raft.send.spec`'s premise `∃ ty, mtypeOf … = some ty ∧
+ty ≠ .snap`; `raft.sendTimeoutNow.spec`'s `s.gh.tr = none`; `raft.Step.spec`'s, `stepLeader.spec`'s and
+`stepFollower.spec`'s transfer and `lt` premises (every call site); `raft.Step.tracedTriple`'s `lt`
+premise; `readyTok` = `trTokR`'s body; every traced triple re-proved (`RawNode.Step.traced`,
+`wp_rn_raft_Step_prop_traced`, `RawNode.Tick.traced`, `RawNode.ReportUnreachable.traced`,
+`RawNode.Ready.traced`, `acceptReady`, `readyWithoutAccept`, `raft.Step.traced`).
+
+**Decisions.**
+- *(e) as a lemma, not a clause* (`ownStepGhost_applied_capplied`): it is `RInv.applied_cidx` of the
+  ghost state at every state, so a clause would only add proof obligations. Rejected: the design's
+  clause.
+- *(c) through `RoleUp` in `PreCandStep`* (the design's gap: no traced post exposed the campaign's
+  guard, nor excluded a follower becoming a leader in one step). `RoleUp m s s' := s'.role ≠ follower →
+  s.role = follower → (MsgHup ∨ MsgTimeoutNow) ∧ HupFact s s'`, true of every `raft.Step` in raft v3.7
+  (the campaign's own vote is queued, not counted); the ticks' `TickStep` carries the message-free
+  `∃ s0, HupFact s0 s'` (the heartbeat tick's two steps compose). Proved branch by branch by `ru_tac`
+  inside `pc_tac`, explicitly at `hup`'s and the transfer's campaign (`HupGuard.roleUp`). Rejected: a
+  role clause in `OutTyStep` (every traced path's close re-opened, step 2's 27 files); an induction over
+  `StepR` (its `appAccept` rule carries no `PlogWf`, so the bootstrap prefix cannot be followed through
+  intermediate states).
+- *(c) carries the cluster fact `∀ e ∈ γ.reBoot, IsConfEnt e`*, which lemma (i) reads; established with
+  the capability at the traced constructors (§5.2, not yet), like the rest of `rnTrace`.
+- *The Draft's `raft.send.tracedSpec` premise strengthened as `raft.send.spec`'s*: unused by any result,
+  kept proved (`raft.send.tracedSpec_of_spec`). Rejected: deleting that theorem.
+- *The new premises last* in `stepLeader.spec`/`stepFollower.spec`, so every call appends them before
+  `$$` (`xtr_tac`, `ltr_tac`).
+- *(d) is framed in step 3*: no step-3 triple moves the configuration; G3 (a), which keeps it at the
+  `confc` arm, stays with `trace-check-g3`.
+

@@ -60,7 +60,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
         G' (sendMsgs s [appResp id s dst rej idx hintterm hint]).outbox }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hm, %HP, HG, Hgate⟩ HΦ
   ihave Hg := Hgate $$ %s %(appResp id s dst rej idx hintterm hint) %HP HG
-  have Hns : s.gh.tr ≠ none → mtypeOf (W32 4) ≠ some MsgType.snap := fun _ => by decide
+  have Hns : s.gh.tr ≠ none → ∃ ty, mtypeOf (W32 4) = some ty ∧ ty ≠ MsgType.snap := fun _ => mtypeOf_send_eq rfl
   wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint]
       (G' (sendMsgs s [appResp id s dst rej idx hintterm hint]).outbox)
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Htz, fun h => absurd h Hdst, rfl⟩))))

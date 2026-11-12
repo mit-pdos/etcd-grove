@@ -70,7 +70,7 @@ term past `0` (`SendOk`'s `Hstz`, or the caller's `Hmterm`). (Case (c), the tran
 hand.) -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
   · simp only [Hty1, $args,*]; simp [sentShapeTypes, sentTypes, MsgReadIndex, MsgProp, MsgVote,
       MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,
       MsgReadIndexResp, MsgSnap, MsgTransferLeader, MsgTimeoutNow]
@@ -100,7 +100,16 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     try first
       | rfl
       | exact Hsrc (by rw [← Hty1, h]; tyne) (by rw [← Hty1, h]; tyne)
-  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)))
+  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)
+  -- (2026-11-12, implementation step 3) at a traced node of a described type (the premise)
+  · intro htr
+    obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)
+    first
+    | decide
+    | (intro h; cases h)
+    | (intro h; simp [mtypeOf] at h; done)
+    | (simp [Hty1, htyx]; done)
+    | (simp only [Hty1, $args,*] at htyx ⊢; simp [htyx]; done)))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -332,7 +341,10 @@ local macro "send_hook " hout:term:max : tactic => `(tactic| (
     isplitr
     · ipureintro; send_ty
     isplitr
-    · ipureintro; exact Htsnap
+    · ipureintro
+      intro htr
+      obtain ⟨_, htyx, hns⟩ := Htsnap htr
+      rw [htyx]; exact fun e => hns (Option.some.inj e)
     ipureintro
     refine sendGate_le _ s _ _ _ _ _ _ ?_ $hout
     send_ty
@@ -530,7 +542,7 @@ theorem raft.send.wp_proof
         · assumption
       simp only
       refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
-        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_⟩
+        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_⟩
       · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h'
@@ -544,6 +556,9 @@ theorem raft.send.wp_proof
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · exact Hxw h
+      · -- (2026-11-12, implementation step 3) untraced: the premise refutes a traced node
+        obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)
+        rw [htyx] at Hty; cases Hty
     · ipureintro; simpa [Hto1] using Hself
     · iapply tsSrc_ne; simp only [Hty1]; exact HnS
     send_hook (fun t evt ht _ => by rw [Hty] at ht; cases ht)

@@ -52,7 +52,10 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (m.Reject' = true → s.gh.ns = true →
         2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
         (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
-          uint.Z t0 ≤ 1))) :
+          uint.Z t0 ≤ 1)))
+    -- (2026-11-12, trace-check implementation step 3) no transferee at a traced node
+    -- (`raft.Step.spec`'s premise, `stepLeader.spec`'s)
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -103,7 +106,7 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ipureintro
       exact ⟨Hend, Hwf', Href, Herr, Hresp, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hty Hto Hterm Hteq Hfnz Hrej
+      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hltr Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)
         $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
       try phys_out

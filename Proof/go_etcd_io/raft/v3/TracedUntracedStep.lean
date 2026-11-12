@@ -381,7 +381,7 @@ theorem stepFollower.untraced (h : stepFollower.spec (GF := GF) (hG := hG)) :
   iapply h c scfg r id s ml m ents sn rs sv cl (fun _ => iprop(emp)) (fun _ => iprop(emp))
     Hty Hri Hstz Hprop Happ Hhb Hrest
     (fun hs => let ⟨a, b, c', d, e, f, g⟩ := Hsnap hs; ⟨a, b, c', d, e, f, g, htr⟩) Hnors
-    (PermInv.const _) (IdxFree.const _ _) $$ [Hphys Hm]
+    (PermInv.const _) (IdxFree.const _ _) (fun _ => htr) $$ [Hphys Hm]
   · dsimp only
     iframe Hpkg Hphys Hm Hcert
     rw [htr]
@@ -472,7 +472,8 @@ theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
   iapply h c r id s ml m ents sn ctx rs k0 (fun _ => iprop(emp)) (fun _ => iprop(emp)) iprop(emp)
     (fun _ => iprop(emp)) (fun _ _ _ => iprop(emp))
     Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ h => absurd htr h)
-    (IdxFree.const _ _) (IdxFree.const _ _) (fun _ _ => IdxFree.const _ _) $$ [Hphys Hm Hcc]
+    (IdxFree.const _ _) (IdxFree.const _ _) (fun _ _ => IdxFree.const _ _) (fun _ => htr)
+    (fun _ h => absurd htr h) $$ [Hphys Hm Hcc]
   · try dsimp only
     iframe Hpkg Hphys Hm Hcc Hrc
     rw [htr]

@@ -154,7 +154,7 @@ theorem raft.tickHeartbeat.wp_proof
           (fun h => absurd h (by msg_ne))
           (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
           (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
-        $$ [$Hphys $Hghost $Hlc2 Hcr Hmsg $HG $Hgates $Hclose]
+        (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)) $$ [$Hphys $Hghost $Hlc2 Hcr Hmsg $HG $Hgates $Hclose]
       · simp only [hP, ↓reduceIte, named]
         ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
         isplitr
@@ -189,10 +189,15 @@ theorem raft.tickHeartbeat.wp_proof
         have Hi := Hi (by msg_ne)
         have Hf := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
         have Heq : s0.term = s.term := by word
-        intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg', Hs'⟩
-        exact ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq,
+        intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg', Hs', Hr'⟩
+        refine ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq,
           fun fp hg => Hg' fp (PreGuardF.step (Htm (by msg_ne)) hg),
-          fun h1 h2 => (Htm (by msg_ne)).2.2.2.2.2.2 (Hs' h1 h2).1 (Hs' h1 h2).2⟩
+          fun h1 h2 => (Htm (by msg_ne)).2.2.2.2.2.2.1 (Hs' h1 h2).1 (Hs' h1 h2).2, fun h1 h2 => ?_⟩
+        -- (2026-11-12, implementation step 3) a `MsgCheckQuorum` makes no follower a candidate
+        by_cases hf0 : s0.role = .follower
+        · exact Hr' h1 hf0
+        · exact ((Htm (by msg_ne)).2.2.2.2.2.2.2 hf0 h2).1.elim (fun h => absurd h (by msg_ne))
+            (fun h => absurd h (by msg_ne))
       icases Herr with (%Herr | ⟨%Hc', -⟩)
       rotate_left
       · exfalso; revert Hc'; msg_ne
@@ -334,7 +339,7 @@ theorem raft.tickHeartbeat.wp_proof
         (fun h => absurd h (by msg_ne))
         (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
         (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
-      $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg $HG $Hgates $Hclose]
+      (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)) $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg $HG $Hgates $Hclose]
     · simp only [hP, ↓reduceIte, named]
       ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
       isplitr
@@ -377,7 +382,8 @@ theorem raft.tickHeartbeat.wp_proof
         by have h0 : 0 ≤ uint.Z s2.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
         Hi (by msg_ne), fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg,
-        Hpc'.2⟩
+        Hpc'.2.1, fun h1 h2 => ((Hpc'.2.2 h1 h2).1.elim (fun h => absurd h (by msg_ne))
+          (fun h => absurd h (by msg_ne)))⟩
     · exfalso; revert Hc'; msg_ne
   · rw [decide_eq_false Hhb]
     wp_auto

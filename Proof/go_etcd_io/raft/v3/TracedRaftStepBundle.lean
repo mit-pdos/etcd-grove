@@ -88,6 +88,15 @@ theorem stepTrTy_ne {t : w32} (h : StepEndTy t ∨ AckTy t) :
     rcases h with h | h | h | h | h | h | h | h | h | h <;> subst h <;> decide
   · exact (ackTy_ne h).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
 
+/-- (2026-11-12, trace-check implementation step 3) Nor a transfer request (`raft.Step.spec`'s premise
+that a traced node steps none). -/
+theorem stepTrTy_ne_xfer {t : w32} (h : StepEndTy t ∨ AckTy t) :
+    t ≠ MsgTransferLeader := by
+  rcases h with h | h
+  · unfold StepEndTy at h
+    rcases h with h | h | h | h | h | h | h | h | h | h <;> subst h <;> decide
+  · exact (ackTy_ne h).2.2.2.2.1
+
 /-- **A storage acknowledgement's path**: an append acknowledgement at most at the node's term (an apply
 acknowledgement is at term `0`, a local message's). -/
 def StorAck (s : NState) (m : MessageM) : Prop := AckTy m.Type' ∧ uint.Z m.Term' ≤ uint.Z s.term
@@ -549,6 +558,9 @@ abbrev raft.Step.tracedTriple : Prop :=
   -- no snapshot (`TrNoSnap`), an apply acknowledgement with no automatic leave
   (m.Type' = MsgStorageAppendResp → sn = none) →
   (m.Type' = MsgStorageApplyResp → ents ≠ [] → c.autoLeave = false) →
+  -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) an append
+  -- response only with no transferee (`raft.Step.spec`'s traced premise; `rnTrace`'s scope)
+  (m.Type' = MsgAppResp → s.lt = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗
@@ -624,7 +636,7 @@ theorem raft.Step.traced (h : raft.Step.spec (GF := GF) (hG := hG))
     raft.Step.tracedTriple (GF := GF) (hG := hG) := by
   intro c md γ r id s ml m ents ctx sn rs γd Λ bt Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
-    htr hpv hcq hty hloc hapT hto hT hmT hok hfit hlrn hdom hnpc hsh hbatch hnode hsnn hal
+    htr hpv hcq hty hloc hapT hto hT hmT hok hfit hlrn hdom hnpc hsh hbatch hnode hsnn hal hlt0
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hxfer, Hm, Hcred, Hlc, #Hsnap, Hcap, Htok, #Hmc, #Hnosnap⟩ HΦ
   ihave Hb : (trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ ∗
       (recvTokOf γd m ents ctx ∗
@@ -643,6 +655,7 @@ theorem raft.Step.traced (h : raft.Step.spec (GF := GF) (hG := hG))
     (fun ha => absurd ha hne) (fun ha hsn => absurd (hsnn ha) hsn)
     (fun ha hne' hauto => by rw [hal ha hne'] at hauto; cases hauto)
     (fun hp _ => noConf_of_normal ents (hbatch hp).2)
+    (fun hx => absurd hx (stepTrTy_ne_xfer hty)) (fun ha _ => hlt0 ha)
     $$ [Hphys Hghost Hm Hcred Hlc HG Hgates Hclose]
   · iframe Hinit Hphys Hghost Hxfer Hm Hcred Hlc Hsnap HG Hgates Hclose
   inext

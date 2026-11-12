@@ -80,7 +80,9 @@ theorem RawNode.ReportUnreachable.traced
   icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
   -- the capability, open; the bundle's premises from the node's state
   have Htr : s.gh.tr = some γd := Hgtr.trans HtrG
-  icases (rnTrace_some γ rnv.raft' id cf s γd Htr).1 $$ Hrntr with ⟨%Hscope, #Hcqf, #Hnosnap, %bt, Hcap⟩
+  icases (rnTrace_some γ rnv.raft' id cf rs.delivered s γd Htr).1 $$ Hrntr with
+    ⟨%Hscope, %Hpure, #Hcqf, #Hnosnap, %bt, %Hbt, Hcap⟩
+  imod trNoSnap_prev0 s.gh.tr s.logst (by rw [Htr]; simp) $$ Hnosnap with %Hprev0
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq, Hphys⟩
   icombine Hcqf Hcq gives %Hcqe
   icases ownRaftPhysC_dom cf rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
@@ -126,7 +128,7 @@ theorem RawNode.ReportUnreachable.traced
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
     (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
     (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hcr Hm HG Hgates Hclose]
+    (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)) $$ [$Hphys $Hghost $Hlc1 Hcr Hm HG Hgates Hclose]
   · -- the message: no entries, no `Context`, no snapshot
     have hP : (W32 10 : w32) ≠ MsgProp := by simp [MsgProp]
     simp only [hP, ↓reduceIte, named]
@@ -170,17 +172,28 @@ theorem RawNode.ReportUnreachable.traced
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   -- the capability back, idle at the end state
   have Htr' : s'.gh.tr = some γd := by rw [Hgh]; exact Htr
-  ihave Hrntr : rnTrace γ rnv.raft' id cf s' $$ [HG]
-  · iapply (rnTrace_some γ rnv.raft' id cf s' γd Htr').2
+  -- (2026-11-12, implementation step 3) the leader exclusion's clause at the end state
+  icases ownStepGhost_bootCommit γ _ cf id s' $$ Hghost with ⟨%Hbc', Hghost⟩
+  icases ownStepGhost_bootPrefix γ _ cf id s' $$ Hghost with ⟨%Hbp', Hghost⟩
+  ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
+    Hpv.symm Hsg.symm $$ Hnosnap
+  have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+  icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
+  ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
+  · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
     isplitr
     · ipureintro; exact ⟨Hpre.trans Hscope.1, Hscope.2⟩
+    isplitr
+    · ipureintro; exact Hpure.step (by rw [Htr]; rfl) Houtty Hboot'
     isplitr
     · iexact Hcqf
     isplitr
     · iapply trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr]) Hpv.symm Hsg.symm
         $$ Hnosnap
-    icases HG with ⟨-, %bt', -, HG⟩
     iexists bt'
+    isplitr
+    · ipureintro; exact fun h => Hmono (Hbt h)
     rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
     iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ HG
   icases Herr with (%Herr | ⟨%Hc', -⟩)

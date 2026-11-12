@@ -154,7 +154,7 @@ theorem sendMsgReadIndexResponse.wp_proof
               fun h => Hloc (Or.inr h), Htz, rfl⟩))
             (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
             (fun h => by simp [readIndexRespMsg, MsgApp] at h)
-          rfl (fun _ h => absurd h (by simp only [readIndexRespMsg]; decide)) $$ [$Hphys $Hresp Hgresp HG]
+          rfl (fun _ => mtypeOf_send_eq (u := W32 16) rfl) $$ [$Hphys $Hresp Hgresp HG]
         · isplitr
           · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
           -- (Q8 stage 1, slice 6) the response's gate, at no event

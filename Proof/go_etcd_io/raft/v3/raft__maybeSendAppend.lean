@@ -222,7 +222,7 @@ local macro "msa_send" : tactic => `(tactic| (
       (G (s.outbox ++ [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]))
       (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, Htz, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) (fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
-      rfl (fun _ h => absurd h (by simp only; decide)) $$ [Hphys Hm Hg] as ⟨Hphys, HG⟩
+      rfl (fun _ => mtypeOf_send_eq (u := W32 3) rfl) $$ [Hphys Hm Hg] as ⟨Hphys, HG⟩
   · iframe Hphys Hm
     isplitr
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))

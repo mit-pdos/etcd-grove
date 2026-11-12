@@ -330,8 +330,8 @@ theorem raft.campaign.wp_proof
       -- `mtypeOf`, the term is nonzero (this is what the no-wrap premise
       -- buys), and -- only for a request -- the destination is not this
       -- node. The last is vacuous here: this is a response.
-      have Hns1 : ∀ {P : Prop}, P → mtypeOf (vrespW32 pre) ≠ some MsgType.snap :=
-        fun _ => by cases pre <;> decide
+      have Hns1 : ∀ {P : Prop}, P → ∃ ty, mtypeOf (vrespW32 pre) = some ty ∧ ty ≠ MsgType.snap :=
+        fun _ => by cases pre <;> exact mtypeOf_send_eq rfl
       wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none [] []
           [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
           (G ((s.outbox ++ (xs.take (sint.Z n).toNat).map (campMsg pre y (s.term + W64 1)
@@ -424,8 +424,8 @@ theorem raft.campaign.wp_proof
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
         msg_nulls
-      have Hns2 : ∀ {P : Prop}, P → mtypeOf (vreqW32 pre) ≠ some MsgType.snap :=
-        fun _ => by cases pre <;> decide
+      have Hns2 : ∀ {P : Prop}, P → ∃ ty, mtypeOf (vreqW32 pre) = some ty ∧ ty ≠ MsgType.snap :=
+        fun _ => by cases pre <;> exact mtypeOf_send_eq rfl
       wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none (transferCtx t) []
           [campReq pre id y (s.term + W64 1) lastID (transferCtx t)]
           (G ((s.outbox ++ (xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)

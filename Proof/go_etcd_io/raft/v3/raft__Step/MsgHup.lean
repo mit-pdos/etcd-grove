@@ -137,7 +137,9 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     have Hpcs : PreCandStep m s s' := ⟨fun h => ⟨Hpc h, by
       rcases Hhg with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, Hno⟩, -⟩
       · exact .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
-      · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩, Hsrb⟩
+      · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩, Hsrb,
+      -- (2026-11-12, implementation step 3) a follower leaves the role only by the campaign
+      Hhg.roleUp Hl rfl (.inl rfl) (.inl Hty) Hlogf⟩
     try phys_out
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG

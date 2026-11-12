@@ -71,7 +71,7 @@ theorem raft.handleHeartbeat.wp_proof
       [{ Msg.plain .heartbeatResp id m.From' s'.term false with ctx := cl }] := fun s' hs' =>
     Or.inr (Or.inl ⟨.heartbeatResp, Or.inr (Or.inr (Or.inr rfl)), rfl, rfl, Hfrom, hs', rfl⟩)
   ihave Hgate := Hgate $$ HG
-  have Hns : s.gh.tr ≠ none → mtypeOf (W32 9) ≠ some MsgType.snap := fun _ => by decide
+  have Hns : s.gh.tr ≠ none → ∃ ty, mtypeOf (W32 9) = some ty ∧ ty ≠ MsgType.snap := fun _ => mtypeOf_send_eq rfl
   wp_apply wp_raft_send c r id
     { s with logst := { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
     «$a0_ptr» _ [] none cl [] _ G' (Or.inl rfl) (Hok _ (by first | exact Htz | simpa using Htz | simp_all))

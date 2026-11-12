@@ -826,7 +826,7 @@ theorem RawNode.acceptReady.wp_proof
       by rw [a4, Hf_cm]; exact Int.le_refl _⟩, fun _ h => by cases h⟩
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable, HlL]; exact Int.le_refl _
   · ipureintro
-    exact XfOk.nil (fun h => Hxf.2.2.2 h)
+    exact XfOk.nil (fun h => Hxf.term_nz h)
   · rw [List.append_nil]; iapply qSrcs_nil
   -- the node after `Ready`
   have Hlogst : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst = logAcceptApplying (logAcceptUnstable ls0) ce sz := by
@@ -935,15 +935,19 @@ theorem RawNode.acceptReady.wp_proof
       show uint.nat (W64 (plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents))) < traceNumBound
       rw [hB] at hl' ⊢; word
   icases Hf_traceLogger with ⟨%tl, #Htl, %Htlok⟩
-  ihave Hfire := rnTrace_fireReady γ rnv.raft' id cf s
+  have Hrapp0 : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.applied = s.logst.applied := by
+    rw [Hlogst, Haf10, Hf_ap]
+  ihave Hfire := rnTrace_fireReady γ rnv.raft' id cf (dl' := rs.delivered ++ ce) s
     (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length))
     { (toPState s).rd with states := [] } ms1 ms2 tl Hgtr rfl rfl HpN HstN HpsN rfl HcmN Houtbox HnbN
+    (by first | rfl | simp [readyNstate]) (by first | rfl | simp [readyNstate])
+    (by first | rfl | simp [readyNstate]) (by first | rfl | simp [readyNstate]) Hrapp0 Hxf.typed
     $$ Htl %Htlok Hrntr
   icases trOwn_split s.gh.tr
     (ownRaftPhysCV cf cf.voters rnv.raft' id (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)))
     $$ Hphys with ⟨Hown, Hback⟩
   wp_apply wp_traceReady cf rnv.raft' id (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) tl
-    iprop(rnTrace γ rnv.raft' id cf (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) ∗
+    iprop(rnTrace γ rnv.raft' id cf (rs.delivered ++ ce) (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) ∗
       [∗list] q ∈ ms1 ++ ms2, readyTok γ q.st)
     $$ [Hown Hfire] as ⟨Hown, Hrntr, Htoks⟩
   · iframe Htl Hfire
