@@ -18,7 +18,7 @@ theorem traceEvent.wp_proof [package_sem : Assumptions] (wp_evtString :
               trOwn tr
                   iprop(∃ c id s P om e0,
                       P ∗
-                        RaftLend P c r id s ∗
+                        RaftReadLend P c r id s ∗
                           MsgLend P m om ∗
                             tracingPropsRep prop e0 ∗
                               ⌜uint.nat evt < evtNames.length ∧
