@@ -32,7 +32,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.DeleteBucket(name)`: deletes the top-level bucket `name` (see `Bucket.DeleteBucket.spec`). -/
+/-- `tx.DeleteBucket(name)`: deletes the top-level bucket `name` (see `Bucket.DeleteBucket.spec`).
+The error arms lose no token: `bktsUnder` is empty on each, by definition for no such key and a
+value, and for the empty name because well-formed data has no empty key (`boltTx_wf`). -/
 def Tx.DeleteBucket.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (key : GoSlice) (kb : GoString) (dk : DFrac),
   {{ boltTx (GF := GF) tx γ q T ∗ key ↦*{dk} kb ∗ ⌜T.rw = true → q = 1⌝ ∗

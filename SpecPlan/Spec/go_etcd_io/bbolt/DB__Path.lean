@@ -8,7 +8,8 @@
 field invariant lends the field (read-only, a fraction per share): `γ.path`.
 
 **Changes.** New.
-**Changes (2026-11-12, `notes/specs-only/ledger.md`, the close right's share).** Takes any share `q` of the close right and gives it back (was the whole: etcd's defrag calls
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, the close right's share).** Takes any share `q`
+of the close right and gives it back (was the whole: etcd's defrag calls
 `Path` without the backend's lock, `backend.go:515, 712`, so it cannot hold the exclusive right).
 -/
 module

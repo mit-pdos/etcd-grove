@@ -45,7 +45,7 @@ func ReqBackendOpen(path string, noSync bool) *bolt.DB {
 // commit's (an environment failure). The range sees the batch's own writes, in key order.
 // Users: server/storage/backend/batch_tx.go:136-246 (UnsafeCreateBucket, unsafePut,
 // UnsafeRange, unsafeRange, UnsafeDelete), :280-305 (commit), backend.go:1101 (unsafeBegin).
-// Assumes: db open; the root has no plain value at keyBucket (no Tx method puts one there);
+// Assumes: db open; the root has no plain value at keyBucket (etcd puts none there);
 // keyBucket holds no nested bucket; k1 < k2 (bytes.Compare), both non-empty and
 // within MaxKeySize; the caller holds boltState γ 1 σ (the backend's batch lock), from which it
 // builds Commit's updates (boltState_commit_au: both, the settling one given by the commit's).

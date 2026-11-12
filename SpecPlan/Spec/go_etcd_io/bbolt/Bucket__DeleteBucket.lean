@@ -59,9 +59,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.DeleteBucket(key)`: on a write transaction (all of it), deletes the bucket `key` of the
-bucket at `p` with its contents (its handles are no longer current); errors: not writable, no such
-key (`ErrBucketNotFound`), `key` holds a value or is the empty name in an empty bucket
-(`ErrIncompatibleValue`). -/
+bucket at `p` with its contents (its tokens, and those of every bucket below it, consumed); errors:
+not writable, no such key (`ErrBucketNotFound`), `key` holds a value (`ErrIncompatibleValue`), the
+empty name (either). The error arms lose no token: `bktsUnder` is empty on each, by definition for
+no such key and a value, and for the empty name because well-formed data has no empty key
+(`boltTx_wf`); a read transaction gives none. -/
 def Bucket.DeleteBucket.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (key : GoSlice) (kb : GoString) (dk : DFrac),
   {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb ∗ ⌜T.rw = true → q = 1⌝ ∗

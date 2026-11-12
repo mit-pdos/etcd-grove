@@ -17,6 +17,9 @@ token.
 child's token (`bktTok`: its cache entry `o`, the whole if `o = none`) comes back at `some c`, `c`
 the cached handle if there was one; a read transaction's child handle is the persistent `bktH` (the
 per-path generation counter it replaces was unobservable state, redundant with ownership).
+**Changes (2026-11-12, the review's finding 5).** All of the transaction only when the lookup fills
+the cache (a write transaction, the bucket present and not cached: `o = none`); a hit reads
+`b.buckets` alone, and a miss on an absent bucket only seeks (as `Get`), so any fraction.
 -/
 module
 
@@ -46,7 +49,8 @@ def Bucket.Bucket.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp)
     (o : Option Loc) (qc : Qp) (name : GoSlice) (n : GoString) (dq : DFrac),
   {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ bktTok tx γ T (p.child n) o qc ∗
-      name ↦*{dq} n ∗ ⌜T.rw = true → q = 1⌝ }}
+      name ↦*{dq} n ∗
+      ⌜(T.rw && (T.cur.atPath (p.child n)).any Ent.isBkt && o.isNone) = true → q = 1⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Bucket")) (Val #name))
   {{ (c : Loc), RET #c; boltTx tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ name ↦*{dq} n ∗
       (if (T.cur.atPath (p.child n)).any Ent.isBkt

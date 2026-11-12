@@ -6,8 +6,9 @@ model is the meaning of the specs.
 
 * **The data** (`Ent`, `Data`): a database is its root bucket; a bucket holds a sequence counter
   (`NextSequence`) and entries sorted by key (`bytes.Compare`, `go.GoStringLt`), each a plain value
-  or a nested bucket. The root's entries are the top-level buckets (no `Tx` method puts a plain value
-  there). A bucket is named by its **path** from the root (`BPath`). Every operation of the model
+  or a nested bucket. The root's entries are the top-level buckets: no `Tx` method puts a plain
+  value there, but the root's handle (`Tx.Cursor`, then `Cursor.Bucket`) can (`Bucket.Put` at
+  `[]`); etcd puts none. A bucket is named by its **path** from the root (`BPath`). Every operation of the model
   keeps the entries sorted with distinct keys (`insEnt`, `delEnt`), so a database reached from
   `Data.empty` or from a file (`Api.lean`'s `fileHolds`) is sorted.
 * **A transaction's view** (`TxView`): read or write, managed (`View`/`Update`) or not, the

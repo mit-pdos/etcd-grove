@@ -8,7 +8,8 @@ cached nodes has its root), which `SetSequence`'s `wtxCore_seq` needs.
 **Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` (which object `b` is)
 without the generations (the per-path generation counter it replaces was unobservable state,
 redundant with ownership).
-**Changes (2026-11-12, `notes/specs-only/ledger.md`, `Bucket.node` on a deleted handle).** The handle
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, `Bucket.node` on a deleted handle).** The
+handle
 is a cached one, `⌜C.bkts b = some p⌝` (a premise: `Assert(b.nodes != nil)`, `bucket.go:867`,
 panics on a handle `DeleteBucket` dropped, which keeps its `bktH`); the cached handles unchanged
 (`C'.bkts = C.bkts`). Callers: `Cursor.node` (its own premise), `node.childAt` (a cached node's

@@ -16,7 +16,8 @@ the page cache's; if no meta page write is in flight (`σ.busy` false) and no sy
 
 **Margin.** A failed sync's `lost` is never cleared in a generation (it could be, once every page a
 failed sync dropped is rewritten and synced).
-**Changes (2026-11-12, `notes/specs-only/ledger.md`, the close right's share).** Takes any share `q` of the close right and gives it back (was the whole): its body (`Logger`,
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, the close right's share).** Takes any share `q`
+of the close right and gives it back (was the whole): its body (`Logger`,
 `db.path`, `fdatasync(db)`'s `db.file`) races only with `close()`.
 -/
 module

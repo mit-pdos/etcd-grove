@@ -125,7 +125,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `DB.Close.spec`.
 - **Defect.** Too strong a premise: etcd's defrag calls `b.db.Path()` without the backend's lock
   (`backend.go:515, 712`), so it cannot hold the exclusive right. A share is enough: `Path` reads
-  `db.path`, which only `close()` writes (`db.go:816`, `db.path = ""`).
+  `db.path`, which only `close()` writes (`db.go:832` at the pin, `db.path = ""`).
 - **Evidence.** The 2026-11-12 completeness review (etcd's server).
 - **Proposed change.** `boltOpened db γ q` fractional; `Path` (and `Sync`, if its Go body only
   races with `close()`) take a share and return it; `Close` takes the whole. Exclusivity at 1.
