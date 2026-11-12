@@ -4,7 +4,18 @@ Stage of etcd-grove-81: restart S5 (constructors: HS1 `NewAuthStore` over `authB
 deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 (`notes/wal-crash-handoff/restart-wal-interface.md`). S2 and C6 are deferred (the WAL collaborator).
 
-## Phase: plan written, waiting for etcd-grove-81's approval (D1-D4). No Lean edited, nothing built.
+## Phase: plan approved (D1-D4, etcd-grove-81 under the user's delegation, 2026-11-12; `questions.md`); Phase A, probe
+
+- The WAL interface note got its §5 (S6 introduces `wal.restartOk`; C6 owns its body), commit `8f055a306b`.
+- Baseline build started 2026-11-12, log `/shared/tmp/restart-s56/base.log` (an `exit N` line at the end).
+- **P4 (R1) done, by reading: a gap that needs a decision** (`/shared/tmp/restart-s56/p4-snapdir.md`).
+  The snapshot directory's authority (`ghostMapAuth γd`) and its files are locked in the stopped
+  incarnation's plain `inv snapDirN (snapDirInv ss γd …)`. `γd` is fixed by raft's `Cluster.snapLoc`,
+  so the restart cannot use a fresh name. Every fix changes three axioms (`SaveDBFrom`,
+  `purgeFile`, `Release`). Recommended: (a) a cancellable invariant that the stop cancels, the image
+  carrying `snapDirImage`, as its own sub-stage S6a. Reported to 81 (CP1, early: 81 asked for P4
+  first, and for any trusted change beyond HS1/`bootOkR` to be reported).
+- Not started: P1-P3, P5-P7 (Lean probes in `Scratch/S56Probe.lean`, after the baseline build).
 
 - Plan: `/shared/tmp/restart-s56/plan.md`: the statements old → new (§1 S5, §2 S6), the hard stops
   (§3), the order and checkpoints CP1-CP3 (§4), the files and collisions (§5), the decisions D1-D4 (§6),
@@ -13,8 +24,8 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 
 ## Next, in order (once approved)
 
-1. A0: baseline build (below).
-2. A1: probe `Scratch/S56Probe.lean` (untracked; P1-P7 of the plan). CP1: report.
+1. A0: baseline build (running, see above).
+2. A1: probe (P4 done; wait for 81's decision on R1; P1-P3, P5-P7 next) `Scratch/S56Probe.lean` (untracked; P1-P7 of the plan). CP1: report.
 3. A2: texts in the files that are not the auth fix's. CP2: Freeze package, spec-reviewer, axiom skill. STOP.
 4. Phase B, only after the auth fix lands: merge lean, edit `NewServer.lean`/`AuthSrv.lean`. CP3: STOP before land.
 
