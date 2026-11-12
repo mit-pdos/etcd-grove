@@ -95,6 +95,7 @@ public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestByt
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsDeadlineExceeded
+public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.filterNoDelete
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.filterNoPut
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.getServerMetrics
@@ -810,6 +811,10 @@ theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsCtxErr.wp_proof
 
+theorem errors.wp_IsStatusErr :
+    EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsStatusErr.wp_proof
+
 theorem wp_filterNoDelete :
     EtcdGrove.v3rpc.filterNoDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.filterNoDelete.wp_proof
@@ -872,7 +877,7 @@ theorem serverWatchStream.wp_sendLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem watchServer.wp_Watch [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr errors.wp_Is zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
+  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr errors.wp_Is errors.wp_IsStatusErr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
 
 end links_hasLC
 
