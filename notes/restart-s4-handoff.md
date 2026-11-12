@@ -38,9 +38,15 @@ the restart point, `run` at `⟨|P|, A₀⟩`.
 - STATUS (R2d'a section's S4 bullet, Last updated; the oldest entry moved to status-history) and
   decisions.md "Restart S4".
 
+- CP2 checks at `ae0ca4adbc`: full build under the lock and the 64G cap, 14035 jobs, exit 0
+  (`/shared/tmp/restart-s4/full1.log`); `etc/gates.sh` all passed (`gates1.log`: tcb 865 axioms /
+  5 sorries = baseline, 54 collections match, links, api, axiom-tok, model-param, bounds 331, mode 290,
+  goose, gen-init, import-all); `etc/gen-interface.py --check` for raft, mvcc, backend, bbolt,
+  etcdstart: unchanged. Statement diff: `/shared/tmp/restart-s4/cp2-statements.diff`.
+
 ## Next, in order
 
-1. Full build (`/shared/tmp/restart-s4/full1.log`), then the gates of plan §3 step 6, then CP2's report.
+1. CP2 reported to etcd-grove-81.
 2. After CP2: the Freeze package (hub diff + widening argument) to a fresh `spec-reviewer`, CP3, STOP
    before `etc/land.sh` (merge `lean` first then; it brings SpecPlan/).
 
