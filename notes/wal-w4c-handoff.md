@@ -133,13 +133,14 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
    - Specs and proofs done (Spec/ and Proof/ `…/examples/etcd/wal/<fn>.lean`, each proof taking
      its callees' specs): `hsEmpty`, `hsEq`, `entEq`, `phsNext`, `walMustSync`, `copyEnts`,
      `copyOps`, `walLastHS`, `readEnt` (premise: the entry's index `< 2^63`), `walSaveSnap`,
-     `walFoldChk` (premise `tHistWf h`). All build with `lake build` (`b4a2cfc3bb`).
+     `walFoldChk` (premise `tHistWf h`), `walRead`, `walReadFrom` (premises `tHistWf h`,
+     `0 ≤ sint.Z k ≤ |h|`), `walReadCut` (premises `tHistWf h`, `uint.nat k ≤ |h|`), `contentsEq`,
+     `opEq`, `histEq` (return `decide (a = b)`). All build with `lake build` (`71fe42f570`).
+     Rep also has `opsRep_slice` (a subslice, through `ownSlice_slice`), `opsElems_subslice`,
+     `DecidableEq` of `TOp`/`TContents`, `list_ne_of_getElem`, `list_take_succ_eq`,
+     `val_false_ne_true`; RefLemmas has `tKeep_filter_take_succ`.
    - **Left of step 3, in order** (ref.go first, then oracle.go, then wal.go):
-     - `walRead` (filter loop then `walFoldChk`; `tRead`), `walReadFrom` (`h[k:]`, the newest-pair
-       loop `tNewest`, then the fold loop from `⟨tLastHS (h.take k), i, t, []⟩`; reuse the walFoldChk
-       proof's inner/outer loop shape and `tFoldChkFrom_take_succ`/`_save`/`_snap`,
-       `tReadEnts_take_succ`, `tReadEnts_prefix_none`, `tFoldChkFrom_prefix_none`), `walReadCut`;
-     - `contentsEq`, `opEq`, `histEq` (return `decide (a = b)` over the records), `cutPos`,
+     - `cutPos`,
        `lastIdx`, `nameBound`, `openBound` (`tNameBound`, `tOpenBound`), `walImgs` (`tImgs`; needs
        `opsRep` of `h[:j]`: a lemma from `ownSlice_slice`), `walFold`/`appendEnts` (no-panic, the
        result's entries among the history's: `opResend` saves them, so they must be well formed);
@@ -180,6 +181,14 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
   - A record literal inside `iprop(…)`: write `contents.mk …` (`{ hs' := … }` does not parse there).
   - The Go struct `entry` clashes with a global `entry`: write `TEnt`.
   - A `return` inside a nested loop: `wp_for_post` once per loop, then `iapply HΦ`.
+  - The loop guard after `wp_for` comes either as `decide P = true` or as
+    `decide (#(decide P) = #true) = true`: `by_cases hlt : P`, then `rw [if_pos (by simp [hlt])]`, and in
+    the exit `simp only [hlt, decide_false, Bool.false_eq_true, ↓reduceIte]` (contentsEq, histEq).
+  - Several loads of `s[i].f` in one expression: after `ownSlice_elem_acc`/`iStructNamed`, run
+    `repeat (simp only [hb, _root_.and_self, ↓reduceIte]; try wp_auto)` (each `IndexRef` leaves a bounds
+    `if`); with the element's points-to persistent, `wp_auto` loads whole elements by itself.
+  - A spec whose post is `True` (walLastHS, opEq): after `wp_apply`, `iintro -` then `wp_auto`.
+  - `wp_if_destruct` on `#!decide P` gives the `P` branch first.
 
 - **The crash obligation runs at `⊤` and cannot refute `crashed`.** So the old generation's invariant
   must be closed with its contents kept (crashlog's `cfInv_crash_keep`). This is why the durable
