@@ -315,7 +315,7 @@ No unneeded premise: `o.noGrowSync = false` looks unnecessary under the approved
 
 Outside my lens, but the package should carry it: the user's decision of 2026-11-12 asks for the boltDisk axioms to be compared against the LinuxFs per-byte model (examples/osfs/bboltfs, notes/bbolt-port-plan.md, notes/walfs-ext-plan.md) when this package goes to review, and for convergence to be decided then. The package has no such section. The handoff defers it to a reviewer's lens.
 
-**Evidence:** scope.md:562-563 (2026-11-12 user decision); notes/crash-rung3-handoff.md:110; grep finds no 'LinuxFs'/'bboltfs' in freeze-r3-3.md.
+**Evidence:** scope.md:562-563 (2026-11-12 user decision); notes/wal-crash-handoff/rung3-handoff.md:110; grep finds no 'LinuxFs'/'bboltfs' in freeze-r3-3.md.
 
 **Fix:** Add a §8: where boltImg/boltCrash agree with or are weaker than bboltfs's bootCrashSafety and P1 relation, what convergence would cost, and a recommendation for the user.
 

@@ -16,7 +16,7 @@ Files here:
 ## Where the work is
 
 - **Branch `crash-rung3`**, worktree `/shared/etcd-grove-rung3`, **not landed** on `lean` (10 commits
-  on top of lean `b4f0711091`, e8cebf8300..7632f56ede). Its own handoff: `notes/crash-rung3-handoff.md` on
+  on top of lean `b4f0711091`, e8cebf8300..7632f56ede). Its own handoff: `notes/wal-crash-handoff/rung3-handoff.md` on
   that branch; decisions in the worktree's untracked `questions.md`. It does not touch
   `GooseLang/Ext/Durable` (W4c's fresh-ghost-names crash change landed on lean, 5961b2f46a; a merge
   would build on it).
