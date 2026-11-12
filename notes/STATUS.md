@@ -242,7 +242,7 @@ the Freeze package `/shared/tmp/r2dpa-freeze-package.md`; the user approved "fre
   (7) `A₀`'s entries `EntryNormal`/`EntryConfChange` (etcd proposes only v1 `ConfChange`s; a WAL
   another tool wrote with an `EntryConfChangeV2` is outside, and Go panics on it); (8)
   `srvRLogLb γ.srv γ.a0`, `A₀` cluster-committed.
-- **Vacuity**: 17 of the 23 `_safe` roots rest on `pbEnc_ok` (inconsistent, lean `cffe36ea9d`) and the
+- **Vacuity** (as of 2026-11-07; resolved: `pbEnc_ok` deleted by per-type stage A, 2026-11-10, the grpc models and pool fixed by stages A and B, 2026-11-12): 17 of the 23 `_safe` roots rested on `pbEnc_ok` (inconsistent, lean `cffe36ea9d`) and the
   refuted grpc message-model axioms; the restart results are vacuous until the per-type fix lands
   (the sections "Soundness bug: `pbEnc_ok` is inconsistent" and "Soundness bug: grpc's message
   models").
@@ -255,7 +255,7 @@ the Freeze package `/shared/tmp/r2dpa-freeze-package.md`; the user approved "fre
   restates row 3 (Q31) and `Hwpend`, derives rows 2 and 4, and discharges 5-8; R2s removes `Hwpend`.) Before landing (the coordinator's): merge `lean` (tip past
   `ad87892323`, errany-remove), `etc/gates.sh`, `etc/land.sh`, then the tag `r2dpa-frozen`.
 
-## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; the pool fixed by per-type stage B, branch `stage-b`, CP3 2026-11-11, not landed; `pbEnc` by the per-type stage, not started)
+## Soundness bugs: `grpc.serve`'s handler pool and `pbEnc` across heaps (found 2026-11-07; FIXED: `pbEnc` by per-type stage A, lean `de9c19e020` 2026-11-10, the axiom deleted; the pool by per-type stage B, lean `51e51adb99` 2026-11-12)
 
 Both are false at the **genuine** message models, so the per-type registry alone does not fix them
 (`notes/per-type-blockers.md`):
@@ -385,7 +385,7 @@ The user's decisions via etcd-grove-82 (2026-11-07):
   `sweep-errany-derive`, `591dfb57f2`), so the two axioms are removed now, as a small stage of
   their own.
 
-## Soundness bug: grpc's message models are a parameter of its axioms (found 2026-11-07; fix decided, not started)
+## Soundness bug: grpc's message models are a parameter of its axioms (found 2026-11-07; FIXED: per-type stage A's registered models, 2026-11-10, and stage B's paired server axioms with the model-param gate, lean `51e51adb99` 2026-11-12)
 
 Four axioms quantify over a record whose fields are a message type's trusted wire model:
 
@@ -413,7 +413,7 @@ the message models, satisfiable `recv`/`send`/`wireLen`, and the gate covering `
 `StreamMsg`. The sweep's other record-quantified axioms are cleared in
 `notes/axiom-review/model-param-sweep.md`.
 
-## Soundness bug: `pbEnc_ok` is inconsistent (found 2026-11-07; fix decided, not started)
+## Soundness bug: `pbEnc_ok` is inconsistent (found 2026-11-07; FIXED by per-type stage A, lean `de9c19e020` 2026-11-10: `pbEnc_ok` deleted from the trust base)
 
 The trust-boundary axiom `pbEnc_ok` (`Proof/google_golang_org/protobuf/proto/InvProto.lean:81`)
 is quantified over any `PbType`, a record whose fields are the trusted model of a message type.
