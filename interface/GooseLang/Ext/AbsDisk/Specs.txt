@@ -257,6 +257,11 @@ theorem Perennial.absDisk_local_crash (hPre : AbsDiskGpreS GF) (hL : AbsDiskGS G
 theorem Perennial.walOwn_timeless [HasExt absDiskExt] [L : GooseLocalGS GF] (M : GMap GoString
     WalDur) : Timeless (walOwn M)
 
+theorem Perennial.walOpening_lenLb [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj GoString] [L
+    : GooseLocalGS GF] (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState) (d : WalDur)
+    (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) : ⊢ walOpening w dir sn -∗ absPast
+    s -∗ walOpening w dir sn ∗ walLenLb w dir n
+
 theorem Perennial.absDiskCtx_keys [HasExt absDiskExt] [GoGlobalContext] [go.IntoValInj GoString] [L
     : GooseLocalGS GF] (s : AbsDiskState) : ⊢ absDiskCtx gooseAbsDiskGS s -∗ ⌜walKeysInArea s⌝
 
