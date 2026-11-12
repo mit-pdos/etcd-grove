@@ -1554,10 +1554,13 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
 
 /-- **The `*raft.MemoryStorage` `ms`**: `Append` of the `Ready`'s entries turns the right into the
 receipt (raft's `MemoryStorage.Append.spec`, `node_contract_memstor`; 2026-10-30, the repair: over
-the range contract, the receipt with nothing frozen). -/
+the range contract, the receipt with nothing frozen). (out_size C2) The entries as frozen objects at
+contents of bounded size (`entsROz true`: each `entSizeOk`), in place of `entriesAt`: the server's
+cluster bounds proposed data (`maxData = some 2^30`), so its storage is sized (the node API's
+`isStorage`), and a `Ready`'s entries come so (`readyEnts`, `Cluster.outEnt_size`). -/
 def isRNMemStor (γ : RNNames) (ms : Loc) : IProp GF :=
-  iprop(□ (∀ (sl : GoSlice) (esL : List Loc) (es : List EntryModel),
-    {{ sl ↦*□ esL ∗ entriesAt esL es ∗ rnAppendRight γ es }}
+  iprop(□ (∀ (sl : GoSlice) (es : List EntryModel),
+    {{ entsROz true sl (es.map EntryModel.toM) ∗ rnAppendRight γ es }}
       (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Append")) (Val #sl))
     {{ RET #(GoInterface.nil); rnAppendReceipt γ es }}))
 

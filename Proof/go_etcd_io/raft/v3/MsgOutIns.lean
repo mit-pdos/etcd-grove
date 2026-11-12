@@ -25,9 +25,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **Insert an object and its content into the handed-out set** (an element already in it is had
-again). -/
+again). (out_size C2) In a cluster with a bound on proposed data, only at a content of bounded size
+(`outSizeOk`), which the element then carries (`outSetR`, whence `out_size`). -/
 theorem raftOutInv_insert (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) (E : CoPset)
-    (HE : ↑(raftOutN γ) ⊆ E) :
+    (HE : ↑(raftOutN γ) ⊆ E) (Hsz : ∀ b, γ.maxData = some b → outSizeOk x) :
     ⊢ raftOutInv (GF := GF) γ ={E}=∗ outSetR γ x := by
   unfold raftOutInv raftOutBody outSetR
   iintro #Hinv
@@ -42,7 +43,8 @@ theorem raftOutInv_insert (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC
         ghostMapElem (GF := GF) γ.out p DFrac.discard ()) hk).2
       iframe He Hels
     imodintro
-    iexact He
+    iframe He
+    ipureintro; exact Hsz
   · obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.1 hk
     ihave #He := BigSepM.bigSepM_lookup (Φ := fun (p : Pos) (_ : Unit) =>
       ghostMapElem (GF := GF) γ.out p DFrac.discard ()) (m := S)
@@ -52,7 +54,8 @@ theorem raftOutInv_insert (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC
       iexists S
       iframe Ha Hels
     imodintro
-    iexact He
+    iframe He
+    ipureintro; exact Hsz
 
 /-- A message handed out: owned, with its `snapUf`, into the set at a content raft pins. -/
 theorem msgOutR_intro (γ : RaftNames) (l : Loc) (dq : DFrac) (st : MsgSt) (E : CoPset)
@@ -61,7 +64,8 @@ theorem msgOutR_intro (γ : RaftNames) (l : Loc) (dq : DFrac) (st : MsgSt) (E : 
   iintro #Hinv Hm #Hu
   icases msgOwn_snapUf_CC l dq st $$ [Hm] with ⟨%c, Hc, %Hok⟩
   · iframe Hm Hu
-  imod raftOutInv_insert γ (.inl (l, c)) E HE $$ Hinv with #Ho
+  -- out_size C2: the size fact comes from `msgQC` at P3 (`msgOuts_insert`)
+  imod raftOutInv_insert γ (.inl (l, c)) E HE (fun _ _ => sorry) $$ Hinv with #Ho
   imodintro
   unfold msgOutR
   iexists c

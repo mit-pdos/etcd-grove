@@ -2189,7 +2189,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
   icases ownRaftLog_caught _ _ $$ Hlog with ⟨#Hcu, Hlog⟩
   icases ownStepGhost_certLink γ _ c id s $$ Hghost with ⟨#Hcl, Hghost⟩
   iunfold certLink at Hcl
-  icases Hcl with ⟨-, Hcl⟩
+  icases Hcl with ⟨-, Hcl, -⟩
   iunfold ctCommitted at Hcl
   icases Hcl with ⟨%Lc, #HLc, %HLct⟩
   rw [← Hgh_unst.1.2.2] at HLct

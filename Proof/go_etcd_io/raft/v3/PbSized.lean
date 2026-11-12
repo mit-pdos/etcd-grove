@@ -14,6 +14,9 @@ the locations.
 - `entsPtsZ sz s dq es` (`entsROz` at `DFrac.discard`): `entsPts` with `entRZ sz` in place of
   `entRO`, and its slicing laws, mirroring `InvPbLog.lean`'s. (The Scope writes it with one list of
   contents, `∃ ls cs`; pointwise is the same, the conjuncts being persistent and pure.)
+- (out_size C2) `entsPtsC sz s dq cs`: the same at the list of contents `cs` (the storage contract's
+  `Entries` post), and `entsCut maxSize cs`: one entry, or their protobuf sizes sum to at most
+  `maxSize` (Go's `limitSize`).
 -/
 module
 
@@ -67,7 +70,32 @@ instance entsROz_persistent (sz : Bool) (s : GoSlice) (es : List EntryM) :
     Persistent (entsROz (GF := GF) sz s es) := by
   unfold entsROz entsPtsZ; infer_instance
 
+/-- **A `[]*pb.Entry` at the contents `cs`** (out_size C2, the storage contract's list form): the
+slice `s` at `dq` of frozen entry objects at the contents `cs`, each `entSizeOk` when `sz`. What the
+storage contract's `Entries` returns (`isStorageP`), so that its cut (`entsCut`) can speak of the
+contents' sizes. `entsPtsZ sz s dq (cs.map EntryC.model)` is the same ownership with the contents
+hidden (`entsPtsC_entsPtsZ`, `entsPtsZ_entsPtsC`). -/
+def entsPtsC (sz : Bool) (s : GoSlice) (dq : DFrac) (cs : List EntryC) : IProp GF :=
+  iprop(∃ (ls : List Loc), s ↦*{dq} ls ∗ ([∗list] l;c ∈ ls;cs, entRoC l c) ∗
+    ⌜sz = true → ∀ c ∈ cs, entSizeOk c⌝)
+
+instance entsPtsC_persistent (sz : Bool) (s : GoSlice) (cs : List EntryC) :
+    Persistent (entsPtsC (GF := GF) sz s DFrac.discard cs) := by
+  unfold entsPtsC; infer_instance
+
 end defs
+
+section cut
+variable [GooseExts]
+
+/-- **A batch of entries cut at `maxSize`** (out_size C2; Go's `limitSize`, `util.go`): one entry,
+or protobuf's sizes of the entries (`entrySize`, what `proto.Size` returns of each) sum to at most
+`maxSize`. What `MemoryStorage.Entries` returns (its `limitSize`) and raft's `MsgApp` carries
+(`raftLog.entries(next, maxMsgSize)`), whence the message's framed sum (`msgSizeOk`). -/
+def entsCut (maxSize : w64) (cs : List EntryC) : Prop :=
+  cs.length = 1 ∨ (cs.map entrySize).sum ≤ uint.nat maxSize
+
+end cut
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -267,6 +295,17 @@ theorem entsPtsZ_nil (sz : Bool) (dq : DFrac) : ⊢ entsPtsZ (GF := GF) sz slice
   isplitr
   · iapply ownSlice_nil
   · iapply BigSepL2.bigSepL2_nil.2; iempintro
+
+/-- (out_size C2; proof at P2) The list form hides its contents. -/
+theorem entsPtsC_entsPtsZ (sz : Bool) (s : GoSlice) (dq : DFrac) (cs : List EntryC) :
+    entsPtsC (GF := GF) sz s dq cs ⊢ entsPtsZ sz s dq (cs.map EntryC.model) := by
+  sorry
+
+/-- (out_size C2; proof at P2) ... and recovers them, by induction as `entsRO_entsRoC`. -/
+theorem entsPtsZ_entsPtsC (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :
+    entsPtsZ (GF := GF) sz s dq es ⊢
+      ∃ cs : List EntryC, entsPtsC sz s dq cs ∗ ⌜cs.map EntryC.model = es⌝ := by
+  sorry
 
 /-- An entry slice, frozen read-only. -/
 theorem entsPtsZ_persist (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :

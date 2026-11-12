@@ -1698,7 +1698,7 @@ the attach (`restartStorage`'s continuation, where raft allocates `K`). By this 
 `nodeAppliedLb γ K`/`nodeCommitLb γ K` are the floor's, the snapshot hand-out's and the certified
 terms' lower bounds of the one node attached to it. -/
 def storKeyNames (K : GName) (sn : StorNames) : IProp GF :=
-  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct)
+  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz)
 
 instance storKeyNames_persistent (K : GName) (sn : StorNames) :
     Persistent (storKeyNames (GF := GF) K sn) := by
@@ -1715,8 +1715,9 @@ theorem storKeyNames_agree (K : GName) (sn1 sn2 : StorNames) :
   ihave %H := dghostVar_agree _ _ _ _ _ $$ E1 E2
   ipureintro
   simp only [Prod.mk.injEq] at H
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := H
-  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5 h6 h7 h8; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := H
+  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5 h6 h7 h8 h9
+  subst h1 h2 h3 h4 h5 h6 h7 h8 h9; rfl
 
 /-- (U8 v2, 2026-10-29; 2026-11-01, durability stage I-4: keyed by the storage's key, with
 `snapGiven` merged in) **Compacting the storage of key `K` up to `k` is safe** (the API's
@@ -2389,7 +2390,8 @@ theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) �
     icases BigSepL2.bigSepL2_cons_inv_left.1 $$ H with ⟨%e, %es', %He, #H1, H⟩
     subst He
     icases (entPts_iff_CC l DFrac.discard e).1 $$ H1 with ⟨%c, #Hc, %Hm⟩
-    imod raftOutInv_insert γ.raft (.inr (l, c)) E HE $$ Hinv with #Ho
+    -- out_size C2: the size fact comes from `entsROz` at P3 (`readyEntsU_intro`)
+    imod raftOutInv_insert γ.raft (.inr (l, c)) E HE (fun _ _ => sorry) $$ Hinv with #Ho
     imod entsOut_insert γ E HE ls es' $$ Hinv H with ⟨%cs, H, %Hcs⟩
     imodintro
     iexists c :: cs

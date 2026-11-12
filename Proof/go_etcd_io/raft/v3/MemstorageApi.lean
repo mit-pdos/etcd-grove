@@ -71,18 +71,20 @@ theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GNa
   -- PORT(durability stage II): restated (I-4: keyed by `K`, the generalized attach)
   sorry
 
-/-- **A registered `MemoryStorage` meets the storage contract of key `K`.** -/
+/-- **A registered `MemoryStorage` meets the storage contract of key `K`.** (out_size C2) A
+cluster that bounds proposed data needs a sized storage (`γs.sz`, chosen at `NewMemoryStorage`). -/
 theorem memStorage_isStorage
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
-    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (hsz : γ.maxData.isSome = true → γs.sz = true) :
     ⊢ memStorInv (GF := GF) ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms) := by
-  unfold memStorInv isStorage
-  exact memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
-    (memStorJ γ K)
+  -- out_size C2: the proof (P2) weakens `memStorage_isStorageP` at `γs.sz` to `γ.maxData.isSome`
+  -- by `hsz` (a sized storage's contract implies the unsized one's)
+  sorry
 
 end api
 

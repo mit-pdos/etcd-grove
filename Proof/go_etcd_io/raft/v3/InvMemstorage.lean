@@ -132,6 +132,10 @@ structure MemStorNames where
   sl : GName
   /-- the stored snapshot opened for writes (monotone, `0` or `1`) -/
   pr : GName
+  /-- (out_size C2; ghost, chosen at `NewMemoryStorage`) the storage is **sized**: its entry objects
+  are at contents of bounded size (`entSizeOk`), which `Append` takes (`entsPtsZ γs.sz`) and
+  `Entries` returns, cut at `maxSize` (`isStorageP γs.sz`) -/
+  sz : Bool
 
 /-- **The justification parameters** (see the file header): step 4 instantiates them to the API's
 names. -/

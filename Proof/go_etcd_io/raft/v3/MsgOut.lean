@@ -159,9 +159,13 @@ instance snapUfT_persistent (l : Loc) (ty : w32) : Persistent (snapUfT (GF := GF
 /-- `snapUfT` at a message's type. -/
 abbrev snapUf (l : Loc) (st : MsgSt) : IProp GF := snapUfT l st.msg.Type'
 
-/-- **An element of the handed-out set** (persistent): the object and content `x`, by its key. -/
+/-- **An element of the handed-out set** (persistent): the object and content `x`, by its key.
+(out_size C2, the Scope's D1) It carries the size law's conclusion: in a cluster with a bound on
+proposed data, `x` is of bounded size (`outSizeOk`), which raft's `Ready` proofs establish at
+insertion (`raftOutInv_insert`). -/
 def outSetR (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) : IProp GF :=
-  ghostMapElem γ.out (Pos.Countable.encode (outKey x)) DFrac.discard ()
+  iprop(ghostMapElem γ.out (Pos.Countable.encode (outKey x)) DFrac.discard () ∗
+    ⌜∀ b, γ.maxData = some b → outSizeOk x⌝)
 
 instance outSetR_persistent (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) :
     Persistent (outSetR (GF := GF) γ x) := by
@@ -200,7 +204,11 @@ comes first; until then the law's Go argument covers restarts only under it.
 5 to 4 then. `outObjR_size`/`outEntR_size` (and the node API's `Cluster.outObj_size`/
 `Cluster.outEnt_size`) are derived from it. -/
 theorem out_size (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) (b : Nat) :
-    outSetR (GF := GF) γ x ⊢ ⌜γ.maxData = some b → outSizeOk x⌝ := sorry
+    outSetR (GF := GF) γ x ⊢ ⌜γ.maxData = some b → outSizeOk x⌝ := by
+  unfold outSetR
+  iintro ⟨-, %H⟩
+  ipureintro
+  exact H b
 
 /-- **A handed-out message is of bounded size** (derived from `out_size`), unless a `MsgSnap`. -/
 theorem outObjR_size (γ : RaftNames) (m : Loc) (c : MsgC) (b : Nat) :
