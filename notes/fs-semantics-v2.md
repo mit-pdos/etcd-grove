@@ -55,7 +55,7 @@ back as one state `valAt · m` of that sector. False of C in general (A, B); ass
 WAL, whose `isTornEntry` relies on it: a known limitation (`notes/STATUS.md`;
 `nonissues/etcd-wal-torn-tail-mid-sector.md`). bbolt's P1 (a validating meta slot is one state of
 its sector, `valAt · m`) is stated in bbolt's statement file the same way
-(`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`); it removes no crash of
+(`LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean`); it removes no crash of
 minibolt's real runs (the final review, `notes/axiom-review/fs-final.md`, and `P1Sat.lean`).
 
 **Open.** The stamps of a change are taken at its start with all its data; a short write's real
