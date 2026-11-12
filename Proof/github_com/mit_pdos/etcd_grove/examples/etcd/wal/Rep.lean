@@ -41,6 +41,24 @@ instance TEnt_decEq : DecidableEq TEnt := fun a b =>
   decidable_of_iff (a.index' = b.index' ∧ a.term' = b.term' ∧ a.size' = b.size' ∧ a.salt' = b.salt')
     (by cases a; cases b; simp)
 
+instance TOp_decEq : DecidableEq TOp := fun a b =>
+  decidable_of_iff (a.snap = b.snap ∧ a.hs = b.hs ∧ a.ents = b.ents ∧ a.idx = b.idx ∧ a.term = b.term)
+    (by cases a; cases b; simp)
+
+instance TContents_decEq : DecidableEq TContents := fun a b =>
+  decidable_of_iff (a.hs = b.hs ∧ a.baseIdx = b.baseIdx ∧ a.baseTerm = b.baseTerm ∧ a.ents = b.ents)
+    (by cases a; cases b; simp)
+
+/-- Two lists of equal length agreeing on their first `i` elements and differing at `i` differ. -/
+theorem list_ne_of_getElem {α : Type} {l1 l2 : List α} {i : Nat} {x y : α} (h1 : l1[i]? = some x)
+    (h2 : l2[i]? = some y) (hne : x ≠ y) : l1 ≠ l2 := by
+  rintro rfl; rw [h1] at h2; exact hne (Option.some.inj h2)
+
+/-- Two lists of equal length that agree on every prefix element agree. -/
+theorem list_take_succ_eq {α : Type} {l1 l2 : List α} {i : Nat} {x : α} (h1 : l1[i]? = some x)
+    (h2 : l2[i]? = some x) (h : l1.take i = l2.take i) : l1.take (i + 1) = l2.take (i + 1) := by
+  rw [List.take_add_one, List.take_add_one, h1, h2, h]
+
 end pure
 
 section rep
@@ -49,6 +67,12 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
+
+theorem val_false_ne_true : (#false : val) ≠ #true := fun h => by
+  cases GoGlobalContext.intoVal_inj_bool h
+
+theorem val_true_ne_false : (#true : val) ≠ #false := fun h => by
+  cases GoGlobalContext.intoVal_inj_bool h
 
 /-- A postcondition at a value computed in the proof: `HΦ` at any `y` equal to the spec's `x` (so
 each branch of a proof returns its own expression of the value and proves it equal). -/
