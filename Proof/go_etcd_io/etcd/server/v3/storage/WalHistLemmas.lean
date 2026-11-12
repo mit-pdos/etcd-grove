@@ -121,6 +121,41 @@ theorem walImg_trans {H I I' : List (WalOpG E)} {n : Nat} (hI : walImg H n I) (h
         refine ⟨j', h1, h2, Or.inr ⟨h, es, min k' k, hj, by omega, ?_⟩⟩
         rw [h3', List.take_append_of_le_length (by omega), List.take_of_length_le (by omega),
           List.take_take]
+
+/-- **Images commute with a map of the entries** (`toM`, `toRaw`). -/
+theorem walImg_map {E' : Type} (f : WalOpG E → WalOpG E') (g : E → E')
+    (hsave : ∀ h es, f (.save h es) = .save h (es.map g))
+    {H I : List (WalOpG E)} {n : Nat} (hI : walImg H n I) : walImg (H.map f) n (I.map f) := by
+  obtain ⟨j, h1, h2, h3 | ⟨h, es, k, hj, hk, h3⟩⟩ := hI
+  · subst h3
+    exact ⟨j, h1, by simpa using h2, Or.inl (List.map_take ..)⟩
+  · subst h3
+    refine ⟨j, h1, by simpa using h2, Or.inr ⟨h, es.map g, k, ?_, by simpa using hk, ?_⟩⟩
+    · rw [List.getElem?_map, hj]; simp [hsave]
+    · simp [List.map_append, List.map_take, hsave]
+
+/-- Each operation of an image is the history's at its position, or a (torn) `Save`. -/
+theorem walImg_getElem? {H I : List (WalOpG E)} {n : Nat} (hI : walImg H n I) {i : Nat}
+    {o : WalOpG E} (ho : I[i]? = some o) : H[i]? = some o ∨ ∃ h es, o = .save h es := by
+  obtain ⟨j, h1, h2, h3 | ⟨h, es, k, hj, hk, h3⟩⟩ := hI
+  · subst h3
+    have hl := getElem?_some_lt ho
+    simp only [List.length_take] at hl
+    rw [List.getElem?_take_of_lt (by omega)] at ho
+    exact Or.inl ho
+  · subst h3
+    have hl := getElem?_some_lt ho
+    have hjl := getElem?_some_lt hj
+    have hl' : (H.take j).length = j := by simp; omega
+    simp only [List.length_append, hl', List.length_cons, List.length_nil] at hl
+    rcases Nat.lt_or_ge i j with hij | hij
+    · rw [List.getElem?_append_left (by omega), List.getElem?_take_of_lt hij] at ho
+      exact Or.inl ho
+    · have : i = j := by omega
+      subst this
+      rw [List.getElem?_append_right (by omega), hl', Nat.sub_self] at ho
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at ho
+      exact Or.inr ⟨_, _, ho.symm⟩
 end img
 
 /-! ## A2. The read's hard state -/
@@ -565,6 +600,201 @@ theorem walReadCut_wf {I : WalHist} {k : Nat} {σ : StorContents}
     split at h
     · cases h
     · exact walFoldChkFrom_wf (by intro j e he; simp at he) h
+
+/-! ## A1 over the model's entries -/
+
+theorem walOps_toRaw_toM (H : List (WalOpG WalEnt)) : (H.map WalOpG.toM).map WalOpG.toRaw = H := by
+  simp [List.map_map, Function.comp_def, WalOpG.toRaw_toM]
+
+/-- Images over raw entries are images over the model's. -/
+theorem walImg_toM_iff {H I : List (WalOpG WalEnt)} {n : Nat} :
+    walImg (H.map WalOpG.toM) n (I.map WalOpG.toM) ↔ walImg H n I := by
+  constructor
+  · intro h
+    have := walImg_map WalOpG.toRaw EntryM.toRaw (fun _ _ => rfl) h
+    rwa [walOps_toRaw_toM, walOps_toRaw_toM] at this
+  · exact walImg_map WalOpG.toM WalEnt.toM (fun _ _ => rfl)
+
+/-- An image of a raw history read over the model's entries is the model's image of a raw one. -/
+theorem walImg_toM_ex {H : List (WalOpG WalEnt)} {n : Nat} {I' : WalHist}
+    (h : walImg (H.map WalOpG.toM) n I') : ∃ I, I' = I.map WalOpG.toM ∧ walImg H n I := by
+  refine ⟨I'.map WalOpG.toRaw, by simp [List.map_map, Function.comp_def, WalOpG.toM_toRaw], ?_⟩
+  rw [← walImg_toM_iff]
+  simpa [List.map_map, Function.comp_def, WalOpG.toM_toRaw] using h
+
+/-! ## A5. The read's entries come from the history -/
+
+theorem readEnt_sub {b : Nat} {ents ents' : List EntryM} {e : EntryM}
+    (h : readEnt b ents e = some ents') : ∀ x ∈ ents', x ∈ ents ∨ x = e := by
+  unfold readEnt at h
+  split at h
+  · simp only [Option.some.injEq] at h; subst h; intro x hx; cases hx
+  · split at h
+    · simp only [Option.some.injEq] at h; subst h
+      intro x hx
+      rcases List.mem_append.1 hx with hx | hx
+      · exact Or.inl (List.mem_of_mem_take hx)
+      · exact Or.inr (List.mem_singleton.1 hx)
+    · cases h
+
+theorem readEnts_sub {b : Nat} {es : List EntryM} : ∀ {ents ents' : List EntryM},
+    es.foldlM (fun ents e => readEnt b ents e) ents = some ents' →
+    ∀ x ∈ ents', x ∈ ents ∨ x ∈ es := by
+  induction es with
+  | nil =>
+    intro ents ents' h
+    simp only [List.foldlM_nil, Option.pure_def, Option.some.injEq] at h; subst h
+    exact fun x hx => Or.inl hx
+  | cons e es ih =>
+    intro ents ents' h
+    simp only [List.foldlM_cons, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+    obtain ⟨m, hm, h⟩ := h
+    intro x hx
+    rcases ih h x hx with hx | hx
+    · rcases readEnt_sub hm x hx with hx | rfl
+      · exact Or.inl hx
+      · exact Or.inr (List.mem_cons_self ..)
+    · exact Or.inr (List.mem_cons_of_mem _ hx)
+
+theorem walSaveSnap_ents_sub (σ : StorContents) (m : SnapshotMetadataM) :
+    ∀ x ∈ (walSaveSnap σ m).ents, x ∈ σ.ents := by
+  unfold walSaveSnap
+  split
+  · exact fun x hx => hx
+  · intro x hx
+    simp only at hx
+    split at hx
+    · exact List.mem_of_mem_drop hx
+    · cases hx
+
+/-- A checked fold's entries are the start's or come from a `Save` of the folded history. -/
+theorem walFoldChkFrom_ents_sub {σ σ' : StorContents} {H : WalHist}
+    (h : walFoldChkFrom σ H = some σ') :
+    ∀ x ∈ σ'.ents, x ∈ σ.ents ∨ ∃ hs es, WalOpG.save hs es ∈ H ∧ x ∈ es := by
+  induction H generalizing σ with
+  | nil =>
+    simp only [walFoldChkFrom, Option.some.injEq] at h; subst h
+    exact fun x hx => Or.inl hx
+  | cons o H ih =>
+    cases o with
+    | snap m =>
+      simp only [walFoldChkFrom] at h
+      intro x hx
+      rcases ih h x hx with hx | ⟨hs, es, h1, h2⟩
+      · exact Or.inl (walSaveSnap_ents_sub σ m x hx)
+      · exact Or.inr ⟨hs, es, List.mem_cons_of_mem _ h1, h2⟩
+    | save hs es =>
+      simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+      obtain ⟨ents, he, h⟩ := h
+      intro x hx
+      rcases ih (σ := { σ with hs := phsNext σ.hs hs, ents := ents }) h x hx with hx | ⟨hs', es', h1, h2⟩
+      · rcases readEnts_sub he x hx with hx | hx
+        · exact Or.inl hx
+        · exact Or.inr ⟨hs, es, List.mem_cons_self .., hx⟩
+      · exact Or.inr ⟨hs', es', List.mem_cons_of_mem _ h1, h2⟩
+
+/-- **A5: a read's entries come from the history's `Save`s.** -/
+theorem walReadCut_ents_sub {I : WalHist} {k : Nat} {σ : StorContents}
+    (h : walReadCut I k = some σ) : ∀ e ∈ σ.ents, ∃ hs es, WalOpG.save hs es ∈ I ∧ e ∈ es := by
+  intro e he
+  unfold walReadCut at h
+  split at h
+  · unfold walRead at h
+    rcases walFoldChkFrom_ents_sub h e he with he | ⟨hs, es, h1, h2⟩
+    · simp [walFresh] at he
+    · exact ⟨hs, es, (List.mem_filter.1 h1).1, h2⟩
+  · unfold walReadFrom at h
+    simp only at h
+    split at h
+    · cases h
+    · rcases walFoldChkFrom_ents_sub h e he with he | ⟨hs, es, h1, h2⟩
+      · cases he
+      · exact ⟨hs, es, List.mem_of_mem_drop ((List.mem_filter.1 h1).1), h2⟩
+
+/-- A5 over raw histories: a read's entries come from a raw `Save` (whose entries, for a `sized`
+history, are of bounded size). -/
+theorem walReadCut_ents_sub_raw {I : List (WalOpG WalEnt)} {k : Nat} {σ : StorContents}
+    (h : walReadCut (I.map WalOpG.toM) k = some σ) :
+    ∀ e ∈ σ.ents, ∃ hs es, WalOpG.save hs es ∈ I ∧ e.toRaw ∈ es := by
+  intro e he
+  obtain ⟨hs, es, h1, h2⟩ := walReadCut_ents_sub h e he
+  obtain ⟨o, ho, hoe⟩ := List.mem_map.1 h1
+  cases o with
+  | snap m => simp [WalOpG.toM] at hoe
+  | save hs' es' =>
+    simp only [WalOpG.toM, WalOpG.save.injEq] at hoe
+    obtain ⟨-, rfl⟩ := hoe
+    obtain ⟨r, hr, rfl⟩ := List.mem_map.1 h2
+    exact ⟨hs', es', ho, by rw [EntryM.toRaw_toM]; exact hr⟩
+
+/-! ## A4 (second half). The read's last index is bounded -/
+
+/-- Every entry and snapshot index of `I` is at most `B`. -/
+def walIdxLe (B : Nat) (I : WalHist) : Prop :=
+  (∀ hs es e, WalOpG.save hs es ∈ I → e ∈ es → uint.nat e.Index' ≤ B) ∧
+  (∀ m, WalOpG.snap m ∈ I → uint.nat m.Index' ≤ B)
+
+theorem walFoldChkFrom_b_le {B : Nat} {σ σ' : StorContents} {H : WalHist}
+    (hH : ∀ m, WalOpG.snap m ∈ H → uint.nat m.Index' ≤ B) (h0 : σ.b ≤ B)
+    (h : walFoldChkFrom σ H = some σ') : σ'.b ≤ B := by
+  induction H generalizing σ with
+  | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; exact h0
+  | cons o H ih =>
+    cases o with
+    | snap m =>
+      simp only [walFoldChkFrom] at h
+      refine ih (fun m' hm' => hH m' (List.mem_cons_of_mem _ hm')) ?_ h
+      rcases walSaveSnap_cases σ m with he | ⟨-, h2⟩
+      · rw [he]; exact h0
+      · simp only [StorContents.b, h2]; exact hH m (List.mem_cons_self ..)
+    | save hs es =>
+      simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+      obtain ⟨ents, -, h⟩ := h
+      exact ih (σ := { σ with hs := phsNext σ.hs hs, ents := ents })
+        (fun m' hm' => hH m' (List.mem_cons_of_mem _ hm')) h0 h
+
+theorem walNewest_mem {H : WalHist} {m : SnapshotMetadataM} (h : walNewest H = some m) :
+    ∃ m', WalOpG.snap m' ∈ H ∧ m'.Index' = m.Index' := by
+  have hp := walNewest_pair H
+  rw [h, Option.map_some] at hp
+  have hm := walNewestPair_mem hp.symm
+  obtain ⟨o, ho, hoe⟩ := List.mem_filterMap.1 hm
+  cases o with
+  | save _ _ => cases hoe
+  | snap m' =>
+    simp only [Option.some.injEq, Prod.mk.injEq] at hoe
+    exact ⟨m', ho, hoe.1⟩
+
+/-- **A4: a read's last index is at most a bound of the history's indexes** (restart S3's
+`walRead_wf`, its second half, at `B = 2^61`). -/
+theorem walReadCut_last_le {B : Nat} {I : WalHist} {k : Nat} {σ : StorContents}
+    (hB : walIdxLe B I) (h : walReadCut I k = some σ) : σ.last ≤ B := by
+  unfold StorContents.last
+  rcases Nat.eq_zero_or_pos σ.ents.length with hl | hl
+  · rw [hl, Nat.add_zero]
+    unfold walReadCut at h
+    split at h
+    · unfold walRead at h
+      refine walFoldChkFrom_b_le (fun m hm => hB.2 m ((List.mem_filter.1 hm).1)) ?_ h
+      simp [walFresh, StorContents.b]
+    · unfold walReadFrom at h
+      simp only at h
+      split at h
+      · cases h
+      · next m hm =>
+        refine walFoldChkFrom_b_le
+          (fun m hm' => hB.2 m (List.mem_of_mem_drop ((List.mem_filter.1 hm').1))) ?_ h
+        obtain ⟨m', h1, h2⟩ := walNewest_mem hm
+        simp only [StorContents.b]
+        rw [← h2]
+        exact hB.2 m' (List.mem_of_mem_drop ((List.mem_filter.1 h1).1))
+  · have hlt : σ.ents.length - 1 < σ.ents.length := by omega
+    have hj : σ.ents[σ.ents.length - 1]? = some (σ.ents[σ.ents.length - 1]'hlt) :=
+      List.getElem?_eq_getElem hlt
+    have hw := walReadCut_wf h _ _ hj
+    obtain ⟨hs, es, h1, h2⟩ := walReadCut_ents_sub h _ (List.getElem_mem hlt)
+    have := hB.1 hs es _ h1 h2
+    omega
 
 end reader
 
