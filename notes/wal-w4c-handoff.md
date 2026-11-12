@@ -34,9 +34,15 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
 - Not done in step 0: the count of restarts the bounds accept only through a purged prefix (needs
   instrumentation; optional); R4's `entRoC` probe (deferred to step 2).
 
+- **CP1 result (2026-11-12): 9/9 runs PASS, 0 violations, 0 harness errors.**
+  - Runs: kill, ordered, posix x2, kill-then-power posix and ordered (W3b seeds), and l-kill,
+    l-posix, l-ordered (10 incarnations x 40 ops).
+  - About 11,000 restarts checked.
+  - CP1 reported to etcd-grove-81.
+
 ## Next, in order
 
-1. CP1 report to etcd-grove-81 once the matrix ends (0 violations required).
+1. (CP1 done.)
 2. The purgeRound Freeze (hard stop):
    - `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/purgeRound.lean`: the axiom (plan §5),
      plus its Spec file;
