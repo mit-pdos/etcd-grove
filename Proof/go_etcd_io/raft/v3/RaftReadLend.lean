@@ -65,6 +65,47 @@ instance raftReadLend_persistent (P : IProp GF) (c : CfgM) (r : Loc) (id : w64) 
 
 end defs
 
+/-! ## Some ghost names (for the untraced instances of the traced statements)
+
+A traced statement (`raft.switchToConfig.spec`, `raft.applyConfChange.tracedSpec`) quantifies over the
+cluster's ghost names `γ`, which its capability (`trCapB s.gh.tr γ …`, `emp` untraced) reads; an
+untraced caller, which has none, passes this value. -/
+
+/-- A `RaftNames` value: one voter, nothing allocated (never owned: only for untraced instances). -/
+def raftNames0 [GooseExts] : RaftNames where
+  reCfg := {[W64 1]}
+  reVotes := ∅
+  reTerms := ∅
+  reAcks := ∅
+  reCamp := ∅
+  reVlogs := ∅
+  reWins := ∅
+  reEvs := ∅
+  reCommit := default
+  reProps := default
+  reRLog := default
+  reFresh := default
+  reLcm := ∅
+  reRdq := ∅
+  reReads := default
+  reRdFresh := default
+  reRdCred := default
+  reTbl := default
+  reDyn := none
+  reCCOk := fun _ _ => True
+  reBootRaw := []
+  reCfg_ne := fun h => by
+    have hm : W64 1 ∈ ({[W64 1]} : GSet w64) := GMap.elem_of_singleton_2 _
+    rw [h] at hm
+    exact (GMap.elem_of_empty _).1 hm
+  reTracked := none
+  reTracked_ok := fun _ h => by cases h
+  reNoSnap := false
+  reNoSnap_ok := fun h => by cases h
+  reNoXfer := false
+  reNoXfer_ok := fun h => by cases h
+  reSnapOkRaw := fun _ _ => True
+
 /-! ## Out of the sealed struct -/
 
 set_option hygiene false in
