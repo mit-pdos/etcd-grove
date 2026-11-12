@@ -333,7 +333,7 @@ theorem raft.appendEntry.wp_proof
     try wp_auto
     imod cellRO_alloc $$ «$v2» with #cIx
     try wp_auto
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, id, 0, 0, 0, li2, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hr
+    imod msgOwnZ_lit0 _ «$a0_ptr» _ ⟨W32 4, id, 0, 0, 0, li2, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hr
     · iframe «$a0» cTy cTo cIx
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
@@ -346,7 +346,7 @@ theorem raft.appendEntry.wp_proof
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     try wp_auto
     iapply HΦ
     simp only [↓reduceIte]

@@ -186,6 +186,8 @@ local macro "msa_send" : tactic => `(tactic| (
     simp only [snapOpt]
     msg_nulls
     try itrivial
+  -- (out_size C3, temporary) the `MsgApp`'s size: `msgOwnZ_sized_TODO`
+  ihave Hm := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _ (by simp [MsgSnap]) $$ Hm
   wp_apply wp_raft_send c r id s «$a0_ptr»
       ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
@@ -193,7 +195,7 @@ local macro "msa_send" : tactic => `(tactic| (
       (fun h => absurd h (by simp [MsgSnap])) (fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
       rfl $$ [Hphys Hm] as Hphys
   · iframe
-    iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   wp_apply wp_payloadsSize sl_e es_e DFrac.discard $$ [] as %psz ⟨-, -⟩
   · iframe # ∗
   -- `pr.SentEntries(...)`: `send` changed only the outbox, so `pr` is still at `p`

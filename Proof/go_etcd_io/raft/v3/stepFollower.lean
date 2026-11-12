@@ -122,6 +122,9 @@ theorem stepFollower.wp_proof
       wp_auto
       ihave Hm := Hback $$ %_ %s.lead HTo cTo
       imod msgIn_to_msgOwn $$ Hm with Hm
+      -- (out_size C3, temporary) the forward's size: `msgOwnZ_sized_TODO`
+      ihave Hm := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _
+        (fun h => by simp [Hty, MsgProp, MsgReadIndex, MsgTransferLeader, MsgSnap] at h) $$ Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
           [propForward id s.lead m ents cl]
           (Or.imp_right Or.inl Hfrom0)
@@ -129,7 +132,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
           (fun h => by simp [Hty, MsgProp, MsgApp] at h)
         (Hnors (.inl Hty)) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -243,6 +246,9 @@ theorem stepFollower.wp_proof
       wp_auto
       ihave Hm := Hback $$ %_ %s.lead HTo cTo
       imod msgIn_to_msgOwn $$ Hm with Hm
+      -- (out_size C3, temporary) the forward's size: `msgOwnZ_sized_TODO`
+      ihave Hm := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _
+        (fun h => by simp [Hty, MsgProp, MsgReadIndex, MsgTransferLeader, MsgSnap] at h) $$ Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
           [readForward id s.lead m ents cl]
           (Or.inr (Or.inr (Or.inl Hty)))
@@ -250,7 +256,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
           (fun h => by simp [Hty, MsgReadIndex, MsgApp] at h)
         (Hnors (.inr (.inl Hty))) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -412,6 +418,9 @@ theorem stepFollower.wp_proof
       wp_auto
       ihave Hm := Hback $$ %_ %s.lead HTo cTo
       imod msgIn_to_msgOwn $$ Hm with Hm
+      -- (out_size C3, temporary) the forward's size: `msgOwnZ_sized_TODO`
+      ihave Hm := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _
+        (fun h => by simp [Hty, MsgProp, MsgReadIndex, MsgTransferLeader, MsgSnap] at h) $$ Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs []
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
@@ -419,7 +428,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty))) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
       iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys

@@ -116,6 +116,25 @@ theorem msgOwnZ_of_uf (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt)
   exact msgSizeOk_of_lit c Hu (by rw [Hmod]; exact h2) (by rw [Hmod]; exact h3)
     (by rw [Hmod]; exact h1) (by rw [Hmod]; exact h4)
 
+/-- **TEMPORARY (out_size C3, branch only; gone before C3 lands).** A message raft holds in today's
+form (not a `MsgSnap`), at a content of bounded size under any flag. The `sorry` is the size fact
+alone (`msgSizeOk` under `sz`), for the senders whose bound waits on P4 or on the read requests at
+contents: `maybeSendAppend` (the `MsgApp` sum), `stepFollower`'s three forwards (received:
+`msgInC`), `sendMsgReadIndexResponse` and `stepLeader`'s `MsgReadIndexResp` (the stored request's
+entries), `sendHeartbeat` and `handleHeartbeat` (the contexts). Listed in the handoff. -/
+theorem msgOwnZ_sized_TODO (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt)
+    (hty : st.msg.Type' ≠ MsgSnap) :
+    msgOwn (GF := GF) l dq st ⊢ msgOwnZ sz l dq st := by
+  iintro H
+  ihave H := msgOwnZ_of_snapUf l dq st $$ [H]
+  · iframe H; unfold snapUf snapUfT; ileft; ipureintro; exact hty
+  unfold msgOwnZ
+  icases H with ⟨%c, Hc, %Hok⟩
+  iexists c
+  iframe Hc
+  ipureintro
+  exact ⟨Hok.1, Hok.2.1, fun _ _ => sorry⟩
+
 end lemmas
 
 section halves

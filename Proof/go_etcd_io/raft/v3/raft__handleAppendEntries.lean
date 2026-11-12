@@ -48,7 +48,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dst idx hintterm hint : w64)
     (rej : Bool) (Hdst : dst ≠ id) (Htz : s.term ≠ W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        msgOwn ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ }}
+        msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
     {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
@@ -56,7 +56,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Htz, fun h => absurd h Hdst, rfl⟩))))
       (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-  · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   iapply HΦ
   iexact Hphys
 
@@ -127,7 +127,7 @@ theorem raft.handleAppendEntries.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     imod cellRO_alloc $$ «$v2» with #cIx
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
+    imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
       $$ [«$a0»] with Hr
     · iframe «$a0» cTy cFr cIx
       isplitr
@@ -174,7 +174,7 @@ theorem raft.handleAppendEntries.wp_proof
       wp_auto
       reply_head
       imod cellRO_alloc $$ «$v2» with #cIx
-      imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lastnewi, 0, 0, false, 0⟩ ⊤
+      imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lastnewi, 0, 0, false, 0⟩ ⊤
         $$ [«$a0»] with Hr
       · iframe «$a0» cTy cFr cIx
         isplitr
@@ -232,7 +232,7 @@ theorem raft.handleAppendEntries.wp_proof
       imod cellRO_alloc $$ «$v3» with #cRj
       imod cellRO_alloc $$ «$v4» with #cRh
       imod cellRO_alloc $$ «$v5» with #cLt
-      imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, hintterm, m.Index', 0, 0, true, hint⟩ ⊤
+      imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, hintterm, m.Index', 0, 0, true, hint⟩ ⊤
         $$ [«$a0»] with Hr
       · iframe «$a0» cTy cFr cIx cRj cRh cLt
         isplitr

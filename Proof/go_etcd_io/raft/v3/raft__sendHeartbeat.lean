@@ -80,13 +80,15 @@ theorem raft.sendHeartbeat.wp_proof
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     msg_nulls
+  -- (out_size C3, temporary) the context's size: `msgOwnZ_sized_TODO`
+  ihave Hm := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _ (by simp [MsgSnap]) $$ Hm
   have Hok : SendOk id s ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ [] cl
       [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl] :=
     Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, Htz, rfl⟩)
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-  · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   icases ownRaftPhysC_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨%Hok, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa
   ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok Hl).sentCommit _)

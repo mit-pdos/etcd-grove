@@ -115,7 +115,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     wp_auto
     iclear Hmback HFr
     let ack : MessageM := ⟨W32 4, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩
-    imod msgOwn_of_scalars «$a0_ptr» _ ack ⊤ $$ [«$a0»] with Hack
+    imod msgOwn_of_scalars _ «$a0_ptr» _ ack ⊤ $$ [«$a0»] with Hack
     · iframe «$a0» cTy cFr
       isplitr; · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
       repeat (isplitr; · iapply cellRO_null)
@@ -125,7 +125,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
       rfl $$ [$Hphys $Hack] as Hphys
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro

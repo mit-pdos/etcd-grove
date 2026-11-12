@@ -140,6 +140,8 @@ theorem sendMsgReadIndexResponse.wp_proof
         wp_apply wp_Message_GetTo.1 resp (DFrac.own 1) DFrac.discard false _ $$ [$Hresp] as Hresp
         rw [decide_eq_false (fun h => Hloc (Or.inl h))]
         wp_auto
+        -- (out_size C3, temporary) the response's size: `msgOwnZ_sized_TODO`
+        ihave Hresp := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _ (by simp [readIndexRespMsg, MsgSnap]) $$ Hresp
         wp_apply wp_raft_send c r id s resp (readIndexRespMsg m s.logst.committed) (e :: es) none
             [] []
             [absMsgFrom .readIndexResp (readIndexRespMsg m s.logst.committed) id s.term
@@ -150,7 +152,7 @@ theorem sendMsgReadIndexResponse.wp_proof
             (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
             (fun h => by simp [readIndexRespMsg, MsgApp] at h)
           rfl $$ [$Hphys $Hresp]
-        · iapply tsSrcU_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
+        · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
         iintro Hphys
         wp_auto
         iapply HΦ

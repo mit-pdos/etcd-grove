@@ -244,17 +244,18 @@ theorem raft.maybeSendSnapshot.wp_proof
       iframe Hsback
       msg_nulls
       iapply BigSepL2.bigSepL2_nil.2; itrivial
+    -- (out_size C3) held at its content: a `MsgSnap`, whose size is not bounded
+    ihave Hm := msgOwnZ_of_uf s.gh.sn.sz «$a0_ptr» (DFrac.own 1) ⟨mm, [], some sv, [], []⟩
+      ⟨rfl, fun h => absurd rfl h⟩ $$ [Hm Hpb]
+    · iframe Hm Hpb
     have Hok : SendOk id { s with prvals := <[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals }
         mm [] [] [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] :=
       Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, rfl, rfl, Hto, Hns, Htz⟩)))
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-    · -- (D22 S-b′3) the snapshot's certificate, from `raftLog.snapshot`; (raft-entsize §2) the
-      -- literal's unknown fields none
-      isplitr
-      · iapply Hcert
-      · unfold snapUfT; iright; iexact Hpb
+    · -- (D22 S-b′3) the snapshot's certificate, from `raftLog.snapshot`
+      iapply Hcert
     iapply HΦ $$ %true %([absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] : List Msg)
       %(<[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals)
     isplitl [Hphys]

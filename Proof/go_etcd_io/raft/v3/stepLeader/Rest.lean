@@ -988,6 +988,8 @@ theorem wp_stepLeader_hbresp
       try rw [show (readIndexRespMsg mm rv.index').To' = mm.From' from rfl]
       try rw [decide_eq_false (fun h => Hloc (Or.inl h))]
       try wp_auto
+      -- (out_size C3, temporary) the response's size: `msgOwnZ_sized_TODO`
+      ihave Hresp := msgOwnZ_sized_TODO cur.gh.sn.sz _ _ _ (by simp [readIndexRespMsg, MsgSnap]) $$ Hresp
       wp_apply wp_raft_send c r id cur resp (readIndexRespMsg mm rv.index') (e :: es) none [] []
           [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term (e :: es) []]
           (Or.inl rfl)
@@ -996,7 +998,7 @@ theorem wp_stepLeader_hbresp
           (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
           (fun h => by simp [readIndexRespMsg, MsgApp] at h)
         rfl $$ [$Hphys $Hresp] as Hphys
-      · iapply tsSrcU_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
+      · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
       have Hstep : readRespond id cur q =
           sendMsgs cur [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term
             (e :: es) []] := by

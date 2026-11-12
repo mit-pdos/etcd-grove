@@ -887,14 +887,6 @@ theorem tsSrc_ne (sn : StorNames) (ty : w32) (snap : Option SnapshotM) (h : ty �
     ⊢ tsSrc (GF := GF) sn ty snap := by
   unfold tsSrc; ileft; ipureintro; exact h
 
-/-- (raft-entsize §2) `send`'s premise for a message of another type than `MsgSnap`: no
-certificate, and no unknown fields pinned (`snapUfT`). -/
-theorem tsSrcU_ne (sn : StorNames) (ty : w32) (snap : Option SnapshotM) (l : Loc)
-    (h : ty ≠ MsgSnap) : ⊢ tsSrc (GF := GF) sn ty snap ∗ snapUfT l ty := by
-  isplitl
-  · unfold tsSrc; ileft; ipureintro; exact h
-  · unfold snapUfT; ileft; ipureintro; exact h
-
 /-- ... and a `MsgSnap`'s, from its snapshot's validity ... -/
 theorem tsSrc_snap (sn : StorNames) (ty : w32) (sv : SnapshotM) :
     ⊢ svCert (GF := GF) sn sv -∗ tsSrc sn ty (some sv) := by

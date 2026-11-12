@@ -216,7 +216,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     imod cellRO_alloc _ _ $$ Hpty with #cTy
     imod cellRO_alloc _ _ $$ «$v1» with #cTe
     imod cellRO_alloc _ _ $$ «$v3» with #cRj
-    imod msgOwn_of_resp _ _ _ _ _ MsgVoteResp m.From' s1.term true ⊤ $$ [«$a0»] with Hresp
+    imod msgOwn_of_resp _ _ _ _ _ _ MsgVoteResp m.From' s1.term true ⊤ $$ [«$a0»] with Hresp
     · iframe «$a0» cTy cFr cTe cRj
     let resp : MessageM :=
       ⟨MsgVoteResp, m.From', W64 0, s1.term, W64 0, W64 0, W64 0, W64 0, true, W64 0⟩
@@ -230,7 +230,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [$Hphys $Hresp] as Hphys
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
@@ -260,7 +260,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     imod cellRO_alloc _ _ $$ Hpty with #cTy
     ihave #cRj : cellRO (GF := GF) null false $$ []
     · iapply (show ⊢ cellRO (GF := GF) null false from cellRO_null (V := Bool))
-    imod msgOwn_of_resp _ _ _ _ _ MsgVoteResp m.From' m.Term' false ⊤ $$ [«$a0»] with Hresp
+    imod msgOwn_of_resp _ _ _ _ _ _ MsgVoteResp m.From' m.Term' false ⊤ $$ [«$a0»] with Hresp
     · iframe «$a0» cTy cFr cTe cRj
     let resp : MessageM :=
       ⟨MsgVoteResp, m.From', W64 0, m.Term', W64 0, W64 0, W64 0, W64 0, false, W64 0⟩
@@ -275,7 +275,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [$Hphys $Hresp] as Hphys
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
     -- `m.Type = MsgVote`, so the vote is recorded: `r.Vote := m.From`
     wp_gets
     rw [Hty]
