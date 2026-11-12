@@ -459,9 +459,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 the leader-transfer marker), and what it carries as a protocol message (each entry's data,
 `entData`, so its update was deposited). (2026-10-16, stage R5: the message at `ml`, owned as
 `raft.Step` takes a proposal, `msgIn ml 1`, its entries' slots owned.) (2026-10-22, D38a) With no
-responses (`raft.Step`'s `Hnors`: the leader may forward it on). -/
+responses (`raft.Step`'s `Hnors`: the leader may forward it on). (out_size C3) At a content of
+bounded size when the cluster bounds proposed data (`msgInC`). -/
 def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgIn ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp ∧ st.resps = []⌝ ∗
+  iprop(∃ st : MsgSt, msgInC γ.raft.maxData.isSome ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp ∧ st.resps = []⌝ ∗
     isMessage γ.raft (absMsg .propose st.msg st.ents) ∗
     -- (2026-10-19, D21 M6) its entries' tickets (`entTk`), which the leader consumes
     ([∗list] e ∈ st.ents, entTk γ.raft e))
@@ -480,10 +481,10 @@ which `run` is the producer (a `Handoff`: `run` sends the error, `stepErr`, and 
 (2026-10-10) a proposal forwarded by a peer (`Node.Step`), with no result channel.
 (2026-10-16, stage R5: the message at `pm.m'`, owned (`msgIn`), holding `propMsgM` and the one
 entry `propEntryM d`, D6: the data's bytes `d`. Stage R7c: the result channel's value is
-`stepErr`; until then nothing was promised of it.) -/
+`stepErr`; until then nothing was promised of it. out_size C3: at a content, `msgInC`.) -/
 @[no_expose] def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
   iprop((∃ (d : List w8) (γr : HandoffNames),
-    msgIn pm.m' (DFrac.own 1) ⟨propMsgM, [propEntryM d], none, [], []⟩ ∗
+    msgInC γ.raft.maxData.isSome pm.m' (DFrac.own 1) ⟨propMsgM, [propEntryM d], none, [], []⟩ ∗
     propData γ.raft (propEntryM d) ∗ entTk γ.raft (propEntryM d) ∗
     isHandoff γr pm.result' stepErr iprop(True) iprop(True) ∗
     handoffProducer γr false) ∨
@@ -519,9 +520,12 @@ which the budget must cover as it covers a tick's campaign (`budget_spend`), so 
 delivers it pays like a tick; and the context may be the leader-transfer marker (a
 transfer campaign's vote request). (2026-10-16, stage R5: the message at `ml`, owned as
 `raft.Step` takes it, `msgIn ml □ st`; the facts over its state `st`.) (2026-10-29, stage U7)
-Or `Campaign`'s local `MsgHup` (`hupP`), outside `NetMsgOk`. -/
+Or `Campaign`'s local `MsgHup` (`hupP`), outside `NetMsgOk`. (out_size C3) At a content, of bounded
+size when the cluster bounds proposed data and the step moves the message's objects (`msgInC`,
+`movesB`). -/
 def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
-  iprop((∃ st : MsgSt, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st⌝ ∗
+  iprop((∃ st : MsgSt, msgInC (γ.raft.maxData.isSome && movesB st.msg.Type') ml DFrac.discard st ∗
+      ⌜NetMsgOk id st⌝ ∗
       -- (2026-10-17 to 2026-10-29, stage U4: also a pre-vote request only in a cluster started from
       -- a bootstrap log; a node at term `0` has an empty log and grants it, `ownStepGhost_term0`.)
       -- (raft-final, 2026-10-29, U7, U9: the design's §2.7) a stamped transfer request with its
@@ -560,7 +564,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = []) (Hr : st.resps = []) :
     -- (raft-final, 2026-10-29, U9: until then a transfer request only outside the cluster's
     -- no-transfer mode, `Hxt`)
-    ⊢ msgIn (GF := GF) ml DFrac.discard st -∗
+    ⊢ msgInC (GF := GF) γ.raft.maxData.isSome ml DFrac.discard st -∗
       termLB γ.bud (W64 0) -∗ rdCred γ.raft 0 -∗ tickCred γ.bud 0 -∗
       netP γ id ml := by
   have Hun : UnstampedType st.msg.Type' := by
@@ -591,6 +595,8 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     rcases Hty with h' | h' | h' | h' <;> rw [h'] <;>
       simp [MsgSnap, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]
   iintro Hm #Hlb Hcr Htc
+  ihave Hm := msgInC_flag γ.raft.maxData.isSome (γ.raft.maxData.isSome && movesB st.msg.Type')
+    (fun h => by simp only [Bool.and_eq_true] at h; exact h.1) ml DFrac.discard st $$ Hm
   unfold netP
   ileft
   iexists st
@@ -625,27 +631,34 @@ theorem netP_hup (γ : NodeNames) (id : w64) (ml : Loc) :
 /-- (2026-10-29, stage U7) `recvc`'s message opened for reading: a network message's type is in
 `netStepTypes`, or it is `Campaign`'s `MsgHup`. -/
 theorem netP_split (γ : NodeNames) (id : w64) (ml : Loc) :
-    netP (GF := GF) γ id ml ⊢ ∃ st : MsgSt, msgIn ml DFrac.discard st ∗
-      ⌜st.msg.Type' ∈ netStepTypes ∨ st = hupSt⌝ ∗ (msgIn ml DFrac.discard st -∗ netP γ id ml) := by
+    netP (GF := GF) γ id ml ⊢ ∃ st : MsgSt, msgPtsC ml dqh DFrac.discard false st ∗
+      ⌜st.msg.Type' ∈ netStepTypes ∨ st = hupSt⌝ ∗
+      (msgPtsC ml dqh DFrac.discard false st -∗ netP γ id ml) := by
   iintro Hnet
   unfold netP
   icases Hnet with (⟨%st, Hm, %Hok, #Hxf, #Hab, #Hsn, #Hlb, Hcr, Htc⟩ | Hhup)
-  · iexists st
+  · icases msgInC_halfD _ ml st $$ Hm with ⟨Hm, Hmb⟩
+    iexists st
     iframe Hm
     isplitr
     · ipureintro; exact .inl Hok.1
     iintro Hm
+    ihave Hm := Hmb $$ Hm
     ileft
     iexists st
     iframe Hm Hxf Hab Hsn Hlb Hcr Htc
     ipureintro; exact Hok
   · unfold hupP
     icases Hhup with ⟨Hm, Htc⟩
+    ihave Hm := msgIn_msgInC ml DFrac.discard hupSt $$ Hm
+    icases msgInC_halfD false ml hupSt $$ Hm with ⟨Hm, Hmb⟩
     iexists hupSt
     iframe Hm
     isplitr
     · ipureintro; exact .inr rfl
     iintro Hm
+    ihave Hm := Hmb $$ Hm
+    ihave Hm := msgInC_msgIn false ml DFrac.discard hupSt $$ Hm
     iright
     iframe Hm Htc
 

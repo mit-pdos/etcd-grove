@@ -70,14 +70,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 private abbrev node.ProposeConfChange.specRaw : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (cc : ConfChangeIC)
+    (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     -- (2026-10-28) the node in the API's cluster `γc`: what the clean `node.Step` takes
     (γc : ApiImpl.Cluster) (N : Namespace),
   ApiImpl.NodeOk γc γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       ApiImpl.isNode n γc N id ∗ nodeCtx ctx cd ∗
-      ownConfChangeI c dq (some o) ∗
+      -- (out_size C3, P5) the change at its content, of model `o`, its encoding within the bound on
+      -- an entry's bytes when the cluster bounds proposed data
+      ccPtsCC c dq cc ∗
+      ⌜cc.model = o ∧ (γ.raft.maxData.isSome = true → ccSize cc + 64 ≤ entBytesMax)⌝ ∗
       -- (2026-10-27) the proposal tracked under its key (`ccPropArg`; until then
       -- `CCAllowed γ.raft o`, a change the cluster's policy admits)
       ccPropArg γ.raft o }}
@@ -106,10 +109,16 @@ private theorem node.ProposeConfChange.wp_raw
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n c o dq ctx cd γc N HNo
-  wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, Harg⟩
+  intro γ id n c o cc dq ctx cd γc N HNo
+  wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, %Hcc, Harg⟩
+  obtain ⟨Ho, Hcsz⟩ := Hcc
   wp_auto
-  wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
+  ihave Hc : ccPtsCCo c dq (some cc) $$ [Hc]
+  · simp only [ccPtsCCo]; iexact Hc
+  wp_apply wp_confChangeToMsg c (some cc) dq γ.raft.maxData.isSome $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
+  · ipureintro; intro hs cc' h; cases h; exact Hcsz hs
+  ihave Hc := ccPtsCCo_own c dq (some cc) $$ Hc
+  simp only [Option.map_some, Ho] at Hbs ⊢
   -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry
   ihave #Hcinv := isNode_commitInv γ id n $$ Hnode
   imod cc_propose_ghost γ.raft o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
@@ -117,7 +126,7 @@ private theorem node.ProposeConfChange.wp_raw
   -- the cluster, whose `raft` is `γ`'s (`fwdP` reads only it)
   have wpS := wp_node_Step
   unfold EtcdGrove.node.Step.spec EtcdGrove.isNode EtcdGrove.stepIn EtcdGrove.Cluster at wpS
-  icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgInC_nn _ ml _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_apply wpS n γc N id ml ctx cd $$ [$HnodeA $Hctx Hm Htk]
   · unfold ApiImpl.stepIn
     isplitr; · ipureintro; exact Hnn
@@ -167,10 +176,7 @@ private theorem node.wp_ProposeConfChange_impl
     EtcdGrove.Cluster.dup
   intro n γ N id c o cc dq ctx cd
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, %Hmd, Hau⟩ HΦ
-  -- (raft-entsize §3) the conf change at its model; the size bound is for the later proof
-  obtain ⟨Ho, -⟩ := Hmd
-  ihave Hcc : ownConfChangeI c dq (some o) $$ [Hcc]
-  · rw [← Ho]; iapply ccPtsCC_own c dq cc $$ Hcc
+  obtain ⟨Ho, Hmd⟩ := Hmd
   ihave #HnodeA := Hnode
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, -, #Hci, -⟩
@@ -178,9 +184,17 @@ private theorem node.wp_ProposeConfChange_impl
   obtain ⟨Hγr, -⟩ := Hf
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
-  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
-  iapply (hP γn id n c o dq ctx cd γ N Hf0) $$ [Hcc Hau]
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -, %Hmb⟩
+  -- (out_size C3, P5) the change's size within `entBytesMax`: the cluster's bound, at most `2^31`
+  have Hcsz : γn.raft.maxData.isSome = true → ccSize cc + 64 ≤ entBytesMax := fun hs => by
+    rw [Hγr] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [entBytesMax]; omega
+  iapply (hP γn id n c o cc dq ctx cd γ N Hf0) $$ [Hcc Hau]
   · iframe Hinit Hrn HnodeA Hctx Hcc
+    isplitr
+    · ipureintro; exact ⟨Ho, Hcsz⟩
     unfold ccPropArg
     iintro %bs %Hm
     by_cases Hf : Filler (confChangeEntryType (some o)) bs

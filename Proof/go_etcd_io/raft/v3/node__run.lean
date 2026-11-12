@@ -291,7 +291,7 @@ theorem node.run.wp_proof
     iunfold propP at HP
     icases HP with (⟨%d, %γr, Hm, #Hent, Htk, #Hho, Hprod⟩ | ⟨%Hres, Hfwd⟩)
     · -- `m := pm.m; m.From = new(r.id)`
-      icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
+      icases msgInC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
       imod cellRO_alloc $$ «$r0» with #c0
       ihave Hm := Hback $$ %_ %id Hpf c0
@@ -329,7 +329,7 @@ theorem node.run.wp_proof
     · -- a proposal forwarded by a peer (2026-10-10): no result channel
       iunfold fwdP at Hfwd
       icases Hfwd with ⟨%st, Hm, %Hty, #Hm0, Htk⟩
-      icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
+      icases msgInC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
       imod cellRO_alloc $$ «$r0» with #c0
       ihave Hm := Hback $$ %_ %id Hpf c0
@@ -439,6 +439,8 @@ theorem node.run.wp_proof
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
     iunfold runHead at Hhead
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
+    -- (out_size C3) read through half of it (`msgInC_halfD`), rebuilt for the step
+    icases msgInC_halfD _ ml st $$ Hm with ⟨Hm, Hmb⟩
     -- `IsResponseMsg(m.GetType()) && !IsLocalMsgTarget(m.GetFrom()) &&
     -- r.trk.Progress[m.GetFrom()] == nil`
     wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -475,6 +477,7 @@ theorem node.run.wp_proof
     -- `r.Step(m)`
     all_goals (
       try wp_auto
+      ihave Hm := Hmb $$ Hm
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
       icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the

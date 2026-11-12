@@ -649,7 +649,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     -- `ownRaftPhys`'s `NsCap`, and a stamped transfer request takes its witness, `"#Hxfer"`)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
-        msgIn ml DFrac.discard st ∗
+        msgInC (γ.maxData.isSome && movesB st.msg.Type') ml DFrac.discard st ∗
         -- (raft-final phase 2) a stamped transfer request's witness that the node leads its term
         -- (`netP`'s, `raft.Step`'s `"#Hxfer"`)
         □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
@@ -701,6 +701,11 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   icases ownStepGhost_dlv_terms γ _ cf id s rs.delivered
     (by have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega) Hac0 $$ Hdeliv Hghost
     with ⟨%Hdag, Hghost⟩
+  -- (out_size C3) the node's flag is the cluster's (`certLink`)
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, -⟩
+  rw [← Hszl] at *
   wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
       Hwf
     (RNMode.pre_net Hpf (by not_net)) (fun _ => Hns0.1)
@@ -993,7 +998,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (Hrs : st.resps = []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
-        msgIn ml (DFrac.own 1) st ∗
+        msgInC γ.maxData.isSome ml (DFrac.own 1) st ∗
         isMessage γ (absMsg .propose st.msg st.ents) ∗
         -- (2026-10-19, D21 M6) its entries' tickets
         ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
@@ -1021,6 +1026,11 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   icases propData_ccEnts γ ents $$ Hed with ⟨%cs, #Hcc⟩
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
+  -- (out_size C3) the node's flag is the cluster's (`certLink`)
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, -⟩
+  rw [← Hszl] at *
   wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp
     (by simp only [StepMsg, stepMsgTypes]; rw [Hty]; simp [MsgProp])
     (by msg_ne') (by msg_ne')
@@ -1042,7 +1052,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     isplitl [Hmin Htk]
     · simp only [named]
       isplitl [Hmin]
-      · iexact Hmin
+      · rw [flag_moves movesB_MsgProp]; iexact Hmin
       isplitl [Htk]
       · isplitr
         · iexists cs

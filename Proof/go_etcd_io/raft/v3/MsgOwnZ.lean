@@ -517,6 +517,31 @@ theorem msgInC_store_To (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt)
   · obtain ⟨h1, h2, h3, h4⟩ := Hsz hs hty
     exact ⟨h1, h2, h3, h4⟩
 
+/-- (out_size C3) `m.From = new(r.id)` (`run` stamping a proposal) on a received message at a
+content: its size kept. -/
+theorem msgInC_store_From (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt) :
+    msgInC (GF := GF) sz l dqe st ⊢
+      ∃ p : Loc, l.[raftpb.Message, go!"From"] ↦ p ∗
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Message, go!"From"] ↦ p' -∗ cellRO p' v -∗
+          msgInC sz l dqe { st with msg := { st.msg with From' := v } }) := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  icases msgPtsCC_store_From l dqe _ c $$ Hc with ⟨%p, Hp, Hback⟩
+  iexists p
+  iframe Hp
+  iintro %p' %v Hp #cv
+  icases Hback $$ %p' %v Hp cv with ⟨%o, Hc, %Ho⟩
+  iexists _
+  iframe Hc
+  ipureintro
+  obtain ⟨Hm, Hcs, Hsz⟩ := H
+  obtain ⟨f, rs⟩ := c
+  subst Hm
+  refine ⟨?_, Hcs, fun hs ht => ?_⟩
+  · simp only [MsgC.model, MsgC.f, MsgC.resps, MsgFC.msgM, Ho]
+  · obtain ⟨h1, h2, h3, h4⟩ := Hsz hs ht
+    exact ⟨h1, h2, h3, h4⟩
+
 /-- The `Entries` field out of a message at a content (`msgPtsC_acc_entries`'s content form): the
 slice, its entry objects at their contents, and what closes it back. -/
 theorem msgPtsCC_acc_entries (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
@@ -634,6 +659,54 @@ theorem msgOwnZ_to_msgInC (sz : Bool) (l : Loc) (st : MsgSt) (hcap : needsCap st
   iframe Hc
   ipureintro
   refine ⟨Hm, Hok.1, fun hs ht => Hz hs (by rw [Hm]; exact ht)⟩
+
+/-- (out_size C3) A message at a content is not at `null`. -/
+theorem msgPtsCC_nn (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe cap c ⊢ ⌜l ≠ null⌝ ∗ msgPtsCC l dq dqe cap c := by
+  iintro H
+  ihave ⟨%es, %els, %Hnn, HEs, Hes, Hents, Hcap, Hback⟩ := msgPtsCC_acc_entries l dq dqe cap c $$ H
+  isplitr
+  · ipureintro; exact Hnn
+  ihave H := Hback $$ %els %c.f.entries %cap HEs Hes Hents Hcap
+  obtain ⟨f, rs⟩ := c
+  iExactEq H; rfl
+
+/-- (out_size C3) A message at a content with its capacity holds any capacity flag. -/
+theorem msgPtsCC_cap_any (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe true c ⊢ msgPtsCC l dq dqe cap c := by
+  iintro H
+  ihave ⟨%es, %els, -, HEs, Hes, Hents, Hcap, Hback⟩ := msgPtsCC_acc_entries l dq dqe true c $$ H
+  ihave H := Hback $$ %els %c.f.entries %cap HEs Hes Hents [Hcap]
+  · cases cap
+    · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
+    · iexact Hcap
+  obtain ⟨f, rs⟩ := c
+  iExactEq H; rfl
+
+/-- (out_size C3) A message at a content, its `Entries` elements frozen (`msgPtsC_persist_els`). -/
+theorem msgPtsCC_persist_els (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe cap c ⊢ |==> msgPtsCC l dq DFrac.discard cap c := by
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs, %rs,
+    %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hes with #Hes
+  imodintro
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcx Hpb
+
+/-- (out_size C3) A received message at a content, from its parts. -/
+theorem msgInC_of_CC (sz : Bool) (l : Loc) (dqe : DFrac) (c : MsgC) (st : MsgSt) (hm : c.model = st)
+    (hcs : c.csUfNil) (hsz : sz = true → st.msg.Type' ≠ MsgSnap → msgSizeOk c) :
+    msgPtsCC (GF := GF) l (DFrac.own 1) dqe (needsCap st.msg) c ⊢ msgInC sz l dqe st := by
+  iintro H
+  unfold msgInC
+  iexists c
+  iframe H
+  ipureintro; exact ⟨hm, hcs, hsz⟩
 
 /-- (out_size C3) **A message raft builds with entries, handed to `Step`** (`RawNode.Propose`,
 `ReadIndex`, `ProposeConfChange`): a fresh literal with no snapshot, no responses and no unknown

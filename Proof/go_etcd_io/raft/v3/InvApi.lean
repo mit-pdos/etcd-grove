@@ -3651,12 +3651,10 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
-  intro Hto Hc Hcs _
+  intro Hto Hc Hcs Hcsz
   subst Hto
   iintro ⟨#Hsent, Hm, Htk, #Hloc⟩
-  ihave Hm := msgPtsCC_msgPtsC ml (DFrac.own 1) (DFrac.own 1) true c Hcs $$ Hm
-  rw [Hc]
-  icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgPtsCC_nn $$ Hm with ⟨%Hnn, Hm⟩
   ihave %Hbnd : ⌜st.msg.Type' = MsgSnap →
       ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ $$ []
   · by_cases Hty : st.msg.Type' = MsgSnap
@@ -3671,7 +3669,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
   have Hrs : st.resps = [] := Hsh.2.2.2.2.2.2.2
   have Hst : (⟨st.msg, st.ents, st.snap, st.ctx, []⟩ : MsgSt) = st := by
     cases st; simp only at Hrs ⊢; rw [Hrs]
-  rw [Hst]
+  have Hcm : c.model = st := Hc.trans Hst
   iunfold msgCredits at Htk
   -- the message's abstraction, but a snapshot's
   ihave #Hmsg : □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
@@ -3699,7 +3697,12 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     unfold fwdP
     iexists st
     isplitl [Hm]
-    · iapply msgPtsC_cap_any $$ Hm
+    · -- (out_size C3) at its content, with its size (`stepIn_intro`'s premise)
+      ihave Hm := msgPtsCC_cap_any ml _ _ (needsCap st.msg) c $$ Hm
+      iapply (msgInC_of_CC _ ml _ c st Hcm Hcs (fun hs ht => by
+        rw [Hγr] at hs
+        obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+        exact Hcsz b hb ht)) $$ Hm
     isplitr
     · ipureintro; exact ⟨Hp, Hrs⟩
     isplitr
@@ -3711,7 +3714,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     simp only [stTks, if_pos Hp]
     rw [Hγr]
     iexact Htk
-  · imod msgPtsC_persist_els $$ Hm with Hm
+  · imod msgPtsCC_persist_els $$ Hm with Hm
     have Hnok' : NetMsgOk st.msg.To' st := NetMsgOk.of_shape Hsh rfl Hp
     imodintro
     unfold stepIn
@@ -3747,7 +3750,13 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     ileft
     iexists st
     isplitl [Hm]
-    · iapply msgPtsC_cap_any $$ Hm
+    · ihave Hm := msgPtsCC_cap_any ml _ _ (needsCap st.msg) c $$ Hm
+      iapply (msgInC_of_CC _ ml _ c st Hcm Hcs (fun hs ht => by
+        simp only [Bool.and_eq_true] at hs
+        have hs1 := hs.1
+        rw [Hγr] at hs1
+        obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs1
+        exact Hcsz b hb ht)) $$ Hm
     isplitr
     · ipureintro; exact Hnok'
     rw [Hγr, Hγb]
