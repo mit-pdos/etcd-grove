@@ -58,8 +58,10 @@ theorem traceEvent.wp_proof
   | some γd =>
     icases (trOwn_some γd _).1 $$ Hown with ⟨%c, %id, %s, %P, %om, %e0, HP, #HRL, #HML, #Hprops, %Hp, Hback⟩
     obtain ⟨Hevt, HE⟩ := Hp
-    iunfold RaftLend at HRL
-    icases HRL $$ HP with ⟨Hphys, HPb⟩
+    iunfold RaftReadLend at HRL
+    icases HRL $$ HP with ⟨%tv, Hrd, HPb⟩
+    iunfold ownRaftReadT at Hrd
+    icases Hrd with ⟨Hcore, Htrkf, Hcfg, %Hcsz⟩
     dsimp only [TraceFire]
     icases Hfire with ⟨%tn, #Hdir, #Hlog, %Hnn, Hau⟩
     iunfold isTraceLogger at Hlog
@@ -72,30 +74,22 @@ theorem traceEvent.wp_proof
     wp_auto
     haveI : go.NotInterface go.int := ⟨by unfold go.int; trivial⟩
     wp_apply wp_evtString evt Hevt as %nm %Hnm
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    iunfold ownRaftCore at Hcore
+    icases Hcore with ⟨#Hid, HT, HV, HS, HL, Hlg⟩
+    wp_auto
     wp_apply wp_FormatUint
     · ipureintro; word
     iintro %nid %Hnid
     wp_auto
-    wp_apply wp_makeTracingState $$ [$Hphys] as %ts ⟨Hphys, %Hts⟩
-    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_at (c := c) (V := c.voters) r id s $$ Hphys with ⟨Hlog, %Hgh, Hlogback⟩
-    wp_apply wp_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-    ihave Hphys := Hlogback $$ %s.logst Hlog
-    ihave Hphys := Hphys $$ []
-    · ipureintro; exact Hgh
-    ihave Hphys : ownRaftPhysCV c c.voters r id s $$ [Hphys]
-    · iapply Hphys; ipureintro; intro _; exact Int.le_refl _
-    -- `r.trk.Voters[0].Slice()`, `[1]`: the tracker out of raft's state, as `ConfState`'s proof
-    icases ownRaftPhysC_tracker c (V := c.voters) r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Htback⟩
-    iunfold ownTrackerC at Htrk
-    iNamed Htrk
-    simp only at Hinv Hdom Hflags Hsize
+    ihave Hcore : ownRaftCore (GF := GF) r id s $$ [HT HV HS HL Hlg]
+    · iunfold ownRaftCore; iframe; iframe Hid
+    wp_apply wp_makeTracingState $$ [$Hcore] as %ts ⟨Hcore, %Hts⟩
+    iunfold ownRaftCore at Hcore
+    icases Hcore with ⟨-, HT, HV, HS, HL, Hlg⟩
+    wp_auto
+    wp_apply wp_lastIndex $$ [$Hlg] as %li ⟨Hlg, %Hli⟩
+    -- `r.trk.Voters[0].Slice()`, `[1]`: the configuration's maps
     icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
-    have Hsz : ∀ s' : GSet w64, s' ⊆ c.ids → (GMap.size s' : Int) ≤ 2 ^ 62 := by
-      intro s' hs
-      have := size_le_of_sub_dom s' s.progress (by rw [Hdom]; exact hs)
-      omega
     icases (Access.access
         (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"] ↦
           tv.Config'.Voters')
@@ -111,7 +105,7 @@ theorem traceEvent.wp_proof
     wp_apply wp_Slice _ c.incoming $$ [Hin] as %sl0 %xs0 ⟨Hin, Hsl0, -, %Hxs0⟩
     · isplitl
       · unfold ownIdsetOpt; iright; iexact Hin
-      · ipureintro; exact Hsz _ (incoming_sub_ids c)
+      · ipureintro; exact Hcsz.1
     wp_apply wp_formatConf $$ [$Hsl0] as %a ⟨-, Ha⟩
     ihave Hvf := Hcback $$ Hc0
     icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
@@ -123,7 +117,7 @@ theorem traceEvent.wp_proof
     wp_apply wp_Slice vout c.outgoing $$ [Hoq] as %sl1 %xs1 ⟨Hoo, Hsl1, -, %Hxs1⟩
     · isplitl
       · unfold ownIdsetOpt; iapply ownIdsetQ_elim _ _ _ $$ Hoq
-      · ipureintro; exact Hsz _ (outgoing_sub_ids c)
+      · ipureintro; exact Hcsz.2
     wp_apply wp_formatConf $$ [$Hsl1] as %b ⟨-, Hb⟩
     ihave Hvf := Hcback $$ Hc1
     have HarrEq : array.mk 2 ((tv.Config'.Voters'.arr.set (sint.Z (W64 0)).toNat vin).set
@@ -142,20 +136,16 @@ theorem traceEvent.wp_proof
     · unfold ownIdsetQ; iunfold ownIdsetOpt at Hoo; iexact Hoo
     ihave Hout := ownIdsetC_join _ _ _ Hoc $$ Hoq
     ihave Hcfg := ownCfgCC_intro tv.Config' (DFrac.own 1) c vin vout Harr Hal $$ Hin Hout Hl Hln
-    ihave Htrk := ownTrackerC_intro c tv s.votes s.progress s.prvals Hinv Hdom Hflags Hsize HmaxInfl
-      $$ Hvotes Hprs Hprogs Hcfg
-    ihave Hphys := Htback $$ %tv %s.votes Htrkf Htrk
     ipersist Ha
     ipersist Hb
-    ihave Hphys : ownRaftPhysCV c c.voters r id s $$ [Hphys]
-    · iexact Hphys
     -- `r.state.String()`
     rw [method_unfold (t := go.GoType.PointerType StateType.ty)]
     wp_call
-    wp_apply raft.wp_load_stateC $$ Hphys as Hphys
-    try wp_auto
+    wp_auto
     haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
     wp_apply wp_StateString s.role
+    ihave Hphys : ownRaftReadT (GF := GF) c r id s tv $$ [HT HV HS HL Hlg Htrkf Hcfg]
+    · iunfold ownRaftReadT; iunfold ownRaftCore; iframe; iframe Hid; ipureintro; exact Hcsz
     -- the message, out of the caller's resource
     ihave HP := HPb $$ Hphys
     iunfold MsgLend at HML

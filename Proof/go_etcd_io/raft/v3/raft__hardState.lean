@@ -21,18 +21,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The commit index is the log struct's (`ownRaftLog_struct`). -/
 theorem raft.hardState.wp_proof : raft.hardState.spec (GF := GF) (hG := hG) := by
-  intro c r id s
-  wp_start as Hphys
+  intro r id s
+  wp_start as Hcore
+  unfold ownRaftCore
+  icases Hcore with ⟨#Hid, HT, HV, HS, HL, Hlog⟩
   wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-  wp_apply raft.wp_load_VoteC $$ Hphys as Hphys
-  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   iapply wp_fupd
   wp_auto
   ihave Hlog := Hlb $$ Hl
-  ihave Hphys := Hback $$ Hlog
   imod cellRO_alloc $$ «$v0» with #cT
   imod cellRO_alloc $$ «$v1» with #cV
   imod cellRO_alloc $$ «$v2» with #cC
@@ -45,7 +42,9 @@ theorem raft.hardState.wp_proof : raft.hardState.spec (GF := GF) (hG := hG) := b
     iframe cT cV cC
   imodintro
   iapply HΦ
-  iframe Hhs Hphys
+  iframe Hhs
+  iframe
+  iframe Hid
 
 end proof
 

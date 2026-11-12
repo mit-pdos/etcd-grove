@@ -5,6 +5,7 @@ tag since 2026-11-08, `notes/trace-validation-hooks.md`).
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedMsg
+public import Proof.go_etcd_io.raft.v3.RaftReadLend
 
 @[expose] public section
 
@@ -39,14 +40,17 @@ in some order), the message's `traceMsgOf` (`msgArgTrace`), no configuration cha
 (Slice 2: the node events only, raft's state lent alone, `m` and `prop` nil. Slice 4: the message and
 the properties, and the lending form, so that a caller may hold the message inside `P`, as
 `traceSendMessage`'s and `traceReceiveMessage`'s do. Until slice 2 the spec was the untraced case
-alone, `⌜TraceLoggerOk tl⌝`, giving `True`.) -/
+alone, `⌜TraceLoggerOk tl⌝`, giving `True`.) (2026-11-12, trace-check step 4: raft's state lent
+read-only, `RaftReadLend`, what the builder reads -- the header's fields, the log, the `trk` field and
+its configuration's maps, never a `Progress` -- so that `switchToConfig`'s hook, whose struct is open at
+its tracker, can lend it; a whole struct's lending gives it, `raftReadLend_of_lend`.) -/
 abbrev traceEvent.spec : Prop :=
   ∀ (evt : w64) (r m : Loc) (prop : GoMap) (tl : GoInterface) (tr : Option GName)
     (E : TraceEv → Prop) (Q R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
       trOwn tr iprop(∃ (c : CfgM) (id : w64) (s : NState) (P : IProp GF) (om : Option MsgArg)
           (e0 : TraceEv),
-        P ∗ RaftLend P c r id s ∗ MsgLend P m om ∗ tracingPropsRep prop e0 ∗
+        P ∗ RaftReadLend P c r id s ∗ MsgLend P m om ∗ tracingPropsRep prop e0 ∗
         ⌜uint.nat evt < evtNames.length ∧
           ∀ e, EvHdrOf evt id s c e → e.msg = msgArgTrace om → e.cc = none →
             e.propCC = e0.propCC → e.propMatch = e0.propMatch → e.propNext = e0.propNext → E e⌝ ∗

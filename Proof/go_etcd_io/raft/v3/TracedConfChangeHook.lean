@@ -126,7 +126,7 @@ theorem traceConfChangeEvent.tracedSpec_proof
           { noProps with propCC := some ⟨[], xs.map decStr⟩ }
         iframe Hphys Hprops
         isplitr
-        · iapply raftLend_self
+        · iapply raftReadLend_self
         isplitr
         · iapply msgLend_nil
         isplitr

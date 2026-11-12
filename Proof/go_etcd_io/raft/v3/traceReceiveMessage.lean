@@ -42,7 +42,9 @@ local macro "trm_fire " ty:term:max evt:term:max : tactic => `(tactic| (
   · iframe Htl Hfire
     iapply (trOwn_some γd _).2
     iexists c, id, s, P, (some a), noProps
-    iframe HP HRL Hback
+    iframe HP Hback
+    isplitr
+    · iapply raftReadLend_of_lend; iexact HRL
     isplitr
     · iexact HML
     isplitr

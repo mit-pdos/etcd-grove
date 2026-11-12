@@ -43,11 +43,17 @@ def ownRaftCore (r : Loc) (id : w64) (s : NState) : IProp GF :=
     r.[raft, go!"state"] ↦ stateW64 s.role ∗ r.[raft, go!"raftLog"] ↦ s.log ∗
     ownRaftLog s.log s.logst)
 
+/-- The configuration's halves are small enough for `MajorityConfig.Slice` (`ownTrackerC`'s bound on
+the progress map, which tracks them). -/
+def CfgSizeOk (c : CfgM) : Prop :=
+  (GMap.size c.incoming : Int) ≤ 2 ^ 62 ∧ (GMap.size c.outgoing : Int) ≤ 2 ^ 62
+
 /-- **What `traceEvent` reads of raft's state**: the core, the `trk` field and its configuration's
 maps. -/
 def ownRaftReadT (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv : tracker.ProgressTracker) :
     IProp GF :=
-  iprop(ownRaftCore r id s ∗ r.[raft, go!"trk"] ↦ tv ∗ ownCfgCC tv.Config' (DFrac.own 1) c)
+  iprop(ownRaftCore r id s ∗ r.[raft, go!"trk"] ↦ tv ∗ ownCfgCC tv.Config' (DFrac.own 1) c ∗
+    ⌜CfgSizeOk c⌝)
 
 /-- **Raft's state, lent read-only out of `P`** (persistently: a hook may read it more than once). -/
 def RaftReadLend (P : IProp GF) (c : CfgM) (r : Loc) (id : w64) (s : NState) : IProp GF :=
@@ -156,13 +162,22 @@ theorem ownRaftPhysC_readT (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   icases ownRaftPhysC_voter c r id s $$ H with ⟨%Hvt, H⟩
   icases ownRaftPhysCV_reconfigCore c c c.voters c.voters r id s Hvt $$ H
     with ⟨%tv, Hf, Htrk, Hcore, Hback⟩
+  icases ownTrackerC_pure c _ _ $$ Htrk with ⟨%Hpure, Htrk⟩
+  obtain ⟨-, Hdom, -, Hsize, -⟩ := Hpure
+  have Hsz : CfgSizeOk c := by
+    simp only at Hdom Hsize
+    constructor
+    · have := size_le_of_sub_dom c.incoming s.progress (by rw [Hdom]; exact incoming_sub_ids c)
+      omega
+    · have := size_le_of_sub_dom c.outgoing s.progress (by rw [Hdom]; exact outgoing_sub_ids c)
+      omega
   icases ownTrackerC_cfg $$ Htrk with ⟨Hcfg, Htback⟩
   iexists tv
   isplitl [Hcore Hf Hcfg]
-  · unfold ownRaftReadT; iframe
+  · unfold ownRaftReadT; iframe; ipureintro; exact Hsz
   iintro Hrd
   unfold ownRaftReadT
-  icases Hrd with ⟨Hcore, Hf, Hcfg⟩
+  icases Hrd with ⟨Hcore, Hf, Hcfg, -⟩
   ihave Htrk := Htback $$ Hcfg
   ihave H := Hback $$ %tv %s.progress %s.prvals Hcore Hf Htrk %(by cases s; exact Hok)
   iapply ownRaftPhysC_eq (c := c) (V := c.voters) r id _ _ (by cases s; rfl) $$ H
@@ -174,11 +189,12 @@ theorem ownRaftPhysC_core (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   iintro H
   icases ownRaftPhysC_readT c r id s $$ H with ⟨%tv, Hrd, Hback⟩
   unfold ownRaftReadT
-  icases Hrd with ⟨Hcore, Hf, Hcfg⟩
+  icases Hrd with ⟨Hcore, Hf, Hcfg, %Hsz⟩
   iframe Hcore
   iintro Hcore
   iapply Hback
   iframe
+  ipureintro; exact Hsz
 
 /-- **A whole struct's lending gives the read-only one.** -/
 theorem raftReadLend_of_lend (P : IProp GF) (c : CfgM) (r : Loc) (id : w64) (s : NState) :

@@ -34,10 +34,10 @@ theorem makeTracingState.wp_proof
     (wp_HardState_GetCommit : raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG))
     (wp_FormatUint : strconv.FormatUint.spec (GF := GF) (hG := hG)) :
     makeTracingState.spec (GF := GF) (hG := hG) := by
-  intro c r id s
+  intro r id s
   wp_start as Hphys
   wp_auto
-  wp_apply wp_raft_hardState $$ [$Hphys] as %p ⟨#Hhs, Hphys⟩
+  wp_apply wp_raft_hardState r id s $$ [$Hphys] as %p ⟨#Hhs, Hphys⟩
   wp_apply wp_HardState_GetTerm.1 $$ [$Hhs]
   wp_apply wp_HardState_GetVote.1 $$ [$Hhs]
   wp_apply wp_FormatUint

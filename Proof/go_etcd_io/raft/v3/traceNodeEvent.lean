@@ -36,7 +36,7 @@ theorem traceNodeEvent.wp_proof
     iexists c, id, s, ownRaftPhysCV c c.voters r id s, none, noProps
     iframe Hphys
     isplitr
-    · iapply raftLend_self
+    · iapply raftReadLend_self
     isplitr
     · iapply msgLend_nil
     isplitr
