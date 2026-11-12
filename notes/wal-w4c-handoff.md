@@ -141,6 +141,15 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
      `DecidableEq` of `TOp`/`TContents`, `list_ne_of_getElem`, `list_take_succ_eq`,
      `val_false_ne_true`; RefLemmas has `tKeep_filter_take_succ`.
    - **Left of step 3, in order** (ref.go first, then oracle.go, then wal.go):
+     - **OPEN (asked of etcd-grove-81, 2026-11-12): the `<=`-loops over `len(h)`.** `nameBound`
+       (`for b := 0; b <= len(h); b++`) and `walImgs` (`for j := n; j <= len(h); j++`) need
+       `len(h) < MaxInt64`: at `len(h) = 2^63-1` the counter wraps to `MinInt64` and `cutPos(h, b)` /
+       `h[:j]` panics, and nothing in Perennial's model bounds a slice's length below `2^63` (append's
+       model gives only `len < 2^63`). Recommended: T-10, an equivalent loop form whose counter never
+       passes `len(h)` (`for b := 0; ; b++ { …; if b == len(h) { break } }`), retranslated; the
+       alternative is a premise `|h| < 2^63-1` that nothing upstream can discharge. The draft spec and
+       proof of `nameBound` (all but the counter's `+1`, which fails at `b = len(h) = 2^63-1`) are in
+       `/shared/tmp/wal-spec/w4c/step3/wip/nameBound.{spec,proof}.lean`.
      - `nameBound` (loop `b ≤ len(h)`, calls `cutPos` and `lastIdx(h[:b])` via `opsRep_slice`; invariant
        `best = W64 (((List.range b).filter p).getLast?.getD 0)`, `List.range_succ`), `openBound` (needs a
        representation of `[][]walOp`: add `imgsRep s imgs` to Rep, as `opsRep` with `opsRep` elements;
