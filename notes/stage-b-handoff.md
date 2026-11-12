@@ -300,7 +300,14 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `api-check` clean; `gen-init --check` clean; `goose --check` clean; bounds 331 (baseline lowered from
     374; allow entry for `watchServer__Watch`'s levels); `--roots '_safe$'`: no `*_safe` rests on
     `grpc.serve`/`serveStream` (`/shared/tmp/stageB/logs/cp3-safe-roots.txt`); `Scratch/` removed.
-    The gate (`axiom-tok --check`, capped walks): a sub-agent, in progress. Then STOP before land.sh.
+    The gate (`046eb5681b`): `axiom-tok-check.py --check` enforcing, step in `etc/gates.sh` (24G cap);
+    0 capped (closing atoms, monotone pruning); checker gaps fixed; 72 s, 8.6 GiB. `--check` FAILS today:
+    5 server axioms the cap used to hide (`EtcdServer.{ensureLeadership,leaseTimeToLive,purgeFile,
+    waitAppliedIndex,waitLeader}`, ~23 keys each, all inside the consumed `isServerReqM`/`isServerReadM`)
+    + 48 rule-5 cascade. Proposed entries (unverified per key):
+    `/shared/tmp/stageB/gate10/proposed-server-entries.txt`; run output `/shared/tmp/stageB/gate10/`.
+    Next: triage those keys (decision asked of etcd-grove-81), rerun the gate, then land via etc/land.sh
+    when etcd-grove-81 says go.
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
