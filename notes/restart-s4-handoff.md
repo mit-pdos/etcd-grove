@@ -3,7 +3,7 @@
 Stage: S4 of the restart Scope (`/shared/tmp/restart-scope/scope.md`, "S4"; r2db batch 3): the hubs at
 the restart point, `run` at `⟨|P|, A₀⟩`.
 
-## Phase: plan written, waiting for etcd-grove-81's approval (2026-11-12)
+## Phase: plan approved (D1-D4, etcd-grove-81 under the user's delegation, 2026-11-12; `questions.md`, decisions.md "Restart S4"); baseline build, then the probe, then CP1
 
 - Plan: `/shared/tmp/restart-s4/plan.md` (the statements old → new, §2 the frozen/exported table,
   §3 the order and checkpoints CP1-CP3, §4 decisions D1-D4, §5 the crash rungs).
@@ -22,6 +22,10 @@ the restart point, `run` at `⟨|P|, A₀⟩`.
 (targeted: the same without `flock`, with targets). `export TMPDIR=/shared/tmp`.
 
 ## Pitfalls (known before starting)
+
+- `.lake/packages` must be the symlink to `/shared/etcd-grove/.lake/packages` (a fresh worktree's own
+  clone makes lake compile Iris from scratch). Do not merge `lean` before CP3 (the SpecPlan/ sync).
+- `Scratch/` is untracked: never `git add -A`.
 
 - `isServerBuiltC`'s intro patterns name every conjunct (`isServerBuiltM_C`'s four `iintro`s): moving
   `Hsnap`/`Hloop`/`Happly`/`Happ` into `HBr` changes them all.
