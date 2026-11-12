@@ -39,8 +39,24 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC_DIRS = ("Code", "TrustedCode", "GeneratedProof", "ManualProof", "Spec", "Proof", "RaftWitness", "GooseLang",
-            "EtcdDeps")
+
+
+def lean_lib_dirs():
+    """The top directories of every `lean_lib`'s globs in lakefile.toml (`"Code.+"` -> `Code`), so that
+    a new library is scanned without editing this list (the third WAL W4a review's m1: `Bbolt/` and
+    `PorcupineDag/` were missed)."""
+    import tomllib
+    cfg = tomllib.loads((ROOT / "lakefile.toml").read_text())
+    dirs = []
+    for lib in cfg.get("lean_lib", []):
+        for g in lib.get("globs", []) + lib.get("roots", []):
+            d = g.split(".", 1)[0]
+            if d not in dirs:
+                dirs.append(d)
+    return tuple(dirs)
+
+
+SRC_DIRS = lean_lib_dirs()
 IMPORT = re.compile(r"^(public\s+)?(meta\s+)?import\s+(all\s+)?(\S+)", re.M)
 
 
