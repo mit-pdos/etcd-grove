@@ -10,6 +10,7 @@ the raft trees, 2026-10-16, this file was the only one importing the `Raft37` tr
 module
 
 public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section
 
@@ -46,13 +47,26 @@ as protobuf-go's decoder leaves them, which a re-decode puts back among the unkn
 wire type overrides that field, and garbage does not decode (the premise attack; Go:
 `examples/premisefix/confchange`, `TestRoundTripArbitraryUnknownFails` and
 `TestRoundTripUnmarshalLeftovers`). Until then `pbMsg` admitted any bytes and this axiom was false
-of `ProtoReflect().SetUnknown`'s objects (which no translated code makes). -/
+of `ProtoReflect().SetUnknown`'s objects (which no translated code makes).  (out_size B2, 2026-11-12: `notes/confchange-schema-empty.md`) The schemas were `[]` until then (the
+message's and each change's), under which the claim above did not hold; they are now `cc2Schema` and
+`ccsSchema` (`PbSchema.lean`).
+
+**The length** (out_size B2, A3', 2026-11-12, decided by etcd-grove-81): `len(Marshal(cc))` is
+`proto.Size`: at most `ccLenMax` (`PbContentOwn.lean`), every field counted present, an enum
+sign-extended, each `ConfChangeSingle` a length-delimited field 2, each length's minimal varint;
+the premise keeps every length below `2^63`. The precondition is the content form `ccPtsCC` (the
+unknown fields of the message and of each change pinned). Go: `TestA3CC2Len` (gated). -/
 abbrev proto.MarshalConfChangeV2.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownConfChangeV2 p dq m }}
+  ∀ (p : Loc) (dq : DFrac) (t : raftpb.ConfChangeTransition)
+    (chs : List (ConfChangeSingleM × List w8)) (ctx uf : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
+      ccPtsCC (interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p) dq (.v2 t chs ctx uf) }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p)))
   {{ (d : GoSlice) (bs : List w8), RET (PairV #d #interface.nil);
-      ownConfChangeV2 p dq m ∗ d ↦* bs ∗ ⌜ccDecodeV2 bs = some m⌝ }}
+      ccPtsCC (interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p) dq (.v2 t chs ctx uf) ∗
+      d ↦* bs ∗
+      ⌜ccDecodeV2 bs = some ⟨t, chs.map Prod.fst, ctx⟩ ∧
+        (ccSize (.v2 t chs ctx uf) + 64 < 2 ^ 63 → bs.length ≤ ccLenMax (.v2 t chs ctx uf))⌝ }}
 
 end spec
 

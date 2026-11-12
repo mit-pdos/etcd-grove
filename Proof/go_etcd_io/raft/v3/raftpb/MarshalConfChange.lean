@@ -54,12 +54,21 @@ theorem raftpb.MarshalConfChange.wp_proof
     wp_apply wp_ConfChange_AsV1
     simp only [raftpb.EntryConfChange]
     wp_auto
-    wp_apply wp_proto_MarshalConfChange v dq m $$ [$Hown] as %sl %bs ⟨Hown, Hsl, %Hdec⟩
+    ihave Hown : ownConfChangeI (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #v) dq
+        (some (.v1 m)) $$ [Hown]
+    · simp only [ownConfChangeI]; iexists v; iframe Hown; ipureintro; rfl
+    icases own_ccPtsCC _ dq _ $$ Hown with ⟨%cc, Hcc, %Hm⟩
+    cases cc with
+    | v2 => simp [ConfChangeIC.model] at Hm
+    | v1 m' uf =>
+    simp only [ConfChangeIC.model, Option.some.injEq, ConfChangeIM.v1.injEq] at Hm
+    subst Hm
+    wp_apply wp_proto_MarshalConfChange v dq m' uf $$ [$Hcc] as %sl %bs ⟨Hcc, Hsl, %Hdec⟩
+    ihave Hown := ccPtsCC_own _ dq _ $$ Hcc
+    simp only [ConfChangeIC.model, ownConfChangeI]
     iapply HΦ $$ %sl %bs
     iframe
-    isplitl
-    · ipureintro; rfl
-    · ipureintro; exact Hdec
+    ipureintro; exact Hdec.1
   · simp only [ownConfChangeI, confChangeEntryType]
     icases Hc with ⟨%v, %Hc, Hown⟩
     subst Hc
@@ -68,12 +77,21 @@ theorem raftpb.MarshalConfChange.wp_proof
     wp_apply wp_ConfChangeV2_AsV2
     simp only [raftpb.EntryConfChangeV2]
     wp_auto
-    wp_apply wp_proto_MarshalConfChangeV2 v dq m $$ [$Hown] as %sl %bs ⟨Hown, Hsl, %Hdec⟩
+    ihave Hown : ownConfChangeI (interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #v) dq
+        (some (.v2 m)) $$ [Hown]
+    · simp only [ownConfChangeI]; iexists v; iframe Hown; ipureintro; rfl
+    icases own_ccPtsCC _ dq _ $$ Hown with ⟨%cc, Hcc, %Hm⟩
+    cases cc with
+    | v1 => simp [ConfChangeIC.model] at Hm
+    | v2 t chs ctx uf =>
+    simp only [ConfChangeIC.model, Option.some.injEq, ConfChangeIM.v2.injEq] at Hm
+    subst Hm
+    wp_apply wp_proto_MarshalConfChangeV2 v dq t chs ctx uf $$ [$Hcc] as %sl %bs ⟨Hcc, Hsl, %Hdec⟩
+    ihave Hown := ccPtsCC_own _ dq _ $$ Hcc
+    simp only [ConfChangeIC.model, ownConfChangeI]
     iapply HΦ $$ %sl %bs
     iframe
-    isplitl
-    · ipureintro; rfl
-    · ipureintro; exact Hdec
+    ipureintro; exact Hdec.1
 
 end proof
 

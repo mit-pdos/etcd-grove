@@ -653,10 +653,117 @@ def ccSize [GooseExts] : ConfChangeIC → Nat
   | .v1 m uf => m.context.length + uf.length
   | .v2 _ chs ctx uf => ctx.length + uf.length + (chs.map fun ch => ch.2.length + 32).sum
 
+/-- A varint field's size at the value `n`: its tag (one byte: field numbers below 16) and the
+minimal varint (out_size B2, A3'). -/
+def fieldVarintSize (n : Nat) : Nat := 1 + varintSize n
+
+/-- An `int32` enum's value as protobuf encodes it: sign-extended to 64 bits (a negative value is a
+10-byte varint), as `entrySize`. -/
+def enumWire [GooseExts] (t : w32) : Nat := (uint.Z (W64 (sint.Z t))).toNat
+
+/-- **The protobuf size of a conf change at the content `cc`, every field present** (out_size B2,
+A3'): an upper bound of `proto.Size`, what `proto.MarshalConfChange[V2]`'s post bounds the encoding's
+length by (Go: `ccLenMaxGo`, `examples/pbschema/confchange_test.go`). `ConfChange`: `id`, `type`,
+`node_id`, `context` (tag, length, bytes), the unknown fields. `ConfChangeV2`: `transition`, each
+change as a length-delimited field 2 (its `type`, `node_id`, unknown fields), `context`, the unknown
+fields. Every field is counted present: the content form's cells are `cellRO` (presence forgotten),
+and an absent field encodes to nothing. -/
+def ccLenMax [GooseExts] : ConfChangeIC → Nat
+  | .v1 m uf =>
+      fieldVarintSize (uint.nat m.id) + fieldVarintSize (enumWire m.type) +
+      fieldVarintSize (uint.nat m.nodeId) + lenSize m.context.length + uf.length
+  | .v2 t chs ctx uf =>
+      fieldVarintSize (enumWire t) +
+      (chs.map fun ch => lenSize (fieldVarintSize (enumWire ch.1.Type') +
+        fieldVarintSize (uint.nat ch.1.NodeId') + ch.2.length)).sum +
+      lenSize ctx.length + uf.length
+
+theorem varintSize_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) → varintSize n ≤ k + 1 := by
+  intro k
+  induction k with
+  | zero =>
+    intro n h
+    unfold varintSize
+    rw [varintEnc, dite_eq_left_iff.2 (fun h' => absurd (by simpa using h) h')]
+    simp
+  | succ k ih =>
+    intro n h
+    unfold varintSize
+    rw [varintEnc]
+    split
+    · simp
+    · simp only [List.length_cons]
+      have h2 : n / 128 < 2 ^ (7 * (k + 1)) := by
+        rw [Nat.div_lt_iff_lt_mul (by decide)]
+        have : 2 ^ (7 * (k + 1 + 1)) = 2 ^ (7 * (k + 1)) * 128 := by
+          rw [show 7 * (k + 1 + 1) = 7 * (k + 1) + 7 by omega, Nat.pow_add]
+        omega
+      have := ih (n / 128) h2
+      unfold varintSize at this
+      omega
+
+theorem varintSize_le_10_of_lt (n : Nat) (h : n < 2 ^ 64) : varintSize n ≤ 10 :=
+  varintSize_le_of_lt 9 n (by
+    have : (2 : Nat) ^ 64 ≤ 2 ^ (7 * (9 + 1)) := Nat.pow_le_pow_right (by decide) (by decide)
+    omega)
+
+theorem varintSize_le_9_of_lt (n : Nat) (h : n < 2 ^ 63) : varintSize n ≤ 9 :=
+  varintSize_le_of_lt 8 n (by rw [show 7 * (8 + 1) = 63 from rfl]; exact h)
+
+theorem fieldVarintSize_w64 (v : w64) : fieldVarintSize (uint.nat v) ≤ 11 := by
+  unfold fieldVarintSize; have := varintSize_le_10_of_lt (uint.nat v) (by word); omega
+
+theorem fieldVarintSize_enum [GooseExts] (t : w32) : fieldVarintSize (enumWire t) ≤ 11 := by
+  unfold fieldVarintSize enumWire
+  have := varintSize_le_10_of_lt (uint.Z (W64 (sint.Z t))).toNat (by
+    have := uint_nat_eq (W64 (sint.Z t)); word)
+  omega
+
+theorem lenSize_le_of_lt (n : Nat) (h : n < 2 ^ 63) : lenSize n ≤ n + 10 := by
+  unfold lenSize; have := varintSize_le_9_of_lt n h; omega
+
+/-- (out_size B2, A3') **The size measure bounds the encoding**: under the premise keeping every
+length below `2^63`, `ccLenMax cc ≤ ccSize cc + 64`. `ConfChange`: three varint fields of at most
+`11` and the `Context`'s tag and length of at most `10` (`43`); `ConfChangeV2`: the transition and
+the `Context` framing (`21`), each change at most `32` beside its unknown fields. -/
+theorem ccLenMax_le [GooseExts] (cc : ConfChangeIC) (h : ccSize cc + 64 < 2 ^ 63) :
+    ccLenMax cc ≤ ccSize cc + 64 := by
+  cases cc with
+  | v1 m uf =>
+    simp only [ccSize] at h
+    simp only [ccLenMax, ccSize]
+    have := fieldVarintSize_w64 m.id; have := fieldVarintSize_w64 m.nodeId
+    have := fieldVarintSize_enum m.type
+    have := lenSize_le_of_lt m.context.length (by omega)
+    omega
+  | v2 t chs ctx uf =>
+    simp only [ccSize] at h
+    simp only [ccLenMax, ccSize]
+    have hch : ∀ (l : List (ConfChangeSingleM × List w8)),
+        (l.map fun ch => ch.2.length + 32).sum < 2 ^ 63 →
+        (l.map fun ch => lenSize (fieldVarintSize (enumWire ch.1.Type') +
+          fieldVarintSize (uint.nat ch.1.NodeId') + ch.2.length)).sum ≤
+        (l.map fun ch => ch.2.length + 32).sum := by
+      intro l
+      induction l with
+      | nil => intro _; simp
+      | cons ch l ih =>
+        intro hl
+        simp only [List.map_cons, List.sum_cons] at hl ⊢
+        have := fieldVarintSize_enum ch.1.Type'; have := fieldVarintSize_w64 ch.1.NodeId'
+        have := lenSize_le_of_lt (fieldVarintSize (enumWire ch.1.Type') +
+          fieldVarintSize (uint.nat ch.1.NodeId') + ch.2.length) (by omega)
+        have := ih (by omega)
+        omega
+    have := hch chs (by omega)
+    have := fieldVarintSize_enum t
+    have := lenSize_le_of_lt ctx.length (by omega)
+    omega
+
 section ccDefs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- A `ConfChangeV2`'s change, frozen, holding `c` with the unknown fields `uf` (`ccsRO`'s content

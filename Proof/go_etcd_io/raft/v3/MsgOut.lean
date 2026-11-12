@@ -349,30 +349,6 @@ theorem varintSize_le_succ : ∀ n : Nat, varintSize n ≤ n + 1 := by
       unfold varintSize at this
       omega
 
-theorem varintSize_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) → varintSize n ≤ k + 1 := by
-  intro k
-  induction k with
-  | zero =>
-    intro n h
-    unfold varintSize
-    rw [varintEnc, dite_eq_left_iff.2 (fun h' => absurd (by simpa using h) h')]
-    simp
-  | succ k ih =>
-    intro n h
-    unfold varintSize
-    rw [varintEnc]
-    split
-    · simp
-    · simp only [List.length_cons]
-      have h2 : n / 128 < 2 ^ (7 * (k + 1)) := by
-        rw [Nat.div_lt_iff_lt_mul (by decide)]
-        have : 2 ^ (7 * (k + 1 + 1)) = 2 ^ (7 * (k + 1)) * 128 := by
-          rw [show 7 * (k + 1 + 1) = 7 * (k + 1) + 7 by omega, Nat.pow_add]
-        omega
-      have := ih (n / 128) h2
-      unfold varintSize at this
-      omega
-
 theorem varintSize_le_ten (n : Nat) (h : n < 2 ^ 64) : varintSize n ≤ 10 :=
   varintSize_le_of_lt 9 n (by
     have : (2 : Nat) ^ 64 ≤ 2 ^ (7 * (9 + 1)) := Nat.pow_le_pow_right (by decide) (by decide)
