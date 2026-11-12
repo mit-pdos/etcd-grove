@@ -336,6 +336,12 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     gen-init, goose, axiom-tok `--check`, bounds (331) pass; `--roots '_safe$'`: no `*_safe` rests on
     `grpc.serve`/`serveStream`/`Server.Serve` (gone), only `sorry out_size`. Then `etc/land.sh`
     (log `/shared/tmp/stageB/land.log`).
+    **land.sh refused (gates FAILED, lean unchanged)**: two gates CP3 had not run fail on the new grpc
+    trusted texts: `etc/model-param-check.py` rule 1 (9 hits: `grpc.model.acceptRun.wp_proof`,
+    `acceptRunConns.wp_proof` bind `grpcAccepted`'s `Req`/`Rep` `.toProtoMsg.M`/`.toStreamMsg.M`, and
+    `respond.wp_proof` binds `spec`'s `Rep.toProtoMsg.M`, with no registry premise) and
+    `etc/errdesc-check.py` (`Spec/google_golang_org/grpc/model/respond.lean` names `errDesc`, not in
+    `REVIEWED`). Every other gate passed. Waiting for etcd-grove-81's decision (trusted text).
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
