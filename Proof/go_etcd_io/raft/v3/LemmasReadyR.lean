@@ -342,14 +342,10 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
           · ipureintro; exact ⟨Hsm, rfl, rfl⟩
           isplitr [Htq]
           · imodintro
-            iintro #Hfr %ty %Hty
+            iintro #Hfr
             ihave #Ho' := bigSepL_wand_pers (durFrags (GF := GF) γ id W) (isMessage γ) o $$ Ho Hfr
-            ihave #Hr := outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0)
+            iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0)
               (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) Htr $$ Ho' Hqq Hxw
-            ihave H := isRaftMsg_isMessage γ id q.st ty Hty
-              (fun hs => mtypeOf_resp_ne_snap _ Hresp (hs ▸ Hty)) $$ Hr
-            rw [Hsm.2.2.2.2.1, Hsm.2.2.2.2.2.1]
-            iexact H
           · iexact Htq
       · iapply ih Hsub' Hok' $$ Ho Hqc Hxw H Htk
     · simp only [selfmsgs, List.filter_cons, h, Bool.false_eq_true, ↓reduceIte]
