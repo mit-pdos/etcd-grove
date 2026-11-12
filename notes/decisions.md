@@ -35067,7 +35067,7 @@ fixed exactly by the resource it hands over at the same point; the mark and `nam
 **Revision 1b (R1/R2, purge-model completeness): deferred to W4a.2** (the coordinator's fallback),
 `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, "Revision 1b".
 
-## WAL W4a.2: the purge bounds' completeness (R1/R2), two soundness bugs in landed WAL axioms, and the restart's calls logically atomic (2026-11-12 · the design decided by etcd-grove-81; the fork fix `1aaca041c` approved by the user, 2026-11-12, via etcd-grove-81 · branch `wal-w4a2`; the trusted texts await the Freeze review, `/shared/tmp/wal-spec/w4a2/freeze-w4a2.md`)
+## WAL W4a.2: the purge bounds' completeness (R1/R2), two soundness bugs in landed WAL axioms, and the restart's calls logically atomic (2026-11-12 · the design decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user, 2026-11-12, via etcd-grove-81 · branch `wal-w4a2`; the trusted texts await the Freeze review, `/shared/tmp/wal-spec/w4a2/freeze-w4a2.md`)
 
 **Soundness bugs in landed trusted text** (found while designing R1; no closed theorem reached the WAL
 axioms, which are unlinked, so nothing proved was affected). Go tests:
@@ -35124,7 +35124,7 @@ its read cannot also unlock); its body commits at `"WalNamed"` with the handle a
 
 Evidence: the W4a.2 probe (`/shared/tmp/wal-spec/w4a2/r2/`: the W3 tester on the fork at `0b50f0426`,
 true file positions across restarts per candidate; every restart's `Open`, every `ReleaseLockTo` and
-every purge checked against the new bounds); Go tests in `/shared/tmp/wal-spec/w4a2/tests/`.
+every purge checked against the new bounds): at `0b50f0426`, 4 models x 150 chains, no event refutes (no NONE), no unmatched restart, no C2 failure (796/761/300 at `1aaca041c` with `walLastEntIdx`), every R2 case covered by `walOpenPos ≤ p`; 3 SOME events, each in candidates that (L) rules out (Freeze package §3.2); Go tests in `/shared/tmp/wal-spec/w4a2/tests/`.
 
 **The naming fix (approved by the user, 2026-11-12, via etcd-grove-81): the first fork fix cost etcd
 a restart.** The W4a.2 probe (posix model) hit one unmatched restart in a raft-like history: a
