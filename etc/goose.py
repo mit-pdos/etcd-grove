@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -981,6 +981,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
+    ),
+    Project(
+        name="etcd-wal",
+        # The WAL robustness tester (WAL W4c; `etcd_wal_safe`, notes/decisions.md "WAL W4c"): one
+        # incarnation of a member's WAL per run (`Main`, rerun after every crash), checking each
+        # restart's read against the crash-aware WAL spec, with its reference state in a durable
+        # file (lib/durable). A package of the examples' Go module (examples/go.mod); its imports
+        # are the etcd project's translations (`wal`, `walpb`, `fileutil` names-only). Its crash
+        # driver (`*_test.go`, `crashtest/`) is Go-only.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "wal"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
     ),
     Project(
         name="porcupine",
