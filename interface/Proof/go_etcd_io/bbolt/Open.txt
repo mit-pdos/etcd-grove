@@ -15,10 +15,11 @@ theorem bbolt.Open.wp_proof [sync.Assumptions] (hOpenFile : ∀ [inst : HasExt o
     bbolt.DB.getPageSize.spec_own) (hMmap : ∀ [inst : HasExt osFsExt],
     bbolt.DB.mmapUnlocked.spec_own) (hLoad : ∀ [inst : HasExt osFsExt],
     bbolt.DB.loadFreelist.spec_open) (hSync : ∀ [HasExt osFsExt], bbolt.DB.hasSyncedFreelist.spec)
-    (hBegin : ∀ [inst : HasExt osFsExt], bbolt.DB.Begin_err.spec) (hCommit : ∀ [inst : HasExt
-    osFsExt], bbolt.Tx.Commit_err.spec) (hClose : bbolt.DB.Close.spec) (hclose : ∀ [inst : HasExt
-    osFsExt], bbolt.DB.close.spec_owned) (hLogger : bbolt.DB.Logger.spec) (hOptStr :
-    bbolt.Options.String.spec) (hModeStr : bbolt.fs.FileMode.String.spec) : bbolt.Open.spec
+    (hFds : ∀ [inst : HasExt osFsExt], bbolt.fdatasync.spec) (hBegin : ∀ [inst : HasExt osFsExt],
+    bbolt.DB.Begin_err.spec) (hCommit : ∀ [inst : HasExt osFsExt], bbolt.Tx.Commit_err.spec) (hClose
+    : bbolt.DB.Close.spec) (hclose : ∀ [inst : HasExt osFsExt], bbolt.DB.close.spec_owned) (hLogger
+    : bbolt.DB.Logger.spec) (hOptStr : bbolt.Options.String.spec) (hModeStr :
+    bbolt.fs.FileMode.String.spec) : bbolt.Open.spec
   -- `Perennial.EtcdGrove.bbolt.Open.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (path : GoString)
     (mode : w32) (opts : Loc) (dq : DFrac) (o : bbolt.OptsM) (D : bbolt.Data),
