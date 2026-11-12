@@ -9,6 +9,10 @@
 # notes/trace-check-design.md §6): proto.ClonePb (app's `proto.Clone` of each message),
 # proto.UnmarshalConfChange (handleReady's conf entries), strconv.Itoa (the proposer, Q33), and through
 # raft's linked node API proto.CloneSnapshot and proto.SizeEntry. Nothing new to the trust base.
+# (2026-11-12, trace-check step 5) `HarnessOpen` discharged (`harnessOpen`) and the hypothesis-free
+# `raft_tracecheck_safe`/`raft_tracecheck_accepts`: the results now rest on raft's linked traced
+# `StartNode` (newRaft, Bootstrap, run), which brings existing axioms of etc/tcb-baseline.txt (raft's
+# collection's: the protobuf boundary, fmt/strconv, `ccDecodeV2_nil`, ...). Nothing new to the trust base.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt --check    against the lines below
@@ -18,8 +22,19 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results\.lean$
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link\.lean$
+axiom DescribeConfChange.wp_proof
+axiom ccDecodeV2_nil
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.SizeEntry.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
+axiom strconv.FormatUint.wp_proof
 axiom strconv.Itoa.wp_proof

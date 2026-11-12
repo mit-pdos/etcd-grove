@@ -8,7 +8,7 @@ theorem RawNode.Bootstrap.wp_proof [package_sem : Assumptions] (wp_raft_becomeFo
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec) (wp_raft_applyConfChange :
     raft.applyConfChange.spec) : RawNode.Bootstrap.spec
   -- `Perennial.EtcdGrove.RawNode.Bootstrap.spec`, unfolded:
-  ∀ (γ : RaftNames) (md : RNMode) (rn : Loc) (id : w64) (si : GoInterfaceOk) (sdr pre : Bool) (s : NState)
+  ∀ (γ : RaftNames) (md : RNMode) (rn r : Loc) (id : w64) (si : GoInterfaceOk) (sdr pre : Bool) (s : NState)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM),
     ps = List.map Peer.ID' pv →
       ps ≠ [] →
@@ -20,28 +20,33 @@ theorem RawNode.Bootstrap.wp_proof [package_sem : Assumptions] (wp_raft_becomeFo
                   γ.reBoot = bootLog →
                     BootLogOk ps bootLog →
                       γ.reNoSnap = false →
-                        γ.reTrace = none →
-                          ⊢
-                            ∀ Φ,
-                              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                  rawNodeFresh rn id si ∅ sdr pre s ∗
-                                    ownSlice peers pv dq ∗
-                                      peersCtx pv ctxs ∗
-                                        bootMarshal ps ctxs bootLog ∗
-                                          bootInit γ md id (listToSet ps) bootLog ∗
-                                            isCommitted γ bootLog ∗ certLink γ s.gh.sn -∗
-                                (▷
-                                    ∀ err,
-                                      ⌜err = GoInterface.nil⌝ ∗
-                                          ownRawNode γ rn id
-                                              { delivered := [], unpersisted := [], steps := [], term := W64 1,
-                                                storage := GoInterface.ok si, sn := s.gh.sn, tc := W64 1, mode := md,
-                                                cfg := cfgState (listToSet ps) ∅ } ∗
-                                            ownSlice peers pv dq -∗
-                                        Φ (intoVal err)) -∗
-                                  WP
-                                    ((intoVal
-                                        (methods RawNode.ty.PointerType
-                                          go!"Bootstrap" (intoVal rn)))
-                                      (intoVal peers))
-                                    {{ Φ }}
+                        s.gh.tr = γ.reTrace →
+                          (γ.reTrace ≠ none → pre = false ∧ s.cq = false ∧ ps.length < 2 ^ 40) →
+                            ⊢
+                              ∀ Φ,
+                                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                    rawNodeFresh rn r id si ∅ sdr pre s ∗
+                                      ownSlice peers pv dq ∗
+                                        peersCtx pv ctxs ∗
+                                          bootMarshal ps ctxs bootLog ∗
+                                            bootInit γ md id (listToSet ps) bootLog ∗
+                                              isCommitted γ bootLog ∗
+                                                certLink γ s.gh.sn ∗
+                                                  trCapB γ.reTrace γ r id (bootCfg ps) false (bootPhase ps id)
+                                                      (bootAt ps id 2) ∗
+                                                    trNoCut γ.reTrace (GoInterface.ok si) -∗
+                                  (▷
+                                      ∀ err,
+                                        ⌜err = GoInterface.nil⌝ ∗
+                                            ownRawNode γ rn id
+                                                { delivered := [], unpersisted := [], steps := [], term := W64 1,
+                                                  storage := GoInterface.ok si, sn := s.gh.sn, tc := W64 1, mode := md,
+                                                  cfg := cfgState (listToSet ps) ∅ } ∗
+                                              ownSlice peers pv dq ∗ bootDoneG γ.reTrace id -∗
+                                          Φ (intoVal err)) -∗
+                                    WP
+                                      ((intoVal
+                                          (methods RawNode.ty.PointerType
+                                            go!"Bootstrap" (intoVal rn)))
+                                        (intoVal peers))
+                                      {{ Φ }}

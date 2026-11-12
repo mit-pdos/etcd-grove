@@ -70,7 +70,7 @@ instance Cluster.traceSimInv_persistent (γ : Cluster) (vs : List w64) (tn : Tra
 one, the configuration's premise, the voters the trace's names record and fewer than `2^40` of them
 (the bootstrap lines' log, `TraceEv.OkBoot`: raft's bootstrap log has one entry per voter), the receipts'
 fit with the ceiling's headroom (`receiptBound GF + max γ.bootLen 2 ≤ 2^61`: the node API's `readyFits`
-and one more unit for a term ceiling raised by a tick or `Campaign`; `node.run.gatedSpec`'s
+and one more unit for a term ceiling raised by a tick or `Campaign`; `node.run.spec`'s
 `RunTracedOk`; 2026-11-12, step 5, review `step4-r1.md`'s S1 and `step5-r1.md`'s S1), a logger that is
 not nil with the logger's contract for the trace, the simulation's invariant (`Cluster.traceSimInv`), the
 node's share at the bootstrap state (`simInit`, nothing pending) and its `booted` flag unset with no
@@ -100,7 +100,7 @@ cv.TraceLogger'` and `Cluster.trace γ = none` replaced by `startTrace` in the p
 untraced cluster's is the first premise, `startTrace_untraced`), its post also giving the node's
 completion witness `startDoneB γ cv.ID'` (amendment A8.3). (2026-11-12, step 5) `startTrace` takes the
 cluster's namespace and carries the receipts' fit. Proved in `StartNode.lean` (`StartNode.gatedSpec_proof`,
-from `setupNode.spec` and `node.run.gatedSpec`); `StartNode.spec` is its instance. -/
+from `setupNode.spec` and `node.run.spec`); `StartNode.spec` is its instance. -/
 abbrev StartNode.gatedSpec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF)

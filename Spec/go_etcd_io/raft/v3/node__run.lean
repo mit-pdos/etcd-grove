@@ -64,11 +64,11 @@ proof discharges it): the node is dynamic (`confcP`'s static arm, `CCShrink`, ha
 node of the node API is dynamic, `StartNode`'s `HdynOk`), the receipts fit the trace's bound past the
 bootstrap log (`traceReadyFits`: the cluster's `readyFits` at its `RaftNames`, for the traced triples'
 premise and `ownStepGhost_traceBound`), and the term ceiling's successor is below the trace's bound
-(`receiptBound GF + 2 ≤ traceNumBound`: the ceiling `rs.tc` is at most `receiptBound GF` by `termLB` and
+(`traceCeilFits`, `receiptBound GF + 2 ≤ traceNumBound`: the ceiling `rs.tc` is at most `receiptBound GF` by `termLB` and
 `budgetInv`, so `rs.tc + 1 < traceNumBound`, the traced triples' `Htcb`). The harness has the last two
 from `tcRunFits` (`receiptBound GF + 3 ≤ 2^61`, three voters' bootstrap entries). -/
 def RunTracedOk (GF : BundledGFunctors) [ReceiptGS GF] (γ : NodeNames) : Prop :=
-  γ.mode.isDyn = true ∧ traceReadyFits GF γ.raft ∧ receiptBound GF + 2 ≤ traceNumBound
+  γ.mode.isDyn = true ∧ traceReadyFits GF γ.raft ∧ traceCeilFits GF
 
 /-- See the file header. (2026-11-12, trace-check step 5: step 4's `node.run.gatedSpec`, replacing this statement in place) Both modes: the premise `γ.raft.reTrace = none` replaced by the gated `RunTracedOk`, and the precondition's gated half of the token escrow's pending deposit (`rtkRun γ.esc none`, `True` untraced). -/
 abbrev node.run.spec : Prop :=

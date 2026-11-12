@@ -2,6 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem RaftLink.wp_StartNode_traced [package_sem : Assumptions] : StartNode.tracedSpec
+
 theorem RaftLink.node.wp_Advance_traced [package_sem : Assumptions] : node.Advance.tracedSpec
 
 theorem RaftLink.node.wp_Step_traced [package_sem : Assumptions] : node.Step.tracedSpec

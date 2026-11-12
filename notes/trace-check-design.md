@@ -178,7 +178,7 @@ instance).
 | Caller | `s.gh.tr ≠ none → follower` | `HookGate … Q` |
 |---|---|---|
 | `Bootstrap`, per peer (traced) | `becomeFollower(1, None)` before, kept by each follower's `ApplyCCOkC` | `trCapB_hookGate_ccBoot`: `hBN` from `bootAt ps id (k + 3)` and `bootPhase`; `hΛ` to `bootAt ps id (k + 4)`; `hOk` from `|ps| < 2^40` |
-| `run`'s `confc` (through `tracedSpec_of_gatedSpec`) | step 4's table, unchanged | `trCapB_hookGate_applyCC` from `tracedSpec`'s premises |
+| `run`'s `confc` (through `tracedSpec_of_spec`) | step 4's table, unchanged | traced: `trCapB_hookGate_applyCC` from `tracedSpec`'s premises at `cn := c'.cfg = c`; untraced: `hookGate_none`, `Q := emp` (`trCapB_hookGate_applyCC`'s `hcn` is not gated, so the derivation splits on the mode; review `step5-r1.md`'s S2) |
 | untraced (`InvNodeRun`, `RawNode__ApplyConfChange`, `node__run`, through `spec_of_gatedSpec`) | vacuous | `hookGate_none` (`ownRaftPhysC_traceLogger`), `Q := emp` |
 
 **`raft.switchToConfig.gatedSpec` at its callers:** in `applyConfChange`'s proof the fire comes from the
@@ -238,6 +238,16 @@ proof, :384 and :568). `RunConcurrent.spec`, `Main.spec` and §1's statements do
   `wp_switch_hook`, moves to `tracedSpec_of_gatedSpec`); the capability arithmetic (`switch_cap`) moves with it.
 - No bug in raft's Go code or in a spec found (the `validate` call does not touch `TraceLogger`, so the
   logger `trCapStart` names is the one `newRaft` writes).
+
+**Step 5 proved (2026-11-12, branch `trace-check-s5`; `notes/decisions.md`, the step-5 entry's addendum).**
+Every statement above is proved, in place of the `Spec/` statement it replaces, with review `step5-r1.md`'s
+decisions (the fit `traceFits`, `max γ.bootLen 2`; the coupling of `trCapStart` to `trCapB` documented, not
+factored). `node.run.spec` and `RawNode.Advance.spec` are step 4's gated/traced statements in place (one proof
+of `run`: `node.run.gated_of`). Found in the proof and changed: `traceNodeEvent.spec`/`traceInitState.spec` lend
+raft's state read-only (`newRaft`'s `InitState` precedes the whole struct), and `traceConfChangeEvent.spec`
+lends it together with the new configuration (`newRaft`'s `Restore` of the empty conf state returns the
+tracker's own maps). `HarnessOpen` is the theorem `harnessOpen` (`TracedLinked.wp_StartNode_traced`), and the
+hypothesis-free `raft_tracecheck_safe`/`raft_tracecheck_accepts` are in the tracecheck `Results.lean`.
 
 ---
 
@@ -1957,6 +1967,8 @@ finding, and `a8-r2.md`; `notes/decisions.md`, "Amendment A8 (Q36, Q37)"). Revis
 design's statements (a ghost map for the witnesses, `bootInit` kept beside an equation); the
 implementation departed from both, and this section now states what landed. Nothing below is to do
 but the minting at the end of `setupNode` (§5.2), which waits on the traced `newRaft`/`Bootstrap`.
+(*Superseded in part, 2026-11-12, step 5: the minting is at the end of `RawNode.Bootstrap`, the last
+point where the capability's `Λ` records the last bootstrap event; see "Step 5" at the top.*)
 
 **A8.1: `simInit` (Q36 (a)).** `TraceSimGhost.lean`.
 - `simInit C`'s servers: `s := fun i => if i ∈ confAbs C then { v with durable := … } else bootJunk`

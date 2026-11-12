@@ -1,5 +1,5 @@
 /- Lean-first (no Rocq counterpart). **Step 4 of the trace-check design (2026-11-12): `node.run` in both
-modes** (`node.run.gatedSpec`, `TracedRunSpecs.lean`; `notes/trace-check-design.md`, "Step 4
+modes** (`node.run.spec`, step 4's `node.run.gatedSpec` in place since step 5; `notes/trace-check-design.md`, "Step 4
 (2026-11-12): the statements", §3.2). Today's proof (`node__run.lean`) with each callee's triple for both
 modes (`TracedNodeRun.lean`): `RawNode.Advance` and `raft.applyConfChange` by their traced statements
 (the hypotheses `hAdv`, `hCC`), the steps over the traced assembly (`hb`), the tick over its traced

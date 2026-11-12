@@ -16,7 +16,7 @@ theorem traceConfChangeEvent.wp_proof [package_sem : Assumptions] (wp_traceEvent
               trOwn tr
                   iprop(∃ c cn id s prsm prs pvs P,
                       P ∗
-                        RaftReadLend P c r id s ∗
+                        RaftReadLend iprop(P ∗ ownConfigC cn cfgv prsm prs pvs) c r id s ∗
                           ownConfigC cn cfgv prsm prs pvs ∗
                             ⌜∀ (e : TraceEv), CCEvOf id s c cn e → E e⌝ ∗ (P ∗ ownConfigC cn cfgv prsm prs pvs -∗ R)) ∗
                 TraceFire tr tl E Q -∗

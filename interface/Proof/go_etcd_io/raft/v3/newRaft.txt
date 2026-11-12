@@ -3,10 +3,10 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Config.validate.spec)
-    (wp_newLogWithSize : newLogWithSize.spec) (wp_MakeProgressTracker :
-    tracker.MakeProgressTracker.spec) (wp_newReadOnly : newReadOnly.spec) (wp_traceInitState :
-    traceInitState.spec) (wp_confchange_Restore : confchange.Restore.spec) (wp_traceConfChangeEvent
-    : traceConfChangeEvent.spec) (wp_ProgressTracker_ConfState :
+    (wp_newLogWithSize : newLogWithSize.spec) (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec)
+    (wp_MakeProgressTracker : tracker.MakeProgressTracker.spec) (wp_newReadOnly : newReadOnly.spec)
+    (wp_traceInitState : traceInitState.spec) (wp_confchange_Restore : confchange.Restore.spec)
+    (wp_traceConfChangeEvent : traceConfChangeEvent.spec) (wp_ProgressTracker_ConfState :
     tracker.ProgressTracker.ConfState.spec) (wp_assertConfStatesEquivalent :
     assertConfStatesEquivalent.spec) (wp_IsEmptyHardState : IsEmptyHardState.spec)
     (wp_HardState_GetCommit : raftpb.HardState.GetCommit.spec) (wp_HardState_GetTerm :
@@ -16,7 +16,7 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
     strings.Join.spec) : newRaft.spec
   -- `Perennial.EtcdGrove.newRaft.spec`, unfolded:
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (sn : StorNames) (σ : StorState) (hs : HardStateM) (csm : ConfStateM)
-    (R R' : IProp GF) (cs' : CCState),
+    (R R' : IProp GF) (cs' : CCState) (γ : RaftNames) (vs : List w64),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -49,10 +49,10 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                                       listToSet csm.LearnersNext').size ≤
                                                 2 ^ 62 →
                                               ConfStateOk csm →
-                                                TraceLoggerOk cv.TraceLogger' →
+                                                (γ.reTrace ≠ none → BootFresh σ hs csm) →
                                                   ⊢
                                                     ∀ Φ,
-                                                      (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                      isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                                                           typedPointsto c cv (DFrac.own 1) ∗
                                                             isLogger lok ∗
                                                               R ∗
@@ -93,30 +93,34 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                                                                       si.v))
                                                                                   (intoVal ()))
                                                                                 {{ Φ }}) ∗
-                                                                    □
-                                                                      □
-                                                                        ∀ Φ,
-                                                                          R -∗
-                                                                            (▷
-                                                                                ∀ hp cs al,
-                                                                                  (hsOpt hp hs ∗
-                                                                                      csPts cs DFrac.discard csm al ∗
-                                                                                        |={⊤}=>
-                                                                                          isStorageD sn
-                                                                                              (GoInterface.ok si) ∗
-                                                                                            ownStorage sn.unrec
-                                                                                                (GoInterface.ok si) σ ∗
-                                                                                              R') -∗
-                                                                                    Φ
-                                                                                      ((intoVal hp, intoVal cs),
-                                                                                        intoVal GoInterface.nil)) -∗
-                                                                              WP
-                                                                                ((intoVal
-                                                                                    (methods si.ty
-                                                                                      go!"InitialState"
-                                                                                      si.v))
-                                                                                  (intoVal ()))
-                                                                                {{ Φ }}) -∗
+                                                                    (□
+                                                                        □
+                                                                          ∀ Φ,
+                                                                            R -∗
+                                                                              (▷
+                                                                                  ∀ hp cs al,
+                                                                                    (hsOpt hp hs ∗
+                                                                                        csPts cs DFrac.discard csm al ∗
+                                                                                          |={⊤}=>
+                                                                                            isStorageD sn
+                                                                                                (GoInterface.ok si) ∗
+                                                                                              ownStorage sn.unrec
+                                                                                                  (GoInterface.ok si) σ ∗
+                                                                                                trNoCut γ.reTrace
+                                                                                                    (GoInterface.ok si) ∗
+                                                                                                  R') -∗
+                                                                                      Φ
+                                                                                        ((intoVal hp, intoVal cs),
+                                                                                          intoVal GoInterface.nil)) -∗
+                                                                                WP
+                                                                                  ((intoVal
+                                                                                      (methods si.ty
+                                                                                        go!"InitialState"
+                                                                                        si.v))
+                                                                                    (intoVal ()))
+                                                                                  {{ Φ }}) ∗
+                                                                      trCapStart γ.reTrace γ cv.ID' cv.TraceLogger'
+                                                                        (bootCfg vs) (bootPhase vs cv.ID') bootNone -∗
                                                         (▷
                                                             ∀ r s cv',
                                                               R' ∗
@@ -124,57 +128,66 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                                                     typedPointsto c cv' (DFrac.own 1) ∗
                                                                       ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
                                                                         ⌜NStateWf s ∧
-                                                                            s.term = hs.Term' ∧
-                                                                              s.vote = hs.Vote' ∧
-                                                                                s.lead = W64 0 ∧
-                                                                                  s.role = PRole.follower ∧
-                                                                                    s.votes = ∅ ∧
-                                                                                      s.outbox = [] ∧
-                                                                                        s.prevote = cv.PreVote' ∧
-                                                                                          s.logst.prev = σ.prev ∧
-                                                                                            s.logst.sents = σ.ents ∧
-                                                                                              s.logst.uents = [] ∧
-                                                                                                s.logst.stored = σ.ents ∧
-                                                                                                  s.logst.committed =
-                                                                                                      committedAfter
-                                                                                                        σ.prev hs ∧
-                                                                                                    s.logst.applying =
-                                                                                                        w64Max
-                                                                                                          σ.prev.index'
-                                                                                                          (if
-                                                                                                              cv.Applied' =
-                                                                                                                W64 0 then
-                                                                                                            σ.prev.index'
-                                                                                                          else
-                                                                                                            cv.Applied') ∧
-                                                                                                      s.logst.applied =
-                                                                                                          s.logst.applying ∧
-                                                                                                        s.logst.unpersisted =
-                                                                                                            [] ∧
-                                                                                                          s.logst.snap =
-                                                                                                              none ∧
-                                                                                                            s.logst.storage =
-                                                                                                                GoInterface.ok
-                                                                                                                  si ∧
-                                                                                                              s.logst.sn =
-                                                                                                                  sn ∧
-                                                                                                                s.gh =
-                                                                                                                    {
-                                                                                                                      sn :=
-                                                                                                                        sn } ∧
-                                                                                                                  s.rd.states =
-                                                                                                                      [] ∧
-                                                                                                                    s.rd.pend =
-                                                                                                                        [] ∧
-                                                                                                                      s.sdr =
-                                                                                                                          cv.StepDownOnRemoval' ∧
-                                                                                                                        s.progress.domSet =
-                                                                                                                            cs'.prs.domSet ∧
-                                                                                                                          s.logst.dtk =
-                                                                                                                            uint.nat
-                                                                                                                              (committedAfter
-                                                                                                                                σ.prev
-                                                                                                                                hs)⌝ -∗
+                                                                              s.term = hs.Term' ∧
+                                                                                s.vote = hs.Vote' ∧
+                                                                                  s.lead = W64 0 ∧
+                                                                                    s.role = PRole.follower ∧
+                                                                                      s.votes = ∅ ∧
+                                                                                        s.outbox = [] ∧
+                                                                                          s.prevote = cv.PreVote' ∧
+                                                                                            s.cq = cv.CheckQuorum' ∧
+                                                                                              s.logst.prev = σ.prev ∧
+                                                                                                s.logst.sents = σ.ents ∧
+                                                                                                  s.logst.uents = [] ∧
+                                                                                                    s.logst.stored =
+                                                                                                        σ.ents ∧
+                                                                                                      s.logst.committed =
+                                                                                                          committedAfter
+                                                                                                            σ.prev hs ∧
+                                                                                                        s.logst.applying =
+                                                                                                            w64Max
+                                                                                                              σ.prev.index'
+                                                                                                              (if
+                                                                                                                  cv.Applied' =
+                                                                                                                    W64
+                                                                                                                      0 then
+                                                                                                                σ.prev.index'
+                                                                                                              else
+                                                                                                                cv.Applied') ∧
+                                                                                                          s.logst.applied =
+                                                                                                              s.logst.applying ∧
+                                                                                                            s.logst.unpersisted =
+                                                                                                                [] ∧
+                                                                                                              s.logst.snap =
+                                                                                                                  none ∧
+                                                                                                                s.logst.storage =
+                                                                                                                    GoInterface.ok
+                                                                                                                      si ∧
+                                                                                                                  s.logst.sn =
+                                                                                                                      sn ∧
+                                                                                                                    s.gh =
+                                                                                                                        {
+                                                                                                                          sn :=
+                                                                                                                            sn,
+                                                                                                                          tr :=
+                                                                                                                            γ.reTrace } ∧
+                                                                                                                      s.rd.states =
+                                                                                                                          [] ∧
+                                                                                                                        s.rd.pend =
+                                                                                                                            [] ∧
+                                                                                                                          s.sdr =
+                                                                                                                              cv.StepDownOnRemoval' ∧
+                                                                                                                            s.progress.domSet =
+                                                                                                                                cs'.prs.domSet ∧
+                                                                                                                              s.logst.dtk =
+                                                                                                                                uint.nat
+                                                                                                                                  (committedAfter
+                                                                                                                                    σ.prev
+                                                                                                                                    hs)⌝ ∗
+                                                                          trNoCut γ.reTrace (GoInterface.ok si) ∗
+                                                                            trCapB γ.reTrace γ r cv.ID' (bootCfg vs) false
+                                                                              (bootPhase vs cv.ID')
+                                                                              (bootAt vs cv.ID' 2) -∗
                                                                 Φ (intoVal r)) -∗
                                                           WP ((intoVal (functions newRaft [])) (intoVal c)) {{ Φ }}
 

@@ -25,6 +25,9 @@ def node.Step.tracedSpec : Prop :=
 theorem isReadyChan_recvAu.tracedSpec_proof [package_sem : Assumptions] :
     isReadyChan_recvAu.tracedSpec
 
+theorem traceFits_intro [package_sem : Assumptions] (γ : Cluster) (N : Namespace) : receiptBound GF
+    + max γ.bootLen 2 ≤ 2 ^ 61 → ⊢ traceFits γ N
+
 theorem trTok_untraced [package_sem : Assumptions] (γ : Cluster) (st : MsgSt) (h : γ.trace = none) :
     ⊢ trTok γ st
 
@@ -61,6 +64,8 @@ def trTok (γ : Cluster) (st : MsgSt) : IProp GF :=
 
 def (sealed) Cluster.traceSim (γ : Cluster) (vs : List w64) (tn : TraceSim.TraceNames) : IProp GF
 
+theorem traceFits_persistent (γ : Cluster) (N : Namespace) : Persistent (traceFits γ N)
+
 def (sealed) startDone (γ : Cluster) (id : w64) : IProp GF
 
 theorem trTok_type [package_sem : Assumptions] (γ : Cluster) (st : MsgSt) : trTok γ st ⊢ trTok γ st
@@ -68,6 +73,8 @@ theorem trTok_type [package_sem : Assumptions] (γ : Cluster) (st : MsgSt) : trT
 
 theorem node.Step.tracedSpec_of_spec [package_sem : Assumptions] (h : node.Step.spec) :
     node.Step.tracedSpec
+
+def (sealed) traceFits (γ : Cluster) (_N : Namespace) : IProp GF
 
 theorem traceSim_bagRep_nil : TraceSim.BagRep [] []
 
@@ -79,7 +86,7 @@ theorem Cluster.traceSim_bootEnd [package_sem : Assumptions] (γ : Cluster) (N :
     (List.map TraceSim.evConv L) = Except.ok t ∧ t.init = TraceSim.simInit vs ∧ t.server =
     TraceSim.confAbs vs ∧ t.initSrv = TraceSim.confAbs vs⌝
 
-def startTraceC (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
+def startTraceC (γ : Cluster) (N : Namespace) (vs : List w64) (cv : Config) : IProp GF :=
   match γ.trace with
   | none => iprop(⌜cv.TraceLogger' = GoInterface.nil⌝)
   | some γd =>
@@ -87,11 +94,12 @@ def startTraceC (γ : Cluster) (vs : List w64) (cv : Config) : IProp GF :=
         TraceSim.traceDir γd tn ∗
           ⌜(cv.PreVote' = false ∧ cv.CheckQuorum' = false) ∧
                 tn.voters = vs ∧ vs.length < 2 ^ 40 ∧ cv.TraceLogger' ≠ GoInterface.nil⌝ ∗
-            isTraceLogger tn.tr cv.TraceLogger' ∗
-              γ.traceSim vs tn ∗
-                TraceSim.simNode tn cv.ID'
-                    (TraceSim.toC (TraceSim.confAbs vs) ((TraceSim.simInit vs).s (TraceSim.idAbs cv.ID'))) [] ∗
-                  TraceSim.simBoot tn cv.ID' false none)
+            traceFits γ N ∗
+              isTraceLogger tn.tr cv.TraceLogger' ∗
+                γ.traceSim vs tn ∗
+                  TraceSim.simNode tn cv.ID'
+                      (TraceSim.toC (TraceSim.confAbs vs) ((TraceSim.simInit vs).s (TraceSim.idAbs cv.ID'))) [] ∗
+                    TraceSim.simBoot tn cv.ID' false none)
 
 theorem startDone_persistent (γ : Cluster) (id : w64) : Persistent (startDone γ id)
 
@@ -127,7 +135,7 @@ def StartNode.tracedSpec : Prop :=
                                                           { hs := hsZero, snap := none,
                                                             base := { term' := W64 0, index' := W64 0 }, ents := [] }
                                                           csm 0 F ∗
-                                                        ownSlice peers pv dq ∗ peersCtx pv ctxs ∗ startTraceC γ vs cv -∗
+                                                        ownSlice peers pv dq ∗ peersCtx pv ctxs ∗ startTraceC γ N vs cv -∗
                                           (▷
                                               ∀ nd,
                                                 (∃ n K,

@@ -6,7 +6,7 @@ theorem NewRawNode.wp_proof [package_sem : Assumptions] (wp_newRaft : newRaft.sp
     raft.softState.spec) (wp_hardState : raft.hardState.spec) : NewRawNode.spec
   -- `Perennial.EtcdGrove.NewRawNode.spec`, unfolded:
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (sn : StorNames) (σ : StorState) (hs : HardStateM) (csm : ConfStateM)
-    (R R' : IProp GF) (cs' : CCState),
+    (R R' : IProp GF) (cs' : CCState) (γ : RaftNames) (vs : List w64),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -40,10 +40,10 @@ theorem NewRawNode.wp_proof [package_sem : Assumptions] (wp_newRaft : newRaft.sp
                                                         listToSet csm.LearnersNext').size ≤
                                                   2 ^ 62 →
                                                 ConfStateOk csm →
-                                                  TraceLoggerOk cv.TraceLogger' →
+                                                  (γ.reTrace ≠ none → BootFresh σ hs csm) →
                                                     ⊢
                                                       ∀ Φ,
-                                                        (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                                        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                                                             typedPointsto c cv (DFrac.own 1) ∗
                                                               isLogger lok ∗
                                                                 R ∗
@@ -85,37 +85,50 @@ theorem NewRawNode.wp_proof [package_sem : Assumptions] (wp_newRaft : newRaft.sp
                                                                                         si.v))
                                                                                     (intoVal ()))
                                                                                   {{ Φ }}) ∗
-                                                                      □
-                                                                        □
-                                                                          ∀ Φ,
-                                                                            R -∗
-                                                                              (▷
-                                                                                  ∀ hp cs al,
-                                                                                    (hsOpt hp hs ∗
-                                                                                        csPts cs DFrac.discard csm al ∗
-                                                                                          |={⊤}=>
-                                                                                            isStorageD sn
-                                                                                                (GoInterface.ok si) ∗
-                                                                                              ownStorage sn.unrec
-                                                                                                  (GoInterface.ok si) σ ∗
-                                                                                                R') -∗
-                                                                                      Φ
-                                                                                        ((intoVal hp, intoVal cs),
-                                                                                          intoVal GoInterface.nil)) -∗
-                                                                                WP
-                                                                                  ((intoVal
-                                                                                      (methods si.ty
-                                                                                        go!"InitialState"
-                                                                                        si.v))
-                                                                                    (intoVal ()))
-                                                                                  {{ Φ }}) -∗
+                                                                      (□
+                                                                          □
+                                                                            ∀ Φ,
+                                                                              R -∗
+                                                                                (▷
+                                                                                    ∀ hp cs al,
+                                                                                      (hsOpt hp hs ∗
+                                                                                          csPts cs DFrac.discard csm al ∗
+                                                                                            |={⊤}=>
+                                                                                              isStorageD sn
+                                                                                                  (GoInterface.ok si) ∗
+                                                                                                ownStorage sn.unrec
+                                                                                                    (GoInterface.ok si)
+                                                                                                    σ ∗
+                                                                                                  trNoCut γ.reTrace
+                                                                                                      (GoInterface.ok
+                                                                                                        si) ∗
+                                                                                                    R') -∗
+                                                                                        Φ
+                                                                                          ((intoVal hp, intoVal cs),
+                                                                                            intoVal GoInterface.nil)) -∗
+                                                                                  WP
+                                                                                    ((intoVal
+                                                                                        (methods si.ty
+                                                                                          go!"InitialState"
+                                                                                          si.v))
+                                                                                      (intoVal ()))
+                                                                                    {{ Φ }}) ∗
+                                                                        trCapStart γ.reTrace γ cv.ID' cv.TraceLogger'
+                                                                          (bootCfg vs) (bootPhase vs cv.ID') bootNone -∗
                                                           (▷
                                                               ∀ rn err,
                                                                 (R' ∗
-                                                                    ∃ s,
-                                                                      rawNodeAt rn cv.ID' si cs' cv.StepDownOnRemoval'
-                                                                          cv.PreVote' hs σ cv.Applied' s ∗
-                                                                        ⌜err = GoInterface.nil⌝ ∗
-                                                                          ⌜s.logst.sn = sn ∧ s.gh.sn = sn⌝) -∗
+                                                                    trNoCut γ.reTrace (GoInterface.ok si) ∗
+                                                                      ∃ s r,
+                                                                        rawNodeAt rn r cv.ID' si cs' cv.StepDownOnRemoval'
+                                                                            cv.PreVote' hs σ cv.Applied' s ∗
+                                                                          ⌜err = GoInterface.nil⌝ ∗
+                                                                            ⌜s.logst.sn = sn ∧
+                                                                                  s.gh.sn = sn ∧
+                                                                                    s.gh.tr = γ.reTrace ∧
+                                                                                      s.cq = cv.CheckQuorum'⌝ ∗
+                                                                              trCapB γ.reTrace γ r cv.ID' (bootCfg vs)
+                                                                                false (bootPhase vs cv.ID')
+                                                                                (bootAt vs cv.ID' 2)) -∗
                                                                   Φ (intoVal rn, intoVal err)) -∗
                                                             WP ((intoVal (functions NewRawNode [])) (intoVal c)) {{ Φ }}
