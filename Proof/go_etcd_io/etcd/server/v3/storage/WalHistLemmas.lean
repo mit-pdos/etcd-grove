@@ -155,6 +155,53 @@ theorem walImg_getElem? {H I : List (WalOpG E)} {n : Nat} (hI : walImg H n I) {i
       rw [List.getElem?_append_right (by omega), hl', Nat.sub_self] at ho
       simp only [List.getElem?_cons_zero, Option.some.injEq] at ho
       exact Or.inr ⟨_, _, ho.symm⟩
+/-! ## B3. The images of a history with more operations -/
+
+/-- **The images of `H ++ B`**: an image of `H`, or `H` followed by a
+prefix `B.take (i+1)` of the new operations, or `H ++ B.take i` followed by the torn `i`-th (a `Save`
+with its first `k` entries, its state record lost). -/
+theorem walImg_append_cases {H B I : List (WalOpG E)} {n : Nat}
+    (hI : walImg (H ++ B) n I) :
+    walImg H n I ∨ ∃ i, i < B.length ∧
+      (I = H ++ B.take (i + 1) ∨
+       ∃ h es k, B[i]? = some (.save h es) ∧ k ≤ es.length ∧
+         I = H ++ B.take i ++ [.save ⟨0, 0, 0⟩ (es.take k)]) := by
+  obtain ⟨j, h1, h2, h3 | ⟨h, es, k, hj, hk, h3⟩⟩ := hI
+  · simp only [List.length_append] at h2
+    rcases Nat.lt_or_ge H.length j with hlt | hge
+    · right
+      refine ⟨j - H.length - 1, by omega, Or.inl ?_⟩
+      rw [h3, List.take_append, List.take_of_length_le (by omega)]
+      congr 2; omega
+    · left
+      refine ⟨j, h1, hge, Or.inl ?_⟩
+      rw [h3, List.take_append_of_le_length hge]
+  · have hjl := getElem?_some_lt hj
+    simp only [List.length_append] at hjl h2
+    rcases Nat.lt_or_ge j H.length with hlt | hge
+    · left
+      refine ⟨j, h1, by omega, Or.inr ⟨h, es, k, ?_, hk, ?_⟩⟩
+      · rw [List.getElem?_append_left hlt] at hj; exact hj
+      · rw [h3, List.take_append_of_le_length (by omega)]
+    · right
+      refine ⟨j - H.length, by omega, Or.inr ⟨h, es, k, ?_, hk, ?_⟩⟩
+      · rw [List.getElem?_append_right hge] at hj; exact hj
+      · rw [h3, List.take_append, List.take_of_length_le (by omega)]
+
+/-- **The images of one more operation** (C3's "entered, not entered, torn"). -/
+theorem walImg_snoc_cases {H I : List (WalOpG E)} {n : Nat} {o : WalOpG E}
+    (hI : walImg (H ++ [o]) n I) :
+    walImg H n I ∨ I = H ++ [o] ∨
+      ∃ h es k, o = .save h es ∧ k ≤ es.length ∧ I = H ++ [.save ⟨0, 0, 0⟩ (es.take k)] := by
+  rcases walImg_append_cases hI with h | ⟨i, hi, h | ⟨h, es, k, hb, hk, hI'⟩⟩
+  · exact Or.inl h
+  · have : i = 0 := by simp at hi; omega
+    subst this
+    exact Or.inr (Or.inl (by simpa using h))
+  · have : i = 0 := by simp at hi; omega
+    subst this
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at hb
+    exact Or.inr (Or.inr ⟨h, es, k, hb, hk, by simpa using hI'⟩)
 end img
 
 /-! ## A2. The read's hard state -/
