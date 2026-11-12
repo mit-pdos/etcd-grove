@@ -40,6 +40,13 @@ Task: R1/R2 (the purge model's completeness, freeze-w4a1.md §R1b) and the W4c g
    checks: see the Freeze package §3.2/§6.
 5. Freeze package `/shared/tmp/wal-spec/w4a2/freeze-w4a2.md`.
 
+## Revision 1 (2026-11-12, after the Freeze review: NOT READY, B1)
+
+Done: `acee5acbed` (Save/SaveSnapshot index premises, walGuardPos wrap first, wording, nonissue
+`etcd-wal-segment-name-wraps`, decisions.md "Revision 1"); Go tests incl. the reviewers' at the pin
+(`tests/gotests-rev1.log`); kill-then-power probe `r2/run5.sh` (`r2/kpl-*`); freeze-w4a2.md
+"Revision 1". Generator backup before it: `gen/genspecs.py.pre-rev1`.
+
 ## Next
 
 6. STOP for the coordinator's review. Do not land. Before landing: merge lean (it moved a lot:
