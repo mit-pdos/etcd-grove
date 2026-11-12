@@ -342,6 +342,15 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     `respond.wp_proof` binds `spec`'s `Rep.toProtoMsg.M`, with no registry premise) and
     `etc/errdesc-check.py` (`Spec/google_golang_org/grpc/model/respond.lean` names `errDesc`, not in
     `REVIEWED`). Every other gate passed. Waiting for etcd-grove-81's decision (trusted text).
+    etcd-grove-81 decided both (questions.md, 2026-11-12). (2) done: a `REVIEWED` entry for `respond.lean`
+    (`srvErrOk err` is in its pre; the carrier `model/Serve.lean:71-72` gets it from the deposited
+    `grpcRunOkMd`'s post). (1) NOT done, blocked: `etc/ModelParamCheck.lean`'s rule 2 refuses any registry
+    atom, and any `GrpcMethod`-style binder, that an axiom's user *receives* (an `∃` in a post) unless
+    bounded (`∃ m ∈ ms`) over a list the user supplied; `grpcAccepted`'s models are `∃`s in
+    `acceptRun`'s post (they come from the client's deposit), so neither form the decision names passes
+    without a list of models supplied in `acceptRun`'s pre and a pair-side link from every deposit to it
+    (a new trusted predicate and changes to `Invoke`/`NewStream`'s deposits, `isGrpcRpcAt`, `grpc.start`
+    or `GrpcSrvCfg`). Options in the report to etcd-grove-81.
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);

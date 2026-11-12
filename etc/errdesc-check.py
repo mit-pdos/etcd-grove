@@ -38,6 +38,11 @@ REVIEWED = {
         "the model's errorString cell and Go's wrapError msg are written once",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
     'Spec/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean': 'statusErrOk opened, not used',
+    'Spec/google_golang_org/grpc/model/respond.lean':
+        'srvErrOk err a premise of the pre (stable Error()/GRPCStatus(): status.FromError, server.go:1461): '
+        'the carrier (Proof/google_golang_org/grpc/model/Serve.lean:71-72) gets it from the deposited run '
+        'contract grpcRunOkMd (InvGrpc.lean, its post; HS-6); errDesc err only gates Psi_e, the handler\'s own '
+        'description, which Invoke returns for a handlerDescs description only',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean:rpctypes.errDesc_etcdError':
         'an EtcdError value: Error() returns its desc field',
