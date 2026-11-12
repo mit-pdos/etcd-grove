@@ -9,7 +9,7 @@ state (`auth.X.specT`) depends on the history the step produces, so here the fiv
 `examples/etcd/auth`'s `SetUp` sends carry, besides `W`, a resource `X` of the history alongside the
 authority, given back at the history after (`auth.adminOutX`): `isAuthStepsX`, the backend's
 `stepSpecX`, the fueled `fuelSpecX`. The real store meets `isAuthStepsX` with `X = auth.tieRes st M`
-and `W = auth.authWB st M P f T ∗ auth.tpAdmin st M` (`isAuthStepsX_of_authInvT`, from E2s's
+and `W = auth.authWB st M P f T Wb ∗ auth.tpAdmin st M` (`isAuthStepsX_of_authInvT`, from E2s's
 `X.specT`; `UserAdd`'s from E2y's `specTSure`: E3a, its request's password choice cannot fail,
 `auth.userAddSure`, and the outcome is the step's alone).
 -/
@@ -72,10 +72,10 @@ file header): as `isAuthSteps`'s, with `X hs` beside the authority and given bac
 after (`auth.adminOutX`); and (C1's A2) its `Authenticate`, at the reader resource `RD` the apply
 thread lends (`kvOwn`'s `E.RD`; the real store's `auth.authRd`). -/
 def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMode)
-    (X : List auth.AuthState → IProp GF) (W RD : IProp GF) : IProp GF :=
+    (X : List auth.AuthState → IProp GF) (W Wb RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF),
-      {{ ⌜M.isOn = true⌝ ∗ auth.authOwn M hs ∗ X hs ∗ W ∗ srvApi.csContractA P f Pre Q Post ∗
+      {{ ⌜M.isOn = true⌝ ∗ auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authEnableF en))⌝ ∗
           auth.capNextM M hs auth.authEnableOwnR }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
@@ -84,7 +84,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
             auth.adminOutX M (ownX M X) hs (authEnableR M en) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userAddReqIs r name ∗ auth.userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
-          auth.authOwn M hs ∗ X hs ∗ W ∗ srvApi.csContractA P f Pre Q Post ∗
+          auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.stepOf (auth.userAddF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.userAddF name)) }}
         (App (Val #(methods ai.ty go!"UserAdd" ai.v)) (Val #r))
@@ -93,7 +93,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ auth.authOwn M hs ∗
-          X hs ∗ W ∗ srvApi.csContractA P f Pre Q Post ∗
+          X hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.stepOf (auth.roleAddF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.roleAddF name)) }}
         (App (Val #(methods ai.ty go!"RoleAdd" ai.v)) (Val #r))
@@ -102,7 +102,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString),
       {{ auth.userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗
-          auth.authOwn M hs ∗ X hs ∗ W ∗ srvApi.csContractA P f Pre Q Post ∗
+          auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜∀ (sta : auth.AuthState) (u : auth.User), auth.histLast M hs sta →
             sta.users !! user = some u → u.length < 2 ^ 62⌝ ∗
           ⌜auth.stepOk M hs (auth.userGrantRoleR user role)⌝ ∗
@@ -114,7 +114,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString)
         (w : Option auth.PermW),
       {{ auth.roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
-          auth.authOwn M hs ∗ X hs ∗ W ∗ srvApi.csContractA P f Pre Q Post ∗
+          auth.authOwn M hs ∗ X hs ∗ W ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ ∗
           auth.capNextM M hs (auth.roleGrantPermissionR name w) }}
         (App (Val #(methods ai.ty go!"RoleGrantPermission" ai.v)) (Val #r))
@@ -135,8 +135,8 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           (⌜err = GoInterface.nil⌝ ∨ ∃ e : auth.AuthErr, auth.authErrOf e err) }}))
 
 instance isAuthStepsX_persistent (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMode)
-    (X : List auth.AuthState → IProp GF) (W RD : IProp GF) :
-    Persistent (isAuthStepsX st P f M X W RD) := by
+    (X : List auth.AuthState → IProp GF) (W Wb RD : IProp GF) :
+    Persistent (isAuthStepsX st P f M X W Wb RD) := by
   unfold isAuthStepsX; infer_instance
 
 /-- **The `*applierV3backend` `p`'s auth store's admin steps carrying `X`**
@@ -144,7 +144,7 @@ instance isAuthStepsX_persistent (st : GoInterface) (P : IProp GF) (f : GoFunc) 
 def backendAuthStepsX (E : AEnv GF) (p : Loc) (X : List auth.AuthState → IProp GF) (W : IProp GF) :
     IProp GF :=
   iprop(∃ opts : ApplierOptions, structFieldRef applierV3backend go!"options" p ↦□ opts ∗
-    □ ∀ B : mvcc.KBReal, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD)
+    □ ∀ B : mvcc.KBReal, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W (bkWTFor E) E.RD)
 
 instance backendAuthStepsX_persistent (E : AEnv GF) (p : Loc) (X : List auth.AuthState → IProp GF)
     (W : IProp GF) : Persistent (backendAuthStepsX E p X W) := by
@@ -164,44 +164,44 @@ open Iris.ProofMode in
 2026-11-03): `W` is only framed by the steps, so they hold at `W ∗ Y` (the server's: the write
 token's resource with its half of the backend's name, `authBkCur`). -/
 theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMode)
-    (X : List auth.AuthState → IProp GF) (W Y RD : IProp GF) :
-    isAuthStepsX (GF := GF) st P f M X W RD ⊢ isAuthStepsX st P f M X iprop(W ∗ Y) RD := by
+    (X : List auth.AuthState → IProp GF) (W Y Wb RD : IProp GF) :
+    isAuthStepsX (GF := GF) st P f M X W Wb RD ⊢ isAuthStepsX st P f M X iprop(W ∗ Y) Wb RD := by
   iunfold isAuthStepsX
   iintro ⟨%ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6⟩
   iexists ai
   isplitr
   · ipureintro; exact Hai
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hon, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
-    iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hcs Hok Hcap]
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hon, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
+    iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
     · iframe
     iintro !> %err ⟨HPP, HW, Hrest⟩
     iapply HΦ
     iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
-    iapply H2 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hcs Hok Hcap]
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    iapply H2 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
     · iframe
     iintro !> %resp %err ⟨HPP, HW, Hrest⟩
     iapply HΦ
     iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
-    iapply H3 $$ %hs %Pre %Q %Post %r %name [Hr Hn Ho HX HW Hcs Hok Hcap]
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    iapply H3 $$ %hs %Pre %Q %Post %r %name [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
     · iframe
     iintro !> %resp %err ⟨HPP, HW, Hrest⟩
     iapply HΦ
     iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hu, Hok, Hcap⟩ HΦ
-    iapply H4 $$ %hs %Pre %Q %Post %r %user %role [Hr Hn Ho HX HW Hcs Hu Hok Hcap]
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hu, Hok, Hcap⟩ HΦ
+    iapply H4 $$ %hs %Pre %Q %Post %r %user %role [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hu Hok Hcap]
     · iframe
     iintro !> %resp %err ⟨HPP, HW, Hrest⟩
     iapply HΦ
     iframe
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
-    iapply H5 $$ %hs %Pre %Q %Post %r %name %w [Hr Hn Ho HX HW Hcs Hok Hcap]
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    iapply H5 $$ %hs %Pre %Q %Post %r %name %w [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap]
     · iframe
     iintro !> %resp %err ⟨HPP, HW, Hrest⟩
     iapply HΦ
@@ -212,6 +212,51 @@ theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
     iintro !> %resp %err ⟨HPP, HRD, Ho, HX, HW, Hrest⟩
     iapply HΦ
     iframe
+
+open Iris.ProofMode in
+/-- **The admin steps at other write-back tokens** (auth-schema-fix F1, 2026-11-12): the steps only
+hand their tokens `Wb` to the store, so they hold at any `Wb'` that gives a `Wb` (the server's: the
+tie's backend's token, `bkWTFor E`, gives its backend's `backend.wbTok d.γB`). -/
+theorem isAuthStepsX_wbMono (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMode)
+    (X : List auth.AuthState → IProp GF) (W Wb Wb' RD : IProp GF) :
+    □ (Wb' -∗ Wb) ∗ isAuthStepsX (GF := GF) st P f M X W Wb RD ⊢ isAuthStepsX st P f M X W Wb' RD := by
+  iunfold isAuthStepsX
+  iintro ⟨#Hc, %ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6⟩
+  iexists ai
+  isplitr
+  · ipureintro; exact Hai
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hon, Ho, HX, HW, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    ihave Hw3 := Hc $$ Hw3
+    iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H2 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H3 $$ %hs %Pre %Q %Post %r %name [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hu, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H4 $$ %hs %Pre %Q %Post %r %user %role [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hu Hok Hcap] HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨Hr, Hn, Ho, HX, HW, Hw1, Hw2, Hcs, Hok, Hcap⟩ HΦ
+    ihave Hw1 := Hc $$ Hw1
+    ihave Hw2 := Hc $$ Hw2
+    iapply H5 $$ %hs %Pre %Q %Post %r %name %w [Hr Hn Ho HX HW Hw1 Hw2 Hcs Hok Hcap] HΦ
+    iframe
+  · iexact H6
 
 /-- **An admin operation's result's error** is one the apply layer can take (`adminOut_applyErrIs`
 for an authority family). -/
@@ -283,27 +328,27 @@ theorem isAuthStepsX_of_authInvT
     (hUserGrantRole : auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG))
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG))
     (hAuthn : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
-        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) (auth.authRd st R M) := by
+        iprop(auth.authWB st M P f T Wb ∗ auth.tpAdmin st M) Wb (auth.authRd st R M) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isAuthStepsX
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, HX, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hw3, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
     ihave #Hcap := auth.capNextM_authEnableOwn_at M hs b0
       (fun γa hM stl hl => by subst hM; exact ((Ht stl hl).1).symm) $$ Hcap
-    ihave HWR := auth.authWRx_join st M P f T b0 sc0 $$ [HW Hfl Hca]
+    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
     · iframe; iframe #
-    iapply (hEnable st R M P f T hs Pre Q Post b0 sc0) $$ [Ho HWR HA Hcs]
+    iapply (hEnable st R M P f T Wb hs Pre Q Post b0 sc0) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
     iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
-    icases auth.authWRx_split st M P f T b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
+    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
     -- (E3c) the flag read is the admin side's half, tied to the latest state
@@ -315,70 +360,70 @@ theorem isAuthStepsX_of_authInvT
     iframe HPP HW HA Ha
     iexists en; iframe Hv; iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T b0 sc0 $$ [HW Hfl Hca]
+    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
     · iframe; iframe #
-    iapply (hUserAdd st R M P f T hs Pre Q Post r name b0 sc0) $$ [Ho HWR Hcs]
+    iapply (hUserAdd st R M P f T Wb hs Pre Q Post r name b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
+    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe HPP HW HA Ha Hresp; iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T b0 sc0 $$ [HW Hfl Hca]
+    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
     · iframe; iframe #
-    iapply (hRoleAdd st R M P f T hs Pre Q Post r name b0 sc0) $$ [Ho HWR Hcs]
+    iapply (hRoleAdd st R M P f T Wb hs Pre Q Post r name b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
+    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe HPP HW HA Ha Hresp; iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hcs, %Hb, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hb, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T b0 sc0 $$ [HW Hfl Hca]
+    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
     · iframe; iframe #
-    iapply (hUserGrantRole st R M P f T hs Pre Q Post r user role b0 sc0) $$ [Ho HWR Hcs]
+    iapply (hUserGrantRole st R M P f T Wb hs Pre Q Post r user role b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       isplitr
       · ipureintro; exact Hb
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
+    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe HPP HW HA Ha Hresp; iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR := auth.authWRx_join st M P f T b0 sc0 $$ [HW Hfl Hca]
+    ihave HWR := auth.authWRx_join st M P f T Wb b0 sc0 $$ [HW Hfl Hca]
     · iframe; iframe #
-    iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w b0 sc0) $$ [Ho HWR Hcs]
+    iapply (hRoleGrantPermission st R M P f T Wb hs Pre Q Post r name w b0 sc0) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
-    icases auth.authWRx_split st M P f T b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
+    icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
@@ -392,9 +437,9 @@ theorem isAuthStepsX_of_authInvT
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
     iunfold auth.authWB at HW
     icases HW with ⟨⟨%be, Hbe⟩, HT⟩
-    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
     · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hAuthn st R M P f T hs Pre Q Post ctx name pw b0 sc0 be) $$ [Hen Ho HWR Hcs Hctx]
+    iapply (hAuthn st R M P f T Wb hs Pre Q Post ctx name pw b0 sc0 be) $$ [Hen Ho HWR Hcs Hctx]
     · iframe; iframe #
     iintro !> %resp %err ⟨HPP, Hen, Ho, HWR, Hau, #He⟩
     iunfold auth.authWRxB at HWR
@@ -418,26 +463,26 @@ theorem isAuthStepsX_of_authInvTB
     (hUserGrantRole : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
     (hAuthn : auth.authStore.Authenticate.specTB (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (Ψ : go_etcd_io.etcd.server.v3.auth.AuthBackend → IProp GF) [hΨ : ∀ be, Persistent (Ψ be)] :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
         iprop((∃ be : go_etcd_io.etcd.server.v3.auth.AuthBackend, ((auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗
-          auth.authWBackendOk be M P f T) ∗ T) ∗ Ψ be) ∗ auth.tpAdmin st M) (auth.authRd st R M) := by
+          auth.authWBackendOk be M P f T Wb) ∗ T) ∗ Ψ be) ∗ auth.tpAdmin st M) Wb (auth.authRd st R M) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isAuthStepsX
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hw3, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
     ihave #Hcap := auth.capNextM_authEnableOwn_at M hs b0
       (fun γa hM stl hl => by subst hM; exact ((Ht stl hl).1).symm) $$ Hcap
-    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
     · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hEnable st R M P f T hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hcs]
+    iapply (hEnable st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
     iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
     iunfold auth.authWRxB at HWR
@@ -455,12 +500,12 @@ theorem isAuthStepsX_of_authInvTB
     · iexists be; iframe Hbe HT HΨ
     iexists en; iframe Hv; iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
     · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hUserAdd st R M P f T hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR Hcs]
+    iapply (hUserAdd st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -476,12 +521,12 @@ theorem isAuthStepsX_of_authInvTB
     · iexists be; iframe Hbe HT HΨ
     iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
     · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hRoleAdd st R M P f T hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR Hcs]
+    iapply (hRoleAdd st R M P f T Wb hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -497,12 +542,12 @@ theorem isAuthStepsX_of_authInvTB
     · iexists be; iframe Hbe HT HΨ
     iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hb, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hb, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
     · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hUserGrantRole st R M P f T hs Pre Q Post r user role b0 sc0 be) $$ [Ho HWR Hcs]
+    iapply (hUserGrantRole st R M P f T Wb hs Pre Q Post r user role b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       isplitr
@@ -520,12 +565,12 @@ theorem isAuthStepsX_of_authInvTB
     · iexists be; iframe Hbe HT HΨ
     iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
     · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w b0 sc0 be) $$ [Ho HWR Hcs]
+    iapply (hRoleGrantPermission st R M P f T Wb hs Pre Q Post r name w b0 sc0 be) $$ [Ho HWR Hw1 Hw2 Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -546,9 +591,9 @@ theorem isAuthStepsX_of_authInvTB
     icases HRD with ⟨Hen, HRD'⟩
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
-    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    ihave HWR : auth.authWRxB st M P f T Wb b0 sc0 be $$ [Hbe HT Hfl Hca]
     · iunfold auth.authWRxB; iframe; iframe #
-    iapply (hAuthn st R M P f T hs Pre Q Post ctx name pw b0 sc0 be) $$ [Hen Ho HWR Hcs Hctx]
+    iapply (hAuthn st R M P f T Wb hs Pre Q Post ctx name pw b0 sc0 be) $$ [Hen Ho HWR Hcs Hctx]
     · iframe; iframe #
     iintro !> %resp %err ⟨HPP, Hen, Ho, HWR, Hau, #He⟩
     iunfold auth.authWRxB at HWR
@@ -579,7 +624,7 @@ abbrev applierV3backend.UserAdd.stepSpecX : Prop :=
     auth.stepOk E.authMode hs (auth.stepOf (auth.userAddF name)) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userAddReqIs r name ∗
-        auth.userAddSure r ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+        auth.userAddSure r ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM E.authMode hs (auth.stepOf (auth.userAddF name)) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -600,7 +645,7 @@ abbrev applierV3backend.RoleAdd.stepSpecX : Prop :=
     auth.stepOk E.authMode hs (auth.stepOf (auth.roleAddF name)) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleAddReqIs r name ∗
-        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM E.authMode hs (auth.stepOf (auth.roleAddF name)) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -623,7 +668,7 @@ abbrev applierV3backend.UserGrantRole.stepSpecX : Prop :=
     auth.stepOk E.authMode hs (auth.userGrantRoleR user role) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userGrantRoleReqIs r user role ∗
-        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM E.authMode hs (auth.userGrantRoleR user role) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -644,7 +689,7 @@ abbrev applierV3backend.RoleGrantPermission.stepSpecX : Prop :=
     auth.stepOk E.authMode hs (auth.roleGrantPermissionR name w) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleGrantPermissionReqIs r name w ∗
-        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM E.authMode hs (auth.roleGrantPermissionR name w) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -664,7 +709,7 @@ abbrev applierV3backend.AuthEnable.stepSpecX : Prop :=
     E.authMode.isOn = true →
     (∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authEnableF en))) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM E.authMode hs auth.authEnableOwnR ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -685,7 +730,7 @@ abbrev applierV3backend.UserAdd.fuelSpecX : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userAddReqIs r name ∗
-        auth.userAddSure r ∗ auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
+        auth.userAddSure r ∗ auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.stepOf (auth.userAddF name)) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -705,7 +750,7 @@ abbrev applierV3backend.RoleAdd.fuelSpecX : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleAddReqIs r name ∗
-        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.stepOf (auth.roleAddF name)) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -726,7 +771,7 @@ abbrev applierV3backend.UserGrantRole.fuelSpecX : Prop :=
     utf8Valid role →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userGrantRoleReqIs r user role ∗
-        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.userGrantRoleR user role) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -746,7 +791,7 @@ abbrev applierV3backend.RoleGrantPermission.fuelSpecX : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.roleGrantPermissionReqIs r name w ∗
-        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
+        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs (auth.roleGrantPermissionR name w) ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -765,7 +810,7 @@ abbrev applierV3backend.AuthEnable.fuelSpecX : Prop :=
     (hs : List auth.AuthState),
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
+        apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗ apply.bkWTFor E ∗
         auth.capNextM (.on γa) hs auth.authEnableOwnR ∗
         apply.applyTok E ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
@@ -825,7 +870,7 @@ theorem applierV3backend.UserAdd.wp_stepX
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.stepSpecX (GF := GF) (hG := hG) := by
   intro E X W p r log Pre Q Post info hs name hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, #Hsure, Ho, HX, HW, #Hcap, Htt, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, #Hsure, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
   icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
   ihave #Hs' := Hs
   iunfold apply.backendAuthStepsX at Hs'
@@ -836,7 +881,7 @@ theorem applierV3backend.UserAdd.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HX $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
   · iframe Hcap Hr Hsure; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
@@ -867,7 +912,7 @@ theorem applierV3backend.RoleAdd.wp_stepX
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.RoleAdd.stepSpecX (GF := GF) (hG := hG) := by
   intro E X W p r log Pre Q Post info hs name hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, #Hcap, Htt, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
   icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
   ihave #Hs' := Hs
   iunfold apply.backendAuthStepsX at Hs'
@@ -878,7 +923,7 @@ theorem applierV3backend.RoleAdd.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HX $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
   · iframe Hcap Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
@@ -909,7 +954,7 @@ theorem applierV3backend.UserGrantRole.wp_stepX
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserGrantRole.stepSpecX (GF := GF) (hG := hG) := by
   intro E X W p r log Pre Q Post info hs user role hn hb hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, #Hcap, Htt, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
   icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
   ihave #Hs' := Hs
   iunfold apply.backendAuthStepsX at Hs'
@@ -920,7 +965,7 @@ theorem applierV3backend.UserGrantRole.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post %r %user %role [$Ho $HX $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post %r %user %role [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
   · iframe Hcap Hr; isplitr
     · ipureintro; exact hn
     isplitr
@@ -953,7 +998,7 @@ theorem applierV3backend.RoleGrantPermission.wp_stepX
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.RoleGrantPermission.stepSpecX (GF := GF) (hG := hG) := by
   intro E X W p r log Pre Q Post info hs name w hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, #Hcap, Htt, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩
   icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
   ihave #Hs' := Hs
   iunfold apply.backendAuthStepsX at Hs'
@@ -964,7 +1009,7 @@ theorem applierV3backend.RoleGrantPermission.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post %r %name %w [$Ho $HX $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post %r %name %w [$Ho $HX $HW $Hw1 $Hw2 $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
   · iframe Hcap Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
@@ -995,7 +1040,7 @@ theorem applierV3backend.AuthEnable.wp_stepX
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.AuthEnable.stepSpecX (GF := GF) (hG := hG) := by
   intro E X W p log Pre Q Post info hs hon hok
-  wp_start as ⟨#Hb, #Hs, Ho, HX, HW, #Hcap, Htt, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, Ho, HX, HW, Hw1, Hw2, Hw3, #Hcap, Htt, Hpre⟩
   icases apply.mPre_split $$ Hpre with ⟨%cr, %B, Hsw, Hres, Hcs, Hkv⟩
   ihave #Hs' := Hs
   iunfold apply.backendAuthStepsX at Hs'
@@ -1006,7 +1051,7 @@ theorem applierV3backend.AuthEnable.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hcs] as %err ⟨HPP, HW, #HeI, %en, #Hv, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as %err ⟨HPP, HW, #HeI, %en, #Hv, Hout⟩
   · iframe Hcap; isplitr
     · ipureintro; exact hon
     ipureintro; exact hok
@@ -1040,7 +1085,7 @@ theorem applierV3backend.UserAdd.wp_fuelX
     (h : applierV3backend.UserAdd.stepSpecX (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) := by
   intro E γa X W p r log Pre Q Post info hs name hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, Hsure, HOF, HX, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, Hsure, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -1049,7 +1094,7 @@ theorem applierV3backend.UserAdd.wp_fuelX
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.userAddF name)) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userAdd name hn) Hfk Hlt
-  iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HX HW Htt Hpre]
+  iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HX HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
@@ -1062,7 +1107,7 @@ theorem applierV3backend.RoleAdd.wp_fuelX
     (h : applierV3backend.RoleAdd.stepSpecX (GF := GF) (hG := hG)) :
     applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG) := by
   intro E γa X W p r log Pre Q Post info hs name hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -1071,7 +1116,7 @@ theorem applierV3backend.RoleAdd.wp_fuelX
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.roleAddF name)) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleAdd name) Hfk Hlt
-  iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HX HW Htt Hpre]
+  iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HX HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
@@ -1084,7 +1129,7 @@ theorem applierV3backend.UserGrantRole.wp_fuelX
     (h : applierV3backend.UserGrantRole.stepSpecX (GF := GF) (hG := hG)) :
     applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG) := by
   intro E γa X W p r log Pre Q Post info hs user role hM hb hn hu8
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -1100,7 +1145,7 @@ theorem applierV3backend.UserGrantRole.wp_fuelX
     obtain ⟨h1, h2⟩ := auth.fuelOk_last γa hs k sta Hfk hl
     have := h2.roles user u hu
     omega
-  iapply (h E X W p r log Pre Q Post info hs user role hn hroles hok) $$ [Hr Ho HX HW Htt Hpre]
+  iapply (h E X W p r log Pre Q Post info hs user role hn hroles hok) $$ [Hr Ho HX HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
@@ -1113,7 +1158,7 @@ theorem applierV3backend.RoleGrantPermission.wp_fuelX
     (h : applierV3backend.RoleGrantPermission.stepSpecX (GF := GF) (hG := hG)) :
     applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG) := by
   intro E γa X W p r log Pre Q Post info hs name w hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hw1, Hw2, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -1122,7 +1167,7 @@ theorem applierV3backend.RoleGrantPermission.wp_fuelX
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.roleGrantPermissionR name w) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_roleGrantPermission name w) Hfk Hlt
-  iapply (h E X W p r log Pre Q Post info hs name w hn hok) $$ [Hr Ho HX HW Htt Hpre]
+  iapply (h E X W p r log Pre Q Post info hs name w hn hok) $$ [Hr Ho HX HW Hw1 Hw2 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
@@ -1135,7 +1180,7 @@ theorem applierV3backend.AuthEnable.wp_fuelX
     (h : applierV3backend.AuthEnable.stepSpecX (GF := GF) (hG := hG)) :
     applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG) := by
   intro E γa X W p log Pre Q Post info hs hM hb
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, HOF, HX, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, HOF, HX, Hrc, HW, Hw1, Hw2, Hw3, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -1145,7 +1190,7 @@ theorem applierV3backend.AuthEnable.wp_fuelX
   have hok : ∀ en : Bool, auth.stepOk E.authMode hs (auth.stepOf (auth.authEnableF en)) :=
     fun en => hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_authEnable en) Hfk Hlt
   have hon : E.authMode.isOn = true := by rw [hM]; rfl
-  iapply (h E X W p log Pre Q Post info hs hon hok) $$ [Ho HX HW Htt Hpre]
+  iapply (h E X W p log Pre Q Post info hs hon hok) $$ [Ho HX HW Hw1 Hw2 Hw3 Htt Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, %en, #Hv, Hout, Hrn⟩
   rw [hM]

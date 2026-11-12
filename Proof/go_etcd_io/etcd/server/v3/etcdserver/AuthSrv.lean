@@ -88,14 +88,14 @@ def authSchemaSrv : IProp GF :=
     ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.bOpen d.γB qo -∗
     backend.bOpen d.γB authOpenQ -∗ authRdSlots d -∗
-    backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwnIn d.γB authBkts r -∗
+    backend.plHook d.γB func.nil -∗ backend.rbOwnIn d.γB authBkts r -∗
     auth.authSucc γa -∗
     auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
     |={⊤}=> ∃ (R P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
       auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
-      auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) ∗
+      auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) (backend.wbTok d.γB) ∗
       authWAtHook γa d γc ∗ authBkLend γa γc d ∗
-      □ ({{ auth.authWTok γc }} (App (Val #(methods
+      □ ({{ auth.authWTok γc ∗ backend.wbTok d.γB }} (App (Val #(methods
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
           go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc }}) ∗
       auth.authWTok γc ∗ auth.authPubTok γa ∗
@@ -113,7 +113,8 @@ snapshot plan's Prove step, 2026-11-03; `authSchemaSrv`'s): in `on γa`, the rea
 `authOpenQ` and the store's share of the backend's reader slots (`authRdSlots`); nothing otherwise. -/
 def authKitIn (M : auth.AuthMode) (d : mvcc.KBReal) : IProp GF :=
   match M with
-  | .on _ => iprop(backend.bOpen d.γB authOpenQ ∗ authRdSlots d)
+  | .on _ => iprop(backend.bOpen d.γB authOpenQ ∗ authRdSlots d ∗ backend.wbTok d.γB ∗
+      backend.wbTok d.γB)
   | _ => iprop(True)
 
 /-- **What the store's construction gives back of the auth buckets, in the mode `M`** (the Prove
@@ -438,13 +439,19 @@ theorem authStoreKit_on
     HpubQ⟩, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, HkIn, %Hr,
     %Hhas⟩ HΦ
   simp only [authKitIn]
-  icases HkIn with ⟨HopQ, Hslots0⟩
+  icases HkIn with ⟨HopQ, Hslots0, Hwb3, Hwb4⟩
+  -- (auth-schema-fix F1) the boot's four write-back tokens: the kit's two and `authKitIn`'s two
+  icases ownToks_add_1 1 1 d.γB.wb $$ Hwb with ⟨Hwb1, Hwb2⟩
+  ihave Hwb1 : backend.wbTok d.γB $$ [Hwb1]
+  · iunfold backend.wbTok; iexact Hwb1
+  ihave Hwb2 : backend.wbTok d.γB $$ [Hwb2]
+  · iunfold backend.wbTok; iexact Hwb2
   ihave #HD := hD22
   -- (E2k) the fuel at the history the store starts at (`[bootState, bump bootState]`)
   ihave Hfu := auth.authFuel_boot (GF := GF)
   imod Hfu
   iunfold authSchemaSrv at HD
-  ihave HD' := HD $$ %γa %lg %abl %d %W %Pk %qo %r [] [] [] [] HB Hopen HopQ Hslots0 Hhook Hwb Hrbo
+  ihave HD' := HD $$ %γa %lg %abl %d %W %Pk %qo %r [] [] [] [] HB Hopen HopQ Hslots0 Hhook Hrbo
     Hsucc HI HpubQ
   · iapply zapLoggerOk_ne_null; iexact Hlg
   · ipureintro; exact Hr
@@ -464,10 +471,10 @@ theorem authStoreKit_on
   wp_apply (auth.newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg
       (authBkIface abl) tp cost
       (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
-        #abl) γa γc R P f (auth.authWTok γc) A Pre Q Post [auth.bootState] auth.bootState rfl
+        #abl) γa γc R P f (auth.authWTok γc) (backend.wbTok d.γB) A Pre Q Post [auth.bootState] auth.bootState rfl
       auth.bootState_permsFit ⟨auth.bootState, List.mem_singleton_self _, rfl⟩
       (backend.authRdN - 1) hR)
-    $$ [$Hpkg $Hrdok Hbk $Hcu $HwokR $HCreate $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
+    $$ [$Hpkg $Hrdok Hbk $Hcu $HwokR $HCreate $HT $Hwb1 $Hwb2 $Hwb3 $Hwb4 $Hcs $HtpA $HA $Hown $Hcur $Hcn]
     as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', #Hbc, #Htot, Hslots⟩
   · iframe; isplitr
     · iexact Hlg
@@ -538,17 +545,18 @@ theorem authStoreKit_on
         ipureintro; exact Hf'
       iunfold adminW
       iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-        hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' (auth.authWTok γc) (beOn d.be)
+        hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' (auth.authWTok γc) (backend.wbTok d.γB)
+        (beOn d.be)
         $$ [$Hpkg $Hinv]
     -- (P6.2) what an install needs: the lifecycle at the backend's open share, the hook clause,
     -- the admin steps at any backend
     iunfold authInstallPre
     iframe Hlife HwAt HLend
     iunfold authStepsAny
-    iintro !> %bel %Pk' %f' %T'
+    iintro !> %bel %Pk' %f' %T' %Wb'
     iunfold adminW
     iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-      hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' T' (beOn bel)
+      hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' T' Wb' (beOn bel)
       $$ [$Hpkg $Hinv]
   iapply HΦ
   iframe Hopen Hhook
@@ -688,20 +696,22 @@ def kitSet (M : auth.AuthMode) (n : GoString) : Prop :=
 theorem kitSet_of (M : auth.AuthMode) (n : GoString) (h : ¬ authBkts n) : kitSet M n := by
   cases M <;> simp only [kitSet] <;> first | trivial | exact h
 
-/-- **The kit's pre from the constructors' half of the open token and the auth share of the
-reader slots**: in `on` a quarter of the token and the slots to the kit, the apply thread keeping
-`srvOpenQ` (a quarter); in the others the half kept, the slots dropped. -/
+/-- **The kit's pre from the constructors' half of the open token, the auth share of the
+reader slots and two write-back tokens**: in `on` a quarter of the token, the slots and the tokens
+(auth-schema-fix F1: the boot's two beyond the kit's) to the kit, the apply thread keeping
+`srvOpenQ` (a quarter); in the others the half kept, the slots and the tokens dropped. -/
 theorem authKitIn_take (M : auth.AuthMode) (d : mvcc.KBReal) :
-    backend.bOpen (GF := GF) d.γB (1 : Qp).half ∗ authRdSlots d ⊢
+    backend.bOpen (GF := GF) d.γB (1 : Qp).half ∗ authRdSlots d ∗ backend.wbTok d.γB ∗
+        backend.wbTok d.γB ⊢
       authKitIn M d ∗ backend.bOpen d.γB (srvOpenQ M) := by
   cases M with
   | on γa =>
     simp only [authKitIn, srvOpenQ, authOpenQ]
-    iintro ⟨Ho, Hs⟩
+    iintro ⟨Ho, Hs, Hw1, Hw2⟩
     icases (backend.bOpen_add (GF := GF) d.γB (1 : Qp).half.half (1 : Qp).half.half).1 $$ [Ho]
       with ⟨Ho1, Ho2⟩
     · rw [Qp.half_add_half]; iexact Ho
-    iframe Ho1 Hs Ho2
+    iframe Ho1 Hs Ho2 Hw1 Hw2
   | _ =>
     simp only [authKitIn, srvOpenQ]
     iintro ⟨Ho, -⟩

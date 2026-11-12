@@ -128,7 +128,7 @@ abbrev apply.uberApplier.dispatch.adminSpec : Prop :=
       apply.kvOwnPre v3 E log Pre Q Post ∗ apply.applyTok E ∗
       ⌜E.authMode = .on γa ∧ apply.adminKindOk rq ∧ apply.dispatchOk E.authOn rq ∧
         receiptBound GF ≤ 2 ^ 48⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
-      Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
+      Own γa hs ∗ ⧗ 1 ∗ apply.adminWTs E ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗
       apply.chainResAny c a ∗ structFieldRef uberApplier go!"applyV3" p ↦ a ∗
@@ -282,7 +282,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.adminSpec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log Pre Q Post info W γa hh Own
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, #Hadm, Hkv, Htt, %Hok, %HcE, Hown, Hrc, HW, Hx⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, #Hadm, Hkv, Htt, %Hok, %HcE, Hown, Hrc, Hwb, HW, Hx⟩
   obtain ⟨Hmode, Hadmk, Hdok, Hrb⟩ := Hok
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
@@ -439,7 +439,7 @@ theorem apply.uberApplier.dispatch.wp_admin
           ⌜apply.dispatchStep c rq true log o⌝ ∗ apply.resTrace «$r0_ptr» ∗
           apply.dispatchResult rq true log skip «$r0_ptr» o ∗ W ∗
           apply.adminDone Own γa E.authMode hh rq true «$r0_ptr»))
-    with [a r ar op «$r0» Hm Hrt Htt Ha Hown Hrc HW Hx]
+    with [a r ar op «$r0» Hm Hrt Htt Ha Hown Hrc Hwb HW Hx]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -522,7 +522,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.authenticate x.name x.simpleToken) %lAu %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.authenticate x.name x.simpleToken) %lAu %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -572,7 +572,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %apply.AdminReq.authEnable %(null : Loc) %γa %hh %log %Pre %Q %Post %info [] [Hown Hrc HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %apply.AdminReq.authEnable %(null : Loc) %γa %hh %log %Pre %Q %Post %info [] [Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -653,7 +653,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.userAdd x.name) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.userAdd x.name) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -732,7 +732,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.userGrantRole x.1 x.2) %lUGR %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.userGrantRole x.1 x.2) %lUGR %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -807,7 +807,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.roleAdd x) %lRA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.roleAdd x) %lRA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe
@@ -864,7 +864,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     · iunfold apply.adminExtra at Hx
       simp only [apply.adminReqOf, hk, hs, Option.map_some] at *
       iexact Hx
-    wp_apply Hat $$ %(apply.AdminReq.roleGrantPermission x.1 x.2) %lRGP %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
+    wp_apply Hat $$ %(apply.AdminReq.roleGrantPermission x.1 x.2) %lRGP %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc Hwb HW Htt Hm Hx] as %resp %err ⟨Htt, Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iframe

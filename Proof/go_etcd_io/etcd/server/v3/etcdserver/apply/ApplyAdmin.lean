@@ -67,7 +67,7 @@ abbrev apply.uberApplier.Apply.adminSpec : Prop :=
         apply.applierAdmin E (apply.baseChain E.authOn) base W Own) ∗
       ⌜E.authMode = .on γa ∧ apply.adminKindOk rq ∧ apply.dispatchOk E.authOn rq ∧
         receiptBound GF ≤ 2 ^ 48⌝ ∗ ⌜skip = true → rq.txn.isSome = true⌝ ∗
-      Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
+      Own γa hs ∗ ⧗ 1 ∗ apply.adminWTs E ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗
     ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
@@ -96,7 +96,7 @@ theorem apply.uberApplier.Apply.wp_admin
     (hD : apply.uberApplier.dispatch.adminSpec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.adminSpec (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 Pre Q Post W γa hs Own
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, Htt, #Hst, %Hok, %Hskip, Ho, Hrc, HW, Hx⟩
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, Htt, #Hst, %Hok, %Hskip, Ho, Hrc, Hwb, HW, Hx⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   iunfold apply.uberOwn at Hown
@@ -115,22 +115,22 @@ theorem apply.uberApplier.Apply.wp_admin
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
         apply.kvOwnPre v3 E x.log Pre Q Post ∗ apply.applyTok E ∗
-        Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True))))
+        Own γa hs ∗ ⧗ 1 ∗ apply.adminWTs E ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True))))
       %(fun ar => iprop(apply.applyTok E ∗ apply.bkRTOf E ∗
         structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
         ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
           ⌜apply.dispatchStep x.chain rq v3 x.log o⌝ ∗ apply.resTrace ar ∗
           apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
-      [Ha Hkv Htt Ho Hrc HW Hx] as %ar Hpost
-  · iframe Hw Ha Hkv Htt Ho Hrc HW Hx
+      [Ha Hkv Htt Ho Hrc Hwb HW Hx] as %ar Hpost
+  · iframe Hw Ha Hkv Htt Ho Hrc Hwb HW Hx
     isplitr
     · iapply apply.rdLend_kvOwnPre
     imodintro
-    iintro %Φ' ⟨Hres, Ha, Hkv, Htt, Ho, Hrc, HW, Hx⟩ HΦ'
+    iintro %Φ' ⟨Hres, Ha, Hkv, Htt, Ho, Hrc, Hwb, HW, Hx⟩ HΦ'
     iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post (apply.principalOf rq) W γa hs Own)
-      $$ [Hres Ha Hkv Htt Ho Hrc HW Hx]
+      $$ [Hres Ha Hkv Htt Ho Hrc Hwb HW Hx]
     · iframe #
-      iframe Hres Ha Hkv Htt Ho Hrc HW Hx
+      iframe Hres Ha Hkv Htt Ho Hrc Hwb HW Hx
       ipureintro; exact ⟨Hok, HcE⟩
     inext
     iintro %ar ⟨Htt, Hrt, Hres, Ha, Hrest⟩
@@ -138,7 +138,7 @@ theorem apply.uberApplier.Apply.wp_admin
     simp only []
     iframe Htt Hrt Hres Ha Hrest
   icases Hpost with (⟨⟨Htt, Hrt, Ha', %o, Hkv, HPP, %Hst', Htr, Hres, HW, Hdone⟩, #Hadm⟩ |
-    ⟨%Hna, ⟨Ha, Hkv, Htt, Ho, Hrc, HW, -⟩, Hrej⟩)
+    ⟨%Hna, ⟨Ha, Hkv, Htt, Ho, Hrc, Hwb, HW, -⟩, Hrej⟩)
   · imodintro
     iapply HΦ
     iframe Htt Hrt

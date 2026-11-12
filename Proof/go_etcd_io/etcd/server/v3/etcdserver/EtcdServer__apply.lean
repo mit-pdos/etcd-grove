@@ -29,6 +29,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftClust
 public import Proof.go_etcd_io.raft.v3.FrameH
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -1478,16 +1479,53 @@ theorem EtcdServer.apply.wp_proofOn
     · rw [hjs, ← Nat.add_assoc]
       iexact HWA1
     (try wp_auto)
-    -- the `Debug` log
+    -- the `Debug` log; (auth-schema-fix F1) three more receipts, at the resolutions of `GetTerm`,
+    -- the third `zap.Uint64` and `GetType`, for an admin entry's three write tokens
+    -- (`applyEntryNormal.specOn`'s `apply.adminWTs E`)
     wp_apply hU64 as %fl2 -
     wp_apply hGI $$ [He] as -
     · iframe He
-    wp_apply hU64 as %fl3 -
-    wp_apply hGT $$ [He] as -
+    wp_apply +noauto hU64 as %fl3 -
+    wp_to_resolve
+    first
+      | wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+      | wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
+    iapply wp_go_step_receipt'
+    case hv => exact isPanic_intoVal _
+    inext
+    iintro Hrx1 Hlx1
+    iapply wp_value'
+    imod srvWTPool_take_extraOn s E γp ρ.wait xj saj $$ HWP Hrx1 Hlx1 HKV with ⟨Hwx1, HKV⟩
+    wp_apply +noauto hGT $$ [He] as -
     · iframe He
-    wp_apply hU64 as %fl4 -
+    wp_to_resolve
+    first
+      | wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+      | wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
+    iapply wp_go_step_receipt'
+    case hv => exact isPanic_intoVal _
+    inext
+    iintro Hrx2 Hlx2
+    iapply wp_value'
+    imod srvWTPool_take_extraOn s E γp ρ.wait xj saj $$ HWP Hrx2 Hlx2 HKV with ⟨Hwx2, HKV⟩
+    wp_apply +noauto hU64 as %fl4 -
+    wp_to_resolve
+    first
+      | wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+      | wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
+    iapply wp_go_step_receipt'
+    case hv => exact isPanic_intoVal _
+    inext
+    iintro Hrx3 Hlx3
+    iapply wp_value'
+    imod srvWTPool_take_extraOn s E γp ρ.wait xj saj $$ HWP Hrx3 Hlx3 HKV with ⟨Hwx3, HKV⟩
     wp_apply hGTy $$ [He] as -
     · iframe He
+    ihave Hawt : apply.adminWTs E $$ [Hwx1 Hwx2 Hwx3]
+    · iunfold apply.adminWTs
+      isplitl [Hwx1]; · iapply srvWT_bkWTFor; iexact Hwx1
+      isplitl [Hwx2]; · iapply srvWT_bkWTFor; iexact Hwx2
+      iapply srvWT_bkWTFor; iexact Hwx3
     (try wp_auto)
     wp_apply hStr as %fl5 -
     wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [fl2, fl3, fl4, fl5]
@@ -1559,10 +1597,10 @@ theorem EtcdServer.apply.wp_proofOn
         icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') xj γr ot aw
             (A ++ ms.take (sint.nat j)) γa saj [] (restModel γr.kv.c0 γr.raft.raft.boot []) hM)
-            $$ [Hst Hbe Happ Hlr Hgr Hrdk Hfs HKV Hwt Hao Hka HRS Hr2 HtokR]
+            $$ [Hst Hbe Happ Hlr Hgr Hrdk Hfs HKV Hwt Hao Hka HRS Hr2 Hawt HtokR]
           as ⟨Hbe, Hlr, Hgr, Hrdk, Hfs, ⟨%x1, %out1, %sa1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost, HtokR⟩
         · (try rw [ite_eq_left rfl])
-          iframe Hsrv0 Hlnil Hewo He Hst Hbe Happ Hlr Hgr Hrdk Hfs HKV Hwt Hr2 Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
+          iframe Hsrv0 Hlnil Hewo He Hst Hbe Happ Hlr Hgr Hrdk Hfs HKV Hwt Hr2 Hawt Hao Hlog Hcm Hka HRS %Hmc HlbJ HtokR
           isplitr
           · iexact Hreg
           isplitr
@@ -1999,9 +2037,9 @@ theorem EtcdServer.apply.wp_proofOn
           · iunfold kvAppliedOn; iframe HkaL; ipureintro; exact Hxch
           wp_apply (hAENR s γ ci TM E ρ b e m (stLoaded γ st') xj γr rp.A₀
               (restReplay γr rp (A ++ ms.take (sint.nat j))) γa saj hM)
-              $$ [Hst Hbe Hlr Hgr Hrdk Hfs HKV Hwt HRS Hr2]
+              $$ [Hst Hbe Hlr Hgr Hrdk Hfs HKV Hwt HRS Hr2 Hawt]
             as ⟨Hbe, Hlr, Hgr, Hrdk, Hfs, ⟨%x1, %out1, HKV, %Hstep1⟩, HRS, Hst⟩
-          · iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hrdk Hfs HKV Hwt Hr2 Hcm HRS HlbA0
+          · iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hrdk Hfs HKV Hwt Hr2 Hawt Hcm HRS HlbA0
             isplitr
             · ipureintro; exact hpA.subset (List.mem_append_right _ (List.mem_singleton_self m))
             ipureintro

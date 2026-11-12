@@ -533,7 +533,8 @@ theorem authRecoverOn_glue (hRec : auth.authStore.Recover.spec (GF := GF) (hG :=
     iunfold ablOn at Habl
     icases Habl with ⟨#H1, #H2⟩
     iframe Hbe H1 H2; ipureintro; exact Hlg
-  ihave #Hw := auth.authWBackendOk_of_R (authBkIface abl) (.on γa) Pk f (auth.authWTok γc) $$ HwR
+  ihave #Hw := auth.authWBackendOk_of_R (authBkIface abl) (.on γa) Pk f (auth.authWTok γc)
+    (backend.wbTok dn.γB) $$ HwR
   iexists hs ++ (srvHist γr.kv A').drop hs.length, Pk, f, γc, authBkIface abl
   -- the fuel at the image's base: its admin entries, never paid for with receipts
   isplitl [Hown Hfu]

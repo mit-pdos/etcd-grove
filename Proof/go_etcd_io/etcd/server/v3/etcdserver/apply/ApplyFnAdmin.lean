@@ -70,7 +70,7 @@ abbrev apply.Apply.adminSpec : Prop :=
       apply.applyTok E ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
         apply.dispatchOk E.authOn rq ∧ E.authMode = .on γa ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
-      Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
+      Own γa hs ∗ ⧗ 1 ∗ apply.adminWTs E ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗
@@ -104,7 +104,7 @@ theorem apply.uberAuthSteps_of_stepsX
     (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.uberIs E p opts ∗
-        (□ ∀ B : mvcc.KBReal, apply.isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
+        (□ ∀ B : mvcc.KBReal, apply.isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W (apply.bkWTFor E) E.RD) ⊢
       apply.uberAuthSteps (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) E W
         (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) := by
   iintro ⟨#Hpkg, #Hu, #Hst⟩
@@ -120,8 +120,8 @@ set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` through its admin triple and the postcondition. -/
 local macro "call_tail_admin" : tactic => `(tactic| (
   wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post W γa hs Own)
-      $$ [Hown Hkv Htt Ho Hrc HW Hx] as %ar ⟨Htt, Hrt, %x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres, #Hauth, HW, Hdone⟩
-  · iframe # Hown Hkv Htt Ho Hrc HW Hx
+      $$ [Hown Hkv Htt Ho Hrc Hwb HW Hx] as %ar ⟨Htt, Hrt, %x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres, #Hauth, HW, Hdone⟩
+  · iframe # Hown Hkv Htt Ho Hrc Hwb HW Hx
     isplitr
     · ipureintro; exact ⟨Hmode, Hadm, Hdk, Hrb⟩
     ipureintro
@@ -160,7 +160,7 @@ theorem apply.Apply.wp_admin
     (hUA : apply.uberApplier.Apply.adminSpec (GF := GF) (hG := hG)) :
     apply.Apply.adminSpec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot W γa hs Own
-  wp_start as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, Htt, %Hprem, Ho, Hrc, HW, Hx⟩
+  wp_start as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Hkv, Htt, %Hprem, Ho, Hrc, Hwb, HW, Hx⟩
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hmode, Hrb⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

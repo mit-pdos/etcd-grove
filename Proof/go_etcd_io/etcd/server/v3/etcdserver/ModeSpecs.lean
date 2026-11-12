@@ -148,7 +148,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
         isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ entryWaitOk ρ E m ∗
         entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
         srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvWT E ∗ srvFS s ∗
-        ⧗ 1 ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
+        ⧗ 1 ∗ apply.adminWTs E ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
         kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
         ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
         ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
@@ -162,7 +162,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
       else iprop(
         isServerM true s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
         applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVOn s E ρ.wait x sa ∗
-        srvWT E ∗ srvFS s ∗ ⧗ 1 ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+        srvWT E ∗ srvFS s ∗ ⧗ 1 ∗ apply.adminWTs E ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
         srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
         ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧
           uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧ receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0 ∧
@@ -229,20 +229,20 @@ theorem EtcdServer.applyEntryNormal.spec_on
   rw [hon] at this
   cases v3
   · simp only [srvApplyKVM_true, entryOkM_true, Bool.false_eq_true, ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, #Hcm, HRS, #HA0,
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hawt, #Hcm, HRS, #HA0,
       %HmA, %Hpo⟩ HΦ
-    iapply this $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr HRS] HΦ
-    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hcm HRS HA0
+    iapply this $$ [He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt HRS] HΦ
+    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hcm HRS HA0
     isplitr; · ipureintro; exact fun _ => Hpo.2.2.2.2.1
     ipureintro
     exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1,
       fun _ => Hpo.2.2.2.2.2.1, Hpo.2.2.2.2.2.2⟩
   · simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
       ↓reduceIte] at this ⊢
-    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, Hmr, HKV, Hwt, Hfs, Hr, Hawt, Hao, Hlog,
       #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
-    iapply this $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
-    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+    iapply this $$ [Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hka HRS Hv3 Htok] HΦ
+    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr Hmr HKV Hwt Hfs Hr Hawt Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
     isplitr; · ipureintro; exact fun _ => Hpre.2.2.2
     ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1⟩
 
