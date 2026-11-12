@@ -1,16 +1,10 @@
 /-
-`Cache.get` (`cache/*.go`), an internal helper.
-Users: `Cache.getWatch`.
-Proof sketch: the client's `Get` of the prefix (`WithPrefix`, linearizable; `KV.GetTriple` at the cache's own principal `who`, `ctxPrin who ctx who`, `lo = 0`, `authLb γ 0`) with the update from `etcdPeek γ` (every range step leaves the state: `Step`'s range case), recording `etcdLb γ σ` at the firing and the ceiling's revision below it (the loop's lower bound, `etcdLb_reach`); on success `store.Restore.spec` (the answer is `σ.kv.store` in the prefix range: `kvStep`, `RangeReq.answers` with no limit, sort or filter; the request's range end is W0's `OpM.endReq` of `WithPrefix`'s end: `prefixEnd pfx`, `"\x00"` for the root cache) under the ceiling (`storeCeil`, in `cacheLoop`).
-For the root cache (`pfx = ""`) the cache lists and watches from `"\x00"` (`OpGet`/`OpWatch`
-rewrite an empty key) while `prefixRange ""` includes the empty key: W0's `etcdLb_keyNonEmpty`
-(no state the cluster has been in stores, or has an event of, the empty key) closes the gap.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`Cache.get(ctx)` (`cache/cache.go`): the bootstrap `Get` of the watch loop. Lean-first (no Rocq
+counterpart); see `InvCache.lean` and `InvEtcd.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -18,30 +12,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `c.get(ctx)` by the watch loop: the list's response (read-only: the store keeps its key-values) and the loop restored at its revision, or an error. -/
-def Cache.get.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ cacheLoop c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx who }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"get")) (Val #ctx))
+/-- `c.get(ctx)`, by the holder of the cache's revision bound (`cacheBound`, at `B`): the client's
+prefix get, then `store.Restore(resp.Kvs, resp.Header.Revision)`. Either the client's error and
+`nil` (nothing changed; the error's `Error()` returns some string, `errStrOk`), or the response and `nil`: the header revision `R` is at least `B` and
+below `2 ^ 63 - 1`, the bound is now `R`, and the store's latest revision and newest snapshot are
+at least `R` (the newest snapshot, its latest map, etcd's state at it: the store's certificate).
+
+`Restore` needs `R` at least every revision the store can be at, now or after another writer's
+pending `Apply` (finding 4: `Restore` does not check it): all of them are at most the bound
+(`cacheRev`, the store's revision certificate), etcd has reached the bound (`cacheBound`), and the
+client's get is linearizable (`isEtcdKV`: a non-serializable get returns at least any revision
+etcd is known to have reached). -/
+abbrev Cache.get.spec : Prop :=
+  ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
+    (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (B : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ cacheBound cf B }}
+    (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"get")) (Val #(GoInterface.ok ctx)))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheLoop c) ∨
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (r : Nat) (m : RangeRespM), rangeRespOwn resp DFrac.discard m ∗
-        ⌜m.hdr.map (·.revision) = some (W64 r)⌝ ∗ cacheLoopAt c r) }}
+      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheBound cf B ∗ errStrOk err) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, getRespRev resp R ∗ cacheBound cf R ∗ etcdRead R ∗
+        storeRevLb cf.γs R ∗ storeSnapLb cf.γs R ∗
+        ⌜sint.Z B ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝) }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

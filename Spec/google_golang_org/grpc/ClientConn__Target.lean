@@ -1,17 +1,9 @@
 /-
-`(*grpc.ClientConn).Target()` (grpc-go, assumed: `clientconn.go`).
-
-Users: the client's retry interceptor (`retry_interceptor.go:60`, logged).
-
-Why true: returns the target string given to `NewClient`, a field never written afterwards.
-
-Changes: restored (round 1).
-
-Margin: the string's value is not specified (only logged).
+`(*grpc.ClientConn).Target()` (names only; unit P3a): the retry interceptor logs it.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpc
 
 @[expose] public section
 
@@ -19,25 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `cc.Target()`: some string. -/
-def ClientConn.Target.spec : Prop :=
-  ∀ (cc : Loc) (A : GoString → IProp GF) (ui si : Option val) (R : MD → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ connAt cc A ui si R }}
-    (App (Val (cc @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Target")) (Val #()))
-  {{ (t : GoString), RET #t; True }}
+/-- `conn.Target()` on a dialed connection returns some string (its `target`, fixed since the
+dial). -/
+abbrev grpc.ClientConn.Target.spec : Prop :=
+  ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (dopts : List GoInterface),
+  {{ grpcConn (GF := GF) conn addrs ics dopts }}
+    (App (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!!
+      go!"Target")) (Val #()))
+  {{ (s : GoString), RET #s; True }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

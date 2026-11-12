@@ -1,24 +1,12 @@
 /-
-`clientv3.NewLease` (`client/v3/lease.go`).
-
-Users: `newClient` (`client.Lease = NewLease(client)`).
-
-Proof sketch: `RetryLeaseClient(c)` (its spec: `retryLeaseHandle`, from `clientConnOk`), then
-`NewLeaseFromLeaseClient` with the client and `DialTimeout + 1s`, at `cr = c`: the remote's contract
-gated by `clientReady c` (`retryLeaseHandle_remoteLeaseAt`), its per-member form by
-`retryLeaseHandle_remoteVia`; `clientCore`'s `clientBase` (`clientCore_pre`, `clientPre_base`).
-
-verify-round (A2-provability L1): the step closes now: `NewLeaseFromLeaseClient` takes the remote's
-contract gated by readiness and returns the handle over `c` (it took an ungated contract, which
-`newClient` cannot give before `c.Auth` is set, and returned one over `null`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/NewLease.lean`: restated over `clientCore`.
-
-Margin: none.
+`clientv3.NewLease(c)` (`client/v3/lease.go`; item 5: `newClient` calls it; with its body since
+item 1, the client lease). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -26,10 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,17 +24,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `NewLease(c)`: a lessor of the client's cluster and principal. -/
-def NewLease.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who }}
+/-- `NewLease(c)` of a client `New` builds (its connection `conn`, call options, configuration and
+logger, read-only: `clientCoreAt`, `clientKVAtS`):
+`NewLeaseFromLeaseClient(RetryLeaseClient(c), c, c.cfg.DialTimeout + time.Second)`, a `*lessor`
+over the connection (`lessorAtS`), as a `Lease` (the auth plan's C1, 2026-10-28: without the connection's fact, which `newClient` attaches once
+the client is ready, `InvClientAuth.lean`). -/
+abbrev NewLease.spec : Prop :=
+  ∀ (c conn : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c ∗
+      clientKVAtS c conn }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewLease)) (Val #c))
   {{ (v : GoInterface), RET #v; ∃ l : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l⌝ ∗
-      lessorHandle l c γ who }}
+      lessorAtS l conn }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

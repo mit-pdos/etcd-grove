@@ -1,33 +1,23 @@
 /-
-`(*applierV3backend).DowngradeInfoSet(r, shouldApplyV3)` (`backend.go:298-304`): the downgrade info set (`RaftCluster.SetDowngradeInfo`).
-
-**Users.** `uberApplier.dispatch` (through the outer layers' promoted methods), in both modes.
-
-**Proof sketch.** 2e's `RaftCluster.SetDowngradeInfo.spec`: the backend's `Membership.beVer`
-(`stAt`'s `optsSt`) and the view's update fired in `optsOk`'s `Membership.clusterVerInv γc`
-(`dg` changed, `VerSt.ok` kept).
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-verify-round (server-boot's request): 2e's spec cited, `beVer`/`clusterVerInv` from the options'
-slots; the statement is unchanged.
-
-**Margin.** Outside the model.
+`apply.applierV3backend.DowngradeInfoSet` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,15 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The downgrade info set**: nothing in the model. -/
-def applierV3backend.DowngradeInfoSet.spec : Prop :=
-  ∀ (p rq : Loc) (v3 en : Bool) (ver : GoString) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ beAt p mc γ γc R ∗ stAt p σ ∗ reqMsgAt rq (.downgradeInfoSet en ver) ∗ threadTok }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"DowngradeInfoSet")) (Val #rq)) (Val #v3))
-  {{ RET #(); stAt p σ ∗ threadTok }}
+/-- **`a.DowngradeInfoSet(r, shouldApplyV3)`**: the cluster's `SetDowngradeInfo` (a critical section, or none). -/
+abbrev apply.applierV3backend.DowngradeInfoSet.spec : Prop :=
+  ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      (∃ dm : DowngradeModel, apply.downgradeInfoSetIs r dm) ∗ E.RW ∗
+      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+    (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"DowngradeInfoSet")) (Val #r)) (Val #v3))
+  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

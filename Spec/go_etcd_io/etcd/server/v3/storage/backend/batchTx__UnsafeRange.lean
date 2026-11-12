@@ -1,10 +1,10 @@
 /-
-`t.UnsafeRange(bucket, key, endKey, limit)` (`batch_tx.go:193-204`): translated; internal. bbolt's
-cursor of the write transaction, `unsafeRange`. Changes: over `btPhys`. Margin: none.
+`batchTx.UnsafeRange` (`batch_tx.go`). `t.UnsafeRange(bucket, key, endKey, limit)` on the writer: the range of bbolt's writer's contents (the bucket must exist: else `lg.Fatal`), as slices valid while its transaction `st.tx` is open.
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -12,30 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafeRange(bk, k, e, limit)`** on the embedded `batchTx`: `btRange` of bbolt's write
-transaction. -/
-def batchTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BeNames) (I : Image) (n d : Nat) (bk : GoInterface) (bi : BktInfo) (ks es : GoSlice)
-    (dk de : DFrac) (k e : GoString) (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ btPhys γ I n d ∗ bucketOk bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e }}
-    (App (App (App (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
-      (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜btRange (I.ents bi.name) k e (sint.Z limit) l⌝ ∗ rangeRes kl vl l (btPhys γ I n d) }}
+/-- `t.UnsafeRange(bucket, key, endKey, limit)` on the writer: the range of bbolt's writer's contents (the bucket must exist: else `lg.Fatal`), as slices valid while its transaction `st.tx` is open. -/
+abbrev backend.batchTx.UnsafeRange.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
+    (App (App (App (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); btW γ t st ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗
+      kvsOutRd st.tx keys vals (cursorRange (bktEnts (bktOf st.S bi.name)) kb eb limit) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

@@ -1,6 +1,6 @@
 # Review: batch 3e (mvcc's core store), completeness, round 1
 
-Reviewer: completeness (users), independent of the author. Targets: `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,ApiStorage,Api,Internal*}.lean` and 3e's spec files (not 3f's watch files), the snippets `examples/specreq/mvcc/` (`go vet` clean). Go sources: the pinned fork `server/v3@v3.0.0-20261107170612-a4d2bb1720b9` (`$S` below). I formed the findings below before reading `batch-3e.md`. Where the author's report already names a finding as an open question, I say so.
+Reviewer: completeness (users), independent of the author. Targets: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,ApiStorage,Api,Internal*}.lean` and 3e's spec files (not 3f's watch files), the snippets `examples/specreq/mvcc/` (`go vet` clean). Go sources: the pinned fork `server/v3@v3.0.0-20261107170612-a4d2bb1720b9` (`$S` below). I formed the findings below before reading `batch-3e.md`. Where the author's report already names a finding as an open question, I say so.
 
 ## The users and their patterns
 

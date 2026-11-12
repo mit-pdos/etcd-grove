@@ -1,10 +1,11 @@
 /-
-`n.numChildren()` (`node.go`). Users: `node.nextSibling`, `rebalance`.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+`node.numChildren` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U8; used by U8 (`node.rebalance`, siblings). Proof:
+`Proof/go_etcd_io/bbolt/node__numChildren.lean` (a `sorry` until U8).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -12,26 +13,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) the number of inodes. -/
-def node.numChildren.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (n : Loc) (N : NodeR),
-  {{ wtxCore (GF := GF) tx γ C ∗ ⌜C.nodes n = some N⌝ }}
+/-- `n.numChildren()`: the number of its inodes (the slice's length). -/
+abbrev node.numChildren.spec : Prop :=
+  ∀ (n : Loc) (nv : node) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"numChildren")) (Val #()))
-  {{ (z : w64), RET #z; wtxCore tx γ C ∗ ⌜uint.nat z = N.inodes.length⌝ }}
+  {{ RET #nv.inodes'.len; n ↦{dq} nv }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

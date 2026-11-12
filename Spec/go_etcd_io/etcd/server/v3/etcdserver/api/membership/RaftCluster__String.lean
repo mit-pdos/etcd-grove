@@ -1,39 +1,38 @@
 /-
-## `(*RaftCluster).String()` (`cluster.go:213-229`): names only
-
-**Users.** `NewServer` (`NewServerStats`'s argument), logging. **Why it is true.** A formatting of
-the members under the lock. **Changes**: from `specs-ref`. **Margin.** The string is not stated.
+`(*membership.RaftCluster).String()`: names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`notes/decisions.md`), for `NewServer`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Membership
 
-open Iris Iris.BI EtcdModel Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
 
-/-- **A description of the cluster.** -/
-def RaftCluster.String.spec : Prop :=
-  ∀ (c : Loc) (γ : CNames) (cid lid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ isCluster c γ cid lid }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"String")) (Val #()))
+/-- `c.String()` (the cluster's description, under its lock) returns some string. -/
+abbrev membership.RaftCluster.String.spec : Prop :=
+  ∀ (c : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+      membership.isRaftCluster c }}
+    (App (Val (c @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"String")) (Val #()))
   {{ (s : GoString), RET #s; True }}
 
 end spec
 
-end Membership
 end EtcdGrove
 end Perennial

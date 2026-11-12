@@ -1,19 +1,11 @@
 /-
-`db.pageInBuffer(b, id)` (`db.go`): the page header at `id · pageSize` of a buffer.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
-
-**Users.** `getPageSizeFromFirstMeta`/`SecondMeta` (a local 4 KiB array, id 0, while `db.pageSize`
-may still be the option's), `init` (ids 0-3 of a `4 · pageSize` buffer, under `dbRaw`),
-`Tx.writeMeta` (id 0 of a `pageSize` buffer, the writer under `isBolt`): each holds `db.pageSize`
-(`dbRaw`'s or `isBolt`'s realization, read-only after `Open`).
-
-**Changes** (integration I7): was `isBolt` and any buffer and id, post `True`: false for an id past
-the buffer (`b[id*pageSize]` panics) and unusable by `init` (no `isBolt` yet). Now the field and
-the bound, and the address returned.
+`DB.pageInBuffer` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U4; used by U10 (`writeMeta`). Proof:
+`Proof/go_etcd_io/bbolt/DB__pageInBuffer.lean` (a `sorry` until U4).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -21,28 +13,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) the address of page `id` in the buffer `b` (`&b[id * pageSize]`), inside it. -/
-def DB.pageInBuffer.spec : Prop :=
-  ∀ (db : Loc) (dq : DFrac) (ps : w64) (b : GoSlice) (id : w64),
-  {{ (structFieldRef go_etcd_io.bbolt.DB go!"pageSize" db ↦{dq} ps : IProp GF) ∗
-      ⌜uint.nat id * uint.nat ps < uint.nat b.len⌝ }}
-    (App (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"pageInBuffer")) (Val #b)) (Val #id))
-  {{ RET #(sliceIndexRef w8 ((uint.nat id * uint.nat ps : Nat) : Int) b);
-      structFieldRef go_etcd_io.bbolt.DB go!"pageSize" db ↦{dq} ps }}
+/-- `db.pageInBuffer(b, id)`: the address of byte `id * pageSize` of `b` (`&b[…]`, which panics
+past the slice's end: excluded by the premise). -/
+abbrev DB.pageInBuffer.spec : Prop :=
+  ∀ (db : Loc) (b : GoSlice) (id : w64),
+  id.toNat * 4096 < b.len.toNat → b.len.toNat < 2 ^ 63 → 0 < b.ptr.addr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ db.[DB, go!"pageSize"] ↦□ W64 4096 }}
+    (App (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"pageInBuffer")) (Val #b))
+      (Val #id))
+  {{ RET #(b.ptr +ₗ ((id.toNat * 4096 : Nat) : Int)); True }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

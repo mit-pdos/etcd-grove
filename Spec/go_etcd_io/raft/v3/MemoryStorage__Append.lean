@@ -1,21 +1,10 @@
-/-
-## `MemoryStorage.Append(entries)`
+/- `MemoryStorage.Append` (`storage.go:300`).
 
-**Users.** etcd's `bootstrappedWAL.MemoryStorage` (`bootstrap.go:741`: detached, rebuilt from the WAL),
-`raftNode.start` (`raft.go:287`, `292`: the batch's snapshot and entries), `EtcdServer.snapshot`
-(`server.go:2132`: `CreateSnapshot` at the applied index), `EtcdServer.compact`/`purge`
-(`server.go:2180`: `Compact`), `EtcdServer.getSnapshot` (`server.go:755`); the examples' storages
-(`kvdurable/storage.go`, a wrapper calling these under its own lock). Snippets: `storage.go`, `readyloop.go`. **Proof sketch.** Empty: returns at once
-(the update fired with no change). Else under the lock: truncate below the first index, then
-replace from the first new index or extend (`StorState.append`); a gap panics, which the update's
-precondition excludes. **Changes.** Atomic over the contents (was `memLog`/`memEnd` ranges).
-**Margin.** The storage keeps the entry pointers (read-only for good).
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). Takes the range from the batch's first index `k` to the end (`own 1`) and the end, gives the batch as that range. The batch's indices are consecutive from `k`, its last at most `2^61` (the contract's `Hlen`, kept in the range). An empty batch is a no-op. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 
@@ -23,29 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- Appends `es` (at index `k` on), atomically. -/
-def MemoryStorage.Append.spec : Prop :=
-
-  ∀ (ms : Loc) (sl : GoSlice) (k : Nat) (es : List LogEntry) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ entriesRO sl k es ∗
-      (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜(σ.append k es).isSome ∧ k + es.length < 2 ^ 64⌝ }> @ ⊤, ∅
-        <{ memStor ms ((σ.append k es).getD σ), COMM Q σ }>) }}
-    (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Append")) (Val #sl))
-  {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ ∃ σ, Q σ }}
+/-- `ms.Append(entries)` at `k`, the first entry's index. (raft-final, 2026-10-29, the design's A4,
+review 1's M2) An empty batch takes no range of the log (Go returns before the lock,
+`storage.go:293-296`): a `Ready` with no entries lends none; until then the range from `k` with the
+end in both cases. -/
+abbrev MemoryStorage.Append.spec : Prop :=
+  ∀ (ms : Loc) (γs : MemStorNames) (k : Nat) (old es : List EntryM) (s : GoSlice) (dq : DFrac),
+  (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j) →
+  k + es.length ≤ 2^61 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
+      entsPts s dq es }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Append")) (Val #s))
+  {{ RET #interface.nil; entsPts s dq es ∗
+      (if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

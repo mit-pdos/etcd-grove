@@ -1,21 +1,9 @@
 /-
-`(*store).Close()` (`kvstore.go:515`).
-
-**Users**: `KV.Close` on the server's watchable store (which wraps it, 3f): `Cleanup`
-(`server.go:950`), `NewServer`'s error path (`server.go:376`). Snippet `ReqClose`.
-
-**Proof sketch**: `close(s.stopc)` (the open token's close right: no second close),
-`fifoSched.Stop()` (the open token's `schedOpen` whole and `Pay`: pending jobs run, the job's
-resources back); `mvccClosed γ` is the open token's remains with what `Stop` gave.
-
-**Changes** from `specs-ref`'s `store__Close.lean`: the contract at `*store`; `mvccClosed` (with
-`mvccClosed_rest`) in place of `True` (`examples/oneshot-close.md`).
-
-**Margin**: none.
+`store.Close` (`kvstore.go`): the trust boundary (untranslated). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -23,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -34,11 +21,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.Close`'s contract at `*store`. -/
-def store.Close.spec : Prop :=
-  ∀ s : Loc, KV.Close.contract (GF := GF) (go.GoType.PointerType store.ty) #s
+/-- `s.Close()` of the store, with the right to close it once (`storeCloser`: its `stopc` field's
+close, the scheduler's stop token and the compaction jobs' queue; `Close` closes `s.stopc` and
+stops the store's scheduler, `fifoSched.Stop()`, with the token and the queue, as
+`Scheduler.Stop`'s spec takes them: no `Schedule` follows, which would panic; a second call would
+close `stopc` again, a panic): returns `nil`. D19m (C), 2026-10-18: until then without the stop
+token, which `NewStore` gave up for good (`isStore` held `schedLive`), so a holder of `isStore`
+could compact after `Close`, where Go's `Schedule` panics. (M2, the storage side, the approval's
+item 23) The right to close by the mode at the store's compaction revision `c` (`storeCloserM`:
+off, `storeCloser`; on, the restorable compaction right `compactRightR`, whose queue is at `c`, not
+`-1`: `storeCloser`'s queue is at `-1`, which a store that compacted cannot give,
+`compactQueue_mono` only going up). Unreachable today (the server's `run` never returns, so
+`Cleanup` never closes the KV): what a modelled shutdown takes. (R-D1, 2026-11-04, ported to the
+API's reader tokens 2026-11-06) It gives back the last job's budget (`compactJobResM`: the job's
+backend reader, once the scheduler has stopped) and the closer's part of the store's current objects
+and physical names (`curAt`, what the API's shutdown law pins the readers' pool with), with a later
+credit of its steps (the law opens the pool's invariant). -/
+abbrev mvcc.store.Close.spec : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (c : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isStore s γ ∗ mvcc.storeCloserM s γ c }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Close")) (Val #()))
+  {{ RET #(GoInterface.nil); mvcc.compactJobResM γ.kb ∗ £ 1 ∗
+      ∃ (dq : DFrac) (o : mvcc.StoreObjs), mvcc.curAt γ dq o }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

@@ -1,48 +1,42 @@
 /-
-## `(*Trace).InsertStep(at, time, msg, fields...)`
-
-**Users.** `raftRequest`, `Compact` (`v3_server.go:403,1027`: `at = 0`). Snippet: `examples/specreq/pkgleaves/trace.go`
-(`ReqApplyTraceHandoff`).
-
-**Proof sketch.** `at < len(steps)`: `append(steps[:at+1], steps[at:]...)` (in bounds for
-`0 ≤ at`) and a store at `at`; else an append. The fields slice is kept in the step.
-
-**Changes.** From `specs-ref`'s `Trace__InsertStep.lean`. The premise `0 ≤ at` stays: a negative
-`at` panics (`steps[at:]`, or the store at `-1`); every caller passes `0`.
-
-**Margin.** None.
+`(*traceutil.Trace).InsertStep` (`trace.go`: inserts a step at `at` if `at < len(steps)`, else
+appends). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path"). A negative `at` panics (`t.steps[at:]`): `0 ≤ at`, as every caller.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- **Inserts a step** at `at` (not negative), or appends it; the trace kept. -/
-def Trace.InsertStep.spec : Prop :=
-  ∀ (t : Loc) (at' : w64) (st : _root_.Perennial.time.Time) (msg : GoString) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceOwn t ∗ fieldsOwn fields ∗ ⌜0 ≤ sint.Z at'⌝ }}
-    (App (App (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"InsertStep")) (Val #at')) (Val #st)) (Val #msg)) (Val #fields))
-  {{ RET #(); traceOwn t }}
+/-- `t.InsertStep(at, st, msg, fields...)` of an owned trace, `at` not negative, the fields
+owned: it returns; the trace kept (with the step). -/
+abbrev traceutil.Trace.InsertStep.spec : Prop :=
+  ∀ (t : Loc) (e : Bool) (at' : w64) (st : _root_.Perennial.time.Time) (msg : GoString) (fields : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e ∗ traceutil.ownFields fields ∗
+      ⌜0 ≤ sint.Z at'⌝ }}
+    (App (App (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"InsertStep")) (Val #at')) (Val #st)) (Val #msg))
+      (Val #fields))
+  {{ RET #(); traceutil.ownTrace t e }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

@@ -1,44 +1,26 @@
 /-
-## `(*EtcdServer).LeaseGrant(ctx, r)`
-
-**Users.** The gRPC lease handler (`api/v3rpc/lease.go:45`, through `Lessor`), the grpc-proxy's
-lease adapter. Snippet: `examples/specreq/etcdserverreq/lease.go` (`ReqGrantThenRevoke`).
-
-**Proof sketch.** While `r.ID == 0`, `r.ID = int64(s.reqIDGen.Next() & (1<<63 - 1))` (`IdUtil.
-Generator.Next.spec`; the id's value is unconstrained: a collision with a live lease is W0's
-`ErrLeaseExist`, `issues/etcd-lease-id-mask-member-prefix.md`); the span; `requireAuthInfo`
-(`requireAuthInfo.spec`: auth enabled and no principal is `ErrUserEmpty`, a refusal, the update given
-back); `raftRequest` at `.req (.leaseGrant id' ttl)`: the caller's update is for `.leaseGrant id ttl`
-and `Step` of the latter answers the former's commit (`leaseStep`: for `id = 0`, any fresh id
-`id'`, and `ErrLeaseExist` for any id), so the update passed on is the caller's, read through that
-implication (an update of the wider relation, built by the proof); the type assertion
-`resp.(*pb.LeaseGrantResponse)`.
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__LeaseGrant.lean`, over the lessor's grant
-facts) restated over W0's `leaseStep` and the three outcomes.
-
-**Margin.** The id proposed is not returned in the post beyond the request message's (the reply's
-id is the answer's).
-
-Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
-
-Changes: recheck RR-1 (client-core's request 2): over `SrvCallTripleF` with `srvLeaseFact`, at the endpoint `ep` the member serves (`srvAt s γ ep`): a grant answered gives W0's `leaseViewLb γ ep` of the table after it (2a's `leaseFact` row). Proof: `raftRequest` returns after this member applied the grant's entry (its `applyWait`, 2c's `srvApplied` of the entry's index), whose lessor then reflects the grant's table; `srvAt`'s realization of `leaseViewLb`.
+`s.LeaseGrant(ctx, r)` (`v3_server.go:434-456` at the pin): the lease-grant plan's D4
+(`notes/lease-grant-plan.md`, 2026-11-02). Lean-first (no Rocq counterpart); vocabulary
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseGrant.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.context.ReqKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseGrant
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -47,17 +29,49 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.LeaseGrant(ctx, r)`**: the grant of lease `id` (`0`: the server chooses one) for `ttl`, as `Put` (through raft); the request's `ID` is set to the id proposed. -/
-def EtcdServer.LeaseGrant.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ep : GoString) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc)
-    (id ttl : Int),
-  SrvCallTripleF (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseGrant")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvAt s γ ep ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id ttl))
-    iprop(srvGate s q ∗ threadTok ∗ ∃ id', ClientV3.reqOwn r (DFrac.own 1) (.leaseGrant id' ttl)) γ p tls (.leaseGrant id ttl) false srvHdrReply
-    (srvLeaseFact γ ep (.leaseGrant id ttl) none)
+/-- **`s.LeaseGrant(ctx, r)`**, any goroutine, in a cluster that grants leases
+(`srvGrantsLeases`), at a context, with the request path's resources (`Put`'s: the server's
+request-side facts, the auth store's contract (`srvAuthAt`, for `requireAuthInfo`; the plan's
+amendment (G), 2026-11-03), the leader-timeout reader, the backend reader `E.RD`, the id generator's
+credits, freely minted) and the decoded request (its `ID` owned): on `nil`, the server's response
+(`leaseGrantedResp`: a lease id not `0`, its header with a revision the store has reached, and the
+lease granted at an index of the lessor's history, its TTL at least the request's `ttl`: 2026-11-05,
+the lease-expiry plan's E3/R5, the granted TTL); on an error, no response and an error the gRPC
+layer can take.
+
+Why it is true of the Go code: while `r.ID` is `0` it writes `s.reqIDGen.Next() & (2^63-1)` there
+(the owned field); `requireAuthInfo` returns `nil` with auth off; `raftRequest` proposes
+`{LeaseGrant: r}` and returns the apply thread's result: the backend applier's `LeaseGrant`
+(`lessor.Grant` of `r.ID`, `r.TTL`) answers a fresh response whose `ID` is the granted lease's,
+the lessor having appended the snapshot with it (`lessor.Grant.spec`'s `leaseLiveFrom`, monotone:
+`leaseGrantedAt_of_live`); an id already granted (`ErrLeaseExists`), a TTL above the maximum or a
+timeout are errors. The type assertion `resp.(*pb.LeaseGrantResponse)` does not panic: the apply
+of a `LeaseGrant` request answers that type.
+
+The margin (the review's M4): the request's `ID` is not given back (the post drops it); Go's unary
+interceptors read no field of a `LeaseGrantRequest` after the handler (`v3rpc/interceptor.go`), so no
+caller needs it. Conditional, through `NewServer`, on the deployment premise
+`lease.leasesNoExpiry` (`srvGrantsLeases`).
+
+(The lease-expiry plan's E3, 2026-11-04, the user's: generated ids only.) In the revocable lease mode
+the request's `ID` is `0` (clientv3's `Grant` always sends `0`), so the lease id is always the
+member's generator's: a revoked lease's id is never granted again (the plan's "absent stays absent").
+A weaker spec (a premise more); the other modes as before. -/
+abbrev EtcdServer.LeaseGrant.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64),
+  srvGrantsLeases E ρ →
+  (ρ.rd.kv.lm = .revocable → id0 = W64 0) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
+      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ leaseGrantReqOwn r ttl id0 }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp ttl) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

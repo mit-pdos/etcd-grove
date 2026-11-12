@@ -1,19 +1,12 @@
 /-
-## `setPeerURLsHeader(req, urls)`
-
-**Users.** `createPostRequest`, `streamReader.dial`.
-
-**Proof sketch.** `url.URL.String` of each, `strings.Join`, `Header.Set`. `urls.Len()` on the addressable `URLs` is 1c's `Types.URLs.Len_ptr.spec`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.URLs.Len_ptr.spec`.
-
-**Margin.** None.
+`setPeerURLsHeader(req, urls)` (`util.go`; rafthttp stage 5e-3). Lean-first. (Proved in stage 6e,
+2026-10-24, over `url.URL.String` of any URL, `URLStringAny_spec`; its post since then says the
+other headers are kept, what `createPostRequest`'s `X-Server-From` needs; since D22 J-T,
+2026-10-27, the header's value, what the protocol's `X-PeerURLs` needs, W8.)
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Stream
 
 @[expose] public section
 
@@ -21,26 +14,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Sets `X-PeerURLs` to the URLs' strings (nothing for `nil` URLs). -/
-def setPeerURLsHeader.spec : Prop :=
-  ∀ (r : Loc) (R : Http.HReq) (bd : GoInterface) (urls : GoSlice) (hs : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ Http.reqOwn r R bd ∗ Types.urlsAt urls hs }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.setPeerURLsHeader)) (Val #r)) (Val #urls))
-  {{ RET #(); ∃ hdr', Http.reqOwn r { R with hdr := hdr' } bd ∗ ⌜peerURLsSet hs R.hdr hdr'⌝ }}
+/-- **`setPeerURLsHeader(req, urls)`** on a request being built: the request with some headers,
+the others kept; (2026-10-27, D22 J-T, W8) of URLs of only the scheme `http` and a plain host,
+`X-PeerURLs` their strings (`http://host`) joined by `,` (`peerURLsHdr`). -/
+abbrev rafthttp.setPeerURLsHeader.spec : Prop :=
+  ∀ (r : Loc) (R : http.HReq) (urls : GoSlice) (uvs : List net.url.URL),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.reqOwn r R ∗ urls ↦*□ uvs }}
+    (App (App (Val (@! rafthttp.setPeerURLsHeader)) (Val #r)) (Val #urls))
+  {{ RET #(); ∃ hs : List (GoString × GoString),
+      ⌜∀ k, http.canonKey k ≠ http.canonKey go!"X-PeerURLs" → http.hdrGet hs k = http.hdrGet R.hdr k⌝ ∗
+      ⌜uvs ≠ [] → (∀ u ∈ uvs, http.urlRootPlain u) →
+        http.hdrGet hs go!"X-PeerURLs" = peerURLsHdr uvs⌝ ∗
+      http.reqOwn r { R with hdr := hs } }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,17 +1,10 @@
 /-
-`(*RemoteKV).Revision()` (`key.go`): the revision the key was created at.
-
-**Users**: `DoubleBarrier.Enter`, `RWMutex.waitOnLastRev` (through `myKey`, promoted). Internal getter.
-
-**Proof sketch**: load the field.
-
-**Changes**: unchanged.
-
-**Margin**: none.
+`recipes.(*RemoteKV).Revision()` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -19,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`rk.Revision()`**: the creation revision. -/
-def RemoteKV.Revision.spec : Prop :=
-  ∀ (rk : Loc) (γ : Cluster) (who : Principal) (st : RKSt),
-  {{ rkOwn (GF := GF) rk γ who st }}
+/-- `rk.Revision()`: the record's `rev`. -/
+abbrev RemoteKV.Revision.spec : Prop :=
+  ∀ (rk : Loc) (st : RemoteKVSt),
+  {{ ownRemoteKV (GF := GF) rk st }}
     (App (Val (rk @!! go.GoType.PointerType RemoteKV.ty @!! go!"Revision")) (Val #()))
-  {{ RET #st.rev; rkOwn rk γ who st }}
+  {{ RET #st.rev; ownRemoteKV rk st }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

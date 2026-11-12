@@ -1,34 +1,22 @@
 /-
-## `(*authStore).UserGet(r)`
-
-**Users.** `applierV3backend.UserGet` (`apply/backend.go:199`), behind `authApplierV3.UserGet`'s check (an administrator or the user itself). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
-
-**Proof sketch.** `as.be.GetUser(name)` (4b: a read section of the read transaction, at the writer's `a`: between writer calls every view is at it; no batch lock, so `Pre` and the hook come back, `hookOut`; integration I5: was "the batch transaction"); absent: `ErrUserNotFound`; the roles copied into a fresh response. No state change (`a' = a`, recorded again). The step's state, `storeNext` (the code's function of the request, its
-credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
-returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
-
-**Changes.** Restated over `admStep`. The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
-step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
-state `storeNext rq cred a` (was: every state the model allows).
-
-**Margin.** The response's roles are in the store's (sorted) order; the model's answer is any permutation.
+`authStore.UserGet` (`server/auth/store.go`): a read of the latest state (the auth plan's E2j,
+2026-10-26). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/Reads.lean`
+(the replies) and `InvAuth.lean` (the backend's reads, `authBackendReads`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.Reads
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,14 +25,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserGet(r)`** by the writer, for a request `r` asking `.userGet name`: the store moves
-to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
-(`admStep`) there, and the reply. -/
-def authStore.UserGet.spec : Prop :=
-  ∀ (st r : Loc) (name : GoString),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"UserGet")) (Val #r)) (authReqAt r (.userGet name) []) st (.userGet name) []
+/-- **`as.UserGet(r)`** for a request naming `name`, with the admin side's authority at `hs`: the
+backend's `GetUser` (a read transaction: the hook does not run) and the reply of the latest state
+(`userGetOut`); the authority and the write resource kept. -/
+abbrev auth.authStore.UserGet.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (r : Loc) (name : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      userGetReqIs r name ∗ authOwn M hs ∗ authWR st M P f T }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserGet")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authOwn M hs ∗ authWR st M P f T ∗
+      ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ userGetOut sta name resp err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

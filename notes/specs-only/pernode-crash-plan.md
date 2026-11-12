@@ -265,7 +265,7 @@ This is the Go counterpart of `DistCrashStep.crash`.
 - `roleOk`: an initial node's `k ∈ {.boot ms mᵢ, .member _}`, a joiner's `k ∈ {.join urlsᵢ, .member
   _}`. That is the diskState kinds of `disk_crash`'s post.
 
-**`Member.spec`** (a function spec, `Spec/<test pkg>/Member.lean`): `{{ isPkgInit ∗ nodeStatic γ ν
+**`Member.spec`** (a function spec, `SpecPlan/Spec/<test pkg>/Member.lean`): `{{ isPkgInit ∗ nodeStatic γ ν
 i ∗ listenRights i ∗ diskAcc γ dsᵢ ∗ diskIdle γ dsᵢ k ∗ ⌜roleOk i k⌝ ∗ threadToks }} Member #i {{
 True }}`. Its proof chains `memberStart_disk` → `NewServer` (any kind; `diskCfgOk` from `testCfg`
 and `k`) → `Start` → serving. The joiner's `waitAdded` uses `Client.MemberList`'s answer: `etcdLb γ
@@ -318,7 +318,7 @@ in the extension's domain, so the domain has to cover etcd's paths.
   log is committed", `fix-raft-commit-lost.md` §2). 2.6's adopted designs (restart at a
   configuration above the WAL's commit; snapshots whose configuration is ahead) are now goal-path
   obligations of R2.
-- **etcd server** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`): `EtcdServer__{AddMember,
+- **etcd server** (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/`): `EtcdServer__{AddMember,
   RemoveMember, PromoteMember, MemberList, configure, applyConfChange, publishV3,
   stopWithDelay}`, `raftNode__ApplyConfChange`, `membership/RaftCluster__*`
   (`ValidateConfigurationChange`, `IsIDRemoved`, ...), v3rpc's `ClusterServer__*`, the client's

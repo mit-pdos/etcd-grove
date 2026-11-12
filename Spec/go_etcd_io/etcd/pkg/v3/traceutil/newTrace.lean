@@ -1,41 +1,38 @@
 /-
-## `newTrace(op, lg, fields...)` (internal)
-
-**Users.** `EnsureTrace`. **Proof sketch.** Allocates the struct with `time.Now()` (Perennial's
-`time`); keeps the fields slice and the logger. **Changes.** From `specs-ref`'s `newTrace.lean`.
+`traceutil.newTrace` (`trace.go`: a trace of the operation, its fields, started now). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- A fresh non-empty trace keeping `fields` and the logger (nil or zap's). -/
-def newTrace.spec : Prop :=
+/-- `newTrace(op, lg, fields...)`, the fields owned: a fresh trace, owned, keeping them. -/
+abbrev traceutil.newTrace.spec : Prop :=
   ∀ (op : GoString) (lg : Loc) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ fieldsOwn fields ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) }}
-    (App (App (App (Val (@! go_etcd_io.etcd.pkg.v3.traceutil.newTrace)) (Val #op)) (Val #lg))
-      (Val #fields))
-  {{ (t : Loc), RET #t; traceOwn t ∗ traceEmpty t false }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownFields fields }}
+    (App (App (App (Val (@! go_etcd_io.etcd.pkg.v3.traceutil.newTrace)) (Val #op)) (Val #lg)) (Val #fields))
+  {{ (t : Loc), RET #t; ⌜t ≠ null⌝ ∗ traceutil.ownTrace t false }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

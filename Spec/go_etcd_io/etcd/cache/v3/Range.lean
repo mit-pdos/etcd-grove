@@ -1,13 +1,9 @@
 /-
-`Range` (`cache/*.go`).
-Users: `KeyPredForRange`.
-Proof sketch: two `bytes.Compare`s against the captured slices.
-Changes: restated over `keyPredAt`; unchanged.
-Margin: none known.
+`Range` (`cache/predicate.go`). Lean-first (no Rocq counterpart); see `InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Api
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -15,27 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `Range(start, end)`: a predicate deciding `start ≤ k < end`. -/
-def Range.spec : Prop :=
+/-- `Range(start, end)`: a closure implementing `rangePred start end` (`start <= k < end`, by
+`bytes.Compare`). It keeps both slices, which must stay read-only. -/
+abbrev Range.spec : Prop :=
   ∀ (startSl endSl : GoSlice) (start end_ : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ startSl ↦*□ start ∗ endSl ↦*□ end_ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      startSl ↦*□ start ∗ endSl ↦*□ end_ }}
     (App (App (Val (@! go_etcd_io.etcd.cache.v3.Range)) (Val #startSl)) (Val #endSl))
-  {{ (f : GoFunc), RET #f; keyPredAt f (fun k => EtcdModel.keyLe start k ∧ EtcdModel.keyLt k end_) }}
+  {{ (f : GoFunc), RET #f; ⌜f ≠ func.nil⌝ ∗ keyPredSpec f (rangePred start end_) }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

@@ -1,43 +1,42 @@
 /-
-## `schema.NewAlarmBackend(lg, be)`
-
-**Users.** `NewServer`'s alarm store (`server.go:2425`), `applySnapshot` (`server.go:1118`). Snippet:
-`examples/specreq/schema/schema.go` (`ReqAlarmPutGet`).
-
-**Proof sketch.** Allocates `&alarmBackend{lg, be}`, read-only. **Changes.** From `specs-ref`'s
-`NewAlarmBackend.lean`. **Margin.** None.
+`schema.NewAlarmBackend(lg, be)` (`alarm.go`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`notes/decisions.md`), for `NewServer`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **An `AlarmBackend` over `be`** (read-only for good). -/
-def NewAlarmBackend.spec : Prop :=
+/-- `NewAlarmBackend(lg, be)` returns an `AlarmBackend`: a fresh `*alarmBackend` wrapping `be`
+(its fields `lg`, `be`, persistent: no method writes them). (Unit N1, 2026-10-17: the result is the
+interface value Go returns; N4c, 2026-10-17: the pointer and its fields named, from the body.) -/
+abbrev schema.NewAlarmBackend.spec : Prop :=
   ∀ (lg : Loc) (be : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.NewAlarmBackend)) (Val #lg)) (Val #be))
-  {{ (ab : Loc), RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.ty) #ab); (ab ↦□ (go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.mk lg be) : IProp GF) }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.NewAlarmBackend)) (Val #lg))
+      (Val #be))
+  {{ (ab : GoInterface), RET #ab; ∃ l : Loc,
+      ⌜ab = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.ty) #l⌝ ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" l ↦□ lg ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l ↦□ be }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

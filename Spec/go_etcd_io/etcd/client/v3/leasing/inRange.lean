@@ -1,10 +1,9 @@
 /-
-`inRange` (`cache.go`): `begin ≤ k`, and `k < end` unless `end = "\x00"` (`strings.Compare`,
-Perennial's). Changes: `inRangeM` (was `leaseInRange`).
+`inRange(k, begin, end)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -12,26 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-def inRange.spec : Prop :=
+/-- **`inRange(k, begin, end)`**: `leaseInRange` (with `strings.Compare`). -/
+abbrev inRange.spec : Prop :=
   ∀ (k b e : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.inRange)) (Val #k)) (Val #b)) (Val #e))
-  {{ RET #(inRangeM k b e); True }}
+  {{ RET #(leaseInRange k b e); True }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

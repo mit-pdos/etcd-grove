@@ -1,8 +1,8 @@
 # Batch 3f: mvcc's watchable store and etcd's interval tree
 
 Author's report (round 1 repairs below, after `reviews/3f-review-1.md`). Every file builds:
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/pkg/v3/adt` (31 modules) and 3f's 64 modules of
-`Spec/go_etcd_io/etcd/server/v3/storage/mvcc` (the directory is shared with 3e; 3f's modules are listed
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/adt` (31 modules) and 3f's 64 modules of
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc` (the directory is shared with 3e; 3f's modules are listed
 below; the whole directory's build depends on 3e's work in progress). The snippets vet (`cd examples &&
 go vet ./specreq/mvccwatch/ ./specreq/adt/`) and, run once against a real store (a scratch test, not
 committed: a backend from `backend.NewDefaultBackend`, `mvcc.New` with a `FakeLessor`), every snippet
@@ -14,8 +14,8 @@ but `ReqRestore` passes; the adt snippets pass too.
 
 | file | what |
 |---|---|
-| `Spec/go_etcd_io/etcd/pkg/v3/adt/Api.lean` | the vocabulary: the affine order and intervals (pure), the tree's contents as an ordered entry list, the key kinds (`Cmp`), `keyAt`, `ivAt`, the opaque `ivt`, the visitor contract, laws |
-| `Spec/go_etcd_io/etcd/pkg/v3/adt/Internal.lean` | internal (round 1): the red-black model (`RbT`, `RbCtx`, `FixInv`, `DelInv`, the `max` augmentation) and the node, path and sentinel ownership (opaque), ported from `specs-ref`'s proof |
+| `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/adt/Api.lean` | the vocabulary: the affine order and intervals (pure), the tree's contents as an ordered entry list, the key kinds (`Cmp`), `keyAt`, `ivAt`, the opaque `ivt`, the visitor contract, laws |
+| `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/adt/Internal.lean` | internal (round 1): the red-black model (`RbT`, `RbCtx`, `FixInv`, `DelInv`, the `max` augmentation) and the node, path and sentinel ownership (opaque), ported from `specs-ref`'s proof |
 | internal specs (12, round 1) | `intervalNode__{color,min,successor,updateMax,visit}`, `intervalTree__{find,createIntervalNode,insertFixup,deleteFixup,rotateLeft,rotateRight,replaceParent}` |
 | exported specs (16) | `NewIntervalTree`, `NewStringAffineInterval`, `NewStringAffinePoint`, `NewBytesAffineInterval`, `NewBytesAffinePoint`, `StringAffineComparable__Compare`, `BytesAffineComparable__Compare`, `Interval__Compare`, `intervalTree__{Insert,Delete,Len,Find,Intersects,Contains,Stab,Visit,Union}` |
 | `examples/specreq/adt/` | `watchers.go` (`ReqRangeWatchers`: the watcher groups' pattern), `perms.go` (`ReqPermCover`: the auth cache's), `dups.go` (`ReqNestedDeletes`: `checkIntervals`') |

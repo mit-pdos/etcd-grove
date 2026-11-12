@@ -1,0 +1,73 @@
+/-
+Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Capped__Put
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+
+theorem apply.applierV3Capped.Put.wp_proof :
+    apply.applierV3Capped.Put.spec (GF := GF) (hG := hG) := by
+  intro E c inner p r rq o log F Pre Q Post info
+  wp_start as ⟨-, -, Hpre, #HF, Htt⟩
+  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_noSpace $$ Hev with ⟨%eN, #HeN, #HeI⟩
+  iunfold apply.putPre at Hpre
+  icases Hpre with ⟨%Hk, -, -, Hm⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
+  wp_auto
+  iapply HΦ
+  iframe Htt
+  isplitl
+  rotate_left
+  · iapply apply.traceRes_null
+  ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.capped c) rq (.rejected .noSpace) $$ []
+  · iapply apply.chainClass_capped_rejected
+  ihave #Hlc : apply.chainLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) (.capped c) rq (.rejected .noSpace) $$ []
+  · iapply apply.chainLeaseClass_capped_rejected
+  iunfold apply.kvPostF
+  iexists (.rejected .noSpace)
+  isplitr
+  · ipureintro
+    refine ⟨?_, fun _ _ h => by cases h⟩
+    simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
+  simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+  iframe Hkv Hres Hcls Hlc
+  isplitl []
+  · isplitl []
+    · ipureintro; trivial
+    iunfold txn.errVarIs
+    iexists eN
+    iframe HeN
+    ipureintro; rfl
+  iright
+  iexact HPre
+
+end proof
+
+end EtcdGrove
+end Perennial

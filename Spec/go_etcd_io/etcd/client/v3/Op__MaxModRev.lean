@@ -1,22 +1,10 @@
 /-
-`(clientv3.Op).MaxModRev` (`client/v3/op.go`).
-
-Users: leasing (`leasing/kv.go`, `leasing/txn.go`, `leasing/cache.go`, `leasing/util.go`: it
-inspects every `Op` it forwards: `IsGet`, `IsPut`, `IsDelete`, `IsTxn`, `KeyBytes`, `RangeBytes`,
-`IsSerializable`, `IsKeysOnly`, `IsCountOnly`, `Txn()`), the cache (`cache/cache.go`
-`validateGet`/`validateWatch`: `Rev`, `IsSerializable`, `IsProgressNotify`, `Limit`, `IsCountOnly`,
-`IsSortSet`, the revision filters, `IsPrevKV`, `IsFragment`, `IsCreatedNotify`, `IsFilterPut`,
-`IsFilterDelete`, `RangeBytes`). Snippet: `clientv3kv/ops.go` (`ReqOpGetters`).
-
-Proof sketch: `opAt_unfold`; loads the field.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__MaxModRev.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.Op.MaxModRev()` (`client/v3/op.go`, translated for the cache). Lean-first (no Rocq
+counterpart); see `InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -24,27 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.MaxModRev()`: the field. -/
-def Op.MaxModRev.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (dq : DFrac),
+/-- `op.MaxModRev()` (called through a pointer, as the cache does): the maximum modify revision, `o.maxModRev`. A read, on
+any fraction. -/
+abbrev Op.MaxModRev.spec : Prop :=
+  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
     (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"MaxModRev")) (Val #()))
   {{ RET #(o.maxModRev); opp ↦{dq} op }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

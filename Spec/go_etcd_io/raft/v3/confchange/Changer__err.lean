@@ -1,13 +1,10 @@
 /-
-## `Changer.err(err)` (internal)
-
-**Users.** `Simple`, `EnterJoint`, `LeaveJoint`. Mirrors the code: zero values and the error.
+`Changer.err(err)` returns zero values and the error. Lean-first (no Rocq counterpart);
+see `InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 
@@ -15,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The zero configuration, a `nil` map, and `e`. -/
-def Changer.err.spec : Prop :=
-  ∀ (p : Loc) (dqp : DFrac) (chg : go_etcd_io.raft.v3.confchange.Changer) (e : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dqp} chg }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.confchange.Changer.ty @!! go!"go.etcd.io/raft/v3/confchange.err")) (Val #e))
-  {{ RET (PairV (PairV #(zero_val go_etcd_io.raft.v3.tracker.Config) #map.nil) #e);
-      p ↦{dqp} chg }}
+/-- `err(e)` returns `(Config{}, nil, e)`. -/
+abbrev confchange.Changer.err.spec : Prop :=
+  ∀ (p : Loc) (chg : confchange.Changer) (err : GoInterface) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg }}
+    (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"err")) (Val #err))
+  {{ (cfg : tracker.Config), RET (PairV (PairV #cfg #(map.nil : GoMap)) #err); p ↦{dq} chg }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

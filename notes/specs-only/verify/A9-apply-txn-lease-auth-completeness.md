@@ -121,7 +121,7 @@ LeaseRenew, AuthInfoFromCtx, Authenticate, UserAdd, applyEntryNormal, applySnaps
 - **Principle:** every premise has a source the caller sees; laws for what clients would unfold.
 - **Evidence.** `authBackendAt be a` (`auth/Api.lean:378`), `authHook γa Pre Q` (`:419`) and
   `authnCtx γa ctx name idx` (`:330`) are opaque, and no law anywhere concludes them (searched all of
-  `Spec/`). `NewAuthStore.spec` and `authStore.Recover.spec` take `authBackendAt`; the caller holds
+  `SpecPlan/Spec/`). `NewAuthStore.spec` and `authStore.Recover.spec` take `authBackendAt`; the caller holds
   only 4b's `NewAuthBackend` post (`abe ↦□ authBackend.mk be lg`, `schema/NewAuthBackend.lean`) and
   4a's backend parts. Every admin method (`AdminTriple`) takes `authHook`; 3a's sketches say "from
   `R`" (`applierV3backend__UserAdd.lean:10`), but nothing turns the server's hook into it (the lessor

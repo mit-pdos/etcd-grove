@@ -1,7 +1,7 @@
 # Repair: server-core (2026-11-09)
 
-Group `server-core`: `Spec/go_etcd_io/etcd/server/v3/etcdserver/` top level, `etcdserver/{read,
-cindex,errors}/`, `Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify,schedule}/`, snippets
+Group `server-core`: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` top level, `etcdserver/{read,
+cindex,errors}/`, `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify,schedule}/`, snippets
 `examples/specreq/{etcdserverreq,etcdserverapply,etcdserverboot,cindex,schedule,wait}`.
 
 ## Findings

@@ -1,21 +1,21 @@
 /-
-`compareInt64(a, b)` (`txn.go`), internal (`compareKV`): mirrors the code. Old spec: same.
+`compareInt64` (`txn.go`). Lean-first; see `TxnRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -24,14 +24,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `compareInt64(a, b)`: `-1`, `0` or `1` by the signed order. -/
-def compareInt64.spec : Prop :=
+/-- `compareInt64(a, b)`: the client model's `int64Cmp` (`-1`, `0`, `1`). -/
+abbrev txn.compareInt64.spec : Prop :=
   ∀ (a b : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.compareInt64)) (Val #a)) (Val #b))
-  {{ RET #(W64 (if sint.Z a < sint.Z b then -1 else if sint.Z b < sint.Z a then 1 else 0)); True }}
+    (App (App (Val (@! txn.compareInt64)) (Val #a)) (Val #b))
+  {{ RET #(W64 (int64Cmp a b)); True }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

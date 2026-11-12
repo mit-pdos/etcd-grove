@@ -1,10 +1,11 @@
 /-
-`bb.ForEach(visitor)` (`tx_buffer.go:189-196`): translated; internal. The visitor at each used
-entry in order, stopping at its first error. Changes: over `visitOk`; integration Y: the visitor's own error returned (`visitOk vis P E`), the bytes kept by the visitor and lent against a share of the transaction's liveness (`lentAll … -∗ beLive`), as `rangeRes` (I6's finding: 4b's `Schema.txRd` row needs both). Margin: none.
+`bucketBuffer.ForEach` (`tx_buffer.go`). `bb.ForEach(visitor)`: the visitor on each entry in order, until one returns an error,
+which `ForEach` returns.
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 
 @[expose] public section
 
@@ -12,29 +13,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`bb.ForEach(vis)`**: the visitor over the entries in order. -/
-def bucketBuffer.ForEach.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool) (vis : GoFunc)
-    (P : List Lent → IProp GF) (E : List Lent → GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w ∗ visitOk vis P E ∗ P [] }}
-    (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"ForEach")) (Val #vis))
-  {{ (err : GoInterface), RET #err; bbAt bb l w ∗ ∃ lt : List Lent,
-      ⌜(lt.map Lent.ent) <+: l ∧ ∀ x ∈ lt, x.dq = DFrac.discard⌝ ∗
-      ((⌜err = interface.nil ∧ lt.map Lent.ent = l⌝ ∗ P lt) ∨ (⌜err ≠ interface.nil⌝ ∗ E lt err)) }}
+/-- `bb.ForEach(visitor)`: the visitor on each entry in order, until one returns an error,
+which `ForEach` returns. -/
+abbrev backend.bucketBuffer.ForEach.spec : Prop :=
+  ∀ (bb : Loc) (dq : DFrac) (p : BBPhys) (es : List Ent) (f : GoFunc) (P : Nat → IProp GF)
+    (Q : GoInterface → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb dq p es ∗ visitorSpec f es P Q ∗ P 0 }}
+    (App (Val (bb @!! go.GoType.PointerType bucketBuffer.ty @!! go!"ForEach")) (Val #f))
+  {{ (err : GoInterface), RET #err; bbAt bb dq p es ∗
+      ((⌜err = GoInterface.nil⌝ ∗ P es.length) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Q err)) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

@@ -1,21 +1,10 @@
 /-
-`recipe.newKV(kv, key, val, leaseID)` (`key.go`): `putNewKV`, and a `RemoteKV` for the created key.
-
-**Users**: `newKey` (`Barrier.Hold`), `newEphemeralKV`. Internal.
-
-**Proof sketch**: `putNewKV.spec` with the caller's update; on success allocate the `RemoteKV`
-(`rkOwn`'s realization: its fields, `kv` with `kvAt`).
-
-**Changes**: old spec over the recipes' client invariant (`ownRemoteKV`, `keyCreatedAt`); now the
-caller's update, any lease.
-
-Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
-
-**Margin**: none.
+`recipes.newKV(kv, key, val, leaseID)` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -23,38 +12,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`newKV(kv, key, val, lease)`**: `putNewKV`'s transaction, and on success the `RemoteKV` of the key at the revision it was created at. -/
-def newKV.spec : Prop :=
-  ∀ (kv : GoInterface) (γ : Cluster) (who : Principal) (key val : GoString) (lease : w64)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ kvAt kv γ who ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (putNewReq key val (sint.Z lease)) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }> }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newKV)) (Val #kv))
-      (Val #key)) (Val #val)) (Val #lease))
-
+/-- **`newKV(kv, key, val, leaseID)`**: `putNewKV`, and on success a fresh `*RemoteKV` holding
+`kv`, the key, the revision it was created at, the value (`ownRemoteKV`); a nil pointer with the
+error otherwise. -/
+abbrev newKV.spec : Prop :=
+  ∀ (kv : GoInterfaceOk) (pfx key val : GoString) (lease lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ recipesStrMax ∧ val.length ≤ recipesStrMax⌝ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newKV))
+      (Val #(GoInterface.ok kv))) (Val #key)) (Val #val)) (Val #lease))
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (res : Resp) (rev : w64), Q σ σ' res ∗ putNewRetAt res rev err ∗
-        ((⌜err = GoInterface.nil⌝ ∗ rkOwn rk γ who { live := true, key := key, rev := rev, val := val }) ∨
-         ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
-      (⌜rk = null⌝ ∗ indefCall err) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, ownRemoteKV rk ⟨GoInterface.ok kv, key, r, val⟩ ∗
+        etcdReached r ∗ keyCreatedAt pfx key val lease r ∗
+        ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) ∨
+      (concurrency.isPkgErr ErrKeyExists err ∗ ⌜rk = null⌝ ∗ ∃ r : w64, etcdReached r ∗
+        etcdPresent pfx key r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) ∨
+      (⌜err ≠ GoInterface.nil ∧ rk = null⌝ ∗ clientErrIs err) }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

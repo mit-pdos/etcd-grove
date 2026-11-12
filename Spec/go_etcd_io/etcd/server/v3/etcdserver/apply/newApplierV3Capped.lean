@@ -1,29 +1,23 @@
 /-
-`newApplierV3Capped(base)` (`capped.go:31`): the capped applier over `base` (a zero `BackendQuota` for `Cost`).
-
-**Users.** `uberApplier.restoreAlarms`.
-
-**Proof sketch.** Allocation.
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** None.
+`apply.newApplierV3Capped` (capped.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +26,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The capped applier over `base`.** -/
-def newApplierV3Capped.spec : Prop :=
-  ∀ (base : GoInterface) (ls : List Layer) (b aa : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ applierAt base ls b aa }}
+/-- **`newApplierV3Capped(base)`**: the capped applier over `base` (an applier of the chain `c`): an applier of the chain `capped c`. -/
+abbrev apply.newApplierV3Capped.spec : Prop :=
+  ∀ (base : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Capped)) (Val #base))
-  {{ (v : GoInterface), RET #v; applierAt v (Layer.capped :: ls) b aa }}
+  {{ (a : GoInterface), RET #a;
+      (∃ pc : Loc, ⌜a = interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #pc⌝ ∗
+        apply.cappedIs pc base) ∗
+      □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c base -∗
+        apply.applierSpec E (.capped c) a) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

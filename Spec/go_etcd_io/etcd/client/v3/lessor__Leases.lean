@@ -1,26 +1,10 @@
 /-
-`(*clientv3.lessor).Leases` (`client/v3/lease.go`).
-
-Users: `examples/etcd/{lease,leasegrant,leaseexpiry,leasecatchup}` (an id listed once; through one
-member, a granted id listed: `LeaseRead.Triple`'s per-member view), snippets `clientv3lease/reads.go`
-(`ReqLeasesNoDup`), `clientv3lease/member.go` (`ReqGrantThenListOneMember`, `ReqGoneNotListed`).
-
-Proof sketch: `l.remote.LeaseLeases` (repeatable: persistent), a fresh `[]LeaseStatus` of the reply's
-ids in order (a loop over `resp.Leases`: 3h's unfold of `replyOwn _ (.leaseLeases ids)`); `ContextError`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__Leases.lean`: restated over the model.
-
-verify-round (A2-provability L2): the per-member clause (`via`) now has a source: `leaseViaPre`'s
-`leaseOf v c ∗ clientVia c ep` gives, through `lessorHandle`'s realization, `remoteVia` of the remote
-(`NewLeaseFromLeaseClient`'s premise), and `remoteLeaseAt_call` at `V = remoteVia remote` gives the
-answer's `viaFact` (from 2a's `AttemptTriple` through `uiOk_call`); a lease read's fact holds for an
-answer of the lessor (`leaseAnsRes`), not for a refusal.
-
-Margin: none.
+`(*clientv3.lessor).Leases(ctx)` (`client/v3/lease.go`; the closed lease example, `notes/lease-ex-plan.md`). Lean-first (no
+Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
 
 @[expose] public section
 
@@ -28,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -40,13 +22,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `l.Leases(ctx)`: the ids a lessor lists, linearized by the caller's persistent update. -/
-def lessor.Leases.spec : Prop :=
-  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
-  Lease.LeasesTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) γ who
+/-- `l.Leases(ctx)` on a `*lessor` over a connection to `addr` (`lessorRemoteAt`), for a spec `Spec`
+registered for `LeaseLeases` and the caller's `Q`: an empty request through the retry lease client;
+on success a new `*LeaseLeasesResponse` whose header is the reply's (`resp.GetHeader()`; read-only)
+and whose `Leases` is a new slice (owned) of a `LeaseStatus` for each of the reply's IDs, in order,
+with `Q` of the reply; otherwise `nil` and `ContextError(ctx, err)` (as `lessor.Grant.spec`). -/
+abbrev lessor.Leases.spec : Prop :=
+  ∀ (l : Loc) (addr : List GoString)
+    (Spec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
+    (Q : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
+      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗ □ ▷ Spec () Q ∗
+      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseLeasesRespM) (h : Loc) (sl : GoSlice),
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"ResponseHeader" resp ↦□ h ∗
+        hdrFull h m.hdr ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"Leases" resp ↦□ sl ∗
+        sl ↦* (m.ids.map (fun id => (go_etcd_io.etcd.client.v3.LeaseStatus.mk id))) ∗ Q m) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

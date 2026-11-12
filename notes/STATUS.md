@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-11-09 (**specs-only re-review rounds done**: repairs after the re-reviews (`notes/specs-only/verify/repair2-*`, `repair3-boot`, `cleanup`, `repair4-*`, `repair5-crash`) and three final re-reviews (`F-client-api`, `F-raft-storage`, `F-server-boot`), whose FAILs were repaired by `repair4-*`/`repair5-crash`; the crash re-review `F2-crash` (sound; two realizability gaps fixed by `repair6-crash`, not re-reviewed; one under D7); full build OK (3236 Spec modules); 32 new decisions, 10 needing the user's approval, in `notes/specs-only/open-questions.md` section D; new nonissues `etcd-backend-name-lost-restart-panic`, `etcd-member-dir-not-synced`; see "The specs-only branch"). 2026-11-09 (**the specs-only branch** `specs-only`: every old spec restated over opaque predicates, top-down from a client linearizability spec, 30 batches each reviewed for provability and completeness by separate agents and integrated; Go requirement snippets in `examples/specreq/`; 9 new `issues/` with failing Go tests (one a raft safety bug, `raft-commit-lost-with-entries-kept`), 38 new `nonissues/`; 76 open questions for the user in `notes/specs-only/open-questions.md`; see "The specs-only branch"). 2026-11-08 (**mvccrand's closed theorem**: `mvccrand_adequate` (`examples/mvccrand/Adequacy.lean`), no thread stuck or panicked in any run of the tester's `Main`, every check of mvcc passing; `Run`/`Main` specified and proved, `runChecks` without its panic case and returning what `le.Stop()`/`be.Close()` take (the census `stop_census_open`); the user's decisions (`notes/decisions.md`, "mvccrand's closed theorem"): no panics, with `backend.dbOpenOk` (opaque; `bbolt.Open_kv`'s axiom gives `¬ dbOpenOk` on an error, so `backend.New` panics only then), a fresh database file from program start (`goose_adequacy_start_files`, the start axiom generalized; `goose_adequacy_start` now a theorem at `Fs = []`), the start premises item by item (`nameUnclaimed`, `addrUnclaimed`, `dataDirAbsent`, `dataDirsApart`, the same claims); hypotheses `sort.Slice.spec` and `keySized` at every instance; branch `mvccrand-adequacy`). 2026-11-08 (sweep repairs 1, B2b: `context.ValueKeepAlive` proved over `context.keepAliveOk` (`Proof/context/ReqKeys.lean`; the axiom, false of a user context whose `Value` panics at the key, deleted); `lessor.keepAliveCtxCloser` and `kaCtxOk` take it, produced by `lessor.KeepAlive`'s `WithValue(ctx, keepAliveCtxKey{}, &ctx)`; no spec outside the lessor changes; trust base -1; Go: `examples/sweeprepairs/keepalive` on a live server; `notes/decisions.md`, "B2b: the keep-alive key"; branch `sweep-repairs-1`). 2026-11-08 (sweep repairs 1, B2: `context.ValueStartTime` proved over `context.startTimeOk` (`Proof/context/ReqKeys.lean`; the axiom, false of `WithValue(ctx, StartTimeKey{}, 42)`, deleted); `raftRequest`, `DeleteRange`, `LeaseGrant`, `LeaseRevoke`, `Authenticate`, the admin contract and `v3rpc.srvCall` take it (linked specs narrowed, the Scope's (d)); producers: `grpcRunCtx`, `s.ctx` through Perennial's `ctxValueFrom` (carried in `srvRevokeCtx`), `WithValue`'s wand in `Put`/`Txn`; `traceutil.Tracer.Start`'s trusted post carries it (decided by etcd-grove-81, `questions.md` Q5; attacked by `examples/sweeprepairs/tracer`); `notes/decisions.md`, "B2: the request context's start time"; branch `sweep-repairs-1`). 2026-11-08 (Perennial pin `84d538063` → `ddc0f0acc`: goose tests every type of a multi-type type-switch case (`f137bdd8a`, fix-semantics Case 35; no translation here has one, `etc/goose.py` changed no file) and `context`'s `ctxValue`/`ctxValueFrom` (`ddc0f0acc`: `Value` at keys other than `&cancelCtxKey`, for B2/B2b and k8s 7f's P-RL1; `WithCancel`'s and the deadline constructors' posts gain `ctxValueFrom`); nine destructuring patterns adapted, no statement changed, trust base unchanged; `notes/perennial-changes.md`, "Landed"; branch `perennial-pin-ddc`). 2026-11-08 (**the mvcc API merged with `lean` and every client reproved over it**: `lean` merged twice into `mvcc-api` (`5bb0d2ba97`, `9b7c782942`); the store's readers as client-held tokens `mvccReaders` carrying its lock slots, so no mvcc contract takes `threadTok` and `KV.Close` gives back what the server's shutdown census needs (`mvccClosed`, `mvccClosed_rest.law`; the user); additive laws `mvccImage_stop.law`, `mvccStorageFor_rest.law`; txn, apply, lease, auth, the server (boot, snapshot, request paths, stop), v3rpc, client/v3, the cache and every example reproved; the full build green, the trust base unchanged (807 axioms, 4 `sorry`s), 13 collections reach baseline axioms newly; closed theorems unchanged against `lean`; a gRPC thread token tried and refuted (`notes/axiom-review/r11-grpc-threadtok.md`), reverted; the changes reviewed by the user: `notes/mvcc-client-merge-plan.md`, "For the user's review"; landed on `lean` at `2afb686f47`, the third merge's targeted build green (the user: build only what the merge can break); branch `mvcc-api`). 2026-11-08 (sweep repairs 1, S1 + S2: `snap.NewMessage` takes `io.rcCloseOk rc` (its reader's `Close` returns; `io.Pipe`'s wand and `newSnapshotReaderCloser` give it) and `0 ≤ sz < 2^62`; `backend.snapshot.Size`'s post gives `0 ≤ n < 2^62`, argued from `fileHolds` (the verified bbolt's file-size and high-water-mark clauses; the backend's `fileHolds` is an axiom linked to it by argument, not proof); the raft law "a `MsgSnap` carries no entries" left a documented gap; no exported statement changes, trust base count unchanged; W1 (R1-3b) deferred as a prerequisite of R2d'b's Freeze; B2/B2b wait for the Perennial proposal `ctx-value` (`notes/perennial-changes.md`), which also records goose's multi-type type-switch bug; `notes/decisions.md`, "S1: `snap.NewMessage` takes ..."; branch `sweep-repairs-1`). 2026-11-08 (k8s etcd3 7f-1 (81's approval of the 7f Scope, revision 2): `lintest.RunLin2(model, apply, gen, clock, clients, ops, clients2, ops2, timeout)`, a second group of clients with its own operation count (the k8s driver's watchers), and `RunLin` now `RunLin2` with an empty second group; `RunLin2.spec` (`RunLin`'s for both groups: `clients + clients2 < 2^31`, the trace `clients * ops + clients2 * ops2 < 2^60`), its proof `RunLin`'s former one over per-client counts (`groupOps`, new, with its spec), `RunLin.spec` and `Run.spec` unchanged and proved from it, so no caller changes; the pure argument generalized: `LinTheory`'s `LogOk` over traces of any lengths (offsets `off hs c` in place of `c * m`), `RunLemmas`' `ClientsOk` over a per-client count; no axiom or `sorry`; branch `k8s-7f`) 2026-11-08 (k8s etcd3 7f, Scope (notes and Go only, to etcd-grove-81 for review): `notes/k8s-7f-scope.md`; G1's Goose fix has landed (`898c0ddc5`), so the watcher needs only the two `etcd3.toml` exclusions dropped (translates at the pin, checked); watches become lintest operations (`lintest.RunLin2`) checked against 7e's per-configuration history, since replaying the validator along porcupine's linearization is unsound with failed writes; the store's watches need `WithPrevKV` and `WithRequireLeader` through etcd's watch stack, and the second makes the deployment premise `runsNoRequireLeader` false (P-RL1 in `notes/perennial-changes.md`); the etcd3 watcher can deliver events after a `watch.Error` (`nonissues/k8s-etcd3-watcher-events-after-error.md`, reproduced); Go prototype `notes/k8s-7f-proto.patch` (on `k8s-7e`): Ok on one member and on 30 of 30 partition runs under the 32G cap, Illegal on five corruptions; 10-16k Lean lines in 8 sub-stages; revision 2 after the review (wf_25ef97ea-de4) and the user's decisions: departures 1-4 accepted with bookmarks bounded by the configuration and foreign-object events rejected, `runsNoRequireLeader` deleted with no etcd fork change (a weak handler context, grpc's stream-interceptor contract changed, Watch and LeaseKeepAlive re-proved), the prototype rebased on `k8s-7e` `7f2ad6c9b5` (encoded `WEvents`, deterministic `changeAt`, `RunLin` through `RunLin2`, the entry points with watchers), 13-21k Lean lines; branch `k8s-7f`) 2026-11-08 (sweep repairs 1, S3 + S4: `streamReaderOk` lets a `Read` use `p` past `n` as scratch (Go's `io.Reader` contract; the old clause was false of the snapshot body's exact-size reader); `membership.clusterImageOk_restModel` takes `clusterVerLogOk` (the committed cluster versions `Recover` accepts), from the KV invariant (`kv_log_verOk(On)`); no exported statement changes, trust base count unchanged; `notes/decisions.md`, "S3: a stream reader may use `p` as scratch; S4: ..."; branch `sweep-repairs-1`). (The ten newest entries; the older ones are in `notes/status-history.md`, "Last updated entries, 2026-10-22 to 2026-11-02". Add a new entry at the front and move the oldest one there, so that this line keeps ten.)
+**Last updated:** 2026-11-12 (**the spec plan on `lean`**: branch `specs-only`'s specs as the part `SpecPlan/` (`SpecPlan/Spec/`, 3238 modules `SpecPlan.Spec.*`, specs only, no axiom or `sorry`; a default target, about 2h20m of CPU; built against `lean`'s translations with no fix), its scripts (`etc/specs-build.sh`, `etc/specs-build-all.sh`, `etc/gen-specs-pkginit.py`), notes (`notes/specs-only/`, with the change ledger `ledger.md` and `merge-log.md`), requirement snippets (`examples/specreq/`), `examples/etcd/crashreconf/`, and its issues and nonissues; CLAUDE.md, "The spec plan and convergence": the real proofs converge toward it; branch `specs-merge`); 2026-11-11 (**bbolt `Open` syncs before its first commit** (the fix decided by the user, the error exit by etcd-grove-81): the pin moves to upamanyus/bbolt `ea4cab5` (`goose-lean-v2`): a writable `Open` fdatasyncs the file unless `NoSync` (`c5a6065`), and if that fails it closes with `db.Close()`, as the failed transaction's exit does (`ea4cab5`); translation regenerated, the examples' go.mod/go.sum moved; `Open.wp_proof` takes `fdatasync.spec` (`Open/SyncAcc.wdbCore_file_acc`, `wdbOK_withMeta`), `Open.spec` unchanged, no trusted statement changed; issue `issues/bbolt-open-unsynced-meta-kill-then-power-loss.md` (blocks-proof: yes; `TestBoltKillThenPower`: 12 of 1160 images violate upstream, 0 of 4160 at the fork); the crash design's PL §0.1 ("every kill image is a power-loss image") holds for one crash only (`notes/decisions.md`, "bbolt `Open` syncs before its first commit"); branch `bbolt-open-sync`); 2026-11-11 (**restart S3, the graceful restart's raft wrapper** (D1-D5 decided by etcd-grove-81; the forms in `questions.md`): `bootstrappedWAL.MemoryStorage` translated and proved (D2 (b): `memStorRestarted` defined, its opaque gone); raft's `MemoryStorage.ApplySnapshot.spec` gains the index-0 triple (callers `.1`); `bootstrappedRaft.newRaftNode.spec` over the boot sum `RNBoot` (Q35 (a)), its `RestartNode` branch proved; `newRaftNode.spec`'s binders `a0 t0 L₀ commit0 snap0` (r2db §4.1's frozen form); `rnRestartOk` in `isRaftNode`, `rnCfgAt := rnView` (review 5); `rnDur_alloc_view`; `NodeStartSpecR`, the restart composition (separate, D5; tokens at `P = A₀.take σ.b`, Q34 (a)); no axiom or `sorry` added, no closed statement changed, `NodeStartSpec` and `NewServer.lean` unchanged; `notes/restart-s3-handoff.md`; branch `restart-s3`); 2026-2026-11-11 (**WAL W3, the fork's power-loss fixes** (approved by the user via etcd-grove-81): the etcd fork's `goose-lean-walsync` (local, for the user to push) on `a4d2bb172`: F-Z `ReadAll` fdatasyncs the tail it zeroed (41fddbc2d), F-N1 `Create` fsyncs `<dir>.tmp` before the rename (161796636), F-N2 `TouchDirAll` fsyncs each new directory's parent (71f99a4bf); pinned, translations regenerated (one name, `wal.syncDir`), GO_MOD_PINS go.mods/go.sum moved; trust base unchanged (865 axioms, 5 sorries); the power-loss harness's `TestW3FZ`/`TestW3FN` fail at the pin and pass at the fix, the robustness tester has 0 violations at the fix under kill/posix/ordered; F-Z also closes a kill followed by a power loss (`TestKillThenPower`); targeted purge + dormant-record runs: the strict reader false in 70 chains, the relaxed one never (gates W4's reader); nonissues for F-Z, F-N1, F-N2, C-W2, C-P6, the Save doc and the sector-write dependence; `notes/decisions.md`, "WAL W3"; `notes/wal-w3-handoff.md`; branch `wal-w3`); 2026-11-11 (**premise fixes 8, C3, the flip** (client half; the trusted texts approved by etcd-grove-81 under the user's delegation, `/shared/tmp/premise-fixes-8c/c3-trusted.md`, with a correction to Scope D4): grpc's `ctxOk` is `(isContext ∨ ctxQuiet ∨ ctxErrs) ∗ metadata.outgoingCtxOkC ci`; `ctxQuiet`/`ctxErrs` gain `ctxDeadline` (N1), `ctxErrs` gains `ctxWithCancelOk` (`Value(&cancelCtxKey)` returns no `*cancelCtx`, and no `AfterFunc`: N2, N3), so `Invoke`, `NewStream`, `withVersion` and `waitRetryBackoff` no longer cover the contexts of `TestClientCallCtxPanics`; `metadata.FromOutgoingContext` takes `outgoingCtxOk`, `context.watchCtx` carries `outgoingCtxOkC` (D5), `WithCancelValCtx`'s post gives it, `kaCtxOk` carries `outgoingCtxOk`; producers `chanCtx_ok` (takes `channelContext.Deadline`/`Value`'s specs; the k8s compactor's proofs take them), `ctxQuiet_todo`/`_background`, `lessor.KeepAlive`/`watcher.RequestProgress`/`openWatchClient` take `outgoingCtxOkC ctx`; exported: 24 results (client v3 `kv.wp_*`, `txn.wp_*`, `client_*_end_to_end`, `watchClient_Watch`, the cache's `cache_end_to_end_*`, `authkv_*`, recipes' `*_of_km`) change through the restated `ctxOk`/`watchCtx`/`kaCtxOk`, their texts unchanged; no closed `*_safe` theorem reaches them; no count change (865, 5 sorries); `notes/decisions.md`, "Premise fixes 8, part C3"; `notes/premise-fixes-8c-handoff.md`; branch `premise-fixes-8c`); 2026-11-11 (**the k8s reply-ownership positive control made reliable**: gates 9d's "k8s owned reply Kvs control" (`TestTracingRace`, which must fail with a data race) missed the race once under the parallel gate load and blocked a landing; it now retries a run that misses it, up to 3 attempts, passing only when one attempt fails with `WARNING: DATA RACE`, and says how many attempts missed (all 3 missing fails the gate); `TestTracingRace` runs 200 calls per goroutine instead of 50 (`kvsOwnHammer` takes the count; `TestDefaultNoRace`, the negative test, unchanged: one run of 50, which must pass); gates only; branch `gate-race-control`); 2026-11-11 (**issue: etcd WAL received-snapshot Save crash blocks restart (C-W1)**: a follower killed (kill -9 or power loss) inside the `Save` that follows the `SaveSnap` of a received snapshot with entries after it keeps the entries and loses the hard state; every restart then exits on `ErrSliceOutOfRange` (`issues/etcd-wal-received-snapshot-save-crash-no-restart.md`; WAL unit test failing at etcd-io/etcd@6974f522338b, raft test at etcd-io/raft@c51f010c showing such a `Ready`, end-to-end kill -9 script); blocks-proof: no (liveness); notes and tests only; branch `issue-wal-cw1`); 2026-11-11 (**premise fixes 8, C2** (client half, the cascade; no trust change; forms decided by etcd-grove-81 and the agent, `questions.md`): the client contracts (`isEtcdKV`, `isEtcdTxnKV`, ..., `isEtcdLease`, `isEtcdRangeWatcher`) take `metadata.outgoingCtxOkC ctx`, and so do the specs that pass a context to them: the cache (`Cache.Get`, ...), concurrency (`NewSession`, `Mutex.*`, `Election.*`, `NewSTM*`), leasing (21 specs), v3lock/v3election's handlers; the state predicates storing a context carry it (`isEtcdMutexClient`, `isEtcdSTMClient`, `isSession`, `isLeasingKV`, `isLeasingEtcdClient`, `ownTxnLeasing`, the cache's fields, `isNewClient`); producers by the chain laws (`WithTimeoutBackground`'s post gains `ctxValueFrom backgroundCtxVal`, `client.wp_WithTimeout_bg`'s `outgoingCtxOkC`, `isNewClient_ctxC`, `chanCtx_outgoingCtxOkC`); no count change (865, 5 sorries), no closed theorem's text changed; C3 next; `notes/premise-fixes-8c-handoff.md`; branch `premise-fixes-8c`); 2026-11-11 (**restart S1: R2d'a's rows 2-3 by the loop fact** (Q31 (a), Q40 F1; S1's frozen-post package approved by etcd-grove-81): `RNNames` gains `commit0`/`snap0`; `rnRestartOk`'s restart disjunct carries `snap0 ≤ |a0| ≤ commit0` in place of `rnWinInstallAbove` (row 2) and the false `rnWalCommitAbove` (row 3), both deleted; the loop's token carries the proved loop fact `commit0 ≤ p.Commit'` (`readyRest_commit_mono`) and the committed handed log; row 2 derived (`rnRestartOk_winAbove`); `raftNode.stop.spec`'s post gains `|a0| ≤ σ.commit` and a committed log the durable state agrees with (`DurAgrees`), `newRaftNode`'s `commit0 = snap0 = 0`; the restart triple's premise is now satisfiable by a graceful image (rows 1 and 4 unchanged); no axiom or `sorry`; `notes/decisions.md`, "Restart S1"; branch `restart-s1`); 2026-11-11 (**premise fixes 8, S2, the flip** (server half; the text approved by etcd-grove-81 under the user's delegation, Scope D2): `metadata.FromIncomingContext.spec` and `auth.authStore.AuthInfoFromTLS.spec` (trusted) take a `GoInterfaceOk` with `metadata.incomingCtxOk` (and `peer.peerCtxOk`), so a context whose `Value` panics, or `NewIncomingContext(ctx, MD{k: {}})`, no longer refutes them; `isReqAuth`'s two clauses and `isReqAuthBound` (read by `NewAuthStore`'s post) take `context.libCtxOk`, which S1 carried along the request path; `authStore.AuthInfoFromCtx` takes `incomingCtxOk`; `LibKeys`' definitions generic in `HasLC`; no count change (865, 5 sorries), no exported or closed statement's text changed; Go test `TestAuthInfoFromTLSReal` (`examples/premisefix/ctxvalue/authtls_test.go`: a TLS grpc handler's context, `ClientCertAuthEnabled`'s path); `notes/premise-fixes-8-handoff.md`; branch `premise-fixes-8`) (The ten newest entries; the older ones are in `notes/status-history.md`, "Last updated entries, 2026-10-22 to 2026-11-02". Add a new entry at the front and move the oldest one there, so that this line keeps ten.)
 
 This file is where the port is now: a summary checked against the repository, then the
 sections that still describe the current design or state, by area. Its history -- the
@@ -11,12 +11,16 @@ that moved, so a reference `notes/STATUS.md, "..."` to one of them resolves ther
 record is `notes/decisions.md`; the Rocq development's notes are on branch `main`
 (`git show main:notes/STATUS.md`).
 
-## The specs-only branch (2026-11-09, branch `specs-only`, not landed)
 
-A design branch, not for landing on `lean` as is: it holds only specs, no proofs (the old `Spec/`,
-`Proof/`, `interface/`, `RaftWitness/`, `PorcupineDag/` are deleted there), restated over opaque
+## The spec plan: `SpecPlan/` (branch `specs-only`, 2026-11-09; on `lean` as a part since 2026-11-12)
+
+Since 2026-11-12 the part `SpecPlan/` (`SpecPlan/Spec/`, modules `SpecPlan.Spec.*`, a sibling of the real
+specs and proofs; `notes/specs-only/merge-log.md`); the real proofs converge toward it (CLAUDE.md,
+"The spec plan and convergence"; defects through `notes/specs-only/ledger.md`). Developed on branch
+`specs-only`, which held only specs, no proofs (the old `Spec/`, `Proof/`, `interface/`,
+`RaftWitness/`, `PorcupineDag/` were deleted there), restated over opaque
 predicates and opaque ghost-name types, top-down from the client's linearizability spec
-(`Spec/go_etcd_io/etcd/api/v3/{Model,State}.lean`, `notes/specs-only/top.md`), so that later proofs
+(`SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,State}.lean`, `notes/specs-only/top.md`), so that later proofs
 need not backtrack to a different intermediate spec when a feature arrives. 30 batches (client,
 raft, server, apply/txn/lease/auth, mvcc, backend, bbolt), each drafted by one agent, reviewed by
 two others (provability; completeness against every user), repaired, then integrated across batches
@@ -48,10 +52,105 @@ synced); `repair6-crash.md` fixed the first two (`Snap.snapRen`, `Wal.walCreatin
 re-reviewed) and filed the third (`nonissues/etcd-member-dir-not-synced.md`, under D7). What the crash
 story still waits on: D6 (`readyBatch`), D7 (directory-entry durability), and the Perennial gaps
 (crash-frame extraction, OsFs `rename`, a WP lemma refuting `crashed`; `notes/perennial-changes.md`).
-The full build is OK (3236 Spec modules). The decisions of these rounds, ten of them for the user's
+The full build is OK (3236 Spec modules; on `lean`, `etc/specs-build-all.sh`). The decisions of these rounds, ten of them for the user's
 approval first, are `open-questions.md` section D (D1-D8, D31, D32 need approval; D9-D30 others); new
 nonissues `etcd-backend-name-lost-restart-panic` and `etcd-member-dir-not-synced` (blocks-proof: yes,
 pending D7).
+
+## Premise fixes 7: contexts' `Value`, the stream handler's error, `Changer.apply` (2026-11-11, branch `premise-fixes-7`)
+
+Part C: raft `Changer.apply` (both trees) no longer takes `raftpb.ConfChangeType.String.spec`; its
+four files are deleted (-1 axiom: 865, 5 sorries).
+
+Part B: the gRPC stream contracts (`InvGrpcStream.lean`) require `srvErrOk` of a stream handler's
+error and give `statusErrOk` of `Recv`'s, as HS-6 did for unary calls; `watchServer.Watch`,
+`recvLoop`, `_Watch_Watch_Handler`, `newStreamInterceptor` proved to them;
+`rpctypes.ErrGRPCWatchCanceled_init`'s post gains `statusErrOk` (Q1).
+
+Part A, client and k8s side: a trusted statement that reads a context's `Value` at a library key
+takes a fact of it (`Proof/context/LibKeys.lean`, `Proof/k8s_io/apiserver/pkg/audit/CtxKeys.lean`:
+`context.valueAt`, the opaque library-made `transportMD`/`builtRawMD`/`transportPeer`/`otelSpan`/
+`builtTrace`, `libCtxOk`, `k8sCtxOk`); restated `grpcRunCtx`, `logUnaryRequestStats`,
+`AppendToOutgoingContext`, `WithRequireLeader`, `WithTimeoutBackgroundMd`, `GetAuditIDTruncated`,
+k8s `tracing.SpanFromContext`/`Start`, `HistogramVec.WithContext`. No closed theorem's text changed.
+k8s `tracing.Span.End`/`AddEvent` (unchanged, `sp ≠ null`) are now backed by the restated
+producers of their spans.
+
+Open, for premise-fixes-8 (Q2): `FromIncomingContext`, `AuthInfoFromTLS`, `isReqAuth`/
+`isReqAuthBound` (false when `ClientCertAuthEnabled`), `Invoke`/`NewStream`'s
+`ctx.Value(mdOutgoingKey)`, `FromOutgoingContext`, `watchCtx`'s outgoing-metadata clause,
+`streamKeyFromCtx`'s margin, `WithCancelTodo`'s missing `Value` fact. `notes/decisions.md`, "Premise
+fixes 7"; Scope `/shared/tmp/premise-fixes-7/scope.md`.
+
+## Premise fixes 6: `errors.IsCtxErr`, the zap logger family, `fmt`'s verbs (2026-11-11, branch `premise-fixes-6`)
+
+Part B (landed): `errors.IsCtxErr` takes `context.isCtxErr err` in place of `isTypedErr err`
+(refuted, `notes/axiom-review/isctxerr.md`); `watchServer.Watch`'s first `errors.Is`, on grpc's
+`Recv` error, uses the proved `errors.Is` over `streamErr` instead; `notes/decisions.md`, "Premise
+fixes 6, part B".
+
+Part A, the zap logger family (`notes/axiom-review/{zap-zero,logger-family}.md`, both repaired): a
+logger premise is `zapLoggerOk lg` (`Spec/go_uber_org/zap/Defs.lean`, given only by the
+constructors) where Go logs through `lg`, `zapLoggerOrNil lg` where Go checks nil or replaces it by
+`zap.NewNop()`, and `⌜lg ≠ null⌝` only where Go reaches `Panic` alone (D4). zap's 6 logger specs
+and the 24 open family axioms are restated (13 by text, 11 through the predicate they hold; the
+count unchanged); `bootOk` asserts the snapshotter's logger (D1) and `bv.lg' = cfg.Logger'` (the
+raft node's logger; approved change to the closed contract); the backend API and the frozen mvcc
+API take `zapLoggerOrNil` (D2a/D2b, the user). Deferred: the `lgMu` reader slots of `s.Logger()`
+(D3, bounds follow-up), `NewBackendQuota`'s nil-`be`/`Cost(nil)` gaps (D5). Go test
+`examples/premisefix/zaplogger`.
+
+Part D: `fmt.argsOk mv format xs` checks each argument at its directive's verb (`fmt.fmtDirectives`,
+`fmt.argOkAt`): `fmt.argOk` (the `Error()`/`String()` disjuncts) only under a method verb other than
+`%#v`, nil/`ArgWf` or a named integer without `Format` otherwise. Go test
+`examples/premisefix/fmtarg`. Follow-up: raft `Changer.apply`'s `ConfChangeType.String.spec`
+hypothesis is now unused.
+
+Part C: `notes/audit.md` refreshed (the Scope's rows). `notes/decisions.md`, "Premise fixes 6,
+parts A and D"; Scope `/shared/tmp/premise-fixes-6/scope.md`.
+
+
+## Premise fixes 4: the closed theorems' premise bags, round 2 (2026-11-10, branch `premise-fixes-4`)
+
+From the round-2 premise attack on `etcd_partition_safe` (etcd-grove-81's decisions under the
+user's delegation; `notes/decisions.md`, "Premise fixes 4"):
+
+- **`rnSetLoggerOk` was false in the model** (critical: a conjunct of `etcdstart.commonPremises`, so
+  every etcd closed theorem was vacuous). It stated `{{ True }} raft.SetLogger l {{ True }}` of a
+  translated body that locks `raftLoggerMu` and stores to `raftLogger`, whose ownership raft's
+  initializer dropped. Now raft's `isInitialized` keeps `raftLoggerMu` owning `raftLogger`,
+  `SetLogger.spec` (`{{ isPkgInit raft }}`) is proved and linked, and the conjunct is gone from every
+  bag: the closed theorems lost a premise.
+- **A sweep of every bag** found no other triple about a translated function or global that the
+  model cannot satisfy.
+- **`http.mux_handlerOk_spec`**: Go 1.27's `ServeMux` redirects with `307` (was `301`) and runs no
+  handler for a redirected path (`muxRoute`: the trailing-slash redirect, an unclean path but for
+  `CONNECT`); **`NewRequest_spec`** takes a path starting with `/` (Go sends `""` as `/`);
+  **`fmt.argOk`**'s `Error()` disjunct excludes a `Format` method, its `String()` one `Format` and
+  `Error`. Go tests: `examples/premisefix/{httpmux,httppath,fmtarg}` (gates step 9).
+- **The Format fact downstream**: `http.errStrOk`, cache's `errStrOk`, `statusErrOk`,
+  `isEtcdProgressNotifier`'s error clause and `errLeaf` carry `methodSet _.ty !! "Format" = none`;
+  three trusted statements gain it (`rpctypes.ErrCompacted_init`, `ErrFutureRev_init` with
+  `rpctypesInit`, `bcrypt.GenerateFromPassword`'s error clause), backed by `fmtarg`'s
+  `TestNoFormatter`.
+
+**Caveats of the closed theorems** (the round-2 attack's CM-1, CM-5):
+
+- *"No panic" is not "no exit".* zap's `Logger.Fatal` calls `os.Exit(1)` (even on `zap.NewNop()`),
+  which Perennial models as an angelic exit (`Fatal`'s spec: post `False`): only the calling thread
+  stops in the model. The verified code reaches it (`raftNode.start` on a WAL `Save`/`Sync` error,
+  `batchTx.commit` on a bbolt commit error). An exit yields no `Illegal` verdict, so linearizability
+  stands; the main thread's result is claimed of executions that do not exit.
+- *`Hprem` is unproved trust about real code* (D13b), a hypothesis, not in `#print axioms`. What the
+  bags hold after the sweep: each member's `bootstrapContract` (etcd's `bootstrap`, names-only; its
+  post includes `#Hmembers`, a triple of the translated `RaftCluster.Members` stronger than its
+  proved spec, and `#Hsz`, `mvcc.keySized`, whose truth etcd-grove-81 is settling separately),
+  `bootMarshal` (`proto.Marshal`, names-only), `rnLoggerZapOk`, `rnTimeoutDetectorOk`,
+  `rnNewStorageOk` (names-only callees), `v3rpc.runsNoRequireLeader` (a fact of the deployment).
+  Beside the bags, the closed theorems take `ContextReadErrs` and (the watch's) `ContextErrsClient`,
+  claims about `context`'s translated globals (provable from Perennial's `context.isInit` but for
+  `descs`, which rests on the opaque `errDesc` and is read per location: `read/Init.lean`), and
+  bboltfs's `Hinit_wp` (its translated initializer's spec). All go to a later stage.
 
 ## R2d'a: a restart at σ.b = 0 (2026-11-07, etcd-grove-83, branch `r2dp`; frozen after fixes, tag `r2dpa-frozen` to be set at landing)
 
@@ -74,6 +173,13 @@ the Freeze package `/shared/tmp/r2dpa-freeze-package.md`; the user approved "fre
   derives them. Rows 5-8 are R2d'b's. A first start (`a0 = []`) is unaffected, and no closed theorem
   carries these premises. The bullets below are the disclosure as frozen; where they say otherwise,
   this one supersedes them.
+
+- **S1 (2026-11-11, branch `restart-s1`): rows 2-3 fixed.** Row 3 deleted and row 2 derived
+  (`rnRestartOk_winAbove`): `rnRestartOk`'s restart disjunct carries `snap0 ≤ |a0| ≤ commit0` (names
+  fixed when the node is built; graceful-only), the loop's token the proved fact `commit0 ≤ p.Commit'`
+  (crash-proof). The restart triple's premises other than row 1 (`Hwpend`) are now true of a
+  graceful image (`raftNode.stop.spec`'s post gives `|a0| ≤ σ.commit`); row 1 still makes it false
+  on a class of runs (S7). `notes/decisions.md`, "Restart S1".
 
 - **Scope: `σ.b = 0` only**, a restart before the WAL's first snapshot (`ai₀ = 0`, `γn.pre = []`;
   Q24 (c), approved by the user): the backend's ghost log `A₀ = γn.a0` is replayed through the window
@@ -142,9 +248,9 @@ which a new program can use.
 |---|---|---|---|
 | B3-1 `goose_adequacy_start`'s `Ds` part (`walDirFresh`, `walDirsAbsent`) | `Ds.Nodup` is per string: `x.etcd/member/wal` and `/proc/self/cwd/x.etcd/member/wal` name one directory, so a "fresh" one-member cluster restarts a stopped follower and serves its key (20/20) | `axiom/waldiralias` `2715fea00e` | `wal-tokens.md` |
 | B3-1 follow-up, its `As` part (`addrsUnclaimed`, `netAddrFree`) | `"localhost:p"` and `"[::1]:p"` both listen, and a dial of the first reaches the second (31/31); also, no premise says the data directory starts without a backend file, while `bootstrapContract` claims an empty first-start backend (10/10) | `axiom/netaddralias` `d79865bae2` | `alias-tokens.md` |
-| B3-2 `lease.lessor.{Promote,scheduleCheckpointIfNeeded}` | `NewLessor` takes any non-null logger; a zero `zap.Logger` panics at `lessor.go:760`'s Debug, through the proved `Grant` too (10/10 each) | `axiom/lessormethods` `6ecf5a6e91` | `lessor-methods.md` |
+| B3-2 `lease.lessor.{Promote,scheduleCheckpointIfNeeded}` | `NewLessor` takes any non-null logger; a zero `zap.Logger` panics at `lessor.go:760`'s Debug, through the proved `Grant` too (10/10 each); **fixed 2026-11-10**: `NewLessor`'s pre and `lessorCfg` carry `lg = null ∨ zapLoggerOk lg` | `axiom/lessormethods` `6ecf5a6e91` | `lessor-methods.md` |
 | B3-3 `snap.NewMessage`, `snap.Message.{CloseWithError,fields}`, `io.Pipe`/`PipeWriter.CloseWithError`, `io.MultiReader` | `NewMessage` of a nil reader (its close panics) or a negative size (`TotalSize ≥ 0` false); the pipe hands back `T` after `Message.CloseWithError` closed the reader end (program-level `False`); `MultiReader`'s "nothing written past `n`" against the exact-size wrapper (20/20 each) | `axiom/snapstream` `9bef1b0a02` | `snap-stream.md` |
-| logger family (survey) | 27 axioms false at `&zap.Logger{}` (17 without a zap axiom); `adjustTicks`/`purgeFile` take no premise on `s` (`&EtcdServer{}`) | none (survey) | `logger-family.md` |
+| logger family (survey) | 27 axioms false at `&zap.Logger{}` (17 without a zap axiom); `adjustTicks`/`purgeFile` take no premise on `s` (`&EtcdServer{}`) (**repaired**, premise fixes 6, 2026-11-11: `zapLoggerOk`/`zapLoggerOrNil`, `srvLoggerOk`) | none (survey) | `logger-family.md` |
 
 These survive:
 - `walFiles`: no exported consumer yet. `purgeFile.spec` lacks `walPurgeRight`, and `Release.spec`
@@ -194,8 +300,8 @@ linked / exported / `*_safe` results from `.lake/tcb.json` at `158829a8b9`.
 
 | axioms | what is false | reach | report |
 |---|---|---|---|
-| `zap.Logger.{Debug,Info,Warn,Error,Fatal,Check}`, `zapcore.CheckedEntry.Write` | a zero `Logger` meets `l ≠ null` and panics on its nil core; `Write` twice panics | 407 / 112 / 17 | `zap-zero.md` |
-| `errors.IsCtxErr` | `isTypedErr` admits an error whose `Unwrap`/`Is` panics | 137 / 55 / 17 | `isctxerr.md` |
+| `zap.Logger.{Debug,Info,Warn,Error,Fatal,Check}`, `zapcore.CheckedEntry.Write` | a zero `Logger` meets `l ≠ null` and panics on its nil core; `Write` twice panics (**repaired**: `Write` by R1-2, 2026-11-07; the logger methods by premise fixes 6, 2026-11-11: `zapLoggerOk l`, `Panic` keeps `≠ null`) | 407 / 112 / 17 | `zap-zero.md` |
+| `errors.IsCtxErr` | `isTypedErr` admits an error whose `Unwrap`/`Is` panics (**repaired**, premise fixes 6, 2026-11-11: `isCtxErr err`) | 137 / 55 / 17 | `isctxerr.md` |
 | `context.ValueStartTime` | `WithValue` may store an `int` under the start-time key (refuted in Lean, `93b6c79a6b`) | 114 / 51 / 17 | `valuestarttime.md` |
 | `backend.ValidateCalled*`, `backend.VerifyBackendConsistency` | panic when `ETCD_VERIFY` is set; no premise mentions it | 97 / 46 / 17 | `etcd-verify.md` |
 | `http.Handle_ok`, `http.NewServeMux_ok` | `Handle` panics on an empty, unparsable or conflicting pattern or a nil handler | 26 / 12 / 6 | `http-handle.md` |
@@ -3013,7 +3119,7 @@ axioms; a gap or an unapproved boundary callee is a named hypothesis, `?` in
   `meta.ListAccessor`/`ExtractListWithAlloc`/`LenList`, `Trace.Step`; outside client-go, names
   only: klog's `FromContext` (non-nil context), logr's `V`/`Info`, `utilnet.IsConnectionRefused`,
   `rand.Float64`, `RealClock.After`, `wait.Group.Start`. Premises (not axioms): `rvuTyOk`, `bmTyOk`
-  (`*RealFIFO`'s method sets), `errIsOk`, `Float64ToInt64Semantics` (the watch timeout).
+  (`*RealFIFO`'s method sets), `errIsOk` (until premise fixes 1, 2026-11-10, also `Float64ToInt64Semantics`, the watch timeout: deleted, it contradicted Perennial).
 - **Trust base unchanged**: the new results use only existing axioms (`RealClock.Now`,
   `Duration.Seconds_ptr`, `trace.New`/`LogIfLong`, `fmt.Errorf`) and the two `reflect.Type'`
   instance `sorry`s of the fourth round (the `Reflector` struct); `etc/tcb-report.py --check`

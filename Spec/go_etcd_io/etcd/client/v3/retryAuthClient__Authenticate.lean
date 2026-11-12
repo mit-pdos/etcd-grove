@@ -1,19 +1,10 @@
 /-
-`(*clientv3.retryAuthClient).Authenticate` (`client/v3/retry.go`).
-
-Users: `authClient.*` (through `remoteAuthAt`, `retryAuthHandle_remoteAuthAt`).
-
-Proof sketch: passes the options through to the stub (non-repeatable: `callOptsOk _ false`): `rac.ac` is `pb.NewAuthClient(c.conn)`, the generated stub over the client's
-connection (`retryAuthHandle`: the stub meets the wire contract over `connOk`, 2a/3h), whose triple is
-`RemoteCallTriple` itself.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryAuthClient__Authenticate.lean`: restated over the wire contract (`RemoteCallTriple`).
-
-Margin: none.
+`(*clientv3.retryAuthClient).Authenticate(ctx, in, opts...)` (`client/v3/retry.go`; the auth plan's
+C1, 2026-10-28). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -21,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,14 +22,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `r.Authenticate`: the wire contract at its request. -/
-def retryAuthClient.Authenticate.spec : Prop :=
-  ∀ (r c : Loc) (γ : Cluster) (who : Principal) (name pw : GoString),
-  RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!! s)
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthHandle r c γ who ∗ clientReady c) γ who (.authenticate name pw)
+/-- `rac.Authenticate(ctx, in, opts...)` on a `*retryAuthClient` over a stub on a connection to
+`addr`: `rac.ac.Authenticate(ctx, in, opts...)` (no retry option added): the call's answer
+(`authnCallOut`). -/
+abbrev retryAuthClient.Authenticate.spec : Prop :=
+  ∀ (rac conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpec (GF := GF) pbAuthenticateRequest pbAuthenticateResponse)
+    (Φ : GoString → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (m : (pbAuthenticateRequest (GF := GF)).M) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthAt rac conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr authnMethod Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗
+      (pbAuthenticateRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜(pbAuthenticateRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
+    (App (App (App (Val (rac @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!!
+        go!"Authenticate")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (pbAuthenticateRequest (GF := GF)).send inp m ∗ authnCallOut Φ resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

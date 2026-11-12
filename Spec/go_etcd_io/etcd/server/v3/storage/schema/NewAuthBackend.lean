@@ -1,45 +1,42 @@
 /-
-## `schema.NewAuthBackend(lg, be)`
-
-**Users.** `NewServer` (`server.go:369`), `applySnapshot` (`server.go:1127`). Snippet:
-`examples/specreq/schema/schema.go` (`ReqAuthWriteRead`).
-
-**Proof sketch.** Allocates `&authBackend{be, lg}`, made read-only (never written).
-
-**Changes.** From `specs-ref`'s `NewAuthBackend.lean` (the real backend, the old auth tokens): the
-struct only; what its methods do is over the backend's triples. **Margin.** None.
+`schema.NewAuthBackend(lg, be)` (`auth.go`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`notes/decisions.md`), for `NewServer`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **An `AuthBackend` over `be`** (read-only for good). -/
-def NewAuthBackend.spec : Prop :=
+/-- `NewAuthBackend(lg, be)` returns an `auth.AuthBackend`: a fresh `*authBackend` wrapping `be`
+(its fields `be`, `lg`, persistent: no method writes them). (N4c, 2026-10-17: the pointer and its
+fields named, from the body.) -/
+abbrev schema.NewAuthBackend.spec : Prop :=
   ∀ (lg : Loc) (be : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.NewAuthBackend)) (Val #lg)) (Val #be))
-  {{ (abe : Loc), RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) #abe); (abe ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authBackend.mk be lg) : IProp GF) }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.NewAuthBackend)) (Val #lg))
+      (Val #be))
+  {{ (ab : GoInterface), RET #ab; ∃ l : Loc,
+      ⌜ab = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) #l⌝ ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" l ↦□ lg ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l ↦□ be }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

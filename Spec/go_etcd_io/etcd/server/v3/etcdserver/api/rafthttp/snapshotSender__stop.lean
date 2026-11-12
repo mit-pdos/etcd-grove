@@ -1,19 +1,10 @@
 /-
-## `(*snapshotSender).stop()`
-
-**Users.** `peer.stop`.
-
-**Proof sketch.** `close(stopc)` with the right.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*snapshotSender).stop()` (`snapshot_sender.go`; rafthttp stage 6b, an axiom until stage 7d).
+Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -21,26 +12,23 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Closes `stopc` (once). -/
-def snapshotSender.stop.spec : Prop :=
-  ∀ (s : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ ssAt s ν lid pid ∗ ssStopRight s }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender.ty @!! go!"stop")) (Val #()))
+/-- **`s.stop()`** with the right to stop it (once): it returns. -/
+abbrev rafthttp.snapshotSender.stop.spec : Prop :=
+  ∀ (s : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ snapSenderStop s }}
+    (App (Val (s @!! go.GoType.PointerType rafthttp.snapshotSender.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

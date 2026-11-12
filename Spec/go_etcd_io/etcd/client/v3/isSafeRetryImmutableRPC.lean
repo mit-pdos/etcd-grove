@@ -1,17 +1,10 @@
 /-
-`clientv3.isSafeRetryImmutableRPC` (`client/v3/retry.go`).
-
-Users: the retry interceptor (1c: whether a repeatable call may be resent).
-
-Proof sketch: `rpctypes.Error`, `errors.As`, `status.FromError` (2a's specs over `callErr`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/isSafeRetryImmutableRPC.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: the code also retries a status `Unavailable` that is not etcd's; a read may be resent whatever the answer (its update is persistent), so the spec says only what the interceptor's liveness would use.
+`isSafeRetryImmutableRPC(err)` (`client/v3/retry.go`; unit P3a). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 
 @[expose] public section
 
@@ -19,10 +12,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk backoffOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,15 +23,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `isSafeRetryImmutableRPC(err)`: true at least for a request that never left the client. -/
-def isSafeRetryImmutableRPC.spec : Prop :=
-  ∀ (err : GoInterface) (k : CallErr),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ callErr err k }}
+/-- `isSafeRetryImmutableRPC(err)` of a non-nil client error grpc's `status` accepts returns some
+boolean (`true` only for a gRPC `Unavailable` that is not an `EtcdError` of another code). -/
+abbrev isSafeRetryImmutableRPC.spec : Prop :=
+  ∀ (err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.client.v3.isSafeRetryImmutableRPC)) (Val #err))
-  {{ (b : Bool), RET #b; ⌜k = .notSent → b = true⌝ }}
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

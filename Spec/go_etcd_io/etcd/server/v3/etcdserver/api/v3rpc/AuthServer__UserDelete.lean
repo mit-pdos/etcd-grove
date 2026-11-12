@@ -1,46 +1,45 @@
 /-
-`AuthServer.UserDelete` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.Auth/UserDelete` (the generated `_Auth_UserDelete_Handler`, 3h,
-registered by `v3rpc.Server`); 1c's `RemoteCallTriple` for the auth RPCs (`examples/specreq/clientv3client/auth.go`).
-
-Proof sketch: `as.authenticator.UserDelete(ctx, r)` (2c's `EtcdServer.UserDelete.spec`, the update passed on); errors through `togRPCError`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthServer__UserDelete.lean`: over the contract (was the auth plan's `authServerIs` with per-method answers).
-verify-round (server-core's request): the auth store through 2c's `EtcdServer.AuthStore.spec` where the handler reads it.
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Margin: none.
+`as.UserDelete(ctx, r)` (`v3rpc/auth.go`): the server's `UserDelete` through the `Authenticator` interface, its
+error through `togRPCError`. Lean-first (no Rocq counterpart); the auth plan's A3, the API layer
+(2026-10-24), vocabulary `InvAuthServer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `AuthServer.UserDelete(ctx, r)` meets the contract of `/etcdserverpb.Auth/UserDelete`. -/
-def AuthServer.UserDelete.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserDelete")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Auth/UserDelete") go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty (srvGate s gq)
+/-- **`as.UserDelete(ctx, r)`**: the server's `UserDelete` (the interface value the `*AuthServer` holds is the
+server, `authServerIs`; the method as the contract `authInnerOk`, over the caller's `P` answering
+`Q`), then `togRPCError` on its error; the outcome `authWrapOut`: the server's response with
+`Q resp nil`, or `nil` and a non-nil error with `Q null` of the server's error. -/
+abbrev v3rpc.AuthServer.UserDelete.spec : Prop :=
+  ∀ (p s : Loc) (ctx : GoInterfaceOk) (r : Loc) (P : IProp GF) (Q : Loc → GoInterface → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.authServerIs p s ∗ P ∗ v3rpc.authInnerOk s go!"UserDelete" (GoInterface.ok ctx) r P Q }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.AuthServer.ty @!! go!"UserDelete"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); v3rpc.authWrapOut Q resp err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

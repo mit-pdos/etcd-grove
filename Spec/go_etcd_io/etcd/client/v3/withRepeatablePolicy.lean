@@ -1,18 +1,9 @@
 /-
-`clientv3.withRepeatablePolicy` (`client/v3/retry_interceptor.go`).
-
-Users: `retry.go`'s wrappers of the repeatable RPCs (`Range`, the lease, list and alarm RPCs).
-
-Proof sketch: a `retryOption` whose `applyFunc` closure writes the field (`retryOptAt`'s intended
-realization: the closure's triple on an `*options` modelled by `o`).
-
-Changes: new (no old spec; W0 asked for it).
-
-Margin: none.
+`clientv3.withRepeatablePolicy()` (`client/v3/retry_interceptor.go`, translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -20,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +21,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `withRepeatablePolicy(...)`: its retry option. -/
-def withRepeatablePolicy.spec : Prop :=
-  ∀ (_u : Unit),
+/-- `withRepeatablePolicy()`: a `retryOption` whose closure sets the interceptor's options'
+`retryPolicy` (`retryApplyOk`). -/
+abbrev withRepeatablePolicy.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withRepeatablePolicy)) (Val #()))
-  {{ (v : go_etcd_io.etcd.client.v3.retryOption), RET #v; repOptAt v }}
+  {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; retryApplyOk ro.applyFunc' }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

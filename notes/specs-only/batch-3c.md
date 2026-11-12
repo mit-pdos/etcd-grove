@@ -1,12 +1,12 @@
 # Batch 3c: etcd's lessor (report)
 
 Author agent, 2026-11-09. Everything builds (`etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/server/v3/lease`: OK, 46 modules); snippets: `cd examples && go vet
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease`: OK, 46 modules); snippets: `cd examples && go vet
 ./specreq/lease/` clean, `gofmt -l` clean.
 
 ## Files
 
-`Spec/go_etcd_io/etcd/server/v3/lease/` (namespace `Lease`):
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/` (namespace `Lease`):
 - `Api.lean`: the vocabulary (below). `Internal.lean`: the internal helpers' vocabulary (no client
   imports it).
 - The API (full care): `NewLessor`, `lessor__{Grant, Revoke, Checkpoint, Lookup, Leases, GetLease,
@@ -104,7 +104,7 @@ bucket), `expiredCh_recv` (gated by `c.expiry`), `init` (the four errors distinc
 (untranslated; their behavior is `NewLessor`'s and `expiredCh_recv`'s assumed part), `Lease.expired`,
 `Lease.SetLeaseItem` (no caller in etcd), `LeaseQueue.Pop`, `LeaseExpiredNotifier.{Unregister, Peek,
 Len}` (callers untranslated), `FakeLessor.*`, `FakeTxnDelete.*` (tests), the metrics.
-**`lease/leasehttp`**: batch 2e already wrote `Spec/.../lease/leasehttp/{Api,RenewHTTP}.lean`
+**`lease/leasehttp`**: batch 2e already wrote `SpecPlan/Spec/.../lease/leasehttp/{Api,RenewHTTP}.lean`
 (names-only); I left them as they are (2e's files). `TimeToLiveHTTP` and the HTTP handlers have no
 translated caller (2c's `leaseTimeToLive` is untranslated), so no spec.
 
@@ -152,7 +152,7 @@ keys, no time model, per-member TTL).
 ## Round 1 repairs (2026-11-09)
 
 Reviews: `reviews/3c-provability-1.md`, `reviews/3c-completeness-1.md`. Rebuilt: `etc/specs-build.sh
---dir Spec/sort Spec/go_etcd_io/etcd/server/v3/lease` OK (48 modules); mvcc's and txn's `Api.lean`
+--dir SpecPlan/Spec/sort SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease` OK (48 modules); mvcc's and txn's `Api.lean`
 (importers of `lease/Api.lean`) OK; `go vet ./specreq/lease/`, `gofmt -l` clean.
 
 First tier:
@@ -174,9 +174,9 @@ First tier:
   `ReqRecoverRevoke`.
 
 Second tier:
-- Sort specs restored as trust-boundary specs, `Spec/sort/SortAnyLess.lean` (`GoSort.sorterAny`,
+- Sort specs restored as trust-boundary specs, `SpecPlan/Spec/sort/SortAnyLess.lean` (`GoSort.sorterAny`,
   `GoSort.Sort.anyLessSpec`: any `Less`, a permutation, no order) and
-  `Spec/sort/StringSlice__Sort.lean`; cited by `Leases`, `Revoke`. Their `2^62` bound: open (below).
+  `SpecPlan/Spec/sort/StringSlice__Sort.lean`; cited by `Leases`, `Revoke`. Their `2^62` bound: open (below).
 - Law `lessorAt_minTTL` (every state's TTLs `≥ c.minTTL`), for `0 < GrantedTTL` with 2e's
   `0 < c.minTTL`.
 - Realization header: the bucket and one reader token in the writer's token (not the lock); the

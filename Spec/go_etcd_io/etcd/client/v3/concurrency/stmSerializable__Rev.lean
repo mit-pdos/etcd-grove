@@ -1,17 +1,10 @@
 /-
-`(*concurrency.stmSerializable).Rev` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: `stmSerializable.Get.spec` on `[key]` (its value dropped), then `stm.Rev.spec` on the embedded `stm`.
-
-Changes: from `specs-ref`'s `stmSerializable__Rev.lean`: restated over `stmSerAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stmSerializable.Rev(key)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,28 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.Rev(key)` (serializable levels): `RevPost`, or the abort. -/
-def stmSerializable.Rev.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmSerAt p γ who iso a }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stmSerializable.ty @!! go!"Rev")) (Val #k))
-  {{ (r : val), RET r; stmRet r (fun rev : w64 => iprop(∃ a',
-      stmSerAt p γ who iso a' ∗ ⌜RevPost k a rev a'⌝)) iprop(True) }}
+/-- `s.Rev(k)` (a `*stmSerializable`): `Get(k)`, then the embedded `stm`'s `Rev(k)` (`RevPost`). A
+client error aborts it (`stmRet`). -/
+abbrev stmSerializable.Rev.spec : Prop :=
+  ∀ (lvl : w64) (p : Loc) (pfx : GoString) (st : STMSt) (k : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmState lvl pfx p st ∗ ⌜isoSer lvl = true ∧ pfx <+: k⌝ ∗
+      ⌜STMCallOk st [k] []⌝ }}
+    (App (Val (p @!! go.GoType.PointerType stmSerializable.ty @!! go!"Rev")) (Val #k))
+  {{ (r : val), RET r; stmRet r fun rev : w64 => iprop(
+      ∃ st' : STMSt, stmState lvl pfx p st' ∗ ⌜RevPost k st rev st'⌝) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

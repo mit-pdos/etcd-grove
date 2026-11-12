@@ -1,14 +1,9 @@
 /-
-`(*readView).Range(ctx, key, end, ro)` (`kv_view.go:38`): a `ConcurrentReadTxMode` read transaction's
-`Range`, then `End`. Internal: the body of the store's promoted `Range` (`KV.Range.contract`; users:
-the apply's `Compaction` header, `apply/backend.go:78`; the watch's `prevKV`, 3f/2b). Proof sketch:
-`KV.Read.contract` at `kv`, `Txn.Range.contract` (`.read σ`: over `σ.kv`), `Txn.End.contract`.
-
-**Changes** from `specs-ref`'s file: `KV.Range.contract`'s statement at the view's store.
+`readView__Range` (metrics_txn.go / kv_view.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -16,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,21 +21,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.Range`'s behaviour for the store the view reads. -/
-def readView.Range.spec : Prop :=
-  ∀ (rv : Loc) (kv : GoInterface) (γ : MvccName) (ctx : GoInterface) (key endk : GoSlice)
-    (kk e : Bytes) (dk de : DFrac) (ro : RangeOptions) (Q : MvccState → IProp GF),
+/-- `rv.Range(ctx, key, end, ro)`: a read transaction opened at the last revision of a
+committed log, its range, and closed: at the compaction revision `crev` it observed, at or above
+the caller's lower bound `c` (`rangeOutcomeC`; 2026-10-13, unit 6a). The readers' statement
+(`storeReader`, `rangeOutcome`) is `specR` (`spec_R`, `ReaderSpecs.lean`). At a context that is
+never done (`todo`, `rangeCtx`: `context.TODO()`'s) the result is not `nil`, as
+`metricsTxnWrite.Range`'s (2026-10-31, M2 apply side: `applierV3backend.Compaction` reads `rr.Rev`
+of `KV.Range(context.TODO(), …)` ignoring the error; at `todo = false` today's statement). 
+The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02). -/
+abbrev mvcc.readView.Range.spec : Prop :=
+  ∀ (rv s : Loc) (γ : mvcc.StoreNames)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool) (key endk : GoSlice) (k e : GoString)
+    (ro : RangeOptions) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      rv.[readView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ mvccReaders γ 1 ∗ Context.ctxOk ctx ∗
-      key ↦*{dk} kk ∗ endk ↦*{de} e ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
+      mvcc.isReadView rv s γ ∗ mvcc.storeReaderC s γ ∗ mvcc.crevLb γ.idx c ∗
+      mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
     (App (App (App (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"Range"))
-      (Val #ctx)) (Val #key)) (Val #endk)) (Val #ro))
-  {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); mvccReaders γ 1 ∗
-      key ↦*{dk} kk ∗ endk ↦*{de} e ∗ ∃ (σ : MvccState) (out : RangeOut), Q σ ∗
-        ⌜rangeOut σ.kv σ.crev (mrange kk endk e) ro out⌝ ∗ rangeResOwn ctx r err out }}
+      (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
+  {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.storeReaderC s γ ∗
+      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.crevLb γ.idx crev ∗
+        mvcc.crevPermAt γ crev ∗
+        ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1) ∧ c ≤ crev ∧ -1 ≤ crev⌝ ∗
+        mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

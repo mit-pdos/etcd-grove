@@ -1,19 +1,11 @@
 /-
-`b.write()` (`bucket.go`): an inline bucket's value: its header and its root node as a page.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
-
-**Proof sketch** (integration I7). `make([]byte, 16 + n.size())` (`node.size`) is zeroed, so the
-fake page after the header is empty (`nodeWritable`'s header clause; `inlineOk` bounds the count
-and the size, `wtxCore_keys` the keys); 4d's `inBucket_view` stores the handle's header; `node.write`
-(its post `nodePage`). Users: `Bucket.spill` (after `inlineable`), `CreateBucket`'s and `CreateBucketIfNotExists`' fresh local
-(`emptyBkt`).
-
-**Changes** (integration I7): the root node is a premise (it was not: `n.size()` on a nil root
-panics) and the value is stated (was: some bytes).
+`Bucket.write` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U9b; used by U7 (`CreateBucket*`'s new bucket), U9b (`Bucket.spill`). Proof:
+`Proof/go_etcd_io/bbolt/Bucket__write.lean` (a `sorry` until U9b).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -21,37 +13,43 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) a fresh value: the bucket's header (`ib`, its `InBucket`), then its root node
-written as a page in zeroed bytes (`nodePage`; 4d's `encInBucket`). The bucket is a handle of the
-writer whose cached root is inlineable (`Bucket.spill`), or `CreateBucket`'s fresh local
-(`fresh`: `emptyBkt`, an empty leaf, a zero header). -/
-def Bucket.write.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath) (gs : List Nat)
-    (n : Loc) (N : NodeR) (fresh : Bool),
-  {{ (if fresh then emptyBkt (GF := GF) b ∗ ⌜N = NodeR.emptyLeaf⌝
-      else wtxCore tx γ C ∗ bktH tx γ b p gs ∗
-        ⌜C.roots b = some n ∧ C.nodes n = some N ∧ inlineOk N⌝) }}
+/-- `b.write()` of a bucket whose root node is a leaf with the inodes `ms` (their bytes read at
+`dqk`; a fresh bucket's empty leaf, or an inlineable child's): a new byte slice, its header
+`b.InBucket`'s and then the root node written as an inline page (header id `0`, a leaf of
+`ms.length` elements, `pageBody`), sized by `node.size`. -/
+abbrev Bucket.write.spec : Prop :=
+  ∀ (b ibp : Loc) (ib : InBucket) (n : Loc) (nv : node) (ins : List Inode) (ms : List InodeM)
+    (dqb dq dqi : DFrac) (qk qv : Nat → DFrac),
+  nv.isLeaf' = true → ms.length < 0xFFFF → pageFits ms →
+  insSize ins = 16 + (pageBody true ms).length → insSize ins < 2 ^ 31 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
+      b.[Bucket, go!"InBucket"] ↦{dqb} ibp ∗ ibp ↦{dqb} ib ∗ b.[Bucket, go!"rootNode"] ↦{dqb} n ∗
+      n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins ∗
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"write")) (Val #()))
-  {{ (s : GoSlice), RET #s;
-      (if fresh then emptyBkt b else wtxCore tx γ C ∗ bktH tx γ b p gs) ∗
-      ∃ ib : go_etcd_io.bbolt.internal.common.InBucket,
-        s ↦* (BboltCommon.encInBucket ib ++ nodePage (List.replicate (nodeSize N) (W8 0)) N) ∗
-        ownSliceCap w8 s (DFrac.own 1) ∗
-        ⌜fresh = true → ib = ⟨W64 0, W64 0⟩⌝ }}
+  {{ (value : GoSlice), RET #value;
+      value ↦* (encode ib ++ encode (hdrWritten ⟨W64 0, W16 0, W16 0, W32 0⟩ true ms.length) ++
+        pageBody true ms) ∗ ownSliceCap w8 value (DFrac.own 1) ∗
+      b.[Bucket, go!"InBucket"] ↦{dqb} ibp ∗ ibp ↦{dqb} ib ∗ b.[Bucket, go!"rootNode"] ↦{dqb} n ∗
+      n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins ∗
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

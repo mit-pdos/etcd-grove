@@ -1,22 +1,10 @@
 /-
-`clientv3.WithSort` (`client/v3/op.go`).
-
-Users: the users' `Get`/`Delete`/`Put`/`Watch` calls (see `kv.Get`, `kv.Put`): `WithPrefix`
-(concurrency, recipes, the cache, Kubernetes), `WithRev` (concurrency, recipes, the cache,
-Kubernetes' reads and watches), `WithLimit`, `WithRange`, `WithKeysOnly`, `WithCountOnly`
-(Kubernetes, the cache), `WithLease` (concurrency's `Session` keys, leasing), `WithSerializable`
-(concurrency's `stmSerializable`), the revision filters (concurrency's `waitDeletes`, recipes), the
-watch options (1b's users). Snippet: `clientv3kv/ops.go` (`ReqGetOptions`).
-
-Proof sketch: a closure over its arguments (read-only cells), which sets the sort (a sort by key ascending is none): `optAt`. Its closure writes the `order` it captured (the reason `optAt` is exclusive).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/WithSort.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.WithSort(target, order)` (`client/v3/op.go`, translated for `client/v3/concurrency`). Lean-first (no Rocq
+counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -24,27 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `WithSort(...)`: an option that sets the sort (a sort by key ascending is none). -/
-def WithSort.spec : Prop :=
+/-- `WithSort(target, order)`: an option setting the sort option (a fresh `*SortOption`), for any
+`target`/`order` but a sort by key in ascending order: for that one the closure rewrites the
+`order` it captured to `SortNone` (`order = SortNone`), a write to a variable shared by every call
+of the closure, a data race if it is called concurrently, about which Perennial's semantics (no
+atomicity for a Go variable) can say nothing; a caller wanting keys in ascending order passes no
+sort. -/
+abbrev WithSort.spec : Prop :=
   ∀ (target order : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      ⌜¬ (target = W64 0 ∧ order = W64 1)⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.WithSort)) (Val #target)) (Val #order))
-  {{ (f : GoFunc), RET #f; optAt f (withSortM target order) }}
+  {{ (f : GoFunc), RET #f; optSpec f (withSortM target order) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

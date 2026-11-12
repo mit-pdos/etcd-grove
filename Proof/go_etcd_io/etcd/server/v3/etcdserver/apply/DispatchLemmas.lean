@@ -1,0 +1,424 @@
+/-
+Lemmas for `uberApplier.dispatch`'s proof (`server/v3/etcdserver/apply`, `uber_applier.go`):
+a request field's pointer is nil iff the model's field is unset. Lean-first (no Rocq
+counterpart).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace apply
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+
+/-- Past `dispatch`'s first `switch`: not a request of it. -/
+theorem preV3Kind_dispatchKind (rq : IRRModel) (h1 : rq.clusterVersionSet = none)
+    (h2 : rq.clusterMemberAttrSet = none) (h3 : rq.downgradeInfoSet = none)
+    (h4 : rq.downgradeVersionTest = false) : preV3Kind (dispatchKind rq) = false := by
+  unfold dispatchKind
+  simp only [h1, h2, h3, h4, Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
+  simp only [apply_ite preV3Kind]
+  simp only [preV3Kind, ite_self]
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- An optional request field is nil iff unset, given its predicate says not nil. -/
+theorem optReqIs_null {α : Type} (l : Loc) (o : Option α) (P : Loc → α → IProp GF)
+    (hP : ∀ a, P l a ⊢ ⌜l ≠ null⌝) : optReqIs l o P ⊢ ⌜l = null ↔ o = none⌝ := by
+  cases o with
+  | none =>
+    simp only [optReqIs]
+    iintro %h; ipureintro; simp [h]
+  | some a =>
+    simp only [optReqIs]
+    iintro H
+    ihave %h := hP a $$ H
+    ipureintro; simp [h]
+
+/-- The same for a field passed on unread. -/
+theorem presentIs_null (l : Loc) (b : Bool) : presentIs (GF := GF) l b ⊢ ⌜l = null ↔ b = false⌝ := by
+  simp only [presentIs]
+  iintro %h; ipureintro
+  cases b <;> simp_all
+
+
+/-- The predicate of a set field. -/
+theorem optReqIs_some {α : Type} (l : Loc) (o : Option α) (a : α) (P : Loc → α → IProp GF)
+    (h : o = some a) : optReqIs l o P ⊢ P l a := by
+  subst h; simp only [optReqIs]; iintro H; iexact H
+
+theorem headerIs_nn (l : Loc) (a : HeaderModel) : headerIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold headerIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem rangeIs_nn (l : Loc) (a : OpFull) : txn.rangeRequestIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold txn.rangeRequestIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem putIs_nn (l : Loc) (a : OpFull) : txn.putRequestIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold txn.putRequestIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem deleteIs_nn (l : Loc) (a : OpFull) : txn.deleteRangeRequestIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold txn.deleteRangeRequestIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem txnIs_nn (l : Loc) (a : TxnModel) : txn.txnRequestIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold txn.txnRequestIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem compactionIs_nn (l : Loc) (a : w64) : compactionIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold compactionIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem leaseGrantIs_nn (l : Loc) (a : LeaseGrantModel) : leaseGrantIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold leaseGrantIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem leaseRevokeIs_nn (l : Loc) (a : w64) : leaseRevokeIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold leaseRevokeIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem alarmRequestIs_nn (l : Loc) (a : AlarmModel) : alarmRequestIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold alarmRequestIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem leaseCheckpointIs_nn (l : Loc) (a : (List CheckpointModel)) : leaseCheckpointIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold leaseCheckpointIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authenticateIs_nn (l : Loc) (a : AuthenticateModel) : authenticateIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold authenticateIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authUserGetIs_nn (l : Loc) (a : GoString) : authUserGetIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold authUserGetIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authUserAddIs_nn (l : Loc) (n : UserAddModel) : authUserAddIs (GF := GF) l n ⊢ ⌜l ≠ null⌝ := by
+  unfold authUserAddIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authRoleAddIs_nn (l : Loc) (n : GoString) : authRoleAddIs (GF := GF) l n ⊢ ⌜l ≠ null⌝ := by
+  unfold authRoleAddIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authRoleGetIs_nn (l : Loc) (a : GoString) : authRoleGetIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold authRoleGetIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem clusterVersionSetIs_nn (l : Loc) (a : GoString) : clusterVersionSetIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold clusterVersionSetIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem memberAttrSetIs_nn (l : Loc) (a : MemberAttrModel) : memberAttrSetIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold memberAttrSetIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem downgradeInfoSetIs_nn (l : Loc) (a : DowngradeModel) : downgradeInfoSetIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
+  unfold downgradeInfoSetIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+end lemmas
+
+/-! ## The KV answers' errors, as `errors.Is` sees them
+
+Each KV answer (`putOutcomeIs`, ...) names its error: `nil`, an error variable (`ErrCorrupt`,
+`ErrNoSpace`, the txn checks' `ErrLeaseNotFound`/`ErrKeyNotFound`, mvcc's `ErrFutureRev`/
+`ErrCompacted`: `errors.New` errors, `applyErrVars`), or the auth store's or the lessor's (their
+contracts': `applyErrIs`). So the error is one `errors.Is` can take (`applyErrIs`). -/
+
+/-- **A compaction's outcome through the chain `c`**: applied, the log as it is, through a chain
+that reaches the backend; the corrupt applier's rejection otherwise (`corruptRejects`). -/
+def cmpOutcome (c : Chain) (log : mvcc.Log) : Outcome :=
+  if chainCompacts c then .applied log false else .rejected .corrupt
+
+theorem cmpOutcome_logAfter (c : Chain) (log : mvcc.Log) : (cmpOutcome c log).logAfter log = log := by
+  unfold cmpOutcome; split <;> rfl
+
+/-- **A grant leaves the KV log** (the lease-grant stage): whatever the chain's outcome. -/
+theorem chainStep_grant_logAfter (rq : IRRModel) (hk : dispatchKind rq = .leaseGrant)
+    (log : mvcc.Log) : ∀ (c : Chain) (o : Outcome), chainStep backendStep c rq log o →
+      o.logAfter log = log
+  | .backend, o, h => by
+    simp only [chainStep, backendStep, hk] at h
+    rcases h with rfl | rfl <;> rfl
+  | .auth _ c, o, h => by
+    simp only [chainStep] at h
+    split at h
+    · rcases h with ⟨-, rfl⟩ | h
+      · rfl
+      · exact chainStep_grant_logAfter rq hk log c o h
+    · exact chainStep_grant_logAfter rq hk log c o h
+  | .quota c, o, h => by
+    simp only [chainStep] at h
+    exact chainStep_grant_logAfter rq hk log c o h
+  | .capped c, o, h => by
+    simp only [chainStep, cappedRejects, hk, ↓reduceIte] at h
+    subst h; rfl
+  | .corrupt c, o, h => by
+    simp only [chainStep] at h
+    split at h
+    · subst h; rfl
+    · exact chainStep_grant_logAfter rq hk log c o h
+
+/-- **A compaction's step through the chain is `cmpOutcome`** (the auth and capped layers pass it
+on: no check, not capped). -/
+theorem chainStep_cmpOutcome (rq : IRRModel) (hk : dispatchKind rq = .compaction) (log : mvcc.Log) :
+    ∀ c : Chain, chainStep backendStep c rq log (cmpOutcome c log)
+  | .backend => by simp [chainStep, backendStep, hk, cmpOutcome, chainCompacts]
+  | .corrupt c => by simp [chainStep, corruptRejects, hk, cmpOutcome, chainCompacts]
+  | .capped c => by
+    have ih := chainStep_cmpOutcome rq hk log c
+    have h' : cmpOutcome (.capped c) log = cmpOutcome c log := rfl
+    rw [h']
+    simp only [chainStep, cappedRejects, hk, Bool.false_eq_true, ↓reduceIte, reduceCtorEq]
+    exact ih
+  | .auth on c => by
+    have ih := chainStep_cmpOutcome rq hk log c
+    have h' : cmpOutcome (.auth on c) log = cmpOutcome c log := rfl
+    rw [h']
+    simp only [chainStep]
+    split
+    · exact Or.inr ih
+    · exact ih
+  | .quota c => by
+    have ih := chainStep_cmpOutcome rq hk log c
+    have h' : cmpOutcome (.quota c) log = cmpOutcome c log := rfl
+    rw [h']
+    exact ih
+
+/-- **A compaction's step through the chain changes no log.** -/
+theorem chainStep_cmp_log (rq : IRRModel) (hk : dispatchKind rq = .compaction) (hna : needAdminPermission rq = false)
+    (log : mvcc.Log) : ∀ (c : Chain) (o : Outcome), chainStep backendStep c rq log o → o.logAfter log = log
+  | .backend, o, h => by simp only [chainStep, backendStep, hk] at h; rw [h]; rfl
+  | .corrupt c, o, h => by simp only [chainStep, corruptRejects, hk] at h; rw [h]; rfl
+  | .capped c, o, h => by
+    simp only [chainStep, cappedRejects, hk] at h
+    exact chainStep_cmp_log rq hk hna log c o (by simpa using h)
+  | .auth on c, o, h => by
+    simp only [chainStep, authChecks, hk, hna] at h
+    exact chainStep_cmp_log rq hk hna log c o (by simpa using h)
+  | .quota c, o, h => by
+    simp only [chainStep] at h
+    exact chainStep_cmp_log rq hk hna log c o h
+
+section errIs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]
+
+/-- A persistent fact `applyErrIs err` drawn from `X` (with the persistent `V`) keeps `X`. -/
+theorem keep_errIs {V X : IProp GF} {err : GoInterface} [Persistent V]
+    (h : V ⊢ X -∗ applyErrIs err) : V ∗ X ⊢ X ∗ applyErrIs err := by
+  have h2 : V ∗ X ⊢ applyErrIs err := by
+    iintro ⟨#HV, HX⟩
+    iapply h $$ HV HX
+  exact (persistent_entails_left h2).trans (sep_mono_left sep_elim_right)
+
+/-- An error variable's error (`txn.errVarIs`), by `applyErrVars`. -/
+theorem errVarIs_errIs (g : GoString) (err : GoInterface) :
+    errVarLeaf (GF := GF) g ⊢ txn.errVarIs g err -∗ applyErrIs err := by
+  iintro #Hv H
+  iunfold txn.errVarIs at H
+  iapply errVar_applyErrIs g err $$ Hv H
+
+/-- A rejection's error. -/
+theorem rejErrIs_errIs (bk : GoInterface → IProp GF) (k : RejectKind) (err : GoInterface)
+    (hbk : go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      bk err -∗ applyErrIs err) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      rejErrIs bk k err -∗ applyErrIs err := by
+  iintro #Hv H
+  ihave #Hv' := Hv
+  icases Hv' with ⟨#HC, #HN, -⟩
+  cases k <;> simp only [rejErrIs]
+  · iapply errVarIs_errIs _ _ $$ HC H
+  · iapply errVarIs_errIs _ _ $$ HN H
+  · icases H with ⟨-, #H⟩; iapply authApplyErrIs_apply $$ H
+  · iapply hbk $$ Hv H
+
+/-- An applied write's error: `nil` or the quota's `ErrNoSpace`. -/
+theorem noSpaceErrIs_errIs (ns : Bool) (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      noSpaceErrIs ns err -∗ applyErrIs err := by
+  iintro #Hv H
+  icases Hv with ⟨-, #HN, -⟩
+  cases ns <;> simp only [noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
+  · icases H with %h; subst h; iapply applyErrIs_nil
+  · iapply errVarIs_errIs _ _ $$ HN H
+
+theorem putOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
+    (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      putOutcomeIs log o resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [putOutcomeIs]
+  · icases H with ⟨-, H⟩
+    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
+    iintro #Hv (H | H)
+    · icases Hv with ⟨-, -, -, #HL, -⟩; iapply errVarIs_errIs _ _ $$ HL H
+    · icases Hv with ⟨-, -, #HK, -⟩; iapply errVarIs_errIs _ _ $$ HK H
+  · icases H with ⟨-, H⟩
+    iapply noSpaceErrIs_errIs ns err $$ Hv H
+
+theorem deleteOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
+    (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      deleteOutcomeIs log o resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [deleteOutcomeIs]
+  · icases H with ⟨-, H⟩
+    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
+    iintro - %h; exact h.elim
+  · icases H with ⟨-, H⟩
+    iapply noSpaceErrIs_errIs ns err $$ Hv H
+
+theorem putAnswerIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
+    (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      putAnswerIs log o resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [putAnswerIs]
+  · iapply putOutcomeIs_errIs $$ Hv H
+  · icases H with ⟨H, -⟩
+    iapply putOutcomeIs_errIs $$ Hv H
+
+theorem deleteAnswerIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
+    (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      deleteAnswerIs log o resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [deleteAnswerIs]
+  · iapply deleteOutcomeIs_errIs $$ Hv H
+  · icases H with ⟨H, -⟩
+    iapply deleteOutcomeIs_errIs $$ Hv H
+
+theorem rangeOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
+    (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      rangeOutcomeIs log o resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [rangeOutcomeIs]
+  · icases H with ⟨-, H⟩
+    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
+    iintro - %h; exact h.elim
+  · icases H with ⟨%crev, H, %Hne⟩
+    iunfold txn.rangeResult at H
+    icases H with (⟨-, %ef, #Hef, %Herr⟩ | ⟨%Hce, #Hef⟩ | ⟨%Hok, -⟩ | ⟨-, %ec, #Hec, %Herr⟩)
+    · icases Hv with ⟨-, -, -, -, #HF, -⟩
+      iapply errVar_applyErrIs _ _ $$ HF
+      iexists ef; iframe Hef; ipureintro; exact Herr
+    · ihave %Hen := mvcc.rangeKeysErr_ne_nil err $$ Hef
+      exfalso
+      rcases Hne with h | h | h
+      · exact Hen h
+      · have := Hce.1; omega
+      · -- (M2, S1) a context error is of a read not below `crev` (`rangeResult`)
+        have := Hce.2.2.2.2; omega
+    · rw [Hok.2.1]; iapply applyErrIs_nil
+    · icases Hv with ⟨-, -, -, -, -, #HC, -⟩
+      iapply errVar_applyErrIs _ _ $$ HC
+      iexists ec; iframe Hec; ipureintro; exact Herr
+
+theorem txnOutcomeIs_errIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc)
+    (err : GoInterface) (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      txnOutcomeIs log t skip resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [txnOutcomeIs]
+  · icases H with ⟨-, H⟩
+    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
+    iintro #Hv H
+    iunfold txn.checkErrIs at H
+    icases Hv with ⟨-, -, #HK, #HL, #HF, #HCp, -⟩
+    icases H with (H | H | H | H)
+    · iapply errVarIs_errIs _ _ $$ HL H
+    · iapply errVarIs_errIs _ _ $$ HK H
+    · iapply errVar_applyErrIs _ _ $$ HF H
+    · iapply errVar_applyErrIs _ _ $$ HCp H
+  · icases H with ⟨-, H⟩
+    iapply noSpaceErrIs_errIs ns err $$ Hv H
+
+theorem txnAnswerIs_errIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc)
+    (err : GoInterface) (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      txnAnswerIs log t skip resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [txnAnswerIs]
+  · iapply txnOutcomeIs_errIs $$ Hv H
+  · icases H with ⟨H, -⟩
+    iapply txnOutcomeIs_errIs $$ Hv H
+
+/-- A compaction's error (`cmpAnswerIs`, M2's apply side): `nil`, mvcc's `ErrCompacted` through
+the backend (`applyErrIs` in the answer), or the corrupt applier's `ErrCorrupt`. -/
+theorem cmpAnswerIs_errIs [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (c : Chain) (crev : Int) (rev : w64) (resp : Loc) (ch : GoChan)
+    (trace : Loc) (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      cmpAnswerIs c crev rev resp ch trace err -∗ applyErrIs err := by
+  iintro #Hv H
+  icases Hv with ⟨#HC, -, -, -, -, #HCp, -⟩
+  unfold cmpAnswerIs
+  split
+  · icases H with (⟨%h, -, -⟩ | ⟨%h, #He⟩)
+    · rw [h.2]; iapply applyErrIs_nil
+    · iapply errVarIs_errIs _ _ $$ HCp He
+  · icases H with ⟨%h, #He⟩
+    iapply errVarIs_errIs _ _ $$ HC He
+
+/-- **A compaction's answer, as `dispatch` stores it** (M2's apply side, item 2): the trace owned
+(`traceRes`: `nil` on an error), and the response owned without an error (`cmpRespOk`) or, with
+one, no response and no trace, the error mvcc's `ErrCompacted` or, at a chain that does not reach
+the backend (the corrupt applier's rejection, `cmpOutcome`), `ErrCorrupt`. -/
+theorem cmpAnswerIs_split [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (c : Chain) (crev : Int) (rev : w64) (resp : Loc) (ch : GoChan)
+    (trace : Loc) (err : GoInterface) (log : mvcc.Log) :
+    cmpAnswerIs (GF := GF) c crev rev resp ch trace err ⊢
+      traceRes trace ∗ ((⌜err = GoInterface.nil⌝ ∗ cmpRespOk resp) ∨
+        (⌜resp = null ∧ err ≠ GoInterface.nil ∧ trace = null⌝ ∗
+          (txn.errVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted err ∨
+            (⌜cmpOutcome c log = .rejected .corrupt⌝ ∗
+              txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err)))) := by
+  unfold cmpAnswerIs
+  split
+  · iintro (⟨%h, Hr, Ht⟩ | ⟨%h, #He⟩)
+    · iframe Ht; ileft; iframe Hr; ipureintro; exact h.2
+    · obtain ⟨-, hr, ht, he⟩ := h
+      subst ht
+      isplitr
+      · iapply traceRes_null
+      iright
+      isplitr
+      · ipureintro; exact ⟨hr, he, rfl⟩
+      ileft; iexact He
+  · rename_i hc
+    iintro ⟨%h, #He⟩
+    obtain ⟨hr, -, ht⟩ := h
+    subst ht
+    ihave #He' := He
+    iunfold txn.errVarIs at He'
+    icases He' with ⟨%e, -, %he⟩
+    isplitr
+    · iapply traceRes_null
+    iright
+    isplitr
+    · ipureintro; exact ⟨hr, by rw [he]; nofun, rfl⟩
+    iright
+    iframe He
+    ipureintro
+    unfold cmpOutcome
+    simp [hc]
+
+/-- A revocation's answer's error (the lease-expiry plan's X7: back with the revocation arm). -/
+theorem revokeOutcomeIs_errIs (resp : Loc) (err : GoInterface) (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      revokeOutcomeIs resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [revokeOutcomeIs]
+  · icases H with ⟨-, H⟩
+    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
+    iintro - %h; exact h.elim
+  · icases H with ⟨-, H, -⟩
+    iexact H
+
+end errIs
+
+end apply
+end EtcdGrove
+end Perennial

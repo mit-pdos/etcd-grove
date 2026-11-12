@@ -1,17 +1,9 @@
 /-
-## `(*EtcdServer).Lead()` (`server.go:1762`)
-
-**Users.** the lessor's and v3rpc's callers.
-
-**Proof sketch.** A read of a read-only field or an atomic load (`srvMember`'s realization).
-
-**Changes** (from `specs-ref`'s `EtcdServer__Lead.lean` where it existed): over `srvMember`.
-
-**Margin.** The value is not tied to the model: a member's view may be stale.
+`EtcdServer.Lead` (`server.go`: `s.getLead()`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 
 @[expose] public section
 
@@ -19,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 go_etcd_io.etcd.pkg.v3 go_uber_org
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,15 +21,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`Lead()`**: as `Leader`. -/
-def EtcdServer.Lead.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Lead")) (Val #()))
-  {{ (l : w64), RET #l; True }}
+/-- `s.Lead()` returns some value of the atomic `s.lead`. -/
+abbrev EtcdServer.Lead.spec : Prop :=
+  ∀ (s : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLeadInv s }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Lead")) (Val #()))
+  {{ (v : w64), RET #v; True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

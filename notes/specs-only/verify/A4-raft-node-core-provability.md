@@ -1,8 +1,8 @@
 # A4 (raft node API and core, batches R1, R2): provability verification
 
 Reviewer: provability kind, independent. Commit under review: `1aa6fc1337` (`specs-only`).
-Targets: `Spec/go_etcd_io/raft/v3/{Model,Api,ApiCore}.lean` and the specs at the top level of
-`Spec/go_etcd_io/raft/v3/` of the functions of `node.go`, `rawnode.go`, `storage.go`,
+Targets: `SpecPlan/Spec/go_etcd_io/raft/v3/{Model,Api,ApiCore}.lean` and the specs at the top level of
+`SpecPlan/Spec/go_etcd_io/raft/v3/` of the functions of `node.go`, `rawnode.go`, `storage.go`,
 `bootstrap.go`, `status.go`, `raft.go`, `state_trace_nop.go` and `logger.go`. That excludes R3's
 `raftLog__*`, `unstable__*` and `readOnly__*`, and `util.go`'s functions. Snippets:
 `examples/specreq/{raftnode,raftcore}/`. Callee specs cited: `ApiLog.lean` (R3), `tracker/`,

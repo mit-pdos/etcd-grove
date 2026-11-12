@@ -1,90 +1,24 @@
 /-
-`(*serverWatchStream).sendLoop()` (`watch.go`): the handler's send loop, with its closure
-`sendWatch`.
-
-**Users.** `watchServer.Watch`'s send goroutine (`watch.go:192`).
-
-**Proof sketch.** `GetProgressReportInterval()` (its spec, the thread token lent and back: a
-positive interval), `time.NewTicker` (Perennial's `time`, positive). Local `ids` (the ids whose
-`Created` was sent and whose cancel response was not) and `pending` (mvcc responses of ids whose
-`Created` was not sent, in order). Loop invariant (`swsAt`'s send state): `srvWatchSend st γ who g
-sst` with the client's state `sst` agreeing with `ids`, the registrations and the mvcc consumer's
-positions (each id of `sst.regs` is registered, at the position its responses sent so far made;
-`sst.frag = none` between iterations), `pending[id]`'s responses steps of `id`'s registration from
-its start.
-* **An mvcc response** (`<-sws.watchStream.Chan()`, 3f: a response with its facts, its events
-  owned (the event structs in full, their `Kv`s read-only, `PrevKv` `nil`); a closed channel ends
-  the loop). `sendWatch`: under `mu` (`RLock`, the thread token as the reader slot) the id's
-  `prevKV` (`false` for a registration whose options `recvLoop` has not yet recorded: the loose
-  window of `WatchReq.prevOk`, `WatchPos.prevLoose`; `issues/etcd-watch-prevkv-before-created.md`;
-  the run's invariant: `prevKV[id]` is `false` or the registration's `w.prevKV`, and once `true`
-  stays so while the id is live); for each event, `IsCreateEvent` (its spec) and, with `prevKV`, mvcc's `Range(ctx, key,
-  nil, {Rev: ModRevision - 1})` (3f/3e, thread token: the key's record at that revision of a
-  reached state's history, or an error only below the member's compaction, at most the cluster's),
-  its first record written to `PrevKv`: `WatchReq.prevOk`. The response `wr` (a header by
-  `newResponseHeader(wresp.Revision)`, `Canceled` iff a compaction). Its id not `-1` and not in
-  `ids`: buffered in `pending` (facts kept), `true`. Else, under `mu`, `fragment[id]`; sent whole
-  (`Send`, `srvWatchSend_send`) or by `sendFragments` (its spec, `S ms :=` the half after the
-  fragments `ms`, each fragment's `wireStep` from the pending-fragment state (a fragment only for an id with
-  `fragment[id]`, i.e. created with `Fragment`; each has events); the whole
-  response's from mvcc's facts). The facts of a response of a registered id: mvcc's step of its
-  registration (whole revisions of the range's filtered events after its position, the header at
-  least the last event's; a progress at a synced watcher's revision, not below its start; a
-  compaction above its position, at most the cluster's compaction) with `prevOk`, and the
-  permission at the registration's `σa`: `watchStep`'s cases. Of an id not in `sst.regs` (its
-  cancel or compaction response sent): `wireStep`'s "nothing". Of id `-1` (`RequestProgressAll`'s
-  answer, never buffered): a progress at `P` of every registration live when it was produced; a
-  registration of `sst.regs` not live then was canceled, and its cancel request was received
-  before (`rs`): `wireStep`'s exemption. A cancel response retires its id (`ids` loses it, so
-  its later mvcc responses stay in `pending`: `WireSt.retired`); a `Created` id is new (mvcc's
-  auto ids only grow: `WireSt.seen`); every response gets `newResponseHeader` (`hdr ≠ none`). After a successful send with events, `progress[id]`
-  cleared under `mu`. A failed send (`isClientCtxErr`, the log or the metric) ends the loop.
-* **A control response** (`<-sws.ctrlStream`, closed: the loop ends): a `Created` one first drains
-  mvcc's channel (`select` with `default`: every response produced before the creation is sent
-  first, so a progress of id `-1` computed before the registration cannot follow its `Created`:
-  the fork's fix of `issues/etcd-watch-progress-before-created.md`); then `Send` with the control
-  protocol's facts (the `k`-th create's answer when `sst.answered = k`; a registration with a fresh
-  id and its `σa`; a cancel's id); `verify.Assert` holds (a `Created` and `Canceled` answer has id
-  `-1`); a cancel's id leaves `ids`; a `Created` one enters it and its `pending` responses are
-  sent in order (`Send` each: steps of the new registration from `WatchPos.init s H`, `H` the
-  `Created` header's revision, at least the registration's revision) and deleted.
-* **The ticker**: under `mu`, `RequestProgress(id)` (3f, thread token: a progress of `id` at the
-  store's revision if its watcher is synced and the revision not below its start) for each id whose
-  flag is set, every flag set.
-* **`closec`**: the loop ends.
-On every exit the deferred function stops the ticker and drains mvcc's channel (until mvcc's
-`Close` closes it: `swsAt`'s close protocol) and `pending`, with metrics (`ReportEventReceived`,
-3f).
-
-**verify-round (client-watch's requests).** A fragmented response's fragments agree with the
-first's id, header, compaction revision and cancel reason (`wireStep`'s fragment rule): from
-`sendFragments.spec` (each fragment a copy of `wr`). Each event of a response is an event of the
-history the watch keeps, its key in the watch's range and passing its filters (1b's `watchStep`,
-unconditionally): from mvcc's `wStep`'s unconditional event clause (requested of mvcc by
-client-watch; mvcc adds it in a second pass) and the filters' `filterNoPut.spec`/
-`filterNoDelete.spec`.
-
-**Changes** from `specs-ref`'s file: the old run record, the down position's `watchDn`, mvcc's
-consumer and received-list authority, the `threadBound` premise and the store's reader token
-replaced by the run's shares (`swsAt`, `swsSender`) and the thread token; the facts are 1b's wire
-protocol (`wireStep`); `prevKV`, fragments and filters in scope.
-
-**Margin.** Mirrors the code: what is sent is `srvWatchSend`'s business.
+`v3rpc.serverWatchStream.sendLoop` (`watch.go`). Lean-first (no Rocq counterpart); the
+vocabulary is `v3rpc/InvWatchStream.lean` and `v3rpc/InvWatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchInternal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.server.v3.etcdserver.api
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -92,18 +26,33 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`sws.sendLoop()`**: sends the run's responses down the stream, each with its `wireStep`
-facts, until a send fails, a channel closes or the run closes. -/
-def serverWatchStream.sendLoop.spec : Prop :=
-  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames),
+/-- **`sws.sendLoop()`**: sends down the mvcc watch stream's responses (buffered until their
+watch id's created response is sent), the control responses (a created one after draining the
+stream's channel down to its watcher's stamp) and, on the progress ticker, asks for the progress of
+the watchers that want it; until a send fails, the control stream or the mvcc stream's channel is
+closed, or `closec` is. Every response it sends at down position `j` carries `watchDn j m`
+(`watchStreamSpec`). The mvcc API migration (2026-11-05, the draft
+`notes/mvcc-api-clients/WatchSpecs.lean` §6): the consumer's `wsRecv ι []` and the received list's
+authority at `[]` in place of mvcc's `watchConsumer`; the thread bound stays, for
+`GetProgressReportInterval`; (the store's readers as client-held tokens, 2026-11-07) a reader token
+of the store (`mvccReaders r.W.γm 1`, which `RequestProgress` takes; `lean`'s store reader slot). -/
+abbrev v3rpc.serverWatchStream.sendLoop.spec : Prop :=
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      swsAt sws γ who st g ∗ srvWatchSend st γ who g WireSt.init ∗ swsSender sws ∗ threadTok }}
+      v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs [] ∗
+      spscConsumer r.γctrl ([] : List Loc) ∗ mvcc.api.wsRecv r.ι [] ∗
+      monoListAuthOwn r.γr 1 ([] : List mvcc.api.WResp) ∗
+      ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
+      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗ threadTok ∗
+      mvcc.api.mvccReaders r.W.γm 1 }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"sendLoop")) (Val #()))
-  {{ RET #(); threadTok }}
+  {{ RET #(); threadTok ∗ mvcc.api.mvccReaders r.W.γm 1 }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

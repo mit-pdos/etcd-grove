@@ -1,21 +1,10 @@
 /-
-`(*concurrency.stm).fetch` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: the read set's lookups; else `OpGet.spec` per key (the gets' options `gs`), the KV
-contract's `Txn(...).Then(gets...).Commit()` (a read-only transaction: its persistent update
-from the read permission, `etcdPeek`); its reply's nested ranges (W0's model: one per key, each
-with its view's revision as header) persisted, `readSet.add.spec` (each read `readOf` the
-reply's state); an error: `panic(stmError{err})` (`stmRet`'s abort).
-
-Changes: from `specs-ref`'s `stm__fetch.lean`: restated over `stmCoreAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stm.fetch(keys...)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -23,35 +12,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.fetch(keys...)`: `nil` for no key; the response of the first key already read, else one read transaction of all the keys (at the gets' options) and the first's response; or the abort. -/
-def stm.fetch.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (sl : GoSlice) (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs ∗ sl ↦*□ ks }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"fetch")) (Val #sl))
-  {{ (r : val), RET r; stmRet r (fun resp : Loc => iprop(∃ a',
-      stmCoreAt p γ who iso a' gs ∗
-      ⌜a'.writes = a.writes ∧ (∀ k e, a.reads k = some e → a'.reads k = some e) ∧
-            (∀ k, a'.reads k ≠ none → a.reads k ≠ none ∨ k ∈ ks)⌝ ∗
-          ((⌜ks = [] ∧ resp = null ∧ a' = a⌝) ∨
-           (∃ (k : GoString) (e : ReadM),
-              ⌜(ks.find? (fun k => decide (a.reads k ≠ none)) = some k ∨
-                (ks.find? (fun k => decide (a.reads k ≠ none)) = none ∧ ks.head? = some k)) ∧
-                a'.reads k = some e⌝ ∗ readRespAt resp e)))) iprop(True) }}
+/-- `s.fetch(keys...)`, keys under `pfx`: nil for no key; the read of the first key already read,
+if any; otherwise one read transaction getting every key (with the get options), whose
+responses are added to the reads, and the first key's. The read returned may differ from the read set's entry of its key in its
+header revision (not in its key-value): with a key listed twice, the read set keeps the later
+response (`readsAdd`), and the range responses of one transaction are not modelled to share a
+header. A client error aborts it (`stmRet`). At most `stmCallMax` keys, each within `stmKeyMax` (the
+read transaction fits a gRPC message, `fetchTxn_size`). -/
+abbrev stm.fetch.spec : Prop :=
+  ∀ (b : Loc) (pfx : GoString) (reads : GMap GoString ReadM) (gs : List (OpFull → OpFull))
+    (ksl : GoSlice) (ks : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b reads ∗ stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗
+      ksl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ ∗
+      ⌜ks.length ≤ stmCallMax ∧ ∀ k ∈ ks, k.length ≤ stmKeyMax⌝ }}
+    (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"fetch")) (Val #ksl))
+  {{ (r : val), RET r; stmRet r fun p : Loc => iprop(
+      ∃ reads' : GMap GoString ReadM, stmRsetOwn pfx b reads' ∗
+      stmOptsOwn b gs ∗ ⌜ReadsGrow reads reads' ks⌝ ∗
+      (⌜ks = [] ∧ p = null⌝ ∨
+        ∃ (k : GoString) (e e' : ReadM), ⌜k ∈ ks ∧ reads' !! k = some e' ∧ e'.kv = e.kv⌝ ∗
+          readRespAt pfx k p e)) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

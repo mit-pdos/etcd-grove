@@ -1,19 +1,9 @@
 /-
-## `(*snapshotSender).post(req)`
-
-**Users.** `snapshotSender.send`.
-
-**Proof sketch.** `WithCancel`, `WithContext`, a goroutine doing `RoundTrip` (with the request's knowledge and ticket), a `time.AfterFunc` closing the body on a timeout (`readerCloser`), `io.ReadAll`, a result channel of capacity 1; a `select` on `stopc` (`errStopped`) and the result; `checkPostResponse`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (brief item 3): the package's error variables' values come from `vars_init.spec` (each `errIs g e`, non-nil, `Http.errOk`; pairwise distinct by `errVars_distinct.spec`), not from Lean constants; statement unchanged.
-
-**Margin.** None.
+`(*snapshotSender).post(req)` (`snapshot_sender.go`; rafthttp stage 7d, D42). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Snapshot
 
 @[expose] public section
 
@@ -21,26 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Round-trips the snapshot request** (stopping on `stopc`): `nil` only for a `204`. -/
-def snapshotSender.post.spec : Prop :=
-  ∀ (s : Loc) (ν : Net GF) (lid pid : w64) (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ ssAt s ν lid pid ∗ snapReq r ν lid pid }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender.ty @!! go!"post")) (Val #r))
-  {{ (err : GoInterface), RET #err; Http.errOk err }}
+/-- **`s.post(req)`** of a snapshot sender to `pid`, of a request built for `R` (a snapshot
+request of the raft protocol to a host of `pid`, with its streamed body, of the kind the protocol
+allows, `reqSendOk`) and its ticket: the request is sent on a goroutine (`RoundTrip`, then the
+response's body read, a timer draining it after `snapResponseReadTimeout`); `post` returns
+`errStopped` if the sender is stopped first, else the round trip's or the read's error, else
+`checkPostResponse`'s. Its error is `snapPostErr`'s: `nil`, net/http's, or a leaf pointer error
+other than `errMemberRemoved` (a member's snapshot response is never a `403`). -/
+abbrev rafthttp.snapshotSender.post.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (s : Loc) (pid : w64) (req : Loc) (R : http.HReq) (γk : GName)
+    (Pre Φ : List w8 → Prop),
+  R.path = snapPath → Rh.owner R.host = pid →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      snapSenderOk Rh pid s ∗ http.reqOwn req R ∗ http.reqStream req (.stream Pre Φ) ∗
+      http.reqSendOk (raftHttpNet Rh) R γk (.stream Pre Φ) ∗ http.reqTicket γk ∗
+      □ (raftProto Rh).req R γk }}
+    (App (Val (s @!! go.GoType.PointerType rafthttp.snapshotSender.ty @!! go!"post")) (Val #req))
+  {{ (err : GoInterface), RET #err; snapPostErr err }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

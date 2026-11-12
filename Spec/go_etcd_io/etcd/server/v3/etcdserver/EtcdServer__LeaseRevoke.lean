@@ -1,41 +1,27 @@
 /-
-## `(*EtcdServer).LeaseRevoke(ctx, r)`
-
-**Users.** The gRPC lease handler (`api/v3rpc/lease.go:54`); the lessor's expiry
-(`revokeExpiredLeases`, `server.go:882`: the context `authStore.WithRoot(s.ctx)`, principal `root`
-when auth is enabled at the call, else the context unchanged (`reqPrin` of 3d's `WithRoot` spec:
-`some root` or `none`, mode-dependent), with an update built from W0's `envUpd` (`EnvStep.leaseExpire` for a
-live lease's revocation, the identity aborted: every other answer of `Step` leaves the state as it
-was); it ignores the reply). Snippet: `examples/specreq/etcdserverreq/lease.go`
-(`ReqGrantThenRevoke`, `ReqExpiryRevoke`).
-
-**Proof sketch.** The span, `requireAuthInfo` (a refusal given back), `raftRequest` at `.req
-(.leaseRevoke id)`, the type assertion `resp.(*pb.LeaseRevokeResponse)`.
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__LeaseRevoke.lean`) restated over W0's
-`leaseStep` (the keys attached deleted at one revision, the permission of `checkLeasePuts`).
-
-**Margin.** As `Put`.
-
-Changes: verify-round (A7-completeness F1): no `srvGate` share (Go reads nothing `Cleanup` closes: `requireAuthInfo` then `raftRequest`), so the lessor's revocations, which run through `HardStop` until `run`'s `s.wg.Wait()`, can call it; the root context's principal by `reqPrin_root`.
-
-Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
+`s.LeaseRevoke(ctx, r)` (`v3_server.go:470-486` at the pin): the lease-expiry plan's X6
+(`notes/lease-expiry-plan.md`, 2026-11-04). Lean-first (no Rocq counterpart); vocabulary
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseRevoke.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.context.ReqKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRevoke
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeCtx
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -44,15 +30,35 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.LeaseRevoke(ctx, r)`**: the revocation of lease `id`, as `Put` (through raft). -/
-def EtcdServer.LeaseRevoke.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int),
-  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseRevoke")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id))
-    iprop(threadTok ∗ ClientV3.reqOwn r dq (.leaseRevoke id)) γ p tls (.leaseRevoke id) false srvHdrReply
+/-- **`s.LeaseRevoke(ctx, r)`**, any goroutine, in a cluster that revokes leases
+(`srvRevokesLeases`: the lease mode `revocable`, auth off), at a context, with the request path's
+resources (`LeaseGrant`'s: the server's request-side facts, the auth store's contract `srvAuthAt`
+for `requireAuthInfo`, the leader-timeout reader, the backend reader `E.RD`, the id generator's
+credits) and the decoded request (`leaseRevokeReqRO`: not `null`, its `ID` read-only): on `nil`, the
+server's response (`leaseRevokedResp`: its header at a revision the store has reached, the
+revocation's commit applied); on an error, no response and an error the gRPC layer can take.
+
+Why it is true of the Go code: the span reads `r.GetID()`; `requireAuthInfo` returns `nil` with auth
+off; `raftRequest` proposes `{LeaseRevoke: r}` (`reqPropOk`'s revocation form, at the revocable
+mode) and returns the apply thread's result: the backend applier's `LeaseRevoke` (`lessor.Revoke`
+of `r.ID`, then `newHeader()`) answers a fresh `*pb.LeaseRevokeResponse` whose header is the store's
+at the log after the revocation; a lease not found (`ErrLeaseNotFound`) or a timeout is an error. The
+type assertion `resp.(*pb.LeaseRevokeResponse)` does not panic: the apply of a `LeaseRevoke` request
+answers that type (`apply.revokeAnswer`). -/
+abbrev EtcdServer.LeaseRevoke.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (id : w64),
+  srvRevokesLeases E ρ →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
+      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ leaseRevokeReqRO r id }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRevoke"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseRevokedResp E resp) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

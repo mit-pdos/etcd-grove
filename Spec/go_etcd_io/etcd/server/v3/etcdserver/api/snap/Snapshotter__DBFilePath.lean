@@ -1,19 +1,16 @@
 /-
-## `(*Snapshotter).DBFilePath(id)` (`db.go:98-115`): trusted (names only)
-
-**Users.** `OpenSnapshotBackend` (2d's `applySnapshot`). **Why it is true.** The directory read
-(an error returned: `diskOk`'s, its docstring lists it: the error arm says the file is absent), then
-whether `<id:016x>.snap.db` exists: a read of `snapDbs` (the update fired with the state
-unchanged); its path `dbPathOf sd id`, or `ErrNoDBSnapshot`. **Changes** (from `specs-ref`'s
-`Snapshotter__DBFilePath.lean`): over the db files' model. Verify-round (A8 provability F5, F7): the
-path is named (`dbPathOf`, which `dbFile_rename` renames); the `ReadDir` failure is `diskOk`'s.
-**Margin.** None.
+`snap.Snapshotter.DBFilePath(id)` (`etcdserver/api/snap/db.go`; names only): the path of the
+database snapshot of index `id` if the file exists, else an error (the snapshot directory
+unreadable, or no such file: `ErrNoDBSnapshot`, with a warning). The trust boundary (D22 S-f,
+2026-10-19; an axiom in `Proof/.../snap/Snapshotter__DBFilePath.lean`). Lean-first (no Rocq
+counterpart); the vocabulary is `Proof/.../snap/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Api
-public import Spec.go_uber_org.zap.Api
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
+public import Spec.fmt.Errorf
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
 
@@ -21,30 +18,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Snap
 
-open Iris Iris.BI
+open Iris Iris.BI snap
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
-/-- **Finds the database snapshot of index `id`**: its path, or an error when there is none. -/
-def Snapshotter.DBFilePath.spec : Prop :=
-  ∀ (ss : Loc) (sd : GoString) (id : w64) (Q : Option BeImage → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗ isSnapshotter ss sd ∗ ⌜ServerStorage.diskOk⌝ ∗
-      (AU <{ ∃∃ (F : Nat → Option BeImage), snapDbs sd F }> @ ⊤, ∅
-        <{ snapDbs sd F, COMM Q (F (uint.nat id)) }>) }}
-    (App (Val (ss @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!! go!"DBFilePath")) (Val #id))
-  {{ (path : GoString) (err : GoInterface), RET (PairV #path #err);
-      (⌜err = GoInterface.nil ∧ path = dbPathOf sd (uint.nat id)⌝ ∗ ∃ img, Q (some img)) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ Q none) }}
+/-- `ss.DBFilePath(id)`, the file of index `id` held (holding `D`): `snapDBPath ss id` and nil, or
+an error `fmt` can format, the directory's read having failed (`¬ dirReadOk ss`: D22 receiver
+epochs, S8d, 2026-10-24; with the file there, `ErrNoDBSnapshot` is not returned). -/
+abbrev snap.Snapshotter.DBFilePath.spec : Prop :=
+  ∀ (ss : Loc) (id : w64) (D : backend.Data),
+  {{ isSnapshotter (GF := GF) ss ∗ backend.fileHolds (snapDBPath ss id) D }}
+    (App (Val (ss @!! go.GoType.PointerType
+        _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!!
+        go!"DBFilePath")) (Val #id))
+  {{ (p : GoString) (err : GoInterface), RET (PairV #p #err);
+      backend.fileHolds (snapDBPath ss id) D ∗
+      (⌜err = GoInterface.nil ∧ p = snapDBPath ss id⌝ ∨
+        (⌜err ≠ GoInterface.nil ∧ ¬ dirReadOk ss⌝ ∗ fmt.argOk err)) }}
 
 end spec
 
-end Snap
 end EtcdGrove
 end Perennial

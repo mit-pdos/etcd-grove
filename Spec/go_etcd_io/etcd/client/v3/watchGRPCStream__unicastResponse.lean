@@ -1,23 +1,22 @@
 /-
-`(*watchGRPCStream).unicastResponse(wr, id)`: to the substream registered as `id`, unless none is or its goroutine stopped (`false`). Users: `dispatchEvent`.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.watchGRPCStream).unicastResponse(wr, watchID)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,18 +24,30 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `s.unicastResponse(wr, id)`. -/
-def watchGRPCStream.unicastResponse.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (who : Principal) (r : RunM) (wr : Loc)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) (mw : WatchRespM) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsRun s γ who r ∗ wr ↦□ v ∗ watchRespAt v mw ∗ deliverOk s γ who (some (sint.Z id)) mw }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"unicastResponse")) (Val #wr)) (Val #id))
-  {{ (ok : Bool), RET #ok; wgsRun s γ who r ∗
-      ⌜ok = true → (sint.Z id) ∈ r.subs.map Prod.fst⌝ }}
+/-- `w.unicastResponse(wr, watchID)`: `false` if no substream is registered under the id; otherwise
+sends `wr` to it (`true`: its content delivered) unless the substream has stopped (`false`: the
+content back, the substream's `donec` closed). The target's values are `Pf ws`, its `recvc`
+producer's history `Sf ws`, its lifetime's `donec` `Df ws` (D25; with `run`'s generation authority
+at `n`, `dnCap`). -/
+abbrev watchGRPCStream.unicastResponse.spec : Prop :=
+  ∀ (V : WEnv GF) (wgs wr : Loc) (watchID : w64) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac)
+    (Pf : Loc → WsPrm GF) (Sf : Loc → List Loc) (Df : Loc → DnInfo GF) (γend : GName) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗ monoNatAuthOwn γend 1 n ∗
+      (match M !! watchID with
+       | some ws => iprop(⌜(Pf ws).ws = ws⌝ ∗ sendCap1 V (Pf ws) (Sf ws) wr (Df ws) γend n)
+       | none => iprop(True)) }}
+    (App (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"unicastResponse")) (Val #wr)) (Val #watchID))
+  {{ (b : Bool), RET #b; wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
+      monoNatAuthOwn γend 1 n ∗
+      (match M !! watchID with
+       | some ws => iprop((⌜b = true⌝ ∗ sendDone (Pf ws) (Sf ws) wr (Df ws) γend n) ∨
+           (⌜b = false⌝ ∗ sendFail V (Pf ws) (Sf ws) wr (Df ws) γend n))
+       | none => iprop(⌜b = false⌝)) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

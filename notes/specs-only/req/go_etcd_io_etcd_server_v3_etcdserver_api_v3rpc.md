@@ -73,7 +73,7 @@ start-up parts go to 2e (`req/go_etcd_io_etcd_server_v3_etcdserver.md`).
 
 Batch 1b (the client's watch) needs the member's **Watch stream handler** (2b, `v3rpc/watch.go`,
 over mvcc's watchable store, 3f) to give each response the facts of `wireStep`
-(`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`), through grpc's stream (`req/google_golang_org_grpc.md`,
+(`SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`), through grpc's stream (`req/google_golang_org_grpc.md`,
 `wireWatchRecv_recv.spec`): with `etcdLb γ σ` for a state `σ` of the cluster the response's events
 and revisions are read against (the committed log's state the member's store had reached), and
 `etcdLb γ σa` for the auth state that admitted the watch. In plain terms, for a stream of a client
@@ -256,7 +256,7 @@ precondition, as you asked: "from 2a" item 3).
 **Reader tokens through the watch handler's loops** (the coordinator's decision on 3f's review F3,
 keeping the user's 2026-11-07 decision for mvcc: a call that reads mvcc's store takes one of its
 reader tokens, 3e's `mvccReaders γ 1`, and gives it back; no thread token is converted inside mvcc).
-mvcc's watch stream (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiWatch.lean`) takes one in
+mvcc's watch stream (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiWatch.lean`) takes one in
 `watchStream.Watch`, `Rev`, `RequestProgress`, `RequestProgressAll` (and `watchableStore.Range`,
 3e's contract, for `prevKV`). So `serverWatchStream.recvLoop` (`Watch`, `Rev`, `RequestProgressAll`)
 and `sendLoop` (`RequestProgress`, `Range`) each need a reader token of the member's store for their

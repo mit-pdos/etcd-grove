@@ -36,7 +36,7 @@ yes, for the request path's read checks (2c's `Range`, `RangeStream` and read-on
 `CheckTxnAuth`): at this input their posts, which say the model's range is permitted, are false.
 The specs sidestep it with a scope premise. 3a's `CheckTxnAuth.spec`, `checkTxnPermission.spec`
 and `checkTxnReqsPermission.spec` take `endsDecoded rt` / `opsDecoded sl`
-(`Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`, provisional for W0/3h): every range
+(`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`, provisional for W0/3h): every range
 end in the message is `nil` or non-empty, as gRPC's decoding gives. The apply thread gets it from
 the decoded entry (`reqMsgAt_endsDecoded`). 2c's `Range` needs the same premise on its
 `rangeReqOwn`, or its gRPC caller's decoding fact. The auth store's specs (3d) state the code's

@@ -1,14 +1,12 @@
 /-
-## `Interface.EstimatedWritePageSize()` (`shared.go`, `array.go`, `hashmap.go`)
-
-**Users.** tx.go:289 (`commitFreelist`: the pages to allocate for `Write`), tx.go:361 (stats). Snippet `ReqWriteReload`.
-**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; `Count()`, then `16 + 8 * (n + 1 if n ≥ 0xFFFF)`, below `2^63` by the bound.
-**Changes.** from `specs-ref`'s `Interface__EstimatedWritePageSize.lean`: over `FLState`; the bound `flMaxIds` (a named constant) in place of `WF`'s `2^63`.
-**Margin.** none: the post is what the code computes.
+`Interface.EstimatedWritePageSize` (bbolt/internal/freelist, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U2; used by U5 (`Tx.close`), U10 (`commitFreelist`). Proof:
+`Proof/go_etcd_io/bbolt/internal/freelist/Interface__EstimatedWritePageSize.lean` (a `sorry` until U2).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.freelist.Api
+public import Proof.go_etcd_io.bbolt.Inv.Freelist
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,29 +14,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Freelist
+namespace bbolt
+namespace internal
+namespace freelist
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common BboltCommon
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common go_etcd_io.bbolt.internal.freelist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The contract of `EstimatedWritePageSize` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.EstimatedWritePageSize()`: the bytes `Write` needs (`FLState.estimatedSize`). -/
-def Interface.EstimatedWritePageSize.contract (fl : GoInterface) (f : Expr) : Prop :=
-  ∀ (F : FLState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flOwn fl F ∗ ⌜F.count < flMaxIds⌝ }}
-    (App f (Val #()))
-  {{ RET #(W64 (F.estimatedSize : Int)); flOwn fl F }}
-
-/-- `f.EstimatedWritePageSize()`: the bytes `Write` needs (`FLState.estimatedSize`). Through the interface (`flCall`): proved from `array.EstimatedWritePageSize.spec`, `hashMap.EstimatedWritePageSize.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
-def Interface.EstimatedWritePageSize.spec : Prop := ∀ fl, Interface.EstimatedWritePageSize.contract (GF := GF) fl (flCall fl go!"EstimatedWritePageSize")
+/-- `f.EstimatedWritePageSize()`: the bytes `Write` needs: a header, and 8 bytes per free or
+pending id, plus one for the count when there are `0xFFFF` or more.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
+abbrev Interface.EstimatedWritePageSize.spec : Prop :=
+  ∀ (fli : GoInterface) (fl : FLPg),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl }}
+    (App (ifaceCall fli go!"EstimatedWritePageSize") (Val #()))
+  {{ RET #(W64 ((16 + 8 * (fl.allIds.length +
+        (if 0xFFFF ≤ fl.allIds.length then 1 else 0)) : Nat) : Int)); flPgOwn fli fl }}
 
 end spec
 
-end Freelist
+end freelist
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

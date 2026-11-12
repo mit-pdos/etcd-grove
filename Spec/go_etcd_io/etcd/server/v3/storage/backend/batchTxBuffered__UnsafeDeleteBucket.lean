@@ -1,17 +1,12 @@
 /-
-## `(*batchTxBuffered).UnsafeDeleteBucket(bucket)` (`batch_tx.go:417-420`): translated
-
-**Users.** The schema's `TrimClusterFromBackend` (`membership.go:69`, the `cluster` bucket).
-
-**Proof sketch.** `batchTx.UnsafeDeleteBucket` (bbolt's `DeleteBucket`; `ErrBucketNotFound`
-ignored; other errors `lg.Fatal`), `pending++`, `pendingDeleteOperations++` (the readers see it at
-the commit). The caller owns the whole bucket.
-
-**Changes.** From `specs-ref`'s: over the bucket's footprint. **Margin.** None.
+`UnsafeDeleteBucket` (the backend). `t.UnsafeDeleteBucket(bucket)` under the lock: the bucket deleted (absent or not); a pending
+delete.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -19,29 +14,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafeDeleteBucket(bk)`**: `bk`'s bucket gone from the batch image, entries and all. -/
-def batchTxBuffered.UnsafeDeleteBucket.spec : Prop :=
-  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (G : Fp) (C : Image) (bk : GoInterface)
-    (bi : BktInfo),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ beCur γ G C ∗ ⌜∀ c, Fp.bucket bi.name c → G c⌝ ∗
-      writable γ F (Fp.bucket bi.name) ∗ (if bi.safe then beDelHeld γ else iprop(True)) }}
-    (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeDeleteBucket")) (Val #bk))
-  {{ RET #(); beSess γ q F (S.dropBkt bi.name) ∗ beCur γ G (C.dropBkt bi.name) ∗
-      (if bi.safe then beDelHeld γ else iprop(True)) }}
+/-- `t.UnsafeDeleteBucket(bucket)` under the lock: the bucket deleted (absent or not); a pending
+delete. Not a safe-range bucket (`P.SB`), nor one with a hook's own key (`P.hk`) or a compaction
+key (`fkKey`: the `meta` bucket, the M2 storage plan's items 27/29, 2026-10-30); a tracked bucket
+(`P.RB`, D22, 2026-10-23) with the client's part of that bucket (`rbPut`: since decision 3,
+2026-11-01, of its bucket only), given back updated. -/
+abbrev backend.batchTxBuffered.UnsafeDeleteBucket.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo),
+  P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false → (∀ k, P.hk bi.name k = false) →
+  (∀ k, ¬ fkKey bi.name k) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ rbPut γ P bi.name st.S }}
+    (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDeleteBucket")) (Val #bk))
+  {{ RET #(); batchLocked γ P b (st.delBucket bi) ∗ rbPut γ P bi.name (st.delBucket bi).S }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

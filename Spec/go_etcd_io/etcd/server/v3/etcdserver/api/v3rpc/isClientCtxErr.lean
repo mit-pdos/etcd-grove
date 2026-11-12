@@ -1,43 +1,41 @@
 /-
-`v3rpc.isClientCtxErr` (`server/etcdserver/api/v3rpc/`).
-
-Users: `LeaseServer.leaseKeepAlive` (log levels), 2b's watch loops.
-
-Proof sketch: `status.FromError` (`errView`), `Code()`, `Message()`, `strings.HasPrefix`/`HasSuffix` (Perennial's).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/isClientCtxErr.lean`: any error grpc's `status` can view.
-
-Margin: the result is not specified: callers only choose a log level.
+`v3rpc.isClientCtxErr` (`util.go`): the trust boundary (names only: it classifies an error
+for the logs, through grpc's `status.FromError` and the status's code and message). Lean-first (no Rocq counterpart); the
+vocabulary is `v3rpc/InvWatchStream.lean` and `v3rpc/InvWatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `isClientCtxErr(ctxErr, err)`: returns, no panic. -/
-def isClientCtxErr.spec : Prop :=
-  ∀ (ctxErr err : GoInterface) (c : w32) (m : GoString) (ok : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ errView err c m ok }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr)) (Val #ctxErr)) (Val #err))
+/-- **`isClientCtxErr(ctxErr, err)`** returns (a boolean the caller only logs by). -/
+abbrev v3rpc.isClientCtxErr.spec : Prop :=
+  ∀ (ctxErr err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc }}
+    (App (App (Val (@! v3rpc.isClientCtxErr)) (Val #ctxErr)) (Val #err))
   {{ (b : Bool), RET #b; True }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

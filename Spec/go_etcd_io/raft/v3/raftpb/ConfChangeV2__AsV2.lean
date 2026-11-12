@@ -1,13 +1,10 @@
 /-
-`(*ConfChangeV2).AsV2` (`raftpb/confchange.go:75`): the identity.
-
-Users: as `ConfChange.AsV2` (through `ConfChangeI.AsV2`), `MarshalConfChange`.
-Proof sketch: returns its receiver. Changes: from `specs-ref/.../raftpb/ConfChangeV2__AsV2.lean`:
-no predicate needed. Margin: none.
+`(*ConfChangeV2).AsV2` (`raftpb/confchange.go:74`). Port of the old spec to raft v3.7 (pointer
+receiver; stage R1).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Api
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -15,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace RaftPb
 
-open Iris Iris.BI
-open go_etcd_io.raft.v3
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `p.AsV2()` returns `p` (any `p`). -/
-def ConfChangeV2.AsV2.spec : Prop :=
-  ∀ (p : Loc),
+/-- `c.AsV2()` returns `c`. -/
+abbrev raftpb.ConfChangeV2.AsV2.spec : Prop :=
+  ∀ (c : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
-    (App (Val (p @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"AsV2")) (Val #()))
-  {{ RET #p; True }}
+    (App (Val (c @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"AsV2")) (Val #()))
+  {{ RET #c; True }}
 
 end spec
 
-end RaftPb
 end EtcdGrove
 end Perennial

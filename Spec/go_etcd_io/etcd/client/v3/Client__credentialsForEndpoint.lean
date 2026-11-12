@@ -1,18 +1,9 @@
 /-
-`(*clientv3.Client).credentialsForEndpoint` (`client/v3/client.go`).
-
-Users: `dialWithBalancer`, `Dial`.
-
-Proof sketch: `endpoint.RequiresCredentials(ep)` (its spec: one of the three requirements, so the
-`panic` default is unreachable); `nil`, `c.creds`, or `NewTransportCredential(nil)`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__credentialsForEndpoint.lean`.
-
-Margin: none.
+`c.credentialsForEndpoint(ep)` (`client/v3/client.go`; item 5). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -20,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +21,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.credentialsForEndpoint(ep)`: transport credentials for `ep`. -/
-def Client.credentialsForEndpoint.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ep : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who }}
+/-- `c.credentialsForEndpoint(ep)` of a plain endpoint: the client's credentials (`c.creds`,
+read-only). -/
+abbrev Client.credentialsForEndpoint.spec : Prop :=
+  ∀ (c : Loc) (ep : GoString) (cr : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientF c go!"creds" ↦□ cr ∗
+      ⌜plainEndpoint ep⌝ }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"credentialsForEndpoint")) (Val #ep))
-  {{ (creds : GoInterface), RET #creds; transportCredsOk creds }}
+  {{ RET #cr; True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

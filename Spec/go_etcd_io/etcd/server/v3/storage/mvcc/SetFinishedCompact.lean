@@ -1,12 +1,9 @@
 /-
-`SetFinishedCompact(tx, value)` (`store.go:50`). Internal; no caller in the pinned etcd but mvcc's
-tests (kept: an old spec). As `SetScheduledCompact`, of the finished key.
-
-**Changes** from `specs-ref`'s file: over the storage contract.
+`SetFinishedCompact` (`store.go`) (2026-10-13, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -14,33 +11,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `SetFinishedCompact(tx, value)`: the hook, then the finished key written and made visible. -/
-def SetFinishedCompact.spec : Prop :=
-  ∀ (B : MvccStorage) (Pk : IProp GF) (q : Qp) (dq : DFrac) (f : GoFunc) (Pre Q' Post R : IProp GF)
-    (value : w64),
-  let D' (D : KeyData) := D.putMeta .fin (revBytes ⟨value, W64 0⟩ false)
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      keyBackend B Pk ∗ kbOpen B q ∗ storageHook B dq f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗
-      (Q' ={⊤}=∗ Pk ∗ Post) ∗
-      kbObs B (fun D => iprop(⌜D.metaMade = true⌝ ∗
-        AU <{ ∃∃ (D1 : KeyData), kbData B D1 }> @ ⊤, ∅ <{ kbData B (D' D), COMM
-          AU <{ ∃∃ (D2 : KeyData), kbData B D2 }> @ ⊤, ∅ <{ kbData B (D' D), COMM R }> }>)) }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact))
-      (Val #(GoInterface.ok (kbBatchTx B)))) (Val #value))
-  {{ RET #(); kbOpen B q ∗ storageHook B dq f ∗ Post ∗ R }}
+/-- `SetFinishedCompact(tx, value)`, `value ≥ 0`: its own critical section of the batch lock
+(`LockInsideApply`, which runs the post-lock hook `f` on the caller's `Pre`: `{P ∗ Pre} f() {Q}`),
+`UnsafeSetFinishedCompact`, `Unlock`; the caller's update, with the lock's resource `W` (the store updates
+its record of the meta key there), before the `Unlock`: `Q ∗ W ={⊤}=∗ P ∗ W ∗ Post`. Over the batch
+transaction in full generality (question 5's Draft, review round 14's F6, R9-3; the core stage, part
+(1)): its read and write tokens `RT`/`WT` (lent to `LockInsideApply`, the read token given back),
+put condition, tracked buckets' right and the compaction keys' write right `MW` are the caller's, and
+the caller's swap of the lock's resource for that right (`mwSwap W MW`: the store's, from its write
+right's invariant) gives the right for the `Meta` put. -/
+abbrev mvcc.SetFinishedCompact.spec : Prop :=
+  ∀ (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
+    (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f : val) (value : w64)
+    (Pre Q Post : IProp GF),
+  0 ≤ sint.Z value →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗ mvcc.mwSwap W iprop(∃ (w : backend.FkVals) (X : backend.VData), MW w X) ∗
+      RT ∗ WT ∗ HF f ∗ Pre ∗
+      □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ (Q ∗ W ={⊤}=∗ P ∗ W ∗ Post) }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact)) (Val #(GoInterface.ok bt)))
+      (Val #value))
+  {{ RET #(); RT ∗ Post }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

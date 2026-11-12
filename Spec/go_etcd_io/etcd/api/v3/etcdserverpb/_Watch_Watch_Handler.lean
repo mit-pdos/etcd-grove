@@ -1,17 +1,13 @@
 /-
-`_Watch_Watch_Handler(srv, stream)` (`api/etcdserverpb/rpc_grpc.pb.go`, generated): the server-side
-stream handler of `/etcdserverpb.Watch/Watch`.
-
-Users: grpc's `Serve` (2a's `streamOk`, from `Watch_ServiceDesc`'s `StreamDesc`); the service's
-method is 2b's (`watchServer.Watch`).
-Proof sketch: allocate `&grpc.GenericServerStream[WatchRequest, WatchResponse]{ServerStream: stream}`, assert the
-service interface (the premise), call its `Watch` on the wrapper.
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_Watch_Watch_Handler.lean`: WP form over grpc's server stream (2a's `streamOk` composes it).
-Margin: none.
+`etcdserverpb._Watch_Watch_Handler(srv, stream)` (`api/etcdserverpb/rpc_grpc.pb.go`, the generated
+server-side handler of the Watch service's bidirectional stream: `srv.(WatchServer).Watch(
+&grpc.GenericServerStream[WatchRequest, WatchResponse]{ServerStream: stream})`; the watch
+slice's unit W-W). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/google_golang_org/grpc/InvGrpcStream.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
+public import Proof.google_golang_org.grpc.InvGrpcStream
 
 @[expose] public section
 
@@ -19,10 +15,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServerPb
 
-open Iris Iris.BI EtcdModel EtcdWire
-open go_etcd_io.etcd.api.v3
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,23 +25,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-/-- `_Watch_Watch_Handler(srv, stream)`: the service's `Watch` on a fresh typed wrapper of the stream (WP
-form). -/
-def _Watch_Watch_Handler.spec : Prop :=
-  ∀ (srv : GoInterfaceOk) (st : GoInterface) (Ψ : val → IProp GF),
+/-- **`_Watch_Watch_Handler(srv, stream)`** for a service value `srv` whose type implements
+`WatchServer` (a method-set fact) and whose `Watch` meets `Spec` with the client's content `Up`
+and the resource `S` (`grpcStreamHandlerOk`, on the wrapped server end), for messages whose types
+are `*WatchRequest`/`*WatchResponse` (a fresh `new(WatchRequest)` is a message the receiver owns),
+on a raw server end `stream` of a fresh stream (`srvRawStreamIs`, both tokens at `[]`, its
+auxiliary name unset: `streamAuxTok`) with the specification at the run's incoming metadata,
+`Spec (incomingOf ci) γ Dn` (metadata-indexed, G2), and `S`: wraps the stream and runs `srv.Watch` on it; returns (nothing promised). -/
+abbrev etcdserverpb._Watch_Watch_Handler.spec : Prop :=
+  ∀ (Req Rep : StreamMsg GF) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep)
+    (srv : GoInterfaceOk) (S : IProp GF) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (st : GoInterface),
+  Req.ty = etcdserverpb.WatchRequest.ty → Rep.ty = etcdserverpb.WatchResponse.ty →
   go.typeSetContains srv.ty etcdserverpb.WatchServer.ty = true →
-  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-    (∀ x : Loc,
-      x ↦ (google_golang_org.grpc.GenericServerStream.mk st :
-        google_golang_org.grpc.GenericServerStream etcdserverpb.WatchRequest etcdserverpb.WatchResponse) -∗
-      WP (App (Val #(methods srv.ty go!"Watch" srv.v))
-        (Val #(interface.mkOk (go.GoType.PointerType
-          (google_golang_org.grpc.GenericServerStream.ty etcdserverpb.WatchRequest.ty etcdserverpb.WatchResponse.ty)) #x)))
-        {{ Ψ }}) ⊢
-  WP (App (App (Val (@! etcdserverpb._Watch_Watch_Handler)) (Val #(GoInterface.ok srv))) (Val #st)) {{ Ψ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.WatchRequest) -∗ Req.own l) ∗
+      grpcStreamHandlerOk #(methods srv.ty go!"Watch" srv.v) S Up Spec ∗
+      Spec (metadata.incomingOf (GoInterface.ok ci)) γ Dn ∗ S ∗
+      srvRawStreamIs st γ Req Rep Up Dn ci cd ∗ srvRecvTok (Req := Req) γ [] ∗
+      srvSendTok (Rep := Rep) γ [] ∗ streamAuxTok γ }}
+    (streamHandlerCall (@! etcdserverpb._Watch_Watch_Handler) #(GoInterface.ok srv) #st)
+  {{ (err : GoInterface), RET #err; True }}
 
 end spec
 
-end EtcdServerPb
 end EtcdGrove
 end Perennial

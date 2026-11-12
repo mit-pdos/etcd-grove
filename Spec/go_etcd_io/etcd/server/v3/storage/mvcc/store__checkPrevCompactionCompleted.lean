@@ -1,16 +1,9 @@
 /-
-`(*store).checkPrevCompactionCompleted()` (`kvstore.go:225`). Internal: `Compact` and
-`compactLockfree` (under `s.mu`); its result only decides whether the job stores its hash.
-
-**Proof sketch**: `s.b.ReadTx()`, `RLock` (a storage reader slot: the compactor's, in the open
-token), the two `UnsafeRead*Compact`s (the image's compaction keys parse: the store's invariant),
-`RUnlock`.
-
-**Changes** from `specs-ref`'s file: over `storeWB` and the storage's reader slots.
+`store.checkPrevCompactionCompleted` (`kvstore.go`) (2026-10-13, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -18,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -29,15 +21,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `s.checkPrevCompactionCompleted()` (`s.mu` held, a reader slot): some boolean. -/
-def store.checkPrevCompactionCompleted.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ isStore s γ ∗
-      storeWB s γ B Pk ∗ kbRdToks B 1 ∗ schemaVars }}
+/-- `s.checkPrevCompactionCompleted()`: some boolean (the meta keys read through a `ReadTx`
+with no view, `metaReadTx`; racy with the job, which writes `finishedCompactRev`: the result only
+decides whether the next compaction's hash is stored, which the model ignores). Of a store whose
+backend supports the compaction (`storeCmp`: mvcc's assumed backend, or a real backend in
+compaction mode, `KBReal.cm`). It reads `s.b` through a share of the store's fields at the objects `o`
+(given back: the compaction right's closer's, `compactRightR`; M2, the storage side, item 17:
+until then the discarded `storeStop`). Its `ReadTx`'s `RLock` takes the reader's token `storeRT γ` and
+its `RUnlock` gives it back (question 5's switch, decision (i), 2026-10-29: the caller lends it,
+`store.Compact`'s from the apply thread's `writerOwn`). -/
+abbrev mvcc.store.checkPrevCompactionCompleted.spec : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (q : Qp) (o : mvcc.StoreObjs),
+  mvcc.storeCmp γ →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ ∗
+      mvcc.fieldShareAt s γ q o ∗ mvcc.storeRT γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"checkPrevCompactionCompleted")) (Val #()))
-  {{ (b : Bool), RET #b; storeWB s γ B Pk ∗ kbRdToks B 1 }}
+  {{ (b : Bool), RET #b; mvcc.fieldShareAt s γ q o ∗ mvcc.storeRT γ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

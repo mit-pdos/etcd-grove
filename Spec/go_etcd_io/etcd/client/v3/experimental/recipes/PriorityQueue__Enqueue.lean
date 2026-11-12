@@ -1,22 +1,11 @@
 /-
-`(*PriorityQueue).Enqueue(val, pr)` (`priority_queue.go`): `newSequentialKV` under `key/<pr, 5 digits>`.
-
-**Users**: `T/v3_queue_test.go:104` (random priorities, then dequeued in priority order), `:226`.
-Snippet: `recipes/pqueue.go`.
-
-**Proof sketch**: `fmt.Sprintf("%s%05d", q.key, pr)` (Perennial: `pqPrefix key pr`; a `uint16` has at
-most 5 digits, so the key order is the priority order); `isClient_KV`; `newSequentialKV.spec` with
-the caller's update unchanged.
-
-**Changes**: old spec over the recipes' client invariant with a sequence certificate; now the caller's
-update over the transaction, with its read (`R`, `seqNext`): two items of one priority get distinct
-keys in enqueue order (review 1f-completeness-1, C-2).
-
-**Margin**: as `newSequentialKV`'s.
+`recipes.(*PriorityQueue).Enqueue(val, pr)` (`client/v3/experimental/recipes/priority_queue.go`). Lean-first (no Rocq counterpart); see
+`InvRecipesQueue.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesQueue
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesSeq
 
 @[expose] public section
 
@@ -24,37 +13,42 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`q.Enqueue(val, pr)`**: `__<prefix>` and a key `<prefix>/<n>` (the prefix `key/<pr>`) put by one guarded transaction the caller's update linearizes. -/
-def PriorityQueue.Enqueue.spec : Prop :=
-  ∀ (q c : Loc) (γ : Cluster) (who : Principal) (key val : GoString) (pr : w16)
-    (Q : State → State → Nat → Int → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ pqueueAt q c γ who key ∗ etcdPeek γ ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (R : Nat) (n : Int) (res : Resp),
-             ⌜R ≤ σ.kv.rev ∧ seqNext (σ.kv.storeAt R) (pqPrefix key pr) n ∧
-              Step who (seqPutReq (seqBase (pqPrefix key pr)) (seqKey (pqPrefix key pr) n) val (R + 1))
-                σ σ' res ∧
-              ¬ txnCmpFailed res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' R n res }> }}
-    (App (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Enqueue")) (Val #val)) (Val #pr))
+/-- **`q.Enqueue(val, pr)`**, knowing etcd has reached `lo`: `newSequentialKV(client.KV,
+fmt.Sprintf("%s%05d", key ++ "/", pr), val)`, on the prefix `kp = key ++ "/" ++ <pr, 5 digits>`
+(the priority, zero-padded: `Sprintf`'s model): `nil` means a key under `kp ++ "/"` was put with
+the value `val` at some `r` etcd has reached, made from etcd's state at the get's revision `g`,
+`lo ≤ g ≤ r` (`seqKeyPutAt`, unit 1b's: not "created", the transaction does not check the key's
+absence; its order, greater than every key under `kp` then, and its freshness hold under the
+premise on the keys under `kp`, `seqKeyPutAt_order`, `seqKeyPutAt_created`); or an error. -/
+abbrev PriorityQueue.Enqueue.spec : Prop :=
+  ∀ (q client : Loc) (key val : GoString) (pr : w16) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+      isPriorityQueue q client key ∗ etcdReached lo ∗ ⌜val.length ≤ recipesStrMax⌝ }}
+    (App (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Enqueue")) (Val #val))
+      (Val #pr))
   {{ (err : GoInterface), RET #err;
-      (∃ σ σ' R n res, Q σ σ' R n res ∗ ⌜okOrErr res err⌝) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ recipeErrOk err) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (k : GoString) (g r : w64), etcdReached r ∗
+        seqKeyPutAt [] (key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5
+            (_root_.Perennial.fmt.decimal (uint.Z pr))) k val g r ∗
+        ⌜(key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5
+            (_root_.Perennial.fmt.decimal (uint.Z pr)) ++ go!"/") <+: k ∧
+          sint.Z lo ≤ sint.Z g ∧ sint.Z g ≤ sint.Z r⌝) ∨
+      ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

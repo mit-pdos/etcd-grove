@@ -1,18 +1,9 @@
 /-
-`(*storeTxnWrite).delete(key)` (`kvstore_txn.go:308`): a tombstone for a key present in the store
-the transaction sees. Internal (`deleteRange`, which calls it for each key the index finds).
-
-**Proof sketch**: `BucketKeyToBytes` of `⟨R, |pend|⟩` with the tombstone mark; `proto.Marshal` of
-`KeyValue{Key: key}`; `UnsafeSeqPut(Key, …)` on the batch; `treeIndex.Tombstone.spec`: the key's
-last generation is not empty (the key is present: the premise), so no `ErrRevisionNotFound` and no
-`lg.Fatal`; the record appended; the lessor's `GetLease` (`storeItems`' value) and, if a lease,
-`Detach` (live: 3c's law; an error would only be logged).
-
-**Changes** from `specs-ref`'s file: over `storeTxnW`, W0's events and 3c's writer token (`delLs`).
+`storeTxnWrite.delete` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -20,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,18 +21,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The delete's event appended (the key present: `lg.Fatal` otherwise). -/
-def storeTxnWrite.delete.spec : Prop :=
-  ∀ (t : Loc) (γ : MvccName) (γl : Lease.Names) (trace : Loc) (σ : MvccState) (pend : List Event)
-    (key : GoSlice) (kk : Bytes) (n : Nat) (ls : Lease.LessorState),
+/-- `tw.delete(key)`: the pending revision gets a delete of `key`, present after the pending
+changes (the index's `Tombstone` then returns `nil`); the key's lease, if any, is detached. -/
+abbrev mvcc.storeTxnWrite.delete.spec : Prop :=
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (key : GoSlice) (k : GoString) (L : List w64) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      storeTxnW t γ trace σ pend ∗ mvccLessorIs γ γl ∗ key ↦*□ kk ∗
-      ⌜(txnStore σ pend kk).isSome⌝ ∗ Lease.lessorState γl n ls }}
-    (App (Val (t @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"delete")) (Val #key))
-  {{ RET #(); storeTxnW t γ trace σ (pend ++ [.delete kk]) ∗
-      ∃ n' : Nat, Lease.lessorState γl n' (delLs ls kk) }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗
+      ⌜(mvcc.findKey k (mvcc.applyChanges (W64 ilog.length) (mvcc.stateAfter ilog) pend)).isSome⌝ }}
+    (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"delete")) (Val #key))
+  {{ RET #(); mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [.del k])) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

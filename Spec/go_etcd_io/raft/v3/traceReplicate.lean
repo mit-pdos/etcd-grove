@@ -1,14 +1,9 @@
 /-
-## `traceReplicate(...)` (internal)
-
-raft.go's tracing hook: a no-op in the default build (`state_trace_nop.go`; the translated one).
-**Changes.** Unchanged (from `specs-ref`'s `traceReplicate.lean`).
+Port of election_proof/spec_traceReplicate.v (feb5c73d4).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +11,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Does nothing. -/
-def traceReplicate.spec : Prop :=
-  ∀ (r : Loc) (sl : GoSlice),
+/-- `traceReplicate(r, es...)`: a tracing hook, and a **no-op** -- Goose translates it
+to `λ: <> <>, exception_do (do: #())` (`new/code/go_etcd_io/raft/v3.v:6364`). Same
+shape as `spec_traceSendMessage.v`; `appendEntry` is the caller, and it hands the entry
+slice over only so that the triple has a resource to thread (the body touches nothing).
+
+**It owns nothing** (changed 2026-09-23). Goose translates the hook to
+`exception_do (do: #())`: it reads nothing and writes nothing, so the honest triple
+takes no resource and gives none back. Until then it carried the entries slice in and
+out, which it never touches; the other five hooks carried a raw piece of the raft
+struct (`own_raft_misc`), and all six now own nothing (notes/decisions.md, "Three
+layers"). This is a fact about the no-op build that is translated; the tracing build
+reads `r` and would need a real spec on `ownRaftPhys`. -/
+abbrev traceReplicate.spec : Prop :=
+  ∀ (r : Loc) (es : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
-    (App (App (Val (@! go_etcd_io.raft.v3.traceReplicate)) (Val #r)) (Val #sl))
+    (App (App (Val #(functions traceReplicate [])) (Val #r)) (Val #es))
   {{ RET #(); True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

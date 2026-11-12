@@ -1,17 +1,10 @@
 /-
-`(*concurrency.stm).reset` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: the two maps allocated.
-
-Changes: from `specs-ref`'s `stm__reset.lean`: restated over `stmCoreStale` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stm.reset()` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,27 +12,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.reset()`: a fresh attempt. -/
-def stm.reset.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (gs : List (OpM → OpM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreStale p γ who iso gs }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"reset")) (Val #()))
-  {{ RET #(); stmCoreAt p γ who iso Attempt.empty gs }}
+/-- `s.reset()`: fresh, empty read and write sets. -/
+abbrev stm.reset.spec : Prop :=
+  ∀ (b : Loc) (pfx : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ (∃ m : Loc, structFieldRef stm go!"rset" b ↦ m) ∗
+      (∃ m : Loc, structFieldRef stm go!"wset" b ↦ m) }}
+    (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"reset")) (Val #()))
+  {{ RET #(); stmRsetOwn pfx b ∅ ∗ stmWsetOwn pfx b ∅ }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

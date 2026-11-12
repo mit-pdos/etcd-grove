@@ -1,27 +1,12 @@
 /-
-## `(*EtcdServer).doSerialize(ctx, chk, get)` (internal helper)
-
-**Users.** `Range`, a read-only `Txn`, `RangeStream` (`v3_server.go:150,190,368`).
-
-**Proof sketch.** `traceutil.Get(ctx)` (4b: the trace the caller installed, `ctxTrace`, owned and given back), `AuthInfoFromCtx(ctx)` (its spec: `p`'s or `tls`'s `AuthInfo`
-at a revision, `nil`, or an invalid token, returned), `&auth.AuthInfo{}` for `nil`, `chk(ai)` (the
-caller's closure: its triple `Chk`), `get()` (the caller's: `Get`), the revision re-check
-(`authStore.Revision()`, 3d). Mirrors the code: the closures' specs are the caller's.
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__doSerialize.lean`) restated over `reqPrin`;
-the race with `AuthEnable` is in its callers' `srvStep` (here: the revision is re-checked only for an
-`AuthInfo` with a revision, `ai.Revision != 0`).
-
-**Margin.** None (mirrors the code). `chk` runs on the context's `AuthInfo` (`p`'s or `tls`'s user)
-or on an empty one (`&auth.AuthInfo{}`, made read-only: nothing writes it).
-
-Changes: verify-round (A7-provability F5): takes the context's otel span (`reqCtxSpan`) for `AuthInfoFromCtx`, which no longer asks for a trace-free context (the caller's `EnsureTrace` installed `ctxTrace`'s trace).
+`s.doSerialize(ctx, chk, get)` (`v3_server.go`): the auth check, then the read, then the stale-token check.
+Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -29,9 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -40,26 +24,45 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Check, then read**: `AuthInfoFromCtx`'s error; or `chk`'s (with `chk`'s post); or `get` run
-(with its post), then `nil` or `ErrAuthOldRevision` (a refusal) if the token's auth revision changed.
-`Chk`, `Get`: the closures' contracts, given by the caller. -/
-def EtcdServer.doSerialize.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (chk get : GoFunc)
-    (Pc : IProp GF) (Rc : GoInterface → IProp GF) (Pg Rg : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxSpan ctx ∗ ctxTrace ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ Pc ∗
-      (∀ (ai : Loc), {{ Pc ∗ threadTok ∗ ctxTrace ctx ∗ ∃ (u : GoString) (rev : w64),
-          ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦□ u ∗
-          ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦□ rev ∗
-          ⌜p = some u ∨ tls = some u ∨ (u = [] ∧ rev = W64 0)⌝ }} (App (Val #chk) (Val #ai))
-        {{ (e : GoInterface), RET #e; threadTok ∗ ctxTrace ctx ∗ Rc e }}) ∗
-      ({{ Pg ∗ threadTok ∗ ctxTrace ctx }} (App (Val #get) (Val #())) {{ RET #(); threadTok ∗ ctxTrace ctx ∗ Rg }}) ∗
-      (Rc GoInterface.nil -∗ Pg) }}
-    (App (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"doSerialize")) (Val #ctx)) (Val #chk)) (Val #get))
-  {{ (err : GoInterface), RET #err; threadTok ∗ ctxTrace ctx ∗
-      ((srvErr err .invalidAuthToken ∗ srvErrShape err ∗ Pc) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ Rc err) ∨
-       (Rg ∗ (⌜err = GoInterface.nil⌝ ∨ srvErr err .authOldRevision ∗ srvErrShape err))) }}
+/-- **`s.doSerialize(ctx, chk, get)`** at a context, with the permission check `chk` (a triple:
+on any auth info, an error the gRPC layer can take) and the read `get` (`{G} get() {Q}`): the
+request's auth info (`AuthInfoFromCtx`, or an empty one), `chk` of it, `get()`, then the
+token's revision against the auth store's (`ErrAuthOldRevision`). Success: `get` ran (`Q`);
+failure: an error the gRPC layer can take, and `get` ran or not (`G ∨ Q`). (k8s etcd3 7c-2 part 2,
+S3a: `chk`'s and `doSerialize`'s errors are `authApplyErrIs`, `nil` or one of the auth package's
+error variables, so that the gRPC layer's description of them is known.) 2026-10-14 (unit A2):
+the auth store's reader resource `E.RD`, which `AuthInfoFromCtx` and `chk` take and give back.
+2026-10-23 (auth plan A1): `C info`, what a passed `chk` establishes of the auth info it saw (the
+permission class of the request's keys, `apply.rangeClass`, `apply.txnClass`); success gives it
+of some auth info (the context's, or the empty one).
+
+**In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
+the mode `E.authOn`; the mode-off form, `specOff`, is a
+corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3s, 2026-10-27): over the request and read
+views in the mode (`isServerReqM on`, `isServerReadM on`; `spec` at `on = false`, by definition).
+`doSerialize` reads only fields both modes share. With auth on (E3zb, 2026-10-28) the auth info
+`chk` passed on is the caller's (`infoBoundM`: the empty one, or bound to the context's token),
+given `AuthInfoFromCtx`'s binding with auth on (`AuthInfoFromCtx.spec`). -/
+abbrev EtcdServer.doSerialize.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
+    (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (t : Loc) (e : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx (some t) ∗
+      (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
+        {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
+        {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ E.RD ∗ authApplyErrIs err ∗
+            (∀ _ : err = GoInterface.nil, C info) }}) ∗
+      {{ G ∗ traceutil.ownTrace t e }} (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G ∗
+      traceutil.ownTrace t e ∗ E.RD }}
+    (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
+      (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))
+  {{ (err : GoInterface), RET #err; E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ (∃ info, C info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info) ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ authApplyErrIs err ∗
+        ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

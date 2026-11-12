@@ -1,14 +1,9 @@
 /-
-## `traceReady(...)` (internal)
-
-raft.go's tracing hook: a no-op in the default build (`state_trace_nop.go`; the translated one).
-**Changes.** Unchanged (from `specs-ref`'s `traceReady.lean`).
+Port of `election_proof/spec_traceReady.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -16,25 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Does nothing. -/
-def traceReady.spec : Prop :=
+/-- `traceReady(r)`: a no-op in the build that is translated (`state_trace_nop.go`), so
+it owns nothing (notes/decisions.md, "The trace hooks"). -/
+abbrev traceReady.spec : Prop :=
   ∀ (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
-    (App (Val (@! go_etcd_io.raft.v3.traceReady)) (Val #r))
+    (App (Val #(functions traceReady [])) (Val #r))
   {{ RET #(); True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

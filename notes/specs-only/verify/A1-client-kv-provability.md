@@ -1,7 +1,7 @@
 # Verification round, area A1 (client KV), provability: the report
 
 Reviewer: provability, independent of the authors. HEAD `1aa6fc1337`. The targets: W0's
-`api/v3/{Model,State,Wire}.lean`, `Spec/context/`, `Spec/go_uber_org/zap/`, `client/v3/Api.lean`,
+`api/v3/{Model,State,Wire}.lean`, `SpecPlan/Spec/context/`, `SpecPlan/Spec/go_uber_org/zap/`, `client/v3/Api.lean`,
 the KV path's specs in `client/v3/`, the snippets in `examples/specreq/clientv3kv/`, and the
 linearizability story in `notes/specs-only/top.md`. Go sources: `.lake/src/{client,api,server}`.
 I wrote the findings below before reading the authors' notes. I read them afterwards only to mark
@@ -246,7 +246,7 @@ of these, `txn.Commit`'s and `kv.Do`'s transaction step need F6's law, and `kv.C
 - `indefCall_pure`: plausible. `init.spec`: `noPrefixEnd` is never written (`getPrefix` returns
   it, and `prefixInterval` copies).
 
-**`context` (`Spec/context/Api.lean`).**
+**`context` (`SpecPlan/Spec/context/Api.lean`).**
 - `ctxOk`/`ctxDone` are a contract bundle. `Err`/`ErrDone` are Go's documented contract.
 - `WithCancel`/`WithTimeout`: Perennial's, lifted. `WithValue`: Go panics on a nil or
   non-comparable key, and the premise is `CheckComparable`.

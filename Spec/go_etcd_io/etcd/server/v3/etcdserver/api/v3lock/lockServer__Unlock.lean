@@ -1,20 +1,10 @@
 /-
-## `(*lockServer).Unlock(ctx, req)` (`lock.go:52-58`): translated
-
-**Users.** The `Unlock` RPC; `ReqLockOverInProc`. **Proof sketch.** The client's `Delete` of the key
-(W0's `KV.DeleteTriple`, its update built from the lent permission with `delEff`).
-**Changes** (from `specs-ref`'s `lockServer__Unlock.lean`): over the permission. **Margin.** The
-deletion's state is not stated.
-
-**The principal** (round 1, completeness F9): the in-process client (`v3client.New(s)`, default
-principal `dflt`: none) forwards each call's token, so the call's principal is the context's `who`
-(`ClientV3.ctxPrin dflt ctx who`), the effects under it, as 1d's specs state them. `v3client.New`'s
-spec (an `isClient … none` from `isServer`) is requested of 1c (`req/…client_v3.md`, "from 2e,
-round 1").
+`(*lockServer).Unlock(ctx, req)` (`server/etcdserver/api/v3lock/lock.go`; the auth plan's A3c,
+2026-10-24). Lean-first (no Rocq counterpart); see `v3lock/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Defs
 
 @[expose] public section
 
@@ -22,28 +12,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3lock
+namespace v3lock
 
-open Iris Iris.BI EtcdModel ClientV3 Concurrency
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency concurrency
+  _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions]
+variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions]
 
-/-- **Releases the lock**: deletes its key. -/
-def lockServer.Unlock.spec : Prop :=
-  ∀ (ls c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (σ0 : State) (req : Loc) (key : GoString) (T : State → State → Prop) (P : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗ isLockServer ls c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ etcdLb γ σ0 ∗ unlockReq req key ∗
-      etcdLent γ T P ∗ P ∗ ⌜effIn (delEff (fun k => k = key)) T⌝ }}
-    (App (App (Val (ls @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer.ty @!! go!"Unlock")) (Val #ctx)) (Val #req))
+/-- **`Unlock(ctx, req)`**: on a lock server over a client meeting `unlockKVOk`, it makes one
+client call, the delete of the request's key (`c.Delete(ctx, key)`), and returns the response
+`{Header}` of that delete with its result (`deleteResult` of the key), or no response and the
+delete's error. -/
+abbrev lockServer.Unlock.spec : Prop :=
+  ∀ (ls c req : Loc) (ksl : GoSlice) (key : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗
+      isLockServer ls c ∗ unlockKVOk c ∗
+      structFieldRef v3lockpb.UnlockRequest go!"Key" req ↦□ ksl ∗
+      ksl ↦*□ key ∗
+      context.isContext ctx cs }}
+    (App (App (Val (ls @!! go.GoType.PointerType lockServer.ty @!! go!"Unlock"))
+      (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ unlockResp resp) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (v : v3lockpb.UnlockResponse),
+        resp ↦ v ∗ ⌜v.Header' = hdr⌝ ∗
+        deleteResult [] (W64 0) (opDeleteModel key []) GoInterface.nil) ∨
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end V3lock
+end v3lock
 end EtcdGrove
 end Perennial

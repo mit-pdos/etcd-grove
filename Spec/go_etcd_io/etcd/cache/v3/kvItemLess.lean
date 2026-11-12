@@ -1,13 +1,9 @@
 /-
-`kvItemLess` (`cache/*.go`), an internal helper.
-Users: the store's B-tree (its `less`).
-Proof sketch: reads both items' immutable keys; Go's string `<` is `GoStringLt`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`kvItemLess(a, b)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,27 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `kvItemLess(a, b)`: `a.key < b.key`. -/
-def kvItemLess.spec : Prop :=
-  ∀ (a b : Loc) (ka kb : GoString) (kva kvb : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ kvItemAt a ka kva ∗ kvItemAt b kb kvb }}
-    (App (App (Val (@! go_etcd_io.etcd.cache.v3.kvItemLess)) (Val #a)) (Val #b))
-  {{ RET #(decide (EtcdModel.keyLt ka kb)); True }}
+/-- `kvItemLess(a, b)` is `a.key < b.key`, i.e. `kvLess`. -/
+abbrev kvItemLess.spec : Prop :=
+  ∀ (a b : Loc) (ea eb : KvEntry),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ kvItemIs a ea ∗ kvItemIs b eb }}
+    (App (App (Val (@! kvItemLess)) (Val #a)) (Val #b))
+  {{ RET #(decide (kvLess ea eb)); True }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

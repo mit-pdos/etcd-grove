@@ -1,21 +1,12 @@
 /-
-`(*clientv3.Client).Endpoints` (`client/v3/client.go`).
-
-Users: Kubernetes' compactor (`compact.go`: the compactor's key per endpoint set, logging) and
-feature checker (`Status` of each), `isSafeRetry` (the learner case), `dialWithBalancer`,
-`roundRobinQuorumBackoff`, `checkVersion`; snippet `clientv3client/lifecycle.go` (`ReqEndpoints`).
-
-Proof sketch: `epMu.RLock` (the client's `RWMutex`, its invariant holding `endpoints` and their
-`servesAt`), a fresh copy, `RUnlock`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean`: over `clientPre`;
-each endpoint serves the cluster.
-
-Margin: none.
+`c.Endpoints()` (`client/v3/client.go`, names only; unit P3a): a copy of the endpoints, read
+under `c.epMu`'s read lock (whose bounded reader slots a persistent interceptor cannot hold: the
+reason it is not proved). (Item 5, client construction, 2026-10-17: the copy is a new slice,
+of the endpoints `c.endpoints` holds when they are fixed: `dialWithBalancer` reads its first.)
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 
 @[expose] public section
 
@@ -23,10 +14,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,15 +25,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.Endpoints()`: a fresh copy of the endpoints, each serving `γ`. -/
-def Client.Endpoints.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Endpoints")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; ∃ eps : List GoString, sl ↦* eps ∗ [∗list] ep ∈ eps, servesAt γ ep }}
+/-- `c.Endpoints()` on a client `clientv3.New` built returns some slice (a fresh copy). -/
+abbrev Client.Endpoints.spec : Prop :=
+  ∀ (c : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Endpoints"))
+      (Val #()))
+  {{ (sl : GoSlice), RET #sl; ∃ eps : List GoString, sl ↦* eps ∗
+      -- (item 5) the endpoints, when the field and its slice are read-only
+      (∀ (esl : GoSlice) (eps0 : List GoString),
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"endpoints" c ↦□ esl -∗
+        esl ↦*□ eps0 -∗ ⌜eps = eps0⌝) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

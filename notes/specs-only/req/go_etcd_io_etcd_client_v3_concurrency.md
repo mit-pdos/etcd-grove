@@ -27,7 +27,7 @@ session whenever the last one is done, in a background goroutine, and reads it u
 lock from any goroutine.
 
 1. **`NewSession(cl, opts...)`** for a client `isClient cl γ who` and the options in 1e's slot
-   `Leasing.sessOptsOk osl cl` (`Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`; realize it as
+   `Leasing.sessOptsOk osl cl` (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`; realize it as
    your session-options bundle and prove `sessOptsOk_nil`: the proxy passes none; the tests pass
    `WithTTL(1)`): a session (persistent handle) or an error, no panic. Its lease grant and the
    lessor's keep-alives are steps on `etcdState γ`: take them as updates the caller can build from a

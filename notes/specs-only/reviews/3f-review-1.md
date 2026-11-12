@@ -7,7 +7,7 @@ and `examples/mvccrand`. The snippets vet (`go vet ./specreq/mvccwatch/ ./specre
 did not build the Lean files.
 
 Go paths below are under `.lake/src/server/storage/mvcc/` unless another path is given. Spec paths
-are under `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/` (`S/`) or `Spec/go_etcd_io/etcd/pkg/v3/adt/`
+are under `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/` (`S/`) or `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/adt/`
 (`A/`).
 
 ## What is good

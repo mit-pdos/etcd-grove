@@ -1,7 +1,7 @@
 # Batch 2f (rafthttp, net/http): completeness review, round 1
 
-Reviewer: completeness. Read: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/` (the
-client-facing `Transport` specs in full, the internals by their headers), `Spec/net/http/`,
+Reviewer: completeness. Read: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/` (the
+client-facing `Transport` specs in full, the internals by their headers), `SpecPlan/Spec/net/http/`,
 `examples/specreq/rafthttp/`, the users in `.lake/src/server/` (`etcdserver/{server,raft,util,
 bootstrap,corrupt}.go`, `etcdserver/api/etcdhttp/peer.go`, `embed/{etcd,config}.go`,
 `etcdmain/config.go`), the examples (`examples/lib/{etcdstart,cluster3}`,
@@ -216,7 +216,7 @@ holds at that point, with `procErr` in `Process`'s post, and states the `HTTPErr
    or a law from it, and reconcile `snapMsgOwn`.
 7. **`Send`'s `sendable` cannot be established today.** It needs R1's `MsgApp`-shape law and
    "`Ready` messages have `src = id`", which 2f requested (`req/go_etcd_io_raft_v3.md`, "from 2f",
-   item 2). `Spec/go_etcd_io/raft/v3/Api.lean` has no such law yet (only `msgSent_type`,
+   item 2). `SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean` has no such law yet (only `msgSent_type`,
    `msgSent_snap`). This is pending on R1, not a 2f defect.
 8. **P13.** Outside the trusted `bootstrap`, `peerRt` is used for GETs and POSTs to the peers' other
    endpoints (`promoteMemberHTTP`, `server.go:1506`; the version monitor; `corrupt.go`'s hash-KV

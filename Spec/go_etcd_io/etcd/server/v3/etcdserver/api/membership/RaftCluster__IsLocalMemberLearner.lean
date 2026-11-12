@@ -1,41 +1,43 @@
 /-
-## `(*RaftCluster).IsLocalMemberLearner()` (`cluster.go:786-797`): translated
-
-**Users.** The server's `IsLearner` (2a's interceptors refuse a learner's unsupported RPCs).
-**Proof sketch.** Under the lock, the local member's flag (the fork's: `false` for a removed local
-member, no panic). **Changes**: from `specs-ref`. **Margin.** Exact.
+`membership.RaftCluster.IsLocalMemberLearner` (`cluster.go`: under the lock, the local member's
+`IsLearner`, or `false` if the local member is not in the members map). Lean-first (no Rocq
+counterpart); D43 M4 (2026-10-26): the fork's fix (`goose-lean-learnerfix`,
+`issues/etcd-unary-interceptor-learner-removed.md`): no panic for a removed local member.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Membership
 
-open Iris Iris.BI EtcdModel Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Whether the local member is a learner** in the view (`false` if it is not a member). -/
-def RaftCluster.IsLocalMemberLearner.spec : Prop :=
-  ∀ (c : Loc) (γ : CNames) (cid lid : w64) (Q : ClusterSt → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ isCluster c γ cid lid ∗ (AU <{ ∃∃ (st : ClusterSt), clusterSt γ st }> @ ⊤, ∅ <{ clusterSt γ st, COMM Q st }>) }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"IsLocalMemberLearner")) (Val #()))
-  {{ (b : Bool), RET #b; ∃ st : ClusterSt, Q st ∗
-      ⌜b = decide (∃ m ∈ st.members, m.id = uint.nat lid ∧ m.isLearner = true)⌝ }}
+/-- `c.IsLocalMemberLearner()` (`c` a cluster, `isRaftClusterG`, at any side condition: the local
+member need not be in the map) returns some boolean. -/
+abbrev membership.RaftCluster.IsLocalMemberLearner.spec : Prop :=
+  ∀ (c : Loc) (RM : membership.RcSide GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+      membership.isRaftClusterG c RM }}
+    (App (Val (c @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!!
+      go!"IsLocalMemberLearner")) (Val #()))
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 
-end Membership
 end EtcdGrove
 end Perennial

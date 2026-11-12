@@ -3,7 +3,7 @@
 ## from W0
 
 W0 defined the KV messages' heap predicates the client and the server share
-(`Spec/go_etcd_io/etcd/api/v3/Wire.lean`, namespace `EtcdWire`): `rangeReqOwn`, `putReqOwn`,
+(`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Wire.lean`, namespace `EtcdWire`): `rangeReqOwn`, `putReqOwn`,
 `deleteReqOwn`, `compareOwn`, `requestOpOwn`, `txnReqOwn`, `compactReqOwn` (requests, over
 `Model.lean`'s `RangeReq`, ...) and `respHeaderOwn`, `keyValueOwn`, `rangeRespOwn`, `putRespOwn`,
 `deleteRespOwn`, `responseOpOwn`, `txnRespOwn`, `compactRespOwn` (replies, over Go-level models),
@@ -77,7 +77,7 @@ opaque: 3h realizes them from its own message vocabulary and proves the laws.
 Batch 2b (the gRPC watch handler) reads and builds watch messages through 1b's slots
 `watchReqOwn p dq r` (a `pb.WatchRequest` modelled by `WireWatchReq`) and `wireWatchRespOwn p dq m`
 (a `pb.WatchResponse`), and 1b's `eventOwn`. Their realizer (3h, with W0's `Wire.lean`) owes the
-laws 2b states in `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`:
+laws 2b states in `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`:
 
 1. **`watchReqOwn_unfold`**: the oneof a non-`nil` wrapper of a non-`nil` inner request; a create's
    fields (`Key`/`RangeEnd` raw, `createRange k e = w.range`; `StartRevision`; the flags; the filter
@@ -93,7 +93,7 @@ Used by: `serverWatchStream.recvLoop.spec`, `sendLoop.spec`, `sendFragments.spec
 
 ## from 2c
 
-Provisional predicates in `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean` that 3h should
+Provisional predicates in `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean` that 3h should
 own: **`irrOwn p ir`** (an `InternalRaftRequest` with exactly `ir`'s field set: `Put`, `DeleteRange`,
 `Txn`, `Compaction`, `LeaseGrant`, `LeaseRevoke`, `Alarm`, the auth requests, `Authenticate`'s
 internal one, `LeaseCheckpoint`, `ClusterVersionSet`, `ClusterMemberAttrSet`, `DowngradeInfoSet`;
@@ -104,8 +104,8 @@ bytes every member's apply decodes back to `ir` with the header set (`irr-depth.
 
 ## from 2a
 
-The gRPC boundary (`Spec/google_golang_org/grpc/Api.lean`) and protobuf's
-(`Spec/google_golang_org/protobuf/proto/Api.lean`) transport message **contents**
+The gRPC boundary (`SpecPlan/Spec/google_golang_org/grpc/Api.lean`) and protobuf's
+(`SpecPlan/Spec/google_golang_org/protobuf/proto/Api.lean`) transport message **contents**
 (`Proto.Content`, `Proto.msgAt t p dq c`); what a content means is the message type's owner's. What
 2a's specs need of 3h:
 
@@ -195,7 +195,7 @@ any header): `raftRequest` gives it back, so 3h's laws should wrap a request mes
 ## from 3d
 
 The auth store's specs name the auth request and response messages through three provisional
-predicates of `Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`, to be realized over this package's
+predicates of `SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`, to be realized over this package's
 message vocabulary: **`Auth.authReqAt r rq`** (a read-only `*pb.Auth<Kind>Request` asking W0's `rq`;
 for `UserAdd`/`UserChangePassword`, the hash form: `HashedPassword` with `Auth.hashedPw`, `Password`
 empty, or a pre-3.5 plain password of at most 72 bytes; for `RoleGrantPermission`, `Perm` non-nil,

@@ -1,13 +1,10 @@
 /-
-`leasesByExpiry.Swap(i, j)` (`lease.go:135`), an internal helper's spec (mirrors the code).
-**Users**: `sort.Sort` in `Leases`, `Promote`. In-bounds indices. **Changes** (from `specs-ref`):
-unchanged. **Margin**: none.
+`leasesByExpiry.Swap` (`server/lease/lease.go`). Lean-first (no Rocq counterpart); the lease-read plan
+(`notes/lease-read-plan.md`, 2026-10-31).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -15,27 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Swap elements `i` and `j`.** -/
-def leasesByExpiry.Swap.spec : Prop :=
-  ∀ (sl : GoSlice) (ps : List Loc) (i j : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ sl ↦* ps ∗
-      ⌜0 ≤ sint.Z i ∧ sint.Z i < ps.length ∧ 0 ≤ sint.Z j ∧ sint.Z j < ps.length⌝ }}
-    (App (App (Val (sl @!! go_etcd_io.etcd.server.v3.lease.leasesByExpiry.ty @!! go!"Swap"))
-      (Val #i)) (Val #j))
-  {{ RET #(); sl ↦* ((ps.set (sint.nat i) (ps[sint.nat j]!)).set (sint.nat j) (ps[sint.nat i]!)) }}
+/-- `le.Swap(i, j)` on the slice `sl` of the leases `ls`, `i`, `j` in range. -/
+abbrev lease.leasesByExpiry.Swap.spec : Prop :=
+  ∀ (sl : GoSlice) (ls : List Loc) (i j : w64) (a b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ sl ↦* ls ∗
+      ⌜0 ≤ sint.Z i ∧ 0 ≤ sint.Z j ∧ ls[sint.nat i]? = some a ∧ ls[sint.nat j]? = some b⌝ }}
+    (App (App (Val (sl @!! leasesByExpiry.ty @!! go!"Swap")) (Val #i)) (Val #j))
+  {{ RET #(); sl ↦* (ls.set (sint.nat i) b).set (sint.nat j) a }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

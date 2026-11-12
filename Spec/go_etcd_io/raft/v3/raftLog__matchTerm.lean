@@ -1,15 +1,13 @@
 /-
-## `(*raftLog).matchTerm(id)` (internal)
+Port of `election_proof/spec_raftLog__matchTerm.v` (feb5c73d4).
 
-**Users**: `maybeAppend`, `findConflict`, `maybeCommit`, `restore`'s fast-forward
-(`raft.go:1928`). **Proof sketch**: `term`. **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__matchTerm.lean`.
-**Margin**: `false` below the floor may be a compaction.
+Lean notes: `raft.entryID.t` is `entryID`; `plog_matches`/`plog_term_at` are
+`PlogMatches`/`plogTermAt` (`Plog.lean`); `bool_decide` is `decide`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
 
@@ -17,28 +15,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether the log has `id` (an index below the compaction floor may answer `false`). -/
-def raftLog.matchTerm.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (id : go_etcd_io.raft.v3.entryID),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"matchTerm")) (Val #id))
-  {{ (r : Bool), RET #r; raftLog l ls ∗
-      ⌜(r = true → ls.termOf (uint.nat id.index') = some id.term') ∧
-       (r = false → ls.termOf (uint.nat id.index') ≠ some id.term' ∨
-          uint.nat id.index' < ls.compactFloor)⌝ }}
+/-- `l.matchTerm(id)`: whether the log has term `id.term` at `id.index` --
+`PlogMatches` (`Plog.lean`) of the log the protocol sees.
+
+The body (`raftLog.matchTerm.impl`, `Code/go_etcd_io/raft/v3.lean`; Rocq
+new/code/go_etcd_io/raft/v3.v:1159) is `t, err := l.term(id.index); if err != nil {
+return false }; return t == id.term`. `term`'s spec makes both halves exact: the error
+is non-`nil` exactly when `id.index` is outside `[prev.index, last]`, where
+`plogTermAt` is `none`, and otherwise `t` is `plogTermAt`'s value. No premise, no
+panic. -/
+abbrev raftLog.matchTerm.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (id : entryID),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"matchTerm")) (Val #id))
+  {{ (b : Bool), RET #b;
+      ownRaftLog l ls ∗
+      -- (D19i part 1) exact at or above the floor; below it a compacted entry answers `false`
+      ⌜(b = true → PlogMatches ls.prev (ls.sents ++ ls.uents) id) ∧
+        (uint.Z ls.fl ≤ uint.Z id.index' →
+          b = decide (PlogMatches ls.prev (ls.sents ++ ls.uents) id))⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,22 +1,10 @@
 /-
-`concurrency.NewElection(s, pfx)` (`client/v3/concurrency/election.go`).
-
-Users: `server/etcdserver/api/v3election/election.go` (`Campaign`:45 a new election, `Campaign`,
-then `Header()`, `Key()`, `Rev()` and the lease returned as the leader key; `Proclaim`:68 and
-`Resign`:118 on `ResumeElection(s, name, key, rev)` from the remote client's leader key;
-`Leader`:103 and `Observe`:80 on a new election, sessions with lease `-1`), etcdctl's `elect`
-command (not in the pinned sources), etcd's tests
-(`tests/integration/clientv3/concurrency/election_test.go`, `example_election_test.go`). Snippets: `concurrency/election.go`.
-
-Proof sketch: the struct allocated; `session` and `keyPrefix` persisted (`isElection`).
-
-Changes: from `specs-ref`'s `NewElection.lean`: no client premise (only stores).
-
-Margin: none.
+`concurrency.NewElection(s, pfx)` (`client/v3/concurrency/election.go`). Lean-first (no Rocq counterpart); see
+`InvElection.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvElection
 
 @[expose] public section
 
@@ -24,28 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `NewElection(s, pfx)`: an election on the prefix `pfx + "/"`, not leading. -/
-def NewElection.spec : Prop :=
-  ∀ (s : Loc) (pfx : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency }}
+/-- **`NewElection(s, pfx)`**, for a session `s` whose client answers for the prefix `pfx + "/"`
+(`isEtcdMutexClient`), and a prefix shorter than `2 ^ 27` bytes (2026-10-30, kept in `isElection`):
+an election on that prefix, in its initial state (every field zero). -/
+abbrev NewElection.spec : Prop :=
+  ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < concPfxMax⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewElection)) (Val #s)) (Val #pfx))
-  {{ (e : Loc), RET #e; isElection e s (pfx ++ go!"/") ∗
-      electionSt e { leaderKey := [], leaderRev := W64 0, leaderSession := null, hdr := null } }}
+  {{ (e : Loc), RET #e; isElection e s γ client id (pfx ++ go!"/") ∗
+      electionState e s ElectionSt.init }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

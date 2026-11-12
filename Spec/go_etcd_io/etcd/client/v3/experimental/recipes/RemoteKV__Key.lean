@@ -1,17 +1,10 @@
 /-
-`(*RemoteKV).Key()` (`key.go`): the key field.
-
-**Users**: `DoubleBarrier.Leave` (through `myKey`, promoted). Internal getter.
-
-**Proof sketch**: `rkOwn`'s realization: load the field.
-
-**Changes**: unchanged (over `rkOwn`, which now names the cluster).
-
-**Margin**: none.
+`recipes.(*RemoteKV).Key()` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -19,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`rk.Key()`**: the key. -/
-def RemoteKV.Key.spec : Prop :=
-  ∀ (rk : Loc) (γ : Cluster) (who : Principal) (st : RKSt),
-  {{ rkOwn (GF := GF) rk γ who st }}
+/-- `rk.Key()`: the record's `key`. -/
+abbrev RemoteKV.Key.spec : Prop :=
+  ∀ (rk : Loc) (st : RemoteKVSt),
+  {{ ownRemoteKV (GF := GF) rk st }}
     (App (Val (rk @!! go.GoType.PointerType RemoteKV.ty @!! go!"Key")) (Val #()))
-  {{ RET #st.key; rkOwn rk γ who st }}
+  {{ RET #st.key; ownRemoteKV rk st }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

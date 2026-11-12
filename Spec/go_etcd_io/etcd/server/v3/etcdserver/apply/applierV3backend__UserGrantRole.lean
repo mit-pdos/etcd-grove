@@ -1,44 +1,23 @@
 /-
-`(*applierV3backend).UserGrantRole(r)` (`backend.go:190-196`): the auth store's `UserGrantRole`.
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** 3d's `authStore.UserGrantRole` (an `Auth.AdminTriple` at the writer's `Auth.authCur γa i a`,
-`a = σ.auth`, from `stAt`'s `authSt`; the request `Auth.authReqAt r rq cred` from `reqMsgAt`, with
-`cred` the op's credential): its premises `authReached γ (storeNext rq cred a)` and `recordsFit`
-from `nextOk` (the step's next state, `opStep`'s realization: `σ'.auth = storeNext rq cred a`);
-`authSt`'s `Auth.authBeCur γa abe` and the backend's post-lock hook `Auth.authBeHook abe R Q`
-(`hooksOk`'s producer at `authSt`'s wrapper `abe`), passed straight to the triple; its post
-`admStep`, the writer at `i + 1`, `authBeCur` back, and `hookOut abe R Q` (`Q`, or `R` with the
-unused hook), which `hooksOk`'s `□ (Q ={⊤}=∗ R)` turns into `R`;
-`newHeader`.
-
-**Changes** from `specs-ref`'s `applierV3backend__UserGrantRole.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
-verify-round (A9 F3, F6; re-review A9 N1): the auth store's hook has a source, `beAt`'s `optsOk`'s
-`hooksOk` (`Auth.authBeHook abe R Q`) with `authSt`'s `Auth.authBeCur γa abe`, which 3d's
-`AdminTriple` now takes directly (its `authHook`/`authHook_intro` are gone); the statement is
-unchanged.
-
-**Margin.** The header's other fields (cluster, member, term, leader) any.
-
-**Integration (I5).** Takes `nextOk` (the next state's auth reached and fitting; for `Authenticate`
-the token index), which 3d's `AdminTriple`/`Authenticate` need; the apply thread (2d) supplies it.
+`apply.applierV3backend.UserGrantRole` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -47,24 +26,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`UserGrantRole` at the applierV3backend layer**: the layers' step (exact). -/
-def applierV3backend.UserGrantRole.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (rq : Loc) (op : IrrOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) [Layer.backend] p aa ∗
-      beAt p mc γ γc R ∗
-      stAt p σ ∗
-      reqMsgAt rq op ∗ ⌜(∃ u r, op = .req (.userGrantRole u r)) ∧ op.ok⌝ ∗
-      nextOk γ R op (fun σ' => ∃ res, layersStep mc σ [] 0 op [Layer.backend] σ' res) ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"UserGrantRole")) (Val #rq))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ threadTok ∗ ∃ σ' res, ⌜layersStep mc σ [] 0 op [Layer.backend] σ' res⌝ ∗ stAt p σ' ∗
-      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty) #resp) err }}
+/-- **`a.UserGrantRole(r)`**: the auth store's `UserGrantRole` (a critical section, or none); the response's `Header` set to `newHeader()` if any. -/
+abbrev apply.applierV3backend.UserGrantRole.spec : Prop :=
+  ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      (E.RW ∗ ⌜apply.adminAdmitted E.authMode⌝) ∗ apply.applyTok E ∗ apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserGrantRole")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.applyTok E ∗ apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

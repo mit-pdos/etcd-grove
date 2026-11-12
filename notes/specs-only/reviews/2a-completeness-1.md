@@ -4,9 +4,9 @@ Reviewer: completeness (separate from the author). Commit under review: `b5cecfd
 the working tree (3h's `etcdserverpb/Api.lean` modified, not 2a's). Findings formed before reading
 `batch-2a.md`; where the author's report already lists an item as "left out" or "open", it is said.
 
-Targets: the grpc boundary (`Spec/google_golang_org/grpc/**`), the proto boundary
-(`Spec/google_golang_org/protobuf/proto/`), rpctypes (`Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/`),
-v3rpc's handlers (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, not the watch files), the
+Targets: the grpc boundary (`SpecPlan/Spec/google_golang_org/grpc/**`), the proto boundary
+(`SpecPlan/Spec/google_golang_org/protobuf/proto/`), rpctypes (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/`),
+v3rpc's handlers (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, not the watch files), the
 snippets `examples/specreq/{grpc,v3rpc}/` (both pass `go vet` and `gofmt -l`).
 
 Go paths below: `S/` = `.lake/src/`; k8s = `/home/ubuntu/go/pkg/mod/k8s.io/apiserver@v0.0.0-20261021221356-9c4ec15b8038/`;
@@ -79,7 +79,7 @@ be proved. k8s's `isCancelError` (`watcher.go:260-266`) has the same need. Fix: 
 
 W0's round 3 made lease reads per member. A `Grant` through `ep` gives `leaseViewLb γ ep i`, and a
 `Leases`/`TimeToLive` through `ep` holding `leaseViewLb γ ep i` is answered at a table `j ≥ i` and
-gives `leaseViewLb γ ep j` (`Spec/go_etcd_io/etcd/client/v3/ApiLease.lean:187-216`,
+gives `leaseViewLb γ ep j` (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiLease.lean:187-216`,
 `api/v3/State.lean:156-170`). These facts can only come from the server's contract, through grpc.
 But `etcdContract γ` and `etcdUnary γ m` (`v3rpc/Api.lean:183-189,241`) do not depend on the
 address, and their `Φ` receives only `Q σ σ' res`. So 1c's `Lease.GrantTriple` and
@@ -109,7 +109,7 @@ address, and their `Φ` receives only `Q σ σ' res`. So 1c's `Lease.GrantTriple
   * In the default secure mode, `gs.Serve` is never called. grpc is reached through
     `grpcHandlerFunc` → `gs.ServeHTTP` (`serve.go:258-260,314-322`), from net/http's server.
 
-  `start.spec` takes `Grpc.listenerAt lis ep`, which no spec on the branch produces (`Spec/net/http`
+  `start.spec` takes `Grpc.listenerAt lis ep`, which no spec on the branch produces (`SpecPlan/Spec/net/http`
   has its own `Http.listenerAt`, 2f). No spec covers `ServeHTTP` or cmux. Fix:
   * use one listener predicate (`Http.listenerAt`, or a shared `net` one) with an introduction for
     cmux's `Match`;

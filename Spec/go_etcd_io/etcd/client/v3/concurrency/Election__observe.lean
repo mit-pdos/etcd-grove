@@ -1,34 +1,10 @@
 /-
-`(*concurrency.Election).observe(ctx, ch)` (`client/v3/concurrency/election.go`), internal: the
-goroutine `Observe` starts.
-
-Users: `Election.Observe`.
-
-Proof sketch: the loop carries `observeProd ch γ pfx σ0`. Each round: the KV contract's
-`Get(ctx, pfx, WithFirstCreate()...)` (update from `etcdPeek`; `Reach σ0` inside it) at `σ`: a
-key-value `v` holds there (`ObservedAt` with `r := σ`'s revision; the header `σ`'s); none: a prefix watch from `σ`'s revision (`Context.WithCancel.spec`, the `Watcher` field's
-`Watch`, 1b) until a put event: under the compaction condition (`exactFrom` from the watch's start,
-which is after `σ0`, so implied by `exactFrom σ.kv (σ0.kv.rev + 1)`: it is antitone in its start,
-and a later state's compaction only strengthens it), the watch's events are the history's from that
-revision, in order, without gaps (1b's `watchStep`; without it a response's events say nothing,
-which is why `observeAt_recv` gates `ObservedAt` on it), so the first put under
-the prefix is of a key created after the empty prefix, nothing older at its revision; its header
-is written to that revision (the response's header owned, 1b). The response is sent
-(`observeProd`'s send, a `select` with `ctx.Done()`: `doneRecv`). Then a watch on `v`'s key from
-the header's revision plus one: each put event before a delete is the same key (gap-free: not
-deleted meanwhile, so its create revision unchanged and nothing older appeared), forwarded with
-the watch response's header (at least the event's revision, at most a reached state's, after the
-round's `Get`: 1b's `watchStep`). A
-delete event ends the round; a closed channel or `ctx` done ends the goroutine (`close(ch)`,
-deferred).
-
-Changes: from `specs-ref`'s `Election__observe.lean`: as `Observe`.
-
-Margin: as `Observe`.
+`concurrency.Election.observe(ctx, ch)` (`client/v3/concurrency/election.go`). Lean-first (no Rocq counterpart); see
+`InvElection.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvElection
 
 @[expose] public section
 
@@ -36,29 +12,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `e.observe(ctx, ch)`: sends observed leader values on `ch` (`observeProd`), then closes it. -/
-def Election.observe.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (γ : Cluster) (dflt who : Principal) (id : w64)
-    (ctx : GoInterface) (ch : GoChan) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ isSession s c γ id ∗ isClient c γ dflt ∗ Context.ctxOk ctx ∗
-      ctxPrin dflt ctx who ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗ observeProd ch γ pfx σ0 }}
-    (App (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"observe")) (Val #ctx)) (Val #ch))
+/-- **`e.observe(ctx, ch)`** (`Observe`'s goroutine), for a cancelable context, as the producer of
+`Observe`'s channel `ch` having sent `sent`, with the revisions `L` (`L.length = sent.length + 1`,
+the last, `Rl ≥ 0`, reached by etcd): every response it sends satisfies `observeElem` (its fact's
+revision at least the previous one's), and it closes the channel when it returns. -/
+abbrev Election.observe.spec : Prop :=
+  ∀ (e s : Loc) (γs : SessionNames) (client : Loc) (id : w64) (pfx : GoString)
+    (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : Loc) (γ : ObserveNames)
+    (sent : List Loc) (L : List w64) (Rl : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γs client id pfx ∗
+      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ isObserveChan ch γ pfx ∗
+      spscProducer γ.spsc sent ∗ monoListAuthOwn γ.revs 1 L ∗ etcdReached Rl ∗
+      ⌜L.length = sent.length + 1 ∧ L.getLast? = some Rl⌝ ∗ ⌜0 ≤ sint.Z Rl⌝ }}
+    (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"observe"))
+      (Val #(GoInterface.ok ctx))) (Val #ch))
   {{ RET #(); True }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

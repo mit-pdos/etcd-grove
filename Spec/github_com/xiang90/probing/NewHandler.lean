@@ -1,24 +1,12 @@
 /-
-## `probing.NewHandler()`: assumed
-
-**Users.** `Transport.Handler` (`rafthttp/transport.go:166`: at `ProbingPrefix`, `/raft/probing`).
-Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqProberLifecycle`).
-
-**Assumed** (`server.go`): `&httpHealth{}`, whose `ServeHTTP` encodes `Health{OK: true, Now:
-time.Now()}` as JSON into the writer (a `Write`, committing `200` with no header set by it): so it
-serves any protocol that allows, at every request under the pattern, a `200` with no headers and
-any body. It reads nothing of the request.
-
-**Changes.** From `specs-ref`'s `NewHandler.lean` (`handlerFor` over the old network): over 2f's
-`Http.handlerOk`.
-
-**Margin.** None.
+`probing.NewHandler()`: the trust boundary (`github.com/xiang90/probing` is names-only; rafthttp
+stage 6c, `Transport.Handler`'s prober handler, D39: the prober an axiom). Lean-first.
 -/
 module
 
-public import Spec.github_com.xiang90.probing.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.net.http.Boundary
+public import GeneratedProof.github_com.xiang90.probing
 
 @[expose] public section
 
@@ -26,7 +14,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Probing
 
 open Iris Iris.BI
 
@@ -35,19 +22,23 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.xiang90.probing.Assumptions]
 
-/-- **A handler answering `200`** under any pattern whose protocol allows it. -/
-def NewHandler.spec : Prop :=
+/-- **`probing.NewHandler()`**: a handler, for any network `H`, of the requests to `a` routed to
+`pat` whose protocol allows any `200` response with no header set (`http.handlerFor`). -/
+abbrev probing.NewHandler.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.xiang90.probing }}
-    (App (Val (@! github_com.xiang90.probing.NewHandler)) (Val #()))
+    (App (Val (@! _root_.Perennial.github_com.xiang90.probing.NewHandler)) (Val #()))
   {{ (h : GoInterface), RET #h;
-      □ ∀ (P : Http.Proto GF) (pfx : GoString),
-        (□ ∀ (R : Http.HReq) (τ : GName) (w : List w8), ⌜Http.pathUnder pfx R.path⌝ →
-          P.resp R τ (W64 200) [] w) -∗
-        Http.handlerOk h P pfx }}
+      -- (sweep repairs 1, B3) a handler `Handle` accepts (`&httpHealth{}`)
+      ⌜http.handlerRegOk h⌝ ∗
+      □ ∀ (H : http.HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoString)
+        (pat : GoString),
+        (□ ∀ (R : http.HReq) (γk : GName) (w : List w8),
+          ⌜R.host = a ∧ http.route pats R.path = some pat⌝ → (H.proto a).resp R γk (W64 200) w) -∗
+        ⌜∀ R : http.HReq, http.route pats R.path = some pat → (H.proto a).rhdr R []⌝ -∗
+        http.handlerFor H a Rs pats pat h }}
 
 end spec
-end Probing
+
 end EtcdGrove
 end Perennial

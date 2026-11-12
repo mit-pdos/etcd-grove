@@ -1,31 +1,14 @@
-/-
-## `node.ProposeConfChange(ctx, cc)`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's `EtcdServer.configure` (`server/etcdserver/server.go:1785`: a v1 `ConfChange`,
-`AddNode`, `AddLearnerNode`, `RemoveNode`, `UpdateNode`, promotion as `AddNode`); the examples'
-reconfiguration (`kvdurable/reconf.go:90`: v1 and v2 changes, joint transitions explicit and
-automatic). Snippet: `confchange.go` (`ReqProposeV1`, `ReqProposeV2Joint`).
+## `node.ProposeConfChange`
 
-**Proof sketch.** `confChangeToMsg` (`MarshalConfChange`: the entry's type and bytes, which decode
-back to `c`); `n.Step(ctx, msg)` -- not `stepWait`: the error does not say whether raft accepted it;
-the update rides with the `MsgProp` as in `Propose`. A conf change the leader refuses (one pending,
-`DisableConfChangeValidation` off: `ConfigOk`) is appended as an empty normal entry, a filler: the
-update is not fired by it.
-
-**Changes.** Unchanged in substance (over opaque predicates; v2 changes included).
-
-**Margin.** As `Propose`'s, and the leader's refusal is silent.
-
-**Size premise (integration I2).** `c.wireBound < Proto.marshalMax` (`2^48`: a context under about
-`2^47` bytes) is `MarshalConfChange`'s (3h: protobuf-go fails to marshal a larger message; the old
-spec had no premise, false of protobuf-go). True of every real change; a client-facing premise until
-the user chooses otherwise (3h's open question 3: or a workload premise like grpc's `msgsFit`).
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.ProposeConfChange.specRaw`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -33,32 +16,39 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Proposes conf change `c`**: the client's update fires when the entry (of `c`'s type, bytes
-decoding to `c`) commits. -/
-def node.ProposeConfChange.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
-    (cc : GoInterface) (dq : DFrac) (c : ConfChangeI),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ confChangePts cc dq c ∗ ⌜c.wireBound < Proto.marshalMax⌝ ∗
-      (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (t : w64) (bs : List w8), ⌜decodeConfChange c.entryType bs = some c⌝ ∗
-            committedOps γ (ops ++ opsOf [⟨t, c.entryType, bs⟩]), COMM True }>) }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ProposeConfChange")) (Val #ctx)) (Val #cc))
-  {{ (err : GoInterface), RET #err; confChangePts cc dq c ∗ nodeErr n ctx err }}
+/-- **`node.ProposeConfChange(ctx, cc)`**: the same, for the conf change `o` that `cc` holds (given
+back): its entry has the type and bytes `MarshalConfChange` gives it, raft choosing the term, and the
+committed requested entries grow by its `opsOf`: by the entry, but for an empty `ConfChangeV2` (a
+leave, `LogEntry.isEmptyV2`), which is no requested entry. The update never fires if the leader
+refuses the change (an empty normal entry commits in its place, `raft.go:1341`), and may not fire
+for an empty `ConfChangeV2`. (2026-10-29, stage U5: until then the post was `ops ++ [entry]`, an
+empty `ConfChangeV2` a requested entry.) (2026-10-29, S1) The update is wrapped in `□?γ.dup`, as
+`node.Propose`'s. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
+abbrev node.ProposeConfChange.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      ownConfChangeI c dq (some o) ∗
+      □?γ.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
+              ownCommittedOps γ (ops ++ opsOf [⟨t, confChangeEntryType (some o), bs⟩]),
+            COMM True }>) }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
+      (Val #(interface.ok ctx))) (Val #c))
+  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,0 +1,57 @@
+/-
+Proof of `Spec/go_etcd_io/etcd/client/v3/experimental/recipes/NewDoubleBarrier.lean`. Lean-first (no Rocq
+counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.NewDoubleBarrier
+public import Spec.context.TODO
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace recipes
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
+
+theorem NewDoubleBarrier.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG := hG)) :
+    NewDoubleBarrier.spec (GF := GF) (hG := hG) := by
+  intro s γ client id key count
+  wp_start as ⟨#Hs, #Hc, #Hcl, %Hcount⟩
+  iapply wp_fupd
+  wp_auto
+  wp_apply hTODO
+  (try wp_auto)
+  irename «$r0» => Hm
+  generalize «$r0_ptr» = m at *
+  iStructNamed Hm
+  ipersist s
+  ipersist ctx
+  ipersist key
+  ipersist count
+  imodintro
+  iapply HΦ
+  unfold isDoubleBarrier
+  iframe #
+  isplitr
+  · ipureintro; exact Hcount
+  unfold dbMyKey
+  iexists _
+  iframe
+
+end proof
+
+end recipes
+end EtcdGrove
+end Perennial

@@ -1,9 +1,9 @@
 # R-A6 (gRPC boundary): re-review after the repairs (2026-11-09)
 
 Reviewer: fresh, independent; read-only except this file. Commit under review: `974e05095b`
-(`specs-only` HEAD), against the round's base `1aa6fc1337`. Area: `Spec/go_etcd_io/etcd/server/v3/
-etcdserver/api/v3rpc/` (2a, 2b), `Spec/go_etcd_io/etcd/api/v3/{etcdserverpb,v3rpc,version}` (3h),
-`Spec/google_golang_org/` (grpc, metadata, peer, protobuf `proto`), `Spec/net/http/`; snippets
+(`specs-only` HEAD), against the round's base `1aa6fc1337`. Area: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/
+etcdserver/api/v3rpc/` (2a, 2b), `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{etcdserverpb,v3rpc,version}` (3h),
+`SpecPlan/Spec/google_golang_org/` (grpc, metadata, peer, protobuf `proto`), `SpecPlan/Spec/net/http/`; snippets
 `examples/specreq/{v3rpc,v3rpcwatch,etcdserverpb,grpc}`. Priority from the brief: the three
 inconsistencies of the first round (persistent `decodedAt` over a mutable field; `proto.Equal` vs a
 `nil`/empty range end; `MD.Set` on a `nil` map), attacked against the new `Proto.norm` design.
@@ -46,7 +46,7 @@ them afterwards only to mark recorded decisions and to check that the new findin
 ### N1. `FromOutgoingContext.spec` + `mdAt_ownMap.spec` ⊢ `False`: a panicking program can be proved safe (2a, grpc `metadata` boundary)
 
 **Evidence.**
-- `FromOutgoingContext.spec` (`Spec/google_golang_org/grpc/metadata/FromOutgoingContext.lean`): the post is `mdAt m (own 1) md ∗ ⌜(ok = false → m = null ∧ md = []) ∧ …⌝` on every path. Its header says "`mdAt` of the `nil` map is still given: it reads as empty".
+- `FromOutgoingContext.spec` (`SpecPlan/Spec/google_golang_org/grpc/metadata/FromOutgoingContext.lean`): the post is `mdAt m (own 1) md ∗ ⌜(ok = false → m = null ∧ md = []) ∧ …⌝` on every path. Its header says "`mdAt` of the `nil` map is still given: it reads as empty".
 - `mdAt_ownMap.spec` (`grpc/Api.lean:874-877`, present since before the round) gives `mdAt m dq md ⊣⊢ ∃ mm, ownMap m dq mm ∗ …`.
 - Perennial's `ownMap` is a `heapPointsto` (`Perennial/Golang/Theory/Map.lean:327-335`, `ownMap_unseal`), and `heapPointsto_non_null` (`GooseLang/Lifting.lean:246`) gives `⌜m ≠ null⌝`.
 

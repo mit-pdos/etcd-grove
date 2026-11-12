@@ -1,19 +1,10 @@
 /-
-## `addRemoteFromRequest(tr, r)`
-
-**Users.** `pipelineHandler.ServeHTTP`, `snapshotHandler.ServeHTTP`.
-
-**Proof sketch.** `Header.Get`, `types.IDFromString`, `strings.Split`, `Transport.AddRemote` (its premises from `raftProto`'s request knowledge: the sender's `X-PeerURLs` are its `URLs`, `trCfg`'s peer addresses).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. (`nonissues/etcd-rafthttp-addremote-bad-peerurls-panic.md`: a non-member's malformed header is outside the closed world.)
-
-**Margin.** None.
+`addRemoteFromRequest(tr, r)` (`util.go`; rafthttp stage 6d): the handlers' `AddRemote` of a
+request's sender. Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pipe
 
 @[expose] public section
 
@@ -21,26 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Adds the sender as a remote from `X-Server-From` and `X-PeerURLs` (a member's request: the URLs parse and are peer addresses). -/
-def addRemoteFromRequest.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid : w64) (r : Loc) (R : Http.HReq) (rd : GoInterface) (τ : GName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ Http.srvReq r R rd ∗ □ (raftProto ν).hreq R τ }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.addRemoteFromRequest)) (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t))) (Val #r))
+/-- **`addRemoteFromRequest(tr, r)`** of a request from another member than `lid`
+(`fromOkAt`), the transporter's `AddRemote` returning for such a member and its peer URLs (D22
+J-T, W8: the request's `X-PeerURLs`, split at `,`): it returns. -/
+abbrev rafthttp.addRemoteFromRequest.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid : w64) (ti : GoInterfaceOk) (r : Loc) (R : http.HReq)
+    (rd : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      http.reqAt r R rd ∗ ⌜fromOkAt Rh lid R.hdr⌝ ∗
+      □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString),
+        {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ lid ∧ peerURLsOk Rh pid us⌝ }}
+          (App (App (Val #(methods ti.ty go!"AddRemote" ti.v)) (Val #pid)) (Val #sl))
+        {{ RET #(); True }}) }}
+    (App (App (Val (@! rafthttp.addRemoteFromRequest)) (Val #(GoInterface.ok ti))) (Val #r))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

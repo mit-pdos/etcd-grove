@@ -1,10 +1,11 @@
 /-
-`n.childIndex(child)` (`node.go`): `sort.Search` on the child's key.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+`node.childIndex` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U8; used by U8 (`nextSibling`, `prevSibling`, `node.rebalance`). Proof:
+`Proof/go_etcd_io/bbolt/node__childIndex.lean` (a `sorry` until U8).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -12,26 +13,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) the first inode not below the child's key. -/
-def node.childIndex.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (n : Loc) (N : NodeR) (ch : Loc) (CH : NodeR),
-  {{ wtxCore (GF := GF) tx γ C ∗ ⌜C.nodes n = some N⌝ ∗ ⌜C.nodes ch = some CH⌝ }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"childIndex")) (Val #ch))
-  {{ (z : w64), RET #z; wtxCore tx γ C ∗ ⌜uint.nat z = nodeInsIdx N CH.key⌝ }}
+/-- `n.childIndex(child)` on a live node whose entries are sorted and not stale: the search index
+of `child.key` (its bytes `kb`, from their source) in `n`'s entries. The view's base is a mapped address (`0 < v.base.addr`, from `mapFields`). -/
+abbrev node.childIndex.spec : Prop :=
+  ∀ (v : View) (n bl : Loc) (r : NRec) (dq : DFrac) (qv : Qp) (child : Loc) (cv : node)
+    (dqc : DFrac) (ks : Src) (kb : List w8),
+  wsSorted r.ws → wsLive r.ws → ks ≠ Src.stale → 0 < v.base.addr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ objOwn v n dq true (WObj.node bl r) ∗
+      viewCells qv v ∗ child ↦{dqc} cv ∗ srcOwn v cv.key' ks kb }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"childIndex")) (Val #child))
+  {{ RET #(W64 (wsIdx r.ws kb : Int)); objOwn v n dq true (WObj.node bl r) ∗ viewCells qv v ∗
+      child ↦{dqc} cv }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

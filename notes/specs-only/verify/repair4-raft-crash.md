@@ -20,7 +20,7 @@ Why this and not the alternatives:
 - The weakening also covers an `L'` that is not `hG`'s but reuses its crash name, or an earlier
   generation's (see "Reused crash names" below). Option (a) alone would not cover that case for 2e.
 
-**Raft** (`Spec/go_etcd_io/raft/v3/Api.lean`):
+**Raft** (`SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean`):
 - `exclusive.spec`'s vacancy clause changed from `nodeVacant γ id ∗ nodeVacant γ id ⊢ False` to
   `⊢ crashed`. A docstring now says why.
 - `nodeVacant`'s docstring now reads "exclusive while the generation runs".
@@ -169,8 +169,8 @@ The law's docstring now states this as **Open (soundness, escalated)**.
 
 ## Build
 
-- `etc/specs-build.sh Spec.go_etcd_io.raft.v3.Api Spec.go_etcd_io.raft.v3.RestartNode
-  Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot`: **OK**.
+- `etc/specs-build.sh SpecPlan.Spec.go_etcd_io.raft.v3.Api SpecPlan.Spec.go_etcd_io.raft.v3.RestartNode
+  SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot`: **OK**.
 - Every `Spec` importer of raft's `Api` (`etc/importers.py --leaves`, 719 leaves; ApiBoot's
   importers among them): **OK (719 modules)**.
 - Snippets `raftnode`, `backend`, `etcdserverboot`: `go vet` clean, `gofmt -l` empty.

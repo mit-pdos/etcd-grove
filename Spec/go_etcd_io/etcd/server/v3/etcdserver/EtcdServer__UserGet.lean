@@ -1,33 +1,23 @@
 /-
-## `(*EtcdServer).UserGet(ctx, r)`
-
-**Users.** The gRPC auth handler (`api/v3rpc/auth.go`, `AuthServer.UserGet` through
-`Authenticator`), etcdctl and the client's `Auth` API (1c). Snippet:
-`examples/specreq/etcdserverreq/auth.go`.
-
-**Proof sketch.** `raftRequest(ctx, &pb.InternalRaftRequest{...: r})` (`raftRequest.spec` at `.req (.userGet name)`, the message wrapped and given back, 3h; the apply's auth store answers by W0's `authStep`, the admin check at the committed state, 3d), then the type assertion to `*pb.Auth...Response` (`respTy`).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__UserGet.lean`, the auth plan's A3: one per mode,
-then merged, over the auth component's predicates) restated over W0's `authStep` and the three
-outcomes; auth on and off are states of the model.
-
-**Margin.** As `Put`.
+`s.UserGet(ctx, r)` (`v3_server.go`): `raftRequest` on `&pb.InternalRaftRequest{AuthUserGet: r}`. Lean-first
+(no Rocq counterpart); the auth plan's A3, the API layer (2026-10-24), vocabulary `AuthEntry.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthEntry
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,15 +26,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.UserGet(ctx, r)`**: a user's roles, through raft (as `Put`). -/
-def EtcdServer.UserGet.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (name : GoString),
-  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"UserGet")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.userGet name))
-    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.userGet name)) γ p tls (.userGet name) false (ClientV3.ansReply)
+/-- **`s.UserGet(ctx, r)`** for the request `r` holding the name `name` (`apply.authUserGetIs`, what the apply package's request model records of it): `raftRequest` on the request
+`irrUserGet name` (`&pb.InternalRaftRequest{AuthUserGet: r}`), taken as the contract `authRaftOk` for the
+response type `*pb.AuthUserGetResponse` (`AuthEntry.lean`: the proposal path is proved for the KV requests
+only, `reqPropOk`), over the caller's `P` answering `Q`; the outcome `authEntryOut`: the applied
+response (typed) with `Q resp nil`, or `nil` and the error with `Q null err`. The admin check of
+this request is the apply layer's (`apply.adminPass`, for the header's principal). -/
+abbrev EtcdServer.UserGet.spec : Prop :=
+  ∀ (s : Loc) (ctx : GoInterfaceOk) (r : Loc) (name : GoString) (P : IProp GF)
+    (Q : Loc → GoInterface → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authUserGetIs r name ∗ P ∗
+      authRaftOk s ctx (irrUserGet name) etcdserverpb.AuthUserGetResponse.ty P Q }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserGet"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗ authEntryOut Q resp err }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

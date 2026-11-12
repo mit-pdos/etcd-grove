@@ -1,10 +1,10 @@
 # A11-bbolt, completeness (verification round, 2026-11-09)
 
-Reviewer: completeness kind, independent. Scope: batch 4c (`Spec/go_etcd_io/bbolt/`, its `errors/`
-API, `examples/specreq/bbolt/`) and batch 4d (`Spec/go_etcd_io/bbolt/internal/{common,freelist}/`,
+Reviewer: completeness kind, independent. Scope: batch 4c (`SpecPlan/Spec/go_etcd_io/bbolt/`, its `errors/`
+API, `examples/specreq/bbolt/`) and batch 4d (`SpecPlan/Spec/go_etcd_io/bbolt/internal/{common,freelist}/`,
 `examples/specreq/bboltinternal/`). Users scanned: etcd's backend (`.lake/src/server/storage/backend/
 {backend,batch_tx,read_tx}.go`, defrag, `Snapshot`/`WriteTo`, `Hash`), its specs
-(`Spec/go_etcd_io/etcd/server/v3/storage/backend/`, `Durable.lean`), `schema/version.go`, bbolt's
+(`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/`, `Durable.lean`), `schema/version.go`, bbolt's
 own calls into `common`/`freelist` (bbolt `743299d`), `examples/bbolt/bank`, `examples/axiomcx/bboltnan`,
 `examples/osfs/bboltfs` (minibolt: no bbolt call). Kubernetes does not use bbolt.
 The findings below were written before reading `batch-4c.md`, `batch-4d.md`, `open-questions.md`

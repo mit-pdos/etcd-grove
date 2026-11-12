@@ -1,26 +1,11 @@
 /-
-`(*clientv3.Client).Close` (`client/v3/client.go`).
-
-Users: every client program's teardown (`examples/lib/*`, Kubernetes' `etcd3.go` destroy func,
-`compactor.client.Close()`), `newClient`'s error paths; snippet `clientv3client/lifecycle.go`
-(`ReqNewWrapClose`: calls after `Close` fail, never panic).
-
-Proof sketch: `c.cancel()` (the client's context: its loops and every call made with a child of
-`c.Ctx()` see it done); `c.Watcher.Close()` (1b's `watcherAt` bundle), `c.Lease.Close()` (`leaseAt`:
-the keep-alive loops stopped), `c.conn.Close()` (2a: later attempts fail, a second `Close` returns
-an error) through `ContextError`. Every handle stays valid (persistent): a call after `Close` is a
-call whose attempts fail (`indefCall`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__Close.lean` (`True` over the old
-client): over W0's `clientRest` (round 1: a client whose `KV` another holds closes too); concurrent and repeated `Close`s are allowed (each piece is idempotent).
-
-Margin: outstanding calls are not waited for: they return an indefinite error (`Canceled`, the
-connection closing) whenever they notice. The goroutines it stops hold no resource a caller gave
-(the client takes no counted resource), so it gives nothing back.
+`c.Close()` (`client/v3/client.go`, names only; the auth plan's E2d, 2026-10-25): `newClient` closes
+the client it built when the token's fetch fails (a client with a user name, `getToken`'s
+`Authenticate`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -28,10 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -40,15 +23,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.Close()`: the client stopped; any error. -/
-def Client.Close.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientRest c γ who }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Close")) (Val #()))
+/-- `c.Close()` on a client `clientv3.New` builds (`clientCoreAt`): it returns, with some error. -/
+abbrev Client.Close.spec : Prop :=
+  ∀ (c : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Close"))
+      (Val #()))
   {{ (err : GoInterface), RET #err; True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

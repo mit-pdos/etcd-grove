@@ -1,13 +1,10 @@
 /-
-`Cache.getWatch` (`cache/*.go`), an internal helper.
-Users: `Cache.getWatchLoop`.
-Proof sketch: `Cache.get.spec` on the cache's context (`ctxPrin_child` of `Background`), then `Cache.watch.spec` from the response's revision plus one.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`Cache.getWatch()` (`cache/cache.go`): one round of the watch loop, a `get` then a `watch`.
+Lean-first (no Rocq counterpart); see `InvCache.lean` and `InvEtcd.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -15,27 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `c.getWatch()` by the watch loop: always an error (`watch` never returns `nil`). -/
-def Cache.getWatch.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ cacheLoop c }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"getWatch")) (Val #()))
-  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ cacheLoop c }}
+/-- `c.getWatch()`, by the demux's writer (`cacheWriter`, any state, with the revision bound) in a
+goroutine of the cache's wait group: the client's prefix get, restored into the store (`get`),
+then `watch` from the revision after the get's. It returns a non-nil error (the get's, or the
+watch's; its `Error()` returns some string, `errStrOk`), the wait-group token and the demux's
+writer, in some state. -/
+abbrev Cache.getWatch.spec : Prop :=
+  ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
+    (c0 : DemuxCore),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgLoopRunning cf }}
+    (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"getWatch")) (Val #()))
+  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∗
+      cacheWgLoopRunning cf ∗ ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

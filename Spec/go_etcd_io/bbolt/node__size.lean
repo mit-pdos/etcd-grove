@@ -1,10 +1,11 @@
 /-
-`n.size()` (`node.go`). Users: `node.split*`, `node.write`, `node.spill`.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+`node.size` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U9a; used by U8 (`node.rebalance`), U9b (`Bucket.write`, `node.spill`). Proof:
+`Proof/go_etcd_io/bbolt/node__size.lean` (a `sorry` until U9a).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -12,26 +13,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) `nodeSize N`. -/
-def node.size.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (n : Loc) (N : NodeR),
-  {{ wtxCore (GF := GF) tx γ C ∗ ⌜C.nodes n = some N⌝ }}
+/-- `n.size()`: the page size the node needs (`insSize`: a header, and per inode an element and
+its key's and value's lengths); only the slices' headers are read. -/
+abbrev node.size.spec : Prop :=
+  ∀ (n : Loc) (nv : node) (ins : List Inode) (dq dqi : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"size")) (Val #()))
-  {{ (z : w64), RET #z; wtxCore tx γ C ∗ ⌜uint.nat z = nodeSize N⌝ }}
+  {{ RET #(W64 (insSize ins : Int)); n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

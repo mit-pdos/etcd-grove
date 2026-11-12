@@ -1,19 +1,10 @@
 /-
-## `(*authStore).refreshRangePermCache(tx)` (internal helper)
-
-**Users.** Every admin step that changes users or roles, `AuthEnable`, `Recover`, `NewAuthStore`.
-
-**Proof sketch.** `rangePermCacheMu.Lock()`; a fresh map; `tx.UnsafeGetAllUsers()` (4b: `a`'s users); for each, `getMergedPerms(tx, name)` (its spec: an entry, never `nil` for a listed user); the map replaced (the cache view moves to `a`: `cacheOwn`, the writer's); `Unlock`.
-
-**Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary.
-
-**Margin.** None.
+`(*authStore).refreshRangePermCache` (`server/auth/range_perm_cache.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (unit P2; the auth plan's S2, 2026-10-23).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -21,25 +12,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.refreshRangePermCache(tx)`**: the cache rebuilt from the transaction's state. -/
-def authStore.refreshRangePermCache.spec : Prop :=
-  ∀ (st : Loc) (tx : GoInterface) (a a0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ cacheOwn st a0 ∗ txAt tx a ∗ ⌜validPerms a⌝ }}
-    (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"refreshRangePermCache")) (Val #tx))
-  {{ RET #(); cacheOwn st a ∗ txAt tx a }}
+/-- `as.refreshRangePermCache(tx)`, `tx` an `UnsafeAuthReader` holding the state `sta` of the mode
+(`authReaderOk`, `authSnap`): write-locks `rangePermCacheMu` and replaces the cache's map with one
+built from the transaction's users (`UnsafeGetAllUsers`, `getMergedPerms` for each): the new map is
+`cacheOk` of `sta` (its keys `sta`'s users, each entry the user's permissions); the token kept. The
+caller (the apply thread, or `NewAuthStore`) gives the admin side's half of the field
+(`cacheHalf`) and gets it back at `sta` (`cacheAt`; the auth plan's E2r), with the admin side's
+authority (until the auth-on snapshot plan's Prove step, 2026-11-03, the authority with the lock's
+share, `authOwnF`, which `Recover` no longer holds). -/
+abbrev auth.authStore.refreshRangePermCache.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ti : GoInterfaceOk)
+    (Hs : auth.AuthState → IProp GF) (sta : auth.AuthState) (hs : List auth.AuthState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      cacheHalf st M ∗ authReaderOk ti Hs ∗ Hs sta ∗ authSnap M sta ∗ ⌜permsFit sta⌝ ∗
+      authOwn M hs ∗ ⌜∀ γa, M = .on γa → hs.getLast? = some sta⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
+      (Val #(GoInterface.ok ti)))
+  {{ RET #(); Hs sta ∗ cacheAt st M sta ∗ authOwn M hs }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

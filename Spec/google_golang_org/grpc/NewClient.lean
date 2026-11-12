@@ -1,24 +1,11 @@
 /-
-`grpc.NewClient(target, opts...)` (grpc-go, assumed: `clientconn.go`).
-
-Users: the client's `dial` (`client.go:328`, 1c), through `dialWithBalancer`.
-
-Why true: `NewClient` parses the target, applies the options in order (`DialCfg`'s functions),
-builds the connection without connecting (connections are made on the first call, to the
-resolver's addresses); it fails with an error on an unknown scheme or an invalid option combination,
-never a panic. The workload premise `msgsFit` is taken here, the connection's only producer
-(Grpc/Api.lean's header), so no call takes a size premise.
-
-Changes: from `specs-ref/Spec/google_golang_org/grpc/NewClient.lean`: the options as `dialOptAt`,
-the connection `connAt` (the old `grpcConn` with its address list), the size premise moved from
-every call (`opSizeOk`, `notes/invoke-size.md`) to here.
-
-Margin: the code accepts messages over the limits too (refusing them below `2 ^ 48`, panicking
-above).
+`grpc.NewClient(target, opts...)` (grpc's `clientconn.go`, names only; item 5, client construction): a
+client connection, the producer of `grpcConn` (`Proof/google_golang_org/grpc/InvDial.lean`).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvDial
 
 @[expose] public section
 
@@ -26,7 +13,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -36,26 +22,29 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The configuration of a dial with no option: grpc's own invoker and streamer, no address
-guaranteed anything, no per-RPC metadata. -/
-def DialCfg.default : DialCfg (GF := GF) :=
-  { ui := none, si := none, A := fun _ => iprop(True), R := fun md => iprop(⌜md = []⌝) }
-
-/-- `grpc.NewClient(target, opts...)` with options acting as `fs`: a connection configured by them,
-or an error. -/
-def NewClient.spec : Prop :=
-  ∀ (target : GoString) (opts : GoSlice) (vs : List GoInterface)
-    (fs : List (DialCfg (GF := GF) → DialCfg (GF := GF))),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ ⌜msgsFit⌝ ∗ opts ↦*□ vs ∗ ([∗list] v; f ∈ vs; fs, dialOptAt v f) }}
-    (App (App (Val (@! google_golang_org.grpc.NewClient)) (Val #target)) (Val #opts))
-  {{ (cc : Loc) (err : GoInterface), RET (PairV #cc #err);
-      (⌜err = GoInterface.nil⌝ ∗
-        let cfg := fs.foldl (fun c f => f c) DialCfg.default
-        connAt cc cfg.A cfg.ui cfg.si cfg.R) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+/-- **`grpc.NewClient(target, opts...)`** with dial options doing `ds` (`dialOptsAt`), whose stream
+interceptors are etcd's (one at least, G2) and whose one resolver is `rb` (`dialOk`), which resolves the target's
+scheme to the addresses `addrs` (`grpcResolverAt`, taken: the resolver's state is the connection's
+from then on), returns a connection that reaches the servers at `addrs` (each attempt one of them) with the unary interceptor chain the
+options set (`unaryIcsOf ds`: the last `WithUnaryInterceptor`'s) and no default call options
+(`grpcConn`), or an error (an unparsable target, no transport credentials, ...). Since the auth
+plan's C1 (2026-10-28): given the contract `Q` of the per-RPC credentials the options add
+(`perRPCCredsOk`, for each of `credsOfDial ds`), what they return to the connection's attempts
+(`connCredsOk`; every attempt is after the dial, so after the contract holds). -/
+abbrev grpc.NewClient.spec : Prop :=
+  ∀ (target : GoString) (sl : GoSlice) (ds : List GrpcDialOpt) (rb : GoInterface)
+    (scheme : GoString) (addrs : List GoString) (Q : GrpcMd → IProp GF),
+  dialOk ds rb →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ dialOptsAt sl ds ∗
+      grpcResolverAt rb scheme addrs ∗ ⌜(scheme ++ go!"://") <+: target⌝ ∗
+      [∗list] pc ∈ credsOfDial ds, perRPCCredsOk pc Q }}
+    (App (App (Val (@! google_golang_org.grpc.NewClient)) (Val #target)) (Val #sl))
+  {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
+      (⌜err = GoInterface.nil⌝ ∗ grpcConn conn addrs (unaryIcsOf ds) [] ∗
+          connCredsOk conn (credsOfDial ds) Q) ∨
+        ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

@@ -1,17 +1,17 @@
 # Batch R1: raft's node API (report)
 
-Author agent, 2026-11-09. Everything builds: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3`
+Author agent, 2026-11-09. Everything builds: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3`
 (66 modules); snippets: `cd examples && go vet ./specreq/raftnode/` clean, gofmt clean.
 
 ## Files
 
-- `Spec/go_etcd_io/raft/v3/Model.lean`: the protocol-level pure model, transparent (the
+- `SpecPlan/Spec/go_etcd_io/raft/v3/Model.lean`: the protocol-level pure model, transparent (the
   enumerations; `LogEntry`, `opsOf`, `termAt`; `HardState`, `ConfState`, `Membership`, `Snapshot`;
   `ConfChangeV1/V2/I`, `ConfDecision`; `Msg`; `StorState` with `MemoryStorage`'s operations;
   `Durable`, `StorageHolds`; `Batch`, `Durable.next`, `Driver`, `BatchOk`, `ConfView`, `BootLog`).
   Two opaque pure functions owned by other batches: `Membership.applyChange`/`Membership.Valid`
   (R4) and `decodeConfChange` (3h).
-- `Spec/go_etcd_io/raft/v3/Api.lean`: the resources (opaque) and laws (`.spec` obligations), with
+- `SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean`: the resources (opaque) and laws (`.spec` obligations), with
   the header saying what each means and how raft's proof would realize it.
 - 64 spec files: `StartNode`, `RestartNode`, `setupNode`, `newNode`, `confChangeToMsg`,
   `node__{Stop,Tick,Campaign,ForgetLeader,Propose,ProposeConfChange,Step,Ready,Advance,
@@ -157,7 +157,7 @@ Per node (`n` a `*node` or a `*RawNode`):
 ## Round 1 repairs (2026-11-09)
 
 Reviews: `reviews/R1-provability-1.md`, `reviews/R1-completeness-1.md`. Rebuilt:
-`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (131 modules, R2/R3's files included);
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3` OK (131 modules, R2/R3's files included);
 `go vet ./specreq/raftnode/` and gofmt clean; `etc/issues-status.py --check` clean.
 
 Provability, first tier:
@@ -211,7 +211,7 @@ fact in `Status`), S9 (a decoded-`Id` check): no first-tier need; S8 (rafthttp a
 ## Round 2 repairs (2026-11-09)
 
 Review: `reviews/R1-round2.md`; R2's requests in `req/go_etcd_io_raft_v3.md` ("from R2"). Rebuilt:
-`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (192 modules, R2/R3's included);
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3` OK (192 modules, R2/R3's included);
 `go vet ./specreq/raftnode/` and gofmt clean; `etc/issues-status.py --check` clean.
 
 - **N1, the view after a snapshot**: `node.Advance`/`RawNode.Advance`'s snapshot arm now gives
@@ -261,7 +261,7 @@ today. Left to the user with R2's report.
 ## Round 3 (crash) (2026-11-09)
 
 2e's request (`req/go_etcd_io_raft_v3.md`, "from 2e, round 1"): restarts after a crash during the
-WAL's `Save`. Rebuilt: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (227 modules).
+WAL's `Save`. Rebuilt: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3` OK (227 modules).
 
 - **`raftState_crash.spec`** (`Api.lean`), over `Durable.crashed D b j hs` and
   `Durable.confAboveOk` (`Model.lean`). With no node of the id running (`nodeVacant`, from the
@@ -292,5 +292,5 @@ WAL's `Save`. Rebuilt: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (22
 
 - The protocol model's `Membership.applyChange` and `decodeConfChange` are opaque here (R4's and
   3h's); R1's laws about them are obligations of those batches.
-- `Spec/PkgInit/os.lean` did not build at the start (generator issue, fixed by the coordinator during
+- `SpecPlan/Spec/PkgInit/os.lean` did not build at the start (generator issue, fixed by the coordinator during
   the batch).

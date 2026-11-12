@@ -1,24 +1,14 @@
-/-
-## `node.ReadIndex(ctx, rctx)`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's read loop (`server/etcdserver/read/read.go:236`: a fresh 8-byte id per request,
-retried with a new one; `ErrStopped` ends the loop); the examples' `Replica.read`
-(`kvdurable/kv.go:811`: cluster-wide unique contexts). Snippet: `readindex.go` (`ReqLinearizableRead`).
+## `node.ReadIndex`
 
-**Proof sketch.** `n.step(ctx, MsgReadIndex{rctx})` (`stepOk` of a local read with its registered
-context); the run goroutine's `raft.Step` (R2: the leader confirms with a quorum's heartbeat
-responses, `ReadOnlySafe` by `ConfigOk`, and fires the read's update at its commit index, recording
-`readState γ c i`; a follower forwards it). The read state reaches the client in a `Ready`.
-
-**Changes.** Unchanged (over opaque predicates).
-
-**Margin.** A request may be lost (no read state ever); `nil` says only it was handed over.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.ReadIndex.specRaw`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -26,29 +16,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Requests a read index** for registered context `c`. -/
-def node.ReadIndex.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
-    (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ ownSlice rctx c DFrac.discard ∗
-      readCtx γ c Q }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ReadIndex")) (Val #ctx)) (Val #rctx))
-  {{ (err : GoInterface), RET #err; nodeErr n ctx err }}
+/-- **`node.ReadIndex(ctx, rctx)`**: requests a read with the context `c` (the bytes of `rctx`),
+committed to `Q` beforehand (`readCtx_commit`); a `Ready`'s `ReadState` with context `c` then says
+what it gave (`readStateOk_ctx`). The context may be retried. (U9, 2026-10-29: raft takes the
+request's read credit from a time receipt of its own, `rdPool`; until then the caller's
+`readCredit γ`.) (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
+abbrev node.ReadIndex.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8)
+    (Q : List LogEntry → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      rctx ↦*□ c ∗ isReadCtx γ N c Q }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
+      (Val #(interface.ok ctx))) (Val #rctx))
+  {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

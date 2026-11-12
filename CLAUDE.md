@@ -1,11 +1,5 @@
 # etcd-grove (Lean)
 
-> **Branch `specs-only`** (2026-11-09): this branch holds only specs, no proofs: the old `Spec/`,
-> `Proof/`, `interface/`, `RaftWitness/`, `PorcupineDag/` are deleted, and `Spec/` is rebuilt over
-> opaque predicates, top-down from a linearizability spec, with Go requirement snippets in
-> `examples/specreq/`. Read `notes/specs-only/README.md` first; what follows describes `lean`, and
-> holds here only where it is about the translations, the Go code and the spec skill.
-
 This branch verifies **etcd** — starting with its Raft implementation — in Lean,
 using the Lean port of Perennial ([mit-pdos/perennial](https://github.com/mit-pdos/perennial),
 branch `lean`), which is a Lake dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the

@@ -1,21 +1,10 @@
 /-
-`(*clientv3.lessor).Revoke` (`client/v3/lease.go`).
-
-Users: `concurrency.Session.Close` (`session.go:112`), snippet `clientv3lease/session.go`
-(`ReqSessionLifecycle`), `examples/etcd/leaseexpiry`'s `expire_revoke_test`.
-
-Proof sketch: builds `&pb.LeaseRevokeRequest{ID: id}`, `l.remote.LeaseRevoke` (repeatable: the
-update persistent), returns the reply converted (`(*LeaseRevokeResponse)(resp)`: `ansReply`'s
-`replyOwn _ .leaseRevoke`) or `ContextError`'s error.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__Revoke.lean`: restated over the
-model; the update persistent (a resent revoke answers `ErrLeaseNotFound`).
-
-Margin: none.
+`(*clientv3.lessor).Revoke(ctx, id)` (`client/v3/lease.go`; item 1, the client lease). Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLease
 
 @[expose] public section
 
@@ -23,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,13 +22,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `l.Revoke(ctx, id)`: `.leaseRevoke id` linearized by the caller's persistent update. -/
-def lessor.Revoke.spec : Prop :=
-  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
-  Lease.RevokeTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) γ who
+/-- `l.Revoke(ctx, id)` on a `*lessor` over a connection to `addr` (`lessorRemoteAt`), for a spec
+`Spec` registered for `LeaseRevoke` and the caller's `Q`: the request `{ID: id}` through the retry
+lease client; on success the reply itself (`(*LeaseRevokeResponse)(resp)`, read-only) with `Q` of
+it; otherwise `nil` and `ContextError(ctx, err)`. -/
+abbrev lessor.Revoke.spec : Prop :=
+  ∀ (l : Loc) (addr : List GoString)
+    (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
+    (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
+      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗ □ ▷ Spec id Q ∗
+      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
+      (Val #(GoInterface.ok ctx))) (Val #id))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗ Q m) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

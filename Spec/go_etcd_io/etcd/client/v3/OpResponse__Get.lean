@@ -1,17 +1,9 @@
 /-
-`clientv3.OpResponse.Get` (`client/v3/kv.go`).
-
-Users: leasing (`leasing/kv.go` `Do`'s result), the cache (`cache/cache.go`: `resp.Get()` of `Do`'s result).
-
-Proof sketch: returns the field.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/OpResponse__Get.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.OpResponse.Get()` (`client/v3/op.go`, translated for `client/v3/leasing`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -19,27 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `r.Get()`: the `get` field. -/
-def OpResponse.Get.spec : Prop :=
-  ∀ (r : go_etcd_io.etcd.client.v3.OpResponse),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
-    (App (Val (r @!! go_etcd_io.etcd.client.v3.OpResponse.ty @!! go!"Get")) (Val #()))
-  {{ RET #r.get'; True }}
+/-- `r.Get()`: the `OpResponse`'s `get` field. -/
+abbrev OpResponse.Get.spec : Prop :=
+  ∀ (rp : Loc) (r : go_etcd_io.etcd.client.v3.OpResponse) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ rp ↦{dq} r }}
+    (App (Val (rp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.OpResponse.ty @!! go!"Get")) (Val #()))
+  {{ RET #r.get'; rp ↦{dq} r }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

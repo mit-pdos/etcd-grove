@@ -1,10 +1,10 @@
 /-
-`t.lock()` (`batch_tx.go:114-116`): translated; internal. The mutex: its content (`Pk`, the
-physical session). Changes: over `btHeld`. Margin: none.
+`batchTx.lock` (`batch_tx.go`). `t.lock()`: the batch lock, free state and the client's resources `W ∗ Pk` (the backend open: a share of the open token at `false`).
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -12,26 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.lock()`**: the batch mutex, `Pk`, bbolt's write transaction. -/
-def batchTx.lock.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk }}
-    (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"lock")) (Val #()))
-  {{ RET #(); btHeld γ ∗ Pk ∗ ((∃ I n d, btPhys γ I n d) ∨ btStopped γ) }}
+/-- `t.lock()`: the batch lock, free state and the client's resources `W ∗ Pk` (the backend open: a share of the open token at `false`). -/
+abbrev backend.batchTx.lock.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ dghostVar γ.opn (DFrac.own qo) false }}
+    (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"lock")) (Val #()))
+  {{ RET #(); ∃ st : BSess, batchLocked γ P b st ∗ ⌜freeOk P st ∧ st.cnt.p0 = sint.nat st.pend⌝ ∗ (W ∗ Pk) ∗
+      dghostVar γ.opn (DFrac.own qo) false }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

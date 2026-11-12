@@ -1,23 +1,11 @@
 /-
-## `(*EtcdServer).monitorDowngrade()` (`server.go:2362-2380`)
-
-**Users.** `Start` (attached goroutine).
-
-**Proof sketch.** A loop until `stopping` closes that cancels a finished downgrade (an entry with no model effect); every field it reads is in
-`isServer`'s realization (the configuration's intervals, the cluster, the corruption checker
-`isCorruptionChecker`, the version manager); a proposal goes through 2c's `raftRequest`, whose
-apply fires nothing observable or `envUpd`'s step.
-
-**Changes** (from `specs-ref`'s `EtcdServer__monitorDowngrade.lean`, over the monitors' configuration fields and a
-reader slot of `lgMu`): over `isServer`.
-
-**Margin.** None for safety.
-
-Changes: verify-round (A7-completeness F1): takes and gives back the goroutine's `threadTok` (`GoAttach` gives it one; `Notifier.Receive`, `Logger`, `raftRequest` take one).
+`(*EtcdServer).monitorDowngrade()` (`server.go`): the trust boundary (names-only; one of the goroutines `Start`
+attaches). Lean-first (the request path's unit 4c).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 
 @[expose] public section
 
@@ -25,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,15 +23,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`monitorDowngrade`**: runs until the server stops. -/
-def EtcdServer.monitorDowngrade.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"monitorDowngrade")) (Val #()))
-  {{ RET #(); threadTok }}
+/-- `s.monitorDowngrade()` returns (names-only: the downgrade monitor, until `stopping`), **with
+the check off** (`s.Cfg.DowngradeCheckTime` zero, read-only): it builds its monitor
+(`serverversion.NewMonitor(s.Logger(), NewServerVersionAdapter(s))`: a reader slot of `s.lgMu`
+and the logger field), reads the interval and returns at once. Once configured the leader may
+propose `DowngradeInfoSet` (`CancelDowngradeIfNeeded`), which no permit covers (audit B4a,
+2026-10-18, D19m; until then the contract took only the package's initialization). -/
+abbrev EtcdServer.monitorDowngrade.spec : Prop :=
+  ∀ (s l : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvLgAddr s ↦□ l ∗ srvLgReader s ∗
+      srvCfgFieldAddr s go!"DowngradeCheckTime" ↦□ (W64 0) }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorDowngrade")) (Val #()))
+  {{ RET #(); True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

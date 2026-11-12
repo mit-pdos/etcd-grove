@@ -1,16 +1,7 @@
-/-
-## `RawNode.ReportSnapshot`
-
-**Users.** No client calls `RawNode` directly (etcd and the examples use `node`); `node.run`
-calls it from its goroutine, holding the token. `node.run` (the matching `node` method's channel case). **Proof sketch.** `raft.tick` or
-`raft.Step` of a local message (R2); the result ignored. **Changes.** Unchanged.
--/
+/- Lean-first (no Rocq counterpart), 2026-10-13. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 
@@ -18,27 +9,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+-- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `RawNode.ReportSnapshot`: keeps the token. -/
-def RawNode.ReportSnapshot.spec : Prop :=
-
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (to status : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv }}
-    (App (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"ReportSnapshot")) (Val #to)) (Val #status))
-  {{ RET #(); rawNodeAt rn γ id k adv }}
+/-- A snapshot sent to `to` succeeded or failed (`MsgSnapStatus`, local): a `Progress` state only. -/
+abbrev RawNode.ReportSnapshot.spec : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (to : w64) (st : SnapshotStatus),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ ownRawNode γ rn id rs }}
+    (App (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ReportSnapshot")) (Val #to)) (Val #st))
+  {{ RET #(); "Hrn" ∷ ownRawNode γ rn id rs }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -41,7 +41,7 @@ FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.657s
 ## Proof
 
 Stated, not fixed: batch 3e's (specs-only) trusted `HashStorage.Hash.contract` and
-`HashByRev.contract` (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) take a share of
+`HashByRev.contract` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) take a share of
 `mvccRestoreGate`, which `Restore` takes whole, so no hash runs concurrently with a restore: the
 torn read of the interface `s.b` (two words) and `hashByRev`'s read of the old storage after
 `s.mu` is released are excluded by that premise, an obligation of the server (its snapshot install

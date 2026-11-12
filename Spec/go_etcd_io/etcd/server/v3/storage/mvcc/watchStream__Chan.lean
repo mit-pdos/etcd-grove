@@ -1,14 +1,10 @@
 /-
-`(*watchStream).Chan()`: the stream's channel.
-
-**Users.** `serverWatchStream.sendLoop` (`v3rpc/watch.go:425, 516, 536`, 2b: the receive in its
-`select`, the drain before a `Created`, the drain at its end). **Proof sketch.** Reads `ch`
-(read-only). **Changes.** Unchanged. **Margin.** None.
+`watchStream.Chan` (watcher.go). Lean-first (no Rocq counterpart); see `InvWatchStream.lean` and the
+mvcc API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
-public import Spec.context.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -16,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,14 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchStream.Chan.spec : Prop :=
-  ∀ (w : Loc) (γ : MvccName) (ι : WsNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsAt w γ ι }}
-    (App (Val (w @!! go.GoType.PointerType watchStream.ty @!! go!"Chan")) (Val #()))
-  {{ RET #(wsChanOf ι); True }}
+/-- **`ws.Chan`**: the API's contract at `*watchStream` (`mvcc.api.WatchStream.Chan.contract`,
+`Spec/.../mvcc/Api.lean`; stage 2 of the mvcc API, 2026-11-05: the stream's internal spec replaced
+by the API's, strict M1). -/
+abbrev mvcc.watchStream.Chan.spec : Prop :=
+  ∀ w : Loc, mvcc.api.WatchStream.Chan.contract (GF := GF)
+    (go.GoType.PointerType watchStream.ty) #w
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

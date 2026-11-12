@@ -1,10 +1,10 @@
 /-
-`t.UnsafePut(bucket, k, v)` (`batch_tx.go:163-166`): translated; internal. `unsafePut(…, false)`.
-Changes: over `btPhys`. Margin: none.
+`batchTx.UnsafePut` (`batch_tx.go`). `t.UnsafePut(bucket, key, value)` on the writer (`unsafePut` with `seq = false`).
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -12,28 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafePut(bk, k, v)`** on the embedded `batchTx`: bbolt's write transaction at `put`. -/
-def batchTx.UnsafePut.spec : Prop :=
-  ∀ (γ : BeNames) (I : Image) (n d : Nat) (bk : GoInterface) (bi : BktInfo) (ks vs : GoSlice)
-    (k v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ btPhys γ I n d ∗ bucketOk bk bi ∗ ⌜k.length + v.length ≤ Bbolt.bboltEntryMax⌝ ∗
-      ks ↦*□ k ∗ vs ↦*□ v }}
-    (App (App (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"UnsafePut")) (Val #bk)) (Val #ks)) (Val #vs))
-  {{ RET #(); btPhys γ (I.put bi.name k v) (n + 1) d }}
+/-- `t.UnsafePut(bucket, key, value)` on the writer (`unsafePut` with `seq = false`). -/
+abbrev backend.batchTx.UnsafePut.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
+  0 < kb.length → kb.length ≤ maxKeySize →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ value ↦*□ vb }}
+    (App (App (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"UnsafePut")) (Val #bk)) (Val #key)) (Val #value))
+  {{ RET #(); btW γ t (st.put bi kb vb false) ∗ key ↦*{dk} kb }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

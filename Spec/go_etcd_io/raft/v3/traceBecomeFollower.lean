@@ -1,14 +1,7 @@
-/-
-## `traceBecomeFollower(...)` (internal)
-
-raft.go's tracing hook: a no-op in the default build (`state_trace_nop.go`; the translated one).
-**Changes.** Unchanged (from `specs-ref`'s `traceBecomeFollower.lean`).
--/
+/- Port of election_proof/spec_traceBecomeFollower.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +9,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Does nothing. -/
-def traceBecomeFollower.spec : Prop :=
+/-- `traceBecomeFollower(r)`: a tracing hook, and a **no-op** -- Goose translates it to
+`λ: <> <>, exception_do (do: #())`. See `spec_traceReceiveMessage.v`; `becomeFollower`
+is the caller.
+
+**It owns nothing** (changed 2026-09-23). Goose translates the hook to
+`exception_do (do: #())`: it reads nothing and writes nothing, so the honest triple
+takes no resource and gives none back. Until then it carried a piece of the raft
+struct in and out (`own_raft_misc`), which was a spec on a raw piece of the struct --
+exactly what the one-predicate rule (notes/decisions.md, "Three layers") rules out --
+and was left that way only to spare the callers a re-seal. Owning nothing spares them
+the re-seal *and* obeys the rule. This is a fact about the no-op build that is
+translated; the tracing build reads `r` and would need a real spec on `ownRaftPhys`. -/
+abbrev traceBecomeFollower.spec : Prop :=
   ∀ (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
-    (App (Val (@! go_etcd_io.raft.v3.traceBecomeFollower)) (Val #r))
+    (App (Val #(functions traceBecomeFollower [])) (Val #r))
   {{ RET #(); True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

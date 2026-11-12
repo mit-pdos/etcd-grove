@@ -1,10 +1,9 @@
 /-
-`(*leaseCache).MayAcquire` (`cache.go`): no revocation of `key` in the last `revokeBackoff`. Proof
-sketch: read lock; `time.Since` (Perennial). Time is not modelled: any answer. Changes: from `specs-ref`'s `leaseCache__MayAcquire.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.MayAcquire(key)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -12,27 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.MayAcquire(key)`. -/
-def leaseCache.MayAcquire.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (key : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ lcAt lc γ γL ∗ threadTok }}
-    (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"MayAcquire")) (Val #key))
-  {{ (b : Bool), RET #b; threadTok }}
+/-- **`lc.MayAcquire(key)`** (read lock): `true` if `key` was not revoked in the state `st` it
+read; otherwise the clock decides (`time.Since`). -/
+abbrev leaseCache.MayAcquire.spec : Prop :=
+  ∀ (lc : Loc) (γ : LeaseCacheNames) (pfx : GoString) (X : LeaseCacheSt → Qp → IProp GF)
+    (Qr : LeaseCacheSt → IProp GF) (key : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeaseCache lc γ pfx X ∗ leaseCacheReader lc γ pfx X ∗ lcPeek X Qr }}
+    (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"MayAcquire")) (Val #key))
+  {{ (b : Bool), RET #b; leaseCacheReader lc γ pfx X ∗
+      ∃ st : LeaseCacheSt, □ Qr st ∗ ⌜st.revokes !! key = none → b = true⌝ }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

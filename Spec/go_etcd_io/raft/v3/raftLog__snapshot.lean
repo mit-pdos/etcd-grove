@@ -1,28 +1,11 @@
-/-
-## `(*raftLog).snapshot()` (internal)
+/- Port of election_proof/spec_raftLog__snapshot.v (feb5c73d4).
 
-**Users**: `maybeSendSnapshot` (`raft.go:672`): on `ErrSnapshotTemporarilyUnavailable` it gives up,
-on another error it panics; it panics on an empty snapshot, after a term or entries lookup answered
-`ErrCompacted`. Snippet `raftlog/reads.go` (`ReqSnapshotForSend`).
-
-**Proof sketch**: a pending snapshot: `proto.Clone` of it (its validity was `restore`'s premise).
-Else `Storage.Snapshot` through `isStorage`, its update fired inside the log's invariant, where the
-stored snapshot is valid (`V`) or empty, and at least every `logCompactedLb` (the compaction point
-was at least it when it was issued, the stored snapshot is at least the compaction point, and only
-grows); a pending snapshot is at least every `logCompactedLb` too (it is past `committed`, which is
-past the storage's floor).
-
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__snapshot.lean`: validity through the client's `V` (was the log's
-ghost list of sendable snapshots `ksn` with certificates); `logCompactedLb` replaces the old
-derivation of non-emptiness from the frozen prefix.
-
-**Margin**: the stored snapshot may be newer than any `logCompactedLb`.
+Lean notes: Rocq's `(#snap, #err)` is `PairV #snap #err`; `global_addr` is
+`globalAddr`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -30,29 +13,61 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The snapshot to send: the pending one, or the storage's (valid, or empty); at least every index found compacted. -/
-def raftLog.snapshot.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (S : StorState → IProp GF) (V : Snapshot → IProp GF) (N : Namespace),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls ∗ logStorage l S V N }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"snapshot")) (Val #()))
-  {{ (sp : Loc) (err : GoInterface), RET (PairV #sp #err); raftLog l ls ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ s, snapshotPts sp (DFrac.own 1) s ∗ (⌜s.isEmpty⌝ ∨ V s) ∗
-          ⌜∀ s', ls.us.snap = some s' → s = s'⌝ ∗
-          (∀ j, logCompactedLb l j -∗ ⌜j ≤ uint.nat s.index⌝)) ∨
-       (errIs go_etcd_io.raft.v3.ErrSnapshotTemporarilyUnavailable err ∗ ⌜ls.us.snap = none⌝)) }}
+/-- `l.snapshot()` -- the snapshot the log can offer a lagging peer
+(`raftLog.snapshot.impl`, `Code/go_etcd_io/raft/v3.lean`):
+
+    if l.unstable.snapshot != nil { return *l.unstable.snapshot, nil }
+    return l.storage.Snapshot()
+
+Either the distinguished `ErrSnapshotTemporarilyUnavailable` -- whose points-to the
+caller passes in, since the comparison in `maybeSendSnapshot` is against the
+package-level variable -- or a `nil` error and a fresh, owned snapshot, non-empty
+(`IsEmptySnap`'s test, so `maybeSendSnapshot`'s `panic` is dead), from one of two sources:
+
+- a pending snapshot (`LogState.snap`), cloned: one the node may send (`ksn`), the log's base,
+  at or below `committed`, certified (`ksnCert`, U8 v2);
+- (U8 v2, candidate 17 rev 3) the storage's (`Storage.Snapshot()`): at or past the log's
+  boundary, valid (`svCert`, the contract's `snapshotValid` as raft carries it), and -- from the
+  contract's `DL`, read as a term raft certified at a committed index (`raftDL`, `DtOk`) -- at or
+  below `committed`, with the log's term at its index. Until U8 v2 the commit bound and term came
+  from the storage's state raft owned (`StoredSnapOk`), the certificate from the registry
+  (`storCert`); the storage's snapshot is now the client's.
+
+The premise: the log is compacted (its boundary non-zero), or the storage is (`storPast`), so a
+storage snapshot is non-empty. The log comes back at the same state. -/
+abbrev raftLog.snapshot.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (esu : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
+      "#Hesu" ∷ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
+      "#Hcompact" ∷ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"snapshot")) (Val #()))
+  {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
+      ownRaftLog l ls ∗
+      (⌜err = esu⌝ ∨
+       (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
+        ⌜sv.Metadata'.Index' ≠ W64 0⌝ ∗
+        (⌜ls.snap ≠ none ∧ snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧
+            uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
+            plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
+              = some sv.Metadata'.Term'⌝ ∗
+           ksnCert ls.sn (snapTrip sv sv.Metadata'.ConfState'.lists) ∨
+         (⌜ls.snap = none ∧ uint.Z ls.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
+            uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
+            plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
+              = some sv.Metadata'.Term'⌝ ∗
+           svCert ls.sn sv)))) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

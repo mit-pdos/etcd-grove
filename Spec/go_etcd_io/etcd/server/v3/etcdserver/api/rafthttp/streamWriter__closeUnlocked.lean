@@ -1,19 +1,10 @@
 /-
-## `(*streamWriter).closeUnlocked()`
-
-**Users.** `streamWriter.close`, `run`.
-
-**Proof sketch.** The connection's close right (`closer.Close`), `ReportUnreachable` if messages are queued, a new channel (the old one's messages lost with their facts). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*streamWriter).closeUnlocked` (`stream.go`; rafthttp stage 5b). Lean-first; the writer's predicates:
+`rafthttp/Writer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Writer
 
 @[expose] public section
 
@@ -21,26 +12,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Under the lock: closes a working connection (giving the handler its writer back), drops the queue (a fresh `msgc`), stops working. -/
-def streamWriter.closeUnlocked.spec : Prop :=
-  ∀ (cw : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swLocked cw ∗ swRun cw }}
-    (App (Val (cw @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter.ty @!! go!"closeUnlocked")) (Val #()))
-  {{ (b : Bool), RET #b; swLocked cw ∗ swRun cw }}
+/-- **`cw.closeUnlocked()`** with `mu` held (the fields whole: `run`'s halves and the lock's): if
+working, closes the connection, giving it `Q` (`closeRight`), and reports the peer unreachable if
+messages were queued (needing none of the `Raft`'s resources `Rr`, J8a-6); then a fresh `msgc` (a new bag),
+not working; returns whether it was. -/
+abbrev rafthttp.streamWriter.closeUnlocked.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (Rr : IProp GF) (cw : Loc) (mc : GoChan)
+    (γm : ChanNames) (wk : Bool) (cl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      swFixed Rh ty lid pid Rr cw ∗
+      cw.[rafthttp.streamWriter, go!"msgc"] ↦ mc ∗ cw.[rafthttp.streamWriter, go!"working"] ↦ wk ∗
+      cw.[rafthttp.streamWriter, go!"closer"] ↦ cl ∗ isChanBag γm mc (swMsg Rh ty lid pid) ∗
+      (if wk then iprop(closeRight cl Q ∗ Q) else iprop(True)) }}
+    (App (Val (cw @!! go.GoType.PointerType rafthttp.streamWriter.ty @!! go!"closeUnlocked")) (Val #()))
+  {{ (b : Bool), RET #b; ⌜b = wk⌝ ∗ ∃ (mc' : GoChan) (γm' : ChanNames),
+      cw.[rafthttp.streamWriter, go!"msgc"] ↦ mc' ∗ cw.[rafthttp.streamWriter, go!"working"] ↦ false ∗
+      cw.[rafthttp.streamWriter, go!"closer"] ↦ cl ∗ isChanBag γm' mc' (swMsg Rh ty lid pid) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

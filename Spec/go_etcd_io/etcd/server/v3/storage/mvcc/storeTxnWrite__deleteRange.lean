@@ -1,13 +1,9 @@
 /-
-`(*storeTxnWrite).deleteRange(key, end)` (`kvstore_txn.go:293`): the range's present keys (the
-index at the transaction's revision, `treeIndex.Range.spec`) each deleted (`delete.spec`, in key
-order); their number. Internal (`DeleteRange`).
-
-**Changes** from `specs-ref`'s file: over `storeTxnW`, `rangeKeys` (W0's store) and the lessor's state (`delsLs`).
+`storeTxnWrite.deleteRange` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -15,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,21 +21,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The deletes of the range's present keys appended; their number. -/
-def storeTxnWrite.deleteRange.spec : Prop :=
-  ∀ (t : Loc) (γ : MvccName) (γl : Lease.Names) (trace : Loc) (σ : MvccState) (pend : List Event)
-    (key endk : GoSlice) (kk e : Bytes) (dk de : DFrac) (n : Nat) (ls : Lease.LessorState),
+/-- `tw.deleteRange(key, end)`: the keys of `[key, end)` (the one `key` if `end == nil`) with a
+revision at the transaction's revision (`writeRev`: the pending one if it has a change, else
+the committed log's last), `delKeys`, in key order, each deleted; their number. -/
+abbrev mvcc.storeTxnWrite.deleteRange.spec : Prop :=
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      storeTxnW t γ trace σ pend ∗ mvccLessorIs γ γl ∗ key ↦*{dk} kk ∗ endk ↦*{de} e ∗
-      Lease.lessorState γl n ls }}
-    (App (App (Val (t @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"deleteRange")) (Val #key))
-      (Val #endk))
-  {{ (nd : w64), RET #nd; key ↦*{dk} kk ∗ endk ↦*{de} e ∗ ∃ (ds : List Key) (n' : Nat),
-      ⌜rangeKeys (txnStore σ pend) (mrange kk endk e) ds ∧ nd = W64 ds.length⌝ ∗
-      storeTxnW t γ trace σ (pend ++ ds.map .delete) ∗
-      Lease.lessorState γl n' (delsLs ls ds) }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
+    (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"deleteRange"))
+      (Val #key)) (Val #endk))
+  {{ RET #(W64 ((mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length : Int) : w64);
+      mvcc.storeTxnWriteIs tw s γ trace ilog
+        (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) crev Z ∗
+      lease.leaseOwn γ.leases L
+        (mvcc.pendItems ilog (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del)) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

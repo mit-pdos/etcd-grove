@@ -8,16 +8,16 @@ pass `go vet`.
 ## Files
 
 Vocabulary:
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean` (namespace `EtcdServer`)
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/read/Api.lean` (namespace `Read`)
-- `Spec/go_etcd_io/etcd/pkg/v3/wait/Api.lean` (`Wait`), `idutil/Api.lean` (`IdUtil`),
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean` (namespace `EtcdServer`)
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/read/Api.lean` (namespace `Read`)
+- `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/wait/Api.lean` (`Wait`), `idutil/Api.lean` (`IdUtil`),
   `notify/Api.lean` (`Notify`)
 
 No shared `etcdserver/Api.lean`: when I started, 2e's `ApiBoot.lean` already had the handle
 `isServer s γ` and 2d's `ApiApply.lean` the cluster-level vocabulary (`Names`, `histAt`,
 `answered`, `srvApplied`). My specs take 2e's handle, and my sketches cite 2d's laws.
 
-Specs (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`):
+Specs (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/`):
 - client-facing: `EtcdServer__{Range,RangeStream,Put,DeleteRange,Txn,Compact}`,
   `EtcdServer__{LeaseGrant,LeaseRevoke,LeaseRenew,LeaseTimeToLive,LeaseLeases,Alarm}`,
   `EtcdServer__{AuthEnable,AuthDisable,AuthStatus,Authenticate,UserAdd,UserDelete,
@@ -376,6 +376,6 @@ New nonissues: `etcd-rangestream-auth-revoked-midstream`, `etcd-rangestream-coun
     `threadTok`, and the realization lends a reader from the pool the server's invariant keeps (2e's
     `NewLessor`).
   - **3d**: the store-index to cluster-index link is 2d's. `Range`'s sketch cites it.
-- **Builds**: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver` OK (150 modules);
+- **Builds**: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver` OK (150 modules);
   `--dir .../etcdserver/apply` OK (74 modules). No other batch's file failed after the `traceAt`
   alias.

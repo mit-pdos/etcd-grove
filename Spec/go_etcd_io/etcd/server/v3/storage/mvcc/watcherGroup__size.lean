@@ -1,10 +1,9 @@
 /-
-`(*watcherGroup).size()` (internal): the number of watchers.
+`watcherGroup.size` (`watcher_group.go`). Lean-first (no Rocq counterpart); see `InvWatchGroup.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchGroup
 
 @[expose] public section
 
@@ -12,25 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watcherGroup.size.spec : Prop :=
-  ∀ (wg : Loc) (v : watcherGroup) (dq dq' : DFrac) (G : List (Loc × MRange)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wg ↦{dq} v ∗ wgOwn v dq' G }}
+/-- `wg.size()`: the number of members (at any fraction of the group: `syncWatchersLoop` reads it
+under the store's read lock). -/
+abbrev mvcc.watcherGroup.size.spec : Prop :=
+  ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownWatcherGroup wg W q }}
     (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"size")) (Val #()))
-  {{ RET #(W64 G.length); wg ↦{dq} v ∗ wgOwn v dq' G }}
+  {{ RET #(W64 (GMap.size W)); mvcc.ownWatcherGroup wg W q ∗ ⌜GMap.size W < 2 ^ 63⌝ }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

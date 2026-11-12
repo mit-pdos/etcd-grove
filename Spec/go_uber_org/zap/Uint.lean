@@ -1,14 +1,11 @@
 /-
-`zap.Uint`: the trust boundary.
-Users: the server's and the client's code throughout (every logging call); `NewNop`: the examples
-(`examples/etcd/*`, `zap.NewNop()` as the member's and the client's logger).
-Proof sketch: none (trust boundary, `Api.lean`'s header).
-Changes: from `specs-ref/Spec/go_uber_org/zap/Uint.lean`: the namespace `Zap`.
-Margin: logging's output is not modelled.
+`zap.Uint`: the trust boundary (`go.uber.org/zap` is names-only; unit P3a: the retry
+interceptor logs its attempt number).
 -/
 module
 
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import GeneratedProof.go_uber_org.zap
 
 @[expose] public section
 
@@ -16,18 +13,17 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Zap
 
 open Iris Iris.BI go_uber_org
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `zap.Uint(key, v)` returns a field (a plain value). -/
-def Uint.spec : Prop :=
+/-- `zap.Uint(...)` returns some field. -/
+abbrev zap.Uint.spec : Prop :=
   ∀ (k : GoString) (v : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap }}
     (App (App (Val (@! zap.Uint)) (Val #k)) (Val #v))
@@ -35,6 +31,5 @@ def Uint.spec : Prop :=
 
 end spec
 
-end Zap
 end EtcdGrove
 end Perennial

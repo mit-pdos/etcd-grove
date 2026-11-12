@@ -1,13 +1,9 @@
 /-
-`(*storeTxnWrite).Put(key, value, lease)` (`kvstore_txn.go:204`): `put`, then `beginRev + 1`.
-Internal (`Txn.Put.contract` through `metricsTxnWrite.Put`, 3f's `watchableStoreTxnWrite`). Proof
-sketch: `put.spec`.
-
-**Changes** from `specs-ref`'s file: over `storeTxnW`, W0's records and `Lease.lessorState`.
+`storeTxnWrite.Put` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -15,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,20 +21,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `put`'s, returning the revision written. -/
-def storeTxnWrite.Put.spec : Prop :=
-  ∀ (t : Loc) (γ : MvccName) (γl : Lease.Names) (trace : Loc) (σ : MvccState) (pend : List Event)
-    (key value : GoSlice) (kk vv : Bytes) (lid : w64) (n : Nat) (ls : Lease.LessorState),
-  let ev := putEv σ pend kk vv (sint.Z lid)
+/-- `tw.Put(key, value, lease)`: `put`, returning the pending revision. -/
+abbrev mvcc.storeTxnWrite.Put.spec : Prop :=
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64) (te : Bool) (crev : Int)
+    (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      storeTxnW t γ trace σ pend ∗ mvccLessorIs γ γl ∗ traceOwn trace ∗ key ↦*□ kk ∗ value ↦*□ vv ∗
-      Lease.lessorState γl n ls ∗ ⌜sint.Z lid = 0 ∨ ls.leases (sint.Z lid) ≠ none⌝ }}
-    (App (App (App (Val (t @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Put")) (Val #key))
-      (Val #value)) (Val #lid))
-  {{ RET #(W64 (σ.rev + 1) : w64); storeTxnW t γ trace σ (pend ++ [ev]) ∗ traceOwn trace ∗
-      ∃ n' : Nat, Lease.lessorState γl n' (putLs ls (txnStore σ pend kk).isSome kk (sint.Z lid)) }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      traceutil.ownTrace trace te }}
+    (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Put")) (Val #key))
+      (Val #value)) (Val #leaseID))
+  {{ RET #(W64 (ilog.length : Int) : w64);
+      mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) ∗
+      traceutil.ownTrace trace te }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

@@ -1,38 +1,23 @@
 /-
-`(*clientv3.watcher).RequestProgress(ctx)` (`client/v3/watch.go`).
-
-**Users**: the cache's progress requestor (`E cache/v3/progress_requestor.go:94`, errors printed),
-Kubernetes (`K etcd3/store.go:108` `RequestWatchProgress` with the cacher's metadata, `K
-etcd3/watcher.go:303`): they wait for the progress notification on the watch whose context has
-the same metadata (liveness) and use it as a bookmark (`watchStep`'s progress case). Snippet
-`clientv3watch/progress.go` `ReqRequestProgress`.
-
-**Proof sketch.** `streamKeyFromCtx.spec`; under `mu` (the lock invariant), `nil` streams → an
-error from `errors.New`; else get or make the stream (`newWatcherGRPCStream.spec`), then `select`:
-send a `*progressRequest` on `reqc` (`wgsAt`'s protocol: nothing travels with it), or
-`ctx.Done()` (`ctx.Err()`), or `donec` (the published `closeErr`, or a recursive call: the same
-spec, by Löb induction).
-
-**Changes** from `specs-ref/.../watcher__RequestProgress.lean`: over `watcherHandle` and any
-context. verify-round (A2-provability W2, W3): over `watcherHandle w c γ who` and `clientReady c`
-(it may open a stream: `newWatcherGRPCStream.spec` takes it); `streamKeyFromCtx.spec` with the
-caller's `ctxPrin` (a joined stream's principal from `ctxStreamKey_prin`, as in `Watch`).
-**Margin**: the error's value is not modelled (every user only logs or returns it).
+`(*clientv3.watcher).RequestProgress(ctx)` (`client/v3/watch.go`; unit K2e-9). Lean-first (no
+Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -40,16 +25,22 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `watcher.RequestProgress` meets `Watcher.RequestProgressTriple`. -/
-def watcher.RequestProgress.spec : Prop :=
-  ∀ (w c : Loc) (γ : Cluster) (who : Principal),
-  Watcher.RequestProgressTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"RequestProgress")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who ∗
-      clientReady c)) who
+/-- **`w.RequestProgress(ctx)`**: asks the gRPC stream of `ctx` for a progress notification (a
+`*progressRequest` on its `reqc`, which `run` forwards to the server; `reqP`), with no logical
+effect for the caller; returns `nil`, `ctx`'s error, the stream's close error or `errors.New`'s,
+each one grpc's `status` accepts. -/
+abbrev watcher.RequestProgress.spec : Prop :=
+  ∀ (V : WEnv GF) (w : Loc) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗
+      context.isContext ctx cs }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"RequestProgress")) (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; statusErrOk err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

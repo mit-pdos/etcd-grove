@@ -1,14 +1,10 @@
 /-
-`(*leasingKV).revoke` (`kv.go`): `If(CreateRevision(pfx++key) < rev+1).Then(op).Else(OpPut(pfx++key,
-"REVOKE", WithIgnoreLease()))`, then `waitRescind` if the guard failed. Proof sketch: the inner
-`Commit`'s update from the caller's: success fires `some res` (the operation's `Step`, valid by `kvStep`'s `t.valid`); failure is
-the `"REVOKE"` put, a `ProtoStep`, fired as `none` (why a write's update must accept protocol steps,
-`Api.lean`'s header, 2.). `op` is a put, a single-key delete, or `OpGet(key)` (from
-`revokeLeaseKvs`, with an update built from `protoUpd`). Changes: from `specs-ref`'s `leasingKV__revoke.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`lkv.revoke(ctx, key, op)` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
+public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__tryModifyOp
 
 @[expose] public section
 
@@ -16,37 +12,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `revoke(ctx, key, op)`: an error; or no error and the guard failed (`Succeeded` false); or the
-operation committed (one firing's `Q`, the owned reply). -/
-def leasingKV.revoke.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
-    (rq : Req) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗
-      ⌜o.toReq = some rq ∧ o.t ≠ tTxn ∧ o.rangeEnd.getD [] = []⌝ ∗ lkvMarks γL (reqWrites rq) ∗
-      threadTok ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (rq) σ σ' r ∗ etcdState γ σ',
-           COMM LQ Q σ σ' r }> }}
-    (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"revoke")) (Val #ctx)) (Val #key)) (Val #op))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
+/-- **`lkv.revoke(ctx, key, op)`**: commits `op` (`top`) guarded by the lease key `pfx ++ key`
+created at or before this client's entry revision `rev` (or absent), else puts `"REVOKE"` into
+the lease key (keeping its lease) and waits for the holder to give it up (`waitRescind`, no
+promise). Returns an error, or (`nil` error) the committed `op` (`opCommitted`), or a response
+that did not succeed (`notCommitted`). The context must be cancelable. -/
+abbrev leasingKV.revoke.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (key : GoString) (opv : go_etcd_io.etcd.client.v3.Op)
+    (o : OpFull) (top : TxnOp) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      opFullAt opv o ∗ etcdReached lo ∗
+      ⌜txnOpOf o = some top ∧ key.length ≤ opKeyMax ∧ OpShape opKeyMax opKeyMax opValMax o⌝ }}
+    (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"revoke")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opv))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lkvReader lkv γ pfx ∗
       (⌜err ≠ GoInterface.nil⌝ ∨
-       (⌜err = GoInterface.nil⌝ ∗ ∃ m, txnRespOwn resp (DFrac.own 1) m ∗ ⌜m.succeeded = false⌝) ∨
-       (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res m, Q σ σ' res ∗ txnRespOwn resp (DFrac.own 1) m ∗
-          ⌜guardedReply res m⌝)) }}
+       (⌜err = GoInterface.nil⌝ ∗ (opCommitted lo top resp ∨ notCommitted resp))) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

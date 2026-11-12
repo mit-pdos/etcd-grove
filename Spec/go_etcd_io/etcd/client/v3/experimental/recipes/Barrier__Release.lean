@@ -1,17 +1,10 @@
 /-
-`(*Barrier).Release()` (`barrier.go`): delete the barrier key.
-
-**Users**: `T/v3_barrier_test.go:75`. Snippet: `recipes/barrier.go` (`ReqWaitAfterRelease`).
-
-**Proof sketch**: `isClient_KV`; `KV.DeleteTriple` (`kvAt_methods`) with `b.ctx` and no option.
-
-**Changes**: old spec over the recipes' client invariant; now the caller's update.
-
-**Margin**: none.
+`recipes.(*Barrier).Release()` (`client/v3/experimental/recipes/barrier.go`). Lean-first (no Rocq counterpart); see
+`InvRecipesBarrier.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesBarrier
 
 @[expose] public section
 
@@ -19,33 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`b.Release()`**: `Delete(key)`, linearized by the caller's update. -/
-def Barrier.Release.spec : Prop :=
-  ∀ (b c : Loc) (γ : Cluster) (who : Principal) (key : GoString)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ barrierAt b c γ who key ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.deleteRange (delReq key)) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }> }}
+/-- **`b.Release()`**, knowing etcd has reached `lo`: `client.KV.Delete(ctx, key)`: `nil` means
+the key was absent at some `r ≥ lo` etcd has reached (deleted, or already gone); or an error. -/
+abbrev Barrier.Release.spec : Prop :=
+  ∀ (b client : Loc) (key : GoString) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+      isBarrier b client key ∗ etcdReached lo }}
     (App (Val (b @!! go.GoType.PointerType Barrier.ty @!! go!"Release")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      (∃ σ σ' res, Q σ σ' res ∗ ⌜okOrErr res err⌝) ∨ indefCall err }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗ etcdAbsent key key r ∗
+        ⌜sint.Z lo ≤ sint.Z r⌝) ∨
+      ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

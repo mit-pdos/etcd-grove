@@ -1,12 +1,11 @@
 /-
-## `(*readTx).RUnlock()` (`read_tx.go:132`): translated
-
-**Users.** The `RLock` users. **Proof sketch.** `rt.mu.RUnlock()`: the reader slot back.
-**Changes.** The slot back. **Margin.** None.
+`RUnlock` (the backend). `rt.RUnlock()` of the shared read transaction: the reader's token back.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -14,26 +13,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`rt.RUnlock()`**: the read ends; the reader slot back. -/
-def readTx.RUnlock.spec : Prop :=
-  ∀ (γ : BeNames) (F : Fp) (V : Image),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ beLive γ (rtLoc γ) 1 }}
-    (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"RUnlock")) (Val #()))
-  {{ RET #(); beRdToks γ 1 }}
+/-- `rt.RUnlock()` of the shared read transaction: the reader's token back. -/
+abbrev backend.readTx.RUnlock.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeld γ P b rtx rv }}
+    (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"RUnlock")) (Val #()))
+  {{ RET #(); rdTok γ P b }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

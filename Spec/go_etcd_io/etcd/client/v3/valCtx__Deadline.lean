@@ -1,23 +1,22 @@
 /-
-`(*valCtx).Deadline()` (`client/v3/watch.go`): `zeroTime, false`: no deadline. Users: grpc, on the stream's context.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.valCtx).Deadline()` (`client/v3/watch.go`; the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +24,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `vc.Deadline()`: no deadline. -/
-def valCtx.Deadline.spec : Prop :=
+/-- `vc.Deadline()`: the package's `zeroTime` and `false` (no deadline). -/
+abbrev valCtx.Deadline.spec : Prop :=
   ∀ (vc : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
-    (App (Val (vc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty @!! go!"Deadline")) (Val #()))
-  {{ (t : time.Time) (ok : Bool), RET (PairV #t #ok); ⌜ok = false⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientWatchVars }}
+    (App (Val (vc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty @!! go!"Deadline"))
+      (Val #()))
+  {{ (t : _root_.Perennial.time.Time), RET (PairV #t #false); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,27 +1,10 @@
 /-
-## `(*lessor).Attach(id, items)` (`lessor.go:555`)
-
-**Users.** mvcc (3e), on the apply thread through the `Lessor` interface: `put` with a lease
-(`kvstore_txn.go:285`: one item; `panic("unexpected error from lease Attach")` on an error, so mvcc
-needs the lease live: the put's lease check, `txn.checkLease`, at the same state), `restore`
-(`kvstore.go:398`, error logged). Snippet `lessor.go` (`ReqAttachDetach`).
-
-**Proof sketch.** `le.mu.Lock()` (current state `ls`); `leaseMap[id]` absent: `ErrLeaseNotFound`,
-unlock. Present (`e`): `l.mu.Lock()` (the object's lock: its item set at `ls.keys e.obj`); for each
-item, `itemSet[it]`, `itemMap[it] = id`; the history appended with `ls.attach id ks` (`n + 1`) and
-the object's set updated, `l.mu.Unlock()`; unlock. The items slice is only read.
-
-**Changes** (from `specs-ref`'s `lessor__Attach.lean`, `leaseOwn γl L I` with `insertAll` and the
-premise that the items are on no other lease): over the lessor's state; **the premise dropped**:
-the code attaches whatever it is given (an item on another lease is re-pointed in `itemMap` and
-stays in the other lease's set: `LessorState.attach` says so); mvcc's caller detaches first.
-**Margin.** None.
+`(*lessor).Attach` (`server/lease/lessor.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -29,33 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Attach keys to lease `id`** (the writer): `ErrLeaseNotFound` for a lease not live, nothing
-changed; else `nil`, the keys attached (`LessorState.attach`). -/
-def lessor.Attach.spec : Prop :=
-  ∀ (le : Loc) (γ : Names) (c : Cfg) (n : Nat) (ls : LessorState) (id : w64) (sl : GoSlice)
-    (its : List go_etcd_io.etcd.server.v3.lease.LeaseItem) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorState γ n ls ∗ sl ↦*{dq} its }}
-    (App (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
-      go!"Attach")) (Val #id)) (Val #sl))
-  {{ (err : GoInterface), RET #err; sl ↦*{dq} its ∗
-      ((⌜ls.leases (sint.Z id) = none⌝ ∗ errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗
-        lessorState γ n ls) ∨
-       (⌜ls.leases (sint.Z id) ≠ none ∧ err = interface.nil⌝ ∗
-        lessorState γ (n + 1) (ls.attach (sint.Z id) (its.map (·.Key'))))) }}
+/-- `le.Attach(id, items)` (locked), by the lease owner (`leaseOwn γl L I`) for a live `id`
+(`id ∈ L`) and items on no other lease: adds the items to the lease's item set and the item map
+(the owner's `I`, unit T3, L2b) and returns `nil`. -/
+abbrev lease.lessor.Attach.spec : Prop :=
+  ∀ (lp : Loc) (γl : GName) (id : w64) (items : GoSlice) (xs : List LeaseItem) (dq : DFrac)
+    (L : List w64) (I : GMap LeaseItem w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
+      leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
+      ⌜∀ it ∈ xs, I.lookup it = none ∨ I.lookup it = some id⌝ ∗
+      ⌜∀ it ∈ xs, (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗ items ↦*{dq} xs }}
+    (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Attach")) (Val #id)) (Val #items))
+  {{ RET #GoInterface.nil; leaseOwn γl L (insertAll I xs id) ∗ items ↦*{dq} xs }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

@@ -1,6 +1,6 @@
 # Batch 1e (leasing KV): provability review, round 1
 
-Reviewer: provability. Read: `Spec/go_etcd_io/etcd/client/v3/leasing/{Api,Internal}.lean` and the 66
+Reviewer: provability. Read: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/{Api,Internal}.lean` and the 66
 specs (statements of all; sketches of the write, get, txn and monitor paths), the snippets
 `examples/specreq/leasing/*.go`, the `## from 1e` requests, W0's `api/v3/{Model,State}.lean`,
 `client/v3/Api.lean`, `context/Api.lean`; the Go code `.lake/src/client/leasing/{kv,cache,txn,util}.go`,

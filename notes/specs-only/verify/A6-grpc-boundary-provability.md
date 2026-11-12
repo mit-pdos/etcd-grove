@@ -4,10 +4,10 @@ Reviewer: independent provability reviewer, with the `axiom` skill's mindset on 
 boundaries (grpc, protobuf's `proto`, `metadata`/`status`/`peer`, net/http). Commit under review:
 `1aa6fc1337` (HEAD of `specs-only`). Read-only except this file.
 
-Area: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/` (115 files: 2a and 2b),
-`Spec/google_golang_org/` (61: grpc, its `status`/`metadata`/`peer`/`health`/`credentials`,
-protobuf's `proto`), `Spec/go_etcd_io/etcd/api/v3/{etcdserverpb (85), v3rpc/rpctypes, version}`,
-`v3lockpb`/`v3electionpb` `Api.lean`, `Spec/net/http/` (16); snippets
+Area: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/` (115 files: 2a and 2b),
+`SpecPlan/Spec/google_golang_org/` (61: grpc, its `status`/`metadata`/`peer`/`health`/`credentials`,
+protobuf's `proto`), `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{etcdserverpb (85), v3rpc/rpctypes, version}`,
+`v3lockpb`/`v3electionpb` `Api.lean`, `SpecPlan/Spec/net/http/` (16); snippets
 `examples/specreq/{v3rpc,grpc,v3rpcwatch,etcdserverpb}/` (31 REQs). Chain checked: the client's
 remote contracts (`client/v3/Api.lean` `RemoteKV.*Triple`, `ApiClient.lean` `RemoteCallTriple`,
 `AttemptTriple`, `uiOk_call`) → grpc (`ClientConn.Invoke`, `attemptOk_call`) → `etcdContract`

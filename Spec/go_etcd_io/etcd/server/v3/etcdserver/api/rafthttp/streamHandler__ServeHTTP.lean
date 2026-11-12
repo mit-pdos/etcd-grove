@@ -1,19 +1,12 @@
 /-
-## `(*streamHandler).ServeHTTP(w, r)`
-
-**Users.** `Transport.Handler`'s mux at `/raft/stream/`.
-
-**Proof sketch.** The method; `X-Server-Version` and the cluster id set on the header map (`Http.respW_header.spec`, `Header.Set`: the response headers `raftProto` asks); the compatibility check; `path.Dir` against the two `endpoint`s, `path.Base`, `types.IDFromString` (the requester `B`); `IsIDRemoved(B)` (`raftOk`, the token): `410`; `Transport.Get(B)`: none: `AddRemote` from `X-PeerURLs`, `404`; `X-Raft-To` not the local id: `412`. Then `WriteHeader(200)`, `Flush`, `newCloseNotifier`, the `outgoingConn` (the writer, committed, as `outConn` for `B`'s reader tokens named by `τ` in the registry: `raftProto`'s request knowledge), `attachOutgoingConn`, and a receive on the close notifier, which gives the writer back (`serveDone`). A replayed `GET` (no ticket) only opens a connection whose bytes no client reads. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*streamHandler).ServeHTTP(w, r)` (`http.go`; rafthttp stage 5e-2): the writing end of a stream,
+which answers a stream request with `200` and hands the connection to the peer's stream writer.
+Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Peer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.CloseNotifier
 
 @[expose] public section
 
@@ -21,26 +14,74 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A stream handler `h` of the address `a`** (persistent), lending each invocation `Rs`: its
+fields read-only, its logger not `nil`, the member it serves owning `a`; its transport's id; its
+raft (`IsIDRemoved`, with `Rs`); its peer getter (`Get` of an id, borrowing `Rs`, which holds a
+reader's token of the transport's lock, returns `nil` or the peer of that id, with its stream
+writers: stage 6 proves it of `Transport`); its transport's `AddRemote`
+(returns); and `RaftStreamPrefix`'s value (`streamType.endpoint`'s). -/
+def streamHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
+    IProp GF :=
+  iprop(∃ (hv : rafthttp.streamHandler) (gi : GoInterfaceOk), h ↦□ hv ∗
+    ⌜hv.lg' ≠ null ∧ Rh.owner a = hv.id' ∧ hv.peerGetter' = GoInterface.ok gi⌝ ∗
+    hv.tr'.[rafthttp.Transport, go!"ID"] ↦□ hv.id' ∗
+    □ netRaftOk Rh.γn hv.id' γd Rs hv.r' ∗
+    □ (∀ pid : w64, {{ Rs }}
+        (App (Val #(methods gi.ty go!"Get" gi.v)) (Val #pid))
+      {{ (pi : GoInterface), RET #pi; Rs ∗ (⌜pi = GoInterface.nil⌝ ∨
+          ∃ pl : Loc, ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #pl⌝ ∗
+            peerStreams Rh hv.id' pid pl) }}) ∗
+    □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString),
+      {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ hv.id' ∧ peerURLsOk Rh pid us⌝ }}
+        (App (App (Val (hv.tr' @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
+          (Val #pid)) (Val #sl))
+      {{ RET #(); True }}) ∗
+    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream")
+
+set_option synthInstance.maxHeartbeats 2000000 in
+set_option synthInstance.maxSize 16384 in
+instance streamHandlerOk_persistent (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF)
+    (h : Loc) : Persistent (streamHandlerOk Rh a γd Rs h) := by
+  unfold streamHandlerOk; infer_instance
+
+end defs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Serves a stream GET**: checks it, answers `200`, hands the response writer to the peer's writer of the stream's type and waits until that writer closes it; or refuses (`405`, `412`, `404`, `410`). -/
-def streamHandler.ServeHTTP.spec : Prop :=
-  ∀ (hp : Loc) (ν : Net GF) (lid : w64) (w : GoInterface) (r : Loc) (R : Http.HReq) (τ : GName) (rd : GoInterface),
-  ⊢ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ sthAt hp ν lid ∗ Http.servePre (raftProto ν) go!"/raft/stream/" w r R τ rd) -∗
-    WP (App (App (Val (hp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler.ty @!! go!"ServeHTTP")) (Val #w)) (Val #r))
-    {{ v, Http.serveDone (raftProto ν) w R τ v }}
+/-- **`h.ServeHTTP(w, r)`** of a request to `a` routed to the stream prefix (so not of the
+prober's path), as `http.handlerFor`
+hands it: it returns (or panics, on a peer's malformed version header) with the borrowed `Rs` and
+its response writer back (`http.handlerDone`). A stream request it answers with `200` and hands to
+the peer's stream writer of its type (`attachOutgoingConn`), waiting until the connection is
+closed, which gives the writer back. -/
+abbrev rafthttp.streamHandler.ServeHTTP.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) (wi : GoInterfaceOk)
+    (r : Loc) (R : http.HReq) (γk : GName) (rd : GoInterface),
+  R.host = a → R.path ≠ probingPath →
+  ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
+    streamHandlerOk Rh a γd Rs h -∗
+    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicket γk -∗
+    http.bodyReader rd R [] -∗ http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk none [] -∗
+    http.respHdrs (GoInterface.ok wi) [] -∗
+    ⌜go.typeSetContains wi.ty net.http.Flusher.ty = true⌝ -∗ Rs -∗
+    WP (App (App (Val (h @!! go.GoType.PointerType rafthttp.streamHandler.ty @!! go!"ServeHTTP"))
+      (Val #(GoInterface.ok wi))) (Val #r))
+      {{ v, Rs ∗ http.handlerDone (raftHttpNet Rh) (GoInterface.ok wi) a R γk v }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

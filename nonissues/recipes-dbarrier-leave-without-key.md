@@ -20,7 +20,7 @@ successful `Enter`; nothing else in etcd uses the package. Found by code reading
 ## Proof
 
 no: `DoubleBarrier.Leave.spec` takes `myKey` set (`dbOwn ... (some st)`), which a successful
-`Enter.spec` gives (`Spec/go_etcd_io/etcd/client/v3/experimental/recipes/DoubleBarrier__Leave.lean`,
+`Enter.spec` gives (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/experimental/recipes/DoubleBarrier__Leave.lean`,
 batch 1f of the specs-only branch).
 
 ## Notes

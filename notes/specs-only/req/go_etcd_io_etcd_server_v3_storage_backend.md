@@ -42,7 +42,7 @@ Provisional names in 2e's modules, to be replaced by 4a's at integration:
 
 ## from 3c
 
-The lessor (`Spec/go_etcd_io/etcd/server/v3/lease/Api.lean`) declares provisional names for what it
+The lessor (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/Api.lean`) declares provisional names for what it
 needs of the backend (4a) and of the schema's lease bucket (4b); replace them by yours at
 integration:
 
@@ -79,7 +79,7 @@ integration:
 ## from 3e
 
 mvcc's store is stated over **its storage contract**, not over etcd's backend (the user, 2026-11-06:
-"mvcc should respect the abstractions it builds on"): `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/
+"mvcc should respect the abstractions it builds on"): `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/
 ApiStorage.lean` (namespace `Mvcc`). 4a's job is to **prove that etcd's backend meets it**, and to
 give the server (2d, 2e) what makes a store's storage from an opened backend. In plain terms:
 
@@ -168,7 +168,7 @@ Changes to `Mvcc.keyBackend` (`ApiStorage.lean`) after review:
 
 ## from 4b
 
-The schema (`Spec/go_etcd_io/etcd/server/v3/storage/schema/Api.lean`, namespace `Schema`) is stated
+The schema (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/schema/Api.lean`, namespace `Schema`) is stated
 over **what it needs of a transaction**, not over the backend's predicates (as mvcc's `ApiStorage`):
 every function taking a `tx` takes the caller's bundle `Schema.txRd tx S R` (single-key
 `UnsafeRange`, `UnsafeForEach` in key order), `Schema.txRange tx S R` (interval `UnsafeRange` of a
@@ -215,7 +215,7 @@ produce these bundles** for the transactions it hands out, for the parts it hand
    bucket (3e's `Mvcc.bucketVal`) cannot be proved of an execution. Quantify over
    `Schema.bucketAt b bv` (persistent; `bucketVars_init` gives it for the package's variables; the
    backend only calls `bv.ID()`, `Name()`, `IsSafeRangeBucket()`: `bucket.*.spec`).
-Used by: every spec of `Spec/go_etcd_io/etcd/server/v3/storage/schema/`.
+Used by: every spec of `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/schema/`.
 
 ## from 3e (round 2: 4a's F1, F3)
 

@@ -1,22 +1,10 @@
 /-
-`concurrency.WithPrefetch(keys...)` (`client/v3/concurrency/stm.go`).
-
-Users: etcd's tests (`tests/integration/clientv3/concurrency/example_stm_test.go`: a
-transfer between accounts keeping their sum, `NewSTM` with the default level;
-`tests/integration/clientv3/experimental/recipes/v3_stm_test.go`-style uses: every level,
-`WithPrefetch`, `WithAbortContext`, an aborted closure), etcd's benchmark tool (`tools/benchmark`,
-not in the pinned sources). No production caller in the pinned etcd, raft, Kubernetes or
-`examples/`. Snippet: `concurrency/stm.go` (`ReqSTMPrefetch`).
-
-Proof sketch: a closure appending the captured slice (read-only) to the field.
-
-Changes: from `specs-ref`'s `WithPrefetch.lean`: restated.
-
-Margin: none.
+`concurrency.WithPrefetch(keys...)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -24,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `WithPrefetch(keys...)`: an option adding keys read at the start of each attempt. -/
-def WithPrefetch.spec : Prop :=
+/-- `WithPrefetch(keys...)`: an option appending `keys` (read-only) to the keys to prefetch. -/
+abbrev WithPrefetch.spec : Prop :=
   ∀ (sl : GoSlice) (ks : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ sl ↦*□ ks }}
     (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.WithPrefetch)) (Val #sl))
-  {{ (f : GoFunc), RET #f; stmOptAt f (withPrefetchM ks) }}
+  {{ (f : GoFunc), RET #f; stmOptSpec f (withPrefetchM ks) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

@@ -1,73 +1,24 @@
 /-
-`(*serverWatchStream).recvLoop()` (`watch.go`): the handler's receive loop.
-
-**Users.** `watchServer.Watch`'s receive goroutine (`watch.go:202`).
-
-**Proof sketch.** Loop invariant: `srvWatchRecv st g rs ∗ swsRecver sws rs ∗ threadTok`
-(`swsRecver`: the control channel's producer, the mvcc stream's control side, the count of creates
-answered). `Recv()` (`srvWatchRecv_recv`): an error ends the loop (`errors.Is(err, io.EOF)`:
-Perennial's `errors`, any error; `nil` for `io.EOF`, else the error), the share given back. Else a
-fresh request `watchReqOwn p (own 1) r` (`srvWatchRecv_lb` records it received); its fields by
-`watchReqOwn_unfold` (the type switch takes the case of `r`'s wrapper, its inner request non-`nil`;
-the `default:` branch, stuck in the translation, is unreachable):
-* `create wq s`: an empty `Key` is set to `"\x00"` (the field owned in full), so the key is
-  `wq.range.key` (`createRange`). The answer goes on the control channel (`select` with `closec`:
-  `closec` closed ends the loop, `nil`), and is, by the channel's protocol, the answer of this, the
-  `k`-th, create: when the send loop sends it the client's state has answered `k` creates. Its
-  header is `newResponseHeader(sws.watchStream.Rev())` (mvcc's `Rev`, 3f, with the thread token:
-  a revision the member applied, so reached). `s < 0`: refused (`-1`, `Created`, `Canceled`,
-  `rpctypes.ErrCompacted.Error()`, a non-empty string: 2a's rpctypes). Else
-  `isWatchPermitted(creq)` (its spec): an error refuses (its reason by `errors.Is` against auth's
-  errors, each `rpctypes.ErrGRPC*.Error()` non-empty; the `Error` log, zap); a pass gives `σa`
-  with `σa.permits who [(.read, wq.range)] []`. The range end normalized (`nil` for an empty one,
-  `[]byte{}` for `"\x00"`: mvcc's single key and from-key), `FiltersFromRequest` (its spec:
-  `filterFuncs`, whose functions meet mvcc's filter contract by `filterNoPut.spec`,
-  `filterNoDelete.spec`), the tracer's span (`traceutil.Tracer.Start`, otel: a context, no panic),
-  then mvcc's `Watch(ctx, 0, key, end, s, filters...)` (3f, `req/..._storage_mvcc.md`, with the
-  thread token: an auto id, fresh on the stream and not `-1`, registered at `s` over the range and
-  filters, its responses on the stream's channel as the run's invariant states; or an error with a
-  non-empty message: refused, `-1`). **Teardown** (verify-round, mvcc's request): the loop holds no
-  share of mvcc's `wsOpen ι` (the handler's `sws.close()` may close the mvcc stream while this loop
-  still runs: `watch.go`'s receive goroutine outlives the send loop), so mvcc's closed-stream refusal
-  of `Watch` (`wsClosed ι`, which `wsOpen_closed` excludes only for a holder of `wsOpen`) is a
-  possible outcome; it is the error branch above: a refused create (`-1`, `Canceled`), whose answer
-  goes on the control channel only if `closec` is not closed (else the loop ends), so no client
-  sees an answer for a create the closed stream refused after the run ended. A registration is recorded in the run's ghost map (id ↦ `wq`,
-  `s`, `σa`) and its options under `mu` (`progress`, `prevKV`, `fragment`: from mvcc's `Watch` to
-  here the send loop may already have built responses of the id without `PrevKv`, the
-  registration's loose window, `issues/etcd-watch-prevkv-before-created.md`); the answer `Created`
-  with the id, carrying the registration.
-* `cancel id`: mvcc's `Cancel(id)` (3f): `nil` only for a live registration, which is now canceled
-  (no response of it is produced after; the ones queued stay in the channel): the run's canceled
-  set gains `id`, its cancel request received (`rs`). The answer (`Canceled`, the id, a header) on
-  the control channel; then the options deleted under `mu`. An error: no answer.
-* `progress`: under `mu`, mvcc's `RequestProgressAll()` (3f, thread token: a progress of id `-1`
-  at the store's revision for every live registration, on the stream's channel after their queued
-  responses, if all are synced; else nothing).
-
-**Changes** from `specs-ref`'s file: the old run record (`swsIs sws r Up Dn st ci cd`), the
-answer pool (`ansPool`), the control channel's producer token and the store's reader tokens
-(`mvccReaders`) and auth reader resource replaced by the run's shares (`swsAt`, `swsRecver`) and
-the thread token (the bounds plan); verify-round: the mvcc reader token from the thread token by 2d's
-`srvReader_mvcc.spec` (given back at the end); the closed-stream refusal handled as a refusal; the post's control producer kept (`swsRecver`), which the
-handler needs to close the control channel.
-
-**Margin.** The error is the `Recv`'s (or `nil`), not modelled.
+`v3rpc.serverWatchStream.recvLoop` (`watch.go`). Lean-first (no Rocq counterpart); the
+vocabulary is `v3rpc/InvWatchStream.lean` and `v3rpc/InvWatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchInternal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.server.v3.etcdserver.api
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -75,20 +26,35 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`sws.recvLoop()`**: answers each request it receives (through the control channel and the
-mvcc stream), until the stream fails or the run closes; gives back its share. -/
-def serverWatchStream.recvLoop.spec : Prop :=
-  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
-    (rs : List WireWatchReq),
+/-- **`sws.recvLoop()`**: receives the client's requests until the stream ends (`io.EOF`: `nil`;
+another error: it), or `closec` is closed (`nil`): each create request is registered with the
+mvcc watch stream (`Watch`, its update `WatchApi.watch_au`, the registry entry and the id token
+minted at its commit) or refused, each cancel request cancels (`Cancel`, the client's cancel
+request kept in the run's invariant), each progress request asks for the progress of all; every
+create and cancel request answered by a control response on the control stream (`ctrlP`: the
+response answers the request at its position, with the answer token it mints from `ansPool` when it
+receives the request; the watch slice's unit W-C). The mvcc API migration (2026-11-05, the draft
+`notes/mvcc-api-clients/WatchSpecs.lean` §6): the thread token in place of the store's reader slot
+(the API's `Watch`, `Cancel`, `Rev` and `RequestProgressAll` take one), and (the store's readers as
+client-held tokens, 2026-11-07) a reader token of the store (`mvccReaders r.W.γm 1`: `Watch`, `Rev`
+and `RequestProgressAll` take one, as `lean`'s store reader slot); the auth store's reader resource
+`r.srv.E.RD` (`isWatchPermitted`).
+Returns the control stream's producer token. -/
+abbrev v3rpc.serverWatchStream.recvLoop.spec : Prop :=
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (L : List v3rpc.WatchReqM) (sent : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      swsAt sws γ who st g ∗ srvWatchRecv st g rs ∗ swsRecver sws rs ∗ threadTok }}
+      v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) r.γs L ∗
+      spscProducer r.γctrl sent ∗ v3rpc.ansPool r.γa L.length ∗ r.srv.E.RD ∗ threadTok ∗
+      mvcc.api.mvccReaders r.W.γm 1 }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"recvLoop")) (Val #()))
-  {{ (err : GoInterface), RET #err; threadTok ∗ (⌜err = GoInterface.nil⌝ ∨ Grpc.ownErr err) ∗
-      ∃ rs' : List WireWatchReq, swsRecver sws rs' }}
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ context.isTypedErr err⌝ ∗
+      threadTok ∗ mvcc.api.mvccReaders r.W.γm 1 ∗ ∃ sent' : List Loc, spscProducer r.γctrl sent' }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

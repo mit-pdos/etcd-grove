@@ -1,7 +1,7 @@
 # Integration I3: the gRPC boundary (2a, 2b, 3h's etcdserverpb part, 2f's net/http part)
 
-Directories: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, `Spec/google_golang_org/`,
-`Spec/go_etcd_io/etcd/api/v3/{v3rpc/rpctypes,etcdserverpb,version}/`, `Spec/net/http/`, the
+Directories: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, `SpecPlan/Spec/google_golang_org/`,
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/{v3rpc/rpctypes,etcdserverpb,version}/`, `SpecPlan/Spec/net/http/`, the
 v3lockpb/v3electionpb `Api.lean`s; snippets `examples/specreq/{v3rpc,grpc,v3rpcwatch,etcdserverpb}/`.
 
 ## What changed, by file

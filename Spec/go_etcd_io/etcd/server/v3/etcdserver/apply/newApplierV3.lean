@@ -1,29 +1,23 @@
 /-
-`newApplierV3(opts)` (`uber_applier.go:61-68`): the base chain: auth over quota over backend.
-
-**Users.** `NewUberApplier`.
-
-**Proof sketch.** `newApplierV3Backend.spec`, `newQuotaApplierV3.spec` (the logger, backend and quota size of the options), `newAuthApplierV3.spec`.
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** None.
+`apply.newApplierV3` (uber_applier.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/InvUber.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,16 +26,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The base chain over the options.** -/
-def newApplierV3.spec : Prop :=
-  ∀ (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ optsOk opts mc γ γc R ∗ optsSt opts σ }}
+/-- **`newApplierV3(opts)`**: the base chain (`authApplierV3` over `quotaApplierV3` over
+`applierV3backend`) over the options `opts`, whose contracts hold in `E` (2026-11-01, J8a: no reader
+resource `E.RD`, which the auth layer's `Apply` borrows from its caller; until then its mutex took one). -/
+abbrev apply.newApplierV3.spec : Prop :=
+  ∀ (opts : ApplierOptions),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
-  {{ (v : GoInterface), RET #v; ∃ b aa : Loc, beAt b mc γ γc R ∗ beOpts b opts ∗ stAt b σ ∗
-      applierAt v baseLayers b aa }}
+  {{ (a : GoInterface), RET #a;
+      -- (the auth plan's E2m) its shape: auth over quota over the backend with `opts`
+      apply.baseShape opts a ∗
+      □ (∀ E : AEnv GF, apply.backendOptsOk E opts -∗
+        apply.applierSpec E (apply.baseChain E.authOn) a) ∗
+      -- (the auth plan's E3k) its auth layer (`baseAuth`)
+      □ (∀ E : AEnv GF, apply.backendOptsOk E opts -∗ apply.baseAuth E opts a) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

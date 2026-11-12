@@ -51,7 +51,7 @@ revision.
 
 ## Proof
 
-no: 3f's watch guarantee (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiWatch.lean`, `wStep`)
+no: 3f's watch guarantee (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiWatch.lean`, `wStep`)
 states a compaction response against the watcher's **events** position (`posEvOf`: its last
 event's revision, which the store's `minRev` bounds), not its position after progress responses
 (round 1 of 3f's review, F1); 1b's `watchStep` is weakened the same way.

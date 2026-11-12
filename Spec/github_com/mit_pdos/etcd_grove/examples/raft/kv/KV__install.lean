@@ -1,0 +1,48 @@
+/- Lean-first (no Rocq counterpart).
+
+`(*KV).install(kv, applied)` (raft_kv.go, 2026-10-22, the snapshot-liveness fix): the replica's state
+replaced by a snapshot's, the maps `K` and `A` of the committed log `D` (as `runOwn` holds them:
+every key's value after `D`'s client history, and its decodable data each with its answer,
+`AppliedOk`); every waiter of this replica's whose operation is among `A`'s gets its answer
+(`waitP`, the same obligation as `apply`'s), so the applier's state is `runOwn` at `D`.
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace raft_kv
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions]
+variable [KVStor GF]
+
+/-- See the file header. -/
+abbrev KV.install.spec : Prop :=
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
+    (ap D : List LogEntry) (ods : List (Option (List w8))) (mK mA : Loc)
+    (K A : GMap (List w8) (List w8)),
+  ods = D.map odOf →
+  (∀ k, (K !! k).getD [] = kvFold (histOf ods) k) → AppliedOk A (histOf ods) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv ∗
+      isReplica γr γp r id n st ∗ runOwn γr r ap ∗ mK ↦$ K ∗ mA ↦$ A ∗
+      isCommittedLogLb γr.cluster D }}
+    (App (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"install")) (Val #mK)) (Val #mA))
+  {{ RET #(); runOwn γr r D }}
+
+end spec
+
+end raft_kv
+end EtcdGrove
+end Perennial

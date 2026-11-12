@@ -2,7 +2,7 @@
 
 ## from R1
 
-R1's model (`Spec/go_etcd_io/raft/v3/Model.lean`) declares, opaque, what a configuration change
+R1's model (`SpecPlan/Spec/go_etcd_io/raft/v3/Model.lean`) declares, opaque, what a configuration change
 does: `Membership.applyChange (c : ConfChangeI) (m : Membership) : Option Membership` (`c.AsV2()`
 run through confchange's `Changer` -- `EnterJoint`, `LeaveJoint` or `Simple` by the transition and
 the number of changes -- and the tracker's `checkInvariants`; `none` exactly where

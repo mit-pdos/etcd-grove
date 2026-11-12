@@ -1,6 +1,6 @@
 # R1 (raft's node API): completeness review, round 1
 
-Reviewer: completeness, independent of the author. Read: `Spec/go_etcd_io/raft/v3/{Model,Api}.lean`
+Reviewer: completeness, independent of the author. Read: `SpecPlan/Spec/go_etcd_io/raft/v3/{Model,Api}.lean`
 and the function specs that clients call (`StartNode`, `RestartNode`, `node__*`, `MemoryStorage__*`,
 `MustSync`, `IsEmpty*`), the snippets `examples/specreq/raftnode/*.go` (`go vet` clean), the pinned
 Go sources (`.lake/src/{server,raft}`), the examples (`examples/raft/{kv,kvreconf,kvdurable,kvfile}`;

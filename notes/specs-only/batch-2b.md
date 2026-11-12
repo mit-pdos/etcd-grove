@@ -1,14 +1,14 @@
 # Batch 2b: etcd's gRPC watch service (`server/etcdserver/api/v3rpc/watch.go`)
 
 Author's report (round 0, before review). Every file builds (`etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc`: OK, 16 modules); the snippets vet
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc`: OK, 16 modules); the snippets vet
 (`cd examples && go vet ./specreq/v3rpcwatch/`).
 
 ## Files
 
 | file | what |
 |---|---|
-| `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean` | the vocabulary (namespace `V3rpc`): the contract `srvWireStep`, pure helpers, `watchServerAt`, `watchServiceAt` and the handler contract `WatchServer.WatchTriple`, the member slot `watchMemberAt`, the server end of a stream (2a's slots), laws, laws offered on 1b's message slots |
+| `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean` | the vocabulary (namespace `V3rpc`): the contract `srvWireStep`, pure helpers, `watchServerAt`, `watchServiceAt` and the handler contract `WatchServer.WatchTriple`, the member slot `watchMemberAt`, the server end of a stream (2a's slots), laws, laws offered on 1b's message slots |
 | `.../v3rpc/WatchInternal.lean` | internal: one handler run (`swsAt`, `swsRecver`, `swsSender`, `swsCloser`), the run's invariant described |
 | client-facing specs (2) | `NewWatchServer`, `watchServer__Watch` |
 | exported helpers (6) | `FiltersFromRequest`, `filterNoPut`, `filterNoDelete`, `IsCreateEvent`, `GetProgressReportInterval`, `SetProgressReportInterval` |

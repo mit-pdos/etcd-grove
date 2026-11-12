@@ -1,0 +1,314 @@
+/-
+The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `notes/decisions.md`,
+"The new cluster's start: the bootstrap log in raft's model"): what `RawNode.Bootstrap`,
+`setupNode` and `StartNode` are specified over, beside the protocol side's `bootPState`,
+`BootLogOk` and `ownRaftGhost_alloc_boot` (`Protocol/Facts.lean`).
+
+* `rawNodeFresh rn id si V sdr pre s`: the `RawNode` `NewRawNode` builds on an empty storage, left
+  open (`NewRawNode.spec`'s result since 2026-10-16, at any conf state, the voters `V`; a new
+  cluster's is **empty**, `V = ∅`): the struct's fields as `ownRawNode` keeps them, the raft
+  struct as `ownRaftPhys V` at a state `s` refining the protocol's initial state, nothing
+  applied, handed out or pending. Not `ownRawNode`, which demands the ghost state (and, in the
+  static mode, its configuration with the node among the voters): `RestartNode` closes it with
+  the ghost state; `Bootstrap` installs the peers first.
+* `peersCtx pv ctxs`: the `Context` bytes of the `Peer` values, read-only (the `ConfChange`
+  literal shares the slice, and `ownConfChange` holds the bytes at `□`).
+* `bootMarshal ps ctxs bootLog`: `proto.Marshal` of the `k`-th peer's `ConfChange`
+  (`{Type: AddNode, NodeId: ps[k], Context: ctxs[k]}`, `Id` unset) returns the bytes of
+  `bootLog[k]` -- the premise of `Bootstrap`/`StartNode` that ties the bytes the Go code
+  computes to the log `RaftNames.reBoot` fixes before the call. `proto.MarshalConfChange.spec`
+  (the trust boundary) says only that the bytes decode back to the change, with no pure
+  encoder: the determinism of `Marshal` at these inputs is a fact of protobuf discharged where
+  the node is composed (every member marshals the same changes), in the style of
+  `RestartNode.spec`'s `InitialState` premise.
+-/
+module
+
+public import Proof.go_etcd_io.raft.v3.ApiVocab
+public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
+-- (2026-10-25, T-M M2a) `rboot`, `ownRaftGhostR`: a new cluster in the dynamic mode
+public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
+public import Spec.go_etcd_io.raft.v3.newRaft
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The `RawNode` at `rn` of the node `id` that `NewRawNode` built on an empty storage (see the
+file header; since 2026-10-16, stage R8b, `NewRawNode.spec`'s result at any conf state, the voters
+`V`): the raft struct at the state `s`, which refines the protocol's initial state, over the
+voters `V` (which it tracks, and no learner); its log empty, nothing applied (`applied = applying
+= 0`), nothing handed out, no snapshot pending, the storage `si`; no ghost lower bound, pre-vote as
+the `Config` says (`pre`; until 2026-10-17 off), `StepDownOnRemoval` as the `Config` says (`sdr`). The `RawNode`'s own fields as `ownRawNode`
+keeps them: `asyncStorageWrites` unset, `prevSoftSt` and `prevHardSt` read-only, `stepsOnAdvance`
+empty. `RestartNode` closes it (`ownRawNode`, with the ghost state); `Bootstrap` installs the
+peers first. (raft-final, 2026-10-29, U9: until then with leader transfer `xf`, `NGhost.xf`, a
+parameter; its ghost lower bounds empty but for the storage's names, U8 v2's `NGhost.sn`.) -/
+def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+    (pre : Bool) (s : NState) : IProp GF :=
+  iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
+    "Hrn" ∷ rawNodeOwn rn rnv ∗
+    "Hphys" ∷ ownRaftPhys V rnv.raft' id s ∗
+    "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
+    "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
+    "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
+    "Hsteps" ∷ rnv.stepsOnAdvance' ↦* ([] : List Loc) ∗
+    "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
+    "%Hrel" ∷ ⌜NStateRel s initPState⌝ ∗
+    "%Hterm0" ∷ ⌜s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower ∧ s.outbox = [] ∧
+      s.rd.states = [] ∧ s.rd.pend = []⌝ ∗
+    "%Hlog" ∷ ⌜s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
+      s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
+      s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0⌝ ∗
+    "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
+    "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
+    "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
+    "%Hdom" ∷ ⌜domSet s.progress = V⌝ ∗
+    -- (D22l) `prevHardSt` the zero record (`r.hardState()` at term `0`, nothing committed)
+    "%Hhz" ∷ ⌜hprev = hsZero⌝ ∗
+    -- (2026-11-01, durability stage II, G2) `prevSoftSt` a follower's (`r.softState()`), nothing
+    -- handed out yet (`offsetInProgress` at the empty log's end)
+    "%Hsvr" ∷ ⌜sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1⌝)
+
+/-- (2026-11-01, durability stage I-6) The protocol state a node restarted on a storage holds: a
+follower of the hard state's term with its vote, no leader, the stored log from the view's base,
+the commit index `loadState` restores. -/
+def restartPState (hs : HardStateM) (vw : StorState) : PState :=
+  let p := initPState
+  { p with term := hs.Term', vote := hs.Vote', base := vw.prev, log := vw.ents,
+           commit := committedAfter vw.prev hs }
+
+/-- (2026-11-01, durability stage I-6) **The `RawNode` at `rn` of the node `id` that `NewRawNode`
+built on a storage holding a log** (raft's view `σ` of it, from its base; the hard state `hs`, the
+conf state's tracker `cs`, `Applied` `A`): `rawNodeFresh` generalized -- the raft struct at the
+configuration `cs` (`ownRaftPhysC`), at a state refining the restarted follower's protocol state (the
+hard state's term and vote, the stored log from the base, the commit index `loadState` restores), the
+log stable with nothing unstable or handed out, applying from `A` (or the base), the certification
+bound at the restored commit (durability stage I-6: raft certified the attach record's terms); `prevHardSt` the hard state `r.hardState()` reads then. -/
+def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : Bool) (pre : Bool)
+    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) : IProp GF :=
+  iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
+    "Hrn" ∷ rawNodeOwn rn rnv ∗
+    "Hphys" ∷ ownRaftPhysC cs.cfg rnv.raft' id s ∗
+    "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
+    "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
+    "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
+    "Hsteps" ∷ rnv.stepsOnAdvance' ↦* ([] : List Loc) ∗
+    "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
+    "%Hrel" ∷ ⌜NStateRel s (restartPState hs σ)⌝ ∗
+    "%Hterm" ∷ ⌜s.term = hs.Term' ∧ s.vote = hs.Vote' ∧ s.role = .follower ∧ s.outbox = [] ∧
+      s.rd.states = [] ∧ s.rd.pend = []⌝ ∗
+    "%Hlog" ∷ ⌜s.logst.prev = σ.prev ∧ s.logst.sents = σ.ents ∧
+      s.logst.uents = [] ∧ s.logst.stored = σ.ents ∧ s.logst.committed = committedAfter σ.prev hs ∧
+      s.logst.applied = s.logst.applying ∧
+      s.logst.applying = w64Max σ.prev.index' (if A = W64 0 then σ.prev.index' else A) ∧
+      s.logst.unpersisted = [] ∧ s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧
+      s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ ∗
+    "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
+    "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
+    "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
+    "%Hdom" ∷ ⌜domSet s.progress = domSet cs.prs⌝ ∗
+    "%Hhz" ∷ ⌜hprev = HardStateM.mk hs.Term' hs.Vote' (committedAfter σ.prev hs)⌝ ∗
+    -- (2026-11-01, durability stage II, G2) `prevSoftSt` a follower's, nothing handed out yet
+    "%Hsvr" ∷ ⌜sv.RaftState' = W64 0 ∧
+      uint.Z s.logst.inprogress = uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝)
+
+/-- (2026-11-01, durability stage I-6) On an empty storage, at the voters' tracker, the node built
+is `rawNodeFresh`'s (what `setupNode`'s `Bootstrap` takes). -/
+theorem rawNodeAt_fresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr pre : Bool)
+    (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) :
+    HsEmpty hs → σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → A = W64 0 →
+    rawNodeAt (GF := GF) rn id si (cfgState V ∅) sdr pre hs σ A s ⊢
+      rawNodeFresh rn id si V sdr pre s := by
+  intro Hhs Hp He HA
+  obtain ⟨HT, HV, HC⟩ := Hhs
+  have Hca : committedAfter σ.prev hs = W64 0 := by
+    unfold committedAfter; rw [ite_eq_left (show HsEmpty hs from ⟨HT, HV, HC⟩), Hp]
+  unfold rawNodeAt rawNodeFresh
+  iintro ⟨%rnv, %sv, %hprev, Hrn, Hphys, %Hasync, #Hsoft, #Hhard, Hsteps, Hcap, %Hrel, %Hterm,
+    %Hlog, %Hgh, %Hpvoff, %Hsdr, %Hdom, %Hhz, %Hsvr⟩
+  iexists rnv, sv, hprev
+  ihave Hphys := (show ownRaftPhysC (GF := GF) (cfgState V ∅).cfg rnv.raft' id s ⊢
+    ownRaftPhysC (CfgM.simple V ∅) rnv.raft' id s from .rfl) $$ Hphys
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  simp only [named]
+  iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
+  ipureintro
+  obtain ⟨Ht, Hv, Hr, Ho, Hst, Hpd⟩ := Hterm
+  obtain ⟨Hlp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg, Hdtk⟩ := Hlog
+  rw [Hca] at Hcm Hdtk
+  rw [Hp, HA] at Hapg
+  have Hapg0 : s.logst.applying = W64 0 := by rw [Hapg]; rfl
+  have Hrs : restartPState hs σ = initPState := by
+    unfold restartPState; rw [HT, HV, Hca, Hp, He]; rfl
+  rw [Hrs] at Hrel
+  refine ⟨Hasync, Hrel, ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hst, Hpd⟩,
+    ⟨by rw [Hlp, Hp], by rw [Hse, He], Hue, by rw [Hsd, He], Hcm, by rw [Hap, Hapg0], Hapg0, Hun,
+      Hsn, Hsg, by rw [Hdtk]; rfl⟩, Hgh, Hpvoff, Hsdr, ?_, ?_, ?_⟩
+  · rw [Hdom]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_dom']
+    simp only [cfgState]
+    rw [cfgFlags_mem]
+    constructor
+    · rintro (h | h)
+      · exact h
+      · exact absurd h (GMap.not_elem_of_empty _)
+    · exact Or.inl
+  · rw [Hhz, HT, HV, Hca]
+  · refine ⟨Hsvr.1, ?_⟩
+    have H := Hsvr.2
+    rw [Hp, He] at H
+    simp only [List.length_nil] at H
+    apply uint_Z_inj.mp; rw [H]; rfl
+
+/-- Closing `rawNodeFresh`: the pure facts first, the resources in the order of the definition. -/
+theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+    (pre : Bool) (s : NState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
+    (Hasync : rnv.asyncStorageWrites' = false) (Hrel : NStateRel s initPState)
+    (Hterm0 : s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower ∧ s.outbox = [] ∧
+      s.rd.states = [] ∧ s.rd.pend = [])
+    (Hlog : s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
+      s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
+      s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
+    (Hgh : s.gh = {}) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
+    (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero)
+    (Hsvr : sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1) :
+    ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
+      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
+      rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
+      ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
+      rawNodeFresh rn id si V sdr pre s := by
+  iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap
+  unfold rawNodeFresh
+  iexists rnv, sv, hprev
+  simp only [named]
+  iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
+  ipureintro
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
+
+/-- (raft-final phase 2) `rawNodeFresh_intro` with the storage names mirrored in the ghost state
+(`newRaft`'s post: `s.gh = { sn := sn }`). -/
+theorem rawNodeFresh_intro_sn (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+    (pre : Bool) (s : NState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
+    (Hasync : rnv.asyncStorageWrites' = false) (Hrel : NStateRel s initPState)
+    (Hterm0 : s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower ∧ s.outbox = [] ∧
+      s.rd.states = [] ∧ s.rd.pend = [])
+    (Hlog : s.logst.prev = entryID.mk (W64 0) (W64 0) ∧ s.logst.sents = [] ∧
+      s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
+      s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
+      s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0)
+    (Hgh : s.gh = { sn := s.gh.sn }) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
+    (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero)
+    (Hsvr : sv.RaftState' = W64 0 ∧ s.logst.inprogress = W64 1) :
+    ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
+      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
+      rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
+      ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
+      rawNodeFresh rn id si V sdr pre s := by
+  iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap
+  unfold rawNodeFresh
+  iexists rnv, sv, hprev
+  simp only [named]
+  iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
+  ipureintro
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
+
+/-- The commit invariant, from the boot ghost state in either mode. -/
+theorem bootInit_inv (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64)
+    (bootLog : List EntryM) : ⊢ bootInit (GF := GF) γ md id V bootLog -∗ raftCommitInv γ := by
+  cases md with
+  | static =>
+    unfold bootInit
+    iintro Hg
+    iapply ownRaftGhost_inv γ id (bootPState bootLog) $$ Hg
+  | dyn dec c0 h0 _ =>
+    unfold bootInit ownRaftGhostR
+    iintro ⟨-, Hg, -⟩
+    iapply ownRaftGhost_inv_md γ id _ $$ Hg
+
+end defs
+
+/-! ## The pure side of `Bootstrap` (2026-10-16, stage R8b) -/
+
+section pure
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+
+/-- `Bootstrap`'s change of the peer `p` (`AddNode p` as `(&pb.ConfChange{...}).AsV2()` renders
+it) at the voters `V`, `p` not a voter yet: `p` joins the voters, no learner. -/
+theorem bootCC_apply (V : GSet w64) (p : w64) (hp : p ≠ W64 0) :
+    ccApplyM (W32 0) [addNodeCC p] (cfgStateC (CfgM.simple V ∅)) =
+      some (cfgState (<[p := ()]> V) ∅) := by
+  rw [cfgStateC_simple, ccApplyM_single_simple]
+  exact simpleM_cfgState_addNode V ∅ p hp (GMap.not_elem_of_empty _)
+    (fun k hk => absurd hk (GMap.not_elem_of_empty _))
+
+/-- The configuration `applyConfChange` returns for the voters `V` and no learner, as a `CfgM`. -/
+theorem cfgState_cfg (V : GSet w64) : (cfgState V ∅).cfg = CfgM.simple V ∅ := rfl
+
+/-- Its tracked ids: the voters. -/
+theorem cfgState_ids (V : GSet w64) : (cfgState V ∅).cfg.ids = V := by
+  rw [cfgState_cfg]; unfold CfgM.ids; rw [CfgM.voters_simple]
+  exact GMap.map_union_empty _
+
+/-- The voters after the `k`-th peer: the previous ones and `ps[k]`. -/
+theorem listToSet_take_succ (ps : List w64) (k : Nat) (p : w64) (h : ps[k]? = some p) :
+    GMap.listToSet (ps.take (k + 1)) = <[p := ()]> (GMap.listToSet (ps.take k)) := by
+  have Ht : ps.take (k + 1) = ps.take k ++ [p] := by
+    rw [List.take_succ, h]; rfl
+  apply GMap.set_eq; intro x
+  rw [Ht, GMap.elem_of_list_to_set, List.mem_append, List.mem_singleton, gset_mem_insert,
+    GMap.elem_of_list_to_set]
+  exact Or.comm
+
+/-- `applyConfChange` at a non-leader (2026-10-16, stage R8b, for `Bootstrap`'s loop): only the
+progress map, the `Progress` values and `isLearner` change -- the protocol state, the log and
+`r.step`/`r.tick` do not. -/
+theorem applyCCOkC_nonleader (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c' id s s')
+    (Hr : s.role ≠ .leader) :
+    ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
+      s' = { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } := by
+  obtain ⟨prs, pvs, -, -, Hsw⟩ := H
+  unfold SwitchOkC at Hsw
+  rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+    NState).role = .leader from Hr)] at Hsw
+  exact ⟨prs, pvs, Hsw⟩
+
+/-- The state `Bootstrap` leaves refines the bootstrap state `bootPState bootLog`
+(`Protocol/Facts.lean`): a follower at term `1` with no vote, no leader, an empty tally and
+outbox, the log `bootLog` from the empty base, committed through it, and a fresh read-only
+object. -/
+theorem boot_post_rel (bootLog : List EntryM) (s : NState) :
+    NStateWf s →
+    s.term = W64 1 → s.vote = W64 0 → s.lead = W64 0 → s.role = .follower →
+    s.votes = ∅ → s.outbox = [] →
+    s.logst.prev = entryID.mk (W64 0) (W64 0) → s.logst.sents = [] → s.logst.uents = bootLog →
+    s.logst.committed = W64 bootLog.length →
+    s.rd.states = [] → s.rd.pend = [] →
+    NStateRel s (bootPState bootLog) := by
+  intro Hwf Ht Hv Hl Hr Hvs Ho Hp Hse Hue Hc Hst Hpd
+  refine ⟨?_, Hwf⟩
+  simp [toPState, bootPState, initPState, Ht, Hv, Hl, Hr, Hvs, Ho, Hp, Hse, Hue, Hc, proleRole, rdNL]
+  cases h : s.rd
+  simp_all
+
+end pure
+
+end EtcdGrove
+end Perennial

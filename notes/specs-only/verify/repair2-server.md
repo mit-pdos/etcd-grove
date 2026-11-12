@@ -18,7 +18,7 @@ and did RR4's remaining sources).
   unchanged; its sketch now says this (`EtcdServer__Txn.lean`).
 - **Retired in 3h** (`etcdserverpb/Api.lean`): `endsDecoded`, `opsDecoded`, `cmpsDecoded`,
   `endsDecoded_of_canon`, `endsDecoded_ro`, `endsDecoded_range`/`_delete`/`_compare`/`_txn`/`_op`.
-  - Grep found no statement using them in `Spec/`.
+  - Grep found no statement using them in `SpecPlan/Spec/`.
   - In `examples/` only one comment used them (`apply/auth.go`), now reworded.
   - `reqMsgAt_endsDecoded` was already gone.
   - `endsOk`, `endsOk_canon` and `endsOk_range_intro` stay.
@@ -77,10 +77,10 @@ bounds that by `depthMax`.
   deleted.
 
 **To grpc-v3rpc.** Stale comments that name the retired construct:
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/kvServer__RangeStream.lean:20-21`: "and 3h's
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/kvServer__RangeStream.lean:20-21`: "and 3h's
   `endsDecoded` (`endsDecoded_of_canon`) for 2c's `RangeStream`". Drop it: 2c takes only
   `rangeReqOwn r (own 1) rm`, whose `endsOk` comes from `endsOk_canon` and `rangeReqOwn_msgAt`.
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Api.lean:712-714`: "a share of it is 3h's
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Api.lean:712-714`: "a share of it is 3h's
   `EtcdServerPb.endsDecoded`, what 2c's … take". Replace it with: 2c's `Range`/`RangeStream`/`Txn`
   take the request's W0 predicate, which carries `endsOk`.
 
@@ -100,8 +100,8 @@ bounds that by `depthMax`.
 
 ## Build
 
-`etc/specs-build.sh --dir` over `Spec/google_golang_org/protobuf/proto`,
-`Spec/go_etcd_io/etcd/api/v3/etcdserverpb`, `.../etcdserver/txn`, `.../etcdserver/apply`,
+`etc/specs-build.sh --dir` over `SpecPlan/Spec/google_golang_org/protobuf/proto`,
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb`, `.../etcdserver/txn`, `.../etcdserver/apply`,
 `.../etcdserver` (top level) and `.../etcdserver/api/v3rpc`: **OK (561 modules)**.
 
 Snippets: `go vet ./specreq/apply/... ./specreq/etcdserverreq/... ./specreq/txn/...` is clean.

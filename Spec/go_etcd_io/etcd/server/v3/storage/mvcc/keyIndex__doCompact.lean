@@ -1,12 +1,9 @@
 /-
-`(*keyIndex).doCompact(atRev, available)` (`key_index.go:258`): the generation and revision index
-compaction keeps from (`kiDoCompact`), the revision it keeps added to `available` (the walk's
-closure). A read of the key index. Needs a generation and every generation but the last non-empty
-(`kiWf`; index panics otherwise). Internal (`compact`, `keep`). **Changes**: over `availAt`.
+`keyIndex.doCompact` (`key_index.go`): compaction's walk (2026-10-13, unit 5a; `Compact.lean`, `InvCompact.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -14,29 +11,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ki.doCompact(atRev, available)`. -/
-def keyIndex.doCompact.spec : Prop :=
-  ∀ (p m : Loc) (k : GoString) (ki : KeyIndexM) (dq : DFrac) (atRev : w64) (A : Rev → Prop),
-  {{ pkgInit ∗ ⌜ki.gens ≠ [] ∧ kiWf ki⌝ ∗ ownKi p k ki dq ∗ availAt m A }}
+/-- `ki.doCompact(atRev, available)` of the key index `ki` (its generations walked by the code: some,
+every one but the last with a revision, `gensOk`): `doCompact`'s generation (`compactGenIdx`) and
+revision index in it (`compactRevIdx`, `-1` if none), the revision it keeps added to `available`
+(`kiAvail`). A read of the key index, at any fraction (`keep` holds it shared, under `RLock`).
+(Its walk's closure writes the map: `generation.walk`'s closure is effectful, `walkFnSpecR`.) -/
+abbrev mvcc.keyIndex.doCompact.spec : Prop :=
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (dq : DFrac) (atRev : w64) (m : GoMap)
+    (A : GMap Revision Unit),
+  mvcc.gensOk ki →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) A }}
     (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"doCompact")) (Val #atRev))
       (Val #m))
-  {{ RET (PairV #(W64 ((kiDoCompact ki atRev).1 : Int)) #(W64 (kiDoCompact ki atRev).2.1));
-      ownKi p k ki dq ∗ availAt m (compactAvail A ki atRev) }}
+  {{ RET (PairV #(W64 (mvcc.compactGenIdx atRev ki.gens : Int)) #(W64 (mvcc.compactRevIdx atRev ki)));
+      mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) (mvcc.availAdd A (mvcc.kiAvail atRev ki)) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

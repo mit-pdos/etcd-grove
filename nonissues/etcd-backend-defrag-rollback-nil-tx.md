@@ -24,7 +24,7 @@ non-blocking bulk copy, already guards the same deferred call with `tmptx != nil
 ## Proof
 
 no: the backend's `Defrag` spec is trusted (names only); its "why it is true"
-(`Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Defrag.lean`) excludes the failing
+(`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Defrag.lean`) excludes the failing
 `Begin` by bbolt's `dbBroken_state` with the preceding commit's success (4c's specs), so the
 deferred rollback always has a transaction.
 

@@ -1,20 +1,14 @@
 /-
-## `raft.campaign(t)` (internal)
+Port of `election_proof/spec_raft__campaign.v` (feb5c73d4).
 
-**Users.** `hup` (`raft.go:1007`, after its checks), `stepCandidate` (`raft.go:1717`: a won pre-vote,
-`campaignElection`). **Proof sketch.** `becomePreCandidate` (pre-election: the vote requests for the
-next term) or `becomeCandidate`; the voters' ids sorted (R4's `Voters.IDs`, `slices.Sort`); for
-itself, a vote response to itself (`send`: queued after the append, acknowledged at `Advance`); for
-each other voter, a vote request with its last entry id (R3's `lastEntryID`) and, for a transfer,
-the context `CampaignTransfer` (`send`; its `msgJust`: the candidate's term and log). **Changes**
-(from `specs-ref`'s `raft__campaign.lean`): over the opened struct, the guard named. **Margin.**
-Says nothing of the new view but the invariant.
+Lean notes: the type of Rocq's untyped binder `pvs` is written out
+(`GMap w64 Progress`, as `NState.prvals` forces it); `bool_decide` is `decide`;
+`campaign_state` is `campaignState` (`Defs.lean`), `step_campaign_state` is
+`StepLemmas.lean`'s.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -22,27 +16,62 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Starts a (pre-)campaign of type `t`, under `hup`'s guard or after a won pre-vote. -/
-def raft.campaign.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (t : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ coreInv r γ id o ∗ ⌜o.view.role ≠ StateLeader ∧
-      (CampaignGuard id o ∨ (o.view.role = StatePreCandidate ∧
-        #t = go_etcd_io.raft.v3.campaignElection))⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"campaign")) (Val #t))
-  {{ RET #(); ∃ o', raftOpen r γ id o' ∗ coreInv r γ id o' }}
+/-- `campaign(t)` becomes a candidate -- or, for `t = campaignPreElection` (since
+2026-10-04), a pre-candidate -- and broadcasts a vote request to every other voter, plus
+the self-addressed response. Stated as a pure fact about the resulting state,
+`campaignState` (`Defs.lean`), with no ghost state involved: the messages it sends are
+the growth of the outbox, and whether that growth is protocol-legal is `Step`'s problem
+(`step_campaign_state`, `StepLemmas.lean`).
+
+`peers` is existential because the Go code iterates the voter set in whatever order
+`IDs` yields; `Step.campaign` accepts any permutation of `elements (cfg \ {[id]})`. At any
+configuration (2026-10-13, reconfiguration stage A2) the voters are those of either half,
+`c.voters` (`JointConfig.IDs`, `StepC.campaign`); the old statement, `raft.campaign.specS`, had no caller and is gone (2026-10-17).
+
+`promotable` is checked first and only logged; until 2026-10-04 the spec assumed no
+pending snapshot so that the warning was dead, but `stepCandidate`'s pre-vote win calls
+`campaign` with no such fact at hand, so the warning arm is now covered. -/
+abbrev raft.campaign.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
+  s.role ≠ .leader →
+  id ∈ c.voters →
+  -- Every request and the self-addressed response carry `Term + 1`: for an election
+  -- `becomeCandidate` has raised `r.Term` to it, for a pre-election it is computed.
+  -- `send` *panics* on a vote message whose `Term` is zero (`Panicf "term should be set
+  -- when sending %s"` in `raft.send.impl`), which is why `raft.wp_send` requires
+  -- `Term ≠ 0`. Without this premise the triple is **false** at `s.term = 2^64 - 1`:
+  -- the term wraps to zero and the real code panics. Added 2026-09-16; see
+  -- notes/STATUS.md.
+  uint.Z s.term + 1 < 2 ^ 64 →
+  -- a pre-election only with pre-vote on (2026-10-10): its pre-vote messages are of the
+  -- next term, which `ownRaftPhys` allows only then (`OutTermOk`); `hup` is called with
+  -- `campaignPreElection` exactly when `r.preVote`
+  -- (2026-10-17) and the next term within the ceiling (`NGhost.tc`), which the `RawNode` raises
+  -- before a `MsgHup`
+  (t = campaignPreElection → s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
+  {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();
+      ⌜peers ≡ₚ elements (c.voters \ {[id]})⌝ ∗
+      -- each request carries the `lastEntryID()` read just before it was built
+      -- (`Index: last.index, LogTerm: last.term`) -- the log's last entry id, the same
+      -- for every peer: nothing in the loop changes the log -- and (2026-10-13) for a
+      -- leader transfer's campaign the marker as its `Context` (`transferCtx`)
+      ownRaftPhysCV c c.voters r id
+        { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t)
+            with prvals := pvs } }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

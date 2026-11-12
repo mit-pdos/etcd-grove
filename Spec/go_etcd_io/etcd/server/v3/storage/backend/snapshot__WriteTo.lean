@@ -1,54 +1,53 @@
 /-
-## `(*snapshot).WriteTo(w)` (bbolt's `(*Tx).WriteTo`, promoted): trusted (names only)
+`WriteTo` (the backend's `snapshot`, `backend.go`: the method its embedded `*bolt.Tx` promotes;
+names only). `s.WriteTo(w)`: the snapshot's database written to `w` (bbolt's `Tx.WriteTo`: two
+meta pages, then the data pages read from the database file). The trust boundary (D22 S-f,
+2026-10-19; an axiom in `Proof/go_etcd_io/etcd/server/v3/storage/backend/snapshot__WriteTo.lean`).
+Lean-first (no Rocq counterpart); the vocabulary is `InvSnapshot.lean`.
 
-**Users.** 2d's `newSnapshotReaderCloser` (`snapshot_merge.go:66`, into a pipe), the maintenance
-server (`maintenance.go`). Snippet `snapshot.go`.
-
-**Why it is true.** bbolt's `Tx.WriteTo` (4c) writes the read transaction's database file: two meta
-pages for this transaction, then the file's data pages read from the file (the read transaction
-keeps them from being reused), through `w.Write`; those bytes are some image of `I` of the
-transaction's size `n` (`imgBytes I bs`, `bs.length = n`), not the same on every call (A11-completeness
-F5: free pages below the high-water mark may be rewritten by a concurrent commit). A write error
-stops it, after a prefix of such bytes.
-
-**Changes** (from `specs-ref`'s): over the writer's contract `writeOk` (the caller's record of the
-bytes written). verify-round (A11-completeness F5): over the size `n` (`beSnapN`), each call some
-bytes of `I` of that length, in place of fixed bytes `bs`. **Margin.** The count on error is not stated.
+The pre: a share of the snapshot open over `D` (`snapOpenQ`, given back: it only reads the
+transaction) and the writer's contract (`writerOk w Wr`) at the bytes `bs₀` written so far. The
+post: some bytes `bs` appended (`WriteTo` calls only `w.Write`), at least one `Write` call having
+returned (D22 S-h, 2026-10-20: its first action is the first meta page's `Write`, the transaction's
+`WriteFlag` being `0`, which etcd never sets), and, if the error is nil, `bs` a bbolt image of `D`
+(`boltImage`: a file `fileHolds` accepts, so every entry of `D` within `bboltEntryMax`, as every
+`Put` keeps it). The count it returns is not specified (the sender only logs it).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
+
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`s.WriteTo(w)`**: some bytes `bs` of the snapshot's image, of its size `n`, written to `w`
-(all of them, or a prefix and an error). -/
-def snapshot.WriteTo.spec : Prop :=
-  ∀ (γ : BeNames) (s : Loc) (I : Image) (n : Nat) (w : GoInterface) (W : List w8 → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSnapN γ s I n ∗ writeOk w W ∗ W [] }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty @!! go!"WriteTo")) (Val #w))
-  {{ (m : w64) (err : GoInterface), RET (PairV #m #err); beSnapN γ s I n ∗ ∃ bs : List w8,
-      ⌜imgBytes I bs ∧ bs.length = n⌝ ∗
-      ((⌜err = interface.nil ∧ uint.nat m = bs.length⌝ ∗ W bs) ∨
-       (⌜err ≠ interface.nil⌝ ∗ ∃ j, ⌜j ≤ bs.length⌝ ∗ W (bs.take j))) }}
+/-- `s.WriteTo(w)`: bytes appended to the writer, after at least one `Write` returned, an image of
+the snapshot's data unless the error is non-nil. -/
+abbrev backend.snapshot.WriteTo.spec : Prop :=
+  ∀ (sp : Loc) (D : Data) (γ : GName) (q : Qp) (w : GoInterfaceOk)
+    (Wr : Bool → List w8 → IProp GF) (c : Bool) (bs₀ : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      snapOpenQ sp D γ q ∗ writerOk w Wr ∗ Wr c bs₀ }}
+    (App (Val (sp @!! go.GoType.PointerType snapshot.ty @!! go!"WriteTo")) (Val #(GoInterface.ok w)))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      ∃ bs : List w8, snapOpenQ sp D γ q ∗ Wr true (bs₀ ++ bs) ∗
+        ⌜err = GoInterface.nil → boltImage bs D⌝ }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

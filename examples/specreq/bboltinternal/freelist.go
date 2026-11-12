@@ -1,7 +1,7 @@
 //go:build ignore
 
 // Requirement snippets of bbolt's internal/freelist (batch 4d,
-// Spec/go_etcd_io/bbolt/internal/freelist/): what bbolt (db.go, tx.go, node.go, bucket.go) relies
+// SpecPlan/Spec/go_etcd_io/bbolt/internal/freelist/): what bbolt (db.go, tx.go, node.go, bucket.go) relies
 // on of the freelist, each reliance an explicit panic. The package is internal, so examples
 // cannot import it: the snippets are written as if in it (package freelist), not built,
 // gofmt-clean. Each takes a freelist made by NewArrayFreelist or NewHashMapFreelist: the specs

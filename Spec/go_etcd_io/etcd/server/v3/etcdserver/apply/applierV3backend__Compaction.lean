@@ -1,29 +1,23 @@
 /-
-`(*applierV3backend).Compaction(r)` (`backend.go:66-81`): mvcc's `Compact(trace, rev)`, then the current revision for the header.
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** 3e's `Compact` (the compaction revision moved, a channel closed once the physical compaction is done) and `Range` (no error at the current revision).
-
-**Changes** from `specs-ref`'s `applierV3backend__Compaction.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
-
-**Margin.** The header's other fields (cluster, member, term, leader) any.
+`apply.applierV3backend.Compaction` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/CompactArm.lean` (M2, the apply side, item 10).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.CompactArm
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,23 +26,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`Compaction` at the applierV3backend layer**: the layers' step (exact). -/
-def applierV3backend.Compaction.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (rq : Loc) (op : IrrOp),
+/-- **`a.Compaction(cr)`** on the `*applierV3backend` `p`: `EnsureTrace` makes a fresh trace
+(`context.TODO()` holds none), `KV.Compact(trace, rev)` (the watchable store's embedded `*store`'s,
+`store.Compact.spec`: the right, the certificate of a log with `rev`, the hook, the contract, the
+reader's token, the supply), then, on success, `KV.Range(context.TODO(), "compaction", nil, {})`
+(its result not `nil`: the context is never done) for the response's header. The chain-`.backend`
+instance of the chain's `Compaction` triple. (Strict M1, 2026-11-05: the draft's
+`applierV3backend.Compaction.specA`, with `1 ≤ rev` in `cmpAdmitRev`, decided by the coordinator.) -/
+abbrev apply.applierV3backend.Compaction.spec : Prop :=
+  ∀ (E : AEnv GF) (p cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) [Layer.backend] p aa ∗
-      beAt p mc γ γc R ∗
-      stAt p σ ∗
-      reqMsgAt rq op ∗ ⌜(∃ r ph, op = .req (.compact r ph)) ∧ op.ok⌝ ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"Compaction")) (Val #rq))
-  {{ (resp : Loc) (ch : Loc) (trace : Loc) (err : GoInterface), RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-      R ∗ threadTok ∗ ∃ σ' res, ⌜layersStep mc σ [] 0 op [Layer.backend] σ' res⌝ ∗ stAt p σ' ∗
-      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty) #resp) err ∗ TraceUtil.traceOpt trace ∗ (⌜ch = null⌝ ∨ Read.recvAny ch) }}
+      apply.backendIs E p ∗ apply.compactionIs cr rev ∗ ⌜apply.cmpAdmitRev log rev⌝ ∗
+      E.Cp (sint.Z rev) ∗ apply.applyTok E ∗
+      apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log
+        Pre Q Post ∗ apply.cmpOwn E crev }}
+    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Compaction")) (Val #cr))
+  {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
+      RET (PairV (PairV (PairV #resp #ch) #trace) #err);
+      apply.applyTok E ∗ apply.kvOwn E log ∗ (Post ∨ Pre) ∗ apply.cmpOwn E (apply.cmpRevAfter crev rev) ∗
+      apply.cmpAnswerIs .backend crev rev resp ch trace err ∗ apply.cmpChan crev rev ch }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

@@ -1,12 +1,9 @@
 /-
-`newMetricsTxnWrite(tw)` (`metrics_txn.go:35`): `&metricsTxnWrite{tw, 0, 0, 0, 0}`. Internal
-(`store.Write`). Mirrors its code.
-
-**Changes**: unchanged from `specs-ref`'s file.
+`newMetricsTxnWrite` (metrics_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -14,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -25,15 +21,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- A fresh wrapper around `tw`. -/
-def newMetricsTxnWrite.spec : Prop :=
+/-- `newMetricsTxnWrite(tw)`: a fresh `metricsTxnWrite` around `tw`, its counters zero. -/
+abbrev mvcc.newMetricsTxnWrite.spec : Prop :=
   ∀ (v : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite)) (Val #v))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-      mw ↦ (go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.mk v (W64 0) (W64 0) (W64 0) (W64 0)) }}
+      mw ↦ ({
+        TxnWrite' := v, ranges' := W64 0, puts' := W64 0, deletes' := W64 0,
+        putSize' := W64 0 } : metricsTxnWrite) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

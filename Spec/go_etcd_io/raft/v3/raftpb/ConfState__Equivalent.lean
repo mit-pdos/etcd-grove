@@ -1,39 +1,11 @@
 /-
-`(*ConfState).Equivalent(cs2)` (`raftpb/confstate.go:26`).
-
-Users: raft's `assertConfStatesEquivalent` (`util.go:321`, R3: `newRaft` and `appliedSnap` check the
-tracker's `ConfState` against the storage's), etcd's server tests. Snippet:
-`examples/specreq/raftpb/confchange.go` (`ReqEquivalent`).
-
-Proof sketch: neither is `nil` (`raftpb_ne_null`). `proto.Clone` of each (2a's `Clone.spec` through
-`confStatePts_msgAt`: fresh `msgAt ConfState.ty q (own 1) c` with `confStateIs c cs false`, so
-`confStatePts q (own 1) cs`); for each clone, `confStatePts_unfold`, `slices.Sort` of the four
-slices in place (Perennial's spec: a sorted permutation; `cs.lenOk` gives its length bound),
-`GetAutoLeave()` and a fresh cell for it (now set): `confStateFull q (own 1) cs'` with `cs'` the
-sorted lists and the same `AutoLeave`; `confStateFull_msgAt` gives contents `c1`, `c2` with
-`confStateIs ci csi' true`; `proto.Equal` (2a) answers `norm c1 = norm c2` (the converse by
-`noFloats_raftpb`), which by `confState_ext` one way and `raftpb_norm` with the readers being
-functions the other is `cs1' = cs2'`, i.e. (sorted permutations under a total order) `cs1.Equiv
-cs2`. On a mismatch, `fmt.Errorf` of the four `*ConfState`s under `%+#v`: Perennial's `fmt.Errorf`
-admits no pointer argument, so this step is raftpb's assumed `fmtErrorf.spec` (`FmtErrorf.lean`,
-four `FmtArg.confState` arguments: the two clones at `own 1`, the inputs at `dq1`, `dq2`, all
-given back): a non-nil error.
-
-Changes: from `specs-ref/.../raftpb/ConfState__Equivalent.lean`: both outcomes specified (the old
-spec gave only the `nil` one, under `Perm`); the `proto.Equal` step goes through protobuf's content
-(`confState_ext`) instead of the old `EqualConfState` over the refuted `pbEnc`; the length bound is
-part of the predicate (`ConfState.lenOk`).
-
-Changes: verify-round: (A5-provability F3) the mismatch path's `fmt.Errorf` is now on an assumed
-boundary spec (`fmtErrorf.spec`) instead of Perennial's, which does not cover it; the triple is
-unchanged. verify-round (second pass): the `Equal` step goes through 2a's `norm` (`confState_ext`
-restated up to `norm`, `raftpb_norm`, `noFloats_raftpb`).
-
-Margin: two `nil` inputs (an error) are not specified (no user).
+`(*ConfState).Equivalent` (`raftpb/confstate.go:26`). Port of the old
+`Spec/go_etcd_io/raft/v3/raftpb/ConfState__Equivalent.lean` to raft v3.7 (pointer receiver and
+argument; `proto.Clone`, in-place sorts, `AutoLeave` normalized, `proto.Equal`; stage R1).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Api
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -41,28 +13,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace RaftPb
 
-open Iris Iris.BI
-open go_etcd_io.raft.v3
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `p.Equivalent(q)`: `nil` exactly when the two `ConfState`s list the same configuration. -/
-def ConfState.Equivalent.spec : Prop :=
-  ∀ (p q : Loc) (dq1 dq2 : DFrac) (cs1 cs2 : ConfState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ confStatePts p dq1 cs1 ∗ confStatePts q dq2 cs2 }}
+/-- `cs1.Equivalent(cs2)` returns `nil` iff the two `ConfState`s are `proto.Equal` after each was
+cloned, its four id slices sorted and its `AutoLeave` made explicit (a nil one reads `false`).
+
+For any two conf states with equal `AutoLeave` and each id list a permutation of the other's
+(`CSLists.Perm` of their `lists`), each at most `2^62` long (`slices.Sort`'s bound): the sorted
+clones hold the same record, so `proto.Equal` answers `true` (`proto.EqualConfState.spec`; neither
+side has unknown fields, `csPts`) and the result is `nil`. As in the old spec, only the `nil`
+outcome is specified: the one caller, `assertConfStatesEquivalent`, panics on anything else. Both
+pointers are non-nil (`ownCSM`), so the nil-input error is not reached. -/
+abbrev raftpb.ConfState.Equivalent.spec : Prop :=
+  ∀ (p q : Loc) (c1 c2 : ConfStateM) (dq1 dq2 : DFrac),
+  c1.lists.Perm c2.lists → c1.lists.Bounded → c1.AutoLeave' = c2.AutoLeave' →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCSM p dq1 c1 ∗ ownCSM q dq2 c2 }}
     (App (Val (p @!! go.GoType.PointerType raftpb.ConfState.ty @!! go!"Equivalent")) (Val #q))
-  {{ (err : GoInterface), RET #err; confStatePts p dq1 cs1 ∗ confStatePts q dq2 cs2 ∗
-      ⌜err = GoInterface.nil ↔ cs1.Equiv cs2⌝ }}
+  {{ RET #interface.nil; ownCSM p dq1 c1 ∗ ownCSM q dq2 c2 }}
 
 end spec
 
-end RaftPb
 end EtcdGrove
 end Perennial

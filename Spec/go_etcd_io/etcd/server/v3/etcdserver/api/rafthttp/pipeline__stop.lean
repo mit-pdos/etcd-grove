@@ -1,19 +1,9 @@
 /-
-## `(*pipeline).stop()`
-
-**Users.** `peer.stop`, `remote.stop`.
-
-**Proof sketch.** `close(stopc)` (the stop right), `wg.Wait()`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*pipeline).stop` (`pipeline.go`; rafthttp stage 4d). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
 
 @[expose] public section
 
@@ -21,26 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Stops the pipeline**: `stopc` closed, the workers joined. -/
-def pipeline.stop.spec : Prop :=
-  ∀ (pl : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ pipeAt pl ν lid pid ∗ pipeStopRight pl }}
-    (App (Val (pl @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.ty @!! go!"stop")) (Val #()))
+/-- `p.stop()` of a started pipeline: closes its stop channel and waits for its goroutines (until
+J8a-6, 2026-11-01, whose four resources `R` came back). -/
+abbrev rafthttp.pipeline.stop.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      pipeStarted Rh p to R }}
+    (App (Val (p @!! go.GoType.PointerType rafthttp.pipeline.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

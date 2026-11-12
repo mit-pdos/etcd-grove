@@ -1,13 +1,9 @@
 /-
-`(*storeTxnRead).End()` (`kvstore_txn.go:161`): `tx.RUnlock()` (`keyBackend`: the storage slot
-back), `s.mu.RUnlock()`. Internal (`txnReadWrite.End` through `metricsTxnWrite.End`:
-`Txn.End.contract`'s read arm). The reader token is rebuilt from the two slots.
-
-**Changes** from `specs-ref`'s file: over `storeTxnR`; gives back the reader token.
+`storeTxnRead__End` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -15,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -26,15 +21,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The read transaction ended: its reader token back. -/
-def storeTxnRead.End.spec : Prop :=
-  ∀ (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState),
+/-- `tr.End()` ends the read transaction at `tr` (the `RUnlock` of its reader and of `s.mu`, held
+at the compaction revision `crev` the transaction observed): the transaction's tokens are the
+caller's again (`storeReaderC`, its reader's token gone), with the reader's tag `Z` (2026-10-13,
+unit 6a). The readers' statement (`crev = -1`, `Z = crevFrozen γ`: `storeReader`) is `specR`,
+a corollary (`spec_R`, `ReaderSpecs.lean`). -/
+abbrev mvcc.storeTxnRead.End.spec : Prop :=
+  ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
+    (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      storeTxnR t γ trace σ }}
-    (App (Val (t @!! go.GoType.PointerType storeTxnRead.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvccReaders γ 1 }}
+      mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev crev Z ∗ mvcc.txReader γ rt log ∗
+      mvcc.muHeld s γ crev ti ∗
+      sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗ mvcc.idxReader ti γ.idx }}
+    (App (Val (tr @!! go.GoType.PointerType storeTxnRead.ty @!! go!"End")) (Val #()))
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

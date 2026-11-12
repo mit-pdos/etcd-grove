@@ -1,42 +1,39 @@
 /-
-## `(*authReadTx).UnsafeGetUser(...)`
-
-**Users.** the auth store's checks and admin operations (`auth/store.go:433,...`); 3d's auth store through `AuthBatchTx`/`AuthReadTx`. Snippet:
-`examples/specreq/schema/schema.go` (`ReqAuthWriteRead`).
-**Proof sketch.** Loads `atx.tx`, `atx.lg`; `unsafeGetUser` (`unsafeGetUser.spec`). **Changes.** From
-`specs-ref`'s `authReadTx__UnsafeGetUser.lean` where there was one: over the contract. **Margin.** None.
+`(*authReadTx).UnsafeGetUser(username)` (`auth_users.go`): `unsafeGetUser` on the transaction's
+`lg` and `tx`. The auth plan's S1 (2026-10-23; `notes/auth-plan.md`; the contracts: `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvAuthBackend.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvAuthBackend
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **The user `name`**: `nil`, or a fresh message of its stored record. -/
-def authReadTx.UnsafeGetUser.spec : Prop :=
-  ∀ (atx : Loc) (lg : Loc) (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData) (name : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (atx ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authReadTx.mk tx lg) : IProp GF) ∗ txRd tx S R ∗ R V ∗ ⌜S.has .authUsers name ∧ V .authUsers = some m ∧ recsWf go_etcd_io.etcd.api.v3.authpb.User.ty m⌝ }}
+/-- An `authReadTx` whose `tx` is the reader `rt` over the auth buckets `D` (its users encodings)
+under `H`: returns the user named `name` of `D.users`, owned, or nil. -/
+abbrev schema.authReadTx.UnsafeGetUser.spec : Prop :=
+  ∀ (atx : Loc) (rt : GoInterfaceOk) (lg : Loc) (name : GoString) (H : IProp GF)
+    (D : schema.AuthData), lg ≠ null → schema.usersWf D.users →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.atxF go!"lg" atx ↦□ lg ∗
+      schema.authReader rt H D ∗ H }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"UnsafeGetUser")) (Val #name))
-  {{ (p : Loc), RET #p; R V ∗ recRes go_etcd_io.etcd.api.v3.authpb.User.ty (m name) p }}
+  {{ (u : Loc), RET #u; H ∗ schema.userOutDX u D.users name }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

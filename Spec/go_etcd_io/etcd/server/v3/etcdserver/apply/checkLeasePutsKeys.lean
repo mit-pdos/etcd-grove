@@ -1,34 +1,23 @@
 /-
-`checkLeasePutsKeys(as, ai, l)` (`auth.go:207-220`): the check of a live lease's keys: none for an administrator, else each key's write
-
-**Users.** the auth applier (the apply thread: `permReads_writer`, `C` exact at the stores' one state) and `CheckTxnAuth` (the request path: `permReads_reader`, `C` 3d's `checkPost` from a lower bound, no lease check)
-
-**Proof sketch.** 3d's `IsAdminPermitted`; 3c's `Lease.Keys` (through `permReads`: `l` is the lease `id` the lessor returned); 3d's `IsPutPermitted` per key.
-
-**Changes** from `specs-ref`'s file of the same name: one spec for both callers, parametric in how each check is reported (`permReads`' `C`); the old two-mode `isAuthStore … on` and `authApplyErrIs` gone
-
-**Margin.** None.
-
-**Integration (I5).** `permReads` takes the auth info and a per-check report `C` in place of a
-set of states `S` (3d's reader check names three views, not one state), and `L` (lease checks
-allowed: the request path holds no lessor reader token). (Round 1: `l` tied to `id` by 3c's `Lease.leaseObj`.)
+`apply.checkLeasePutsKeys` (auth.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-public import Spec.go_etcd_io.etcd.server.v3.lease.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,20 +26,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The check of a live lease's keys: none for an administrator, else each key's write** each check reported by `C`: `checksOut`. -/
-def checkLeasePutsKeys.spec : Prop :=
-  ∀ (ast le : GoInterface) (ai : Loc) (dq : DFrac) (u : GoString) (rev : w64) (A : IProp GF)
-    (L : Bool)
-    (C : Check → GoInterface → IProp GF) (l : Loc) (id : w64) (γl : Lease.Names) (ttl : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ permReads ast le u rev A L C ∗ A ∗ ⌜L = true⌝ ∗  ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ Lease.leaseObj γl l (sint.Z id) ttl ∗ threadTok }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKeys)) (Val #ast)) (Val #ai)) (Val #l))
-  {{ (err : GoInterface), RET #err; A ∗ ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗
-      checksOut C [Check.lease (sint.Z id)] err }}
+/-- **`checkLeasePutsKeys(as, ai, l)`**: `nil` for an admin (`IsAdminPermitted`); else `IsPutPermitted` of each of the lease's keys (`l.Keys()`): the first error, or `nil`; the `AuthInfo` kept, nothing written. By the lease owner, its resource opened at `l`, the lease of `id` (`lease.leaseOwnOpen`, which the owner's `Lookup(id)` gives), lent and given back: a `nil` answer gives the lease's class at the owner's item map `I` (an admin, or every key `I` attaches to `id` writable: `leaseKeysClass`). -/
+abbrev apply.checkLeasePutsKeys.spec : Prop :=
+  ∀ (st : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF)
+    (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (l : Loc) (id : w64)
+    (γl : GName) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st Pk f BT RD on RW ∗ ai ↦{dq} info ∗ lease.leaseOwnOpen γl L I id l ∗ RD }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKeys))
+      (Val #st)) (Val #ai)) (Val #l))
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ lease.leaseOwnOpen γl L I id l ∗
+      authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.leaseKeysClass on info I id) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

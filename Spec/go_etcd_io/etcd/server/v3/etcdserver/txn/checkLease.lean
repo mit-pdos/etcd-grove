@@ -1,46 +1,42 @@
 /-
-`checkLease(lessor, p)` (`put.go`), internal (`Put`, `checkPut`): `lessor.Lookup(p.Lease)` (3c's
-`lessor.Lookup.spec` at `lessorLb γl n`, from the writer's token: `lessorState_at` gives
-`lessorAt γl n ls`, `lessorState_reader` lends the reader token `lessorReaders γl 1` Lookup takes;
-answered at the state `n` itself, `lessorState_le`, `lessorAt_agree`; `nil` exactly for a lease not
-live). The lease id: `sint.Z (W64 pm.lease) = pm.lease` by `putReqOwn`'s `int64` field. Old spec: over the lessor's
-owner `L`.
+`txn.checkLease` (put.go). Lean-first (no Rocq counterpart); see `Proof/.../etcdserver/txn/Write.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-open Classical in
-/-- `checkLease(le, p)`: `ErrLeaseNotFound` for a lease (not `0`) not live in the writer's state. -/
-def checkLease.spec : Prop :=
-  ∀ (leL : Loc) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState) (p : Loc)
-    (dq : DFrac) (pm : PutReq),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Lease.isLessor leL γl c ∗ Lease.lessorState γl n ls ∗ putReqOwn p dq pm }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.checkLease)) (Val #(Lease.lessorIface leL))) (Val #p))
-  {{ (err : GoInterface), RET #err; Lease.lessorState γl n ls ∗ putReqOwn p dq pm ∗
-      (if pm.lease ≠ 0 ∧ ls.leases pm.lease = none then errIs err .leaseNotFound
-       else iprop(⌜err = GoInterface.nil⌝)) }}
+/-- `checkLease(lessor, p)`: no lease, or one the lessor finds (`Lookup` returns a lease, which
+the lessor granted: `leaseOk`); else `lease.ErrLeaseNotFound`. -/
+abbrev txn.checkLease.spec : Prop :=
+  ∀ (le : GoInterface) (γl : GName) (p : Loc) (o : OpFull) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isTxnLessor le γl ∗
+      lease.lessorUser γl L I ∗ txn.putRequestIs p o }}
+    (App (App (Val (@! txn.checkLease)) (Val #le)) (Val #p))
+  {{ (err : GoInterface), RET #err; lease.lessorUser γl L I ∗
+      ((⌜err = GoInterface.nil⌝ ∗ txn.leaseOk L o.leaseID) ∨
+      (⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L⌝ ∗
+        txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err)) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

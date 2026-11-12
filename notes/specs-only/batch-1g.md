@@ -2,7 +2,7 @@
 
 ## Files
 
-- `Spec/go_etcd_io/etcd/cache/v3/` (109 modules, namespace `Cache`): `Api.lean` (client-facing
+- `SpecPlan/Spec/go_etcd_io/etcd/cache/v3/` (109 modules, namespace `Cache`): `Api.lean` (client-facing
   vocabulary), `Internal.lean` (the internals' vocabulary, imported by no other directory), and one
   spec per Go function: the 107 functions with an old spec (all kept). Client-facing, written with
   full care: `New`, `Cache.{Get,Watch,Close,Ready,WaitReady,WaitForRevision,WaitForNextResync,
@@ -11,7 +11,7 @@
   buffer (14, ported from the old specs), store and snapshots (11), demux (19), watcher (4), ready
   (7), notifier (3), progress requestor (4), clock/timer (4), the `Cache`'s unexported methods (11),
   `newCache`, `kvItemLess`, `newKVItem`, `probeItemFromKey`, `isPrefixScan`.
-- `Spec/k8s_io/utils/third_party/forked/golang/btree/` (52 modules, namespace `BTree`): `Api.lean`,
+- `SpecPlan/Spec/k8s_io/utils/third_party/forked/golang/btree/` (52 modules, namespace `BTree`): `Api.lean`,
   `Internal.lean` (nodes), and the 50 functions with an old spec (ported mechanically onto the new
   opaque vocabulary; the public ones' pure premises moved into the precondition).
 - Snippets: `examples/specreq/cache/{get,watch,lifecycle}.go`, `examples/specreq/btree/btree.go`
@@ -75,7 +75,7 @@ discard_persistent}`, `isFreeList_persistent`.
 
 ## Functions left out
 
-- btree's `initialize` (package init: covered by the generated `Spec/PkgInit` and the cache's `init`
+- btree's `initialize` (package init: covered by the generated `SpecPlan/Spec/PkgInit` and the cache's `init`
   law). No other.
 
 ## Findings in the Go code (filed in round 1: `nonissues/etcd-cache-get-keys-only-ignored.md`,

@@ -1,15 +1,11 @@
 /-
-`zap.NewNop`: the trust boundary.
-Users: the server's and the client's code throughout (every logging call); `NewNop`: the examples
-(`examples/etcd/*`, `zap.NewNop()` as the member's and the client's logger).
-Proof sketch: none (trust boundary, `Api.lean`'s header).
-Changes: from `specs-ref/Spec/go_uber_org/zap/NewNop.lean`: the logger's premise is `isLogger l` (was
-`l ≠ null`; the old `zapLoggerOk` only in `NewNop`), the namespace `Zap`.
-Margin: logging's output is not modelled.
+`zap.NewNop`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import GeneratedProof.go_uber_org.zap
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -17,24 +13,23 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Zap
 
 open Iris Iris.BI go_uber_org
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `zap.NewNop()` returns a logger that logs nothing. -/
-def NewNop.spec : Prop :=
+/-- `zap.NewNop()` returns a zap logger (`zapLoggerOk`: non-nil, as zap's constructors build it;
+one that logs nothing). (Sweep repairs 1, R1-2: until then only `l ≠ null`.) -/
+abbrev zap.NewNop.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap }}
     (App (Val (@! zap.NewNop)) (Val #()))
-  {{ (l : Loc), RET #l; isLogger l }}
+  {{ (l : Loc), RET #l; zapLoggerOk l }}
 
 end spec
 
-end Zap
 end EtcdGrove
 end Perennial

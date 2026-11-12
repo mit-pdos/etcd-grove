@@ -1,23 +1,9 @@
 /-
-`(*storeTxnWrite).put(key, value, leaseID)` (`kvstore_txn.go:223`): the put's event appended.
-Internal (`Put`).
-
-**Proof sketch**: `treeIndex.Get.spec` at `beginRev + 1` (the key's create revision and version in
-the store the transaction sees, `txnStore σ pend`; absent: `R`, `0`); if present, the lessor's
-`GetLease` (the lessor state's item of the key); `proto.Marshal` of the
-record `putRec R prev v l` (2a's boundary: marshalable, a fresh encoding); `UnsafeSeqPut(Key,
-revBytes ⟨R, |pend|⟩, d)` on the batch (`kbLocked`); `treeIndex.Put.spec` (the index's key index
-gets the revision: above its `modified`, the transaction being the only writer); the record
-appended to `changes`; then the lease (`putLs`): unchanged, or `Detach` of the old one (an error
-only logged) and `Attach` of the new one (live: the premise; `Attach` panics on an error). The trace
-steps.
-
-**Changes** from `specs-ref`'s file: over `storeTxnW`, W0's records and the lessor's state
-(`Lease.lessorState`, `putLs`).
+`storeTxnWrite.put` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -25,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,20 +21,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The put's event (`putEv`) appended; the lessor moved by `putLs`. -/
-def storeTxnWrite.put.spec : Prop :=
-  ∀ (t : Loc) (γ : MvccName) (γl : Lease.Names) (trace : Loc) (σ : MvccState) (pend : List Event)
-    (key value : GoSlice) (kk vv : Bytes) (lid : w64) (n : Nat) (ls : Lease.LessorState),
-  let ev := putEv σ pend kk vv (sint.Z lid)
+/-- `tw.put(key, value, leaseID)`: the pending revision gets a put of `key` (the index's
+answer of the key at the pending revision gives the create revision and version, the
+lessor's `GetLease` the old lease to detach, and `leaseID` is attached). The key's and
+value's bytes are read-only for good (the index and the change keep them); the lease, if
+any, is a granted one; the revision has room for the change. (Unit T3, L2b, 2026-10-25) The
+lease owner's item map is the pending state's (`pendItems`), before and after: `GetLease` finds
+the key's old lease in it, `Detach` and `Attach` move the key. -/
+abbrev mvcc.storeTxnWrite.put.spec : Prop :=
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64) (te : Bool) (crev : Int)
+    (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      storeTxnW t γ trace σ pend ∗ mvccLessorIs γ γl ∗ traceOwn trace ∗ key ↦*□ kk ∗ value ↦*□ vv ∗
-      Lease.lessorState γl n ls ∗ ⌜sint.Z lid = 0 ∨ ls.leases (sint.Z lid) ≠ none⌝ }}
-    (App (App (App (Val (t @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"put")) (Val #key))
-      (Val #value)) (Val #lid))
-  {{ RET #(); storeTxnW t γ trace σ (pend ++ [ev]) ∗ traceOwn trace ∗
-      ∃ n' : Nat, Lease.lessorState γl n' (putLs ls (txnStore σ pend kk).isSome kk (sint.Z lid)) }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      traceutil.ownTrace trace te }}
+    (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"put")) (Val #key))
+      (Val #value)) (Val #leaseID))
+  {{ RET #(); mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) ∗
+      traceutil.ownTrace trace te }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

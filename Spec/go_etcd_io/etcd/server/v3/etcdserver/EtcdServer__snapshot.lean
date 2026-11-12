@@ -1,43 +1,14 @@
 /-
-`(*EtcdServer).snapshot(ep, toDisk)` (`server.go:2108-2160`): make a raft snapshot at the applied index
-in the `MemoryStorage` (with the thread's `ConfState`, no data); to disk, first commit the KV (the
-backend's consistent index at least the snapshot's), then save it (`SaveSnap`: the snapshot file and
-its WAL record) and release the WAL below it.
-
-**Users**: `snapshotIfNeededAndCompactRaftLog` (`server.go:1247`). Snippet `snapshot.go`
-(`ReqSnapshotCompact`).
-
-**Proof sketch**. To disk: clear `forceDiskSnapshot` (`forceSnapW`); `s.KV().Commit()` (3e's: the
-backend commits, its pre-commit hook saving the consistent index `c ≥ appliedi`). The snapshot `sn =
-(appliedi, appliedt, ep.confState, nil)` is valid: R1's `snap_make` with the delivered prefix of
-length `appliedi` (`committedLb`, its term `appliedt`, the thread's) and the configuration at the
-thread's point `max appliedi c ≥ appliedi` (`confAt`, `ep.confState` listing it: the replay's
-configuration ahead of the index, `nonissues/etcd-replay-snapshot-confstate-ahead.md`), recorded in
-the cluster's `snapsMade` with its point (`snapPoint γ sn c`, `c` the consistent index: the backend's
-image at `c`).
-`raftStorage.CreateSnapshot(appliedi, cs, nil)` (R1's `MemoryStorage.CreateSnapshot.spec` through
-`stor_createSnapshot`, with `nodeAdvanced` for `appliedLb` and R1's `appliedLb_storedLb` for the `storedLb` it now takes; `ep.confState` a `confStateFull`): `ErrSnapOutOfDate` returns (a newer
-snapshot is already stored; R1's raft never stores one past its applied index, so this is a stored
-snapshot at `appliedi`: `nodeSnapLb` holds either way); any other error is excluded by the update's
-precondition. `verifyConsistentIndexIsLatest.spec` (`c ≥ appliedi`, the thread's invariant). To
-disk: `storage.SaveSnap(sn)`, `storage.Release(sn)` (2e's WAL and snapshotter: no error under 2e's
-disk premise; `Release` keeps the records at and above `sn`, which hold the durable state).
-
-**Changes** from `specs-ref`'s `snapshot.spec` (the memory storage's frozen ranges, `srvSnapDisk`,
-the WAL's token): over `applyThread`, `nodeAdvanced`, `nodeSnapLb`; any applied index (no
-`σ.b = 0` scope). **Margin**: the snapshot indices move (`memSnap := appliedi`, and `diskSnap` when
-to disk); the post states only `nodeSnapLb`.
-
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
-
-Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.Cfg.SnapshotCount` (`server.go:2116`), which `start` defaults, is read-only from then on (`srvStarted`'s), `Logger` over `srvFields` (`srvNode_fields`).
+`s.snapshot(ep, toDisk)` (`server.go`): the trust boundary (names-only). Lean-first (no Rocq
+counterpart); the request path's unit 4b (2026-10-13).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyKVCore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvSnapSend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 
 @[expose] public section
 
@@ -45,9 +16,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -55,24 +25,73 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Snapshot at the applied index**: the node's storage then holds a snapshot at or past it. -/
-def EtcdServer.snapshot.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress) (toDisk : Bool),
+/-- **`s.snapshot(ep, toDisk)`** (D22 J4b, 2026-10-27, as `specFull`, proved on lean; 2026-10-30,
+the repair: the spec, in place of the trust-boundary axiom over the old storage token; 2026-10-31,
+the snapshot track: proved again, the snapshot certified by `srv_snap_make`). It commits the
+KV, creates a raft snapshot at the applied index in the `MemoryStorage`
+(`CreateSnapshot(ep.appliedi, ep.confState, nil)`) and with `toDisk` saves it to the WAL, leaving
+the apply thread's state as the old `spec` said; the storage's stored snapshot past `ai` afterwards
+(`srvSnapState … ai ai`). What the body needs:
+* the server's view (`isServer`: the logger, the member id, the consistent index's field) and
+  `applyAll`'s (`isServerApplyAll`: `SnapshotCount`);
+* with `toDisk`, `s.KV().Commit()`: the server's KV over the store (`txn.isKV`, `NewServer`'s) and
+  the write budget (`srvWTPool`) for the commit's write-back, the writer's tokens lent by the
+  applier row (`srvApplyKVCore_commit`; 2026-10-31, the snapshot track's S6: until then a contract
+  `srvKVCommitOk kv RC RC'` with its `RC`, which no caller could give: the writer's tokens are the
+  row's, which the spec also takes);
+* `CreateSnapshot`'s premises (2026-10-30, the repair): the storage's invariant, the node's
+  delivered log past `ai`, the cluster's registry and a committed log of length `ai` ending at
+  `at'` (`srvSnapStor`), the frozen entry at `ai` (`srvSnapFrozen`, P8); (2026-10-31, the
+  snapshot track, `notes/snapshot-sorries-plan.md`) and what certifying the snapshot takes
+  (`snapshotCert_make`): `ep.confState` the voters' (`epCsCfg`), the frozen entry of term `at'`
+  (`srvFrozenTerm`), `ai` positive, fewer than `2^61` voters;
+* `verifyConsistentIndexIsLatest`'s check: the consistent index at least `ai`;
+* with `toDisk`, the disk's storage (`srvSnapDisk`: `SaveSnap`, and `Release`'s directory at a
+  removal fact the applied index past `j` gives) with the applied index at least `ai`, and
+  `Release` not failing (`storage.releaseOk`, as `applySnapshot`'s `snapOpensOk`).
+The applier row is `spec`'s, `srvApplyKVCore` (E3p; merged onto lean 2026-10-27). -/
+abbrev EtcdServer.snapshot.spec : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
+    (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : WTNames) (ua : GoInterface) (q : Qp)
+    (γn : RNNames),
+  loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
+  -- fewer than `2^61` (`SnapListsOk`)
+  0 < uint.Z ai → GMap.size γr.raft.raft.cfg < 2 ^ 61 →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes: the WAL's write
+  -- not failing (I/O)
+  storage.walSaveOk →
+  -- (2026-11-03, R2b-1 stage 5) the raft wrapper's names the server's raft's, at a fresh start (no
+  -- log before the wrapper's: the snapshot's index is the applied log's length)
+  γn.node = γr.raft.raft → γr.raft.pre = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗
-      nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
-        (uint.nat p.appliedi) ∗
-      ⌜0 < uint.nat p.appliedi⌝ ∗ threadTok }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"snapshot")) (Val #ep)) (Val #toDisk))
-  {{ RET #(); threadTok ∗ ∃ p', applyThread s γ ep p' ∗
-      nodeSnapLb (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
-        (uint.nat p.appliedi) ∗
-      ⌜p'.appliedi = p.appliedi ∧ p'.appliedt = p.appliedt⌝ }}
+      isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
+      srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
+      srvSnapStor ms γs γr nk ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'`
+      epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvWTPool E γp ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
+      srvApplyKVCore s E γw x ua ∗
+      -- (2026-10-31) the WAL open (the apply thread's share of it); (2026-11-03, R2b-1 stage 5) with
+      -- its token, and the log handed at the WAL's `Save`s at least `ai` long (`raftAdvancedC`'s)
+      rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) ∗
+      -- (strict M1, 2026-11-06) the thread's token, `KV.Commit.contract`'s; (R4, 2026-11-07) with a
+      -- reader token of the store, the commit's too (`apply.applyTok`)
+      apply.applyTok E }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
+      (Val #toDisk))
+  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗
+      rnWalTokA γn (srvRAddr s) q ∗ apply.applyTok E ∗
+      ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

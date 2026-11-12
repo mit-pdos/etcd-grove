@@ -1,14 +1,12 @@
 /-
-## `Interface.Init(ids)` (`array.go`, `hashmap.go`)
-
-**Users.** db.go:457 (`loadFreelist`: `fl.Init(db.freepages())`, the pages no tree reaches, on a database without a synced freelist); `Read`, `NoSyncReload` (internal).
-**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; the array keeps the slice (`f.ids = ids`) and reindexes; the hash map checks `sort.SliceIsSorted` (trusted, `req/sort.md`), builds maximal spans and reindexes.
-**Changes.** from `specs-ref`'s `Interface__Init.lean`: from any state, not only the empty one (`Reload` reinitializes a live freelist); the new free pages must not be pending (`flOwn_wf`); the old premise for the hash map's early return kept (round 1, F1).
-**Margin.** none: the post is what the code computes.
+`Interface.Init` (bbolt/internal/freelist, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U2; used by U11 (`loadFreelist`, without a synced freelist). Proof:
+`Proof/go_etcd_io/bbolt/internal/freelist/Interface__Init.lean` (a `sorry` until U2).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.freelist.Api
+public import Proof.go_etcd_io.bbolt.Inv.Freelist
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,30 +14,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Freelist
+namespace bbolt
+namespace internal
+namespace freelist
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common BboltCommon
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common go_etcd_io.bbolt.internal.freelist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The contract of `Init` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.Init(ids)`: the free pages are `ids` (strictly increasing, from 2 on, none pending: the hash map panics on unsorted ids); the array keeps the slice, so it is consumed. The hash map's `Init` returns before its reindex when the new ids are empty, so its `cache` would keep the old free ids (`Freed` true, `Free` panicking): the premise (the new free pages are not empty, or no page was free) excludes it (`nonissues/bbolt-hashmap-init-empty-stale-cache.md`). -/
-def Interface.Init.contract (fl : GoInterface) (f : Expr) : Prop :=
-  ∀ (F : FLState) (s : GoSlice) (ids : List Pgid),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flOwn fl F ∗ s ↦* ids ∗ ownSliceCap Pgid s (DFrac.own 1) ∗
-      ⌜idsOk ids ∧ (∀ x ∈ ids, x ∉ F.pending) ∧ (ids ≠ [] ∨ F.free = GMap.empty)⌝ }}
-    (App f (Val #s))
-  {{ RET #(); flOwn fl (F.init ids) }}
-
-/-- `f.Init(ids)`: the free pages are `ids` (strictly increasing, from 2 on, none pending: the hash map panics on unsorted ids); the array keeps the slice, so it is consumed. The hash map's `Init` returns before its reindex when the new ids are empty, so its `cache` would keep the old free ids (`Freed` true, `Free` panicking): the premise (the new free pages are not empty, or no page was free) excludes it (`nonissues/bbolt-hashmap-init-empty-stale-cache.md`). Through the interface (`flCall`): proved from `array.Init.spec`, `hashMap.Init.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
-def Interface.Init.spec : Prop := ∀ fl, Interface.Init.contract (GF := GF) fl (flCall fl go!"Init")
+/-- `f.Init(ids)` of a fresh freelist, with increasing ids from 2 on (the hash map panics on
+unsorted ones): the free ids are `ids` (`FLPg.ofInit`); the array keeps the slice.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
+abbrev Interface.Init.spec : Prop :=
+  ∀ (fli : GoInterface) (s : GoSlice) (ids : List w64),
+  PgidsIncr ids → (∀ x ∈ ids, 2 ≤ x.toNat) → ids.length < 2 ^ 63 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗
+      flPgOwn fli FLPg.empty ∗ s ↦* ids ∗ ownSliceCap w64 s (DFrac.own 1) }}
+    (App (ifaceCall fli go!"Init") (Val #s))
+  {{ RET #(); flPgOwn fli (FLPg.ofInit ids) }}
 
 end spec
 
-end Freelist
+end freelist
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

@@ -1,13 +1,10 @@
 /-
-`newKVHasher(compactRev, rev, keep)` (`hash.go:49`). Internal: `scheduleCompaction`, `hashByRev`.
-**Trusted** (hash.go is translated names-only): a `kvHasher` over crc32-Castagnoli (seeded with the
-`Key` bucket's name) of the given revisions and keep map; nothing about the crc's value.
-
-**Changes** from `specs-ref`'s file: `hasherVal` in place of `kvHasherOk`.
+`newKVHasher` (`hash.go`): the trust boundary (crc32 has no Perennial model; `hash.go` is names-only).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
 
 @[expose] public section
 
@@ -15,26 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `newKVHasher(prev, rev, keep)`: a hasher value of `(prev, rev]` and `keep`. -/
-def newKVHasher.spec : Prop :=
+/-- `newKVHasher(prev, rev, keep)` returns some hasher, one `kvHasherOk` (its `crc32` digest,
+which has no model: the value is otherwise unconstrained; audit B4b, 2026-10-18, for
+`WriteKeyValue` and `Hash`). -/
+abbrev mvcc.newKVHasher.spec : Prop :=
   ∀ (prev rev : w64) (keep : GoMap),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher)) (Val #prev))
       (Val #rev)) (Val #keep))
-  {{ (h : kvHasher), RET #h; hasherVal h prev rev keep }}
+  {{ (h : kvHasher), RET #h; ⌜mvcc.kvHasherOk h⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

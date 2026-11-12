@@ -1,14 +1,16 @@
-/-
-## `newNode(rn)` (internal)
+/- Lean-first (no Rocq counterpart).
 
-**Users.** `setupNode`, `RestartNode`. **Proof sketch.** Makes the channels (`tickc` buffered).
-**Changes.** Mirrors the code.
+## `newNode(rn)` (node.go:312)
+
+The node struct over `rn`, with its fresh channels: every one unbuffered and idle but
+`tickc`, buffered (capacity 128) and empty.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
@@ -16,27 +18,39 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- (internal) A node value over `RawNode` `rn`, its channels fresh. -/
-def newNode.spec : Prop :=
+/-- The node struct's channels, fresh (see the file header). (2026-10-16, stage R5: `recvc`,
+`confc`, `confstatec` carry pointers, `*pb.Message`, `*pb.ConfChangeV2`, `*pb.ConfState`.) -/
+def newNodeChans (nv : node) : IProp GF :=
+  iprop(∃ (γp γr γc γcs γrd γa γt γd γs γst : ChanNames),
+    isChan nv.propc' γp msgWithResult ∗ ownChan γp msgWithResult .Idle ∗
+    isChan nv.recvc' γr Loc ∗ ownChan γr Loc .Idle ∗
+    isChan nv.confc' γc Loc ∗ ownChan γc Loc .Idle ∗
+    isChan nv.confstatec' γcs Loc ∗ ownChan γcs Loc .Idle ∗
+    isChan nv.readyc' γrd Ready ∗ ownChan γrd Ready .Idle ∗
+    isChan nv.advancec' γa Unit ∗ ownChan γa Unit .Idle ∗
+    isChan nv.tickc' γt Unit ∗ ownChan γt Unit (.Buffered []) ∗
+    isChan nv.done' γd Unit ∗ ownChan γd Unit .Idle ∗
+    isChan nv.stop' γs Unit ∗ ownChan γs Unit .Idle ∗
+    isChan nv.status' γst GoChan ∗ ownChan γst GoChan .Idle)
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNode rn γ id }}
-    (App (Val (@! go_etcd_io.raft.v3.newNode)) (Val #rn))
-  {{ (nv : go_etcd_io.raft.v3.node), RET #nv; nodeFresh nv rn γ id }}
+/-- See the file header. -/
+abbrev newNode.spec : Prop :=
+  ∀ (rn : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+    (App (Val #(functions newNode [])) (Val #rn))
+  {{ (nv : node), RET #nv; ⌜nv.rn' = rn⌝ ∗ newNodeChans nv }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

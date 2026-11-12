@@ -1,29 +1,23 @@
 /-
-`(*uberApplier).Alarm(ar)` (`uber_applier.go:214-222`): the chain's `Alarm` (the backend's, promoted), then, for an activation or a deactivation, the chain re-chosen (`restoreAlarms`).
-
-**Users.** `uberApplier.dispatch`.
-
-**Proof sketch.** `applierV3backend.Alarm.spec` (through the outer layers: an alarm is never refused); `uberApplier.restoreAlarms.spec`.
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** The alarm list's order (`resMatch`).
+`apply.uberApplier.Alarm` (uber_applier.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/InvUber.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,20 +26,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **An alarm action**, the chain at the new alarms. -/
-def uberApplier.Alarm.spec : Prop :=
-  ∀ (p b aa q : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (act : AlarmAct) (m : Nat) (at' : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ uberAt p b aa mc γ γc R ∗ uberChain p (chainLayers σ) ∗ stAt b σ ∗
-      reqMsgAt q (.alarm act m at') ∗ ⌜(IrrOp.alarm act m at').ok⌝ ∗ threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty @!! go!"Alarm")) (Val #q))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
-      ∃ σ' res res', ⌜alarmStep σ act m at' σ' res ∧ resMatch (.alarm act m at') false res res'⌝ ∗
-        uberChain p (chainLayers σ') ∗ stAt b σ' ∗
-        replyAt γ (.alarm act m at') res' (interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty) #resp) err }}
+/-- **`a.Alarm(r)`** (called by `dispatch`, inside the chain's `Apply`): the current applier's
+`Alarm` (one critical section of the batch lock, or none), then, for an `ACTIVATE` or a
+`DEACTIVATE`, `restoreAlarms`: `applyV3` is the chain the alarm store's answers ask for. The
+chain's resources `chainRes c a` are those of the applier `Apply` was called on, given back. -/
+abbrev apply.uberApplier.Alarm.spec : Prop :=
+  ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface) (r : Loc)
+    (am : apply.AlarmModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
+      structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
+      apply.alarmRequestIs r am ∗ apply.applyTok E ∗ apply.mPreW E c a info log Pre Q Post ∗
+      apply.ciSplit E Pre ∗ E.RW }}
+    (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Alarm")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.applyTok E ∗ apply.mPostW E c a log Pre Post ∗ applyErrIs err ∗ ∃ (a' : GoInterface) (c' : apply.Chain),
+        structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
+        ⌜(c' = c ∧ a' = a) ∨ ∃ ns cr, c' = apply.alarmChain E.authOn ns cr⌝ }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

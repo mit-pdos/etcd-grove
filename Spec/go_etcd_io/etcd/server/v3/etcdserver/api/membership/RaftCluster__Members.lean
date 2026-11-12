@@ -1,49 +1,49 @@
 /-
-## `(*RaftCluster).Members()` (`cluster.go:123-132`): translated
-
-**Users.** 2c's `MemberList` (after a linearizable read: the members at the applied state),
-`adjustTicks`, the error classification's quorum count (`isConnectedToQuorumSince`), the
-interceptors. Go test of the view's behavior: `etcdserverboot/members.go` (`ReqMembers`).
-
-**Proof sketch.** Under the lock, a clone of each member (`Member.Clone.spec`), sorted by id
-(`sort.Sort(MembersByID)`: Perennial's sort over `Len`/`Less`/`Swap`): the read fires the update
-with the view unchanged.
-
-**Changes** (from `specs-ref`'s `RaftCluster__Members.lean`): the view's atomic read.
-
-**Margin.** The order (by id) is not stated.
+`membership.RaftCluster.Members` (`cluster.go`: under `c`'s mutex, a clone of each member, sorted
+by id). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): `isRaftCluster`, and the
+result's members.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Membership
 
-open Iris Iris.BI EtcdModel Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The view's members**, fresh copies (a read of the view). -/
-def RaftCluster.Members.spec : Prop :=
-  ∀ (c : Loc) (γ : CNames) (cid lid : w64) (Q : ClusterSt → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ isCluster c γ cid lid ∗ (AU <{ ∃∃ (st : ClusterSt), clusterSt γ st }> @ ⊤, ∅ <{ clusterSt γ st, COMM Q st }>) }}
+/-- `c.Members()` (`c` a cluster, `isRaftCluster`) returns a slice of fresh members (owned:
+clones of the cluster's; their order, by id, is not stated: no caller reads it). -/
+abbrev membership.RaftCluster.Members.spec : Prop :=
+  -- (D43 M4, 2026-10-26) at any side condition of the lock invariant (`isRaftClusterG`)
+  ∀ (c : Loc) (RM : membership.RcSide GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.isRaftClusterG c RM }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; ∃ (st : ClusterSt) (ms : List Member), Q st ∗ membersOwn sl ms ∗
-      ⌜ms.Perm st.members⌝ }}
+  {{ (sl : GoSlice), RET #sl; ∃ ms : List Loc, membership.membersAt sl ms }}
+
+/-- The static cluster's (`isRaftCluster`, `isRaftCluster_static`). -/
+theorem membership.RaftCluster.Members.spec_static (h : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
+    (c : Loc) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.isRaftCluster c }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members")) (Val #()))
+  {{ (sl : GoSlice), RET #sl; ∃ ms : List Loc, membership.membersAt sl ms }} := by
+  rw [(membership.isRaftCluster_static c).to_eq]
+  exact h c _
 
 end spec
 
-end Membership
 end EtcdGrove
 end Perennial

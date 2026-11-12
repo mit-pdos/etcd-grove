@@ -1,16 +1,7 @@
-/-
-## `(*raftLog).stableSnapTo(i)` (internal)
-
-**Users**: `appliedSnap` (`raft.go:768`), from `MsgStorageAppendResp` with the snapshot the storage
-installed. **Proof sketch**: `unstable.stableSnapTo`; with `SnapAckOk`, the storage (holding the
-snapshot and `stored`) is now read for the stable part. **Changes**: from
-`specs-ref/Spec/go_etcd_io/raft/v3/raftLog__stableSnapTo.lean`: on `raftLog` (was `ownRaftLogW`).
--/
+/- (D22 S-d1b, 2026-10-21) Lean-first. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -18,26 +9,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Drop the pending snapshot if it is at `i` (it is stored). -/
-def raftLog.stableSnapTo.spec : Prop :=
+/-- `l.stableSnapTo(i)` (`log.go:369`) is `l.unstable.stableSnapTo(i)`: on a hit (a snapshot
+pending at index `i`, `snapHit`) the snapshot is dropped and no longer in progress, and the log's
+storage relation is the one with no snapshot pending (`logStableSnap`, `InvReadylog.lean`);
+otherwise nothing changes.
+
+The premise is that the hit happens exactly in the `sapp` window (`ownRaftLogW`): a hit needs
+the storage to hold the snapshot (the application's receipt absorbed,
+`ownRaftLog_absorb_snap`), which is what makes the dropped snapshot the storage's boundary, and
+the window closes with it. Go checks only the index. The result is in `appliedSnap`'s window
+(`aps`) on a hit: `applied` is still below the boundary until `appliedTo` moves it there. -/
+abbrev raftLog.stableSnapTo.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (i : w64),
-  ls.SnapAckOk (uint.nat i) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"stableSnapTo")) (Val #i))
-  {{ RET #(); raftLog l (ls.stableSnapTo (uint.nat i)) }}
+  (snapHit ls.snap i = true ↔ ls.sapp = true) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLogW l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"stableSnapTo")) (Val #i))
+  {{ RET #(); ownRaftLogW l (logStableSnap ls i) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

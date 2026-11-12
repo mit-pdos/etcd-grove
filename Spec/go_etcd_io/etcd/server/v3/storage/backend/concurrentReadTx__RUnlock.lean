@@ -1,14 +1,11 @@
 /-
-## `(*concurrentReadTx).RUnlock()` (`read_tx.go:151`): translated
-
-**Users.** mvcc's `storeTxnRead.End` (`kvstore_txn.go`). **Proof sketch.** `rt.txWg.Done()` (the
-interval's wait group: the budget token deposited at creation; the rollback goroutine of an ended
-interval may now roll bbolt's read transaction back); the slot back. **Changes.** The slot back.
-**Margin.** None.
+`RUnlock` (the backend). `crt.RUnlock()`: its share of the interval given back (`txWg.Done()`), and its tokens.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -16,26 +13,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`rt.RUnlock()`** on a concurrent read transaction: it ends; the reader slot back. -/
-def concurrentReadTx.RUnlock.spec : Prop :=
-  ∀ (γ : BeNames) (l : Loc) (F : Fp) (V : Image),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ l F V ∗ beLive γ l 1 ∗ ⌜l ≠ rtLoc γ⌝ }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty @!! go!"RUnlock")) (Val #()))
-  {{ RET #(); beRdToks γ 1 }}
+/-- `crt.RUnlock()`: its share of the interval given back (`txWg.Done()`), and its tokens. -/
+abbrev backend.concurrentReadTx.RUnlock.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (crt rtx : Loc) (rv : RView),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ crtSnap γ P b crt rtx rv }}
+    (App (Val (crt @!! go.GoType.PointerType concurrentReadTx.ty @!! go!"RUnlock")) (Val #()))
+  {{ RET #(); crTok γ b }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

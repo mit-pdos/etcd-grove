@@ -1,14 +1,16 @@
 /-
-## `raft.bcastHeartbeat` (internal)
+Port of election_proof/spec_raft__bcastHeartbeat.v (feb5c73d4).
 
-**Users.** `stepLeader` (`MsgBeat`, `raft.go:1297`), `sendMsgReadIndexResponse` (`:2165`). **Proof sketch.** `bcastHeartbeatWithCtx(readOnly.heartbeatCtx())` (R3's position of the last pending read, `hbCtxOf`): opens the struct, `bcastHeartbeatWithCtx.spec`, closes. **Changes** (from `specs-ref`'s `raft__bcastHeartbeat.lean`, if any): over
-`raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
+Lean notes:
+* The reference `raft__bcastHeartbeatⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:3285` is to the
+  Lean generated code `raft.bcastHeartbeat.impl`.
+* Rocq's `send_msgs s ms <| nstate.prvals := pvs |>` is
+  `{ sendMsgs s ms with prvals := pvs }`, and the type of the untyped binder `pvs` is
+  written out.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +18,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A leader sends heartbeats to every other peer. -/
-def raft.bcastHeartbeat.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ ⌜ρ.role = StateLeader⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"bcastHeartbeat")) (Val #()))
-  {{ RET #(); raftCore r γ id ρ }}
+/-- `r.bcastHeartbeat()` (`raft.bcastHeartbeat.impl`, `Code/go_etcd_io/raft/v3.lean`;
+`raft.go:722`):
+
+      r.bcastHeartbeatWithCtx(r.readOnly.heartbeatCtx())
+
+`heartbeatCtx` returns `nil` under the scope (no read requests;
+`spec_readOnly__heartbeatCtx.v`), and reading it leaves the `readOnly` object as it
+was; the rest is `bcastHeartbeatWithCtx`'s spec. This is what `stepLeader` does on a
+`MsgBeat`, and the postcondition is the model's `Step.beat`. -/
+abbrev raft.bcastHeartbeat.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
+      -- each with the read-only object's context (2026-10-12; `nil` without a request)
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

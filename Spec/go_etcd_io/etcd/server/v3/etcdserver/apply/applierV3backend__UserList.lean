@@ -1,29 +1,23 @@
 /-
-`(*applierV3backend).UserList(r)` (`backend.go:254-260`): the auth store's `UserList`.
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** 3d's `UserList`; `newHeader`.
-
-**Changes** from `specs-ref`'s `applierV3backend__UserList.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
-
-**Margin.** The header's other fields (cluster, member, term, leader) any.
+`apply.applierV3backend.UserList` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,23 +26,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`UserList` at the applierV3backend layer**: the layers' step (exact). -/
-def applierV3backend.UserList.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (rq : Loc) (op : IrrOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) [Layer.backend] p aa ∗
-      beAt p mc γ γc R ∗
-      stAt p σ ∗
-      reqMsgAt rq op ∗ ⌜(op = .req .userList) ∧ op.ok⌝ ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"UserList")) (Val #rq))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ threadTok ∗ ∃ σ' res, ⌜layersStep mc σ [] 0 op [Layer.backend] σ' res⌝ ∗ stAt p σ' ∗
-      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty) #resp) err }}
+/-- **`a.UserList(r)`**: the auth store's `UserList` (a critical section, or none); the response's `Header` set to `newHeader()` if any. -/
+abbrev apply.applierV3backend.UserList.spec : Prop :=
+  ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      (E.RW ∗ ⌜apply.adminAdmitted E.authMode⌝) ∗ apply.applyTok E ∗ apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserList")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.applyTok E ∗ apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

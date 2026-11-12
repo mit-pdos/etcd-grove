@@ -2,7 +2,7 @@
 
 ## from R1
 
-Batch R1 (the node API: `Spec/go_etcd_io/raft/v3/{Model,Api}.lean` and the `node`, `RawNode`,
+Batch R1 (the node API: `SpecPlan/Spec/go_etcd_io/raft/v3/{Model,Api}.lean` and the `node`, `RawNode`,
 `MemoryStorage` specs) proves its specs over the raft struct and its log. What its sketches need,
 in plain terms. Cite the R1 vocabulary by name; state your own predicates over the R1 models
 (`LogEntry`, `HardState`, `Snapshot`, `Msg`, `Membership`, `StorState`, `Durable`, `Batch`).
@@ -115,7 +115,7 @@ in plain terms. Cite the R1 vocabulary by name; state your own predicates over t
 
 ## from R3
 
-Batch R3 (the log, `Spec/go_etcd_io/raft/v3/ApiLog.lean`) reads the storage through R1's
+Batch R3 (the log, `SpecPlan/Spec/go_etcd_io/raft/v3/ApiLog.lean`) reads the storage through R1's
 `isStorage st S cf` and states the client's storage writes as its own laws (`logStor_*`), from
 which R1's `readyStor_*`, `stor_*` are meant to be realized. What R3 needs of R1:
 
@@ -145,7 +145,7 @@ which R1's `readyStor_*`, `stor_*` are meant to be realized. What R3 needs of R1
 
 ## from R2
 
-Batch R2 (the raft core: `Spec/go_etcd_io/raft/v3/ApiCore.lean` and the `raft__*`, `step*`,
+Batch R2 (the raft core: `SpecPlan/Spec/go_etcd_io/raft/v3/ApiCore.lean` and the `raft__*`, `step*`,
 `newRaft`, `getStatus`, `RawNode__readyWithoutAccept`/`acceptReady` specs). Report:
 `notes/specs-only/batch-R2.md`.
 
@@ -240,7 +240,7 @@ What `raftCore`'s realization and the proof sketches of `raft.Step`, `handle*`, 
 
 ## from R4
 
-Batch R4 (tracker, quorum, confchange: `Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/`,
+Batch R4 (tracker, quorum, confchange: `SpecPlan/Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/`,
 namespaces `Tracker`, `Quorum`, `ConfChange`; report `notes/specs-only/batch-R4.md`).
 
 ### To R1 (the node API's model and laws)
@@ -374,7 +374,7 @@ from `readOnly.AckedIndex.spec`). `JointConfig.CommittedIndex.spec`'s size premi
 
 ## from 2f
 
-Batch 2f (rafthttp, `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean`, namespace
+Batch 2f (rafthttp, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean`, namespace
 `Rafthttp`). Report: `notes/specs-only/batch-2f.md`.
 
 1. **R1's question S8 (`reviews/R1-completeness-1.md`): rafthttp delivers each message at most

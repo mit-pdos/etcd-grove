@@ -1,13 +1,10 @@
 /-
-`Cache.waitTillRevision` (`cache/*.go`), an internal helper.
-Users: `Cache.Get`.
-Proof sketch: `store.LatestRev.spec`; `progressRequestor.add/remove` (deferred); a goroutine broadcasting `revCond` at the timeout or the context's end (not in the wait group: it ends by itself); under the store's read lock a loop on `latest.rev` with `revCond.Wait` (Perennial's `sync.Cond` over the read locker), the timeout (`time.Since`) and `ctx.Err()`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: the broadcasting goroutine outlives the call by up to `WaitTimeout` (a goroutine per waiting `Get`): no resource of the caller's is tied to it.
+`Cache.waitTillRevision(ctx, rev)` (`cache/cache.go`). Lean-first (no Rocq counterpart); see
+`InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -15,28 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `c.waitTillRevision(ctx, rev)`: `nil` once the cache reached `rev`, else an error (`ErrCacheTimeout`, the context's). -/
-def Cache.waitTillRevision.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (ctx : GoInterface) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx ∗ threadTok }}
-    (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"waitTillRevision")) (Val #ctx)) (Val #rev))
-  {{ (err : GoInterface), RET #err; threadTok ∗
-      (⌜err = GoInterface.nil⌝ ∗ cacheRevLb c (sint.Z rev).toNat) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+/-- `c.waitTillRevision(ctx, rev)`, by a reader of the store (`cacheReader`, given back): `nil`
+only once the store's latest revision is at least `rev` (`storeRevLb`), else the value of
+`ErrCacheTimeout` or the context's error once it is done (`waitResult`). It waits on the
+store's `revCond` under a read lock, with a goroutine that broadcasts on it at the timeout or
+when the context is done. -/
+abbrev Cache.waitTillRevision.spec : Prop :=
+  ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
+    (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ cacheReader cf }}
+    (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"waitTillRevision"))
+      (Val #(GoInterface.ok ctx))) (Val #rev))
+  {{ (err : GoInterface), RET #err; cacheReader cf ∗ waitResult cf s rev err }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

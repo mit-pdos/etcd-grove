@@ -1,7 +1,7 @@
 # Batch 2b (gRPC watch server): completeness review, round 1
 
-Reviewer: completeness. Read: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/*.lean` (16
-files), `examples/specreq/v3rpcwatch/{protocol,serve}.go`, 1b's `Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`
+Reviewer: completeness. Read: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/*.lean` (16
+files), `examples/specreq/v3rpcwatch/{protocol,serve}.go`, 1b's `SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`
 (`wireStep`, the wire slots), the Go code (`S = .../server/v3@...a4d2bb1720b9`, client `.../client/v3@...a4d2bb1720b9`,
 tests `.../tests/v3@v3.0.0-20261103162249-673da07c8fab`, the latest tests module in the cache), and
 `batch-2b.md` only after forming the findings below.

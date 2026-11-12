@@ -1,15 +1,9 @@
 /-
-## `Inflights.Count()`
-
-**Users.** `Progress.String` (logging) and raft's tests. Kept: verified before.
-
-**Proof sketch.** A field read. **Changes.** Over the model. **Margin.** None.
+`tracker.Inflights.Count`, Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTracker
 
 @[expose] public section
 
@@ -17,26 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The number of messages in flight. -/
-def Inflights.Count.spec : Prop :=
-  ∀ (p : Loc) (I : InflightsV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ inflightsOwn p I }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Inflights.ty @!! go!"Count")) (Val #()))
-  {{ RET #(W64 I.items.length); inflightsOwn p I }}
+/-- `in.Count()` (`tracker.Inflights.Count.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`;
+inflights.go:136): `return in.count`. The number of messages in flight, as the `int` it
+is (`i.count` is its signed value, `inflightsAbs`). -/
+abbrev tracker.Inflights.Count.spec : Prop :=
+  ∀ (l : Loc) (i : Inflights),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownInflights l i }}
+    (App (Val (l @!! go.GoType.PointerType tracker.Inflights.ty @!! go!"Count")) (Val #()))
+  {{ RET #(W64 i.count); ownInflights l i }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

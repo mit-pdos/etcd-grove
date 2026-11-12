@@ -1,33 +1,24 @@
 /-
-`(*serverWatchStream).newResponseHeader(rev)` (`watch.go`): a response's header.
-
-**Users.** `recvLoop` (every control response), `sendLoop`'s `sendWatch` (every mvcc response).
-
-**Proof sketch.** The member's ids from the run's read-only fields (`swsAt`); `sws.sg.Term()`,
-`sws.sg.Leader()` (the member as `apply.RaftStatusGetter`, `watchMemberAt`'s triples, 2c/2d: any
-values, no panic, no thread token); a fresh `ResponseHeader` (`respHeaderOwn_unfold`, with
-`protoRest_zero`).
-
-**Changes** from `specs-ref`'s file: the run record replaced by `swsAt`; the read-only header
-(`hdrFull`) by W0's `respHeaderOwn` owned in full (the caller persists it when it shares it among
-fragments); the ids by an existential (no client reads them).
-
-**Margin.** The cluster and member ids, the term and the leader are not stated.
+`v3rpc.serverWatchStream.newResponseHeader` (`watch.go`). Lean-first (no Rocq counterpart); the
+vocabulary is `v3rpc/InvWatchStream.lean` and `v3rpc/InvWatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchInternal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.server.v3.etcdserver.api
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,19 +26,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`sws.newResponseHeader(rev)`**: a fresh header with the revision `rev`. -/
-def serverWatchStream.newResponseHeader.spec : Prop :=
-  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
-    (rev : w64),
+/-- **`sws.newResponseHeader(rev)`**: a fresh header (read-only) with the server's cluster and
+member ids, the revision `rev`, some term and leader. -/
+abbrev v3rpc.serverWatchStream.newResponseHeader.spec : Prop :=
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      swsAt sws γ who st g }}
+      v3rpc.swsIs sws r Up Dn st ci cd }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"newResponseHeader"))
       (Val #rev))
-  {{ (h : Loc), RET #h; ∃ m : HeaderM, ⌜m.revision = rev⌝ ∗ respHeaderOwn h (DFrac.own 1) m }}
+  {{ (h : Loc), RET #h; ∃ t l : w64, hdrFull h ⟨r.srv.cid, r.srv.mid, rev, t, l⟩ }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

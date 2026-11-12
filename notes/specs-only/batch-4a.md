@@ -1,12 +1,12 @@
 # Batch 4a: etcd's storage backend (report)
 
 Author agent, 2026-11-09. Everything builds (`etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/server/v3/storage/backend`: OK, 100 modules); snippets: `cd examples && go vet
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend`: OK, 100 modules); snippets: `cd examples && go vet
 ./specreq/backend/` clean, `gofmt -l` clean.
 
 ## Files
 
-`Spec/go_etcd_io/etcd/server/v3/storage/backend/` (namespace `Backend`, new):
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/` (namespace `Backend`, new):
 - `Api.lean`: the vocabulary (below). `Internal.lean`: the internal helpers' vocabulary (buffers,
   the physical batch state; no client imports it). `MvccStorage.lean`: the bridge law to mvcc's
   storage contract (only the server imports it; **blocked**, F1/F3 below).
@@ -200,7 +200,7 @@ this vocabulary, F2, F4, `bucketOk`, `applyHook`, `beSess_rd`, `meta`'s existenc
 
 ## Round 1 repairs (review `reviews/4a-review-1.md`)
 
-All 101 modules build (`--dir Spec/go_etcd_io/etcd/server/v3/storage/backend`, with the new
+All 101 modules build (`--dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend`, with the new
 `Durable.lean`); snippets re-vetted (`go vet`, `gofmt -l` clean).
 
 - **T1 (concurrent reads after a commit)**: the review's option (a), the weakest true statement that

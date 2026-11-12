@@ -1,12 +1,9 @@
 /-
-`RevToBytes(rev, bytes)` (`revision.go:54`): a non-tombstone bucket key's bytes written into
-`bytes` (at least 17 long: `PutUint64` and `bytes[8]` panic otherwise), the same slice returned.
-Internal (`restore`, `put`, `rangeKeys`, the compaction keys). **Changes**: any length `≥ 17`
-(the bytes past the 17th unchanged), no capacity needed (no append).
+`RevToBytes` (`revision.go`). Lean-first (no Rocq counterpart); see `RevBytes.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
 
 @[expose] public section
 
@@ -14,27 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `RevToBytes(rev, bytes)`. -/
-def RevToBytes.spec : Prop :=
-  ∀ (rev : Revision) (s : GoSlice) (bs : List w8),
-  {{ pkgInit ∗ ⌜17 ≤ bs.length⌝ ∗ s ↦* bs }}
+/-- `RevToBytes(rev, bytes)` writes the 17 bytes of `rev` into `bytes`, a buffer of 17 or 18
+bytes, and returns it (its 18th byte, if any, as it was). -/
+abbrev mvcc.RevToBytes.spec : Prop :=
+  ∀ (rev : Revision) (s : GoSlice) (bs : List w8), bs.length = 17 ∨ bs.length = 18 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      s ↦* bs ∗ ownSliceCap w8 s (DFrac.own 1) }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes)) (Val #rev)) (Val #s))
-  {{ RET #s; s ↦* (revBytes (revOf rev) false ++ bs.drop 17) }}
+  {{ (s' : GoSlice), RET #s';
+      s' ↦* (mvcc.revBytes (mvcc.revOf rev) false ++ bs.drop 17) ∗ ownSliceCap w8 s' (DFrac.own 1) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

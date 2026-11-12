@@ -1,14 +1,9 @@
 /-
-## `(*raftLog).hasNextUnstableEnts()` (internal)
-
-**Users**: `RawNode.HasReady` (`rawnode.go:463`), `needStorageAppendMsg`. Mirrors the code.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__hasNextUnstableEnts.lean`: over `LogState`.
+Port of `election_proof/spec_raftLog__hasNextUnstableEnts.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -16,25 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether some unstable entry is not yet in progress. -/
-def raftLog.hasNextUnstableEnts.spec : Prop :=
+/-- `l.hasNextUnstableEnts()` (`log.go:202`): `len(l.nextUnstableEnts()) > 0` -- whether
+a `Ready` has unstable entries left to hand out. -/
+abbrev raftLog.hasNextUnstableEnts.spec : Prop :=
   ∀ (l : Loc) (ls : LogState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"hasNextUnstableEnts")) (Val #()))
-  {{ RET #(decide (ls.us.nextEntries ≠ [])); raftLog l ls }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"hasNextUnstableEnts")) (Val #()))
+  {{ (b : Bool), RET #b; ownRaftLog l ls ∗ ⌜b = decide (nextUnstable ls ≠ [])⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -41,7 +41,7 @@ What the request path (2c) needs of the lessor (3c) and `lease/leasehttp`:
 
 ## from 3b
 
-What txn (3b) uses of the lessor (`Spec/go_etcd_io/etcd/server/v3/lease/Api.lean`), as its specs now
+What txn (3b) uses of the lessor (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/Api.lean`), as its specs now
 cite it: `Lease.isLessor leL γl c`, `Lease.lessorState γl n ls` (the apply thread's writer token, which
 `Put`, `DeleteRange` and a writing `Txn` take and return with `Txn.sameLeases ls ls'`), `LessorState.table`
 (W0's lease table, for `PutReq.check`), `Lease.lessorIface leL` (the `lease.Lessor` value txn gets).
@@ -87,7 +87,7 @@ l, err := a.options.Lessor.Grant(lease.LeaseID(lc.ID), lc.TTL)               // 
 
 ## from 3e
 
-mvcc (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) now threads 3c's writer token, as 3c
+mvcc (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) now threads 3c's writer token, as 3c
 asked (`req/..._storage_mvcc.md`, "from 3c"): `KV.Put`/`Txn.Put` take `Lease.lessorState γl n ls` with
 `⌜lid = 0 ∨ ls.leases lid ≠ none⌝` and give it back at `putLs ls pres k lid`; `KV.DeleteRange`/
 `Txn.DeleteRange` at `delsLs ls ds`; `KV.Restore` and `NewStore` at `RestoreLs ls s ls'` (any order of
@@ -134,7 +134,7 @@ with `V .lease = some m ∧ leaseBktIs m L ∧ B = (TTL of L)` for 4a's part (`r
 id order. `MustUnsafePutLease` is over `Proto.msgAt leasepb.Lease.ty lpb dq c` (kept; `Marshal`
 writes its `sizeCache`): `persistTo`'s fresh local becomes one by `Schema.leaseMsg_of_struct`
 (owned, one way). `api/version.LessThan` (and `V3_6`'s value) are 3h's
-(`Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`, assumed), over semver's model
+(`SpecPlan/Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`, assumed), over semver's model
 (`Semver.SemVer.ltb`).
 
 ## from 4a

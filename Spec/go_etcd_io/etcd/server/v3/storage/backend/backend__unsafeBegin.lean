@@ -1,12 +1,10 @@
 /-
-`b.unsafeBegin(write)` (`backend.go:1065-1073`): translated; internal. bbolt's `Begin(write)` (4c);
-an error is `lg.Fatal`. Changes: over `btPhys`; verify-round (A11-completeness F4): both modes, as
-`begin`. Margin: as `begin`.
+`backend.unsafeBegin` (`backend.go`). `b.unsafeBegin(write)`: a bbolt transaction begun on the database `b.db` (`lg.Fatal` on an error): the write transaction (with the writer's token) or a read transaction, over the committed data.
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
-public import Perennial.ProgramLogic.Bounds
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BeginCtx
 
 @[expose] public section
 
@@ -14,28 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.unsafeBegin(write)`**: as `begin`, without the atomics. -/
-def backend.unsafeBegin.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (I : Image) (d : Nat) (w : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ btHeld γ ∗
-      (if w then btStopped γ ∗ beCommitted γ I else rtHeld γ ∗ btPhys γ I 0 d ∗ threadTok) }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"unsafeBegin")) (Val #w))
-  {{ (tx : Loc), RET #tx; btHeld γ ∗
-      (if w then btPhys γ I 0 d else rtHeld γ ∗ btPhys γ I 0 d ∗ rtNew γ tx I) }}
+/-- `b.unsafeBegin(write)`: a bbolt transaction begun on the database `b.db` (`lg.Fatal` on an error): the write transaction (with the writer's token) or a read transaction, over the committed data (holding the caller's `threadTok`, bbolt's reader slot, 2026-11-06 `notes/begin-tok-plan.md`). -/
+abbrev backend.backend.unsafeBegin.spec : Prop :=
+  ∀ (γd : DBNames) (b db : Loc) (q : Qp) (D : Data) (w : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beginCtx b ∗ bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γd D ∗
+      (if w then wrTok γd else threadTok) }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"unsafeBegin")) (Val #w))
+  {{ (tx : Loc), RET #tx; bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γd D ∗ isDB db ∗ txDB tx db ∗
+      (if w then ownWTx tx γd D D else iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

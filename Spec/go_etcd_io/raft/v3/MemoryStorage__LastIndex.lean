@@ -1,14 +1,10 @@
-/-
-## `MemoryStorage.LastIndex()`
+/- `MemoryStorage.LastIndex` (`storage.go:186`).
 
-**Users.** raft (through `isStorage`); the examples (`kvdurable/kv.go:607`, `FirstIndex` before a
-compaction). **Proof sketch.** Under the lock, `lastIndex`. **Changes.** Atomic.
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). The contract's `LastIndex` triple (`isStorageP`). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 
@@ -16,29 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `σ.last`, atomically. -/
-def MemoryStorage.LastIndex.spec : Prop :=
-
-  ∀ (ms : Loc) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ }> @ ⊤, ∅
-        <{ memStor ms σ, COMM Q σ }>) }}
-    (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"LastIndex")) (Val #()))
-  {{ (x : w64) (err : GoInterface), RET (PairV #x #err); ⌜err = interface.nil⌝ ∗
-      ∃ σ, Q σ ∗ ⌜x = W64 σ.last⌝ }}
+/-- `ms.LastIndex()`: the end gives the last index exactly. -/
+abbrev MemoryStorage.LastIndex.spec : Prop :=
+  ∀ (ms : Loc) (γs : MemStorNames) (e : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗ memEnd γs e }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"LastIndex")) (Val #()))
+  {{ (li : w64), RET (PairV #li #interface.nil); memEnd γs e ∗ ⌜uint.nat li + 1 = e⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

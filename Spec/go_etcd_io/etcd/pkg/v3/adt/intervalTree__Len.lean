@@ -1,12 +1,11 @@
 /-
-`(*intervalTree).Len()`: the entry count.
-
-**Users.** None in etcd's verified code (kept: verified before). **Proof sketch.** Reads `count`.
-**Changes.** At any fraction and key kind. **Margin.** None.
+`intervalTree.Len` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Model.lean`, `Defs.lean`.
+Pending: the interval tree's contract, proved in unit 4 (the tree's proof); until then a
+hypothesis of every result that reaches it (`?` in `etc/link-lean-first-adt.txt`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.Api
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Defs
 
 @[expose] public section
 
@@ -14,25 +13,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Adt
 
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3.adt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-def intervalTree.Len.spec : Prop :=
-  ∀ (c : Cmp) (t : Loc) (L : List Entry) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ ivt c t L dq }}
+/-- `t.Len()`: the number of entries. At any fraction of the tree. -/
+abbrev adt.intervalTree.Len.spec : Prop :=
+  ∀ (t : Loc) (L : List adt.Entry) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L q }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Len")) (Val #()))
-  {{ RET #(W64 L.length); ivt c t L dq }}
+  {{ RET #(W64 L.length); adt.ownIvt t L q }}
 
 end spec
 
-end Adt
 end EtcdGrove
 end Perennial

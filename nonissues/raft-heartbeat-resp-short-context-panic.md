@@ -31,5 +31,5 @@ pinned fork commit 565c2bda9e6d (same `read_only.go` as v3.7.0).
 ## Proof
 
 no: `readOnly.recvAck.spec` takes the context empty or at least 8 bytes long
-(`Spec/go_etcd_io/raft/v3/readOnly__recvAck.lean`), which holds for the contexts a leader sends
+(`SpecPlan/Spec/go_etcd_io/raft/v3/readOnly__recvAck.lean`), which holds for the contexts a leader sends
 and its followers echo.

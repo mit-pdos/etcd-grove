@@ -7,7 +7,7 @@ per Go package below, followed by the escalation list (§4).
 
 ## 1. Method, and how far to trust the numbers
 
-* **Trusted spec**: a `Spec/<pkg>/<fn>.lean` whose function has no translated body (its package's
+* **Trusted spec**: a `SpecPlan/Spec/<pkg>/<fn>.lean` whose function has no translated body (its package's
   `Code/<pkg>.toml` `translate` patterns exclude it: names- or types-only), or whose header says
   "trusted"/"assumed" (a `TrustedCode` model or a package Perennial does not translate). A **trusted
   law** is a `def … .spec` in the `Api.lean` of a package whose vocabulary is itself assumed (grpc,
@@ -43,7 +43,7 @@ and no small or obviously faithful model.
 
 ## 2. Per-package tables
 
-Columns: **spec**: trusted function specs in `Spec/` (all users) / on txnlin's path; **ex.**:
+Columns: **spec**: trusted function specs in `SpecPlan/Spec/` (all users) / on txnlin's path; **ex.**:
 whether txnlin's run actually executes them (yes, start-up only, restart only, or no: present in the
 code, branch not taken under its configuration, so the proof needs only that the branch is not
 taken, and no spec); **effort**: S, M or L.
@@ -73,7 +73,7 @@ taken, and no spec); **effort**: S, M or L.
 
 | package | spec | route | effort | notes |
 |---|---|---|---|---|
-| `sync`, `sync/atomic`, `time`, `context` (constructors), `strings`, `strconv`, `errors`, `fmt` (`Sprintf`/`Errorf` trusted), `sort`, `slices`, `os` (this repo's `TrustedCode/os.lean` + OsFs), `runtime` (GOOS/GOARCH), `goose-lang/primitive` (prophecies) | Perennial's own (W0's `Spec/context` 27 laws are realized from `Perennial.Proof.context`) | Perennial | S | Gaps that need Perennial changes, recorded in `open-questions.md` §7: `context.WithValue` is not translated (excluded for `reflectlite` in `stringify`, `Perennial/Code/context.toml`), and grpc's metadata contexts and `WithRequireLeader` need it; a functional `sort.Sort` spec (7.1); slice-length bounds (7.2); `strings.ToLower`, `sort.SliceIsSorted`, `reflect.DeepEqual` (bbolt's local axioms, `notes/perennial-changes.md`). |
+| `sync`, `sync/atomic`, `time`, `context` (constructors), `strings`, `strconv`, `errors`, `fmt` (`Sprintf`/`Errorf` trusted), `sort`, `slices`, `os` (this repo's `TrustedCode/os.lean` + OsFs), `runtime` (GOOS/GOARCH), `goose-lang/primitive` (prophecies) | Perennial's own (W0's `SpecPlan/Spec/context` 27 laws are realized from `Perennial.Proof.context`) | Perennial | S | Gaps that need Perennial changes, recorded in `open-questions.md` §7: `context.WithValue` is not translated (excluded for `reflectlite` in `stringify`, `Perennial/Code/context.toml`), and grpc's metadata contexts and `WithRequireLeader` need it; a functional `sort.Sort` spec (7.1); slice-length bounds (7.2); `strings.ToLower`, `sort.SliceIsSorted`, `reflect.DeepEqual` (bbolt's local axioms, `notes/perennial-changes.md`). |
 | `bbolt`, `bbolt/internal/{common,freelist}` | 2 / 1 | a (done) | — | Proved with bodies, over the OsFs extension (mmap, pread/pwrite, fsync). Its crash argument has the no-checksum-collision premise P1 (`notes/osfs-ext-plan.md` D1/D9). |
 | `porcupine`, `lintest`, `etcdstart`, `txnlin` | no specs on this branch | a | **L** (porcupine's checker) | Translated with bodies, nothing trusted. Porcupine's spec (never `Illegal` when a linearization exists) is a substantial proof. It is not a trust boundary, but it is on the critical path. |
 
@@ -81,18 +81,18 @@ taken, and no spec); **effort**: S, M or L.
 
 | package | what | spec | ex. | route / the narrower interface | effort | blocking features |
 |---|---|---|---|---|---|---|
-| `google.golang.org/grpc` (+ `internal/transport`, `balancer`, `resolver`, `x/net/http2`) | RPC | 36 / 18 (+58 laws) | yes | **b**: a model of the RPC API (`NewClient`/`Invoke`/`NewStream`, `NewServer`/`RegisterService`/`Serve`, interceptor chaining), the `UnarySpec`/`StreamSpec` contracts of `Spec/google_golang_org/grpc/Api.lean` as a GooseLang extension or `TrustedCode` over a message-passing network | **L** | §4 E1 |
+| `google.golang.org/grpc` (+ `internal/transport`, `balancer`, `resolver`, `x/net/http2`) | RPC | 36 / 18 (+58 laws) | yes | **b**: a model of the RPC API (`NewClient`/`Invoke`/`NewStream`, `NewServer`/`RegisterService`/`Serve`, interceptor chaining), the `UnarySpec`/`StreamSpec` contracts of `SpecPlan/Spec/google_golang_org/grpc/Api.lean` as a GooseLang extension or `TrustedCode` over a message-passing network | **L** | §4 E1 |
 | `grpc/{status,codes,peer,metadata,health,health/grpc_health_v1,credentials/insecure,grpclog}` | small grpc packages | 6/2, —, 2/1, 10/5, 2/2, 2/2, 1/0, 1/0 | yes | metadata, peer, health: **a** (plain Go: maps, `context.WithValue`, a mutex). status: **b** (it wraps a `spb.Status` protobuf). insecure, grpclog: **b** trivial | S | `status.FromError` uses `errors.As` plus a `GRPCStatus()` interface; health's messages are protobuf. |
-| `google.golang.org/protobuf/{proto,internal/impl,runtime/protoimpl,reflect/protoreflect}` + the generated `*.pb.go` of etcdserverpb, mvccpb, authpb, membershippb, raftpb, leasepb, walpb, snappb, health_v1 | protobuf | 6 / 5 (+14 laws) | yes (every WAL record, raft entry and message, backend value, RPC) | **b**: `Marshal`/`Unmarshal`/`Size`/`Clone`/`Equal` over the abstract `Proto.Content` of each message type (the existing `Spec/google_golang_org/protobuf/proto/Api.lean`), plus the generated packages' init | **L** | §4 E2 |
+| `google.golang.org/protobuf/{proto,internal/impl,runtime/protoimpl,reflect/protoreflect}` + the generated `*.pb.go` of etcdserverpb, mvccpb, authpb, membershippb, raftpb, leasepb, walpb, snappb, health_v1 | protobuf | 6 / 5 (+14 laws) | yes (every WAL record, raft entry and message, backend value, RPC) | **b**: `Marshal`/`Unmarshal`/`Size`/`Clone`/`Equal` over the abstract `Proto.Content` of each message type (the existing `SpecPlan/Spec/google_golang_org/protobuf/proto/Api.lean`), plus the generated packages' init | **L** | §4 E2 |
 | `encoding/json` | JSON | — (inside schema/membership specs) | yes | **b**: one encode/decode model per type used (`Member`, `RaftAttributes`, `Attributes`, `ConfState`, the conf-change context) | M | §4 E3 |
 | `go.uber.org/zap`, `zapcore` | logging | 32 / 24 (+3 laws) | yes (`NewNop`) | **b**: a logger that has no effect, except `Panic` (panics after the hooks) and `Fatal` (ends the run: `logger.go:350-351`, `WriteThenFatal` even on a Nop core); `Named`/`With` return a logger of the same kind | S | `zap.Any` falls back to `Reflect` (`field.go:490,326`), `runtime.Callers` for callers and stacks, `sync.Pool`, atomics: none of it matters to a model with no effect. A real logger needs the claim "a log line has no effect on the program's state", which is easy to justify. |
-| `prometheus/client_golang`, `go-grpc-middleware/providers/prometheus` | metrics | provisional (`ApiBoot.lean:526`; no `Spec/` dir) | yes (110 `MustRegister` in server `init`s, an observe on every request) | **b**: write-only sinks, plus a registry of names (a `MustRegister` of a taken name panics); the interceptors run the handler once and return its result | M | Float CAS loops (`atomicUpdateFloat`), xxhash (unsafe), the default registry's Go and process collectors (registered in `init`; `Gather` is never called by txnlin). The real work is the per-package `init` facts: names distinct across ~15 packages. |
+| `prometheus/client_golang`, `go-grpc-middleware/providers/prometheus` | metrics | provisional (`ApiBoot.lean:526`; no `SpecPlan/Spec/` dir) | yes (110 `MustRegister` in server `init`s, an observe on every request) | **b**: write-only sinks, plus a registry of names (a `MustRegister` of a taken name panics); the interceptors run the handler once and return its result | M | Float CAS loops (`atomicUpdateFloat`), xxhash (unsafe), the default registry's Go and process collectors (registered in `init`; `Gather` is never called by txnlin). The real work is the per-package `init` facts: names distinct across ~15 packages. |
 | `go.opentelemetry.io/otel/{trace,attribute}`, `otelgrpc` | tracing | 2/2, 4/4, 2/1 (+5 laws) | `SpanFromContext` yes (noop span); otelgrpc no (tracing off, `v3rpc/grpc.go:67`) | **b**: a noop tracer; `attribute.*` are pure | S | Global provider through `atomic.Value` and `sync.Once`; never configured (`open-questions.md` 5.9). |
 | `Masterminds/semver/v3` | versions | 7 / 6 (+5 laws) | yes (constants: `MustParse("3.6.0")`, ...) | **b**: a pure parse/compare model | S | `regexp.MustCompile` in the package's var init (`version.go:84-85`); regexp is untranslated stdlib. |
 | `golang.org/x/time/rate` | rate limiter | 5 / 3 (+2) | no (rafthttp peers only, `peer.go:216`) | b | S | float64 token arithmetic. |
 | `golang.org/x/crypto/bcrypt` | passwords | 2 / 2 (+1) | no (auth off) | b (the opaque `pwHash`/`pwMatch`, 5.7) | S | blowfish. |
 | `xiang90/probing`, `dustin/go-humanize`, `jonboulle/clockwork` | small helpers | 2/1, —, — | constructors only | a (probing, clockwork: small Go over net/http and time) / b (humanize: float formatting for logs) | S | — |
-| `net/http` (+ `net/http/internal/http2`, `net/textproto`, `crypto/tls`) | HTTP | 14 / 7 (+31 laws) | constructors only (no peers; etcdstart serves no peer handler) | **b**: the existing request/response boundary (`Spec/net/http/Api.lean`), realized as a model over a TCP-like extension | S for txnlin, **L** for multi-member | §4 E7 |
+| `net/http` (+ `net/http/internal/http2`, `net/textproto`, `crypto/tls`) | HTTP | 14 / 7 (+31 laws) | constructors only (no peers; etcdstart serves no peer handler) | **b**: the existing request/response boundary (`SpecPlan/Spec/net/http/Api.lean`), realized as a model over a TCP-like extension | S for txnlin, **L** for multi-member | §4 E7 |
 | `net` (`Listen`, `Accept`, `Dial`) | sockets | (in grpc/http specs) | yes | **b**: a connection-oriented network extension (Perennial's Grove has `Listen`/`Connect`/`Accept`/`Send`/`Receive`; its Net extension is a toy) | M | — |
 | `hash/crc32`, `hash/fnv` | checksums | — | yes (WAL, snap, mvcc hash; bbolt meta) | **b**: pure functions (FNV-64a is already modeled in Lean for bbolt) | S | crc32 dispatches to SSE4.2/CLMUL assembly. |
 
@@ -225,13 +225,13 @@ no-checksum-collision premise). It should be stated as part of `Wal.crashInScope
 
 **E6. Request-id freshness across a restart (route c: a premise about time).**
 `idutil.NewGenerator(memberID, time.Now())` seeds the 40-bit suffix from milliseconds, shifted by 8
-(`Spec/go_etcd_io/etcd/pkg/v3/idutil/Api.lean`). Ids are fresh across a crash only if the previous
+(`SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/idutil/Api.lean`). Ids are fresh across a crash only if the previous
 run issued fewer than 256 ids per millisecond of its life (`nonissues/etcd-request-id-restart-reuse.md`,
 `open-questions.md` 5.6). With crashes this is on txnlin's path: the wait registry and the apply
 thread key results by id. It can only be a premise about the clock and the request rate.
 
 **E7. net/http, deferred (route b, L when needed).** txnlin needs only its constructors. Any
-multi-member result needs the request/response boundary (`Spec/net/http/Api.lean`) realized over a
+multi-member result needs the request/response boundary (`SpecPlan/Spec/net/http/Api.lean`) realized over a
 TCP model. Translating `net/http` is out of reach: persistent-connection goroutines
 (`persistConn.readLoop`/`writeLoop`), the bundled HTTP/2 (`net/http/internal/http2`, 88 functions
 reached), textproto, mime, TLS.

@@ -1,19 +1,9 @@
 /-
-## `(*peerStatus).deactivate(failure, reason)`
-
-**Users.** the pipeline, the stream writer and reader, the snapshot sender.
-
-**Proof sketch.** Under `mu`: `fmt.Sprintf`, `errors.New`, logs, gauges. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*peerStatus).deactivate` (`peer_status.go`; rafthttp stage 4d). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PeerStatus
 
 @[expose] public section
 
@@ -21,26 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Marks the peer inactive. -/
-def peerStatus.deactivate.spec : Prop :=
-  ∀ (s : Loc) (failure : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType) (reason : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ statusAt s }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus.ty @!! go!"deactivate")) (Val #failure)) (Val #reason))
+/-- `s.deactivate(failure, reason)`: marks the peer inactive (logging and counting it if it was active). -/
+abbrev rafthttp.peerStatus.deactivate.spec : Prop :=
+  ∀ (s : Loc) (failure : rafthttp.failureType) (reason : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      peerStatusOk s }}
+    (App (App (Val (s @!! go.GoType.PointerType rafthttp.peerStatus.ty @!! go!"deactivate")) (Val #failure)) (Val #reason))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

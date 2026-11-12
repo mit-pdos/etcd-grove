@@ -1,0 +1,982 @@
+/-
+Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier__dispatch
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier__Alarm
+public import Spec.errors.Is
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.ApplySecObserve
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRequest
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.DispatchLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+
+set_option hygiene false in
+/-- Persist the result struct `ar` (all stores done) and split it into its fields (read-only
+from now on: the deferred metrics read `Resp` and `Err`). -/
+local macro "persist_ar" : tactic => `(tactic| (
+  ihave ⟨H0, %hn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
+  ipersist H0
+  ihave #H0' := H0
+  iStructNamed H0'))
+
+set_option hygiene false in
+/-- The deferred metrics with `success` (`ar.Err == nil`). -/
+local macro "ok_path" : tactic => `(tactic| (
+  wp_apply time.wp_Since as %d -
+  wp_apply hASO
+  wp_alloc s1 as Hs1
+  wp_auto
+  wp_apply hWER $$ [Hs1]
+  · isplitr
+    · ipureintro; exact HlgN
+    iexists s1, _
+    iframe Hs1
+    ipureintro; exact ⟨rfl, Hipn⟩))
+
+set_option hygiene false in
+/-- The failure's warning (`WarnOfFailedRequest`), with a fresh stringer of the request. -/
+local macro "wfr_step" : tactic => `(tactic| (
+  wp_alloc s2 as Hs2
+  wp_auto
+  wp_apply hWFR $$ [Hs2]
+  · isplitr
+    · ipureintro; exact HlgN
+    iexists s2, _
+    iframe Hs2
+    ipureintro; exact ⟨rfl, Hipn⟩))
+
+set_option hygiene false in
+/-- The deferred metrics with `ar.Err` not nil: `errors.Is(ar.Err, ErrCompacted)`, then the
+warnings (the failure's if not `success`). -/
+local macro "err_path" : tactic => `(tactic| (
+  ihave #HeIu := applyErrIs_tree _ $$ HeI
+  ihave ⟨%S, %M, #Htree, %HS⟩ := HeIu $$ %(GoInterface.ok ec)
+  wp_apply (hIs S M _ (GoInterface.ok ec) (fun tii h => by cases h; exact Hecl.1)
+    (HS.2 (fun tii h => by cases h; exact Hecl.1)))
+    $$ [] as %b -
+  · iframe Htree; ipureintro; exact HS.1
+  wp_apply time.wp_Since as %d -
+  wp_apply hASO
+  wp_alloc s1 as Hs1
+  wp_auto
+  wp_apply hWER $$ [Hs1]
+  · isplitr
+    · ipureintro; exact HlgN
+    iexists s1, _
+    iframe Hs1
+    ipureintro; exact ⟨rfl, Hipn⟩
+  cases b <;> (try wp_auto) <;> (try wfr_step)))
+
+set_option hygiene false in
+/-- The deferred metrics, whatever `ar.Err`. -/
+local macro "dtail" : tactic => `(tactic| (
+  cases err <;> (try wp_auto) <;> first | ok_path | err_path))
+
+set_option hygiene false in
+/-- The half of the live set and the rest buckets of a request that is not a grant dispatched with
+`v3` (the lease-grant stage): as they were. -/
+local macro "grant_same" : tactic => `(tactic| (
+  isplitl [HLt]
+  · first
+      | rw [apply.grantIds_noV3, apply.revokeIds_noV3]
+      | rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk]),
+          apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])]
+    iexact HLt
+  isplitl [HEv]
+  · first
+      | rw [apply.grantIds_noV3]
+      | rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]
+    iexact HEv
+  isplitl [Hrv]
+  · iexact Hrv
+  isplitl [HRO]
+  · iexists (apply.grantTTLW rq)
+    isplitr
+    · ipureintro; exact apply.grantTTLOk_w rq
+    first
+      | rw [apply.grantRest_noV3, apply.revokeRest_noV3]
+      | rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk]),
+          apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]
+    iexact HRO
+  isplitr
+  · ipureintro
+    first
+      | exact apply.grantOutOk_noV3 _ _ _ _
+      | exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])))
+
+set_option hygiene false in
+/-- The postcondition for a request that leaves the KV and the chain as they are. -/
+local macro "fin_same" : tactic => `(tactic| (
+  (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
+  iframe Htt Hrt Hres
+  rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
+  iframe Hco
+  iexists (GoInterface.ok ai), c, (Outcome.applied log false)
+  simp only [apply.Outcome.logAfter]
+  iframe Ha Hs Hkv
+  grant_same
+  isplitl [HPP]
+  · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+  isplitr
+  · ipureintro; simp [apply.kvFloorOk, apply.isFloorKind, apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+  isplitl []
+  · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
+  isplitl []
+  · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+  isplitl []
+  · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
+  first | isplitl [Htrc] | isplitl []
+  · iapply apply.resTrace_of $$ H0
+    first | iexact Htrc | iapply apply.traceRes_null
+  simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.true_or, _root_.or_true, ↓reduceIte]
+  iframe %hn
+  iexists _
+  iframe H0
+  isplitl; rotate_left
+  · first | iexact HeI | iapply applyErrIs_nil
+  simp only [apply.dispatchAnswer, hk]))
+
+set_option hygiene false in
+/-- The postcondition for a request whose outcome `oc` is the chain's (`Hst`). -/
+local macro "fin_kv" : tactic => `(tactic| (
+  (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
+  iframe Htt Hrt Hres
+  rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
+  iframe Hco
+  iexists (GoInterface.ok ai), c, oc
+  iframe Ha Hs Hkv
+  grant_same
+  isplitl [HPP]
+  · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+  isplitr
+  · ipureintro
+    refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
+    · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
+        Bool.false_eq_true, _root_.or_self, ↓reduceIte]
+      first | exact Hst.1 | exact Hst
+    · first | exact fun _ _ => Hst.2 | simp [apply.kvFloorOk, apply.isFloorKind, hk]
+  isplitl []
+  · iintro %_; iexact Hcls
+  isplitl []
+  · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+  isplitl []
+  · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
+  first | isplitl [Htrc] | isplitl []
+  · iapply apply.resTrace_of $$ H0
+    first | iexact Htrc | iapply apply.traceRes_null
+  simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+  iframe %hn
+  iexists _
+  iframe H0
+  isplitl; rotate_left
+  · first | iexact HeI | iapply applyErrIs_nil
+  simp only [apply.dispatchAnswer, hk]))
+
+set_option hygiene false in
+/-- A case of the second `switch` at the join point (`R` of the `wp_join` below): `ar` (made
+read-only) and `op` as computed, then the postcondition of `dispatch` at `ar`. -/
+local macro "join_ar" : tactic => `(tactic| (
+  wp_join_done
+  persist_ar
+  imodintro
+  iexists _, _, _, _, _
+  iframe a r ar op H0 HeI))
+
+-- (the unused-variables linter walks the whole info tree of this long proof: 10-15s of
+-- the build of this module, which is on the build's critical path)
+set_option linter.unusedVariables false in
+set_option maxHeartbeats 10000000 in
+theorem apply.uberApplier.dispatch.wp_proof
+    (hIs : errors.Is.spec (GF := GF) (hG := hG))
+    (hASO : txn.ApplySecObserve.spec (GF := GF) (hG := hG))
+    (hWER : txn.WarnOfExpensiveRequest.spec (GF := GF) (hG := hG))
+    (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG))
+    (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
+    apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
+  intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev T U
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, #Hcpr, #Hgp, HLt, HEv, #HGf, Hrv, %HcE, #HF,
+    Htt, HFS, HSp, %Hrr, HRO, Hco⟩
+  ihave #Hu' := Hu
+  iunfold apply.uberIs at Hu'
+  icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
+  ihave #Hopts' := Hopts
+  iunfold apply.backendOptsOk at Hopts'
+  icases Hopts' with ⟨%HlgN, -⟩
+  ihave #Hw' := Hw
+  iunfold apply.irrWrapperIs at Hw'
+  icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩
+  ihave #Hirr' := Hirr
+  iunfold apply.internalRaftRequestIs at Hirr'
+  icases Hirr' with ⟨%Hipn, #FID, ⟨%lHd, #FHd, #HHd⟩, ⟨%lRa, #FRa, #HRa⟩, ⟨%lPu, #FPu, #HPu⟩,
+    ⟨%lDe, #FDe, #HDe⟩, ⟨%lTx, #FTx, #HTx⟩, ⟨%lCo, #FCo, #HCo⟩, ⟨%lLG, #FLG, #HLG⟩,
+    ⟨%lLR, #FLR, #HLR⟩, ⟨%lAl, #FAl, #HAl⟩, ⟨%lLC, #FLC, #HLC⟩, ⟨%lAE, #FAE, #HAE⟩,
+    ⟨%lAD, #FAD, #HAD⟩, ⟨%lAS, #FAS, #HAS⟩, ⟨%lAu, #FAu, #HAu⟩, ⟨%lUA, #FUA, #HUA⟩,
+    ⟨%lUD, #FUD, #HUD⟩, ⟨%lUG, #FUG, #HUG⟩, ⟨%lUC, #FUC, #HUC⟩, ⟨%lUGR, #FUGR, #HUGR⟩,
+    ⟨%lURR, #FURR, #HURR⟩, ⟨%lUL, #FUL, #HUL⟩, ⟨%lRL, #FRL, #HRL⟩, ⟨%lRA, #FRA, #HRA⟩,
+    ⟨%lRD, #FRD, #HRD⟩, ⟨%lRG, #FRG, #HRG⟩, ⟨%lRGP, #FRGP, #HRGP⟩, ⟨%lRRP, #FRRP, #HRRP⟩,
+    ⟨%lCV, #FCV, #HCV⟩, ⟨%lCM, #FCM, #HCM⟩, ⟨%lDI, #FDI, #HDI⟩, ⟨%lDT, #FDT, #HDT⟩⟩
+  ihave %nRa := apply.optReqIs_null _ _ _ (apply.rangeIs_nn lRa) $$ HRa
+  ihave %nPu := apply.optReqIs_null _ _ _ (apply.putIs_nn lPu) $$ HPu
+  ihave %nDe := apply.optReqIs_null _ _ _ (apply.deleteIs_nn lDe) $$ HDe
+  ihave #HTx := apply.optReqIs_txnW lTx rq $$ HTx
+  ihave %nTx := apply.optReqIs_null _ _ _ (apply.txnIs_nn lTx) $$ HTx
+  ihave %nCo := apply.optReqIs_null _ _ _ (apply.compactionIs_nn lCo) $$ HCo
+  ihave %nLG := apply.optReqIs_null _ _ _ (apply.leaseGrantIs_nn lLG) $$ HLG
+  ihave %nLR := apply.optReqIs_null _ _ _ (apply.leaseRevokeIs_nn lLR) $$ HLR
+  ihave %nAl := apply.optReqIs_null _ _ _ (apply.alarmRequestIs_nn lAl) $$ HAl
+  ihave %nLC := apply.optReqIs_null _ _ _ (apply.leaseCheckpointIs_nn lLC) $$ HLC
+  ihave %nAu := apply.optReqIs_null _ _ _ (apply.authenticateIs_nn lAu) $$ HAu
+  ihave %nUG := apply.optReqIs_null _ _ _ (apply.authUserGetIs_nn lUG) $$ HUG
+  ihave %nRG := apply.optReqIs_null _ _ _ (apply.authRoleGetIs_nn lRG) $$ HRG
+  ihave %nCV := apply.optReqIs_null _ _ _ (apply.clusterVersionSetIs_nn lCV) $$ HCV
+  ihave %nCM := apply.optReqIs_null _ _ _ (apply.memberAttrSetIs_nn lCM) $$ HCM
+  ihave %nDI := apply.optReqIs_null _ _ _ (apply.downgradeInfoSetIs_nn lDI) $$ HDI
+  ihave %nAE := apply.presentIs_null _ _ $$ HAE
+  ihave %nAD := apply.presentIs_null _ _ $$ HAD
+  ihave %nAS := apply.presentIs_null _ _ $$ HAS
+  ihave %nUA := apply.optReqIs_null _ _ _ (apply.authUserAddIs_nn lUA) $$ HUA
+  ihave %nUD := apply.presentIs_null _ _ $$ HUD
+  ihave %nUC := apply.presentIs_null _ _ $$ HUC
+  ihave %nUGR := apply.optReqIs_null _ _ _ (apply.authUserGrantRoleIs_nn lUGR) $$ HUGR
+  ihave %nURR := apply.presentIs_null _ _ $$ HURR
+  ihave %nUL := apply.presentIs_null _ _ $$ HUL
+  ihave %nRL := apply.presentIs_null _ _ $$ HRL
+  ihave %nRA := apply.optReqIs_null _ _ _ (apply.authRoleAddIs_nn lRA) $$ HRA
+  ihave %nRD := apply.presentIs_null _ _ $$ HRD
+  ihave %nRGP := apply.optReqIs_null _ _ _ (apply.authRoleGrantPermissionIs_nn lRGP) $$ HRGP
+  ihave %nRRP := apply.presentIs_null _ _ $$ HRRP
+  ihave %nDT := apply.presentIs_null _ _ $$ HDT
+  ihave #Hsp := Hs
+  iunfold apply.applierSpec at Hsp
+  icases Hsp with ⟨%ai, %Hai, #Ht⟩
+  subst Hai
+  iunfold apply.applierTriples at Ht
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster, -, #HCmp⟩
+  iunfold apply.cmpTriple at HCmp
+  ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+  · iPkgInit
+  ihave Hinit : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hmp
+  iclear Hinit
+  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, #Hev⟩
+  ihave #Hev' := Hev
+  icases Hev' with ⟨-, -, -, -, -, #HCpl, -⟩
+  iunfold errVarLeaf at HCpl
+  icases HCpl with ⟨%ec, #Hcomp, %Hecl, -⟩
+  ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+  · iPkgInit
+  ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  wp_apply time.wp_Now as %start -
+  wp_if_destruct
+  · -- ClusterVersionSet
+    have hl : lCV ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCV.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCV
+    have hk : dispatchKind rq = .clusterVersionSet := by simp [dispatchKind, hs]
+    have hsv : semverValid x ∧ semverAtMostServer x := by
+      have := Hok.1; simp only [rqOk, hk] at this; exact this x hs
+    wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post
+        %(apply.ClusterReq.ver x) %rs %info [] [Hkv Hres HFS HRO] as ⟨Hpost, HFS, HRO⟩
+    · ipureintro; simp [apply.clusterMethods]
+    · iunfold apply.clusterFacts
+      isplitr
+      · isplitr
+        · ipureintro; rfl
+        iframe HR
+        ipureintro; exact hsv
+      iframe HFS HRO
+      iapply apply.kvOwnPre_mPreV
+      iframe Hkv Hres
+    persist_ar
+    ok_path
+    ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
+    · rw [show apply.restAfter rq v3 rs = (apply.ClusterReq.ver x).eff v3 rs by
+        simp [apply.restAfter, apply.ClusterReq.eff, hs]]
+      iexact HRO
+    iapply HΦ
+    iframe HFS
+    iunfold apply.mPostV at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+    fin_same
+    ipureintro; exact ⟨rfl, rfl⟩
+  have zClusterVersionSet : rq.clusterVersionSet = none := nCV.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- ClusterMemberAttrSet
+    have hl : lCM ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCM.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCM
+    have hk : dispatchKind rq = .clusterMemberAttrSet := by simp [dispatchKind, zClusterVersionSet, hs]
+    wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post
+        %(apply.ClusterReq.attr x) %rs %info [] [Hkv Hres HFS HRO] as ⟨Hpost, HFS, HRO⟩
+    · ipureintro; simp [apply.clusterMethods]
+    · iunfold apply.clusterFacts
+      isplitr
+      · isplitr
+        · ipureintro; rfl
+        iframe HR
+        ipureintro; exact apply.restReqOk_attr rq rs x Hrr hk hs
+      iframe HFS HRO
+      iapply apply.kvOwnPre_mPreV
+      iframe Hkv Hres
+    persist_ar
+    ok_path
+    ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
+    · rw [show apply.restAfter rq v3 rs = (apply.ClusterReq.attr x).eff v3 rs by
+        simp [apply.restAfter, apply.ClusterReq.eff, zClusterVersionSet, hs]]
+      iexact HRO
+    iapply HΦ
+    iframe HFS
+    iunfold apply.mPostV at Hpost
+    icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+    fin_same
+    ipureintro; exact ⟨rfl, rfl⟩
+  have zClusterMemberAttrSet : rq.clusterMemberAttrSet = none := nCM.1 (by simpa using Hif)
+  -- (D22, 2026-10-23) no other request changes the rest buckets
+  ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
+  · rw [apply.restAfter_other rq v3 rs zClusterVersionSet zClusterMemberAttrSet]; iexact HRO
+  wp_if_destruct
+  · -- DowngradeInfoSet (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lDI ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nDI.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HDI
+    have hk : dispatchKind rq = .downgradeInfoSet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zDowngradeInfoSet : rq.downgradeInfoSet = none := nDI.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- DowngradeVersionTest: nothing
+    have hl : lDT ≠ null := by simpa using Hif
+    have hs : rq.downgradeVersionTest = true := by
+      cases h : rq.downgradeVersionTest
+      · exact absurd (nDT.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .downgradeVersionTest := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, hs]
+    persist_ar
+    ok_path
+    iapply HΦ
+    iframe HFS
+    ihave ⟨Hkv, Hrt, HPP⟩ := apply.kvOwnPre_kvOwn v3 E log Pre Q Post $$ Hkv
+    ihave HPP : iprop(cPost v3 Pre Post) $$ [HPP]
+    · iapply apply.cPost_of_pre; iexact HPP
+    fin_same
+    ipureintro; exact ⟨rfl, rfl⟩
+  have zDowngradeVersionTest : rq.downgradeVersionTest = false := nDT.1 (by simpa using Hif)
+  have hpre : apply.preV3Kind (dispatchKind rq) = false :=
+    apply.preV3Kind_dispatchKind rq zClusterVersionSet zClusterMemberAttrSet zDowngradeInfoSet zDowngradeVersionTest
+  cases v3
+  · -- not `shouldApplyV3`: nil
+    (try wp_auto)
+    ok_path
+    iapply HΦ
+    iframe HFS
+    ihave ⟨Hkv, Hrt, Hc⟩ := apply.kvOwnPre_kvOwn false E log Pre Q Post $$ Hkv
+    ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
+    iframe Htt Hrt Hres
+    rw [apply.dispatchCrev_noV3]
+    iframe Hco
+    iexists (GoInterface.ok ai), c, (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Ha Hs Hkv
+    grant_same
+    isplitl [Hc]
+    · simp only [apply.cPost, Bool.false_eq_true, ↓reduceIte]; iexact Hc
+    isplitr
+    · ipureintro; simp [apply.kvFloorOk, apply.dispatchStep, apply.chainAfter, hpre]
+    isplitl []
+    · iintro %h; cases h
+    isplitl []
+    · iapply apply.grantRes_null
+    isplitl []
+    · iapply apply.revokeAnsR_null
+    isplitl []
+    · iapply apply.resTrace_null
+    simp only [apply.dispatchResult, hpre, Bool.false_eq_true, _root_.or_self, ↓reduceIte]
+    ipureintro; trivial
+  (try wp_auto)
+  ihave #HSp : apply.ciSplit E Pre $$ [HSp]
+  · simp only [↓reduceIte]; iexact HSp
+  ihave #Hcp := apply.certPreV_true E c rq log $$ Hcp
+  -- (R2d'a A3, 2026-11-06, DRAFT) the premises only the `v3` cases read, at `v3 = true`
+  have Hok : apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit log rq :=
+    ⟨Hok.1, Hok.2.1, Hok.2.2 rfl⟩
+  ihave #Hcpr := Hcpr $$ %rfl
+  ihave #Hgp := Hgp $$ %rfl
+  ihave #HGf := HGf $$ %rfl
+  -- the second `switch`: each case computes `ar` and `op` and establishes the postcondition
+  -- at `ar`; the `return` and the deferred metrics, after the join, are verified once (not
+  -- once per request kind)
+  wp_join iprop(|==> ∃ (resp : google_golang_org.protobuf.reflect.protoreflect.ProtoMessage)
+      (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
+      a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
+      «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
+      (apply.applyTok E ∗ apply.bkRTOf E ∗
+        apply.chainResAny c (GoInterface.ok ai) ∗ apply.cmpOwn E (apply.dispatchCrev c rq true crev) ∗
+        ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
+          structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
+          apply.kvOwn E (o.logAfter log) ∗
+          apply.ltHalf E (apply.revokeIds rq true o (apply.grantIds rq true o T)) ∗
+          apply.everOwn E (apply.grantIds rq true o U) ∗ apply.revokeOwn E rq ∗
+          (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq true o
+            (apply.grantRest t rq true o (apply.restAfter rq true rs)))) ∗
+          ⌜apply.grantOutOk c rq true T o⌝ ∗ apply.cPost true Pre Post ∗
+          ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
+            apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
+          (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
+          apply.grantRes E rq o «$r0_ptr» ∗ apply.revokeAnsR E rq «$r0_ptr» ∗
+          apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
+    with [a r ar op «$r0» Hres Ha Hkv Htt Hco HLt HEv HRO Hrv]
+  · -- Range
+    have hl : lRa ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRa
+    have hk : dispatchKind rq = .range := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+    ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn true E log Pre Q Post $$ Hkv
+    wp_apply HRange $$ %lRa %rq %x %log %info [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt
+      iunfold apply.rangePre
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok x hs⟩
+      iframe HR
+      iframe
+    iunfold apply.rangePost at Hpost
+    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, #Hcls⟩
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
+    join_ar
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
+    · iright; iexact HPre
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+  have zRange : rq.range = none := nRa.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- Put
+    have hl : lPu ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nPu.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HPu
+    have hk : dispatchKind rq = .put := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HPut $$ %lPu %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt HF
+      iunfold apply.putPre
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok⟩
+      iframe HR Hcp Hmp
+    iunfold apply.kvPostF at Hpost
+    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
+    join_ar
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+  have zPut : rq.put = none := nPu.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- DeleteRange
+    have hl : lDe ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nDe.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HDe
+    have hk : dispatchKind rq = .deleteRange := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HDel $$ %lDe %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt HF
+      iunfold apply.deletePre
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok x hs⟩
+      iframe HR Hcp Hmp
+    iunfold apply.kvPostF at Hpost
+    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
+    join_ar
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+  have zDeleteRange : rq.deleteRange = none := nDe.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- Txn
+    have hl : lTx ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nTx.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HTx
+    have hk : dispatchKind rq = .txn := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HTxn $$ %lTx %skip %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt HF
+      iunfold apply.txnPre
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok x hs⟩
+      iframe HR Hcp Hmp
+    iunfold apply.kvPostF at Hpost
+    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
+    join_ar
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+  have zTxn : rq.txn = none := nTx.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- Compaction (M2's apply side, 2026-10-31: the chain's `Compaction`, `cmpTriple`)
+    have hl : lCo ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCo.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCo
+    have hk : dispatchKind rq = .compaction := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, hs]
+    have hadm : apply.cmpAdmitRev log x := Hok.2.2 hk x hs
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HCmp $$ %lCo %x %log %crev %Pre %Q %Post %info [Htt Hmp Hco]
+      as %resp %physc %trace %err ⟨Htt, Hkv, Hres, HPP, Hco, Hans, -⟩
+    · iframe HR Htt Hmp Hco
+      isplitr
+      · ipureintro; exact hadm
+      iunfold apply.cmpPermRq at Hcpr
+      iapply Hcpr
+      · ipureintro; exact hk
+      · ipureintro; exact hs
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.cmpAnswerIs_errIs _ _ _ _ _ _ _) $$ [$Hev $Hans]
+    ihave ⟨Htrc, Hans⟩ := apply.cmpAnswerIs_split _ _ _ _ _ _ _ log $$ Hans
+    join_ar
+    ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
+    iframe Htt Hrt Hres
+    have hcr : apply.dispatchCrev c rq true crev =
+        (if apply.chainCompacts c then apply.cmpRevAfter crev x else crev) := by
+      unfold apply.dispatchCrev
+      cases apply.chainCompacts c <;> simp [hk, hs]
+    rw [hcr]
+    iframe Hco
+    -- (the outcome is the chain's: applied through the backend, the corrupt applier's rejection)
+    iexists (GoInterface.ok ai), c, (apply.cmpOutcome c log)
+    rw [apply.cmpOutcome_logAfter]
+    iframe Ha Hs Hkv
+    grant_same
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro
+      refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
+      · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, Bool.false_eq_true,
+          _root_.or_self, ↓reduceIte]
+        exact apply.chainStep_cmpOutcome rq hk log c
+      · simp [apply.kvFloorOk, apply.isFloorKind, hk]
+    isplitl []
+    · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
+    isplitl []
+    · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+    isplitl []
+    · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
+    isplitl [Htrc]
+    · iapply apply.resTrace_of $$ H0; iexact Htrc
+    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+    iframe %hn
+    iexists _
+    iframe H0
+    isplitl; rotate_left
+    · iexact HeI
+    simp only [apply.dispatchAnswer, hk]
+    iexists resp
+    isplitr
+    · ipureintro; rfl
+    iexact Hans
+  have zCompaction : rq.compaction = none := nCo.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- LeaseGrant
+    have hl : lLG ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nLG.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HLG
+    have hk : dispatchKind rq = .leaseGrant := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, hs]
+    -- (the lease-grant stage, 2.10) admitted where the cluster grants; the chain's grant triple
+    have hok := (apply.rqOk_leaseGrant _ _ _ hk).1 Hok.1
+    iunfold apply.grantPermRq at Hgp
+    ihave #Hgr := Hgp $$ %hk
+    have hlgT : E.lg = true := by simpa [apply.AEnv.lg_eq] using hok.1
+    ihave HEv := apply.everOwn_of_lg E U hlgT $$ HEv
+    iunfold apply.grantFresh at HGf
+    ihave #HGf' := HGf $$ %hk %x %hs
+    -- the grant over `kvOwnPre` (`kvOwnPre_mPreW`; `mPostW` gives the reader token back)
+    ihave Hmp := apply.kvOwnPre_mPreW E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HGrant $$ %lLG %rq %x %log %T %(apply.restAfter rq true rs) %U %Pre %Q %Post %info
+      [Htt HLt HRO Hmp HEv] as %resp %err ⟨Htt, %o, Hpost⟩
+    · iframe Htt
+      iunfold apply.grantPre
+      isplitr
+      · ipureintro; exact ⟨by simpa [apply.AEnv.lg_eq] using hok.1, hs, hk⟩
+      iframe HR HSp HGf' Hmp HLt HRO HEv
+      iapply Hgr $$ %x %hs
+    iunfold apply.grantPost at Hpost
+    icases Hpost with ⟨Hmp, #HeI, HlE, %Hst, HLt, HRO, HEv, Hans⟩
+    iunfold apply.mPostW at Hmp
+    icases Hmp with ⟨Hmp, Hrt⟩
+    iunfold apply.mPost at Hmp
+    icases Hmp with ⟨Hkv, Hres, HPP⟩
+    ihave HEv := apply.everOwn_to_lg E _ hlgT $$ HEv
+    have hlog : o.logAfter log = log := apply.chainStep_grant_logAfter rq hk log c o Hst.1
+    join_ar
+    iframe Htt Hrt Hres
+    rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
+    iframe Hco
+    iexists (GoInterface.ok ai), c, o
+    rw [hlog, apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])]
+    iframe Ha Hs Hkv HLt HEv Hrv
+    icases HRO with ⟨%t, %Htt, HRO⟩
+    isplitl [HRO]
+    · iexists t
+      isplitr
+      · ipureintro; exact Htt
+      rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]; iexact HRO
+    isplitr
+    · ipureintro
+      intro _ _ g hg
+      rw [hs] at hg; cases hg
+      exact Hst.2.1.trans Hst.2.2
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro
+      refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
+      · rw [apply.dispatchStep, if_neg (by simp [hk, apply.preV3Kind]), if_pos (Or.inr hk)]
+        exact Hst.1
+      · simp [apply.kvFloorOk, apply.isFloorKind, hk]
+    isplitl []
+    · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
+    isplitl [Hans HlE]
+    · iunfold apply.grantRes
+      rw [if_pos ⟨hk, hn⟩]
+      iexists _
+      iframe H0
+      isplitl [Hans]
+      · iexact Hans
+      iframe HlE
+      ipureintro; exact Hst.2.1.mp
+    isplitl []
+    · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
+    isplitl []
+    · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
+    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+    iframe %hn
+    iexists _
+    iframe H0
+    isplitl; rotate_left
+    · iexact HeI
+    simp only [apply.dispatchAnswer, hk]
+    itrivial
+  have zLeaseGrant : rq.leaseGrant = none := nLG.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- LeaseRevoke
+    have hl : lLR ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nLR.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HLR
+    have hk : dispatchKind rq = .leaseRevoke := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, hs]
+    -- (the lease-expiry plan's X7) admitted at the revocable mode: the chain's revocation triple,
+    -- with the range deleter, the live set's half `T` and the rest buckets
+    have hok : E.lm = .revocable ∧ putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
+      have h := (apply.rqOk_leaseRevoke _ _ _ hk).1 Hok.1
+      exact ⟨h.1, h.2.2.1, h.2.2.2⟩
+    iunfold apply.revokeOwn at Hrv
+    rw [if_pos hk] at *
+    icases Hrv with ⟨Hrdat, #Hrev⟩
+    -- the state's size (the lessor's sort premise) from `rqOk`'s revocation arm
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HRev $$ %lLR %rq %x %log %T %(apply.restAfter rq true rs) %Pre %Q %Post %info
+      [Htt Hmp Hrdat HLt HRO] as %resp %err ⟨Hpost, Htt⟩
+    · iframe Htt
+      iunfold apply.revokePre
+      isplitr
+      · ipureintro; exact ⟨hs, hk, hok.2.1, hok.2.2⟩
+      iframe HR Hcp Hmp
+      iunfold apply.revokeRes
+      iframe
+      iframe #
+      ipureintro; exact hok.1
+    iunfold apply.kvPost at Hpost
+    icases Hpost with ⟨%oc, %Hst, ⟨Hans, HRa⟩, Hkv, Hres, HPP, #Hcls, -⟩
+    iunfold apply.revokeResAfter at HRa
+    icases HRa with ⟨Hrdat, -, HLt, HRO, Hra⟩
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.revokeOutcomeIs_errIs _ _ _) $$ [$Hev $Hans]
+    join_ar
+    (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
+    iframe Htt Hrt Hres
+    rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
+    iframe Hco
+    iexists (GoInterface.ok ai), c, oc
+    iframe Ha Hs Hkv
+    isplitl [HLt]
+    · rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]; iexact HLt
+    isplitl [HEv]
+    · rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]; iexact HEv
+    isplitl [Hrdat]
+    · iunfold apply.revokeOwn; rw [if_pos hk]; iframe Hrdat Hrev
+    isplitl [HRO]
+    · iexists (apply.grantTTLW rq)
+      isplitr
+      · ipureintro; exact apply.grantTTLOk_w rq
+      rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk])]; iexact HRO
+    isplitr
+    · ipureintro; exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro
+      refine ⟨?_, Or.inl rfl, by simp [apply.kvFloorOk, apply.isFloorKind, hk], rfl, rfl⟩
+      simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
+        Bool.false_eq_true, _root_.or_self, ↓reduceIte]
+      exact Hst
+    isplitl []
+    · iintro %_; iexact Hcls
+    isplitl []
+    · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+    isplitl [Hra]
+    · iunfold apply.revokeAnsR
+      rw [if_pos ⟨hk, hn⟩]
+      iexists _
+      iframe H0
+      iexact Hra
+    isplitl []
+    · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
+    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+    iframe %hn
+    iexists _
+    iframe H0
+    isplitl; rotate_left
+    · iexact HeI
+    simp only [apply.dispatchAnswer, hk]
+    iexists resp; iframe Hans; ipureintro; rfl
+  have zLeaseRevoke : rq.leaseRevoke = none := nLR.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- LeaseCheckpoint
+    have hl : lLC ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nLC.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HLC
+    have hk : dispatchKind rq = .leaseCheckpoint := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zLeaseCheckpoint : rq.leaseCheckpoint = none := nLC.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- Alarm: not admitted (`rqOk`; D22, 2026-10-23: its writer takes `AEnv.RW`)
+    have hl : lAl ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAl.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAl
+    have hk : dispatchKind rq = .alarm := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAlarm : rq.alarm = none := nAl.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- Authenticate (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lAu ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAu.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAu
+    have hk : dispatchKind rq = .authenticate := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthenticate : rq.authenticate = none := nAu.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthEnable (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lAE ≠ null := by simpa using Hif
+    have hs : rq.authEnable = true := by
+      cases h : rq.authEnable
+      · exact absurd (nAE.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authEnable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthDisable (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lAD ≠ null := by simpa using Hif
+    have hs : rq.authDisable = true := by
+      cases h : rq.authDisable
+      · exact absurd (nAD.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authDisable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthDisable : rq.authDisable = false := nAD.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthStatus
+    have hl : lAS ≠ null := by simpa using Hif
+    have hs : rq.authStatus = true := by
+      cases h : rq.authStatus
+      · exact absurd (nAS.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authStatus := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, hs]
+    ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn true E log Pre Q Post $$ Hkv
+    wp_apply HStatus $$ %log %info [Htt Hkv Hres] as %resp %err ⟨Htt, Hkv, Hres, #HeI⟩
+    · iframe
+    join_ar
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
+    · iright; iexact HPre
+    fin_same
+    itrivial
+  have zAuthStatus : rq.authStatus = false := nAS.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthUserAdd (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lUA ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUA.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUA
+    have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthUserDelete (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lUD ≠ null := by simpa using Hif
+    have hs : rq.authUserDelete = true := by
+      cases h : rq.authUserDelete
+      · exact absurd (nUD.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authUserDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthUserDelete : rq.authUserDelete = false := nUD.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthUserChangePassword (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lUC ≠ null := by simpa using Hif
+    have hs : rq.authUserChangePassword = true := by
+      cases h : rq.authUserChangePassword
+      · exact absurd (nUC.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthUserChangePassword : rq.authUserChangePassword = false := nUC.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthUserGrantRole (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lUGR ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUGR.2 h))
+    have hk : dispatchKind rq = .authUserGrantRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthUserGrantRole : rq.authUserGrantRole = none := nUGR.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthUserGet (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lUG ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUG.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUG
+    have hk : dispatchKind rq = .authUserGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthUserGet : rq.authUserGet = none := nUG.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthUserRevokeRole (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lURR ≠ null := by simpa using Hif
+    have hs : rq.authUserRevokeRole = true := by
+      cases h : rq.authUserRevokeRole
+      · exact absurd (nURR.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authUserRevokeRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthUserRevokeRole : rq.authUserRevokeRole = false := nURR.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthRoleAdd (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lRA ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRA.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRA
+    have hk : dispatchKind rq = .authRoleAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthRoleAdd : rq.authRoleAdd = none := nRA.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthRoleGrantPermission (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lRGP ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRGP.2 h))
+    have hk : dispatchKind rq = .authRoleGrantPermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthRoleGrantPermission : rq.authRoleGrantPermission = none := nRGP.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthRoleGet (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lRG ≠ null := by simpa using Hif
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRG.2 h))
+    ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRG
+    have hk : dispatchKind rq = .authRoleGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthRoleGet : rq.authRoleGet = none := nRG.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthRoleRevokePermission (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lRRP ≠ null := by simpa using Hif
+    have hs : rq.authRoleRevokePermission = true := by
+      cases h : rq.authRoleRevokePermission
+      · exact absurd (nRRP.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authRoleRevokePermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthRoleRevokePermission : rq.authRoleRevokePermission = false := nRRP.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthRoleDelete (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lRD ≠ null := by simpa using Hif
+    have hs : rq.authRoleDelete = true := by
+      cases h : rq.authRoleDelete
+      · exact absurd (nRD.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authRoleDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthRoleDelete : rq.authRoleDelete = false := nRD.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthUserList (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lUL ≠ null := by simpa using Hif
+    have hs : rq.authUserList = true := by
+      cases h : rq.authUserList
+      · exact absurd (nUL.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authUserList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthUserList : rq.authUserList = false := nUL.1 (by simpa using Hif)
+  wp_if_destruct
+  · -- AuthRoleList (D22, 2026-10-23: not admitted, `rqOk`)
+    have hl : lRL ≠ null := by simpa using Hif
+    have hs : rq.authRoleList = true := by
+      cases h : rq.authRoleList
+      · exact absurd (nRL.2 h) hl
+      · rfl
+    have hk : dispatchKind rq = .authRoleList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, hs]
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
+  have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
+  -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
+  exfalso
+  exact Hok.2.1.1 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
+  -- after the join: `return ar` and the deferred metrics
+  iintro Hj
+  imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, #H0, #HeI, Hpost⟩
+  ihave #H0' := H0
+  iStructNamed H0'
+  dtail
+  all_goals
+    iapply HΦ
+    iframe HFS
+    iexact Hpost
+
+end proof
+
+end EtcdGrove
+end Perennial

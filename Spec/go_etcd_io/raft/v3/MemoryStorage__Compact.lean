@@ -1,19 +1,14 @@
-/-
-## `MemoryStorage.Compact(i)`
+/- `MemoryStorage.Compact` (`storage.go:271`).
 
-**Users.** etcd's `bootstrappedWAL.MemoryStorage` (`bootstrap.go:741`: detached, rebuilt from the WAL),
-`raftNode.start` (`raft.go:287`, `292`: the batch's snapshot and entries), `EtcdServer.snapshot`
-(`server.go:2132`: `CreateSnapshot` at the applied index), `EtcdServer.compact`/`purge`
-(`server.go:2180`: `Compact`), `EtcdServer.getSnapshot` (`server.go:755`); the examples' storages
-(`kvdurable/storage.go`, a wrapper calling these under its own lock). Snippet: `storage.go` (`ReqSnapshotCompact`). **Proof sketch.** Under the lock: at or
-below the compaction point, `ErrCompacted`; past the last index Go panics (excluded by the update's
-precondition); else a new slice from `i` (`StorState.compact`). **Changes.** Atomic.
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). Takes the frozen entry at `x`, or `x` already compacted (then `ErrCompacted`: etcd's periodic compaction after an install), the compaction's justification at `x` (`J.B x`: the API's `nodeAppliedLb`), and `x` at most the stored snapshot's index (`memSnapLb γs x`).
+
+kvreconf-snapshot-thread (2026-10-30): `memSnapLb γs x` in place of the exclusive `memSnapExact γs sv0` with `x ≤ sv0`'s index.
+
+Durability stage I (I-5, 2026-10-31): the mode `o` (`memStorAt`; `J.B x` is the attached mode's). Detached (`some (c, sv0)`): the token comes back at compaction point `max c x`, the stored snapshot unchanged. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 
@@ -21,31 +16,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- Compacts up to `i`, atomically; `ErrCompacted` (nothing changed) at or below the compaction
-point. -/
-def MemoryStorage.Compact.spec : Prop :=
-
-  ∀ (ms : Loc) (i : w64) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜uint.nat i ≤ σ.last⌝ }> @ ⊤, ∅
-        <{ memStor ms (σ.compact (uint.nat i)), COMM Q σ }>) }}
-    (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Compact")) (Val #i))
-  {{ (err : GoInterface), RET #err; ∃ σ, Q σ ∗
-      ((⌜err = interface.nil ∧ σ.off < uint.nat i⌝) ∨
-       (⌜uint.nat i ≤ σ.off⌝ ∗ errIs go_etcd_io.raft.v3.ErrCompacted err)) }}
+/-- `ms.Compact(x)`. -/
+abbrev MemoryStorage.Compact.spec : Prop :=
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (x : w64)
+    (ecomp : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memStorAt ms γs J o (J.B (uint.nat x)) ∗
+      ((∃ (e : EntryM), memLog γs (uint.nat x) DFrac.discard [e]) ∨ memCompacted γs (uint.nat x)) ∗
+      memSnapLb γs (uint.nat x) ∗ globalAddr ErrCompacted ↦□ ecomp }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Compact")) (Val #x))
+  {{ (err : GoInterface), RET #err;
+      ⌜err = interface.nil ∨ err = ecomp⌝ ∗ memCompacted γs (uint.nat x) ∗
+      (match o with
+       | some (c, sv0) => memStorFresh ms γs (max c (uint.nat x)) sv0
+       | none => emp) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

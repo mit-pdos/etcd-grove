@@ -1,9 +1,9 @@
 # W0 (the anchor), provability review, round 1
 
 Reviewer: provability (soundness, snippets). Commit under review: `f1ec1df585` (draft, before
-review). Read: `Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`, `Spec/context/Api.lean`,
-`Spec/go_etcd_io/etcd/client/v3/Api.lean` and the KV-path specs (`kv__*`, `txn__*`, `ContextError`,
-`isSafeRetry*`, `retryKVClient__*`), `Spec/go_uber_org/zap/`, `examples/specreq/clientv3kv/*.go`,
+review). Read: `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`, `SpecPlan/Spec/context/Api.lean`,
+`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean` and the KV-path specs (`kv__*`, `txn__*`, `ContextError`,
+`isSafeRetry*`, `retryKVClient__*`), `SpecPlan/Spec/go_uber_org/zap/`, `examples/specreq/clientv3kv/*.go`,
 `notes/specs-only/top.md`, the `## from W0` sections of `req/`. Go: the pinned fork (`.lake/src`,
 `a4d2bb17`): `client/{kv,txn,op,compare,retry,retry_interceptor,client}.go`,
 `server/etcdserver/{v3_server.go,txn/,apply/auth.go,api/v3rpc/{key,member,maintenance}.go}`,
@@ -12,7 +12,7 @@ review). Read: `Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`, `Spec/cont
 `batch-W0.md` was read only after these findings were formed (its open question 2 anticipates
 F7's `UserGet`/`RoleGet` point; nothing else below is in it).
 
-File references below are to the fork's sources under `.lake/src/` unless they start with `Spec/`.
+File references below are to the fork's sources under `.lake/src/` unless they start with `SpecPlan/Spec/`.
 
 ## What is good
 
@@ -52,7 +52,7 @@ password configured), `ErrInvalidAuthToken` or `ErrAuthOldRevision`, it calls `r
 `getToken` (`client/client.go:285-306`) → `c.Auth.Authenticate`, and **returns that call's error
 as the write's error** (`return gtErr`). If the user's password was changed or the user deleted
 meanwhile, that is `rpctypes.ErrAuthFailed` = `errVal .authFailed` after `ContextError`. Then
-`KV.PutTriple`'s post (`Spec/.../client/v3/Api.lean:602`) needs either `Q σ σ' (.err .authFailed)`
+`KV.PutTriple`'s post (`SpecPlan/Spec/.../client/v3/Api.lean:602`) needs either `Q σ σ' (.err .authFailed)`
 with `Step who (.put _) σ σ' (.err .authFailed)`, which no disjunct of `Step` gives (`kvStep .put`
 never answers `authFailed`, and `EtcdErr.refusal` (`Model.lean:316`) does not list it), or
 `indefCall err`, which `indefCall_pure` forbids for a definite error. The same for every KV,
@@ -157,8 +157,8 @@ proved by the cluster from the same step bound as `revFits`; or drop the compari
 
 `ReqCtxErrors` (`errors.go`) calls `context.WithCancel(ctx)` on an arbitrary `ctxOk ctx` ("Contexts
 are any contexts"). Perennial's `WithCancel` specs (`Perennial/Proof/context/WithCancelGen.lean`)
-take a parent that is `isContext` or `Background()`; `Spec/context/Api.lean` gives none over
-`ctxOk`. Fix: a `WithCancel.spec` in `Spec/context/Api.lean` (parent `ctxOk`, child `ctxOk` and
+take a parent that is `isContext` or `Background()`; `SpecPlan/Spec/context/Api.lean` gives none over
+`ctxOk`. Fix: a `WithCancel.spec` in `SpecPlan/Spec/context/Api.lean` (parent `ctxOk`, child `ctxOk` and
 `ctxDone` after `cancel`), or start the snippet from `context.Background()`.
 
 ## Second tier
@@ -270,14 +270,14 @@ take a parent that is `isContext` or `Background()`; `Spec/context/Api.lean` giv
 
 ## Targets ranked by need of revision
 
-1. **`Spec/go_etcd_io/etcd/api/v3/Model.lean`**: F1 (refusal list), F3 (nine places where `Step`
+1. **`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`**: F1 (refusal list), F3 (nine places where `Step`
    forbids etcd's answer), S1.
-2. **`Spec/go_etcd_io/etcd/client/v3/Api.lean`**: F2 (stream slots), S1 (`callErr` wording), S2,
+2. **`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean`**: F2 (stream slots), S1 (`callErr` wording), S2,
    S6, S7.
-3. **`examples/specreq/clientv3kv/`** with **`Spec/context/Api.lean`** and **`Wire.lean`/`State.lean`**:
+3. **`examples/specreq/clientv3kv/`** with **`SpecPlan/Spec/context/Api.lean`** and **`Wire.lean`/`State.lean`**:
    F4 (a size law), F5 (`WithCancel` over `ctxOk`), S8.
 4. **`notes/specs-only/top.md`** and the `req/` sections: S3 (reads), S4/S5 (K8), S2 (1c's item 2).
-5. **`Spec/go_uber_org/zap/`**: no finding (`Fatal` as divergence follows the repository's decision,
+5. **`SpecPlan/Spec/go_uber_org/zap/`**: no finding (`Fatal` as divergence follows the repository's decision,
    `specs-ref/notes/decisions.md:2393`).
 
 ## Verdict

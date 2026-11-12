@@ -1,19 +1,10 @@
 /-
-## `(*authStore).setupMetricsReporter()` (internal helper)
-
-**Users.** `NewAuthStore`.
-
-**Proof sketch.** `reportCurrentAuthRevMu.Lock()` (the package's lock, its invariant in `isPkgInit`: the global closure is one that loads some store's revision atomic), the global replaced by a closure over `as.Revision()` (`authStoreAt`), `Unlock`.
-
-**Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary.
-
-**Margin.** None.
+`authStore.setupMetricsReporter` (`server/auth/store.go`). Lean-first (no Rocq counterpart); the
+auth plan's E2a (2026-10-25), for `NewAuthStore`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -21,25 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.setupMetricsReporter()`**: no observable effect. -/
-def authStore.setupMetricsReporter.spec : Prop :=
-  ∀ (st : Loc) (γ : Cluster) (γa : AuthNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa }}
-    (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"setupMetricsReporter")) (Val #()))
+/-- `as.setupMetricsReporter()`: sets the package's reporter `reportCurrentAuthRev` to a closure
+over `as` (its `Revision()`), under the reporter's lock (`reportP`, the package's facts). The
+closure runs only from Prometheus's collector, which no verified code calls, so nothing is said of
+it. -/
+abbrev auth.authStore.setupMetricsReporter.spec : Prop :=
+  ∀ (st : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"setupMetricsReporter")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

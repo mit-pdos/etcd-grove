@@ -1,13 +1,9 @@
 /-
-`store.getSnapshot` (`cache/*.go`), an internal helper.
-Users: `store.Get`.
-Proof sketch: under the read lock: `ErrNotReady` at `0`, a negative revision errs, `0` is the latest, above the latest `ErrFutureRev`; the newest snapshot at or below (`ringBuffer.DescendLessOrEqual.spec`), none is `ErrCompacted`; its certificate and the gap after it give `snapFor` at the target.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`store.getSnapshot(rev)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,31 +11,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.getSnapshot(rev)`: a snapshot answering for `rev` (the latest for `0`) and the latest revision, or an error. -/
-def store.getSnapshot.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (r0 : Nat) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ storeRevLb s r0 ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"getSnapshot")) (Val #rev))
-  {{ (p : Loc) (lrev : w64) (err : GoInterface), RET (PairV (PairV #p #lrev) #err); threadTok ∗
-      (⌜err = GoInterface.nil ∧ r0 ≤ sint.Z lrev⌝ ∗ storeRevLb s (sint.Z lrev).toNat ∗
-        ⌜0 ≤ sint.Z rev ∧ sint.Z rev ≤ sint.Z lrev ∧ 0 < sint.Z lrev⌝ ∗
-        snapFor p γ pfx (if sint.Z rev = 0 then (sint.Z lrev).toNat else (sint.Z rev).toNat)) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+/-- `s.getSnapshot(rev)` (under a read lock): for some state `st` of the store (at least the
+caller's lower bound `r0`, `storeSeen`), what `snapModel st rev` says: the snapshot (a
+read-only `*snapshot`, `snapIs`, with its certificate: `snapCert`, and the certificate of its gap, which covers the revision asked
+for, `rev` or the latest if `0`: `G r b`) and `st`'s latest revision, or `nil`, `0` and the error
+(`snapErr`). -/
+abbrev store.getSnapshot.spec : Prop :=
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (G : w64 → Int → IProp GF) (r0 : w64) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isStore s γ cap ∗ storeReader s γ cap E R G ∗ storeRevLb γ r0 }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"getSnapshot")) (Val #rev))
+  {{ (p : Loc) (lrev : w64) (err : GoInterface), RET (PairV (PairV #p #lrev) #err);
+      storeReader s γ cap E R G ∗
+      ∃ st : StoreState, storeSeen γ cap r0 st ∗ □ R st.latestRev ∗ snapErr (snapModel st rev) err ∗
+        match snapModel st rev with
+        | .ok r m => ⌜lrev = st.latestRev⌝ ∗ snapCert E p (r, m) ∗
+            ∃ b : Int, ⌜sint.Z (if rev = W64 0 then st.latestRev else rev) ≤ b⌝ ∗ □ G r b
+        | _ => ⌜p = null ∧ lrev = W64 0⌝ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

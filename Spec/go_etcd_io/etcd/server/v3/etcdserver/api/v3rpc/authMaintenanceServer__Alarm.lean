@@ -1,45 +1,53 @@
 /-
-`authMaintenanceServer.Alarm` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.Maintenance/Alarm` (the generated `_Maintenance_Alarm_Handler`, 3h,
-registered by `v3rpc.Server`); 1c's `Maint.methods` through grpc (`examples/specreq/clientv3client/maint.go`).
-
-Proof sketch: `ams.requireAuthInfo(ctx)` for `GET` (an error: a refusal or `userEmpty`, fired), `ams.isPermitted(ctx)` for the rest (an admin refusal: `clusterStep`'s `alarmDisarm` allows `adminErr` at any state, fired); then `maintenanceServer.Alarm.spec` of the embedded value.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/authMaintenanceServer__Alarm.lean`: over the contract.
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Margin: none.
+`v3rpc.authMaintenanceServer.Alarm` (`maintenance.go`): the maintenance service's `Alarm`,
+guarded by the authenticated-user guard for a get (`AlarmRequest_GET`) and the admin guard
+otherwise. Lean-first (no Rocq counterpart); the auth plan's A2 (2026-10-23), vocabulary
+`v3rpc/InvAuthAdmin.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `authMaintenanceServer.Alarm(ctx, r)` meets the contract of `/etcdserverpb.Maintenance/Alarm`. -/
-def authMaintenanceServer.Alarm.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer.ty @!! go!"Alarm")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authMaintAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.Maintenance/Alarm") go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty (srvGate s gq)
+/-- `ams.Alarm(ctx, ar)`: `requireAuthInfo` when `ar.GetAction()` (`alarmActionOk`, names only)
+is `AlarmRequest_GET`, `isPermitted` otherwise, then the embedded `maintenanceServer`'s `Alarm`
+(names only, the guarded contract `guardedOk2` with the token `alarmTok` of the action); the
+outcome `guardOut`. -/
+abbrev v3rpc.authMaintenanceServer.Alarm.spec : Prop :=
+  ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (ar : Loc) (act : w32) (Pin : IProp GF)
+    (Q : Loc → GoInterface → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗
+      E.RD ∗ Pin ∗ v3rpc.alarmActionOk ar act ∗
+      v3rpc.guardedOk2 (v3rpc.alarmTok E.authMode act) Pin E.RD
+        (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"Alarm" ms (GoInterface.ok ctx) ar
+        Q }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Alarm"))
+      (Val #(GoInterface.ok ctx))) (Val #ar))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOut Pin Q resp err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

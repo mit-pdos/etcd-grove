@@ -1,9 +1,9 @@
 /-
-`isBadOp` (`cache.go`): a revision or a range end set. Changes: over W0's `opAt` (was `opFullAt`).
+`isBadOp(op)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -11,26 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-def isBadOp.spec : Prop :=
-  ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ opAt op o }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.leasing.isBadOp)) (Val #op))
+/-- **`isBadOp(op)`**: a get at an earlier revision or of a range (`isBadOpM`). -/
+abbrev isBadOp.spec : Prop :=
+  ∀ (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ opFullAt opv o }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.leasing.isBadOp)) (Val #opv))
   {{ RET #(isBadOpM o); True }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

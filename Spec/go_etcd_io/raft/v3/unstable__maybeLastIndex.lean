@@ -1,15 +1,10 @@
-/-
-## `(*unstable).maybeLastIndex` (internal)
+/- Port of election_proof/spec_unstable__maybeLastIndex.v (feb5c73d4).
 
-The embedded `unstable` of a `raftLog` (`raftLog`'s realization holds `unstable` of its field).
-Users: `raftLog`'s methods only. Mirrors the code over `UnstableState`.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/unstable__maybeLastIndex.lean`: over `UnstableState`.
+Lean notes: Rocq's `(#i, #ok)` is `PairV #i #ok`; `bool_decide` is `decide`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -17,28 +12,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The last unstable entry's index, else the pending snapshot's, if any. -/
-def unstable.maybeLastIndex.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableState),
-  us.Wf →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ unstable u us }}
-    (App (Val (u @!! go.GoType.PointerType go_etcd_io.raft.v3.unstable.ty @!! go!"maybeLastIndex")) (Val #()))
-  {{ (i : w64) (ok : Bool), RET (PairV #i #ok); unstable u us ∗
-      ⌜(ok = true ∧ us.maybeLastIndex = some (uint.nat i)) ∨
-       (ok = false ∧ us.maybeLastIndex = none ∧ i = W64 0)⌝ }}
+/-- `u.maybeLastIndex()`: the last index of the unstable suffix, and whether there is
+one. With an empty suffix it is the pending snapshot's index if a snapshot is pending,
+and `ok = false` otherwise.
+
+Stated on a bare `*unstable` rather than through `ownRaftLog`, so that `raftLog`'s own
+methods can split the field out and hand it over; the snapshot is `us.snap`
+(see `Spec/unstable__maybeFirstIndex.lean`). -/
+abbrev unstable.maybeLastIndex.spec : Prop :=
+  ∀ (u : Loc) (us : UnstableSt),
+  uint.Z us.offset + (us.ents.length : Int) < 2^64 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hun" ∷ ownUnstable u us }}
+    (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"maybeLastIndex")) (Val #()))
+  {{ (i : w64) (ok : Bool), RET (PairV #i #ok);
+      ownUnstable u us ∗
+      ⌜us.ents = [] → ok = decide (us.snap ≠ none) ∧
+                    ∀ sid, us.snap = some sid → i = sid.index'⌝ ∗
+      ⌜us.ents ≠ [] → ok = true ∧
+        uint.Z i = uint.Z us.offset + (us.ents.length : Int) - 1⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

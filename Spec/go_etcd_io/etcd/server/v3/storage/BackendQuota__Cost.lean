@@ -1,19 +1,9 @@
 /-
-## `(*BackendQuota).Cost(req)` (`quota.go:129-175`): trusted (names only)
-
-**Users.** 3a's capped applier, 2a's quota interceptors: with a `*PutRequest`, a `*TxnRequest` or
-a `*LeaseGrantRequest`.
-**Why it is true.** The type switch of `Cost` (`panic("unexpected cost")` for any other type:
-`quotaReq`'s premise), the request's encoded size (`proto.Size`, reading the message);
-`Available` adds the backend's `Size()` (an atomic read, `beReadable`).
-**Changes** (from `specs-ref`'s `BackendQuota__Cost.lean`): the three request kinds as a premise.
-**Margin.** The answer is not tied to the model: a refusal on `false` is a `Step` refusal.
+`storage.BackendQuota.Cost`: the trust boundary (`server/v3/storage` is names-only). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
-public import Spec.go_etcd_io.raft.v3.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 
 @[expose] public section
 
@@ -21,27 +11,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ServerStorage
 
-open Iris Iris.BI
+open Iris Iris.BI 
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`Cost(req)`**: the request's cost (some `int`). -/
-def BackendQuota.Cost.spec : Prop :=
-  ∀ (p : Loc) (v : GoInterface) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ isQuota (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendQuota.ty) #p) ∗
-      quotaReq v dq }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendQuota.ty @!! go!"Cost")) (Val #v))
-  {{ (n : w64), RET #n; quotaReq v dq }}
+/-- `q.Cost(r)` on a non-nil request of one of the three types the appliers pass (it panics on
+any other type, and on a nil `*PutRequest`/`*TxnRequest`, whose fields it reads: the non-nil
+premise since audit B4b, 2026-10-18) returns some integer, whatever `*q` holds (it reads only the
+request: the capped applier's `q` is a zero `BackendQuota`). -/
+abbrev storage.BackendQuota.Cost.spec : Prop :=
+  ∀ (q : Loc) (t : go.GoType) (r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ ⌜apply.quotaReqTy t ∧ r ≠ null⌝ }}
+    (App (Val (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendQuota.ty
+      @!! go!"Cost")) (Val #(interface.mkOk t #r)))
+  {{ (c : w64), RET #c; True }}
 
 end spec
 
-end ServerStorage
 end EtcdGrove
 end Perennial

@@ -1,18 +1,10 @@
 /-
-## `(*EtcdServer).adjustTicks()` (`server.go:464-525`)
-
-**Users.** `Start` (attached goroutine).
-
-**Proof sketch.** `Members()` of the cluster (`Membership`), the transport's `ActivePeers` (2f), the
-raft node's `advanceTicks` (2d): ticks only (no model effect), all reachable from `isServer`.
-
-**Changes** (from `specs-ref`: it took no premise on `s`, the sweep's survey): over `isServer`.
-
-**Margin.** None.
+`(*EtcdServer).adjustTicks()` (`server.go`): the trust boundary (names-only; one of the goroutines `Start`
+attaches). Lean-first (the request path's unit 4c).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 
 @[expose] public section
 
@@ -20,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,15 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Fast-forwards the election ticks** of a fresh start. -/
-def EtcdServer.adjustTicks.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"adjustTicks")) (Val #()))
-  {{ RET #(); threadTok }}
+/-- `s.adjustTicks()` returns (names-only: it advances the raft ticks of a fresh or rejoining member, then returns). -/
+abbrev EtcdServer.adjustTicks.spec : Prop :=
+  ∀ (s : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"adjustTicks")) (Val #()))
+  {{ RET #(); True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

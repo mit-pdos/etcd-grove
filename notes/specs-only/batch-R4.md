@@ -6,28 +6,28 @@ Author's report (2026-11-09). Wave 2. Packages `go.etcd.io/raft/v3/{quorum,track
 
 ## Files
 
-All build (`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3/{quorum,tracker,confchange}`: 8, 33,
+All build (`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3/{quorum,tracker,confchange}`: 8, 33,
 24 modules).
 
-- `Spec/go_etcd_io/raft/v3/quorum/Api.lean`: the pure quorum model, quorum's Go ownership
+- `SpecPlan/Spec/go_etcd_io/raft/v3/quorum/Api.lean`: the pure quorum model, quorum's Go ownership
   (transparent), the `AckedIndexer` contract, the intersection laws.
-- `Spec/go_etcd_io/raft/v3/quorum/`: 7 specs: `MajorityConfig__{CommittedIndex,VoteResult,Slice}`,
+- `SpecPlan/Spec/go_etcd_io/raft/v3/quorum/`: 7 specs: `MajorityConfig__{CommittedIndex,VoteResult,Slice}`,
   `JointConfig__{CommittedIndex,VoteResult,IDs}`, `mapAckIndexer__AckedIndex` (internal).
-- `Spec/go_etcd_io/raft/v3/tracker/Model.lean`: the pure model (`Membership`, `Valid`, `ProgressV`,
+- `SpecPlan/Spec/go_etcd_io/raft/v3/tracker/Model.lean`: the pure model (`Membership`, `Valid`, `ProgressV`,
   `InflightsV`, the `Progress` transitions, `TrackerOk`, `Carried`). Imports nothing of raft's (R1's
   `Model.lean` is to import it).
-- `Spec/go_etcd_io/raft/v3/tracker/Api.lean`: resources and laws.
-- `Spec/go_etcd_io/raft/v3/tracker/`: 31 specs: `Config__Clone`, `MakeProgressTracker`,
+- `SpecPlan/Spec/go_etcd_io/raft/v3/tracker/Api.lean`: resources and laws.
+- `SpecPlan/Spec/go_etcd_io/raft/v3/tracker/`: 31 specs: `Config__Clone`, `MakeProgressTracker`,
   `ProgressTracker__{ConfState,IsSingleton,Committed,Visit,QuorumActive,VoterNodes,LearnerNodes,
   ResetVotes,RecordVote,TallyVotes}`, `matchAckIndexer__AckedIndex` (internal), `NewInflights`,
   `Inflights__{Clone,Add,grow,FreeLE,Full,Count,reset}` (`grow`, `reset` internal),
   `Progress__{ResetState,BecomeProbe,BecomeReplicate,BecomeSnapshot,SentEntries,CanBumpCommit,
   SentCommit,MaybeUpdate,MaybeDecrTo,IsPaused}`.
-- `Spec/go_etcd_io/raft/v3/confchange/Model.lean`: the pure transitions (`simple`, `enterJoint`,
+- `SpecPlan/Spec/go_etcd_io/raft/v3/confchange/Model.lean`: the pure transitions (`simple`, `enterJoint`,
   `leaveJoint`, `changeV2`, `restore`, their steps), `Lists`.
-- `Spec/go_etcd_io/raft/v3/confchange/Api.lean`: `ccsPts` (raftpb's, provisional), the result
+- `SpecPlan/Spec/go_etcd_io/raft/v3/confchange/Api.lean`: `ccsPts` (raftpb's, provisional), the result
   predicates, the internal working copy, the laws.
-- `Spec/go_etcd_io/raft/v3/confchange/`: 22 specs: `Changer__{Simple,EnterJoint,LeaveJoint}`,
+- `SpecPlan/Spec/go_etcd_io/raft/v3/confchange/`: 22 specs: `Changer__{Simple,EnterJoint,LeaveJoint}`,
   `Restore`, and the internal `Changer__{apply,makeVoter,makeLearner,remove,initProgress,
   checkAndCopy,err}`, `chain`, `toConfChangeSingle`, `checkAndReturn`, `checkInvariants`, `joint`,
   `incoming`, `outgoing`, `outgoingPtr`, `nilAwareAdd`, `nilAwareDelete`, `symdiff`.
@@ -172,7 +172,7 @@ internal: `ccState_done`, `ccState_abort`, `opSpec_persistent`.
 
 ## Integration: replacing R1's opaques
 
-In R1's `Model.lean`: import `Spec.go_etcd_io.raft.v3.confchange.Model`; `abbrev Membership :=
+In R1's `Model.lean`: import `SpecPlan.Spec.go_etcd_io.raft.v3.confchange.Model`; `abbrev Membership :=
 Tracker.Membership` (delete R1's structure and its `simple`/`empty`/`ids`/`isJoint`, the same
 definitions); `Membership.Valid := Tracker.Membership.Valid`;
 

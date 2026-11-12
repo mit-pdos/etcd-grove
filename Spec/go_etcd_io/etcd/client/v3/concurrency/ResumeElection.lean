@@ -1,24 +1,10 @@
 /-
-`concurrency.ResumeElection(s, pfx, leaderKey, leaderRev)` (`client/v3/concurrency/election.go`).
-
-Users: `server/etcdserver/api/v3election/election.go` (`Campaign`:45 a new election, `Campaign`,
-then `Header()`, `Key()`, `Rev()` and the lease returned as the leader key; `Proclaim`:68 and
-`Resign`:118 on `ResumeElection(s, name, key, rev)` from the remote client's leader key;
-`Leader`:103 and `Observe`:80 on a new election, sessions with lease `-1`), etcdctl's `elect`
-command (not in the pinned sources), etcd's tests
-(`tests/integration/clientv3/concurrency/election_test.go`, `example_election_test.go`). Snippet: `concurrency/election.go` (`ReqResumedProclaim`).
-
-Proof sketch: the struct allocated.
-
-Changes: from `specs-ref`'s `ResumeElection.lean`: restated.
-
-Margin: the prefix is taken as given, without the `/` `NewElection` appends (a known oddity,
-`nonissues/election-campaign-key-check.md`'s notes); nothing is checked of the key and revision:
-`Proclaim` and `Resign` are fenced by them.
+`concurrency.ResumeElection(s, pfx, leaderKey, leaderRev)` (`client/v3/concurrency/election.go`). Lean-first (no Rocq counterpart); see
+`InvElection.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvElection
 
 @[expose] public section
 
@@ -26,28 +12,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `ResumeElection(s, pfx, key, rev)`: an election on the prefix `pfx` (as given) leading with `key` created at `rev`, as the caller claims. -/
-def ResumeElection.spec : Prop :=
-  ∀ (s : Loc) (pfx key : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.ResumeElection)) (Val #s)) (Val #pfx)) (Val #key)) (Val #rev))
-  {{ (e : Loc), RET #e; isElection e s pfx ∗
-      electionSt e { leaderKey := key, leaderRev := rev, leaderSession := s, hdr := null } }}
+/-- **`ResumeElection(s, pfx, leaderKey, leaderRev)`**, for a session `s` whose client answers for
+the prefix `pfx` (not empty, at most `2 ^ 27` bytes; unlike `NewElection`, no `/` is added): an election on `pfx` whose state
+is the given leader key (at most `2 ^ 28` bytes, so that `Proclaim`'s and `Resign`'s transactions on
+it fit a request) and create revision, with `s` as the leader session (nothing is checked: the
+arguments are the caller's). -/
+abbrev ResumeElection.spec : Prop :=
+  ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx leaderKey : GoString)
+    (leaderRev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
+      isEtcdMutexClient client pfx ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ concPfxMax⌝ ∗
+      ⌜leaderKey.length ≤ concStrMax⌝ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.ResumeElection)) (Val #s))
+      (Val #pfx)) (Val #leaderKey)) (Val #leaderRev))
+  {{ (e : Loc), RET #e; isElection e s γ client id pfx ∗
+      electionState e s { key := leaderKey, rev := leaderRev, sess := s, hdr := null } }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

@@ -1,37 +1,9 @@
 /-
-`(*leasingKV).Put` (`client/v3/leasing/kv.go`).
-
-Users: the integration tests (`lkv.Put(ctx, "k", "v")`, `WithPrevKV`: `TestLeasingPrevKey`,
-`TestLeasingOwnerPutResponse`); the proxy goes through `Do`. Snippets: `leasing/writes.go`
-(`ReqPutRevision`, `ReqPutError`), `leasing/unmet.go` (`UnmetPutOnce`, `UnmetPutModRevision`).
-
-Proof sketch: `OpPut.spec` (W0; `¬ putPanics`) builds `opAt op (opPutM key val gs)`; then
-`leasingKV.put.spec` at that `op` with the caller's update, the call's principal `p` and `lo = 0` (`authLb γ 0`:
-its first disjunct; W0's writes are `Step … 0` too).
-
-Changes: the old specs (`specs-ref`'s `leasingKV__*.lean`) took the old client's
-contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `etcdReached lo`, a
-size bound (`OpShape`), and returned implementation outcomes (`getCached`, `getAcquired`,
-`getNotAcquired`, `putCommitted`, `opCommitted`: the cache's states, its log, the history premise
-`LeasingProtocol`); restated over W0's `etcdState` as a weakening of the KV contract (`Api.lean`'s
-header): the caller's update persistent and over `lstep` (`LStep` with the marks of the keys
-written through the KV: a cached answer is W0's serializable one for an unmarked key, the old proof's
-"Theorem 1"), an error settling nothing; no size bound
-(W0: the gRPC boundary fails on an oversized message), no certificate (the answer's revision is in
-the update's state), no history premise (the contract claims nothing a protocol violation could
-break). The old `putCommitted` (the cache's step) is internal now. **New**: the
-key's mark (`lkvMarks`).
-
-Margin: on success the put was applied at least once, and the reply is one application's answer;
-it may have been applied more often (`issues/leasing-modify-uncached-once.md`: twice whenever the
-key was not cached and no other client held it), and an earlier attempt may still land after the
-call returned (`nonissues/leasing-write-resend-after-error.md`), each application firing the
-caller's update; the reply is read-only. A token lent with the update and given back at the return
-(completeness review F1) would be false of the code for that reason.
+`lkv.Put(ctx, key, val, opts...)` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Api
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -39,26 +11,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lkv.Put` meets the leasing contract's `Put` (`LKV.PutTriple`). -/
-def leasingKV.Put.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames),
-  LKV.PutTriple (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"Put")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL)) γ who pfx γL
+/-- **`lkv.Put(ctx, key, val, opts...)`**: `put` of `OpPut(key, val, opts...)` (`o := opPutModel key
+val gs`, a put a transaction can run: `top`). The context must be cancelable; the thread's token is kept (a reader slot
+borrowed with it from the leasing KV's pool and given back). The operation's key
+and range end are at most `2 ^ 27` bytes and its value `2 ^ 28` (`OpShape`: leasing's own requests
+carry it with the prefixed key; "Leasing's sizes"). -/
+abbrev leasingKV.Put.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
+    (gs : List (OpFull → OpFull)) (top : TxnOp) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ threadTok ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      optsAt sl gs ∗ etcdReached lo ∗
+      ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2 ∧
+        txnOpOf (opPutModel key val gs) = some top ∧ OpShape opKeyMax opKeyMax opValMax (opPutModel key val gs)⌝ }}
+    (App (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Put")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #val)) (Val #sl))
+  {{ (pr : Loc) (err : GoInterface), RET (PairV #pr #err); threadTok ∗
+      (⌜err ≠ GoInterface.nil ∧ pr = null⌝ ∨
+       (⌜err = GoInterface.nil⌝ ∗ putCommitted γ lo (opPutModel key val gs) top pr)) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

@@ -22,7 +22,7 @@ operate on"), not stated by etcd's documentation; found by code reading (the bcr
 
 no: the bcrypt boundary assumes only that a hash accepts its own password
 (W0's `pwHash_match`), and checks a password with W0's opaque `pwMatch` (bcrypt's verdict,
-`Spec/golang_org/x/crypto/bcrypt/CompareHashAndPassword.lean`), which claims nothing of a password
+`SpecPlan/Spec/golang_org/x/crypto/bcrypt/CompareHashAndPassword.lean`), which claims nothing of a password
 that is not the user's (hash collisions need that anyway).
 
 ## Notes

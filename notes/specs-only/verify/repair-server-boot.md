@@ -3,7 +3,7 @@
 Reports: the 2e parts of `A8-server-boot-transport-{provability,completeness}.md`, the v3lock/v3election
 findings of `A3-client-users-completeness.md`, A7 completeness F2 (the compactor's contract, my
 `v3compactor/Api.lean`), and the coordinator's relays from raft-core, lease-auth and client-users.
-Paths are under `Spec/go_etcd_io/etcd/server/v3/` unless a path is given. I own no snippet package
+Paths are under `SpecPlan/Spec/go_etcd_io/etcd/server/v3/` unless a path is given. I own no snippet package
 (`etcdserverboot` is server-core's, `rafthttp` is rafthttp's), so snippet changes are requests.
 
 ## A8 provability

@@ -1,14 +1,11 @@
 /-
-## `(*backend).BatchTx()` (`backend.go:266-268`): translated
-
-**Users.** Every writer: mvcc (`kvstore_txn.go:176`, `kvstore.go:120`, `kvstore_compaction.go:55`),
-the lessor (`lessor.go:809`, `lease.go:57`), the schema's writers (4b), auth (`auth/store.go`), the
-consistent index (`cindex.go:175`). **Proof sketch.** Reads the read-only `b.batchTx`.
-**Changes.** Unchanged in substance. **Margin.** None.
+`BatchTx` (the backend). `b.BatchTx()`: the batch transaction, `b.batchTx`.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -16,26 +13,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.BatchTx()`**: the backend's one batch transaction. -/
-def backend.BatchTx.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"BatchTx")) (Val #()))
-  {{ RET #(btIface γ); True }}
+/-- `b.BatchTx()`: the batch transaction, `b.batchTx`. -/
+abbrev backend.backend.BatchTx.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"BatchTx")) (Val #()))
+  {{ (t : Loc), RET #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t);
+      bF go!"batchTx" b ↦□ t }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

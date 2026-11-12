@@ -5,7 +5,7 @@ Reviewer: fresh and independent. Read-only. I wrote my verdicts before reading
 
 **Scope.**
 - Batches: 1d `client/v3/concurrency`, 1e `client/v3/leasing`, 1f `client/v3/experimental/recipes`
-  (with `Spec/fmt`), 1g `cache/v3` and the btree.
+  (with `SpecPlan/Spec/fmt`), 1g `cache/v3` and the btree.
 - The server side of lock and election: `etcdserver/api/{v3lock,v3election}`, for A3's prefix findings.
 - Snippets: `examples/specreq/{concurrency,leasing,recipes,cache,btree}`.
 
@@ -179,7 +179,7 @@ grant".
 - `DoubleBarrier.Enter` matches `double_barrier.go:46-97`.
 - `errorsIs_recipeErr` now takes the sentinel's value from its global. It is plausible.
 - `WaitEvents`/`waitEvents` gain the unconditional event fact, which matches 1b.
-- `Spec/fmt/Sprintf_md.lean` and `printMD_inj` (new, client-core's) are plausible trust claims of
+- `SpecPlan/Spec/fmt/Sprintf_md.lean` and `printMD_inj` (new, client-core's) are plausible trust claims of
   Go's map printing.
 - Doc nit: `Queue__Dequeue.lean:45` ("Changes (verify-round)") still says the read path's facts
   "need 1b's … fact (requested)". Lines 37-43 and the triple show that this is done. The same

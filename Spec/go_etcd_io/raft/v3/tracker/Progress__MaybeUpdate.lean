@@ -1,18 +1,7 @@
-/-
-## `Progress.MaybeUpdate(n)`
-
-**Users.** `stepLeader`'s `MsgAppResp` (`raft.go:1542`: the peer acknowledged `n`; R2's `Match` is
-an index the peer acknowledged, from the response's `msgSent`; the leader's own entries come back
-the same way, a self-addressed `MsgAppResp` after the write, `raft.go:862`): R2. Snippet `raftconf/tracker.go`
-(`ReqProgressFlow`).
-
-**Proof sketch.** Field reads and writes. **Changes.** Over the model. **Margin.** None.
--/
+/- Port of election_proof/spec_Progress__MaybeUpdate.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -20,26 +9,43 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Raises the match index to `n` (and `Next` past it), unpausing; whether it rose. -/
-def Progress.MaybeUpdate.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"MaybeUpdate")) (Val #n))
-  {{ RET #(P.maybeUpdate n).2; progressOwn p (P.maybeUpdate n).1 }}
+/-- `pr.MaybeUpdate(n)` records that the peer has acknowledged index `n`
+(`tracker.Progress.MaybeUpdate.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`;
+progress.go:205):
+
+    if n <= pr.Match { return false }          // exit 1: stale ack
+    pr.Match = n
+    pr.Next = max(pr.Next, n+1)
+    pr.MsgAppFlowPaused = false
+    return true                                // exit 2
+
+No panic, no call (`max` is the builtin). `n+1` is `uint64` arithmetic and wraps at
+`n = 2^64-1`, where Go's `max` then keeps `pr.Next`; the postcondition says exactly
+that, with `w64` addition and `w64Max` (`Defs.lean`, Goose's `max` verbatim).
+`Inflights` is untouched.
+
+`progressMaybeUpdate p n` (`Defs.lean`) is the new record; it is `p` itself when the ack
+is stale. `matched` becomes `n` exactly when it grows. -/
+abbrev tracker.Progress.MaybeUpdate.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress) (n : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      "Hpr" ∷ ownProgress pr p }}
+    (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"MaybeUpdate"))
+      (Val #n))
+  {{ RET #(decide (uint.Z p.matched < uint.Z n));
+      ownProgress pr (progressMaybeUpdate p n) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

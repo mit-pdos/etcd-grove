@@ -1,22 +1,15 @@
 /-
-## `(*backend).ForceCommit()` (`backend.go:356-358`): translated
-
-**Users.** mvcc (`kvstore.go:125, 160, 216, 289`, `kvstore_compaction.go:95`: the commit request
-`storageReq`), the lessor (`lessor.go:834`), auth (`schema/auth.go:60`), alarms
-(`schema/alarm.go:105`), the server (`v3_server.go:412`: after a lease checkpoint), 2d's
-`snapshot` (`KV().Commit()`). Snippet `commit.go` (`ReqForceCommitDurable`).
-
-**Proof sketch.** `batchTx.Commit()` (`batchTxBuffered.Commit.spec`).
-
-**Changes** (from `specs-ref`'s `bkReq`): the per-call step `beReq` (the client's `X` to `Y` at the
-commit, with the committed image), the history in the client's hands.
-
-**Margin.** The step runs whether or not bbolt commits (nothing pending: the image is already the
-last commit's, `beCommitted` holds of it).
+`ForceCommit` (the backend). `b.ForceCommit()`: the batch transaction committed (the readers' view unchanged).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
+(2026-10-12: a write-back's budget token pays for the commit: a commit leaves the hook's
+puts in the write buffer, and the token budget bounds how many accumulate before a write-back.)
+(2026-10-23, D22 the stored-index window: the caller's request `X ⇒ Y`, `commitReq`, served by
+the hook the commit runs.)
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -24,27 +17,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.ForceCommit()`**: the batch committed (the hooks run, the client's commit step and the
-caller's per-call step at the commit). -/
-def backend.ForceCommit.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (X Y : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ X ∗ beReq γ Pk X Y }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"ForceCommit")) (Val #()))
-  {{ RET #(); beOpen γ q ∗ Y }}
+/-- `b.ForceCommit()`: the batch transaction committed (the readers' view unchanged). -/
+abbrev backend.backend.ForceCommit.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (X Y : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ X ∗ commitReq γ P Pk b X Y }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"ForceCommit")) (Val #()))
+  {{ RET #(); bOpen γ qo ∗ Y }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

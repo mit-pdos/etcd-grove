@@ -1,24 +1,24 @@
 /-
-`checkRange(rv, req)` (`range.go`), internal (`checkTxn`): mirrors the code against the read
-transaction's `Rev()` and `FirstRev()` (3e: `σ.rev`, `σ.crev`, `-1` before any compaction: W0's
-`txnRevErr`). Only a read transaction, the one Go passes (`txn.go:54`): a write transaction's
-`FirstRev()` is `0` (round 1, F3). Old spec: same over the old model.
+`checkRange` (`range.go`): the revision check of a range in a transaction.
+Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,18 +27,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `checkRange(rv, r)` at a read transaction at `σ`: W0's `txnRevErr` at `σ.kv`. -/
-def checkRange.spec : Prop :=
-  ∀ (rv : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (σ : Mvcc.MvccState) (r : Loc) (dq : DFrac)
-    (rm : RangeReq),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Mvcc.mvccTxn rv γ tr (.read σ) ∗ rangeReqOwn r dq rm }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.checkRange)) (Val #rv)) (Val #r))
-  {{ (err : GoInterface), RET #err; Mvcc.mvccTxn rv γ tr (.read σ) ∗ rangeReqOwn r dq rm ∗
-      (match rm.txnRevErr σ.kv with
-       | none => iprop(⌜err = GoInterface.nil⌝)
-       | some e => errIs err e) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `checkRange(rv, req)` on a read transaction at `σ`.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. With `⌜txn.Reach σ⌝` added, decided by
+the coordinator, 2026-11-05: `FirstRev`'s `W64 σ.crev` is `σ.crev` only for a reachable state.) -/
+abbrev txn.checkRange.spec : Prop :=
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState) (req : Loc) (o : OpFull),
+  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ ⌜txn.Reach σ⌝ ∗ txn.rangeRequestIs req o }}
+    (App (App (Val (@! txn.checkRange)) (Val #t)) (Val #req))
+  {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace (.read σ) ∗
+      txn.checkRangeErr (W64 (σ.rev : Int)) σ.crev o err }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

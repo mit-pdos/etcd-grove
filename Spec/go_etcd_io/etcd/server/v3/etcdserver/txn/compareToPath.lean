@@ -1,23 +1,23 @@
 /-
-`compareToPath(rv, rt)` (`txn.go`), internal (`Txn`): mirrors the code (`txnPathOf` at the view's
-current store; every comparison, nested ones included, read at the view:
-`nonissues/etcd-txn-nested-compare-snapshot.md`). Old spec: same over the log. Round 1: 3e's API.
+`compareToPath` (`txn.go`). Lean-first; see `TxnRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,16 +26,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `compareToPath(rv, rt)`: a fresh slice of `txnPathOf t` at the transaction's current store. -/
-def compareToPath.spec : Prop :=
-  ∀ (rv : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (k : Mvcc.MTxn) (rt : Loc) (dq : DFrac)
-    (t : TxnReq),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn rv γ tr k ∗ txnReqOwn rt dq t }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.compareToPath)) (Val #rv)) (Val #rt))
-  {{ (sl : GoSlice), RET #sl; TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn rv γ tr k ∗ txnReqOwn rt dq t ∗
-      sl ↦* txnPathOf t k.readHist.store }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `compareToPath(rv, rt)` on a read transaction at `σ`: the request's path (`txnPath`) at its
+state, in a fresh slice.
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.) -/
+
+abbrev txn.compareToPath.spec : Prop :=
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (rt : Loc)
+    (tm : TxnModel),
+  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ traceutil.ownTrace trace te ∗
+      ⌜txn.Reach σ⌝ ∗ txn.txnRequestIs rt tm }}
+    (App (App (Val (@! txn.compareToPath)) (Val #t)) (Val #rt))
+  {{ (sl : GoSlice), RET #sl; mvcc.api.mvccTxn t γ trace (.read σ) ∗ traceutil.ownTrace trace te ∗
+      sl ↦* txn.txnPath (mvcc.stateAfter σ.log) tm ∗ ownSliceCap Bool sl (DFrac.own 1) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

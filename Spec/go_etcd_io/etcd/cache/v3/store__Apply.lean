@@ -1,13 +1,9 @@
 /-
-`store.Apply` (`cache/*.go`), an internal helper.
-Users: `Cache.applyStorage` (each store watcher response).
-Proof sketch: a canceled response errs; under the write lock `validateRevisions.spec` (a stale response errs: an old applier's, after a re-list); a progress notification (`applyProgressNotifyLocked.spec`) or events (`applyEventsLocked.spec`): certified from `a`, every prefix event below `a` already in the store (`storeUpTo`), so the new snapshots and gaps are certified.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`store.Apply(resp)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,29 +11,44 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.Apply(resp)` for a store watcher's response certified from `a` (within the ceiling): `nil` and the store covers up to the response's next position, or an error. -/
-def store.Apply.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (a : Int) (pos' : Option Int) (r : Nat)
-    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ watchRespAt resp m ∗ respFact γ (prefixRange pfx) (some a) m pos' ∗ storeUpTo s a ∗ storeCeilLb s r ∗ ⌜m.hdrRev ≤ r ∧ ∀ e ∈ m.events, e.rev ≤ r⌝ }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"Apply")) (Val #resp))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∀ b, ⌜pos' = some b⌝ -∗ storeUpTo s b) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+/-- `s.Apply(resp)`, by any writer (`isStoreWriter`): under the write lock, with the store in some
+state `st` (found there: any number of writers apply in turn), the state becomes
+`(applyResp cap st r).1`, and the error is `nil` iff `(applyResp cap st r).2` (see `applyResp`
+for the cases: a canceled response, or one `validateRevisions` rejects as stale, changes
+nothing). The events must be in revision order (`EvRevSorted`, as etcd sends them). The caller
+holds a lower bound `lo` on the newest snapshot (`storeSnapLb`) and certifies what `Apply` would
+do to any state at or above it (`storeApplyCert`: it changes nothing or succeeds, with every
+snapshot it appends, every revision it moves to and every gap it makes certified), so that the store stays
+certified and synced whoever writes. The state found had a newest snapshot, the latest map, at a
+revision at least `lo`; afterwards the latest revision and the newest snapshot are at least
+those of `(applyResp cap st r).1`. (A canceled response is rejected before the lock: just an
+error.) An error's `Error()` returns some string (`errStrOk`: `errors.New`'s or `fmt.Errorf`'s). -/
+abbrev store.Apply.spec : Prop :=
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (G : w64 → Int → IProp GF)
+    (lo : w64) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isStore s γ cap ∗ isStoreWriter s γ cap E R G ∗ respAt resp r ∗ ⌜EvRevSorted r.events⌝ ∗
+      storeSnapLb γ lo ∗ ⌜0 ≤ sint.Z lo⌝ ∗ storeApplyCert cap E R G lo r }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Apply")) (Val #resp))
+  {{ (err : GoInterface), RET #err; errStrOk err ∗ (⌜r.canceled = true ∧ ∃ e, err = GoInterface.ok e⌝ ∨
+      ∃ st : StoreState,
+      ⌜StoreInv cap st ∧ st.Synced ∧
+        ∃ Y : w64, st.history.getLast? = some (Y, st.latest) ∧ sint.Z lo ≤ sint.Z Y⌝ ∗
+      storeRevLb γ (applyResp cap st r).1.latestRev ∗
+      monoNatLbOwn γ.snap (storeSnapKey (applyResp cap st r).1) ∗
+      ⌜if (applyResp cap st r).2 then err = GoInterface.nil else ∃ e, err = GoInterface.ok e⌝) }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

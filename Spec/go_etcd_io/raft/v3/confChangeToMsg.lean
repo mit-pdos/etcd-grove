@@ -1,20 +1,21 @@
 /-
-## `confChangeToMsg(c)` (internal)
+`confChangeToMsg` (`node.go:482`): the proposal of a conf change. Lean-first (no Rocq counterpart); see `InvConfChangeMsg.lean`.
 
-**Users.** `node.ProposeConfChange`, `RawNode.ProposeConfChange`. **Proof sketch.**
-`MarshalConfChange` (raftpb, 3h: the entry type and bytes decoding back to `c`; no error for a
-well-formed change). **Changes.** Mirrors the code.
+`RawNode.ProposeConfChange` and `node.ProposeConfChange` step this message (since
+2026-10-13, reconfiguration stage D, when the log took conf-change entries; see
+`notes/STATUS.md`, "Reconfiguration, stage D").
 
-**Size premise (integration I2).** `c.wireBound < Proto.marshalMax` (`2^48`: a context under about
-`2^47` bytes) is `MarshalConfChange`'s (3h: protobuf-go fails to marshal a larger message; the old
-spec had no premise, false of protobuf-go). True of every real change; a client-facing premise until
-the user chooses otherwise (3h's open question 3: or a workload premise like grpc's `msgsFit`).
+raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, "The node layer over pointer messages"):
+the message is a fresh `*pb.Message` (`&pb.Message{Type: MsgProp.Enum(), Entries:
+[]*pb.Entry{{Type: typ.Enum(), Data: data}}}`), returned owned as `raft.Step` takes a proposal
+(`msgIn ml 1`: the struct and the entries' slots at `1`), its record `propMsgM` with the one
+entry `ccEntryM o bs` (D6: the entry holds the bytes `MarshalConfChange` returned, frozen;
+until then the Goose value `ccPropMsg ents` with the slices `ents`, `data` and the capacity
+apart).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
 
@@ -22,30 +23,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- (internal) A `MsgProp` carrying `c` as one entry. -/
-def confChangeToMsg.spec : Prop :=
-
-  ∀ (cc : GoInterface) (dq : DFrac) (c : ConfChangeI),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ confChangePts cc dq c ∗ ⌜c.wireBound < Proto.marshalMax⌝ }}
-    (App (Val (@! go_etcd_io.raft.v3.confChangeToMsg)) (Val #cc))
-  {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); confChangePts cc dq c ∗
-      ⌜err = interface.nil⌝ ∗ ∃ (bs : List w8) (m : Msg), msgPts ml (DFrac.own 1) m ∗
-      ⌜m.type = MsgProp ∧ m.entries = [⟨W64 0, c.entryType, bs⟩] ∧
-        decodeConfChange c.entryType bs = some c⌝ }}
+/-- `confChangeToMsg(c)` for `c` holding `o`: a `MsgProp` (`propMsgM`) whose one entry is
+`ccEntryM o bs` (the entry type of `o` and the bytes carrying it, as `MarshalConfChange`
+returns them), and a `nil` error. (2026-10-16, stage R5: the message at `ml`, `msgIn ml 1`.) -/
+abbrev confChangeToMsg.spec : Prop :=
+  ∀ (c : GoInterface) (o : Option ConfChangeIM) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeI c dq o }}
+    (App (Val #(functions confChangeToMsg [])) (Val #c))
+  {{ (ml : Loc) (bs : List w8), RET (PairV #ml #interface.nil);
+      ownConfChangeI c dq o ∗
+      msgIn ml (DFrac.own 1) ⟨propMsgM, [ccEntryM o bs], none, [], []⟩ ∗
+      ⌜MarshalsConfChange o bs⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

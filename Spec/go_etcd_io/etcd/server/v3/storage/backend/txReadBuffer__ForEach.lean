@@ -1,10 +1,11 @@
 /-
-`txr.ForEach(bucket, visitor)` (`tx_buffer.go:133-138`): translated; internal. Changes: unchanged; integration Y: the visitor's own error returned (`visitOk vis P E`), the bytes kept by the visitor and lent against a share of the transaction's liveness (`lentAll … -∗ beLive`), as `rangeRes` (I6's finding: 4b's `Schema.txRd` row needs both).
-Margin: none.
+`txReadBuffer.ForEach` (`tx_buffer.go`). `txr.ForEach(bucket, visitor)`: the bucket's buffer's `ForEach` (`nil` if the bucket has
+none); the read buffer unchanged (any fraction).
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 
 @[expose] public section
 
@@ -12,30 +13,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`txr.ForEach(bk, vis)`**: the visitor over the bucket buffer's entries. -/
-def txReadBuffer.ForEach.spec : Prop :=
-  ∀ (t : Loc) (R : TxB) (ver : w64) (bk : GoInterface) (bi : BktInfo) (vis : GoFunc)
-    (P : List Lent → IProp GF) (E : List Lent → GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ trbAt t R ver ∗ bucketOk bk bi ∗ visitOk vis P E ∗ P [] }}
-    (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer.ty @!! go!"ForEach")) (Val #bk)) (Val #vis))
-  {{ (err : GoInterface), RET #err; trbAt t R ver ∗ ∃ lt : List Lent,
-      ⌜(lt.map Lent.ent) <+: (R bi.id).getD [] ∧ ∀ x ∈ lt, x.dq = DFrac.discard⌝ ∗
-      ((⌜err = interface.nil ∧ lt.map Lent.ent = (R bi.id).getD []⌝ ∗ P lt) ∨
-       (⌜err ≠ interface.nil⌝ ∗ E lt err)) }}
+/-- `txr.ForEach(bucket, visitor)`: the bucket's buffer's `ForEach` (`nil` if the bucket has
+none); the read buffer unchanged (any fraction). -/
+abbrev backend.txReadBuffer.ForEach.spec : Prop :=
+  ∀ (txr : Loc) (dq : DFrac) (m : GoMap) (P : BksPhys) (R : RBuf) (b : GoInterface)
+    (bi : BucketInfo) (f : GoFunc) (Pv : Nat → IProp GF) (Q : GoInterface → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ rbAt txr dq m P R ∗ isBucket b bi ∗ visitorSpec f (bkOf R.bks bi.id) Pv Q ∗
+      Pv 0 }}
+    (App (App (Val (txr @!! go.GoType.PointerType txReadBuffer.ty @!! go!"ForEach")) (Val #b)) (Val #f))
+  {{ (err : GoInterface), RET #err; rbAt txr dq m P R ∗
+      ((⌜err = GoInterface.nil⌝ ∗ Pv (bkOf R.bks bi.id).length) ∨
+       (⌜err ≠ GoInterface.nil⌝ ∗ Q err)) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

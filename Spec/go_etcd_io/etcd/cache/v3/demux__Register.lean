@@ -1,13 +1,9 @@
 /-
-`demux.Register` (`cache/*.go`), an internal helper.
-Users: `Cache.Watch`, `Cache.watch` (the store watcher).
-Proof sketch: under the write lock: the watcher goes active or lagging at its start (`maxRev + 1` for `0` once fed); the invariant takes the producer end at that position, the consumer end at the requested one goes to the caller (equal, or for `0` the consumer's `none`).
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`demux.Register(w, startingRev)`. Lean-first (no Rocq counterpart); see `InvDemux.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,16 +21,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `d.Register(w, startingRev)`: the consumer end of `w`, on its range (the prefix's for an unfiltered watcher), from `startingRev` (`none`: from the demux's newest revision). -/
-def demux.Register.spec : Prop :=
-  ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s w : Loc) (rng : Option KeyRange) (startingRev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ isWatcher w ∗ watcherNew w rng }}
-    (App (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"Register")) (Val #w)) (Val #startingRev))
-  {{ RET #(); watcherConsumer w γ (rng.getD (prefixRange pfx))
-      (.live (if startingRev = W64 0 then none else some (sint.Z startingRev)) 0) }}
+/-- `d.Register(w, startingRev)`, for a fresh (`watcherUnique`) open watcher with nothing
+sent yet, publishing `demuxPub C pred startingRev`: returns the registration token, with the
+start revision `s` resolved against the `maxRev` `M` at the time (`resolveStart`: `0` means
+"from now"). From then on the lock delivers to `w` the stream from `s` on (`Delivered`), and
+`w` publishes, with every log, its delivery facts and the delivered batches' certificates
+(`demuxPub`). -/
+abbrev demux.Register.spec : Prop :=
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (w : Loc) (γ : WatcherNames)
+    (pred : Option (GoString → Bool)) (startingRev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isDemux d γd cap C ∗ demuxHandle d γd cap C ∗
+      isWatcher w γ pred (demuxPub C pred startingRev) ∗ watcherOpen γ [] ∗ watcherUnique w }}
+    (App (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"Register")) (Val #w)) (Val #startingRev))
+  {{ RET #(); demuxHandle d γd cap C ∗
+      ∃ (s M : w64), demuxRegistered γd w γ pred s ∗ ⌜s = resolveStart startingRev M⌝ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

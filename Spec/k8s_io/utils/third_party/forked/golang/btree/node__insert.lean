@@ -1,15 +1,7 @@
-/-
-`node.insert` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: the package's own methods (internal helper: the spec mirrors the code).
-Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/node__insert.lean`),
-over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
-Changes: restated over the opaque vocabulary of `Api.lean` and `Internal.lean` (the model
-functions renamed `mLookup`, `mInsert`, `mDelete`); otherwise unchanged.
-Margin: none known.
--/
 module
-
-public import Spec.k8s_io.utils.third_party.forked.golang.btree.Internal
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Defs
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Model
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 
 @[expose] public section
 
@@ -17,21 +9,21 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BTree
+namespace btree
 
 open Iris Iris.BI k8s_io.utils.third_party.forked.golang.btree
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
 /-- `(*node[T]).insert(item, maxItems)` into a subtree that is not full: `item` replaces
 the entry with its key, or is added; the replaced item is returned. Splitting full
 children on the way down keeps the shape, and the node gains at most one item. -/
-def node.insert.spec : Prop :=
+abbrev node.insert.spec : Prop :=
   ∀ {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {T : go.GoType}
     [IntoValTyped (GF := GF) V T] {K : Type} (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (n : Loc) (t : Tree (V × K)) (item : V) (k : K)
     (maxItems : w64) (d h : Nat),
@@ -42,12 +34,12 @@ def node.insert.spec : Prop :=
     (App (App (Val (n @!! go.GoType.PointerType (node.ty T) @!! go!"insert")) (Val #item)) (Val #maxItems))
   {{ (old : V) (found : Bool), RET (PairV #old #found);
       ∃ t' : Tree (V × K), ownedNode o c f less (DFrac.own 1) n t' ∗
-      ⌜t'.Shape d h ∧ t'.elems = mInsert o.lt t.elems (item, k) ∧
+      ⌜t'.Shape d h ∧ t'.elems = insert o.lt t.elems (item, k) ∧
         t.items.length ≤ t'.items.length ∧ t'.items.length ≤ t.items.length + 1 ∧
-        old = (mLookup t.elems k).getD (zero_val V) ∧ found = (mLookup t.elems k).isSome⌝ }}
+        old = (lookup t.elems k).getD (zero_val V) ∧ found = (lookup t.elems k).isSome⌝ }}
 
 end spec
 
-end BTree
+end btree
 end EtcdGrove
 end Perennial

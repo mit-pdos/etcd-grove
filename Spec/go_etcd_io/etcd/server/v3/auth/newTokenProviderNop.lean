@@ -1,20 +1,10 @@
 /-
-## `newTokenProviderNop()` (internal helper)
-
-**Users.** `NewTokenProvider` (an empty kind).
-
-**Proof sketch.** A fresh `tokenNop`: `info` never accepts, `assign` always fails (`ErrAuthFailed`), the rest do nothing; so it meets `tokenProviderAt` for every cluster, and never assigns a token (root tokens: no collision).
-
-**Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary. Verify
-round: at any gate `R` (no waiter).
-
-**Margin.** None.
+`newTokenProviderNop()` (`server/auth/nop.go`): the no-op token provider's constructor, for
+`NewTokenProvider`. Lean-first (no Rocq counterpart); the auth plan's E2g (2026-10-25).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 
 @[expose] public section
 
@@ -22,26 +12,22 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`newTokenProviderNop()`**: a provider of any cluster's tokens (it accepts none). -/
-def newTokenProviderNop.spec : Prop :=
-  ∀ (γ : Cluster) (R : IProp GF),
+/-- `newTokenProviderNop()`: a fresh `*tokenNop`, and no error. -/
+abbrev auth.newTokenProviderNop.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }}
     (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderNop)) (Val #()))
-  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); ⌜err = GoInterface.nil⌝ ∗
-      tokenProviderAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenNop.ty) #p) γ R true }}
+  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); ⌜err = GoInterface.nil⌝ }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

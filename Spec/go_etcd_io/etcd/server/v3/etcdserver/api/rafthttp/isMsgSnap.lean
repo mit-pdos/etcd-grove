@@ -1,19 +1,9 @@
 /-
-## `isMsgSnap(m)`
-
-**Users.** `peer.send`, `peer.pick`, `pipeline.handle`, `Transport.Send`.
-
-**Proof sketch.** `GetType` (raftpb's getter, 3h).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`isMsgSnap` (`peer.go`; rafthttp stage 4d). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 
 @[expose] public section
 
@@ -21,26 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether the message is a `MsgSnap`. -/
-def isMsgSnap.spec : Prop :=
-  ∀ (ml : Loc) (dq : DFrac) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ msgPts ml dq m }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.isMsgSnap)) (Val #ml))
-  {{ RET #(decide (m.type = MsgSnap)); msgPts ml dq m }}
+/-- `isMsgSnap(m)`: whether `m` is a `MsgSnap`. -/
+abbrev rafthttp.isMsgSnap.spec : Prop :=
+  ∀ (ml : Loc) (st : MsgSt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      msgOwn ml DFrac.discard st }}
+    (App (Val (@! rafthttp.isMsgSnap)) (Val #ml))
+  {{ RET #(decide (st.msg.Type' = MsgSnap)); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,34 +1,22 @@
 /-
-## `(*authStore).UserChangePassword(r)`
-
-**Users.** `applierV3backend.UserChangePassword` (`apply/backend.go:183`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
-
-**Proof sketch.** The user read; absent: `ErrUserNotFound`; a password-less user keeps none (W0's model too); else `selectPassword` (the request's `cred`); put, `commitRevision`, refresh, `invalidateUser`. The step's state, `storeNext` (the code's function of the request, its
-credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
-returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
-
-**Changes.** Restated over `admStep`; `ErrNoPasswordUser` ruled out by `authReqAt`. The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
-step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
-state `storeNext rq cred a` (was: every state the model allows).
-
-**Margin.** None.
+`authStore.UserChangePassword` (`server/auth/store.go`): the admin side (the auth plan's S4, 2026-10-24).
+Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (the
+write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,14 +25,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserChangePassword(r)`** by the writer, for a request `r` asking `.userChangePassword name pw`: the store moves
-to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
-(`admStep`) there, and the reply. -/
-def authStore.UserChangePassword.spec : Prop :=
-  ∀ (st r : Loc) (name pw : GoString) (cred : Bytes),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"UserChangePassword")) (Val #r)) (authReqAt r (.userChangePassword name pw) cred) st (.userChangePassword name pw) cred
+/-- **`as.UserChangePassword(r)`** for a request naming `name` (within bbolt's key bound: the
+rewritten record's key; a user of the name exists when it is written, so its key was accepted
+before, which the write contract does not record): the step
+`userChangePasswordF name` (`ErrUserNotFound`, or the record rewritten with the same roles and the
+revision bumped), or `ErrNoPasswordUser`. -/
+abbrev auth.authStore.UserChangePassword.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userChangePasswordReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userChangePasswordF name))⌝ ∗ capNextM M hs (stepOf (userChangePasswordF name)) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserChangePassword")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T ∗
+      respOk etcdserverpb.AuthUserChangePasswordResponse resp err ∗ adminOut M hs (stepOf (userChangePasswordF name)) (fun e => e = .noPasswordUser) err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

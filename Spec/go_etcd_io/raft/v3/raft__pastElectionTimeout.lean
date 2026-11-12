@@ -1,14 +1,7 @@
-/-
-## `raft.pastElectionTimeout` (internal)
-
-`tickElection`. Mirrors the code. **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
-`raft__pastElectionTimeout.lean`, over `NState`); round 1: the result is stated over the state.
--/
+/- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +9,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether the randomized election timeout passed. -/
-def raft.pastElectionTimeout.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"pastElectionTimeout")) (Val #()))
-  {{ (b : Bool), RET #b; raftOpen r γ id o ∗ ⌜b = decide (sint.Z o.randomizedElectionTimeout ≤ sint.Z o.electionElapsed)⌝ }}
+/-- `electionElapsed >= randomizedElectionTimeout`, two fields the abstraction does not
+track: some `bool`, the state unchanged. -/
+abbrev raft.pastElectionTimeout.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  -- (2026-10-14, stage B7 part 2) at any configuration (until then `ownRaftPhys cfg`)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"pastElectionTimeout")) (Val #()))
+  {{ (b : Bool), RET #b; ownRaftPhysCV c c.voters r id s }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

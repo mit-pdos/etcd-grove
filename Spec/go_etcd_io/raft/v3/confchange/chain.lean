@@ -1,16 +1,11 @@
 /-
-## `chain(chg, ops...)` (internal)
-
-**Users.** `Restore`. Each op (an `opSpec`, its model `F`, run once) on the changer whose tracker
-is the previous op's result, the frame `R` (what the closures read) passed through and given back on
-both exits; the models composed (`Carried` composes: a fresh `Progress` with its learner mark
-updated is fresh). Mirrors the code.
+`confchange.chain(chg, ops...)` runs the ops in order, each on the config and progress
+map the previous one returned. Lean-first (no Rocq counterpart); see
+`InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 
@@ -18,31 +13,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The ops in order, each on the previous one's result: the composed model's answer. -/
-def chain.spec : Prop :=
-  ∀ (chg : go_etcd_io.raft.v3.confchange.Changer) (m0 : Membership) (B : Base) (ops : GoSlice)
-    (dq : DFrac) (fs : List GoFunc) (Fs : List (Membership → Option Membership)) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ configOwn chg.Tracker'.Config' (DFrac.own 1) m0 ∗ progressMapOwn B.mp B.prs B.pv ∗
-      ⌜BaseOf chg B ∧ TrackerOk m0 B.pv ∧ m0.Valid⌝ ∗ ops ↦*{dq} fs ∗ R ∗
-      [∗list] f;F ∈ fs;Fs, opSpec f F R }}
-    (App (App (Val #(functions go_etcd_io.raft.v3.confchange.chain [])) (Val #chg)) (Val #ops))
-  {{ (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (err : GoInterface),
-      RET (PairV (PairV #cfg #trk) #err); ops ↦*{dq} fs ∗ R ∗
-      result B (Fs.foldlM (fun m F => F m) m0) cfg trk err }}
+/-- `chain` threads a (`Config`, progress map) pair through the ops: op `i` is called
+on `chg` with the pair in its tracker and must return a pair without error (`opSpec`,
+`InvConfchange.lean`); the result is the last pair, with `nil`. `I i` is the caller's
+invariant on the pair before op `i`; nothing is said of the pair after an op fails,
+because on this path no op does. -/
+abbrev confchange.chain.spec : Prop :=
+  ∀ (chg : confchange.Changer) (ops : GoSlice) (fs : List GoFunc) (dq : DFrac)
+    (I : Nat → tracker.Config → Loc → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ops ↦*{dq} fs ∗ I 0 chg.Tracker'.Config' chg.Tracker'.Progress' ∗
+      □ (∀ (i : Nat) (f : GoFunc), ⌜fs[i]? = some f⌝ -∗ opSpec f chg (I i) (I (i + 1))) }}
+    (App (App (Val #(functions confchange.chain [])) (Val #chg)) (Val #ops))
+  {{ (cfg : tracker.Config) (prs : Loc), RET (PairV (PairV #cfg #prs) #interface.nil);
+      ops ↦*{dq} fs ∗ I fs.length cfg prs }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

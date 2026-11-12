@@ -1,11 +1,9 @@
 /-
-`copyGetResponseMetadataOnly` (`util.go`): a fresh response with the cached one's header (copied),
-`More` and `Count`, no key-values. Called on cached responses only (`leaseKey.get`). Changes: over
-`cachedRespAt` (was `respOwn`).
+`copyGetResponseMetadataOnly(resp)` (`client/v3/leasing/util.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -13,26 +11,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-def copyGetResponseMetadataOnly.spec : Prop :=
-  ∀ (resp : Loc) (q : Qp) (m : RangeRespM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ cachedRespAt resp q m }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.leasing.copyGetResponseMetadataOnly)) (Val #resp))
-  {{ (ret : Loc), RET #ret; cachedRespAt resp q m ∗ rangeRespOwn ret (DFrac.own 1) { m with kvs := [] } }}
+/-- **`copyGetResponseMetadataOnly(resp)`** of the entry `e`'s response (read on any fraction): a
+fresh response with a copy of its header, its `More` and `Count`, and no key-values. -/
+abbrev copyGetResponseMetadataOnly.spec : Prop :=
+  ∀ (e : LeaseEntry) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ respOwn e dq }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.leasing.copyGetResponseMetadataOnly)) (Val #e.resp))
+  {{ (r : Loc), RET #r; respOwn e dq ∗ ⌜r ≠ null⌝ ∗ ∃ h : Loc,
+      structFieldRef etcdserverpb.RangeResponse go!"Header" r ↦ h ∗ hdrFull h e.hm ∗
+      structFieldRef etcdserverpb.RangeResponse go!"Kvs" r ↦ slice.nil ∗
+      structFieldRef etcdserverpb.RangeResponse go!"More" r ↦ e.more ∗
+      structFieldRef etcdserverpb.RangeResponse go!"Count" r ↦ e.count }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

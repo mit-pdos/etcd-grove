@@ -1,18 +1,10 @@
 /-
-## `schema.unsafeUpdateConsistentIndex(tx, index, term, allowDecreasing)` (internal)
-
-**Users.** `UnsafeUpdateConsistentIndex`, `UnsafeUpdateConsistentIndexForce`. **Proof sketch.** See
-`UnsafeUpdateConsistentIndex`; with `allowDecreasing` no read, and with `ETCD_VERIFY` off
-`verify.Verify` does not run its closure (no read either: integration, the wrapper's
-`verifyOff` branch has no `txRd` to give). **Changes.** From `specs-ref`'s
-`unsafeUpdateConsistentIndex.lean`.
+`schema.unsafeUpdateConsistentIndex(tx, index, term, allowDecreasing)`. Lean-first (no Rocq
+counterpart); see `InvCindex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 
 @[expose] public section
 
@@ -20,28 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- Writes the index and term (`ciPut`), checking the index does not decrease unless allowed. -/
-def unsafeUpdateConsistentIndex.spec : Prop :=
-  ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData) (i t : w64)
-    (allow : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.has .metaB ciKey ∧ S.has .metaB termKey⌝ ∗
-      ⌜i ≠ W64 0 → V .metaB = some m⌝ ∗
-      (⌜allow = true⌝ ∨ Verify.verifyOff ∨ (txRd tx S R ∗ ⌜i ≠ W64 0 → ciWf m⌝ ∗ ⌜i = W64 0 ∨ uint.Z (ciOf m).1 ≤ uint.Z i⌝)) }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex)) (Val #tx)) (Val #i)) (Val #t)) (Val #allow))
-  {{ RET #(); R (if i = W64 0 then V else V.set .metaB (ciPut m i t)) }}
+/-- `unsafeUpdateConsistentIndex(tx, index, term, allowDecreasing)` writes `index` (if not 0)
+and `term` (if not 0) to the meta keys of the batch transaction `tx`. Unless
+`allowDecreasing`, it first checks, under `ETCD_VERIFY`, that `index` is not below the stored
+index (`verify.Verify`, which panics otherwise): the precondition says the check passes. Each
+put spends its token (`PTi`, `PTt`; 2026-10-13). -/
+abbrev schema.unsafeUpdateConsistentIndex.spec : Prop :=
+  ∀ (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF) (m : MetaCI) (index term : w64)
+    (allowDecreasing : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt ∗
+      ⌜allowDecreasing = false → index ≠ W64 0 → uint.Z m.1 ≤ uint.Z index⌝ }}
+    (App (App (App (App (Val (@! schema.unsafeUpdateConsistentIndex)) (Val #(GoInterface.ok tx)))
+      (Val #index)) (Val #term)) (Val #allowDecreasing))
+  {{ RET #(); TM (metaAfterSave m index term) }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

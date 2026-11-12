@@ -1,5 +1,5 @@
 // Package grpc holds the requirement snippets of the gRPC boundary (batch 2a,
-// Spec/google_golang_org/grpc/Api.lean): what etcd's client and server rely on of grpc-go, each
+// SpecPlan/Spec/google_golang_org/grpc/Api.lean): what etcd's client and server rely on of grpc-go, each
 // reliance an explicit panic.
 //
 // Common assumptions: cc is a connection made by grpc.NewClient whose resolver reports only

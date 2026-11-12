@@ -1,23 +1,7 @@
-/-
-## `MakeProgressTracker(maxInflight, maxBytes)`
-
-**Users.** `newRaft` (`raft.go:456`, then `Restore`), `appliedSnap` (`raft.go:775`): R2; the
-examples' pre-check (`examples/raft/kvreconf/kv.go:223`). Snippet `raftconf/confchange.go`
-(`ReqApplyLikeRaft`).
-
-**Proof sketch.** The literal: an allocated empty incoming map, `nil` elsewhere, empty votes and
-progress maps: the empty configuration in canonical form, valid; `TrackerOk` of empty maps.
-
-**Changes** (from `specs-ref`'s `tracker/MakeProgressTracker.lean`): as `trackerOwn` at the empty
-model (was the field values spelled out).
-
-**Margin.** None.
--/
+/- Port of election_proof/spec_MakeProgressTracker.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -25,28 +9,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A tracker of the empty configuration, no peer, no vote. -/
-def MakeProgressTracker.spec : Prop :=
-  ∀ (mi mb : w64),
+/-- `MakeProgressTracker` builds the **empty** tracker: fresh, empty `Votes` and
+`Progress` maps, a joint configuration `[MajorityConfig{}, nil]` and nil learner sets.
+
+This is not `ownTracker`: that predicate is for a tracker over a non-empty voter set
+`cfg` (`Hcfg_ne`), and the empty tracker has none. `newRaft` never uses it as a
+tracker -- it only hands it to `confchange.Restore` as the starting point, and then
+`switchToConfig` overwrites its `Config` and `Progress` -- so its postcondition is the
+raw pieces `Restore` reads and `ownTracker` later needs (`Votes`). -/
+abbrev tracker.MakeProgressTracker.spec : Prop :=
+  ∀ (maxInflight maxBytes : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker }}
-    (App (App (Val #(functions go_etcd_io.raft.v3.tracker.MakeProgressTracker [])) (Val #mi))
-      (Val #mb))
-  {{ (tv : go_etcd_io.raft.v3.tracker.ProgressTracker), RET #tv;
-      trackerOwn tv ⟨Membership.empty, ∅, ∅, ∅, mi, mb⟩ }}
+    (App (App (Val #(functions tracker.MakeProgressTracker [])) (Val #maxInflight))
+      (Val #maxBytes))
+  {{ (tv : tracker.ProgressTracker) (v0 : Loc), RET #tv;
+      ⌜tv.MaxInflight' = maxInflight ∧
+        tv.MaxInflightBytes' = maxBytes ∧
+        tv.Config'.Voters'.arr = [v0, map.nil] ∧
+        tv.Config'.Learners' = map.nil ∧
+        tv.Config'.LearnersNext' = map.nil ∧
+        tv.Config'.AutoLeave' = false⌝ ∗
+      v0 ↦$ (∅ : GMap w64 Unit) ∗
+      tv.Votes' ↦$ (∅ : GMap w64 Bool) ∗
+      tv.Progress' ↦$ (∅ : GMap w64 Loc) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

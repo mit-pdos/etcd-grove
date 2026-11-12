@@ -1,26 +1,10 @@
 /-
-`recipe.claimFirstKey(kv, kvs)` (`client.go`): try `deleteRevKey` on each key-value in order; return
-the first one deleted, `nil` if every one was gone (or rewritten), or the first error.
-
-**Users**: `Queue.Dequeue`, `PriorityQueue.Dequeue` (with the one key-value their `Get` returned).
-Internal: the spec mirrors the code.
-
-**Proof sketch**: a loop over `kvs` carrying the caller's update. For element `m` (`keyValueOwn`:
-its key and mod revision), `deleteRevKey.spec` with an update built from the caller's: open it
-(`etcdState γ σ`); `etcdLb_reach` from `etcdLb γ σg` gives `Reach σg σ`; on the transaction's
-answer: success: the premise gives `P σ σ' m`, commit the caller's update (`Q σ σ' m`); a failed
-comparison or an etcd error (`σ' = σ`: `kvStep`'s error and empty-commit cases, a refusal): abort,
-keeping the caller's update for the next element (an etcd error returns it: `err = errVal e`). An
-indefinite error loses it (it may fire later). The loop's end: the update back, `nil`.
-
-**Changes**: old spec took the recipes' client invariant and an ordering certificate
-(`claimedBefore`); now the caller's update over any relation `P` its successful claims meet.
-
-**Margin**: the claimed element's index is not returned (its pointer is).
+`recipes.claimFirstKey(kv, kvs)` (`client/v3/experimental/recipes/client.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -28,42 +12,43 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`claimFirstKey(kv, kvs)`**: the first of `kvs` deleted at its mod revision (a step the caller's update `P` admits, given the premise), or `nil` with the update back. -/
-def claimFirstKey.spec : Prop :=
-  ∀ (kv : GoInterface) (γ : Cluster) (who : Principal) (sl : GoSlice) (ps : List Loc)
-    (ms : List KeyValueM) (σg : State) (P : State → State → KeyValueM → Prop)
-    (Q : State → State → KeyValueM → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ kvAt kv γ who ∗ sl ↦*□ ps ∗ ([∗list] p; m ∈ ps; ms, keyValueOwn p DFrac.discard m) ∗
-      etcdLb γ σg ∗
-      ⌜∀ σ σ' m res, Reach σg σ → m ∈ ms →
-        Step who (deleteRevReq m.key (sint.Z m.modRevision)) σ σ' res → txnSucceeded res →
-        P σ σ' m⌝ ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (m : KeyValueM), ⌜P σ σ' m⌝ ∗ etcdState γ σ', COMM Q σ σ' m }> }}
-    (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.claimFirstKey)) (Val #kv))
-      (Val #sl))
+/-- **`claimFirstKey(kv, kvs)`**, for a read-only slice of `*KeyValue`s `ps` holding `vs`
+(`kvPtrsAt`: a get response's), each a key under the prefix `pfx` of `kv`'s contracts with a
+positive mod revision, knowing etcd has reached `lo`: claims them in order (`deleteRevKey`) and
+* `(p, nil)`: `p` is the `i`-th, the first one claimed (`revKeyDeleted` at some `r ≥ lo`, with
+  the token of the revision `r`, `etcdRevToken`), each before it was gone at some revision at
+  least `lo` (`revKeyGone`);
+* `(nil, nil)`: every one was gone at some revision at least `lo`;
+* `(nil, err)` with an error. -/
+abbrev claimFirstKey.spec : Prop :=
+  ∀ (kv : GoInterfaceOk) (pfx : GoString) (sl : GoSlice) (ps : List Loc) (vs : List EtcdKv)
+    (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ sl ↦*□ ps ∗
+      kvPtrsAt ps vs ∗ ⌜∀ v ∈ vs, pfx <+: v.key ∧ 0 < sint.Z v.modRev ∧ v.key.length ≤ recipesStrMax⌝ }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.claimFirstKey))
+      (Val #(GoInterface.ok kv))) (Val #sl))
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (m : KeyValueM) (σ σ' : State),
-        ⌜ps[i]? = some p ∧ ms[i]? = some m⌝ ∗ Q σ σ' m) ∨
-      (⌜p = null ∧ (err = GoInterface.nil ∨ ∃ e, err = errVal e)⌝ ∗
-        AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-          <{ ∀∀ (σ' : State) (m : KeyValueM), ⌜P σ σ' m⌝ ∗ etcdState γ σ', COMM Q σ σ' m }>) ∨
-      (⌜p = null⌝ ∗ indefCall err) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ n : Nat, claimedBefore pfx lo vs n ∗
+        ((⌜p = null ∧ n = vs.length⌝) ∨
+         (∃ (v : EtcdKv) (r : w64), ⌜ps[n]? = some p ∧ vs[n]? = some v⌝ ∗ kvValAt p v ∗
+           etcdReached r ∗ revKeyDeleted pfx v.key v.modRev r ∗ etcdRevToken r ∗
+           ⌜sint.Z lo ≤ sint.Z r⌝))) ∨
+      ⌜err ≠ GoInterface.nil ∧ p = null⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

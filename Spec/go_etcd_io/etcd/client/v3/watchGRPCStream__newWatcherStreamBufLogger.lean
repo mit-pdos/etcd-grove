@@ -1,23 +1,22 @@
 /-
-`(*watchGRPCStream).newWatcherStreamBufLogger(ws, now)`: a `blockLogger` (`newBlockLogger.spec`) whose callback logs `ws`'s fields (`w.lg.Info`, zap). Users: `run` (with `time.Now`).
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.watchGRPCStream).newWatcherStreamBufLogger(ws, now)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +24,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `s.newWatcherStreamBufLogger(ws, now)`. -/
-def watchGRPCStream.newWatcherStreamBufLogger.spec : Prop :=
-  ∀ (s w ws : Loc) (γ : Cluster) (who : Principal) (wq : WatchReq) (now : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsAt s w γ who ∗ wsAt ws s γ who wq ∗ nowFuncOk now }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"newWatcherStreamBufLogger")) (Val #ws)) (Val #now))
-  {{ (bl : Loc), RET #bl; bufLoggerAt bl ws }}
+/-- `w.newWatcherStreamBufLogger(ws, now)` (a non-nil logger, `now` returning a time): a block
+logger whose log function reads the request's key, range end and revision and the buffer's
+length (`wsLogA`) and logs them. -/
+abbrev watchGRPCStream.newWatcherStreamBufLogger.spec : Prop :=
+  ∀ (wgs ws lg : Loc) (key ed : GoString) (nowf : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsF wgs go!"lg" ↦□ lg ∗
+      ⌜lg ≠ null⌝ ∗ wsReqF ws go!"key" ↦□ key ∗ wsReqF ws go!"end" ↦□ ed ∗
+      (□ ∀ Φ : val → IProp GF, ▷ (∀ t : _root_.Perennial.time.Time, Φ #t) -∗
+        WP (App (Val #nowf) (Val #())) {{ Φ }}) }}
+    (App (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"newWatcherStreamBufLogger")) (Val #ws)) (Val #nowf))
+  {{ (bl : Loc), RET #bl; isBlockLogger bl (wsLogA ws) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

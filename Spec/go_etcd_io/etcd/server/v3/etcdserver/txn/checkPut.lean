@@ -1,23 +1,23 @@
 /-
-`checkPut(trace, rv, lessor, p)` (`put.go`), internal (`checkTxn`): `checkLease`, then
-`checkAndGetPrevKV` (its error only); W0's `PutReq.check` at the view's current store. Old spec:
-over the log. Round 1: 3e's API (F4).
+`txn.checkPut` (put.go). Lean-first (no Rocq counterpart); see `Proof/.../etcdserver/txn/Write.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,21 +26,35 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `checkPut(trace, rv, le, p)` on an open transaction `k`: W0's `PutReq.check` at its current store
-and the writer's live leases. -/
-def checkPut.spec : Prop :=
-  ∀ (trace : Loc) (rv : GoInterface) (γ : Mvcc.MvccName) (k : Mvcc.MTxn) (p : Loc) (dq : DFrac)
-    (pm : PutReq) (leL : Loc) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ TraceUtil.traceOwn trace ∗ Mvcc.mvccTxn rv γ trace k ∗ Lease.isLessor leL γl c ∗
-      Lease.lessorState γl n ls ∗ putReqOwn p dq pm }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.checkPut)) (Val #trace)) (Val #rv)) (Val #(Lease.lessorIface leL))) (Val #p))
-  {{ (err : GoInterface), RET #err; TraceUtil.traceOwn trace ∗ Mvcc.mvccTxn rv γ trace k ∗
-      Lease.lessorState γl n ls ∗ putReqOwn p dq pm ∗
-      (match pm.check k.readHist.store ls.table with
-       | none => iprop(⌜err = GoInterface.nil⌝)
-       | some e => errIs err e) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `checkPut(trace, txnWrite, lessor, p)` at a transaction of either kind: the lease check
+(`ErrLeaseNotFound`), then `checkAndGetPrevKV`'s (`ErrKeyNotFound`).
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.)
+(The trace kept at `te`: `Trace.StepWithFunction` keeps the flag, decided by the coordinator,
+2026-11-05, superseding gap E.) -/
+
+abbrev txn.checkPut.spec : Prop :=
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (le : GoInterface)
+    (γl : GName) (p : Loc) (o : OpFull) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+  {{ pkgInit ∗ ⌜trace ≠ null⌝ ∗ mvcc.api.mvccTxn t γ trace k ∗ traceutil.ownTrace trace te ∗
+      ⌜txn.Reach k.state⌝ ∗ txn.putRequestIs p o ∗ txn.isTxnLessor le γl ∗
+      lease.lessorUser γl L I }}
+    (App (App (App (App (Val (@! txn.checkPut)) (Val #trace)) (Val #t)) (Val #le)) (Val #p))
+  {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace k ∗
+      traceutil.ownTrace trace te ∗
+      lease.lessorUser γl L I ∗
+      ((⌜err = GoInterface.nil ∧
+          (txn.needsPrev o = true → (mvcc.findKey o.key (txn.mstate k)).isSome)⌝ ∗
+          txn.leaseOk L o.leaseID) ∨
+       (⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L⌝ ∗
+          txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err) ∨
+       (⌜txn.needsPrev o = true ∧ mvcc.findKey o.key (txn.mstate k) = none⌝ ∗
+          txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err)) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

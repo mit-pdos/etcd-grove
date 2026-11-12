@@ -1,13 +1,10 @@
 /-
-## `(*ServerConfig).ElectionTimeout()` (`config.go:316-329`)
-
-**Users.** the transport, the lease checkpointer. **Proof sketch.** Two field reads, Go's wrapping arithmetic. **Changes**: from
-`specs-ref`'s `ServerConfig__ElectionTimeout.lean` (post `True`): the value is stated, as Go computes it.
-**Margin.** Exact.
+`config.ServerConfig.ElectionTimeout` (`config.go`: a duration computed from two fields).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.config.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 
 @[expose] public section
 
@@ -15,26 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Config
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 go_etcd_io.etcd.pkg.v3 go_uber_org
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`ElectionTimeout()`**: the configuration's value, Go's wrapping arithmetic. -/
-def ServerConfig.ElectionTimeout.spec : Prop :=
-  ∀ (c : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
-  {{ (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ElectionTicks" c) cfg.ElectionTicks' DFrac.discard ∗ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" c) cfg.TickMs' DFrac.discard : IProp GF) }}
+/-- `c.ElectionTimeout()` (`c.ElectionTicks` and `c.TickMs` read-only, as the server's `Cfg`
+is) returns some duration. -/
+abbrev config.ServerConfig.ElectionTimeout.spec : Prop :=
+  ∀ (c : Loc) (et tm : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config ∗
+      cfgElectionTicksAddr c ↦□ et ∗ cfgTickMsAddr c ↦□ tm }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.config.ServerConfig.ty @!! go!"ElectionTimeout")) (Val #()))
-  {{ RET #(Config.electionTimeoutOf cfg); True }}
+  {{ (d : w64), RET #d; True }}
 
 end spec
 
-end Config
 end EtcdGrove
 end Perennial

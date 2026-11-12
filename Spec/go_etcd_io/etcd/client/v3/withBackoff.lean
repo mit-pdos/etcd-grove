@@ -1,17 +1,10 @@
 /-
-`clientv3.withBackoff` (`client/v3/retry_interceptor.go`).
-
-Users: `dialSetupOpts`.
-
-Proof sketch: a `retryOption` whose closure stores the function (`backoffOk`).
-
-Changes: new (no old spec).
-
-Margin: none.
+`withBackoff(bf)` (`client/v3/retry_interceptor.go`; unit P3a). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 
 @[expose] public section
 
@@ -19,10 +12,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk backoffOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,15 +23,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `withBackoff(f)`: its retry option. -/
-def withBackoff.spec : Prop :=
-  ∀ (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ backoffOk f }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.withBackoff)) (Val #f))
-  {{ (v : go_etcd_io.etcd.client.v3.retryOption), RET #v; backoffOptAt v }}
+/-- `withBackoff(bf)` of a backoff function that returns (`backoffOk`) returns a `retryOption`
+whose closure writes `backoffFunc` (`optApplyOk`). -/
+abbrev withBackoff.spec : Prop :=
+  ∀ (bf : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ backoffOk bf }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.withBackoff)) (Val #bf))
+  {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; optApplyKeep ro.applyFunc' true }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

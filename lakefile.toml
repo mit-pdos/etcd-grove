@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "Bbolt"]
+defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -27,6 +27,23 @@ rev = "ddc0f0acc59a5730ad109be9ecfc4a485dcc4ea0"
 name = "EtcdGrove"
 globs = ["Code.+", "TrustedCode.+", "GeneratedProof.+", "ManualProof.+", "Spec.+", "Proof.+",
          "GooseLang.+"]
+
+# The witness experiment (notes/raft-witness.md): raft with witness support (a candidate for
+# etcd-io/raft#133) and the key-value store on it, in a parallel tree with the same layout
+# (RaftWitness/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/, translated by
+# etc/goose.py's projects raft-witness and kvwitness). It imports the main tree, but not its raft
+# or kv, and nothing outside it imports it: its modules declare the main raft's names.
+[[lean_lib]]
+name = "RaftWitness"
+globs = ["RaftWitness.+"]
+
+# porcupine's pull request #46 (the DAG search; notes/porcupine-dag-plan.md), vendored in
+# third_party/porcupine-dag and translated by etc/goose.py's project porcupine-dag into a parallel
+# tree with the same layout (PorcupineDag/{Code,GeneratedProof,Spec,Proof}/): the Go path is
+# v1.3.1's, so its modules declare the main porcupine's names; nothing outside it imports it.
+[[lean_lib]]
+name = "PorcupineDag"
+globs = ["PorcupineDag.+"]
 
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest

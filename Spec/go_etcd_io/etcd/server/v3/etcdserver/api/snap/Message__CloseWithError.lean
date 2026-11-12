@@ -1,16 +1,17 @@
 /-
-## `(*Message).CloseWithError(err)` (`message.go:57-66`): trusted (names only)
-
-**Users.** rafthttp's snapshot sender (2f), once per message. **Why it is true.** The reader's
-`Close` (once: `msgClose`), then one send on the buffered channel (never blocks). **Changes** (from
-`specs-ref`'s `Message__CloseWithError.lean`): the once-only close (the sweep's B3-3).
-**Margin.** None.
+`m.CloseWithError(err)` (`etcdserver/api/snap/message.go`; names only; rafthttp stage 7b, D42,
+2026-10-24, **D22's interface**: settled by the user for the D22 owner, 2026-10-25, D42): closes
+the message's reader and sends `err == nil` on its `closeC` (`NewMessage`'s channel, of one slot,
+whose receives carry nothing: `isChanBag` at `True`; a second send would block, which a partial
+correctness spec allows). The snapshot sender calls it once, after its post, from `send`'s
+`defer`. True of every `msgIs` because only `NewMessage` makes it, of a reader whose `Close`
+returns (`io.rcCloseOk`, its premise; sweep repairs 1, S1, 2026-11-08). The trust boundary (an axiom once the sender's proof uses it, stage 7d). Lean-first (no
+Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Api
-public import Spec.go_uber_org.zap.Api
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 @[expose] public section
 
@@ -18,26 +19,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Snap
 
-open Iris Iris.BI
+open Iris Iris.BI snap
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
-/-- **Closes the message's reader** and notifies. -/
-def Message.CloseWithError.spec : Prop :=
-  ∀ (p : Loc) (to tot : w64) (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗ isMessage p to tot ∗ msgClose p }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty @!! go!"CloseWithError")) (Val #err))
+/-- `m.CloseWithError(err)` of a merged message (see the file header): returns. -/
+abbrev snap.Message.CloseWithError.spec : Prop :=
+  ∀ (m ml : Loc) (rc err : GoInterface),
+  {{ msgIs (GF := GF) m ml rc }}
+    (App (Val (m @!! go.GoType.PointerType
+        _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty @!!
+        go!"CloseWithError")) (Val #err))
   {{ RET #(); True }}
 
 end spec
 
-end Snap
 end EtcdGrove
 end Perennial

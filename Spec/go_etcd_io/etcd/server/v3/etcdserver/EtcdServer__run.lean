@@ -1,74 +1,14 @@
 /-
-`(*EtcdServer).run()` (`server.go:752-853`): the apply loop, a goroutine (`start`'s `go s.run()`).
-
-**Users**: `EtcdServer.start` (`server.go:604`, batch 2e: `srvRunTok_intro` from the pieces its
-`srvBuilt` holds). Snippets `examples/specreq/etcdserverapply/apply.go` (`ReqWriteAnswered`,
-`ReqReadAfterApplyWait`), `restart.go` (`ReqRestartContinues`, `ReqCrashKeepsAnswered`),
-`raftnode.go` (`ReqRemovedSelfStops`).
-
-**Proof sketch**. `srvRunTok s γ id ds` (`srvRunTok_intro`): the driver at `s.r` with `rnLoop`,
-`rnStopper` and the cursor `applycPos (s.r) p₀.appliedi` (the node's delivered start: `Applied = 0`,
-the `MemoryStorage` snapshot's index), `applyInit s γ p₀ c₀` (the backend's state machine at its
-consistent index `c₀ ≥ p₀.appliedi`), 2e's `srvClosers s ds`; `srvStarted` gives the channels.
-1. `s.r.raftStorage.Snapshot()`: R1's `MemoryStorage.Snapshot.spec` through `isRaftNode_storage` and
-   `stor_read` (the stored snapshot empty or valid); a `MemoryStorage` never returns
-   `ErrSnapshotTemporarilyUnavailable`. Its `ConfState` non-nil (the storage stores what it is
-   given; bootstrap's from the backend): `panic("empty confstate")` unreachable.
-2. `schedule.NewFIFOScheduler(lg)` (`Schedule.NewFIFOScheduler.spec`, `Pay := True`).
-3. The ready handler `rh`: four closures over `s`'s atomics (`readyHandlerOk rh s γ`, the writers
-   `readyHandlerTok rh` from `srvNode`'s atomics' writers); `updateLeadership` calls the lessor's
-   `Demote` and the compactor's `Pause`/`Resume` (3c's, 2e's), `leaderChanged.Notify()` (2c's).
-4. `s.r.start(rh)` (`raftNode.start.spec`).
-5. `ep` allocated from `sn` (`applyInit_ep`: `applyThread s γ ep p₀`). The scheduler's chain end is
-   `schedTail γs (∃ p, applyThread s γ ep p ∗ ⌜p.appliedi = k⌝)` where `applycPos (s.r) k` is held
-   by the loop (round 1, F2).
-6. The loop: on `applyc` (`applyc_recv` with the cursor): a batch with `B.prev = k`, the cursor at
-   `B.last`; schedule `applyAll(&ep, &ap)` (`Schedule.NewJob.spec` with `funcOk` from
-   `EtcdServer.applyAll.spec`: pre the chain end at `k = B.prev`, post at `B.last`). On
-   `expiredLeaseC` (3c's `expiredCh`: a slice of expired leases, delivered only when
-   `γ.cfg.leaseExpiry`): `revokeExpiredLeases.spec`. On `errorc` (`srvNode_errorc`: 2f's
-   `errChanOk`; the transport's critical errors, `stopWithDelay`'s "removed" error): log, return.
-   On `s.stop` (2e's stop request): return.
-7. The deferred shutdown: close `stopping`; `cancel()`; `sched.Stop()` (`□ True`) gives back the
-   chain's end, the apply thread's last state: every scheduled apply is done, so no conf change or
-   snapshot touches the transport after the driver stops it (2f's `trRunning`); `s.wg.Wait()` (the
-   attached goroutines' resources back); `s.r.stop()` (`raftNode.stop.spec`: `rnStopped`);
-   `srvStopped s γ id ds` is assembled from `rnStopped` (the WAL's durable half, the node's
-   vacancy) and the apply thread's last state (the backend's commit point); `Cleanup()` (2e's: from
-   `srvClosers s ds`, `srvClosed ds`); `close(done)` deposits `srvStopped s γ id ds ∗ srvClosed ds`
-   in the escrow 2e's `srvRunning` claims (`srvStopped_disk`: 2e's `memberDisk γ.etcd id ds`).
-
-**K4-K6 through this loop**: every entry is applied in log order, after raft committed it, by the
-FIFO chain; the history is the cluster's (`histAt`), so a member's restart (from `memberDisk`) or a
-snapshot install continues it.
-
-**Changes** from `specs-ref`'s `EtcdServer.run.spec`: one opaque `srvRunTok` in place of
-`isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvStopReq ...) (srvDoneInv ...)`
-(19 parameters); no auth-mode component, no receipt bound (`etcdState_revFits` is the cluster's,
-W0's K7), **no restart premises** (the eight R2d'a premises, two of them found false: a restart is
-a start whose `srvRunTok` 2e builds from the member's durable state, with the backend ahead of the
-WAL allowed, `c₀ ≥ p₀.appliedi`, and no window token); no `σ.b = 0` scope (any snapshot). Round 1:
-the directories `ds` (the stop's deposit is 2e's `memberDisk`), the `applyc` cursor, `errorc`.
-
-**Margin**: none (a goroutine; the stop's deposit is in `srvStarted`'s `done` protocol).
-
-**Scope** (verify round, A8-provability F3; a decision for the user): the `errorc` arm (a member
-that applied its own removal, `stopWithDelay`; rafthttp's critical errors) runs the shutdown and
-`Cleanup` while request-path calls may hold `srvGate` shares, closing the backend under their reads
-(`issues/etcd-read-after-backend-close-panic.md`). No proof of this spec closes on that arm as the
-gate stands: either the fork's gate in the Go code (reads take it shared, `Cleanup` exclusively,
-later reads fail with `ErrStopped`: 2e's Q7 option), or a scope premise that the program's
-request-path calls are drained before a self-stop, which no serving program can establish. Also
-(A10-completeness O1) no hash runs during a snapshot install (`applySnapshot`'s scope).
-
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). The `srvMember` that `Logger` takes comes from `srvNode_member`.
+`(*EtcdServer).run()` (`server.go`), translated with its body: the apply loop over the raft
+wrapper's `applyc`, with the FIFO scheduler, the ready handler and the shutdown. Lean-first (the
+request path's unit 4c, 2026-10-13); see `InvRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 
 @[expose] public section
 
@@ -76,9 +16,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -86,19 +25,81 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The apply loop**: runs until stopped; its shutdown deposits what the stopped member leaves
-(`srvStopped`, with `Cleanup`'s `srvClosed`) where the stop right (2e's) claims it. -/
-def EtcdServer.run.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs),
+/-- **`s.run()`**, the server's apply loop (a goroutine body: `start`'s `go s.run()`), in both auth
+modes (the auth component's stage 2, 2026-11-04): with what `isServerRunC` lists in the component
+`C`, the environment's (and the receipts' bound, R6, 2026-11-07: in both modes, `applyAll`'s since
+strict M1, the log's smallness coming from the writer's receipt; until then `acReceiptOk`, with
+auth on only), it starts the raft
+wrapper's loop, then receives each batch of committed entries raft hands it (`applyc`) and
+schedules its `applyAll` on a FIFO scheduler, the apply thread's resources flowing from job to job.
+The write budget is the receipt-backed `srvWTPool E` (D19b), from which `apply` takes one token per
+entry. Its exit `errorc` is never taken in the runs covered (D19m: nothing is sent on it,
+`srvRunFieldsAt`'s bag with predicate `False`). On `stop` it receives stop requests (`srvStopReq`,
+what `HardStop` sends: the evidence that the bootstrap log was applied, `srvBootApplied`; the stop's
+scope, `srvStop.scope`; the data directory `dd`, `srvDataDir`; the store's readers of the serving
+stocks); on one it returns and its deferred shutdown runs: `close(stopping)`, `cancel()`,
+`sched.Stop()` (the pending `applyAll` jobs run, the last one's post `applyRes` at the log handed to
+the apply thread), `s.wg.Wait()`, `s.r.stop()` (`raftNode.stop.spec`, with the stop's slot that
+`isServerRunC` carries, `srvStop.slot`), `Cleanup()` (the backend closed), and `close(done)`, which
+announces the image of member `γn.id`'s data directory `dd` at the request names `ρ`, escrowed for
+the stop right's claim `c` (`srvDoneInv`).
+
+One spec (R2c-4, the R2b-2 review's F4; until then `spec`, whose callers never stopped the server,
+with `done` announcing `True` and no request ever sent, and the draft `specStop`, with the shutdown's
+resources and the scope as premises). The `errorc` path stays closed.
+
+**Scope** (R2d'a swap batch 5, 2026-11-07: one spec for a first start and a restart, through
+`isServerRunC`'s `srvRunRestartR`, which a first start gives, `srvRunRestartR_first`): `σ.b = 0`
+only, a restart before the WAL's first snapshot (`ai₀ = 0`, `γn.pre = []`): the backend's ghost log
+`A₀ = γn.a0` is replayed through the window `(0, |A₀|]` (a first start is `A₀ = []`). `σ.b > 0` is
+R2d'b's.
+
+**The eight restart-only premises** (`notes/restart-plan.md`, "R2d'a restart-only premises"; each
+proved or vacuous at a first start; the producers of 2-8 are in the table, R2s removes 1):
+* `srvWinPend` (`isServerRunC`'s `Hwpend`, A7): no merged snapshot sent at a new raft term while the
+  replay window is pending. **False whenever the restarted member is later elected and snapshots a
+  follower** (its `n` is free and its token never consumed; corrected 2026-11-07); R2d'b restates
+  it, R2s removes it (by following the merged snapshot in the ghost).
+* `rnWinInstallAbove` (`rnRestartOk`'s, `isRaftNode`): a snapshot a `Ready` installs inside the
+  window is above the backend's log.
+* `rnWalCommitAbove` (`rnRestartOk`'s): the WAL's stored commit is at least `|a0|`. **False at the
+  start of most restarts** (its `σ` is any `StorageHolds` allows, down to `S.wcommit`; corrected
+  2026-11-07), so the restart meaning of this spec is vacuous until R2d'b restates it (Q31); a first
+  start is unaffected (`notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)").
+* `rnSnapTermAbove` (`rnRestartOk`'s): every `MsgSnap` a `Ready` carries has a term above the
+  incarnation's start term.
+* raft's commit at the start `≥ |a0|`: no Lean conjunct of its own, the restart fact from which
+  `rnWalCommitAbove` and (with raft's) `rnWinInstallAbove` follow (R2d'b's `RestartNode`).
+* `ai₀ + |A₀| + 1 < 2^64` (`srvRunRestartR`'s): room past the replayed log.
+* every entry of `A₀` has `typ` 0 or 1 (`EntryNormal`/`EntryConfChange`, no `EntryConfChangeV2`;
+  `srvRunRestartR`'s): etcd proposes only v1 `ConfChange`s (`configure`'s `ProposeConfChange`).
+* `srvRLogLb γ.srv γ.a0` (`rnRestartOk`'s restart disjunct): the backend's log `A₀` is
+  cluster-committed.
+
+**Vacuity** (2026-11-07): every `_safe` result currently rests on `pbEnc_ok`, which proves `False`
+(lean `cffe36ea9d`, `notes/pbenc-ok-inconsistent.md`), and on the refuted grpc message-model axioms
+(`notes/grpc-msg-models.md`), so the results over this spec at a restart are vacuous until the
+per-type fix lands. What it rests
+on: the stop branch rests on the three axioms of the image's configuration (`apply.memberKey_inj`,
+`apply.memberEnc_id_learner`, `membership.membersOf_decode`, through `stop_imageConf`), so every result
+over `run` does, including those whose callers never stop the server (approved by the user,
+2026-11-06). (revoke-open, 2026-11-06, Q8 (a)) `run` holds a thread token, which it returns
+(`start` forks it with `wp_fork_tok_body`): its expiry arm starts goroutines whose reader slots are
+backed by it (`isServerRunC`'s `#Hrvk`). -/
+abbrev EtcdServer.run.spec : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
+    (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvStarted s γ id ∗ srvRunTok s γ id ds ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"run")) (Val #()))
+      ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
+      isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvStopReq s E ρ dd)
+        (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗ threadTok }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); threadTok }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

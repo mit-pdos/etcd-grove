@@ -1,13 +1,13 @@
 /-
-## `Inflights.reset()` (internal)
+Port of `election_proof/spec_Inflights__reset.v` (feb5c73d4).
 
-**Users.** `Progress.ResetState`. Mirrors the code: the ring emptied.
+Lean notes: `inflights.t` is `Inflights`, `own_Inflights` is `ownInflights` (the
+record-indexed predicate), `inflights_reset` is `inflightsReset` (`Defs.lean`);
+Rocq's `Inflights__resetⁱᵐᵖˡ` is `tracker.Inflights.reset.impl`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -15,26 +15,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Empties the ring. -/
-def Inflights.reset.spec : Prop :=
-  ∀ (p : Loc) (I : InflightsV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ inflightsOwn p I }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Inflights.ty @!! go!"go.etcd.io/raft/v3/tracker.reset")) (Val #()))
-  {{ RET #(); inflightsOwn p { I with items := [] } }}
+/-- `in.reset()` (`tracker.Inflights.reset.impl`, Rocq
+new/code/go_etcd_io/raft/v3/tracker.v): `in.start = 0; in.count = 0; in.bytes = 0`.
+Called by `Progress.ResetState`, on the way to `BecomeReplicate` and friends.
+
+Stated on `ownInflights` at the exact new record, `inflightsReset i` (`Defs.lean`);
+`start` is internal. The ring-buffer invariant survives: `start` and `count` go to `0`
+and the buffer is untouched. (Until 2026-10-02 stated on `ownInflightsRaw` at the
+Goose value; until 2026-09-23 on the raw field points-to.) -/
+abbrev tracker.Inflights.reset.spec : Prop :=
+  ∀ (l : Loc) (i : Inflights),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownInflights l i }}
+    (App (Val (l @!! go.GoType.PointerType tracker.Inflights.ty @!! go!"reset")) (Val #()))
+  {{ RET #(); ownInflights l (inflightsReset i) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

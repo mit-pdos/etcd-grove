@@ -1,7 +1,7 @@
 # Verification round, area A2 (client watch, lease, lifecycle): provability
 
 Reviewer: independent provability check (2026-11-09), worktree `specs-only` at `1aa6fc1337`.
-Scope: `Spec/go_etcd_io/etcd/client/v3/` (watch: `ApiWatch.lean`, `WatchInternal.lean`, `watcher__*`,
+Scope: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/` (watch: `ApiWatch.lean`, `WatchInternal.lean`, `watcher__*`,
 `watchGRPCStream__*`, `watcherStream__*`, `WatchResponse__*`, `NewWatcher`, `NewWatchFromWatchClient`,
 `Client__Watch`/`RequestProgress`, `ensureWatchHeader`, `valCtx__*`, `streamKeyFromCtx`, the `toPB`s,
 the block logger; lease: `ApiLease.lean`, `lessor__*`, `keepAlive__close`, `NewLease*`,

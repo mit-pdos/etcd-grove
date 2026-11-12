@@ -1,17 +1,12 @@
 /-
-`transport.IsClosedConnError` (`client/pkg/v3/transport/listener_tls.go`).
-
-Users: the server's listeners (2e, 2f).
-
-Proof sketch: `err.Error()` (`errStrOk`), `strings.Contains`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/pkg/v3/transport/IsClosedConnError.lean`.
-
-Margin: the result is not described.
+`transport.IsClosedConnError`: the trust boundary (`go.etcd.io/etcd/client/pkg/v3/transport` is
+names-only; rafthttp stage 5c, the stream reader's `run`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.pkg.v3.transport.Api
+public import Proof.net.http.Boundary
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.transport
 
 @[expose] public section
 
@@ -19,26 +14,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Transport
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.client.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
-/-- `IsClosedConnError(err)`: no panic. -/
-def IsClosedConnError.spec : Prop :=
+/-- `transport.IsClosedConnError(err)` (`listener.go`: `err != nil && strings.Contains(err.Error(),
+"closed")`) of an error whose `Error()` returns: some `bool`. -/
+abbrev transport.IsClosedConnError.spec : Prop :=
   ∀ (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport ∗ errStrOk err }}
-    (App (Val (@! go_etcd_io.etcd.client.pkg.v3.transport.IsClosedConnError)) (Val #err))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport ∗
+      http.errStrOk err }}
+    (App (Val (@! transport.IsClosedConnError)) (Val #err))
   {{ (b : Bool), RET #b; True }}
 
 end spec
 
-end Transport
 end EtcdGrove
 end Perennial

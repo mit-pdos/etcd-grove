@@ -1,13 +1,7 @@
 /-
-`tx.Size()` (`tx.go`): `int64(tx.meta.Pgid()) * int64(tx.db.pageSize)`, the database's size as of
-the transaction.
-
-**Users.** `backend.Snapshot` (`backend.go:392`, the snapshot's size), defrag (`:603`). Snippet:
-`ReqSnapshot`. **Proof sketch.** The transaction's meta's high-water mark times `4096`: the
-mapping covers `hwm` pages and is at most `maxMapSize = 2 ^ 48 - 1` bytes (`mmapSize` refuses more:
-an error of the commit that would grow past it), so the product is below `2 ^ 48`.
-**Changes.** Strengthened: the size is `txSize`'s (`boltTx_size`: below `2 ^ 48`, 2d's need of
-`[0, 2 ^ 62)`; `WriteTo`'s image length: 4a's item 7, the maintenance service's `RemainingBytes`).
+`Tx.Size` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/Tx__Size.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -19,26 +13,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.Size()`: the transaction's size `n` (`txSize`: below `2 ^ 48`, `WriteTo`'s length). -/
-def Tx.Size.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (n : w64),
-  {{ boltTx (GF := GF) tx γ q T ∗ txSize tx n }}
+/-- `tx.Size()`: the database's size as the transaction sees it (some value). -/
+abbrev Tx.Size.spec : Prop :=
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView),
+  {{ boltTx (GF := GF) tx γ q T }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Size")) (Val #()))
-  {{ RET #n; boltTx tx γ q T }}
+  {{ (n : w64), RET #n; boltTx tx γ q T }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

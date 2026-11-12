@@ -1,13 +1,9 @@
 /-
-`realClock.NewTimer` (`cache/*.go`), an internal helper.
-Users: `New` (the cache's clock), via the `Clock` bundle (`clockOk`).
-Proof sketch: Perennial's `time.NewTimer`, boxed in a `*realTimer`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`realClock.NewTimer(d)` (`cache/clock.go`). Lean-first (no Rocq counterpart); see `InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -15,27 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `realClock{}.NewTimer(d)`: a timer. -/
-def realClock.NewTimer.spec : Prop :=
-  ∀ (rc : go_etcd_io.etcd.cache.v3.realClock) (d : time.Duration),
+/-- `rc.NewTimer(d)`: a `Timer` (`isTimer`): a `*realTimer` wrapping `time.NewTimer(d)`. So the
+real clock is a `Clock` (`isClock`, `isClock_realClock`). -/
+abbrev realClock.NewTimer.spec : Prop :=
+  ∀ (rc : realClock) (d : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 }}
-    (App (Val (rc @!! go_etcd_io.etcd.cache.v3.realClock.ty @!! go!"NewTimer")) (Val #d))
-  {{ (tm : GoInterface), RET #tm; timerOk tm }}
+    (App (Val (rc @!! realClock.ty @!! go!"NewTimer")) (Val #d))
+  {{ (t : GoInterfaceOk), RET #(GoInterface.ok t); isTimer t }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

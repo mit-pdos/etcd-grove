@@ -1,17 +1,9 @@
 /-
-## `WarnOfFailedRequest(lg, now, reqStringer, respMsg, err)` (`util.go`, names-only)
-
-**Users.** The uber-applier's `dispatch` (`apply/uber_applier.go:101`, on an error). Snippet: none.
-
-**Proof sketch.** Trust boundary, as `WarnOfExpensiveRequest`: `isNil`, `proto.Size`, `lg.Warn`.
-
-**Changes.** As `WarnOfExpensiveRequest` (second pass: `stringerAt`, given back). **Margin.** None.
+`txn.WarnOfFailedRequest`: the trust boundary (the txn package's `util.go` is names-only (`isNil` uses reflect)). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 
 @[expose] public section
 
@@ -19,26 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI 
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `WarnOfFailedRequest(...)` with a stringer and a sizeable response: returns. -/
-def WarnOfFailedRequest.spec : Prop :=
-  ∀ (lg : Loc) (now : time.Time) (req msg : GoInterface) (o : Option (DFrac × Proto.Content))
-    (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ EtcdServerPb.stringerAt req ∗ msgOpt msg o }}
-    (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest)) (Val #lg)) (Val #now)) (Val #req)) (Val #msg)) (Val #err))
-  {{ RET #(); EtcdServerPb.stringerAt req ∗ msgOpt msg o }}
+/-- `WarnOfFailedRequest(lg, now, req, resp, err)` logs the failure: it returns. The logger and
+the stringer as `WarnOfExpensiveRequest`'s (audit B4b, 2026-10-18). -/
+abbrev txn.WarnOfFailedRequest.spec : Prop :=
+  ∀ (lg : Loc) (now : time.Time) (req resp err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜lg ≠ null⌝ ∗
+      (∃ (sp p : Loc), ⌜req = interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer.ty) #sp ∧ p ≠ null⌝ ∗
+        sp ↦ (go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer.mk p)) }}
+    (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest)) (Val #lg)) (Val #now))
+      (Val #req)) (Val #resp)) (Val #err))
+  {{ RET #(); True }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

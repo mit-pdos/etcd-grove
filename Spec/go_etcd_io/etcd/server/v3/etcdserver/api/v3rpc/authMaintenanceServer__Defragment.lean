@@ -1,45 +1,51 @@
 /-
-`authMaintenanceServer.Defragment` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.Maintenance/Defragment` (the generated `_Maintenance_Defragment_Handler`, 3h,
-registered by `v3rpc.Server`); 1c's `Maint.methods` through grpc (`examples/specreq/clientv3client/maint.go`).
-
-Proof sketch: `ams.isPermitted(ctx)` (an error: any outcome is allowed); then `maintenanceServer.Defragment.spec` of the embedded value.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/authMaintenanceServer__Defragment.lean`: over the contract.
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Margin: none.
+`v3rpc.authMaintenanceServer.Defragment` (`maintenance.go`): the maintenance service's `Defragment`,
+guarded by the admin guard (`isPermitted`). Lean-first (no Rocq counterpart); the auth plan's A2 (2026-10-23),
+vocabulary `v3rpc/InvAuthAdmin.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `authMaintenanceServer.Defragment(ctx, r)` meets the contract of `/etcdserverpb.Maintenance/Defragment`. -/
-def authMaintenanceServer.Defragment.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer.ty @!! go!"Defragment")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authMaintAt p s γ) (etcdLocal) go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse.ty
+/-- `ams.Defragment(ctx, r)`: the admin guard (`isPermitted`), then the embedded `maintenanceServer`'s `Defragment` (names
+only, taken as the guarded contract `guardedOk2`: callable only with the token
+`adminRes` of the request's auth info); the outcome `guardOut`: the inner call's
+answer, or `nil` and an error with `Pin` untouched. -/
+abbrev v3rpc.authMaintenanceServer.Defragment.spec : Prop :=
+  ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (Pin : IProp GF)
+    (Q : Loc → GoInterface → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ Pin ∗
+      v3rpc.guardedOk2 (adminRes E.authMode) Pin E.RD
+        (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"Defragment" ms (GoInterface.ok ctx) r
+        Q }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Defragment"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOut Pin Q resp err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

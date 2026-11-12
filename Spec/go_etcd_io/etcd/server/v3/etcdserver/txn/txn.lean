@@ -1,25 +1,24 @@
 /-
-`txn(ctx, lg, txnWrite, rt, isWrite, txnPath, skip)` (`txn.go`), internal (`Txn`). **Proof sketch.**
-`newTxnResp`, `executeTxn` (from the begin state, no events), an error: `lg.Panic` for a write
-(excluded: the context never done, so `executeTxn` returns none), `lg.Error` for a read-only one;
-the header's revision from the transaction's `Rev()` and `Changes()` (3e: `σ.rev`, the events).
-Old spec: over the log. Round 1: 3e's API (F4).
+`txn` (`txn.go`). Lean-first; see `TxnRun.lean`, `InvTxn.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvWarn
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,31 +27,51 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-open Classical in
-/-- `txn(ctx, lg, tw, rt, isWrite, path, skip)` on an open transaction begun at `σ` (a write one, or
-the read-only wrapper), the checks passed: the responses of `execOps` on the taken branch, the
-header's revision `runRev`; or a read-only transaction's context error. -/
-def txn.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (tw : GoInterface) (γ : Mvcc.MvccName) (tr : Loc)
-    (σ : Mvcc.MvccState) (rt : Loc) (dq : DFrac) (t : TxnReq) (isWrite : Bool) (path : GoSlice)
-    (skip : Bool) (γl : Lease.Names) (n : Nat) (ls : Lease.LessorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ TraceUtil.ctxTraceIs ctx (some tr) ∗
-      TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn tw γ tr (txnK isWrite σ []) ∗ txnReqOwn rt dq t ∗
-      path ↦*□ txnPathOf t σ.kv.store ∗
-      ⌜txnSafe t ∧ opsCheck σ.kv ls.table (if cmpsHold t.compare σ.kv.store then t.success else t.failure) = none ∧ isWrite = !decide t.readonly⌝ ∗
-      (if isWrite then iprop(Mvcc.mvccLessorIs γ γl ∗ Lease.lessorState γl n ls ∗
-         ⌜leasesLive σ.kv.store ls⌝ ∗ (Context.ctxDone ctx -∗ False))
-       else iprop(True)) }}
-    (App (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.txn)) (Val #ctx)) (Val #lg)) (Val #tw)) (Val #rt)) (Val #isWrite)) (Val #path)) (Val #skip))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); TraceUtil.traceOwn tr ∗
-      txnReqOwn rt dq t ∗ Mvcc.mvccTxn tw γ tr (txnK isWrite σ (execOps σ.kv skip (σ.kv.store, []) (if cmpsHold t.compare σ.kv.store then t.success else t.failure)).1.2) ∗
-      (if isWrite then iprop(∃ n' : Nat, Lease.lessorState γl n' (evsLs ls σ.kv.store (execOps σ.kv skip (σ.kv.store, []) (if cmpsHold t.compare σ.kv.store then t.success else t.failure)).1.2))
-       else iprop(True)) ∗
-      ((⌜err = GoInterface.nil⌝ ∗
-          txnOk resp (runRev σ.kv (execOps σ.kv skip (σ.kv.store, []) (if cmpsHold t.compare σ.kv.store then t.success else t.failure)).1.2) (cmpsHold t.compare σ.kv.store) (execOps σ.kv skip (σ.kv.store, []) (if cmpsHold t.compare σ.kv.store then t.success else t.failure)).2) ∨
-       (⌜isWrite = false⌝ ∗ Context.ctxDone ctx ∗ ctxErr err ∗ roTxnResp resp)) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+set_option linter.iris.dupNamespace false in
+/-- `txn(ctx, lg, txnWrite, rt, isWrite, txnPath, skip)` on a fresh write transaction begun at `σ`
+(`isWrite`), or the read-only wrapper of a read transaction at `σ`.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. The pending premise only for a write
+transaction, `ro = false → σ.pending = none`, decided by the coordinator, 2026-11-05: a read
+transaction's state may have a pending revision.) -/
+abbrev txn.txn.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
+    (γ : MvccName) (trace : Loc) (te : Bool) (tw : GoInterface) (ro : Bool) (σ : MvccState)
+    (rt : Loc) (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64),
+  let k : MTxn := if ro then .read σ else .write σ []
+  let chs := txn.txnChs σ.log t
+  {{ pkgInit ∗ mvcc.api.mvccTxn tw γ trace k ∗ traceutil.ownTrace trace te ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx (some trace) ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+      txn.txnRequestIs rt t ∗ pl ↦*□ txn.txnPath (mvcc.stateAfter σ.log) t ∗
+      txn.leasesOk L (txn.opsLeases (mvcc.stateAfter σ.log)
+        (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))) ∗
+      (if ro then iprop(True) else txn.leasesKnown L (mvcc.stateAfter σ.log)) ∗
+      (⌜ro = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ.log))) ∗
+      ⌜txn.Reach σ ∧ (ro = false → σ.pending = none) ∧
+        txn.OpsOk false (mvcc.stateAfter σ.log) (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log)
+          (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t)) ∧
+        (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true ∧ lg ≠ null)⌝ }}
+    (App (App (App (App (App (App (App (Val (@! txn.txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
+      (Val #tw)) (Val #rt)) (Val #(!ro))) (Val #pl)) (Val #skip))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); traceutil.ownTrace trace te ∗
+      ((⌜err = GoInterface.nil ∧ (ro = true → chs = [])⌝ ∗
+        mvcc.api.mvccTxn tw γ trace (txn.MTxn.append k chs) ∗
+        txn.txnResponseIs skip resp (W64 (mvcc.writeRev σ.log chs : Int)) t
+          (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).1
+          (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).2.2 ∗
+        txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
+        (if ro then iprop(True) else
+          txn.leasesKnown L (mvcc.applyChanges (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) chs)) ∗
+        (⌜ro = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.applyChanges
+          (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) chs)))) ∨
+      (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗ mvcc.api.mvccTxn tw γ trace k ∗
+        txn.txnRespShell resp ∗ txn.roTxnRespRd resp ∗
+        txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

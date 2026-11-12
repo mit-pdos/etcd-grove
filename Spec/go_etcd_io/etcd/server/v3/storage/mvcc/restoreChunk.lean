@@ -1,18 +1,11 @@
 /-
-`restoreChunk(lg, kvc, keys, vals, keyToLease)` (`kvstore.go:493`). Internal: `restore`, per chunk
-of the `Key` bucket read.
-
-**Proof sketch**: per entry: a fresh `mvccpb.KeyValue`, `proto.Unmarshal` of the value's lent bytes
-(`kvDecodes`: no `lg.Fatal`; the content copied, so the value bytes come back), the key-to-lease map
-updated (`ktlApply`), the restored form sent (`rkvSend`: the key's lent bytes go with it, joining the
-producer's loans, regrouped as the chunk's `lentIn` by `rkvProducer_mono`).
-
-**Changes** from `specs-ref`'s file: the channel's protocol `rkvProducer` (the entries a prefix of
-what remains to send), the map `ktlMap`, no reader capability.
+`restoreChunk` (`kvstore.go`; translated 2026-10-23, the restore plan's R0). Lean-first (no Rocq
+counterpart); see `InvRestore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRestore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KeyToLease
 
 @[expose] public section
 
@@ -20,7 +13,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -31,23 +23,33 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `restoreChunk(lg, kvc, keys, vals, mp)` of the entries `ents`, the next ones of `all` after `n`
-sent: each sent, the key-to-lease map updated. -/
-def restoreChunk.spec : Prop :=
-  ∀ (lg kvc mp : Loc) (keys vals : GoSlice) (ps qs : List GoSlice) (dq : DFrac)
-    (all ents : List KvEnt) (n : Nat) (L : IProp GF) (M : GoString → Option w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ Zap.isLogger lg ∗
-      keys ↦* ps ∗ vals ↦* qs ∗
-      Schema.lentIn dq (ents.map KvEnt.bk) ps ∗ Schema.lentIn dq (ents.map KvEnt.vb) qs ∗
-      ⌜(∀ e ∈ ents, kvDecodes e.vb e.kv) ∧ (all.drop n).take ents.length = ents⌝ ∗
-      ktlMap mp M ∗ rkvProducer kvc all n L }}
+/-- `restoreChunk(lg, kvc, keys, vals, keyToLease)` of the bucket entries `ents` (`keys`/`vals`
+read-only slices of their keys and values, in order, readable through `Rd` under the token `Tok`,
+kept; each value the encoding of a key-value, so `proto.Unmarshal` returns `nil` and `lg.Fatal` is
+unreachable), with `keyToLease` the map `M` (left `ktlApply M ents`: each entry's key deleted if a
+tombstone or a put without a lease, set to its lease otherwise), on
+`kvc` the producer side of a single-producer channel (`isSpsc` with the protocol `P`): sends one
+`revKeyValue` per entry, in order, the `j`-th (`sent.length + j` on the channel) the entry's
+restored form (`rkvIs`) with the entry's resource `Q j e`, which the caller's `□` turns into
+`P`. -/
+abbrev mvcc.restoreChunk.spec : Prop :=
+  ∀ (lg kvc mp : Loc) (keys vals : GoSlice) (ents : List mvcc.KvEnt)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (γ : SpscNames)
+    (P : Int → revKeyValue → IProp GF) (R : List revKeyValue → IProp GF)
+    (sent : List revKeyValue) (Q : Nat → mvcc.KvEnt → IProp GF) (M : GMap GoString w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.pairVals Rd keys vals (ents.map mvcc.KvEnt.pair) ∗ mvcc.rdCap Rd Tok ∗ Tok ∗
+      mp ↦$ M ∗
+      isSpsc γ kvc P R ∗ spscProducer γ sent ∗
+      ([∗list] j ↦ e ∈ ents, Q j e) ∗
+      □ (∀ (j : Nat) (e : mvcc.KvEnt) (rkv : revKeyValue), ⌜ents[j]? = some e⌝ -∗ Q j e -∗
+        mvcc.rkvIs Rd rkv e -∗ P (sent.length + j) rkv) }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.restoreChunk))
       (Val #lg)) (Val #kvc)) (Val #keys)) (Val #vals)) (Val #mp))
-  {{ RET #(); keys ↦* ps ∗ vals ↦* qs ∗ Schema.lentIn dq (ents.map KvEnt.vb) qs ∗
-      ktlMap mp (ktlApply M ents) ∗
-      rkvProducer kvc all (n + ents.length) iprop(L ∗ Schema.lentIn dq (ents.map KvEnt.bk) ps) }}
+  {{ RET #(); Tok ∗ mp ↦$ mvcc.ktlApply M ents ∗
+      ∃ new : List revKeyValue, ⌜new.length = ents.length⌝ ∗ spscProducer γ (sent ++ new) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

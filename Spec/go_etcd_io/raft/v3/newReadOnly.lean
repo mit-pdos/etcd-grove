@@ -1,14 +1,9 @@
 /-
-## `newReadOnly(option)` (internal)
-
-**Users**: `newRaft` (`raft.go:462`), `reset` (`raft.go:827`, on every term change). Mirrors the code.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/newReadOnly.lean`: over `ReadOnlyState`.
+Port of election_proof/spec_newReadOnly.v (feb5c73d4).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +11,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) An empty read-index queue. -/
-def newReadOnly.spec : Prop :=
-  ∀ (opt : w64),
+/-- `newReadOnly(option)` allocates a fresh `readOnly` object and returns it. It reads
+and writes nothing else, so it owns nothing going in and hands back only the new object
+(`ownReadOnly`, `InvMisc.lean`): no pending requests, no
+acknowledgements, nothing confirmed (the option it stores is in no spec, so not in the
+record; until 2026-10-08 a `safe` field said whether it is `ReadOnlySafe`). `reset`
+installs it with `ownRaftPhysC_readOnly`, which
+needs the new object's ownership -- so the predicate can only be re-pointed at an
+object that was actually allocated. (Until 2026-09-23 this spec consumed and returned
+the whole of `own_raft_misc`, a raw piece of the raft struct.) -/
+abbrev newReadOnly.spec : Prop :=
+  ∀ (o : ReadOnlyOption),
+  -- `ReadOnlySafe` (2026-10-12; `ownReadOnly` records it)
+  o = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
-    (App (Val (@! go_etcd_io.raft.v3.newReadOnly)) (Val #opt))
-  {{ (ro : Loc), RET #ro; readOnly ro ⟨opt, ∅, [], W64 0⟩ }}
+    (App (Val #(functions newReadOnly [])) (Val #o))
+  {{ (ro' : Loc), RET #ro';
+      ownReadOnly ro' (ReadOnly.mk [] ∅ (W64 0)) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

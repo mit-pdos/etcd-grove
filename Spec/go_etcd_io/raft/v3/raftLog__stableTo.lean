@@ -1,25 +1,9 @@
 /-
-## `(*raftLog).stableTo(id)` (internal)
-
-**Users**: `raft.Step`'s `MsgStorageAppendResp` (`raft.go:1217`: the last entry of the batch the
-storage wrote, when it had entries). Snippet `raftlog/ready.go` (`ReqReadyCycle`).
-
-**Proof sketch**: `unstable.stableTo`. The storage relation is kept: the entries made stable are
-`stored`'s (`StableOk`'s first conjunct: the log does not change), and the storage ends at `id`
-once nothing is unstable (its second). The caller proves `StableOk` from what it knows of `stored`
-(absorbed batches, each the log's entries at its hand-out; with the cluster's log matching, entries
-of one index and term agree).
-
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__stableTo.lean`: on `raftLog` (was the window predicate
-`ownRaftLogW`); `StableOk` restated over `LogState.log`.
-
-**Margin**: none.
+Port of `election_proof/spec_raftLog__stableTo.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -27,26 +11,39 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Mark the entries through `id` stable, if the log still has `id`. -/
-def raftLog.stableTo.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (id : go_etcd_io.raft.v3.entryID),
-  ls.StableOk (uint.nat id.index') id.term' →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"stableTo")) (Val #id))
-  {{ RET #(); raftLog l (ls.stableTo (uint.nat id.index') id.term') }}
+/-- `l.stableTo(id)` (`log.go:365`) is `l.unstable.stableTo(id)`: on a hit
+(`StableHit`, `InvReadylog.lean`) the entries up to `id` move from the unstable suffix
+to the stable part (`logStableTo`); the protocol log `sents ++ uents` does not change.
+
+The premise `StableOk` is what keeps `ownRaftLog`'s storage relation: the entries moved
+stable are persisted (nothing left unpersisted, and the storage holds the log up to
+`id`: `stored`; until 2026-10-10 `id.index < offsetInProgress`) and no snapshot is
+pending. Go checks only the term at `id.index`, so this is a real premise -- see
+`StableOk`.
+
+(D22 S-d1b, 2026-10-21) On `ownRaftLogW`: the acknowledgement of a snapshot's `Ready` moves the
+entries after the snapshot stable while the snapshot is still pending, in the `sapp` window (the
+storage holds the snapshot and those entries); `StableOk` admits that window for a hit. A caller
+outside it converts (`ownRaftLog_toW`, `ownRaftLogW_quiet`: `logStableTo` keeps both windows'
+flags). -/
+abbrev raftLog.stableTo.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (id : entryID),
+  StableOk ls id →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLogW l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"stableTo")) (Val #id))
+  {{ RET #(); ownRaftLogW l (logStableTo ls id) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

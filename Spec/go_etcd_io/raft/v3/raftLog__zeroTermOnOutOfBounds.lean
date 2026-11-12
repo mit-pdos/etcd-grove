@@ -1,15 +1,16 @@
 /-
-## `(*raftLog).zeroTermOnOutOfBounds(t, err)` (internal)
+Port of election_proof/spec_raftLog__zeroTermOnOutOfBounds.v (feb5c73d4).
 
-**Users**: `findConflict`'s log line, `handleAppendEntries`' log line, `committedEntryInCurrentTerm`.
-**Proof sketch**: comparisons with the error variables (`errs_init`: distinct, non-nil).
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__zeroTermOnOutOfBounds.lean`.
+Lean notes:
+* The reference `raftLog__zeroTermOnOutOfBoundsⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:1393`
+  is to the Lean generated code `raftLog.zeroTermOnOutOfBounds.impl`; Rocq's
+  `is_initialized`/`is_new_error` (`v3_proof/base.v`) are this repository's
+  `Proof/go_etcd_io/raft/v3/Base.lean`; `global_addr` is `globalAddr`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
 
@@ -17,27 +18,46 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) `t` on success, 0 on `ErrCompacted`/`ErrUnavailable`. -/
-def raftLog.zeroTermOnOutOfBounds.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (t : w64) (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls ∗
-      (⌜err = interface.nil⌝ ∨ errIs go_etcd_io.raft.v3.ErrCompacted err ∨ errIs go_etcd_io.raft.v3.ErrUnavailable err) }}
-    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"zeroTermOnOutOfBounds")) (Val #t)) (Val #err))
-  {{ (r : w64), RET #r; raftLog l ls ∗
-      ⌜(err = interface.nil ∧ r = t) ∨ (err ≠ interface.nil ∧ r = W64 0)⌝ }}
+/-- `l.zeroTermOnOutOfBounds(t, err)`: `t` for a `nil` error, `0` for `ErrCompacted` /
+`ErrUnavailable`.
+
+The body (`raftLog.zeroTermOnOutOfBounds.impl`, `Code/go_etcd_io/raft/v3.lean`)
+returns `t` for `err == nil`, `0` for `err == ErrCompacted || err == ErrUnavailable`,
+and `Panicf`s otherwise. The premise -- `err` is `nil` or the value of one of the two
+globals -- is exactly what `raftLog.term`'s last conjunct gives, and every caller passes
+`term`'s result straight in.
+
+Until 2026-10-01 only the `nil` case was specified (as a pure premise): comparing a
+non-`nil` `err` against `ErrCompacted` is stuck on `CheckComparable` unless the dynamic
+type is known to be a pointer, and the package-init predicate did not say so. It now
+does (`is_new_error` for both globals, `Proof/go_etcd_io/raft/v3/Base.lean`). Widened for
+`handleAppendEntries`, whose reject path calls `zeroTermOnOutOfBounds(term(m.Index))`
+with `m.Index` possibly past the last index, i.e. with `ErrUnavailable`. The result only
+feeds a `Debugf` there (and an `Infof` in `findConflict`), so all that is said about it
+is that it is `t` on the `nil` branch.
+
+The receiver is read only on the `Panicf` path, so the spec needs no ownership of the
+log. -/
+abbrev raftLog.zeroTermOnOutOfBounds.spec : Prop :=
+  ∀ (l : Loc) (t : w64) (err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "#Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrCompacted ↦□ err ∨
+                 globalAddr ErrUnavailable ↦□ err) }}
+    (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"zeroTermOnOutOfBounds"))
+      (Val #t)) (Val #err))
+  {{ (t' : w64), RET #t'; ⌜err = interface.nil → t' = t⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

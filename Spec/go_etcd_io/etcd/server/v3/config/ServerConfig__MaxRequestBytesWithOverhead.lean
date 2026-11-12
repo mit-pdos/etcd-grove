@@ -1,40 +1,40 @@
 /-
-## `(*ServerConfig).MaxRequestBytesWithOverhead()` (`config.go:354-356`)
-
-**Users.** v3rpc's server options (the gRPC receive limit), the watch server's budget (2a, 2b).
-**Proof sketch.** A field read plus `grpcOverheadBytes` (`512 * 1024`), wrapping. **Changes**: from
-`specs-ref`. **Margin.** Exact.
+`config.ServerConfig.MaxRequestBytesWithOverhead` (`config.go`: `MaxRequestBytes + grpcOverheadBytes`).
+Lean-first (no Rocq counterpart); the watch slice's unit W-S (2026-10-14).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.config.Api
+-- `InvServer`'s `ServerConfig` `TypeRepr` instances (as `ServerConfig__ReqTimeout.lean`)
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Config
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
 
-/-- **`MaxRequestBytesWithOverhead()`**: `MaxRequestBytes + 512 KiB` (wrapping). -/
-def ServerConfig.MaxRequestBytesWithOverhead.spec : Prop :=
-  ∀ (c : Loc) (n : w64),
-  {{ (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxRequestBytes" c) n DFrac.discard : IProp GF) }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.config.ServerConfig.ty @!! go!"MaxRequestBytesWithOverhead")) (Val #()))
-  {{ RET #(n + W64 524288); True }}
+/-- `c.MaxRequestBytesWithOverhead()` (the field read-only): the budget plus `512 * 1024`
+(wrapping, as Go's `uint` addition). -/
+abbrev config.ServerConfig.MaxRequestBytesWithOverhead.spec : Prop :=
+  ∀ (c : Loc) (m : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config ∗
+      structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxRequestBytes" c ↦□ m }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.config.ServerConfig.ty @!!
+      go!"MaxRequestBytesWithOverhead")) (Val #()))
+  {{ RET #(m + W64 (512 * 1024)); True }}
 
 end spec
 
-end Config
 end EtcdGrove
 end Perennial

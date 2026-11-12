@@ -1,32 +1,10 @@
 /-
-`(*concurrency.Election).Resign(ctx)` (`client/v3/concurrency/election.go`).
-
-Users: `server/etcdserver/api/v3election/election.go` (`Campaign`:45 a new election, `Campaign`,
-then `Header()`, `Key()`, `Rev()` and the lease returned as the leader key; `Proclaim`:68 and
-`Resign`:118 on `ResumeElection(s, name, key, rev)` from the remote client's leader key;
-`Leader`:103 and `Observe`:80 on a new election, sessions with lease `-1`), etcdctl's `elect`
-command (not in the pinned sources), etcd's tests
-(`tests/integration/clientv3/concurrency/election_test.go`, `example_election_test.go`). Snippets: `concurrency/election.go` (`ReqCampaignProclaim`, `ReqResumedProclaim`).
-
-Proof sketch: no leader session: `nil`, unchanged. Else the KV contract's `Txn` with
-`If(CreateRevision(key) = rev)`, `Then(OpDelete(key))` (update from the lent permission: the
-delete of the leader key); its reply at `σ'` (the key deleted if the fence held, else unchanged:
-either way it has no create revision `rev` there), the header kept (persisted); the leader key
-and session cleared whatever the outcome. The lent permission (`etcdLent γ T P`, token `P`): each write's update is built
-from it, each read's from its `etcdPeek`; `etcdLb_reach` in the first firing gives `Reach σ0`. `P` is
-returned on every outcome whose writes have all been answered.
-
-Changes: from `specs-ref`'s `Election__Resign.lean`: over the cluster's states. Round 1: the
-effect is the delete only (round 0 also allowed a lease-free put, which `Campaign`'s cleanup could
-not grant); the lent permission; `σ0`; the principal per call.
-
-Changes: verify-round: the effect excludes the empty key (A3 F2: `Campaign`'s cleanup after a failed `Proclaim` resigns with the leader key `""`; etcd refuses an empty key, so that step is no change, and `delEff (· = [])` was not within `campaignEff`).
-
-Margin: none.
+`concurrency.Election.Resign(ctx)` (`client/v3/concurrency/election.go`). Lean-first (no Rocq counterpart); see
+`InvElection.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvElection
 
 @[expose] public section
 
@@ -34,38 +12,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `e.Resign(ctx)`: without a leader session `nil`, unchanged; else the leader key and session
-cleared, and `nil` with the key not at its create revision at a state the cluster reached (the
-header kept is that state's), or an error. -/
-def Election.Resign.spec : Prop :=
-  ∀ (e s c : Loc) (pfx : GoString) (st : ElectionSt) (γ : Cluster) (dflt who : Principal) (id : w64)
-    (ctx : GoInterface) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s pfx ∗ electionSt e st ∗ isSession s c γ id ∗ isClient c γ dflt ∗
-      Context.ctxOk ctx ∗ ctxPrin dflt ctx who ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗ ⌜effIn (delEff (fun k => k = st.leaderKey ∧ k ≠ [])) T⌝ }}
-    (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Resign")) (Val #ctx))
+/-- **`e.Resign(ctx)`**, from any state, knowing etcd has reached `lo`:
+* no leader session: `nil`, unchanged;
+* otherwise the guarded delete (`CreateRevision(key) = rev`), and the leader key and session are
+  cleared: `nil` with the transaction's header and (if the key was under the prefix) the key not
+  there with create revision `rev` at the header's revision `R ≥ lo` (`notLeaderAt`: deleted, or
+  the guard failed); or an error, the header unchanged. -/
+abbrev Election.Resign.spec : Prop :=
+  ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
+    (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
+      electionState e s st ∗ context.isContext ctx cs ∗ etcdReached lo }}
+    (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Resign")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err;
-      (⌜st.leaderSession = null ∧ err = GoInterface.nil⌝ ∗ P ∗ electionSt e st) ∨
-      (⌜st.leaderSession ≠ null⌝ ∗ ∃ hd : Loc,
-          electionSt e { st with leaderKey := [], leaderSession := null, hdr := hd } ∗
-          ((⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (hm : HeaderM) (σ : State), etcdLb γ σ ∗
-              respHeaderOwn hd DFrac.discard hm ∗
-              ⌜Reach σ0 σ ∧ hm.revision = W64 σ.kv.rev ∧ ¬ (∃ r, σ.kv.store st.leaderKey = some r ∧ (r.createRev : Int) = sint.Z st.leaderRev)⌝) ∨
-           ⌜err ≠ GoInterface.nil ∧ hd = st.hdr⌝)) }}
+      (⌜st.sess = null ∧ err = GoInterface.nil⌝ ∗ electionState e s st) ∨
+      (⌜st.sess ≠ null ∧ err = GoInterface.nil⌝ ∗ ∃ hdr : Loc,
+        electionState e s ⟨[], st.rev, null, hdr⟩ ∗
+        (⌜¬ pfx <+: st.key⌝ ∨ ∃ R : w64, hdrRevAt hdr R ∗ etcdReached R ∗
+          notLeaderAt pfx st.key st.rev R ∗ ⌜sint.Z lo ≤ sint.Z R⌝)) ∨
+      (⌜st.sess ≠ null ∧ err ≠ GoInterface.nil⌝ ∗ electionState e s ⟨[], st.rev, null, st.hdr⟩) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

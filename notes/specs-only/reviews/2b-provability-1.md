@@ -3,7 +3,7 @@
 Reviewer: provability. Sources: `.lake/src/server/etcdserver/api/v3rpc/watch.go` (the fork at
 `a4d2bb17`), `.lake/src/server/storage/mvcc/{watcher,watchable_store,watcher_group}.go`,
 `.lake/src/client/watch.go`, the translation `Code/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc.lean`,
-1b's `Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean` **as in the working tree** (its `wireStep` has
+1b's `SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean` **as in the working tree** (its `wireStep` has
 adopted the `-1` correction, uncommitted at `ee73fab54d`). I wrote my findings before reading
 `notes/specs-only/batch-2b.md`. The author did not find any of the first-tier ones below.
 
@@ -113,7 +113,7 @@ exemption never meets a substream.
   (`etcdserver/v3_server.go:1206-1216`) falls back to `AuthInfoFromTLS` (the certificate's CN) when
   `ClientCertAuthEnabled` and the context has no token. `req/..._auth.md` item 1 and `srvCtxPrin`'s
   docstring say the result is `nil` or `who`'s user; with a CN user and `who = none` the member
-  registers a watch that `σa.permits none …` does not justify. Nothing in `Spec/` or
+  registers a watch that `σa.permits none …` does not justify. Nothing in `SpecPlan/Spec/` or
   `notes/specs-only/` mentions `ClientCertAuthEnabled`. Either a configuration scope premise
   (`ClientCertAuthEnabled = false`, in `watchMemberAt_cfg` / 2e) or `srvCtxPrin` (2a/W0) defines the
   principal of a token-less TLS stream as its CN. Cross-batch (W0, 2a, 3d).
@@ -127,7 +127,7 @@ exemption never meets a substream.
   handlers may read it lazily; `watch.go:627-633` quotes grpc-go#5857 for exactly this). The handler
   never writes a response after sending it (fresh `wr`/`cur` each time), so it needs only a read-only
   share back: state the law at `DFrac.discard` (the handler persists first, `wireWatchRespOwn_persist`),
-  or give back only a persistent share. 2a's `SendMsg` (`Spec/google_golang_org/grpc/Api.lean:541`)
+  or give back only a persistent share. 2a's `SendMsg` (`SpecPlan/Spec/google_golang_org/grpc/Api.lean:541`)
   has the same shape: 2a's call.
 * **F8. The wire-request scope (check (c)).** Needed: an explicit id reaches
   `issues/etcd-watch-id-reuse-stale-events.md` (queued events of the canceled watch flushed to the

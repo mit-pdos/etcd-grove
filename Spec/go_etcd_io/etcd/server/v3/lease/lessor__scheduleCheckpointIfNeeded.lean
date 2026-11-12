@@ -1,18 +1,11 @@
 /-
-`(*lessor).scheduleCheckpointIfNeeded(lease)` (`lessor.go:753`): names only (an assumed internal
-spec). **Users**: `Grant`, `Checkpoint`, `Promote`, on a live object, under `le.mu` (write).
-**Why it is true**: `le.cp == nil`: nothing; else the object's `getRemainingTTL()` against
-`int64(le.checkpointInterval.Seconds())` (a float conversion: why untranslated); above it,
-`le.lg.Debug(...)` (**the logger**: `isLessor`'s `isLogger`; the zero `zap.Logger` panics here,
-`specs-ref`'s axiom sweep B3-2) and `heap.Push` of a fresh cell. **Changes** (from `specs-ref`'s
-`lessor__scheduleCheckpointIfNeeded.lean`, `lessorCfg` with `lg ↦□` only): `isLessor` carries
-`isLogger`. **Margin**: whether a checkpoint is scheduled (time).
+`(*lessor).scheduleCheckpointIfNeeded` (`server/lease/lessor.go`, names only: the trust
+boundary). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -20,27 +13,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Maybe schedule a checkpoint of the live object `l`** (under the lock). -/
-def lessor.scheduleCheckpointIfNeeded.spec : Prop :=
-  ∀ (le : Loc) (γ : Names) (c : Cfg) (ls : LessorState) (l : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorFields le c (DFrac.own 1) ls ∗ ⌜∃ id e, ls.leases id = some e ∧ e.obj = l⌝ }}
-    (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
-      go!"scheduleCheckpointIfNeeded")) (Val #l))
-  {{ RET #(); lessorFields le c (DFrac.own 1) ls }}
+/-- `le.scheduleCheckpointIfNeeded(l)` (`le.mu` held): if a checkpointer is set and the lease's
+remaining TTL exceeds the checkpoint interval (`int64(le.checkpointInterval.Seconds())`, a float
+converted to an integer), pushes a fresh item (the lease's id, `time.Now()` plus the interval)
+onto the checkpoint heap (`heap.Push`), after a debug log line. It reads `le.cp`, the lease's
+`remainingTTL` and `ttl`, and the read-only configuration; the heap stays a queue of items. -/
+abbrev lease.lessor.scheduleCheckpointIfNeeded.spec : Prop :=
+  ∀ (lp l : Loc) (cp : GoFunc) (h : GoSlice) (hx : List (Loc × w64)) (r t : w64)
+    (dq1 dq2 dq3 : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorCfg lp ∗
+      lF go!"cp" lp ↦{dq1} cp ∗ lF go!"leaseCheckpointHeap" lp ↦ h ∗ queueAt h hx 1 ∗
+      lsF go!"remainingTTL" l ↦{dq2} r ∗ lsF go!"ttl" l ↦{dq3} t }}
+    (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"scheduleCheckpointIfNeeded"))
+      (Val #l))
+  {{ RET #(); lF go!"cp" lp ↦{dq1} cp ∗
+      (∃ (h' : GoSlice) (hx' : List (Loc × w64)), lF go!"leaseCheckpointHeap" lp ↦ h' ∗
+        queueAt h' hx' 1) ∗
+      lsF go!"remainingTTL" l ↦{dq2} r ∗ lsF go!"ttl" l ↦{dq3} t }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

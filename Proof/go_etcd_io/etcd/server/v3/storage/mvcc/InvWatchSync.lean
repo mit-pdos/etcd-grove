@@ -1,0 +1,208 @@
+/-
+The watchable store's sync machinery (`watchable_store.go`, unit 3b): the events a range read of
+the bucket yields (`rangeEvents`, `kvsToEvents`), the victims out with their mover
+(`moveVictims`), the background loops' wait group and stop channel, and the right to close the
+store. Lean-first; `notes/decisions.md`, "The watchable store's concurrency (unit 3)".
+
+**The bucket's entries as events.** A range read of the revisions `[lo, hi)` of the committed log
+returns the bucket's entries of those revisions in key order, which is revision order
+(`bucketRange_logEnts`, `SyncModel.lean`): `logEnts log lo hi`, each entry its revision, whether it
+is a tombstone, and the key-value it encodes (`KvEnt`). `kvsToEvents` makes each the event
+`KvEnt.ev` (a tombstone a `DELETE` with the revision as `ModRevision`) and keeps those of a key
+some member of the group covers (`wgCovers`): `entsEvents`. They are the log's events
+(`logEnts_events`: `logEvents`, what `notify` sends).
+
+**The victims' mover** (`moveVictims`) takes the victim batches out of the lock: each victim's
+watcher moves to the "out" population (`WsState.Wo`, the lock keeping half its state), the mover
+holding the rest (`moverRes`: the other half of its state, the lock's halves of its delivered
+events and live ghost, and what its batch delivers), until it puts the watcher back (synced or
+unsynced, the batch sent) or makes it a victim again.
+
+**The loops** run on the store's wait group (`wsWgInv`: the counter is the number of done tokens
+out, `wsDone` each loop's, `wsWaiter` the closer's) until the stop channel (`isStopChan`, a
+broadcast channel closed once: `stopCloser`) is closed. `wsCloser` is `Close`'s right: the stop
+channel's close, the wait, and the inner store's close (`storeCloser`).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
+public import Perennial.Proof.sync
+public import Perennial.Ghost.Token
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace mvcc
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
+
+/-! ## The bucket's entries as events (pure) -/
+
+/-- The event `kvsToEvents` makes of the entry: a tombstone is a `DELETE` with the revision as
+`ModRevision`, else a `PUT`; no previous key-value. -/
+def KvEnt.ev (e : KvEnt) : EvM :=
+  if e.tomb then ⟨true, { e.kv with modRev := e.rev.main }, none⟩ else ⟨false, e.kv, none⟩
+
+open Classical in
+/-- Some member of `W` covers the key `k` (`watcherGroup.contains`, whose spec decides it
+classically). -/
+def wgCovers (W : GMap Loc WatchRange) (k : GoString) : Bool :=
+  decide (∃ w r, W !! w = some r ∧ r.covers k = true)
+
+/-- The events `kvsToEvents` makes of the entries `ents` for the group `W`. -/
+def entsEvents (W : GMap Loc WatchRange) (ents : List KvEnt) : List EvM :=
+  (ents.map KvEnt.ev).filter fun ev => wgCovers W ev.kv.key
+
+section addrs
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The address of the watchable store's wait group. -/
+abbrev wsWgAddr (s : Loc) : Loc := structFieldRef watchableStore go!"wg" s
+
+end addrs
+
+/-- The namespace of the store's wait group (Perennial's `isWaitGroup`). -/
+def wsWgWGN : Namespace := (nroot .@ "mvcc") .@ "waitGroup"
+
+/-- The namespace of the store's wait-group counter invariant (`wsWgInv`). -/
+def wsWgN : Namespace := (nroot .@ "mvcc") .@ "wgCounter"
+
+section reprs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-! ## The victims out with their mover -/
+
+/-- **A victim out with the mover** (`moveVictims`), with its state `st` and its batch `B`: the
+mover's half of its state (the lock keeps the other, `WsState.Wo`), the lock's halves of its
+delivered events `evsw` and of its live ghost, its names, fixed fields, channel and filters, and
+what the batch delivers: the delivered events and the batch's are the range's up to its
+`minRev` (`evsWf`, as a victim's `popFacts`), with `victimBatchOk`. -/
+def moverRes (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) : IProp GF :=
+  iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (evsw : List EvM),
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
+    ⌜sint.Z r.startRev ≤ (γw.lo : Int) ∧ (γw.lo : Int) ≤ sint.Z st.minRev ∧
+      victimBatchOk γw.lo st B⌝ ∗
+    watcherOwn w st (1 : Qp).half ∗ monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
+    dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
+    evsWf γ r γw.lo (evsw ++ B.evs) (sint.nat st.minRev))
+
+/-! ## The loops' wait group and stop channel -/
+
+/-- **The number of the store's loops** (`syncWatchersLoop`, `syncVictimsLoop`): `New`'s
+`s.wg.Add(2)`, the readers `New` lends them and `watchableStore.Close` returns (R-D1, 2026-11-04;
+ported onto mvcc-api's API, 2026-11-06: the readers at names without physical part). -/
+abbrev wsLoopN : Nat := 2
+
+/-- The store's wait-group counter (an invariant, in `wsWgN`; allocated by `New` after
+`s.wg.Add(2)`, at `n = wsLoopN`, `d = 0`): the counter is the number `n` of done tokens out (`γd`:
+one per running loop, `wsDone`); (R-D1) each loop that has called `Done` has left its reader of the
+inner store `st` there (`d` of them, `n + d = wsLoopN`), until the closer, after `Wait` (`n = 0`),
+takes them with its claim `token γw` (`wsWaiter`). The readers are at the inner store's names `γs`,
+of which they read no physical part (`storeReader_withPhys`), so a restore leaves them alone. -/
+def wsWgInv (st : Loc) (γs : StoreNames) (γwg : sync.WaitGroupNames) (γd γw : GName) : IProp GF :=
+  iprop(∃ (ctr : w32) (n d : Nat), sync.ownWaitGroup γwg ctr ∗ ownTokAuth γd n ∗
+    ⌜sint.Z ctr = (n : Int) ∧ n + d = wsLoopN⌝ ∗
+    (([∗list] _x ∈ List.replicate d (), storeReader st γs) ∨ token γw))
+
+/-- A loop's right to call `s.wg.Done()` once (a done token), leaving there its reader of `st`
+(R-D1). -/
+def wsDone (s st : Loc) (γs : StoreNames) : IProp GF :=
+  iprop(∃ (γwg : sync.WaitGroupNames) (γd γw : GName),
+    sync.isWaitGroup (wsWgAddr s) γwg wsWgWGN ∗ inv wsWgN (wsWgInv st γs γwg γd γw) ∗ ownToks γd 1)
+
+/-- The closer's right to call `s.wg.Wait()` (no other waiter, no more `Add`), and (R-D1) to take
+the loops' readers of `st` after it (`token γw`). -/
+def wsWaiter (s st : Loc) (γs : StoreNames) : IProp GF :=
+  iprop(∃ (γwg : sync.WaitGroupNames) (γd γw : GName),
+    sync.isWaitGroup (wsWgAddr s) γwg wsWgWGN ∗ inv wsWgN (wsWgInv st γs γwg γd γw) ∗
+    sync.ownWaitGroupWaiters γwg 0 ∗ token γw)
+
+/-- A loop's reader of the watchable store holds a reader of the inner store (what it leaves at its
+`Done`, R-D1). -/
+theorem watchReader_storeReader (s st : Loc) (γ : WsNames) :
+    watchReader (GF := GF) s st γ ⊢ storeReader st γ.st := by
+  iintro H
+  iunfold watchReader at H
+  icases H with ⟨H, -⟩
+  iexact H
+
+/-- The waiter at other physical names is the same (the restore path's closers): the readers it
+waits for read no physical part of the names. -/
+theorem wsWaiter_withPhys (s st : Loc) (γs : StoreNames) (p : PhysNames) :
+    wsWaiter (GF := GF) s st (γs.withPhys p) = wsWaiter s st γs := by
+  rfl
+
+-- `stopCloser`: `InvStore.lean` (2026-10-13: the store's stop channel uses it too).
+
+/-- **The right to close the watchable store** `s` over the store `st` (`Close`, once): the stop
+channel's close, the wait for the loops, and the inner store's close (`storeCloser`, at the
+inner store's names `γs`: its scheduler's stop token, D19m (C), 2026-10-18). -/
+def wsCloser (s st : Loc) (γs : StoreNames) : IProp GF :=
+  iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s st γs ∗
+    storeCloser st γs)
+
+theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
+  sync.wg_mask_ndot_ne (nroot .@ "mvcc") "waitGroup" "wgCounter" (by decide)
+
+theorem wsWg_maskN : (↑wsWgN : CoPset) ⊆ ⊤ \ ↑wsWgWGN :=
+  sync.wg_mask_ndot_ne (nroot .@ "mvcc") "wgCounter" "waitGroup" (by decide)
+
+/-- `s.wg.Done()` with a done token, leaving the loop's reader of `st` (R-D1). -/
+theorem wp_wsDone (s st : Loc) (γs : StoreNames) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ wsDone s st γs ∗ storeReader st γs }}
+      (App (Val (wsWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨#Hsync, Hd, Hrd⟩ HΦ
+  iunfold wsDone at Hd
+  icases Hd with ⟨%γwg, %γd, %γw, #Hwg, #Hinv, Htok⟩
+  iapply sync.WaitGroup.wp_Done (wsWgAddr s) γwg wsWgWGN $$ [] [Htok Hrd HΦ]
+  · iframe #
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro wsWg_maskW
+  iintro Hmask
+  inext
+  iunfold wsWgInv at Hi
+  icases Hi with ⟨%ctr, %n, %d, Hwgo, Hauth, %Hctr, Hdep⟩
+  icombine Hauth Htok gives %Hle
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  have hlt : sint.Z ctr < 2 ^ 31 := by word
+  iexists ctr
+  iframe Hwgo
+  isplitr
+  · ipureintro; omega
+  iintro Hwgo
+  imod Hmask with -
+  imod ownTokAuth_delete_S γd n' $$ Hauth Htok with Hauth
+  imod Hclose $$ [Hwgo Hauth Hdep Hrd] with -
+  · inext
+    iunfold wsWgInv
+    iexists ctr - W32 1, n', d + 1
+    iframe Hwgo Hauth
+    isplitr
+    · ipureintro
+      have : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
+      omega
+    icases Hdep with (Hl | Hr)
+    · ileft
+      simp only [List.replicate_succ]
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hrd Hl
+    · iright; iexact Hr
+  imodintro
+  iapply HΦ
+  itrivial
+
+end reprs
+
+end mvcc
+end EtcdGrove
+end Perennial

@@ -1,5 +1,5 @@
 // Package clientv3lease holds the requirement snippets of etcd's Go client lease API (batch 1c,
-// Spec/go_etcd_io/etcd/client/v3/ApiLease.lean): minimal uses of the patterns its users rely on
+// SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiLease.lean): minimal uses of the patterns its users rely on
 // (client/v3/concurrency's Session, Kubernetes' lease manager, leasing and recipes through
 // sessions, this repository's examples/etcd/lease*), each reliance an explicit panic.
 //

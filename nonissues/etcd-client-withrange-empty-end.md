@@ -28,7 +28,7 @@ in-process side is the same root cause as `etcd-auth-empty-range-end-point-check
 no: the client's KV specs take the scope premise that no range end of the request is a non-`nil`
 empty slice (`OpM.emptyEnd = false` in `KV.GetTriple`, `DeleteTriple`, `DoTriple`,
 `GetStreamTriple`, `Txn.ThenTriple`, `Txn.ElseTriple`; `e ≠ []` in `Cmp.WithRange.spec`:
-`Spec/go_etcd_io/etcd/client/v3/Api.lean`), since one model of the request cannot be right for
+`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean`), since one model of the request cannot be right for
 both transports; every caller in scope meets it.
 
 ## Notes

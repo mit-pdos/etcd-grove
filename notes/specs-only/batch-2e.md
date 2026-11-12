@@ -6,16 +6,16 @@ Author's report, round 0 (draft, before review). 2026-11-09.
 
 `etc/specs-build.sh` of every 2e module by name (the `etcdserver/` directory is shared with 2c and
 2d, so `--dir` builds their files too): **135 modules OK**. **Blocked, not by 2e**: the 11 modules of
-`api/v3election/` and `api/v3lock/` import 1d's `Spec/go_etcd_io/etcd/client/v3/concurrency/Api.lean`,
+`api/v3election/` and `api/v3lock/` import 1d's `SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency/Api.lean`,
 which fails at line 511 (`ctxPrin`'s signature changed in W0's uncommitted `ApiClient.lean`/`Model.lean`
 edits). Rebuild them once 1d/W0 settle.
 
 **Infrastructure fix the coordinator must port** (it blocked every module importing
-`Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver`, i.e. all of 2c/2d/2e): three defects of
+`SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver`, i.e. all of 2c/2d/2e): three defects of
 `etc/gen-specs-pkginit.py`, fixed in a copy (`/tmp/gen2e.py`, not in `etc/`) with which I
-regenerated `Spec/PkgInit/` (161 generated files changed, plus 6 new):
+regenerated `SpecPlan/Spec/PkgInit/` (161 generated files changed, plus 6 new):
 1. `perennial_instances`' regex `pkg_id\.([A-Za-z0-9_.]+)` misses `«unsafe»`: add `«»` to the class
-   (bbolt's init then imports `Perennial.Proof.unsafe.Base`, not a missing `Spec.PkgInit.«unsafe»`).
+   (bbolt's init then imports `Perennial.Proof.unsafe.Base`, not a missing `SpecPlan.Spec.PkgInit.«unsafe»`).
 2. Anonymous instances of packages with the same last path component get the same auto name
    (`internal/syscall/unix` and `golang.org/x/sys/unix`: "environment already contains"): every
    package whose last component is shared gets `instance pkgInit_<path with _>`.
@@ -27,9 +27,9 @@ regenerated `Spec/PkgInit/` (161 generated files changed, plus 6 new):
 Vocabulary (one `Api.lean` per package; namespaces new on the branch: `Config`, `Features`, `Wal`,
 `ServerStorage`, `Snap`, `Membership`, `V3compactor`, `V3alarm`, `V2stats`, `V3election`, `V3lock`,
 `Leasehttp`; `EtcdServer` shared with 2c/2d):
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean` (the hub's vocabulary)
-- `Spec/go_etcd_io/etcd/server/v3/{config,features,storage,storage/wal,lease/leasehttp}/Api.lean`
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/{snap,membership,v3compactor,v3alarm,v2stats,v3election,v3lock}/Api.lean`
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean` (the hub's vocabulary)
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/{config,features,storage,storage/wal,lease/leasehttp}/Api.lean`
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/{snap,membership,v3compactor,v3alarm,v2stats,v3election,v3lock}/Api.lean`
 
 Specs (133 files): `etcdserver/` 44 (`NewServer`, `bootstrap` (trusted), `Start`, `start`,
 `HardStop`, `Stop`, `Cleanup`, `GoAttach`, `publishV3`, `purgeFile`, `adjustTicks`, the five
@@ -259,7 +259,7 @@ F14 (requested of 2a/2f), F15, F16 (noted in `RenewHTTP`, `NewServer`).
 
 ## Round 2 (crash restart) (2026-11-09)
 
-Over R1's `raftState_crash` (`Spec/go_etcd_io/raft/v3/Api.lean`; `Durable.crashed`,
+Over R1's `raftState_crash` (`SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean`; `Durable.crashed`,
 `Durable.confAboveOk`). Build: all 161 modules of 2e OK, and 2d's `ApiApply` still builds against
 the changed vocabulary. Snippets: `go vet`, `gofmt` clean. This supersedes round 1's "F8" and Q2.
 

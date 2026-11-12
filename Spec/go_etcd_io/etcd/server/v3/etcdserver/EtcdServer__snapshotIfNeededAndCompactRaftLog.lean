@@ -1,31 +1,12 @@
 /-
-`(*EtcdServer).snapshotIfNeededAndCompactRaftLog(ep)` (`server.go:1240-1249`): if a disk or memory
-snapshot is due, take it and compact the raft log below it.
-
-**Users**: `applyAll` (`server.go:1002`), after raft advanced past the batch. Snippet `snapshot.go`
-(`ReqSnapshotCompact`).
-
-**Proof sketch**. `shouldSnapshotToDisk.spec`, `shouldSnapshotToMemory.spec`; if either:
-`snapshot.spec` (with `nodeAdvanced r appliedi`; `0 < appliedi` since a due snapshot is past an
-earlier one or the snapshot count: `appliedi > memSnap + memorySnapshotCount` or
-`appliedi - diskSnap > SnapshotCount` or, forced, `appliedi ≠ diskSnap`), giving `nodeSnapLb r
-appliedi`; `compactRaftLog.spec` at `appliedi`.
-
-**Changes** from `specs-ref`'s spec (the memory storage's ghost, the frozen ranges and terms
-`srvFrozenRange`/`srvFrozenTerms`, `srvSnapState`): over `applyThread` with R1's facts as
-`nodeAdvanced`/`nodeSnapLb`. **Margin**: the snapshot indices move; the post says only that the
-applied index and term do not.
-
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
-
-Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): its callees `snapshot`, `compactRaftLog` and `shouldSnapshotToDisk` take it.
+`s.snapshotIfNeededAndCompactRaftLog(ep)` (`server.go`). Lean-first (no Rocq counterpart); the request path's unit 4b
+(2026-10-13).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshot
 
 @[expose] public section
 
@@ -33,9 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -43,20 +23,78 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress),
+/-- `s.snapshotIfNeededAndCompactRaftLog(ep)`, by the apply thread: if a disk or in-memory
+snapshot is due, `snapshot` and `compactRaftLog`; the applied index, term and conf state, the KV and
+the backend are left as they are, the protocol's state keeps `loopOk` and `ciEff`. The applier row
+in the environment's auth mode (`srvApplyKVM E.authOn`, the model's auth state `sa` on; `specOff`
+and `specOn` its corollaries), kept. It takes what `snapshot` takes (`isServerM`, `srvSnapDisk`,
+`appliedAtLeast`, the server's KV over the store, `srvSnapStor`, the consistent index past `ai`,
+`releaseOk`, `walSaveOk`, the WAL's open token) and the node's applied index past `ai`
+(`compactRaftLog`'s).
+
+(2026-10-30, the repair: snapshots allowed; stage P's decision B1 split it into a no-snapshot
+spec, whose proof closed the snapshot branch with SNAPSHOT-SORRY #11, and this one, then `specFull`;
+2026-10-31, #11: `applyAll` uses this one, the other is gone. The snapshot track's S6: until then
+the KV commit contract with `RC`, post `RC ∨ RC'`.) -/
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
+    (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : WTNames) (w : Nat)
+    (TM : MetaCI → IProp GF) (ρ : ReqNames)
+    (sa : auth.AuthState) (q : Qp) (γn : RNNames),
+  loopOk γ st ai →
+  -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
+  -- `specFull`): the consistent index past `ai`, `Release` not failing
+  uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
+  GMap.size γr.raft.raft.cfg < 2 ^ 61 →
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes (`snapshot`'s)
+  storage.walSaveOk →
+  -- (2026-11-03, R2b-1 stage 5) the raft wrapper's names the server's raft's, at a fresh start
+  -- (`snapshot`'s)
+  γn.node = γr.raft.raft → γr.raft.pre = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvStarted s γ id ∗ applyThread s γ ep p ∗
-      nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
-        (uint.nat p.appliedi) ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"snapshotIfNeededAndCompactRaftLog")) (Val #ep))
-  {{ RET #(); threadTok ∗ ∃ p', applyThread s γ ep p' ∗
-      ⌜p'.appliedi = p.appliedi ∧ p'.appliedt = p.appliedt⌝ }}
+      isServerM E.authOn s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvSnapStor ms γs γr nk ai at' ∗
+      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      srvSnapFrozen γs (uint.nat ai) ∗
+      -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
+      -- entry at `ai` frozen at `at'` (`snapshot`'s)
+      (⌜uint.Z ai = 0⌝ ∨ epCsCfg γr cs) ∗ srvFrozenTerm γs ai at' ∗
+      -- (D19i part 1; 2026-10-30, the repair: in place of the storage's floor) the node's (on the storage of key `nk`)
+      -- applied index past the applied index (`raftAdvancedC`'s, `Compact`'s `J.B`)
+      (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗
+      rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) ∗
+      -- (strict M1, 2026-11-06) the thread's token (`snapshot`'s, for `KV.Commit.contract`)
+      apply.applyTok E }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
+      (Val #ep))
+  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai (W64 0) ∗ srvSnapFrozen γs (uint.nat ai) ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVM E.authOn s E γw x sa ∗ rnWalTokA γn (srvRAddr s) q ∗ apply.applyTok E ∗ ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+
+/-- (2026-11-01, J8a-5) **Nothing due** (after a snapshot's install, `applyAll.specSnapM`): with the
+disk and in-memory snapshot indices at the applied index `ai` (and `ai + memorySnapshotCount` not
+wrapping), neither snapshot is due, and the function returns at once. -/
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop : Prop :=
+  ∀ (s : Loc) (γr : ReadNames) (ep : Loc) (ai : w64),
+  uint.Z ai + 100 < 2 ^ 64 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerApplyAll s γr ∗ srvFS s ∗
+      epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ ai }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshotIfNeededAndCompactRaftLog"))
+      (Val #ep))
+  {{ RET #(); srvFS s ∗ epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ ai }}
+
+/-- **`snapshotIfNeededAndCompactRaftLog`'s spec** (J8b, 2026-11-01): both cases, after a batch (`specBatch`) and at the snapshot indices (`specNoop`), for the link. -/
+abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
+  EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch (GF := GF) (hG := hG) ∧
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.specNoop (GF := GF) (hG := hG)
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

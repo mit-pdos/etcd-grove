@@ -28,7 +28,7 @@ injection in `fdatasync` and a crash (found by reasoning about OsFs's model of a
 
 ## Proof
 
-no: bbolt's specs record a failed sync in the client-owned state (`Spec/go_etcd_io/bbolt/Model.lean`,
+no: bbolt's specs record a failed sync in the client-owned state (`SpecPlan/Spec/go_etcd_io/bbolt/Model.lean`,
 `BoltSt.lost`), after which a commit promises nothing about what a crash recovers
 (`BoltSt.commit`/`attempt` set `dur := none`); clients that stop at the first error, as etcd and
 the bank test do, never reach that state.

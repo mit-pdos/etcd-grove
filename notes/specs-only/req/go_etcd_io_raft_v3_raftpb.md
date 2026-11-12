@@ -3,8 +3,8 @@
 ## from R1
 
 R1's statements need the Go ownership of raftpb's messages over R1's pure models
-(`Spec/go_etcd_io/raft/v3/Model.lean`). Until 3h states them, R1 declares them provisionally in
-`Spec/go_etcd_io/raft/v3/Api.lean` (section "raftpb's Go ownership (provisional)"); please state
+(`SpecPlan/Spec/go_etcd_io/raft/v3/Model.lean`). Until 3h states them, R1 declares them provisionally in
+`SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean` (section "raftpb's Go ownership (provisional)"); please state
 yours over the same models (or give R1 a mapping), so integration only renames:
 
 | R1's provisional predicate | meaning |
@@ -42,7 +42,7 @@ And these functions, specified over them:
 
 ## from R3
 
-Batch R3 (raft's log: `Spec/go_etcd_io/raft/v3/ApiLog.lean`, `raftLog__*`, `unstable__*`, util)
+Batch R3 (raft's log: `SpecPlan/Spec/go_etcd_io/raft/v3/ApiLog.lean`, `raftLog__*`, `unstable__*`, util)
 declares one more provisional predicate, over R1's `LogEntry`:
 
 | R3's provisional predicate | meaning |
@@ -87,7 +87,7 @@ And these, specified over them:
 
 ## from R4
 
-Batch R4 (tracker, quorum, confchange: `Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/`,
+Batch R4 (tracker, quorum, confchange: `SpecPlan/Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/`,
 report `notes/specs-only/batch-R4.md`) reads raftpb's changes and conf states:
 
 1. **`[]*ConfChangeSingle` slices** (provisional in `confchange/Api.lean`: `ConfChange.ccsPts sl dq

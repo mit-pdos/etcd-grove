@@ -1,14 +1,9 @@
 /-
-## `(*Meta).Txid()` (`internal/common/meta.go`)
-
-**Users.** db.go:896,957 (`beginTx`, `removeTx`), tx.go (`Commit`, `rollback`, `ID`, `writeMeta`), bucket.go:915, node.go (spill/free). Snippet `ReqMetaRoundTrip`.
-**Proof sketch.** one field load.
-**Changes.** from `specs-ref`'s file of the same name (unchanged; a meta in a page is reached by `meta_view`).
-**Margin.** none: the post is what the code computes.
+`(*Meta).Txid`'s spec (`internal/common/meta.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,19 +11,21 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `m.Txid()`: the field `txid`. -/
-def Meta.Txid.spec : Prop :=
+/-- `Meta.Txid()` reads the field `txid`. -/
+abbrev Meta.Txid.spec : Prop :=
   ∀ (l : Loc) (v : Meta) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦{dq} v }}
     (App (Val (l @!! go.GoType.PointerType Meta.ty @!! go!"Txid")) (Val #()))
@@ -36,6 +33,8 @@ def Meta.Txid.spec : Prop :=
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

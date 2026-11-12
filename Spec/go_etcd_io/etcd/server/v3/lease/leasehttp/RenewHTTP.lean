@@ -1,43 +1,25 @@
 /-
-## `leasehttp.RenewHTTP(ctx, id, url, rt)` (`http.go`): trusted (names only)
-
-**Users.** 2c's `EtcdServer.LeaseRenew` on a follower (the keep-alive forwarded to the leader's
-`/leases` endpoint over the peers' round tripper). embed's server side (`NewHandler`, mounted by
-`etcdhttp.NewPeerHandler`) is out of scope: this repository's starters serve only the raft handler,
-so a forwarded keep-alive gets a `404`, which the error disjunct covers.
-
-**Why it is true.** An HTTP POST of the encoded `LeaseKeepAliveRequest` with the context, the
-response decoded: no panic for any `id`, `url` (a bad URL is an error) or context. The TTL it
-returns says nothing of the lease in W0's model. **Its errors** (`http.go:166-218`): exactly
-`lease.ErrLeaseNotFound` (the value of the global: `return -1, lease.ErrLeaseNotFound`) on a `404`;
-otherwise `proto.Marshal`'s or `http.NewRequest`'s error, `cc.Do`'s `*url.Error` (wrapping the
-round tripper's or the context's error), `readResponse`'s, `ErrLeaseHTTPTimeout` (another
-`errors.New` value), a `fmt.Errorf` without `%w`, or `fmt.Errorf("lease: %w ...")` of
-`proto.Unmarshal`'s error: none of them is, or wraps, the lessor's sentinel (the round tripper,
-`net/http`'s transport over rafthttp's, never returns it), and each one's `Is`/`Unwrap` methods are
-the standard library's and protobuf's (no panic), so `errors.Is(err, lease.ErrLeaseNotFound)` is
-safe and `false` (`errIsNot`).
-
-**Changes** (from `specs-ref`'s `RenewHTTP.lean`): unchanged in substance; the round tripper's
-contract is `net/http`'s `Http.roundTripperOk` (`rtOk`, no longer provisional: integration I5).
-Verify round (A9 3c F9): the post says what the caller inspects: `nil`, the lessor's
-`ErrLeaseNotFound` (the global's value, `Lease.errIs`), or an error on which `errors.Is` with that
-value is safe and `false` (`errIsNot`); it said nothing of the error.
-**Margin.** The TTL; the other errors' kinds.
+`leasehttp.RenewHTTP(ctx, id, url, rt)` (`server/lease/leasehttp/http.go`), names only: a
+trust-boundary contract. Lean-first (no Rocq counterpart); the lease-renew plan
+(`notes/lease-renew-plan.md`, 2026-11-01).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.leasehttp.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Code.net.http
+public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Base
+public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasehttp
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasehttp
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease.leasehttp
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -46,20 +28,34 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions]
 
-/-- **Forwards a keep-alive to the leader**: some TTL and `nil`, the lessor's `ErrLeaseNotFound`
-(the leader's `404`), or another error, which is not (and wraps nothing that is)
-`ErrLeaseNotFound`. -/
-def RenewHTTP.spec : Prop :=
-  ∀ (ctx : GoInterface) (id : w64) (url : GoString) (rt : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗ Context.ctxOk ctx ∗ rtOk rt ∗ threadTok }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP)) (Val #ctx)) (Val #id)) (Val #url)) (Val #rt))
-  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); threadTok ∗
-      (⌜err = GoInterface.nil⌝ ∨
-       Lease.errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∨
-       ∃ t, Lease.errIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound t ∗ errIsNot err t) }}
+/-- **`RenewHTTP(ctx, id, url, rt)`** (names-only, a contract; the lease-renew plan's C5), any
+goroutine, at a context, over a standard library HTTP transport (`rt` a `*http.Transport`: what
+`rafthttp.NewRoundTripper` builds, `transport.NewTimeoutTransport`): a TTL and `nil`, or an error
+the gRPC layer can take (`applyErrIs`). Nothing is stated of the TTL.
+
+**Why it is faithful.** It marshals a `LeaseKeepAliveRequest` (`proto.Marshal`), builds a POST
+request to `url` with the context (`http.NewRequest`, `WithContext`), sends it with an
+`http.Client` over `rt` (`Do`: the standard library's transport, whatever the URL or the peer
+answers), reads the reply (`readResponse`: the body, which `http.Client` never leaves `nil`,
+closed) and decodes a `LeaseKeepAliveResponse` (`proto.Unmarshal`) into a fresh message whose TTL
+it returns; its errors are the marshal's, the request's, the client's (a `*url.Error`),
+`ErrLeaseHTTPTimeout` (a 408), `lease.ErrLeaseNotFound` (a 404), an `fmt.Errorf` value (another
+status, or a reply whose ID is not `id`) or the decode's, each an error value with an `Error()`.
+**Its assumption on the cluster**, as `leaseTimeToLive.spec`'s: a peer's reply is small enough to
+buffer (`readResponse` reads up to `maxLeaseHTTPResponseSize`, 100 MiB, per call); the model has no
+memory bound to state it with. -/
+abbrev leasehttp.RenewHTTP.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
+    (rt : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗
+      context.isContext ctx cd ∗
+      ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP))
+      (Val #(GoInterface.ok ctx))) (Val #id)) (Val #url)) (Val #rt))
+  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err);
+      ⌜err = GoInterface.nil⌝ ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err) }}
 
 end spec
 
-end Leasehttp
 end EtcdGrove
 end Perennial

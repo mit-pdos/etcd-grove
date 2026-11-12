@@ -1,21 +1,9 @@
 /-
-`(clientv3.Op).toRequestOp` (`client/v3/op.go`).
-
-Users: `txn.Then`/`Else`, `Op.toTxnRequest`.
-
-Proof sketch: by the type: `toRangeRequest.spec`, a fresh `PutRequest`/`DeleteRangeRequest`, `toTxnRequest.spec`; wrapped in a fresh `RequestOp` (`requestOpOwn_unfold`, `requestOneof`). Panics on a zero `Op` at any depth (premise `toReqOp`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__toRequestOp.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-verify-round (re-review NF1): premise `o.emptyEnd = false` (no non-`nil` empty range end at any
-depth): the request message's unfold law now carries `es = slice.nil ∨ ebs ≠ []` (`Wire.lean`), which
-the built message would not meet otherwise; every caller has it (the KV triples' scope premise).
-
-Margin: none.
+`clientv3.Op.toRequestOp()` (`client/v3/op.go`, translated for the vertical slice's unit V2). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -23,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,15 +21,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.toRequestOp()`: its `RequestOp`, owned (premise: no zero `Op` at any depth). -/
-def Op.toRequestOp.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (dq : DFrac) (r : RequestOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o ∗ ⌜o.toReqOp = some r ∧ o.emptyEnd = false⌝ }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"toRequestOp")) (Val #()))
-  {{ (p : Loc), RET #p; opp ↦{dq} op ∗ requestOpOwn p (DFrac.own 1) r }}
+/-- `op.toRequestOp()` of an operation tree `t` whose plain operations are gets, puts and deletes
+(else it panics, `"Unknown Op"`): a new `*pb.RequestOp` wrapping the request of its kind, a nested
+transaction's `toTxnRequest` (its comparisons cloned, its operations' requests, recursively),
+holding (read-only) the tree's wire model (`OpT.wire`); a put that ignores the value has none
+(`reqOpAt`'s put case; Go copies the value into the request whatever `ignoreValue`, and the wire
+model forgets it). -/
+abbrev Op.toRequestOp.spec : Prop :=
+  ∀ (opv : go_etcd_io.etcd.client.v3.Op) (t : OpT),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opTAtC false opv t ∗
+      ⌜∀ o ∈ t.leaves, (o.t = W64 1 ∨ o.t = W64 2 ∨ o.t = W64 3) ∧
+        (o.t = W64 2 → o.ignoreValue = true → o.val = [])⌝ }}
+    (App (Val (opv @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"toRequestOp")) (Val #()))
+  {{ (p : Loc), RET #p; reqOpAt p (OpT.wire t) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -137,6 +137,6 @@
 
 - **Changed modules first:** `etc/specs-build.sh` on `State`, `leasehttp.{Api,TimeToLiveHTTP}`,
   `ApiBoot`, `ApiReq`, `ApiClient` and `EtcdServer__leaseTimeToLive`: **OK (7 modules)**.
-- **Then the importers:** the `Spec.*` leaves of `etc/importers.py --leaves api/v3/State.lean`
+- **Then the importers:** the `SpecPlan.Spec.*` leaves of `etc/importers.py --leaves api/v3/State.lean`
   (1092 modules; `State` is imported by every other changed module): **OK (1092 modules)**, `Build completed successfully (3597 jobs)`, no errors.
 - **Snippets:** `go vet ./specreq/clientv3lease/` passes and `gofmt -l` prints nothing.

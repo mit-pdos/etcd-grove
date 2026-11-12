@@ -1,7 +1,7 @@
 # R4 (raft's tracker, quorum, confchange): review, round 1 (provability and completeness)
 
 Reviewer: one agent for both kinds, 2026-11-09, at `077835cb66` (R4's files unchanged since
-`a43cf1d09d`). Read: `Spec/go_etcd_io/raft/v3/{quorum,tracker,confchange}/` (Model, Api, all 60
+`a43cf1d09d`). Read: `SpecPlan/Spec/go_etcd_io/raft/v3/{quorum,tracker,confchange}/` (Model, Api, all 60
 specs), `examples/specreq/raftconf/*.go`, R4's sections of `req/go_etcd_io_raft_v3{,_raftpb}.md`,
 `batch-R4.md` (after my own pass), R1's `Model.lean`/`Api.lean` (configuration model and laws),
 R3's `ApiLog.lean` (quorum predicates), `reviews/R2-provability-1.md` (b), the pinned Go
@@ -162,7 +162,7 @@ the empty configuration (`bootstrap.go`, `rn.raft.applyConfChange(cc.AsV2())`), 
 ## Third tier (preferences, notes)
 
 - **N1. Coupling of two specs to R1's node API.** `Restore.lean` and
-  `ProgressTracker__ConfState.lean` import `Spec.go_etcd_io.raft.v3.Api` (the whole node API) for
+  `ProgressTracker__ConfState.lean` import `SpecPlan.Spec.go_etcd_io.raft.v3.Api` (the whole node API) for
   `Raft.ConfState`/`Raft.confStatePts`, which are raftpb's (3h). Import the raftpb vocabulary once
   it exists (or R1's `Model` for the structure); otherwise every node-API change rebuilds them, and
   a future import of tracker's specs from R1's `Api` risks a cycle.

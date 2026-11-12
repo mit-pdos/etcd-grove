@@ -1,19 +1,11 @@
 /-
-## `(*EtcdServer).AppliedIndex()` (`server.go:1766`)
-
-**Users.** `restart.stop` (waits until the bootstrap entries are applied: not needed for the restart's safety, `memberDisk` holds any durable state).
-
-**Proof sketch.** A read of a read-only field or an atomic load (`srvMember`'s realization).
-
-**Changes** (from `specs-ref`'s `EtcdServer__AppliedIndex.lean` where it existed): over `srvMember`.
-
-**Margin.** The value is a lower bound of what the member applied (it may be stale).
-
-Changes: verify-round (A7-provability F4): the post gives `srvApplied` of the value (the atomic's invariant in `srvNode`: `applyAll` stores an applied index), what `readEnv`'s `AppliedIndex` row needs.
+`s.AppliedIndex()` (`server.go`). Lean-first (no Rocq counterpart); the request path's unit 4b
+(2026-10-13): a method of the read loop's `server` interface (`read/Inv.lean`, `isReadServer`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 
 @[expose] public section
 
@@ -21,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +23,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`AppliedIndex()`**: an index the member has applied (`srvApplied`). -/
-def EtcdServer.AppliedIndex.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"AppliedIndex")) (Val #()))
-  {{ (i : w64), RET #i; ∃ N : Names, ⌜N.etcd = γ⌝ ∗ srvNode s N id ∗ srvApplied s N (uint.nat i) }}
+/-- **`spec` in the auth mode `on`** (the auth plan's E3r, 2026-10-27; `srvAppliedInvM on`, `specOff` at
+`on = false` by definition). -/
+abbrev EtcdServer.AppliedIndex.specM (on : Bool) : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAppliedInvM on s E γr }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AppliedIndex")) (Val #()))
+  {{ (v : w64), RET #v; appliedAtLeast γr v }}
+
+/-- **`s.AppliedIndex()`** (the auth component's stage 2, 2026-11-04: one statement in both auth
+modes): `s.getAppliedIndex()`, an index the applied index has reached, from the applied index's
+invariant in the mode `on` (a model row, `srvAppliedInvM`). Until stage 2, `spec` was this at
+`on = false` (stage 2's corollary `specOff` was deleted in stage 3: no caller used it). -/
+abbrev EtcdServer.AppliedIndex.spec : Prop :=
+  ∀ on : Bool, EtcdServer.AppliedIndex.specM (GF := GF) (hG := hG) on
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

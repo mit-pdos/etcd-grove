@@ -1,6 +1,6 @@
 # R3 (raft's log): provability review, round 1
 
-Reviewer: provability agent, 2026-11-09. Read: `Spec/go_etcd_io/raft/v3/ApiLog.lean` and every R3
+Reviewer: provability agent, 2026-11-09. Read: `SpecPlan/Spec/go_etcd_io/raft/v3/ApiLog.lean` and every R3
 spec (`raftLog__*`, `unstable__*`, `readOnly__*`, `newLogWithSize`, `newReadOnly`, util/types
 helpers), R1's `Model.lean`/`Api.lean` (storage contract, `memStor`, `stor_*`, `readyStor_*`) and
 the `MemoryStorage__*` specs, R2's `ApiCore.lean`, `node__Advance.lean`, `batch-R2.md` and the

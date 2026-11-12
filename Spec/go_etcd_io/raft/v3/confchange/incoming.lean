@@ -1,14 +1,10 @@
 /-
-## `incoming(voters)` (internal)
-
-**Users.** confchange's functions. Mirrors the code: the first
-half.
+`confchange.incoming(voters)` is `voters[0]`, the incoming majority config of a joint
+config. Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 
@@ -16,26 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The incoming half. -/
-def incoming.spec : Prop :=
-  ∀ (c : go_etcd_io.raft.v3.quorum.JointConfig) (m0 m1 : GoMap),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ⌜c.arr = [m0, m1]⌝ }}
-    (App (Val #(functions go_etcd_io.raft.v3.confchange.incoming [])) (Val #c))
-  {{ RET #m0; True }}
+/-- `incoming` returns the first component of the `[2]MajorityConfig`. -/
+abbrev confchange.incoming.spec : Prop :=
+  ∀ (jc : quorum.JointConfig) (v0 v1 : Loc),
+  jc.arr = [v0, v1] →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange }}
+    (App (Val #(functions confchange.incoming [])) (Val #jc))
+  {{ RET #v0; True }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

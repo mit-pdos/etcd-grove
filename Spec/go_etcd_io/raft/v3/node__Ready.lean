@@ -1,19 +1,14 @@
-/-
-## `node.Ready()`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's `raftNode.start` (`raft.go:189`, `case rd := <-r.Ready()` in a `select` with the
-ticker and `stopped`); every example's run loop. Snippet: `readyloop.go`.
+## `node.Ready`
 
-**Proof sketch.** Returns the `readyc` field: `isNode`'s invariant knows it. What a receive gives is
-`readyChan_recv.spec` (`Api.lean`).
-
-**Changes.** Unchanged.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.Ready.specRaw`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -21,27 +16,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **The `Ready` channel** of node `n`. -/
-def node.Ready.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id }}
-    (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Ready")) (Val #()))
-  {{ (ch : Loc), RET #ch; isReadyChan n ch }}
+/-- **`node.Ready()`**: the node's `Ready` channel. -/
+abbrev node.Ready.spec : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
+  {{ (ch : Loc), RET #ch; isReadyChan n γ N ch }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

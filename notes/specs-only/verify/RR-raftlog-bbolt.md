@@ -139,7 +139,7 @@ and `raft/v3/raft__hasUnappliedConfChanges`.
 
 ### NR2 (4c regression, in `storage/backend`). `boltOpenOptions_init` now states `NoFreelistSync` off
 
-- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/backend/Durable.lean:142-145` assumes
+- **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/Durable.lean:142-145` assumes
   `optsAt l DFrac.discard { Bbolt.OptsM.dflt with mmapFlags := W64 Bbolt.mapPopulate }`. N1 added
   `noFreelistSync := false` to `OptsM.dflt` (`Model.lean:324-327`), and `optsAt_bool` now tracks the
   field.

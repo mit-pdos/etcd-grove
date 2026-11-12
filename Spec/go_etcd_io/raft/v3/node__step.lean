@@ -1,17 +1,20 @@
-/-
-## `node.step(ctx, m)` (internal)
+/- Lean-first (no Rocq counterpart).
 
-`stepWithWaitOption(ctx, m, false)`. **Changes.** Mirrors the code.
+## `node.step(ctx, m)` (node.go:498)
 
-**Integration I2.** The message is a received one (`msgRecv`: its `Entries` capacity owned, which
-`raft.Step` hands to the log on a `MsgApp`) or an owned local message that is no `MsgApp` (R2's
-`stepMsg`).
+`stepWithWaitOption(ctx, m, false)`, for a message from the network. (2026-10-16, stage R7a: any
+`nodeCtx ctx cd`, the error `nodeErr cd err`; `node__stepWithWaitOption.lean`.) (2026-10-16, stage
+R5: `m` a
+`*pb.Message`, `ml`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Perennial.Proof.context
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
@@ -19,30 +22,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- (internal) `stepWithWaitOption` with `wait = false`. -/
-def node.step.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
-    (ml : Loc) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗
-      (msgRecv ml m ∨ (msgPts ml (DFrac.own 1) m ∗ ⌜m.type ≠ MsgApp⌝)) ∗
-      stepOk n γ id m }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"step")) (Val #ctx)) (Val #ml))
-  {{ (err : GoInterface), RET #err; propErr n ctx err }}
+/-- See the file header. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStoppedRaw`.) -/
+abbrev node.step.spec : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
+      nodeCtx ctx cd ∗
+      stepP γ id ml }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"step"))
+      (Val #(interface.ok ctx))) (Val #ml))
+  {{ (err : GoInterface), RET #err; nodeErrRaw γ cd err }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

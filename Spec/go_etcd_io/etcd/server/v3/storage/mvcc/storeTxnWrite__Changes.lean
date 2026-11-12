@@ -1,15 +1,9 @@
 /-
-`(*storeTxnWrite).Changes()` (`kvstore_txn.go:348`): the `changes` slice. Internal: the length for
-`Txn.Changes.contract` (through `metricsTxnWrite`), the records themselves for 3f's
-`watchableStoreTxnWrite.End` (it builds an event per record and writes a delete's `ModRevision`).
-The records stay in the transaction; a caller that needs them takes them with
-`storeTxnW_changes` (`changesSl t chs`: then only `End`, which takes `storeTxnWNC`, follows).
-
-**Changes** from `specs-ref`'s file: over `storeTxnW`, `changesSl` and `changesM` (W0's events).
+`storeTxnWrite.Changes` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -17,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,16 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The change slice: one record per event (`storeTxnW_changes` hands them out). -/
-def storeTxnWrite.Changes.spec : Prop :=
-  ∀ (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Event),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      storeTxnW t γ trace σ pend }}
-    (App (Val (t @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Changes")) (Val #()))
-  {{ (chs : GoSlice), RET #chs; storeTxnW t γ trace σ pend ∗ changesSl t chs ∗
-      ⌜uint.nat chs.len = pend.length ∧ 0 ≤ sint.Z chs.len⌝ }}
+/-- `tw.Changes()`: the transaction's `changes`, the key-values of the pending changes
+(`changesAre`), the caller's: the transaction keeps its core (`storeTxnWriteIs_join` gives it
+back). -/
+abbrev mvcc.storeTxnWrite.Changes.spec : Prop :=
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (crev : Int) (Z : IProp GF) (ld : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ld }}
+    (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Changes")) (Val #()))
+  {{ (chs : GoSlice) (ps : List Loc), RET #chs;
+      chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps false crev Z ld }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

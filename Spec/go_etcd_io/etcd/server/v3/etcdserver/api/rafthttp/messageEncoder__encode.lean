@@ -1,19 +1,10 @@
 /-
-## `(*messageEncoder).encode(m)`
-
-**Users.** `streamWriter.run` (the message stream), `createSnapBody` (the snapshot envelope).
-
-**Proof sketch.** `proto.Size` (3h), `binary.Write` of a `uint64` (Perennial's `encoding/binary`, translated), `pbutil.MustMarshalMessage` (an encoding of the size computed), the writer's `Write`s (each a prefix of the frame).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A8 F8): raftpb's `msgEncodes` (was `pbEncodes`), the transparent `msgFrame`.
-
-**Margin.** None.
+`(*messageEncoder).encode(m)` (`msg_codec.go`): rafthttp's message encoder, the pipeline's and
+the `streamTypeMessage` stream's. Lean-first; the vocabulary: `rafthttp/Codec.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Codec
 
 @[expose] public section
 
@@ -21,26 +12,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Writes a message's frame** (its encoding's length, eight bytes big-endian, then the encoding), with the writer's permission for every frame of an encoding of it; on an error, some prefix may have been written. -/
-def messageEncoder.encode.spec : Prop :=
-  ∀ (enc : Loc) (w : GoInterface) (Ok : List w8 → IProp GF) (bs : List w8) (ml : Loc) (dq : DFrac) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ msgEncAt enc w ∗ writerAt w Ok bs ∗ msgPts ml dq m ∗ □ (∀ e ys, ⌜RaftPb.msgEncodes e m ∧ ys <+: msgFrame e⌝ -∗ Ok (bs ++ ys)) }}
-    (App (Val (enc @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder.ty @!! go!"encode")) (Val #ml))
-  {{ (err : GoInterface), RET #err; msgPts ml dq m ∗ Http.errOk err ∗ ∃ bs', writerAt w Ok bs' ∗ ⌜err = interface.nil → ∃ e, RaftPb.msgEncodes e m ∧ bs' = bs ++ msgFrame e⌝ }}
+/-- **`enc.encode(m)`** of a frozen message `st` that marshals, to the encoder's writer `wi` at the
+bytes `h`, permitted to write the frame of any encoding of `st` (and its length prefix): the frame
+of an encoding of `st` is written, or an error is returned (the writer at some bytes); (2026-10-24,
+stage 7d) none if the writer never fails (`writerAtF true`). -/
+abbrev rafthttp.messageEncoder.encode.spec : Prop :=
+  ∀ (enc : Loc) (wi : GoInterfaceOk) (ml : Loc) (st : MsgSt) (Wr A : List w8 → IProp GF)
+    (h : List w8) (nf : Bool),
+  MsgMarshals st →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder, go!"w"] ↦□
+        GoInterface.ok wi ∗
+      writerAtF nf wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
+      □ (∀ bs : List w8, ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63⌝ -∗
+          A (h ++ u64Be (W64 bs.length)) ∗ A (h ++ msgFrame bs)) }}
+    (App (Val (enc @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder.ty @!! go!"encode")) (Val #ml))
+  {{ (err : GoInterface), RET #err; http.errStrOk err ∗ ⌜nf = true → err = GoInterface.nil⌝ ∗
+      ∃ h' : List w8, Wr h' ∗
+        (⌜err = GoInterface.nil⌝ -∗ ∃ bs : List w8, ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63 ∧ h' = h ++ msgFrame bs⌝) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

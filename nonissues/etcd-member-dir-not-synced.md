@@ -32,7 +32,7 @@ crash simulation that drops unsynced directory entries.
 ## Proof
 
 yes, pending a decision (`notes/specs-only/open-questions.md`, D7): the WAL's trusted crash laws
-(`Wal.walRecs_crash`, `walWriting_crash`, `walCreating_crash`, `Spec/go_etcd_io/etcd/server/v3/storage/wal/Api.lean`)
+(`Wal.walRecs_crash`, `walWriting_crash`, `walCreating_crash`, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/wal/Api.lean`)
 and so every `EtcdServer.disk_crash` rely on `member/`'s entry being durable, which is true on
 ext4/xfs and not under POSIX as written; the fork fix of D7's option (c) (sync `member/snap`) does
 not cover it, an environment premise that a directory entry on the path of a file is durable once

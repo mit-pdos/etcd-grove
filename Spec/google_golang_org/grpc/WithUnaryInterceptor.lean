@@ -1,17 +1,9 @@
 /-
-`grpc.WithUnaryInterceptor` (grpc-go, assumed: `dialoptions.go`).
-
-Users: the client's `dialSetupOpts` (`client.go:270`, 1c).
-
-Why true: the option sets `dopts.unaryInt` to `f`, replacing any earlier one; `Invoke` then calls it (`call.go`).
-
-Changes: from `specs-ref/Spec/google_golang_org/grpc/WithUnaryInterceptor.lean`: over `DialCfg`.
-
-Margin: none.
+`grpc.WithUnaryInterceptor(f)` (grpc's `dialoptions.go`, names only; item 5). Lean-first.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvDial
 
 @[expose] public section
 
@@ -19,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -29,15 +20,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.WithUnaryInterceptor(...)`: a dial option acting as shown. -/
-def WithUnaryInterceptor.spec : Prop :=
-  ∀ (f : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ True }}
+/-- `grpc.WithUnaryInterceptor(f)`: a dial option setting the unary interceptor `f`. -/
+abbrev grpc.WithUnaryInterceptor.spec : Prop :=
+  ∀ (f : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithUnaryInterceptor)) (Val #f))
-  {{ (v : GoInterface), RET #v; dialOptAt v (fun cfg => { cfg with ui := some f }) }}
+  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.unaryInterceptor f)⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

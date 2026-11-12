@@ -1,19 +1,9 @@
 /-
-## `newURLPicker(urls)`
-
-**Users.** `startPeer`, `startRemote`.
-
-**Proof sketch.** The literal; its mutex invariant over `urls` (with `urlsAt`, non-empty) and `picked < len(urls)`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`newURLPicker(urls)` (`urlpick.go`; rafthttp stage 6b). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Picker
 
 @[expose] public section
 
@@ -21,26 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A picker over URLs whose hosts are peer addresses (non-empty). -/
-def newURLPicker.spec : Prop :=
-  ∀ (ν : Net GF) (urls : GoSlice) (hs : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ Types.urlsAt urls hs ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newURLPicker)) (Val #urls))
-  {{ (pk : Loc), RET #pk; pickerAt pk ν }}
+/-- **`newURLPicker(urls)`** of a non-empty slice of URLs satisfying `P` (read-only): a picker of
+URLs satisfying `P`. -/
+abbrev rafthttp.newURLPicker.spec : Prop :=
+  ∀ (urls : GoSlice) (us : List net.url.URL) (P : net.url.URL → Prop),
+  us ≠ [] → (∀ u ∈ us, P u) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ urls ↦*□ us }}
+    (App (Val (@! rafthttp.newURLPicker)) (Val #urls))
+  {{ (pk : Loc), RET #pk; pickerOk pk P }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,20 +1,11 @@
 /-
-`rpctypes.ErrorDesc(err)` (`api/v3rpc/rpctypes/error.go:274`).
-
-Users: `rpctypes.Error` (this package), the client's `isSafeRetryMutableRPC` (1c), the package's
-`errStringToError` initializer.
-
-Proof sketch: `status.FromError(err)` (its spec over `errView`); `ok`: `s.Message()` (`msg`); not
-`ok`: `err.Error()` (`errMsg_call`: `msg`).
-
-Changes: from `specs-ref/.../rpctypes/ErrorDesc.lean`: over `errView` (the result was
-`errDesc err`).
-
-Margin: none.
+`rpctypes.ErrorDesc(err)` (`api/v3rpc/rpctypes/error.go`): the gRPC status message of `err`, or
+its `Error()`. Called by `rpctypes.Error` (unit P3a, 2026-10-14). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 
 @[expose] public section
 
@@ -22,26 +13,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rpctypes
 
-open Iris Iris.BI EtcdModel ClientV3
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
-/-- `rpctypes.ErrorDesc(err)`: the message of the error's status view. -/
-def ErrorDesc.spec : Prop :=
-  ∀ (err : GoInterface) (c : w32) (msg : GoString) (ok : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗ Grpc.errView err c msg ok }}
+/-- `rpctypes.ErrorDesc(err)` of an error grpc's `status` accepts (`statusErrOk`; `nil` included:
+`status.FromError(nil)` succeeds, so `Error()` is not called) returns some string. -/
+abbrev rpctypes.ErrorDesc.spec : Prop :=
+  ∀ (err : GoError),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc)) (Val #err))
-  {{ RET #msg; True }}
+  {{ (d : GoString), RET #d; ⌜d = errDesc err⌝ }}
 
 end spec
 
-end Rpctypes
 end EtcdGrove
 end Perennial

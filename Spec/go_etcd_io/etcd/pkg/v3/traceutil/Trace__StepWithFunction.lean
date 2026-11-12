@@ -1,49 +1,43 @@
 /-
-## `(*Trace).StepWithFunction(f, msg, fields...)`
-
-**Users.** `txn.Txn` (`txn/txn.go:45`: the compare-and-check under the write transaction),
-`txn.getPrevKV` (`put.go:106`: a range of the write transaction, which steps the same trace). The
-function may use the trace: it is lent to it. Snippet: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`).
-
-**Proof sketch.** `disableStep` (a store), `f()` with the trace lent (its `Step`s are no-ops),
-`enableStep`, `Step`.
-
-**Changes.** From `specs-ref`'s `Trace__StepWithFunction.lean` (the emptiness index dropped).
-
-**Margin.** None.
+`(*traceutil.Trace).StepWithFunction` (`trace.go`: steps disabled, `f()`, enabled, one step). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- **Runs `f()` with the trace lent, then records a step**: `f`'s `Q`, the trace kept. -/
-def Trace.StepWithFunction.spec : Prop :=
-  ∀ (t : Loc) (f : GoFunc) (msg : GoString) (fields : GoSlice) (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceOwn t ∗ fieldsOwn fields ∗
-      (traceOwn t -∗ WP (App (Val #f) (Val #())) {{ v, ⌜v = #()⌝ ∗ traceOwn t ∗ Q }}) }}
+/-- `t.StepWithFunction(f, msg, fields...)` of an owned trace, the fields owned, runs `f()`
+with the trace (`f` may use it: its steps are disabled meanwhile), `f()` returning; then it
+returns, with `f`'s `Q`; the trace kept at its emptiness `e`, which `f` hands back unchanged
+(`isEmpty` is written only at a trace's creation, so the code keeps the flag). -/
+abbrev traceutil.Trace.StepWithFunction.spec : Prop :=
+  ∀ (t : Loc) (e : Bool) (f : GoFunc) (msg : GoString) (fields : GoSlice) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e ∗ traceutil.ownFields fields ∗
+      (traceutil.ownTrace t e -∗
+        WP (App (Val #f) (Val #())) {{ v, ⌜v = #()⌝ ∗ Q ∗ traceutil.ownTrace t e }}) }}
     (App (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"StepWithFunction")) (Val #f)) (Val #msg)) (Val #fields))
-  {{ RET #(); traceOwn t ∗ Q }}
+  {{ RET #(); Q ∗ traceutil.ownTrace t e }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

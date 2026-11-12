@@ -1,10 +1,11 @@
 /-
-`n.nextSibling()` (`node.go`): the parent's next child, or nil.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+`node.nextSibling` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U8; used by U8 (`node.rebalance`). Proof:
+`Proof/go_etcd_io/bbolt/node__nextSibling.lean` (a `sorry` until U8).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -12,26 +13,43 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) the next sibling (materialized) or nil. -/
-def node.nextSibling.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (n : Loc) (N : NodeR),
-  {{ wtxCore (GF := GF) tx γ C ∗ ⌜C.nodes n = some N⌝ }}
+/-- `n.nextSibling()` of a live node `n` of bucket `bl`: nil for the root or the parent's last
+child; else the parent's child after `n` (at `n.key`'s search index plus one), materialized if
+need be (`childAt`). -/
+abbrev node.nextSibling.spec : Prop :=
+  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (n : Loc)
+    (rn : NRec),
+  X.t.bs !! bl = some B → B.ns !! n = some rn → rn.nv.bucket' = bl → n ∈ X.live →
+  bl ∈ X.liveB → B.bv.nodes' ≠ null →
+  (rn.nv.parent' ≠ null → rn.nv.key' ≠ slice.nil ∧ rn.ksrc ≠ Src.stale ∧
+    ∃ rp, B.ns !! rn.nv.parent' = some rp ∧ rp.nv.isLeaf' = false ∧ rp.nv.bucket' = bl ∧
+      rn.nv.parent' ∈ X.live ∧
+      wsSorted rp.ws ∧ wsLive rp.ws ∧
+      ∀ w, rp.ws[wsIdx rp.ws rn.key + 1]? = some w →
+        (∀ l, B.nm !! w.pgid = some l → l ≠ null) ∧ (B.nm !! w.pgid = none → matReady X B w.pgid)) →
+  (B.ib.root' ≠ W64 0 → B.bv.page' = null) →
+  {{ wtxW (GF := GF) K tx r m X }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"nextSibling")) (Val #()))
-  {{ (c : Loc), RET #c; ∃ C' : TxCore, wtxCore tx γ C' ∗ ⌜c = Loc.null ∨ ∃ CN, C'.nodes c = some CN ∧ CN.parent = N.parent⌝ }}
+  {{ (s : Loc), RET #s; ∃ X' : WX, wtxW K tx r m X' ∗
+      ⌜(s = null ∧ X' = X ∧ (rn.nv.parent' = null ∨
+          ∃ rp, B.ns !! rn.nv.parent' = some rp ∧ rp.ws.length ≤ wsIdx rp.ws rn.key + 1)) ∨
+       (∃ rp w, B.ns !! rn.nv.parent' = some rp ∧ rp.ws[wsIdx rp.ws rn.key + 1]? = some w ∧
+         ((B.nm !! w.pgid = some s ∧ X' = X) ∨ nodeAdded X X' bl s w.pgid rn.nv.parent'))⌝ }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

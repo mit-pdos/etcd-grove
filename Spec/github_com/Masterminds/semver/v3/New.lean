@@ -1,18 +1,10 @@
 /-
-## `semver.New(major, minor, patch, pre, metadata)`: assumed
-
-**Users.** rafthttp (`util.go:135-136`, `stream.go:712`: `major.minor.0`), the downgrade checks
-(`version/downgrade.go:44,59,69-70`), `api/version`'s constants (3h). Snippet: `examples/specreq/pkgleaves/leaves.go`
-(`ReqMajorMinor`).
-
-**Assumed** (`version.go:310-324`): a struct literal (no validation), `original` its `String()`.
-**Changes.** From `specs-ref`'s `New.lean` (not nil): the fields. **Margin.** None.
+`semver.New`: the trust boundary (`github.com/Masterminds/semver/v3` is names-only; rafthttp
+stage 5e-3, `compareMajorMinorVersion` and `checkStreamSupport`). Lean-first.
 -/
 module
 
-public import Spec.github_com.Masterminds.semver.v3.Api
-
-set_option autoImplicit false
+public import Spec.github_com.Masterminds.semver.v3.Version__LessThan
 
 @[expose] public section
 
@@ -20,26 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Semver
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.Masterminds.semver.v3.Assumptions]
 
-/-- **A version of these fields.** -/
-def New.spec : Prop :=
+/-- `semver.New(major, minor, patch, pre, metadata)` returns a new version, not nil. -/
+abbrev semver.New.spec : Prop :=
   ∀ (ma mi pa : w64) (pre md : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 }}
-    (App (App (App (App (App (Val (@! github_com.Masterminds.semver.v3.New)) (Val #ma)) (Val #mi))
-      (Val #pa)) (Val #pre)) (Val #md))
-  {{ (v : Loc), RET #v; verAt v ⟨ma, mi, pa, pre, md⟩ }}
+    (App (App (App (App (App (Val (@! github_com.Masterminds.semver.v3.New)) (Val #ma)) (Val #mi)) (Val #pa)) (Val #pre))
+      (Val #md))
+  {{ (v : Loc), RET #v; ⌜v ≠ null⌝ }}
 
 end spec
-end Semver
+
 end EtcdGrove
 end Perennial

@@ -1,20 +1,25 @@
 /-
-## `NewDefaultServerFeatureGate(name, lg)` (`etcd_features.go`): trusted (names only)
+`features.NewDefaultServerFeatureGate(name, lg)` (`server/features/etcd_features.go`): the trust
+boundary (`server/v3/features` and `pkg/v3/featuregate` are names-only). Lean-first (no Rocq
+counterpart); the adequacy example's (item 9, point 7) configuration.
 
-**Users.** `examples/lib/etcdstart`'s `newServerMode` (`ServerFeatureGate:`), etcd's `embed`
-configuration. Snippet: `etcdserverboot/boot.go` (`memberConfig`).
+In Go: `featuregate.New(name + "ServerFeatureGate", lg)` (a fresh `*featureGate`, its known
+features featuregate's defaults, none enabled explicitly), then `Add(DefaultEtcdServerFeatureGates)`
+(no error: the gate is fresh and the server's features are not featuregate's own; otherwise it
+panics), returned as a `FeatureGate`. Its `Enabled(f)` of a registered feature reads two atomic
+maps and returns a boolean (`isFeatureGate`, `features/Defs.lean`); the gate is not shared with
+anything else, and nothing in the program sets a feature, so the contract holds forever. For the
+same reason a feature answers its default for good: `CompactHashCheck`'s is `false`
+(`DefaultEtcdServerFeatureGates`, `{Default: false, PreRelease: Alpha}`; `featureIs`, audit B4a,
+2026-10-18, for `EtcdServer.monitorCompactHash`).
 
-**Why it is true of Go.** `featuregate.New(name, lg)` (a `*featureGate`), then
-`Add(DefaultEtcdServerFeatureGates)` (panics only on a feature registered twice with different
-specs: not the case for the package's own map), so every server feature is known.
-
-**Changes**: from `specs-ref`'s `NewDefaultServerFeatureGate.lean` (a `*featureGate` interface
-value): `Features.serverGate`. **Margin.** The features' values are not stated (defaults).
+The postcondition (D19a's rule for a closed theorem's hypotheses and the trust boundary) holds
+only fresh resources: a non-nil pointer and a persistent contract about its methods.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.features.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.features.Defs
 
 @[expose] public section
 
@@ -22,26 +27,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Features
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.features.Assumptions]
 
-/-- **A feature gate with the server's features registered.** -/
-def NewDefaultServerFeatureGate.spec : Prop :=
+/-- **`features.NewDefaultServerFeatureGate(name, lg)`** returns a non-nil `*featureGate` (as a
+`featuregate.FeatureGate`) meeting the feature gate's contract on the server's features, with
+`CompactHashCheck` off. -/
+abbrev features.NewDefaultServerFeatureGate.spec : Prop :=
   ∀ (name : GoString) (lg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate)) (Val #name)) (Val #lg))
-  {{ (fg : GoInterface), RET #fg; Features.serverGate fg }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features }}
+    (App (App (Val (@! features.NewDefaultServerFeatureGate)) (Val #name)) (Val #lg))
+  {{ (p : Loc), RET #(interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p);
+      ⌜p ≠ null⌝ ∗ isFeatureGate (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) ∗
+      -- (audit B4a, 2026-10-18) `CompactHashCheck` at its default, off
+      featureIs (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p)
+        go!"CompactHashCheck" false }}
 
 end spec
 
-end Features
 end EtcdGrove
 end Perennial

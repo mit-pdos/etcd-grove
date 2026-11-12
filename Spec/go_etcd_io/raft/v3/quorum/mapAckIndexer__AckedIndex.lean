@@ -1,14 +1,9 @@
 /-
-## `mapAckIndexer.AckedIndex(id)` (internal)
-
-**Users.** None outside quorum's tests (an `AckedIndexer` over a plain map). Mirrors the code: a
-lookup. **Changes.** Unchanged (from `specs-ref`'s `quorum/mapAckIndexer__AckedIndex.lean`).
+`quorum.mapAckIndexer.AckedIndex`, Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTracker
 
 @[expose] public section
 
@@ -16,26 +11,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Quorum
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.quorum.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The map's entry for `id`, if any. -/
-def mapAckIndexer.AckedIndex.spec : Prop :=
-  ∀ (m : GoMap) (dq : DFrac) (mm : GMap w64 w64) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ ownMap m dq mm }}
-    (App (Val (m @!! go_etcd_io.raft.v3.quorum.mapAckIndexer.ty @!! go!"AckedIndex")) (Val #id))
-  {{ RET (PairV #((mm !! id).getD (W64 0)) #(decide (id ∈ mm))); ownMap m dq mm }}
+/-- `m.AckedIndex(id)` for `m : mapAckIndexer`, a named `map[uint64]Index`
+(`quorum.mapAckIndexer.AckedIndex.impl`, `Code/go_etcd_io/raft/v3/quorum.lean`;
+quorum.go:40):
+
+    idx, ok := m[id]
+    return idx, ok
+
+No panic, no call. The receiver is the map itself, read at any fraction; the result is
+the lookup in the `(value-or-0, ok)` form of `isAckedIndexer`'s contract. -/
+abbrev quorum.mapAckIndexer.AckedIndex.spec : Prop :=
+  ∀ (mref : Loc) (dq : DFrac) (mm : GMap w64 w64) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ mref ↦${dq} mm }}
+    (App (Val (mref @!! quorum.mapAckIndexer.ty @!! go!"AckedIndex")) (Val #id))
+  {{ RET (PairV #((mm !! id).getD (W64 0)) #((mm !! id).isSome)); mref ↦${dq} mm }}
 
 end spec
-end Quorum
+
 end EtcdGrove
 end Perennial

@@ -1,24 +1,9 @@
 /-
-`(*clientv3.retryKVClient).Put` (`client/v3/retry.go`).
-
-Users: `kv.Do`, `kv.Compact`, `txn.Commit` (through `kvHandle`'s `remoteKVAt`).
-
-Proof sketch: the stub's `Put` with the same options (`retryKVHandle`'s `remoteKVAt`): the retry interceptor's default policy, not repeatable, resends only a request never sent (`isSafeRetryMutableRPC`), so the exclusive update passes.
-
-Integration (I1): the stub's call is 3h's generated `KVClient` method, i.e. `cc.Invoke` through the
-client's unary interceptor: 1c's `uiOk_call` (with `clientReady c`, from `retryKVHandle rkv c`'s premise)
-over 2a's `AttemptTriple` realization (`Grpc.attemptOk_call`, `V3rpc.etcdUnary`), its outcomes mapped to
-`wireReply`/`wireIndef` by `Rpctypes.callErr_view` (a definite answer whose error rpctypes does not map,
-e.g. `invalidClientAPIVersion`, reaches the client as `.other`: the update fired, `Q` dropped, the
-`wireIndef` disjunct).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryKVClient__Put.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`(*clientv3.retryKVClient).Put(ctx, in, opts...)` (`client/v3/retry.go`, translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -26,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,14 +21,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `rkv.Put` meets the wire-level contract's `Put` (`RemoteKV.PutTriple`). -/
-def retryKVClient.Put.spec : Prop :=
-  ∀ (rkv c : Loc) (γ : Cluster) (who : Principal),
-  RemoteKV.PutTriple (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!! go!"Put")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVHandle rkv c γ who ∗ clientReady c)) γ who
+/-- `rkv.Put(ctx, in, opts...)` on a `*retryKVClient` over a stub on a connection to `addr`:
+`rkv.kc.Put(ctx, in, opts...)`: the call's answer (`putCallOut`). -/
+abbrev retryKVClient.Put.spec : Prop :=
+  ∀ (rkv conn : Loc) (addr : List GoString) (Spec : GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse)
+    (Q : PutRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.PutRequest) (k v : GoString) (opts : GoSlice)
+    (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Put" Spec ∗
+      reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn (GoInterface.ok ctx) Spec (putReqOp req k v) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
+      opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil ∧ (pbPutRequest (GF := GF)).wireLen (putReqOp req k v) < grpcMsgMax⌝ }}
+    (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
+        go!"Put")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.PutRequest, inp ↦ req') ∗ putCallOut Q resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

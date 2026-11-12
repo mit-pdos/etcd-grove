@@ -1,19 +1,9 @@
 /-
-## `(*pipeline).handle()`
-
-**Users.** `pipeline.start` (forked four times).
-
-**Proof sketch.** Loop: a `select` on `msgc` (a message with `outMsg`) and `stopc`; `pbutil.MustMarshalMessage` (an encoding `e`, `RaftPb.msgEncodes e m`; no panic for a message raft sent), `post` with the facts; the status, follower stats (2e: no-ops), `Raft.ReportUnreachable`/`ReportSnapshot`, metrics. On `stopc`: `wg.Done()` with the worker's share.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A8 F8): the sketch over raftpb's `msgEncodes`.
-
-**Margin.** None.
+`(*pipeline).handle` (`pipeline.go`; rafthttp stage 4d). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
 
 @[expose] public section
 
@@ -21,26 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal; a worker goroutine) **Posts each queued message** until stopped; reports unreachable on a failure, `ReportSnapshot` for a `MsgSnap` (none: `sendable`). -/
-def pipeline.handle.spec : Prop :=
-  ∀ (pl : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ pipeAt pl ν lid pid ∗ pipeWorker pl }}
-    (App (Val (pl @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.ty @!! go!"handle")) (Val #()))
+/-- `p.handle()`, a goroutine of the pipeline `p` to the peer `to`: posts each message it receives
+on `msgc` until `stopc` is closed, then calls the pipeline's `wg.Done()`. (Until J8a-6, 2026-11-01,
+it held one of its `Raft`'s resources `R`, handed to `Done`; it calls only `ReportUnreachable` and
+`ReportSnapshot`, which take none.) -/
+abbrev rafthttp.pipeline.handle.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      pipeHandleOk Rh p to R ∗ sync.join.ownDone (p.[rafthttp.pipeline, go!"wg"]) iprop(True) }}
+    (App (Val (p @!! go.GoType.PointerType rafthttp.pipeline.ty @!! go!"handle")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

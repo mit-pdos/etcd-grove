@@ -1,19 +1,11 @@
 /-
-## `createSnapBody(lg, merged)`
-
-**Users.** `snapshotSender.send`.
-
-**Proof sketch.** `bytes.Buffer`, `messageEncoder.encode` into it (`writerAt` of a buffer: anything; an encoding cannot fail, else `lg.Panic`), then `Http.NewBuffer_reader`-like knowledge of the frame, `dbReader_readerAt.spec` of `rc`, `Http.MultiReader_reader.spec` (complete streams: the frame then a stream of `img`), `ReaderAndCloser` (pkg/v3/ioutil: the same reader).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`createSnapBody(lg, merged)` (`snapshot_sender.go`; rafthttp stage 7d, D42). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Snapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
 
@@ -21,26 +13,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **The snapshot request's body**: the envelope frame of the raft message, then the database reader. -/
-def createSnapBody.spec : Prop :=
-  ∀ (lg : Loc) (ν : Net GF) (mp ml : Loc) (rc : GoInterface) (dq : DFrac) (m : Msg) (s : Snapshot) (img : Snap.BeImage),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ snapMsgOwn mp ml rc ∗ msgPts ml dq m ∗ ⌜m.type = MsgSnap ∧ m.snapshot = some s⌝ ∗ Snap.dbReader rc img ∗ snapImg ν s.index img }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.createSnapBody)) (Val #lg)) (Val #mp))
-  {{ (bd : GoInterface), RET #bd; msgPts ml dq m ∗ snapBodyAt bd ν m }}
+/-- **`createSnapBody(lg, merged)`** of a merged message of the frozen raft message `st` (which
+marshals) and a reader of complete streams in `Φ`: the snapshot's body, a reader of the stream of
+the envelope's frame (of an encoding `bs` of `st`) followed by a complete stream of the merged
+message's reader (`snapPre`, `snapPhi`), whose `Close` returns (it closes the merged message's
+reader). The encoding into a `bytes.Buffer` does not fail, so its `lg.Panic` is not reached. -/
+abbrev rafthttp.createSnapBody.spec : Prop :=
+  ∀ (lg m ml : Loc) (rc : GoInterface) (st : MsgSt) (Φ : List w8 → Prop),
+  lg ≠ null → MsgMarshals st →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      snap.msgIs m ml rc ∗ msgOwn ml DFrac.discard st ∗ backend.readerStreams rc Φ }}
+    (App (App (Val (@! rafthttp.createSnapBody)) (Val #lg)) (Val #m))
+  {{ (body : GoInterface), RET #body; ∃ (bs : List w8) (bi : GoInterfaceOk),
+      ⌜body = GoInterface.ok bi ∧ MsgWireOk st bs ∧ bs.length < 2 ^ 63⌝ ∗
+      http.streamHas body (snapPre bs) (snapPhi bs Φ) ∗ rdCloseOk bi }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,13 +1,9 @@
 /-
-`store.LatestRev` (`cache/*.go`), an internal helper.
-Users: `Cache.Get`, `Cache.WaitForRevision`, `Cache.waitTillRevision`.
-Proof sketch: reads `latest.rev` under the read lock; the invariant's `storeRevLb` authority and the cluster's lower bound.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`store.LatestRev()`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,28 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.LatestRev()`: a revision the store reached, which the cluster reached. -/
-def store.LatestRev.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"LatestRev")) (Val #()))
-  {{ (r : w64), RET #r; threadTok ∗ ⌜0 ≤ sint.Z r⌝ ∗ storeRevLb s (sint.Z r).toNat ∗
-      ∃ σ : State, etcdLb γ σ ∗ ⌜sint.Z r ≤ σ.kv.rev⌝ }}
+/-- `s.LatestRev()` (under a read lock): the latest revision of some state of the store, at
+least the caller's lower bound `r0`, with a lower bound for it and its certificate `R`. -/
+abbrev store.LatestRev.spec : Prop :=
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (G : w64 → Int → IProp GF) (r0 : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isStore s γ cap ∗ storeReader s γ cap E R G ∗ storeRevLb γ r0 }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"LatestRev")) (Val #()))
+  {{ (r : w64), RET #r; storeReader s γ cap E R G ∗
+      ∃ st : StoreState, storeSeen γ cap r0 st ∗ □ R st.latestRev ∗ ⌜r = st.latestRev⌝ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

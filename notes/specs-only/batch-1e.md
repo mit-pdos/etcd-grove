@@ -1,6 +1,6 @@
 # Batch 1e (the client's leasing KV): report
 
-Author's report. Everything builds (`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/client/v3/leasing`:
+Author's report. Everything builds (`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing`:
 68 modules, against W0's round-1 names: `ctxPrin`, `OpResp.range rev a`, `Context.WithCancel.spec`);
 the snippets vet (`cd examples && go vet ./specreq/leasing/`, gofmt-clean).
 
@@ -37,9 +37,9 @@ share for `Get`/`Do`. It is a weakening of W0's (any `kvAt` value meets it, for 
 
 | path | what |
 |---|---|
-| `Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean` (`Leasing`) | the API's vocabulary and the leasing contract |
-| `Spec/go_etcd_io/etcd/client/v3/leasing/Internal.lean` (`Leasing`) | the package-internal vocabulary (the lease cache) |
-| `Spec/go_etcd_io/etcd/client/v3/leasing/*.lean` | 66 specs: every function with an old spec |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean` (`Leasing`) | the API's vocabulary and the leasing contract |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/Internal.lean` (`Leasing`) | the package-internal vocabulary (the lease cache) |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/*.lean` | 66 specs: every function with an old spec |
 | `examples/specreq/leasing/{lifecycle,reads,writes,txn}.go` | 13 snippets the specs give |
 | `examples/specreq/leasing/unmet.go` | 6 requirements of the KV contract's users the code violates (not claimed provable) |
 

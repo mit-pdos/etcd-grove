@@ -1,26 +1,23 @@
 /-
-`put(ctx, txnWrite, p, prevKV)` (`put.go`), internal (`Put`, `executeTxn`). **Proof sketch.**
-`traceutil.Get(ctx)` (4b); the value and lease from `prevKV.KVs[0]` for an ignore flag (present: the
-premise; else the index panics, `issues/etcd-txn-delete-then-ignore-put.md`); the transaction's `Put`
-(3e's `Txn.Put.contract`: `putEv` with that value and lease, which is `pm.record`'s event; the
-lessor's token by `putLs`; the lease live: the premise, else mvcc panics). Old spec: over the log.
-Round 1: 3e's API (F4).
+`txn.put` (put.go). Lean-first (no Rocq counterpart); see `Proof/.../etcdserver/txn/Write.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -29,27 +26,37 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `put(ctx, tw, p, prevKV)` in an open write transaction (begun at `σ`, pending `pend`), `prevKV` the
-key's record in the pending store if the request needs it (`nil` otherwise): the put's event over
-it, the reply at revision `σ.rev + 1`. -/
-def put.spec : Prop :=
-  ∀ (ctx tw : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (σ : Mvcc.MvccState) (pend : List Event)
-    (p : Loc) (dq : DFrac) (pm : PutReq) (prevKV : Loc) (γl : Lease.Names) (n : Nat)
-    (ls : Lease.LessorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx (some tr) ∗ TraceUtil.traceOwn tr ∗
-      Mvcc.mvccTxn tw γ tr (.write σ pend) ∗ Mvcc.mvccLessorIs γ γl ∗ Lease.lessorState γl n ls ∗
-      putReqOwn p dq pm ∗
-      (if needsPrev pm then
-         rrOwn prevKV ((Mvcc.txnStore σ pend pm.key).map (KV.ofRec pm.key)).toList (viewRev (.write σ pend)) (Mvcc.txnStore σ pend pm.key).toList.length
-       else iprop(⌜prevKV = null⌝)) ∗
-      ⌜(ignores pm = true → (Mvcc.txnStore σ pend pm.key) ≠ none) ∧ ((pm.record (σ.rev + 1) (Mvcc.txnStore σ pend pm.key)).lease = 0 ∨ ls.leases (pm.record (σ.rev + 1) (Mvcc.txnStore σ pend pm.key)).lease ≠ none)⌝ }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.put)) (Val #ctx)) (Val #tw)) (Val #p)) (Val #prevKV))
-  {{ (resp : Loc), RET #resp; TraceUtil.traceOwn tr ∗ putReqOwn p dq pm ∗
-      Mvcc.mvccTxn tw γ tr (.write σ (pend ++ [.put pm.key (pm.record (σ.rev + 1) (Mvcc.txnStore σ pend pm.key))])) ∗
-      (∃ n' : Nat, Lease.lessorState γl n' (Mvcc.putLs ls (Mvcc.txnStore σ pend pm.key).isSome pm.key (pm.record (σ.rev + 1) (Mvcc.txnStore σ pend pm.key)).lease)) ∗
-      putOk resp (σ.rev + 1) (if pm.prevKv then (Mvcc.txnStore σ pend pm.key).map (KV.ofRec pm.key) else none) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `put(ctx, txnWrite, p, prevKV)` at a write transaction begun at `σ` with `pend` pending.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+abbrev txn.put.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (tw : GoInterface) (γ : MvccName)
+    (trace : Loc) (te : Bool) (σ : MvccState) (pend : List mvcc.Change) (p : Loc) (o : OpFull)
+    (prev : Loc) (L : List w64),
+  {{ pkgInit ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx (some trace) ∗
+      mvcc.api.mvccTxn tw γ trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗
+      txn.putRequestIs p o ∗
+      (if txn.readsPrev o then txn.prevKvIs prev (txn.pendState σ.log pend) o.key
+        else ⌜prev = null⌝) ∗
+      ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.pendState σ.log pend)).isSome⌝ ∗
+      txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState σ.log pend))) ∗
+      lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems σ.log pend) }}
+    (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #tw)) (Val #p))
+      (Val #prev))
+  {{ (resp : Loc), RET #resp;
+      mvcc.api.mvccTxn tw γ trace
+        (.write σ (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState σ.log pend))])) ∗
+      traceutil.ownTrace trace te ∗
+      txn.putResponseIs resp (W64 (σ.log.length : Int))
+        (if o.base.prevKV then mvcc.findKey o.key (txn.pendState σ.log pend) else none) ∗
+      txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
+      lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems σ.log
+        (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState σ.log pend))])) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

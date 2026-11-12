@@ -67,7 +67,7 @@ no: no top-level workload calls `SetEndpoints` or enables auto-sync (Kubernetes 
 never change endpoints). The client's specs (batch 1c) give the whole endpoints token
 (`epsTok`) to `SetEndpoints` but let RPCs run concurrently, and grpc's boundary does not say when
 it calls back into `Build`. The specs now exclude a concurrent channel wake-up: `SetEndpoints` and
-`Sync` take an exclusive `resolverIdle c` (`Spec/go_etcd_io/etcd/client/v3/ApiClient.lean`), which
+`Sync` take an exclusive `resolverIdle c` (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiClient.lean`), which
 only `newClient` holds, for its own call before it dials, and `cfgOk` requires auto-sync off
 (`AutoSyncInterval = 0`); decision C1 in `notes/specs-only/open-questions.md`.
 

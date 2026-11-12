@@ -1,6 +1,6 @@
 # Repair 2 (raft-core): RR-raft-core N3, S-e
 
-- **N3** fixed. `Spec/go_etcd_io/raft/v3/raft__hasUnappliedConfChanges.lean`: the premise is now
+- **N3** fixed. `SpecPlan/Spec/go_etcd_io/raft/v3/raft__hasUnappliedConfChanges.lean`: the premise is now
   `⌜o.log.us.snap = none ∧ o.log.compactFloor ≤ o.log.applied⌝`. The only caller is `hup` (grep). It
   gets `us.snap = none` from `promotable`, which is `!hasNextOrInProgressSnapshot()` (`raft.go:1949`).
   That is `unstable.snapshot == nil` (`log.go:290`), so the premise is checked against the Go code.
@@ -16,4 +16,4 @@
   files are `//go:build ignore`, as they were before this change.
 - Changes lines: `Verify-round (RR-raft-core N3, S-e)` in `raft__hasUnappliedConfChanges.lean`
   and `raft__hup.lean`, and in `coreIdle_floor`'s docstring.
-- Build: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` passes (229 modules).
+- Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3` passes (229 modules).

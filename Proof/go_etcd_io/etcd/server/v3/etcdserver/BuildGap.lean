@@ -1,0 +1,305 @@
+/-
+**The server's construction: the raft environment and the residual** (unit N2 of the
+server-construction unit; statements placed at stage N0, 2026-10-16; D13 and D13a-d,
+`notes/decisions.md`). Lean-first (no Rocq counterpart). The statements are the interface
+`NewServer`'s proof (unit N1) and the composition with `start` use; their proofs are unit N2's.
+
+* `rnEnvOk_of_cluster`: the raft wrapper's discharge facts (`rnEnvOk`) of the server's raft
+  environment `srvEr`, from the KV invariant (the committed logs' indices, `srvIdxOkW`), raft's
+  committed log and the cluster's workload (`clusterWorkloadOk`, D13c): what `NewServer`'s raft
+  installer takes at `srv.r.transport = tr`.
+* `isServerBuilt_of_gap`: `NewServer`'s built part and the residual give `start`'s construction
+  premise.
+* `clusterWorkloadOk_of` (D19c, 2026-10-18): the workload clause from the KV invariant's workload
+  facts (`kvWork`) and the reserved id `0` (`idNoZero`) (until D19c's move, also the residual
+  size bound `clusterLogBound`, gone: the apply thread checks the size clauses at execution).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
+public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Lemmas
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
+
+section gap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The workload facts' claims give a batch's ids** (D19c): every entry of a committed log of
+good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
+its data; a conf change's id `0`, which no request claims). -/
+theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
+    {lm : lease.Mode} (hs : logShape lm L) (hcl : ccLogOk ρ.raft.raft L)
+    (ha : attrLogOk ρ.raft.raft.cfg L) :
+    ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
+      batchWaitOk ρ E L := by
+  iintro #Hcl #HNZ #HL
+  iunfold batchWaitOk
+  iintro !> %m %hm
+  obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+  ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ m => entryClaim (GF := GF) ρ.ids m) hn) $$ Hcl
+  have hsh := hs m hm
+  unfold entryWaitOk
+  split
+  · rename_i ht
+    isplitr
+    · iintro %rq %id %hrq
+      obtain ⟨hd, hdec, hid⟩ := hrq
+      iunfold entryClaim at Hc
+      icases Hc with (%hc | ⟨%rq', %id', %γf, %k, %hrq', #Hcl', #Hreg⟩)
+      · exfalso; rcases hc with hc | hc
+        · exact hc ht
+        · exact hd hc
+      · obtain ⟨hdec', hid'⟩ := hrq'
+        rw [hdec] at hdec'
+        cases hdec'
+        rw [hid] at hid'
+        cases hid'
+        iexists γf, k
+        iframe Hcl' Hreg
+    · iexists L
+      iframe HL
+      ipureintro; exact ⟨hm, ha m hm⟩
+  · rename_i ht
+    have h0 := hsh.2 ht
+    rw [h0]
+    isplitr
+    rotate_left
+    · ipureintro; exact hcl m hm ht
+    iunfold reqWaitNone
+    iintro !> %d %rq %γf %F #Hc0 - -
+    ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
+    iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
+
+/-- **The claims of a committed log** (2026-10-27): those of the server's log of requested
+entries, every entry of a committed log `A` being a filler (which claims nothing) or of the same
+type and data as one of the server's log. -/
+theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryModel)
+    (hA : srvIdxOkW ai₀ A) (h : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    ([∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ [∗list] m ∈ A, entryClaim γi m := by
+  have key : ∀ (k : Nat) (m : EntryModel), A[k]? = some m →
+      iprop(□ [∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ entryClaim γi m := by
+    intro k m hk
+    rcases srv_entry_src ai₀ A L hA h m (List.mem_of_getElem? hk) with
+      ⟨-, hd⟩ | ⟨-, hd⟩ | ⟨m', hm', he⟩
+    · iintro -
+      iunfold entryClaim
+      ileft; ipureintro; exact .inr hd
+    · iintro -
+      iunfold entryClaim
+      ileft; ipureintro; exact .inr hd
+    · obtain ⟨j, hj⟩ := List.getElem?_of_mem hm'
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      iintro #HL
+      ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ m => entryClaim (GF := GF) γi m) hj) $$ HL
+      unfold entryClaim
+      rw [← h1, ← h2]
+      iexact Hc
+  iintro #HL
+  iapply (BigSepL.bigSepL_intro (Φ := fun _ m => entryClaim (GF := GF) γi m) key)
+  imodintro
+  iexact HL
+
+/-- **The workload clause, proved** (D19c, 2026-10-18; until then a premise of `NewServer.spec`):
+a committed log is a prefix of the KV invariant's, whose entries have good shapes and claimed ids
+(`kvWork`); with the reserved id `0` the claims give the ids (`batchWaitOk_of_work`). -/
+theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
+    kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
+      clusterWorkloadOk ρ E := by
+  iintro ⟨#Hkv, #Hr, #HNZ⟩
+  iunfold clusterWorkloadOk
+  iintro !> %L #HL
+  -- (2026-10-30, the repair) no empty `ConfChangeV2` committed (`srv_committed_noV2`)
+  ihave #HLc : isCommittedLogLb ρ.raft.raft.cl (srvLE ρ.raft L) $$ []
+  · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
+  imod (srv_committed_noV2 ρ.raft (srvLE ρ.raft L) ⊤ CoPset.subseteq_top CoPset.subseteq_top)
+    $$ [] with %Hv2
+  · iframe Hr HLc
+  have hnv : ∀ m ∈ L, ¬ (m.typ = W32 2 ∧ m.data = []) := by
+    rintro m hm ⟨ht, hd⟩
+    apply Hv2 m.toLE (by unfold srvLE; exact List.mem_map_of_mem (List.mem_append_right _ hm))
+    exact ⟨hd, ht⟩
+  iunfold kvInv at Hkv
+  iinv Hkv with >Hi Hclose
+  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw, HG⟩
+  imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
+  ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
+  imod Hclose $$ [HL' Hσ HG] with -
+  · inext; iexists L'; iframe HL' Hσ Hw HG; ipureintro; exact Hok
+  iunfold kvWork at Hw
+  icases Hw with ⟨%Hsh, #Hcl⟩
+  obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
+  -- (2026-10-27) the committed log's entries are the server's log's or fillers
+  have hshL : logShape ρ.kv.lm L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      have := Hsh m' hm'
+      unfold entryShape at this ⊢
+      rw [← h1, ← h2]; exact this
+  have hcclL : ccLogOk ρ.raft.raft L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · intro h; exact absurd ht h
+    · exact absurd ⟨ht, hd⟩ (hnv m hm)
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      rw [← h1, ← h2]; exact Hccl m' hm'
+  -- (2026-11-02, the cluster-rows stage) the attribute requests' members: the fillers ask nothing
+  have hatL : attrLogOk ρ.raft.raft.cfg L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · exact attrEntryOk_empty _ m hd
+    · exact attrEntryOk_empty _ m hd
+    · have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      have := Hatt m' hm'
+      unfold attrEntryOk at this ⊢
+      rw [← h1, ← h2]; exact this
+  ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
+  imodintro
+  isplitr
+  · ipureintro; exact hshL
+  iapply batchWaitOk_of_work ρ E L hshL hcclL hatL $$ HclL HNZ HL
+
+/-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
+names `γw` over the server's raft names (the cluster the server's, the start log and index the
+server's), the cluster at the server's rule: the tick's
+resource and the read registrations by `srvEr`'s definition, every message the node sends
+admitted with its bundle (`srvMsgNet`, D21 stage M1) and no snapshot (`srv_sentMsg_notSnap`), a
+committed log's `E.C` from the KV invariant's indices (a committed log's requested entries are a
+prefix of the KV invariant's, whose indices its own are, `srvRLogLb_idx`, and its next index fits),
+the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. (2026-10-27: over the node
+API; no budget names, no raft modes.) -/
+theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
+    (x₀ : apply.ApplyKV) (γw : RNNames)
+    (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
+    (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
+    -- (D43 M3, 2026-10-25) the cluster at the server's rule (2026-10-30, the repair: in every
+    -- cluster, and no storage cap; until then in a dynamic cluster, its decoder)
+    (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
+    -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
+    -- `Send`'s borrow
+    (id : w64) (S ST : IProp GF) (hid : γw.id = id) :
+    kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
+      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S ST) γw := by
+  iintro ⟨#Hkv, #Hr, #Hwl⟩
+  unfold rnEnvOk srvEr
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · ipureintro; exact ⟨hraft.symm, hpre.symm, hai⟩
+  isplitr
+  · ipureintro; exact hdec
+  isplitr
+  · iexact Hr
+  isplitr
+  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc, %Hns⟩
+    rw [hraft, hid] at *
+    isplitl [Hc]
+    · -- (D21 stage M1) the bundle a receiver's `Step` takes
+      iunfold srvMsgNet
+      iexists st
+      iframe Hmo Hrm Hc
+    iunfold srvMsgNoSnap
+    iexists st
+    iframe Hmo
+    ipureintro; exact Hns
+  isplitr
+  · iintro !> %L #HL %Hfit
+    iunfold clusterWorkloadOk at Hwl
+    imod Hwl $$ HL with ⟨%Hent, #Hbw⟩
+    ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
+    imodintro
+    imodintro
+    unfold srvC
+    iframe Hbw HL
+    ipureintro
+    refine ⟨?_, Hent⟩
+    rw [← hai0]
+    exact srvIdxOk_of_W _ _ HLi Hfit
+  isplitr
+  · iintro !> %L #HC
+    unfold srvC
+    icases HC with ⟨%Hc, -, #HL⟩
+    iframe HL
+    ipureintro
+    rw [hai0]; exact Hc.1
+  · ipureintro; trivial
+
+/-- **`start`'s construction premise from `NewServer`'s built part and the residual**
+(`srvBuilt`, `srvBuildGap`, `InvBuild.lean`): the rows the built part has without their KV parts
+completed with its own (the uber-applier's field and contracts into `#Hfb` and `Happ`, `srv.kv`
+and its store handle into `#Hrdb`), and the residual's snapshot contract. -/
+theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
+      isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
+  unfold srvBuilt srvBuildGap isServerBuilt
+  iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
+      #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
+      ⟨%kv, #Hkv, #HisKV, %HkvE⟩, HWB, #HNR, #Hcv, %Hbound, #Hrvkb,
+      ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
+  iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci Hmid HmetaSnap Hrvkb
+  iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
+  iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok Hsnapb Hcrun Hwpend Hrunh Hwth Hwtl
+  isplitr
+  · unfold srvFieldsBuiltNA
+    iexists v
+    unfold srvFieldsBuilt
+    iframe Hfb
+  isplitr
+  · unfold srvReadBuiltNK
+    iexists { vr with kv := kv }
+    unfold srvReadBuilt
+    iframe Hkv HisKV Hrdb
+    ipureintro; exact HkvE
+  isplitr
+  · ipureintro; exact HEr
+  isplitr
+  · ipureintro; exact Hdisk
+  isplitr
+  · ipureintro; exact Hslg
+  isplitr
+  · ipureintro; exact Hρrd
+  isplitr
+  · ipureintro; exact Hmidc
+  isplitr
+  · ipureintro; exact Hbound
+  unfold applyBuiltNA applyBuilt
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hfs⟩
+  iexists st₀, a, t, f
+  iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hra Har Hrdat Hao Hal Hkr Hfs
+  isplitr
+  · ipureintro; exact Hok
+  iexists ua
+  iframe Hua Hfor Hakv
+
+end gap
+
+end EtcdGrove
+end Perennial

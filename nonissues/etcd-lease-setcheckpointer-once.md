@@ -22,7 +22,7 @@ test; found by the review of batch 3c (specs-only branch).
 
 ## Proof
 
-no: `lessor.SetCheckpointer.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__SetCheckpointer.lean`)
+no: `lessor.SetCheckpointer.spec` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/lessor__SetCheckpointer.lean`)
 takes a once token (`Lease.lessorCkptTok`) that `NewLessor` gives; the server's one call has it.
 
 ## Notes

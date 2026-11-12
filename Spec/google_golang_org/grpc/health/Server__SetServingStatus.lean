@@ -1,28 +1,20 @@
 /-
-`(*health.Server).SetServingStatus(service, status)` (grpc-go, assumed: `health/server.go`).
-
-Users: `v3rpc.healthNotifier.startServe`/`stopServe` (this batch).
-
-Why true: under its mutex, records the status and notifies the watchers (after a `Shutdown` it is
-ignored); any number of concurrent callers.
-
-Changes: from `specs-ref/Spec/google_golang_org/grpc/health/Server__SetServingStatus.lean`.
-
-Margin: none.
+`(*health.Server).SetServingStatus(service, status)` (names only; item 4, the server start): the
+health notifier sets the server's status.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 public import GeneratedProof.google_golang_org.grpc.health
-public import Spec.PkgInit.google_golang_org.grpc.health
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -32,16 +24,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `hs.SetServingStatus(svc, st)`: returns. -/
-def health.Server.SetServingStatus.spec : Prop :=
-  ∀ (hs : Loc) (svc : GoString) (st : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health ∗ healthAt hs }}
+/-- `hs.SetServingStatus(service, status)` on grpc's health server returns. -/
+abbrev health.Server.SetServingStatus.spec : Prop :=
+  ∀ (hs : Loc) (service : GoString) (status : val),
+  {{ grpcHealthSrv (GF := GF) hs }}
     (App (App (Val (hs @!! go.GoType.PointerType google_golang_org.grpc.health.Server.ty @!! go!"SetServingStatus"))
-      (Val #svc)) (Val #st))
+      (Val #service)) (Val status))
   {{ RET #(); True }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

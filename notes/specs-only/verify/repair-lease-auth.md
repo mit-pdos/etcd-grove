@@ -1,6 +1,6 @@
 # Repair: group `lease-auth` (2026-11-09)
 
-Files: `Spec/go_etcd_io/etcd/server/v3/{lease,lease/leasehttp,auth}/`, `Spec/golang_org/x/crypto/bcrypt/`,
+Files: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/{lease,lease/leasehttp,auth}/`, `SpecPlan/Spec/golang_org/x/crypto/bcrypt/`,
 `examples/specreq/{lease,auth}`. Reports: A9 completeness and provability, parts 3c and 3d.
 
 ## Findings
@@ -176,7 +176,7 @@ Files: `Spec/go_etcd_io/etcd/server/v3/{lease,lease/leasehttp,auth}/`, `Spec/gol
 
 ## Requests to client-core
 
-1. **`Spec/context/Api.lean`**: `WithValue.spec`'s post should say what `Value` returns. Either:
+1. **`SpecPlan/Spec/context/Api.lean`**: `WithValue.spec`'s post should say what `Value` returns. Either:
    - `ctxValueAt parent ctx key` carries the value, with a law giving
      `□ ∀ Φ, ▷ Φ #v -∗ WP ctx.Value(key) {{Φ}}` (and pass-through for another key's `Value`); or
    - a transparent `Context.ctxValIs ctx key v` in that shape.
@@ -212,8 +212,8 @@ Files: `Spec/go_etcd_io/etcd/server/v3/{lease,lease/leasehttp,auth}/`, `Spec/gol
 
 ## Build
 
-- `etc/specs-build.sh --dir Spec/golang_org/x/crypto/bcrypt Spec/go_etcd_io/etcd/server/v3/auth
-  Spec/go_etcd_io/etcd/server/v3/lease Spec/go_etcd_io/etcd/server/v3/lease/leasehttp`: **OK (128
+- `etc/specs-build.sh --dir SpecPlan/Spec/golang_org/x/crypto/bcrypt SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth
+  SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/leasehttp`: **OK (128
   modules)**.
 - A check build of `etcdserver/apply`, `etcdserver` and `storage/backend` failed, but in other
   groups' files that are being edited concurrently: `client/v3/Api.lean:371` and

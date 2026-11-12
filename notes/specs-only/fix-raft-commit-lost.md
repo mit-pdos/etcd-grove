@@ -64,7 +64,7 @@ change (`stepLeader`, `raft.go:1344-1357`: `alreadyPending` is computed but igno
 crash-free log may hold several uncommitted conf changes, and the new clause would block a campaign
 the application considers safe (the flag's users serialize changes above raft). The flag keeps the
 old scan of `(applied, committed]`. etcd does not set it; our `ConfigOk` requires it off
-(`Spec/go_etcd_io/raft/v3/Api.lean:537`).
+(`SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean:537`).
 
 **Goose.** The changed function uses only what the pinned one already did and the translation
 already covers (`Code/go_etcd_io/raft/v3.lean:6110ff`: a closure passed to `scan` that writes a
@@ -200,26 +200,26 @@ interaction tests' outputs are unchanged).
 
 ## 6. Spec changes this brings (for the Lean stage)
 
-- `Spec/go_etcd_io/raft/v3/ApiCore.lean:248-255`: `CoreOpen.unappliedConf` gains the disjunct "at
+- `SpecPlan/Spec/go_etcd_io/raft/v3/ApiCore.lean:248-255`: `CoreOpen.unappliedConf` gains the disjunct "at
   least two conf entries in `range (committed + 1) (lastIndex + 1)`" (the flag is off by
   `ConfigOk`, so the spec need not branch on it, but the proof reads the field); `CampaignGuard`'s
-  docstring says so. `Spec/go_etcd_io/raft/v3/raft__hasUnappliedConfChanges.lean`: the post is
+  docstring says so. `SpecPlan/Spec/go_etcd_io/raft/v3/raft__hasUnappliedConfChanges.lean`: the post is
   unchanged in form (`b = true ↔ o.unappliedConf`); the docstring's "scan of `(applied, committed]`"
   becomes `(applied, lastIndex]`; the premises (`us.snap = none`, `compactFloor ≤ applied`) still
   suffice (with no snapshot pending the entries above `applied` are in the storage or the unstable
   log). Its callers (`raft__campaign`, `raft__becomeCandidate`, `raft__becomePreCandidate`,
   `raft__Step`'s `hup`) take `CampaignGuard` as before.
-- `Spec/go_etcd_io/raft/v3/Api.lean:1024-1031`: `raftState_crash.spec` loses `D'.confAboveOk`; its
+- `SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean:1024-1031`: `raftState_crash.spec` loses `D'.confAboveOk`; its
   docstring's "the condition on conf entries is what a restart needs ... open question" paragraph
   goes. `ApiCore.lean:83-87` (the realization, item 1): the term argument's "across at most one conf
   entry above its commit: `confAboveOk`" now reads it from the guard at the campaign.
-- `Spec/go_etcd_io/raft/v3/Model.lean:331-343`: `Durable.confAboveOk` deleted (its docstring is the
+- `SpecPlan/Spec/go_etcd_io/raft/v3/Model.lean:331-343`: `Durable.confAboveOk` deleted (its docstring is the
   bug report).
-- `Spec/go_etcd_io/etcd/server/v3/storage/wal/Api.lean:252-278`: `Recs.confAboveOk` deleted;
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/wal/Api.lean:252-278`: `Recs.confAboveOk` deleted;
   `Recs.crashScopeOk` keeps part (b) only (section 7), with its margin note (an at-rest lagging
   follower) gone; `crashInScope` stays as long as part (b) does. The WAL's crash laws (`:337-352`)
   unchanged in form.
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean:209-212, 233-247`: the boot's crash text
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean:209-212, 233-247`: the boot's crash text
   loses "`R'.confAboveOk` gives `D'.confAboveOk`" and the paragraph on the bug; `raftNode__start.lean`
   step 6 and `NewServer.lean:63-67` (text only) follow; `notes/specs-only/top.md` K6's scope.
 - The Lean proof (not on this branch): ConfI1 leaves the per-node durable invariant and stays a

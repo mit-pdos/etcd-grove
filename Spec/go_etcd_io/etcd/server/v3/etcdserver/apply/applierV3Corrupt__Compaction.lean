@@ -1,29 +1,23 @@
 /-
-`(*applierV3Corrupt).Compaction(r)` (`corrupt.go:45-47`): `ErrCorrupt`.
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** Immediate.
-
-**Changes** from `specs-ref`'s `applierV3Corrupt__Compaction.lean`: the old per-mode chain predicates (`apply.chainRes`, `kvOwnPre`) restated over `applierAt`, `stAt` and `layersStep`
-
-**Margin.** None.
+`apply.applierV3Corrupt.Compaction` (corrupt.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,24 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`Compaction` at the applierV3Corrupt layer**: the layers' step (the result `resMatch`). -/
-def applierV3Corrupt.Compaction.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (ls : List Layer) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (u : GoString) (rev : w64) (rq : Loc) (op : IrrOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt.ty) #p) (Layer.corrupt :: ls) b aa ∗
-      beAt b mc γ γc R ∗
-      stAt b σ ∗
-      aiAt aa u rev ∗
-      reqMsgAt rq op ∗ ⌜(∃ r ph, op = .req (.compact r ph)) ∧ op.ok⌝ ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt.ty @!! go!"Compaction")) (Val #rq))
-  {{ (resp : Loc) (ch : Loc) (trace : Loc) (err : GoInterface), RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-      R ∗ threadTok ∗ aiAt aa u rev ∗ ∃ σ' res res', ⌜layersStep mc σ u (uint.nat rev) op (Layer.corrupt :: ls) σ' res ∧ resMatch op false res res'⌝ ∗
-      stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty) #resp) err ∗ TraceUtil.traceOpt trace ∗ (⌜ch = null⌝ ∨ Read.recvAny ch) }}
+/-- **`a.Compaction(r)`**: `ErrCorrupt`, no response, channel or trace; nothing compacted. -/
+abbrev apply.applierV3Corrupt.Compaction.spec : Prop :=
+  ∀ (p r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
+    (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"Compaction")) (Val #r))
+  {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
+      RET (PairV (PairV (PairV #resp #ch) #trace) #err);
+      ⌜resp = null ∧ ch = chan.nil ∧ trace = null⌝ ∗
+      txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

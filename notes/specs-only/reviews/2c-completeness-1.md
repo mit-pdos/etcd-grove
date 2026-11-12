@@ -37,7 +37,7 @@ this repository's examples (`examples/etcd/*` use the client over `embed`).
 
 ### F1. No error a server spec returns can be passed to `togRPCError` (every handler, U1-U4)
 
-`togRPCError.spec` (`Spec/.../v3rpc/togRPCError.lean:36-38`) takes `context.isCtxErr err ∨
+`togRPCError.spec` (`SpecPlan/Spec/.../v3rpc/togRPCError.lean:36-38`) takes `context.isCtxErr err ∨
 ((isCtxErr err -∗ False) ∗ ((∃ e, ⌜srvErrOf err e⌝) ∨ (∃ m, errMsg err m ∗ ⌜∀ e, ¬ srvErrOf err
 e⌝)))`. The code needs this. It tests `errors.Is` against the context errors, hashes `err` as a map
 key, and calls `err.Error()` (`api/v3rpc/util.go`, `togRPCError`). What 2c's posts give:

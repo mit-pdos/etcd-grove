@@ -9,7 +9,7 @@ Targets:
 - **R-A9:** N1 (a stale `authHook` survives `Recover`), N2 (`srvStores_kv` not tied to the lessor).
 
 I also checked the files those fixes changed for regressions:
-- `git diff 4a6a9b6b6e` over `Spec/google_golang_org`, `api/v3`, `v3rpc`, `auth`, `apply`, `ApiApply`,
+- `git diff 4a6a9b6b6e` over `SpecPlan/Spec/google_golang_org`, `api/v3`, `v3rpc`, `auth`, `apply`, `ApiApply`,
   `ApiReq`, 2c's `EtcdServer__{Range,RangeStream,Txn}`;
 - the snippets in `grpc`, `apply`, `auth`.
 

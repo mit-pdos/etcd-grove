@@ -1,17 +1,10 @@
 /-
-`verify.Assert` (`client/pkg/v3/verify/verify.go`).
-
-Users: the server (2d, 3e).
-
-Proof sketch: a `true` condition: nothing.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/pkg/v3/verify/Assert.lean`.
-
-Margin: none.
+`verify.Assert(condition, msg, v...)`, of etcd's `client/pkg/v3/verify` (translated names-only).
+The trust boundary. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 
 @[expose] public section
 
@@ -19,26 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Verify
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.client.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.pkg.v3.verify.Assumptions]
 
-/-- `Assert(true, msg, v...)`: nothing. -/
-def Assert.spec : Prop :=
+/-- `Assert(condition, msg, v...)`: panics (with the formatted message) unless `condition`;
+whatever `ETCD_VERIFY` says. The spec is for a true condition: it returns. -/
+abbrev verify.Assert.spec : Prop :=
   ∀ (msg : GoString) (v : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify }}
-    (App (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.verify.Assert)) (Val #true)) (Val #msg))
-      (Val #v))
+    (App (App (App (Val (@! verify.Assert)) (Val #true)) (Val #msg)) (Val #v))
   {{ RET #(); True }}
 
 end spec
 
-end Verify
 end EtcdGrove
 end Perennial

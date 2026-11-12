@@ -23,7 +23,7 @@ the table's second column:
   bug, which txnlin cannot discharge from its own code (an opaque environment/workload `Prop`);
 - **goal: met** -- a premise on the goal path that txnlin's configuration or workload meets (it is
   discharged, but it is the bug's sidestep and goes with the fix);
-- **goal: model** -- W0's model (`Spec/go_etcd_io/etcd/api/v3/Model.lean`), which txnlin's proof
+- **goal: model** -- W0's model (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`), which txnlin's proof
   reasons over, admits the bug; txnlin's workload never reaches it;
 - **no** -- reached only by other users (multi-member, leases, auth, watch, k8s, leasing, cache,
   concurrency, recipes); the user in brackets.
@@ -53,7 +53,7 @@ the table's second column:
 `k8s-daemonset-ambiguous-create-duplicate-pod`, `k8s-etcd3-cached-noop-skips-preconditions`
 (blocks-proof: yes for the k8s etcd3 driver), `k8s-workqueue-exponential-backoff-2to63` (Kubernetes,
 translated from its module, no fork; the specs-only branch has no k8s apiserver/client-go specs:
-`Spec/k8s_io/` holds only `utils`). A Kubernetes fork would be a fourth fork: the user's call.
+`SpecPlan/Spec/k8s_io/` holds only `utils`). A Kubernetes fork would be a fourth fork: the user's call.
 
 That leaves **55** findings, below. **16** of them touch the goal path (2 goal: premise, 9 goal: met,
 4 goal: model, 1 goal-path code with no premise); **7** need no spec change (R5, R6, E29-E32, B5:

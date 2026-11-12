@@ -1,54 +1,23 @@
 /-
-## `(*EtcdServer).LeaseTimeToLive(ctx, r)`
-
-**Users.** The gRPC lease handler (`api/v3rpc/lease.go:63`), the grpc-proxy. Snippet:
-`examples/specreq/etcdserverreq/lease.go` (`ReqTimeToLive`).
-
-**Proof sketch.** `requireAuthInfo` (a refusal given back); with `keys`, `checkLeaseTimeToLive`
-(`checkLeaseTimeToLive.spec`: the auth revision read first, then the principal's read permission of
-the lease's keys at the auth store's state, a denial `permErr`; an invalid token a refusal);
-`leaseTimeToLive(ctx, r)` (`leaseTimeToLive.spec`, untranslated: the leader's lessor after
-`waitAppliedIndex`, or the leader's over `leasehttp`): a lease granted at some point (W0's
-`granted` only grows) with keys attached at some revision the member applied, or `ErrLeaseNotFound`
-(always a `Step` answer), or an unsettled error (`ErrLeaderChanged`, timeouts, `ErrStopped`); with
-`keys`, the auth revision compared again (a change: `ErrAuthOldRevision`, a refusal). The update is
-fired at the return, at the cluster's current state (every answer is one `leaseStep` allows at any
-later state: `granted` and the history only grow).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__LeaseTimeToLive.lean`, the lease-read plan's
-`raftLeaseRead` contract, `lease-grpc.md`) restated over W0's loose `leaseTimeToLive` step: a
-one-shot update fired at the return.
-
-**Margin.** The TTLs are any (W0's model has no time); a permission denial is fired with the
-member's auth state, which W0's step allows at any state.
-
-Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
-
-Changes: recheck RR-1 (client-core's request 2): over `SrvCallTripleF` with `srvLeaseFact`, at the endpoint `ep` the member serves (`srvAt s γ ep`) and the caller's optional bound (`srvLeaseLbOpt`): the answer's row is gated on W0's `soleMember γ`. Under it this member is the cluster's only voter: as leader it answers from its own lessor after `waitAppliedIndex` (`v3_server.go:636-669`), at a table `j ≥ i`; otherwise `waitLeader` returns itself and `leasehttp.TimeToLiveHTTP` reaches its own peer URLs, whose handler (`leasehttp/http.go:109-160`, 4b's `leasehttp` spec over the same lessor: requested of lease-auth, a per-member view in its contract) looks the lease up in the same lessor, again at `j ≥ i`. `Demoted` (`ErrLeaderChanged`), timeouts and the HTTP errors are not `leaseAnsRes`. Without `soleMember` the answer may be another member's lessor's: no row.
-
-Changes: verify-round (repair3-boot: the relay's server-core request): the sketch's source of the row is `leaseTimeToLive.spec`'s new post at `srvAt s γ ep` and `srvLeaseLbOpt γ ep vi` (passed through): its `soleMember γ -∗ ∃ j σ₂, ⌜i ≤ j ∧ σ₂.leaseAnsAt j rq res⌝ ∗ etcdLb γ σ₂ ∗ leaseViewLb γ ep j`, taken to the firing state `σ` by `etcdLb_reach` (`Reach σ₂ σ` keeps `σ₂.leaseTables` as a prefix, so `σ.leaseAnsAt j rq res`); on the forwarding path that contract gets it from `TimeToLiveHTTP`'s `ltlView` with 2e's `leaseURLOf_intro` (`srvAt`'s `srvEp`). The `checkLeaseTimeToLive`/`ErrAuthOldRevision` refusals are not `leaseAnsRes`. The row rests on that contract's deployment premise (`leasePeerURL` of the member's peer URLs), which `examples/lib/etcdstart` does not meet (see the contract).
-
-Changes: verify-round F1 (`verify/F-client-api.md`): the row (here, `srvLeaseFact`'s and the
-contract's) is gated on `soleMember γ ∗ peerLeaseServed γ`, the latter W0's deployment fact that
-every member's peer URLs serve its lease handler (2e's `peerLeaseServed_intro`, under `leasePeerURL`
-of the sole member's peer URLs), so the contract's row is true of every starter; the sketch passes
-the gate through. Statement otherwise unchanged.
+`s.LeaseTimeToLive(ctx, r)` (`v3_server.go`): the lease `TimeToLive` row. Lean-first (no Rocq counterpart); the lease-read plan
+(`notes/lease-read-plan.md`, 2026-10-31), vocabulary `LeaseRead.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -57,17 +26,57 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.LeaseTimeToLive(ctx, r)`**: lease `id`'s remaining and granted TTL (and its keys), from the leader's lessor (forwarded if this member is not the leader); the update fired at the return. -/
-def EtcdServer.LeaseTimeToLive.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ep : GoString) (vi : Option Nat) (q : Qp) (ctx : GoInterface)
-    (p tls : Principal) (r : Loc) (dq : DFrac) (id : Int) (keys : Bool),
-  SrvCallTripleF (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseTimeToLive")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvAt s γ ep ∗ srvLeaseLbOpt γ ep vi ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys))
-    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq (.leaseTimeToLive id keys)) γ p tls (.leaseTimeToLive id keys) false srvHdrReply
-    (srvLeaseFact γ ep (.leaseTimeToLive id keys) vi)
+/-- **`s.LeaseTimeToLive(ctx, r)`**, any goroutine, at a context, with the server's facts
+(`leaseTimeToLive`'s), the key check's resources (`checkLeaseTimeToLive.spec`'s: the auth store and
+lessor at lower bounds `n`, `m`, their readers, a thread token), reading `r`: on `nil`,
+`leaseTimeToLive`'s response (owned, with its header owned), the request authenticated (`authedOutB`:
+`requireAuthInfo`'s) and, if it asks for the keys (`r.Keys`), auth disabled at a state no older than
+`n`, or its principal an admin at one or allowed to read every key of the lease `r.ID` at a lessor
+index no older than `m` (`leaseKeysVerdictFrom`; none if the lease was not live there); on an error,
+no response and an error the gRPC layer can take. **The margin**: the keys it checked, not the keys
+it returns. The response is `leaseTimeToLive`'s, which looks the lease up again, on the leader or
+through it (its contract states nothing of the keys), so a key attached in between is returned
+unchecked (`issues/etcd-lease-timetolive-keys-toctou.md`). The revision re-check
+(`ErrAuthOldRevision` unless the auth revision is still the check's) is not stated
+(`checkLeaseRenew.spec`'s margin). Under the deployment premise `leasePeersOk`
+(`leaseTimeToLive`'s). **What the answer says of the lessor `γl`** at the lower bound `m`, under the
+lease-TTL row (`leaseTTLRow s γl`): `leaseTimeToLive`'s (the lease-expiry plan's E3, 2026-11-05): a
+response's `GrantedTTL` is the lease's TTL at an index `≥ m`, or the lease is absent from `m` on; an
+error `errors.Is` finds to be `lease.ErrLeaseNotFound` (`errIsTrue`) means it is absent from `m` on.
+The wrapper's own errors (`requireAuthInfo`'s, `checkLeaseTimeToLive`'s, `auth.ErrAuthOldRevision`)
+are auth package error variables, leaves holding errors other than `ErrLeaseNotFound`'s, for which
+`errIsTrue` is false (`authErrVarIs_not_leaseNotFound`). -/
+abbrev EtcdServer.LeaseTimeToLive.spec : Prop :=
+  leasePeersOk →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
+    (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
+      srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ r ↦{dq} v }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseTimeToLive"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗
+      threadTok ∗ r ↦{dq} v ∗
+      ((⌜err = GoInterface.nil⌝ ∗
+          (∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗ ⌜w.Header' ≠ null⌝ ∗
+            ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+            □ (leaseTTLRow s γl -∗
+                (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+                lease.leaseAbsentFrom γl m v.ID')) ∗
+          authedOutB s E.authMode (GoInterface.ok ctx) GoInterface.nil ∗
+          (if v.Keys' then leaseCheckFrom s E (GoInterface.ok ctx) n
+              (fun info => leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read)
+            else iprop(True))) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s γl -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

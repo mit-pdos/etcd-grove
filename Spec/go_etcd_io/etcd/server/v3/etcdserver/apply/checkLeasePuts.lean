@@ -1,33 +1,23 @@
 /-
-`checkLeasePuts(as, ai, lessor, leaseID)` (`auth.go:198-205`): the check of a lease's keys: none for a lease the lessor does not have
-
-**Users.** the auth applier (the apply thread: `permReads_writer`, `C` exact at the stores' one state) and `CheckTxnAuth` (the request path: `permReads_reader`, `C` 3d's `checkPost` from a lower bound, no lease check)
-
-**Proof sketch.** 3c's `Lookup` (through `permReads`); `checkLeasePutsKeys.spec`.
-
-**Changes** from `specs-ref`'s file of the same name: one spec for both callers, parametric in how each check is reported (`permReads`' `C`); the old two-mode `isAuthStore … on` and `authApplyErrIs` gone
-
-**Margin.** None.
-
-**Integration (I5).** `permReads` takes the auth info and a per-check report `C` in place of a
-set of states `S` (3d's reader check names three views, not one state), and `L` (lease checks
-allowed: the request path holds no lessor reader token).
+`apply.checkLeasePuts` (auth.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,20 +26,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The check of a lease's keys: none for a lease the lessor does not have** each check reported by `C`: `checksOut`. -/
-def checkLeasePuts.spec : Prop :=
-  ∀ (ast le : GoInterface) (ai : Loc) (dq : DFrac) (u : GoString) (rev : w64) (A : IProp GF)
-    (L : Bool)
-    (C : Check → GoInterface → IProp GF) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ permReads ast le u rev A L C ∗ A ∗ ⌜L = true⌝ ∗  ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePuts)) (Val #ast)) (Val #ai)) (Val #le)) (Val #id))
-  {{ (err : GoInterface), RET #err; A ∗ ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦{dq} u ∗
-      ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦{dq} rev ∗ threadTok ∗
-      checksOut C [Check.lease (sint.Z id)] err }}
+/-- **`checkLeasePuts(as, ai, lessor, id)`**: the lessor's `Lookup(id)`; for a lease, `checkLeasePutsKeys`: its error, or `nil`; the `AuthInfo` kept, nothing written. By the lease owner (`lease.lessorUser`: the live leases `L`, the item map `I`), its resource lent and given back: a `nil` answer gives the class of `id`'s keys at `I` (`leaseKeysClass`; a lease the lessor does not have holds no key). -/
+abbrev apply.checkLeasePuts.spec : Prop :=
+  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (id : w64) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st Pk f BT RD on RW ∗ apply.isApplyLessorAny le γ Pk f BT RW ∗ ai ↦{dq} info ∗ RD ∗
+      lease.lessorUser (mvcc.api.mvccLeases γ) L I }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePuts))
+      (Val #st)) (Val #ai)) (Val #le)) (Val #id))
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ lease.lessorUser (mvcc.api.mvccLeases γ) L I ∗
+      authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.leaseKeysClass on info I id) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

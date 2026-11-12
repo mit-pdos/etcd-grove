@@ -1,7 +1,7 @@
 # Repair: group `backend-schema` (2026-11-09)
 
-Owned: `Spec/go_etcd_io/etcd/server/v3/storage/{backend,schema}/`, `Spec/go_etcd_io/etcd/pkg/v3/
-{traceutil,pbutil,ioutil,httputil}/`, `Spec/github_com/`, `Spec/golang_org/x/time/rate/`, snippets
+Owned: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/{backend,schema}/`, `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/
+{traceutil,pbutil,ioutil,httputil}/`, `SpecPlan/Spec/github_com/`, `SpecPlan/Spec/golang_org/x/time/rate/`, snippets
 `examples/specreq/{backend,schema,pkgleaves}`. Reports: A10-storage provability and completeness
 (4a, 4b parts), A11-bbolt completeness (F1-F5 backend side, S4). Also the mvcc group's request
 (A10-completeness F2), routed by the coordinator.
@@ -192,7 +192,7 @@ weak for the merged snapshot).
 httputil, rate, probing, semver/v3): **OK (219 modules)**. Snippets: `go vet ./specreq/backend/`
 clean, `gofmt -l` empty for backend, schema, pkgleaves. Importers in other groups
 (`etcdserver/ApiApply`, `NewServer`, `lease/Api`) could not be checked: their build stops at
-`Spec.go_etcd_io.etcd.client.v3.Api`, failing in client-core's work in progress at the time; the
+`SpecPlan.Spec.go_etcd_io.etcd.client.v3.Api`, failing in client-core's work in progress at the time; the
 changes they see are signature-compatible (`Backend.beSnap` kept as an alias with its old type;
 `keyBackend_intro`/`mvccOn_held` are cited only in comments there).
 
@@ -258,7 +258,7 @@ server's `Pk`, or the hook, must hold `beCur γ confStateCells _`, and server-bo
 which reads and writes from the session alone: server-core should check that it has a `beCur` for
 `ciCells`.
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/storage/backend`: OK (105 modules).
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend`: OK (105 modules).
 
 ## Final relay (server-boot's gap (a))
 

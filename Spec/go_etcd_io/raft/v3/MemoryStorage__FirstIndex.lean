@@ -1,14 +1,10 @@
-/-
-## `MemoryStorage.FirstIndex()`
+/- `MemoryStorage.FirstIndex` (`storage.go:199`).
 
-**Users.** raft (through `isStorage`); the examples (`kvdurable/kv.go:607`, `FirstIndex` before a
-compaction). **Proof sketch.** Under the lock, `firstIndex`. **Changes.** Atomic.
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). The contract's `FirstIndex` triple. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 
@@ -16,29 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `σ.first`, atomically. -/
-def MemoryStorage.FirstIndex.spec : Prop :=
-
-  ∀ (ms : Loc) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ }> @ ⊤, ∅
-        <{ memStor ms σ, COMM Q σ }>) }}
-    (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"FirstIndex")) (Val #()))
-  {{ (x : w64) (err : GoInterface), RET (PairV #x #err); ⌜err = interface.nil⌝ ∗
-      ∃ σ, Q σ ∗ ⌜x = W64 σ.first⌝ }}
+/-- `ms.FirstIndex()`: past what the caller knows is compacted, and compacted up to it. -/
+abbrev MemoryStorage.FirstIndex.spec : Prop :=
+  ∀ (ms : Loc) (γs : MemStorNames) (c : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
+      memCompacted γs c }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"FirstIndex")) (Val #()))
+  {{ (fi : w64), RET (PairV #fi #interface.nil);
+      ⌜c + 1 ≤ uint.nat fi⌝ ∗ memCompacted γs (uint.nat fi - 1) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

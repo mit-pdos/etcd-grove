@@ -1,18 +1,14 @@
 /-
-## `Progress.BecomeProbe()`
+Port of `election_proof/spec_Progress__BecomeProbe.v` (feb5c73d4).
 
-**Users.** `stepLeader` (`raft.go:1524`, `1559`, `1631`, `1637`, `1648`: a rejected append, a
-snapshot done or failed, an unreachable peer): R2. Snippet `raftconf/tracker.go`
-(`ReqProgressFlow`).
-
-**Proof sketch.** `ResetState(StateProbe)`; `Next` from the match (or past the pending snapshot);
-`sentCommit` capped. **Changes.** Over the model. **Margin.** None.
+Lean notes: Rocq's `Progress__BecomeProbeⁱᵐᵖˡ` is the Lean generated code
+`tracker.Progress.BecomeProbe.impl`; `progress.t` is `Progress`, `own_Progress` is
+`ownProgress`, `progress_become_probe` is `progressBecomeProbe`, `w64_min`/`w64_max` are
+`w64Min`/`w64Max` (`Defs.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -20,26 +16,46 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Probes the peer (from its match, or past a pending snapshot). -/
-def Progress.BecomeProbe.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"BecomeProbe")) (Val #()))
-  {{ RET #(); progressOwn p P.becomeProbe }}
+/-- `pr.BecomeProbe()` moves a `Progress` back to probing
+(`tracker.Progress.BecomeProbe.impl`, Rocq new/code/go_etcd_io/raft/v3/tracker.v:249;
+progress.go:130):
+
+    if pr.State == StateSnapshot {
+      pendingSnapshot := pr.PendingSnapshot
+      pr.ResetState(StateProbe)
+      pr.Next = max(pr.Match+1, pendingSnapshot+1)
+    } else {
+      pr.ResetState(StateProbe)
+      pr.Next = pr.Match + 1
+    }
+    pr.sentCommit = min(pr.sentCommit, pr.Next-1)
+
+One exit, no panic of its own; the one call is `ResetState`
+(`spec_Progress__ResetState.v`, exact), which empties the `Inflights` and clears
+`MsgAppFlowPaused` and `PendingSnapshot`. `Match` is untouched. The `+1`/`-1` are
+`uint64` arithmetic and wrap silently in Go (and as `w64` `+`/`-` in Goose), so they
+are stated that way rather than excluded by a premise: `ownProgress` bounds neither
+`Match` nor `PendingSnapshot`. `min`/`max` are `w64Min`/`w64Max` (`Defs.lean`),
+Goose's builtins verbatim. The new record is `progressBecomeProbe p` (`Defs.lean`). -/
+abbrev tracker.Progress.BecomeProbe.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      "Hpr" ∷ ownProgress pr p }}
+    (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"BecomeProbe"))
+      (Val #()))
+  {{ RET #(); ownProgress pr (progressBecomeProbe p) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

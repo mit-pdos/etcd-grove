@@ -1,6 +1,6 @@
 // Package clientv3client holds the requirement snippets of etcd's Go client lifecycle, auth,
 // cluster and maintenance APIs and the Kubernetes interface (batch 1c,
-// Spec/go_etcd_io/etcd/client/v3/ApiClient.lean, .../kubernetes/Api.lean), each reliance an
+// SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiClient.lean, .../kubernetes/Api.lean), each reliance an
 // explicit panic.
 //
 // Common assumptions (the proofs' setting): the caller owns the cluster's state etcdState in an

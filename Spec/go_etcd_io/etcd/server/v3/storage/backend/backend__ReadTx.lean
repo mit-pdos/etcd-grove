@@ -1,14 +1,11 @@
 /-
-## `(*backend).ReadTx()` (`backend.go:279`): translated
-
-**Users.** mvcc (`kvstore.go:188, 226, 327`, `kvstore_txn.go:57`, `watchable_store.go:441`), auth
-(`schema/auth.go:64`), alarms (`schema/alarm.go:85`), the consistent index (`ReadConsistentIndex`),
-bootstrap (`schema.Validate`, `bootstrap.go:292`). **Proof sketch.** Reads `b.readTx`.
-**Changes.** Unchanged in substance. **Margin.** None.
+`ReadTx` (the backend). `b.ReadTx()`: the shared read transaction, `b.readTx`.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -16,26 +13,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.ReadTx()`**: the shared read transaction. -/
-def backend.ReadTx.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"ReadTx")) (Val #()))
-  {{ RET #(rtIface γ); True }}
+/-- `b.ReadTx()`: the shared read transaction, `b.readTx`. -/
+abbrev backend.backend.ReadTx.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"ReadTx")) (Val #()))
+  {{ (rt : Loc), RET #(interface.mkOk (go.GoType.PointerType readTx.ty) #rt);
+      bF go!"readTx" b ↦□ rt }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

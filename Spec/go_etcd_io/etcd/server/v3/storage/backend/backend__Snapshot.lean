@@ -1,75 +1,89 @@
 /-
-## `(*backend).Snapshot()` (`backend.go:360-423`): trusted (names only)
+`Snapshot` (the backend, `backend.go`; names only). `b.Snapshot()`: the batch transaction
+committed (`b.batchTx.Commit()`), then, under `b.mu`'s reader side, a bbolt read transaction
+begun (`b.db.Begin(false)`, `lg.Fatal` on an error) and a goroutine started that warns while the
+snapshot stays open; the `*snapshot` returned. The trust boundary (D22 S-f, 2026-10-19; an axiom
+in `Proof/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean`). Lean-first (no Rocq
+counterpart); the vocabulary is `InvSnapshot.lean`.
 
-**Users.** 2d's merged snapshot (`snapshot_merge.go:37`, after `KV().Commit()`), the maintenance
-server's `Snapshot` (`v3rpc/maintenance.go:146`, 2a). Snippet `snapshot.go` (`ReqSnapshotStream`).
+The pre: the backend open (`bOpen`), one write-back's budget (`wbTok`, for the commit's `Unlock`,
+as `batchTxBuffered.Commit`), and the caller's **observation** `Q` of what a commit leaves: a
+resource `R` the caller holds through the call (given back) such that, whatever the batch lock's
+client resource `W` and hooks' resource `Pk` are, `R` with them, the batch lock's quarter of the
+readers' view, at a logical view the physical view `vd` is thin of (`viewAt`; question 2, option
+(a), 2026-10-29: until then the quarter at `vd` itself), its half of the hook's own keys at `d` (`hkOwn`), (D22,
+2026-10-23: the backend over every bucket) its half of the tracked buckets at `r` (`rbOwn`) and
+(the user's decision, 2026-11-04, round 16's F1 of the mvcc API's review) its half of the compaction
+keys' values at `v` (`fkdOwn`) give `Q vd d r v`. The post: the snapshot open (`snapOpen`) over
+bbolt's committed data `D`, with `Q (sData P D) (hkData P D) (rbData P D) (fkVals D)`: `D` reads
+thin of the readers' (logical) view off the hook's buckets (exactly as it, with nothing deletable:
+`viewAt_noDel`) and holds the hook's own keys, the tracked buckets and the compaction keys as they
+were when the last commit before the read transaction began left them (mvcc's image of a store
+that compacted: its scheduled and finished compaction revisions). For the server, `W` holds the store's view of the `Key`
+bucket (`mvcc.writerRes`'s `bucketView`), `Pk` the consistent index's meta keys
+(`batchLockInv`, `metaTM`), `R` the apply thread's half of the tracked buckets: `Q` can say the
+key bucket is the store's log's, the stored index the apply thread's (D22 S-h) and the other
+buckets the applied log's (`restModel`). (2026-11-02, the merged snapshot's window) The post also
+gives a reader's lower bound of the compaction keys' flag over `D` with an empty read buffer
+(`fkRd`, what a commit gives the backend's readers, `batchTxBuffered.unsafeCommit`): with the
+client's half at `0` (`fkOwn γ 0`, a store that does not compact), `D` has no compaction key
+(`fkRd_abs`). (The user's decision, 2026-11-04, probe M2 of the mvcc API: a snapshot restored from
+gives a correct view of the abstract state it is of.) The quarter of the readers' view comes with
+the batch lock's half of the safe-range buckets' deleted entries at `X` (`dlsOwn`) and the physical
+view exactly the logical view but `X` there (`viewAtD`'s `dlVd`): a compacting store, holding the
+client's half (inside `fkOwn`), learns which entries of its `Key` bucket the compaction has
+physically deleted, so the image its restore reads.
 
-**Why it is true.** `b.batchTx.Commit()` (the commit protocol, as `ForceCommit`); `b.mu.RLock()`;
-bbolt's `Begin(false)` (4c: a read transaction at the committed data, the reader slot lent to
-`mmaplock`; a failure is `lg.Fatal`, which never returns): the snapshot is of the image of the last
-commit at that point, which is in the history (`beCommitted`); `tx.Size()` and a monitor goroutine
-(its ticker's period at least `minSnapshotWarningTimeout`, so `NewTicker` does not panic; a thread
-from `envOk`'s pool) that only logs, until `Close` stops it. `beSnapN γ s I n` holds the bbolt read
-transaction (`boltTx` at `ro D`, `imgOf D = I`), the slot, the channels; `n` is `tx.Size()`, the length of
-every `WriteTo`'s bytes (4c's `Tx.WriteTo`).
-
-**The lower bound** (verify-round, A10-completeness F1): the caller names a prefix `L0` of the
-history (`beHistLb`, from its own `beHist` by `beHist_lb`); the image is the last of an extension of
-`L0`. True: `Snapshot`'s own `Commit()` takes the batch lock, which waits for every commit of `L0`
-(commits run under it) to have written its meta page; so the file's last completed commit, which
-`Begin(false)` reads, is `L0`'s last or a later one (the history may already hold a later attempt
-not yet written, which the post's extension simply leaves out: `beHistLb_mono`). 2d's merged snapshot
-(`snapshot_merge.go:36-37`: `KV().Commit()`, then `Snapshot()`) takes `L0` after its commit, so the
-image is at least the state machine at the applied index.
-
-**The size** (verify-round, A11-completeness F5): `beSnapN γ s I n` carries the size only; each
-`WriteTo` writes some bytes of `I` of that length (bbolt's `Tx.WriteTo` gives a fresh image of the
-transaction's size on each call).
-
-**Changes** (from `specs-ref`'s `backend__Snapshot.lean`, D22's `bkSnapAt`): the image is a committed
-one by the client-owned history (`beCommitted`, read with `beHist_mem`), not an observation fired
-under the batch lock: a commit may land between `Commit()` and `Begin` (mvcc's compaction batches
-commit on their own), so the image is the last commit's at `Begin`, which no caller's update can
-pin. A reader slot (bbolt's), not a thread token.
-
-**Margin.** The image is the last completed commit's at the `Begin`; the post says only that it
-extends the caller's `L0` (an image no older than `L0`'s last), not that nothing later completed.
+(2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q1/Q2/Q4) The pre
+also takes the caller's `threadTok`: the snapshot's bbolt read transaction holds a reader slot of
+bbolt's `mmaplock` until `snapshot.Close`, which gives the token back. The warning goroutine is a
+live thread, paid by its own fork's fuel; net, the caller is out one token per open snapshot until
+`Close` (`notes/axiom-review/begin-tok-restated.md`, A8). Under
+`[ThreadBoundLe GF (2 ^ 29)]`, `bbolt.Open_kv`'s bound. Until then the pre took no token and a
+proof could hold `2 ^ 30` open snapshots (`notes/axiom-review/backend-snapshot-begin.md`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
+
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.Snapshot()`**: a snapshot of a committed image `I` (in the client's history), no older than
-the last of the caller's prefix `L0` (the last of an extension of it), of size `n`. -/
-def backend.Snapshot.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (L0 : List Image),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ beRdToks γ 1 ∗
-      beHistLb γ L0 }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"Snapshot")) (Val #()))
-  {{ (r : GoInterface), RET #r; ∃ (s : Loc) (I : Image) (n : Nat) (L1 : List Image),
-      ⌜r = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #s ∧
-        n < 2 ^ 48 ∧ (L0 ++ L1).getLast? = some I⌝ ∗
-      beSnapN γ s I n ∗ beCommitted γ I ∗ beHistLb γ (L0 ++ L1) ∗ beOpen γ q }}
+/-- `b.Snapshot()`: a snapshot of bbolt's committed data `D`, read as the caller's observation `Q`
+says of every commit (see the file header); the caller's `threadTok` held until `snapshot.Close`. -/
+abbrev backend.backend.Snapshot.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp)
+    (R : IProp GF)
+    (Q : VData → GMap (GoString × GoString) GoString → GMap GoString BktData → FkVals → Prop),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ threadTok ∗ R ∗
+      □ (∀ (vd : VData) (d : GMap (GoString × GoString) GoString) (r : GMap GoString BktData)
+          (v : FkVals),
+        ∀ X : VData,
+        R -∗ W -∗ Pk -∗ viewAtD γ P vd X -∗ dlsOwn γ X -∗ hkOwn γ d -∗ rbOwn γ r -∗ fkdOwn γ v -∗
+          ⌜Q vd d r v⌝) }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Snapshot")) (Val #()))
+  {{ (sp : Loc) (D : Data), RET #(interface.mkOk (go.GoType.PointerType snapshot.ty) #sp);
+      snapOpen sp D ∗ bOpen γ qo ∗ R ∗ fkRd γ P (D, ⟨∅, W64 0⟩) ∗
+      ⌜Q (sData P D) (hkData P D) (rbData P D) (fkVals D)⌝ }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

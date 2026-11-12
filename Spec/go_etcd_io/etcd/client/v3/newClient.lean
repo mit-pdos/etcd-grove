@@ -1,40 +1,12 @@
 /-
-`clientv3.newClient` (`client/v3/client.go`).
-
-Users: `New`.
-
-Proof sketch: transport credentials from `cfg.TLS` (`credentials.NewTransportCredential`, over
-`tlsCfgOk`); `ErrMutuallyExclusiveCfg`; the client's context (`context.WithCancel` of `cfg.Context`
-or `TODO()`: `ctxOk`, `ctxPrin _ who` by `ctxPrin_child`); the logger (`cfg.Logger`, or
-`logutil.CreateDefaultZapLogger(ClientLogLevel())` named: `isLogger`); the credentials and the
-token bundle (`credentials.NewPerRPCCredentialBundle`: `bundleAt _ γ who`, its token `""`); the call
-options (`defaultCallOpts` or a literal of three: full slices, `callOptsOk _ false`; the size check's
-error); the resolver (`resolver.New`), `SetEndpoints` (its spec: each endpoint `servesAt γ`):
-`clientPre`. `dialWithBalancer` (its spec: `connOk` or an error, the resolver closed), `c.conn` set:
-`clientConnOk`. The members: `NewCluster`, `NewKV` (W0), `NewLease`, `NewWatcher` (1b), `NewAuth`,
-`NewMaintenance`, each over `clientCore`'s pieces; the `Auth` field set last of the ones the
-interceptor reads (see the margin). `getToken` with the dial timeout (its spec; an error: `Close`,
-returned). `checkVersion` if asked (an error: `Close`, returned). `go autoSync()` (its spec, over
-`clientCore`). The fields but `KV` frozen (`clientMutRest`), `KV` writable: `clientMut`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/newClient.lean`: as `New`'s.
-
-Readiness (round 1): the members are built before `c.Auth` is set; their handles record `c` and
-meet their bundles only with `clientReady c`, which `newClient` mints once `c.Auth` is set (before
-`getToken`, its first call), so `clientMut`/`isClient` carry it (`clientMut_ready`).
-re-review (S-e): its own `SetEndpoints` (before `dialWithBalancer`) holds `resolverIdle c`, minted
-with the resolver (`resolver.New`): no connection exists yet, so no RPC can wake one; the token is
-dropped once the client dials (no caller after `New` gets it). The success post's endpoint list is
-non-empty (S-a).
-verify-round: `NewLease` returns `lessorHandle l c` (A2-provability L1: `NewLeaseFromLeaseClient` at
-`cr = c`); `NewWatcher` returns `watcherHandle w c` (1b's W3), whose `watcherHandle_watcherAt` is
-applied, as the other handles' laws, after `clientReady c` is minted.
-
-Margin: none.
+`newClient(cfg)` (`client/v3/client.go`; item 5): the client's construction. Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -42,10 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -53,20 +23,26 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `newClient(&cfg)`: as `New`, the configuration given back. -/
-def newClient.spec : Prop :=
-  ∀ (p : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ p ↦ cfg ∗ cfgOk cfg γ who }}
+/-- `newClient(&cfg)` of a configuration `New` accepts (`clientCfgOk`: plain endpoints `eps`,
+...), given the package's variables (no watch-server facts, D19f): the client (`isNewClient`:
+connected to `eps`, the retry interceptor installed, its `KV` and `Watcher` over the connection),
+or an error (the dial's) and `nil`. -/
+abbrev newClient.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (p : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
+    (P : GoString → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      p ↦□ cfg ∗ clientCfgOk cfg eps ∗
+      -- (the auth plan's C1, 2026-10-28) its credentials' tokens
+      clientAuthPre cfg eps P }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #p))
-  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err); p ↦ cfg ∗
-      ⌜cfg.Endpoints'.len = W64 0 → c = null ∧ err ≠ GoInterface.nil⌝ ∗
-      ((⌜err = GoInterface.nil⌝ ∗ clientMut c γ who ∗
-         (∃ eps, cfg.Endpoints' ↦*□ eps ∗ ⌜eps ≠ []⌝ ∗ epsTok c (DFrac.own 1) eps)) ∨
-       ⌜c = null ∧ err ≠ GoInterface.nil⌝) }}
+  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,0 +1,312 @@
+/-
+The raft wrapper's `applyc` stream (`InvRaftNode.lean`), its two ends: the loop's step before a
+send (`cum` extended with the batch) and the apply side's receive (the batch extends what it
+got). Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (2026-11-03, R2b-3b) **`cum` at the loop's count** (the stop's escrow, `rnStopImage`): the
+authority at `n + 1` elements ending in `L` gives `cum[n] = L` (it is given up: the loop stops). -/
+theorem cum_idx_last (γc : GName) (cums : List (List EntryModel)) (L : List EntryModel)
+    (n : Nat) (hlen : cums.length = n + 1) (hlast : cums.getLast? = some L) :
+    monoListAuthOwn (GF := GF) γc 1 cums ⊢ monoListIdxOwn γc n L := by
+  iintro Hauth
+  ihave #Hlb := monoListLbOwn_get γc 1 cums $$ Hauth
+  have hn : cums[n]? = some L := by
+    rw [List.getLast?_eq_getElem?, hlen] at hlast
+    simpa using hlast
+  iapply monoListIdxOwn_get n L hn $$ Hlb
+
+/-- The loop, at the delivered log `L` after `n` payloads, appends the batch `ce` to `cum`: the
+`n`th payload's two elements. -/
+theorem cum_extend (γc : GName) (cums : List (List EntryModel)) (L ce : List EntryModel)
+    (n : Nat) (hlen : cums.length = n + 1) (hlast : cums.getLast? = some L) :
+    ⊢ monoListAuthOwn (GF := GF) γc 1 cums ==∗
+      monoListAuthOwn γc 1 (cums ++ [L ++ ce]) ∗ monoListIdxOwn γc n L ∗
+      monoListIdxOwn γc (n + 1) (L ++ ce) := by
+  iintro Hauth
+  imod monoListAuthOwn_update_app [L ++ ce] $$ Hauth with ⟨Hauth, #Hlb⟩
+  have hn : (cums ++ [L ++ ce])[n]? = some L := by
+    rw [List.getElem?_append_left (by omega)]
+    rw [List.getLast?_eq_getElem?] at hlast
+    rw [hlen] at hlast
+    simpa using hlast
+  have hn1 : (cums ++ [L ++ ce])[n + 1]? = some (L ++ ce) := by
+    rw [List.getElem?_append_right (by omega)]
+    simp [hlen]
+  ihave #H1 := monoListIdxOwn_get n L hn $$ Hlb
+  ihave #H2 := monoListIdxOwn_get (n + 1) (L ++ ce) hn1 $$ Hlb
+  imodintro
+  iframe Hauth H1 H2
+
+/-- (2026-10-31, #3) `cum` extended with any log (a snapshot `Ready`'s `A'`, which need not
+extend the last as a list of the server's entries). -/
+theorem cum_push (γc : GName) (cums : List (List EntryModel)) (L A : List EntryModel)
+    (n : Nat) (hlen : cums.length = n + 1) (hlast : cums.getLast? = some L) :
+    ⊢ monoListAuthOwn (GF := GF) γc 1 cums ==∗
+      monoListAuthOwn γc 1 (cums ++ [A]) ∗ monoListIdxOwn γc n L ∗ monoListIdxOwn γc (n + 1) A := by
+  iintro Hauth
+  imod monoListAuthOwn_update_app [A] $$ Hauth with ⟨Hauth, #Hlb⟩
+  have hn : (cums ++ [A])[n]? = some L := by
+    rw [List.getElem?_append_left (by omega)]
+    rw [List.getLast?_eq_getElem?] at hlast
+    rw [hlen] at hlast
+    simpa using hlast
+  have hn1 : (cums ++ [A])[n + 1]? = some A := by
+    rw [List.getElem?_append_right (by omega)]
+    simp [hlen]
+  ihave #H1 := monoListIdxOwn_get n L hn $$ Hlb
+  ihave #H2 := monoListIdxOwn_get (n + 1) A hn1 $$ Hlb
+  imodintro
+  iframe Hauth H1 H2
+
+/-- **The apply side's receive** of the payload at its position: the batch extends exactly the
+log `A` it got so far, and its token moves to `A ++ ce`; its term is good for that log
+(`rnRtOk`; 2026-10-31, S1: for `applyAll`'s merge; 2026-11-01, J8a: for a snapshot too, with the
+member's `nodeSnapLocal` of the snapshot's index).
+(R2d'a swap batch 2, 2026-11-06: until then without the snapshot's last conjunct, `rnApSnap`'s
+A8 bound, which `rnApplyTok_recvR` passed through: a snapshot above the restart point.) -/
+theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
+    (ap : toApply) :
+    ⊢ sspscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
+      rnApP E γ (rcv.length : Int) ap -∗
+      (∃ (ce : List EntryModel) (ceL : List Loc),
+        rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
+        ⌜ap.snapshot' = null⌝ ∗
+        (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ A ce) ∗ notifyRcv γnc) ∗
+        rnApGive γ A ce ∗
+        rnAdvChan ap.raftAdvancedC'
+          (letI := srvStor (GF := GF) γ.node
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗
+            srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
+            srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce) ∗
+            rnWalHanded γ (γ.pre ++ A ++ ce).length)) ∗
+        committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
+      -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
+      (∃ (A' : List EntryModel) (sv : SnapshotM),
+        rnApplyTok γ A' ∗
+        ⌜A.length < A'.length ∧ (γ.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧
+          uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧
+          (γ.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' ∧
+          -- (R2d'a task 4) above the restart point (`rnApSnap`'s, A8's bound)
+          (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)⌝ ∗
+        ap.entries' ↦*□ ([] : List Loc) ∗ ownSnapM ap.snapshot' DFrac.discard sv ∗
+        (letI := srvStor (GF := GF) γ.node
+         snapshotCert γ.node.cl srvClusterN (snapTrip sv sv.Metadata'.ConfState'.lists)) ∗
+        nodeSnapLocal γ.node.cl γ.id sv.Metadata'.Index' ∗
+        □ E.C A' ∗ (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc'
+          (walBaseLb γ.wal.loc (uint.nat sv.Metadata'.Index')) iprop(True) ∗ notifyRcvN γnc 0) ∗
+        rnAdvChan ap.raftAdvancedC'
+          (letI := srvStor (GF := GF) γ.node
+           iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
+            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length ∗
+            rnWalHanded γ (γ.pre ++ A').length)) ∗
+        committedAtLeast E.γr sv.Metadata'.Index' ∗
+        -- (2026-11-01, J8a) its term good for the jumped log (`applyAll`'s merge after the jump)
+        rnRtOk γ ap.raftTerm' (rnLogOf γ A').length) := by
+  iintro Hcons #HA HP
+  iunfold rnApP at HP
+  icases HP with (HP | HP)
+  rotate_left
+  · -- a snapshot payload: `cum`'s agreement at `rcv.length` (`A` is `F`), the token at `A'`
+    iright
+    iunfold rnApSnap at HP
+    icases HP with ⟨%F, %A', %sv, #HF, #HFA, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hn, #Hrac, #Hcl, #Hrt⟩
+    simp only [Int.toNat_natCast] at *
+    ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
+    subst Heq
+    iexists A', sv
+    iframe Hes Hsn Hcert Hloc HC Hn Hrac Hcl Hrt
+    isplitl [Hcons]
+    · iunfold rnApplyTok
+      iexists rcv ++ [ap]
+      iframe Hcons
+      simp only [List.length_append, List.length_singleton]
+      iexact HFA
+    ipureintro; exact Hlen
+  ileft
+  iunfold rnApN at HP
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, #Hrt⟩
+  simp only [Int.toNat_natCast] at *
+  ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
+  subst Heq
+  iexists ce, ceL
+  iframe Hsl Hents HC Hn HG Hrac Hcl Hrt
+  isplitl [Hcons]
+  · iunfold rnApplyTok
+    iexists rcv ++ [ap]
+    iframe Hcons
+    simp only [List.length_append, List.length_singleton]
+    iexact HFce
+  ipureintro; exact Hsnap
+
+/-- (D43 M3; R2d'a A6, 2026-11-06: over any log, at `pre = []`) A normal entry keeps a view. -/
+theorem srvCfgView_nil_normal1 (γs : ServerRaftNames) (n : Loc) (X : List EntryModel)
+    (m : EntryModel) (hm : m.typ = W32 0) :
+    srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ [m]) := by
+  unfold srvCfgView
+  iintro ⟨%v, Hc, %Hok⟩
+  iexists v
+  iframe Hc
+  ipureintro
+  rw [List.nil_append] at Hok ⊢
+  refine srvCfgOk_snoc_noConf Hok _ ?_
+  unfold LogEntry.isConfChange
+  simp only [EntryModel.toLE, hm]
+  intro h
+  rcases h with h | h <;> simp at h
+
+/-- (D43 M3; R2d'a A6) Normal entries keep a view over any log. -/
+theorem srvCfgView_nil_normal (γs : ServerRaftNames) (n : Loc) (d : List EntryModel)
+    (h : ∀ m, m ∈ d → m.typ = W32 0) :
+    ∀ X, srvCfgView (GF := GF) γs n [] X ⊢ srvCfgView γs n [] (X ++ d) := by
+  induction d with
+  | nil => intro X; rw [List.append_nil]
+  | cons m d IH =>
+    intro X
+    refine (srvCfgView_nil_normal1 γs n X m (h m List.mem_cons_self)).trans ?_
+    rw [show X ++ m :: d = (X ++ [m]) ++ d by simp]
+    exact IH (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) _
+
+/-- (R2d'a A6, 2026-11-06; the deleted ViewR.lean's `ghostOf_batch`) **The ghost log after a batch extends the one
+before by a suffix of the batch**, when the log through the batch and the backend's are
+prefix-comparable (two committed logs). -/
+theorem ghost_batch (A₀ G ce : List EntryModel) (hc : G ++ ce <+: A₀ ∨ A₀ <+: G ++ ce) :
+    ∃ d, (G ++ ce) ++ A₀.drop (G ++ ce).length = (G ++ A₀.drop G.length) ++ d ∧
+      ∀ m, m ∈ d → m ∈ ce := by
+  rcases hc with hin | hpast
+  · refine ⟨[], ?_, fun _ h => absurd h (by simp)⟩
+    rw [List.append_nil, List.prefix_iff_eq_append.1 hin,
+      List.prefix_iff_eq_append.1 ((List.prefix_append G ce).trans hin)]
+  · have hl := hpast.length_le
+    rw [List.drop_eq_nil_of_le hl, List.append_nil]
+    by_cases hG : A₀.length ≤ G.length
+    · exact ⟨ce, by rw [List.drop_eq_nil_of_le hG, List.append_nil], fun _ h => h⟩
+    · have hGA : G <+: A₀ :=
+        List.prefix_of_prefix_length_le (List.prefix_append G ce) hpast (by omega)
+      rw [List.prefix_iff_eq_append.1 hGA]
+      obtain ⟨u, hu⟩ := hGA
+      obtain ⟨t, ht⟩ := hpast
+      have hut : u ++ t = ce := by
+        rw [← hu, List.append_assoc] at ht; exact List.append_cancel_left ht
+      refine ⟨t, ht.symm, fun m hm => ?_⟩
+      rw [← hut]; exact List.mem_append_right _ hm
+
+/-- (R2d'a A6, 2026-11-06) The restart data is part of the view. -/
+theorem rnCfgAt_restart (γ : RNNames) (L : List EntryModel) :
+    rnCfgAt (GF := GF) γ L ⊢ rnView γ L ∗ rnRestartOk γ := by
+  unfold rnCfgAt; exact .rfl
+
+/-- (D43 M3; R2d'a A6, 2026-11-06: over the ghost log, given the batch committed, `srvRLogLb` at
+the environment's names `γs`, `rnEnvOk`'s) **A batch of normal entries keeps the view**: at a first
+start the ghost log is the handed one; at a restart (`pre = []`) the batch's log and the backend's
+are prefix-comparable (`srvRLogLb_prefix`) and the ghost log grows by a suffix of the batch
+(`ghost_batch`). -/
+theorem rnCfgAt_normal (γ : RNNames) (γs : ServerRaftNames) (L ce : List EntryModel)
+    (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
+    (h : ∀ m, m ∈ ce → m.typ = W32 0) :
+    srvRLogLb γs (L ++ ce) ∗ rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
+  unfold rnCfgAt rnRestartOk
+  iintro ⟨#Hlb, Hv, #Hr⟩
+  iframe Hr
+  icases Hr with (%Ha | ⟨%Hp, #HA, -⟩)
+  · unfold rnView rnGhost
+    rw [Ha.1]
+    simp only [List.drop_nil, List.append_nil]
+    rw [← List.append_assoc]
+    iapply srvCfgView_nil_normal γ.srv γ.nl ce h $$ Hv
+  · have hγs : γs = γ.srv := by
+      obtain ⟨h1, h2, h3⟩ := hnm
+      rw [Hp] at h2 h3
+      simp only [List.length_nil] at h3
+      have h0 : γs.ai0 = W64 0 := by word
+      cases γs; simp only at h1 h2 h0; subst h1 h2 h0
+      unfold RNNames.srv; rw [Hp]
+    ihave %Hc := srvRLogLb_prefix γ.srv γ.a0 (L ++ ce) $$ [HA Hlb]
+    · iframe HA; rw [← hγs]; iexact Hlb
+    have hc : γ.pre ++ L ++ ce <+: γ.a0 ∨ γ.a0 <+: γ.pre ++ L ++ ce := by
+      rw [Hp, List.nil_append]; exact Hc.symm
+    obtain ⟨d, hd, hdm⟩ := ghost_batch γ.a0 (γ.pre ++ L) ce hc
+    unfold rnView rnGhost
+    rw [← List.append_assoc, hd]
+    iapply srvCfgView_nil_normal γ.srv γ.nl d (fun m hm => h m (hdm m hm)) $$ Hv
+
+/-- (D43 M3) A batch with no `ConfChange` entry (Go's scan) of the server's committed log
+(`srvIdxOkW`: normal entries and `ConfChange`s) is all normal entries. -/
+theorem ccIn_false_normal (ai₀ : w64) (L ce : List EntryModel) (hidx : srvIdxOkW ai₀ (L ++ ce))
+    (hc : ccIn ce = false) : ∀ m, m ∈ ce → m.typ = W32 0 := by
+  intro m hm
+  obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+  have h1 := (hidx (L.length + n) m (by rw [List.getElem?_append_right (by omega)]; simpa using hn)).2
+  rcases h1 with h1 | ⟨h1, -⟩
+  · exact h1
+  · exfalso
+    unfold ccIn at hc
+    have := List.any_eq_false.1 hc m hm
+    simp [h1] at this
+
+/-- (D43 M3) **The view after a batch with no `ConfChange` entry**: the loop kept it (`rnHands`
+is false), and the batch, of the server's committed log, is normal entries. -/
+theorem rnCfgAt_back_false (γ : RNNames) (γs : ServerRaftNames) (ai₀ : w64) (L ce : List EntryModel)
+    (hnm : γs.raft = γ.node ∧ γs.pre = γ.pre ∧ uint.Z γs.ai0 = γ.pre.length)
+    (hidx : srvIdxOkW ai₀ (L ++ ce)) (hcc : ccIn ce = false) :
+    srvRLogLb γs (L ++ ce) ∗ (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ⊢
+      rnCfgAt γ (L ++ ce) := by
+  have hh : rnHands γ ce = false := by unfold rnHands; simp [hcc]
+  rw [ite_eq_right (by rw [hh]; decide)]
+  exact rnCfgAt_normal γ γs L ce hnm (ccIn_false_normal ai₀ L ce hidx hcc)
+
+/-- (D43 M3) **The view after a batch with a `ConfChange` entry**: the second `notifyc` send's
+(`rnApR`; 2026-10-30, the repair: one mode, until then in the static mode the one the loop kept). -/
+theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce = true) :
+    rnRestartOk γ ∗ (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
+      rnCfgAt γ (L ++ ce) := by
+  have hh : rnHands γ ce = true := hcc
+  unfold rnApR rnCfgAt
+  rw [ite_eq_left hh, ite_eq_left hh]
+  iintro ⟨#Hr, -, H⟩
+  iframe H Hr
+
+/-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
+(`rnHands`). -/
+def rnDv (γ : RNNames) (ce : List EntryModel) : Option Loc :=
+  if rnHands γ ce then some γ.nl else none
+
+/-- (D43 M3) The server's node meets the conf-change contract: the wrapper's node contract's
+(`isRaftNodeIfc`). (2026-10-30, the repair: in every cluster; until then `srvRaftNodeDyn`, in the
+dynamic mode.) -/
+theorem srvRaftNodeCC_of_isRaftNode (E : RNEnv GF) (γ : RNNames) (s : Loc) :
+    isRaftNode E γ (srvRAddr s) ⊢ srvRaftNodeCC s γ.srv γ.nl := by
+  iintro #H
+  iunfold isRaftNode at H
+  iNamed H
+  iunfold isRaftNodeIfc at Hni
+  icases Hni with ⟨%ni, %Hn, #Hcc, -⟩
+  iunfold srvRaftNodeCC
+  iexists n
+  iframe Hn Hcc
+
+end lemmas
+
+end EtcdGrove
+end Perennial

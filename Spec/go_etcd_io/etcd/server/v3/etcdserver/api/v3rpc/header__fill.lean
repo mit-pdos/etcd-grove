@@ -1,45 +1,41 @@
 /-
-`v3rpc.header.fill` (`server/etcdserver/api/v3rpc/`).
-
-Users: every handler of this package (`hdr.fill(resp.Header)`), `headerFillingRangeStream.Send`, the maintenance snapshots.
-
-Proof sketch: the getters of the server (2d: `Term`, `Leader`; 3e: `KV().Rev()`, `KV()` through `isServer_kv`'s `s.kv ↦□ w` and `EtcdServer.KV.spec` at it), field writes; a `nil` header panics (excluded: `respHeaderOwn` is of a non-nil pointer).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/header__fill.lean`: over W0's `respHeaderOwn`.
-verify-round relay (server-core's RR request 3): `KV()` through `isServer_kv` (2c's `KV.spec` now takes the points-to).
-
-Margin: the ids, term and leader are not modelled (W0's replies relate only the revision).
+`v3rpc.header.fill` (`header.go`). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvKV.lean` and `Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `h.fill(rh)` on an owned header: the ids, term and leader filled, the revision kept unless it is `0` (then the store's current one). -/
-def header.fill.spec : Prop :=
-  ∀ (hp : Loc) (h : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header) (s : Loc) (γ : Cluster) (rh : Loc) (m : HeaderM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ hp ↦□ h ∗ headerAt h s γ ∗ respHeaderOwn rh (DFrac.own 1) m }}
-    (App (Val (hp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header.ty @!! go!"fill")) (Val #rh))
-  {{ RET #(); ∃ m', respHeaderOwn rh (DFrac.own 1) m' ∗
-      ⌜m.revision ≠ W64 0 → m'.revision = m.revision⌝ }}
+/-- **`h.fill(rh)`**: `fillWithoutRevision(rh)`, and `rh`'s revision set to the KV's (`rev()`)
+if it was `0` (`hdrRevIn`/`hdrRevOut`). -/
+abbrev v3rpc.header.fill.spec : Prop :=
+  ∀ (hp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (rh : Loc) (r : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.hdrIs hp s A cid mid ∗ v3rpc.hdrW rh ∗ v3rpc.hdrRevIn A.revR rh r }}
+    (App (Val (hp @!! go.GoType.PointerType v3rpc.header.ty @!! go!"fill")) (Val #rh))
+  {{ RET #(); v3rpc.hdrFilled rh cid mid ∗ ∃ r' : w64, v3rpc.hdrRevOut A.revR rh r r' }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

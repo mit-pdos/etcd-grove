@@ -1,13 +1,9 @@
 /-
-`demux.WaitForNextResync` (`cache/*.go`), an internal helper.
-Users: `Cache.WaitForNextResync`.
-Proof sketch: `notifier.wait.spec` on `d.resynced`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`demux.WaitForNextResync(ctx)` (`cache/demux.go`). Lean-first (no Rocq counterpart); see `InvDemux.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,16 +21,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `d.WaitForNextResync(ctx)`. -/
-def demux.WaitForNextResync.spec : Prop :=
-  ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ Context.ctxOk ctx ∗ threadTok }}
-    (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"WaitForNextResync")) (Val #ctx))
-  {{ (err : GoInterface), RET #err; threadTok ∗
-      ⌜err = GoInterface.nil⌝ ∨ (Context.ctxDone ctx ∗ context.isCtxErr err) }}
+/-- `d.WaitForNextResync(ctx)` (`d.resynced.wait(ctx)`), with a handle on the demux's notifier and
+a lower bound `k0` on its notifications: `nil` once a resync loop iteration completed after the
+`k0`-th (`notifierLb γn (k0 + 1)`), or a non-nil error once the context is done
+(`notifierWaitResult`). -/
+abbrev demux.WaitForNextResync.spec : Prop :=
+  ∀ (d : Loc) (γn : NotifierNames) (k0 : Nat) (ctx : GoInterfaceOk)
+    (s : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      demuxResyncHandle d γn ∗ notifierLb γn k0 ∗ context.isContext ctx s }}
+    (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"WaitForNextResync"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; demuxResyncHandle d γn ∗ notifierWaitResult γn k0 s err }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

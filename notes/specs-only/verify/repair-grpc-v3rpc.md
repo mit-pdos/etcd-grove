@@ -1,8 +1,8 @@
 # Repair: group `grpc-v3rpc` (2026-11-09)
 
-Owned: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, `Spec/go_etcd_io/etcd/api/v3/
-{etcdserverpb,v3rpc,version}/`, `v3lock/v3lockpb`, `v3election/v3electionpb`, `Spec/google_golang_org/`,
-`Spec/net/http`, `Spec/sort`; snippets `examples/specreq/{v3rpc,v3rpcwatch,etcdserverpb,grpc}`.
+Owned: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, `SpecPlan/Spec/go_etcd_io/etcd/api/v3/
+{etcdserverpb,v3rpc,version}/`, `v3lock/v3lockpb`, `v3election/v3electionpb`, `SpecPlan/Spec/google_golang_org/`,
+`SpecPlan/Spec/net/http`, `SpecPlan/Spec/sort`; snippets `examples/specreq/{v3rpc,v3rpcwatch,etcdserverpb,grpc}`.
 Reports: `A6-grpc-boundary-provability.md` (P-), `A6-grpc-boundary-completeness.md` (C-),
 `A2-client-watch-lease-completeness.md` F2; coordinator-routed requests (raft-conf-pb, mvcc,
 client-watch).
@@ -16,7 +16,7 @@ The reviewer's counterexample holds, and there is a deeper one independent of `d
 non-`nil` empty one (`endOf`). `proto.Equal` of a `RangeRequest` with `RangeEnd: nil` and one with
 `RangeEnd: []byte{}` is `true` (both fields unpopulated), so `Equal.spec` gave the two contents
 equal, `holds_fun` the two models equal, and `rangeReqOwn_unfold` `[] = [0]`: `False` from a
-terminating program, with no `decodedAt` at all. Fix (`Spec/google_golang_org/protobuf/proto/`):
+terminating program, with no `decodedAt` at all. Fix (`SpecPlan/Spec/google_golang_org/protobuf/proto/`):
 
 - `Content` holds Go values (no longer up to `Equal`); new opaque `norm c` (the wire view: every
   proto3-unset field at its zero Go value), `norm_facts`, `encodes_norm`, `encodes_fun` up to `norm`,
@@ -25,7 +25,7 @@ terminating program, with no `decodedAt` at all. Fix (`Spec/google_golang_org/pr
   `decOk_call`, `srvRecv_recv`, `cliRecv_recv`).
 - `Equal.spec`: `b = true → norm c = norm d`, converse under `noFloats t` (second-tier NaN fixed).
 - `Clone.spec`: the copy holds `norm c` (protobuf-go's merge skips empty proto3 fields).
-- grpc transports wire views (`Spec/google_golang_org/grpc/Api.lean`): `attemptOk_call`'s caller
+- grpc transports wire views (`SpecPlan/Spec/google_golang_org/grpc/Api.lean`): `attemptOk_call`'s caller
   hands `S md (norm c) Φ`, `unaryOut` gives `Φ (.ok (norm c))`, `cliSend_send`/`srvSend_send` take
   `S.up/dn … (norm c)`.
 - 3h (`etcdserverpb/Api.lean`): pure opaque `endsOk c` (every range end `nil` or non-empty),
@@ -309,11 +309,11 @@ the model does not distinguish a `nil` field from an empty one), and `encodes_fu
 
 ## Build
 
-`etc/specs-build.sh --dir` OK on every owned directory: `Spec/google_golang_org/{protobuf/proto,
+`etc/specs-build.sh --dir` OK on every owned directory: `SpecPlan/Spec/google_golang_org/{protobuf/proto,
 grpc, grpc/metadata, grpc/status, grpc/health, grpc/health/grpc_health_v1, grpc/credentials,
-grpc/credentials/insecure, grpc/peer, grpc/grpclog}`, `Spec/go_etcd_io/etcd/api/v3/{etcdserverpb,
+grpc/credentials/insecure, grpc/peer, grpc/grpclog}`, `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{etcdserverpb,
 v3rpc/rpctypes, version}`, `.../api/v3lock/v3lockpb`, `.../api/v3election/v3electionpb`,
-`.../api/v3rpc` (115), `Spec/net/http`, `Spec/sort`; and the importers checked: 2c's
+`.../api/v3rpc` (115), `SpecPlan/Spec/net/http`, `SpecPlan/Spec/sort`; and the importers checked: 2c's
 `EtcdServer__{Range,Txn,RangeStream}`, `api/v3election`, `api/v3lock`. Snippets: `go vet
 ./specreq/{v3rpc,v3rpcwatch,grpc,etcdserverpb}/` clean (new `grpc/dialopts.go`).
 

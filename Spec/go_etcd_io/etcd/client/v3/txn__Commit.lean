@@ -1,29 +1,9 @@
 /-
-`(*clientv3.txn).Commit` (`client/v3/txn.go`).
-
-Users: `client/v3/concurrency` (`mutex.go:83` `tryAcquire`, `election.go:69` `Campaign`, `stm.go:203`
-`commit`), `experimental/recipes` (`key.go:91` `putNewKV`, `queue.go`), leasing (`leasing/txn.go`),
-Kubernetes' store (`etcd3/store.go` `Create`/`GuaranteedUpdate`/`Delete`: `If(ModRevision(key) =
-rv).Then(OpPut(...)).Else(OpGet(key))`) and compactor (`etcd3/compact.go`: `If(Version(key) =
-t).Then(OpPut(key, "")).Else(OpGet(key))`), the examples (`txnlin/linkvtxn.go:935` `callTxn`).
-Snippets: `clientv3kv/txn.go`.
-
-Proof sketch: locks; allocates `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}`
-(`txnReqOwn_unfold`, the slices' messages owned by the `txn` at a fraction), then
-`RemoteKV.TxnTriple` of `t.kv.remote` with `t.callOpts` (the client's, not repeatable) and the
-caller's update (`□?` as given); `ContextError.spec` on the error; unlocks, the `txnAt` back.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/txn__Commit.lean`: restated over `txnAt` and the model's requests; any transaction (with leases, `IgnoreLease`, nested, read-only: a read-only one takes a persistent update, as the server answers it from the read index or, serializable, from a member's view: `issues/etcd-txn-empty-serializable.md` in the model).
-
-verify-round: the `TxnRequest` and its `RequestOp`s are built at `own 1` and persisted to the one fraction `txnReqOwn r DFrac.discard t` takes by `protoRest_persist` (A1-provability F6); `Txn.CommitTriple` takes the state predicate as a parameter (`txnAt_intro`, A1-completeness F2).
-
-Margin: on success the code also guarantees the reply's header names the member that
-answered (`MemberId`, `RaftTerm`), not modelled; on an indefinite error the code may still have
-applied the put (the update fires later or not at all), which is all the spec says.
+`(*clientv3.txn).Commit()` (`client/v3/kv.go`, translated for the vertical slice's unit V2). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.KVService
 
 @[expose] public section
 
@@ -31,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -43,14 +21,53 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `t.Commit` of a `*txn` (`kv.Txn`'s) meets the `Txn` contract's `Commit` (`Txn.CommitTriple`). -/
-def txn.Commit.spec : Prop :=
-  ∀ (t : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface),
-  Txn.CommitTriple (GF := GF) (t @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit")
-    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #t) γ who ctx
+/-- `t.Commit()` on a builder at `b` made from a `*kv` of etcd's KV `γ` (`txnKvIs`, `isKv`, D44): the
+request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the transaction
+`txnWireOf b.model` on the wire, of plain operations within the txn package's model) through the
+`*kv`'s retry client's `Txn`, with the client's call options, with the caller's update of `γ`'s
+state: none or a persistent atomic read if read-only; if writing (plain in the KV model, no range
+end `[0]`), an atomic update by the transaction (`kvOpStep`); persistent
+if the client's writes may be delivered more than once (`□?dup`): `nil` and the reply's message
+`m` with the state `σ` the update fired at (`Q σ` if writing, `□ Q σ` if a linearizable read), the
+reply's verdict, responses and revision as the run's at `σ`, `σ` a well-formed small log's state
+(`kvLogOk`, D48), and so the state after a writing transaction's changes; or a client error (`kvErr`, through
+`ContextError`) and no reply. The builder is spent (its slices are now the
+request's). The request fits a gRPC message (`txnSizeOk`; 2026-10-30, `grpcInvokerOk`).
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
+abbrev txn.Commit.spec : Prop :=
+  ∀ (txn_ptr : Loc) (addr : List GoString) (kv : Loc) (γ : KVNames) (dup : Bool)
+    (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (b : TxnBuild)
+    (Q : KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      txnObjAt txn_ptr addr ctx ctx_desc b ∗ txnKvIs txn_ptr kv ∗ isKv kv γ dup ∗
+      ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗
+      □?dup (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
+        (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
+          □ AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+            <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
+        (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model)⌝ ∗
+          AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+            <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) ∗
+      ⌜txnSizeOk (txnWireOf b.model)⌝ }}
+    (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
+      (Val #()))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
+        (if txn.txnReadonly (txnWireOf b.model) then
+          (if txn.txnSerializable (txnWireOf b.model) then iprop(True) else iprop(□ Q σ)) else Q σ) ∗
+        ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).1 ∧
+          opRespsRel false ((txnWireOf b.model).branch m.succeeded) (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.2 m.resps ∧
+          m.hdr.revision = W64 ((if txn.txnReadonly (txnWireOf b.model) then σ.rev else
+            (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1).rev : Nat) : Int) ∧
+          kvRevFits σ.rev ∧ kvLogOk σ ∧
+          (txn.txnReadonly (txnWireOf b.model) = false →
+            kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1))⌝ ∗
+        -- (U1 of `notes/k8s-compactor-plan.md`, 2026-11-04, the user's approval) a writing
+        -- transaction's reply's revision reached (`kvRevLb`, as `kv.Put.spec`'s)
+        client.txnRevLb γ (txnWireOf b.model) m) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

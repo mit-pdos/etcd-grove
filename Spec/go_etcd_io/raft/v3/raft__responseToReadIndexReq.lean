@@ -1,20 +1,30 @@
-/-
-## `raft.responseToReadIndexReq(req, readIndex)` (internal)
+/- Lean-first (no Rocq counterpart; 2026-10-12, read-index).
 
-**Users.** `stepLeader`'s heartbeat-response arm (`raft.go:1622`), `sendMsgReadIndexResponse`
-(`:2154`, `:2167`). **Proof sketch.** A local request (from no one or the node: one entry, its
-context): a read state `(context, index)` queued (`readStates`; its `readState γ c i` from
-`readConfirmed`, handed out in a `Ready`), and an empty message back (`To = 0`, which the callers do
-not send). A forwarded one: a `MsgReadIndexResp` to the sender at the index, with the request's
-entries (its `msgJust`: the read confirmed at `i`). **Changes** (from `specs-ref`'s
-`raft__responseToReadIndexReq.lean`): over the opened struct and `readConfirmed`. **Margin.** The
-view and log are unchanged.
+## `raft.responseToReadIndexReq(req, readIndex)` (raft.go:2062)
+
+    if req.From == None || req.From == r.id {
+        r.readStates = append(r.readStates, ReadState{Index: readIndex,
+            RequestCtx: req.Entries[0].Data})
+        return pb.Message{}
+    }
+    return pb.Message{Type: pb.MsgReadIndexResp, To: req.From, Index: readIndex,
+        Entries: req.Entries}
+
+A local request (no sender, or the node's own) becomes a `ReadState`, its context the
+request's first entry's data; a forwarded one becomes the response to send back. The
+request has at least one entry (`req.Entries[0]` faults otherwise), read-only.
+
+raft v3.7 (2026-10-15, stage R4): `req` is a `*pb.Message`, frozen (`msgOwn req □`: it is the
+read-only queue's or the pending slice's, or `stepLeader`'s frozen `MsgReadIndex`), read through
+its getters; the result is a fresh `*pb.Message`, owned (`msgOwn resp 1`): the empty
+`&pb.Message{}` for a local request, else the response, whose `To` cell and `Entries` slice are
+the request's (shared, read-only), so it holds the request's entries. (D6) The `ReadState`'s
+context is the bytes of the request's first entry (`ReadStateM`; `r.readStates` holds the Go
+structs with their `RequestCtx` slices read-only, `readStatesPts`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -22,30 +32,51 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section results
+variable [GooseExts]
+
+/-- The response to a forwarded read-index request (stage R4: its scalars; the entries, the
+request's, are the message state's, `MsgSt.ents`). -/
+def readIndexRespMsg (req : MessageM) (idx : w64) : MessageM :=
+  { (zero_val MessageM) with
+      Type' := W32 16
+      To' := req.From'
+      Index' := idx }
+
+/-- A local request's `ReadState`, appended. -/
+def addReadState (s : NState) (idx : w64) (ctx : List w8) : NState :=
+  { s with rd := { s.rd with states := s.rd.states ++ [ReadStateM.mk idx ctx] } }
+
+end results
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Answers a confirmed read: a local read state, or a response to its sender. -/
-def raft.responseToReadIndexReq.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (rq : Loc) (dq : DFrac) (m : Msg) (i : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ coreInv r γ id o ∗ msgPts rq dq m ∗ readConfirmed γ m i ∗
-      ⌜(m.src = W64 0 ∨ m.src = id) → m.entries ≠ []⌝ }}
-    (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"responseToReadIndexReq")) (Val #rq)) (Val #i))
-  {{ (p : Loc), RET #p; ∃ o' rm, raftOpen r γ id o' ∗ coreInv r γ id o' ∗ ⌜o'.view = o.view⌝ ∗
-      msgPts rq dq m ∗ msgPts p (DFrac.own 1) rm ∗
-      (⌜(m.src = W64 0 ∨ m.src = id) ∧ rm.to = W64 0⌝ ∨
-       (⌜rm.type = MsgReadIndexResp ∧ rm.to = m.src ∧ rm.index = i ∧ rm.entries = m.entries⌝ ∗
-        msgJust r γ id rm)) }}
+/-- See the file header. -/
+abbrev raft.responseToReadIndexReq.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (req : Loc) (m : MessageM) (idx : w64)
+    (e : EntryM) (es : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hreq" ∷ msgOwn req DFrac.discard ⟨m, e :: es, sn, ctx, rs⟩ }}
+    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"responseToReadIndexReq"))
+      (Val #req)) (Val #idx))
+  {{ (resp : Loc), RET #resp;
+      if m.From' = W64 0 ∨ m.From' = id then
+        ownRaftPhysCV c c.voters r id (addReadState s idx e.Data') ∗
+          msgOwn resp (DFrac.own 1) ⟨zero_val MessageM, [], none, [], []⟩
+      else
+        ownRaftPhysCV c c.voters r id s ∗
+          msgOwn resp (DFrac.own 1) ⟨readIndexRespMsg m idx, e :: es, none, [], []⟩ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

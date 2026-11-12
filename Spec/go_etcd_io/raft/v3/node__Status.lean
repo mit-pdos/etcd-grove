@@ -1,21 +1,13 @@
-/-
-## `node.Status()`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's `EtcdServer.getStatus`/`raftStatus` (`server.go:2471`, the expvar), the examples'
-leader transfer (`kvdurable/reconf.go:114`: `Status().Lead`). Snippet: `readyloop.go` (`ReqDisrupt`).
+## `node.Status()` (node.go:575)
 
-**Proof sketch.** A fresh channel sent on `status`; the run goroutine answers `getStatus(r)` (fresh
-copies of the configuration and the progress map: R2's `getStatus` spec, R4's `Config.Clone`). Or
-`done`: the zero `Status`.
-
-**Changes.** Unchanged. **Margin.** The leader, term and progress are a snapshot of a moving state;
-nothing is said of them.
+The node API's spec (2026-10-29, stage U7): the caller gets a `Status` value whose memory is its own
+(`statusOwn`). The proof's raw triple, `node.Status.specRaw`, is over `isNodeChan`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -23,28 +15,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **The node's status**: its own memory; the id is the node's (zero if it stopped). -/
-def node.Status.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id }}
-    (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Status")) (Val #()))
-  {{ (s : go_etcd_io.raft.v3.Status), RET #s; statusOwn s ∗
-      ⌜s.BasicStatus'.ID' = id ∨ s.BasicStatus'.ID' = W64 0⌝ }}
+/-- **`node.Status()`**, from any goroutine: the node's status, a copy (`run` answers on a fresh
+channel with `getStatus`), or `Status{}` once the node stopped; its memory the caller's
+(`statusOwn`). Nothing is promised of the values. -/
+abbrev node.Status.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Status")) (Val #()))
+  {{ (st : Status), RET #st; statusOwn st }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

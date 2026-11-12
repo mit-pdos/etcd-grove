@@ -1,14 +1,16 @@
-/-
-## `raft.committedEntryInCurrentTerm` (internal)
+/- Lean-first (no Rocq counterpart; 2026-10-12, read-index).
 
-`stepLeader`, `releasePendingReadIndexMessages`. Mirrors the code (R3's `term`, `zeroTermOnOutOfBounds`; the commit index is at or above the compaction floor, so its term is answered). **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
-`raft__committedEntryInCurrentTerm.lean`, over `NState`); round 1: the result is stated over the state.
+## `raft.committedEntryInCurrentTerm()` (raft.go:2054)
+
+    return r.raftLog.zeroTermOnOutOfBounds(r.raftLog.term(r.raftLog.committed)) == r.Term
+
+Whether the entry at the commit index is of the node's term. The commit index is always
+within the log (`ownRaftLog`), so `term` answers it; with a nonzero term (a leader's, the
+only caller's) the out-of-bounds `0` would not compare equal anyway.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +18,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether the commit index's entry is of the term. -/
-def raft.committedEntryInCurrentTerm.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"committedEntryInCurrentTerm")) (Val #()))
-  {{ (b : Bool), RET #b; raftOpen r γ id o ∗ ⌜b = true ↔ o.log.termOf o.log.committed = some o.view.hs.term⌝ }}
+/-- See the file header. -/
+abbrev raft.committedEntryInCurrentTerm.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"committedEntryInCurrentTerm"))
+      (Val #()))
+  {{ (b : Bool), RET #b;
+      ownRaftPhysCV c c.voters r id s ∗
+      ⌜b = true ↔ plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
+                    = some s.term⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

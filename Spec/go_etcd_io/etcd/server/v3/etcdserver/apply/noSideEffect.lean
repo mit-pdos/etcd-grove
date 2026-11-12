@@ -1,29 +1,23 @@
 /-
-`noSideEffect(r)` (`apply.go:51-53`): a range, a user or role read, the auth status.
-
-**Users.** `Apply`.
-
-**Proof sketch.** Field reads of the message (`irrMsgAt`).
-
-**Changes** from `specs-ref`'s file of the same name: over `Irr`.
-
-**Margin.** None.
+`apply.noSideEffect` (apply.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/InvUber.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +26,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **Whether the request has no side effect.** -/
-def noSideEffect.spec : Prop :=
-  ∀ (p : Loc) (ir : Irr),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ irrMsgAt p ir }}
+/-- **`noSideEffect(r)`**: whether `r` is a range, a user or role get or the auth status
+(`noSideEffect rq`). -/
+abbrev apply.noSideEffect.spec : Prop :=
+  ∀ (p : Loc) (rq : IRRModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.internalRaftRequestIs p rq }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.noSideEffect)) (Val #p))
-  {{ (b : Bool), RET #b; ⌜b = ir.op.noSideEffect⌝ }}
+  {{ (b : Bool), RET #b; ⌜b = apply.noSideEffect rq⌝ }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

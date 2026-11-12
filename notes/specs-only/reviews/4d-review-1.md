@@ -1,11 +1,11 @@
 # Batch 4d, review 1 (provability and completeness)
 
-Reviewer: independent of the author. Targets: `Spec/go_etcd_io/bbolt/internal/common/` (Api + 89
-specs), `Spec/go_etcd_io/bbolt/internal/freelist/` (Api + 19 specs), the snippets
+Reviewer: independent of the author. Targets: `SpecPlan/Spec/go_etcd_io/bbolt/internal/common/` (Api + 89
+specs), `SpecPlan/Spec/go_etcd_io/bbolt/internal/freelist/` (Api + 19 specs), the snippets
 `examples/specreq/bboltinternal/{common,freelist}.go`, and the `## from 4d` requests in `req/`. Go
 code: `.lake/src/bbolt/internal/{common,freelist}/` (upamanyus/bbolt@743299d8). Callers: bbolt's
 `db.go`, `tx.go`, `node.go`, `bucket.go`, `cursor.go`, `tx_check.go`, and batch 4c's
-`Spec/go_etcd_io/bbolt/` as of this review. Batch 4c is still being written and has no
+`SpecPlan/Spec/go_etcd_io/bbolt/` as of this review. Batch 4c is still being written and has no
 `req/go_etcd_io_bbolt_internal_*.md` yet.
 
 Line numbers are those of the pinned files. I checked the Go behaviour with two throwaway tests in
@@ -68,7 +68,7 @@ unreachable pages (`freepages`)". This is the argument the nonissue makes.
 `init.spec` (common `Api.lean`, last law) and `req/os.md` trust `os.Getpagesize()` only to lie in
 `[4096, 65536]`. Every 4c statement that depends on it fixes 4096:
 
-- `fileHolds` ("valid metas recording page size 4096", `Spec/go_etcd_io/bbolt/Api.lean:73`).
+- `fileHolds` ("valid metas recording page size 4096", `SpecPlan/Spec/go_etcd_io/bbolt/Api.lean:73`).
 - `DB__Info.lean:14` ("`PageSize` is `4096`").
 - `Tx__Size.lean:6` ("times `4096`").
 - `Open.lean:28` (D13, the default page size).
@@ -311,7 +311,7 @@ All are served by a spec unless noted.
 - **Out of scope:** `internal/surgeon`, `internal/guts_cli` and `cmd/bbolt`. They are tools and no
   etcd path reaches them.
 
-What 4c needs, from `Spec/go_etcd_io/bbolt/Api.lean`, `Internal.lean`, `Tx__commitFreelist.lean`
+What 4c needs, from `SpecPlan/Spec/go_etcd_io/bbolt/Api.lean`, `Internal.lean`, `Tx__commitFreelist.lean`
 and `Open.lean`:
 
 - `metaOf`, `pageItems` and the file decoders: present.

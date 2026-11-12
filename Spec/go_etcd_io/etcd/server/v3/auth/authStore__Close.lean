@@ -1,49 +1,41 @@
 /-
-## `(*authStore).Close()`
-
-**Users.** `EtcdServer.Cleanup` (`server.go:953`, 2e: `srvClosers`). Snippet:
-`examples/specreq/auth/boot.go` (`ReqCloseAfterStop`).
-
-**Proof sketch.** `enabledMu.Lock()`; auth on: the provider's `disable()` (the simple provider's keeper
-stopped and waited for, its tokens dropped); `nil`.
-
-**Changes.** The old spec (`authCloseOk`) needed the store's closer; nothing is needed: a later reader
-sees tokens refused (`ErrInvalidAuthToken`, allowed), a later writer's `AuthEnable` restarts the
-keeper.
-
-**Margin.** None.
+`authStore.Close` (`server/auth/store.go`): the server's `Cleanup` closes the auth store (R2b-3c
+part 2, 2026-11-04). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.Close()`**: `nil`. -/
-def authStore.Close.spec : Prop :=
-  ∀ (st : Loc) (γ : Cluster) (γa : AuthNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa }}
-    (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ }}
+/-- **`as.Close()`**, with the token provider's admin resource (`tpAdmin`, which `AuthDisable` also
+takes): under `enabledMu`, if auth is enabled, the token provider's `disable()`; it returns `nil`.
+The model's state is unchanged (the flag is only read). -/
+abbrev auth.authStore.Close.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      tpAdmin st M }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Close")) (Val #()))
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ tpAdmin st M }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

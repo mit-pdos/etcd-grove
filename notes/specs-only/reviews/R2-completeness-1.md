@@ -1,6 +1,6 @@
 # R2 (raft's core, raft.go): completeness review, round 1
 
-Reviewer: completeness, independent of the author. Read: `Spec/go_etcd_io/raft/v3/ApiCore.lean`, every
+Reviewer: completeness, independent of the author. Read: `SpecPlan/Spec/go_etcd_io/raft/v3/ApiCore.lean`, every
 R2 spec file (`newRaft`, `raft__*`, `step*`, `getStatus`, `getBasicStatus`, `getProgressCopy`,
 `RawNode__readyWithoutAccept`, `RawNode__acceptReady`, `need*/new*Storage*RespMsg`, the logger and
 trace specs), R1's specs and laws that call into R2 (`Api.lean`, `NewRawNode`, `RawNode__*`,

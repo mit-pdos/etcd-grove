@@ -1,15 +1,14 @@
 /-
-## `(*batchTxBuffered).Commit()` (`batch_tx.go:363-367`): translated
-
-**Users.** `backend.ForceCommit`, `backend.Snapshot`, the run loop (`backend.go:472`),
-`newBatchTxBuffered`. **Proof sketch.** `t.lock()` (`Pk`, a session), `commit(false)`
-(`batchTxBuffered.commit.spec`: the hooks, the client's commit step, then the caller's per-call
-step with the committed image), `t.Unlock()` (nothing to publish). **Changes.** As `ForceCommit`.
-**Margin.** As `ForceCommit`.
+`Commit` (the backend). `t.Commit()`: the batch transaction committed under the lock (the hook runs with the client's
+resource); the readers' view unchanged.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
+(2026-10-12: a write-back's budget token pays for the commit: a commit leaves the hook's
+puts in the write buffer, and the token budget bounds how many accumulate before a write-back.)
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -17,26 +16,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.Commit()`**: the batch committed, the caller's per-call step at it. -/
-def batchTxBuffered.Commit.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (X Y : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ X ∗ beReq γ Pk X Y }}
-    (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"Commit")) (Val #()))
-  {{ RET #(); beOpen γ q ∗ Y }}
+/-- `t.Commit()`: the batch transaction committed under the lock (the hook runs with the client's
+resource); the readers' view unchanged. -/
+abbrev backend.batchTxBuffered.Commit.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp) (X Y : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo ∗ wbTok γ ∗ X ∗ commitReq γ P Pk b X Y }}
+    (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Commit")) (Val #()))
+  {{ RET #(); bOpen γ qo ∗ Y }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

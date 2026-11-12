@@ -1,41 +1,38 @@
 /-
-## `schema.unsafeReadAuthRevision(...)` (internal)
-
-**Users.** The `authBatchTx`/`authReadTx` methods of the same name (for the auth store's revision reads (`auth/store.go`)).
-**Proof sketch.** `tx.UnsafeRange(Auth, authRevision, nil, 0)` (`txRd`), `BigEndian.Uint64` (`authRevWf`: eight bytes). **Changes.** From `specs-ref`'s `unsafeReadAuthRevision.lean` (where it had one: the read
-transaction's state): over the contract.
+`schema.unsafeReadAuthRevision(tx)` (`auth.go`): the big-endian value the `auth` bucket holds at
+`authRevision`, `0` if none (`revisionOf`; the value 8 bytes: `revWf`, else `BigEndian.Uint64`
+panics), read through the `UnsafeReader` `tx` over the snapshot `D` under the token `H`. The auth plan's S1 (2026-10-23; `notes/auth-plan.md`; the contracts: `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvAuthBackend.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvAuthBackend
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **The auth revision** (`0` if absent). -/
-def unsafeReadAuthRevision.spec : Prop :=
-  ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txRd tx S R ∗ R V ∗ ⌜S.has .auth authRevKey ∧ V .auth = some m ∧ authRevWf m⌝ }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthRevision)) (Val #tx))
-  {{ RET #(authRevOf m); R V }}
+/-- The reader `r` over the auth buckets `D` (its revision 8 bytes) under `H`: returns
+`revisionOf D`. -/
+abbrev schema.unsafeReadAuthRevision.spec : Prop :=
+  ∀ (r : GoInterfaceOk) (H : IProp GF) (D : schema.AuthData), schema.revWf D.auth →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.authReader r H D ∗ H }}
+    (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthRevision)) (Val #(GoInterface.ok r)))
+  {{ (x : w64), RET #x; H ∗ ⌜x = schema.revisionOf D⌝ }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

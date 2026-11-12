@@ -1,14 +1,11 @@
 /-
-`(*raftNode).ReadIndex(ctx, rctx)`: raft's `Node.ReadIndex`, promoted. **Users**: 2c's read loop
-(`read/read.go`, `readEnv`'s `rf.ReadIndex`). Snippet `raftnode.go` (`ReqReadIndex`).
-**Proof sketch**: R1's `node.ReadIndex.spec`. **Changes**: unchanged. **Margin**: R1's.
+`(*raftNode).ReadIndex(ctx, rctx)` (raft.go: `raft.Node`'s, promoted through the embedded
+`raftNodeConfig`). Lean-first (no Rocq counterpart); the request path's unit 4b (2026-10-13); see
+`InvRaftNode.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
 
@@ -16,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,20 +22,26 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-def raftNode.ReadIndex.spec : Prop :=
-  ∀ (r : Loc) (γ : Names) (id : w64) (n : Loc) (ctx : GoInterface) (rctx : GoSlice) (c : List w8)
-    (Q : List Raft.LogEntry → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isRaftNode r γ id n ∗ Context.ctxOk ctx ∗ ownSlice rctx c DFrac.discard ∗
-      Raft.readCtx γ.raft c Q }}
-    (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.raftNode.ty @!!
-      go!"ReadIndex")) (Val #ctx)) (Val #rctx))
-  {{ (err : GoInterface), RET #err; Raft.nodeErr n ctx err }}
+/-- `r.ReadIndex(ctx, rctx)`: the node's `ReadIndex` (the node contract `isRaftNodeIfc`): with
+the big-endian bytes of a request id read-only and a lower bound `n` of the committed index, an
+error the gRPC layer can take, and if `nil` the registration `E.RQ id n`. -/
+abbrev raftNode.ReadIndex.spec : Prop :=
+  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (id n : w64)
+    (Qr : List EntryModel → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
+      context.isContext ctx cd ∗ sl ↦*□ beBytes id ∗ committedAtLeast E.γr n ∗
+      srvReadAu E.γr.raft Qr ∗
+      -- (2026-10-16, stage R7b) the context's fresh token (2026-10-30, the repair: no read
+      -- credit, raft's `ReadIndex` takes none)
+      srvRdFresh E.γr.raft (beBytes id) }}
+    (App (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"ReadIndex"))
+      (Val #(GoInterface.ok ctx))) (Val #sl))
+  {{ (err : GoInterface), RET #err; applyErrIs err ∗ nodeReadErrIs err ∗
+      (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

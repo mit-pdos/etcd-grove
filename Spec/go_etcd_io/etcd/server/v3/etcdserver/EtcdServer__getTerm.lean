@@ -1,13 +1,10 @@
 /-
-`(*EtcdServer).getTerm()` (`server.go:1726`): an atomic load; any value.
-**Users**: `Term()` (2c's headers). **Changes**: unchanged. **Margin**: none.
+`s.getTerm()` (`server.go`): `s.term.Load()`.
+Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -15,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +21,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def EtcdServer.getTerm.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvNode s γ id }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"getTerm")) (Val #()))
-  {{ (v : w64), RET #v; True }}
+/-- `s.getTerm()` loads the term's atomic (in an invariant: any value). -/
+abbrev EtcdServer.getTerm.spec : Prop :=
+  ∀ (s : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getTerm")) (Val #()))
+  {{ (t : w64), RET #t; True }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

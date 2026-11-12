@@ -1,16 +1,11 @@
 /-
-## `toConfChangeSingle(cs)` (internal)
-
-**Users.** `Restore`. Mirrors the code: fresh `ConfChangeSingle`s, the outgoing voters' adds, and
-the incoming changes (remove the outgoing voters, add the voters, the learners and the staged
-learners as learners), as `ConfChange.restore` lists them.
+`confchange.toConfChangeSingle(cs)` turns a `ConfState` into the single changes that
+rebuild it. Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-public import Spec.go_etcd_io.raft.v3.raftpb.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRestore
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -18,32 +13,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The ops `Restore` runs for `ConfState` `csv`. -/
-def toConfChangeSingle.spec : Prop :=
-  ∀ (csp : Loc) (dq : DFrac) (csv : RaftPb.ConfState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ RaftPb.confStatePts csp dq csv }}
-    (App (Val #(functions go_etcd_io.raft.v3.confchange.toConfChangeSingle [])) (Val #csp))
-  {{ (out inc : GoSlice), RET (PairV #out #inc); RaftPb.confStatePts csp dq csv ∗
-      ccsPts out (DFrac.own 1) (csv.votersOutgoing.map (fun id => ⟨AddNode, id⟩)) ∗
-      ccsPts inc (DFrac.own 1)
-        (csv.votersOutgoing.map (fun id => ⟨RemoveNode, id⟩) ++
-         csv.voters.map (fun id => ⟨AddNode, id⟩) ++
-         csv.learners.map (fun id => ⟨AddLearnerNode, id⟩) ++
-         csv.learnersNext.map (fun id => ⟨AddLearnerNode, id⟩)) }}
+/-- The changes `Restore` replays a `ConfState` as (`InvRestore.lean`): `out` holds one
+`AddNode` per outgoing voter (`restoreOutCC`; `nil` when there is none), `in` one `RemoveNode`
+per outgoing voter, then one `AddNode` per voter, one `AddLearnerNode` per learner and per
+staged learner (`restoreInCC`), in a fresh slice. Generalized 2026-10-14 (reconfiguration
+stage B8) from the non-joint case (empty `VotersOutgoing` and `LearnersNext`).
+
+(2026-10-15, raft v3.7 retarget, stage R2: `cs` a `*pb.ConfState` owned at `dq` (`ownCSM`,
+which holds every slice's points-to, so the old `ownIdList` of the three lists other than the
+voters goes) instead of a `ConfState` value with four fractions; the results are slices of
+fresh `*pb.ConfChangeSingle` pointers `lo`, `li`, each `ccsRO` of its change, instead of slices
+of the change values.) -/
+abbrev confchange.toConfChangeSingle.spec : Prop :=
+  ∀ (cs : Loc) (c : ConfStateM) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ownCSM cs dq c }}
+    (App (Val #(functions confchange.toConfChangeSingle [])) (Val #cs))
+  {{ (o s : GoSlice) (lo li : List Loc), RET (PairV #o #s);
+      ownCSM cs dq c ∗
+      o ↦* lo ∗ ([∗list] q;x ∈ lo;restoreOutCC c.VotersOutgoing', ccsRO q x) ∗
+      s ↦* li ∗
+      ([∗list] q;x ∈ li;restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext',
+        ccsRO q x) ∗
+      ownSliceCap Loc s (DFrac.own 1) }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

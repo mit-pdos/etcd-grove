@@ -1,15 +1,9 @@
 /-
-## `(*raftLog).nextUnstableSnapshot()` (internal)
-
-**Users**: `readyWithoutAccept` (`rawnode.go:156`: `Ready.Snapshot`). **Proof sketch**:
-`unstable.nextSnapshot` (a fresh clone), valid (`restore`'s premise, kept by the log; round 1, S6: the caller hands it
-out with `snapValid`). **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__nextUnstableSnapshot.lean`.
+`raftLog.nextUnstableSnapshot` (`log.go:277`), Lean-first (D22 S-d3a, 2026-10-21).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -17,28 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A fresh copy of the pending snapshot if it is not in progress, else `nil`. -/
-def raftLog.nextUnstableSnapshot.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (S : StorState → IProp GF) (V : Snapshot → IProp GF) (N : Namespace),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls ∗ logStorage l S V N }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"nextUnstableSnapshot")) (Val #()))
-  {{ (sp : Loc), RET #sp; raftLog l ls ∗
-      (match ls.us.nextSnapshot with
-       | none => ⌜sp = null⌝
-       | some s => snapshotPts sp (DFrac.own 1) s ∗ V s) }}
+/-- `l.nextUnstableSnapshot()` (`log.go:277`) is `l.unstable.nextSnapshot()`: `nil` exactly with no
+snapshot pending or the pending one in progress; otherwise a fresh clone of the pending snapshot
+(`proto.Clone`), owned by the caller, holding a record of the pending snapshot's id, a snapshot
+the node may send (`ksn`), its index past `0` (`LogStoreOk`). `RawNode.readyWithoutAccept` hands
+it out in `rd.Snapshot`. -/
+abbrev raftLog.nextUnstableSnapshot.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"nextUnstableSnapshot")) (Val #()))
+  {{ (p : Loc), RET #p; ownRaftLog l ls ∗ ⌜p = null ↔ (ls.snap = none ∨ ls.sip = true)⌝ ∗
+      (⌜p = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
+        ⌜ls.snap = some sid ∧ ls.sip = false ∧ snapId sv = sid ∧
+          snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧ 0 < uint.Z sid.index' ∧
+          -- (2026-10-28, stage U0) its `ConfState` naming a node
+          (∃ x, sv.Metadata'.ConfState'.lists.Has x)⌝ ∗
+        ownSnapS p (DFrac.own 1) sv) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,30 +1,13 @@
 /-
-## `ProgressTracker.ConfState()`
+Port of election_proof/spec_ProgressTracker__ConfState.v (feb5c73d4).
 
-**Users.** `switchToConfig` (`raft.go:1987`: the `ConfState` `ApplyConfChange` returns, and
-`newRaft`'s/`appliedSnap`'s round-trip check `assertConfStatesEquivalent`): R2.
-
-**Proof sketch.** `configOwn_open` for the voters; `MajorityConfig.Slice` of each of the four maps
-(`sorted`, each `≤ 2^62`); `new(p.AutoLeave)`, a fresh cell, persisted (nobody writes through
-it); the `ConfState` allocation, `pbRest_zero`, then `RaftPb.confStateFull_unfold` (`AutoLeave` set:
-the `full` case of `confStateGo`).
-
-**Changes** (from `specs-ref`'s `tracker/ProgressTracker__ConfState.lean`): the lists are the
-configuration's members in increasing order (was a permutation); over raftpb's `confStatePts`.
-verify-round: (A5-completeness F2) returns `RaftPb.confStateFull` (was `confStatePts`, which
-forgets that `AutoLeave` is set): `MemoryStorage.CreateSnapshot` and the merged snapshot message
-need a full `ConfState` (`snapshotPts` is full), and Go always sets it here. Stronger post: every
-caller of the old one is served (`confStateFull` gives `confStatePts` through the unfold laws,
-`optCell`'s right disjunct).
-
-**Margin.** None.
+Lean notes: the type of Rocq's untyped binder `tv` is written out
+(`tracker.ProgressTracker`), as `ownTracker` forces it.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-public import Spec.go_etcd_io.raft.v3.raftpb.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -32,33 +15,45 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The configuration as a fresh, full `ConfState`: each list sorted, the auto-leave flag set. -/
-def ProgressTracker.ConfState.spec : Prop :=
-  ∀ (p : Loc) (T : TrackerV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressTracker p T ∗
-      ⌜GMap.size T.conf.voters ≤ Quorum.sortMax ∧ GMap.size T.conf.votersOutgoing ≤ Quorum.sortMax ∧
-        GMap.size T.conf.learners ≤ Quorum.sortMax ∧
-        GMap.size T.conf.learnersNext ≤ Quorum.sortMax⌝ }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.ProgressTracker.ty @!! go!"ConfState")) (Val #()))
-  {{ (csp : Loc), RET #csp; progressTracker p T ∗
-      RaftPb.confStateFull csp (DFrac.own 1)
-        ⟨Quorum.sorted T.conf.voters, Quorum.sorted T.conf.learners,
-         Quorum.sorted T.conf.votersOutgoing, Quorum.sorted T.conf.learnersNext,
-         T.conf.autoLeave⟩ }}
+/-- `p.ConfState()` is the `ConfState` of the active configuration (tracker.go:
+`Voters: p.Voters[0].Slice()`, `VotersOutgoing: p.Voters[1].Slice()`, `Learners:
+quorum.MajorityConfig(p.Learners).Slice()`, `LearnersNext: ...`, `AutoLeave: p.AutoLeave`):
+each list a permutation of its set (really sorted).
+
+Raft v3.7 (`notes/raft-retarget-plan.md`): the result is a `*pb.ConfState`, a fresh
+`&pb.ConfState{...}` whose `AutoLeave` is a fresh `new(p.AutoLeave)`; since stage R1 the caller
+gets it as an owned conf state (`csPts`, `InvPb.lean`: the four lists, the `AutoLeave` cell, set,
+the hidden fields' invariant; stage R0 gave the struct, the cell and the slices apart). Until the
+retarget the result was the `ConfState` value, with `cs.AutoLeave' = c.autoLeave`.
+
+At any configuration since 2026-10-13 (reconfiguration stage A1; `ownTrackerC`): the four sets
+of `c` and its `AutoLeave`. The statement at a simple configuration (`ownTracker cfg`: the
+voters `cfg`, the learners the tracked ids outside `cfg`, and -- for the empty outgoing
+voters and staged learners -- only the lengths, all any caller needs) was
+`tracker.ProgressTracker.ConfState.spec_simple`; it had no caller and is gone (2026-10-17). -/
+abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
+  ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
+      ownTrackerC c tv t }}
+    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ConfState"))
+      (Val #()))
+  {{ (csl : Loc) (xs os ls lns : List w64), RET #csl;
+      trk ↦ tv ∗ ownTrackerC c tv t ∗
+      csPts csl (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
+      ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
+        lns ≡ₚ elements c.learnersNext⌝ }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

@@ -1,17 +1,9 @@
 /-
-`(clientv3.Op).IsSortOptionValid` (`client/v3/op.go`).
-
-Users: `kv.Do` (`IsSortOptionValid`)
-
-Proof sketch: `opAt_unfold`; the sort pointer and `pb.RangeRequest_SortOrder_name`/`_SortTarget_name` (etcdserverpb's enum maps: their init law, 3h).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__IsSortOptionValid.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.Op.IsSortOptionValid()` (`client/v3/op.go`, translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -19,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,15 +21,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.IsSortOptionValid()`: no sort option, or one whose order and target, as `int32`s, are protobuf enum values. -/
-def Op.IsSortOptionValid.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsSortOptionValid")) (Val #()))
-  {{ RET #(decide o.rangeReq.validSort); opp ↦{dq} op }}
+/-- `op.IsSortOptionValid()`: `sortValid o` (no sort option, or its order's and target's `int32`
+values are keys of `etcdserverpb`'s enumeration maps, `sortNamesOk`; the vertical slice's unit V2:
+C1 specified the case without a sort option only). -/
+abbrev Op.IsSortOptionValid.spec : Prop :=
+  ∀ (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opFullAt opv o ∗
+      sortNamesIf o.base.sortSet }}
+    (App (Val (opv @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsSortOptionValid")) (Val #()))
+  {{ RET #(sortValid o); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

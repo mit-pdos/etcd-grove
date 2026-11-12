@@ -1,17 +1,10 @@
 /-
-`UnsafeReadFinishedCompact(tx)` (`store.go:22`). Internal: `restore`, `checkPrevCompactionCompleted`.
-Reads `Meta`'s finished compaction key through any transaction seeing `D` (a read transaction's
-`kbRead` or the batch's `kbLocked`: `rangeOk`); the value parses (`metaOk`: the image's; else
-`BytesToRev` panics). The value's bytes are lent against a share `L p` of the transaction's
-liveness (`rangeLent`) and given back once parsed, before the return. Not on a concurrent read
-transaction (single-key, `KeyData.linger`: mvcc never reads `Meta` through one).
-
-**Changes** from `specs-ref`'s file: over the storage contract's `rangeOk` in place of
-`metaReadSpecR`/`rdCap`.
+`UnsafeReadFinishedCompact` (`store.go`): the meta key `finishedCompactRev` (2026-10-13, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpRecs
 
 @[expose] public section
 
@@ -19,28 +12,39 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `UnsafeReadFinishedCompact(tx)`: the finished compaction key's main revision and whether it is
-there (`metaRev D.fin`). -/
-def UnsafeReadFinishedCompact.spec : Prop :=
-  ∀ (t : GoInterfaceOk) (R : IProp GF) (L : Qp → IProp GF) (p : Qp) (D : KeyData) (b : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      rangeOk t R L D false (if b then KeyData.range else KeyData.rtRange) ∗ R ∗ L p ∗ ⌜D.metaMade = true ∧ metaOk D.fin⌝ }}
+/-- `UnsafeReadFinishedCompact(tx)` over a reader of the `Meta` bucket's compaction keys under the
+optional record set `rs` (`metaReadSpecR`; M2, the storage side, 2026-10-30: review round 5's S1, the
+approval's item 28, one spec in place of today's flag `nc` and the drafted `specR`): the main revision
+read and `true`, or `0` and `false` (none); and, under records `some r`, exactly the record
+(`r.fin`: found with its revision, or absent). At `none` (`metaReadSpec rt false`: a value the
+store wrote, `RevToBytes(Revision{Main: x})`, `x ≥ 0`, which one is not modelled:
+`checkPrevCompactionCompleted`'s reader) nothing more; at `some CmpRecs.empty` (`metaReadSpec rt
+true`, the restore plan's R4c: a backend that records no compaction) `0` and `false`. Under the
+reader's token `Tok`, the value's slice read through `rdCap` (the backend-compaction stage,
+2026-10-29: the backend lends its slices). -/
+abbrev mvcc.UnsafeReadFinishedCompact.spec : Prop :=
+  ∀ (rt : GoInterfaceOk) (rs : Option mvcc.CmpRecs) (Rd : GoSlice → GoString → IProp GF)
+    (Tok : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      □ mvcc.metaReadSpecR rt rs Rd Tok ∗ mvcc.rdCap Rd Tok ∗ Tok }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact))
-      (Val #(GoInterface.ok t)))
-  {{ (x : w64) (found : Bool), RET (PairV #x #found); R ∗ L p ∗ ⌜(x, found) = metaRev D.fin⌝ }}
+      (Val #(GoInterface.ok rt)))
+  {{ (x : w64) (found : Bool), RET (PairV #x #found); Tok ∗
+      ⌜(found = true → 0 ≤ sint.Z x) ∧ (found = false → x = W64 0) ∧
+        ∀ r, rs = some r →
+          (found = true ∧ r.fin = some x) ∨ (found = false ∧ r.fin = none ∧ x = W64 0)⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

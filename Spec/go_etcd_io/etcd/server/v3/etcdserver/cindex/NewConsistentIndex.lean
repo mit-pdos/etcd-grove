@@ -1,22 +1,9 @@
 /-
-`cindex.NewConsistentIndex(be)` (`cindex.go`).
-
-**Users**: `bootstrap.go:257` (`NewConsistentIndex(nil)`, then `SetBackend` once the backend is
-open: batch 2e). Snippet `examples/specreq/cindex/cindex.go` (`ReqReloadAfterSetBackend`).
-
-**Proof sketch**: allocate the struct (zero indices, `be`), the invariant of `isCI` and the ghost
-state `ciState γ ⟨0, 0, be, stored⟩`, `ciWriter γ`.
-
-**Changes**: the old `ciIdx γ 0 ∗ ciApplying ci 0 0 ∗ ciOwner ci be` become one client-owned state and
-the writer's token; any `be` (was: the one bootstrap passes).
-
-**Margin**: none.
+`cindex.NewConsistentIndex(be)`. Lean-first (no Rocq counterpart); see `InvCindex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 
 @[expose] public section
 
@@ -24,30 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cindex
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
-/-- **A new indexer** over backend `be` (or `nil`): index `0` (not loaded), reading `be`'s stored
-index `v` when `be` is not `nil`. -/
-def NewConsistentIndex.spec : Prop :=
-  ∀ (be : GoInterface) (stored : Option w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      (match stored with
-       | none => iprop(⌜be = interface.nil⌝)
-       | some v => beStoredCI be v) }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex)) (Val #be))
-  {{ (ci : GoInterface), RET #ci; ∃ (l : Loc) (γ : CINames), ⌜ci = ciIface l⌝ ∗ isCI l γ ∗
-      ciState γ ⟨W64 0, W64 0, be, stored⟩ ∗ ciWriter γ }}
+/-- `NewConsistentIndex(be)`: a consistent index with index 0 (not loaded yet), applying
+index 0, and backend `be`, as a `ConsistentIndexer`. -/
+abbrev NewConsistentIndex.spec : Prop :=
+  ∀ (be : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex }}
+    (App (Val (@! NewConsistentIndex)) (Val #be))
+  {{ (ci : Loc) (γ : CINames), RET #(interface.mkOk (go.GoType.PointerType consistentIndex.ty) #ci);
+      isCI ci γ ∗ ciIdx γ (W64 0) ∗ ciApplying ci (W64 0) (W64 0) ∗ ciOwner ci be }}
 
 end spec
-end Cindex
+
 end EtcdGrove
 end Perennial

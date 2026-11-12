@@ -1,22 +1,10 @@
 /-
-`EnsureConfState(cs)` (`raftpb/util.go:20`).
-
-Users: raft's `MemoryStorage.InitialState` (`storage.go:132`, unlocked: on the stored snapshot's full
-conf state, R1), `raft.restore` (`raft.go:1898`) and `appliedSnap` (`raft.go:774`) on a full
-snapshot's conf state (shared read-only), `EnsureSnapshotMetadata`. Snippet:
-`examples/specreq/raftpb/snapshot.go` (`ReqEnsure`).
-
-Proof sketch: `nil`: `new(ConfState)` (`pbRest_zero`), a fresh `AutoLeave` cell: the empty, full
-conf state. Owned: `confStatePts_unfold`; if `AutoLeave` is `nil`, store a fresh cell (`false`, what
-the getter read): `confStateFull_unfold`. Full: `AutoLeave` is set, nothing is written.
-
-Changes: from `specs-ref/.../raftpb/EnsureConfState.lean`: over `confStatePts`/`confStateFull` (the
-old `ownCS*` variants).
-Margin: none.
+`EnsureConfState` (`raftpb/util.go`, new in raft v3.7). Lean-first (raft v3.7 retarget, stage
+R1).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Api
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -24,37 +12,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace RaftPb
 
-open Iris Iris.BI
-open go_etcd_io.raft.v3
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `EnsureConfState(p)` of `nil` or an owned `ConfState`: a full one holding the same model (the
-empty one for `nil`), `p` itself when it was not `nil`; of a full one (any fraction): `p`, nothing
-written. -/
-def EnsureConfState.spec : Prop :=
-  (∀ (p : Loc) (o : Option ConfState),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
-        match o with
-        | none => ⌜p = null⌝
-        | some cs => confStatePts p (DFrac.own 1) cs }}
-      (App (Val (@! go_etcd_io.raft.v3.raftpb.EnsureConfState)) (Val #p))
-    {{ (r : Loc), RET #r; confStateFull r (DFrac.own 1) (o.getD ConfState.empty) ∗
-        ⌜o ≠ none → r = p⌝ }}) ∧
-  (∀ (p : Loc) (dq : DFrac) (cs : ConfState),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ confStateFull p dq cs }}
-      (App (Val (@! go_etcd_io.raft.v3.raftpb.EnsureConfState)) (Val #p))
-    {{ RET #p; confStateFull p dq cs }})
+/-- `EnsureConfState(cs)` of a non-`nil` conf state holding `c` returns `cs`, its `AutoLeave` set
+(`csPts _ _ _ true`): it writes a `nil` `AutoLeave` (a fresh cell holding `false`, which reads the
+same), so it takes the conf state fully owned unless its `AutoLeave` is already set (`al`), when
+it writes nothing and a fraction will do (D7, stage R4: `MemoryStorage.InitialState` freezes the
+storage's conf state, read-only for good with its `AutoLeave` set; the statement before D7 is the
+instance `dq = 1`). Of `nil`, a fresh conf state holding the zero record, owned, its `AutoLeave`
+set. (Decision on the plan's Q5: `Ensure*` takes ownership where it writes.) -/
+abbrev raftpb.EnsureConfState.spec : Prop :=
+  (∀ (cs : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ csPts cs dq c al ∗
+        ⌜dq ≠ DFrac.own 1 → al = true⌝ }}
+      (App (Val #(functions raftpb.EnsureConfState [])) (Val #cs))
+    {{ RET #cs; csPts cs dq c true }}) ∧
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
+    (App (Val #(functions raftpb.EnsureConfState [])) (Val #(null : Loc)))
+  {{ (r : Loc), RET #r; csPts r (DFrac.own 1) (ConfStateM.mk [] [] [] [] false) true }}
 
 end spec
 
-end RaftPb
 end EtcdGrove
 end Perennial

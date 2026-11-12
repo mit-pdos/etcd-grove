@@ -1,8 +1,8 @@
 # Integration I5: apply, txn, lease, auth (batches 3a, 3b, 3c, 3d)
 
-2026-11-09. Directories: `Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}/`,
-`Spec/go_etcd_io/etcd/server/v3/lease/` (with `leasehttp/`), `Spec/go_etcd_io/etcd/server/v3/auth/`,
-`Spec/golang_org/x/crypto/bcrypt/`; snippets `examples/specreq/{apply,txn,lease,auth}/`.
+2026-11-09. Directories: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}/`,
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/` (with `leasehttp/`), `SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/`,
+`SpecPlan/Spec/golang_org/x/crypto/bcrypt/`; snippets `examples/specreq/{apply,txn,lease,auth}/`.
 Each batch was integrated by its own agent (one section per batch below); this summary gives the
 result across batches.
 
@@ -11,7 +11,7 @@ result across batches.
 `etc/specs-build.sh --dir` over all six directories: **OK (250 modules)** after every change below
 (apply 74, txn 48, lease + leasehttp 48, auth + bcrypt 80). `cd examples && go vet
 ./specreq/{apply,txn,lease,auth}/...` passes; `gofmt -l` clean. (Two intermediate builds failed on
-other agents' in-progress edits of `Spec/go_etcd_io/raft/v3/Model.lean` and
+other agents' in-progress edits of `SpecPlan/Spec/go_etcd_io/raft/v3/Model.lean` and
 `etcdserver/ApiApply.lean`; both passed once those files were fixed.) Another agent's commit
 `629824d06e` ("4a round-1 repairs … WIP") swept part of 3a's edits into HEAD; the rest are
 uncommitted in the worktree.
@@ -165,7 +165,7 @@ after 3c's pass, so 3a's section below, which lists it as needed, is now out of 
 So is 3a's request (b) to 3d (`authStoreAt_agree`). Requests (a) and (c) are answered above. Where
 the per-batch sections below differ from "Coordinator's decisions, applied" (3a's `Authenticate` gap,
 3d's empty-end finding "to be filed"), that section is the current state.
-## Batch 3a (`Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/`, `examples/specreq/apply/`)
+## Batch 3a (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/`, `examples/specreq/apply/`)
 
 ### Changes, by file
 
@@ -299,7 +299,7 @@ the per-batch sections below differ from "Coordinator's decisions, applied" (3a'
 
 ### What 3a needs from directories it does not own
 
-- **2d** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/`, `EtcdServer__applyEntryNormal.lean`):
+- **2d** (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/`, `EtcdServer__applyEntryNormal.lean`):
   - Supply `Apply.nextOk γ R ir.op (fun σ' => ∃ res, irrStep mc σ ir v3 σ' res)` for each applied
     entry. This is the history point after the committed entry, `histAt`: its `etcdLb` has the same
     auth state, because `ttlEq` keeps `auth`. `Auth.recordsFit` is a scope restriction 2d must carry.
@@ -313,7 +313,7 @@ the per-batch sections below differ from "Coordinator's decisions, applied" (3a'
   - `CheckTxnAuth.spec` now takes `⌜t.readonly⌝` and no lessor fact. `EtcdServer.Txn`'s sketch
     calls it only for a read-only transaction.
   - `opBody` of a user change is the client's request with a password whose hash is the credential.
-- **3d** (`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`):
+- **3d** (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`):
   - (a) `checkPost`/`checkOk`/`checkDenied` should report an inverted range exactly at the cache's
     state, by a function of `ac`, for example `Apply.invRefused ac u t rng` moved to `Auth`. Today
     the nil arm with `covers` cannot tell the writer's exact answer.
@@ -369,13 +369,13 @@ the per-batch sections below differ from "Coordinator's decisions, applied" (3a'
 
 ### Build
 
-- `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/apply`: **OK (74 modules)**.
+- `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply`: **OK (74 modules)**.
   - This was built against the current tree, with ApiReq and 3h's `IrrBody.authToken name` as they now
     stand. `opBody` follows 3h's single-argument `authToken`.
 - `cd examples && go vet ./specreq/apply/...` passes, and `gofmt -l` is clean.
 - **Note:** another agent's commit `629824d06e` ("4a round-1 repairs … WIP") swept part of these
   edits into HEAD. The rest are uncommitted in the worktree.
-## Batch 3b (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/`, `examples/specreq/txn/`)
+## Batch 3b (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/`, `examples/specreq/txn/`)
 
 ### Changes, by file
 
@@ -436,7 +436,7 @@ These do not fit and could not be fixed on txn's side, so they are recorded:
 1. **`ctxErr_not_errIs`** (needed by `Range`/`executeRange`/`deleteRange` callers and 2c's `srvIndef`).
    3e's `rangeResOwn` `.ctxErr` gives only `err ≠ nil`. Still unmet:
    `req/go_etcd_io_etcd_server_v3_storage_mvcc.md`, "from 3b", item 1. Needed in
-   `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, `rangeResOwn`: the `.ctxErr` error is
+   `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, `rangeResOwn`: the `.ctxErr` error is
    none of mvcc's sentinels. A fresh value, or not `ErrCompacted`'s/`ErrFutureRev`'s value, would do.
 2. **`rrOwn`'s `kvFits`**, which `compareKV`, the `kvSort*.Less` specs and `sortRangeResults` use.
    3e's `kvsFit`/`kvSortOk` bound the revisions and the version, not the lease. Still unmet: same
@@ -449,11 +449,11 @@ These do not fit and could not be fixed on txn's side, so they are recorded:
      initialization law for `ErrKeyNotFound`.
    - Wanted from each owner: "the variable holds 2c's `EtcdServer.srvErrVal e`". That is mvcc
      (`ErrCompacted`/`ErrFutureRev`), lease (`ErrLeaseNotFound`: 3c, the sibling) and 2c's
-     `Spec/go_etcd_io/etcd/server/v3/etcdserver/errors/Api.lean` (`ErrKeyNotFound`).
+     `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/errors/Api.lean` (`ErrKeyNotFound`).
    - With 2c's `srvErrOf_fun`, both laws then follow.
 4. **`context.TODO()`'s trace.** 3a passes `context.TODO()`, and txn's entry points need
    `TraceUtil.ctxTraceIs ctx o`. 4b's `ctxTraceIs_todo` is stated at `GoInterface.ok
-   context.todoCtxVal`, but `Context.TODO.spec` (`Spec/context/Api.lean`, W0) does not say its
+   context.todoCtxVal`, but `Context.TODO.spec` (`SpecPlan/Spec/context/Api.lean`, W0) does not say its
    result is that value. Needed: `TODO.spec` returns `ctx = GoInterface.ok context.todoCtxVal` (and
    the same for `Background`), or 4b states `ctxTraceIs` in `TODO`'s post.
 
@@ -479,12 +479,12 @@ By 3b:
 
 ### Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/txn`: OK (48 modules), after another agent's in-progress `raft/v3/Model.lean` edit, which had briefly broken the shared import chain, built again
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/txn`: OK (48 modules), after another agent's in-progress `raft/v3/Model.lean` edit, which had briefly broken the shared import chain, built again
 ## Batch 3c (lease, leasehttp): integration I5
 
 ### Changes, by file
 
-`Spec/go_etcd_io/etcd/server/v3/lease/`:
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/`:
 - `Api.lean`:
   - **new law `isLessor_ne_null.spec`** (`isLessor le γ c ⊢ ⌜le ≠ null⌝`). This is 3e's item 1: mvcc's `delete` calls `GetLease` unconditionally.
   - **`beOk` is no longer persistent** (4a's new request, `req/..._lease.md`, "from 4a"). `LockOutsideApply`/`ForceCommit` after the backend's `Close` panic. It is now an open share held in the writer's token. Its conjunct is removed from `persistent.spec`. **New law `lessorState_beOk.spec`** lends it out (for the server's shutdown, before `Backend.close`). The header and the realization were updated to match.
@@ -503,11 +503,11 @@ By 3b:
   - `persistTo`, `Grant`, `Checkpoint`: `Schema.MustUnsafePutLease.spec` over `txWr`, with the local struct made a message by `Schema.leaseMsg_of_struct`; the token's `beOk`.
   - `Revoke`: `Schema.UnsafeDeleteLease.spec` over `txWr`, the lock held by `beTxHeld` = `Mvcc.kbHeld`.
   - `initAndRecover`, `Recover`: `MustUnsafeGetAllLeases` gives the records "each id once, in some order" (not in id order).
-  - `greaterOrEqual`: `version.LessThan.spec` is 3h's (`Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`), not 4b's.
+  - `greaterOrEqual`: `version.LessThan.spec` is 3h's (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`), not 4b's.
   - `shouldPersistCheckpoints`: `V3_6` is 3h's package variable; `clusterOk` is still provisional.
 
-`Spec/go_etcd_io/etcd/server/v3/lease/leasehttp/`:
-- `Api.lean`: `rtOk` is no longer an opaque provisional. It is now `abbrev rtOk rt := Http.roundTripperOk rt` (`Spec/net/http/Api.lean`, which `rafthttp.NewRoundTripper.spec` gives). The name is kept, and `import Spec.net.http.Api` and `[sem : go.Semantics]` were added.
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/leasehttp/`:
+- `Api.lean`: `rtOk` is no longer an opaque provisional. It is now `abbrev rtOk rt := Http.roundTripperOk rt` (`SpecPlan/Spec/net/http/Api.lean`, which `rafthttp.NewRoundTripper.spec` gives). The name is kept, and `import SpecPlan.Spec.net.http.Api` and `[sem : go.Semantics]` were added.
 - `RenewHTTP.lean`: the docstring was updated to match.
 
 Snippets (`examples/specreq/lease/`): unchanged.
@@ -564,14 +564,14 @@ Snippets (`examples/specreq/lease/`): unchanged.
 
 ### What 3c needs from directories it does not own (by file and name)
 
-- `Spec/go_etcd_io/etcd/server/v3/storage/backend/` (4a): laws introducing `Lease.beOk`, `Lease.beHook`, `Lease.beLeases` for a backend (or the backend's own names, to replace them), and the choice between `Backend.hookRun` and `Mvcc.hookRun`.
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/` (2e): a spec of `RaftCluster.Version` and a law `isCluster c … ⊢ Lease.clusterOk (iface c)`.
-- `Spec/go_etcd_io/etcd/api/v3/version/` (3h): `V3_6`'s value readable after `isPkgInit` (an init law), for `shouldPersistCheckpoints`.
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/` (2d):
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/` (4a): laws introducing `Lease.beOk`, `Lease.beHook`, `Lease.beLeases` for a backend (or the backend's own names, to replace them), and the choice between `Backend.hookRun` and `Mvcc.hookRun`.
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/` (2e): a spec of `RaftCluster.Version` and a law `isCluster c … ⊢ Lease.clusterOk (iface c)`.
+- `SpecPlan/Spec/go_etcd_io/etcd/api/v3/version/` (3h): `V3_6`'s value readable after `isPkgInit` (an init law), for `shouldPersistCheckpoints`.
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` (2d):
   - `EtcdServer.applyEntryNormal.spec` provides `ckptGate le R ∗ □ R` to `Promote`.
   - `applySnapshot` keeps `rdOk` of the closure and closes the old backend with the returned `beOk ls.be`.
   - The shutdown takes `beOk` through `lessorState_beOk`.
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/errors/` (2c): the `srvErrVal` law for lease's sentinels (see above).
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/errors/` (2c): the `srvErrVal` law for lease's sentinels (see above).
 - Still open from round 1: the `2^62` bound of Perennial's sort at `Revoke` and `Leases`.
 
 ### API changes (for 3a, 3b, 3e, 2d, 2e)
@@ -587,14 +587,14 @@ No name was renamed or removed.
 
 ### Build
 
-- `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/lease Spec/go_etcd_io/etcd/server/v3/lease/leasehttp`: OK (48 modules).
-- The importers of `lease/Api.lean` (`Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api`, `...etcdserver.txn.Api`, `...etcdserver.apply.checkLeasePutsKeys`): OK (3 modules).
+- `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/leasehttp`: OK (48 modules).
+- The importers of `lease/Api.lean` (`SpecPlan.Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api`, `...etcdserver.txn.Api`, `...etcdserver.apply.checkLeasePutsKeys`): OK (3 modules).
 - `go vet ./specreq/lease/...` and `gofmt -l`: clean.
-- Before that, the build was blocked for a while by another agent's work-in-progress `Spec/go_etcd_io/raft/v3/Model.lean`, which had a docstring before an `export`. It is now fixed.
+- Before that, the build was blocked for a while by another agent's work-in-progress `SpecPlan/Spec/go_etcd_io/raft/v3/Model.lean`, which had a docstring before an `export`. It is now fixed.
 ## 3d (auth store, bcrypt)
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/auth Spec/golang_org/x/crypto/bcrypt`:
-OK (80 modules). `Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Api` (3a's, imports auth's Api)
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth SpecPlan/Spec/golang_org/x/crypto/bcrypt`:
+OK (80 modules). `SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Api` (3a's, imports auth's Api)
 still builds after the changes (OK). Snippets: `go vet ./specreq/auth/...` and `gofmt -l` clean.
 
 ### Changed, by file
@@ -742,7 +742,7 @@ Left provisional, with why:
   `server.go:1098`).
 - **2e**: `NewServer` hands `authBackendAt` over before setting the hook (`server.go:369` before
   `409`).
-- **2a** (`Spec/google_golang_org/grpc/`, `req/google_golang_org_grpc.md`, "from 3d"):
+- **2a** (`SpecPlan/Spec/google_golang_org/grpc/`, `req/google_golang_org_grpc.md`, "from 3d"):
   - `ctxInMD` for any context (`none` without incoming metadata), and
     `rpcCtx ctx md ⊢ Auth.ctxInMD ctx (some md)`;
   - `ctxCertUser`, `ctxPeerCN` (with `ctxPeerCN ctx none` for contexts without a peer);

@@ -1,7 +1,7 @@
 # R-A4 (raft node API R1, raft core R2): re-review after the repairs
 
 Reviewer: fresh and independent, read-only. HEAD `974e05095b`; diffs against `1aa6fc1337`.
-Scope: the top level of `Spec/go_etcd_io/raft/v3/` without the log files (`raftLog__*`, `unstable__*`,
+Scope: the top level of `SpecPlan/Spec/go_etcd_io/raft/v3/` without the log files (`raftLog__*`, `unstable__*`,
 `readOnly__*`, util), and the snippets `examples/specreq/{raftnode,raftcore}`.
 
 I wrote my verdict on each original finding before I read `repair-raft-core.md`. I read it afterwards

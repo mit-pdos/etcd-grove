@@ -101,7 +101,7 @@ specs' per-member view). Go checked against `.lake/src/server`.
 
 ## Requests to lease-auth
 
-1. `Spec/go_etcd_io/etcd/server/v3/auth/NewTokenProvider.lean`: the success branch gives the
+1. `SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/NewTokenProvider.lean`: the success branch gives the
    caller's `threadTok` back (`tokenProviderAt … ∗ threadTok`); the simple token's TTL keeper is
    started by `enable` with `go t.simpleTokenKeeper.run()` (`simple_token.go:188`), a fork with its
    own token. Needed for `NewServer.spec`'s returned token (RR4).

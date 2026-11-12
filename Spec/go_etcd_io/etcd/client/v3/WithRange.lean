@@ -1,22 +1,10 @@
 /-
-`clientv3.WithRange` (`client/v3/op.go`).
-
-Users: the users' `Get`/`Delete`/`Put`/`Watch` calls (see `kv.Get`, `kv.Put`): `WithPrefix`
-(concurrency, recipes, the cache, Kubernetes), `WithRev` (concurrency, recipes, the cache,
-Kubernetes' reads and watches), `WithLimit`, `WithRange`, `WithKeysOnly`, `WithCountOnly`
-(Kubernetes, the cache), `WithLease` (concurrency's `Session` keys, leasing), `WithSerializable`
-(concurrency's `stmSerializable`), the revision filters (concurrency's `waitDeletes`, recipes), the
-watch options (1b's users). Snippet: `clientv3kv/ops.go` (`ReqGetOptions`).
-
-Proof sketch: a closure over its arguments (read-only cells), which sets the range end: `optAt`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/WithRange.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.WithRange(endKey)` (`client/v3/op.go`, translated for the cache). Lean-first (no Rocq
+counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -24,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `WithRange(...)`: an option that sets the range end. -/
-def WithRange.spec : Prop :=
-  ∀ (e : GoString),
+/-- `WithRange(endKey)`: an option setting the range end to `endKey`. -/
+abbrev WithRange.spec : Prop :=
+  ∀ (endKey : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.WithRange)) (Val #e))
-  {{ (f : GoFunc), RET #f; optAt f (withRangeM e) }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.WithRange)) (Val #endKey))
+  {{ (f : GoFunc), RET #f; optSpec f (withRangeM endKey) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

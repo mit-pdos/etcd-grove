@@ -1,29 +1,23 @@
 /-
-`(*applierV3backend).AuthStatus()` (`backend.go:151-155`): the auth store's `IsAuthEnabled` and `Revision`.
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** 3d's reads; `newHeader`.
-
-**Changes** from `specs-ref`'s `applierV3backend__AuthStatus.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
-
-**Margin.** The header's other fields (cluster, member, term, leader) any.
+`apply.applierV3backend.AuthStatus` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,22 +26,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`AuthStatus` at the applierV3backend layer**: the layers' step (exact). -/
-def applierV3backend.AuthStatus.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) [Layer.backend] p aa ∗
-      beAt p mc γ γc R ∗
-      stAt p σ ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"AuthStatus")) (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ threadTok ∗ ∃ σ' res, ⌜layersStep mc σ [] 0 (.req .authStatus : IrrOp) [Layer.backend] σ' res⌝ ∗ stAt p σ' ∗
-      replyAt γ (.req .authStatus : IrrOp) res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty) #resp) err }}
+/-- **`a.AuthStatus()`**: the auth store's `IsAuthEnabled` and `Revision`, a fresh response with `newHeader()`; nothing written. -/
+abbrev apply.applierV3backend.AuthStatus.spec : Prop :=
+  ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      apply.applyTok E ∗ apply.kvOwn E log }}
+    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthStatus")) (Val #()))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.applyTok E ∗ apply.kvOwn E log ∗ applyErrIs err }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

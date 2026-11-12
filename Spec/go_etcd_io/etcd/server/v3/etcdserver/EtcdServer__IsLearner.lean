@@ -1,14 +1,11 @@
 /-
-## `(*EtcdServer).IsLearner(…)` (`server.go:2460-2468`): translated
-
-**Users.** 2a's interceptors (`interceptor.go:53`). **Proof sketch.** The membership view's read (`RaftCluster.IsLocalMemberLearner`,
-`IsMemberExist`: their updates fired by the server's invariant, which holds `clusterSt`), under the
-cluster's mutex (a `threadTok`). **Changes** (from `specs-ref`): over `srvMember`. **Margin.** The
-answer is a member's view at some point (2a uses it to refuse: a refusal is a `Step`).
+`s.IsLearner()` (`server.go`; names-only, the trust boundary of unit P3b, until D43 M4,
+2026-10-26: translated over the cluster's `IsLocalMemberLearner`). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 
 @[expose] public section
 
@@ -16,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,15 +23,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`IsLearner`**: whether the local member is a learner in its view (some answer). -/
-def EtcdServer.IsLearner.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"IsLearner")) (Val #()))
-  {{ (b : Bool), RET #b; threadTok }}
+/-- `s.IsLearner()` (`s.cluster.IsLocalMemberLearner()`: the local member's `IsLearner`, read
+under the cluster's mutex, `isRaftCluster`) returns some boolean. (Until D43 M4, 2026-10-26, given
+that the local member is in the members map, `membership.localKept`: `IsLocalMemberLearner`
+panicked otherwise; the fork's fix returns `false`.) -/
+abbrev EtcdServer.IsLearner.spec : Prop :=
+  -- (D43 M4, 2026-10-26) at any side condition of the cluster's lock invariant
+  ∀ (s c : Loc) (RM : membership.RcSide GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvClusterAddr s ↦□ c ∗ membership.isRaftClusterG c RM }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"IsLearner")) (Val #()))
+  {{ (b : Bool), RET #b; True }}
+
+/-- The static cluster's (`isRaftCluster`). -/
+theorem EtcdServer.IsLearner.spec_static (h : EtcdServer.IsLearner.spec (GF := GF) (hG := hG))
+    (s c : Loc) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvClusterAddr s ↦□ c ∗ membership.isRaftCluster c }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"IsLearner")) (Val #()))
+  {{ (b : Bool), RET #b; True }} := by
+  rw [(membership.isRaftCluster_static c).to_eq]
+  exact h s c _
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

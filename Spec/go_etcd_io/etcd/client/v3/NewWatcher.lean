@@ -1,34 +1,23 @@
 /-
-`clientv3.NewWatcher(c)` (`client/v3/watch.go`).
-
-**Users**: `newClient` (`E client/v3/client.go:460`, 1c: the `Watcher` field of `New`'s client,
-`isClient_fields`'s `watcherAt`, by `watcherHandle_watcherAt` once `clientReady c` is minted after
-`c.Auth` is set at `:461`). **Proof sketch**: `pb.NewWatchClient(c.conn)` (3h's stub over `connOk`,
-`req/go_etcd_io_etcd_api_v3_etcdserverpb.md`: the wire contract only once `c` is ready,
-`□ (clientReady c -∗ remoteWatchAt v γ who)`: the requested 3h change, verify-round W3), then
-`NewWatchFromWatchClient.spec` at `rc = c` (`clientBase`: `clientCore_pre`, `clientPre_base`).
-verify-round (A2-provability W3): the handle records `c` (was `watcherHandle w γ who`, whose
-bundle law needed a stub working before `c.Auth` is set). **Changes**
-from `specs-ref/.../NewWatcher.lean`: over 1c's `clientCore` (was the old environment `WEnv`; at
-integration `clientCore`, as 1c's sibling constructors `NewLease`, `NewAuth` take: it gives W0's
-`clientConnOk` by `clientConnOk_core` for the stub over `c.conn`, and `clientBase` for
-`NewWatchFromWatchClient`). **Margin**: none.
+`clientv3.NewWatcher(c)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
-public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,18 +25,24 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `NewWatcher(c)`: a watcher of the client's cluster as its principal. -/
-def NewWatcher.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who }}
+/-- `NewWatcher(c)` of a client `c` on the connection `V.conn` (its `conn` field, its call options,
+its logger): a watcher over a new stub (`NewWatchClient`), without the server's facts
+(`isClientWatcherCore`, D19f; `isClientWatcher_of_core` adds `watchConnFacts`). -/
+abbrev NewWatcher.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (V : WEnv GF) (c : Loc) (callSl : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      ⌜c ≠ null⌝ ∗
+      structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" c ↦□ V.conn ∗
+      structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
+      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewWatcher)) (Val #c))
-  {{ (v : GoInterface), RET #v; ∃ w : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty) #w⌝ ∗
-      watcherHandle w c γ who }}
+  {{ (wi : GoInterface), RET #wi; ∃ (w wc lg : Loc),
+      ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗ isClientWatcherCore { V with wc := wc, lg := lg } w }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

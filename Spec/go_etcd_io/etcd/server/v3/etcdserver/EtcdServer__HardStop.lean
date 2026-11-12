@@ -1,34 +1,39 @@
 /-
-## `(*EtcdServer).HardStop()` (`server.go:1339-1346`)
+`s.HardStop()` (`server/etcdserver/server.go`; the restart plan's R2a, 2026-11-02): stop the
+server without a leadership transfer. It signals `run` to stop and waits for `run`'s deferred
+shutdown: the scheduler stopped, the server's goroutines waited for (`s.wg`), the raft node and the
+transport stopped (`raftNode.stop`), `Cleanup` (the lessor, the KV store, the auth store, the
+backend and the compactor closed), `done` closed. Lean-first (no Rocq counterpart).
 
-**Users.** `examples/etcd/restart`'s `stop` (then the member's peer listener closed, and the
-member started again on its directory); `Stop`; etcd's tests. Snippets: `etcdserverboot/boot.go`
-(`ReqRestart`, `ReqStopAfterError`: `run` already returned on a transport error; `ReqStopDrained`:
-a request racing the stop, the gate).
+**Scope (R2c review F3, 2026-11-06):** besides `srvStop.scope`, the request takes the serving
+stocks' readers back, which only a member that never served gRPC can give: once a member serves, its
+stocks go to `Serve` and no spec gives them back (there is no `grpc.Server.Stop` spec). So a member
+can be stopped only if it never served (`restart3`'s stopped member). This matches etcd's own use:
+`embed.Etcd.Close` stops its gRPC servers (`stopServers`, `server/embed/etcd.go:441-446`, which
+waits on `GracefulStop` for the pending RPCs and falls back to `Stop` after the request timeout,
+`:503-521`) before `e.Server.Stop()` (`:469-471`). A `GracefulStop` spec that returns the stocks
+would lift the restriction (round 2's N4).
 
-**Proof sketch.** `srvRunning` holds the right to send on `s.stop` (unbuffered: `run`'s loop
-receives it) and the escrow of `s.done`. The `select`: either the send succeeds (`run` returns, its
-deferred stop runs: `stopping` closed, the context cancelled, the scheduler stopped, the attached
-goroutines waited for, the raft node stopped with its WAL closed (`ServerStorage.storage.Close`),
-`Cleanup`, `close(s.done)` with `memberDisk γ id ds` deposited: 2d's `run`), or `s.done` is already
-closed (`run` returned on a server error, `errorc`). Then `<-s.done` takes the deposit with the
-escrow's token.
-
-**Changes** (from `specs-ref`'s `EtcdServer__HardStop.lean`: `srvStopRight`, `srvStopReq` to
-`srvDiskImage γ ρ id dd`): the image is `memberDisk`, which every start takes (`memberStart_disk`, with the disk's access the program keeps),
-in place of the R2d'a restart contract's premises.
-
-**Round 1 (completeness F2).** The whole gate is a premise: no request in flight. `Cleanup` closes
-the backend while a serializable `Range` may still read it
-(`issues/etcd-read-after-backend-close-panic.md`); the gate's shares are the request path's (2c's
-specs hold one per call), so a program stops a member only after draining its gRPC server (or
-serving none). The alternative, a gate in the Go code, is open (`batch-2e.md` Q7).
-
-**Margin.** A second `HardStop` returns at once in Go; the spec takes the one stop right.
+**The triple:** from the right to stop the server (`srvStopRight`, which `Start` gives: `start`
+makes the channels `stop` and `done`) and the stop request it sends (`srvStopReq`, R2c-2): evidence
+that the server applied the cluster's bootstrap log (`srvBootApplied`: the image needs it, R2c
+review F4; R2b-2 review F2), the server's configuration in the stop's scope (`srvStop.scope`: auth
+off, no compaction mode; the user's Q2 (b): until then `run.specStop`'s premises), its data
+directory with no dedicated WAL directory (`srvDataDir`) and the store readers of the serving stocks
+`NewServer` handed out (`srvStopReaders`, R2c-4: the backend's `Close` needs every reader back),
+`HardStop` returns with member `id`'s data directory as its
+stop left it (`srvDiskImage`, R2c), at the request names `ρ` the right records, from which the
+member can be started again. It sends a stop request on `stop` (or finds `done` already closed),
+waits for `done`, and takes the image `run`'s shutdown escrowed there with the right's claim
+(`srvDoneInv`). The server's other resources are not given back: the next incarnation has its own,
+and goroutines of this one may still hold some (an `http.Serve` handler in flight). (R2b-2,
+2026-11-02: until then, in the R2a draft, also the request view `isServerReq`, for "`Start` was
+called"; a `HardStop` of a server never started blocks forever, which partial correctness allows,
+and the right now comes from `Start`.)
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 
 @[expose] public section
 
@@ -36,9 +41,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -47,16 +51,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Stops the running server `s`** and waits for its stop: the member's directories hold its
-durable state. -/
-def EtcdServer.HardStop.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat) (ds : Config.Dirs),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvRunning s γ id ds ∗ srvGate s 1 }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"HardStop")) (Val #()))
-  {{ RET #(); memberDisk γ id ds }}
+/-- See the file header. -/
+abbrev EtcdServer.HardStop.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvStopRight s E γ ρ id dd ∗ srvStopReq s E ρ dd }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"HardStop")) (Val #()))
+  {{ RET #(); srvDiskImage γ ρ id dd }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

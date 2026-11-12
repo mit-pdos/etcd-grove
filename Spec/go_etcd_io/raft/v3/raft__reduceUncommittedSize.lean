@@ -1,14 +1,9 @@
 /-
-## `raft.reduceUncommittedSize` (internal)
-
-`raft.Step` (apply acknowledgements). Mirrors the code. **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
-`raft__reduceUncommittedSize.lean`, over `NState`); round 1: the result is stated over the state.
+Port of `election_proof/spec_raft__reduceUncommittedSize.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Shrinks the uncommitted-size estimate (saturating). -/
-def raft.reduceUncommittedSize.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (s : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"reduceUncommittedSize")) (Val #s))
-  {{ RET #(); raftOpen r γ id o }}
+/-- `r.reduceUncommittedSize(s)` (`raft.go:2104`): the uncommitted-size estimate drops
+by `s`, saturating at `0`. `uncommittedSize` is not in `NState`, so the state is
+unchanged. At any configuration since 2026-10-14 (reconfiguration stage B7; until then on
+`ownRaftPhys cfg`, its only caller `raft.Step` now being at a configuration). -/
+abbrev raft.reduceUncommittedSize.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sz : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"reduceUncommittedSize"))
+      (Val #sz))
+  {{ RET #(); ownRaftPhysCV c c.voters r id s }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

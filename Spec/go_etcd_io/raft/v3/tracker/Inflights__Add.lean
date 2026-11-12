@@ -1,22 +1,9 @@
 /-
-## `Inflights.Add(index, bytes)`
-
-**Users.** `Progress.SentEntries` (replicate state, entries sent). Snippet `raftconf/tracker.go`
-(`ReqInflightsFull`).
-
-**Proof sketch.** `Full()` is false (premise; Go panics "cannot add into a Full inflights"
-otherwise); `next = start + count` (below `2 * size ≤ 2^63`), wrapped at `size`; `grow` when past
-the buffer; the store; `count++`, `bytes +=` (wrapping, as `InflightsV.bytes`).
-
-**Changes** (from `specs-ref`'s `tracker/Inflights__Add.lean`): the model appends `(index, bytes)`.
-
-**Margin.** None.
+Port of election_proof/spec_Inflights__Add.v (feb5c73d4).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -24,26 +11,42 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Records a message in flight (the ring must not be full). -/
-def Inflights.Add.spec : Prop :=
-  ∀ (p : Loc) (I : InflightsV) (index bytes : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ inflightsOwn p I ∗ ⌜I.full = false⌝ }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Inflights.ty @!! go!"Add")) (Val #index)) (Val #bytes))
-  {{ RET #(); inflightsOwn p { I with items := I.items ++ [(index, bytes)] } }}
+/-- `in.Add(index, bytes)` records one dispatched message (`Inflights.Add.impl`,
+`Code/go_etcd_io/raft/v3/tracker.lean`).
+
+Two things make the premise necessary rather than convenient.
+
+1. The body opens with `if in.Full() { panic("cannot add into a Full inflights") }`.
+   A triple without `inflightsFull i = false` would be false, not merely weak.
+2. It then writes `in.buffer[(in.start+in.count) mod in.size]`, growing the buffer on
+   demand. That the slot is in range is the content of `InflightsOk` in
+   `ownInflights` (`InvTracker.lean`); without it the triple is *also* false
+   (start = 100, count = 0, size = 1000, empty buffer is not `Full`, grows to one slot
+   and indexes slot 100).
+
+The new record is `inflightsAdd i bytes` (`Defs.lean`): one more message, `bytes` more
+bytes (wrapping, as `uint64`). `SentEntries` immediately re-tests `Full()` on it.
+(Until 2026-10-02 the result was existential, on `ownInflights` at the Goose value.) -/
+abbrev tracker.Inflights.Add.spec : Prop :=
+  ∀ (l : Loc) (i : Inflights) (index bytes : w64),
+  inflightsFull i = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      "Hin" ∷ ownInflights l i }}
+    (App (App (Val (l @!! go.GoType.PointerType tracker.Inflights.ty @!! go!"Add"))
+      (Val #index)) (Val #bytes))
+  {{ RET #(); ownInflights l (inflightsAdd i bytes) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

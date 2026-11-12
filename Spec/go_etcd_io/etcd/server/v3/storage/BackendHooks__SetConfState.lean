@@ -1,15 +1,12 @@
 /-
-## `(*BackendHooks).SetConfState(cs)` (`hooks.go:55-61`): translated
-
-**Users.** 2d's `applyConfChange` (the configuration after the change, for the next commit).
-**Proof sketch.** Under the hooks' lock, `proto.Clone` of `cs` (3h's `proto` boundary) stored as
-pending. **Changes**: from `specs-ref`. **Margin.** None.
+`(*BackendHooks).SetConfState(confState)` (`server/storage/hooks.go`). Lean-first (no Rocq
+counterpart); D43 M5b′ (2026-10-26), for `applyConfChange`; see
+`Proof/go_etcd_io/etcd/server/v3/storage/InvHooks.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
-public import Spec.go_etcd_io.raft.v3.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
+public import Spec.google_golang_org.protobuf.proto.CloneConfState
 
 @[expose] public section
 
@@ -17,26 +14,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ServerStorage
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage backend storage go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
-/-- **Records the configuration** the next commit writes. -/
-def BackendHooks.SetConfState.spec : Prop :=
-  ∀ (h : Loc) (ci : GoInterface) (p : Loc) (dq : DFrac) (cs : Raft.ConfState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ isHooks h ci ∗ Raft.confStatePts p dq cs }}
-    (App (Val (h @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty @!! go!"SetConfState")) (Val #p))
-  {{ RET #(); Raft.confStatePts p dq cs }}
+/-- `bh.SetConfState(cs)` of the server's hooks (`isBackendHooks`), with `cs` nil or a read-only
+`*pb.ConfState`: it returns (under `confStateLock`, `confState` set to a fresh clone of `cs`, a nil
+one for nil, and `confStateDirty` to `true`: what `csInv` guards). -/
+abbrev storage.BackendHooks.SetConfState.spec : Prop :=
+  ∀ (bh : Loc) (ix : GoInterfaceOk) (lg cs : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
+      storage.isBackendHooks bh ix lg ∗ (⌜cs = null⌝ ∨ ∃ c, ownCSM cs DFrac.discard c) }}
+    (App (Val (bh @!! go.GoType.PointerType BackendHooks.ty @!! go!"SetConfState")) (Val #cs))
+  {{ RET #(); True }}
 
 end spec
 
-end ServerStorage
 end EtcdGrove
 end Perennial

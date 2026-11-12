@@ -1,48 +1,58 @@
 /-
-`LeaseServer.LeaseGrant` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.Lease/LeaseGrant` (the generated `_Lease_LeaseGrant_Handler`, 3h,
-registered by `v3rpc.Server`); 1c's `RemoteCallTriple` for the lease RPCs through grpc and the stub (`examples/specreq/clientv3lease/`, `examples/specreq/v3rpc/lease.go`).
-
-Proof sketch: `ls.le.LeaseGrant(ctx, r)` (2c's `EtcdServer.LeaseGrant.spec` at `srvAt s γ ep`, the contract's bound `vi` passed as `srvLeaseLbOpt γ ep vi` and 2c's `srvLeaseFact` given back as the contract's `leaseFact` (the same definition), the update passed on, the principal `reqPrin ctx who tls` from the contract's `mdPrin` (`reqPrin_of_md`)); errors through `togRPCError`; `hdr.fill`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseGrant.lean`: over the contract (was the lease rows' `leaseServerAt` with its own answers).
-verify-round (A6 F1, with server-core's fix): 2c's success reply is `srvHdrReply` (`replyHdrOwn`): `replyHdrOwn_header` gives the `Header` field and a non-`nil` header for `hdr.fill` (`header.fill.spec`), `replyHdrOwn_replyOwn` the reply back.
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Changes: verify-round relay (server-core's RR request 1): takes `srvAt s γ ep` (2c's lease specs do: the lease view is the member's at the endpoint it serves); `leaseFact` is 2c's `srvLeaseFact`.
-
-Margin: none.
+`v3rpc.LeaseServer.LeaseGrant` (`v3rpc/lease.go`; the client lease's stage (c)). Lean-first (no
+Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvLease.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `LeaseServer.LeaseGrant(ctx, r)` meets the contract of `/etcdserverpb.Lease/LeaseGrant`. -/
-def LeaseServer.LeaseGrant.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseGrant")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ ∗ srvAt s γ ep) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseGrant") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty (srvGate s gq)
+/-- **`ls.LeaseGrant(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
+(`leaseServerAt`), whose `LeaseGrant` meets the grant contract `lessorGrantOkG s E S G` (the
+lease-grant plan's (F2): the grant contract alone, with the success fact `G`), in a gRPC run (its
+context, the resource `S`), on a decoded request: `ls.le.LeaseGrant(ctx, r)`, then the header
+filled: `S` back, and the server's response with its header filled by the cluster `cid` and the
+member `mid`, its revision not `0` and reached (and its `ID` (not `NoLease`), `TTL` and `Error`), or
+`nil` and a non-nil error (`leaseGrantOut`); on success, the response's `ID` with `G` of the
+request and it (2026-11-05, the lease-expiry plan's E3/R5: the granted TTL; until then `G` of the
+id only). (E3, 2026-11-04) The request is one the contract's filter `R` covers. -/
+abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (S : IProp GF)
+    (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorGrantOkG s E S G R ∗ S ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseGrantReqIs r m ∗
+      v3rpc.leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseGrant"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
+        structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id) ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

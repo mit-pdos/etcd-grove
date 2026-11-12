@@ -1,12 +1,10 @@
 /-
-`leasesByExpiry.Len()` (`lease.go:133`), an internal helper's spec (mirrors the code). **Users**:
-`sort.Sort` in `Leases`, `Promote`. **Changes** (from `specs-ref`): unchanged. **Margin**: none.
+`leasesByExpiry.Len` (`server/lease/lease.go`). Lean-first (no Rocq counterpart); the lease-read plan
+(`notes/lease-read-plan.md`, 2026-10-31).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -14,25 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **The slice's length.** -/
-def leasesByExpiry.Len.spec : Prop :=
-  ∀ (sl : GoSlice) (ps : List Loc) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ sl ↦*{dq} ps }}
-    (App (Val (sl @!! go_etcd_io.etcd.server.v3.lease.leasesByExpiry.ty @!! go!"Len")) (Val #()))
-  {{ RET #(W64 ps.length); sl ↦*{dq} ps }}
+/-- `le.Len()` on the slice `sl` of the leases `ls`: their number. -/
+abbrev lease.leasesByExpiry.Len.spec : Prop :=
+  ∀ (sl : GoSlice) (ls : List Loc) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ sl ↦*{dq} ls }}
+    (App (Val (sl @!! leasesByExpiry.ty @!! go!"Len")) (Val #()))
+  {{ RET #(W64 ls.length); sl ↦*{dq} ls }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

@@ -1,19 +1,13 @@
 /-
-## `(*Transport).AddRemote(id, us)`
-
-**Users.** etcd's `NewServer` (`server.go:431`, the remotes of a joining member); rafthttp's `addRemoteFromRequest` and `streamHandler` (requests from unknown members). Snippet: `transport.go` (`ReqStartTransport`).
-
-**Proof sketch.** `Lock`; `remotes` nil (stopped), a known peer or remote: return. `NewURLs` succeeds; `startRemote` (`remoteAt`, its stop right into the map invariant); `Unlock`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`). The remote-id list `L` and the four `R`s of a remote's pipeline are gone (thread tokens come from `Fork`). verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** The peer set is not tracked in the statement (no client needs it).
+`(*rafthttp.Transport).AddRemote(id, urls)` (`transport.go`). Lean-first; for `NewServer` since
+stage N0 (2026-10-16, D13), an axiom from unit N4 (2026-10-17, D14e) to rafthttp stage 6d
+(2026-10-24), which restated it over the transport's state and proved it over its callees' specs
+(`rafthttp.Transport.AddRemote_ok`, `TransportSpecs.lean`; linked in stage 6f).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 
 @[expose] public section
 
@@ -21,26 +15,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`AddRemote(id, us)`** with URLs `NewURLs` accepts (it panics otherwise: the documented caller's responsibility), each host a peer address of `ν` (a no-op after `Stop`, or for a known peer or remote). -/
-def Transport.AddRemote.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid pid : w64) (sl : GoSlice) (us hs : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ sl ↦*{DFrac.discard} us ∗ ⌜Types.urlsHosts us = some hs⌝ ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
-    (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddRemote")) (Val #pid)) (Val #sl))
-  {{ RET #(); True }}
+/-- **`t.AddRemote(id, us)`** on a started transport, by any caller (D43 M5c: no owner's right;
+the handlers call it on every request, for a sender that is no peer), as `AddPeer`, of an id the
+transport's pool has four `R`s for (`id ∈ c.L`, which `Start` was given them for; the remote's
+pipeline's goroutines borrow them for good): it returns. It starts a remote for `id` unless the
+transport is stopped or `id` is a peer or has a remote already. -/
+abbrev rafthttp.Transport.AddRemote.spec : Prop :=
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) (us : GoSlice) (dq : DFrac)
+    (ss : List GoString),
+  ss ≠ [] → (∀ s ∈ ss, types.plainPeerURL s) →
+  (∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = id) → c.lid ≠ id → (netRh γn).member id →
+  id ∈ c.L →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trState γn t c ∗ us ↦*{dq} ss }}
+    (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
+      (Val #id)) (Val #us))
+  {{ RET #(); us ↦*{dq} ss }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,28 +1,22 @@
 /-
-`RegisterWatchServer(s, srv)` (`api/etcdserverpb/rpc_grpc.pb.go`, generated).
-
-Users: `v3rpc.Server` (`grpc.go`, 2a).
-Proof sketch: the assertion `srv.(interface{ testEmbeddedByValue() })` fails (the premise: etcd's
-service values embed no `UnimplementedWatchServer`), then `s.RegisterService(&Watch_ServiceDesc, srv)`.
-2a's `Server.RegisterService.spec` with `watchDesc_init`/`otherDescs_init` gives the
-registration.
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/RegisterWatchServer.lean`: WP form (the registrar is grpc's, 2a's `Server.RegisterService.spec` at `*grpc.Server`).
-Margin: none.
+`etcdserverpb.RegisterWatchServer(s, srv)` (`api/etcdserverpb/rpc_grpc.pb.go`, generated; item 4, the
+server start). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/google_golang_org/grpc/InvGrpcServer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServerPb
 
-open Iris Iris.BI EtcdModel EtcdWire
-open go_etcd_io.etcd.api.v3
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,17 +25,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-/-- `RegisterWatchServer(s, srv)`: the registrar's `RegisterService` of the service's descriptor (WP form). -/
-def RegisterWatchServer.spec : Prop :=
-  ∀ (s : GoInterface) (srv : GoInterfaceOk) (Ψ : val → IProp GF),
-  go.typeSetContains srv.ty embedTestTy = false →
-  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-    WP (App (App (Val (s @!! google_golang_org.grpc.ServiceRegistrar.ty @!! go!"RegisterService"))
-      (Val #(globalAddr etcdserverpb.Watch_ServiceDesc))) (Val #(GoInterface.ok srv))) {{ Ψ }} ⊢
-  WP (App (App (Val (@! etcdserverpb.RegisterWatchServer)) (Val #s)) (Val #(GoInterface.ok srv))) {{ Ψ }}
+/-- `RegisterWatchServer(gs, srv)` on a server being built registers the service of
+`Watch_ServiceDesc` (`grpcDescIs`, read-only; a service not registered yet, whose names are
+distinct) with the service value `srv` (implementing the descriptor's handler type, with no
+`testEmbeddedByValue`): `grpc.Server.RegisterService`'s registration. -/
+abbrev etcdserverpb.RegisterWatchServer.spec : Prop :=
+  ∀ (gs : Loc) (srv : GoInterface) (ics sics : List GoFunc) (svcs : List GoString)
+    (regs sregs : List (GoString × val × GoInterface)) (sn : GoString) (ht : GoInterface)
+    (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+  {{ grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗
+      grpcDescIs (globalAddr etcdserverpb.Watch_ServiceDesc) sn ht mds sds ∗ ⌜sn ∉ svcs⌝ ∗
+      ⌜grpcImplements srv ht⌝ ∗ ⌜(descNames mds sds).Nodup⌝ ∗ ⌜grpcNoTestEmbedded srv⌝ }}
+    (App (App (Val (@! etcdserverpb.RegisterWatchServer))
+      (Val #(interface.mkOk (go.GoType.PointerType google_golang_org.grpc.Server.ty) #gs :
+        GoInterface)))
+      (Val #srv))
+  {{ RET #(); grpcSrvNew gs ics sics (svcs ++ [sn]) (regs ++ descRegs sn mds srv)
+      (sregs ++ descSRegs sn sds srv) }}
 
 end spec
 
-end EtcdServerPb
 end EtcdGrove
 end Perennial

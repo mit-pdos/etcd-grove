@@ -1,6 +1,6 @@
 // Package etcdserverreq holds the requirement snippets of etcd's server request path (batch 2c,
-// Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean and the EtcdServer__*.lean specs of
-// v3_server.go, and Spec/.../etcdserver/read/): minimal uses of the patterns its users rely on (the
+// SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean and the EtcdServer__*.lean specs of
+// v3_server.go, and SpecPlan/Spec/.../etcdserver/read/): minimal uses of the patterns its users rely on (the
 // gRPC handlers of api/v3rpc, the server's internal requesters: the lessor's expiry, the
 // compactors, the alarms), each reliance an explicit panic.
 //

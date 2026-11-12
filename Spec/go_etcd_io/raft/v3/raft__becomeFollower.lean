@@ -1,26 +1,7 @@
-/-
-## `raft.becomeFollower(term, lead)` (internal)
-
-**Users.** `raft.Step` (a higher term, `raft.go:1145`, `:1147`), `stepCandidate` (a leader of the term,
-`:1703`-`:1709`, or a lost vote, `:1725`), `stepLeader` (`MsgCheckQuorum`, `:1302`), `switchToConfig`
-(`stepDownOnRemoval`, `:2004`), `newRaft` (`:487`), `RawNode.Bootstrap` (`bootstrap.go:52`, inside
-`rawNodeAt_bootstrap`'s window).
-
-**Proof sketch.** `reset(term)` (`reset.spec`: a new term forgets the vote; counters, transfer, votes,
-progress -- R4's, in place -- and the read-only queue reset; the term only grows); the step function,
-tick, leader and role of a follower; `traceBecomeFollower`. The invariant at the new state: the new
-term is volatile (bounded by the terms the cluster has seen: the caller's message or the node's own
-term); the leader, if any, is the term's (`leaderOf`), which a forwarded transfer request relies on.
-
-**Changes** (from `specs-ref`'s `raft__becomeFollower.lean`): over the opened struct (round 1:
-`RawNode.Bootstrap` calls it inside a window where the struct is open). **Margin.** Exact on the
-view and the log.
--/
+/- Port of election_proof/spec_raft__becomeFollower.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -28,28 +9,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Becomes a follower of term `t` (not below the node's) with leader `l` (none, or the term's leader). -/
-def raft.becomeFollower.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (t l : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ coreInv r γ id o ∗ ⌜uint.nat o.view.hs.term ≤ uint.nat t⌝ ∗
-      (⌜l = W64 0⌝ ∨ leaderOf γ t l) }}
-    (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"becomeFollower")) (Val #t)) (Val #l))
-  {{ RET #(); ∃ o', raftOpen r γ id o' ∗ coreInv r γ id o' ∗
-      ⌜o'.view = { o.view with hs := if t = o.view.hs.term then o.view.hs else ⟨t, W64 0, o.view.hs.commit⟩,
-                               lead := l, role := StateFollower } ∧ o'.log = o.log⌝ }}
+/-- `becomeFollower` is `r.step := stepFollower`, `reset`, and assignments to `lead`
+and `state`; `becomeFollower` (`Defs.lean`) is exactly that, `r.step` included. The
+precondition says nothing about `r.step`: the function overwrites it first, which is
+why `newRaft` can call this on a struct whose `step` is still nil. The term does not
+move back (`raft.reset.spec`, 2026-10-10). -/
+abbrev raft.becomeFollower.spec : Prop :=
+  ∀ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) (term lead : w64),
+  uint.Z s.term ≤ uint.Z term →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s }}
+    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeFollower"))
+      (Val #term)) (Val #lead))
+  {{ (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c V r id { becomeFollower s term lead with prvals := pvs } }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

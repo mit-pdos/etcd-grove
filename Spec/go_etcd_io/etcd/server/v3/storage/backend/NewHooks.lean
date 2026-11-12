@@ -1,14 +1,11 @@
 /-
-## `NewHooks(onPreCommitUnsafe)` (`hooks.go:34-36`): translated
-
-**Users.** Tests and tools (`hooks_test.go`); the server uses its own `*BackendHooks` (2e).
-**Proof sketch.** The struct `hooks{f}` as a `Hooks` value; its method calls `f(tx)`
-(`hooks.OnPreCommitUnsafe.spec`), so the hooks' contract is `f`'s. **Changes.** From `specs-ref`'s:
-over `hookOk`. **Margin.** None.
+`NewHooks` (the backend). `NewHooks(f)`: a `Hooks` whose `OnPreCommitUnsafe` is `f`.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -16,28 +13,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`NewHooks(f)`**: a `Hooks` value whose contract is `f`'s (`hookOk` at the struct as at `f`). -/
-def NewHooks.spec : Prop :=
-  ∀ (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.NewHooks)) (Val #f))
-  {{ (h : GoInterface), RET #h; ⌜h ≠ interface.nil⌝ ∗
-      □ ∀ (γ : BeNames) (Fh : Fp) (Pk : IProp GF),
-        hookFnOk γ f Fh Pk -∗ hookOk γ h Fh Pk }}
+/-- `NewHooks(f)`: a `Hooks` whose `OnPreCommitUnsafe` is `f`. -/
+abbrev backend.NewHooks.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (f : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ hookFnSpec γ P Pk b t f }}
+    (App (Val (@! NewHooks)) (Val #f))
+  {{ (h : GoInterface), RET #h; hooksSpec γ P Pk b t h }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

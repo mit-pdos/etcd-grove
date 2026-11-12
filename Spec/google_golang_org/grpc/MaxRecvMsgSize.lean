@@ -1,25 +1,18 @@
 /-
-`grpc.MaxRecvMsgSize` (grpc-go, assumed: `server.go`).
-
-Users: `v3rpc.Server` (`grpc.go:85`: `MaxRequestBytesWithOverhead`).
-
-Why true: a request over the limit is refused before any handler runs, with `ResourceExhausted` (grpc's own error, the client's contract lost: the run never happens).
-
-Changes: from `specs-ref/.../grpc/MaxRecvMsgSize.lean`.
-
-Margin: none.
+`grpc.MaxRecvMsgSize(n)` (names only; item 4, the server start).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -29,15 +22,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.MaxRecvMsgSize(...)`: a server option acting as shown. -/
-def MaxRecvMsgSize.spec : Prop :=
+/-- `grpc.MaxRecvMsgSize(n)` returns a neutral option. -/
+abbrev grpc.MaxRecvMsgSize.spec : Prop :=
   ∀ (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ True }}
+  {{ (True : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.MaxRecvMsgSize)) (Val #n))
-  {{ (v : GoInterface), RET #v; srvOptAt v (id) }}
+  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v .neutral⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

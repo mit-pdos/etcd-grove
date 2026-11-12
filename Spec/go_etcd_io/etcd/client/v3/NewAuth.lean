@@ -1,18 +1,10 @@
 /-
-`clientv3.NewAuth` (`client/v3/auth.go`).
-
-Users: `newClient`.
-
-Proof sketch: the retry wrapper over the client's connection (`Retry*Client`'s spec, from
-`clientConnOk`), the client's `callOpts` (`callOptsOk _ false`); persisted.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/NewAuth.lean`: over `clientCore`.
-
-Margin: none.
+`clientv3.NewAuth(c)` (`client/v3/auth.go`; item 5: `newClient` calls it; translated for the auth
+plan's E2h, names only before). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -20,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,16 +22,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `NewAuth(c)`: a `*authClient` of the client's cluster and principal. -/
-def NewAuth.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who }}
+/-- `NewAuth(c)` on a `*Client` with the connection `conn` (`clientKVAtS`, what `NewKV` reads):
+a new `*authClient` over a `*retryAuthClient` on that connection, with the client's call options
+(`authObjS`), as an `Auth` (the auth plan's C1, 2026-10-28: without the connection's fact, which `newClient` attaches once
+the client is ready, `InvClientAuth.lean`). -/
+abbrev NewAuth.spec : Prop :=
+  ∀ (c conn : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientKVAtS c conn }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewAuth)) (Val #c))
-  {{ (v : GoInterface), RET #v; ∃ a : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #a⌝ ∗ authHandle a c γ who }}
+  {{ (v : GoInterface), RET #v; ∃ api : Loc,
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #api⌝ ∗
+      authObjS api conn }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

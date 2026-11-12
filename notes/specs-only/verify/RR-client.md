@@ -2,7 +2,7 @@
 
 Reviewer: fresh, independent, read-only (2026-11-09). Worktree `specs-only`, HEAD `4a6a9b6b6e`, with
 the repairs uncommitted in the working tree. Diffed against `4a6a9b6b6e`:
-`Spec/go_etcd_io/etcd/{client,api}`, `Spec/context`, `examples/specreq/{clientv3kv,clientv3lease,concurrency}`.
+`SpecPlan/Spec/go_etcd_io/etcd/{client,api}`, `SpecPlan/Spec/context`, `examples/specreq/{clientv3kv,clientv3lease,concurrency}`.
 Go sources: `.lake/src/{client,server}` (fork `a4d2bb17`). I wrote the verdicts below before reading the
 "Re-review" sections of `repair-{client-core,client-users,grpc-v3rpc}.md`. I read them afterwards only to
 check the one disagreement (RR-1).
@@ -23,7 +23,7 @@ check the one disagreement (RR-1).
 |---|---|---|---|
 | R-A1 | **NF1**: the KV requests' `endsOk` had no source | **Resolved** | See (a) below. |
 | R-A1 | **NF2**: `cloneCompare`/`FromCompare`/`Cmp.Clone` at a non-`nil` empty end | **Resolved** | See (b) below. |
-| R-A1 | **NF3**: `Context.Value.spec` vs `ctxOk_of_isContext` | **Resolved** | The law is dropped (`Spec/context/Api.lean:95-97`), and nothing in `Spec/` or `examples/` names it. `Value.spec` (`:176-180`) is true of Go's contexts: a `valueCtx` compares the key with a stored key of a comparable type, so the comparison never panics. The second-tier `ctxValueIs_child` now takes a "not `*int`" premise (`:194-196`). That is right for `&cancelCtxKey`. It also excludes user keys of type `*int`, which is harmless (the same shape as Perennial's `notIntPtrKey`). |
+| R-A1 | **NF3**: `Context.Value.spec` vs `ctxOk_of_isContext` | **Resolved** | The law is dropped (`SpecPlan/Spec/context/Api.lean:95-97`), and nothing in `Spec/` or `examples/` names it. `Value.spec` (`:176-180`) is true of Go's contexts: a `valueCtx` compares the key with a stored key of a comparable type, so the comparison never panics. The second-tier `ctxValueIs_child` now takes a "not `*int`" premise (`:194-196`). That is right for `&cancelCtxKey`. It also excludes user keys of type `*int`, which is harmless (the same shape as Perennial's `notIntPtrKey`). |
 | R-A2 | **N1**: `TimeToLive`'s per-member fact is false | **Resolved, but introduced RR-1** | See (c) below. |
 | R-A3 | **N1** (1d): `ReqMutexNoTwoHolders` needs distinct leases | **Resolved** | See (d) below. |
 

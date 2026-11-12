@@ -1,17 +1,9 @@
 /-
-`(clientv3.CompactOp).toRequest` (`client/v3/compact_op.go`).
-
-Users: `kv.Compact`.
-
-Proof sketch: a fresh request (`compactReqOwn_unfold`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/CompactOp__toRequest.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.CompactOp.toRequest()` (`client/v3/compact_op.go`; the client's `kv.Compact`, 2026-11-01). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -19,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,15 +21,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.toRequest()`: a fresh `CompactionRequest`. -/
-def CompactOp.toRequest.spec : Prop :=
+/-- `op.toRequest()`: a new `*pb.CompactionRequest` holding `op`'s revision and `Physical` flag,
+its other fields zero. -/
+abbrev CompactOp.toRequest.spec : Prop :=
   ∀ (op : go_etcd_io.etcd.client.v3.CompactOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (op @!! go_etcd_io.etcd.client.v3.CompactOp.ty @!! go!"toRequest")) (Val #()))
-  {{ (p : Loc), RET #p; compactReqOwn p (DFrac.own 1) (sint.Z op.revision') op.physical' }}
+  {{ (p : Loc), RET #p; ∃ req : etcdserverpb.CompactionRequest, p ↦ req ∗
+      ⌜req.Revision' = op.revision' ∧ req.Physical' = op.physical' ∧
+        req.unknownFields' = slice.nil⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,24 +1,9 @@
 /-
-## `notify.NewNotifier()`
-
-**Users.** `EtcdServer.start` (`server.go`: `leaderChanged`, `firstCommitInTerm`), the lessor's
-demotion notifier. Snippet: `examples/specreq/wait/notify.go`.
-
-**Proof sketch.** Allocates the struct and an unbuffered channel (Perennial's `chan.make`: `isChan`,
-`ownChan` open), the mono-nat at `0`, the lock with its invariant.
-
-**Changes.** The old spec (`specs-ref`'s `NewNotifier.lean`) fixed a client predicate the closes
-carried; restated over the epoch counter (no client predicate: TaDa, not HoCAP).
-
-Round 1: the count `notifyCount γ 0` handed to the caller (provability F8).
-
-**Margin.** None.
+`notify.NewNotifier()` (`notify.go`). Lean-first (no Rocq counterpart); the request path's unit 4b (2026-10-13).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.notify.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 
 @[expose] public section
 
@@ -26,24 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Notify
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.pkg.v3.notify.Assumptions]
 
-/-- A new notifier, no notification yet. -/
-def NewNotifier.spec : Prop :=
+/-- `notify.NewNotifier()`: a notifier (`isNotifier`, the writer guard of its mutex) and the
+mutex's reader slots (`notifyReader`; Perennial's `RWMutex` admits a bounded number of readers). -/
+abbrev notify.NewNotifier.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify }}
-    (App (Val (@! go_etcd_io.etcd.pkg.v3.notify.NewNotifier)) (Val #()))
-  {{ (n : Loc), RET #n; ∃ γ : NotifyNames, notifierAt n γ ∗ notifyCount γ 0 ∗ notifyLb γ 0 }}
+    (App (Val (@! notify.NewNotifier)) (Val #()))
+  {{ (n : Loc), RET #n; isNotifier n ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), notifyReader n }}
 
 end spec
-end Notify
+
 end EtcdGrove
 end Perennial

@@ -1,13 +1,9 @@
 /-
-`(*watchableStore).progressAll(watchers)` (internal; `watchStream.RequestProgressAll`'s callee,
-under `ws.mu`): `progressIfSync` with the id `-1`.
-
-**Proof sketch.** `progressIfSync` (its spec).
+`watchableStore.progressAll` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 
 @[expose] public section
 
@@ -15,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,14 +21,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchableStore.progressAll.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName) (ι : WsNames) (m : GoMap),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ wsMapAt m ι ∗ mvccReaders γ 1 }}
+/-- `s.progressAll(m)`: the `watchable` contract's `progressAll` (`progressIfSync` with
+`InvalidWatchID`), lent the stream's `progCompl` (K1b). -/
+abbrev mvcc.watchableStore.progressAll.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (m : Loc) (dq : DFrac) (M : GMap w64 Loc)
+    (γc : mvcc.WatchChanNames) (o : Bool) (ch : GoChan) (L : List Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗ m ↦${dq} M ∗
+      □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ (mvcc.storeWatchParams s st γ).IW w ∗
+        (mvcc.storeWatchParams s st γ).OC w γc) ∗
+      mvcc.progFact γc.prog ∗ mvcc.progCompl (mvcc.storeWatchParams s st γ) γc M o ch L ∗
+      mvcc.watchReader s st γ }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"progressAll")) (Val #m))
-  {{ (b : Bool), RET #b; wsMapAt m ι ∗ mvccReaders γ 1 }}
+  {{ (b : Bool), RET #b; m ↦${dq} M ∗ mvcc.progCompl (mvcc.storeWatchParams s st γ) γc M o ch L ∗
+      mvcc.watchReader s st γ }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

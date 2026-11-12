@@ -1,7 +1,7 @@
 //go:build ignore
 
 // Requirement snippets of bbolt's internal/common (batch 4d,
-// Spec/go_etcd_io/bbolt/internal/common/): what bbolt (node.go, cursor.go, bucket.go, tx.go,
+// SpecPlan/Spec/go_etcd_io/bbolt/internal/common/): what bbolt (node.go, cursor.go, bucket.go, tx.go,
 // db.go) relies on of its page, meta and bucket-header encodings, each reliance an explicit
 // panic. The package is internal, so examples cannot import it: the snippets are written as if in
 // it (package common), not built, gofmt-clean.

@@ -1,23 +1,22 @@
 /-
-`(*valCtx).Done()`: the package's `valCtxCh`, never closed (`valCtx_ctxOk`). Users: `WithCancel`'s propagation.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.valCtx).Done()` (`client/v3/watch.go`; the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +24,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `vc.Done()`: the package's never-closed channel. -/
-def valCtx.Done.spec : Prop :=
+/-- `vc.Done()`: the package's `valCtxCh` (never closed). -/
+abbrev valCtx.Done.spec : Prop :=
   ∀ (vc : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
-    (App (Val (vc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty @!! go!"Done")) (Val #()))
-  {{ (ch : Loc), RET #ch; globalAddr go_etcd_io.etcd.client.v3.valCtxCh ↦□ ch }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientWatchVars }}
+    (App (Val (vc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty @!! go!"Done"))
+      (Val #()))
+  {{ (ch : GoChan), RET #ch; globalAddr go_etcd_io.etcd.client.v3.valCtxCh ↦□ ch }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

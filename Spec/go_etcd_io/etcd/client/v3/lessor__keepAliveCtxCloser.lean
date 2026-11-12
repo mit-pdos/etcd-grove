@@ -1,27 +1,11 @@
 /-
-`(*clientv3.lessor).keepAliveCtxCloser` (`client/v3/lease.go`).
-
-Users: `KeepAlive` (a goroutine per call whose context can be done).
-
-Proof sketch: a `select` on the entry's `donec`, the lessor's `donec`, `ctx.Done()` (each a channel
-whose receive is safe: `kaDonec`, the lessor's invariant, `ctxOk`); then under `l.mu`: if the lease's
-current entry holds this call's context (compared by the `keepAliveCtxKey` value, unique per
-`KeepAlive` call), closes its channel (the close token the entry holds: never closed twice, since
-every closer removes the channel from the entry under `l.mu`) and removes it; drops an empty entry.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__keepAliveCtxCloser.lean`: restated
-over `lessorHandle`.
-
-verify-round: the comparison `c.Value(keepAliveCtxKey{}) == ctx.Value(keepAliveCtxKey{})` by
-`Context.Value.spec` on both contexts, each a `WithValue` context of `KeepAlive` recorded by
-`ctxValueIs` at that key (its value `&ctx`, a pointer: comparable, so the `==` cannot panic; the
-same pointer exactly when it is this call's context): A1-completeness F5, the callee spec was missing.
-
-Margin: none.
+`(*clientv3.lessor).keepAliveCtxCloser(ctx, id, donec)` (`client/v3/lease.go`; item 1, the client
+lease). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.context.ReqKeys
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
 
@@ -29,10 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -41,16 +23,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `l.keepAliveCtxCloser(ctx, id, donec)`: closes this call's channel once `ctx` is done (unless
-the entry or the lessor is done first). -/
-def lessor.keepAliveCtxCloser.spec : Prop :=
-  ∀ (l c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (id : w64) (donec : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ Context.ctxOk ctx ∗ kaDonec donec }}
-    (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"keepAliveCtxCloser")) (Val #ctx)) (Val #id)) (Val #donec))
+/-- `l.keepAliveCtxCloser(ctx, id, donec)` on a lessor (`lessorAt`), for a context and a
+keep-alive's `donec`: once `ctx` is done (unless `donec` or the lessor's `donec` is closed first),
+under the lock, closes and removes the channel of the lease `id`'s keep-alive whose context is
+`ctx`'s (by their values at `keepAliveCtxKey{}`), removing the keep-alive if it has no channel
+left; it returns. It keeps the lock invariant's alignment (`kaPaired`: it removes the same index
+from `chs` and `ctxs`), so the channel it closes is the one registered with the context it found.
+That this context is `ctx` (and so the channel `KeepAlive` returned for `ctx`) is not stated:
+`Value`'s trust-boundary spec (`context.ValueKeepAlive`) says only that it returns `nil` or some
+pointer, not `WithValue`'s `&ctx`. -/
+abbrev lessor.keepAliveCtxCloser.spec : Prop :=
+  ∀ (l : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (id : w64) (kd : GoChan) (γkd : ChanNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
+      context.isContext ctx cd ∗ context.keepAliveOk ctx ∗ ownBroadcastChan kd γkd iprop(True) .Unknown }}
+    (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"keepAliveCtxCloser"))
+      (Val #(GoInterface.ok ctx))) (Val #id)) (Val #kd))
   {{ RET #(); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

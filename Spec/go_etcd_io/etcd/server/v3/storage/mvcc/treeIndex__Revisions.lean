@@ -1,11 +1,9 @@
 /-
-`(*treeIndex).Revisions(key, end, atRev, limit, withTotalCount)` (`index.go:112`): under the read
-lock, the revisions of the range's keys at `atRev` (`idxRange`: cut at the limit, the total), by
-the caller's update, unchanged. Internal (`rangeKeys`). **Changes**: an atomic update over `idxAt`.
+`treeIndex.Revisions` (`index.go`). Lean-first (no Rocq counterpart); see `InvIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 
 @[expose] public section
 
@@ -13,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -23,24 +20,32 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ti.Revisions(key, end, atRev, limit, withTotalCount)`. -/
-def treeIndex.Revisions.spec : Prop :=
-  ∀ (ti : Loc) (γi : IdxName) (key endk : GoSlice) (k e : GoString) (dk de : DFrac) (atRev : w64)
-    (limit : w64) (wt : Bool) (Q : IndexM → IProp GF),
-  {{ pkgInit ∗ isTreeIndex (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti) γi ∗
-      key ↦*{dk} k ∗ endk ↦*{de} e ∗
-      AU <{ ∃∃ (M : IndexM) (c : Int), idxAt γi M c ∗ ⌜c ≤ sint.Z atRev⌝ }> @ ⊤ \ ↑idxN, ∅
-        <{ idxAt γi M c, COMM Q M }> }}
-    (App (App (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Revisions")) (Val #key)) (Val #endk)) (Val #atRev)) (Val #limit)) (Val #wt))
-  {{ (revs : GoSlice) (total : w64), RET (PairV #revs #total); key ↦*{dk} k ∗ endk ↦*{de} e ∗
-      ∃ (M : IndexM) (out : List (GoString × Rev × Rev × w64)) (n : Nat), Q M ∗
-        ⌜idxRange M (mrange k endk e) atRev (sint.Z limit) wt out n ∧ total = W64 n⌝ ∗
-        revs ↦* out.map (fun x => revVal x.2.1) }}
+/-- `ti.Revisions(key, end, atRev, limit, withTotalCount)` by a reader with the knowledge `kn`
+of the index (`idxKnows`: a committed log's certificate, or the writer's handle; its log
+`log := kn.log`), at a revision below its length: the revisions of the keys of `[key, end)`
+(`end == nil`: the one key) that `log` determines at `atRev`, in key order, at most `limit` of
+them if positive, and their count (all of them if `withTotalCount`, else at most `limit`). The reader holds a part of the compaction revision `c`'s authority (`crevUB`, given back),
+at or below `atRev`: every key's compaction level is at most `c` (`idxLockInv`). -/
+abbrev mvcc.treeIndex.Revisions.spec : Prop :=
+  ∀ (ti : Loc) (γ : mvcc.IdxNames) (kn : mvcc.IdxKnow) (key endk : GoSlice) (k e : GoString)
+    (atRev limit : w64) (withTotal : Bool) (e0 : GoInterfaceOk) (q : Qp) (c : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTreeIndex ti γ ∗ mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗
+      mvcc.crevUB γ q c ∗ ⌜-1 ≤ c ∧ c ≤ sint.Z atRev⌝ ∗
+      ⌜0 ≤ sint.Z atRev ∧ sint.Z atRev < kn.log.length⌝ ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e0 }}
+    (App (App (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Revisions"))
+      (Val #key)) (Val #endk)) (Val #atRev)) (Val #limit)) (Val #withTotal))
+  {{ (revs : GoSlice) (total : w64), RET (PairV #revs #total);
+      mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q c ∗
+      revs ↦* ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map
+        fun x => mvcc.revVal x.2.1) ∗
+      ownSliceCap Revision revs (DFrac.own 1) ∗
+      ⌜total = W64 (mvcc.rangeTotal kn.log (decide (endk = slice.nil)) k e atRev limit withTotal)⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

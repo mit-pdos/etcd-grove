@@ -1,19 +1,15 @@
 /-
-## `NewMessage(rs, rc, rcSize)` (`message.go:41-48`): trusted (names only)
-
-**Users.** 2d's `createMergedSnapshotMessage` (the raft `MsgSnap`, the backend snapshot's reader,
-its size). **Why it is true.** A struct literal: the reader wrapped to `rcSize` bytes
-(`ioutil.NewExactReadCloser`), the total size `proto.Size(rs) + rcSize`, a channel of capacity 1.
-The axiom sweep's B3-3: a nil reader panics at the close (`rcClose`), a negative size breaks the
-size's sign (the premise).
-**Changes** (from `specs-ref`'s `NewMessage.lean`): the close contract and the size premise (the
-sweep's decided repair). **Margin.** The size is not stated.
+`snap.NewMessage(rs, rc, rcSize)` (`etcdserver/api/snap/message.go`; names only): the merged
+snapshot message of the raft message `rs` and the reader `rc` of `rcSize` bytes. The trust
+boundary (D22 S-h, 2026-10-20; an axiom in `Proof/.../snap/NewMessage.lean`). Lean-first (no Rocq
+counterpart); the vocabulary is `Proof/.../snap/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Api
-public import Spec.go_uber_org.zap.Api
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
+public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.io.Defs
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 @[expose] public section
 
@@ -21,26 +17,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Snap
 
-open Iris Iris.BI
+open Iris Iris.BI snap
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **A merged snapshot message** to the raft message's recipient. -/
-def NewMessage.spec : Prop :=
-  ∀ (rs : Loc) (dq : DFrac) (m : Raft.Msg) (rc : GoInterface) (sz : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗ Raft.msgPts rs dq m ∗ rcClose rc ∗ ⌜0 ≤ sint.Z sz⌝ }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage)) (Val #rs)) (Val #rc)) (Val #sz))
-  {{ (p : Loc), RET #p; ∃ tot : w64, isMessage p m.to tot ∗ msgClose p ∗ ⌜0 ≤ sint.Z tot⌝ }}
+/-- `snap.NewMessage(ml, rc, sz)` of a read-only raft message `ml` (`proto.Size` reads it) and a
+reader `rc` whose `Close` returns (`io.rcCloseOk`: the message's `CloseWithError` and its wrapper's
+`Close` close it; sweep repairs 1, S1, 2026-11-08) of a size `sz` in `[0, 2^62)` (S2: `TotalSize`
+does not overflow): a
+fresh `*snap.Message` `m` of `ml` and `rc` (`msgIs`, read-only for good), its `TotalSize` field
+read-only at some value (`proto.Size(ml) + sz`, which the sender only logs), and its `closeC`, a
+fresh channel of booleans (`msgCloseC`) whose receives carry nothing (`isChanBag` at `True`: the
+transport's `CloseWithError` sends on it once, its success). -/
+abbrev snap.NewMessage.spec : Prop :=
+  ∀ (ml : Loc) (st : MsgSt) (rc : GoInterface) (sz : w64),
+  {{ msgOwn (GF := GF) ml DFrac.discard st ∗ io.rcCloseOk rc ∗
+      ⌜0 ≤ sint.Z sz ∧ sint.Z sz < 2 ^ 62⌝ }}
+    (App (App (App (Val (@! _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage))
+      (Val #ml)) (Val #rc)) (Val #sz))
+  {{ (m : Loc), RET #m;
+      msgIs m ml rc ∗ ∃ (tsz : w64) (c : Loc) (γc : ChanNames),
+        structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message
+          go!"TotalSize" m ↦□ tsz ∗
+        msgCloseC m c ∗ isChanBag γc c (V := Bool) (fun _ => iprop(True)) }}
 
 end spec
 
-end Snap
 end EtcdGrove
 end Perennial

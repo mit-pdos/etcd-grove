@@ -1,14 +1,10 @@
 /-
-`t.LockOutsideApply()` (`batch_tx.go:130-133`): translated; internal (the embedded receiver).
-Changes: as `batchTxBuffered.LockOutsideApply`. Margin: none.
-
-**Changes** (verify-round: A10-provability B1): the post also gives the session's turn
-`beTurn γ` (exclusive), which `Unlock`'s second update takes back: a client parks it with what it
-took out at the lock, so that a later session refutes a stale parked state (`beTurn_excl`).
+`batchTx.LockOutsideApply` (`batch_tx.go`). `t.LockOutsideApply()`: as `lock`.
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -16,26 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.LockOutsideApply()`** on the embedded `batchTx`: as `batchTxBuffered`'s. -/
-def batchTx.LockOutsideApply.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q }}
-    (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"LockOutsideApply")) (Val #()))
-  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beTurn γ ∗ Pk }}
+/-- `t.LockOutsideApply()`: as `lock`. -/
+abbrev backend.batchTx.LockOutsideApply.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo }}
+    (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"LockOutsideApply")) (Val #()))
+  {{ RET #(); ∃ st : BSess, batchLocked γ P b st ∗ ⌜freeOk P st⌝ ∗ (W ∗ Pk) ∗ bOpen γ qo }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

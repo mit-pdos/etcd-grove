@@ -1,35 +1,25 @@
 /-
-`executeRange(ctx, lg, txnRead, r, withTotalCount)` (`range.go`), internal (`Range`, `executeTxn`).
-
-**Proof sketch.** `traceutil.Get(ctx)` (4b: the context's trace `tr`, owned), `rangeLimit`,
-`mkGteRange` (the end as W0 reads it: F1's mapping), the transaction's `Range` (3e's
-`Txn.Range.contract`: `rangeOut k.readHist k.state.crev`; the result `rangeResOwn`, whose `.ok`
-case is `rrOwn` of the cut key-values, `keysOnlyM` on the fast path, i.e. `ofKV` of the key-value
-with no value and lease `0`, `kvsFit`), `filterRangeResults`, `sortRangeResults` (its size premise
-from `kvsFit`), `asembleRangeResponse`. Old spec: over the log. Round 1: 3e's API (F4); the
-keys-only path's values (F2). Integration (I5, 2026-11-09): the context's error only for a full
-read (`rm.countOnly = false`: mvcc's `rangeOut`'s `.ctxErr` case asks `CountOnly = false`), which
-`Count` needs. Second pass (mvcc met 3b's two requests): `ctxErr err` from `rangeResOwn`'s
-`.ctxErr`, which now gives 3e's `Mvcc.rangeCtxErr err` (`ctxErr_of_range`; its `_ne_nil`, `_fresh`
-give `ctxErr_not_errIs`; the old `context.isCtxErr err` was false: `rangeKeys` wraps `ctx.Err()` with
-`fmt.Errorf`), and `rrOwn`'s `kvFits` from `kvsFit` (`kvSortOk` bounds the revisions, the version and
-the lease).
+`executeRange` (`range.go`): a range on a transaction (`Range`'s read transaction, `Txn`'s write
+transaction or read-only wrapper). Lean-first; see `InvRange.lean`, `RangeModel.lean`,
+`InvTxn.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,23 +28,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `executeRange(ctx, lg, tx, r, wtc)` on an open transaction `k`: the view's revision error, or the
-reply `rangeOut` at the view's revision, or the context's error. -/
-def executeRange.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (tx : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (k : Mvcc.MTxn)
-    (r : Loc) (dq : DFrac) (rm : RangeReq) (wtc : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ TraceUtil.ctxTraceIs ctx (some tr) ∗
-      TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn tx γ tr k ∗ rangeReqOwn r dq rm ∗ ⌜targetOk rm⌝ }}
-    (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange)) (Val #ctx)) (Val #lg)) (Val #tx)) (Val #r)) (Val #wtc))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); TraceUtil.traceOwn tr ∗
-      Mvcc.mvccTxn tx γ tr k ∗ rangeReqOwn r dq rm ∗
-      ((∃ e : EtcdErr, ⌜viewErr k rm.revision = some e ∧ resp = null⌝ ∗ errIs err e) ∨
-       (⌜viewErr k rm.revision = none ∧ err = GoInterface.nil⌝ ∗ ∃ all : List KV,
-          ⌜(viewStore k rm.revision).rangeKVs rm.range all⌝ ∗
-          rangeOk resp (viewRev k) (rangeOut rm wtc all)) ∨
-       (⌜resp = null ∧ rm.countOnly = false⌝ ∗ Context.ctxDone ctx ∗ ctxErr err)) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `executeRange(ctx, lg, txnRead, r, withTotalCount)` at a transaction of either kind:
+`rangeResult` at the log and revision it reads. No sort premise: the sort's (`sortSmall`) comes
+from its `Txn.Range` call's `stateOk` at the revision read (`srvPre_stateOk`, below).
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+abbrev txn.executeRange.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
+    (tw : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (r : Loc) (o : OpFull)
+    (withTotal : Bool),
+  {{ pkgInit ∗ mvcc.api.mvccTxn tw γ trace k ∗ traceutil.ownTrace trace te ∗ mvcc.txnCtx ctx cd ∗
+      (if nd then mvcc.neverDone cd else iprop(True)) ∗ traceutil.ctxTraceIs ctx (some trace) ∗
+      txn.rangeRequestIs r o ∗
+      ⌜txn.Reach k.state ∧ txn.validSortTarget o⌝ }}
+    (App (App (App (App (App (Val (@! txn.executeRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
+      (Val #tw)) (Val #r)) (Val #withTotal))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      mvcc.api.mvccTxn tw γ trace k ∗ traceutil.ownTrace trace te ∗
+      txn.rangeResult resp err k.readLog k.readRev k.state.crev o withTotal ∗ txn.rangeHdr resp err ∗
+      ⌜nd = true → err = GoInterface.nil ∨ sint.Z k.readRev < sint.Z o.base.rev ∨
+        sint.Z (mvcc.rangeRev k.readRev o.base.rev) < k.state.crev⌝ }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

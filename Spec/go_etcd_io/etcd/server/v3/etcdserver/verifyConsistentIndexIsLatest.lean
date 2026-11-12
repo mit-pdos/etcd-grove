@@ -1,16 +1,11 @@
 /-
-`verifyConsistentIndexIsLatest(snapshot, cindex)` (`server.go:1200-1208`): `verify.Verify` that the
-consistent index is at least the snapshot's index (a panic when `ETCD_VERIFY` is on and it is not).
-Internal (`snapshot`).
-
-**Proof sketch**: the premise makes the check pass. **Changes**: over R1's `snapshotPts`.
-**Margin**: none.
+`verifyConsistentIndexIsLatest(snapshot, cindex)` (`server.go`): the consistent index at least the
+snapshot's index, checked under `ETCD_VERIFY`. Lean-first (no Rocq counterpart); D22 J4b
+(2026-10-27), translated for `snapshot`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 
 @[expose] public section
 
@@ -18,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,17 +22,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def verifyConsistentIndexIsLatest.spec : Prop :=
-  ∀ (sp : Loc) (dq : DFrac) (sn : Raft.Snapshot) (ci : w64),
+/-- `verifyConsistentIndexIsLatest(sn, cindex)` of a read-only snapshot whose index is at most
+`cindex` returns (`verify.Verify`'s check holds, so it does not panic when assertions are on). -/
+abbrev verifyConsistentIndexIsLatest.spec : Prop :=
+  ∀ (sn : Loc) (sv : SnapshotM) (cindex : w64),
+  uint.Z sv.Metadata'.Index' ≤ uint.Z cindex →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      Raft.snapshotPts sp dq sn ∗ ⌜uint.nat sn.index ≤ uint.nat ci⌝ }}
+      ownSnapM sn DFrac.discard sv }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.verifyConsistentIndexIsLatest))
-      (Val #sp)) (Val #ci))
-  {{ RET #(); Raft.snapshotPts sp dq sn }}
+      (Val #sn)) (Val #cindex))
+  {{ RET #(); True }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

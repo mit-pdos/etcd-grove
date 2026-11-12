@@ -1,5 +1,5 @@
 // Package txn holds the requirement snippets of etcd's server transactions (batch 3b,
-// Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/): minimal uses of Range, Count, Put, DeleteRange
+// SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/): minimal uses of Range, Count, Put, DeleteRange
 // and Txn in the patterns their users rely on (the request path's reads, v3_server.go; the apply
 // thread's writes, apply/backend.go), each reliance an explicit panic.
 //

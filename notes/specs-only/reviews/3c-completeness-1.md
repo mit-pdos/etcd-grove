@@ -1,7 +1,7 @@
 # Review: batch 3c (the lessor), completeness, round 1
 
 Reviewer agent, 2026-11-09, at `a098c18d14` (the 3c draft). Read-only. Targets:
-`Spec/go_etcd_io/etcd/server/v3/lease/` (the API files; the internal helpers only where a caller
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/` (the API files; the internal helpers only where a caller
 reaches them) and `examples/specreq/lease/lessor.go`. Go: `.lake/src/server` (= the pinned
 `a4d2bb17`). I formed the findings below before reading `batch-3c.md`; what that report changes is
 noted at the end.
@@ -162,7 +162,7 @@ what is not exercised. Add `ReqNewLessor`: `lease.NewLessor(zap.NewNop(), be, cl
 MinLeaseTTL: m})` over a backend whose bucket holds a lease (a restart), then `mvcc.New`-style
 `SetRangeDeleter`, `Lookup` of the loaded lease with the raised TTL, `Stop`. Real call site check:
 `server.go:344` passes `srv.Logger()` (2e must give `Zap.isLogger`; the zap API lists the
-constructors, `Spec/go_uber_org/zap/Api.lean:12-19`), `srv.be` with its bucket (2e's
+constructors, `SpecPlan/Spec/go_uber_org/zap/Api.lean:12-19`), `srv.be` with its bucket (2e's
 `OpenBackend`), `srv.cluster` (`clusterOk`, provisional, 2e's membership): establishable given those
 hand-offs. mvccrand's `noCluster{}` (`mvccrand.go:790`) meets `clusterOk` (its `Version` returns
 `nil`).

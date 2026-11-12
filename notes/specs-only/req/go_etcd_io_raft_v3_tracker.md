@@ -2,7 +2,7 @@
 
 ## from R2
 
-The raft core (`Spec/go_etcd_io/raft/v3/ApiCore.lean`) keeps the tracker inside `raftCore`; its
+The raft core (`SpecPlan/Spec/go_etcd_io/raft/v3/ApiCore.lean`) keeps the tracker inside `raftCore`; its
 proof sketches need:
 - `ProgressTracker` ownership with its configuration as R1's `Membership` (the model shared with
   `confchange`), the progress map's keys exactly the configuration's ids (`raftCore_peek` exposes the

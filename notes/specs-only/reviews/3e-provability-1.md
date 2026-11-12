@@ -1,6 +1,6 @@
 # Batch 3e (mvcc's core), provability review, round 1
 
-Reviewer: provability (`notes/specs-only/review-brief.md`). Scope: `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,ApiStorage,Api,Internal,InternalIdx,InternalStore,InternalTxn}.lean`
+Reviewer: provability (`notes/specs-only/review-brief.md`). Scope: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,ApiStorage,Api,Internal,InternalIdx,InternalStore,InternalTxn}.lean`
 and the store/transaction/compaction/restore/hash specs, snippets `examples/specreq/mvcc/`, the
 `from 3e` requests. Go: the pinned fork (`.lake/src/server/storage/{mvcc,backend}`, `pkg/schedule`).
 `batch-3e.md` read only after the findings below were written.
@@ -51,7 +51,7 @@ and the store/transaction/compaction/restore/hash specs, snippets `examples/spec
 
 `Api.lean`, `KV.Compact.contract`: `⌜1 ≤ sint.Z rev⌝`. The apply passes the client's revision
 unchecked (`etcdserver/apply/backend.go:73`); the server's own premise is `rev ≠ 0`
-(`Spec/.../etcdserver/EtcdServer__Compact.lean`, "The premise `rev ≠ 0`"), and the applier's spec
+(`SpecPlan/Spec/.../etcdserver/EtcdServer__Compact.lean`, "The premise `rev ≠ 0`"), and the applier's spec
 admits any compaction op (`apply/applierV3backend__Compaction.lean`: `op.ok`, which says nothing of
 the revision, `apply/Api.lean:501-517`). A negative revision is reachable and the code handles it:
 `rev ≤ compactMainRev` (`kvstore.go:199`, `compactMainRev ≥ -1`) gives `ErrCompacted`, which the

@@ -1,7 +1,7 @@
 # Review: batch 3c (the lessor), provability, round 1
 
 Reviewer agent, 2026-11-09, at `a098c18d14` (the 3c draft). Read-only. Targets:
-`Spec/go_etcd_io/etcd/server/v3/lease/` (Api, Internal, the 44 specs), `examples/specreq/lease/lessor.go`,
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/` (Api, Internal, the 44 specs), `examples/specreq/lease/lessor.go`,
 `nonissues/etcd-lease-keys-mid-apply.md`, the `## from 3c` sections of `notes/specs-only/req/*.md`.
 Go: `.lake/src/server` (`a4d2bb17`): `lease/lessor.go`, `lease/lease.go`, `lease/lease_queue.go`;
 callers in `etcdserver/server.go`, `etcdserver/v3_server.go`, `storage/mvcc/kvstore_txn.go`. Callee
@@ -77,13 +77,13 @@ the float-to-int conversion at `:521-525` cannot panic.)
   compares two `Remaining()` reads of the clock (`lease.go:134`); `Lease.Remaining.spec` returns
   any duration. No `R` fits, so the proof cannot call Perennial's spec. The old development had a
   trust-boundary spec for exactly this, `sort.Sort.anyLessSpec` (`specs-ref`'s
-  `Spec/sort/SortAnyLess.lean`: any `Less`, the result a permutation; its comment cites
+  `SpecPlan/Spec/sort/SortAnyLess.lean`: any `Less`, the result a permutation; its comment cites
   `zsortinterface.go`'s index bounds and a 1200-sort test), deleted on this branch. Is the
   inconsistent comparison a real problem? No for Go: every index pdqsort passes to `Less`/`Swap`
   is bounded by the slice's bounds, never by `Less`'s answers, and only `Swap` mutates, so it
   permutes and does not panic. No spec of the batch claims an order (`Leases`' post is a
   permutation of the live objects, `Forall₂` to `Nodup` ids), so nothing is wrong in the
-  statements. Fix: restore `Spec/sort/SortAnyLess.lean` as a trust-boundary spec (with its
+  statements. Fix: restore `SpecPlan/Spec/sort/SortAnyLess.lean` as a trust-boundary spec (with its
   comment) and cite it in the sketch; `Promote` is assumed, so it needs nothing.
 - `Revoke`'s `sort.StringSlice(keys).Sort()` (`Code/…/lease.lean:979`, a `MethodResolve` on
   `sort.StringSlice`): Perennial has no spec of `StringSlice.Sort` (or of its `Len`/`Less`/`Swap`),

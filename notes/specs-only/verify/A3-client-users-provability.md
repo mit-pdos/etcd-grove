@@ -1,9 +1,9 @@
 # A3 client users: provability review (2026-11-09)
 
 Reviewer: independent provability verifier. Commit under review: `1aa6fc1337` (`specs-only` HEAD).
-Area: batches 1d (`Spec/go_etcd_io/etcd/client/v3/concurrency/`), 1e (`.../leasing/`), 1f
-(`.../experimental/recipes/`, `Spec/fmt/`), 1g (`Spec/go_etcd_io/etcd/cache/v3/`,
-`Spec/k8s_io/utils/third_party/forked/golang/btree/`), and `Spec/sort/` (3c's trust boundary, in
+Area: batches 1d (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency/`), 1e (`.../leasing/`), 1f
+(`.../experimental/recipes/`, `SpecPlan/Spec/fmt/`), 1g (`SpecPlan/Spec/go_etcd_io/etcd/cache/v3/`,
+`SpecPlan/Spec/k8s_io/utils/third_party/forked/golang/btree/`), and `SpecPlan/Spec/sort/` (3c's trust boundary, in
 this area per the brief). Snippets: `examples/specreq/{concurrency,leasing,recipes,cache,btree}/`.
 Callees: W0 `client/v3/Api.lean` (KV and Txn contracts, `callErr`, `ctxPrin`), 1b `ApiWatch.lean`
 (`watchChAt_recv`, `watchStep`), `api/v3/{State,Model,Wire}.lean`, Perennial (`errors.New`, `wp_fork`).
@@ -103,7 +103,7 @@ a recorded decision. I did not read the A3 completeness report.
   `isPkgInit … ⊢ □ ∀ e, globalAddr e.global ↦□ concErrVal e`. `recipes` `init.spec` states
   `globalAddr ErrKeyExists ↦□ recipeErr .keyExists ∗ …`.
 * **Why no realization can prove them.**
-  * The globals are initialized by `errors.New`, whose Perennial spec (`Spec/errors/New.lean:25-32`)
+  * The globals are initialized by `errors.New`, whose Perennial spec (`SpecPlan/Spec/errors/New.lean:25-32`)
     returns an arbitrary `err : GoInterfaceOk`. Its code allocates a fresh `*errorString`.
   * The package initializer's proof therefore holds `globalAddr ErrLocked ↦□ v` for an unknown `v`.
   * A Lean constant fixed before execution cannot be shown equal to `v`, and `GoGlobalContext`

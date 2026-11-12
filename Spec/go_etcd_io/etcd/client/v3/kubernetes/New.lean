@@ -1,25 +1,14 @@
 /-
-`kubernetes.New` (`client/v3/kubernetes/client.go`).
-
-Users: Kubernetes' storage factory (`storagebackend/factory/etcd3.go`: then wraps `client.KV` in a
-latency tracker, `clientMut_KV`), its test server, `examples/k8s/*`; snippet
-`clientv3client/kubernetes.go` (`ReqKubeNew`).
-
-Proof sketch: `clientv3.New(cfg)` (its spec); a fresh `*Client` holding it, its `Kubernetes` field set
-to itself.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kubernetes/New.lean`: as `clientv3.New`'s.
-re-review (S-a): the endpoint list is non-empty, as `clientv3.New`'s.
-verify-round: the endpoints token `clientv3.New` gives (auto-sync off) is passed on (A2-completeness
-F1: without it no Kubernetes client could call `Status`, the feature checker's
-`feature_support_checker.go:142,194`, or `Endpoints`). The snippet `ReqKubeStatus`
-(`clientv3client/kubernetes.go`) covers the pattern.
-
-Margin: none.
+`kubernetes.New(cfg)` (`client/v3/kubernetes/client.go`; stage 6e of `notes/k8s-etcd3-plan.md`):
+`clientv3.New(cfg)`'s client, wrapped: a `*kubernetes.Client` `kc` holding it and itself as its
+`Kubernetes` interface (read-only from here: what `etcd3.New` takes), or `clientv3.New`'s error.
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Api
+public import Spec.go_etcd_io.etcd.client.v3.New
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Base
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -27,10 +16,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Kubernetes
+namespace kubernetes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,24 +26,28 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `New(cfg)`: a `*Client` whose `Kubernetes` field is itself, over a writable `clientv3.Client`
-(the caller wraps its `KV`, then freezes it: `kubeClient_kubeAt`), or an error. -/
-def New.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗ cfgOk cfg γ who }}
+/-- See the file header. -/
+abbrev New.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
+    (P : GoString → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      clientCfgOk cfg eps ∗
+      -- (the auth plan's C1, 2026-10-28) `New`'s premise on the credentials
+      clientAuthPre cfg eps P }}
     (App (Val (@! go_etcd_io.etcd.client.v3.kubernetes.New)) (Val #cfg))
   {{ (kc : Loc) (err : GoInterface), RET (PairV #kc #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ c : Loc,
-        kc ↦ ({ Client' := c,
-                 Kubernetes' := interface.mkOk
-                   (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #kc } :
-               go_etcd_io.etcd.client.v3.kubernetes.Client) ∗ clientMut c γ who ∗
-        (∃ eps, cfg.Endpoints' ↦*□ eps ∗ ⌜eps ≠ []⌝ ∗ epsTok c (DFrac.own 1) eps)) ∨
-      ⌜kc = null ∧ err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ cl : Loc,
+        kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
+            #kc)) ∗
+        isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
+      ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end Kubernetes
+end kubernetes
 end EtcdGrove
 end Perennial

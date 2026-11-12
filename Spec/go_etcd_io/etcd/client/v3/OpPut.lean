@@ -1,17 +1,10 @@
 /-
-`clientv3.OpPut` (`client/v3/op.go`).
-
-Users: `kv.Put`, `client/v3/concurrency` (`stm.go`, `mutex.go`, `election.go` with `WithLease`), recipes, Kubernetes' store and compactor (`Then(OpPut(...))`).
-
-Proof sketch: `Op{t, key, val}`, `Op.applyOpts.spec`, the `switch` (premise `¬ putPanics`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/OpPut.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.OpPut(key, val, opts...)` (`client/v3/op.go`, translated for `client/v3/concurrency`). Lean-first (no Rocq
+counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -19,27 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `OpPut(key, val, opts...)`: a put. -/
-def OpPut.spec : Prop :=
-  ∀ (key v : GoString) (sl : GoSlice) (gs : List (OpM → OpM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ optsAt sl gs ∗ ⌜¬ (opPutM key v gs).putPanics⌝ }}
-    (App (App (App (Val (@! go_etcd_io.etcd.client.v3.OpPut)) (Val #key)) (Val #v)) (Val #sl))
-  {{ (op : go_etcd_io.etcd.client.v3.Op), RET #op; optsAt sl gs ∗ opAt op (opPutM key v gs) }}
+/-- `OpPut(key, val, opts...)`: the `Op` modelled by `opPutModel key val gs`; it panics if the
+options set something a put cannot have, which the caller rules out (`putPanics`). -/
+abbrev OpPut.spec : Prop :=
+  ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ optsAt sl gs ∗ ⌜¬ (opPutModel key val gs).putPanics⌝ }}
+    (App (App (App (Val (@! go_etcd_io.etcd.client.v3.OpPut)) (Val #key)) (Val #val)) (Val #sl))
+  {{ (op : go_etcd_io.etcd.client.v3.Op), RET #op; opFullAt op (opPutModel key val gs) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

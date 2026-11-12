@@ -37,7 +37,7 @@ No snippet in `examples/specreq/{raftnode,raftcore}` changed.
 
 ### N3. `raft.hasUnappliedConfChanges.spec` panics in Go on a state its precondition admits
 
-**Location:** `Spec/go_etcd_io/raft/v3/raft__hasUnappliedConfChanges.lean:31-36`.
+**Location:** `SpecPlan/Spec/go_etcd_io/raft/v3/raft__hasUnappliedConfChanges.lean:31-36`.
 
 **Principle:** Sound (a no-panic post over a premise checked against the states it does not pin down). This is the same class as N2.
 

@@ -1,20 +1,9 @@
 /-
-`kvsToEvents(lg, c, revs, vals)` (internal): unmarshals each value (`lg.Panic` on failure: the
-premise excludes it), keeps those whose key `c` contains, as events (a tombstone a delete with its
-revision patched in).
-
-**Proof sketch.** `proto.Unmarshal` (2a's `Proto.Unmarshal.spec`: an encoding decodes to its
-message, fresh; from 3e's `kvBytes m bs` through `InternalStore.kvBytes_decodes`: `kvDecodes`,
-`restoreChunk`'s relation, whose realization is that `encodes` at a depth below `depthMax`),
-`c.contains` (`watcherGroup.contains.spec`), `isTombstone`, `BytesToRev` (3e's `isTombstone.spec`,
-`BytesToRev.spec` over `revOfBytes`), `append`. The storage's bytes are read at any fraction and
-given back (the storage lends them until `tx.RUnlock()`: 3e's `rangeLent`); the events own fresh
-copies (`Unmarshal` copies every `bytes` field).
+`kvsToEvents` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchSync.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 
 @[expose] public section
 
@@ -22,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,24 +21,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def kvsToEvents.spec : Prop :=
-  ∀ (lg : Loc) (wg : Loc) (v : watcherGroup) (dq dq' : DFrac) (G : List (Loc × MRange))
-    (revs vals : GoSlice) (rs vs : List GoSlice) (rb vb : List GoString) (dr dv db : DFrac)
-    (ents : List (Rev × Bool × KeyValueM)),
-  let bytesAt : IProp GF := iprop(revs ↦*{dr} rs ∗ vals ↦*{dv} vs ∗
-    ([∗list] x; b ∈ rs; rb, x ↦*{db} b) ∗ ([∗list] x; b ∈ vs; vb, x ↦*{db} b))
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ Zap.isLogger lg ∗ wg ↦{dq} v ∗ wgOwn v dq' G ∗ bytesAt ∗
-      ⌜List.Forall₂ (fun r e => revOfBytes r = some (e.1, e.2.1)) rb ents ∧
-        List.Forall₂ (fun bs e => kvBytes e.2.2 bs) vb ents⌝ }}
+/-- `kvsToEvents(lg, c, revs, vals)` of the bucket entries `ents` (`revs`/`vals` read-only slices
+of their keys and values, in order, readable through `Rd` under the reader's token `Tok`, kept; each value the encoding of a key-value, so `proto.Unmarshal`
+returns `nil`: the `lg.Panic` is unreachable), for the group `g` as the `contains` interface: a
+fresh slice of fresh events, read-only for good (`evIs`), one per entry whose key some member
+covers, in order: a tombstone a `DELETE` with the revision as `ModRevision` (`entsEvents`). -/
+abbrev mvcc.kvsToEvents.spec : Prop :=
+  ∀ (lg g : Loc) (W : GMap Loc mvcc.WatchRange) (revs vals : GoSlice) (ents : List mvcc.KvEnt)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownWatcherGroup g W ∗ mvcc.pairVals Rd revs vals (ents.map mvcc.KvEnt.pair) ∗
+      mvcc.rdCap Rd Tok ∗ Tok ∗
+      ⌜∀ e ∈ ents, 0 ≤ sint.Z e.rev.main ∧ 0 ≤ sint.Z e.rev.sub⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents)) (Val #lg))
-      (Val #(interface.mkOk (go.GoType.PointerType watcherGroup.ty) #wg))) (Val #revs)) (Val #vals))
-  {{ (evs : GoSlice), RET #evs; wg ↦{dq} v ∗ wgOwn v dq' G ∗ bytesAt ∗
-      ∃ (ps : List Loc), evs ↦* ps ∗
-        [∗list] p; e ∈ ps; ((ents.filter (fun x => decide (∃ y ∈ G, y.2.watchMem x.2.2.key))).map
-          (fun x => entryEv (uint.nat x.1.main) x.2.1 x.2.2)), evOwn p e }}
+      (Val #(interface.mkOk (go.GoType.PointerType watcherGroup.ty) #g))) (Val #revs)) (Val #vals))
+  {{ (evs : GoSlice), RET #evs; mvcc.ownWatcherGroup g W ∗ Tok ∗
+      ∃ ps : List Loc, evs ↦* ps ∗ ownSliceCap Loc evs (DFrac.own 1) ∗
+        ⌜ps.length = (mvcc.entsEvents W ents).length⌝ ∗
+        [∗list] x ∈ ps.zip (mvcc.entsEvents W ents), mvcc.evIs x.1 x.2 }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

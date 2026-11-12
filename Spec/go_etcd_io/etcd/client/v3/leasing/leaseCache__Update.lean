@@ -1,12 +1,9 @@
 /-
-`(*leaseCache).Update` (`cache.go`), with the write lock held: a put of a cached key: version
-incremented, value and mod revision set if newer (`issues/leasing-update-stale.md`). Proof sketch:
-the entry's response owned in `lcHeld`; it stays `cachedRespOk` (key, one key-value, the header
-reached), and `entryOk` by the key's mark (its record is no longer the store's). Changes: from `specs-ref`'s `leaseCache__Update.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.Update(key, val, respHeader)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -14,30 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.Update(key, val, hdr)` under the write lock: the key and value bytes and the header kept by
-the cache (read-only), the header at a revision reached. -/
-def leaseCache.Update.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (ksl vsl : GoSlice) (key v : GoString) (hdr : Loc) (hm : HeaderM) (σ0 : State),
-  {{ lcHeld (GF := GF) lc γ γL 1 ∗ ksl ↦*□ key ∗ vsl ↦*□ v ∗ respHeaderOwn hdr DFrac.discard hm ∗
-      etcdLb γ σ0 ∗ ⌜0 ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ0.kv.rev⌝ ∗
-      lkvMarks γL (fun k => k = key) }}
-    (App (App (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"Update")) (Val #ksl)) (Val #vsl)) (Val #hdr))
-  {{ RET #(); lcHeld lc γ γL 1 }}
+/-- **`lc.Update(key, val, respHeader)`**, called with the write lock held (the caller owns the
+state): the put of `val` to `key` at the header `h` (revision `hm.revision`) is applied to `key`'s
+entry, if any (`LeaseEntry.update`: a fresh key-value if none was cached, the version bumped, the
+value, mod revision and header set if the cached one is older). -/
+abbrev leaseCache.Update.spec : Prop :=
+  ∀ (lc : Loc) (st : LeaseCacheSt) (keySl : GoSlice) (key : GoString) (valSl : GoSlice)
+    (val : GoString) (h : Loc) (hm : HdrM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ lcOwn lc st (DFrac.own 1) ∗ ⌜LeaseCacheWf st⌝ ∗ keySl ↦*□ key ∗ valSl ↦*□ val ∗
+      hdrFull h hm }}
+    (App (App (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"Update")) (Val #keySl)) (Val #valSl)) (Val #h))
+  {{ RET #(); ∃ (p : Loc) (sl' : GoSlice),
+      lcOwn lc (st.modify key (fun e => e.update (freshKv p keySl key hm.revision) sl' h hm valSl val))
+        (DFrac.own 1) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

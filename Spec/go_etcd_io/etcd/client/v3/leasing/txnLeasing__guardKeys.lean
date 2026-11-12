@@ -1,10 +1,9 @@
 /-
-`(*txnLeasing).guardKeys` (`txn.go`): a `CreateRevision(pfx++key) < rev+1` comparison for each
-single-key write. Proof sketch: `leaseCache.Rev` (a reader slot), W0's `Compare`. Changes: from `specs-ref`'s `txnLeasing__guardKeys.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`txn.guardKeys(ops)` (`client/v3/leasing/txn.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -12,28 +11,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `guardKeys(ops)`: comparisons, in a slice whose spare capacity is owned (`guard` appends). -/
-def txnLeasing.guardKeys.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (ops : GoSlice) (os : List OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os ∗ threadTok }}
-    (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"guardKeys")) (Val #ops))
-  {{ (cs : GoSlice), RET #cs; ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os ∗ threadTok ∗
-      ∃ ms, cmpsAt cs ms ∗ ownSliceCap go_etcd_io.etcd.client.v3.Cmp cs (DFrac.own 1) }}
+/-- **`txn.guardKeys(ops)`**: for each key a non-get operation writes (once), the comparison
+"its lease key was created at or before this client's entry revision" (`Rev`): comparisons, in a
+slice whose spare capacity is owned. -/
+abbrev txnLeasing.guardKeys.spec : Prop :=
+  ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (dq : DFrac) (sl : GoSlice)
+    (os : List OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ opsAt sl os }}
+    (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"guardKeys")) (Val #sl))
+  {{ (cmps : GoSlice), RET #cmps; structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗ lkvReader lkv γ pfx ∗
+      ∃ ms : List CmpModel, cmpsAt cmps ms ∗
+        ownSliceCap go_etcd_io.etcd.client.v3.Cmp cmps (DFrac.own 1) ∗
+        ⌜ms.length ≤ os.length ∧ ∀ c ∈ ms, guardOf pfx os c.key c.rangeEnd c.val⌝ }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

@@ -1,22 +1,23 @@
 /-
-`applyCompares(rv, cmps)` (`txn.go`), internal: mirrors the code (`cmpsHold`). Old spec: same.
-Round 1: 3e's API.
+`applyCompares` (`txn.go`). Lean-first; see `TxnRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +26,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `applyCompares(rv, cmps)`: every comparison holds at the transaction's current store. -/
-def applyCompares.spec : Prop :=
-  ∀ (rv : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (k : Mvcc.MTxn) (cs : GoSlice) (dq : DFrac)
-    (cl : List EtcdModel.Compare),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn rv γ tr k ∗ msgsOwn compareOwn cs dq cl }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompares)) (Val #rv)) (Val #cs))
-  {{ RET #(cmpsHold cl k.readHist.store); TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn rv γ tr k ∗
-      msgsOwn compareOwn cs dq cl }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `applyCompares(rv, cmps)` on a read transaction at `σ`: every comparison's `cmpHolds` at its
+state.
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.) -/
+
+abbrev txn.applyCompares.spec : Prop :=
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (sl : GoSlice)
+    (cps : List Loc) (cms : List CmpModel),
+  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ traceutil.ownTrace trace te ∗
+      ⌜txn.Reach σ⌝ ∗ sl ↦*□ cps ∗ txn.comparesIs cps cms }}
+    (App (App (Val (@! txn.applyCompares)) (Val #t)) (Val #sl))
+  {{ RET #(cms.all (cmpHolds (mvcc.stateAfter σ.log))); mvcc.api.mvccTxn t γ trace (.read σ) ∗
+      traceutil.ownTrace trace te }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

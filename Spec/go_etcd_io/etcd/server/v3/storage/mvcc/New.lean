@@ -1,34 +1,11 @@
 /-
-`New(lg, b, le, cfg)` (`watchable_store.go`): the watchable store over the storage `b`, its two
-loops started: `NewStore`'s contract (3e's `NewStore.spec`) with the watchable store as the handle.
-
-**Users.** `NewServer` (`etcdserver/server.go:366`, 2e: `mvcc.New(srv.Logger(), srv.be, srv.lessor,
-mvccStoreConfig)`); this repository's mvcc examples. Snippet: `mvccwatch/store.go` `ReqStoreWrites`.
-
-**Proof sketch.** `newWatchableStore` (its spec: `NewStore`'s post, `mvccRevLent γ false ∗
-mvccRestoreGate γ 1` included, the store's views and the lessor's range deleter set to the watchable
-store's `Write` (`mvccDeleter`: `KV.Write.contract` at `*watchableStore`), the watch invariant
-allocated (`mvccLb`'s authority at `h`: part of `mvccState`'s realization, `req/`), the loops'
-shares); `s.wg.Add(2)` (Perennial's wait group, backed by the two goroutines: their deposits at
-`Done` are the loops' shares, which `Close` takes back after `Wait`); `go s.syncWatchersLoop()`, `go
-s.syncVictimsLoop()` (each with its share; a fork needs no token). The loops' storage reads use two
-of the store's own reader slots (3e's `mvccOwnN`, `mvccReaderN_eq`: not among the client's
-`mvccTokN`), borrowed per pass from the store's current storage (so that `Restore` can give the old
-storage's `storageRest B mvccReaderN` back while the loops keep running): the inner store is made in
-watched mode (`NewStore.watched.spec`), whose loop shares the watchable store parks under its `s.mu`
-(`InternalWatched.lean`, integration Y's answer to I6's G1).
-
-**Changes** from `specs-ref`'s `New.lean`: 3e's restated `NewStore` contract (any image of a history,
-the leases re-attached, the hook at any share) with `watchableAt` for the handle; the receipt bound
-as `NewStore`'s. (Integration: no `MvccReachable` premise, `mvccRevLent γ false ∗ mvccRestoreGate γ 1`
-given, following 3e's round-1 `NewStore`.)
-
-**Margin.** As `NewStore`'s.
+`New` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchSync.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCalls
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -36,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -47,28 +23,53 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`New(lg, b, le, cfg)`**: `NewStore`'s result (3e's `NewStore.spec`) as a watchable store
-(`watchableAt`), its loops running. -/
-def New.spec : Prop :=
-  ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (le : Loc) (cfg : StoreConfig) (B : MvccStorage)
-    (Pk : IProp GF) (h : EtcdModel.KVHist) (u : Bool) (γl : Lease.Names) (c : Lease.Cfg) (n : Nat)
-    (ls : Lease.LessorState) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ ⌜storeCfgOk cfg⌝ ∗
-      mvccStorageFor B Pk h u ∗
-      storageHook B dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
-      Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗
-      Lease.isLessor le γl c ∗ Lease.lessorState γl n ls }}
+/-- `New(lg, b, le, cfg)` on a fresh backend (`newWatchableStore`'s premises): the watchable store
+as a `WatchableKV`, its two loops started (`s.wg.Add(2)`, each with a reader slot and a done
+token), with what `newWatchableStore` gives (every watch token among it) but those two slots, and the right to close it
+(`wsCloser`: the stop channel's close, the wait for the loops, the inner store's close, with its
+scheduler's stop token: D19m (C), 2026-10-18), on a backend that records no compaction
+(`kbNoCmp`, `NewStore`'s: D19l (v) (A), D22 S-g). The
+index's names `γi` and the certificate map's `γok` are the caller's, fresh, and the map's
+authority is handed back (2026-10-16, D13a: the etcd server chooses them before `newRaftNode`,
+and its KV certificates' invariant, `kvCertInv`, takes the authority). (M2, the storage side, P3,
+2026-10-30) As `newWatchableStore`: the frozen fact by the mode, the compaction right's half of the
+revision's authority beside the closer in compaction mode (`crevRightM γ.st`: the caller makes
+the compaction right of it only after its last error return, Go's deferred `kv.Close()`, or
+freezes the store and watches, `noCompactor_of_new`), the logical mode the instance's, and no
+write-back supply. (C3's store law, 2026-11-02) The store's compaction permit is the caller's
+`Perm` (`crevPermIs`). (Track A, `New.spec`, 2026-11-06) As `newWatchableStore`: the write
+resource's registration, the API's client parts (`newClient` at half) and a later credit.
+(the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
+counted stock less the opener's two (`nReaders`, past the backend's pool), the readers it gives counted from it;
+until then all `actualMaxReaders` of them. -/
+abbrev mvcc.New.spec : Prop :=
+  ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
+    (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName)
+    (Perm : Int → IProp GF),
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
+        mvcc.storeBackend b s γ P) ∗
+      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbSRM kb ∗
+      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT kb) ∗
+      lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
+      mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
-      (Val #(GoInterface.ok (storageVal B)))) (Val #(Lease.lessorIface le))) (Val #cfg))
-  {{ (kv : GoInterface), RET #kv; ∃ γ : MvccName, watchableAt kv γ ∗ mvccLessorIs γ γl ∗
-      mvccState γ ⟨h, []⟩ ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗ mvccReaders γ mvccTokN ∗
-      mvccRevLent γ false ∗ mvccRestoreGate γ 1 ∗
-      storageHook B dq f ∗ (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
-      (∃ (rd : GoFunc) (n' : Nat) (ls' : Lease.LessorState), mvccDeleter rd γ ∗
-        ⌜RestoreLs { ls with rd := rd } h.store ls'⌝ ∗ Lease.lessorState γl n' ls') }}
+      (Val #b)) (Val #le)) (Val #cfg))
+  {{ (s : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStore.ty) #s);
+      ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
+        γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
+        mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ ∗
+          mvcc.rdCalls rd (go.GoType.PointerType watchableStore.ty) #s) ∗ mvcc.hookInit γ.st P f ∗
+        mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+        ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb - 2) (),
+          mvcc.watchReader s st γ) ∗
+        mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
+        mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm ∗
+        mvcc.writerReg st γ.st ∗ mvcc.api.newClient γ.st.api [[], []] (-1) (1 : Qp).half st ∗ £ 1 }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

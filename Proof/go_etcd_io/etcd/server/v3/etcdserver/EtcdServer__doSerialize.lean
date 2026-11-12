@@ -1,0 +1,162 @@
+/-
+Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__doSerialize.lean`. Lean-first (no
+Rocq counterpart); the request path's unit 3b (2026-10-12).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Get
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions] in
+/-- An auth info's fields (`authInfoIs`) are its struct points-to, read-only. -/
+theorem authInfoIs_ptsto (a : Loc) (user : GoString) (rev : w64) :
+    authInfoIs (GF := GF) a user rev ⊢
+      a ↦□ ({ Username' := user, Revision' := rev } : go_etcd_io.etcd.server.v3.auth.AuthInfo) := by
+  iunfold authInfoIs
+  iintro ⟨%Hn, #Hu, #Hr⟩
+  rw [typedPointsto_unseal_eq a]
+  isplitl
+  · simp only [typedPointstoDef]
+    iframe Hu Hr
+  · ipureintro; exact Hn
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 4000000 in
+theorem EtcdServer.doSerialize.wp_proof
+    (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
+    EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
+  intro s E ρ γr ctx cd chk get G Q C t e
+  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
+  ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
+  iunfold srvReqFieldsAtM at Hv
+  icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
+    #Has, #Hras, -, -, -, -, -, -, -, -, -, -⟩
+  iunfold isServerReadM at Hrd
+  icases Hrd with ⟨%w, #Hw⟩
+  iunfold srvReadFieldsAtM at Hw
+  icases Hw with ⟨-, -, -, -, -, -, -, #Has2, #Hauth, -⟩
+  ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+  · iPkgInit
+  ihave Hinit : (srvInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  wp_auto
+  wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
+  subst tr
+  wp_apply EtcdServer.AuthInfoFromCtx.wpM E.authOn hAI s E v.auth v.cca ctx cd $$ [Hard]
+    as %a %err ⟨Hard, Ha, #HaE, #Hab⟩
+  · iframe; iframe #
+  cases err with
+  | ok ei =>
+    wp_auto
+    iapply HΦ
+    iframe Hard
+    iright
+    isplitr
+    · ipureintro; intro h; cases h
+    iframe HaE; ileft; iframe HG Htrc
+  | nil =>
+    wp_auto
+    wp_join iprop(∃ (a' : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
+        ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info) with [ai Ha] as ⟨%a', %info, %dq, ai, Hai, #Hib⟩
+    · iexists «$r0_ptr», _, DFrac.own 1
+      iframe ai «$r0»
+      iapply infoBoundM_empty; rfl
+    · iunfold authInfoOpt at Ha
+      icases Ha with (%Han | ⟨%user, %rev, #Hai0⟩)
+      · exact absurd Han Hif
+      ihave #Hp := authInfoIs_ptsto a user rev $$ Hai0
+      ihave #Hib := infoBoundM_of_ctxBound E.authOn s E _ a user rev $$ [Hab Hai0]
+      · iframe Hai0; iintro %h; iapply Hab $$ %h
+      iexists a, _, DFrac.discard
+      iframe ai Hp Hib
+    wp_bind (App (Val #chk) (Val #a'))
+    iapply Hchk $$ [Hai Hard]
+    · iframe
+    inext
+    iintro %err' ⟨Hai, Hard, #HcE, HC⟩
+    wp_auto
+    cases err' with
+    | ok ei =>
+      wp_auto
+      iapply HΦ
+      iframe Hard
+      iright
+      isplitr
+      · ipureintro; intro h; cases h
+      iframe HcE; ileft; iframe HG Htrc
+    | nil =>
+      wp_auto
+      wp_apply hStep t e _ slice.nil $$ [$Htrc] as Htrc
+      · iapply traceutil.ownFields_nil
+      wp_bind (App (Val #get) (Val #()))
+      iapply Hget $$ [HG Htrc]
+      · iframe HG Htrc
+      inext
+      iintro HQ
+      ihave HCi := HC $$ %rfl
+      wp_auto
+      iStructNamed Hai
+      icombine Has Has2 gives %Heq
+      iunfold apply.isAuthStore at Hauth
+      icases Hauth with ⟨%ai0, %Hst, -, -, -, -, -, -, #HRev, -⟩
+      icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩, -⟩
+      ihave ⟨%eOld, #HeOld, #HaOld⟩ := errVarLeaf_get _ $$ HOld
+      ihave #HaOldA : authApplyErrIs (GoInterface.ok eOld) $$ []
+      · iapply apply.errVarLeaf_authApplyErrIs _
+          (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) _ $$ HOld
+        iexists eOld; iframe HeOld; ipureintro; rfl
+      rw [Heq, Hst]
+      wp_auto
+      wp_if_destruct
+      · iapply HΦ
+        iframe Hard
+        ileft
+        iframe HQ
+        isplitr
+        · ipureintro; rfl
+        iexists _; iframe HCi Hib
+      · wp_apply HRev as %x -
+        wp_if_destruct
+        · iapply HΦ
+          iframe Hard
+          ileft
+          iframe HQ
+          isplitr
+          · ipureintro; rfl
+          iexists _; iframe HCi Hib
+        · iapply HΦ
+          iframe Hard
+          iright
+          isplitr
+          · ipureintro; intro h; cases h
+          iframe HaOldA; iright; iexact HQ
+
+end proof
+
+end EtcdGrove
+end Perennial

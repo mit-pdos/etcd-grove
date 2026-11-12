@@ -1,46 +1,23 @@
 /-
-`apply.NewUberApplier(opts)` (`uber_applier.go:226-238`): the base chain (`newApplierV3`: auth over
-quota over backend, over the options), the uber-applier over it, its current chain chosen by the
-alarm store (`restoreAlarms`).
-
-**Users.** `EtcdServer.NewServer` (`server.go:357`, 2e: the stores at the backend's state after
-bootstrap), `EtcdServer.applySnapshot` (`server.go:1181`, 2d: the stores rebuilt over the
-snapshot's image). Snippet `examples/specreq/apply/apply.go` (`ReqNewUber`).
-
-**Proof sketch.** `newApplierV3(opts)` (`newApplierV3.spec`: `beAt b mc γ γc R` from `optsOk`, the
-base chain `applierAt v baseLayers b aa`, `stAt b σ` from `optsSt`); the struct allocated
-(`uberAt p b aa …`); `restoreAlarms` (`uberApplier.restoreAlarms.spec`: the chain the alarms select);
-`smAt_unfold` packs `uberChain p (chainLayers σ) ∗ stAt b σ`; `isUber` is the fields with the
-concrete method's spec (`uberApplier.Apply.spec`) as its bundle (`isUber_apply`).
-
-**Changes** from `specs-ref`'s `NewUberApplier.lean`: no `backendUnderQuota` premise (the quota's
-refusal is a margin of the result, `resMatch`); one spec for every mode (the auth mode, the alarms,
-leases, compaction are in `σ`); the options as two slots (`optsOk`, `optsSt`) over the callees'
-vocabulary, not the old `AEnv`.
-verify-round (A9 F2, F3, F6): `optsOk` now carries the backends' post-lock hook contracts under `R`
-(`hooksOk`), `optsSt`'s `lessorSt` every key's lease live, the lessor's backend the options' and
-its range deleter `o.KV'`'s (`kvDelOk`): what the backend's `Put`, `Txn`, `LeaseGrant`,
-`LeaseCheckpoint`, `LeaseRevoke` and admin methods take. The callers (2e's `NewServer`, 2d's
-`applySnapshot`) establish them: the lessor's hook by 4a's `leaseBeHook_intro`/`leaseHookRun_intro`,
-the auth store's and `kvDelOk` by the introductions requested in `repair-apply-txn.md`.
-
-**Margin.** None. (Round 1: `uberOpts ua opts`, persistent, gets the stores back out of `smAt`: `smAt_optsSt`, `smAt_alarms`.)
+`apply.NewUberApplier` (uber_applier.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/InvUber.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -49,17 +26,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **An uber-applier over the options**, its state machine at the stores' state `σ`. -/
-def NewUberApplier.spec : Prop :=
-  ∀ (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (mc : MemberCfg)
-    (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State),
+/-- **`NewUberApplier(opts)`**: an `*uberApplier` `p` over the options `opts` (whose contracts
+hold in `E`): its fields from the options and the base chain (`uberIs`, persistent), its current
+applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChain E.authOn ns cr`)
+(2026-11-01, J8a: no reader resource `E.RD`, which the auth layer's `Apply` borrows from its caller;
+until then its mutex took one). -/
+abbrev apply.NewUberApplier.spec : Prop :=
+  ∀ (opts : ApplierOptions) (T : IProp GF) (z : Bool),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      optsOk opts mc γ γc R ∗ optsSt opts σ }}
+      apply.alarmGetIs opts.AlarmStore' T z ∗ T }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))
-  {{ (ua : GoInterface), RET #ua; isUber ua mc γ γc R ∗ uberOpts ua opts ∗ smAt ua σ }}
+  {{ (ua : GoInterface), RET #ua; T ∗ ∃ p : Loc,
+      ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
+      ∀ E : AEnv GF, apply.backendOptsOk E opts -∗
+        apply.uberIs E p opts ∗ ∃ ns cr : Bool, ⌜z = true → ns = false ∧ cr = false⌝ ∗
+          apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

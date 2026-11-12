@@ -5,20 +5,20 @@ Author's report (round 0). Every file builds (`etc/specs-build.sh --dir` of the 
 
 ## Files
 
-- `Spec/go_etcd_io/raft/v3/raftpb/`: `Model.lean` (pure: R1's message models field for field, the
+- `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/`: `Model.lean` (pure: R1's message models field for field, the
   enumerations, `ConfChangeV2.enterJoint`/`leaveJoint`, `ConfChangeI.asV2`, the content readers, the
   `*Is` relations, `decodeConfChange`, `msgEncodes`, `entryEncodes`, `bootCC`, `bootEntryData`, the
   size bounds), `Api.lean` (resources and laws), and 56 function specs: 40 getters, 4 `Enum`,
   `MarshalConfChange`, `ConfChange.AsV2`/`AsV1`, `ConfChangeV2.AsV2`/`AsV1`/`EnterJoint`/
   `LeaveJoint`, `ConfChangesToString`, `ConfState.Equivalent`, `EnsureConfState`,
   `EnsureSnapshotMetadata`, `EnsureSnapshot`.
-- `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`: `Api.lean` (the content relations, 2a's slots, the
+- `SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`: `Api.lean` (the content relations, 2a's slots, the
   descriptors' and enum maps' init laws, the WP shapes of stubs and handlers; no client vocabulary),
   `Realize.lean` (the laws over 1b's and 1c's predicates), and 83 function specs: 39 getters,
   `New{KV,Watch,Lease,Auth}Client` (client-facing: `connOk ⊢ remote*At`), 17 stub methods
   (`kVClient.*`, `leaseClient.*`, `authClient.*`, `watchClient.Watch`), 17 handlers (`_KV_*`,
   `_Lease_*`, `_Auth_*`, `_Watch_Watch`), 6 `Register*Server`.
-- `Spec/go_etcd_io/etcd/api/v3/version/`: `Cluster`, `LessThan` (assumed: names-only translation).
+- `SpecPlan/Spec/go_etcd_io/etcd/api/v3/version/`: `Cluster`, `LessThan` (assumed: names-only translation).
 - `examples/specreq/raftpb/`: `messages.go`, `confchange.go`, `snapshot.go` (14 snippets).
 - `examples/specreq/etcdserverpb/`: `getters.go`, `stubs.go` (8 snippets).
 
@@ -199,7 +199,7 @@ id ctx)`), `decodeConfChange_empty`, `wire_fun` (`msgEncodes`, `entryEncodes` fu
   `alarmReqOwn`, `irrIsRevoke` (definition), `reqHeaderAt`; laws `irrOwnH_msgAt`,
   `alarmReqOwn_msgAt`, `irrOwn_setHeader`, `irrOwnH_header`, `irr_content`, `irr_holds_fun`,
   `irrIsRevoke_intro`. 2e's `v3lockpb`/`v3electionpb` messages: new
-  `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/{v3lock/v3lockpb,v3election/v3electionpb}/Api.lean`
+  `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/{v3lock/v3lockpb,v3election/v3electionpb}/Api.lean`
   (namespaces `V3lockpb`, `V3electionpb`): the predicates with 2e's signatures, relations, field and
   fold laws. Mapping: the table above and `req/go_etcd_io_etcd_server_v3_etcdserver.md`, "from 3h,
   round 1" (open for 2c: the raft request's encoded size, `fits`, is not bounded by its model).

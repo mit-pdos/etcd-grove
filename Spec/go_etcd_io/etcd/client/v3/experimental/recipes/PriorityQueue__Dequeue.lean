@@ -1,42 +1,10 @@
 /-
-`(*PriorityQueue).Dequeue()` (`priority_queue.go`): as `Queue.Dequeue`, with the first key in key order
-(`WithFirstKey()`), and the same fallback to the first put after the read.
-
-**Users**: `T/v3_queue_test.go:110` (all items enqueued before: priority order), `:230` (many readers
-and writers), `T/v3_closed_watch_test.go:76`. Snippet: `recipes/pqueue.go`.
-
-**Proof sketch**: as `Queue.Dequeue`'s (the watch path's value by `kvStep`'s `putOnce evs`), with `σ0`
-(`etcdLb γ σ0`, the caller's) and `σg` reached from it. Claim of the read's key `k` (first in key order at `σg`): at the claim `σ`, a key before `k` in key
-order was not there at `σg` with its record, so it was written after `σg.kv.rev ≥ σ0.kv.rev`. Watch
-path: as `Queue`'s, every key under the prefix at the claim was written at a revision `≥ m > σg.kv.rev`
-(`m > σg.kv.rev` because the one key present at `σg` was changed before the first claim), so every key
-before the claimed one, too. One condition covers both: `frontByKey ... σ0.kv.rev`.
-
-**Changes**: old spec (`pqueue_min_key`, `pqueue_order` at the read's revision) gave the order at the
-read; now the caller's update fires at the claim, with the order the code supports there: the
-claimed item is first in key order among the items present at `σ0`, but an item enqueued during the
-call may be ahead of it (`nonissues/recipes-pqueue-dequeue-order.md`: the lost-claim fallback takes
-the first put, not the highest priority, so the queue is not linearizable as a priority queue; and
-its "FIFO" comment means "least priority value first").
-
-**Changes (second pass)**: the key's membership, its record and the value unconditional (1b's
-unconditional event facts, as `Queue.Dequeue`'s); only the front stays gated.
-`ReqPQEveryItemOnce` no longer assumes the compaction condition.
-
-**Changes (verify-round)**: none to the triple; the snippets that dequeue assumed the compaction condition (A3 F3), since narrowed by the second pass above to the snippets that check the order.
-
-**Margin**: on the fallback path the claimed item is also the least mod revision (FIFO among the later
-arrivals), which the spec does not say; errors as `Queue.Dequeue`'s.
-
-**Integration (I1)**: the front condition in the caller's update and the returned value is gated by the compaction condition `exactFrom σ.kv σ0.kv.rev` (W0's
-`EtcdModel.exactFrom`): 1b's `watchStep` gives a response's events (and a progress's emptiness) only
-under it, so the facts this call learns from a watch hold only under it; facts learned from a
-`Get` would not need it but are stated under the same condition (a caller cannot tell the paths
-apart). The weakest condition the watches need: they start at or after that revision.
+`recipes.(*PriorityQueue).Dequeue()` (`client/v3/experimental/recipes/priority_queue.go`). Lean-first (no Rocq counterpart); see
+`InvRecipesQueue.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesQueue
 
 @[expose] public section
 
@@ -44,36 +12,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`q.Dequeue()`**: the value of the item it deleted, first in key (priority, then sequence) order among the items present when the call started (`σ0`), linearized at the deletion by the caller's update; or an error. -/
-def PriorityQueue.Dequeue.spec : Prop :=
-  ∀ (q c : Loc) (γ : Cluster) (who : Principal) (key : GoString) (σ0 : State)
-    (Q : State → State → GoString → KeyRec → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ pqueueAt q c γ who key ∗ etcdPeek γ ∗ etcdLb γ σ0 ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (k : GoString) (kr : KeyRec) (res : Resp),
-             ⌜(pfxRange (key ++ go!"/")).mem k ∧ σ.kv.store k = some kr ∧
-              (EtcdModel.exactFrom σ.kv σ0.kv.rev → frontByKey (pfxRange (key ++ go!"/")) σ.kv.store σ0.kv.rev k kr) ∧
-              Step who (deleteRevReq k kr.modRev) σ σ' res ∧ txnSucceeded res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' k kr }> }}
+/-- **`q.Dequeue()`**, knowing etcd has reached `lo ≥ 0`, for a client with the recipes' contracts
+(`isEtcdRecipesClient`; its watch channels may close): as `Queue.Dequeue`, on the items under
+`key ++ "/"`, with the get `WithFirstKey()` (the least key):
+* `(v, nil)`: an item `it` under `key ++ "/"` with the value `v` was **dequeued by this call** at
+  some `r ≥ lo` etcd has reached (`dequeuedAt`, with the token of the revision `r`), **in order**
+  (`dequeueOrder` for `keyLe`: at the last get's revision `r0 < r`, it was there with the least
+  key under `key ++ "/"`; or the items under `key ++ "/"` then were all claimed by others by `r`,
+  and it was put at or after `r0`);
+* `("", err)` with an error (the get's, a claim's, the wait's: a canceled or closed watch). -/
+abbrev PriorityQueue.Dequeue.spec : Prop :=
+  ∀ (q client : Loc) (key : GoString) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+      context.isClosedchanInit ∗ isPriorityQueue q client key ∗ etcdReached lo ∗
+      ⌜0 ≤ sint.Z lo⌝ }}
     (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Dequeue")) (Val #()))
   {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' k kr, Q σ σ' k kr ∗ ⌜v = kr.value⌝) ∨
-      (⌜err ≠ GoInterface.nil ∧ v = []⌝ ∗ recipeErrOk err) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64), etcdReached r ∗
+        dequeuedAt [] (key ++ go!"/") it r ∗ dequeueOrder [] (key ++ go!"/") keyLe it r ∗
+        ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
+      ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

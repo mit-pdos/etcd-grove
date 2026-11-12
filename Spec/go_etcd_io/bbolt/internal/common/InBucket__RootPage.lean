@@ -1,14 +1,9 @@
 /-
-## `(*InBucket).RootPage()` (`internal/common/bucket.go`)
-
-**Users.** bucket.go:63,139,377,619,642,704-720,908,939 (`Bucket.Root`, `openBucket`, ...), cursor.go:46,69,162. Snippet `ReqInlineBucket`.
-**Proof sketch.** one field load.
-**Changes.** from `specs-ref`'s file of the same name (unchanged; a header in a value is reached by `inBucket_view`).
-**Margin.** none: the post is what the code computes.
+`(*InBucket).RootPage`'s spec (`internal/common/bucket.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,19 +11,21 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `b.RootPage()`: the field `root`. -/
-def InBucket.RootPage.spec : Prop :=
+/-- `InBucket.RootPage()` reads the field `root`. -/
+abbrev InBucket.RootPage.spec : Prop :=
   ∀ (l : Loc) (v : InBucket) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦{dq} v }}
     (App (Val (l @!! go.GoType.PointerType InBucket.ty @!! go!"RootPage")) (Val #()))
@@ -36,6 +33,8 @@ def InBucket.RootPage.spec : Prop :=
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

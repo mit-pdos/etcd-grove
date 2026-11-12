@@ -23,7 +23,7 @@ with a non-empty value, expecting an empty value or `ErrUnsupportedRequest`.
 
 ## Proof
 
-no: the cache's `Get` spec (`Spec/go_etcd_io/etcd/cache/v3/Cache__Get.lean`, specs-only branch)
+no: the cache's `Get` spec (`SpecPlan/Spec/go_etcd_io/etcd/cache/v3/Cache__Get.lean`, specs-only branch)
 states what the code does: `getUnsupported` omits keys-only and the answer is the full key-values.
 
 ## Notes

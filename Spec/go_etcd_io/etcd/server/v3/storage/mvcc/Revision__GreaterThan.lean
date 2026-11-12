@@ -1,10 +1,9 @@
 /-
-`Revision.GreaterThan(b)` (`revision.go:44`): lexicographic on `(Main, Sub)`, signed. Internal
-(`keyIndex.put`, the hasher). **Changes** from `specs-ref`'s file: over `Internal.lean`'s `Rev.gt`.
+`Revision.GreaterThan` (`revision.go`). Lean-first (no Rocq counterpart); see `Model.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Defs
 
 @[expose] public section
 
@@ -12,27 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `a.GreaterThan(b)`: `Rev.gt`. -/
-def Revision.GreaterThan.spec : Prop :=
+/-- `a.GreaterThan(b)` decides `Rev.gt`: `(main, sub)` lexicographically. -/
+abbrev mvcc.Revision.GreaterThan.spec : Prop :=
   ∀ (a b : Revision),
-  {{ pkgInit }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
     (App (Val (a @!! Revision.ty @!! go!"GreaterThan")) (Val #b))
-  {{ RET #(Rev.gt (revOf a) (revOf b)); True }}
+  {{ RET #(mvcc.Rev.gt (mvcc.revOf a) (mvcc.revOf b)); True }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

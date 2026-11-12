@@ -2,7 +2,7 @@
 
 Reports: `A11-bbolt-provability.md` (F1-F10), `A11-bbolt-completeness.md` (F1-F5, S1-S4); the
 backend group's "Requests to bbolt" in `repair-backend-schema.md` (1-4, all handled below).
-Files: `Spec/go_etcd_io/bbolt/{Model,Api,Internal,Options,Open,Tx__Commit,DB__Update,DB__Stats,
+Files: `SpecPlan/Spec/go_etcd_io/bbolt/{Model,Api,Internal,Options,Open,Tx__Commit,DB__Update,DB__Stats,
 Cursor__node,Bucket__node,node__rebalance,node__spill,node__free,Bucket__free,Tx__allocate,
 DB__allocate}.lean`, sketches in `Bucket__{Put,Delete,CreateBucket,CreateBucketIfNotExists,
 DeleteBucket,SetSequence,NextSequence,rebalance,spill}.lean`, `Cursor__Delete.lean`,
@@ -184,9 +184,9 @@ backend's assumed fact.
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/bbolt`: **OK (149 modules)**. Importers in another group
-rebuilt to check nothing broke: `--dir Spec/go_etcd_io/etcd/server/v3/storage/backend
-Spec/go_etcd_io/etcd/server/v3/storage/schema`: OK (174 modules). Snippets: `go vet
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/bbolt`: **OK (149 modules)**. Importers in another group
+rebuilt to check nothing broke: `--dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/schema`: OK (174 modules). Snippets: `go vet
 ./specreq/bbolt/` clean; `gofmt -l` empty for `specreq/bbolt` and `specreq/bboltinternal`.
 `etc/issues-status.py --index` regenerated, `--check` clean.
 
@@ -227,5 +227,5 @@ Spec/go_etcd_io/etcd/server/v3/storage/schema`: OK (174 modules). Snippets: `go 
 - **N7: fixed**: new law `wtxCore_hwm` (`2 ≤ uint.nat C.hwm`).
 - **N8: fixed**: `ReqBackendBatch` Assumes "the root has no plain value at keyBucket".
 
-Re-review build: `etc/specs-build.sh --dir Spec/go_etcd_io/bbolt …/storage/backend …/storage/schema`:
+Re-review build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/bbolt …/storage/backend …/storage/schema`:
 **OK (324 modules)**; `go vet ./specreq/bbolt/` clean, `gofmt -l` empty.

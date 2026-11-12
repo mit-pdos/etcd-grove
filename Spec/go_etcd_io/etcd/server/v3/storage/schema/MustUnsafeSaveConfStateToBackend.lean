@@ -1,26 +1,11 @@
 /-
-## `schema.MustUnsafeSaveConfStateToBackend(lg, tx, confState)`: assumed (names only)
-
-**Users.** `BackendHooks.OnPreCommitUnsafe` (`storage/hooks.go:50`, 2e: the pending configuration,
-the batch lock held). Snippet: `examples/specreq/schema/schema.go` (`ReqSaveThenRead`).
-
-**Assumed** (`confstate.go:26-38`): `json.Marshal(confState)` (a `raftpb.ConfState`: slices of
-`uint64` and a `bool`, never an error, so `lg.Panic` is unreachable), `tx.UnsafePut(Meta, confState,
-bytes)` (`txWr`: the JSON has at most `128 + 21 n` bytes for `n` ids, and each id takes a byte of
-the protobuf encoding at least, so `putFits` from the premise).
-
-**Changes.** From `specs-ref`'s `MustUnsafeSaveConfStateToBackend.lean`: over the contract; the size
-premise (round 1, F4).
-
-**Margin.** The stored bytes are not described (their reader, `UnsafeConfStateFromBackend`, is
-not translated).
+`schema.MustUnsafeSaveConfStateToBackend(lg, tx, confState)` (`server/storage/schema/
+confstate.go`, translated names-only). The trust boundary. Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/storage/InvHooks.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-public import GeneratedProof.go_etcd_io.raft.v3.raftpb
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
 
 @[expose] public section
 
@@ -28,29 +13,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Stores the configuration** under `Meta`'s `confState`. -/
-def MustUnsafeSaveConfStateToBackend.spec : Prop :=
-  ∀ (lg : Loc) (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData)
-    (cs : Loc) (dq : DFrac) (c : Proto.Content),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.has .metaB confStateKey ∧ V .metaB = some m⌝ ∗
-      Proto.msgAt go_etcd_io.raft.v3.raftpb.ConfState.ty cs dq c ∗
-      ⌜confStateKey.length + 128 + 21 * Proto.encSize c ≤ Bbolt.bboltEntryMax⌝ }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend)) (Val #lg)) (Val #tx)) (Val #cs))
-  {{ RET #(); Proto.msgAt go_etcd_io.raft.v3.raftpb.ConfState.ty cs dq c ∗
-      ∃ bs : GoString, R (V.put .metaB confStateKey bs) }}
+/-- `MustUnsafeSaveConfStateToBackend(lg, tx, confState)` encodes `*confState` as JSON
+(`json.Marshal`, which reads the struct and cannot fail on a `ConfState`: so the `lg.Panic`
+branch is not taken) and puts it into `Meta` under the key `confState`
+(`tx.UnsafePut(Meta, MetaConfStateName, bytes)`, its one call of `tx`): given that put's triple
+from `R` to `Q`, for any bytes (a fresh slice, which the function does not touch again), it goes
+from `R` to `Q`. The struct `*confState` is read without a resource: its one caller
+(`BackendHooks.OnPreCommitUnsafe`) passes `SetConfState`'s clone, which no one writes after it is
+made (and `ConfState`, a protobuf-go v2 message, is an axiomatized type here). -/
+abbrev schema.MustUnsafeSaveConfStateToBackend.spec : Prop :=
+  ∀ (lg : Loc) (tx : GoInterfaceOk) (cs : Loc) (R Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      R ∗
+      □ (∀ (b : GoInterface) (key val : GoSlice) (vb : GoString),
+        {{ globalAddr schema.Meta ↦□ b ∗ key ↦*□ schema.confStateKeyBytes ∗ val ↦*□ vb ∗ R }}
+          (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #b)) (Val #key))
+            (Val #val))
+        {{ RET #(); Q }}) }}
+    (App (App (App (Val (@! schema.MustUnsafeSaveConfStateToBackend)) (Val #lg))
+      (Val #(GoInterface.ok tx))) (Val #cs))
+  {{ RET #(); Q }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

@@ -1,16 +1,10 @@
 /-
-`(*EtcdServer).shouldSnapshotToMemory(ep)` (`server.go:1255-1257`): past the last memory snapshot by
-more than `memorySnapshotCount` (100; the sum wraps as Go's `uint64`). Internal (`snapshotIfNeededAndCompactRaftLog`).
-
-**Proof sketch**: reads `ep`'s indices (the constant needs no field). **Changes**: over
-`applyThread`. **Margin**: none (the result's formula is stated).
+`s.shouldSnapshotToMemory(ep)` (`server.go`). Lean-first (no Rocq counterpart); the request path's
+unit 4b (2026-10-13).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 
 @[expose] public section
 
@@ -18,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,18 +21,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def EtcdServer.shouldSnapshotToMemory.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (ep : Loc) (p : Progress),
+/-- `s.shouldSnapshotToMemory(ep)`: whether more than `memorySnapshotCount` entries were applied
+since the last in-memory snapshot (some boolean: the apply loop's proof needs no more). -/
+abbrev EtcdServer.shouldSnapshotToMemory.spec : Prop :=
+  ∀ (s ep : Loc) (ai m : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ applyThread s γ ep p }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"shouldSnapshotToMemory")) (Val #ep))
-  {{ (b : Bool), RET #b; applyThread s γ ep p ∗
-      ⌜b = decide (uint.Z (p.memSnap + W64 100) < uint.Z p.appliedi)⌝ }}
+      epAppliedIAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ m }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"shouldSnapshotToMemory")) (Val #ep))
+  {{ (r : Bool), RET #r;
+      epAppliedIAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ m ∗
+      -- (D19i part 1) due only past index `0`; (2026-11-01, J8a-5) not at the in-memory snapshot's
+      -- index, unless `m + memorySnapshotCount` wraps
+      ⌜r = true → 0 < uint.Z ai ∧ (m = ai → 2 ^ 64 ≤ uint.Z ai + 100)⌝ }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

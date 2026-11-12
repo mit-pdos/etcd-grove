@@ -1,14 +1,12 @@
 /-
-## `Interface.Write(p)` (`shared.go`)
-
-**Users.** tx.go:295 (`commitFreelist`: into the buffer `Tx.allocate` returned for `EstimatedWritePageSize()`). Snippet `ReqWriteReload`.
-**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; `SetFlags`, `Count()`, `SetCount`, then the ids through `unsafe.Slice` over the bytes after the header (a `[]Pgid` view of them) and `Copyall`.
-**Changes.** from `specs-ref`'s `Interface__Write.lean`: the page as its bytes (`freelistPage`) and any bytes after the header (not only zeroed ones); the room as `estimatedSize`.
-**Margin.** none: the post is what the code computes.
+`Interface.Write` (bbolt/internal/freelist, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U2; used by U10 (`commitFreelist`). Proof:
+`Proof/go_etcd_io/bbolt/internal/freelist/Interface__Write.lean` (a `sorry` until U2).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.freelist.Api
+public import Proof.go_etcd_io.bbolt.Inv.Freelist
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,30 +14,44 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Freelist
+namespace bbolt
+namespace internal
+namespace freelist
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common BboltCommon
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common go_etcd_io.bbolt.internal.freelist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The contract of `Write` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.Write(p)`: the page becomes the freelist page of the free and pending ids, sorted (`freelistPage bs F.ids`; `freelistPage_read` reads it back). The page must have the room `EstimatedWritePageSize()` returns. -/
-def Interface.Write.contract (fl : GoInterface) (f : Expr) : Prop :=
-  ∀ (F : FLState) (p : Loc) (bs : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flOwn fl F ∗ bytesPointsto p (DFrac.own 1) bs ∗
-      ⌜F.count < flMaxIds ∧ F.estimatedSize ≤ bs.length⌝ }}
-    (App f (Val #p))
-  {{ RET #(); flOwn fl F ∗ bytesPointsto p (DFrac.own 1) (freelistPage bs F.ids) }}
-
-/-- `f.Write(p)`: the page becomes the freelist page of the free and pending ids, sorted (`freelistPage bs F.ids`; `freelistPage_read` reads it back). The page must have the room `EstimatedWritePageSize()` returns. Through the interface (`flCall`): proved from `array.Write.spec`, `hashMap.Write.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
-def Interface.Write.spec : Prop := ∀ fl, Interface.Write.contract (GF := GF) fl (flCall fl go!"Write")
+/-- `f.Write(p)`: the freelist page at `p` (its header, and the `R` zeroed bytes after it, at
+least `EstimatedWritePageSize() - 16`): the header's flags the freelist's, its count the number
+`n` of free and pending ids (`0xFFFF` from there on, the count then the first id after the
+header), and the ids, sorted, after it (`flIds` reads them back).
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
+abbrev Interface.Write.spec : Prop :=
+  ∀ (fli : GoInterface) (fl : FLPg) (p : Loc) (hdr : Page) (R : Nat),
+  8 * (fl.allIds.length + 1) ≤ R → 0 < p.addr → p.addr + 16 + R ≤ maxAddr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl ∗
+      p ↦ hdr ∗ bytesPointsto (p +ₗ 16) (DFrac.own 1) (List.replicate R (W8 0)) }}
+    (App (ifaceCall fli go!"Write") (Val #p))
+  {{ RET #(); flPgOwn fli fl ∗
+      let n := fl.allIds.length
+      let body := (if n < 0xFFFF then [] else encode (W64 (n : Int))) ++
+        (sortPgids fl.allIds).flatMap encode
+      iprop(p ↦ (⟨hdr.id', W16 (freelistPageFlag : Int),
+                     W16 ((if n < 0xFFFF then n else 0xFFFF : Nat) : Int), hdr.overflow'⟩ : Page) ∗
+      bytesPointsto (p +ₗ 16) (DFrac.own 1) (body ++ List.replicate (R - body.length) (W8 0))) }}
 
 end spec
 
-end Freelist
+end freelist
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

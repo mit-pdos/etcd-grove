@@ -1,15 +1,7 @@
-/-
-## `raft.hardState()`
-
-**Users.** `NewRawNode` (`rawnode.go:59`: the first `prevHardSt`), `readyWithoutAccept`, `HasReady`,
-`getBasicStatus`. **Proof sketch.** A fresh `HardState` of `Term`, `Vote` and the log's `committed`.
-**Changes.** Over the view. **Margin.** Exact; the pointer is fresh.
--/
+/- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -17,25 +9,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A fresh `HardState` of the view's. -/
-def raft.hardState.spec : Prop :=
-  ∀ (r : Loc) (id : w64) (ρ : CoreView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftRO r id ρ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"hardState")) (Val #()))
-  {{ (p : Loc), RET #p; raftRO r id ρ ∗ hardStatePts p (DFrac.own 1) ρ.hs }}
+/-- `r.hardState()`: `pb.HardState{Term: r.Term, Vote: r.Vote, Commit:
+r.raftLog.committed}`.
+
+raft v3.7 (2026-10-15, stage R4): a fresh `&pb.HardState{Term: new(r.Term), ...}`, returned
+read-only for good (`hsRO`, D4: shared by `Ready`, `prevHardSt` and the storage). -/
+abbrev raft.hardState.spec : Prop :=
+  -- (2026-10-14, stage B7 part 2) at any configuration (until then `ownRaftPhys cfg`)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hardState")) (Val #()))
+  {{ (p : Loc), RET #p; hsRO p (hardstateVal (nodeHardstate s)) ∗ ownRaftPhysCV c c.voters r id s }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

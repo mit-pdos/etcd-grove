@@ -1,14 +1,9 @@
 /-
-## `(*raftLog).hasNextUnstableSnapshot()` (internal)
-
-**Users**: `readyWithoutAccept`, `HasReady`. Mirrors the code. **Changes**: from
-`specs-ref/Spec/go_etcd_io/raft/v3/raftLog__hasNextUnstableSnapshot.lean`.
+Port of `election_proof/spec_raftLog__hasNextUnstableSnapshot.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -16,25 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether a snapshot is pending and not in progress. -/
-def raftLog.hasNextUnstableSnapshot.spec : Prop :=
+/-- `l.hasNextUnstableSnapshot()` (`log.go:281`): `l.unstable.nextSnapshot() != nil` --
+`false` exactly with no snapshot pending or the pending one in progress (`sip`, since D22 S-d1,
+2026-10-20; until then only the no-snapshot case). -/
+abbrev raftLog.hasNextUnstableSnapshot.spec : Prop :=
   ∀ (l : Loc) (ls : LogState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"hasNextUnstableSnapshot")) (Val #()))
-  {{ RET #(ls.us.nextSnapshot.isSome); raftLog l ls }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"hasNextUnstableSnapshot")) (Val #()))
+  {{ (b : Bool), RET #b; ownRaftLog l ls ∗ ⌜(ls.snap = none ∨ ls.sip = true) ↔ b = false⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

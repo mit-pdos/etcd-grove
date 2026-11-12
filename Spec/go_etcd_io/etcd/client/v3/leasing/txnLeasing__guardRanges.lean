@@ -1,10 +1,9 @@
 /-
-`(*txnLeasing).guardRanges` (`txn.go`): two comparisons per range write after revoking its range's leases (`revokeRange`, a `WithLastRev` get). Proof sketch: the callees' specs; reads from `protoUpd`.
-Changes: from `specs-ref`'s `txnLeasing__guardRanges.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`txn.guardRanges(ops)` (`client/v3/leasing/txn.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -12,28 +11,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `guardRanges(ops)`: comparisons, or an error. -/
-def txnLeasing.guardRanges.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (ops : GoSlice) (os : List OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os ∗ threadTok }}
-    (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"guardRanges")) (Val #ops))
-  {{ (cs : GoSlice) (err : GoInterface), RET (PairV #cs #err); ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗ opsAt ops os ∗ threadTok ∗
-      (⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ ∃ ms, cmpsAt cs ms)) }}
+/-- **`txn.guardRanges(ops)`**: for each range a non-get operation writes, revokes its lease keys
+(`revokeRange`) and gets its last modification, and builds the two comparisons guarding it: an
+error (and a nil slice), or comparisons. The context must be cancelable. -/
+abbrev txnLeasing.guardRanges.spec : Prop :=
+  ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (dq : DFrac) (sl : GoSlice) (os : List OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
+      structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗
+      sessionReady γ ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ opsAt sl os ∗
+      ⌜∀ o ∈ os, o.key.length ≤ opKeyMax ∧ o.base.rangeEnd.length ≤ opKeyMax⌝ }}
+    (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"guardRanges")) (Val #sl))
+  {{ (cmps : GoSlice) (err : GoInterface), RET (PairV #cmps #err);
+      structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
+      structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ lkvReader lkv γ pfx ∗
+      (⌜err ≠ GoInterface.nil ∧ cmps = slice.nil⌝ ∨
+       (⌜err = GoInterface.nil⌝ ∗ ∃ ms : List CmpModel, cmpsAt cmps ms ∗
+        ⌜ms.length ≤ 2 * os.length ∧ ∀ c ∈ ms, guardOf pfx os c.key c.rangeEnd c.val⌝)) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

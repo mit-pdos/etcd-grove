@@ -1,19 +1,10 @@
 /-
-## `(*msgAppV2Encoder).encode(m)`
-
-**Users.** `streamWriter.run` (the msgappv2 stream).
-
-**Proof sketch.** `isLinkHeartbeatMessage`; an `AppEntries` frame when `index`, `logTerm`, `term` match the state (the entries' sizes and encodings, `MarshalAppend` into the buffer, the commit), else a full frame (`binary.Write`, `proto.Size`, `MustMarshalMessage`) and the state from the message; `FollowerStats.Succ` (2e: no-op). The shape premise is what makes the short frame's decoding equal `m` (`sendable`). The full frame's next state is the last entry's `GetIndex()`, which `msgPts_msgAt`'s `msgWf` (entries numbered from `Index + 1`) makes `m.index + |m.entries|`, `v2Frame`'s.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A8 F8): `v2Frame` transparent (was opaque); the premise adds `dst ≠ 0` (a peer's id, which `msgChanAt` carries: `peer.send` takes `m.to ≠ 0`), without which `sendable` says nothing and the short frame would not be `v2Frame`'s. verify-round (R-A8 S3): the sketch says where the full frame's consecutive indexes come from (`msgPts`'s `msgWf`); no premise added, statement unchanged.
-
-**Margin.** None.
+`(*msgAppV2Encoder).encode(m)` (`msgappv2_codec.go`): the encoder of rafthttp's `msgappv2` stream
+(the leader's `MsgApp`s to one follower). Lean-first; the model: `rafthttp/MsgAppV2.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
 
 @[expose] public section
 
@@ -21,26 +12,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Writes a msgappv2 frame** of a link heartbeat or a `MsgApp` of raft's shape from `src` to `dst`, with the writer's permission for every prefix of a frame of it; the state moves on success. -/
-def msgAppV2Encoder.encode.spec : Prop :=
-  ∀ (enc : Loc) (w : GoInterface) (src dst : w64) (st : w64 × w64) (Ok : List w8 → IProp GF) (bs : List w8) (ml : Loc) (dq : DFrac) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ v2EncAt enc w src dst st ∗ writerAt w Ok bs ∗ msgPts ml dq m ∗ ⌜isLinkHeartbeat m ∨ (m.type = MsgApp ∧ m.to = dst ∧ dst ≠ W64 0 ∧ sendable src m)⌝ ∗ □ (∀ fb st' ys, ⌜v2Frame st src dst m fb st' ∧ ys <+: fb⌝ -∗ Ok (bs ++ ys)) }}
-    (App (Val (enc @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder.ty @!! go!"encode")) (Val #ml))
-  {{ (err : GoInterface), RET #err; msgPts ml dq m ∗ Http.errOk err ∗ ∃ bs' st', v2EncAt enc w src dst st' ∗ writerAt w Ok bs' ∗ ⌜err = interface.nil → ∃ fb, v2Frame st src dst m fb st' ∧ bs' = bs ++ fb⌝ }}
+/-- **`enc.encode(m)`** of a frozen message `st` the encoder may be given on the connection from
+`frm` to `to` (`V2EncOk`), the encoder at the state `cs`, its writer at the bytes `h` and permitted
+to write any prefix of a frame of `st`'s content from `cs`: it writes such a frame, leading to a
+state `cs'`, or returns an error (the writer and the encoder at some bytes and state). -/
+abbrev rafthttp.msgAppV2Encoder.encode.spec : Prop :=
+  ∀ (enc : Loc) (wi : GoInterfaceOk) (fs : Loc) (cs : V2St) (frm to : w64) (ml : Loc) (st : MsgSt)
+    (Wr A : List w8 → IProp GF) (h : List w8),
+  V2EncOk frm to st →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      v2EncOwn enc wi fs cs ∗ writerAt wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
+      □ (∀ (bs : List w8) (cs' : V2St) (k : Nat), ⌜V2Frame frm to cs (wireOf st) bs cs'⌝ -∗
+          A (h ++ bs.take k)) }}
+    (App (Val (enc @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder.ty @!! go!"encode")) (Val #ml))
+  {{ (err : GoInterface), RET #err; http.errStrOk err ∗
+      ∃ (h' : List w8) (cs' : V2St), Wr h' ∗ v2EncOwn enc wi fs cs' ∗
+        (⌜err = GoInterface.nil⌝ -∗ ⌜∃ bs, V2Frame frm to cs (wireOf st) bs cs' ∧ h' = h ++ bs⌝) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

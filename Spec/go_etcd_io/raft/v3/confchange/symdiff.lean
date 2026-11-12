@@ -1,14 +1,10 @@
 /-
-## `symdiff(l, r)` (internal)
-
-**Users.** `Simple` (the tracker's incoming voters against the copy's). Mirrors the code: two
-`range`s counting into an `int` (wrapping, as the model's `symdiffTooBig` reads it).
+`confchange.symdiff(l, r)` counts the symmetric difference of two id sets. Lean-first
+(no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 
@@ -16,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The size of the symmetric difference, as an `int`. -/
-def symdiff.spec : Prop :=
-  ∀ (l r : GoMap) (dql dqr : DFrac) (sl sr : GSet w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ Quorum.majorityOwn l dql sl ∗ Quorum.majorityOwn r dqr sr }}
-    (App (App (Val #(functions go_etcd_io.raft.v3.confchange.symdiff [])) (Val #l)) (Val #r))
-  {{ RET #(W64 (GMap.size (sl \ sr) + GMap.size (sr \ sl))); Quorum.majorityOwn l dql sl ∗
-      Quorum.majorityOwn r dqr sr }}
+/-- `symdiff(l, r)` returns the size of the symmetric difference, as a Go `int`: the count
+is incremented once per id of `l` not in `r` and once per id of `r` not in `l`, so the
+result is `symdiffN ml mr` modulo `2^64` (no bound is needed). (Until 2026-10-12 this
+said only "at most 1 under `Simple`'s two inclusions".) -/
+abbrev confchange.symdiff.spec : Prop :=
+  ∀ (l r : Loc) (ml mr : GSet w64) (dql dqr : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ l ↦${dql} ml ∗ r ↦${dqr} mr }}
+    (App (App (Val #(functions confchange.symdiff [])) (Val #l)) (Val #r))
+  {{ RET #(W64 (symdiffN ml mr : Int)); l ↦${dql} ml ∗ r ↦${dqr} mr }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

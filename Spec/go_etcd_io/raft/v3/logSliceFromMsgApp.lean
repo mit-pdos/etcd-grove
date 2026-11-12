@@ -1,20 +1,15 @@
 /-
-## `logSliceFromMsgApp(m)` (internal)
+Port of election_proof/spec_logSliceFromMsgApp.v (feb5c73d4).
 
-`handleAppendEntries`. Mirrors the code: the message's term, previous entry id and entries (the
-message's slice: for a `MsgApp`, read-only entries from `Index + 1`, raftpb's `msgPts_unfold` and
-`msgEnts_app`, which `raftLog.maybeAppend` takes). **Changes.** (Integration I2) the entries named
-(R3's request, `req/go_etcd_io_raft_v3.md`, "from R3, round 1", item 5); from a received message
-(`rc`: `msgRecv`, the coordinator's decision) the slice's capacity too, split off the message (which
-stays `msgPts` at `own 1`), for `maybeAppend`, whose `unstable` may adopt the slice. **Margin.** From
-a `msgPts` alone no capacity is given (`msgPts` is shared read-only; a `MsgApp` raft builds has
-none to give: `raftLog.slice` clips, log.go:510).
+Lean notes:
+* `raft.logSlice.mk`/`raft.entryID.mk` are the generated constructors `logSlice.mk`
+  and `entryID.mk`.
+* The reference `logSliceFromMsgAppⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:4866` is to the
+  Lean generated code `logSliceFromMsgApp.impl`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -22,29 +17,50 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The appended slice an `MsgApp` describes. -/
-def logSliceFromMsgApp.spec : Prop :=
-  ∀ (ml : Loc) (dq : DFrac) (m : Msg) (rc : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      (if rc then msgRecv ml m else msgPts ml dq m) }}
-    (App (Val (@! go_etcd_io.raft.v3.logSliceFromMsgApp)) (Val #ml))
-  {{ (ls : go_etcd_io.raft.v3.logSlice), RET #ls; msgPts ml (if rc then DFrac.own 1 else dq) m ∗
-      (if rc then ownSliceCap Loc ls.entries' (DFrac.own 1) else iprop(True)) ∗
-      ⌜ls.term' = m.term ∧ ls.prev'.term' = m.logTerm ∧ ls.prev'.index' = m.index⌝ ∗
-      (⌜m.type = MsgApp⌝ -∗ entriesRO ls.entries' (uint.nat m.index + 1) m.entries) }}
+/-- `logSliceFromMsgApp(m)` repackages an append message as a `logSlice`
+(`logSliceFromMsgApp.impl`, `Code/go_etcd_io/raft/v3.lean`; raft.go):
+
+    func logSliceFromMsgApp(m *pb.Message) logSlice {
+      return logSlice{
+        term:    m.Term,
+        prev:    entryID{term: m.LogTerm, index: m.Index},
+        entries: m.Entries,
+      }
+    }
+
+One exit, no panic, no call. It takes a *pointer* (`handleAppendEntries` passes `&m`)
+and reads four fields; the `Entries` slice header is copied, not its contents, so
+nothing about the entries is owned or returned here.
+
+raft v3.7 (2026-10-15, stage R4): the fields are read through the getters (`m.GetTerm()`,
+`m.GetLogTerm()`, `m.GetIndex()`, `m.GetEntries()`), and the `Entries` slice is lent as
+`GetEntries` lends it (`Spec/.../raftpb/Message__GetEntries.lean`): its pointers at the message's
+`dqe`, each entry read-only, the capacity when the message holds it (`cap`, `msgIn`), until the
+caller gives the slice back (with or without the capacity). -/
+abbrev logSliceFromMsgApp.spec : Prop :=
+  ∀ (p : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ msgPtsC p dq dqe cap ms }}
+    (App (Val #(functions logSliceFromMsgApp [])) (Val #p))
+  {{ (es : GoSlice) (els : List Loc),
+      RET #(logSlice.mk ms.msg.Term' (entryID.mk ms.msg.LogTerm' ms.msg.Index') es);
+      es ↦*{dqe} els ∗ ([∗list] q;e ∈ els;ms.ents, entRO q e) ∗
+      (if cap then ownSliceCap Loc es (DFrac.own 1) else emp) ∗
+      (∀ (cap' : Bool) (els' : List Loc) (ents' : List EntryM),
+        es ↦*{dqe} els' -∗ ([∗list] q;e ∈ els';ents', entRO q e) -∗
+        (if cap' then ownSliceCap Loc es (DFrac.own 1) else emp) -∗
+        msgPtsC p dq dqe cap' { ms with ents := ents' }) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

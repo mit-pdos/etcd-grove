@@ -1,36 +1,10 @@
 /-
-`(*clientv3.lessor).Grant` (`client/v3/lease.go`).
-
-Users: `concurrency.NewSession` (`session.go:50`: the session's lease, `resp.ID`), Kubernetes' lease
-manager (`lease_manager.go:109`: `lcr.ID` for the events' TTL keys), recipes and leasing through
-sessions, `examples/etcd/{leasegrant,leaseexpiry,leasecatchup}`; snippets `clientv3lease/grant.go`
-(`ReqGrantThenPut`, `ReqGrantTTL`), `clientv3lease/session.go`.
-
-Proof sketch: builds `&pb.LeaseGrantRequest{TTL: ttl}` (`reqOwn _ _ (.leaseGrant 0 ttl)`), calls
-`l.remote.LeaseGrant(ctx, r, l.callOpts...)` (`lessorHandle`: `remoteLeaseAt`, `remoteLeaseAt_call`:
-repeatable, so the caller's update is persistent: the interceptor may resend after an applied
-attempt); on success copies `GetHeader()`, `ID`, `TTL`, `Error` into a fresh `LeaseGrantResponse`
-(`leaseGrantReply`: the reply message's fields, 3h's unfold of `replyOwn _ (.leaseGrant id ttl)`);
-on an error `ContextError` (W0).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__Grant.lean` (a grant on one server's
-lessor, an exclusive update, no auth): restated over the model (`Step who (.leaseGrant 0 ttl)`), the
-update persistent (the retry policy; the old spec's `□ ▷ Spec` registration was per server, not a
-client's update), the principal per call, the answer's id and TTL in the reply, and through one
-member the lease table it created (`leaseViewLb`, W0's round 3).
-
-verify-round (A2-provability L2): the per-member clause (`via`) now has a source: `leaseViaPre`'s
-`leaseOf v c ∗ clientVia c ep` gives, through `lessorHandle`'s realization, `remoteVia` of the remote
-(`NewLeaseFromLeaseClient`'s premise), and `remoteLeaseAt_call` at `V = remoteVia remote` gives the
-answer's `viaFact` (from 2a's `AttemptTriple` through `uiOk_call`; the grant's call at `via = some
-(ep, 0)`, its view from W0's `leaseViewLb_zero`, verify-round F2); a lease read's fact holds for an
-answer of the lessor (`leaseAnsRes`), not for a refusal.
-
-Margin: the reply's header and `Error` field are not modelled.
+`(*clientv3.lessor).Grant(ctx, ttl)` (`client/v3/lease.go`; item 1, the client lease). Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLease
 
 @[expose] public section
 
@@ -38,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -50,15 +22,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `l.Grant(ctx, ttl)`: a lease granted (`.leaseGrant 0 ttl`, the id the server's), linearized
-by the caller's **persistent** update (the RPC is resent: an earlier attempt may have granted another
-lease), or an error that settles nothing. -/
-def lessor.Grant.spec : Prop :=
-  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
-  Lease.GrantTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) γ who
+/-- `l.Grant(ctx, ttl)` on a `*lessor` over a connection to `addr` (`lessorRemoteAt`), for a spec
+`Spec` registered for `LeaseGrant` and the caller's `Q`: the request `{TTL: ttl}` through the retry
+lease client; on success a new `*LeaseGrantResponse` whose header, `ID` and `TTL` are the reply's
+(`resp.GetHeader()`; read-only) with `Q` of the reply; otherwise `nil` and `ContextError(ctx, err)`,
+a client error grpc's `status` accepts. -/
+abbrev lessor.Grant.spec : Prop :=
+  ∀ (l : Loc) (addr : List GoString)
+    (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
+    (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (ttl : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
+      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (ttl, W64 0) Q ∗
+      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
+      (Val #(GoInterface.ok ctx))) (Val #ttl))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseGrantRespM) (h : Loc),
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗
+        hdrFull h m.hdr ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ID" resp ↦□ m.id ∗
+        structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"TTL" resp ↦□ m.ttl ∗ Q m) ∨
+      (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

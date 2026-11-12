@@ -1,35 +1,24 @@
 /-
-## `Count(ctx, lg, kv, key, rangeEnd, revision)` (`range.go`)
-
-**Users.** `EtcdServer.rangeStream` (`v3_server.go:255`: the remaining count after the last page,
-at the stream's pinned revision). Snippet: `examples/specreq/txn/read.go` (`ReqRangeStreamPages`).
-
-**Proof sketch.** A count-only `RangeRequest` (`countReq`, fresh, owned: `rangeReqOwn` by W0's
-unfold law at the end's reading `endOf rend e`, F1's mapping) and `Range.spec` at it with
-`withTotalCount` false (a count-only range counts every key; mvcc's `CountRevisions` checks no
-context: `Range.spec`'s context-error case asks `rm.countOnly = false`, so it is excluded).
-`resp.Count` read from the reply.
-
-**Changes.** The old spec (`specs-ref`'s `Count.lean`, over the log) restated as `Range`. Round 1:
-the `nil`-end premise dropped (the end read as mvcc reads the slice, `endOf`: F1); 3e's API (F4).
-
-**Margin.** None.
+`Count` (`range.go`): the number of keys in a range.
+Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,27 +27,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- **`Count(ctx, lg, kv, key, rangeEnd, rev)`**: the number of present keys of the range of `key`
-and the slice `rangeEnd` (as mvcc reads it: `endOf`) at revision `rev` (`0`: the current) of the
-state `σ` the caller's update fires at, or mvcc's revision error. -/
-def Count.spec : Prop :=
-  ∀ (ctx : GoInterface) (o : Option Loc) (lg : Loc) (kv : GoInterface) (γ : Mvcc.MvccName)
-    (key rend : GoSlice) (k e : GoString) (rev : w64) (Q : Mvcc.MvccState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ TraceUtil.ctxTraceIs ctx o ∗ ctxTraceOwn o ∗ Zap.isLogger lg ∗
-      Mvcc.isMvcc kv γ ∗ Mvcc.mvccReaders γ 1 ∗ key ↦*□ k ∗ rend ↦*□ e ∗
-      AU <{ ∃∃ (σ : Mvcc.MvccState), Mvcc.mvccState γ σ }> @ ⊤ \ ↑Mvcc.mvccN, ∅
-        <{ Mvcc.mvccState γ σ, COMM Q σ }> }}
-    (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Count)) (Val #ctx)) (Val #lg)) (Val #kv)) (Val #key)) (Val #rend)) (Val #rev))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); Mvcc.mvccReaders γ 1 ∗
-      (∃ tr : Loc, traceBack o tr) ∗ ∃ σ : Mvcc.MvccState, Q σ ∗
-      ((∃ er : EtcdErr, ⌜(countReq k (endOf rend e) (sint.Z rev)).revErr σ.kv = some er ∧ n = W64 0⌝ ∗
-          errIs err er) ∨
-       (⌜(countReq k (endOf rend e) (sint.Z rev)).revErr σ.kv = none ∧ err = GoInterface.nil⌝ ∗
-          ∃ all : List KV,
-          ⌜(σ.kv.storeAt ((countReq k (endOf rend e) (sint.Z rev)).readRev σ.kv)).rangeKVs
-              { key := k, rangeEnd := endOf rend e } all ∧ n = W64 all.length⌝)) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- **`Count(ctx, lg, kv, key, rangeEnd, revision)`**: as today, at the state of the caller's
+update.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+abbrev txn.Count.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (kv : GoInterface)
+    (γ : MvccName) (key rangeEnd : GoSlice) (k e : GoString) (revision : w64) (ot : Option Loc)
+    (te : Bool) (Q : MvccState → IProp GF),
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
+      key ↦*□ k ∗ rangeEnd ↦*□ e ∗
+      mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
+      ⌜lg ≠ null⌝ ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ txn.readAU γ Q }}
+    (App (App (App (App (App (App (Val (@! txn.Count)) (Val #(GoInterface.ok ctx))) (Val #lg))
+      (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      mvcc.api.mvccReaders γ 1 ∗ ∃ σ : MvccState, Q σ ∗ ⌜txn.Reach σ⌝ ∗
+        ((⌜err = GoInterface.nil ∧ sint.Z revision ≤ (σ.rev : Int) ∧
+            n = W64 ((rangeIn (mvcc.stateAt σ.log (sint.nat (mvcc.rangeRev (W64 (σ.rev : Int)) revision)))
+              (txn.countOp k (txn.rangeEndOf rangeEnd e) revision)).length : Int)⌝) ∨
+         (⌜(σ.rev : Int) < sint.Z revision ∧ n = W64 0⌝ ∗ ∃ ef : GoInterfaceOk,
+            globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
+         (⌜sint.Z revision ≤ (σ.rev : Int) ∧
+            sint.Z (mvcc.rangeRev (W64 (σ.rev : Int)) revision) < σ.crev ∧ n = W64 0⌝ ∗
+            ∃ ec : GoInterfaceOk,
+            globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝)) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

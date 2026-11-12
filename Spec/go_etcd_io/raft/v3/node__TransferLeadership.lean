@@ -1,20 +1,14 @@
-/-
-## `node.TransferLeadership(ctx, lead, transferee)`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's `EtcdServer.MoveLeader`/`TransferLeadership` (`server.go:1285`); the examples'
-disruptions (`kvdurable/reconf.go:114`). Snippet: `readyloop.go` (`ReqDisrupt`).
+## `node.TransferLeadership`
 
-**Proof sketch.** A local `MsgTransferLeader` (from the transferee, to `lead`) on `recvc` (a local
-message: no `msgSent` needed; the leader's `stepLeader` checks the transferee, R2), or `done`, or
-`ctx`.
-
-**Changes.** Unchanged. **Margin.** Nothing is said of whether leadership moved.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.TransferLeadership.specRaw`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -22,29 +16,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Asks for a leader transfer** (any ids). -/
-def node.TransferLeadership.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
-    (lead transferee : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx }}
-    (App (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"TransferLeadership")) (Val #ctx)) (Val #lead))
-      (Val #transferee))
+/-- **`node.TransferLeadership(ctx, lead, transferee)`**: nothing is promised of the transfer.
+(U9, 2026-10-29: in every cluster, a re-forwarded transfer request being refuted by its receiver,
+`leadW`; until then in a cluster with leader transfer on, `leaderTransferOn γ N`.) -/
+abbrev node.TransferLeadership.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (lead transferee : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd }}
+    (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
+      (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
   {{ RET #(); True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

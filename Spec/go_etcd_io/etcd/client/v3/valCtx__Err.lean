@@ -1,23 +1,22 @@
 /-
-`(*valCtx).Err()`: `nil`. Users: `WithCancel`, `ContextError` on the stream's context.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.valCtx).Err()` (`client/v3/watch.go`; the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +24,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `vc.Err()`: `nil`. -/
-def valCtx.Err.spec : Prop :=
+/-- `vc.Err()`: `nil` (never done). -/
+abbrev valCtx.Err.spec : Prop :=
   ∀ (vc : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
-    (App (Val (vc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty @!! go!"Err")) (Val #()))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ }}
+    (App (Val (vc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty @!! go!"Err"))
+      (Val #()))
+  {{ RET #(GoInterface.nil); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

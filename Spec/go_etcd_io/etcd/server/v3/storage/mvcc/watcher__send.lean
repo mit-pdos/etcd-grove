@@ -1,17 +1,9 @@
 /-
-`(*watcher).send(wr)` (internal): the events filtered by the watcher's filters; nothing sent (`true`)
-when filtering dropped them all; else a non-blocking send on the watcher's channel: `false` when
-full.
-
-**Proof sketch.** Each filter (`filterOk`) on each event; `verify.Verify` (off outside tests; its
-check holds: the fork's fix of `issues/etcd-watch-resume-below-start-revision.md`); a `select` with a
-`default` on `w.ch` (the stream's channel; `wsSendable` gives the facts its protocol requires of
-the filtered response; a send moves the response's events to the channel).
+`watcher.send` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 
 @[expose] public section
 
@@ -19,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,15 +21,54 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watcher.send.spec : Prop :=
-  ∀ (w : Loc) (ι : WsNames) (id : w64) (W : WatcherM) (rc : WRec) (wr : WatchResponse) (r : WResp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ watcherAt w ι id W ∗ wRecAt w rc ∗ ⌜rc.ch = wsChanOf ι⌝ ∗ wrespAt wr r ∗
-      wsSendable w r }}
+/-- `w.send(wr)`: the response `wr` for the watcher `w` (its events `evm`, read-only, those of
+the delivery that extends `w`'s delivered events, at or below `wr`'s revision, at or above a
+positive start revision: `verify.Verify`'s check), filtered by `w`'s filters, sent on its
+channel without blocking (the channel is open: `w` is live), unless all its events were filtered
+out (then `true` without sending). On `true` the delivery is recorded (the events delivered
+grow by `evm`; `wr`'s events are the channel's for good); on `false` (the channel full) nothing
+changed. A progress response (`evm = []`) needs no delivered events. Unit W-M2: the response
+carries `w`'s own id, or `-1` and the channel's progress fact (`progressAll`'s response of id `-1`): the
+channel's invariant keeps it for every response of id `-1`. Unit W-K (K1b): the response covers
+the watchers `cs` (`covPre`: each delivered past the response's revision, registered on the
+channel), which the channel's invariant keeps (`respCov`); `[]` for any but a progress response;
+a response without events covers its watcher `w` (so every event-less response sent does).
+A response of id `-1` comes with the caller's `CS` (lent) and `complW`: from `CS`, every watcher
+registered on the channel is covered or cancelled for its reason (`respCompl`). Stage 2 of the
+mvcc API (2026-11-05): `wr`'s revision is one of the API's notified log (`revApi`, kept by the
+channel's invariant in `respRev`). -/
+abbrev mvcc.watcher.send.spec : Prop :=
+  ∀ (γ : mvcc.WsNames) (w : Loc) (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice)
+    (ch : GoChan) (qc ql : Qp) (evsw : List mvcc.EvM) (d : Nat) (wr : WatchResponse)
+    (es : List Loc) (evm : List mvcc.EvM) (dq : DFrac) (cs : List mvcc.CovArg) (qa : Qp)
+    (nl : Option (Qp × mvcc.Log)) (CS : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ mvcc.watcherFilters γw fcs ∗
+      mvcc.watcherChan γ w γw ch ∗
+      typedPointsto (structFieldRef watcher go!"ch" w) ch (DFrac.own qc) ∗
+      dghostVar γw.live (DFrac.own ql) true ∗
+      (if evm = [] then iprop(True) else
+        monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ mvcc.evsWf γ r γw.lo (evsw ++ evm) d) ∗
+      wr.Events' ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
+      mvcc.covPre γ γw.wc wr.Revision' cs ∗ mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗
+      mvcc.revApi γ wr.Revision' ∗
+      ⌜evm = [] → ∃ q L, nl = some (q, L) ∧ sint.Z wr.Revision' + 1 = (L.length : Int)⌝ ∗
+      ⌜evm = [] → w ∈ cs.map mvcc.CovArg.w⌝ ∗
+      CS ∗ (⌜wr.WatchID' = r.id⌝ ∨
+        ⌜wr.WatchID' = W64 (-1)⌝ ∗ mvcc.complW γw ql CS (cs.map mvcc.CovArg.w) wr.WatchID' wr.Revision' evm) ∗
+      ⌜es.length = evm.length ∧ wr.CompactRevision' = W64 0 ∧ (evm ≠ [] → wr.WatchID' = r.id) ∧
+        (∀ ev ∈ evm, sint.Z ev.kv.modRev ≤ sint.Z wr.Revision') ∧
+        (0 < sint.Z r.startRev → ∀ ev ∈ evm, sint.Z r.startRev ≤ sint.Z ev.kv.modRev)⌝ }}
     (App (Val (w @!! go.GoType.PointerType watcher.ty @!! go!"send")) (Val #wr))
-  {{ (b : Bool), RET #b; wRecAt w rc ∗ (if b then True else wrespAt wr r ∗ wsSendable w r) }}
+  {{ (b : Bool), RET #b;
+      typedPointsto (structFieldRef watcher go!"ch" w) ch (DFrac.own qc) ∗
+      dghostVar γw.live (DFrac.own ql) true ∗
+      (if b then wr.Events' ↦*□ es else wr.Events' ↦*{dq} es) ∗
+      (if evm = [] then iprop(True) else
+        monoListAuthOwn γw.evs (1 : Qp).half (if b then evsw ++ evm else evsw)) ∗
+      mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗ CS }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

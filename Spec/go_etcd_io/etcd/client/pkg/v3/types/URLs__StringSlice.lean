@@ -1,47 +1,39 @@
 /-
-`types.URLs.StringSlice` (`client/pkg/v3/types/urls.go`).
-
-Users: the server (membership: a member's URL strings, 2e).
-
-Proof sketch: a fresh slice, each URL's `String()` (`net/url`, trusted).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/pkg/v3/types/URLs__StringSlice.lean`.
-
-Changes (integration I1): over `urlsStrs` (2e's request: the member's URL strings), the strings
-described.
-
-Margin: none.
+`types.URLs.StringSlice()`: names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`notes/decisions.md`), for `NewServer`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Types
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
-/-- `us.StringSlice()`: a fresh slice of the URLs' `String()` forms. -/
-def URLs.StringSlice.spec : Prop :=
-  ∀ (us : GoSlice) (ss : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗ urlsStrs us ss }}
-    (App (Val (us @!! go_etcd_io.etcd.client.pkg.v3.types.URLs.ty @!! go!"StringSlice")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; sl ↦* ss }}
+/-- `us.StringSlice()` through a non-nil pointer to the `URLs` value (as `NewServer` calls it on its
+configuration's field): some slice of strings. (Not stated over the value's points-to: `URLs` is
+an axiomatized type, whose generated points-to instance is `sorry`.) -/
+abbrev types.URLs.StringSlice.spec : Prop :=
+  ∀ (p : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗ ⌜p ≠ null⌝ }}
+    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.types.URLs.ty @!!
+      go!"StringSlice")) (Val #()))
+  {{ (sl : GoSlice), RET #sl; True }}
 
 end spec
 
-end Types
 end EtcdGrove
 end Perennial

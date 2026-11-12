@@ -90,12 +90,12 @@ The working copy's `open-questions.md` D23 still repeats the claim. I did not ed
 requests).
 
 **Files:**
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Api.lean`
-- `Spec/go_etcd_io/etcd/server/v3/storage/OpenSnapshotBackend.lean`
-- `Spec/go_etcd_io/etcd/server/v3/storage/backend/Durable.lean` (text)
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean` (text)
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean` (text)
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean` (text)
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Api.lean`
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/OpenSnapshotBackend.lean`
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/Durable.lean` (text)
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean` (text)
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean` (text)
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applySnapshot.lean` (text)
 - `examples/specreq/etcdserverboot/boot.go` (`ReqCrashRecover`'s Specs line)
 
 ## N2: `wal.Create`'s window. Fixed.

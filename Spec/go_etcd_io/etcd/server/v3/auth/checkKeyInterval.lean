@@ -1,25 +1,10 @@
 /-
-## `checkKeyInterval(lg, cachedPerms, key, rangeEnd, permtyp)` (internal helper)
-
-**Users.** `isRangeOpPermitted` (a non-empty `rangeEnd`).
-
-**Proof sketch.** `isOpenEnded` (then `nil`, the tree's infinity); `adt.NewBytesAffineInterval(key, rangeEnd)`; the read or write tree's `Contains` (3f: the union of the stored intervals covers the interval; for an empty or inverted interval, any answer). With `validPerms a` the stored intervals have non-empty keys, so `Contains` never covers the empty key.
-Integration I5: 3f's `intervalTree.Contains.spec` is exact only for `affLt b e`; with the empty `key`
-(the affine top, so `affLt` fails) and a proper or open end, this spec's `true → covers` needs
-`Contains` to answer `false` (Go: `Visit` of a query from the top meets nothing, `minBegin` stays
-`nil`): requested of 3f (`req/go_etcd_io_etcd_pkg_v3_adt.md`, "from 3d", item 3, still open). Another permission type: `lg.Panic`, ruled out by the premise.
-
-**Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary.
-
-**Margin.** None.
+`checkKeyInterval` (`server/auth/range_perm_cache.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (unit P2; the auth plan's S2, 2026-10-23).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
-public import Spec.go_uber_org.zap.Api
-public import Spec.go_etcd_io.etcd.server.v3.auth.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -27,31 +12,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`checkKeyInterval`** of a cache entry of `u` at `a`: covered at `a` exactly, but for an inverted
-range, which may be refused. -/
-def checkKeyInterval.spec : Prop :=
-  ∀ (lg p : Loc) (a : AuthState) (u : GoString) (key re : GoSlice) (dk de : DFrac) (k e : List w8)
-    (pt : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ Zap.isLogger lg ∗ cacheEntry p a u ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜e ≠ []⌝ ∗
-      ⌜validPerms a ∧ (pt = W32 0 ∨ pt = W32 1) ∧ sint.Z key.len < 2 ^ 63 - 1 ∧
-        sint.Z re.len < 2 ^ 63 - 1⌝ }}
-    (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyInterval)) (Val #lg)) (Val #p)) (Val #key)) (Val #re)) (Val #pt))
+/-- `checkKeyInterval(lg, p, key, rangeEnd, permtyp)`: the tree of the permission type (`READ`
+the read tree, `WRITE` the write tree; otherwise `lg.Panic`) queried with `[key, rangeEnd)`
+(`rangeEnd` `nil` when open-ended; `Contains`): for a non-empty key and an open-ended or proper
+range, whether the entries cover every key of the queried interval (`queryIvl`, `adt.inIvl`;
+`adt.containsRes_iff`), else some boolean; the slices kept. -/
+abbrev auth.checkKeyInterval.spec : Prop :=
+  ∀ (lg p : Loc) (Lr Lw : List adt.Entry) (key re : GoSlice) (k e : GoString) (dk de : DFrac)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ permsAt p Lr Lw ∗
+      key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ }}
+    (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyInterval)) (Val #lg))
+      (Val #p)) (Val #key)) (Val #re)) (Val #pt))
   {{ (b : Bool), RET #b; key ↦*{dk} k ∗ re ↦*{de} e ∗
-      ⌜(b = true → a.covers u (ptOf pt) { key := k, rangeEnd := e }) ∧
-       (b = false → ¬ a.covers u (ptOf pt) { key := k, rangeEnd := e } ∨ rngInverted { key := k, rangeEnd := e })⌝ }}
+      ⌜k ≠ [] → (auth.isOpenEnded e ∨ go.GoStringLt k e) →
+        (b = true ↔ ∀ x, adt.inIvl (queryIvl k e) x →
+          ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 x)⌝ }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

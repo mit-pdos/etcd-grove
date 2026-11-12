@@ -5,7 +5,7 @@ APIs, the interceptors, `client/v3/kubernetes`, `credentials`, `internal/*` and 
 This round reviews the working tree on `specs-only` at `581b58e9e5` plus uncommitted edits. Sources
 read:
 
-- the vocabularies: `Spec/go_etcd_io/etcd/client/v3/{ApiClient,ApiLease}.lean`, `kubernetes/Api.lean`,
+- the vocabularies: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/{ApiClient,ApiLease}.lean`, `kubernetes/Api.lean`,
   `client/pkg/v3/transport/Api.lean`;
 - the specs of `New`, the `lessor` methods, `Client.{Close,Ctx,Endpoints,Sync,ActiveConnection}`,
   the `From*Client` constructors, `kubernetes.New` and `CreateDefaultZapLogger`;
@@ -198,7 +198,7 @@ or (b) admit a configuration with no retry interceptor. `uiOk` becomes "one atte
 
 `factory/etcd3.go:286-299` builds `tlsConfig` with `transport.TLSInfo{...}.ClientConfig()`. That
 function is in this batch's package, translated names-only (`Code/.../transport.toml`), and has no
-spec (`Spec/.../transport/` holds only `IsClosedConnError`). `cfgOk`'s `(TLS = null ∨ tlsCfgOk TLS)`
+spec (`SpecPlan/Spec/.../transport/` holds only `IsClosedConnError`). `cfgOk`'s `(TLS = null ∨ tlsCfgOk TLS)`
 and `cfgPrincipal_tls` (`tlsPrincipal`) therefore have no producer at the production call site. No
 snippet uses TLS.
 
@@ -277,7 +277,7 @@ through `cfgOk`'s list) to `New.spec`'s post. `kubernetes.New.spec` inherits it.
 
 - **S1. `ActiveConnection` has no snippet, and its users need more than `connOk`.** Kubernetes'
   `blockUntilReady` (`factory/etcd3.go:362-380`) calls `conn.GetState()`, `Connect()` and
-  `WaitForStateChange`. No spec under `Spec/google_golang_org/grpc/` covers them, and 1c's
+  `WaitForStateChange`. No spec under `SpecPlan/Spec/google_golang_org/grpc/` covers them, and 1c's
   `req/google_golang_org_grpc.md` does not ask for them. grpcproxy calls raw stubs on the connection
   with `grpc.WaitForReady(true)` (`grpcproxy/lease.go:84`), which needs a `callOptsOk` (or
   stub-option) introduction for grpc call options, not only retry options.

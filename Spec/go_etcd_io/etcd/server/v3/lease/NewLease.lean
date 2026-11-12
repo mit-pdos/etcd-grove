@@ -1,13 +1,10 @@
 /-
-`NewLease(id, ttl)` (`lease.go:42`), an internal helper's spec (mirrors the code). **Users**:
-`Grant` (`lessor.go:292`). **Proof sketch**: a composite literal with a fresh map and channel.
-**Changes** (from `specs-ref`'s `NewLease.lean`): over `leaseFresh`. **Margin**: none.
+`NewLease` (`server/lease/lease.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -15,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,14 +22,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **A fresh `*Lease`** of id `id` and TTL `ttl`. -/
-def NewLease.spec : Prop :=
+/-- `NewLease(id, ttl)`: a fresh lease, its fields owned: `ID`, `ttl`, `remainingTTL` 0, its two
+locks and `expiry` zero, an empty item set, a fresh `revokec`. -/
+abbrev lease.NewLease.spec : Prop :=
   ∀ (id ttl : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLease)) (Val #id)) (Val #ttl))
-  {{ (l : Loc), RET #l; leaseFresh l (sint.Z id) (sint.Z ttl) }}
+  {{ (l : Loc), RET #l; ⌜l ≠ null⌝ ∗ lsF go!"ID" l ↦ id ∗ lsF go!"ttl" l ↦ ttl ∗
+      lsF go!"remainingTTL" l ↦ (W64 0) ∗
+      lsF go!"expiryMu" l ↦ (zero_val _root_.Perennial.sync.RWMutex) ∗
+      lsF go!"expiry" l ↦ (zero_val _root_.Perennial.time.Time) ∗
+      lsF go!"mu" l ↦ (zero_val _root_.Perennial.sync.RWMutex) ∗
+      (∃ sm : Loc, lsF go!"itemSet" l ↦ sm ∗ sm ↦$ (∅ : GMap LeaseItem Unit)) ∗
+      (∃ c : GoChan, lsF go!"revokec" l ↦ c ∗ revokeCloser c) }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

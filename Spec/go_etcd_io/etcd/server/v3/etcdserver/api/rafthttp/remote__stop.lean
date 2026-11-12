@@ -1,19 +1,9 @@
 /-
-## `(*remote).stop()`
-
-**Users.** `Transport.Stop`.
-
-**Proof sketch.** `pipeline.stop`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*remote).stop()` (`remote.go`; rafthttp stage 6b). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -21,26 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Stops the remote's pipeline. -/
-def remote.stop.spec : Prop :=
-  ∀ (g : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ remoteAt g ν lid pid ∗ remoteStopRight g }}
-    (App (Val (g @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote.ty @!! go!"stop")) (Val #()))
+/-- **`g.stop()`** with the right to stop it: it returns, its pipeline stopped (until J8a-6,
+2026-11-01, with its four resources `R` back). -/
+abbrev rafthttp.remote.stop.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      remoteOk Rh lid pid R g ∗ remoteStop Rh pid R g }}
+    (App (Val (g @!! go.GoType.PointerType rafthttp.remote.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

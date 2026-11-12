@@ -1,89 +1,64 @@
 /-
-`(*clientv3.watcher).Watch(ctx, key, opts...)` (`client/v3/watch.go`).
+`(*clientv3.watcher).Watch(ctx, key, opts...)` (`client/v3/watch.go`; the watch slice's unit W-C;
+D47, 2026-10-26: as repeated reads of etcd's KV state). Lean-first (no Rocq counterpart).
 
-**Users** (pinned etcd `E = upamanyus/etcd/*@a4d2bb17`, Kubernetes apiserver `K`, `examples/` `X`;
-every one through `Client.Watch` or a `Watcher` value, `watcherAt`), by pattern:
-* wait for a delete from a known revision (`E client/v3/concurrency/key.go:30` `waitDelete`,
-  `leasing/kv.go:210` `waitRescind`, `experimental/recipes/watch.go:28,38`): no gap from the start
-  revision; snippet `clientv3watch/history.go` `ReqWatchWaitDelete`;
-* resume after a `Get` at its revision + 1 and apply events as deltas (`naming/endpoints/
-  endpoints_impl.go:131`, `mirror/syncer.go:119`, `server/.../v3discovery/discovery.go:370`,
-  `leasing/kv.go:174`, `K etcd3/watcher.go:493`, `K etcd3/compact.go:269`, the cache
-  `E cache/v3/cache.go:392`): revision order, no gap, no repeat, every event of a revision in one
-  response; `history.go` `ReqWatchFromGet`, `ReqWatchRevisionWhole`;
-* full-history checks (`X etcd/watch/watchkv.go:79`, `X etcd/partition/linkv3p.go:193`,
-  `X etcd/auth/authkv.go:434,445`, `X etcd/compactwatch/compactkv.go:122`): events are the
-  history's puts at their revisions; `history.go` `ReqWatchHistory`;
-* progress notifications as bookmarks (`K etcd3/watcher.go`, the cache's `maxRev`):
-  `progress.go`;
-* compaction and errors end the watch (every user; `X compactwatch/compactkv.go:142` reads
-  `CompactRevision`), a refused watch delivers nothing (`X etcd/auth/authkv.go:272`), `Created`
-  first (`server/proxy/grpcproxy/leader.go:62`, the cache's readiness): `ending.go`;
-* a watch from the current revision whose later writes must all appear (grpcproxy's coalescing,
-  `server/proxy/grpcproxy/watch_broadcast.go:68`, `watcher.go:62-64`; `X k8s/compactor/
-  compactor_test.go:104`): the floor; `history.go` `ReqWatchFromNow`; a watch chained from a
-  bookmark (`K etcd3/store.go:1151` → `watcher.go:481`, the cache's `demux.go:137`):
-  `ReqWatchChained`; the health probe (`grpcproxy/health.go:73`);
-* `select` with the context, writing the response (`concurrency/election.go:190,223`,
-  `namespace/watch.go:49`), Kubernetes' previous key-value (`K etcd3/event.go:67`):
-  `consume.go`.
+**The triple:** a watch of a range (`opts` the models of the Go options, `optsAt` tying the slice
+`opts_sl` of their closures to them; G2, 2026-10-30: any range, from-key included; until then a
+prefix of a non-empty key) from a revision `rev ≥ 1`, on a client watcher `w` over the environment
+`V` whose members run etcd's KV `γ` (`isClientWatcher`, `V.kst = γ.st`; G2: the environment named,
+so that the gate below reads it), with the caller's persistent read update of `γ`'s state (as a
+linearizable `Get`'s), returns an SPSC channel, with the consumer's side and the cursor at
+`rev - 1`, whose `i`-th response is one firing of the update (`watchStateElem`: `□ Q σ` at some
+state `σ`) and a read of that state from the cursor's position `i` to `i + 1`
+(`watchStateRespOk`): an error, a response without events that is not a progress notification, a
+progress notification at `p` (past the cursor: `p ≤ σ.rev` and no event of the range in `(c, p]`),
+or events, exactly the range's events of `σ` from the cursor to the last one's revision, as etcd
+computes them from its key bucket (`KVState.rangeEvents`: one per change, in order); and (C3's
+watch side, 2026-11-02) its compaction revision the permit of the cluster's KV names `V.kv`
+(`cmpOkOf`: none, or a positive revision at least the cluster's retention behind one its KV has
+reached; the caller built `V`, so it knows `V.kv`).
 
-**Proof sketch.** `OpWatch.spec` (W0) gives the `Op` (`watchPanics` excluded); the filters are
-built from it. `streamKeyFromCtx.spec` gives `ctxStreamKey ctx k`. The loop: `w.mu.Lock()` (the
-watcher's lock invariant: `streams` is `nil` after `Close`, else a map from keys to `wgsAt` streams,
-each key `k'` with the opening context's `ctxStreamKey ctx₀ k' ∗ ctxPrin who ctx₀ p₀` and the
-stream at `p₀`); `nil` → a fresh channel, closed: `WatchPos.closed`. An existing stream of key `k`
-is at the caller's principal `p` by `ctxStreamKey_prin` (verify-round W2). Else
-`newWatcherGRPCStream.spec` for a missing key (with `clientReady c`, which turns the handle's
-gated stub into `remoteWatchAt` for the stream's `run`, verify-round W3), then `select` on `reqc` (`wgsAt`'s protocol: the
-`*watchRequest` goes with the `retc` protocol, whose receiver gets the channel `ch` with its
-consumer: `watchChAt` at `WatchPos.init rev r0` with `etcdLb γ σ0`, `r0 = σ0.kv.rev`, the state of
-the registration's `Created` response, whose header `H ≤ r0` the substream made its resume
-revision before sending `ch` on `retc` (`wireStep`'s registration from `0` has floor `H`); or, for a
-substream closed before it was registered, `WatchPos.closed`), `ctx.Done()` (W0's `Context.Done`,
-`doneRecv`) or `donec` (closed: `closeErr` published; a closed channel with at most one error
-response `Canceled` with `closeErr`: `WatchPos.closed`). Then `select` on `retc` or again
-`ctx.Done()`/`donec`. Every channel is `make`'s (never `nil`). No thread token: the goroutines
-`newWatcherGRPCStream` and `run` fork come with theirs (`wp_fork_tok`).
+**Auth (G2)**: with one member (the gate `V.nm = 1`, a scope restriction: with several, a lagging
+member's store checks at its own older auth state), for a caller's bound `n` on the auth store's
+published index (`authPubLbM`, needed only for `0 < n`), every response with events carries the
+server's check of the watch's create (`watchCheckOk`: on the stream's metadata, for its token, at
+states no older than `n`). Margin: the code also ends a refused watch with a canceled response
+carrying the refusal's error; the spec says only that no response has events without the row.
 
-**Changes** from `specs-ref/.../watcher__Watch.lean`: the responses are persistent facts about the
-history (`etcdLb` and `watchStep`), not firings of a persistent read update (D47); any range (from
-`""` normalized as the member does, `OpM.watchReq`), any start revision (`0` and negative
-included; was `≥ 1`), any context (`Context.ctxOk`; was `watchCtx`), filters, `prevKV`
-(`WatchReq.prevOk`), fragments, `createdNotify`, progress; with auth (any mode, any number of
-members): event responses carry the admitting auth state (`σa.permits who`), replacing the
-one-member gate `watchCheckOk`; no size premise (`watchSizeOk`: an oversized create fails the
-stream, `req/google_golang_org_grpc.md`), no `noDupKeys` server premise (a key written twice in
-one revision gives both events, as the model's history has them).
+**The range from `""` starts at `"\x00"`** (2026-10-30, the user's decision; `notes/decisions.md`,
+"G2's freeze: `Watch`'s range from `""` starts at `"\x00"`"): etcd's server rewrites an empty key
+to `"\x00"` (`v3rpc/watch.go:266-269`), so the events are of the watch's range with its key so
+normalized (`OpFull.watchNorm`; a non-empty key's range unchanged, `OpFull.watchNorm_of_ne`), not
+of the range from `""`, which also contains the empty key (the KV model does not say that no
+stored key is empty). The row is of the request's own key and range end, as the server checked
+them. With the normalization, `Watch(ctx, "")` with no options is the single key `"\x00"`: the
+premise that excluded it (`notes/decisions.md`, "G2's freeze: `Watch` excludes the empty key's
+single-key watch") was dropped once unused (2026-10-30).
 
-verify-round (A2-provability W2, W3): the joined stream's principal from `ctxStreamKey_prin`; the
-handle records its client `c` and the triple takes `clientReady c` (the stub opens streams through
-the client's stream interceptor, whose token refresh reads `c.Auth`).
-
-**Margin.** Liveness (that the channel closes when `ctx` is done or after an error, that a
-`Created` or progress response comes) is not stated. A watch from the current revision is complete
-from its first event, which is at most the floor + 1 (every event above the floor is delivered);
-the code delivers nothing below `min(R + 1, H)` (`R` the member's registration revision, `H` the
-creation's header), and may deliver revision `H`'s events, which precede the watch
-(`issues/etcd-watch-current-resume-past-event.md`). The error responses' errors are classified
-only by kind (`closeErrOk`). The admitting auth state `σa` is any state the cluster reached: a
-lagging member checks its applied auth state, so a watch may be admitted after a revocation (an
-up-to-date single member checks the current one; not stated).
+**The request fits a gRPC message** (2026-10-30, `notes/decisions.md`, "The encoded-size bound at
+grpc's send side"): the key and the range end at most `2 ^ 30` bytes together (`watchSizeOk`), so
+that the create request the watch sends stays below the bound the stream's `Send` takes
+(`grpcMsgMax`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.WatchCheck
+public import Proof.context.WatchCtx
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.server.v3.etcdserver
+  client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -91,17 +66,34 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `watcher.Watch` meets the `Watcher` contract's `Watch` (`Watcher.WatchTriple`, `ApiWatch.lean`),
-for a `*watcher` of `γ` as `who` (`watcherHandle`) over a ready client (`clientReady c`). -/
-def watcher.Watch.spec : Prop :=
-  ∀ (w c : Loc) (γ : Cluster) (who : Principal),
-  Watcher.WatchTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Watch")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who ∗
-      clientReady c)) γ who
+/-- See the file header.
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
+abbrev watcher.Watch.spec : Prop :=
+  ∀ (w : Loc) (V : WEnv GF) (γ : KVNames) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
+    (opts : List (OpFull → OpFull)) (rev : w64) (Q : KVState → IProp GF) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
+      EtcdGrove.context.watchCtx ctx ctx_desc ∗ optsAt opts_sl opts ∗
+      ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
+        1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
+      □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
+      □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) }}
+    (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!!
+        go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
+  {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
+      isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
+        iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
+          (GoInterface.ok ctx) n (opWatchModel key opts).key (opWatchModel key opts).base.rangeEnd)))
+        (fun _ => iprop(True)) ∗
+      spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+      monoListIdxOwn γw.cur 0 (rev - W64 1) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,19 +1,9 @@
 /-
-`(*txnLeasing).If` (`client/v3/leasing/txn.go`).
-
-Users: `leasingKV.Do` (a transaction `Op`'s comparisons); the integration tests. Snippet: `leasing/txn.go`.
-
-Proof sketch: `txn.cs = append(txn.cs, cs...)` (its owned capacity; the comparisons copied, read-only);
-`txn.Txn.If(cs...)` (W0's `Txn.IfTriple` on the inner `txnAt`, same premises); stores it back.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/leasing/txnLeasing__If.lean`: over
-`ltxnAt` and W0's `TxnSt` (was `ownTxnLeasing`, `LTxnBuild`).
-
-Margin: none.
+`txn.If(cs...)` (`client/v3/leasing/txn.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Api
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -21,26 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `txn.If` of a leasing transaction (`LTxn.IfTriple`). -/
-def txnLeasing.If.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface),
-  LTxn.IfTriple (GF := GF) (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"If")
-    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx
+/-- **`txn.If(cs...)`** (once, before `Then` and `Else`), comparisons with their operands set:
+appends them to `txn.cs` and to the client's builder; returns `txn`. -/
+abbrev txnLeasing.If.spec : Prop :=
+  ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (b : LTxnBuild) (sl : GoSlice) (ms : List CmpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ownTxnLeasing txn lkv γ pfx ctx cs b ∗ cmpsSetAt sl ms ∗ ⌜b.cif = false ∧ b.cthen = false ∧ b.celse = false⌝ }}
+    (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"If")) (Val #sl))
+  {{ RET #(GoInterface.ok (txnIface txn));
+      ownTxnLeasing txn lkv γ pfx ctx cs { b with cmps := b.cmps ++ ms, cif := true } }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

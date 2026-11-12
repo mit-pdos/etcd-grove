@@ -1,13 +1,10 @@
 /-
-`NewBytesAffinePoint(b)`: the point interval `[b, b + "\x00")`, its end a fresh slice.
-
-**Users.** `getMergedPerms`, `checkKeyPoint` (3d). **Proof sketch.** `make([]byte, len(b)+1)` (the
-premise: `len(b) + 1` does not wrap, else `make` panics), `copy`, a store. **Changes.** Unchanged.
-**Margin.** None.
+`NewBytesAffinePoint` (`interval_tree.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/pkg/v3/adt/BytesIvl.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.Api
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
 
 @[expose] public section
 
@@ -15,25 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Adt
 
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3.adt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-def NewBytesAffinePoint.spec : Prop :=
-  ∀ (b : GoSlice) (bs : GoString) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ b ↦*{dq} bs ∗ ⌜sint.Z b.len < 2 ^ 63 - 1⌝ }}
+/-- `NewBytesAffinePoint(b)`: the interval `[b, b ++ [0])`, its end a fresh copy of `b` with a
+zero byte appended (`make([]byte, len(b)+1)`: `len(b) + 1` must not overflow, which no slice in
+memory reaches but the model's `make` does not assume: the premise). -/
+abbrev adt.NewBytesAffinePoint.spec : Prop :=
+  ∀ (b : GoSlice) (bs : List w8) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ b ↦*{dq} bs ∗
+      ⌜sint.Z b.len < 2 ^ 63 - 1⌝ }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint)) (Val #b))
-  {{ (e : GoSlice), RET #(Cmp.bytes.ivl #b #e); b ↦*{dq} bs ∗ e ↦* (bs ++ [W8 0]) }}
+  {{ (e : GoSlice), RET #(adt.bytesIvl b e); b ↦*{dq} bs ∗ e ↦* (bs ++ [W8 0]) }}
 
 end spec
 
-end Adt
 end EtcdGrove
 end Perennial

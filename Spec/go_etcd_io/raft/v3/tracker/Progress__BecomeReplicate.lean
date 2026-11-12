@@ -1,18 +1,12 @@
 /-
-## `Progress.BecomeReplicate()`
+Port of `election_proof/spec_Progress__BecomeReplicate.v` (feb5c73d4).
 
-**Users.** `becomeLeader` (`raft.go:966`, the leader's own progress), `stepLeader` (`raft.go:1545`,
-`1560`: a probe answered, a snapshot caught up): R2. Snippet `raftconf/tracker.go`
-(`ReqProgressFlow`).
-
-**Proof sketch.** `ResetState(StateReplicate)`; `Next = Match + 1`. **Changes.** Over the model.
-**Margin.** None.
+Lean notes: `progress_become_replicate` is `progressBecomeReplicate` (`Defs.lean`);
+Rocq's `Progress__BecomeReplicateⁱᵐᵖˡ` is `tracker.Progress.BecomeReplicate.impl`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -20,26 +14,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Replicates to the peer from its match. -/
-def Progress.BecomeReplicate.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"BecomeReplicate")) (Val #()))
-  {{ RET #(); progressOwn p P.becomeReplicate }}
+/-- `pr.BecomeReplicate()` moves a `Progress` into the replicating state
+(`tracker.Progress.BecomeReplicate.impl`, Rocq new/code/go_etcd_io/raft/v3/tracker.v;
+progress.go):
+
+    pr.ResetState(StateReplicate)
+    pr.Next = pr.Match + 1
+
+It says nothing about votes, terms or roles, so the model does not see it. The new
+record is `progressBecomeReplicate p` (`Defs.lean`); it leaves `matched` alone (Match
+discipline, notes/raft-replication-model.md). `pr.Match + 1` is `uint64` arithmetic
+and wraps, so it is `w64` addition. -/
+abbrev tracker.Progress.BecomeReplicate.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownProgress pr p }}
+    (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"BecomeReplicate"))
+      (Val #()))
+  {{ RET #(); ownProgress pr (progressBecomeReplicate p) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

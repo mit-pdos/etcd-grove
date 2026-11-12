@@ -1,21 +1,11 @@
 /-
-`(*store).Rev()` (`kv_view.go:32`). Promoted from the store's `ReadView` field (`&readView{s}`, set by `NewStore`, read-only): the method value at `*store` is `readView.Rev` on that field.
-
-**Users**: `KV.Rev` on the server's store: the response headers (`v3_server.go:429, 730`,
-`v3rpc/header.go:35`, `apply/backend.go:310`), the compactor's `RevGetter` (2e's `revGetter`), the
-tester (`mvccrand.go:349, 507, 623`). Snippet `ReqReadFloor`.
-
-**Proof sketch**: `rv.kv.Read(SharedBufReadTxMode, traceutil.TODO())` (`KV.Read.contract` at `*store`,
-the caller's update fired there; a fresh trace: 4b's `TODO`), `Rev()` (`Txn.Rev.contract`:
-`σ.rev`), the deferred `End()` (the token back).
-
-**Changes** from `specs-ref`'s `store__Rev.lean`: the contract at `*store`.
-
-**Margin**: none.
+`store__Rev` (kvstore.go: `store.Rev` is the method `Rev` of its embedded `ReadView`, the
+`readView{s}` `NewStore` installs; kv_view.go). Lean-first (no Rocq counterpart); see
+`InvStore.lean`. For the server's apply package (`newHeader` reads `KV.Rev()`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -23,7 +13,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -34,11 +23,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.Rev`'s contract at `*store`. -/
-def store.Rev.spec : Prop :=
-  ∀ s : Loc, KV.Rev.contract (GF := GF) (go.GoType.PointerType store.ty) #s
+/-- `s.Rev()`: the store's `readView` opens a read transaction and closes it; the last revision
+of the committed log it read. As `store.Read`'s, the log read is pinned between the caller's
+certificate `log₀` and its `m` revision tokens (with every token left, at the sole writer, it is
+the writer's log); `m = 0`, `log₀ = []` is the plain spec. The store's `ReadView` field holds the
+`readView` `NewStore` returns (`isReadView`). Of a store that may be compacted (`storeReaderC`;
+2026-10-13, unit 6a); the readers' statement (`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`).
+The log read is certified by the caller's map (`certOk`, as `store.Read`'s; M2, the apply side, G2:
+the server's compaction proposer turns it into a KV certificate, 2026-10-31). -/
+abbrev mvcc.store.Rev.spec : Prop :=
+  ∀ (s rv : Loc) (γ : mvcc.StoreNames) (m : Nat) (log₀ : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      s.[store, go!"ReadView"] ↦□
+        (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+      mvcc.isReadView rv s γ ∗ mvcc.storeReaderC s γ ∗ ownToks γ.revs m ∗
+      mvcc.idxCert γ.idx log₀ }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Rev")) (Val #()))
+  {{ (v : w64), RET #v; mvcc.storeReaderC s γ ∗ ownToks γ.revs m ∗
+      ∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗
+        ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
+          v = W64 ((log.length : Int) - 1)⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

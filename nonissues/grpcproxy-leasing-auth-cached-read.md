@@ -19,4 +19,4 @@ across principals. Code: [`leaseCache.Get`](https://github.com/etcd-io/etcd/blob
 ## Proof
 
 no: W0's model lets a serializable read skip the permission check, which is what a cached answer
-is stated as (`Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`, `CachedSer`).
+is stated as (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`, `CachedSer`).

@@ -1,27 +1,19 @@
 /-
-`health.NewServer()` (grpc-go, assumed: `health/server.go`).
-
-Users: `v3rpc.Server` (`grpc.go:96`).
-
-Why true: a fresh server with the overall service `SERVING`, its status map behind a mutex.
-
-Changes: from `specs-ref/Spec/google_golang_org/grpc/health/NewServer.lean`.
-
-Margin: none.
+`health.NewServer()` (grpc's health service, names only; item 4, the server start).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 public import GeneratedProof.google_golang_org.grpc.health
-public import Spec.PkgInit.google_golang_org.grpc.health
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -31,14 +23,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `health.NewServer()`: a health server. -/
-def health.NewServer.spec : Prop :=
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health }}
+/-- `health.NewServer()` returns a non-nil `*health.Server` (`grpcHealthSrv`). -/
+abbrev health.NewServer.spec : Prop :=
+  {{ (True : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.health.NewServer)) (Val #()))
-  {{ (hs : Loc), RET #hs; healthAt hs }}
+  {{ (hs : Loc), RET #hs; ⌜hs ≠ null⌝ ∗ grpcHealthSrv hs }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

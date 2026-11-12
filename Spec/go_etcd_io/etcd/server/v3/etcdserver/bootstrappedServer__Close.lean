@@ -1,29 +1,12 @@
 /-
-## `(*bootstrappedServer).Close()` (`bootstrap.go:139-169`)
-
-**Users.** `NewServer`'s deferred cleanup on an error after `bootstrap` (`server.go:303-307`),
-`bootstrap`'s own error paths (names only); down the chain `bootstrappedServer` →
-`bootstrappedStorage` → `bootstrappedBackend` → `backend.Close`.
-
-**Proof sketch.** The record's read-only path to the backend (`bootBackendAt`), then the backend's
-`Close` (4a) with its whole open token (`beClosable`): the file at rest.
-
-**Changes** (from `specs-ref`'s `bootstrappedServer__Close.lean`, R-D1: `bOpen γ 1`): the backend's token by its
-provisional name; the closed file given back (a closer gives back: PRINCIPLES).
-
-**Margin.** A second `Close` panics in Go (`close(b.stopc)`): the token is taken once.
-
-Changes: verify-round (server-boot's request, A8-provability F5): over 4a's backend (`beClosable`: `isBackend` with its whole open token; `Backend.beFile` after), not the provisional `ServerStorage.beOpen`/`Snap.beFile`.
-
-Changes: verify-round (repair3-boot, the crash pass's request 2): the file comes back through the
-caller's `Backend.beCloseUpd γb path Q` (4a's `Close` now fires it at the release: the history out of
-the disk's state, the closed file in), so the post is `beFinal γb I ∗ Q I` (was `beFile path (some I)`,
-with which a crash after the return had two crash laws, one of them false); `beClosable` names `γb`.
+`(*bootstrappedServer).Close()` (`bootstrap.go:159-161`): `s.storage.Close()`. Lean-first (no Rocq
+counterpart); stage R-D1, the one-shot `Close` (2026-11-04: until then `bootOk`'s trusted `#Hclose`,
+`notes/decisions.md`, "R-D: the bootstrapped record's one-shot Close").
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvStop
 
 @[expose] public section
 
@@ -31,9 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -42,17 +24,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Closes the bootstrapped backend** `bootstrappedServer` reaches. -/
-def bootstrappedServer.Close.spec : Prop :=
-  ∀ (b : Loc) (be : GoInterface) (path : GoString) (γb : Backend.BeNames)
-    (Q : Backend.Image → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ bootBackendAt b be ∗ beClosable be path γb ∗
-      Backend.beCloseUpd γb path Q }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer.ty @!! go!"Close")) (Val #()))
-  {{ RET #(); ∃ I : Backend.Image, Backend.beFinal γb I ∗ Q I }}
+/-- `b.Close()` (`bootstrap.go:159-161`: `b.storage.Close()`), with the record's pointers read-only
+and the backend's whole open token (`backend.backend.Close.spec`'s): once (the token is exclusive; a
+second call panics on `close(b.stopc)`). It closes only the backend: the WAL (`b.storage.wal.w`)
+stays open with its file lock, and none of the three goroutines `NewServer` started before its
+error is stopped (raft's `node.run`, the lessor's `runLoop`, the WAL's file pipeline, which keeps
+its preallocated `0.tmp` locked: `nonissues/etcd-newserver-error-path-leaks.md`). `NewServer`'s
+deferred close on its error paths after `bootstrap` (`server.go:306-310`). (R-D1, 2026-11-04: until
+then `bootOk`'s trusted `#Hclose`, a persistent `{{ True }} b.Close() {{ True }}`, false.) -/
+abbrev bootstrappedServer.Close.spec : Prop :=
+  ∀ (b : Loc) (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
+    (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (be : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      b ↦□ bs ∗ bs.storage' ↦□ sto ∗ sto.backend' ↦□ bk ∗
+      ⌜bk.be' = interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #be⌝ ∗
+      backend.isBackend γ P W Pk be ∗ backend.isStopChans γ P W Pk be ∗ backend.bOpen γ 1 }}
+    (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
+  {{ RET #(); True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

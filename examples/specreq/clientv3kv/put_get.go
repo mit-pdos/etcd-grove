@@ -1,5 +1,5 @@
 // Package clientv3kv holds the requirement snippets of etcd's Go client KV API (batch W0,
-// Spec/go_etcd_io/etcd/client/v3/): minimal uses of the patterns the client's users rely on
+// SpecPlan/Spec/go_etcd_io/etcd/client/v3/): minimal uses of the patterns the client's users rely on
 // (client/v3/concurrency, leasing, recipes, the cache, Kubernetes' etcd3 store, this repository's
 // examples), each reliance an explicit panic.
 //

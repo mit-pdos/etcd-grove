@@ -1,45 +1,40 @@
 /-
-## `(*Trace).LogIfLong(d)`
-
-**Users.** The request path's deferred loggers (`v3_server.go:133,360,396,1028`). Snippets: `examples/specreq/pkgleaves/trace.go` (`ReqRequestTrace`, `ReqReadLoopTrace`).
-
-**Proof sketch.** If `time.Since(startTime)` exceeds `d`, `LogWithStepThreshold(d / (len(steps)+1))` (the divisor is positive). (`Trace.LogWithStepThreshold.spec`).
-
-**Changes.** From `specs-ref`'s `Trace__LogIfLong.lean`. **Margin.** The trace is consumed: the logger
-merges a sub-trace's fields into its steps' with `append`, so the steps' field slices may then
-share arrays; every caller logs a trace last.
+`(*traceutil.Trace).LogIfLong` (`trace.go`: logs the trace, steps longer than a share of the threshold, if it took longer). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- **Logs the trace if it took longer than `d`**; the trace consumed. -/
-def Trace.LogIfLong.spec : Prop :=
-  ∀ (t : Loc) (d : _root_.Perennial.time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceOwn t }}
+/-- `t.LogIfLong(d)` of an owned trace returns. The trace is consumed: the logger's `logInfo`
+merges a subtrace's fields into its steps' with `append`, so the steps' fields slices may then
+share their arrays (each caller logs a trace last). -/
+abbrev traceutil.Trace.LogIfLong.spec : Prop :=
+  ∀ (t : Loc) (e : Bool) (d : _root_.Perennial.time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"LogIfLong")) (Val #d))
   {{ RET #(); True }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

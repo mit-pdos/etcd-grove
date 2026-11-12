@@ -1,20 +1,7 @@
-/-
-## `MajorityConfig.Slice()`
-
-**Users.** `ProgressTracker.ConfState` (`tracker.go:126`, the four lists of `ConfState`); the TLA
-trace (`state_trace.go`, not in the default build).
-
-**Proof sketch.** `range c` appending each id (a fresh slice), then `slices.Sort` (`≤ 2^62`).
-
-**Changes** (from `specs-ref`'s `quorum/MajorityConfig__Slice.lean`): the result as `sorted s`.
-
-**Margin.** None.
--/
+/- Port of election_proof/spec_MajorityConfig__Slice.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -22,26 +9,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Quorum
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.quorum.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The voters, in increasing order, in a fresh slice. -/
-def MajorityConfig.Slice.spec : Prop :=
-  ∀ (p : Loc) (dqp : DFrac) (m : GoMap) (dq : DFrac) (s : GSet w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ p ↦{dqp} m ∗ majorityOwn m dq s ∗ ⌜GMap.size s ≤ sortMax⌝ }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.quorum.MajorityConfig.ty @!! go!"Slice")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; p ↦{dqp} m ∗ majorityOwn m dq s ∗ sl ↦* (sorted s) }}
+/-- `MajorityConfig.Slice` returns the ids of the set, sorted. Stated on `ownIdsetOpt`
+(`InvTracker.lean`) so that it covers the `nil` sets a simple configuration carries
+(`Voters[1]`, `Learners`, `LearnersNext`), for which the result is the empty (nil)
+slice. Sortedness is not stated -- `slices.Sort`'s triple gives only a permutation, and
+nothing downstream needs more. At most `2^62` ids: `slices.Sort`'s bound. -/
+abbrev quorum.MajorityConfig.Slice.spec : Prop :=
+  ∀ (m : Loc) (ids : GMap w64 Unit),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ ownIdsetOpt m ids ∗
+      ⌜(GMap.size ids : Int) ≤ 2 ^ 62⌝ }}
+    (App (Val (m @!! quorum.MajorityConfig.ty @!! go!"Slice")) (Val #()))
+  {{ (sl : GoSlice) (xs : List w64), RET #sl;
+      ownIdsetOpt m ids ∗ sl ↦* xs ∗ ownSliceCap w64 sl (DFrac.own 1) ∗
+      ⌜xs ≡ₚ elements (domSet ids)⌝ }}
 
 end spec
-end Quorum
+
 end EtcdGrove
 end Perennial

@@ -1,26 +1,13 @@
 /-
-## `ioutil.NewLimitedBufferReader(r, n)`
-
-**Users.** `pipelineHandler.ServeHTTP` (`rafthttp/http.go:121`: the request body, `n =
-connReadLimitByte`, 64 KiB), read by `io.ReadAll`. Snippet: `examples/specreq/pkgleaves/leaves.go` (`ReqLimitedRead`).
-
-**Proof sketch.** Allocates `&limitedBufferReader{r, n}`. Its `Read(p)` (translated) slices `p` to
-`n` (in bounds for `0 ≤ n`: `np[:n]` panics at a negative `n`) and calls `r.Read` on the prefix
-(`Http.readerAt_read.spec`): the bytes land in `p`'s prefix (the sub-slice aliases it), so each call
-is a `Read` of `r` on a prefix of `p` with the same result; 2f's intro law for such a wrapper
-(`Http.readerAt_wrap`, requested in `req/net_http.md`, "from 4b, round 1") makes it a `readerAt`
-with `r`'s knowledge.
-
-**Changes.** From `specs-ref`'s `NewLimitedBufferReader.lean` (`prefixReaderOk`, `0 < n`): over
-2f's `readerAt`; `0 ≤ n` (a zero cap reads nothing but does not panic).
-
-**Margin.** None.
+`ioutil.NewLimitedBufferReader(r, n)` (rafthttp stage 4, D38b): the pipeline handler reads a
+request's body through it. Its `Read` caps each read at `n` bytes (`n` is not decremented: a cap
+per read, not a limit on the total), so the reader it returns keeps `r`'s prefix contract
+(`http.prefixReaderOk`). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.ioutil.Api
-
-set_option autoImplicit false
+public import Proof.net.http.Boundary
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 
 @[expose] public section
 
@@ -28,26 +15,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace IoUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-/-- **A reader with `r`'s contract**, each `Read` capped at `n` bytes. -/
-def NewLimitedBufferReader.spec : Prop :=
-  ∀ (r : GoInterface) (Pre Φ : List w8 → IProp GF) (bs : List w8) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil ∗ Http.readerAt r Pre Φ bs ∗
-      ⌜0 ≤ sint.Z n⌝ }}
-    (App (App (Val (@! go_etcd_io.etcd.pkg.v3.ioutil.NewLimitedBufferReader)) (Val #r)) (Val #n))
-  {{ (r' : GoInterface), RET #r'; Http.readerAt r' Pre Φ bs }}
+/-- **`NewLimitedBufferReader(rd, n)`** of a reader of `B`, at a positive cap: a reader of `B`
+in the same states. -/
+abbrev ioutil.NewLimitedBufferReader.spec : Prop :=
+  ∀ (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8) (e : GoInterface) (n : w64),
+  0 < sint.Z n →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil ∗
+      http.prefixReaderOk rd Src B e }}
+    (App (App (Val (@! ioutil.NewLimitedBufferReader)) (Val #rd)) (Val #n))
+  {{ (rd' : GoInterface), RET #rd'; http.prefixReaderOk rd' Src B e }}
 
 end spec
-end IoUtil
+
 end EtcdGrove
 end Perennial

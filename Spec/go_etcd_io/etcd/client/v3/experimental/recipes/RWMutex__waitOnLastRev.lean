@@ -1,26 +1,10 @@
 /-
-`(*RWMutex).waitOnLastRev(pfx)` (`rwmutex.go`): read the key under `pfx` with the greatest mod
-revision below `myKey`'s revision (`WithLastRev()`, `WithMaxModRev(rev - 1)`); none: done (`true`);
-else wait for its delete from `myKey`'s revision (`false`, or the wait's error).
-
-**Users**: `Lock` (`pfx` the mutex's prefix), `RLock` (its writers' prefix). Internal.
-
-**Proof sketch**: `s.Client()` (1d); `myKey.Revision()` (`RemoteKV.Revision.spec`); `KV.Get` with an
-update made of `etcdPeek` (`etcdLb γ σg`, the answer at `σg`'s store: with the filter
-`maxModRev = R - 1`, the range has no key below `R` iff the answer is empty: `rwHeld`; at `R = 1`
-the filter is off, and an empty answer still says no key is there); else `WaitEvents.spec` (`R > 0`)
-for `[DELETE]`, its result dropped. Errors: `recipeErrOk`.
-
-**Changes**: old spec over the recipes' client invariant (`rwWaitResult`); now the history fact.
-
-**Premise**: `myKey` set (else a nil dereference), with a revision `R > 0` (one `Lock`/`RLock`
-created; `WaitEvents`' premise).
-
-**Margin**: the wait's event is not reported.
+`recipes.(*RWMutex).waitOnLastRev(pfx)` (`client/v3/experimental/recipes/rwmutex.go`). Lean-first (no Rocq counterpart);
+see `InvRWMutex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRWMutex
 
 @[expose] public section
 
@@ -28,30 +12,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`m.waitOnLastRev(pfx)`**: `true` only if no key with prefix `pfx` had a mod revision below `myKey`'s revision at some state reached from it. -/
-def RWMutex.waitOnLastRev.spec : Prop :=
-  ∀ (m : Loc) (γ : Cluster) (who : Principal) (id : w64) (mpfx pfx : GoString) (st : RKSt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ rwmOwn m γ who id mpfx (some st) ∗ etcdPeek γ ∗ ⌜0 < sint.Z st.rev⌝ }}
-    (App (Val (m @!! go.GoType.PointerType RWMutex.ty @!! go!"waitOnLastRev")) (Val #pfx))
-  {{ (done : Bool) (err : GoInterface), RET (PairV #done #err); rwmOwn m γ who id mpfx (some st) ∗
-      (⌜done = false ∧ err = GoInterface.nil⌝ ∨ (⌜done = false ∧ err ≠ GoInterface.nil⌝ ∗ recipeErrOk err) ∨
-       (⌜done = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ : State, etcdLb γ σ ∗
-         ⌜sint.Z st.rev ≤ σ.kv.rev ∧ rwHeld (pfxRange pfx) (sint.Z st.rev).toNat σ.kv.store⌝)) }}
+/-- **`rwm.waitOnLastRev(bp)`**, with the key `st` (created at `st.rev > 0`) in `myKey`, for a
+prefix `bp` under the mutex's `pfx`, knowing etcd has reached `lo`: the get
+`Get(bp, WithLastRev()..., WithMaxModRev(st.rev - 1))` (the key with the prefix `bp` with the
+greatest mod revision below `st.rev`); `(true, nil)` if there is none: at the get's revision
+`R ≥ lo`, no key with the prefix `bp` has a mod revision below `st.rev` (`RWBlockFree`); otherwise
+`WaitEvents` for that key's deletion from `st.rev` on, and `false` (with its error: `nil` after the
+delete event, non-nil on a canceled or closed watch), or the get's error. The key is unchanged. -/
+abbrev RWMutex.waitOnLastRev.spec : Prop :=
+  ∀ (m s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx bp : GoString)
+    (ek : Loc) (st : RemoteKVSt) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRWMutex m s γ client id pfx ∗ rwMyKey m pfx (some (ek, st)) ∗ etcdReached lo ∗
+      ⌜pfx <+: bp ∧ 0 < sint.Z st.rev ∧ bp.length ≤ recipesStrMax⌝ }}
+    (App (Val (m @!! go.GoType.PointerType RWMutex.ty @!! go!"waitOnLastRev")) (Val #bp))
+  {{ (done : Bool) (err : GoInterface), RET (PairV #done #err); rwMyKey m pfx (some (ek, st)) ∗
+      ((⌜done = true ∧ err = GoInterface.nil⌝ ∗ ∃ (R : w64) (s' : List EtcdKv), etcdReached R ∗
+          □ etcdState R pfx s' ∗ ⌜sint.Z lo ≤ sint.Z R ∧ RWBlockFree bp st.rev s'⌝) ∨
+        ⌜done = false⌝) }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

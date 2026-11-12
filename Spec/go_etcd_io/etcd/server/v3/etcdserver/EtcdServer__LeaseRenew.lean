@@ -1,49 +1,25 @@
 /-
-## `(*EtcdServer).LeaseRenew(ctx, id)`
-
-**Users.** The gRPC lease handler's keep-alive loop (`api/v3rpc/lease.go:136`: one call per
-keep-alive request on the stream, the stream's context), the lease HTTP handler (on the leader, for
-forwarded renewals). Snippet: `examples/specreq/etcdserverreq/lease.go` (`ReqKeepAlive`).
-
-**Proof sketch.** On the leader (`isLeader`, `ensureLeadership`: 2d's, any answer;
-`lease.ErrNotPrimary`: unmapped, outcome 3): the feature gate, `lessor.Lookup` (3c),
-`waitAppliedIndex` (its errors: outcome 3), `checkLeaseRenew` (`checkLeaseRenew.spec`: an invalid
-token or a stale auth revision, outcome 2; a missing principal, `ErrUserEmpty`, outcome 2; a denied
-put permission of the lease's keys, fired: `srvStep`'s keep-alive denial), `lessor.Renew(id)` (3c:
-a TTL, `ErrLeaseNotFound`, `ErrNotPrimary`). Else (or on `ErrNotPrimary`) the forwarding loop:
-`context.WithTimeout`, `waitLeader` (`waitLeader.spec`), `checkLeaseRenew`, `leasehttp.RenewHTTP`
-to each of the leader's peer URLs (3c's boundary: a TTL, `ErrLeaseNotFound`, other errors retried),
-`time.Sleep`; the context's end: `ErrTimeout` or `ErrCanceled` (outcome 3). The permission
-denial is W0's `leaseKeepAlive` step's (round 1: no `srvStep` disjunct of its own). Every answer the code
-returns is fired at the return (W0's `leaseKeepAlive`: any TTL or `ErrLeaseNotFound`, at any state:
-a keep-alive tells nothing of the lease's liveness).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__LeaseRenew.lean`, the lease-renew plan's
-contract) restated over W0's step and the three outcomes.
-
-**Margin.** The TTL is the leader's lessor's (any `int64`); the model has no time.
-
-Changes: verify-round (lease-auth's request): on the leader, `lessor.Renew` takes the caller's
-`threadTok` (given back); on the forwarding path, `leasehttp.RenewHTTP`'s post: `Lease.errIs
-ErrLeaseNotFound` for that error (returned: `leaseErr_srv` makes it the sentinel of
-`.leaseNotFound`), `errIsNot` for the others (their `errors.Is` is false: the loop goes on). Snippet
-`etcdserverreq/lease.go` `ReqKeepAliveFollower`. Errors by `srvErr` (the sentinel encoding).
+`s.LeaseRenew(ctx, id)` (`v3_server.go`): the lease keep-alive row's entry point. Lean-first (no
+Rocq counterpart); the lease-renew plan (`notes/lease-renew-plan.md`, 2026-11-01), vocabulary
+`LeaseRead.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Code.net.http
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -52,29 +28,42 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **A keep-alive of lease `id`**: its TTL, or an error; the update fired at the return
-(outcome 1), given back (outcome 2) or lost (outcome 3). -/
-def EtcdServer.LeaseRenew.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (id : w64)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ authLb γ lo ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls (.leaseKeepAlive (sint.Z id)) σ σ' res lo⌝ ∗
-             etcdState γ σ', COMM Q σ σ' res }> }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseRenew")) (Val #ctx)) (Val #id))
-  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); srvGate s q ∗ threadTok ∗
-      ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ Q σ σ' res ∗
-          match res with
-          | .ok (.leaseKeepAlive _ t) => iprop(⌜err = GoInterface.nil ∧ ttl = W64 t⌝)
-          | .err e => iprop(srvErr err e ∗ srvErrShape err)
-          | _ => iprop(False)) ∨
-       (srvUnfired err ∗ srvErrShape err ∗
-          AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-            <{ ∀∀ (σ' : State) (res : Resp), ⌜srvStep p tls (.leaseKeepAlive (sint.Z id)) σ σ' res lo⌝ ∗
-                 etcdState γ σ', COMM Q σ σ' res }>) ∨
-       (srvIndef err ∗ srvErrShape err)) }}
+/-- **`s.LeaseRenew(ctx, id)`**, any goroutine, at a context, with the server's facts and the key
+check's resources (`LeaseTimeToLive.spec`'s), reader slots of the logger's lock and of the read
+loop's (`srvLgReader`, `srvReadReader`: `ensureLeadership`'s, and an unexpected error of the
+forwarding's context is logged), and the server's peer round tripper (`peerRt`, a
+`*http.Transport`: `NewServer` stores the bootstrap's `rafthttp.NewRoundTripper` one; a premise,
+as no construction spec states the field yet): on `nil`, a TTL and the renewal's key check passed
+(the last `checkLeaseRenew`'s: auth disabled at a state no older than `n`, or the principal an
+admin at one or allowed to write every key of the lease `id` at a lessor index no older than `m`,
+`leaseKeysVerdictFrom .write`); on an error, an error the gRPC layer can take. Nothing is stated
+of the TTL.
+
+**The margin**: the keys it checked, not the keys of the lease it renews. On the leader the check
+reads the lessor and `Renew` looks the lease up again, so a key attached in between is renewed
+unchecked (as `LeaseTimeToLive`'s, `issues/etcd-lease-timetolive-keys-toctou.md`); the check reads
+the local lessor, which may lag the lessor that renews: a follower's, the leader's
+(`nonissues/etcd-lease-renew-keys-follower-lag.md`), and the leader's own with `FastLeaseKeepAlive`
+and the lease found, which skips `waitAppliedIndex` (entries committed but not yet applied). The
+revision re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
+abbrev EtcdServer.LeaseRenew.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
+      srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      srvPeerRt s }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRenew"))
+      (Val #(GoInterface.ok ctx))) (Val #id))
+  {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); E.RD ∗
+      threadTok ∗ srvLgReader s ∗ srvReadReader s γr ∗
+      ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E (GoInterface.ok ctx) n
+          (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
+       (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

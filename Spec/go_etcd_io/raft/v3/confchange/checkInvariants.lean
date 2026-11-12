@@ -1,15 +1,10 @@
 /-
-## `checkInvariants(cfg, trk)` (internal)
-
-**Users.** `checkAndReturn`. Mirrors the code on the working copy (whose progress map tracks
-exactly its ids, learners marked, and whose non-joint maps are `nil` when empty): an error exactly
-when `CfgOk` fails.
+`confchange.checkInvariants(cfg, trk)` checks that a config and a progress map agree.
+Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 
@@ -17,27 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) No error iff the configuration passes `checkInvariants`' checks (`CfgOk`). -/
-def checkInvariants.spec : Prop :=
-  ∀ (B : Base) (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (m : Membership),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ccState B cfg trk m }}
-    (App (App (Val #(functions go_etcd_io.raft.v3.confchange.checkInvariants [])) (Val #cfg)) (Val #trk))
-  {{ (err : GoInterface), RET #err; ccState B cfg trk m ∗
-      ⌜err = interface.nil ↔ m.CfgOk⌝ }}
+/-- `checkInvariants(cfg, trk)` returns `nil` exactly when the configuration and the
+progress map satisfy `CfgInv` (each id's `IsLearner` read from its `Progress`), an error
+otherwise. Everything is only read. (Generalized 2026-10-12 from the voters-only case.) -/
+abbrev confchange.checkInvariants.spec : Prop :=
+  ∀ (cfg : tracker.Config) (trk : Loc) (c : CfgM) (prs : GMap w64 Loc)
+    (pvs : GMap w64 tracker.Progress) (dqc dqm dqp : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ownCfgCC cfg dqc c ∗ trk ↦${dqm} prs ∗
+      ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) }}
+    (App (App (Val #(functions confchange.checkInvariants [])) (Val #cfg)) (Val #trk))
+  {{ (err : GoInterface), RET #err; ownCfgCC cfg dqc c ∗ trk ↦${dqm} prs ∗
+      ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗
+      ⌜err = interface.nil ↔ CfgInv { cfg := c, prs := flagsOf pvs }⌝ }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

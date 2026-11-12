@@ -1,18 +1,9 @@
 /-
-`(*watchableStore).watch(key, end, startRev, id, ch, fcs...)` (internal; `watchStream.Watch`'s
-callee, under `ws.mu`): a watcher record added to the synced group (a start revision `0` or past
-the current one: `minRev` the next revision, or the start) or the unsynced one, under `s.mu` and
-`revMu`'s read side (the reader token); the cancel closure.
-
-**Proof sketch.** Under `s.mu` (`wsMu`) and `revMu.RLock` (3e's: the current revision `R`, nothing
-pending; the caller's read update fired at the state `σ` read, `σ.rev = R`): the record (`wRecAt`), `synced.add` or `unsynced.add`
-(`watcherGroup.add`); the registration in the stream's ghost map (`wsIdFree` spent: `wsReg` with the
-stamp of the channel's sends so far, `wsSentLb`). The closure's triple is `cancelWatcher`'s.
+`watchableStore.watch` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 
 @[expose] public section
 
@@ -20,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,24 +21,39 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchableStore.watch.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName) (ι : WsNames) (key endk fcs : GoSlice) (k e : GoString)
-    (ds : List (EvM → Bool)) (startRev id : w64) (Q : MvccState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ wsIdFree ι id ∗ key ↦*□ k ∗ endk ↦*□ e ∗ filtersAt fcs ds ∗
-      ⌜0 ≤ sint.Z startRev⌝ ∗ mvccReaders γ 1 ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
-    (App (App (App (App (App (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"watch")) (Val #key)) (Val #endk))
-      (Val #startRev)) (Val #id)) (Val #(wsChanOf ι))) (Val #fcs))
-  {{ (wa : Loc) (c : GoFunc), RET (PairV #wa #c); mvccReaders γ 1 ∗
-      ∃ (W : WatcherM) (σ : MvccState), Q σ ∗ watcherAt wa ι id W ∗ wsReg ι id W ∗
-        wsSentLb ι W.stamp ∗ mvccLb γ σ.kv ∗
-        ⌜σ.pending = [] ∧ W.range = { key := k, endNil := decide (endk = slice.nil), rangeEnd := e } ∧
-          W.drops = ds ∧ W.startRev = sint.Z startRev ∧
-          W.pos = (if startRev = W64 0 then σ.rev else (sint.Z startRev).toNat - 1)⌝ ∗
-        □ {{ True }} (App (Val #c) (Val #())) {{ RET #(); ∃ n : Nat, wsCanceled ι id n }} }}
+/-- `s.watch(key, end, startRev, id, ch, fcs)`: the `watchable` contract's `watch`
+(`storeWatchParams`): a new watcher of the range (`end` nil: the single key), registered on the
+stream's channel `ch` (the close right's watchers grow), synced (a start revision `0` or past
+the current revision: from the next revision, or `startRev`) or unsynced (from `startRev`,
+behind), with its cancel closure (`cancelWatcher`), what the registration says of it
+(`P.IWF`, `watcherIs`: its names, fixed fields, and first revision, `startRev` or, for `0`, the
+length of a committed log at the registration) and the bound on the channel's registered
+watchers (the watcher budget). Unit W-M2: the registration callback (`isWatchable`), applied
+to the new watcher when it is registered on the channel `γc`, whose result the channel's
+invariant keeps (`chanRegFact`); the watcher is on `γc` (`P.OC`). Stage 2 of the mvcc API
+(2026-11-05): the filters decide the caller's predicates `fs` (`P.FI`, `filtersImpl`), and the
+callback is the store's (`regCb`): run with the channel's invariant open, it appends the
+registration to the stream's history, with `s.revMu`'s part of the API's view and the lock's
+pending revision (at `none`) in hand, for the caller's `Watch` update. -/
+abbrev mvcc.watchableStore.watch.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (key endk fcs : GoSlice) (k e : List w8) (fs : List (mvcc.EvM → Bool))
+    (startRev id : w64) (ch : GoChan) (γc : mvcc.WatchChanNames) (L : List Loc)
+    (Back : Loc → IProp GF),
+  let P := mvcc.storeWatchParams s st γ
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗
+      key ↦*□ k ∗ endk ↦*□ e ∗ P.FI fcs fs ∗ P.C ch ∗
+      P.CR ch γc L ∗ P.R ∗ P.T ∗ ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
+      P.RegCb ch γc (mvcc.watchRangeOf k e endk startRev id) fs Back }}
+    (App (App (App (App (App (App
+      (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"watch")) (Val #key))
+      (Val #endk)) (Val #startRev)) (Val #id)) (Val #ch)) (Val #fcs))
+  {{ (w : Loc) (c : GoFunc), RET (PairV #w #c);
+      ⌜w ≠ null⌝ ∗ P.IW w ∗ P.OC w γc ∗ mvcc.cancelSpec P c w ∗ P.CR ch γc (w :: L) ∗ P.R ∗
+      (∃ lo : Nat, P.IWF w (mvcc.watchRangeOf k e endk startRev id) fcs lo) ∗
+      ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ ∗ P.WS w ∗ Back w }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

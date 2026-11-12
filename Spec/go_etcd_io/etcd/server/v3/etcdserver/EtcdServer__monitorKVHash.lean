@@ -1,26 +1,11 @@
 /-
-## `(*EtcdServer).monitorKVHash()` (`server.go:2274-2303`)
-
-**Users.** `Start` (attached goroutine).
-
-**Proof sketch.** A loop until `stopping` closes that runs the corruption checker's periodic check (a corruption raises `CORRUPT`: an `AlarmRequest`, `EnvStep.alarm` at its commit); every field it reads is in
-`isServer`'s realization (the configuration's intervals, the cluster, the corruption checker
-`isCorruptionChecker`, the version manager); a proposal goes through 2c's `raftRequest`, whose
-apply fires nothing observable or `envUpd`'s step.
-
-**Changes** (from `specs-ref`'s `EtcdServer__monitorKVHash.lean`, over the monitors' configuration fields and a
-reader slot of `lgMu`): over `isServer`.
-
-**Margin.** None for safety.
-
-**Integration (I4).** Its `Hash` calls take a share of 3e's `mvccRestoreGate` from the server's
-invariant (the snapshot install takes it whole: `applySnapshot`).
-
-Changes: verify-round (A7-completeness F1): takes and gives back the goroutine's `threadTok` (`GoAttach` gives it one; `Notifier.Receive`, `Logger`, `raftRequest` take one).
+`(*EtcdServer).monitorKVHash()` (`server.go`): the trust boundary (names-only; one of the goroutines `Start`
+attaches). Lean-first (the request path's unit 4c).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 
 @[expose] public section
 
@@ -28,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,15 +23,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`monitorKVHash`**: runs until the server stops. -/
-def EtcdServer.monitorKVHash.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"monitorKVHash")) (Val #()))
-  {{ RET #(); threadTok }}
+/-- `s.monitorKVHash()` returns (names-only: the corruption check's periodic hash monitor, until
+`stopping`), **with the check off** (`s.Cfg.CorruptCheckTime` zero, read-only): it reads the
+interval and returns at once (`server.go`, `if t == 0 { return }`). Once configured it reads the
+whole backend and may propose `Alarm{CORRUPT}`, which the KV model does not admit (audit B4a,
+2026-10-18, D19m; until then the contract took only the package's initialization, false of a
+configured check: `InvMonitors.lean`). -/
+abbrev EtcdServer.monitorKVHash.spec : Prop :=
+  ∀ (s : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvCfgFieldAddr s go!"CorruptCheckTime" ↦□ (W64 0) }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorKVHash")) (Val #()))
+  {{ RET #(); True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

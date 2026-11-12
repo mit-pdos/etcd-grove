@@ -38,7 +38,7 @@ txid at least 1). `Open` (U11) gets `1 ≤ C.txid` from it for `metaR`, which `s
 (every reader txid at least 1).
 
 The freelist's `ReleasePendingPages` spec takes `readersOk` (no reader at txid 0 or `2^64-1`;
-`Spec/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean`).
+`SpecPlan/Spec/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean`).
 
 ## Notes
 

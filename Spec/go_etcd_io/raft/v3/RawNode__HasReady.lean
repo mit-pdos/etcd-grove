@@ -1,20 +1,9 @@
 /-
-## `RawNode.HasReady()`
-
-**Users.** No client calls `RawNode` directly (etcd and the examples use `node`); `node.run`
-calls it from its goroutine, holding the token. **Proof sketch.** Reads raft's state (R2, R3): with nothing stepped since `rd` was
-computed in this phase (`readyKept`), `false` means `rd` is still the current state's `Ready`
-(R3's "next" sets are monotone between accepts). **Changes.** (Round 2, R2's request) a `false`
-answer restores `readyFresh` of a kept `Ready` (`node.run` hands out a `Ready` computed before
-other steps); (integration I2, R2's round-1 item 8) and says that `Ready` is empty (`readyEmpty`,
-`ApiCore.lean`'s realization item 6), which `ReqReadyStale` needs. **Margin.** A `true` answer says nothing.
+Port of `election_proof/spec_RawNode__HasReady.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 
 @[expose] public section
 
@@ -22,32 +11,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+-- `hlc := HasLC.hasLC`: `ownRawNode` holds the ghost state (`InvRawnode.lean`)
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `RawNode.HasReady`; `false` makes a `Ready` computed earlier in the phase fresh again. -/
-def RawNode.HasReady.spec : Prop :=
+/-- `rn.HasReady()` (`rawnode.go:453`): whether `Ready` would hand out anything -- a new
+`SoftState`, a new non-empty `HardState`, a snapshot, messages, unstable entries,
+committed entries to apply, read states. Read-only. A client may call `Ready` whenever
+`Ready`'s premises hold, whatever `HasReady` says; but `false` is pinned (2026-10-10): the
+node is then `ownRawNodeIdle` (`InvRawnodeReady.lean`) -- no queued message and no
+unstable entry still to be handed out -- which `node.go` needs to accept a `Ready` it
+computed earlier and kept (`ownRawNodeIdle_ready`).
 
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (ord : Option go_etcd_io.raft.v3.Ready),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv ∗
-      (match ord with | some rd => readyKept rn k rd | none => iprop(True)) }}
-    (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"HasReady")) (Val #()))
+Until 2026-10-09 the spec pinned `false` on the node's protocol state (`NState`: the
+soft state is the previous one, the hard state empty or the previous one, the outbox
+empty, every unstable entry handed out); that went with the previous `SoftState` and
+`HardState` from `RNState`, which no client-facing spec states. (D22 S-d3a, 2026-10-21) With a
+snapshot pending too (until then a premise `rs.psnap = false`): one not yet in progress makes it
+`true` (`hasNextUnstableSnapshot`). -/
+abbrev RawNode.HasReady.spec : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ ownRawNode γ rn id rs }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
-      match ord with
-      | some rd => if b then rawNodeAt rn γ id k adv
-                   else readyFresh rn γ id k adv rd ∗ ⌜readyEmpty rd⌝
-      | none => rawNodeAt rn γ id k adv }}
+      (⌜b = true⌝ ∗ ownRawNode γ rn id rs) ∨ (⌜b = false⌝ ∗ ownRawNodeIdle γ rn id rs) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

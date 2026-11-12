@@ -2,9 +2,9 @@
 
 Reviewer: independent of the author. Commit under review: `a04eb12a12` (the 3h draft; round 1, so
 nothing is stale). Read: `notes/specs-only/{README,review-brief,batch-3h}.md`, every file of
-`Spec/go_etcd_io/raft/v3/raftpb/`, `Spec/go_etcd_io/etcd/api/v3/{etcdserverpb,version}/` (Api,
+`SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/`, `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{etcdserverpb,version}/` (Api,
 Realize, the Ensure/Marshal/Equivalent/AsV*/EnterJoint specs, a sample of getters, stubs, handlers,
-registrations), 2a's `Spec/google_golang_org/protobuf/proto/*.lean`, W0's `api/v3/Wire.lean`, the
+registrations), 2a's `SpecPlan/Spec/google_golang_org/protobuf/proto/*.lean`, W0's `api/v3/Wire.lean`, the
 `req/` files addressed to 3h, the snippets, and the Go code (raft `565c2bd`, etcd `a4d2bb17`,
 protobuf-go v1.36.12). I did not rebuild (the `.olean`s of the batch are present).
 
@@ -279,9 +279,9 @@ The cache reads the same fields. The examples' raft KV stores clone messages (co
 
 ## Ranking by need of revision
 
-1. `Spec/go_etcd_io/raft/v3/raftpb/Api.lean` with 2a's `proto/Merge.lean` (F1), then
+1. `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/Api.lean` with 2a's `proto/Merge.lean` (F1), then
    `MarshalConfChange.lean` (F2), then the `ConfState` getters (second-tier item 2).
-2. `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`: the `IrrBody` decision (F4), the four lease
+2. `SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`: the `IrrBody` decision (F4), the four lease
    `GetHeader`s (second-tier item 1), the `RangeResponse` merge capacity (F1), the snippets (F3).
 3. `examples/specreq/{raftpb,etcdserverpb}/`: F3.
-4. `Spec/go_etcd_io/etcd/api/v3/version/`: doc fixes only.
+4. `SpecPlan/Spec/go_etcd_io/etcd/api/v3/version/`: doc fixes only.

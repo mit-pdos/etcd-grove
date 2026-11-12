@@ -1,16 +1,14 @@
 /-
-## `ProgressTracker.ResetVotes()`
+Port of `election_proof/spec_ProgressTracker__ResetVotes.v` (feb5c73d4).
 
-**Users.** `reset` (`raft.go:812`, every new term), `becomePreCandidate` (`raft.go:944`): R2.
-
-**Proof sketch.** A fresh map stored in `p.Votes`. **Changes.** Over `progressTracker`.
-**Margin.** None.
+Lean notes:
+* The type of Rocq's untyped binder `tv` is written out (`tracker.ProgressTracker`),
+  as `ownTracker` forces it. Rocq's `trk.t` record is `Trk`, and
+  `t <| trk.votes := ∅ |>` is `{ t with votes := ∅ }`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -18,26 +16,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Forgets the votes. -/
-def ProgressTracker.ResetVotes.spec : Prop :=
-  ∀ (p : Loc) (T : TrackerV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressTracker p T }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.ProgressTracker.ty @!! go!"ResetVotes")) (Val #()))
-  {{ RET #(); progressTracker p { T with votes := ∅ } }}
+/-- `ResetVotes` assigns a fresh empty map to `p.Votes`, so it changes the tracker
+value as well as the heap it points at. -/
+abbrev tracker.ProgressTracker.ResetVotes.spec : Prop :=
+  ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
+      ownTrackerC c tv t }}
+    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ResetVotes"))
+      (Val #()))
+  {{ (votesRef : Loc), RET #();
+      trk ↦ { tv with Votes' := votesRef } ∗
+      ownTrackerC c { tv with Votes' := votesRef } { t with votes := ∅ } }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

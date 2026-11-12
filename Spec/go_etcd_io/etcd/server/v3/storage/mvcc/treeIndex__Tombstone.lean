@@ -1,12 +1,9 @@
 /-
-`(*treeIndex).Tombstone(key, rev)` (`index.go:192`): under the tree lock, the key's key index
-tombstoned (`idxTombstone`), by the caller's update; `ErrRevisionNotFound` for a key without one or
-already deleted (nothing changes). The revision above the key's last (`put`'s panic otherwise).
-Internal (`storeTxnWrite.delete`). **Changes**: an atomic update over `idxAt`.
+`treeIndex.Tombstone` (`index.go`). Lean-first (no Rocq counterpart); see `InvIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 
 @[expose] public section
 
@@ -14,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -24,24 +20,24 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ti.Tombstone(key, rev)`. -/
-def treeIndex.Tombstone.spec : Prop :=
-  ∀ (ti : Loc) (γi : IdxName) (key : GoSlice) (k : GoString) (dk : DFrac) (rev : Revision)
-    (e : GoInterface) (Q : IndexM → IProp GF),
-  {{ pkgInit ∗ isTreeIndex (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti) γi ∗
-      key ↦*{dk} k ∗ globalAddr ErrRevisionNotFound ↦□ e ∗
-      AU <{ ∃∃ (M : IndexM) (c : Int), idxAt γi M c ∗
-              ⌜∀ ki, M k = some ki → kiLastEmpty ki = false → Rev.gt (revOf rev) ki.modified = true⌝ }>
-          @ ⊤ \ ↑idxN, ∅
-        <{ idxAt γi ((idxTombstone M k (revOf rev)).getD M) c, COMM Q M }> }}
-    (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Tombstone")) (Val #key)) (Val #rev))
-  {{ (err : GoInterface), RET #err; key ↦*{dk} k ∗ ∃ M : IndexM, Q M ∗
-      ⌜err = (match idxTombstone M k (revOf rev) with | none => e | some _ => GoInterface.nil)⌝ }}
+/-- `ti.Tombstone(key, rev)` by the writer, for the next change of the pending revision (a
+delete of `key`, which the well-formed log says is present): `nil`, the key's index gets the
+tombstone, and the writer's log has the change. -/
+abbrev mvcc.treeIndex.Tombstone.spec : Prop :=
+  ∀ (ti : Loc) (γ : mvcc.IdxNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (key : GoSlice)
+    (k : GoString) (rev : Revision),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTreeIndex ti γ ∗ mvcc.idxWriter γ ilog pend ∗ key ↦*□ k ∗
+      ⌜mvcc.revOf rev = ⟨W64 ilog.length, W64 pend.length⟩ ∧ 1 ≤ ilog.length ∧
+        pend.length + 1 < 2 ^ 63 ∧ mvcc.LogWf' (ilog ++ [pend ++ [.del k]])⌝ }}
+    (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Tombstone")) (Val #key))
+      (Val #rev))
+  {{ RET #(GoInterface.nil); mvcc.idxWriter γ ilog (pend ++ [.del k]) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial
+

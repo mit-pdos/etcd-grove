@@ -1,42 +1,41 @@
 /-
-## `isConnectedToQuorumSince(transport, since, self, members)` (`util.go:28-30`)
-
-**Users.** `parseProposeCtxErr` (2c: which timeout error to return).
-
-**Proof sketch.** `numConnectedSince`, `quorum`.
-
-**Changes**: from `specs-ref`'s `isConnectedToQuorumSince.lean`. **Margin.** Any answer.
+`isConnectedToQuorumSince` (`util.go`: `numConnectedSince(...) >= quorum(len(members))`). Lean-first (no Rocq counterpart); the request path (`notes/decisions.md`, "The request path");
+unit P1b (2026-10-14): the transport's contract (`rafthttp.isTransporter`), the members owned.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`isConnectedToQuorumSince`**: some answer. -/
-def isConnectedToQuorumSince.spec : Prop :=
-  ∀ (tp : GoInterface) (ν : Rafthttp.Net GF) (lid : w64) (since : time.Time) (self : w64) (sl : GoSlice) (ms : List Member),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Rafthttp.transporterOk tp ν lid ∗ Membership.membersOwn sl ms ∗ threadTok }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince)) (Val #tp)) (Val #since)) (Val #self)) (Val #sl))
-  {{ (b : Bool), RET #b; Membership.membersOwn sl ms ∗ threadTok }}
+/-- `isConnectedToQuorumSince(transport, since, self, members)`, the transport a
+`rafthttp.isTransporter`, the members owned: some boolean (`parseProposeCtxErr` only classifies
+its error by it); the members kept. -/
+abbrev isConnectedToQuorumSince.spec : Prop :=
+  ∀ (tr : GoInterface) (since : time.Time) (self : w64) (members : GoSlice) (ms : List Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rafthttp.isTransporter tr ∗
+      membership.membersAt members ms }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince)) (Val #tr)) (Val #since)) (Val #self))
+      (Val #members))
+  {{ (b : Bool), RET #b; membership.membersAt members ms }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

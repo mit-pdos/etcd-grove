@@ -1,14 +1,9 @@
 /-
-## `(*Inode).SetKey(x)` (`internal/common/inode.go`)
-
-**Users.** node.go:137-140 (`put`), node.go:482,487 (`dereference`); `ReadInodeFromPage`.
-**Proof sketch.** one field store.
-**Changes.** from `specs-ref`'s file of the same name (unchanged).
-**Margin.** none: the post is what the code computes.
+`(*Inode).SetKey`'s spec (`internal/common/inode.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,19 +11,21 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `in.SetKey(x)` writes the field `key`. -/
-def Inode.SetKey.spec : Prop :=
+/-- `Inode.SetKey(x)` writes the field `key`. -/
+abbrev Inode.SetKey.spec : Prop :=
   ∀ (l : Loc) (v : Inode) (x : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦ v }}
     (App (Val (l @!! go.GoType.PointerType Inode.ty @!! go!"SetKey")) (Val #x))
@@ -36,6 +33,8 @@ def Inode.SetKey.spec : Prop :=
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

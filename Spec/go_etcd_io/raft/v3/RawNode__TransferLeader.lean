@@ -1,16 +1,7 @@
-/-
-## `RawNode.TransferLeader`
-
-**Users.** No client calls `RawNode` directly (etcd and the examples use `node`); `node.run`
-calls it from its goroutine, holding the token. `node.run` (the matching `node` method's channel case). **Proof sketch.** `raft.tick` or
-`raft.Step` of a local message (R2); the result ignored. **Changes.** Unchanged.
--/
+/- Lean-first (no Rocq counterpart), 2026-10-13. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 
@@ -18,27 +9,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+-- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `RawNode.TransferLeader`: keeps the token. -/
-def RawNode.TransferLeader.spec : Prop :=
-
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (to : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv }}
-    (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"TransferLeader")) (Val #to))
-  {{ RET #(); rawNodeAt rn γ id k adv }}
+/-- A leader transfer to `transferee` (`MsgTransferLeader`, local, `From: transferee`): at a follower forwarded to the leader, at a leader recorded (`leadTransferee`) with a `MsgTimeoutNow` or an append to the transferee; the node predicate is kept (the term unchanged). -/
+abbrev RawNode.TransferLeader.spec : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (transferee : w64),
+  -- (raft-final, 2026-10-29, U9: in every cluster; until then outside the cluster's no-transfer
+  -- mode, `RaftNames.reNoXfer = false`, D21 M2r)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ ownRawNode γ rn id rs }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"TransferLeader")) (Val #transferee))
+  {{ RET #(); "Hrn" ∷ ownRawNode γ rn id rs }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

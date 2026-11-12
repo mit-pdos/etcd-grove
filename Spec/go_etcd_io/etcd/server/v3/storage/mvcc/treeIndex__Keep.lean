@@ -1,11 +1,9 @@
 /-
-`(*treeIndex).Keep(rev)` (`index.go:230`): under the read lock, the revisions a compaction at `rev`
-keeps (`idxKeep`), in a fresh map, by the caller's update, unchanged. Internal (`hashByRev`).
-**Changes**: an atomic update over `idxAt`.
+`treeIndex.Keep` (`index.go`): the hash's kept revisions (2026-10-13, unit 5a; `Compact.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -13,29 +11,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ti.Keep(rev)`. -/
-def treeIndex.Keep.spec : Prop :=
-  ∀ (ti : Loc) (γi : IdxName) (rev : w64) (Q : IndexM → IProp GF),
-  {{ pkgInit ∗ isTreeIndex (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti) γi ∗
-      AU <{ ∃∃ (M : IndexM) (c : Int), idxAt γi M c ∗ ⌜c ≤ sint.Z rev⌝ }> @ ⊤ \ ↑idxN, ∅
-        <{ idxAt γi M c, COMM Q M }> }}
+/-- `ti.Keep(rev)` by a reader (its knowledge `kn` of the index, a part of the compaction
+revision's authority at or below `rev`): the map of every key's revision `keep` keeps at `rev`
+(`keepOfIs`, of the uncompacted key indexes: the compaction at most at the reader's revision
+does not change `kiKeep` at `rev`). -/
+abbrev mvcc.treeIndex.Keep.spec : Prop :=
+  ∀ (ti : Loc) (γ : mvcc.IdxNames) (kn : mvcc.IdxKnow) (rev : w64) (q : Qp) (c : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTreeIndex ti γ ∗ mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q c ∗
+      ⌜-1 ≤ c ∧ c ≤ sint.Z rev ∧ 0 ≤ sint.Z rev ∧ sint.Z rev < kn.log.length⌝ }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Keep")) (Val #rev))
-  {{ (m : Loc), RET #m; ∃ M : IndexM, Q M ∗ availAt m (idxKeep M rev) }}
+  {{ (m : GoMap), RET #m; mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q c ∗
+      ∃ A : GMap Revision Unit, ownMap m (DFrac.own 1) A ∗ ⌜mvcc.keepOfIs A kn.log rev⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

@@ -1,17 +1,10 @@
 /-
-`(*concurrency.stmSerializable).gets` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: a loop over the read set: `OpGet.spec` per key, two `append`s.
-
-Changes: from `specs-ref`'s `stmSerializable__gets.lean`: restated over `stmSerAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stmSerializable.gets()` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,28 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.gets()`: the read keys and a plain get of each, in the map's order. -/
-def stmSerializable.gets.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmSerAt p γ who iso a }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stmSerializable.ty @!! go!"gets")) (Val #()))
-  {{ (ksl osl : GoSlice), RET (PairV #ksl #osl); stmSerAt p γ who iso a ∗ ∃ ks : List GoString,
-      ⌜keysOf a.reads ks⌝ ∗ ksl ↦*□ ks ∗ opsAt osl (ks.map (fun k => opGetM k [])) }}
+/-- `s.gets()`: the read keys (in the map's order) and, for each, the get `OpGet(k)`
+(`keyOp k`). -/
+abbrev stmSerializable.gets.spec : Prop :=
+  ∀ (p : Loc) (pfx : GoString) (reads : GMap GoString ReadM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmRsetOwn pfx (structFieldRef stmSerializable go!"stm" p) reads }}
+    (App (Val (p @!! go.GoType.PointerType stmSerializable.ty @!! go!"gets")) (Val #()))
+  {{ (ksl osl : GoSlice), RET (PairV #ksl #osl);
+      stmRsetOwn pfx (structFieldRef stmSerializable go!"stm" p) reads ∗
+      ∃ ks : List GoString, ksl ↦*□ ks ∗ opsAt osl (ks.map keyOp) ∗ ⌜MapKeysList reads ks⌝ }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

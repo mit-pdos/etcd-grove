@@ -1,53 +1,49 @@
 /-
-## `read.NewRead(server, raft)`
-
-**Users.** `EtcdServer.start` (`server.go:573`: `read.NewRead(s, &s.r)`, before it sets the fields
-`s`'s `LeaderChanged`, `Done`, ... read). Snippet: `examples/specreq/etcdserverreq/read.go`.
-
-**Proof sketch.** Allocates the struct with `waitC` (buffer 1) and a first notifier
-(`newNotifier`); `readNew r srv rf` is the struct's ownership with `srv` and `rf` saved. The
-invariants are allocated by `readNew_init`, once the caller has `readEnv` (2e's `start`, from the
-server's methods and the raft wrapper's: `req/go_etcd_io_etcd_server_v3_etcdserver.md`, from 2c).
-
-**Changes.** The old spec took the server's `Done()` contract and the notifier's ghost variable and
-returned the loop's precondition as a wand over the later contracts plus the `RWMutex`'s reader
-slots; restated as `readNew` and the law `readNew_init` (no reader slots: the readers' thread
-tokens).
-
-**Margin.** None.
+`read.NewRead(server, raft)` (read.go). Lean-first (no Rocq counterpart); the request path's unit 4a, see
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Inv.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Read
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.read
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
-/-- **A new read path** over the server `srv` and raft `rf`, to be started by `readNew_init`. -/
-def NewRead.spec : Prop :=
-  ∀ (srv rf : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read }}
+/-- `NewRead(srv, rf)` with the server's `Done()` (`srvDoneOk`, what `LinearizableReadNotify` needs)
+and the read names' notifier meets the read contract (`isReadNotify`) and returns the reader slots of
+`r.mux` (`readReader`, as many as Perennial's `RWMutex` admits); the loop's precondition
+(`isReadLoopPre`) follows from the server's and raft's contracts, the clients' read update and
+(2026-10-16, stage R7b) the minted contexts (`readCtxMinted`), given later (2026-10-13, the
+request path's unit 4c: the server's `start` calls `NewRead` before it sets `s.leaderChanged`,
+which `isReadServer`'s `LeaderChanged()` reads; until then they were `NewRead`'s premises). -/
+abbrev read.NewRead.spec : Prop :=
+  ∀ (srv rf : GoInterface) (γr : ReadNames) (x : Loc × NeedNames) (F : List EntryModel → KVState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
+      srvDoneOk srv ∗ context.isClosedchanInit ∗ ghostVar γr.notifier 1 x }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.read.NewRead)) (Val #srv)) (Val #rf))
-  {{ (r : Loc), RET #r; readNew r srv rf }}
+  {{ (r : Loc), RET #r; isReadNotify r γr F ∗
+      (□ ∀ (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF),
+        isReadServer srv γr LR NR -∗ isReadRaft rf γr RQ -∗ readCompose γr F -∗
+          readCtxMinted γr -∗ isReadLoopPre r γr RQ LR NR F) ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), readReader r γr }}
 
 end spec
-end Read
+
 end EtcdGrove
 end Perennial

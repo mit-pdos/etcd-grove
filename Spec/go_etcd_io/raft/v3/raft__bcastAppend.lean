@@ -1,14 +1,11 @@
-/-
-## `raft.bcastAppend` (internal)
+/- Port of election_proof/spec_raft__bcastAppend.v (feb5c73d4).
 
-**Users.** `stepLeader` (`raft.go:1370`, `:1569`), `stepCandidate` (`:1720`), `switchToConfig` (`:2018`). **Proof sketch.** `sendAppend` to every peer but itself (R4's `Visit`). **Changes** (from `specs-ref`'s `raft__bcastAppend.lean`, if any): over
-`raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
+Lean notes: Rocq's untyped binders `id s` and `pvs` get their types written
+out; `send_msgs s ms <| nstate.prvals := pvs |>` is `{ sendMsgs s ms with prvals := pvs }`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +13,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A leader sends appends to every other peer. -/
-def raft.bcastAppend.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ ⌜ρ.role = StateLeader⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"bcastAppend")) (Val #()))
-  {{ RET #(); raftCore r γ id ρ }}
+/-- The broadcast a new leader sends. `bcastAppend` visits every peer's `Progress` and
+calls `sendAppend`, which reaches `maybeSendAppend` -- and that sends a `MsgApp` only
+when the log and the peer's `Progress` permit it, otherwise a `MsgSnap` or nothing at
+all (the peer is paused, or there is nothing to send and `sendIfEmpty` is false).
+
+So this says **not** one `MsgApp` per peer, only that the outbox grew by some list of
+messages `ReplOk` allows (`ReplSends`, `Defs.lean`) -- which is exactly what `step_win`
+and `step_send_apps` ask for -- and that no `Match` moved. An earlier version of the
+model demanded one per peer, which would have made this claim false -- the same trap
+`raft.appendEntry.spec` fell into before 2026-09-15 (it was called
+`wp_raft__appendEmptyEntry` then, after a Go method that does not exist). -/
+abbrev raft.bcastAppend.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
+  s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜ReplSends id s ms⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,10 +1,11 @@
 /-
-`txw.putInternal(bucket, k, v)` (`tx_buffer.go:77-84`): translated; internal. The bucket's buffer
-(`newBucketBuffer` if none), `add`. Changes: unchanged. Margin: none.
+`txWriteBuffer.putInternal` (`tx_buffer.go`). `txw.putInternal(bucket, k, v)`: the entry appended to the bucket's buffer (a new one if
+none).
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 
 @[expose] public section
 
@@ -12,28 +13,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`txw.putInternal(bk, k, v)`**: appended. -/
-def txWriteBuffer.putInternal.spec : Prop :=
-  ∀ (t : Loc) (B : TxB) (seq : w64 → Option Bool) (bk : GoInterface) (bi : BktInfo)
-    (ks vs : GoSlice) (k v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ twbAt t B seq ∗ bucketOk bk bi ∗ ks ↦*□ k ∗ vs ↦*□ v }}
-    (App (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer.ty @!! go!"putInternal")) (Val #bk)) (Val #ks)) (Val #vs))
-  {{ RET #(); twbAt t (fun id => if id = bi.id then some ((B id).getD [] ++ [(k, v)]) else B id)
-      seq }}
+/-- `txw.putInternal(bucket, k, v)`: the entry appended to the bucket's buffer (a new one if
+none). -/
+abbrev backend.txWriteBuffer.putInternal.spec : Prop :=
+  ∀ (txw : Loc) (W : WBuf) (b : GoInterface) (bi : BucketInfo) (k v : GoSlice) (kb vb : GoString),
+  (bkOf W.bks bi.id).length < bufBound →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ownWB txw W ∗ isBucket b bi ∗ k ↦*□ kb ∗ v ↦*□ vb }}
+    (App (App (App (Val (txw @!! go.GoType.PointerType txWriteBuffer.ty @!! go!"putInternal")) (Val #b)) (Val #k)) (Val #v))
+  {{ RET #(); ownWB txw { W with bks := wbAdd W.bks bi.id (kb, vb) } }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

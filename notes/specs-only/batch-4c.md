@@ -1,11 +1,11 @@
 # Batch 4c: bbolt's public API (DB, Tx, Bucket, Cursor)
 
 Author's report, round 0 (2026-11-09). Namespace `Bbolt` (`Perennial.EtcdGrove.Bbolt`).
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/bbolt`: OK, 149 modules (round 1).
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/bbolt`: OK, 149 modules (round 1).
 
 ## Files
 
-`Spec/go_etcd_io/bbolt/`:
+`SpecPlan/Spec/go_etcd_io/bbolt/`:
 
 * `Model.lean` (pure, transparent): `Ent`/`Data` (nested buckets: a value or a bucket with its
   sequence and sorted entries; a database is its root bucket), `BPath`, the operations (`lookup`,

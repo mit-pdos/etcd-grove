@@ -1,13 +1,9 @@
 /-
-`demux.broadcastLocked` (`cache/*.go`), an internal helper.
-Users: `demux.Broadcast`.
-Proof sketch: dispatches to `broadcastProgressLocked` or `broadcastEventsLocked` (or nothing).
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`demux.broadcastLocked(resp)`. Lean-first (no Rocq counterpart); see `InvDemux.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,16 +21,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `d.broadcastLocked(resp)`: the pending response broadcast. -/
-def demux.broadcastLocked.spec : Prop :=
-  ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc)
-    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ demuxLocked d γ pfx s (some m) ∗ watchRespAt resp m }}
-    (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"broadcastLocked")) (Val #resp))
-  {{ RET #(); demuxLocked d γ pfx s none }}
+/-- `d.broadcastLocked(resp)`, under the write lock, after `updateStoreLocked` (the state `c`
+is the new one, see `BroadcastPre`): every active watcher processed as
+`broadcastProgressLocked`/`broadcastEventsLocked` do; afterwards every active watcher is up to
+date with the whole stream. -/
+abbrev demux.broadcastLocked.spec : Prop :=
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore) (k : Nat)
+    (regs : GMap Loc RegInfo) (views : GMap Loc View)
+    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      demuxLocked d γd cap C c k regs views ∗ respAt resp r ∗
+      ⌜DemuxInv cap c ∧ BroadcastPre c k r⌝ }}
+    (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"broadcastLocked")) (Val #resp))
+  {{ RET #(); ∃ views', demuxLocked d γd cap C c c.stream.length regs views' }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

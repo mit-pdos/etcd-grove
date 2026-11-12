@@ -1,19 +1,13 @@
 /-
-## `(*batchTxBuffered).UnsafeSeqPut(bucket, key, value)` (`batch_tx.go:407-410`): translated
-
-**Users.** mvcc's puts and tombstones (`kvstore_txn.go:259, 323`). Snippet `ranges.go`
-(`ReqSeqRange`).
-
-**Proof sketch.** `batchTx.UnsafeSeqPut` (`unsafePut` with the fill percent at `0.9`), then the
-write buffer's `putSeq` (`verify.Verify` off by `envOk`; the bucket's sequential flag kept: the
-write-back neither sorts nor deduplicates it, so the key must be above every key of the bucket the
-read buffer may hold, `Sess.fresh`, in any bucket).
-
-**Changes** (from `specs-ref`'s): `Sess.fresh` in place of the old `P.SB` premise. **Margin.** None.
+`UnsafeSeqPut` (the backend). `t.UnsafeSeqPut(bucket, key, value)` under the lock: as `UnsafePut`, the key above the
+bucket's buffered keys (its `verify` check).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 
 @[expose] public section
 
@@ -21,29 +15,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafeSeqPut(bk, k, v)`**: as `UnsafePut`, for a key above every key of the bucket. -/
-def batchTxBuffered.UnsafeSeqPut.spec : Prop :=
-  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (G : Fp) (C : Image) (bk : GoInterface)
-    (bi : BktInfo) (ks vs : GoSlice) (k v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ beCur γ G C ∗ ⌜G (.key bi.name k)⌝ ∗
-      writable γ F (Fp.key bi.name k) ∗ ⌜S.fresh bi.name k⌝ ∗
-      ⌜k.length + v.length ≤ Bbolt.bboltEntryMax⌝ ∗ ks ↦*□ k ∗ vs ↦*□ v }}
-    (App (App (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeSeqPut")) (Val #bk)) (Val #ks)) (Val #vs))
-  {{ RET #(); beSess γ q F (S.put bi.name k v) ∗ beCur γ G (C.put bi.name k v) }}
+/-- `t.UnsafeSeqPut(bucket, key, value)` under the lock: as `UnsafePut`, the key above the
+bucket's buffered keys (its `verify` check), and in a safe-range bucket above the committed keys
+(until the backend-compaction stage's thin-view round, 2026-10-29: above the writer's contents,
+which held the committed keys while no safe-range key was deleted; one statement since, the
+compacting variant `specC` folded in); not a hook's own key (`P.hk`), nor in a tracked bucket
+(`P.RB`, D22, 2026-10-23), nor a compaction key (`fkKey`, the backend-compaction stage,
+2026-10-29); in a safe-range bucket not a deleted entry (`st.dl`; the user's decision,
+2026-11-04, probe M2). -/
+abbrev backend.batchTxBuffered.UnsafeSeqPut.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
+  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
+  (∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb) → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → P.RB bi.name = false → ¬ fkKey bi.name kb →
+  (P.SB bi.name = true → (∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) ∧
+    st.dl.lookup (bi.name, kb) = none) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb }}
+    (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeSeqPut")) (Val #bk)) (Val #key)) (Val #value))
+  {{ RET #(); batchLocked γ P b (st.put bi kb vb true) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

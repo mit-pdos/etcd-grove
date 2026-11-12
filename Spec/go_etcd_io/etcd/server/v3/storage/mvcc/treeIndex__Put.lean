@@ -1,13 +1,9 @@
 /-
-`(*treeIndex).Put(key, rev)` (`index.go:54`): under the tree lock, the key's key index gets the
-revision (a fresh one inserted if none: 1g's `Get`, `ReplaceOrInsert`), by the caller's update
-(`idxPut`); the revision above the key's last (`keyIndex.put` panics otherwise). The key's bytes kept.
-Internal (`storeTxnWrite.put`). **Changes** from `specs-ref`'s file: an atomic update over
-`idxAt` (the store's invariant holds it) for the writer's log fragment.
+`treeIndex.Put` (`index.go`). Lean-first (no Rocq counterpart); see `InvIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 
 @[expose] public section
 
@@ -15,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -25,21 +20,24 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ti.Put(key, rev)`. -/
-def treeIndex.Put.spec : Prop :=
-  ∀ (ti : Loc) (γi : IdxName) (key : GoSlice) (k : GoString) (rev : Revision) (Q : IProp GF),
-  {{ pkgInit ∗ isTreeIndex (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti) γi ∗
-      key ↦*□ k ∗
-      AU <{ ∃∃ (M : IndexM) (c : Int), idxAt γi M c ∗
-              ⌜∀ ki, M k = some ki → Rev.gt (revOf rev) ki.modified = true⌝ }> @ ⊤ \ ↑idxN, ∅
-        <{ idxAt γi (idxPut M k (revOf rev)) c, COMM Q }> }}
+/-- `ti.Put(key, rev)` by the writer, for the next change of the pending revision (a put of
+`key`, with any value and lease, keeping the log well formed): the key's index gets the
+revision (a fresh index if it has none), and the writer's log has the change. The key's bytes
+are read-only for good (the index keeps them). -/
+abbrev mvcc.treeIndex.Put.spec : Prop :=
+  ∀ (ti : Loc) (γ : mvcc.IdxNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (key : GoSlice)
+    (k : GoString) (rev : Revision) (v : GoString) (l : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTreeIndex ti γ ∗ mvcc.idxWriter γ ilog pend ∗ key ↦*□ k ∗
+      ⌜mvcc.revOf rev = ⟨W64 ilog.length, W64 pend.length⟩ ∧ 1 ≤ ilog.length ∧
+        pend.length + 1 < 2 ^ 63 ∧ mvcc.LogWf' (ilog ++ [pend ++ [.put k v l]])⌝ }}
     (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Put")) (Val #key)) (Val #rev))
-  {{ RET #(); Q }}
+  {{ RET #(); mvcc.idxWriter γ ilog (pend ++ [.put k v l]) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial
+

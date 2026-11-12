@@ -216,7 +216,7 @@ the declared set (`safeRegOk Bs`).
   `Tracer.Start`'s post) to `watchStream.Watch`; `watchServer__Watch.lean`'s Changes text
   contradicts the reader-token decision. 2a: a law `rpcCtx ctx md ⊢ TraceUtil.ctxTraceIs ctx none ∗
   OtelTrace.ctxSpanOk ctx` (and for the stream context).
-- **2f (`Spec/net/http/Api.lean`, rafthttp)**: 4b's requests unmet: `readerAt_wrap`,
+- **2f (`SpecPlan/Spec/net/http/Api.lean`, rafthttp)**: 4b's requests unmet: `readerAt_wrap`,
   `readerCloser_wrap`, a shared reader (`readerShared` with its law and `Read` triple) for the
   snapshot sender's timeout drain, a law for `Probing.urlParses` of rafthttp's probing URLs;
   `semverAt`/`semverParses`/`proberAt` to become `∃ sv, Semver.verAt v sv`, `(Semver.parse
@@ -234,10 +234,10 @@ the declared set (`safeRegOk Bs`).
 
 ## Build results (directories I own)
 
-- `Spec/go_etcd_io/etcd/server/v3/storage/mvcc` and `.../storage/backend` (with `SchemaTx.lean`):
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc` and `.../storage/backend` (with `SchemaTx.lean`):
   OK, 285 modules (`etc/specs-build.sh --dir`, after the last edit).
 - With `.../storage/schema`: OK, 355 modules (the final build, after every edit here).
-- `Spec/go_etcd_io/etcd/pkg/v3/adt`: OK (31); 3f's mvcc modules within the mvcc build above.
+- `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/adt`: OK (31); 3f's mvcc modules within the mvcc build above.
 - `pkg/v3/{traceutil,pbutil,ioutil,httputil}`, semver, `x/time/rate`, probing,
   `otel/{trace,attribute}`: OK (53 modules).
 - Snippets: `go vet ./specreq/{mvcc,backend,mvccwatch,adt,pkgleaves}/` clean, `gofmt -l` empty.

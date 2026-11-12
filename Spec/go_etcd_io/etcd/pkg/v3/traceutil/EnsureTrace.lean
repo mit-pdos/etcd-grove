@@ -1,43 +1,31 @@
 /-
-## `traceutil.EnsureTrace(ctx, lg, op, fields...)`
+`traceutil.EnsureTrace` (`trace.go`: `ctx` itself if it carries a trace that is not empty, else
+`context.WithValue(ctx, TraceKey{}, newTrace(...))`). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 
-**Users.** The request path (`v3_server.go:118,169,341,391`: grpc's per-call context, which carries
-no trace), `txn.Range`/`Put`/`DeleteRange`/`Txn` (`txn/*.go`: the request's context, carrying the
-request's non-empty trace, or `context.TODO()` on the apply thread), the applier's `Compaction`
-(`apply/backend.go:69`, `TODO()`), the read loop (`read/read.go:109`, `Background()`). Snippets:
-`trace.go` (`ReqRequestTrace`, `ReqApplyTraceHandoff`, `ReqReadLoopTrace`).
-
-**Proof sketch.** `Get(ctx)` (`Get.spec`); `IsEmpty()` (`traceEmpty`, persistent: readable whoever
-owns the trace); a context's non-empty trace: `(ctx, t0)`, nothing else touched (the fields are not
-used). Otherwise `newTrace` (`newTrace.spec`) and `context.WithValue(ctx, TraceKey{}, t)` (W0's
-`Context.WithValue.spec`: `TraceKey` is an empty struct, comparable), which gives `ctxOk`,
-`ctxWithValues` and `ctxValueAt`; `ctxTraceIs ctx' (some t)` is `WithValue`'s value at its own key
-(the realization: `valueCtx.Value`'s body returns `t` at `TraceKey{}`).
-
-**Changes.** From `specs-ref`'s `EnsureTrace.lean`: the input context is any `Context.ctxOk` (was
-the mvcc's `txnCtx` descriptor); the other packages' facts about the new context (grpc's incoming
-metadata, otel's span) are no longer listed one by one: the post gives W0's `ctxWithValues` and
-`ctxValueAt` at `traceKey`, from which each package's "a value at another key" law carries its own
-fact (`Context.ctxNoMeta_value`, `ctxTraceIs_value`, `OtelTrace.ctxSpanOk_value`). The context's
-trace's ownership is no longer taken: only its emptiness is read.
-
-**Margin.** In the reuse case the fields are not stored (their slice is dropped).
+The returned context is described by the input's descriptor with other values: `WithValue`
+derives a context with the parent's deadline and `Done` channel. The input is a `txnCtx`
+(2026-10-12): an `isContext`, or a context whose `Done()` is `nil` (`context.TODO()`'s, at which
+the apply package calls the txn package); the output is the same kind.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Perennial.Proof.context
+public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -46,23 +34,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- **A context carrying a non-empty trace, and that trace**: `ctx` and its own trace if it carries
-a non-empty one; else a new trace, the caller's, in a `WithValue` of `ctx`. -/
-def EnsureTrace.spec : Prop :=
-  ∀ (ctx : GoInterface) (o : Option Loc) (e : Bool) (lg : Loc) (op : GoString) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ Context.ctxOk ctx ∗ ctxTraceIs ctx o ∗
-      (match o with | some t0 => traceEmpty t0 e | none => iprop(True)) ∗
-      fieldsOwn fields ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace)) (Val #ctx))
-      (Val #lg)) (Val #op)) (Val #fields))
-  {{ (ctx' : GoInterface) (t : Loc), RET (PairV #ctx' #t);
-      Context.ctxOk ctx' ∗ ctxTraceIs ctx' (some t) ∗ traceEmpty t false ∗
-      match o, e with
-      | some t0, false => iprop(⌜ctx' = ctx ∧ t = t0⌝)
-      | _, _ => iprop(traceOwn t ∗ Context.ctxWithValues ctx ctx' ∗
-          Context.ctxValueAt ctx ctx' traceKey) }}
+/-- `EnsureTrace(ctx, lg, op, fields...)`, `ctx` carrying the trace `o` (owned by the caller, empty
+or not as `e`), the fields owned: a context like `ctx` (an `isContext` of `ctx` stays one),
+carrying the trace `t` returned, owned, not empty: the caller's if not empty, else a new one; and
+(2026-10-28, the auth plan's E3zb) `ctx`'s incoming gRPC metadata (`metadata.incomingOf`: `ctx`
+itself, or a `context.WithValue` of it); and (R8, 2026-11-07) `ctx`'s span fact
+(`trace.spanCtxOk`: `WithValue` at `TraceKey{}`, not otel's key, delegates otel's key to `ctx`). -/
+abbrev traceutil.EnsureTrace.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (o : Option Loc) (e : Bool)
+    (lg : Loc) (op : GoString) (fields : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx o ∗
+      traceutil.ownTraceOpt o e ∗ traceutil.ownFields fields }}
+    (App (App (App (App (Val (@! traceutil.EnsureTrace)) (Val #(GoInterface.ok ctx))) (Val #lg))
+      (Val #op)) (Val #fields))
+  {{ (ctx' : GoInterfaceOk) (t : Loc), RET (PairV #(GoInterface.ok ctx') #t);
+      ⌜t ≠ null ∧ ∀ t0, o = some t0 → e = false → t = t0⌝ ∗ traceutil.ownTrace t false ∗
+      traceutil.ctxTraceIs ctx' (some t) ∗
+      ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
+      ∃ vs : GMap GoInterface GoInterface,
+        mvcc.txnCtx ctx' { cd with Values := vs } ∗
+        (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) ∗
+        □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

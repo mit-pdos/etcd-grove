@@ -1,19 +1,9 @@
 /-
-## `reportCriticalError(err, errc)`
-
-**Users.** `pipeline.post`, `snapshotSender.send`, `streamReader.dial`.
-
-**Proof sketch.** A `select` with `default` (`errChanOk`).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. (The old one promised nothing on `ErrorC`; the server stops on it, which is always safe.)
-
-**Margin.** None.
+`reportCriticalError(err, errc)` (`util.go`; rafthttp stage 5e-3). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 
 @[expose] public section
 
@@ -21,26 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A non-blocking send of `err` on the error channel. -/
-def reportCriticalError.spec : Prop :=
-  ∀ (err : GoInterface) (errc : GoChan),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ errChanOk errc ∗ Http.errOk err }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.reportCriticalError)) (Val #err)) (Val #errc))
+/-- **`reportCriticalError(err, errc)`**: `err` (an error whose `Error()` returns) offered to the
+critical-error channel without blocking (`errcOk`): sent, or dropped if no receiver is ready. -/
+abbrev rafthttp.reportCriticalError.spec : Prop :=
+  ∀ (err : GoInterface) (ec : GoChan),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ errcOk ec ∗ http.errStrOk err }}
+    (App (App (Val (@! rafthttp.reportCriticalError)) (Val #err)) (Val #ec))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

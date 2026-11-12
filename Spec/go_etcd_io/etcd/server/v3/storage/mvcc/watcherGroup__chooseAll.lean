@@ -1,16 +1,10 @@
 /-
-`(*watcherGroup).chooseAll(curRev, compactRev)` (internal; under `s.mu`): each member above
-`curRev` must be restoring (its flag cleared; else `panic`: the premise); each member below
-`compactRev` is sent its compaction response without blocking (sent: marked compacted, removed from
-the group; full: kept, retried by the next sync); the least `minRev` of the others.
-
-**Proof sketch.** The records; for a member below `compactRev`, a `select` with a `default` on its
-channel (`wsSendable` of its compaction response, given for each such member).
+`watcherGroup.chooseAll` (`watcher_group.go`). Lean-first (no Rocq counterpart); see `InvWatchBatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchCmpSend
 
 @[expose] public section
 
@@ -18,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -29,23 +22,40 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watcherGroup.chooseAll.spec : Prop :=
-  ∀ (wg : Loc) (v : watcherGroup) (dq : DFrac) (G : List (Loc × MRange)) (R : Loc → WRec)
-    (curRev compactRev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wg ↦{dq} v ∗ wgOwn v (DFrac.own 1) G ∗ ([∗list] x ∈ G, wRecAt x.1 (R x.1)) ∗
-      ([∗list] x ∈ G, if decide ((R x.1).minRev < sint.Z compactRev) then
-        wsCmpSendable x.1 compactRev else True) ∗
-      ⌜∀ x ∈ G, (R x.1).minRev ≤ sint.Z curRev ∨ (R x.1).restore = true⌝ }}
-    (App (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"chooseAll")) (Val #curRev)) (Val #compactRev))
-  {{ (m : w64), RET #m; wg ↦{dq} v ∗ ∃ (Cm : List Loc) (R' : Loc → WRec),
-      ⌜(∀ w ∈ Cm, ∃ x ∈ G, x.1 = w ∧ (R x.1).minRev < sint.Z compactRev) ∧
-        (∀ x ∈ G, (R' x.1).minRev = (R x.1).minRev) ∧
-        sint.Z m = minRevOf R G (sint.Z compactRev)⌝ ∗
-      wgOwn v (DFrac.own 1) (G.filter (fun x => decide (x.1 ∉ Cm))) ∗
-      ([∗list] x ∈ G, wRecAt x.1 (R' x.1)) }}
+/-- `wg.chooseAll(curRev, compactRev)`: of members each at or below `curRev` or restoring (it
+excludes the `panic`; D22 receiver epochs, S6: the restore flag of each member above `curRev`
+cleared, `chooseRst`), and (watches across a compaction, 2026-11-01) each with a `minRev` of at
+least `0`, every member below `compactRev` is sent the compaction response
+`WatchResponse{WatchID, CompactRevision: compactRev}` on its channel without blocking
+(`cmpSendPre`: its channel's invariant and liveness, given back): on a send it is marked compacted
+and deleted from the group (the members `Cm`, `chooseCmp`), on a full channel it stays (retried by
+the next sync). The result is the least `minRev` of the members not behind `compactRev`
+(`notBehind`), `math.MaxInt64` if none. Until 2026-11-01 every member was at or above
+`compactRev` (the store never compacted). -/
+abbrev mvcc.watcherGroup.chooseAll.spec : Prop :=
+  ∀ (γ : mvcc.WsNames) (ql : Qp) (wg : Loc) (W : GMap Loc mvcc.WatchRange)
+    (ST : GMap Loc mvcc.WatcherSt) (curRev compactRev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownWatcherGroup wg W ∗ mvcc.ownStates ST ∗
+      mvcc.cmpPerm γ (sint.Z compactRev) ∗
+      ([∗map] w ↦ st ∈ ST, if decide (sint.Z st.minRev < sint.Z compactRev) then
+        mvcc.cmpSendPre γ w st.ch ql else iprop(True)) ∗
+      ⌜(∀ w, (W !! w).isSome → (ST !! w).isSome) ∧
+        ∀ w st, ST !! w = some st → 0 ≤ sint.Z st.minRev ∧
+          (sint.Z st.minRev ≤ sint.Z curRev ∨ st.restore = true)⌝ }}
+    (App (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"chooseAll")) (Val #curRev))
+      (Val #compactRev))
+  {{ (minRev : w64), RET #minRev; ∃ Cm : GMap Loc Unit,
+      ⌜∀ w, (Cm !! w).isSome → (W !! w).isSome ∧
+        ∃ st, ST !! w = some st ∧ sint.Z st.minRev < sint.Z compactRev⌝ ∗
+      mvcc.ownWatcherGroup wg (Iris.Std.PartialMap.filter (fun w _ => !(Cm !! w).isSome) W) ∗
+      mvcc.ownStates (mvcc.chooseCmp Cm (mvcc.chooseRst curRev (domSet W) ST)) ∗
+      ([∗map] w ↦ st ∈ ST, if decide (sint.Z st.minRev < sint.Z compactRev) then
+        mvcc.cmpSendPre γ w st.ch ql else iprop(True)) ∗
+      ⌜sint.Z minRev = mvcc.minRevOf ST
+        (Iris.Std.PartialMap.filter (fun w _ => mvcc.notBehind ST compactRev w) (domSet W))⌝ }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

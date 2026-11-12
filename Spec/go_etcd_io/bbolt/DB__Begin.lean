@@ -1,24 +1,7 @@
 /-
-`db.Begin(writable)` (`db.go`: `beginTx`/`beginRWTx`).
-
-**Users.** `backend.unsafeBegin` (`backend.go:1103`: the batch's write transaction and the shared
-read transaction), `backend.Snapshot` (`:386`), defrag (`:801, 812, 869, 883, 963, 969`), `View`
-and `Update` (this file's siblings). Snippets: `ReqBackendBatch`, `ReqBackendRead`.
-
-**Proof sketch.** Read: take `metalock`, then a reader slot of `mmaplock` (lent by the pool for the
-caller's `threadTok`), check `opened` and `data != nil`; copy the current meta (the linearization
-point: under `metalock`, which every commit's meta write holds, the meta is the one of `σ.data`:
-open the client's update, read `σ`, close it with `Q σ.data`), register the transaction, release
-`metalock`. Write: take `rwlock` (held until `close`), `metalock`, check, copy the meta with its
-txid incremented, free the pages pending for no reader (4d's `freelist.ReleasePendingPages`; the
-reader txids from the registered transactions), release `metalock`; the view is `TxView.wr D false ns`
-with `D` the committed data (`boltTx_base` thereafter). An error: the database closed (or its mapping
-lost by a failed remap in a failed commit, which recorded `brk` in its settling update:
-`nonissues/bbolt-failed-remap-nil-meta-panic.md`), the slot and token given back, or `rwlock`
-released.
-
-**Changes.** Unchanged in shape; `boltState` is over `BoltSt` (the update reads `σ.data`); the view
-records `managed = false` and the database's mode.
+`DB.Begin` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/DB__Begin.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -30,44 +13,51 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `db.Begin(w)`, from any goroutine.
-- **Read**: the caller lends its `threadTok` (the transaction's reader slot, until `Rollback`) and
-  a read update, fired at the meta copy: the transaction reads the committed data `D` of that
-  moment for its whole life.
-- **Write**: blocks until no other write transaction is live, then begins at the committed `D`
-  (`boltTx_base` relates it to the client's state).
-- **Error** only if the database was closed (`dbClosed`: excluded by the close right,
-  `boltOpened_closed`) or a failed commit lost its mapping (`dbBroken`: the client's state then
-  says `broken`, `dbBroken_state`); no transaction; the token and the update come back. -/
-def DB.Begin.spec : Prop :=
-  ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns w : Bool) (Q : Data → IProp GF),
-  {{ isBolt (GF := GF) db γ ns ∗
+/-- `db.Begin(writable)`, from any goroutine.
+- **Read** (`writable = false`): the caller lends its `threadTok` (the transaction's reader slot
+  of `mmaplock`, held until `Rollback` gives it back) and a read update; at the linearization
+  point (the meta copy under `metalock`) the snapshot `D` is the committed data, and the update
+  is fired there: the transaction reads `D` for its whole life (`TxView.ro D`), whatever commits
+  after.
+- **Write**: blocks until no other write transaction is live (`rwlock`), then begins at the
+  committed `D`; no update is needed, since the committed data stays `D` while the transaction
+  is live (`boltTx_base`: the client learns `D` from its `boltState`).
+- **Error** (the database closed, or its mapping lost after a failed remap): no transaction;
+  the token and the update come back.
+The transaction is a fresh `*Tx` of `db` (`txDB`). -/
+abbrev DB.Begin.spec : Prop :=
+  ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (w : Bool) (Q : Data → IProp GF),
+  {{ isBolt (GF := GF) db γ ∗
       (if w then emp else iprop(threadTok ∗
-        AU <{ ∃∃ (q : Qp) (σ : BoltSt), boltState γ q σ }> @ ⊤ \ ↑γ.ns, ∅
-          <{ boltState γ q σ, COMM Q σ.data }>)) }}
+        AU <{ ∃∃ (q : Qp) (D : Data), boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅
+          <{ boltState γ q D, COMM Q D }>)) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Begin")) (Val #w))
   {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
-      (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ txLive tx 1 ∗ ∃ D : Data,
-        (if w then boltTx tx γ 1 (TxView.wr D false ns)
-         else iprop(boltTx tx γ 1 (TxView.ro D false ns) ∗ Q D))) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ (dbClosed db ∨ dbBroken γ) ∗
+      (⌜err = GoInterface.nil⌝ ∗ txDB tx γ db ∗ ∃ D : Data,
+        (if w then boltTx tx γ 1 (TxView.wr D) else iprop(boltTx tx γ 1 (TxView.ro D) ∗ Q D))) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗
         (if w then emp else iprop(threadTok ∗
-          AU <{ ∃∃ (q : Qp) (σ : BoltSt), boltState γ q σ }> @ ⊤ \ ↑γ.ns, ∅
-            <{ boltState γ q σ, COMM Q σ.data }>))) }}
+          AU <{ ∃∃ (q : Qp) (D : Data), boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅
+            <{ boltState γ q D, COMM Q D }>))) }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

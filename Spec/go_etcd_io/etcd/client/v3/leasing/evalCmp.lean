@@ -1,11 +1,9 @@
 /-
-`evalCmp` (`util.go`): a comparison on a cached response (`evalCmpM`: not etcd's,
-`issues/leasing-evalcmp-missing-key.md`). Proof sketch: `GetCompare`, the getters (W0, 3h);
-`bytes.Compare`, `compareInt64`. Changes: over `cachedRespAt`, W0's `cmpAt` (was `respOwn`, `CmpModel`).
+`evalCmp(resp, tcmp)` (`client/v3/leasing/util.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseEval
 
 @[expose] public section
 
@@ -13,28 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `evalCmp(resp, cmp)`. -/
-def evalCmp.spec : Prop :=
-  ∀ (resp : Loc) (q : Qp) (m : RangeRespM) (c : go_etcd_io.etcd.client.v3.Cmp)
-    (mc : Option EtcdModel.Compare),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ cachedRespAt resp q m ∗ cmpAt c mc }}
-    (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.evalCmp)) (Val #resp)) (Val #c))
-  {{ RET #(evalCmpM m (mc.getD Compare.zero)); cachedRespAt resp q m }}
+/-- **`evalCmp(resp, tcmp)`** on the entry `e`'s response (read on any fraction): `evalCmp`'s
+comparison of its cached key-value (`leaseCmpHolds`, not etcd's `cmpHolds`: see
+`InvLeaseEval.lean`). -/
+abbrev evalCmp.spec : Prop :=
+  ∀ (e : LeaseEntry) (dq : DFrac) (c : go_etcd_io.etcd.client.v3.Cmp) (m : CmpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ respOwn e dq ∗ cmpSetAt c m }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.evalCmp)) (Val #e.resp)) (Val #c))
+  {{ RET #(leaseCmpHolds m e.kv); respOwn e dq }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

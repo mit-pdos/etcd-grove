@@ -6,7 +6,7 @@ I wrote my verdicts on each original finding before I read `repair-server-core.m
 `open-questions.md`. I read them afterwards only to check disagreements and to mark recorded decisions.
 
 Scope:
-- the top-level files of `Spec/go_etcd_io/etcd/server/v3/etcdserver/` (`EtcdServer__*`, `raftNode__*`,
+- the top-level files of `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` (`EtcdServer__*`, `raftNode__*`,
   `ApiReq`, `ApiApply`, `ApiBoot`);
 - `etcdserver/{read,cindex,errors}/`;
 - `pkg/v3/{wait,idutil,notify,schedule}/`;

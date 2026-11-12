@@ -1,14 +1,9 @@
 /-
-## `(*InBucket).InlinePage(v)` (`internal/common/bucket.go`)
-
-**Users.** none in bbolt (it takes `&value[BucketHeaderSize]` itself, bucket.go:140); kept as the API's statement of the inline page's address.
-**Proof sketch.** the index check, `&v[16]` (Perennial's `sliceIndexRef_byte`, the slice's pointer positive by its points-to).
-**Changes.** from `specs-ref`'s file of the same name: the address premises replaced by the value's bytes.
-**Margin.** none: the post is what the code computes.
+`(*InBucket).InlinePage`'s spec (`internal/common/bucket.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,26 +11,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `b.InlinePage(v)`: the inline page's address, after the bucket header (`&v[16]`); `b` is not read. It panics unless `v` is longer than the header: a premise. -/
-def InBucket.InlinePage.spec : Prop :=
-  ∀ (l : Loc) (v : GoSlice) (bs : List w8) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ v ↦*{dq} bs ∗ ⌜bucketHeaderSize < bs.length⌝ }}
-    (App (Val (l @!! go.GoType.PointerType InBucket.ty @!! go!"InlinePage")) (Val #v))
-  {{ RET #(v.ptr +ₗ (bucketHeaderSize : Int)); v ↦*{dq} bs }}
+/-- `b.InlinePage(v)`: the page inline in a bucket's value, after the 16-byte bucket header
+(`&v[BucketHeaderSize]`). Pure in the address; `b` is not read. It panics unless `v` is longer than
+the header: a premise. -/
+abbrev InBucket.InlinePage.spec : Prop :=
+  ∀ (l : Loc) (buf : GoSlice),
+  16 < sint.Z buf.len → 0 < buf.ptr.addr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common }}
+    (App (Val (l @!! go.GoType.PointerType InBucket.ty @!! go!"InlinePage")) (Val #buf))
+  {{ RET #(buf.ptr +ₗ 16); True }}
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

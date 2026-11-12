@@ -1,45 +1,47 @@
 /-
-`kvServer.Range` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.KV/Range` (the generated `_KV_Range_Handler`, 3h,
-registered by `v3rpc.Server`); W0's `RemoteKV.*Triple` through grpc and the stub (`examples/specreq/clientv3kv/`, `examples/specreq/v3rpc/kv.go`).
-
-Proof sketch: the run's request (`msgAt`, owned) is decoded to the model's request (3h's law relating `reqModels` to W0's `rangeReqOwn`); the gRPC check (`checkRangeRequest.spec`): an error is a validation answer of the model (`kvStep`'s `emptyKey/invalidSortOption` disjunct, at any state), so the handler fires the caller's update itself with it, `σ' = σ` (the contract's first way: `Q` with `ansOutcome`'s status `desc e`, `rpctypes`' `ErrGRPC*`: `Rpctypes.init.spec`); then `s.kv.Range(ctx, r)` (2c's `EtcdServer.Range.spec`, a `SrvCallTriple` over `isServer s γ`, the principal `EtcdServer.reqPrin ctx who tls` from the run's `rpcCtx ctx md` and the contract's `mdPrin γ md who` (`reqPrin_of_md`), the caller's `authLb γ lo` and the update converted to one over `srvStep who tls rq … lo` (the Api header's "Composition with 2c")): outcome 1 gives `Q` and the reply (`srvReply`: W0's `getReply` message, or a server error `srvErr err e`), outcome 2 gives the update back with an unfired error (the contract's second way when it is a token refusal, else the third: `srvUnfired` errors are refusals or indefinite, so a refusal is fired by the handler as `Step.refuse`), outcome 3 the third way; `togRPCError` (`togRPCError.spec`: `ErrGRPC*` of `e`, `sentStatus` with `desc e`); `hdr.fill(resp.Header)` (`header.fill.spec`: the ids, term and leader, the revision kept: a reply's revision is at least `1`), the reply's content then models the same body (`replyModels` ignores the ids). The update is persistent (`etcdUnary` requires it of a read), registered by 2c before its read index.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/kvServer__Range.lean`: over the method's contract (was `kvServerIs` with the caller's `KVAns` record and `kvOut`), any mode (auth, compaction, serializable).
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Margin: none.
+`v3rpc.kvServer.Range` (`key.go`). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvKV.lean` and `Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `kvServer.Range(ctx, r)` meets the contract of `/etcdserverpb.KV/Range`. -/
-def kvServer.Range.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Range")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ kvServerAt p s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Range") go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty (srvGate s gq)
+/-- **`kvServer.Range(ctx, r)`** of the range `o`: `checkRangeRequest`'s error, or the server's `Range` answer with the
+header filled (`kvOut`). -/
+abbrev v3rpc.kvServer.Range.spec : Prop :=
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.kvServerIs p s A cid mid n ∗ A.call ctx ∗ txn.rangeRequestIs r o ∗ ⌜A.pre (.range o)⌝ }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
+      (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (match v3rpc.rangeCheck o with
+      | some e => v3rpc.checkOut e resp err ∗ A.call ctx
+      | none => v3rpc.kvOut A cid mid (.range o)
+          (structFieldRef etcdserverpb.RangeResponse go!"Header" resp) resp err) ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

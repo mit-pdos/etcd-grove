@@ -8,7 +8,7 @@ Reviewer: provability. Read before forming findings: `README.md`, `review-brief.
 `batch-1d.md` read only after the findings below, to mark which ones it already raises.
 
 Line numbers: `mutex.go`, `key.go`, `election.go`, `stm.go`, `session.go` are in `.lake/src/client/concurrency/`;
-`Api.lean` is `Spec/go_etcd_io/etcd/client/v3/concurrency/Api.lean`.
+`Api.lean` is `SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency/Api.lean`.
 
 ## First tier
 

@@ -1,38 +1,14 @@
 /-
-# bbolt's `Options` (batch 4c): the trust boundary over an axiomatized type
-
-`bolt.Options` stays axiomatized in the translation (`Code/go_etcd_io/bbolt.toml`: `translate =
-["*", "!Options", "!DefaultOptions", ...]`), so the operations a client and `Open` perform on one
-(the literal, allocation, whole loads and stores, field reads and stores) are stated here over the
-abstract points-to `optsAt l dq o` (`Api.lean`) and the value relation `optsVal v o`, for the part
-`Open` depends on (`OptsM`). **Assumed** (trust-boundary statements, restated from the old
-`specs-ref/Proof/go_etcd_io/bbolt/Options.lean`, D13): each is true of Go, the struct's fields and
-their types being `db.go`'s, and `bolt.Options{}` being the zero value; when `Options` is
-translated with `Open`'s proof, they become lemmas of the struct. A field `OptsM` does not track
-(`NoGrowSync`, `PreLoadFreelist`, `NoStatistics`, `InitialMmapSize`, `MaxSize`,
-`Timeout`, `FreelistType`, ...) is read as some value and stored without changing `o`.
-
-**Field laws (verify-round, A11 F8; re-review N4).** The field comes at `optsAt`'s own fraction `dq`
-(was an unrelated `dq'`, so a store, which needs the whole field, had no source).
-Each `optsAt_<kind>` law gives the field's points-to with
-**two alternative** ways back, joined by `∧` (was `∗`): restoring the same value, or (with all of
-`optsAt`) storing a new one. With `optsAt` the struct's points-to (the intended realization), each
-wand needs the other fields' points-to, so the two cannot both be had: `∗` was false in the model.
-
-**Keyed literals (A11 F7).** There is no spec of a keyed literal `bolt.Options{F: v, ...}`: no
-translated code has one (the backend's `&bolt.Options{}` then field stores, `backend.go:216-230`;
-etcd's only keyed literal, `boltOpenOptions` in `config_linux.go:29-32`, is a package variable whose
-initializer the translation leaves untranslated, `boltOpenOptions.init`, so its value is the
-backend's own assumed fact, its `PkgInit` law). The snippets build their options from `{}` and
-field stores, as the backend does.
-
-Users: `backend.newBackend` (`backend.go:216-230`: `&bolt.Options{}`, `*bopts = *boltOpenOptions`,
-field stores), defrag (`:521-531`: a copy, `OpenFile`, `Mlock`, `NoSync`), the bank (`nil`).
-Snippets: `ReqBackendOpen`, `ReqDefrag`.
+bbolt's `Options` as its specs see them (D13, `notes/bbolt-spec-decisions.md`): the part of an
+`Options` value `Open` depends on (`OptsM`), the options under which the specs hold (`OptsM.ok`),
+and the abstract points-to `optsAt`. `Options` is axiomatized (a translator gap, the backend's
+`BboltOptions.lean` header), so `optsAt`'s laws are trust-boundary axioms, in
+`Proof/go_etcd_io/bbolt/Options.lean`. Part of the API (`etc/api/bbolt.txt`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Api
+public import GeneratedProof.go_etcd_io.bbolt
+public import Perennial.Proof.ProofPrelude
 
 @[expose] public section
 
@@ -40,133 +16,88 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- The `Options` value `v` has the fields `o` (assumed). -/
-opaque optsVal (v : go_etcd_io.bbolt.Options) (o : OptsM) : Prop
+/-- The part of a bbolt `Options` value `Open`'s behaviour depends on here (moved from the
+backend's `BboltOptsDefs.lean`; `Options` is axiomatized, a translator gap there). -/
+structure OptsM where
+  readOnly : Bool
+  pageSize : w64
+  openFile : GoFunc
+  logger : GoInterface
+  /-- round 2: `Mlock` reaches `unix.Mlock`/`Munlock`, names-only (a stuck call). -/
+  mlock : Bool
+  /-- round 2: `mmap` passes `MAP_SHARED | MmapFlags`; OsFs's `Mmap` takes only `MAP_SHARED` and
+  `MAP_SHARED | MAP_POPULATE`. -/
+  mmapFlags : w64
+  -- round 3: round 2's `noFreelistSync` is dropped (no spec reads it; the spare reader slot
+  -- covers `freepages` whatever its value: `OptsM.ok`'s docstring).
 
-/-- `bolt.Options{}` is the zero value (`OptsM.dflt`'s fields). -/
-def optsLit.spec : Prop :=
-  {{ (True : IProp GF) }}
-    (App (Val (GoInstruction (CompositeLiteral go_etcd_io.bbolt.Options.ty)))
-      (Val (LiteralValueV [])))
-  {{ (v : go_etcd_io.bbolt.Options), RET #v; ⌜optsVal v OptsM.dflt⌝ }}
+/-- `bolt.Options{}`'s fields (round 3: restated with the new fields). -/
+def optsZero : OptsM :=
+  { readOnly := false, pageSize := W64 0, openFile := func.nil, logger := GoInterface.nil,
+    mlock := false, mmapFlags := W64 0 }
+/-- `syscall.MAP_POPULATE` (Linux). -/
+@[word_unfold] def mapPopulate : Nat := 0x8000
 
-/-- Allocating an `Options` value. -/
-def optsAlloc.spec [HasExt osFsExt] : Prop :=
-  ∀ (v : go_etcd_io.bbolt.Options) (o : OptsM), optsVal v o →
-  {{ (True : IProp GF) }}
-    (App (Val (GoInstruction (GoAlloc go_etcd_io.bbolt.Options.ty))) (Val #v))
-  {{ (l : Loc), RET #l; optsAt l (DFrac.own 1) o }}
+/-- The logger is nil or of a pointer type (round 8, review 7 M2): `(*Options).String` formats it
+with `%p`, which for a non-pointer-shaped dynamic type falls back to a reflective print that
+iterates its maps and reads its slices (racy). A scope restriction of the model; Go accepts any
+type. The backend's `*zapBoltLogger` and the nil logger meet it.
 
-/-- Loading an `Options` value (`*bopts`, `options := *b.bopts`). -/
-def optsLoad.spec [HasExt osFsExt] : Prop :=
-  ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-  {{ optsAt (GF := GF) l dq o }}
-    (App (Val (GoInstruction (GoLoad go_etcd_io.bbolt.Options.ty))) (Val #l))
-  {{ (v : go_etcd_io.bbolt.Options), RET #v; optsAt l dq o ∗ ⌜optsVal v o⌝ }}
+Batch 38.1 (user-approved 2026-11-04, `notes/bbolt-spec-decisions.md`): the pointer-typed value is
+a location. The model's interface values pair a type with any value, so "of a pointer type" alone
+does not say so; `Open` stores the logger and bbolt compares it with `discardLogger` (`lg !=
+discardLogger`), a pointer comparison, which needs it (`dbFixed`'s `logPtrTyped`). -/
+def loggerPtrOk : GoInterface → Prop
+  | .nil => True
+  | .ok li => ∃ (t : go.GoType) (l : Loc), li.ty = go.GoType.PointerType t ∧ li.v = #l
 
-/-- Storing an `Options` value (`*bopts = *boltOpenOptions`). -/
-def optsStore.spec [HasExt osFsExt] : Prop :=
-  ∀ (l : Loc) (o o' : OptsM) (v : go_etcd_io.bbolt.Options), optsVal v o' →
-  {{ optsAt (GF := GF) l (DFrac.own 1) o }}
-    (App (Val (GoInstruction (GoStore go_etcd_io.bbolt.Options.ty))) (Val (PairV #l #v)))
-  {{ RET #(); optsAt l (DFrac.own 1) o' }}
+/-- Options `Open` accepts here:
+- read-write (a read-only database has no write transaction);
+- the default page size (`nonissues/bbolt-large-page-size.md`: from about 1 MiB `Commit`
+  panics);
+- the default `OpenFile` (round 6 margin: this excludes etcd's `defrag`, which reopens the
+  temporary database with an `OpenFile` of its own, `backend.go:521-534`. `defrag` is names-only,
+  not verified: its bbolt calls rest on no spec here, and a later proof of it needs `OptsM.ok` to
+  admit a custom `OpenFile` with a contract over OsFs, the user's decision then);
+- round 2, scope restrictions of the model, not of Go: `Mlock` off (its system calls are not
+  modelled) and `MmapFlags` `0` or `MAP_POPULATE` (the flags OsFs's `Mmap` models). The backend
+  meets the second (`MAP_POPULATE`, `config_linux.go`) and needs `Config.Mlock = false` for the
+  first (`notes/bbolt-spec-decisions.md`, D13).
+The other fields change no outcome the specs state: `NoSync`/`NoGrowSync` only durability;
+`InitialMmapSize` (etcd's 10 GiB) at worst an `mmap` error, which OsFs always allows; `Timeout`
+a `flock` that loops or fails (OsFs's `Flock` returns any errno); `NoFreelistSync` only
+`Commit`'s error path (`freepages`: a read transaction on `isBolt`'s spare reader slot, and a
+`recursivelyCheckBucket` that finds nothing in a well-formed tree); `FreelistType` the
+freelist's implementation (both proved in the old branch). -/
+def OptsM.ok (o : OptsM) : Prop :=
+  o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil ∧ o.mlock = false ∧
+    (o.mmapFlags.toNat = 0 ∨ o.mmapFlags.toNat = mapPopulate) ∧ loggerPtrOk o.logger
 
-/-- `optsAt`'s laws: never nil; a discarded fraction is persistent; fractional. -/
-def optsAt_laws.spec [HasExt osFsExt] : Prop :=
-  (∀ l dq o, optsAt (GF := GF) l dq o ⊢ ⌜l ≠ Loc.null⌝) ∧
-  (∀ l o, Persistent (optsAt (GF := GF) l DFrac.discard o)) ∧
-  (∀ l o, optsAt (GF := GF) l (DFrac.own 1) o ⊢ |==> optsAt l DFrac.discard o)
+omit [GooseSemantics] [GooseInterp] in
+theorem optsZero_ok : optsZero.ok := by
+  simp [OptsM.ok, optsZero, loggerPtrOk]
 
-/-- A tracked `bool` field (`ReadOnly`, `Mlock`, `NoSync`): its value and its setter. -/
-def optsBoolField (f : GoString) : Option ((OptsM → Bool) × (OptsM → Bool → OptsM)) :=
-  if f = go!"ReadOnly" then some (fun o => o.readOnly, fun o b => { o with readOnly := b })
-  else if f = go!"Mlock" then some (fun o => o.mlock, fun o b => { o with mlock := b })
-  else if f = go!"NoSync" then some (fun o => o.noSync, fun o b => { o with noSync := b })
-  else if f = go!"NoFreelistSync" then
-    some (fun o => o.noFreelistSync, fun o b => { o with noFreelistSync := b })
-  else none
-
-/-- A tracked `int` field (`PageSize`, `MmapFlags`): its value and its setter. -/
-def optsIntField (f : GoString) : Option ((OptsM → w64) × (OptsM → w64 → OptsM)) :=
-  if f = go!"PageSize" then some (fun o => o.pageSize, fun o b => { o with pageSize := b })
-  else if f = go!"MmapFlags" then some (fun o => o.mmapFlags, fun o b => { o with mmapFlags := b })
-  else none
-
-/-- The untracked `bool` fields. -/
-def optsBoolUntracked : List GoString :=
-  [go!"NoGrowSync", go!"PreLoadFreelist", go!"NoStatistics"]
-
-/-- The untracked `int`-like fields (`int`, `time.Duration`). -/
-def optsIntUntracked : List GoString :=
-  [go!"InitialMmapSize", go!"MaxSize", go!"Timeout"]
-
-/-- **A `bool` field**: read at any fraction (a tracked field gives its value), written with all
-of it (a tracked field's setter, an untracked one leaves `o`). -/
-def optsAt_bool.spec [HasExt osFsExt] : Prop :=
-  ∀ (l : Loc) (dq : DFrac) (o : OptsM) (f : GoString),
-    (optsBoolField f).isSome ∨ f ∈ optsBoolUntracked →
-    optsAt (GF := GF) l dq o ⊢ ∃ x : Bool,
-      structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x ∗
-      ⌜∀ g, optsBoolField f = some g → x = g.1 o⌝ ∗
-      ((structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x -∗ optsAt l dq o) ∧
-       (⌜dq = DFrac.own 1⌝ -∗ ∀ y : Bool,
-        structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} y -∗
-        optsAt l dq (match optsBoolField f with | some g => g.2 o y | none => o)))
-
-/-- **An `int` field** (`int`, `time.Duration`), as `optsAt_bool`. -/
-def optsAt_int.spec [HasExt osFsExt] : Prop :=
-  ∀ (l : Loc) (dq : DFrac) (o : OptsM) (f : GoString),
-    (optsIntField f).isSome ∨ f ∈ optsIntUntracked →
-    optsAt (GF := GF) l dq o ⊢ ∃ x : w64,
-      structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x ∗
-      ⌜∀ g, optsIntField f = some g → x = g.1 o⌝ ∗
-      ((structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} x -∗ optsAt l dq o) ∧
-       (⌜dq = DFrac.own 1⌝ -∗ ∀ y : w64,
-        structFieldRef go_etcd_io.bbolt.Options f l ↦{dq} y -∗
-        optsAt l dq (match optsIntField f with | some g => g.2 o y | none => o)))
-
-/-- **`FreelistType`** (a `string`, untracked). -/
-def optsAt_freelist.spec [HasExt osFsExt] : Prop :=
-  ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-    optsAt (GF := GF) l dq o ⊢ ∃ x : GoString,
-      structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq} x ∗
-      ((structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq} x -∗ optsAt l dq o) ∧
-       (⌜dq = DFrac.own 1⌝ -∗ ∀ y : GoString,
-        structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦{dq} y -∗ optsAt l dq o))
-
-/-- **`OpenFile`** (tracked). -/
-def optsAt_openFile.spec [HasExt osFsExt] : Prop :=
-  ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-    optsAt (GF := GF) l dq o ⊢
-      structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq} o.openFile ∗
-      ((structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq} o.openFile -∗ optsAt l dq o) ∧
-       (⌜dq = DFrac.own 1⌝ -∗ ∀ y : GoFunc,
-        structFieldRef go_etcd_io.bbolt.Options go!"OpenFile" l ↦{dq} y -∗
-        optsAt l dq { o with openFile := y }))
-
-/-- **`Logger`** (tracked). -/
-def optsAt_logger.spec [HasExt osFsExt] : Prop :=
-  ∀ (l : Loc) (dq : DFrac) (o : OptsM),
-    optsAt (GF := GF) l dq o ⊢
-      structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq} o.logger ∗
-      ((structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq} o.logger -∗ optsAt l dq o) ∧
-       (⌜dq = DFrac.own 1⌝ -∗ ∀ y : GoInterface,
-        structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦{dq} y -∗
-        optsAt l dq { o with logger := y }))
+/-- The `Options` at `l`, at fraction `dq`, has the fields `o`. -/
+opaque optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

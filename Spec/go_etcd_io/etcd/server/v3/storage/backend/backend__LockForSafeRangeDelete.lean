@@ -1,13 +1,12 @@
 /-
-## `(*backend).LockForSafeRangeDelete()` (`backend.go:1087-1089`): translated
-
-**Users.** mvcc's compaction job (`kvstore_compaction.go:31`). **Proof sketch.**
-`safeRangeDeleteMu.RLock()` (one reader slot of it, in the delete right). **Changes.** New (no old
-spec). **Margin.** None.
+`LockForSafeRangeDelete` (the backend). `b.LockForSafeRangeDelete()`: `safeRangeDeleteMu` read-locked (it guards nothing here:
+defragmentation, its writer, is out of scope).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -15,26 +14,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.LockForSafeRangeDelete()`**: the safe-range delete right, held. -/
-def backend.LockForSafeRangeDelete.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beDel γ }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"LockForSafeRangeDelete")) (Val #()))
-  {{ RET #(); beDelHeld γ }}
+/-- `b.LockForSafeRangeDelete()`: `safeRangeDeleteMu` read-locked (it guards nothing here:
+defragmentation, its writer, is out of scope). -/
+abbrev backend.backend.LockForSafeRangeDelete.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ sync.ownRWMutex (bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True)) }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"LockForSafeRangeDelete")) (Val #()))
+  {{ RET #(); sync.ownRWMutexRLocked (bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True)) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

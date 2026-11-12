@@ -1,40 +1,23 @@
 /-
-`(*EtcdServer).ensureLeadership()` (`server.go:912-939`): `true` if the member ticked recently
-(`isActive`); otherwise a linearizable read under `s.ctx` with the request timeout, then whether the
-raft status names this member leader and the cluster has more than one voter.
-
-**Users**: `revokeExpiredLeases` (`server.go:861`), `LeaseRenew` (`v3_server.go`), the lessor's
-checkpointer closure (`server.go:395-403`: 3c's `ckptOk`).
-
-**Proof sketch**: `Logger.spec` (the thread's token; `srvMember` by `srvNode_member`);
-`isActive` (`raftNode.getLatestTickTs`, `time.Now`: any answer); `context.WithTimeout(s.ctx, ...)`
-(`RequestTimeout.spec`); `LinearizableReadNotify.spec` at the current `committedLb` (any answer
-used only as a boolean); `raftStatus()` (R1's `node.Status`: a status the caller owns); the
-cluster's `VotingMemberIDs` (2e's membership, its read lock: the thread's token). Every answer is
-safe for the callers: a revocation, a renewal or a checkpoint proposed by a non-leader is decided by
-raft and the model (`envUpd`'s steps are idempotent).
-
-**Changes**: verify round (A7-provability F7, completeness F3): new here (the old tree's
-`EtcdServer__ensureLeadership.lean`).
-
-**Margin**: the boolean is not tied to raft's leadership.
+`s.ensureLeadership()` (`server.go`), names only: a trust-boundary contract. Lean-first (no Rocq counterpart); the
+lease-renew plan (`notes/lease-renew-plan.md`, 2026-11-01), vocabulary `LeaseRead.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -42,18 +25,34 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`ensureLeadership()`**: a boolean (any). -/
-def EtcdServer.ensureLeadership.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat),
+/-- **`s.ensureLeadership()`** (names-only, a contract; the lease-renew plan's C2), any goroutine,
+with the request side's and the read side's server facts (as `leaseTimeToLive.spec`), a reader slot
+of the logger's lock (`srvLgReader`: `Logger()`), one of the read loop's (`srvReadReader`:
+`LinearizableReadNotify`'s) and one level of a thread token (`levelTok l`, any level: revoke-open
+Q5 (a), 2026-11-06, until then a whole `threadTok`; the revocation's outer goroutine calls it with
+its level 3, `LeaseRenew` with its token's level 0), which it returns: a boolean.
+
+**Why it is faithful.** It logs (`s.Logger()`, under `s.lgMu`'s read lock), reads `s.r`'s latest
+tick time twice (`isActive` → `getLatestTickTs`, under `r.tickMu`'s read lock), takes
+`context.WithTimeout(s.ctx, s.Cfg.ReqTimeout())`, waits for a linearizable read
+(`s.read.LinearizableReadNotify`, proved: `ReadOn.lean`, with the read loop's slot) and compares
+`raftStatus().Lead` with the member's id; every branch returns a boolean. It writes nothing the
+model sees. **Its assumption**: `tickMu`'s read locks need no slot of the caller's. The model drops
+`tickMu`'s reader slots when the node starts (`NodeStart.lean`), so no request goroutine has one;
+a goroutine holds that read lock only inside `getLatestTickTs`, so its readers are at most the
+goroutines, fewer than the lock's reader limit by the thread bound (a level token, `levelTok l`, of
+any level: the caller is a live goroutine; `threadBound GF ≤ 2 ^ 30 - 1`), which is what a slot
+would rule out. -/
+abbrev EtcdServer.ensureLeadership.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (l : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvStarted s γ id ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"ensureLeadership")) (Val #()))
-  {{ (b : Bool), RET #b; threadTok }}
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLgReader s ∗
+      srvReadReader s γr ∗ levelTok l ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ensureLeadership")) (Val #()))
+  {{ (b : Bool), RET #b; srvLgReader s ∗ srvReadReader s γr ∗ levelTok l }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

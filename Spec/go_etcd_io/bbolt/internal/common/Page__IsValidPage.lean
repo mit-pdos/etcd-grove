@@ -1,14 +1,9 @@
 /-
-## `(*Page).IsValidPage()` (`internal/common/page.go`)
-
-**Users.** `FastCheck` (tx.go:639,646).
-**Proof sketch.** the four `Is*Page` specs in turn.
-**Changes.** from `specs-ref`'s file of the same name: over the page's bytes.
-**Margin.** none: the post is what the code computes.
+`(*Page).IsValidPage`'s spec (`internal/common/page.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,26 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `p.IsValidPage()`: whether the header's flags are exactly one of the four page kinds' (`pageFlagValid`). -/
-def Page.IsValidPage.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (bs : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ bytesPointsto p dq bs ∗ ⌜pageHeaderSize ≤ bs.length⌝ }}
-    (App (Val (p @!! go.GoType.PointerType Page.ty @!! go!"IsValidPage")) (Val #()))
-  {{ RET #(pageFlagValid (hdrOf bs).flags'); bytesPointsto p dq bs }}
+/-- `p.IsValidPage()`: the page's flags are one page type (branch, leaf, meta or freelist). -/
+abbrev Page.IsValidPage.spec : Prop :=
+  ∀ (l : Loc) (v : Page) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦{dq} v }}
+    (App (Val (l @!! go.GoType.PointerType Page.ty @!! go!"IsValidPage")) (Val #()))
+  {{ RET #(decide (v.flags' = W16 1 ∨ v.flags' = W16 2 ∨ v.flags' = W16 4 ∨ v.flags' = W16 16)); l ↦{dq} v }}
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

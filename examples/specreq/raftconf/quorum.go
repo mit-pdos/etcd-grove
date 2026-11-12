@@ -1,5 +1,5 @@
 // Package raftconf holds the requirement snippets of raft's tracker, quorum and confchange
-// packages (batch R4, Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/): minimal uses of the
+// packages (batch R4, SpecPlan/Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange}/): minimal uses of the
 // patterns raft's core, raft's read-index queue and this repository's examples rely on, each
 // reliance an explicit panic.
 package raftconf

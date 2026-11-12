@@ -1,13 +1,9 @@
 /-
-## `SoftState.equal(b)` (internal)
-
-`readyWithoutAccept`, `HasReady`. Mirrors the code.
+Port of `election_proof/spec_SoftState__equal.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -15,29 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- (internal) Field equality of two soft states. -/
-def SoftState.equal.spec : Prop :=
-
-  ∀ (a b : Loc) (dqa dqb : DFrac) (sa sb : go_etcd_io.raft.v3.SoftState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ a ↦{dqa} sa ∗ b ↦{dqb} sb }}
-    (App (Val (a @!! go.GoType.PointerType go_etcd_io.raft.v3.SoftState.ty @!! go!"equal"))
-      (Val #b))
-  {{ (r : Bool), RET #r; a ↦{dqa} sa ∗ b ↦{dqb} sb ∗
-      ⌜r = decide (sa.Lead' = sb.Lead' ∧ sa.RaftState' = sb.RaftState')⌝ }}
+/-- `a.equal(b)` (`node.go:45`) on two `*SoftState`s: field-wise equality, and
+`SoftState` has exactly the two fields compared. -/
+abbrev SoftState.equal.spec : Prop :=
+  ∀ (a b : Loc) (va vb : SoftState) (dqa dqb : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Ha" ∷ a ↦{dqa} va ∗ "Hb" ∷ b ↦{dqb} vb }}
+    (App (Val (a @!! go.GoType.PointerType SoftState.ty @!! go!"equal")) (Val #b))
+  {{ RET #(decide (va.Lead' = vb.Lead' ∧ va.RaftState' = vb.RaftState'));
+      a ↦{dqa} va ∗ b ↦{dqb} vb }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

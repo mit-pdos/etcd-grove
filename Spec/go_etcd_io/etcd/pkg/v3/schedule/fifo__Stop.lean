@@ -1,25 +1,9 @@
 /-
-`(*fifo).Stop()` (`schedule.go`): cancels the context, sets `cancel = nil` (a later `Schedule`
-panics), and waits for `donec`, which the worker closes after running every pending job.
-
-**Users**: through `isSched`'s `Stop` row: `run`'s deferred shutdown (`server.go:798`), mvcc's
-`store.Close`/`Restore` (`kvstore.go:302, 309`). Snippet `ReqStopRunsPending`.
-
-**Proof sketch**: with `schedOpen γ 1` put back into the lock invariant (no `Schedule` can run, so
-the queue is final) and `□ Pay` given to the context's done-ness, call `cancel` (`cancelOk`); the
-worker sees the context done, runs the pending jobs (each with `schedCtx`, whose done-ness gives
-`□ Pay`), and closes `donec` carrying the last post, which `schedTail γ P` names: the receive gives
-`P`.
-
-**Changes**: `schedStopTok`/`schedQueue`/`schedPay` become `schedOpen γ 1`, `schedTail γ P`, `□ Pay`;
-the run token `schedDone` is dropped (no user needs it: no user resource is lent to the worker
-outside its jobs). **Margin**: none.
+`(*fifo).Stop` (`schedule.go`). Lean-first (2026-10-22, the scheduler translated with its body).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 
 @[expose] public section
 
@@ -27,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schedule
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,16 +21,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-/-- **Stop**: every pending job has run; the chain's end `P` comes back. -/
-def fifo.Stop.spec : Prop :=
-  ∀ (l : Loc) (γ : SchedNames) (Pay P : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ isFifo l γ Pay ∗
-      schedOpen γ 1 ∗ schedTail γ P ∗ □ Pay }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.schedule.fifo.ty @!!
-      go!"Stop")) (Val #()))
-  {{ RET #(); P }}
+/-- **`f.Stop()`** on the `*fifo` `l`, with the stop token and the queue: it cancels the
+context (the scheduler now stopped) and waits for the worker to exit, which runs the pending jobs
+first: (2026-10-30, the repair, T1b) with the last tracked job's postcondition; (M2, the storage
+side) taking the payload and returning the run token. -/
+abbrev schedule.fifo.Stop.spec : Prop :=
+  ∀ (l : Loc) (γ : schedule.SchedNames) (F : schedule.FifoNames) (Ps : List GName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
+      schedule.fifoIs l γ F ∗ schedule.schedStopTok γ ∗ schedule.schedQueue γ Ps ∗
+      schedule.schedPay γ }}
+    (App (Val (l @!! go.GoType.PointerType schedule.fifo.ty @!! go!"Stop")) (Val #()))
+  {{ RET #(); (match Ps.getLast? with
+      | none => iprop(True)
+      | some p => iprop(∃ P : IProp GF, schedule.savedProp p P ∗ ▷ P)) ∗
+      schedule.schedDone γ }}
 
 end spec
-end Schedule
+
 end EtcdGrove
 end Perennial

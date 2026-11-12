@@ -157,9 +157,9 @@ the right to reserve peer-URL sets, which 2e's `urls_reserve` is asked to spend.
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/api/v3 Spec/go_etcd_io/etcd/client/v3
-Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc Spec/google_golang_org/grpc/metadata
-Spec/go_etcd_io/etcd/server/v3/etcdserver`: **OK (650 modules)**, no errors. The first run's final
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/api/v3 SpecPlan/Spec/go_etcd_io/etcd/client/v3
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc SpecPlan/Spec/google_golang_org/grpc/metadata
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver`: **OK (650 modules)**, no errors. The first run's final
 check said FAILED only because a file changed while it was building (my edit of a comment's line
 numbers); the rerun is clean.
 

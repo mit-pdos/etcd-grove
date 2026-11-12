@@ -1,19 +1,10 @@
 /-
-`(*clientv3.retryLeaseClient).LeaseKeepAlive` (`client/v3/retry.go`).
-
-Users: `lessor.resetRecv`, `lessor.keepAliveOnce` (through `remoteLeaseAt_keepAlive`).
-
-Proof sketch: appends `withRepeatablePolicy()` and opens the stream with the stub (through the stream
-interceptor: `siOk_call`, whose token fetch may fail first), 2a's stream spec giving the halves.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryLeaseClient__LeaseKeepAlive.lean`:
-restated over the stream halves.
-
-Margin: none.
+`(*clientv3.retryLeaseClient).LeaseKeepAlive(ctx, opts...)` (`client/v3/retry.go`; item 1, the client
+lease). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
 
@@ -21,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,20 +22,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `r.LeaseKeepAlive(ctx, opts...)`: the keep-alive stream's halves, or an error. -/
-def retryLeaseClient.LeaseKeepAlive.spec : Prop :=
-  ∀ (r c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (p : Principal) (opts : GoSlice)
-    (rep : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r c γ who ∗ clientReady c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗
-      callOptsOk opts rep }}
-    (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
-      go!"LeaseKeepAlive")) (Val #ctx)) (Val #opts))
-  {{ (sc err : GoInterface), RET (PairV #sc #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ g, kaSendAt sc g [] ∗ kaRecvAt sc g) ∨
-      (⌜sc = GoInterface.nil⌝ ∗ ∃ k, callErr err k) }}
+/-- `rlc.LeaseKeepAlive(ctx, opts...)` on a `*retryLeaseClient` over a stub on a connection to
+`addr` serving the keep-alive stream: `rlc.lc.LeaseKeepAlive(ctx, append(opts,
+withRepeatablePolicy())...)` (the options' capacity owned: the `append` may write it): a
+client end of a new stream, both tokens at
+`[]`, or a client error and a `nil` stream. -/
+abbrev retryLeaseClient.LeaseKeepAlive.spec : Prop :=
+  ∀ (rlc conn : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+      isEtcdConn conn [addr] ∗ leaseKAStreamOk addr ∗ ctxOk ctx cd ∗
+      opts ↦*□ vs ∗ ownSliceCap GoInterface opts (DFrac.own 1) ∗ streamCallOptsOk vs }}
+    (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
+        go!"LeaseKeepAlive")) (Val #(GoInterface.ok ctx))) (Val #opts))
+  {{ (st err : GoInterface), RET (PairV #st #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
+          (Dn : Nat → (w64 × w64) → IProp GF) (cd' : context.ContextDesc (IProp GF)),
+        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn cd' ∗
+        kaUpZero Up ∗
+        cliSendTok (Req := pbLeaseKeepAliveRequest) γ [] ∗
+        cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨
+      (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

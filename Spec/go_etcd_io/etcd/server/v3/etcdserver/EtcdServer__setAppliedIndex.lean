@@ -1,20 +1,10 @@
 /-
-`(*EtcdServer).setAppliedIndex(v)` (`server.go:1714`): an atomic store.
-
-**Users**: `apply` (`server.go:1946, 1954`), with the entry just applied. Snippet `apply.go`
-(`ReqAppliedRead`).
-
-**Proof sketch**: the store, with the invariant of `s.appliedIndex` (in `srvNode`: its value `a`
-with `srvApplied s γ a`, the writer's half `appliedW s a`): the new value is applied (`srvApplied s γ
-v`) and not below the old (so every reader's `srvApplied` stays true). **Changes** from `specs-ref`'s
-spec (`appliedOwn`/`appliedAtLeast` over the read names): over `srvApplied`. **Margin**: none.
+`(*EtcdServer).setAppliedIndex(v)` (server.go). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 
 @[expose] public section
 
@@ -22,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,17 +21,34 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def EtcdServer.setAppliedIndex.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (a v : w64),
+/-- `s.setAppliedIndex(v')`, by the apply thread (the only writer), right after applying the entry
+at index `v'`, with the store's lower bound of the KV log `L` it left (`srvApi.kvLogLb`) (the request path's unit 4b): it
+stores `v'` into the atomic `s.appliedIndex` and, at that point, raises the ghost applied index to
+`v'` and makes `L` the current applied log. Since 2026-10-14 (unit C2a) the log `L` is deposited
+ahead as the log applied through `v' = v + 1` (`srvAppliedPre γr v v' L`, `applied_predeposit`:
+before the entry's result goes to its proposer), and the store publishes it. In the environment's auth mode (the auth-mode merge, 2026-10-29;
+until then `spec` off and `specM on`, E3p): the applied index's invariant over the mode's KV model
+(`srvAppliedInvM`), and (E3u) with auth on the auth state at the log through `v'` published
+(`appliedPubM`, which the invariant keeps of the current applied index; `True` off).
+
+(R2d-4, 2026-11-06; Q9 (d)) **A replay (`rep = true`), below the ghost applied index.** After a
+restart Go's `ep.appliedi` (the WAL snapshot's index) lags the ghost applied index (the backend's
+consistent index `i`, where the ghost applied log starts), and `apply` replays the entries between,
+calling `setAppliedIndex(e.Index)` for each (`server.go:1949`, `:1957` at the pin `673da07c8`): the
+store of an index `v'` at most the ghost's `v` changes no ghost state (the invariant lets the atomic lag the ghost,
+`srvAppliedBody`'s `v ≤ a`); the apply thread's half stays at `v`. -/
+abbrev EtcdServer.setAppliedIndex.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log) (rep : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ appliedW s a ∗ srvApplied s γ (uint.nat v) ∗ ⌜uint.nat a ≤ uint.nat v⌝ }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"setAppliedIndex")) (Val #v))
-  {{ RET #(); appliedW s v }}
+      srvAppliedInvM E.authOn s E γr ∗
+      (if rep then srvAppliedOwn γr v ∗ ⌜uint.Z v' ≤ uint.Z v⌝ else
+        srvAppliedPre γr v v' L ∗ srvApi.kvLogLb E.γs L ∗ appliedPubM E.authOn E γr v') }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setAppliedIndex")) (Val #v'))
+  {{ RET #(); if rep then srvAppliedOwn γr v else
+      srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

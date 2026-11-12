@@ -1,12 +1,24 @@
 /-
-`newBackend(bcfg)` (`backend.go:199-261`): translated; internal (`New`'s body, returning the
-`*backend`). Proof sketch: `New.spec`'s. Changes: as `New` (repair3-boot: the file through `beOpenUpd`). Margin: as `New`.
+`newBackend` (`backend.go`). `newBackend(bcfg)`: bbolt's options built from the configuration,
+the database at `bcfg.Path` opened (bbolt's `Open`; on an error `lg.Panic`), the backend's
+structure, its batch transaction (`newBatchTxBuffered`: its first commit begins bbolt's
+transactions), the hooks set, the periodic committer `run` started on a goroutine. Lean-first
+(no Rocq counterpart); 2026-10-17, branch `construct` (`notes/STATUS.md`, "Item 6").
+
+The pre: the backend package's facts, `boltOpenOptions` (a package fact not yet in
+`backendInit`: `BboltOptions.lean`), the database file's contents `D` (`fileHolds`; a new member's
+file: `D = ∅`), the parameters `P` (`P.Wf`, the configuration's batch limit), the hooks'
+contract of the configuration's hooks (`hooksOk`: given the backend later; `hooksOk_nil` for no
+hooks), and the creator's batch-lock resources `W γ`, `Pk γ`, made from the client's half of the
+hook's own keys once the backend's ghost names `γ` exist. The post: the backend (`newPost`), or a
+panic (bbolt's `Open` failed: `lg.Panic`). Stated at `HasLC.hasLC` (the `run` goroutine's spec
+is).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Perennial.ProgramLogic.Bounds
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 
 @[expose] public section
 
@@ -14,9 +26,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,22 +36,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`newBackend(cfg)`**: `New`'s backend, as a `*backend`. -/
-def newBackend.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (o : Option Image) (Bs : BktInfo → Prop) (Fh : Fp)
-    (Pk K R : BeNames → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ threadTok ∗ ⌜dbOpenOk cfg ∧ cfg.Mlock' = false ∧ bktsOk Bs⌝ ∗
-      (⌜cfg.NonBlockingDefrag' = false⌝ ∨ safeRegOk) ∗
-      (⌜cfg.Logger' = null⌝ ∨ Zap.isLogger cfg.Logger') ∗ beOpenUpd cfg.Path' o cfg.UnsafeNoFsync' R ∗
-      (∀ γ : BeNames, R γ -∗ beNew γ (o.getD Image.empty) ={⊤}=∗
-        Pk γ ∗ hookOk γ cfg.Hooks' Fh (Pk γ) ∗ commitOk γ (Pk γ) ∗ K γ) }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.newBackend)) (Val #cfg))
-  {{ (b : Loc), RET #b; ∃ γ : BeNames, isBackend γ b cfg.Path' (Pk γ) ∗ K γ ∗ beHookFp γ Fh ∗
-      (□ ∀ bi, ⌜Bs bi⌝ -∗ beBkt γ bi) ∗ beDurInv γ cfg.Path' ∗
-      (if cfg.UnsafeNoFsync' then iprop(True) else beSynced γ) }}
+/-- `newBackend(bcfg)`: a backend over the database file's data `D`, or a panic. (D22 receiver
+epochs, S8a, 2026-10-24) The creator's batch-lock step takes the fresh backend's payment rights
+(`bFresh`) and gives `K` in their place (`newPostK`). (2026-11-06, `notes/begin-tok-plan.md`) Under
+`[ThreadBoundLe GF (2 ^ 29)]` (`bbolt.Open_kv`'s); the caller's `threadTok` pays for the first read
+transaction, and the `run` goroutine's fork token comes back to it on success. -/
+abbrev backend.newBackend.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : BackendConfig) (P : BParams) (D : Data)
+    (W Pk K : BNames → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
+      hooksOk P W Pk cfg.Hooks' ∗
+      -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
+      envVerifyOff ∗
+      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+      threadTok }}
+    (App (Val (@! newBackend)) (Val #cfg))
+  {{ (r : val), RET r; (∃ (b : Loc) (γ : BNames), ⌜r = #b⌝ ∗ newPostK γ P W Pk K b D ∗
+        hooksAt b cfg.Hooks' ∗ bFile γ cfg.Path' ∗ threadTok) ∨
+      -- (2026-11-08) a panic only where bbolt's `Open` failed (`dbOpenOk`, `Open_kv`'s)
+      ⌜¬ dbOpenOk ∧ ∃ p : val, r = PanicV p⌝ }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

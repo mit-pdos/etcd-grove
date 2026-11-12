@@ -1,34 +1,22 @@
 /-
-## `(*authStore).UserRevokeRole(r)`
-
-**Users.** `applierV3backend.UserRevokeRole` (`apply/backend.go:207`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
-
-**Proof sketch.** `root`/`root` with auth on: `ErrInvalidAuthMgmt`; the user read (absent: `ErrUserNotFound`); the roles filtered; none removed: `ErrRoleNotGranted`; put, `commitRevision`, refresh. The step's state, `storeNext` (the code's function of the request, its
-credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
-returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
-
-**Changes.** Restated over `admStep`. The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
-step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
-state `storeNext rq cred a` (was: every state the model allows).
-
-**Margin.** None.
+`authStore.UserRevokeRole` (`server/auth/store.go`): the admin side (the auth plan's S4b, 2026-10-24).
+Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (the
+write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,14 +25,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserRevokeRole(r)`** by the writer, for a request `r` asking `.userRevokeRole user role`: the store moves
-to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
-(`admStep`) there, and the reply. -/
-def authStore.UserRevokeRole.spec : Prop :=
-  ∀ (st r : Loc) (user role : GoString),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"UserRevokeRole")) (Val #r)) (authReqAt r (.userRevokeRole user role) []) st (.userRevokeRole user role) []
+/-- **`as.UserRevokeRole(r)`** for a request naming `name` (within bbolt's key bound: the put
+contract's premise; the user exists, so the store accepted the name once, but the contract does
+not remember it) and `role`: having read the flag `en` (outside `enabledMu`), the step
+`userRevokeRoleF en name role`. -/
+abbrev auth.authStore.UserRevokeRole.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name role : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      userRevokeRoleReqIs r name role ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜∀ en : Bool, stepOk M hs (stepOf (userRevokeRoleF en name role))⌝ ∗
+      (□ ∀ en : Bool, capNextM M hs (stepOf (userRevokeRoleF en name role))) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserRevokeRole")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+      respOk etcdserverpb.AuthUserRevokeRoleResponse resp err ∗ ∃ en : Bool, enabledVerdict M en ∗
+      adminOut M hs (stepOf (userRevokeRoleF en name role)) noExtra err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

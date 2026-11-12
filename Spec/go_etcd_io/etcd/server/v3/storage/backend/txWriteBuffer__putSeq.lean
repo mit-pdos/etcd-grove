@@ -1,10 +1,12 @@
 /-
-`txw.putSeq(bucket, k, v)` (`tx_buffer.go:56-75`): translated; internal. `verify.Verify` (off:
-`envOk`), the entry appended. Changes: `envOk`. Margin: none.
+`txWriteBuffer.putSeq` (`tx_buffer.go`). `txw.putSeq(bucket, k, v)`, `k` above the bucket's buffered keys (its `verify.Verify`
+check holds): the entry added.
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
+public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 
 @[expose] public section
 
@@ -12,28 +14,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`txw.putSeq(bk, k, v)`**: appended, the bucket's flag kept. -/
-def txWriteBuffer.putSeq.spec : Prop :=
-  ∀ (t : Loc) (B : TxB) (seq : w64 → Option Bool) (bk : GoInterface) (bi : BktInfo)
-    (ks vs : GoSlice) (k v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ twbAt t B seq ∗ bucketOk bk bi ∗ ks ↦*□ k ∗ vs ↦*□ v }}
-    (App (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer.ty @!! go!"putSeq")) (Val #bk)) (Val #ks)) (Val #vs))
-  {{ RET #(); twbAt t (fun id => if id = bi.id then some ((B id).getD [] ++ [(k, v)]) else B id)
-      seq }}
+/-- `txw.putSeq(bucket, k, v)`, `k` above the bucket's buffered keys (its `verify.Verify`
+check holds): the entry added. -/
+abbrev backend.txWriteBuffer.putSeq.spec : Prop :=
+  ∀ (txw : Loc) (W : WBuf) (b : GoInterface) (bi : BucketInfo) (k v : GoSlice) (kb vb : GoString),
+  (bkOf W.bks bi.id).length < bufBound → (∀ e ∈ bkOf W.bks bi.id, strLt e.1 kb) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ownWB txw W ∗ isBucket b bi ∗ k ↦*□ kb ∗ v ↦*□ vb }}
+    (App (App (App (Val (txw @!! go.GoType.PointerType txWriteBuffer.ty @!! go!"putSeq")) (Val #b)) (Val #k)) (Val #v))
+  {{ RET #(); ownWB txw (W.putSeq bi.id (kb, vb)) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

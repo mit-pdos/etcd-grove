@@ -1,31 +1,14 @@
 /-
-## `pbutil.MustUnmarshalMessage(um, data)`
-
-**Users.** The apply thread (`etcdserver/apply.go:29`: a committed normal entry's
-`InternalRaftRequest`, 3a; `server.go`'s `applyConfChange`: a `ConfChange`, 2d), rafthttp's
-msgappv2 decoder (an `Entry`), the WAL's and snapshotter's decoders (2e). Snippet: `examples/specreq/pkgleaves/leaves.go`
-(`ReqApplyDecode`).
-
-**Proof sketch.** `proto.Unmarshal` (`Proto.Unmarshal.spec`); its error disjunct says no content of
-depth below `depthMax` encodes the bytes, which the premise refutes; so `nil` and the content, canonical (`norm c = c`) and a merge
-destination (`mergeDst`), as `Proto.Unmarshal.spec` gives it.
-
-**Changes.** From `specs-ref`'s `MustUnmarshalMessage.lean` (two cases, the `ConfChange` and the
-`InternalRaftRequest`, each over its own decoder): one spec over `Proto`'s content; each caller's
-meaning of the content is its message owner's law (`xOwn ⊣⊢ msgAt ∗ ⌜xModels⌝`).
-
-Second pass (rafthttp's request, after grpc-v3rpc restated `Proto.Unmarshal`): the post is
-`Proto.mergeDst t p c` with `Proto.norm c = c` in place of `msgAt` (`mergeDst_msgAt` gives that
-back): rafthttp's msgappv2 full-frame decoder needs a canonical content for raftpb's
-`msgRecv_intro`.
-
-**Margin.** None.
+`pbutil.MustUnmarshalMessage(um, data)` (`pkg/v3/pbutil`, names-only): the trust boundary.
+Lean-first (no Rocq counterpart). A case per message type the verified code unmarshals: a raft
+`ConfChange` (the apply thread, `InvRaftpb.lean`) and an `InternalRaftRequest` (the apply
+package's `apply.Apply`, `apply/InvRequest.lean`). Stated over the two message packages'
+assumptions only (not a caller's), so that the server and the apply package both use it.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 
 @[expose] public section
 
@@ -33,28 +16,51 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace PbUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3 go_etcd_io.raft.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-/-- **Decodes `data` into the message**: a canonical content the bytes encode (they encode one of
-nesting below `depthMax`: else it panics), the message a merge destination. -/
-def MustUnmarshalMessage.spec : Prop :=
-  ∀ (t : go.GoType) (p : Loc) (c0 : Proto.Content) (b : GoSlice) (dq : DFrac) (bs : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ Proto.msgAt t p (DFrac.own 1) c0 ∗ b ↦*{dq} bs ∗
-      ⌜∃ c, Proto.encodes t c bs ∧ Proto.depth c < Proto.depthMax⌝ }}
-    (App (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage)) (Val #(Proto.msgVal t p)))
-      (Val #b))
-  {{ RET #(); b ↦*{dq} bs ∗ ∃ c, Proto.mergeDst t p c ∗ ⌜Proto.encodes t c bs ∧ Proto.norm c = c⌝ }}
+/-- **`MustUnmarshalMessage(um, data)`**, a case per message type. It panics unless the bytes
+decode, so each case takes the bytes' decoding as a premise (the caller's: the entry's proposer
+marshalled it).
+* `ConfChange` (`&cc`, the bytes `bs` of a committed conf-change entry, the encoding of a
+  `ConfChange`: `isConfChangeEncoding`, which `entriesFrom` states): `cc` holds some change
+  (raft's `ownConfChange`, owned: its cells, its context bytes read-only, its hidden fields in the
+  `protobuf` invariant, as raft's `proto.Unmarshal` axiom hands a decoded message out), whose
+  content is what raft's decoder makes of the bytes (`ccDecodeV1 bs = some m`; stage R8b of the
+  raft v3.7 retarget, 2026-10-16: until then an opaque id `ccIdOf bs`, now the decoded `id`,
+  `ccIdOf_of_decode`; 2026-10-12, the request path's unit 2: the decoding is a function of the
+  bytes; the apply loop's premise `entryWaitOk` names the id). Until stage R6 of the retarget
+  the struct value with its `Id` cell only (`optU64`), the shape the server's own getter spec
+  read; raft's `GetId` reads `ownConfChange`.
+* `InternalRaftRequest` (`&raftReq`, the bytes of a committed normal entry, which decode to `rq`:
+  `irrDecode`, opaque): the struct holds `rq` (`internalRaftRequestIs`, read-only from then on).
+-/
+abbrev pbutil.MustUnmarshalMessage.spec : Prop :=
+  (∀ (cc : Loc) (v : raftpb.ConfChange) (d : GoSlice) (bs : List w8) (dq : DFrac),
+  isConfChangeEncoding bs →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ cc ↦ v ∗ d ↦*{dq} bs }}
+    (App (App (Val (@! pbutil.MustUnmarshalMessage))
+      (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc))) (Val #d))
+  {{ RET #(); (∃ m : ConfChangeM, ownConfChange cc (DFrac.own 1) m ∗ ⌜ccDecodeV1 bs = some m⌝) ∗
+      d ↦*{dq} bs }}) ∧
+  (∀ (p : Loc) (x : etcdserverpb.InternalRaftRequest) (d : GoSlice) (bs : List w8) (dq : DFrac)
+    (rq : apply.IRRModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ p ↦ x ∗ d ↦*{dq} bs ∗
+      ⌜apply.irrDecode bs = some rq⌝ }}
+    (App (App (Val (@! pbutil.MustUnmarshalMessage))
+      (Val #(interface.mkOk (go.GoType.PointerType etcdserverpb.InternalRaftRequest.ty) #p)))
+      (Val #d))
+  {{ RET #(); apply.internalRaftRequestIs p rq ∗ d ↦*{dq} bs }})
 
 end spec
-end PbUtil
+
 end EtcdGrove
 end Perennial

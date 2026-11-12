@@ -1,42 +1,37 @@
 /-
-## `(*authReadTx).UnsafeReadAuthEnabled(...)`
-
-**Users.** the auth store's `isAuthEnabled` reads (`auth/store.go`: on both transactions); 3d's auth store through `AuthBatchTx`/`AuthReadTx`. Snippet:
-`examples/specreq/schema/schema.go` (`ReqAuthWriteRead`).
-**Proof sketch.** Loads `atx.tx`, `atx.lg`; `unsafeReadAuthEnabled` (`unsafeReadAuthEnabled.spec`). **Changes.** From
-`specs-ref`'s `authReadTx__UnsafeReadAuthEnabled.lean` where there was one: over the contract. **Margin.** None.
+`(*authReadTx).UnsafeReadAuthEnabled()` (`auth.go`): `unsafeReadAuthEnabled` on the transaction's
+`tx`. The auth plan's S1 (2026-10-23; `notes/auth-plan.md`; the contracts: `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvAuthBackend.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvAuthBackend
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Whether auth is enabled** (`authEnabled` holding `[1]`). -/
-def authReadTx.UnsafeReadAuthEnabled.spec : Prop :=
-  ∀ (atx : Loc) (lg : Loc) (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (atx ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authReadTx.mk tx lg) : IProp GF) ∗ txRd tx S R ∗ R V ∗ ⌜S.has .auth authEnabledKey ∧ V .auth = some m⌝ }}
+/-- An `authReadTx` whose `tx` is the reader `rt` over the auth buckets `D` under `H`: returns
+`enabledOf D`. -/
+abbrev schema.authReadTx.UnsafeReadAuthEnabled.spec : Prop :=
+  ∀ (atx : Loc) (rt : GoInterfaceOk) (H : IProp GF) (D : schema.AuthData),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.authReader rt H D ∗ H }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"UnsafeReadAuthEnabled")) (Val #()))
-  {{ RET #(authEnabledOf m); R V }}
+  {{ (b : Bool), RET #b; H ∗ ⌜b = schema.enabledOf D⌝ }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

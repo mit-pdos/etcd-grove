@@ -1,33 +1,9 @@
 /-
-`(*clientv3.kv).Get` (`client/v3/kv.go`).
-
-Users: `client/v3/concurrency` (`mutex.go:73` `Get` of the lock key, `election.go:165` `Leader`,
-`key.go:44` `waitDeletes`' `Get` with `WithLastCreate()`/`WithMaxCreateRev`, `stm.go:262`
-`fetch` with `WithSerializable` for `stmSerializable`), `experimental/recipes` (`client.go`,
-`queue.go:53` `WithFirstKey()`, `rwmutex.go` `WithLastRev()`/`WithMaxModRev`), the cache
-(`cache/cache.go` `Get` with `WithPrefix`, `WithRev`, `WithCountOnly`, `WithLimit`), Kubernetes'
-store (`etcd3/store.go` `Get` with `WithRange`, `WithLimit`, `WithRev`, `WithKeysOnly`), the
-examples (`txnlin/linkvtxn.go:837` `callGet`, `:863` `callList` with `WithRange`). Snippets:
-`clientv3kv/put_get.go`, `clientv3kv/history.go` (`ReqGetAtRevision`), `clientv3kv/ops.go`
-(`ReqSerializableGet`, `ReqGetOptions`).
-
-Proof sketch: `OpGet.spec` (premise `¬ prefixAndFromKey gs`), then `kv.Do.spec` with `.range
-(opGetM key gs).rangeReq`, a read: the caller's persistent update passes as is; `doReply`'s
-range case is `getReply`; `ContextError.spec` as in `kv.Put`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kv__Get.lean`: as `kv.Put`'s; in addition a
-serializable get is the same spec (the model's range step answers it at a member's view), and
-keys-only, count-only, sorted, limited and filtered gets are all covered (the old get model held
-only for gets that are not keys-only: `issues/etcd-range-keys-only-lease.md` is now in the model).
-
-verify-round: premise `(opGetM key gs).emptyEnd = false` (A1-provability F5, `Api.lean`'s "Range ends").
-
-Margin: a serializable get is answered at some member's view with no lower bound (it may be
-older than the caller's own last write): the model says exactly that.
+`(*clientv3.kv).Get(ctx, key, opts...)` (`client/v3/kv.go`, translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.KVService
 
 @[expose] public section
 
@@ -35,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -47,15 +21,43 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Get` meets the KV contract's `Get` (`KV.GetTriple`, `Api.lean`), for a `*kv` of the
-cluster `γ` as `who` (`kvHandle`). -/
-def kv.Get.spec : Prop :=
-  ∀ (kv c : Loc) (γ : Cluster) (who : Principal),
-  KV.GetTriple (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Get")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv c γ who ∗ clientReady c)) γ who
+/-- `kv.Get(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D44): `OpGet(key, opts...)`
+(`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
+ties the slice `opts_sl` of their closures to them; `[]` for none) (options that do not panic, keep the range type, and may need a resource `R`, given back:
+`optsAtRes`; any sort option, checked against `etcdserverpb`'s
+enumerations, `sortNamesOk`), then `kv.Do`, with the caller's persistent atomic read of `γ`'s
+state (a read may be answered by any member, and again) or, `Q` trivial, none; the error through
+`ContextError`: `R` back, and `nil` and the reply's message `m` with a state `σ` (the read
+update's, `□ Q σ`, if linearizable) at whose current revision the reply's header is, the reply's
+key-values and count the selection of `σ`'s store at the revision the range reads (`readRev`: the
+one asked, at most the current, or the current), `σ` a well-formed small log's state (`kvLogOk`,
+D48); or a client error (`kvErr`) and no reply. The request fits a gRPC message (`opSizeOk`;
+2026-10-30, `grpcInvokerOk`).
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
+abbrev kv.Get.spec : Prop :=
+  ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
+    (opts : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAtRes opts_sl opts R ∗ R ∗
+      sortNamesIf (opGetModel key opts).base.sortSet ∗
+      ⌜¬ opGetPanics opts ∧ (opGetModel key opts).t = W64 1⌝ ∗
+      □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf (opGetModel key opts)).base.serializable = false⌝ ∗
+        AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>)) ∗
+      ⌜opSizeOk (opGetModel key opts)⌝ }}
+    (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+        go!"Get")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      R ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
+          (if (rangeWireOf (opGetModel key opts)).base.serializable then iprop(True) else iprop(□ Q σ)) ∗
+          ⌜sint.Z (rangeWireOf (opGetModel key opts)).base.rev ≤ (σ.rev : Int) ∧
+            txn.srvRangeOk (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs m.kvs m.more ∧
+            m.count = txn.srvCount (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs true ∧
+            m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝) ∨
+        (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

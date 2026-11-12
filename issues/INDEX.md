@@ -4,10 +4,11 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (57)
+## Not reported (61)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
+| [bbolt: a power loss after a process crash and a restart can corrupt the database](bbolt-open-unsynced-meta-kill-then-power-loss.md) | yes | etcd-io/bbolt#778 issue open; etcd-io/bbolt#701 issue closed; etcd-io/bbolt#562 issue closed |
 | [cache: a stale progress notification makes a watch "from now" fail with ErrCompacted](cache-stale-progress-compacts-newest-watch.md) | yes | etcd-io/etcd#15237 pr merged; etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20614 pr merged |
 | [server: a member with auth enabled panics on a permission check while it restores a snapshot from the leader](etcd-auth-snapshot-closed-backend-panic.md) | yes | etcd-io/etcd#17223 issue closed; etcd-io/etcd#21873 pr closed; etcd-io/etcd#13883 issue closed; etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#14256 issue closed; etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [auth: adding a user or role with a name longer than 32768 bytes makes every member exit](etcd-auth-useradd-long-name-fatal.md) | yes | etcd-io/etcd#10907 pr merged |
@@ -44,6 +45,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | no | etcd-io/etcd#15656 pr merged |
 | [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |
 | [leasehttp: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL answers 200 with an empty body](etcd-leasehttp-timetolive-nil-response-panic.md) | no |  |
+| [mvcc: when every key has been deleted, a follower that has not yet applied a compaction reports a different hash than the leader's compaction hash](etcd-mvcc-compact-hash-empty-keyspace.md) | no | etcd-io/etcd#22517 issue open; etcd-io/etcd#22515 pr open |
 | [mvcc: HashKV of a compacted revision during a snapshot restore reports current revision 1](etcd-mvcc-hashbyrev-restore-rev1.md) | no | etcd-io/etcd#22608 issue closed; etcd-io/etcd#22609 pr merged |
 | [mvcc: after a compaction at revision 0, HashKV of the latest revision returns the hash of revision 0](etcd-mvcc-hashbyrev-zero-stored.md) | no |  |
 | [watch: after a follower restores a snapshot, a watch told by a progress notification that it is current at revision P is cancelled as compacted at P](etcd-mvcc-watch-compacted-after-progress-restore.md) | no | etcd-io/etcd#20262 issue closed |
@@ -52,12 +54,14 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [mvcc: a member that crashes during a compaction at revision 0 restarts with compact revision -1, and the corruption check then alarms](etcd-restore-scheduled-compact-zero.md) | no | etcd-io/etcd#17780 issue closed |
 | [server: a require-leader stream's context returns a non-nil Err while its Done channel is still open](etcd-stream-interceptor-err-before-done.md) | no | etcd-io/etcd#12196 pr merged; golang/go#75533 issue closed |
 | [v3lock/v3election: with auth enabled, a waiting `Lock` fails with permission denied while another user is waiting for a lock](etcd-v3lock-watch-shared-stream-principal.md) | no |  |
+| [etcdserver: a follower killed while persisting a received snapshot cannot restart](etcd-wal-received-snapshot-save-crash-no-restart.md) | no | etcd-io/etcd#19095 pr merged; etcd-io/etcd#19674 issue closed |
 | [clientv3: Watcher.Close can hang forever after the member refuses a watch](etcd-watch-close-hang-refused-create.md) | no | etcd-io/etcd#10131 issue closed; etcd-io/etcd#14296 pr merged |
 | [clientv3: after a reconnect, a watch from the current revision delivers an event committed before the watch](etcd-watch-current-resume-past-event.md) | no | etcd-io/etcd#15248 pr merged |
 | [watch: a PrevKv watch's first events can arrive without PrevKv when the key is written while the watch is created](etcd-watch-prevkv-before-created.md) | no | kubernetes/kubernetes#121285 issue closed; kubernetes/kubernetes#100112 issue closed; etcd-io/etcd#6120 issue closed |
 | [grpc-go: marshaling a message whose encoding is over 2^48 bytes panics instead of failing with ResourceExhausted](grpc-codec-alloc-before-size-check.md) | no | grpc/grpc-go#9056 issue closed |
 | [client-go: `Indexer.GetIndexers` races with `AddIndexers` (concurrent map read and write)](k8s-clientgo-getindexers-unlocked-map.md) | no |  |
 | [DaemonSet controller creates a second pod on a node after a pod create that is committed but returns an error](k8s-daemonset-ambiguous-create-duplicate-pod.md) | no | kubernetes/kubernetes#86140 pr merged; kubernetes/kubernetes#138181 pr merged; kubernetes/kubernetes#139657 pr open; kubernetes/enhancements#5647 issue open |
+| [apiserver etcd3: a list at a resource version of 2^63 or more returns the current objects instead of a "too large resource version" error](k8s-etcd3-list-exact-rv-above-int64.md) | no |  |
 | [client-go: the exponential failure rate limiter returns a negative delay when the backoff reaches exactly 2^63 ns](k8s-workqueue-exponential-backoff-2to63.md) | no |  |
 | [clientv3/leasing: a `WithFromKey` delete does not make other leasing clients drop the keys they cache](leasing-delete-fromkey-skips-revoke.md) | no | etcd-io/etcd#22083 issue open; etcd-io/etcd#22118 pr open; etcd-io/etcd#20704 issue closed |
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
@@ -78,7 +82,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (23)
+## Reported by others (24)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -98,6 +102,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [bbolt: `DeleteBucket` leaks a nested bucket's pages when the bucket was written in the same transaction](bbolt-deletebucket-nested-leak.md) | no | etcd-io/bbolt#1305 pr open |
 | [etcdserver: after a member installs a leader's snapshot it refuses every write with "too many requests" until another write commits](etcd-applied-index-stale-after-snapshot.md) | no | etcd-io/etcd#22516 issue open; etcd-io/etcd#22510 pr open; etcd-io/etcd#22528 issue open; etcd-io/etcd#22524 issue open |
 | [auth: re-granting a permission on a range does not change its type when the role has another permission with the same start key](etcd-auth-grant-permission-same-key.md) | no | etcd-io/etcd#21845 pr open |
+| [mvcc: when no key exists at the hashed revision, HashKV depends on how far a running compaction has gone](etcd-mvcc-hashkv-during-compaction-empty-keyspace.md) | no | etcd-io/etcd#22517 issue open; etcd-io/etcd#22515 pr open |
 | [rafthttp: a peer's response with a malformed `X-Server-Version` crashes the member that dialed it](etcd-rafthttp-stream-dial-bad-server-version-panic.md) | no | etcd-io/etcd#21829 pr open; etcd-io/etcd#22261 pr open; etcd-io/etcd#21839 pr merged |
 | [etcdserver: RangeStream sorted by a non-key target without an order returns duplicated and missing keys](etcd-rangestream-sort-none.md) | no | etcd-io/etcd#22615 pr open; etcd-io/etcd#21631 pr merged; etcd-io/etcd@9acc0ebe3 |
 | [etcdserver: a member removed from the cluster crashes on the serializable reads it is still serving](etcd-read-after-backend-close-panic.md) | no | etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#7322 issue closed; etcd-io/etcd#17223 issue closed; etcd-io/etcd#14256 issue closed |

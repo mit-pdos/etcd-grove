@@ -1,20 +1,10 @@
 /-
-`(*clientv3.Client).Ctx` (`client/v3/client.go`).
-
-Users: `concurrency` (`NewSession`'s default context, `Mutex`, `Election`, `STM`), `leasing.NewKV`,
-Kubernetes' `store.go` (feature check); snippet `clientv3client/lifecycle.go` (`ReqCtxPut`).
-
-Proof sketch: reads `c.ctx` (read-only in `clientPre`): the client's cancellable child of the
-configuration's context (`ctxOk`; `ctxPrin _ who`: `cfgOk`'s, kept by `ctxPrin_child`).
-
-Changes: new (no old spec; the old `Client.Ctx` was used by the concurrency proofs as an
-`isContext`): a context W0's KV contract accepts as `who`'s (W0's `req`, item 4).
-
-Margin: none.
+`clientv3.Client.Ctx()` (`client/v3/client.go`, translated for `client/v3/concurrency`). Lean-first (no
+Rocq counterpart); see `InvClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClient
 
 @[expose] public section
 
@@ -22,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.Ctx()`: the client's context, carrying `who`'s requests. -/
-def Client.Ctx.spec : Prop :=
-  ∀ (c : Loc) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientBase c who }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Ctx")) (Val #()))
-  {{ (ctx : GoInterface), RET #ctx; Context.ctxOk ctx ∗ ctxPrin who ctx who }}
+/-- `client.Ctx()`: the client's context (its `ctx` field, read-only). -/
+abbrev Client.Ctx.spec : Prop :=
+  ∀ (cl : Loc) (c : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ c }}
+    (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Ctx")) (Val #()))
+  {{ RET #c; True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

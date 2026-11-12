@@ -1,11 +1,9 @@
 /-
-`(*treeIndex).KeyIndex(keyi)` (`index.go:82`) on a tree index no other goroutine reaches (its
-caller, `restoreIntoIndex`'s goroutine, rebuilds a private one): the pointer to the key index of
-`keyi`'s key, or `nil`. Internal. **Changes**: over `ownIdxPriv`'s pointers.
+`treeIndex.KeyIndex` (`index.go`). Lean-first (no Rocq counterpart); see `InvIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
 
@@ -13,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -23,17 +20,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ti.KeyIndex(keyi)` on a private index. -/
-def treeIndex.KeyIndex.spec : Prop :=
-  ∀ (ti : Loc) P (keyi : Loc) (k : GoString) (ki0 : KeyIndexM) (dq : DFrac),
-  {{ pkgInit ∗ ownIdxPriv ti P ∗ ownKi keyi k ki0 dq }}
+/-- `ti.KeyIndex(keyi)` on a tree index no one else can reach (`ownIdxPriv`: its only caller,
+`restoreIntoIndex`'s goroutine, rebuilds a private index; `notes/restore-plan.md`, R3): the pointer
+to the key index of `keyi`'s key `k` in the tree, or `nil`. -/
+abbrev mvcc.treeIndex.KeyIndex.spec : Prop :=
+  ∀ (ti : Loc) (L : List mvcc.IdxEntry) (keyi : Loc) (k : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownIdxPriv ti L ∗ mvcc.kiKey keyi k }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"KeyIndex")) (Val #keyi))
-  {{ RET #(((P k).map Prod.fst).getD null); ownIdxPriv ti P ∗ ownKi keyi k ki0 dq }}
+  {{ (p : Loc), RET #p; mvcc.ownIdxPriv ti L ∗
+      ⌜p = ((L.find? fun z => decide (z.2.1 = k)).map Prod.fst).getD null⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial
+

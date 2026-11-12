@@ -144,7 +144,7 @@ raft, apply and the client's `Merge`.
 
 ### F3. `grpc.Peer.spec` mis-types the peer variable; `Peer.String` and `peerOk`'s use have no spec (2a)
 
-- `Grpc.Peer.spec` (`Spec/google_golang_org/grpc/Peer.lean`) takes `p ↦ q ∗ ⌜q = null⌝` with
+- `Grpc.Peer.spec` (`SpecPlan/Spec/google_golang_org/grpc/Peer.lean`) takes `p ↦ q ∗ ⌜q = null⌝` with
   `q : Loc`, and `peerVar p`'s invariant holds a `Loc` (`Grpc/Api.lean:801-804`). Both treat `p` as
   a `*peer.Peer` variable.
 - In grpc-go, `Peer(p *peer.Peer)` stores `p`, and after the attempt it runs `*o.PeerAddr = *x`, a

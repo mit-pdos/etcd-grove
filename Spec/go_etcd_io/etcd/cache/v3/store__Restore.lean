@@ -1,13 +1,9 @@
 /-
-`store.Restore` (`cache/*.go`), an internal helper.
-Users: `Cache.get` (the initial list, and every re-list).
-Proof sketch: under the write lock: a new tree (`BTree.New.spec`) with each key-value inserted (`newKVItem.spec`, `BTree.ReplaceOrInsert.spec`), the history emptied and the one snapshot appended (`newClonedSnapshot.spec`, `ringBuffer.Append.spec`); its certificate is the list's (`snapCert`); the ceiling at most `rev` keeps the latest revision monotone; `Broadcast` on `revCond`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`store.Restore(kvs, rev)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,29 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.Restore(kvs, rev)` by the ceiling's holder, for key-values that are etcd's store under the prefix at `rev`: the store is that snapshot at `rev`. -/
-def store.Restore.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (r : Nat) (kvsSl : GoSlice) (rev : w64) (σ : State)
-    (kvs : List KV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isStore s γ pfx ∗ storeCeil s r ∗ msgsOwn keyValueOwn kvsSl DFrac.discard (kvs.map KeyValueM.ofKV) ∗ etcdLb γ σ ∗ ⌜r ≤ sint.Z rev ∧ sint.Z rev = σ.kv.rev ∧ Store.rangeKVs σ.kv.store (prefixRange pfx) kvs⌝ }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"Restore")) (Val #kvsSl)) (Val #rev))
-  {{ RET #(); storeCeil s (sint.Z rev).toNat ∗ storeRevLb s (sint.Z rev).toNat ∗
-      storeUpTo s (sint.Z rev + 1) }}
+/-- `s.Restore(kvs, rev)`, by any writer (`isStoreWriter`): under the write lock, the store's
+state becomes `restoreState rev kvs` (the latest map built from `kvs`, the latest revision `rev`,
+the history that one snapshot), whatever state it was in. `rev` must not be below that state's
+latest revision (the lower bounds readers hold stay true): the caller holds some `P` with which no
+revision the store can be at (`R`, the latest revision's certificate, which the lock invariant
+keeps of it) is above `rev`; it certifies the new snapshot (`E rev (restoreMap kvs)`), the new
+revision (`R rev`) and the new snapshot's gap, empty (`G rev rev`). Afterwards the latest revision and the newest snapshot are at least `rev`. -/
+abbrev store.Restore.spec : Prop :=
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (G : w64 → Int → IProp GF)
+    (P : IProp GF) (kvsSl : GoSlice) (kvs : KvMap) (dq : DFrac) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isStore s γ cap ∗ isStoreWriter s γ cap E R G ∗ kvsSl ↦*{dq} (kvs.map Prod.snd) ∗ kvsAt kvs ∗
+      P ∗ ⌜∀ r, (P ∗ R r ⊢ ⌜sint.Z r ≤ sint.Z rev⌝)⌝ ∗ □ E rev (restoreMap kvs) ∗ □ R rev ∗
+      □ G rev (sint.Z rev) }}
+    (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #kvsSl)) (Val #rev))
+  {{ RET #(); kvsSl ↦*{dq} (kvs.map Prod.snd) ∗ P ∗ storeRevLb γ rev ∗ storeSnapLb γ rev }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

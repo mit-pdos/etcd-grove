@@ -1,71 +1,24 @@
 /-
-`(*watchServer).Watch(stream)` (`watch.go`): the handler of one watch stream.
-
-**Users.** gRPC's server, through the service registered by `v3rpc.Server` (`grpc.go:81`, batch 2a:
-`_Watch_Watch_Handler` calls `srv.(WatchServer).Watch(&grpc.GenericServerStream{...})` for each
-stream a client opens; 2a's registration takes `watchServiceAt`, whose meaning
-`WatchServer.WatchTriple` is this spec, `watchServerAt_service`). Its clients are the Go client's
-watch streams (1b: `watchGRPCStream.run`, `serveWatchClient`, through grpc's
-`wireWatchRecv_recv`). Snippets: `examples/specreq/v3rpcwatch/protocol.go` (every one).
-
-**Proof sketch.** Builds the run `sws`: the fields from `watchServerAt p γ`; `ws.watchable.
-NewWatchStream()` (the member's watchable store, `watchMemberAt`'s triple, 3f: a fresh mvcc watch
-stream with no watcher, its control side, its channel's consumer, its close; no thread token);
-`ctrlStream` a channel of 16; the three maps; `closec`. Allocates the run's ghost state and
-invariant (`swsAt sws γ who stream g`, `WatchInternal.lean`: no registration, the control channel
-empty, the send state at `WireSt.init`, the mvcc consumer at nothing received) and splits it into
-`swsRecver sws []` (with `srvWatchRecv stream g []`), `swsSender sws` (with `srvWatchSend stream γ
-who g WireSt.init`) and `swsCloser sws`.
-`sws.wg.Add(1)`; `go` the send goroutine (`Fork` gives it a thread token): `sendLoop.spec`, then
-`wg.Done()` (the wait group's adder share, taken with the goroutine), exit with the token. `errc`
-a channel of one, whose one message carries `∃ rs, swsRecver sws rs` (the control channel's
-producer); `go` the receive goroutine: `recvLoop.spec` → `rerr`; if `rerr ≠ nil`: `stream.Context()`
-(`srvWatchStreamAt_context`), `ctx.Err()` (W0's `Context.Err.spec`), `isClientCtxErr` (2a's
-`util.go`, names only: its trusted spec, any errors, no panic), the log (zap) or the metric
-(`streamFailures`, the ambient metrics boundary), `errc <- rerr` with the receive loop's share (never
-blocks: the only send on a channel of one); exit with the token. The `select`: from `errc`, the
-receive loop has returned and its share came with the message, so `close(sws.ctrlStream)` is the
-producer's (no send can follow); `errors.Is(err, context.Canceled)` (Perennial's `errors`, an error
-of any kind) and `rpctypes.ErrGRPCWatchCanceled` (2a's rpctypes variable, `isPkgInit`). From
-`stream.Context().Done()` (`Context.Done.spec`, `doneRecv`): `Err()`, the same conversion; the
-control channel stays open (the receive loop may still send; its sends `select` on `closec`). Then
-`sws.close()` (`swsCloser`: the mvcc stream closed, `closec` closed, the send loop joined) and return.
-The receive goroutine may outlive the call (blocked in `Recv` until grpc ends the stream when the
-handler returns); its token goes back at its exit.
-
-**Changes** from `specs-ref`'s `watchServer__Watch.lean`: stated over the client's wire protocol
-(`srvWatchSend`'s `wireStep`, 1b's wire protocol, which took 2b's corrections in its round 2) instead of the old server-side stream
-specification (`srvStreamIs ... Up Dn`, `watchStreamSpec γs R W tok Dn`, `upOk`, the auxiliary
-name, the auth mode's tag); the principal `who` of the stream in place of the context's token
-(`auth.ctxTokenOf`); no reader resources (`R.E.RD`, `mvccReaders W.γm 2`, the `threadBound`
-premise): the loops take their goroutines' thread tokens (the bounds plan); the old restrictions of
-the client's requests (`watchReqOk`: no `prevKV`, no fragments, no filters, no explicit id, no
-`other`) reduced to the last two (the wire model: `ApiWatch.lean`'s header): `prevKV`, fragments
-and filters are in scope.
-
-**Integration I3.** The returned error has a status grpc sends (what 2a's `streamOut` needs): the
-receive loop's `nil` (`io.EOF`) or grpc's own error (`recvLoop.spec`'s post; `ownErr_grpcMsg`,
-`statusErr_sent`); `ErrGRPCWatchCanceled` (rpctypes' `grpcVar`, a status: `statusErr_sent`); the
-context's error (`ctxErr_sent`).
-
-**Margin.** The returned error's status is not modelled further: grpc turns it into the client's
-stream error, classified by 2a (`callErr`); the
-handler returns only once the stream's context is done or the receive loop failed (liveness).
+`v3rpc.watchServer.Watch` (`watch.go`): the watch slice's server hop. Lean-first (no Rocq counterpart); the
+vocabulary is `v3rpc/InvWatchStream.lean` and `v3rpc/InvWatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ApiWatch
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.server.v3.etcdserver.api
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -73,20 +26,42 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`ws.Watch(stream)`** on the server end of a watch stream of a client of `γ` as `who`: serves
-the watch protocol on it (every response it sends a `wireStep`, through `srvWatchSend_send`). -/
-def watchServer.Watch.spec : Prop :=
-  ∀ (p : Loc) (γ : EtcdModel.Cluster) (st : GoInterface) (who : Principal) (g : WatchStreamNames),
+/-- **`ws.Watch(stream)`**: a run on a fresh server end of a stream (`srvStreamIs` with both
+tokens at the empty queues), whose content of the responses sent down is the watch server's
+(`watchStreamSpec`: the handler's `Dn` is `watchDn`, at the server's side of the watch path `W`),
+the client's content of its requests restricted with (G2's freeze) the client's bound per create
+request (`upOk`), the stream's auxiliary name (set to the run's ghost names, `auxOf`; the watch
+slice's unit W-C) and the run's resources (the auth store's reader resource and the thread bound):
+it returns, with the stream specification. The specification is at the token of the run's context
+`ci` (`auth.ctxTokenOf`; G2, 2026-10-30): each create's check passed for it (`watchAuthed`). The
+mvcc API migration (2026-11-05, the draft `notes/mvcc-api-clients/WatchSpecs.lean` §6): the
+server's side of the watch path (`srvWOk`, with v3rpc's namespace); no watch token per create and no
+reader slots (`watchRunSlot` was `recvRes ∗ sendRes`, the store's reader slots: now `R.E.RD ∗
+⌜threadBound …⌝`); the handler's thread token (the API's `Close` takes one); the run's names and
+its invariant `wsInv` allocated from `NewWatchStream`'s `wsState ι wsStart ∗ wsRecv ι []`; (the
+store's readers as client-held tokens, 2026-11-07) two reader tokens of the store
+(`mvccReaders W.γm 2`), one for each loop (`lean`'s two store reader slots, `recvRes`/`sendRes`),
+not given back (the receive loop is not joined). -/
+abbrev v3rpc.watchServer.Watch.spec : Prop :=
+  ∀ (p : Loc) (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) (st : GoInterface) (γs : v3rpc.StreamNames)
+    (Up : Nat → v3rpc.WatchReqM → IProp GF) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      watchServerAt p γ ∗ srvWatchStreamAt st γ who g ∗ srvWatchRecv st g [] ∗
-      srvWatchSend st γ who g WireSt.init }}
+      v3rpc.isWatchServer p R ∗ v3rpc.srvWOk W R.wsl v3rpc.wsN ∗
+      v3rpc.srvStreamIs st γs v3rpc.pbWatchRequest v3rpc.pbWatchResponse Up Dn ci cd ∗
+      v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
+      v3rpc.upOk R.E.authMode Up ∗
+      v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) γs [] ∗
+      v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
+      v3rpc.streamAuxTok γs ∗ R.E.RD ∗ ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
+      mvcc.api.mvccReaders W.γm 2 }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
   {{ (err : GoInterface), RET #err;
-      ⌜err = GoInterface.nil⌝ ∨ ∃ (code : w32) (msg : GoString), Grpc.sentStatus err code msg }}
+      v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

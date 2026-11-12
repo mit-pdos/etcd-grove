@@ -1,18 +1,10 @@
 /-
-`recipe.NewRWMutex(s, prefix)` (`rwmutex.go`): its keys under `prefix + "/"`, `myKey` `nil`.
-
-**Users**: `T/v3_lock_test.go:324`. Snippet: `recipes/rwmutex.go`.
-
-**Proof sketch**: `context.TODO()`; allocate; `rwmOwn`'s realization (the session's `isSession`, its client's `isClient`).
-
-**Changes**: old `isRWMutex` took `concurrency.isSession` and the recipes' client invariant; now
-1d's `isSession s c γ id` with `isClient c γ who` (integration: was a slot).
-
-**Margin**: none.
+`recipes.NewRWMutex(s, prefix)` (`client/v3/experimental/recipes/rwmutex.go`). Lean-first (no Rocq counterpart);
+see `InvRWMutex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRWMutex
 
 @[expose] public section
 
@@ -20,27 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`NewRWMutex(s, prefix)`**: a readers-writer mutex on `prefix/`, holding no key. -/
-def NewRWMutex.spec : Prop :=
-  ∀ (s c : Loc) (γ : Cluster) (who : Principal) (id : w64) (pre : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ Concurrency.isSession s c γ id ∗ isClient c γ who }}
-    (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewRWMutex)) (Val #s)) (Val #pre))
-  {{ (m : Loc), RET #m; rwmOwn m γ who id (pre ++ go!"/") none }}
+/-- **`NewRWMutex(s, prefix)`**, for a session `s` (of `client`, with the lease `id`) whose client
+has the recipes' contracts at `prefix ++ "/"`: the mutex on `prefix ++ "/"` (its context
+`context.TODO()`), with no key (`myKey` nil). -/
+abbrev NewRWMutex.spec : Prop :=
+  ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗
+      isEtcdRecipesClient client (pfx ++ go!"/") ∗ context.isClosedchanInit ∗ ⌜pfx.length ≤ recipesPfxMax⌝ }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewRWMutex)) (Val #s))
+      (Val #pfx))
+  {{ (m : Loc), RET #m; isRWMutex m s γ client id (pfx ++ go!"/") ∗ rwMyKey m (pfx ++ go!"/") none }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

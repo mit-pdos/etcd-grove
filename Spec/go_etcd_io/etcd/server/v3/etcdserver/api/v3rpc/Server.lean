@@ -1,50 +1,76 @@
 /-
-`v3rpc.Server` (`server/etcdserver/api/v3rpc/`).
-
-Users: 2e's member start (`embed.Etcd`'s `serveClients`, `examples/lib/etcdstart`'s `Serve`): the gRPC server it then starts (`Grpc.start.spec` with `addrAt ep (etcdContract γ ep)`, which is W0's `servesAt γ ep`: `servesAt_addr`) and serves, at the client address `ep` it holds `srvAt s γ ep` for (2e's `srvEp_reserve` at the serving start, which also gives the address's `Http.protoAt`, then `srvAt` from `NewServer`'s `srvFields`: repair3-boot).
-
-Proof sketch: `grpc.CustomCodec(&codec{})` (`codecOk`: the codec's `Marshal`/`Unmarshal` are golang/protobuf's, which call protobuf-go's: `Proto.Marshal.spec`, `Unmarshal.spec`), `Creds` if TLS, `getServerMetrics.spec`, the interceptors (`newLogUnaryInterceptor`, the metrics', `newUnaryInterceptor`, the caller's; the metrics' and `newStreamInterceptor`'s: all `icEtcdOk`/`sicEtcdOk`), `ChainUnaryInterceptor`, `ChainStreamInterceptor`, the size and stream limits (`Grpc`'s option specs), `grpc.NewServer` (`srvBuild`), and each `Register*Server` (3h's generated registrations over `Server.RegisterService.spec` and the generated descriptors, `serviceDescAt`) with the service values (`NewQuotaKVServer`, `NewWatchServer` (2b), `NewQuotaLeaseServer`, `NewClusterServer`, `NewAuthServer`, `NewMaintenanceServer`); the health service (`health.NewServer`, `RegisterHealthServer`: in `B.regs`, its contracts `etcdContract`'s health entries, met by `healthRegs_ok`); `serverMetrics.InitializeMetrics(gs)` (`metricsOk_init`). `regsOk`: for each registration, the generated handler decodes (`decOk_call`) and calls the service's method through the chain (`icChain_call`, `icHandler_call`), each interceptor `icEtcdOk`, the method's `HandlerTriple` (this package's specs), giving `unaryOk`; the streams likewise (`streamOk`, 2b's for `Watch`). Integration X: the registrations hold for the run resource `srvGate s gq` (any share: the caller's `Grpc.start` lends `n` of them, from `srvGate_fractional`, and `GracefulStop` gives them back before 2e's `HardStop`); a handler over 2c's request path passes its share to the server method, the others frame it. The lease handlers (`LeaseGrant`, `LeaseLeases`, `LeaseTimeToLive` and their quota wrappers) take `srvAt s γ ep` (persistent, framed into each registration), which 2c's lease specs need for their `srvLeaseFact`; the other handlers hold for any `ep` and are instantiated at this one.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Server.lean`: over `isServer` and the contracts (was `grpcCfgOk`, `kvRegs`, `authRegs`, ... with `backendUnderQuota`); every service, auth on and off, a TLS configuration, a caller's interceptor that preserves the contracts.
-
-Changes: verify-round relay (server-core's RR request 2): the registrations meet the contracts of
-the endpoint the member serves only, `srvAt s γ ep` (was `∀ ep`: as stated, a lagging member's lease
-handlers would have given another endpoint's `leaseViewLb`, which 2c's lease specs cannot give).
-`ep` is the caller's binder; `srvAt`'s introduction belongs to the serving start (2e's `srvEp_reserve`, repair3-boot).
-
-Margin: none.
+`v3rpc.Server(s, tls, interceptor, gopts...)` (`v3rpc/grpc.go`; item 4, the server start): the
+gRPC server etcd serves its services with. Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvGrpcStart.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `Server(s, tls, interceptor, gopts...)`: a gRPC server being built whose registrations meet
-etcd's contracts at the endpoint `ep` the member `s` serves (`srvAt s γ ep`). -/
-def Server.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ep : GoString) (tls : Loc) (ic : GoFunc) (gsl : GoSlice) (gvs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ isServer s γ ∗ srvAt s γ ep ∗ (⌜tls = null⌝ ∨ Transport.tlsCfgOk tls) ∗ (⌜ic = func.nil⌝ ∨ icEtcdOk ic γ) ∗
-      gsl ↦*□ gvs ∗ ([∗list] v ∈ gvs, srvOptAt v id) }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server)) (Val #s)) (Val #tls)) (Val #ic)) (Val #gsl))
-  {{ (gs : Loc), RET #gs; ∃ B : SrvCfg, srvBuild gs B ∗ ∀ (gq : Qp), regsOk B (etcdContract γ ep) (srvGate s gq) }}
+/-- **`Server(s, nil, nil, gopts...)`** (no TLS, no extra interceptor; `gopts` neutral options,
+read-only) returns a `*grpc.Server` being built (`grpcSrvNew`) with etcd's unary chain
+`[il, im, iu]` (`newLogUnaryInterceptor(s)`'s, grpc-prometheus's, `newUnaryInterceptor(s)`'s) and
+stream chain `[ims, is]` (grpc-prometheus's, `newStreamInterceptor(s)`'s), all transparent, and
+etcd's services registered: among them the KV service's `Put`, `Range`, `DeleteRange`, `Txn` on
+the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` stream on the
+`*watchServer` `pw` (`watchSReg`), and the Auth service's five admin methods on the `*AuthServer`
+`pa` over the server (`authRegs`, `authServerIs`), and (the lease-src plan, 2026-11-02) the Lease
+service's four methods and its `LeaseKeepAlive` stream on the `*quotaLeaseServer` `ql` over the
+`*LeaseServer` `pl` (`leaseRegs`, `leaseSReg`; `NewQuotaLeaseServer`'s objects), given the service values' method sets (`ServerMethodSets`, Go's
+type checker's facts). The server's resources come back (J8a-3: the progress interval read-only,
+`NewWatchServer` no longer writes it). -/
+abbrev v3rpc.Server.spec : Prop :=
+  v3rpc.ServerMethodSets → ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.grpcCfgOk s C ∗ srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
+      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦□ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ ∗
+      gsl ↦*□ gvs ∗ ⌜∀ v ∈ gvs, grpcSrvOpt v .neutral⌝ }}
+    (App (App (App (App (Val (@! v3rpc.Server)) (Val #s)) (Val #(null : Loc)))
+      (Val #(func.nil : GoFunc))) (Val #gsl))
+  {{ (gs : Loc), RET #gs; ∃ (q p pw pa ql pl : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
+      (regs sregs : List (GoString × val × GoInterface)) (cid mid lcid lmid : w64) (R : v3rpc.WSrv GF),
+      grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
+      ⌜(∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ v3rpc.watchSReg pw ∈ sregs ∧
+        (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
+        (∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) ∧ v3rpc.leaseSReg ql ∈ sregs⌝ ∗
+      v3rpc.authServerIs pa s ∗
+      v3rpc.quotaLeaseServerAt ql ⟨go.GoType.PointerType v3rpc.LeaseServer.ty, #pl⟩ s ∗
+      v3rpc.leaseServerAt pl s C.A lcid lmid ∗
+      v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType v3rpc.kvServer.ty, #p⟩ s ∗
+      v3rpc.kvServerIs p s C.A cid mid C.n ∗
+      v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = C.E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
+      (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
+      (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
+      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+      srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+      srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

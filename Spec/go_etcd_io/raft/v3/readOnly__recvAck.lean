@@ -1,16 +1,16 @@
 /-
-## `(*readOnly).recvAck(from, ctx)` (internal)
+Port of election_proof/spec_readOnly__recvAck.v (feb5c73d4).
 
-**Users**: `stepLeader`'s `MsgHeartbeatResp` (`raft.go:1619`, the context the follower echoed), the
-leader's own ack (`raft.go:2164`, its `heartbeatCtx`). **Proof sketch**: `binary.LittleEndian.Uint64`
-reads 8 bytes: a non-empty context shorter than 8 panics (the premise: the leader's contexts are
-`heartbeatCtx`'s, a follower echoes them). **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/readOnly__recvAck.lean`.
+Lean notes:
+* The Rocq binder `from` is `src` (`from` is a Lean keyword). `readonly.t`,
+  `own_ReadOnly`, `readonly_recvAck`, `readonly_position` are `ReadOnly`,
+  `ownReadOnly`, `readonlyRecvAck`, `readonlyPosition` (`InvMisc.lean`).
+* The reference `readOnly__recvAckⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:6267` is to the
+  Lean generated code `readOnly.recvAck.impl`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -18,26 +18,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Record `from`'s acknowledgement of position `ctx` (if any). -/
-def readOnly.recvAck.spec : Prop :=
-  ∀ (ro : Loc) (rs : ReadOnlyState) (src : w64) (ctx : GoSlice) (cs : List w8) (dq : DFrac),
-  (cs = [] ∨ 8 ≤ cs.length) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ readOnly ro rs ∗ ctx ↦*{dq} cs }}
-    (App (App (Val (ro @!! go.GoType.PointerType go_etcd_io.raft.v3.readOnly.ty @!! go!"recvAck")) (Val #src)) (Val #ctx))
-  {{ RET #(); readOnly ro (rs.recvAck src cs) ∗ ctx ↦*{dq} cs }}
+/-- `ro.recvAck(from, ctx)` (`readOnly.recvAck.impl`; `read_only.go:65`):
+
+    if len(ctx) != 0 {
+        ro.acks[from] = max(ro.acks[from], binary.LittleEndian.Uint64(ctx))
+    }
+
+The context is a heartbeat's: the first eight bytes, little-endian, are a *position*
+(`readonlyPosition` of the leader when it sent the heartbeat), and the voter's ack
+becomes the larger of that and its old one (`readonlyRecvAck`). A non-empty context
+shorter than eight bytes makes `Uint64` panic (index out of range); a peer's `Context`
+can be anything, and nothing in the state excludes it, so the spec takes
+`cs = [] ∨ 8 ≤ length cs` as a premise (the smallest one). The context slice is only
+read, at any fraction. -/
+abbrev readOnly.recvAck.spec : Prop :=
+  ∀ (ro : Loc) (r : ReadOnly) (src : w64) (ctx : GoSlice) (cs : List w8) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r ∗
+      "Hctx" ∷ ctx ↦*{dq} cs ∗ "%Hlen" ∷ ⌜cs = [] ∨ 8 ≤ cs.length⌝ }}
+    (App (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"recvAck"))
+      (Val #src)) (Val #ctx))
+  {{ RET #(); ownReadOnly ro (readonlyRecvAck r src cs) ∗ ctx ↦*{dq} cs }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

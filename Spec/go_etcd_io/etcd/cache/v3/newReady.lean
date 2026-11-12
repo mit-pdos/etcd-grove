@@ -1,13 +1,9 @@
 /-
-`newReady` (`cache/*.go`), an internal helper.
-Users: `newCache`.
-Proof sketch: allocates the struct and its channel; allocates `isReady`'s invariant.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`newReady()`. Lean-first (no Rocq counterpart); see `InvReady.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvReady
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,14 +21,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `newReady()`: a not-ready flag. -/
-def newReady.spec : Prop :=
+/-- `newReady()`: a `ready` in epoch `0` (not ready). -/
+abbrev newReady.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 }}
-    (App (Val (@! go_etcd_io.etcd.cache.v3.newReady)) (Val #()))
-  {{ (r : Loc), RET #r; isReady r }}
+    (App (Val (@! newReady)) (Val #()))
+  {{ (r : Loc) (γ : ReadyNames), RET #r; isReady r γ ∗ readyEpochLb γ 0 }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

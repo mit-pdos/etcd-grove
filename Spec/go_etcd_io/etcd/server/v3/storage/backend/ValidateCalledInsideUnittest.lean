@@ -1,12 +1,15 @@
 /-
-## `ValidateCalledInsideUnittest(lg)` (`verify.go:48-55`): trusted (names only)
-
-**Users.** `batchTx.Lock`. **Why it is true.** As `ValidateCalledInsideApply` (its `lg.Fatal`
-unreachable). **Changes.** `envOk`. **Margin.** None.
+`ValidateCalledInsideUnittest` (`verify.go`): the trust boundary (`verify.go` is names-only: it reads `ETCD_VERIFY`
+and the call stack). Go: it returns if the lock checks are off (`ETCD_VERIFY` neither `all` nor
+`lock`); with them on, it checks that it is called from a unit test (`_test.go` on the stack, not `tests/`) and otherwise calls `lg.Fatal`.
+Stated as returning: this assumes the lock checks are off, as in production (a deployment
+assumption: a run with `ETCD_VERIFY=lock` may stop where this says it returns).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -14,26 +17,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`ValidateCalledInsideUnittest(lg)`**: nothing, with verification off. -/
-def ValidateCalledInsideUnittest.spec : Prop :=
+/-- `ValidateCalledInsideUnittest(lg)` returns (the lock checks off).
+(Sweep repairs 1, B4, 2026-11-07: with `ETCD_VERIFY` off, `envVerifyOff`, from program start; until
+then assumed unconditionally, false of a run with `ETCD_VERIFY=all`, `lock` or `assert`: Go
+`examples/sweeprepairs/b1`, `TestB4On`.) -/
+abbrev backend.ValidateCalledInsideUnittest.spec : Prop :=
   ∀ (lg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.ValidateCalledInsideUnittest)) (Val #lg))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run (`envVerifyOff`)
+      envVerifyOff }}
+    (App (Val (@! ValidateCalledInsideUnittest)) (Val #lg))
   {{ RET #(); True }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

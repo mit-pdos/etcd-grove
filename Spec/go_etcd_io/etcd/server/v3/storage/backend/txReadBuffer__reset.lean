@@ -1,10 +1,10 @@
 /-
-`txr.reset()` (promoted `txBuffer.reset`): translated; internal. Changes: unchanged. Margin: as
-`txBuffer.reset`.
+`txReadBuffer.reset` (`tx_buffer.go`). `txr.reset()` (`txBuffer.reset`, promoted): the buckets reset, the version unchanged.
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 
 @[expose] public section
 
@@ -12,26 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`txr.reset()`**: every bucket's entries gone, the version kept. -/
-def txReadBuffer.reset.spec : Prop :=
-  ∀ (t : Loc) (R : TxB) (ver : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ trbAt t R ver }}
-    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer.ty @!! go!"reset")) (Val #()))
-  {{ RET #(); ∃ R' : TxB, trbAt t R' ver ∗ ⌜∀ id, R' id = none ∨ R' id = some []⌝ }}
+/-- `txr.reset()` (`txBuffer.reset`, promoted): the buckets reset, the version unchanged. -/
+abbrev backend.txReadBuffer.reset.spec : Prop :=
+  ∀ (txr : Loc) (R : RBuf),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ownRB txr R }}
+    (App (Val (txr @!! go.GoType.PointerType txReadBuffer.ty @!! go!"reset")) (Val #()))
+  {{ RET #(); ownRB txr R.reset }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

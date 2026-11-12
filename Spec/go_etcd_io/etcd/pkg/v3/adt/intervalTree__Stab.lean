@@ -1,20 +1,11 @@
 /-
-`(*intervalTree).Stab(iv)`: the entries overlapping the query, as pointers to the nodes'
-`IntervalValue`s, in the tree's order (`nil` for an empty tree).
-
-**Users.** `watcherGroup.watcherSetByKey` (3f: the range watchers of an event's key, a point query;
-their sets are read, merged or returned). Snippet: `adt/watchers.go` `ReqRangeWatchers`.
-
-**Proof sketch.** `count == 0` returns `nil` (the count is exact: `ivt`'s realization); else
-`Visit` with an appending closure. The pointers are lent at the tree's fraction, given back by the
-wand.
-
-**Changes** from `specs-ref`'s `Stab_gen`: at a key kind `c`. **Margin.** On a query that is not
-`queryOk`, a sublist (not stated: no caller).
+`intervalTree.Stab` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Model.lean`, `Defs.lean`.
+Pending: the interval tree's contract, proved in unit 4 (the tree's proof); until then a
+hypothesis of every result that reaches it (`?` in `etc/link-lean-first-adt.txt`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.Api
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Defs
 
 @[expose] public section
 
@@ -22,29 +13,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Adt
 
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3.adt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-def intervalTree.Stab.spec : Prop :=
-  ∀ (c : Cmp) (t : Loc) (L : List Entry) (vb ve : val) (db de : DFrac) (b e : GoString)
-    (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ ivt c t L dq ∗ keyAt c db vb b ∗ keyAt c de ve e ∗ ⌜IvlS.queryOk (b, e)⌝ }}
-    (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Stab")) (Val #(c.ivl vb ve)))
-  {{ (ivs : GoSlice) (ps : List Loc), RET #ivs; keyAt c db vb b ∗ keyAt c de ve e ∗
-      ivs ↦* ps ∗ ownSliceCap Loc ivs (DFrac.own 1) ∗ ⌜ps.length = (stab (b, e) L).length⌝ ∗
-      ([∗list] x ∈ ps.zip (stab (b, e) L), ⌜x.1 ≠ null⌝ ∗ ivAt c x.1 dq x.2) ∗
-      (([∗list] x ∈ ps.zip (stab (b, e) L), ivAt c x.1 dq x.2) -∗ ivt c t L dq) }}
+/-- `t.Stab(ivl)` of a query that is not empty-and-finite (`b = ""`, never overlapping, or
+`b < e`: on a query with `e ≤ b ≠ ""`, `visit`'s pruning on the subtrees' `max` misses
+entries): a fresh slice of pointers to the nodes' `IntervalValue`s of the entries overlapping
+the interval, in the tree's order (`nil` for an empty tree). At any fraction `q` of the tree;
+the pointers are lent at that fraction, the tree given back by the wand (a node's `iv` is not
+read-only for good: `Delete` copies the successor's into the deleted node). -/
+abbrev adt.intervalTree.Stab.spec : Prop :=
+  ∀ (t : Loc) (L : List adt.Entry) (b e : GoString) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L q ∗
+      ⌜b = go!"" ∨ adt.affLt b e⌝ }}
+    (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Stab"))
+      (Val #(adt.affIvl b e)))
+  {{ (ivs : GoSlice) (ps : List Loc), RET #ivs; ivs ↦* ps ∗
+      ownSliceCap Loc ivs (DFrac.own 1) ∗ ⌜ps.length = (adt.stab (b, e) L).length⌝ ∗
+      ([∗list] x ∈ ps.zip (adt.stab (b, e) L), ⌜x.1 ≠ null⌝ ∗
+        x.1 ↦{DFrac.own q} ({ Ivl' := adt.affIvl x.2.1.1 x.2.1.2, Val' := x.2.2 } : IntervalValue)) ∗
+      (([∗list] x ∈ ps.zip (adt.stab (b, e) L),
+        x.1 ↦{DFrac.own q} ({ Ivl' := adt.affIvl x.2.1.1 x.2.1.2, Val' := x.2.2 } : IntervalValue)) -∗
+        adt.ownIvt t L q) }}
 
 end spec
 
-end Adt
 end EtcdGrove
 end Perennial

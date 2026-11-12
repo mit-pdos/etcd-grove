@@ -1,9 +1,9 @@
 # Batch 4b, review round 1 (provability and completeness)
 
-Reviewer's report, 2026-11-09, at `242ebdf411`. Targets: `Spec/go_etcd_io/etcd/server/v3/storage/schema/`
-(Api + 69 specs), `Spec/go_etcd_io/etcd/pkg/v3/{traceutil,pbutil,ioutil,httputil}/`, the
-boundaries `Spec/github_com/Masterminds/semver/v3/`, `Spec/golang_org/x/time/rate/`,
-`Spec/github_com/xiang90/probing/`, `Spec/go_opentelemetry_io/otel/{trace,attribute}/`, snippets
+Reviewer's report, 2026-11-09, at `242ebdf411`. Targets: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/schema/`
+(Api + 69 specs), `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/{traceutil,pbutil,ioutil,httputil}/`, the
+boundaries `SpecPlan/Spec/github_com/Masterminds/semver/v3/`, `SpecPlan/Spec/golang_org/x/time/rate/`,
+`SpecPlan/Spec/github_com/xiang90/probing/`, `SpecPlan/Spec/go_opentelemetry_io/otel/{trace,attribute}/`, snippets
 `examples/specreq/{schema,pkgleaves}/`, the `## from 4b` sections of `req/`. Go: the pinned sources in
 `.lake/src/`, otel v1.47.0, semver v3.5.0, x/time v0.16.0, probing `a49e3df8f510` (the versions
 `server/go.mod` pins). One run outside the repository (`/tmp/rv4b`, semver v3.5.0) to check F5.
@@ -16,7 +16,7 @@ boundaries `Spec/github_com/Masterminds/semver/v3/`, `Spec/golang_org/x/time/rat
 and its `UnsafeForEach` calls `f` with `ks ↦*□ k`, `vs ↦*□ v`. The backend's ranges return bbolt's
 own slices (`batch_tx.go:206-226`, `unsafeRange` over `bucket.Cursor()`; `read_tx.go:120`), which
 bbolt says are valid only while the transaction is live; 4c states exactly that
-(`Spec/go_etcd_io/bbolt/Api.lean:68`, `txBytes`, read through `txBytes_acc.spec` *with* `boltTx`,
+(`SpecPlan/Spec/go_etcd_io/bbolt/Api.lean:68`, `txBytes`, read through `txBytes_acc.spec` *with* `boltTx`,
 `Api.lean:357-360`). The read transaction is rolled back at every batch commit and the mapping can
 be replaced after that (a remap on growth), so a slice kept past the section is not readable. 4a
 cannot prove `txRd` from 4c (its own draft, `baseReadTx__UnsafeRange.lean`, `batchTx__UnsafeRange.lean`,
@@ -65,7 +65,7 @@ sorted. Keep `txRange`'s key order (batch only).
 
 `batchTx.unsafePut` calls `bucket.Put` and `lg.Fatal`s on its error (`batch_tx.go:183-189`); bbolt
 refuses an empty key, a key above `maxKeySize`, and needs `kb.length + vb.length ≤ bboltEntryMax`
-(`Spec/go_etcd_io/bbolt/Bucket__Put.lean`; 4a's draft `batchTx.UnsafePut.spec` takes
+(`SpecPlan/Spec/go_etcd_io/bbolt/Bucket__Put.lean`; 4a's draft `batchTx.UnsafePut.spec` takes
 `k.length + v.length ≤ Bbolt.bboltEntryMax`). `txWr` promises `R (V.put b k v)` for every `k`, `v`:
 4a cannot prove it. The schema's writers whose sizes are the caller's choice
 (`authBatchTx.UnsafePutUser`/`UnsafePutRole`: a name and a message of the client's;
@@ -129,7 +129,7 @@ closed database). The old store's backend is closed by `applySnapshot` while the
 
 `MustUnsafePutLease` is assumed with `lpb ↦{dq} v` in and the same `lpb ↦{dq} v` out; it calls
 `proto.Marshal(lpb)`, which stores the size into `lpb`'s `sizeCache` field (`atomic.StoreInt32`:
-2a's own header, `Spec/google_golang_org/protobuf/proto/Api.lean`, `msgAt`). So the post is false of
+2a's own header, `SpecPlan/Spec/google_golang_org/protobuf/proto/Api.lean`, `msgAt`). So the post is false of
 the heap (the field changes), and at `dq ≠ 1` the write has no permission at all. The law
 `leaseMsg_of_struct` (`p ↦{dq} v ⊢ ∃ c, msgAt p dq c ∗ … ∗ (msgAt p dq c -∗ p ↦{dq} v)`) has the
 same defect: after a `Marshal` through the `msgAt`, the wand must give back the old `sizeCache`.
@@ -155,7 +155,7 @@ takes `S.made .metaB`.
 
 ### F11. `NewLimitedBufferReader` and the `ReaderAndCloser` laws need an intro law of 2f's opaque `readerAt` that does not exist (`ioutil/NewLimitedBufferReader.lean`, `ioutil/Api.lean`)
 
-`Http.readerAt` is opaque (`Spec/net/http/Api.lean:231`); its only laws give `Read`/`Close` triples
+`Http.readerAt` is opaque (`SpecPlan/Spec/net/http/Api.lean:231`); its only laws give `Read`/`Close` triples
 (`readerAt_read`, `readerAt_close`), and the intro laws are for 2f's own readers (`NewBuffer_reader`,
 `MultiReader_reader`). The sketch "hence the returned reader has `r`'s contract" for a translated
 `*limitedBufferReader`, and the laws `ReaderAndCloser_reader`/`_closer` for `ReaderAndCloser`'s promoted

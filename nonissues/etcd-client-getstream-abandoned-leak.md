@@ -27,7 +27,7 @@ period.
 
 no: a leaked goroutine is a liveness and resource defect; the client's `GetStream` spec gives the
 caller's thread token to the goroutine and returns it only for a drained stream
-(`Spec/go_etcd_io/etcd/client/v3/kv__GetStream.lean`, its margin), so a proof that bounds threads
+(`SpecPlan/Spec/go_etcd_io/etcd/client/v3/kv__GetStream.lean`, its margin), so a proof that bounds threads
 (Kubernetes' store) must drain every stream it opens or account for the lost token.
 
 ## Notes

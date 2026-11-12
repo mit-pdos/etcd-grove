@@ -1,6 +1,6 @@
 # R-A11-bbolt: re-review after the repairs (2026-11-09)
 
-Reviewer: fresh and independent, read-only. Area A11: batch 4c (`Spec/go_etcd_io/bbolt/`, `errors/`,
+Reviewer: fresh and independent, read-only. Area A11: batch 4c (`SpecPlan/Spec/go_etcd_io/bbolt/`, `errors/`,
 `examples/specreq/bbolt/`) and batch 4d (`internal/{common,freelist}/`, `examples/specreq/bboltinternal/`).
 Base: `1aa6fc1337`. HEAD: `974e05095b`. Go: bbolt `743299d` (`.lake/src/bbolt`), etcd `a4d2bb17`.
 OsFs: `GooseLang/Ext/OsFs/{Impl,Crash}.lean`. I wrote the verdicts below before I read

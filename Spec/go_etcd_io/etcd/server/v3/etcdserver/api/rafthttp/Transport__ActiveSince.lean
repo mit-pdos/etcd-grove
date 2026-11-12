@@ -1,19 +1,9 @@
 /-
-## `(*Transport).ActiveSince(id)`
-
-**Users.** etcd's `mayRemoveMember` (`server.go:1655`), `isConnectedSince`/`longestConnected` (`server/etcdserver/util.go:53,92`): health heuristics for member removal, leader transfer and promotion. Snippet: `transport.go` (`ReqConnected`).
-
-**Proof sketch.** `RLock` with the token; the peer's `activeSince` (`peerStatus` under its mutex); `RUnlock`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** The value is not related to any connection fact: the callers use it only for heuristics that refuse an operation or pick a target.
+`(*Transport).ActiveSince(id)` (`transport.go`; rafthttp stage 6d, 2026-10-24). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
 
 @[expose] public section
 
@@ -21,26 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **When the connection with peer `id` became active** (zero if inactive or unknown): some time. -/
-def Transport.ActiveSince.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ threadTok }}
-    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"ActiveSince")) (Val #pid))
-  {{ (tm : _root_.Perennial.time.Time), RET #tm; threadTok }}
+/-- **`t.ActiveSince(id)`** on a started transport (`trState`; D43 M5c, until then a frozen one:
+the peer is read under the lock, which `AddPeer`/`RemovePeer` write under), from any goroutine: some time (the zero time
+if no peer of `id` is added or it is not connected). It looks `id` up in `t.peers` under the read
+lock and asks the peer's status (`peerStatus.activeSince`, under the status's lock). The read lock
+is taken without one of the lock's reader tokens (`trTok`): the server's request path calls it
+(`isConnectedSince`), from any number of goroutines, at most `2^30 - 1` of them at once,
+physically (as `netProcSlots`). -/
+abbrev rafthttp.Transport.ActiveSince.spec : Prop :=
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trState γn t c }}
+    (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"ActiveSince")) (Val #id))
+  {{ (tm : _root_.Perennial.time.Time), RET #tm; True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

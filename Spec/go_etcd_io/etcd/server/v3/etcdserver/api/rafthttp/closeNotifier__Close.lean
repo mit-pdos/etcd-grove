@@ -1,19 +1,9 @@
 /-
-## `(*closeNotifier).Close()`
-
-**Users.** the stream writer (`closeUnlocked`), `peer.attachOutgoingConn`.
-
-**Proof sketch.** `close(done)` with the right (the channel's close payload: the handler's response writer).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`closeNotifier.Close` (`http.go`; rafthttp stage 5e-2). Lean-first; the notifier: `rafthttp/CloseNotifier.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.CloseNotifier
 
 @[expose] public section
 
@@ -21,26 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Closes the notifier (once). -/
-def closeNotifier.Close.spec : Prop :=
-  ∀ (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ cnAt n ∗ cnCloseRight n }}
-    (App (Val (n @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier.ty @!! go!"Close")) (Val #()))
-  {{ RET #interface.nil; True }}
+/-- **`n.Close()`** with the right to close it and `P`: closes `done`, handing `P` over. -/
+abbrev rafthttp.closeNotifier.Close.spec : Prop :=
+  ∀ (n : Loc) (γ : GName) (P : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      cnClose n γ P ∗ P }}
+    (App (Val (n @!! go.GoType.PointerType rafthttp.closeNotifier.ty @!! go!"Close")) (Val #()))
+  {{ RET #GoInterface.nil; True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

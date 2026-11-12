@@ -1,10 +1,7 @@
 /-
-`tx.Stats()` (`tx.go`): a copy of the transaction's statistics (atomic loads).
-
-**Users.** The backend after `Commit` (`batch_tx.go:294-296`: `t.tx.Stats().RebalanceTime`, ...).
-Snippet: `ReqBackendBatch`. **Proof sketch.** The statistics live in the `*Tx` until it is
-collected; `txDone`/`boltTx` own a read share of them. **Changes.** Unchanged (either a live or a
-done transaction). **Margin.** The values are not described.
+`Tx.Stats` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/Tx__Stats.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -16,31 +13,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.Stats()`, live or done: some statistics. -/
-def Tx.Stats.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (o : Option (Qp × TxView)),
-  {{ (match o with
-      | none => txDone (GF := GF) tx
-      | some (q, T) => boltTx tx γ q T) }}
+/-- `tx.Stats()` of a finished transaction: some statistics (a non-atomic copy of counters the
+transaction's operations updated atomically: no operation is left once it is done). -/
+abbrev Tx.Stats.spec : Prop :=
+  ∀ [HasExt osFsExt] (tx : Loc),
+  {{ txDone (GF := GF) tx }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Stats")) (Val #()))
-  {{ (s : TxStats), RET #s;
-      (match o with
-       | none => txDone tx
-       | some (q, T) => boltTx tx γ q T) }}
+  {{ (s : TxStats), RET #s; True }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

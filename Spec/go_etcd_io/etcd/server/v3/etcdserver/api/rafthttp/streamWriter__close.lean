@@ -1,19 +1,10 @@
 /-
-## `(*streamWriter).close()`
-
-**Users.** `streamWriter.run`.
-
-**Proof sketch.** `Lock`, `closeUnlocked`, `Unlock`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*streamWriter).close` (`stream.go`; rafthttp stage 5b). Lean-first; the writer's predicates:
+`rafthttp/Writer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Writer
 
 @[expose] public section
 
@@ -21,26 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) `closeUnlocked` under the lock. -/
-def streamWriter.close.spec : Prop :=
-  ∀ (cw : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ swRun cw }}
-    (App (Val (cw @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter.ty @!! go!"close")) (Val #()))
-  {{ (b : Bool), RET #b; swRun cw }}
+/-- **`cw.close()`** (by `run`, with its halves): `closeUnlocked` under `mu`. -/
+abbrev rafthttp.streamWriter.close.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (Rr : IProp GF) (cw : Loc) (mc : GoChan)
+    (wk : Bool) (cl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      swFixed Rh ty lid pid Rr cw ∗ swRunOwn Rh ty lid pid cw mc wk cl ∗
+      (if wk then iprop(closeRight cl Q ∗ Q) else iprop(True)) }}
+    (App (Val (cw @!! go.GoType.PointerType rafthttp.streamWriter.ty @!! go!"close")) (Val #()))
+  {{ (b : Bool), RET #b; ⌜b = wk⌝ ∗ ∃ mc' : GoChan, swRunOwn Rh ty lid pid cw mc' false cl }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

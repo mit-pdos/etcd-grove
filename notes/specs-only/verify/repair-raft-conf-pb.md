@@ -1,7 +1,7 @@
 # Repair: group `raft-conf-pb` (tracker, quorum, confchange, raftpb)
 
 Repair round after the verification round (2026-11-09), per `notes/specs-only/repair-brief.md`.
-Files owned: `Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange,raftpb}/`,
+Files owned: `SpecPlan/Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange,raftpb}/`,
 `examples/specreq/{raftconf,raftpb}/`. Reports worked from: `A5-raft-log-conf-pb-provability.md`
 (R4 and 3h parts), `A5-raft-log-conf-pb-completeness.md` (R4 and 3h parts), and
 `A4-raft-node-core-completeness.md` (no finding there is about R4's files; its F1 to F5 are R1's).
@@ -25,7 +25,7 @@ Files owned: `Spec/go_etcd_io/raft/v3/{tracker,quorum,confchange,raftpb}/`,
   - `Changer.apply`'s block comment now has a Proof sketch that cites it, and a `Changes:
     verify-round` line. File: `confchange/Changer__apply.lean`.
   - **Fixed differently**: the old tree's general `Spec/fmt/Errorf.lean` (`argsOk`,
-    `stringMethodSpec`) was not restored, because `Spec/fmt/` is client-core's. The local spec does
+    `stringMethodSpec`) was not restored, because `SpecPlan/Spec/fmt/` is client-core's. The local spec does
     not need `ConfChangeType.String`'s spec either: under `%d` Go calls no method.
 - **F3 (`ConfState.Equivalent`'s mismatch branch)**: fixed by the same `fmtErrorf.spec`, with four
   `FmtArg.confState` arguments (the two clones at `own 1`, the inputs at their fractions). This
@@ -162,15 +162,15 @@ posts, no decoded or cloned message reaches `Step`.
 
 ## Requests to client-core (optional)
 
-- If `Spec/fmt/` gains a general boundary `fmt.Errorf` (the old `argsOk` with
+- If `SpecPlan/Spec/fmt/` gains a general boundary `fmt.Errorf` (the old `argsOk` with
   `stringMethodSpec`, or the Perennial change below), raftpb's `fmtErrorf.spec` can become an
   instance of it.
 
 ## New decisions
 
 - **`fmt.Errorf` with non-`ArgsWf` arguments is a raftpb-local assumed spec.** The old tree had a
-  general `Spec/fmt/Errorf.lean` (arguments whose `Error`/`String` have a "returns some string"
-  spec). On this branch `Spec/fmt/` is client-core's. I made a narrow local one instead: raftpb
+  general `SpecPlan/Spec/fmt/Errorf.lean` (arguments whose `Error`/`String` have a "returns some string"
+  spec). On this branch `SpecPlan/Spec/fmt/` is client-core's. I made a narrow local one instead: raftpb
   enums (any verb) and held `*ConfState`s (any verb, read only). The general fix is a Perennial
   change: widen `ArgsWf` to named integer types under `%d`, and to pointer arguments read by
   reflection. It is recorded in the header for `notes/perennial-changes.md`.
@@ -188,7 +188,7 @@ posts, no decoded or cloned message reaches `Step`.
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3/{raftpb,quorum,tracker,confchange}`:
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3/{raftpb,quorum,tracker,confchange}`:
 **OK (127 modules)**, no warning in these files. The importers in other groups' directories were not
 rebuilt here (`msgFields` keeps its meaning; `ProgressTracker.ConfState`'s post changed predicate,
 which only raft-core's sketches cite).

@@ -1,29 +1,23 @@
 /-
-`(*applierV3backend).ClusterMemberAttrSet(r, shouldApplyV3)` (`backend.go:287-296`): the member's name and client URLs set (`RaftCluster.UpdateAttributes`).
-
-**Users.** `uberApplier.dispatch` (through the outer layers' promoted methods), in both modes.
-
-**Proof sketch.** 2e's `RaftCluster.UpdateAttributes.spec` with the caller's update (`memberUpd`) and the backend's member buckets (`beView`, inside `stAt`: moved with `shouldApplyV3`).
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** None.
+`apply.applierV3backend.ClusterMemberAttrSet` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,17 +26,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **A member's attributes published**: the view by the caller's update; the model's members with `shouldApplyV3`. -/
-def applierV3backend.ClusterMemberAttrSet.spec : Prop :=
-  ∀ (p rq : Loc) (v3 : Bool) (id : Nat) (name : GoString) (urls : List GoString) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF)
-    (σ : State) (Qm : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ beAt p mc γ γc R ∗ stAt p σ ∗ reqMsgAt rq (.memberAttrSet id name urls) ∗
-      memberUpd γc (.memberAttrSet id name urls) Qm ∗ threadTok }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"ClusterMemberAttrSet")) (Val #rq)) (Val #v3))
-  {{ RET #(); Qm ∗ threadTok ∗ stAt p (if v3 then publish σ id name urls else σ) }}
+/-- **`a.ClusterMemberAttrSet(r, shouldApplyV3)`** of a member of the rest state's `mem` (the cluster's `UpdateAttributes` panics on an id neither a member nor removed; the cluster-rows stage, 2026-11-02): the cluster's `UpdateAttributes` with the member's name and client URLs (a critical section, or none). -/
+abbrev apply.applierV3backend.ClusterMemberAttrSet.spec : Prop :=
+  ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (mm : MemberAttrModel) (rs : apply.RestM)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      apply.memberAttrSetIs r mm ∗ ⌜(rs.mem.lookup mm.memberID).isSome = true⌝ ∗
+      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗
+      E.RO rs }}
+    (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"ClusterMemberAttrSet")) (Val #r)) (Val #v3))
+  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post ∗
+      E.RO (apply.restUpdateAttrs v3 mm rs) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

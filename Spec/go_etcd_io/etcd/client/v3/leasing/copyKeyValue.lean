@@ -1,10 +1,9 @@
 /-
-`copyKeyValue` (`util.go`): a fresh copy of a key-value (its value dropped if `keysOnly`).
-Changes: over W0's `keyValueOwn`.
+`copyKeyValue(kv, keysOnly)` (`client/v3/leasing/util.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -12,27 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-def copyKeyValue.spec : Prop :=
-  ∀ (kv : Loc) (dq : DFrac) (m : KeyValueM) (keysOnly : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ keyValueOwn kv dq m }}
-    (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.copyKeyValue)) (Val #kv)) (Val #keysOnly))
-  {{ (ret : Loc), RET #ret; keyValueOwn kv dq m ∗
-      keyValueOwn ret (DFrac.own 1) { m with value := if keysOnly then [] else m.value } }}
+/-- **`copyKeyValue(kv, keysOnly)`** of a cached key-value (read on any fraction): a fresh copy
+(fresh key and value slices), the value dropped if `keysOnly`. -/
+abbrev copyKeyValue.spec : Prop :=
+  ∀ (c : CachedKv) (dq : DFrac) (keysOnly : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ cachedKvOwn c dq }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.leasing.copyKeyValue)) (Val #c.p)) (Val #keysOnly))
+  {{ (p : Loc), RET #p; cachedKvOwn c dq ∗ ∃ c' : CachedKv,
+      ⌜c'.p = p ∧ c'.kv = (if keysOnly then { c.kv with value := [] } else c.kv)⌝ ∗
+      cachedKvOwn c' (DFrac.own 1) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

@@ -1,24 +1,8 @@
-/-
-## `JointConfig.CommittedIndex(l)`
-
-**Users.** `ProgressTracker.Committed` (`tracker.go:162`, with the tracker's `matchAckIndexer`:
-`raft.maybeCommit`, R2), `readOnly.maybeAdvance` (`read_only.go:81`, with the `readOnly` itself:
-R3). Snippet `raftconf/quorum.go` (`ReqJointCommitted`, `ReqEmptyHalf`).
-
-**Proof sketch.** `c[0].CommittedIndex(l)`, `c[1].CommittedIndex(l)` (the half specs, `P` threaded
-through both), the smaller (`JointIdx`).
-
-**Changes** (from `specs-ref`'s `quorum/JointConfig__CommittedIndex.lean`): over `jointConfigOwn`
-(R3's provisional predicate, now this package's) and `JointIdx` (R3's relation, now this
-package's).
-
-**Margin.** None.
--/
+/- Port of election_proof/spec_JointConfig__CommittedIndex.v (feb5c73d4); general since
+2026-10-13 (reconfiguration stage A1), Lean-first. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -26,29 +10,52 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Quorum
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.quorum.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The largest index a strict majority of each half acknowledged (`JointIdx`). -/
-def JointConfig.CommittedIndex.spec : Prop :=
-  ∀ (p : Loc) (dqp : DFrac) (c : go_etcd_io.raft.v3.quorum.JointConfig) (dq : DFrac)
-    (s0 s1 : GSet w64) (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ p ↦{dqp} c ∗ jointConfigOwn c dq s0 s1 ∗ isAckedIndexer l P acked ∗ P ∗
-      ⌜GMap.size s0 ≤ sortMax ∧ GMap.size s1 ≤ sortMax⌝ }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.quorum.JointConfig.ty @!! go!"CommittedIndex")) (Val #l))
-  {{ (N : w64), RET #N; p ↦{dqp} c ∗ jointConfigOwn c dq s0 s1 ∗ P ∗
-      ⌜JointIdx s0 s1 (fun v => (acked v).getD (W64 0)) N⌝ }}
+/-- `c.CommittedIndex(l)` for the joint config (`quorum.JointConfig.CommittedIndex.impl`,
+`Code/go_etcd_io/raft/v3/quorum.lean`; joint.go:50):
+
+    idx0 := c[0].CommittedIndex(l)
+    idx1 := c[1].CommittedIndex(l)
+    if idx0 < idx1 { return idx0 }               // exit 1
+    return idx1                                  // exit 2
+
+No panic. Calls: `MajorityConfig.CommittedIndex` twice; the indexer's `AckedIndex` is
+reached from inside it, through the interface, by the caller-supplied contract
+`isAckedIndexer` (`InvTracker.lean`) -- the indexer is arbitrary, with the resource `P`
+it needs, which comes back.
+
+**General since 2026-10-13** (reconfiguration stage A1): the receiver is any `*JointConfig`
+`c` (read at any fraction; a value receiver), its halves `v0`, `v1` id sets `nil` or maps
+(`ownIdsetQ`). The result is `JCommittedIdx`: the smaller of the two halves' answers, each
+`MaxUint64` for an empty half and otherwise the quorum index of `(acked v).getD 0` over it
+(`MajIdx`, `IsQuorumIndex`); a voter the indexer does not know counts `0`. Until then the
+configuration was simple (`a = [m0, nil]`); that statement was
+`quorum.JointConfig.CommittedIndex.spec_simple`; it had no caller and is gone (2026-10-17).
+(Until 2026-10-04 this was stated for the tracker's receiver and indexer only.) -/
+abbrev quorum.JointConfig.CommittedIndex.spec : Prop :=
+  ∀ (c : Loc) (dqc : DFrac) (a : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64)
+    (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64),
+  a.arr = [v0, v1] →
+  (GMap.size s0 : Int) ≤ 2 ^ 62 → (GMap.size s1 : Int) ≤ 2 ^ 62 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
+      c ↦{dqc} a ∗ ownIdsetQ v0 (DFrac.own 1) s0 ∗ ownIdsetQ v1 (DFrac.own 1) s1 ∗
+      isAckedIndexer l P acked ∗ P }}
+    (App (Val (c @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"CommittedIndex"))
+      (Val #l))
+  {{ (N : w64), RET #N;
+      c ↦{dqc} a ∗ ownIdsetQ v0 (DFrac.own 1) s0 ∗ ownIdsetQ v1 (DFrac.own 1) s1 ∗ P ∗
+      ⌜JCommittedIdx s0 s1 (fun v => (acked v).getD (W64 0)) N⌝ }}
 
 end spec
-end Quorum
+
 end EtcdGrove
 end Perennial

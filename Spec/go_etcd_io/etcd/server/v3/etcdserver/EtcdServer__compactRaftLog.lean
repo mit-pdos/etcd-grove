@@ -1,31 +1,11 @@
 /-
-`(*EtcdServer).compactRaftLog(snapi)` (`server.go:2162-2194`): unless a merged snapshot is in flight,
-compact the `MemoryStorage` up to `snapi - SnapshotCatchUpEntries` (at least `1`).
-
-**Users**: `snapshotIfNeededAndCompactRaftLog` (`server.go:1248`). Snippet `snapshot.go`
-(`ReqSnapshotCompact`).
-
-**Proof sketch**. `inflightSnapshots.Load()` (an atomic, any value); `compacti ≤ snapi`;
-`raftStorage.Compact(compacti)` (R1's `MemoryStorage.Compact.spec` through `stor_compact`, with
-`appliedLb n compacti` from `nodeAdvanced r snapi` and `storSnapLb n compacti` from `nodeSnapLb r
-snapi`, `appliedLb_mono`/`storSnapLb_mono`): `ErrCompacted` returns (already compacted further);
-compacting past the last index is excluded by the update's precondition (raft's invariant: the
-applied index is in the log), so `lg.Panic` is unreachable. This is the fork's fix of
-`issues/etcd-compact-past-raft-applied.md`: `applyAll` waits for `raftAdvancedC` first.
-
-**Changes** from `specs-ref`'s spec (the storage's key `nk`, `memStorInv`, `nodeAppliedLb`): over
-`nodeAdvanced`/`nodeSnapLb`; no apply-thread token needed. **Margin**: none.
-
-Changes: verify-round: takes and gives back the thread's `threadTok` (A7-provability F2: `s.Logger()`, `createMergedSnapshotMessage`, `newSnapshotReaderCloser` take one). `run`'s is the fresh token of `start`'s `go s.run()` (Perennial's `wp_fork_tok_body`); the apply jobs' is the scheduler worker's, lent to each job (`Schedule.funcOk`). (Superseded by re-review RR1, below.)
-
-Changes: re-review (RR1): takes `srvStarted s γ id` (persistent; its callers `applyAll`, `apply`, `snapshotIfNeededAndCompactRaftLog` hold it): `s.Cfg.SnapshotCatchUpEntries` (`server.go:2177-2178`), which `start` defaults, is read-only from then on (`srvStarted`'s), `Logger` over `srvFields` (`srvNode_fields`).
+`s.compactRaftLog(snapi)` (`server.go`). Lean-first (no Rocq counterpart); the request path's
+unit 4b (2026-10-13); the trust boundary (names-only) until 2026-10-26, now translated and proved.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
+public import Proof.go_etcd_io.raft.v3.MemstorageApi
 
 @[expose] public section
 
@@ -33,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -43,21 +22,48 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Compact the raft log below a snapshot** at an index raft has applied. -/
-def EtcdServer.compactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (snapi : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvNode s γ id ∗ srvStarted s γ id ∗
-      nodeAdvanced (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
-        (uint.nat snapi) ∗
-      nodeSnapLb (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
-        (uint.nat snapi) ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"compactRaftLog")) (Val #snapi))
-  {{ RET #(); threadTok }}
+/-- (2026-10-30, the repair) **The compaction index** `compactRaftLog` computes from `snapi` and
+`SnapshotCatchUpEntries` `scu`: `snapi - scu` past `scu`, else `1`. -/
+def compactIdx (snapi scu : w64) : Nat :=
+  if uint.Z scu < uint.Z snapi then uint.nat snapi - uint.nat scu else 1
+
+/-- `s.compactRaftLog(snapi)` (it compacts the `MemoryStorage`'s log below `snapi`, keeping
+`SnapshotCatchUpEntries`, unless a snapshot is in flight) returns, with the logger's reader slot
+given back, and the storage compacted to the compaction index (`compactIdx`) or not at all (a
+snapshot in flight).
+
+(2026-10-30, the repair: raft's two-writer `MemoryStorage` specs, R1) The compaction is
+`MemoryStorage.Compact(compacti)`, over `Compact.spec`'s premises at the server's justifications
+(`memStorInv`, `memStorJ`): the storage's stored snapshot past `snapi` (`memSnapLb`, which
+`snapshot`'s `CreateSnapshot` gave), its entry at the compaction index frozen or already compacted,
+and the node's applied index past `snapi` (`nodeAppliedLb`, `J.B`'s: the `raftAdvancedC` close
+reports it). `ErrCompacted` is returned on. `1 ≤ snapi`: the snapshot trigger fires only past index
+`0`. (Until the repair: the application's shared snapshot token, D22 J4, and the storage's floor
+and cap.)
+
+(D22 S-h, 2026-10-20) **The in-flight skip**: it first reads `s.inflightSnapshots` (`srvInflight`)
+and returns at once, compacting nothing, while it is not `0`. (2026-10-19, D21 M3)
+`SnapshotCatchUpEntries` is `scu` (read-only). (2026-10-26, its body translated) The logger's cell
+`s.lg` (`l`, not `nil`). -/
+abbrev EtcdServer.compactRaftLog.spec : Prop :=
+  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (γr : SrvRaft) (K : GName)
+    (scu : w64) (l : Loc),
+  1 ≤ uint.Z snapi →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLgReader s ∗
+      srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗
+      srvInflight s ∗
+      rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+      (letI : MemStorReg GF := ⟨γr.reg⟩
+       iprop(memStorInv ms γs γr.cl K ∗ nodeAppliedLb γr.cl K (uint.nat snapi))) ∗
+      memSnapLb γs (uint.nat snapi) ∗
+      ((∃ e, memLog γs (compactIdx snapi scu) DFrac.discard [e]) ∨
+        memCompacted γs (compactIdx snapi scu)) ∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"compactRaftLog")) (Val #snapi))
+  {{ RET #(); srvLgReader s }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

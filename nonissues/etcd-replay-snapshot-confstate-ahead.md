@@ -31,7 +31,7 @@ rebuilds the configuration from the backend again.
 ## Proof
 
 no: raft's node API takes a snapshot's configuration at any committed point at or after its index
-(`Spec/go_etcd_io/raft/v3/Api.lean`, `snap_make.spec`; a node installing it takes that
+(`SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean`, `snap_make.spec`; a node installing it takes that
 configuration and re-applies nothing below it), so etcd's snapshot is admitted. Whether raft's own
 proof can carry a configuration ahead of the log is R2's obligation, and an open question for the
 user (`notes/specs-only/batch-R1.md`, round 1).

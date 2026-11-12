@@ -1,14 +1,12 @@
 /-
-## `Interface.NoSyncReload(ids)` (`shared.go`)
-
-**Users.** tx.go:343 (`rollback` without a synced freelist: `db.freepages()`, the pages no committed tree reaches); `Reload` (internal). Snippet `ReqRollback`.
-**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; a map of the pending ids, the ids filtered into a new slice, `Init` (sorted, so the hash map's check passes).
-**Changes.** from `specs-ref`'s `Interface__NoSyncReload.lean`: over `FLState`; the slice is only read; the old premise for the hash map kept (round 1, F1).
-**Margin.** none: the post is what the code computes.
+`Interface.NoSyncReload` (bbolt/internal/freelist, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U2; used by U10 (`rollback` without a synced freelist). Proof:
+`Proof/go_etcd_io/bbolt/internal/freelist/Interface__NoSyncReload.lean` (a `sorry` until U2).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.freelist.Api
+public import Proof.go_etcd_io.bbolt.Inv.Freelist
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,30 +14,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Freelist
+namespace bbolt
+namespace internal
+namespace freelist
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common BboltCommon
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common go_etcd_io.bbolt.internal.freelist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The contract of `NoSyncReload` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.NoSyncReload(ids)`: the free pages are `ids` (strictly increasing, from 2 on) but the pending ones; `ids` is only read. The hash map's `Init` returns before its reindex when the new ids are empty, so its `cache` would keep the old free ids (`Freed` true, `Free` panicking): the premise (the ids left after the pending ones are dropped are not empty, or no page was free) excludes it (`nonissues/bbolt-hashmap-init-empty-stale-cache.md`). -/
-def Interface.NoSyncReload.contract (fl : GoInterface) (f : Expr) : Prop :=
-  ∀ (F : FLState) (s : GoSlice) (ids : List Pgid) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flOwn fl F ∗ s ↦*{dq} ids ∗
-      ⌜idsOk ids ∧ (ids.filter (fun x => decide (x ∉ F.pending)) ≠ [] ∨ F.free = GMap.empty)⌝ }}
-    (App f (Val #s))
-  {{ RET #(); flOwn fl (F.reload ids) ∗ s ↦*{dq} ids }}
-
-/-- `f.NoSyncReload(ids)`: the free pages are `ids` (strictly increasing, from 2 on) but the pending ones; `ids` is only read. The hash map's `Init` returns before its reindex when the new ids are empty, so its `cache` would keep the old free ids (`Freed` true, `Free` panicking): the premise (the ids left after the pending ones are dropped are not empty, or no page was free) excludes it (`nonissues/bbolt-hashmap-init-empty-stale-cache.md`). Through the interface (`flCall`): proved from `array.NoSyncReload.spec`, `hashMap.NoSyncReload.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
-def Interface.NoSyncReload.spec : Prop := ∀ fl, Interface.NoSyncReload.contract (GF := GF) fl (flCall fl go!"NoSyncReload")
+/-- `f.NoSyncReload(ids)` of increasing ids (`freepages`'): the free ids are `ids` but the
+pending ones (`FLPg.noSyncReload`); `ids` only read.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics).
+The premises ids at least 2, the length bound with the pending ids (else the result is not
+`FLPg.WF`) and `(fl.noSyncReload ids).free ≠ [] ∨ fl.free = []` (`hashMap.Init` of no ids keeps
+the old cache) are U2's fix: false without them. -/
+abbrev Interface.NoSyncReload.spec : Prop :=
+  ∀ (fli : GoInterface) (fl : FLPg) (s : GoSlice) (ids : List w64) (dq : DFrac),
+  PgidsIncr ids → (∀ x ∈ ids, 2 ≤ x.toNat) → ids.length + fl.pendingIds.length < 2 ^ 63 →
+  ((fl.noSyncReload ids).free ≠ [] ∨ fl.free = []) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl ∗
+      s ↦*{dq} ids }}
+    (App (ifaceCall fli go!"NoSyncReload") (Val #s))
+  {{ RET #(); flPgOwn fli (fl.noSyncReload ids) ∗ s ↦*{dq} ids }}
 
 end spec
 
-end Freelist
+end freelist
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

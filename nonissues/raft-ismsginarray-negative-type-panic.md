@@ -15,7 +15,7 @@ returning `false`.
 
 **Why not an issue:** found by code reading, no test; unreachable through etcd: a message decoded
 from the wire has a known type (raftpb is proto2 with a closed enum), and raft's own messages carry
-its constants. The specs take `0 ≤ msgt` as a premise (`Spec/go_etcd_io/raft/v3/isMsgInArray.lean`;
+its constants. The specs take `0 ≤ msgt` as a premise (`SpecPlan/Spec/go_etcd_io/raft/v3/isMsgInArray.lean`;
 R1's `IsLocalMsg`/`IsResponseMsg`).
 
 ## Proof

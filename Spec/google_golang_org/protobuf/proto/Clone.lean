@@ -1,29 +1,13 @@
 /-
-`proto.Clone(m)` (protobuf-go, assumed: `proto/merge.go`).
-
-Users: the client's `cloneCompare` (`compare.go:193`, W0), raft's `raftLog.snapshot`,
-`unstable.restore`, `nextUnstableSnapshot` (`log.go:295`, `log_unstable.go:114,196`, R3), etcd's
-`raft.go:228,231`, `bootstrap.go:470`, `snapshot_merge.go:48` (2d, 2e: snapshots and `ConfState`s).
-
-Why true: `Clone` allocates a new message of the same type and merges the source into it: a deep
-copy (every submessage and byte slice new), recursing per level; it reads the source only. The
-merge copies only populated fields (`mergeBytesNoZero` skips an empty proto3 `bytes` field, a
-repeated field is appended to a `nil` one), so the copy holds the source's wire view `norm c`, not
-`c` itself when `c` has a non-`nil` empty field.
-
-Changes: from `specs-ref/.../proto/{Clone,ClonePb,CloneEntry,CloneSnapshot,CloneConfState}.lean`:
-one spec over `msgAt`; the result's owner relation law gives each caller its model back.
-verify-round (raft-conf-pb's request, A5-compl F4): the copy is `mergeDst` (freshly allocated:
-its slices owned to capacity; `mergeDst_msgAt` gives the old `msgAt (own 1)`).
-verify-round (A6 F2): the copy holds `norm c` (the content is no longer up to `proto.Equal`); an
-owner whose model does not distinguish a `nil` from an empty field states `xModels c m →
-xModels (norm c) m` (3h's `holds_norm`; requested of raft-conf-pb and the snapshot owners).
-
-Margin: none (a `nil` message, which `Clone` returns as `nil`, is not specified: no user).
+`proto.Clone`: the trust boundary (protobuf's `proto` is names-only), a case per message type
+cloned: `clientv3`'s `*pb.Compare` (`cloneCompare`), and the server's raft wrapper's nil
+`*raftpb.Snapshot` (raft v3.7's; 2026-10-12). Lean-first (no Rocq counterpart); see
+`InvCmp.lean`.
 -/
 module
 
-public import Spec.google_golang_org.protobuf.proto.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvCmp
+public import Code.go_etcd_io.raft.v3.raftpb
 
 @[expose] public section
 
@@ -31,28 +15,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Proto
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : google_golang_org.protobuf.proto.Assumptions]
 
-/-- `proto.Clone(m)` of a message holding `c` (any fraction, given back): a fresh message of the same
-type holding `c`, owned. -/
-def Clone.spec : Prop :=
-  ∀ (t : go.GoType) (p : Loc) (dq : DFrac) (c : Content),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msgAt t p dq c ∗ ⌜depth c < depthMax⌝ }}
-    (App (Val (@! google_golang_org.protobuf.proto.Clone)) (Val #(msgVal t p)))
-  {{ (v : GoInterface), RET #v; msgAt t p dq c ∗
-      ∃ p' : Loc, ⌜v = msgVal t p'⌝ ∗ mergeDst t p' (norm c) }}
+/-- `proto.Clone(c)` of a `*pb.Compare` holding `m` (as a `proto.Message`): a deep copy, a fresh
+`*pb.Compare` holding `m`, owned (`compareOwn`). Of a nil `*raftpb.Snapshot` (an invalid
+message): a nil `*raftpb.Snapshot` (protobuf: "if the top-level message is invalid, it returns
+an invalid message as well"). -/
+abbrev proto.Clone.spec : Prop :=
+  (∀ (p : Loc) (m : CmpModel),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ compareAt p m ∗
+        ⌜p ≠ null⌝ }}
+      (App (Val (@! google_golang_org.protobuf.proto.Clone))
+        (Val #(interface.mkOk (go.GoType.PointerType etcdserverpb.Compare.ty) #p)))
+    {{ (p' : Loc), RET #(interface.mkOk (go.GoType.PointerType etcdserverpb.Compare.ty) #p');
+        ⌜p' ≠ null⌝ ∗ compareOwn p' m }}) ∧
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto }}
+    (App (Val (@! google_golang_org.protobuf.proto.Clone))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.Snapshot.ty)
+        #(null : Loc))))
+  {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.Snapshot.ty)
+      #(null : Loc)); True }}
 
 end spec
 
-end Proto
 end EtcdGrove
 end Perennial

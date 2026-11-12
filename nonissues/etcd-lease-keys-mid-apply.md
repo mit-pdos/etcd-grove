@@ -38,7 +38,7 @@ lease on the leader refreshes its object's expiry, and `Demoted()` is then false
 
 ## Proof
 
-yes: W0's `leaseStep` (`Spec/go_etcd_io/etcd/api/v3/Model.lean`, `.leaseTimeToLive`) says the keys
+yes: W0's `leaseStep` (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, `.leaseTimeToLive`) says the keys
 returned are exactly those attached at some revision `r`; the lessor's `Lease.Keys.spec` (batch 3c)
 answers from a state of the lessor's history, which includes the states between two `Detach`es of
 one entry. W0's step must allow, for an entry from revision `r` to `r'`, any set between

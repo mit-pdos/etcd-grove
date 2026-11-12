@@ -1,17 +1,10 @@
 /-
-`(*EtcdServer).getCommittedIndex()` (`server.go:1710`): an atomic load.
-
-**Users**: `CommittedIndex()`, `ApplyWaitCommit()` (`server.go:629`: leasehttp's wait), the request
-path's gap check (`v3_server.go`, 2c), the ready handler. Snippet: none.
-
-**Proof sketch**: the load in the invariant. **Changes**: over `committedLb`. **Margin**: none.
+`s.getCommittedIndex()` (`server.go`): the committed index's atomic, a lower bound of the ghost committed index. Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 
 @[expose] public section
 
@@ -19,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -29,17 +21,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The committed index**: the cluster has committed that far. -/
-def EtcdServer.getCommittedIndex.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvNode s γ id }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"getCommittedIndex")) (Val #()))
-  {{ (v : w64), RET #v; ∃ l, Raft.committedLb γ.raft l ∗ ⌜uint.nat v ≤ l.length⌝ }}
+/-- `s.getCommittedIndex()`, any goroutine: an index the cluster's committed index has reached
+(`committedAtLeast`; the committed index's invariant, the request path's unit 4b); for the writer
+(`o = some v`, with its half: the ready handler's `updateCommittedIndex`, unit 4c), exactly `v`. -/
+abbrev EtcdServer.getCommittedIndex.spec : Prop :=
+  ∀ (s : Loc) (γr : ReadNames) (o : Option w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvCommittedInv s γr ∗ srvCommittedOwnOpt γr o }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getCommittedIndex")) (Val #()))
+  {{ (v : w64), RET #v; committedAtLeast γr v ∗ srvCommittedOwnOpt γr o ∗
+      ⌜∀ v₀, o = some v₀ → v = v₀⌝ }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

@@ -1,19 +1,11 @@
 /-
-## `redactToken(token)` (assumed: translated names only)
-
-**Users.** `Authenticate`, `AuthInfoFromCtx`, `assignSimpleTokenToUser` (logging).
-
-**Why true.** (`auth/store.go:1249`, untranslated: `crypto/sha256`) the first 12 hex digits of the token's SHA-256 (64 digits): no panic.
-
-**Changes.** Unchanged.
-
-**Margin.** None.
+`redactToken` (`server/auth/store.go`): the trust boundary (names only:
+`hex.EncodeToString(sha256.Sum256([]byte(token)))[:12]`; `crypto/sha256` is not translated).
+Lean-first (no Rocq counterpart; unit P2).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 
 @[expose] public section
 
@@ -21,25 +13,23 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`redactToken(tok)`**: some string. -/
-def redactToken.spec : Prop :=
-  ∀ (tok : GoString),
+/-- `redactToken(token)`: some string (the hash's first twelve hex digits). -/
+abbrev auth.redactToken.spec : Prop :=
+  ∀ (token : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.auth.redactToken)) (Val #tok))
+    (App (Val (@! go_etcd_io.etcd.server.v3.auth.redactToken)) (Val #token))
   {{ (s : GoString), RET #s; True }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

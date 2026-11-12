@@ -1,10 +1,10 @@
 /-
-`bb.Len()` (`tx_buffer.go:238`): translated; internal (`sort.Interface`). Changes: unchanged.
-Margin: none.
+`bucketBuffer.Len` (`tx_buffer.go`). `bb.Len()` (`sort.Interface`): the number of entries.
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 
 @[expose] public section
 
@@ -12,26 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`bb.Len()`**: the used count. -/
-def bucketBuffer.Len.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w }}
-    (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"Len")) (Val #()))
-  {{ (n : w64), RET #n; bbAt bb l w ∗ ⌜sint.nat n = l.length⌝ }}
+/-- `bb.Len()` (`sort.Interface`): the number of entries. -/
+abbrev backend.bucketBuffer.Len.spec : Prop :=
+  ∀ (bb : Loc) (es : List Ent),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ownBB bb es }}
+    (App (Val (bb @!! go.GoType.PointerType bucketBuffer.ty @!! go!"Len")) (Val #()))
+  {{ RET #(W64 es.length); ownBB bb es }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

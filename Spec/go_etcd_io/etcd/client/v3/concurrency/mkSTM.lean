@@ -1,22 +1,10 @@
 /-
-`concurrency.mkSTM(c, opts)` (`client/v3/concurrency/stm.go`), internal.
-
-Users: `NewSTM`.
-
-Proof sketch: by the level: a `*stmSerializable` (prefetch map allocated) with the conflicts
-closure of its level (`SerializableSnapshot`: `readSet.cmps` and `writeSet.cmps(first() + 1)`;
-`Serializable`: `readSet.cmps`), or a `*stm` with `WithSerializable()` reads (`RepeatableReads`:
-`readSet.cmps`; `ReadCommitted`: none); the read set and write set `nil` until `reset`
-(`stmStale`). `stmStale`'s realization holds the read permission (`etcdPeek`)
-and the methods' specs (`stm__*`, `stmSerializable__*`).
-
-Changes: from `specs-ref`'s `mkSTM.lean`: over `stmStale`; any context.
-
-Margin: none.
+`concurrency.mkSTM(c, opts)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -24,29 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `mkSTM(c, opts)`: an STM of the options' level (valid: it panics otherwise), between attempts. -/
-def mkSTM.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (dflt who : Principal) (op : Loc)
-    (ov : go_etcd_io.etcd.client.v3.concurrency.stmOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isClient c γ dflt ∗ op ↦□ ov ∗ ⌜isoValid ov.iso'⌝ ∗ Context.ctxOk ov.ctx' ∗ ctxPrin dflt ov.ctx' who ∗
-      etcdPeek γ }}
+/-- `mkSTM(c, opts)`, for a supported level: the STM of that level (a `*stmSerializable` for the
+serializable levels, a `*stm` otherwise) with its client and the options' context, its methods'
+triples, before its first `reset` (`stmStale`). -/
+abbrev mkSTM.spec : Prop :=
+  ∀ (c : Loc) (pfx : GoString) (op : Loc) (ov : stmOptions) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdSTMClient c pfx ∗ op ↦□ ov ∗ context.isContext ctx cs ∗
+      ⌜ov.ctx' = GoInterface.ok ctx ∧ isoValid ov.iso'⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.mkSTM)) (Val #c)) (Val #op))
-  {{ (iv : GoInterface), RET #iv; stmStale iv γ who ov.iso' }}
+  {{ (s : GoInterface), RET #s; ∃ p : Loc, ⌜s = GoInterface.ok (stmIface ov.iso' p)⌝ ∗
+      stmMethods ov.iso' pfx p ∗ stmStale ov.iso' pfx p }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

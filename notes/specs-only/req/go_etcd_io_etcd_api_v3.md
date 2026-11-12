@@ -1,4 +1,4 @@
-# Requirements on the client-observable model and state (`Spec/go_etcd_io/etcd/api/v3/`, batch W0)
+# Requirements on the client-observable model and state (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/`, batch W0)
 
 ## from 1f
 
@@ -27,7 +27,7 @@
 ## from 1b
 
 1. **The watch messages belong with the KV ones** (`Wire.lean`): 1b defined, in
-   `Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`, the models `EventM` (`mvccpb.Event`),
+   `SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`, the models `EventM` (`mvccpb.Event`),
    `WireWatchRespM` (`pb.WatchResponse`), `WireWatchReq` (`pb.WatchRequest`'s create, cancel and
    progress), with `eventOwn` (and `eventOwn_unfold`), `wireWatchRespOwn`, `watchReqOwn`; 2b builds
    them, so they would be better in `api/v3/Wire.lean` (or a `WireWatch.lean` next to it). If W0
@@ -82,7 +82,7 @@
 
 ## from 2c
 
-What the server's request path (2c, `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`) found of
+What the server's request path (2c, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`) found of
 W0's model, against the code:
 
 1. **`leaseKeepAlive` lacks a permission refusal.** `LeaseRenew` runs `checkLeaseRenew`
@@ -226,7 +226,7 @@ need no premise. Used by: those specs; `Count.spec` reads its raw slice the same
 
 ## from 3a
 
-What the apply layer (3a: `Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`) needs of the
+What the apply layer (3a: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`) needs of the
 model, to state the apply of every entry as a `Step` (`irrStep_step`) or an `EnvStep`
 (`irrStep_env`):
 
@@ -283,13 +283,13 @@ Used by: `irrStep_step.spec`, `opStep_userAdd.spec`, `resMatch` (3a's `Api.lean`
 
 ## from 3d
 
-What the auth store's specs (`Spec/go_etcd_io/etcd/server/v3/auth/`) found about W0's auth model,
+What the auth store's specs (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/`) found about W0's auth model,
 checked against `server/auth/store.go` (W0's item 2 asked for it):
 
 1. **`authenticate`'s success must not claim the password is the user's.** bcrypt reads only the
    first 72 bytes of a password (`nonissues/etcd-auth-password-72-byte-prefix.md`: a user with a
    72-byte password authenticates with any extension of it) and hashes collide; the boundary
-   (`Spec/golang_org/x/crypto/bcrypt/`) assumes only that a hash accepts its own password. Needed:
+   (`SpecPlan/Spec/golang_org/x/crypto/bcrypt/`) assumes only that a hash accepts its own password. Needed:
    `authStep .authenticate`'s success allowed whenever the user exists with a password (`∃ ur p,
    a.users name = some ur ∧ ur.password = some p`), the failure (`authFailed`) only when the user is
    absent, password-less, or `p ≠ pw`. Used by: `authStore.CheckPassword.spec` (its success names no

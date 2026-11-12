@@ -1,49 +1,24 @@
 /-
-`apply.Apply(lg, e, uberApply, w, shouldApplyV3)` (`apply.go:27-49`): decode the entry's
-`InternalRaftRequest` (`pbutil.MustUnmarshalMessage`: panics on bytes that do not decode), take its
-id (`ID`, or the header's; `lg.Panic` with neither), ask the wait registry whether anyone waits
-(`w.IsRegistered(id)`), and either call the uber-applier's `Apply` on a wrapper (`SkipRangeExecution`
-for a transaction no one waits for) or, for an unregistered request without side effects (a range,
-a user or role read, the auth status), return `nil`.
-
-**Users.** `EtcdServer.applyEntryNormal` (`server.go:1994`, 2d's `applyEntryNormal.spec`: `ua` the
-server's `s.uberApply`, `w` its `s.w`, a `*wait.list`). Snippets `examples/specreq/apply/apply.go`
-(`ReqApplyWrite`, `ReqApplyReplay`, `ReqApplyNoResult`).
-
-**Proof sketch.** `MustUnmarshalMessage` (4b's `pbutil`, provisional: a fresh message with
-`irrMsgAt p ir` given `irrDecodes e.Data ir`; 2d's `entryAt` gives `e.Data`). `lg.Debug` (`Zap`,
-`zap.Stringer` lazy). The id: `ir.reqId` (`hasId` rules out the panic). `w.IsRegistered(id)` through
-the interface (`w` is a `*list`: 2c's `Wait.list.IsRegistered.spec`, with the waiter fact and the
-thread token; `false` gives `waitDone`). The wrapper allocated (`wrapperAt r ir sk`, `sk = !registered && Txn != nil`). Then the
-caller's method triple (`P` to `Q sk ar`), or `nil` with `P` untouched.
-
-**Changes** from `specs-ref`'s `Apply.lean` (the approved shape of
-`.claude/skills/spec/examples/apply-uber-contract.md`): the request is `Irr` (W0-level), not the old
-`IRRModel`; the wait registry is 2c's `listAt` with its waiter facts (`waitWasReg`/`waitNever` in,
-`waitDone` out), not `waitOk`'s `RD`/`K`/`G`.
-
-**Margin.** None. (Round 1: the waiter's fact `waitWasReg ∨ waitNever` taken, as 2c's
-`list.IsRegistered.spec` needs; its `false` answer's `waitDone` given back for a skipped transaction and
-on the `nil` path, as the approved example's `G ot id`: 2d's `applyEntryNormal` then owes the waiter
-nothing.)
+`apply.Apply` (apply.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/InvUber.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-public import Spec.go_etcd_io.etcd.pkg.v3.wait.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -52,30 +27,38 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **Apply a committed entry through the uber-applier's method**, whose contract (`P` to `Q`) the
-caller gives (`isUber_apply`): the method's result for the decoded request, or `nil` without a call
-for an unregistered request without side effects. The id returned is the request's. -/
-def Apply.spec : Prop :=
-  ∀ (lg ptr : Loc) (k : Nat) (ent : Raft.LogEntry) (ir : Irr) (ua w : GoInterface) (l : Loc)
-    (γw : Wait.WaitNames) (Pw : w64 → GoInterface → IProp GF) (v3 : Bool)
+/-- **`apply.Apply(lg, e, uberApply, w, shouldApplyV3)`, over the uber-applier's contract** (step 6
+of the auth-mode merge, 2026-10-30; `notes/decisions.md`, "Step 6: one `apply.Apply.spec`"). It
+decodes the entry `e`'s request `rq` (the premise: its data decode, `irrDecode`), computes its id
+(`irrId rq = some id`: an id, or a header's), asks the waiter (`w.IsRegistered(id)`, with the
+reader's resource `RD` of the wait, `waitOk`, given back) and then either calls the
+`UberApplier` interface's `Apply` method on a wrapper of `rq` (`irrWrapperIs`) whose skip flag `sk`
+is `!registered && rq.Txn != nil` (so `sk` implies a transaction), or, for an unregistered request
+with no side effects (`noSideEffect`), returns `nil` without calling it.
+The method's contract is the caller's: a triple from `P` to `Q sk ar` at every wrapper of `rq`
+(the uber-applier's own specs give it: `uberApplier.Apply.spec`, `kvSpecL`, `adminSpecL`; the
+corollaries in `ApplyRec.lean`). The result is the method's `ar` with `Q sk ar`, and, for a
+skipping wrapper (`sk = true`), what `IsRegistered`'s `false` told the caller about the id
+(`G ot id`); or `nil` with `G ot id` and `P` back. The id is `rq`'s. -/
+abbrev apply.Apply.spec : Prop :=
+  ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (rq : IRRModel) (id : w64)
+    (RD : IProp GF) (K G : Option GName → w64 → IProp GF) (ot : Option GName)
     (P : IProp GF) (Q : Bool → Loc → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      Zap.isLogger lg ∗ EtcdServer.entryAt ptr k ent ∗ ⌜irrDecodes ent.data ir ∧ ir.hasId⌝ ∗
-      ⌜w = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.list'.ty) #l⌝ ∗
-      Wait.listAt l γw Pw ∗ (Wait.waitWasReg γw ir.reqId ∨ Wait.waitNever γw ir.reqId) ∗ threadTok ∗
+      waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗
       (∃ ui : GoInterfaceOk, ⌜ua = GoInterface.ok ui⌝ ∗
         □ ∀ (r : Loc) (sk : Bool),
-          {{ wrapperAt r ir sk ∗ ⌜sk = true → ir.op.isTxn = true⌝ ∗ threadTok ∗ P }}
+          {{ apply.irrWrapperIs r rq sk ∗ ⌜sk = true → rq.txn.isSome = true⌝ ∗ P }}
             (App (App (Val #(methods ui.ty go!"Apply" ui.v)) (Val #r)) (Val #v3))
-          {{ (ar : Loc), RET #ar; threadTok ∗ Q sk ar }}) ∗ P }}
+          {{ (ar : Loc), RET #ar; Q sk ar }}) ∗ P }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
-      (Val #lg)) (Val #ptr)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id : w64), RET (PairV #ar #id); threadTok ∗ ⌜id = ir.reqId⌝ ∗
-      ((∃ sk : Bool, Q sk ar ∗ (⌜sk = false⌝ ∨ Wait.waitDone γw ir.reqId)) ∨
-       (⌜ar = null ∧ ir.op.noSideEffect = true⌝ ∗ Wait.waitDone γw ir.reqId ∗ P)) }}
+      (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
+  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ ⌜id' = id⌝ ∗
+      ((∃ sk : Bool, Q sk ar ∗ (⌜sk = false⌝ ∨ G ot id)) ∨
+       (⌜ar = null ∧ apply.noSideEffect rq = true⌝ ∗ G ot id ∗ P)) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

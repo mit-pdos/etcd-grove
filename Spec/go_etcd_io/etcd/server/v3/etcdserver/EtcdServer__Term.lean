@@ -1,17 +1,10 @@
 /-
-## `(*EtcdServer).Term()` (`server.go:1768`)
-
-**Users.** v3rpc's member headers (`member.go:113`).
-
-**Proof sketch.** A read of a read-only field or an atomic load (`srvMember`'s realization).
-
-**Changes** (from `specs-ref`'s `EtcdServer__Term.lean` where it existed): over `srvMember`.
-
-**Margin.** The value is not tied to the model: a member's view may be stale.
+`s.Term()` (`server.go`): `s.getTerm()`.
+Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -19,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,15 +22,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`Term()`**: the raft term (any). -/
-def EtcdServer.Term.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Term")) (Val #()))
+/-- `s.Term()` returns some term (`getTerm`). -/
+abbrev EtcdServer.Term.spec : Prop :=
+  ∀ (s : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Term")) (Val #()))
   {{ (t : w64), RET #t; True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

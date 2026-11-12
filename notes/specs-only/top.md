@@ -1,9 +1,9 @@
 # The top: a linearizable etcd, and the cluster contract (batch W0)
 
 What everything on this branch exists to prove, and what each layer below owes it. The vocabulary:
-`Spec/go_etcd_io/etcd/api/v3/Model.lean` (the model of what a client observes: `State`, `Step`,
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean` (the model of what a client observes: `State`, `Step`,
 `EnvStep`, `Reach`), `State.lean` (`etcdState`, `etcdLb`, `envUpd`, `servesAt`, `errVal`),
-`Wire.lean` (the messages), `Spec/go_etcd_io/etcd/client/v3/Api.lean` (the client's handles and the
+`Wire.lean` (the messages), `SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean` (the client's handles and the
 KV contract, `KV.*Triple`).
 
 ## 1. The linearizability spec

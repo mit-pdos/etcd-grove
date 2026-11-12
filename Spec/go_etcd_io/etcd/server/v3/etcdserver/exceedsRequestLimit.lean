@@ -1,17 +1,10 @@
 /-
-## `exceedsRequestLimit(applied, committed, r, enablePriority)` (`util.go:60-70`)
-
-**Users.** `processInternalRaftRequestOnce` (2c: `ErrTooManyRequests`, a refusal).
-
-**Proof sketch.** Two comparisons against `maxNormalGap`/`maxPriorityGap` (`uint64`, wrapping),
-`isPriorityRequest`.
-
-**Changes**: from `specs-ref`'s `exceedsRequestLimit.lean`. **Margin.** Any answer suffices to the
-caller (a refusal is a `Step`), but the code's is stated: some boolean.
+`exceedsRequestLimit(ai, ci, r, enable)` (`util.go`): the request limit. Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 
 @[expose] public section
 
@@ -19,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,15 +22,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`exceedsRequestLimit`**: some answer (the request path refuses on `true`). -/
-def exceedsRequestLimit.spec : Prop :=
-  ∀ (ai ci : w64) (r : Loc) (b prio : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ irrIsRevoke r b }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit)) (Val #ai)) (Val #ci)) (Val #r)) (Val #prio))
-  {{ (x : Bool), RET #x; True }}
+/-- `exceedsRequestLimit(ai, ci, r, enable)`: `exceedsLimit` (`InvProposer.lean`), the priority
+being a lease revocation. -/
+abbrev exceedsRequestLimit.spec : Prop :=
+  ∀ (ai ci : w64) (p : Loc) (rq : apply.IRRModel) (enable : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ irrNoHdrIs p rq }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit))
+      (Val #ai)) (Val #ci)) (Val #p)) (Val #enable))
+  {{ RET #(exceedsLimit ai ci rq.leaseRevoke.isSome enable); True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

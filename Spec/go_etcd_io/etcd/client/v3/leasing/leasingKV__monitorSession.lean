@@ -1,14 +1,9 @@
 /-
-`(*leasingKV).monitorSession` (`kv.go`): the goroutine `NewKV` starts; while `lkv.ctx` is live, it
-makes a session (`concurrency.NewSession`, 1d) whenever the last one is done, resetting the cache.
-Proof sketch: loop invariant `sessMonitor`; under the cache's write lock it resets `entries` (a new
-map) and replaces `sessionc`; `NewSession(cl, opts...)` (1d's spec over `clientRest`, with `sessOptsAt`, `optCtxOk` and the grants
-and keep-alives fired from `protoUpd`, which `ProtoStep` permits); then sets `session`, closes
-`sessionc` (announcing `sessionReady`). Changes: from `specs-ref`'s `leasingKV__monitorSession.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`lkv.monitorSession()` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -16,27 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `monitorSession()`: runs until the KV's context is done. -/
-def leasingKV.monitorSession.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ sessMonitor lkv γL }}
-    (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"monitorSession")) (Val #()))
+/-- **`lkv.monitorSession()`** (`NewKV`'s goroutine, with the session monitor's resources): until
+`lkv.ctx` is done, makes a fresh entries map (the cache's entries frozen, a step of the cache's
+log), creates a session (`concurrency.NewSession`), sets it and closes `sessionc` under the cache's
+lock, and waits for the session to end. It returns. -/
+abbrev leasingKV.monitorSession.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ sessionMonitor lkv γ }}
+    (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"monitorSession")) (Val #()))
   {{ RET #(); True }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

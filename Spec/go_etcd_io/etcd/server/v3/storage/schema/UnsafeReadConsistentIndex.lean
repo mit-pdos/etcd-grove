@@ -1,26 +1,10 @@
 /-
-## `schema.UnsafeReadConsistentIndex(tx)`
-
-**Users.** `ReadConsistentIndex`; `cindex.UnsafeConsistentIndex` (`cindex.go:107`: `ci.be.ReadTx()`
-without `RLock`, from the post-lock hook, which holds the batch lock: 2d, whose `R` the backend must
-give for that case); `unsafeUpdateConsistentIndex`'s check. Snippet: `examples/specreq/schema/schema.go`
-(`ReqSaveThenRead`).
-
-**Proof sketch.** Loads `Meta` and the key names (`bucketVars_init`, `keyNames_init`);
-`tx.UnsafeRange(Meta, consistent_index, nil, 0)` (`txRd`: the key alone); none: `(0, 0)`; else
-`binary.BigEndian.Uint64(vs[0])` (`ciWf`: eight bytes) and the same for `term`.
-
-**Changes.** From `specs-ref`'s `UnsafeReadConsistentIndex.lean` (`metaReader`/`readCIAUA`, two
-linearizable reads under the old cindex invariant): one view `R V` held across both reads (a read
-transaction's snapshot, or the batch view under its lock), so the pair is consistent.
-
-**Margin.** None.
+`schema.UnsafeReadConsistentIndex(tx)`. Lean-first (no Rocq counterpart); see
+`InvCindex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 
 @[expose] public section
 
@@ -28,26 +12,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **The stored consistent index and term** (`ciOf`: `0` where absent). -/
-def UnsafeReadConsistentIndex.spec : Prop :=
-  ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txRd tx S R ∗ R V ∗ ⌜S.has .metaB ciKey ∧ S.has .metaB termKey⌝ ∗
-      ⌜V .metaB = some m ∧ ciWf m⌝ }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex)) (Val #tx))
-  {{ RET (PairV #(ciOf m).1 #(ciOf m).2); R V }}
+/-- `UnsafeReadConsistentIndex(tx)` reads the index from `tx`'s view and, if it is not 0
+(absent), the term (`readCIAUA`: two linearizable reads, each non-zero value decoded under the
+reader's `Acc` of what it read; 2026-10-13: for the batch transaction's reads, whose slices are
+valid under its lock), returning both. -/
+abbrev schema.UnsafeReadConsistentIndex.spec : Prop :=
+  ∀ (r : GoInterfaceOk) (E : CoPset) (View Acc : MetaCI → IProp GF),
+  ⊢ ∀ Φ : val → IProp GF,
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ metaReader r E View Acc) -∗
+    readCIAUA E View Acc (fun m => Φ (PairV #m.1 #m.2)) -∗
+    WP (App (Val (@! schema.UnsafeReadConsistentIndex)) (Val #(GoInterface.ok r))) {{ Φ }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

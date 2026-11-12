@@ -1,39 +1,24 @@
 /-
-`streamKeyFromCtx(ctx)` (`client/v3/watch.go:1102-1107`): the stream key of a context's outgoing
-metadata (grpc's `metadata.FromOutgoingContext`, `fmt.Sprintf("%+v", ...)`).
-
-Users: `watcher.Watch`, `watcher.RequestProgress` (the key that picks the shared stream),
-`newWatcherGRPCStream` (`wgs.ctxKey`, which `closeStream` deletes). The key matters for the
-principal: a watch that joins a stream another context opened is authenticated as that context's
-principal, which `ctxStreamKey_prin` (`ApiWatch.lean`) equates with the caller's.
-
-Proof sketch: `ctxPrin dflt ctx p`'s realization (W0) gives the context's outgoing metadata
-(`Grpc.outMD ctx md`); `FromOutgoingContext.spec` (2a) gives a copy (`ok = false` only for
-`md = []`); `fmt.Sprintf` of the map (`fmt`'s boundary, a function of the map's model) or `""`:
-`ctxStreamKey ctx k` by its realization (`ApiWatch.lean`).
-
-Changes: from `specs-ref`'s file of the same name: restated over this branch's vocabulary.
-verify-round (A2-provability W2): the post was "some string", which let a watch joining a stream
-another context opened have no fact relating its principal to the stream's; it now gives
-`ctxStreamKey ctx k` (the old tree's `streamKeyOf`, whose laws are now `ctxStreamKey_prin`), and the
-pre takes `ctxPrin` (every caller has it), whose realization carries the metadata.
-
-Margin: mirrors the code (the key's text is not modelled; only what equal keys imply).
+`clientv3.streamKeyFromCtx(ctx)` (`client/v3/watch.go`; names only: grpc's `metadata.FromOutgoingContext` and `fmt.Sprintf` of a map; the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.StreamKey
+public import Proof.context.WatchCtx
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -41,17 +26,23 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `streamKeyFromCtx(ctx)`: the context's stream key (`ctxStreamKey`). -/
-def streamKeyFromCtx.spec : Prop :=
-  ∀ (ctx : GoInterface) (dflt p : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ Context.ctxOk ctx ∗
-      ctxPrin dflt ctx p }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.streamKeyFromCtx)) (Val #ctx))
-  {{ (k : GoString), RET #k; ctxStreamKey ctx k }}
+/-- `streamKeyFromCtx(ctx)`, for a context `ctx` (`isContext`: Go's body calls `ctx.Value`, which
+panics on a nil context; until G2, 2026-10-30, the spec took any `ctx`, a latent bug of the trust
+base, `notes/audit.md`), returns the key of its outgoing metadata (`streamKeyOf`):
+`FromOutgoingContext(ctx)` then `fmt.Sprintf("%+v", ...)` of the map, `""` with none. Margins: like
+`metadata.FromOutgoingContext.wp_proof`, it assumes `Value(mdOutgoingKey{})` returns, the same value on every call
+(`isContext` does not constrain `Value` at grpc's key; `notes/axiom-review/g2-streamkey.md`); a function of `outgoingOf`, it excludes a context whose
+raw `MD` has two keys equal up to case (grpc lower-cases them into one, keeping whichever the map's
+iteration gives last, so two calls may disagree; no spec here builds such a context). -/
+abbrev streamKeyFromCtx.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ EtcdGrove.context.watchCtx ctx cd }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.streamKeyFromCtx)) (Val #(GoInterface.ok ctx)))
+  {{ RET #(streamKeyOf (metadata.outgoingOf (GoInterface.ok ctx))); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

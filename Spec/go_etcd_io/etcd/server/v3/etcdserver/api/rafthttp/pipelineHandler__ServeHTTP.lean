@@ -1,19 +1,10 @@
 /-
-## `(*pipelineHandler).ServeHTTP(w, r)`
-
-**Users.** `Transport.Handler`'s mux at `/raft` (served by `Serve`).
-
-**Proof sketch.** The method (`POST`, else `Allow`, `http.Error` 405), the cluster-id header, `checkClusterCompatibilityFromHeader` (its version headers parse: `raftProto`'s request knowledge), `addRemoteFromRequest` (the `X-PeerURLs` hosts are peer addresses: the same), `ioutil.NewLimitedBufferReader` and `io.ReadAll` (the reader's `EOF` gives the body knowledge: an encoding of a message `m`, not a `MsgSnap`, with `msgSent` and the deposit), `proto.Unmarshal` (a fresh `m`: `Unmarshal`'s `Proto.mergeDst`, made `msgRecv` by `RaftPb.msgRecv_intro.spec`; `RaftPb.msgEncodes` and `wire_fun` identify it with the sender's), the deposit opened with the ticket (`onceOnly`: a `POST`) for `msgCredit`, `Process(context.TODO(), m)` with the handler's thread token (`raftOk`), then `WriteHeader(204)`; on `procErr`: `errors.As` and `WriteTo`, or `http.Error` 500, `Flush`, `panic` (allowed by `serveDone`). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The `netProcSlots` resource per invocation is now the handler goroutine's thread token. verify-round (A5 F4, A8 F8): the message handed to `Process` is `msgRecv` (`raftOk`'s), identified through raftpb's `msgEncodes`. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*pipelineHandler).ServeHTTP(w, r)` (`http.go`; rafthttp stage 4, D38b): the receiving end of the
+pipeline. Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Stream
 
 @[expose] public section
 
@@ -21,26 +12,60 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A pipeline handler of the address `a`** at `h` (persistent): read-only for good, its logger
+set, its `Raft` the receiver's (`netRaftOk`, borrowing `Rs` per call), the member owning `a` its
+local id, and `addRemoteFromRequest` of its transport returning on a request from another member
+(stage 6d: the transport's state gives it, the sender being a peer). -/
+def pipeHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
+    IProp GF :=
+  iprop(∃ hv : rafthttp.pipelineHandler, h ↦□ hv ∗ ⌜hv.lg' ≠ null ∧ Rh.owner a = hv.localID'⌝ ∗
+    □ netRaftOk Rh.γn hv.localID' γd Rs hv.r' ∗
+    □ (∀ (r : Loc) (R : http.HReq) (rd : GoInterface),
+      {{ http.reqAt r R rd ∗ ⌜fromOkAt Rh hv.localID' R.hdr⌝ }}
+        (App (App (Val (@! rafthttp.addRemoteFromRequest)) (Val #hv.tr')) (Val #r))
+      {{ RET #(); True }}))
+
+instance pipeHandlerOk_persistent (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF)
+    (h : Loc) : Persistent (pipeHandlerOk Rh a γd Rs h) := by
+  unfold pipeHandlerOk; infer_instance
+
+end defs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Serves a pipeline POST**: the body's message delivered to `Process` with `recvd` (its credit withdrawn with the request's ticket), answered `204`; or refused (`405`, `412`, `400`); or `Process`'s error written (`writerToResponse`), or `500` and a panic that `Serve` recovers. -/
-def pipelineHandler.ServeHTTP.spec : Prop :=
-  ∀ (hp : Loc) (ν : Net GF) (lid : w64) (w : GoInterface) (r : Loc) (R : Http.HReq) (τ : GName) (rd : GoInterface),
-  ⊢ (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ phAt hp ν lid ∗ Http.servePre (raftProto ν) go!"/raft" w r R τ rd) -∗
-    WP (App (App (Val (hp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler.ty @!! go!"ServeHTTP")) (Val #w)) (Val #r))
-    {{ v, Http.serveDone (raftProto ν) w R τ v }}
+/-- **`h.ServeHTTP(w, r)`** of a request to `a` routed to `RaftPrefix` (`"/raft"`), as
+`http.handlerFor` hands it: it returns, or panics (on an error `Process` returns, after answering
+`500`), with the borrowed `Rs` back. On the way it calls `Process` with a fresh copy of the
+message the request's body encodes, with its bundle: the persistent part from the request's
+protocol, the one-shot part withdrawn from its deposit with the request's ticket. -/
+abbrev rafthttp.pipelineHandler.ServeHTTP.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) (wi : GoInterfaceOk)
+    (r : Loc) (R : http.HReq) (γk : GName) (rd : GoInterface),
+  R.host = a → R.path = go!"/raft" →
+  ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
+    pipeHandlerOk Rh a γd Rs h -∗
+    http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicket γk -∗
+    http.bodyReader rd R [] -∗ http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk none [] -∗
+    http.respHdrs (GoInterface.ok wi) [] -∗
+    ⌜go.typeSetContains wi.ty net.http.Flusher.ty = true⌝ -∗ Rs -∗
+    WP (App (App (Val (h @!! go.GoType.PointerType rafthttp.pipelineHandler.ty @!! go!"ServeHTTP"))
+      (Val #(GoInterface.ok wi))) (Val #r))
+      {{ v, Rs ∗ http.handlerDone (raftHttpNet Rh) (GoInterface.ok wi) a R γk v }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

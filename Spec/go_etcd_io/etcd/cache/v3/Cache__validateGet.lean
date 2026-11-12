@@ -1,13 +1,9 @@
 /-
-`Cache.validateGet` (`cache/*.go`), an internal helper.
-Users: `Cache.Get`.
-Proof sketch: the `Op`'s flags (`opAt`, W0's getters), a wrapped `ErrUnsupportedRequest` (`fmt.Errorf`); `Cache.validateRange.spec`; `KeyPredForRange.spec`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`Cache.validateGet(key, op)` (`cache/cache.go`). Lean-first (no Rocq counterpart); see `InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -15,33 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `c.validateGet(key, op)`: the range's predicate, or a non-`nil` error (`ErrKeyRangeInvalid` for a served request whose range the cache does not serve). -/
-def Cache.validateGet.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (key : GoString)
-    (op : go_etcd_io.etcd.client.v3.Op) (o : OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ opAt op o }}
-    (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"validateGet")) (Val #key)) (Val #op))
+/-- `c.validateGet(key, op)`: a non-nil error if `op` asks for an unsupported option
+(`getUnsupported`); else `validateRange`'s error for the range `[key, op.RangeBytes())`;
+else `nil` with the `KeyPredForRange` closure (`validateResult`). -/
+abbrev Cache.validateGet.spec : Prop :=
+  ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
+    (key : GoString) (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isCacheFields c cf γr γd cap ∗ opAt op o }}
+    (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"validateGet")) (Val #key)) (Val #op))
   {{ (f : GoFunc) (err : GoInterface), RET (PairV #f #err);
-      (⌜¬ getUnsupported o ∧ rangeOk pfx (cacheRange key o) ∧ err = GoInterface.nil⌝ ∗
-        keyPredAt f (KeyRange.mem (cacheRange key o))) ∨
-      (⌜getUnsupported o ∧ err ≠ GoInterface.nil⌝) ∨
-      (⌜¬ getUnsupported o ∧ ¬ rangeOk pfx (cacheRange key o)⌝ ∗
-        globalAddr go_etcd_io.etcd.cache.v3.ErrKeyRangeInvalid ↦□ err) }}
+      validateResult o.getUnsupported cf.pfx key o.rangeEnd f err }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

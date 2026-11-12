@@ -1,7 +1,7 @@
 # Batch 4c (bbolt's public API), review round 1: provability and completeness
 
 Reviewer: separate agent, 2026-11-09, at `7acafe721b` ("4c bbolt public API draft"). Targets:
-`Spec/go_etcd_io/bbolt/{Model,Api,Internal}.lean` and the 51 specs, `examples/specreq/bbolt/`, the
+`SpecPlan/Spec/go_etcd_io/bbolt/{Model,Api,Internal}.lean` and the 51 specs, `examples/specreq/bbolt/`, the
 `## from 4c` sections of `notes/specs-only/req/`. Go: `.lake/src/bbolt` (upamanyus/bbolt@743299d8),
 `.lake/src/server/storage/backend` (etcd `a4d2bb17`), `GooseLang/Ext/OsFs/Impl.lean`,
 `TrustedCode/os.lean`. Old work: `specs-ref` (`bbolt-api.md`, `Proof/go_etcd_io/bbolt/Link.lean`).
@@ -185,7 +185,7 @@ etcd's.
 **Principle.** Laws for what clients would otherwise unfold; complete.
 
 **Evidence.** The model's header says data "reached from `Data.empty` or from a file is sorted",
-but no statement gives it: `grep sorted Spec/go_etcd_io/bbolt` finds only comments. A client
+but no statement gives it: `grep sorted SpecPlan/Spec/go_etcd_io/bbolt` finds only comments. A client
 cannot derive it either. `fileHolds_image`'s `D` comes with an opaque `boltImage`, and the client
 is not supposed to prove model lemmas. 4a's range (`batch_tx.go:206-228`'s `unsafeRange`, which
 stops at the first key ≥ `endKey`) needs `T.ents` sorted: 4a's `Api.lean` uses `sortedEnts`. The

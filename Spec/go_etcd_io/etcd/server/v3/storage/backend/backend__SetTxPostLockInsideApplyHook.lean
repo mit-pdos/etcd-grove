@@ -1,18 +1,12 @@
 /-
-## `(*backend).SetTxPostLockInsideApplyHook(hook)` (`backend.go:270-277`): translated
-
-**Users.** `NewServer` (`server.go:409`), 2d's `applySnapshot` (`server.go:1098`, the new backend),
-each with the server's `getTxPostLockInsideApplyHook()`.
-
-**Proof sketch.** `b.batchTx.lock()` (the batch lock: `Pk`, an empty session); the hook field
-written (its authority, in the lock's invariant, with the full share); `b.batchTx.Unlock()`
-(`batchTxBuffered.Unlock.spec` with nothing to publish).
-
-**Changes** (from `specs-ref`'s): over `beHook`. **Margin.** None.
+`SetTxPostLockInsideApplyHook` (the backend). `b.SetTxPostLockInsideApplyHook(hook)`: the post-lock hook replaced (under the batch lock;
+its `Unlock` may write the buffer back: a write-back's budget).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -20,26 +14,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.SetTxPostLockInsideApplyHook(f)`**: the post-lock hook is `f`. -/
-def backend.SetTxPostLockInsideApplyHook.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (f0 f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ beHook γ (DFrac.own 1) f0 }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"SetTxPostLockInsideApplyHook")) (Val #f))
-  {{ RET #(); beOpen γ q ∗ beHook γ (DFrac.own 1) f }}
+/-- `b.SetTxPostLockInsideApplyHook(hook)`: the post-lock hook replaced (under the batch lock;
+its `Unlock` may write the buffer back: a write-back's budget). -/
+abbrev backend.backend.SetTxPostLockInsideApplyHook.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (f hook : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bOpen γ qo ∗ plHook γ f ∗ wbTok γ }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"SetTxPostLockInsideApplyHook")) (Val #hook))
+  {{ RET #(); bOpen γ qo ∗ plHook γ hook }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

@@ -5,7 +5,7 @@ files are unchanged in the working tree since). Read: the round-1 reports, the "
 section of `batch-R1.md`, the diff `339fd9675a..627da340d6` of R1's files, `Model.lean`, `Api.lean`
 and the changed specs, the snippets `examples/specreq/raftnode/`, the `req/` notes,
 `nonissues/etcd-replay-snapshot-confstate-ahead.md`, `issues/etcd-merged-snapshot-stale-term.md`,
-the pinned Go (`.lake/src/raft`, `.lake/src/server/etcdserver`), W0's `Spec/context/Api.lean`, and
+the pinned Go (`.lake/src/raft`, `.lake/src/server/etcdserver`), W0's `SpecPlan/Spec/context/Api.lean`, and
 the old paper proof `specs-ref/notes/reconfiguration-safety.md`. I built nothing. `gofmt -l` on the
 snippets is clean.
 
@@ -103,7 +103,7 @@ committed while the sender was at `m.term`).
 
 ### N3 (new, follows from F5's repair). The node specs take `Context.ctxOk`, but W0's context API has no `Done()` law
 
-Files: `Spec/context/Api.lean:73-105`. The API has only `Err`, `ErrDone`, `TODO` and `Background`.
+Files: `SpecPlan/Spec/context/Api.lean:73-105`. The API has only `Err`, `ErrDone`, `TODO` and `Background`.
 
 **Where it is needed.** `node.stepWithWaitOption` selects on `<-ctx.Done()` and then returns
 `ctx.Err()` (node.go:519-520, 535-536, 545-546). Its proof needs:
@@ -114,7 +114,7 @@ Files: `Spec/context/Api.lean:73-105`. The API has only `Err`, `ErrDone`, `TODO`
 
 **Gap.** Neither the context API nor any `req/` note has these. So `node.step*.spec` and every
 `node.*` spec with a context are unprovable from their callee vocabulary. (The header of
-`Spec/context/Api.lean` names `Done()` as part of the bundle, but exports no law for it.)
+`SpecPlan/Spec/context/Api.lean` names `Done()` as part of the bundle, but exports no law for it.)
 
 **Fix.** A `req` entry for W0: `Done.spec` and a receive law.
 

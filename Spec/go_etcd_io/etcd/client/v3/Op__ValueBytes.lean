@@ -1,22 +1,10 @@
 /-
-`(clientv3.Op).ValueBytes` (`client/v3/op.go`).
-
-Users: leasing (`leasing/kv.go`, `leasing/txn.go`, `leasing/cache.go`, `leasing/util.go`: it
-inspects every `Op` it forwards: `IsGet`, `IsPut`, `IsDelete`, `IsTxn`, `KeyBytes`, `RangeBytes`,
-`IsSerializable`, `IsKeysOnly`, `IsCountOnly`, `Txn()`), the cache (`cache/cache.go`
-`validateGet`/`validateWatch`: `Rev`, `IsSerializable`, `IsProgressNotify`, `Limit`, `IsCountOnly`,
-`IsSortSet`, the revision filters, `IsPrevKV`, `IsFragment`, `IsCreatedNotify`, `IsFilterPut`,
-`IsFilterDelete`, `RangeBytes`). Snippet: `clientv3kv/ops.go` (`ReqOpGetters`).
-
-Proof sketch: `opAt_unfold`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__ValueBytes.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.Op.ValueBytes()` (`client/v3/op.go`, translated for `client/v3/leasing`). Lean-first (no
+Rocq counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -24,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.ValueBytes()`: the value's slice (read-only). -/
-def Op.ValueBytes.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
+/-- `op.ValueBytes()` (called through a pointer): the value `val` (a read-only byte slice holding `o.val`). -/
+abbrev Op.ValueBytes.spec : Prop :=
+  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opFullAt op o }}
     (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"ValueBytes")) (Val #()))
-  {{ (s : GoSlice), RET #s; opp ↦{dq} op ∗ s ↦*□ o.val }}
+  {{ (sl : GoSlice), RET #sl; opp ↦{dq} op ∗ sl ↦*□ o.val }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

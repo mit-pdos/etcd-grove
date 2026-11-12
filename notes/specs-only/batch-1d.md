@@ -1,12 +1,12 @@
 # Batch 1d: `client/v3/concurrency` (Session, Mutex, Election, STM)
 
-Author's report (2026-11-09). Builds: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/client/v3/concurrency`
+Author's report (2026-11-09). Builds: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency`
 (63 modules, OK, against W0's round-1 names: `ctxPrin`, the context specs, `OpResp.range rev`).
 Snippets: `cd examples && go vet ./specreq/concurrency/` (clean, gofmt-clean).
 
 ## Files
 
-- `Spec/go_etcd_io/etcd/client/v3/concurrency/Api.lean`: the vocabulary (namespace `Concurrency`).
+- `SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency/Api.lean`: the vocabulary (namespace `Concurrency`).
 - 62 spec files, one per function of `session.go`, `key.go`, `mutex.go`, `election.go`, `stm.go`
   (every function with an old spec; none left out): `NewSession`, `Session__{Client,Lease,Ctx,Done,
   Orphan,Close}`, `With{TTL,Lease,Context}`; `waitDelete`, `waitDeletes`; `NewMutex`, `NewLocker`,

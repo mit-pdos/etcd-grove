@@ -14,7 +14,7 @@
 
 ## from 3h
 
-Batch 3h (`Spec/go_etcd_io/raft/v3/raftpb/`, `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`) relates
+Batch 3h (`SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/`, `SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`) relates
 every message predicate to `Proto.msgAt` through content relations (`entryIs`, `msgIs`, ...,
 `reqHolds`, `rangeRespHolds`, ...: `*_msgAt` laws). Three facts of protobuf-go it needs that are
 not in the boundary yet:
@@ -77,7 +77,7 @@ To W0 (noted here, W0 reads it via the coordinator): `GetStreamToGetResponse.spe
 
 ## from 2a, round 1 (answer to 3h)
 
-Done in `Spec/google_golang_org/protobuf/proto/Api.lean`:
+Done in `SpecPlan/Spec/google_golang_org/protobuf/proto/Api.lean`:
 - items 1 and 2: `noMaps t`, `marshalOut t c` (`Marshal.spec` returns exactly it for a type without
   maps; `marshalOut_encodes`), `zero` (`zero_facts`: `encodes t zero []`, depth `1`).
 - 3h's review F1: `mergeDst t p c`, a destination `Merge` may write in place. `Merge.spec` takes and

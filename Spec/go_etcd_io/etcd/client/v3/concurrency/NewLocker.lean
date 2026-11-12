@@ -1,25 +1,10 @@
 /-
-`concurrency.NewLocker(s, pfx)` (`client/v3/concurrency/mutex.go`).
-
-Users: `server/etcdserver/api/v3lock/lock.go:45` (`NewMutex(s, req.Name)`, `Lock(ctx)`, then
-`Key()` and `Header()` returned to the remote client, which fences its writes on the key and
-`Unlock`s by deleting it; the in-process client: each request's principal is the RPC context's),
-etcdctl's `lock` command (not in the pinned sources), etcd's tests
-(`tests/integration/clientv3/concurrency/mutex_test.go`, `example_mutex_test.go`: `Lock`, `TryLock`
-and `ErrLocked`, `IsOwner` in a `Txn`, `Unlock`, `NewLocker`; `tests/integration/v3lock_grpc_test.go`:
-a second lock's header after the first's). Snippet: `concurrency/mutex.go` (`ReqLocker`).
-
-Proof sketch: `NewMutex.spec`; the `lockerMutex` allocated, its field persisted.
-
-Changes: from `specs-ref`'s `NewLocker.lean`: as `NewMutex`.
-
-Margin: the result is a `sync.Locker` whose methods panic on any client error, so it is not
-Perennial's `isLocker`; its concrete type is stated, and `lockerMutex.Lock`/`Unlock` are its
-specs.
+`concurrency.NewLocker(s, pfx)` (`client/v3/concurrency/mutex.go`). Lean-first (no Rocq counterpart); see
+`InvMutex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutex
 
 @[expose] public section
 
@@ -27,30 +12,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `NewLocker(s, pfx)`: a `*lockerMutex` around a new mutex on `pfx + "/"`. -/
-def NewLocker.spec : Prop :=
-  ∀ (s : Loc) (pfx : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency }}
+/-- **`NewLocker(s, pfx)`**: a `sync.Locker` wrapping (`lockerMutex`) a new mutex on `pfx + "/"`
+(`NewMutex`, whose prefix bound it takes). Its `Lock` and `Unlock` panic on any error of `Mutex.Lock`/`Unlock`, which every
+client call allows (`lockerMutex.Lock.spec`, `lockerMutex.Unlock.spec`: a panic outcome). -/
+abbrev NewLocker.spec : Prop :=
+  ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id ∗
+      isEtcdMutexClient client (pfx ++ go!"/") ∗ ⌜pfx.length < concPfxMax⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.NewLocker)) (Val #s)) (Val #pfx))
-  {{ (l : GoInterface), RET #l; ∃ lm m : Loc,
-      ⌜l = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.lockerMutex.ty) #lm⌝ ∗
-      lm.[go_etcd_io.etcd.client.v3.concurrency.lockerMutex, go!"Mutex"] ↦□ m ∗
-      isMutex m s (pfx ++ go!"/") ∗ mutexSt m MutexSt.init }}
+  {{ (l : GoInterface), RET #l; ∃ (lm m : Loc),
+      ⌜l = interface.mkOk (go.GoType.PointerType lockerMutex.ty) #lm⌝ ∗
+      structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
+      isMutex m s γ client id (pfx ++ go!"/") ∗ mutexState m MutexSt.init }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

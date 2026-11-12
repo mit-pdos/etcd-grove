@@ -1,24 +1,7 @@
 /-
-`db.Close()` (`db.go`): waits for the writer (`rwlock`), `metalock` and every reader (`mmaplock`),
-then, if still open, unmaps, unlocks and closes the file.
-
-**Users.** `backend.Close` (`backend.go:486`), defrag (`backend.go:554, 570, 582`: the temporary
-database closed twice on an error path, `cleanupTmpDB`), `examples/bbolt/bank/bbolttest.go` (`Boot`).
-Snippets: `ReqDefrag` (a second `Close`), `ReqBank`.
-
-**Proof sketch.** Take `rwlock`, `metalock`, `mmaplock` (writer side: every reader slot is back in
-the pool); if `opened` (the close right's holder), move the file's OsFs halves from the open
-database's lock resources back into `boltFile γ`'s closed state (munmap's, funlock's and the fd
-close's errnos leave stale fds or mappings, which the closed state tolerates), set `opened = false`,
-and record `dbClosed db`; release. A later `Close` finds `opened` false and returns nil.
-
-**Changes.** The old spec (persistent `isBolt` alone) gave `True` (D9: the file lost to the caller).
-Now the close right's holder gets the closed file back (for a reopen, etcd's defrag), and a closed
-database may be closed again (`cleanupTmpDB` after `finishDefrag`'s `Close`). A `Close` by someone
-without the right while the database is open is no longer allowed: the right's holder relies on the
-database staying open (`Path`, `Sync`).
-
-**Margin.** The error (a system call's) is not described: the file is closed either way.
+`DB.Close` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/DB__Close.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -30,28 +13,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `db.Close()`: with the close right, closes `db` and gives the file back closed (`boltClosed
-γ`), whatever the error; on a database already closed, does nothing. -/
-def DB.Close.spec : Prop :=
-  ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns tok : Bool),
-  {{ isBolt (GF := GF) db γ ns ∗ (if tok then boltOpened db γ else dbClosed db) }}
+/-- `db.Close()`: the database closed, from any goroutine, any number of times. It takes the
+three locks, so it waits for every live transaction (a goroutine that holds one and calls
+`Close` waits forever, which a WP allows), and every later `Begin` fails. An error is the
+environment's (unmapping, unlocking, closing the file): the post says nothing of it; the backend's
+`DB.Close_kv` adds `err = nil ∨ ¬ dbCloseOk` as a trust-boundary layer. The committed data stays
+`boltState`'s. (Margin: the file is not given back, `notes/bbolt-spec-decisions.md`, D9.) -/
+abbrev DB.Close.spec : Prop :=
+  ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName),
+  {{ isBolt (GF := GF) db γ }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; dbClosed db ∗
-      (if tok then boltClosed γ else ⌜err = GoInterface.nil⌝) }}
+  {{ (err : GoInterface), RET #err; True }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

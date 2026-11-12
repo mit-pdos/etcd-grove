@@ -17,7 +17,7 @@ What the request path (2c) needs of `etcdserver/txn` (3b):
 
 ## from 3c
 
-1. **`checkLease`** (`txn/put.go:80-88`): `lessor.Lookup.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/`)
+1. **`checkLease`** (`txn/put.go:80-88`): `lessor.Lookup.spec` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/`)
    takes `isLessor` and a lower bound `Lease.lessorLb γl i`; at the writer's own state (the apply
    thread holds `lessorState γl n ls`: pass `lessorAt γl n ls`, `lessorState_at`) it answers from
    `ls` exactly (`lessorState_le`, `lessorAt_agree`): `nil` iff `ls.leases id = none`. The txn

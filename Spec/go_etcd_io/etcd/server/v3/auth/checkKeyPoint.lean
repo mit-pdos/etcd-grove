@@ -1,21 +1,10 @@
 /-
-## `checkKeyPoint(lg, cachedPerms, key, permtyp)` (internal helper)
-
-**Users.** `isRangeOpPermitted` (an empty `rangeEnd`).
-
-**Proof sketch.** `adt.NewBytesAffinePoint(key)`; the tree's `Intersects` (3f). Another type: `lg.Panic`, ruled out.
-
-**Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary.
-
-**Margin.** None.
+`checkKeyPoint` (`server/auth/range_perm_cache.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (unit P2; the auth plan's S2, 2026-10-23).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
-public import Spec.go_uber_org.zap.Api
-public import Spec.go_etcd_io.etcd.server.v3.auth.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -23,30 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`checkKeyPoint`** of a cache entry of `u` at `a`: covered at `a` exactly, but for an inverted
-range, which may be refused. -/
-def checkKeyPoint.spec : Prop :=
-  ∀ (lg p : Loc) (a : AuthState) (u : GoString) (key : GoSlice) (dk : DFrac) (k : List w8)
-    (pt : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ Zap.isLogger lg ∗ cacheEntry p a u ∗ key ↦*{dk} k ∗
-      ⌜validPerms a ∧ (pt = W32 0 ∨ pt = W32 1) ∧ sint.Z key.len < 2 ^ 63 - 1⌝ }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyPoint)) (Val #lg)) (Val #p)) (Val #key)) (Val #pt))
+/-- `checkKeyPoint(lg, p, key, permtyp)`: the tree of the permission type (`READ` the read tree,
+`WRITE` the write tree; otherwise `lg.Panic`) queried with the point `key` (`Intersects`): whether
+some entry holds the key (`adt.inIvl`; `adt.stab_point_iff`); the key's slice kept. -/
+abbrev auth.checkKeyPoint.spec : Prop :=
+  ∀ (lg p : Loc) (Lr Lw : List adt.Entry) (key : GoSlice) (k : GoString) (dk : DFrac)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ permsAt p Lr Lw ∗
+      key ↦*{dk} k ∗ ⌜permTypOk pt⌝ ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.checkKeyPoint)) (Val #lg)) (Val #p))
+      (Val #key)) (Val #pt))
   {{ (b : Bool), RET #b; key ↦*{dk} k ∗
-      ⌜(b = true → a.covers u (ptOf pt) { key := k, rangeEnd := [] }) ∧
-       (b = false → ¬ a.covers u (ptOf pt) { key := k, rangeEnd := [] } ∨ rngInverted { key := k, rangeEnd := [] })⌝ }}
+      ⌜b = true ↔ ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 k⌝ }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

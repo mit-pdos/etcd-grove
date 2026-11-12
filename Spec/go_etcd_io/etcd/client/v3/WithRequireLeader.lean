@@ -1,17 +1,12 @@
 /-
-`clientv3.WithRequireLeader` (`client/v3/ctx.go`).
-
-Users: Kubernetes' store (`etcd3/store.go`: its watch contexts), `client/v3/concurrency` and 1c (`lessor`'s keep-alive contexts, `clientv3/watch.go`), the users' watches.
-
-Proof sketch: grpc's `metadata.FromOutgoingContext`, `metadata.Pairs`, `MD.Copy`, `MD.Set`, `metadata.NewOutgoingContext` (the gRPC boundary, 2a: `NewOutgoingContext` returns a `WithValue` context over its argument, `ctxWithValues`), and `rpctypes`' metadata key constants.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.WithRequireLeader(context.Background())` (`client/v3/ctx.go`, names only: it needs grpc's
+`metadata`; item 1, the client lease: `NewLeaseFromLeaseClient`'s stop context). Lean-first (no
+Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvLease
+public import Perennial.Proof.context
 
 @[expose] public section
 
@@ -19,10 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,16 +24,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `WithRequireLeader(ctx)`: a context with the require-leader metadata, done with `ctx`. -/
-def WithRequireLeader.spec : Prop :=
-  ∀ (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ Context.ctxOk ctx }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.WithRequireLeader)) (Val #ctx))
-  {{ (ctx' : GoInterface), RET #ctx'; Context.ctxOk ctx' ∗ Context.ctxWithValues ctx ctx' ∗
-      ctxRequireLeader ctx' ∗ □ (∀ dflt p, ctxPrin dflt ctx p -∗ ctxPrin dflt ctx' p) }}
+/-- `WithRequireLeader(context.Background())` (`metadata.NewOutgoingContext` of `Background()` with
+the `hasleader` metadata): a context `c` that is never done (its `Done()` is `Background()`'s,
+`nil`), so that `context.WithCancel(c)` is a cancellable context done only when cancelled
+(`propagateCancel` returns at once: `c.Done()` is `nil`), as `context.WithCancelTodo` says of
+`TODO()`. -/
+abbrev WithRequireLeader.spec : Prop :=
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.WithRequireLeader))
+      (Val #(GoInterface.ok _root_.Perennial.context.backgroundCtxVal)))
+  {{ (c : GoInterfaceOk), RET #(GoInterface.ok c);
+      □ iprop({{ isPkgInit (PROP := IProp GF) pkg_id.context }}
+        (App (Val (@! _root_.Perennial.context.WithCancel)) (Val #(GoInterface.ok c)))
+      {{ (ctx' : GoInterfaceOk) (γ' : context.ContextNames) (cancel : GoFunc),
+          RET (PairV #(interface.ok ctx') #cancel);
+          context.cancelSpec cancel γ' iprop(True) ∗
+          context.isContext ctx'
+            { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } }}) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

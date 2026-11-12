@@ -1,24 +1,10 @@
 /-
-`(*clientv3.retryLeaseClient).LeaseTimeToLive` (`client/v3/retry.go`).
-
-Users: `lessor.*` (through `remoteLeaseAt`, `retryLeaseHandle_remoteLeaseAt`).
-
-Proof sketch: appends `withRepeatablePolicy()` (`callOptsOk_append`: a repeatable slice) and calls
-`rlc.lc`, the stub over `connOk` (2a/3h): the update persistent, as `RemoteCallTriple` asks of a
-repeatable RPC.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryLeaseClient__LeaseTimeToLive.lean`: restated over the wire contract; the update persistent (the old `LeaseGrant`, `LeaseRevoke` specs took an exclusive one, unsound against the resend).
-
-verify-round: per member (A2-provability L2): with the client frozen at `ep` (`clientVia c`, the
-`RemoteCallTriple`'s `V`), the answer's `viaFact` (the member's lessor view): the stub's connection
-is `c.conn`, which reaches `ep` alone (`clientVia_conn`), and `uiOk_call`/`AttemptTriple` give the
-fact from the member that answered.
-
-Margin: none.
+`(*clientv3.retryLeaseClient).LeaseTimeToLive(ctx, in, opts...)` (`client/v3/retry.go`; the closed lease
+example, notes/lease-ex-plan.md). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
 
 @[expose] public section
 
@@ -26,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,15 +22,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `r.LeaseTimeToLive`: the wire contract at its request. -/
-def retryLeaseClient.LeaseTimeToLive.spec : Prop :=
-  ∀ (r c : Loc) (γ : Cluster) (who : Principal) (id : Int) (keys : Bool),
-  RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!! s)
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r c γ who ∗ clientReady c) γ who (.leaseTimeToLive id keys)
-    (clientVia c)
+/-- `rlc.LeaseTimeToLive(ctx, in, opts...)` on a `*retryLeaseClient` over a stub on a connection to
+`addr`: `rlc.lc.LeaseTimeToLive(ctx, in, append(opts, withRepeatablePolicy())...)` (the options' slice
+full, `len = cap`: the `append` reallocates): the call's answer (`leaseTTLCallOut`). -/
+abbrev retryLeaseClient.LeaseTimeToLive.spec : Prop :=
+  ∀ (rlc conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
+    (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.LeaseTimeToLiveRequest) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
+      □ ▷ Spec (req.ID', req.Keys') Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
+    (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
+        go!"LeaseTimeToLive")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.LeaseTimeToLiveRequest, inp ↦ req') ∗ leaseTTLCallOut Q resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,39 +1,23 @@
 /-
-## `(*EtcdServer).LeaseLeases(ctx, r)`
-
-**Users.** The gRPC lease handler (`api/v3rpc/lease.go:79`). Snippet:
-`examples/specreq/etcdserverreq/lease.go` (`ReqLeases`).
-
-**Proof sketch.** `s.lessor.Leases()` (3c: the leases of the lessor at the member's applied point,
-each in W0's `granted`, distinct ids); `checkLeaseLeases` (`checkLeaseLeases.spec`: a denial of a
-key's read permission is `permErr`; a changed auth revision `ErrAuthOldRevision`, a refusal); the
-statuses' slice; `newHeader()` (`newHeader.spec`). Fired at the return (W0's `leaseLeases` step:
-any granted ids, at any later state).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__LeaseLeases.lean`) restated over W0's step,
-the header's ids inside the answer (`lease-grpc.md`'s lesson: no server ids in the statement).
-
-**Margin.** The ids are the member's applied ones, live there; W0's model says only granted.
-
-Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
-
-Changes: recheck RR-1 (client-core's request 2): over `SrvCallTripleF` with `srvLeaseFact`, at the endpoint `ep` the member serves (`srvAt s γ ep`) and the caller's optional bound `leaseViewLb γ ep i` (`srvLeaseLbOpt`): the ids are read from the member's own lessor (`s.lessor.Leases()`, `v3_server.go:737`, no forwarding), at a table `j ≥ i` (the lessor only moves forward), so the answer is `leaseAnsAt j` and gives `leaseViewLb γ ep j`; a `checkLeaseLeases` refusal is not `leaseAnsRes`.
+`s.LeaseLeases(ctx, r)` (`v3_server.go`): the lease `Leases` row. Lean-first (no Rocq counterpart); the lease-read plan
+(`notes/lease-read-plan.md`, 2026-10-31), vocabulary `LeaseRead.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -42,17 +26,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.LeaseLeases(ctx, r)`**: the ids of the leases the member's lessor holds (each granted at some point); the update fired at the return. -/
-def EtcdServer.LeaseLeases.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ep : GoString) (vi : Option Nat) (q : Qp) (ctx : GoInterface)
-    (p tls : Principal) (r : Loc) (dq : DFrac),
-  SrvCallTripleF (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"LeaseLeases")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvAt s γ ep ∗ srvLeaseLbOpt γ ep vi ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ ClientV3.reqOwn r dq .leaseLeases)
-    iprop(srvGate s q ∗ threadTok ∗ ClientV3.reqOwn r dq .leaseLeases) γ p tls (.leaseLeases) false srvHdrReply
-    (srvLeaseFact γ ep .leaseLeases vi)
+/-- **`s.LeaseLeases(ctx, r)`**, any goroutine, at a context, with the server's read-side facts and
+its header's (`srvHeaderFacts`, a thread token and a reader token of the store: `newHeader.spec`'s;
+R6, 2026-11-07: until then the thread token alone), the key check's
+resources (`checkLeaseLeases.spec`'s: the auth store and lessor at lower bounds `n`, `m`, their
+readers, a thread token; an execution of at most `2^62` steps, for `Leases()`' sort): on `nil`, the ids `ids` of the leases of the lease map at a lessor index `i`
+no older than `m` (`leaseIdsAt`: all of them, each once), the response listing them with a fresh
+header (`leasesRespIs`), and auth disabled at a state no older than `n`, or the request's principal
+an admin at one or allowed to read every key of each lease at an index no older than `i`, the
+listing's (`leaseKeysVerdictFrom`); on an error, no response and an error the gRPC layer can take,
+only with auth on (`checkLeaseLeases`' error; the lease-grant plan's amendment (F3)).
+The ids are listed in the order of `Leases()`' sort (by remaining time: none stated). The revision
+re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
+abbrev EtcdServer.LeaseLeases.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (mid cid : w64) (n m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReadM E.authOn s E γr ∗ srvHeaderFacts s cid mid ∗ threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗
+      srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 62⌝ }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseLeases"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ mvcc.api.mvccReaders E.γ 1 ∗ E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (ids : List w64), ⌜m ≤ i⌝ ∗
+          lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗
+          leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => iprop([∗list] id ∈ ids,
+            leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err)) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

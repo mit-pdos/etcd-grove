@@ -1,49 +1,40 @@
 /-
-## `(*Trace).LogWithStepThreshold(d)`: assumed
-
-**Users.** `LogIfLong`, `LogAllStepsIfLong`, `Log`.
-
-**Assumed** (translated names-only: `logInfo` formats `any` values with `fmt`, reads `math/rand`).
-True of the code (`trace.go:208-280`): `logInfo` reads the trace's steps and fields (it writes the
-steps' field slices, appending a sub-trace's fields: within the trace's own slices, owned with their
-capacities), formats each field with `%v` (`fieldsFmt`: basic values, no methods, immutable) and
-the durations, then `t.lg.Info(...)` if `lg` is not nil (`Zap.Logger.Info.spec`). Nothing panics:
-`len(steps)` indices are in bounds, `rand.Int31` is total.
-
-**Changes.** From `specs-ref`'s `Trace__LogWithStepThreshold.lean`. **Margin.** The trace is
-consumed (see `LogIfLong`).
+`(*traceutil.Trace).LogWithStepThreshold` (`trace.go`: logs the steps longer than the threshold). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- **Logs the trace** (steps longer than `d`); the trace consumed. -/
-def Trace.LogWithStepThreshold.spec : Prop :=
-  ∀ (t : Loc) (d : _root_.Perennial.time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceOwn t }}
+/-- `t.LogWithStepThreshold(d)` of an owned trace returns. The trace is consumed: the logger's `logInfo`
+merges a subtrace's fields into its steps' with `append`, so the steps' fields slices may then
+share their arrays (each caller logs a trace last). -/
+abbrev traceutil.Trace.LogWithStepThreshold.spec : Prop :=
+  ∀ (t : Loc) (e : Bool) (d : _root_.Perennial.time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"LogWithStepThreshold")) (Val #d))
   {{ RET #(); True }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

@@ -1,17 +1,7 @@
 /-
-`db.Info()` (`db.go`): `&Info{Data: uintptr(&db.data[0]), PageSize: db.pageSize}`, read without a
-lock.
-
-**Users.** `backend.go:606` (`db.Info().PageSize`, under the backend's read transaction). Snippet:
-`ReqBackendRead`.
-
-**Proof sketch.** A live transaction of `db` keeps the mapping (a reader's `mmaplock` slot, or the
-writer's `rwlock`, which a remap needs): `db.data` and `db.pageSize` are read from `boltTx`'s share of
-`isBolt`'s mapping invariant; allocate the `Info`.
-
-**Changes.** Unchanged (`txDB` instead of the old `txDB tx γ db`).
-
-**Margin.** `PageSize` is `4096` (`OptsM.ok`'s default page size), not stated.
+`DB.Info` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/DB__Info.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -23,26 +13,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `db.Info()` while a transaction of `db` is live: a fresh `*Info`. -/
-def DB.Info.spec : Prop :=
-  ∀ [HasExt osFsExt] (db tx : Loc) (γ : BoltName) (ns : Bool) (q : Qp) (T : TxView),
-  {{ isBolt (GF := GF) db γ ns ∗ txDB tx db ∗ boltTx tx γ q T }}
+/-- `db.Info()` while a transaction of `db` is live: a fresh `Info` (Go asserts `db.data != nil`
+and reads it without `mmaplock`; a live transaction excludes `Close` and a remap). -/
+abbrev DB.Info.spec : Prop :=
+  ∀ [HasExt osFsExt] (db tx : Loc) (γ : BoltName) (q : Qp) (T : TxView),
+  {{ isBolt (GF := GF) db γ ∗ txDB tx γ db ∗ boltTx tx γ q T }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Info")) (Val #()))
   {{ (i : Loc), RET #i; boltTx tx γ q T ∗ ∃ v : Info, i ↦ v }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

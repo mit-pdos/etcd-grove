@@ -1,17 +1,11 @@
 /-
-## `(*AlarmStore).Recover(be)` (`alarms.go:52-60`): translated
-
-**Users.** 2d's `applySnapshot` (the alarms of the installed snapshot's backend).
-**Proof sketch.** Under the lock: the backend replaced, the map emptied, `restore` (names only:
-the bucket's alarms added, a force-commit; a read error is `diskOk`'s). The view becomes the new
-bucket's. **Changes** (from `specs-ref`'s `AlarmStore__Recover.lean`): the view's update.
-**Margin.** None.
+`(*v3alarm.AlarmStore).Recover(be)` (`alarms.go`, since the fork's `8fd98af04`: `applySnapshot`
+recovers the alarm store in place; D22 receiver epochs, S7c, 2026-10-23). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Api
-public import Spec.go_uber_org.zap.Api
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__restore
 
 @[expose] public section
 
@@ -19,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3alarm
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,16 +23,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions]
 
-/-- **Reloads the alarms** from the new backend. -/
-def AlarmStore.Recover.spec : Prop :=
-  ∀ (a : Loc) (γ : AlarmNames) (ab : GoInterface) (al' : List Alarm) (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm ∗ isAlarmStore a γ ∗ alarmBe ab al' ∗ ⌜ServerStorage.diskOk⌝ ∗
-      (AU <{ ∃∃ (al : List Alarm), alarmSt γ al }> @ ⊤, ∅ <{ alarmSt γ al', COMM Q }>) }}
-    (App (Val (a @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Recover")) (Val #ab))
-  {{ RET #GoInterface.nil; Q }}
+/-- **`a.Recover(ab)`**, by the store's user (its half of `a.be`, `alarmBeOn a be0`: the store on the
+backend at `be0`), with a schema alarm backend `ab` over the real backend at `be` whose alarm bucket
+is tracked (`P.RB`), in the table (`P.has`) and empty or absent in a part of any bucket set `S`
+containing it (`backend.rbPart γB S r`), with a pooled reader's resource and the caller's thread
+token (`backend.bkRPool`, `threadTok`): under the store's mutex, `a.be := ab`, `a.types` a fresh map,
+`restore` (`AlarmStore.restore.spec`); no error, the store on the backend at `be` with no alarm
+(`alarmEmpty a be`: the fresh map is empty, 2026-11-01, J8a-5), the alarm bucket created and the
+part **idle** (`rbOwnIn`, as `restore` gives it). (2026-11-02, the backend-auth-split stage: until
+then the writer's half `rbOwn` and any `P`; round 4's `review-r4/alarmuntracked/alarm_test.go`
+shows `restore` false for an untracked alarm bucket.) -/
+abbrev v3alarm.AlarmStore.Recover.spec : Prop :=
+  ∀ (a be0 abl lg be : Loc) (γB : backend.BNames) (P : backend.BParams) (W Pk : IProp GF)
+    (qo : Qp) (S : GoString → Prop) (r : GMap GoString backend.BktData),
+  S go!"alarm" → P.RB go!"alarm" = true → P.has mvcc.alarmBI →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm ∗
+      isAlarmStore a ∗ alarmBeOn a be0 ∗
+      alarmBkBeAddr abl ↦□ (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #be :
+          GoInterface) ∗
+      alarmBkLgAddr abl ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      backend.isBackend γB P W Pk be ∗ backend.bOpen γB qo ∗ backend.wbTok γB ∗
+      backend.bkRPool γB P be ∗ threadTok ∗
+      backend.rbPart γB S r ∗ ⌜(r.lookup go!"alarm").getD ∅ = ∅⌝ }}
+    (App (Val (a @!! go.GoType.PointerType v3alarm.AlarmStore.ty @!! go!"Recover"))
+      (Val #(alarmBkIface abl)))
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ alarmEmpty a be ∗
+      backend.bOpen γB qo ∗ backend.bkRPool γB P be ∗ threadTok ∗
+      backend.rbOwnIn γB S (r.insert go!"alarm" ∅) }}
 
 end spec
 
-end V3alarm
 end EtcdGrove
 end Perennial

@@ -3,7 +3,7 @@
 ## from W0: the cluster contract
 
 The top of the specs (`notes/specs-only/top.md`) is a client program that owns etcd's abstract state
-`etcdState γ σ` (`Spec/go_etcd_io/etcd/api/v3/State.lean`) and fires it through its calls
+`etcdState γ σ` (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/State.lean`) and fires it through its calls
 (`client/v3/Api.lean`). Everything the server does must keep the model's promise: **every change
 of the cluster's observable state is either the step of a client's request whose update the
 cluster fired (`Step`) or an environment step (`EnvStep cfg`, through `envUpd γ cfg`)**. In plain
@@ -108,7 +108,7 @@ in-process client `v3client.New(s)`. What 1d's specs need there:
 ## from 2b
 
 Batch 2b (the gRPC watch service, `v3rpc/watch.go`) takes a started member as one slot,
-**`watchMemberAt s γ`** (persistent; `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`):
+**`watchMemberAt s γ`** (persistent; `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`):
 "the `*EtcdServer` `s` is a member of the cluster `γ` whose watch path is ready". The server
 batches (2c/2d/2e) produce it where a member starts (with `servesAt`'s other parts, so that 2a's
 `Server` can call `NewWatchServer(s)`) and prove its laws. In plain terms:
@@ -136,7 +136,7 @@ snippet `examples/specreq/v3rpcwatch/serve.go`.
 
 ## from 2f
 
-Batch 2f (rafthttp: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean`, namespace
+Batch 2f (rafthttp: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean`, namespace
 `Rafthttp`; report `notes/specs-only/batch-2f.md`). What the transport's specs need from the server
 (2d: the raft node and `Process`; 2e: `NewServer`'s transport literal, the peer listeners):
 
@@ -282,7 +282,7 @@ apply thread (2d) and the lifecycle (2e), in plain terms:
 
 ## from 2a
 
-Batch 2a (the gRPC handlers, `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, and the grpc
+Batch 2a (the gRPC handlers, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`, and the grpc
 boundary) uses 2c's `ApiReq.lean` as it stands (`isServer`, `reqPrin`, `srvErrOf`, `srvUnfired`,
 `srvIndef`, `SrvCallTriple`, `txnChecked`, `IrrBody.depthOk`, `rsSink`) and needs, in plain terms:
 
@@ -400,7 +400,7 @@ need of 2c (the request path, `pkg/wait`) and 2e (the lifecycle).
 
 ## from 2e
 
-2e's lifecycle vocabulary is `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean` (namespace
+2e's lifecycle vocabulary is `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiBoot.lean` (namespace
 `EtcdServer`): `srvMember s γ id` (persistent, from `NewServer`), `srvBuilt s γ id cfg` (exclusive,
 from `NewServer`), `isServer s γ` (persistent, from `Start`), `srvRunning s γ id ds` (exclusive, from
 `Start`, taken by `HardStop`/`Stop`), `memberDisk γ id ds` (the stopped member's durable state),
@@ -517,7 +517,7 @@ Restated after 2f's round 1 (the names are now those of `Rafthttp`'s `Api.lean`)
 ## from 3h, round 1 (the raft request moved down; v3lockpb/v3electionpb)
 
 Coordinator's decision (review F4): the `InternalRaftRequest`'s model is now etcdserverpb's
-(`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/Api.lean`, namespace `EtcdServerPb`). Mapping for 2c, 2d
+(`SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/Api.lean`, namespace `EtcdServerPb`). Mapping for 2c, 2d
 and 2e at integration (rename; 2c keeps the semantics `IrrBody.fires`, `irrStep`, `irrReply`,
 `applyResult` over the moved type):
 
@@ -541,7 +541,7 @@ model; 2c's premise, e.g. from the request having fit gRPC, `Grpc.msgsFit`) + `U
 from the model alone.
 
 For 2e (request 2): `v3lockpb` and `v3electionpb`'s messages are 3h's, same signatures as 2e's
-provisional ones: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb/Api.lean`
+provisional ones: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb/Api.lean`
 (`V3lockpb.lockReq`, `unlockReq`, `lockResp`, `unlockResp`; `fields`, `resp_fold`) and
 `.../v3election/v3electionpb/Api.lean` (`V3electionpb.LeaderKeyM` (moved from `V3election`),
 `campaignReq`, `proclaimReq`, `resignReq`, `leaderReq`, `campaignResp`, `proclaimResp`, `resignResp`,
@@ -594,7 +594,7 @@ provisional ones: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb
 
 ## from 3c
 
-The lessor's API: `Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`): the
+The lessor's API: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`): the
 writer's token `lessorState γl n ls` (the apply thread's), the persistent history `lessorAt γl j ls`
 (readers answer from a state `j ≥` their lower bound `lessorLb γl i`), the objects `leaseObj γl l
 id ttl`, `isLessor le γl c` (persistent), `lessorStop le`. What 3c gives and needs:
@@ -689,7 +689,7 @@ id ttl`, `isLessor le γl c` (persistent), `lessorStop le`. What 3c gives and ne
 
 ## from 3a
 
-The apply layer (3a, `Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/{Api,ApiResult}.lean`),
+The apply layer (3a, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/{Api,ApiResult}.lean`),
 answering 2c's and 2d's items and asking for what its sketches need.
 
 **To 2d** (the replacement of `ApiApply.lean`'s provisional names):
@@ -797,7 +797,7 @@ Needs (amending "from 2c"):
 
 ## from 3d
 
-The auth store's API is `Spec/go_etcd_io/etcd/server/v3/auth/Api.lean` (namespace `Auth`). What
+The auth store's API is `SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean` (namespace `Auth`). What
 the server batches must supply and what they get, against the needs 2b and 2c filed
 (`req/go_etcd_io_etcd_server_v3_auth.md`):
 
@@ -1033,7 +1033,7 @@ Used by: 2b's `sendLoop.spec` (each response's `srvWireStep` against a reached s
 
 ## from 3e (round 1 repairs)
 
-What mvcc's specs (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) now ask of the server
+What mvcc's specs (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`) now ask of the server
 (2d's apply and snapshot, 2e's boot, stop and compactor):
 
 1. **Reader tokens** (`mvccReaders γ n`; `NewStore`/`New` give `mvccTokN ≥ mvccTokMin = 2^28`): every

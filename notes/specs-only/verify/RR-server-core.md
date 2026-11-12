@@ -5,8 +5,8 @@ diffed against `4a6a9b6b6e`. Read-only apart from this file. Go: `.lake/src/serv
 I wrote my verdicts on R-A7's N1-N5 before reading `repair-server-core.md` ("Re-review"); I read it
 afterwards only to check where we disagree (on N5, below).
 
-Scope: the top-level files of `Spec/go_etcd_io/etcd/server/v3/etcdserver/` plus `read/`, `errors/`,
-`cindex/`; `Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify,schedule}/`; and the snippets in
+Scope: the top-level files of `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` plus `read/`, `errors/`,
+`cindex/`; `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify,schedule}/`; and the snippets in
 `examples/specreq/{etcdserverreq,etcdserverapply,etcdserverboot,cindex,schedule,wait}`.
 
 Out of scope, as the brief says, so not reviewed here:

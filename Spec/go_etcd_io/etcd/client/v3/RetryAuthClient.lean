@@ -1,17 +1,10 @@
 /-
-`clientv3.RetryAuthClient` (`client/v3/retry.go`).
-
-Users: `NewAuth`.
-
-Proof sketch: the generated stub over `c.conn` (`connOk`: 2a/3h), wrapped and persisted.
-
-Changes: from `specs-ref`.
-
-Margin: none.
+`clientv3.RetryAuthClient(c)` (`client/v3/retry.go`, translated for the auth plan's E2h).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 
 @[expose] public section
 
@@ -19,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,16 +22,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `RetryAuthClient(c)`: a `*retryAuthClient` over the client's connection. -/
-def RetryAuthClient.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientConnOk c γ who }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.RetryAuthClient)) (Val #c))
-  {{ (v : GoInterface), RET #v; ∃ r : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty) #r⌝ ∗ retryAuthHandle r c γ who }}
+/-- `RetryAuthClient(c)` on a `*Client` whose connection is `conn` (read-only): a new
+`*retryAuthClient` over a stub on `conn` (`retryAuthAt`), as an `AuthClient`. -/
+abbrev RetryAuthClient.spec : Prop :=
+  ∀ (cl conn : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" cl ↦□ conn }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.RetryAuthClient)) (Val #cl))
+  {{ (v : GoInterface), RET #v; ∃ rac : Loc,
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty) #rac⌝ ∗
+      retryAuthAt rac conn }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

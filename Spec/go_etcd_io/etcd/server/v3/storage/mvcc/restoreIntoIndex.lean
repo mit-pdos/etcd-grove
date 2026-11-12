@@ -1,23 +1,10 @@
 /-
-`restoreIntoIndex(lg, idx)` (`kvstore.go:434`). Internal: `restore`. Starts the goroutine that
-rebuilds the index from the restored entries it receives on `rkvc`, and reports the last revision
-on `revc`.
-
-**Proof sketch**: two `make(chan …)`; `go` the loop, holding `ownIdxPriv ti`, its cache of key
-indexes (pointers into the private index: `ownIdxPriv_lookup`); per entry (`rkvIs`): `KeyIndex`
-(a hit) or a fresh key index; `BytesToRev` (`RestoreEntsOk`: parses; `verify.Verify`'s revision
-check holds: increasing); `tombstone` (its `ErrRevisionNotFound` logged) or `put` (revisions
-increasing: no `Panic`), or `restoreTombstone`/`restore` and `Insert`; after the close, `revc <-
-currentRev` (the deferred send), `revConsumer`'s result (`idxRestore ents`, `lastMain ents`).
-
-**Changes** from `specs-ref`'s file: the two channels' protocols opaque (`rkvProducer`,
-`revConsumer`, with the laws `rkvSend`, `revRecv`) in place of `isSpsc` over `rkvProt`/`revProt`;
-the readers' capability (`rdCap`) gone; the entries' key bytes are the storage's, lent to the
-goroutine until it reports (`rkvIs` at a fraction, `rkvProducer`'s loans, back by `revRecv`).
+`restoreIntoIndex` (`kvstore.go`; translated 2026-10-23, the restore plan's R0). Lean-first (no
+Rocq counterpart); see `InvRestore.lean` and `IdxPriv.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRestore
 
 @[expose] public section
 
@@ -25,7 +12,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -36,18 +22,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `restoreIntoIndex(lg, idx)` over an empty private index, for the entries `ents` its caller will
-send: the producer's side of `rkvc` and the consumer's of `revc`. -/
-def restoreIntoIndex.spec : Prop :=
-  ∀ (lg ti : Loc) (ents : List KvEnt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ Zap.isLogger lg ∗
-      ownIdxPriv ti (fun _ => none) ∗ ⌜RestoreEntsOk ents⌝ }}
+/-- `restoreIntoIndex(lg, idx)` (a non-nil logger, `idx` an empty tree index no one else can
+reach, `ownIdxPriv`; the restore plan, R3) for the bucket entries `ents` (`RestoreEntsOk`: in
+increasing revision order, as `restore` reads them), whose keys the goroutine reads through `Rd`
+under its own token `Tok`: returns `rkvc` and `revc` and starts the goroutine that rebuilds the
+index. The caller is `rkvc`'s producer (`rkvProt`: the `i`-th value is the `i`-th entry's
+restored form; closed after all of them) and `revc`'s consumer: its one value
+(`revProt`) is the last entry's main revision, with the rebuilt index (`idxRestore ents`), the
+token and a time receipt per entry. -/
+abbrev mvcc.restoreIntoIndex.spec : Prop :=
+  ∀ (lg ti : Loc) (ents : List mvcc.KvEnt) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF)
+    (e0 : GoInterfaceOk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜lg ≠ null⌝ ∗
+      mvcc.ownIdxPriv ti [] ∗ mvcc.rdCap Rd Tok ∗ Tok ∗ ⌜mvcc.RestoreEntsOk ents⌝ ∗
+      globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e0 }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex)) (Val #lg))
       (Val #(interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti)))
   {{ (rkvc revc : Loc), RET (PairV #rkvc #revc);
-      rkvProducer rkvc ents 0 iprop(True) ∗ revConsumer revc rkvc ti ents }}
+      ∃ (γ γr : SpscNames),
+        isSpsc γ rkvc (mvcc.rkvProt Rd ents) (fun sent => iprop(⌜sent.length = ents.length⌝)) ∗
+        spscProducer γ ([] : List revKeyValue) ∗
+        isSpsc γr revc (mvcc.revProt ti Tok ents) (fun _ => iprop(False)) ∗
+        spscConsumer γr ([] : List w64) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

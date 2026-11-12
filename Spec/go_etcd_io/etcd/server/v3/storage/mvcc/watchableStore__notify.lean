@@ -1,18 +1,9 @@
 /-
-`(*watchableStore).notify(rev, evs)` (internal; under `s.mu`, from `watchableStoreTxnWrite.End`): each
-synced watcher of an event's key is sent its events of `rev` (filtered), or becomes a victim with
-them (out of the synced group); every such watcher's `minRev` set past `rev`.
-
-**Proof sketch.** `newWatcherBatch(&s.synced, evs)` (its spec: one revision per batch, every event's
-revision being `rev`: the `lg.Panic` unreachable); for each watcher `w.send` with `Revision: rev`
-(`wsSendable` from the lock's contents and the new notified history `h`, whose last revision is
-`rev`: a synced watcher's position is below `rev` and none of its events lie between); a failure:
-`victim`, `synced.delete`, the batch kept; `minRev = rev + 1`; `addVictim`.
+`watchableStore.notify` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 
 @[expose] public section
 
@@ -20,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,16 +21,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchableStore.notify.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName) (rev : w64) (evs : GoSlice) (ps : List Loc) (es : List EvM)
-    (h : KVHist),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ wsMu s γ ∗ evs ↦*□ ps ∗ ([∗list] p; e ∈ ps; es, evOwn p e) ∗ mvccLb γ h ∗
-      ⌜sint.Z rev = h.rev ∧ es = (h.eventsAt h.rev).map (evOf h.rev)⌝ }}
-    (App (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"notify")) (Val #rev)) (Val #evs))
-  {{ RET #(); wsMu s γ ∗ [∗list] p; e ∈ ps; es, evOwn p e }}
+/-- `s.notify(rev, evs)` under `s.mu` (the lock's state `σ` at the sole writer's log `ilog`, its
+synced watchers delivered at most up to `ilog`'s length), for the events `evs` of the pending
+revision `rev = ilog.length` (sealed and certified: `evLog` of `ilog ++ [pend]`, unit W-M3;
+released, `relLb`, D25): each synced
+watcher with events gets them in one response (one revision: the `revs != 1` panic is
+unreachable) and is then delivered up to `rev + 1`, or, if its channel is full, becomes a victim
+with its batch; the others are delivered up to `rev + 1` with nothing to send; the unsynced group and its
+members' states are untouched (D22 receiver epochs, S6: `WsState.unsRst`). -/
+abbrev mvcc.watchableStore.notify.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (ilog : mvcc.Log)
+    (pend : List mvcc.Change) (evs : GoSlice) (dq : DFrac) (es : List Loc) (evm : List mvcc.EvM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.watchStoreBody s γ 1 σ ∗
+      ⌜σ.Lmu = ilog ∧ σ.syncedBelow ilog.length ∧ σ.vicBelow ilog.length ∧
+        ilog.length + 2 < 2 ^ 63 ∧ ilog ≠ []⌝ ∗
+      mvcc.evLog γ.st (ilog ++ [pend]) ∗ mvcc.relLb γ (ilog ++ [pend]).length ∗
+      evs ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
+      ⌜es.length = evm.length ∧ evm = mvcc.evsOfRevM ilog.length (mvcc.stateAfter ilog) pend⌝ }}
+    (App (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"notify"))
+      (Val #(W64 ilog.length))) (Val #evs))
+  {{ RET #(); evs ↦*{dq} es ∗ ∃ σ' : mvcc.WsState, mvcc.watchStoreBody s γ 1 σ' ∗
+      ⌜σ'.Lmu = ilog ∧ σ'.syncedAbove (ilog.length + 1) ∧
+        σ'.syncedBelow (ilog.length + 1) ∧ σ'.vicBelow (ilog.length + 1) ∧ σ'.M = σ.M ∧
+        σ'.Wu = σ.Wu ∧ ∀ w, (σ.Wu !! w).isSome → σ'.ST !! w = σ.ST !! w⌝ }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

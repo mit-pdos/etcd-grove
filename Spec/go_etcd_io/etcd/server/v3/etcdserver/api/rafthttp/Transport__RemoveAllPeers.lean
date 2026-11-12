@@ -1,19 +1,13 @@
 /-
-## `(*Transport).RemoveAllPeers()`
-
-**Users.** etcd's `applySnapshot` (`server.go:1157`, before re-adding the snapshot's members). Snippet: `transport.go` (`ReqMembership`).
-
-**Proof sketch.** `Lock`; for each key of `peers` (a `nil` map after `Stop`: no iteration), `removePeer`; `Unlock`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*rafthttp.Transport).RemoveAllPeers()` (`transport.go`). Lean-first; D22 receiver epochs, S8d
+(2026-10-25), for `applySnapshot`'s transport reset, stated over the transport's live state
+(`trLive`, the peers right: the user's decision on W3, D43); its proof is left to the membership
+track's M5 (`notes/membership-plan.md`), which proves it rather than restating it (the user's
+decision, 2026-10-25): proved in M5a (2026-10-26, `TransportRemove.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
 
 @[expose] public section
 
@@ -21,26 +15,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Removes every peer** (remotes stay). -/
-def Transport.RemoveAllPeers.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid }}
-    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"RemoveAllPeers")) (Val #()))
-  {{ RET #(); True }}
+/-- **`t.RemoveAllPeers()`** on a live transport whose ids are `rs`: it returns, every peer
+removed (`transport.go:333-339`: under the write lock, `removePeer` of each key of `t.peers`: the
+peer's `stop`, its map entry deleted, its `LeaderStats.Followers` entry and its probers' entries
+removed, a log line), the remotes kept: the live transport with no peer id. (Until J8a-6,
+2026-11-01, also four of each peer's `R`s back, its pipeline's; the peers' goroutines now borrow
+theirs from the transport's pool.) -/
+abbrev rafthttp.Transport.RemoveAllPeers.spec : Prop :=
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trLive γn t c rs }}
+    (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemoveAllPeers"))
+      (Val #()))
+  {{ RET #(); trLive γn t c [] }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,16 +1,9 @@
 /-
-`(*watchableStore).syncWatchersLoop()` (internal, a goroutine of `New`): `syncWatchers` while
-watchers are unsynced, every `resyncDelay`, until `stopc` is closed.
-
-**Proof sketch.** Loop invariant `wsLoopS s γ`: `s.mu.RLock` (the loop's reader) for the unsynced
-count; `syncWatchers` (its spec); `time.Since`, `resyncDelay` (positive: `Ticker.Reset` does not
-panic); the `select` on the ticker and `stopc`: closed, `Done` deposits the loop's reader and the
-goroutine ends.
+`watchableStore.syncWatchersLoop` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchSync.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 
 @[expose] public section
 
@@ -18,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -29,14 +21,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchableStore.syncWatchersLoop.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ wsLoopS s γ }}
+/-- `s.syncWatchersLoop()` (a goroutine `New` starts), with reader slots of the store and a done
+token of its wait group: syncs the unsynced watchers (`syncWatchers`) on every tick of its ticker
+until the stop channel is closed, then `s.wg.Done()`. It returns (no panic), (R-D1) its reader
+of the inner store left at its deferred `Done`, for the closer (`wsWgInv`). -/
+abbrev mvcc.watchableStore.syncWatchersLoop.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ ∗ mvcc.wsDone s st γ.st }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"syncWatchersLoop")) (Val #()))
   {{ RET #(); True }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

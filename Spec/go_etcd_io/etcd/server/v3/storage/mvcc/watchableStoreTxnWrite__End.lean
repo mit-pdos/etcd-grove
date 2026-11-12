@@ -1,37 +1,9 @@
 /-
-`(*watchableStoreTxnWrite).End()` (`watchable_store_txn.go`): commits the transaction's revision,
-notifying the watchers first: the `TxnWrite` interface's `End` contract (3e's `Txn.End.contract`,
-two steps) at the watchable transaction.
-
-**Users.** Every write transaction's `End` (`txn.Txn`, `Put`, `DeleteRange`, the lessor's revoke
-`lessor.go:361`). Snippet: `mvccwatch/store.go` `ReqStoreWrites`.
-
-**Proof sketch.** `tw.TxnWrite` is `store.Write`'s `*metricsTxnWrite` around a `*storeTxnWrite`.
-`Changes()` (promoted twice: 3e's `storeTxnWrite.Changes.spec`, `changesSl`, then
-`storeTxnW_changes`: the records owned, `changesM pend`, a put's `CreateRevision` non-zero, a
-delete's the key alone). No change: the inner `End` (both steps fire with nothing). Else the events
-built at `rev = Rev() + 1` (`evOf`: a delete's `ModRevision` written here, `changeM`'s other fields
-are `evOf`'s; every event's revision is `rev`, so `notify`'s batch check holds), then under `s.mu`:
-**the first update fires** (`σ.notify pend`; `mvccLb`'s authority gains revision `rev`),
-`notify(rev, evs)` (its spec: each synced watcher of an event's key gets its filtered events, or
-becomes a victim with them, its `minRev` past `rev`; the responses' facts against the new notified
-history; the records then shared read-only, `keyValueOwn _ DFrac.discard`), the inner `End` (through
-`metricsTxnWrite.End` to 3e's `storeTxnWrite.End.spec`, whose first update admits the state already
-notified, `σ = σ₀.notify pend`, handed over trivially: **the second update fires** at the bump,
-`commitPending`; the reader token back), `s.mu.Unlock`.
-The records come from the handle by 3e's `InternalTxn.mvccTxn_changes` (with `Txn.Changes`'
-`mvccTxnChs`): `mvccTxnNC` and the records; `metricsTxnWrite.End` (`Txn.End.contract`) takes
-`mvccTxnNC`, and its first update admits the already-notified state (`σ = σ₀ ∨ σ = σ₀.notify pend`;
-both added at integration, I6).
-
-**Changes** from `specs-ref`'s file: the canonical instance of 3e's restated contract.
-
-**Margin.** As the contract's.
+`watchableStoreTxnWrite.End` (`watchable_store_txn.go`). Lean-first (no Rocq counterpart); see `InvWatchStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WsTxnSteps
 
 @[expose] public section
 
@@ -39,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -50,11 +21,35 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `t.End` meets `Txn.End`'s contract. -/
-def watchableStoreTxnWrite.End.spec : Prop := ∀ t : Loc, Txn.End.contract (GF := GF) (go.GoType.PointerType watchableStoreTxnWrite.ty) #t
+/-- `tw.End()`: with no change, the inner transaction ended (no revision). With changes, the
+events of the pending revision (`evsOfRevM`: a delete's key-value gets `ModRevision = rev`;
+the key-values are shared with the watchers for good), then under `s.mu` the watchers
+notified of them (`notify`, the revision sealed first so that their responses carry the log
+that commits it) and the inner transaction ended (the revision committed): the notified log
+is the committed one again. The sole writer is back at the committed log, with the reader
+slots and the certificate. The inner `End`'s `Unlock` takes the batch lock's invariant `P` (the
+store's, `hookIs`) back. (M4, track B, 2026-11-06; `Api/TxnSteps.lean`) The API's ghost state
+moves by the caller's step (`wsEndCb`): with a change, its notification under `s.mu` (with the
+lock's slot) before the watchers are sent the revision's events, then the commit's step at the
+inner `End`'s bump; with none, the commit's step; the frozen state excluded by the caller's `G`
+(given back). (M4, track B, 2026-11-06, the watchable write transaction of the API) The transaction's
+trace part any `Tr` (`isWatchTxnWriteT`, given back: the API's transaction holds none); the batch
+lock's invariant by the store's name of it alone (`hookP`, as the plain `End`), no writer's
+fragment back, the reader back as `storeReaderC`; and the step at the writer slot's compaction
+revision (`wsEndCbY`: `slotYc`, the transaction's), so that the API's step can tell the state it
+fires at is the one the transaction began at. -/
+abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
+  ∀ (trace : Loc) (tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (puts deletes putSize : w64) (P : IProp GF) (crev : Int) (ld : Bool) (G R Tr : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchTxnWriteT tw s st γ trace ilog pend puts deletes putSize crev ld Tr ∗
+      mvcc.hookP γ.st P ∗ P ∗ mvcc.certOkNext γ.st ilog pend ∗
+      G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) ∗ mvcc.wsEndCbY γ ilog pend crev R }}
+    (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
+  {{ RET #(); mvcc.storeReaderC st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
+      Tr ∗ G ∗ R }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

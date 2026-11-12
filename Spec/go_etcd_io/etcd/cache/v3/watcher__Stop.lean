@@ -1,13 +1,9 @@
 /-
-`watcher.Stop` (`cache/*.go`), an internal helper.
-Users: `demux.Unregister`, `demux.purge`.
-Proof sketch: under `stopOnce`: closes the channel once (a second call does nothing); the producer end, if still held, is given up.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`watcher.Stop()`. Lean-first (no Rocq counterpart); see `InvWatcher.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvWatcher
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,15 +21,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `w.Stop()`: by the producer, or after it stopped. -/
-def watcher.Stop.spec : Prop :=
-  ∀ (w : Loc) (γ : Cluster) (rng : KeyRange) (pos : Option Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isWatcher w ∗ (watcherProducer w γ rng pos ∨ watcherStopped w) }}
-    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.watcher.ty @!! go!"Stop")) (Val #()))
-  {{ RET #(); watcherStopped w }}
+/-- `w.Stop()`: closed afterwards; with cancel `none` if this call closed it (it was open; the
+caller publishes the closed log, `watcherClosePub`), the earlier one otherwise. -/
+abbrev watcher.Stop.spec : Prop :=
+  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (Pb : WatcherPub GF)
+    (sent : List RespModel) (ph : WatcherPhase),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isWatcher w γ pred Pb ∗ watcherAt γ sent ph ∗ watcherClosePub Pb sent none ph }}
+    (App (Val (w @!! go.GoType.PointerType watcher.ty @!! go!"Stop")) (Val #()))
+  {{ RET #(); watcherClosed γ sent (ph.cancelAfter none) }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

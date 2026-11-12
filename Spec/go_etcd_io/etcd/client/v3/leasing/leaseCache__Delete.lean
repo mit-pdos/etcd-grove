@@ -1,9 +1,9 @@
 /-
-`(*leaseCache).Delete` (`cache.go`): `delete` under the write lock. Changes: from `specs-ref`'s `leaseCache__Delete.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.Delete(key, hdr)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -11,28 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.Delete(key, hdr)`: the header (copied) at a revision reached, given back. -/
-def leaseCache.Delete.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (key : GoString) (hdr : Loc) (dq : DFrac) (hm : HeaderM) (σ0 : State),
-  {{ lcAt (GF := GF) lc γ γL ∗ respHeaderOwn hdr dq hm ∗ etcdLb γ σ0 ∗
-      ⌜0 ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ0.kv.rev⌝ ∗ lkvMarks γL (fun k => k = key) }}
-    (App (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"Delete")) (Val #key)) (Val #hdr))
-  {{ RET #(); respHeaderOwn hdr dq hm }}
+/-- **`lc.Delete(key, hdr)`** (write lock): `delete` in the state `st` it found. -/
+abbrev leaseCache.Delete.spec : Prop :=
+  ∀ (lc : Loc) (γ : LeaseCacheNames) (pfx : GoString) (X : LeaseCacheSt → Qp → IProp GF)
+    (Qr : LeaseCacheSt → IProp GF) (key : GoString) (h : Loc) (hm : HdrM) (Q : LeaseCacheSt → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeaseCache lc γ pfx X ∗ lcPeek X Qr ∗ hdrFull h hm ∗
+      (∀ (st : LeaseCacheSt) (h' : Loc),
+        X st 1 ={⊤}=∗ X (st.modify key (fun e => e.del h' hm)) 1 ∗ Q st) }}
+    (App (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"Delete")) (Val #key)) (Val #h))
+  {{ RET #(); ∃ st : LeaseCacheSt, □ Qr st ∗ Q st }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

@@ -1,12 +1,9 @@
 /-
-`(*leaseCache).evalOps` (`cache.go`), with a read lock held: each op's cached answer (a range
-response), `ok` false unless every op is a cacheable get of a cached key. Proof sketch: the entries
-in `lcHeld`, `leaseKey.get` of each (with its entry's `entryOk`), the facts' latest state (`etcdLb_ord`).
-Changes: from `specs-ref`'s `leaseCache__evalOps.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.evalOps(ops)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseEval
 
 @[expose] public section
 
@@ -14,32 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.evalOps(ops)` under a read lock: if `ok`, fresh range responses, one per op, each
-`leaseKey.get` of an entry of its key (`entryOk` at a state reached). -/
-def leaseCache.evalOps.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (q : Qp) (ops : GoSlice) (os : List OpM),
-  {{ lcHeld (GF := GF) lc γ γL q ∗ opsAt ops os }}
-    (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"evalOps")) (Val #ops))
-  {{ (rs : GoSlice) (ok : Bool), RET (PairV #rs #ok); lcHeld lc γ γL q ∗ opsAt ops os ∗
-      (⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ∃ (σ0 : State) (mes : List RangeRespM), etcdLb γ σ0 ∗
-         ([∗list] o; me ∈ os; mes, entryOk γL o.key σ0 me) ∗
-         msgsOwn responseOpOwn rs (DFrac.own 1) (List.zipWith (fun o me => ResponseOpM.range (leaseGetM o me)) os mes) ∗
-         ⌜∀ o ∈ os, o.t = tRange ∧ isBadOpM o = false⌝)) }}
+/-- **`lc.evalOps(ops)`**, called with the read lock held: if every operation is a get the cache
+serves, of a cached key (`leaseEvalOk`), the cached answers in fresh `ResponseOp`s, in order;
+otherwise `(nil, false)`. -/
+abbrev leaseCache.evalOps.spec : Prop :=
+  ∀ (lc : Loc) (st : LeaseCacheSt) (dq : DFrac) (sl : GoSlice) (os : List OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ lcOwn lc st dq ∗ ⌜LeaseCacheWf st⌝ ∗ opsAt sl os }}
+    (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"evalOps")) (Val #sl))
+  {{ (rs : GoSlice) (ok : Bool), RET (PairV #rs #ok); lcOwn lc st dq ∗
+      ⌜ok = leaseEvalOk st os⌝ ∗
+      (⌜ok = false ∧ rs = slice.nil⌝ ∨
+       (⌜ok = true⌝ ∗ ∃ ps : List Loc, rs ↦* ps ∗ ⌜ps.length = os.length⌝ ∗
+         [∗list] i ↦ p ∈ ps, ∃ (o : OpFull) (e : LeaseEntry),
+           ⌜os[i]? = some o ∧ st.entries !! o.key = some e⌝ ∗ respOpFresh p o e)) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

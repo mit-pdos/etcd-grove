@@ -1,23 +1,22 @@
 /-
-`(*watchRequest).toPB()`: the create request of the watch from its current `rev` (`initReq.rev`: the substream's position). Users: `run`, `newWatchClient`'s resumes.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.watchRequest).toPB()` (`client/v3/watch.go`; the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,17 +24,25 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `wr.toPB()`: a fresh create request for the watch `w` from `rev`. -/
-def watchRequest.toPB.spec : Prop :=
-  ∀ (wr : Loc) (ctx : GoInterface) (w : WatchReq) (dq : DFrac) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ initReqAt wr ctx w ∗ wr.[go_etcd_io.etcd.client.v3.watchRequest, go!"rev"] ↦{dq} rev }}
-    (App (Val (wr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty @!! go!"toPB")) (Val #()))
-  {{ (p : Loc), RET #p; wr.[go_etcd_io.etcd.client.v3.watchRequest, go!"rev"] ↦{dq} rev ∗
-      watchReqOwn p (DFrac.own 1) (.create w (sint.Z rev)) }}
+/-- `wr.toPB()` of a request of a range watch (no filter, no previous key-values, no fragments):
+a `*pb.WatchRequest` the client sends (`watchReqSend`, read-only) holding the create request of
+its key, range end, start revision (the `rev` field, read at any fraction) and progress flag,
+with the automatic watch id (`createOf`), its ghost fields any (`sr`, G2's `bd`). -/
+abbrev watchRequest.toPB.spec : Prop :=
+  ∀ (wr : Loc) (key ed : GoString) (rv : w64) (pn : Bool) (flt : GoSlice) (dq : DFrac) (sr : Bool)
+    (bd : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      wrF wr go!"key" ↦□ key ∗ wrF wr go!"end" ↦□ ed ∗ wrF wr go!"rev" ↦{dq} rv ∗
+      wrF wr go!"progressNotify" ↦□ pn ∗ wrF wr go!"filters" ↦□ flt ∗ flt ↦*□ ([] : List w32) ∗
+      wrF wr go!"prevKV" ↦□ false ∗ wrF wr go!"fragment" ↦□ false }}
+    (App (Val (wr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty @!! go!"toPB"))
+      (Val #()))
+  {{ (p : Loc), RET #p; wrF wr go!"rev" ↦{dq} rv ∗
+      v3rpc.watchReqSend p (.create (createOf key ed rv pn sr bd)) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

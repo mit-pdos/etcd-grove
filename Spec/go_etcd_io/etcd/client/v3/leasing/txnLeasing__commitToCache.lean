@@ -1,13 +1,9 @@
 /-
-`(*txnLeasing).commitToCache` (`txn.go`): applies the committed user transaction's writes to the
-cache. Proof sketch: `gatherResponseOps` (`respOkL`: the responses' kinds are the operations', at any depth: W0's
-`ofResps`), write lock, `leaseCache.delete`/`Update` with the header (read-only: `Update` keeps
-it; reached). The reply's fields are read at a share and given back (`serverTxn` then writes the
-nested reply's header). Changes: from `specs-ref`'s `txnLeasing__commitToCache.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`txn.commitToCache(txnResp, userTxn)` (`client/v3/leasing/txn.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -15,38 +11,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `commitToCache(txnResp, userTxn)`: the reply's `Header` and `Responses` fields and responses read
-at a share `dq`, the header itself read-only for good (the cache may keep it). -/
-def txnLeasing.commitToCache.spec : Prop :=
-  ∀ (txn : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (st : TxnSt) (resp hdr : Loc) (hm : HeaderM) (rsl : GoSlice) (dq : DFrac) (ms : List ResponseOpM)
-    (σ0 : State) (userTxn : go_etcd_io.etcd.client.v3.Op) (o : OpM) (rq : Req),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗
-      resp.[go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse, go!"Header"] ↦{dq} hdr ∗
-      respHeaderOwn hdr DFrac.discard hm ∗
-      resp.[go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse, go!"Responses"] ↦{dq} rsl ∗
-      msgsOwn responseOpOwn rsl dq ms ∗ etcdLb γ σ0 ∗
-      ⌜0 ≤ sint.Z hm.revision ∧ sint.Z hm.revision ≤ σ0.kv.rev⌝ ∗ opAt userTxn o ∗
-      ⌜o.t = tTxn ∧ o.toReq = some rq ∧ respOkL ms [o]⌝ ∗ lkvMarks γL (reqWrites rq) }}
-    (App (App (Val (txn @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty @!! go!"commitToCache")) (Val #resp)) (Val #userTxn))
-  {{ RET #(); ltxnAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.txnLeasing.ty) #txn) γ who pfx γL ctx st ∗
-      resp.[go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse, go!"Header"] ↦{dq} hdr ∗
-      resp.[go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse, go!"Responses"] ↦{dq} rsl ∗
-      msgsOwn responseOpOwn rsl dq ms }}
+/-- **`txn.commitToCache(txnResp, userTxn)`** for the response of a transaction whose single
+then-operation was `userTxn` (the user's transaction, nested, as the tree `t`): under the write
+lock, applies the user's chosen operations to the cache (`delete` of each deleted key or cached
+key in a deleted range, `Update` of each put key), at the response's header. -/
+abbrev txnLeasing.commitToCache.spec : Prop :=
+  ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (dq : DFrac) (resp : Loc) (hdr : Loc)
+    (hm : HdrM) (rsl : GoSlice) (p0 : Loc) (top : TxnOp) (res : TxnOpResult)
+    (uv : go_etcd_io.etcd.client.v3.Op) (t : OpT),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗ isLeasingKV lkv γ pfx ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ hdr ∗ hdrFull hdr hm ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Responses" resp ↦□ rsl ∗ rsl ↦*□ [p0] ∗
+      txnOpRespN p0 top res ∗ opTAtC false uv t ∗ ⌜t.txnOp = some top⌝ }}
+    (App (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"commitToCache")) (Val #resp)) (Val #uv))
+  {{ RET #(); structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

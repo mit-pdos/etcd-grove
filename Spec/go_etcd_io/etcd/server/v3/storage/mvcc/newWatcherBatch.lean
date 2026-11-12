@@ -1,15 +1,9 @@
 /-
-`newWatcherBatch(wg, evs)` (internal): `nil` for an empty group; else each event (in order) added,
-as a fresh copy (`Type`, `Kv` shared, `PrevKv`), to the batch of each watcher of its key whose
-`minRev` is at most its revision (`wbOf`).
-
-**Proof sketch.** `wg.watcherSetByKey(key)` for each event (its spec, the set lent by the group),
-the records' `minRev`; `watcherBatch.add` of a fresh event struct (its `Kv` read-only, shared).
+`newWatcherBatch` (`watcher_group.go`). Lean-first (no Rocq counterpart); see `InvWatchBatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 
 @[expose] public section
 
@@ -17,28 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def newWatcherBatch.spec : Prop :=
-  ∀ (wg : Loc) (v : watcherGroup) (dq dq' : DFrac) (G : List (Loc × MRange)) (R : Loc → WRec)
-    (evs : GoSlice) (ps : List Loc) (es : List EvM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wg ↦{dq} v ∗ wgOwn v dq' G ∗ ([∗list] x ∈ G, wRecAt x.1 (R x.1)) ∗
-      evs ↦*□ ps ∗ ([∗list] p; e ∈ ps; es, evOwn p e) }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch)) (Val #wg)) (Val #evs))
-  {{ (wb : GoMap), RET #wb; wg ↦{dq} v ∗ wgOwn v dq' G ∗ ([∗list] x ∈ G, wRecAt x.1 (R x.1)) ∗
-      ([∗list] p; e ∈ ps; es, evOwn p e) ∗ wbOwn wb (wbOf G (fun w => (R w).minRev) es) }}
+/-- `newWatcherBatch(wg, evs)`: `nil` if the group is empty, else the batch of each member that
+gets an event (`batchOf`: the events its range holds at or above its `minRev`, in order, each
+batch a copy of the events sharing their key-values). The members' states (`minRev` is read)
+are the caller's: `ST` has those of all members. -/
+abbrev mvcc.newWatcherBatch.spec : Prop :=
+  ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (ST : GMap Loc mvcc.WatcherSt) (evs : GoSlice)
+    (dq : DFrac) (es : List Loc) (evm : List mvcc.EvM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownWatcherGroup wg W ∗ mvcc.ownStates ST ∗
+      ⌜∀ w, (W !! w).isSome → (ST !! w).isSome⌝ ∗
+      evs ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗ ⌜es.length = evm.length⌝ }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch)) (Val #wg))
+      (Val #evs))
+  {{ (wb : GoMap), RET #wb; mvcc.ownWatcherGroup wg W ∗ mvcc.ownStates ST ∗ evs ↦*{dq} es ∗
+      (⌜W = ∅ ∧ wb = map.nil⌝ ∨
+        ⌜W ≠ ∅⌝ ∗ mvcc.ownWatcherBatch wb (mvcc.batchOf W ST evm)) }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

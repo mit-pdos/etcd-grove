@@ -1,19 +1,10 @@
 /-
-## `(*streamReader).close()`
-
-**Users.** `decodeLoop`, `stop`.
-
-**Proof sketch.** `closer.Close()` (`readerCloser`), `closer = nil`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*streamReader).close` (`stream.go`; rafthttp stage 5b). Lean-first; the reader's predicates:
+`rafthttp/Reader.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Reader
 
 @[expose] public section
 
@@ -21,26 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Under the lock: closes the registered stream, if any. -/
-def streamReader.close.spec : Prop :=
-  ∀ (cr : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ srLocked cr }}
-    (App (Val (cr @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader.ty @!! go!"close")) (Val #()))
-  {{ RET #(); srLocked cr }}
+/-- **`cr.close()`** with `mu` held (`closer` whole): closes the body it holds, if any (logging an
+error); `closer` then `nil`. -/
+abbrev rafthttp.streamReader.close.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (c : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      srFixed Rh lid pid γd cr ∗ cr.[rafthttp.streamReader, go!"closer"] ↦ c ∗
+      (⌜c = GoInterface.nil⌝ ∨ http.respCloser c) }}
+    (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"close")) (Val #()))
+  {{ RET #(); cr.[rafthttp.streamReader, go!"closer"] ↦ GoInterface.nil }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

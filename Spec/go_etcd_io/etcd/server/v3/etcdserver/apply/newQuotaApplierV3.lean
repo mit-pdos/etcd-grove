@@ -1,29 +1,23 @@
 /-
-`newQuotaApplierV3(lg, quotaBackendBytesCfg, be, app)` (`quota.go:32-34`): the quota applier over `app`, with `NewBackendQuota(lg, cfg, be, "v3-applier")`.
-
-**Users.** `newApplierV3`.
-
-**Proof sketch.** 2e's `ServerStorage.NewBackendQuota.spec` (`isQuota`); allocation.
-
-**Changes** from `specs-ref`'s file of the same name: no `backendUnderQuota`; restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** None.
+`apply.newQuotaApplierV3` (quota.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +26,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The quota applier over `app`.** -/
-def newQuotaApplierV3.spec : Prop :=
-  ∀ (lg : Loc) (qb : w64) (be app : GoInterface) (b aa : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ Zap.isLogger lg ∗ ServerStorage.beReadable be ∗ applierAt app [Layer.backend] b aa }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newQuotaApplierV3)) (Val #lg)) (Val #qb)) (Val #be)) (Val #app))
-  {{ (v : GoInterface), RET #v; applierAt v [Layer.quota, Layer.backend] b aa }}
+/-- **`newQuotaApplierV3(lg, cfg, be, app)`**: the quota applier over `app` (an applier of the chain `c`) and a backend quota: an applier of the chain `quota c`. -/
+abbrev apply.newQuotaApplierV3.spec : Prop :=
+  ∀ (lg : Loc) (cfg : w64) (be app : GoInterface),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newQuotaApplierV3))
+      (Val #lg)) (Val #cfg)) (Val #be)) (Val #app))
+  {{ (a : GoInterface), RET #a;
+      -- (the auth plan's E2m) its shape: a quota applier over `app`, read-only
+      (∃ p : Loc, ⌜a = interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p⌝ ∗
+        structFieldRef quotaApplierV3 go!"applierV3" p ↦□ app) ∗
+      □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c app -∗
+        apply.applierSpec E (.quota c) a) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

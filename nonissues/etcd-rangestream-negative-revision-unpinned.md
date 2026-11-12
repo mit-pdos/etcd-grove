@@ -25,7 +25,7 @@ two pages with a put between them (the failpoint `beforeRangeStreamChunk`).
 ## Proof
 
 no: the client's `GetStream` spec takes `0 ≤ revision`
-(`Spec/go_etcd_io/etcd/client/v3/Api.lean`, `KV.GetStreamTriple`), which every user meets.
+(`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean`, `KV.GetStreamTriple`), which every user meets.
 
 ## Notes
 

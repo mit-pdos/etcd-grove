@@ -1,16 +1,12 @@
-/-
-## `MemoryStorage.firstIndex()` (internal)
+/- Port of election_proof/spec_MemoryStorage__firstIndex.v (feb5c73d4).
 
-**Users.** `MemoryStorage`'s `FirstIndex`, `Entries`, `CreateSnapshot`, `Compact`, `Append` (`storage.go`), under the lock. **Proof sketch.** Mirrors the
-code: `ms.ents[0].GetIndex()` (the dummy entry, at the compaction point) plus one; `ents` is never
-empty. **Changes.** Restored (verify-round, A4 completeness F4: `specs-ref` had it, with a linked
-proof; the locked methods' sketches call it). **Margin.** None.
+Lean notes: `ownMemoryStorage`/`memstorageFields` (`InvMemstorage.lean`) need
+ghost state, so the section has the extra variable `[AllG GF]` (porting guide,
+"Section variables"); in Rocq it comes with `heapGS Σ`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 
@@ -18,26 +14,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The first stored index, from the locked `ents` field (its first entry the dummy at index `k`). -/
-def MemoryStorage.firstIndex.spec : Prop :=
-  ∀ (ms : Loc) (sl : GoSlice) (dq : DFrac) (k : Nat) (es : List LogEntry), es ≠ [] →
+/-- `ms.firstIndex()` (`storage.go:236`): `ents[0].Index + 1`. Called with the lock
+held, so it is stated on `memstorageFields`, the lock's contents, rather than on
+`ownMemoryStorage`. The bound is a premise: the sum cannot wrap. -/
+abbrev MemoryStorage.firstIndex.spec : Prop :=
+  ∀ (ms : Loc) (σ : StorState),
+  uint.Z σ.prev.index' + (σ.ents.length : Int) < 2^61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      ms.[go_etcd_io.raft.v3.MemoryStorage, go!"ents"] ↦{dq} sl ∗ entriesRO sl k es }}
-    (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"firstIndex")) (Val #()))
-  {{ RET #(W64 (k + 1)); ms.[go_etcd_io.raft.v3.MemoryStorage, go!"ents"] ↦{dq} sl ∗ entriesRO sl k es }}
+      "Hf" ∷ memstorageFields ms σ }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"firstIndex")) (Val #()))
+  {{ (fi : w64), RET #fi;
+      ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗
+      memstorageFields ms σ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,10 +1,10 @@
 /-
-`t.commit(stop)` (`batch_tx.go:375-379`): translated; internal. `readTx.Lock()`, `unsafeCommit`,
-`readTx.Unlock()`. Changes: over `btPhys`. Margin: none.
+`batchTxBuffered.commit` (`batch_tx.go`). `t.commit(stop)` under the batch lock: `unsafeCommit` under `readTx.mu`.
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -12,27 +12,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.commit(stop)`** on the batch transaction: `unsafeCommit` under `readTx.Lock`. -/
-def batchTxBuffered.commit.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (I : Image) (n d : Nat) (stop : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ btHeld γ ∗ Pk ∗ btPhys γ I n d }}
-    (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"commit")) (Val #stop))
-  {{ RET #(); btHeld γ ∗ Pk ∗ ∃ I' : Image, beCommitted γ I' ∗
-      (if stop then btStopped γ else btPhys γ I' 0 0) }}
+/-- `t.commit(stop)` under the batch lock: `unsafeCommit` under `readTx.mu`. -/
+abbrev backend.batchTxBuffered.commit.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t rt : Loc) (st : BSess) (win stop : Bool) (m u : Nat)
+    (X Y : IProp GF) (L' : VData),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ batchLockedW γ P b st win ∗ Pk ∗ ⌜sint.Z st.pend + P.hookMax < 2 ^ 58 ∧ st.cnt.p0 = sint.nat st.pend ∧ (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false → bkOf st.W.bks i = [])⌝ ∗
+      (if win then thinV γ (sData P st.S) L' else thinV γ (sData P st.S) (vData P (st.C, st.R))) ∗
+      ⌜win = true → st.win = true ∧ dlsOk P st L'⌝ ∗ ⌜st.cnt.hw = false⌝ ∗
+      payIn γ st stop m u ∗ X ∗ commitReq γ P Pk b X Y }}
+    (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"commit")) (Val #stop))
+  {{ RET #(); Y ∗ Pk ∗ payOut γ stop m ∗
+      (if stop then iprop(sync.ownMutex (muOf t) ∗ pendOf t ↦ W64 0 ∗ bStopped γ ∗ bDBOutG γ P ∗
+         -- (2026-11-06, `notes/begin-tok-plan.md`) the rollback goroutine's fork token: no new
+         -- read transaction takes it at the stop
+         threadTok)
+       else iprop(∃ (st' : BSess) (db : Loc), sync.ownMutex (muOf t) ∗ batchPhys γ b t db st' ∗
+         batchGhostAt γ P st' true ∗
+         ⌜freeOk P st' ∧ vData P (st'.C, st'.R) = sData P st.S ∧ st'.pend = W64 0⌝ ∗
+         (if win then bView γ 1 L' else iprop(True)))) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

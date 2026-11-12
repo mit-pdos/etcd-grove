@@ -1,8 +1,8 @@
 # A4 (raft node API and core, batches R1, R2): completeness verification
 
 Reviewer: completeness kind, independent. Commit under review: `1aa6fc1337` (`specs-only`).
-Targets: `Spec/go_etcd_io/raft/v3/{Model,Api,ApiCore}.lean` and the node / `RawNode` / `MemoryStorage` /
-`raft.go` specs beside them (172 files at the top level of `Spec/go_etcd_io/raft/v3/`, not counting
+Targets: `SpecPlan/Spec/go_etcd_io/raft/v3/{Model,Api,ApiCore}.lean` and the node / `RawNode` / `MemoryStorage` /
+`raft.go` specs beside them (172 files at the top level of `SpecPlan/Spec/go_etcd_io/raft/v3/`, not counting
 R3's `raftLog__*`, `unstable__*`, `readOnly__*`, `ApiLog`); snippets `examples/specreq/{raftnode,raftcore}/`.
 I wrote the findings below before I read `batch-R*.md`, `integration-*.md`, `open-questions.md`
 and `reviews/`. I read those only afterwards, to mark which findings are already recorded.
@@ -85,7 +85,7 @@ All of these close.
 - **Principles:** "A client does not unfold the spec's definitions" (each such unfold is a missing law); Complete; "Law coverage".
 - **Evidence.**
   - `softStateOpt`, `readStatesRO` and `peersPts` (`Api.lean:165`, `:168`, `:171`) are `opaque`. Their only law is persistence (`persistent.spec`).
-  - Nothing outside R1's own files mentions them (grep over `Spec/`). `integration-I2.md:44` lists them as "left", with no laws.
+  - Nothing outside R1's own files mentions them (grep over `SpecPlan/Spec/`). `integration-I2.md:44` lists them as "left", with no laws.
   - Clients that read the `Ready`:
     - etcd's `raftNode.start` reads `rd.SoftState != nil`, `rd.SoftState.Lead` and `rd.RaftState` (`raft.go:191-206`). It indexes `rd.ReadStates[len-1]` and sends the value (`:212-213`). The read loop then reads `rs.RequestCtx` (its length, and the big-endian decode) and `rs.Index` (`read.go:166-177`).
     - kvdurable reads `rd.SoftState.RaftState` (`kv.go:452-453`), and `rs.Index` and `rs.RequestCtx` in `answer` (`kv.go:745-749`).
@@ -105,7 +105,7 @@ All of these close.
 
 - **Principles:** "Every premise has a source the client sees"; "Canonical specs … an interface value gets a bundle"; Complete.
 - **Evidence.**
-  - `loggerOk` (`Api.lean:419`) is opaque. Its docstring says "etcd's zap adapter and the examples' loggers meet it (their batches' laws)", but no such law exists. A grep for `loggerOk` outside `Spec/go_etcd_io/raft/v3/` finds only a docstring in `newRaftNode.lean:10`. `NewRaftLoggerZap` has no spec, and zap's `Api.lean` mentions no raft.
+  - `loggerOk` (`Api.lean:419`) is opaque. Its docstring says "etcd's zap adapter and the examples' loggers meet it (their batches' laws)", but no such law exists. A grep for `loggerOk` outside `SpecPlan/Spec/go_etcd_io/raft/v3/` finds only a docstring in `newRaftNode.lean:10`. `NewRaftLoggerZap` has no spec, and zap's `Api.lean` mentions no raft.
   - The only introductions are `defaultLogger_loggerOk.spec` (`ApiCore.lean`, for `*DefaultLogger`) and `getLogger.spec`'s post.
   - Two premises need `loggerOk` of a client's logger:
     - `StartNode`/`RestartNode`/`NewRawNode`/`newRaft` take `⌜cv.Logger' = nil⌝ ∨ loggerOk cv.Logger'` (`StartNode.lean:64`, `RestartNode.lean:78`).

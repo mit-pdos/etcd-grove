@@ -1,22 +1,11 @@
 /-
-`c.node()` (`cursor.go`): the leaf node of the stack, materializing the path (asserts a non-empty stack). Users: `Put`, `Delete`, `Cursor.Delete`.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
-
-**Changes** (integration I7): also after `seek` (`curSt`'s `curPath`: `Put`, `Delete`,
-`CreateBucket*` call `c.node()` right after `c.seek`), the state given back. Verify-round (A11 F9):
-the post says what the callers' next step needs: the cache still represents every view it did
-(`repKept`: only nodes read from pages were added), and the leaf returned is the one where the
-cursor's key belongs (`keyLeaf`: the sought key after `seek`, the entry's key when positioned),
-while the cursor's bucket handle is the current one at `p` (`C.gens p = gs`).
-
-**Proof sketch.** The stack's leaf, or from its root `Bucket.node` (nil parent) and each level's
-`node.childAt` (`Bucket.node` with the parent): each `repKept` (a node read from a page represents
-what the page did); the stack is the search path of the key in `p`'s tree (`curPath`'s, or
-`boltCur`'s position's), so its leaf is `keyLeaf`'s.
+`Cursor.node` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U7; used by U7 (`Put`, `Delete`, `CreateBucket*`, `DeleteBucket`), U9 (`Bucket.spill`'s header puts). Proof:
+`Proof/go_etcd_io/bbolt/Cursor__node.lean` (a `sorry` until U7).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -24,28 +13,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) the leaf node holding the position, now cached. -/
-def Cursor.node.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (T : TxView) (C : TxCore) (p : BPath) (gs : List Nat) (st : Option Nat ⊕ GoString),
-  {{ curSt (GF := GF) tx γ c p gs T st ∗ ⌜st ≠ .inl none⌝ ∗ wtxCore tx γ C }}
+/-- `c.node()` of a cursor whose stack is a logical path (`lPath`) of a searchable bucket `bl`:
+the leaf node at the path's end, the path's positions materialized from the root down as need be
+(`matGrow`: the logical tree and the data unchanged; a well-formed `X` stays so). The stack is
+only read. -/
+abbrev Cursor.node.spec : Prop :=
+  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (c : Loc)
+    (stk : GoSlice) (els : List elemRef) (pids : List w64) (dq : DFrac),
+  X.t.bs !! bl = some B → bktLocalOK X bl → lPath X bl els pids → B.bv.nodes' ≠ null →
+  (∀ pid ∈ pids, resolve B pid = none → matReady X B pid) →
+  {{ wtxW (GF := GF) K tx r m X ∗ c ↦{dq} Cursor.mk bl stk ∗ stk ↦*{dq} els }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"node")) (Val #()))
-  {{ (n : Loc), RET #n; curSt tx γ c p gs T st ∗ ∃ (C' : TxCore) (N : NodeR), wtxCore tx γ C' ∗
-      ⌜C'.nodes n = some N ∧ N.isLeaf = true ∧ repKept C C' ∧
-        (C.gens p = gs → ∀ k, curKey T p st k → keyLeaf C' p k n)⌝ }}
+  {{ (l : Loc), RET #l; ∃ X' : WX, wtxW K tx r m X' ∗ c ↦{dq} Cursor.mk bl stk ∗
+      stk ↦*{dq} els ∗
+      ⌜matGrow X X' bl ∧ (wOK X → wOK X') ∧ bktLocalOK X' bl ∧
+        ∃ B' pid, X'.t.bs !! bl = some B' ∧ pids.getLast? = some pid ∧ resolve B' pid = some l⌝ }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

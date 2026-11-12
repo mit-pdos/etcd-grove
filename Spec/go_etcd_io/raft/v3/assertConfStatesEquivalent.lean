@@ -1,16 +1,7 @@
-/-
-## `assertConfStatesEquivalent(l, cs1, cs2)` (internal)
-
-**Users**: `newRaft` (`raft.go:479`), `appliedSnap` (`raft.go:787`): the restored configuration
-against the one switched to. Panics (through `l.Panic`) when they differ: the premise. **Proof
-sketch**: `ConfState.Equivalent` (raftpb's `ConfState.Equivalent.spec`: `nil` exactly for `ConfState.Equiv`).
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/assertConfStatesEquivalent.lean`: over raftpb's `confStatePts`.
--/
+/- Port of election_proof/spec_assertConfStatesEquivalent.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -18,26 +9,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Returns when the two configurations are equivalent. -/
-def assertConfStatesEquivalent.spec : Prop :=
-  ∀ (lg : GoInterface) (p1 p2 : Loc) (dq1 dq2 : DFrac) (c1 c2 : ConfState),
-  ConfState.Equiv c1 c2 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ confStatePts p1 dq1 c1 ∗ confStatePts p2 dq2 c2 }}
-    (App (App (App (Val (@! go_etcd_io.raft.v3.assertConfStatesEquivalent)) (Val #lg)) (Val #p1)) (Val #p2))
-  {{ RET #(); confStatePts p1 dq1 c1 ∗ confStatePts p2 dq2 c2 }}
+/-- `assertConfStatesEquivalent l cs1 cs2` returns iff `cs1.Equivalent(cs2)` is `nil`,
+and otherwise calls `l.Panic`. Stated for the case `ConfState.Equivalent`'s triple covers
+(`Spec/ConfState__Equivalent.lean`): since 2026-10-14 (reconfiguration stage B8) any two
+`ConfState`s with equal `AutoLeave` and each id list a permutation of the other's, joint ones
+included (until then the non-joint case, now `specS`); the `Panic` path is then unreachable,
+which is why the logger needs no contract here.
+
+raft v3.7 (2026-10-15, stage R4): `cs1`, `cs2` are `*pb.ConfState`s (`ownCSM`, R1's
+`ConfState.Equivalent` premise) holding `c1`, `c2`; the lists are the records' (`c1.lists`, until
+the retarget `ownCSIds` over the slices). The non-joint statement `specS` and its derivation
+`spec_simple` are gone with the slices they were stated on. -/
+abbrev assertConfStatesEquivalent.spec : Prop :=
+  ∀ (l : Logger) (cs1 cs2 : Loc) (c1 c2 : ConfStateM) (dq1 dq2 : DFrac),
+  c1.lists.Perm c2.lists → c1.lists.Bounded →
+  c1.AutoLeave' = c2.AutoLeave' →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      ownCSM cs1 dq1 c1 ∗ ownCSM cs2 dq2 c2 }}
+    (App (App (App (Val #(functions assertConfStatesEquivalent [])) (Val #l))
+      (Val #cs1)) (Val #cs2))
+  {{ RET #(); ownCSM cs1 dq1 c1 ∗ ownCSM cs2 dq2 c2 }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

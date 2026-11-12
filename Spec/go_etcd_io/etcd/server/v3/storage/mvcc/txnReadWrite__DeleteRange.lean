@@ -1,18 +1,10 @@
 /-
-`(*txnReadWrite).DeleteRange` (`kv.go:97`): panics.
+`txnReadWrite__DeleteRange` (`kv.go`). Lean-first (no Rocq counterpart); see `InvRoTxn.lean`.
 
-**Users**: `txn.Txn`'s read-only path (`txn/txn.go:69`: `NewReadOnlyTxnWrite(txnRead)`, then `txn`/`executeTxn`/`checkTxn` call the `TxnWrite` methods), the tester's readers (`mvccrand.go:475-483, 626-634`). Snippet `ReqReadOnlyTxn`.
-
-**Proof sketch**: vacuous: the contract needs `mvccTxn t γ trace (.write σ pend)` at a `*txnReadWrite`, which nothing gives (`NewReadOnlyTxnWrite` gives `.read`; `mvccTxn` at this type holds only read transactions), so the panic is unreachable under it; `txn.Txn` never writes in a read-only transaction (`isWrite` false).
-
-**Changes** from `specs-ref`'s `txnReadWrite__DeleteRange.lean`: the contract at `*txnReadWrite` (the frozen
-API's canonical spec).
-
-**Margin**: none.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
 
 @[expose] public section
 
@@ -20,7 +12,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -31,11 +22,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `Txn.DeleteRange`'s contract at `*txnReadWrite`. -/
-def txnReadWrite.DeleteRange.spec : Prop :=
-  ∀ s : Loc, Txn.DeleteRange.contract (GF := GF) (go.GoType.PointerType txnReadWrite.ty) #s
+/-- `trw.DeleteRange(key, end)` panics (`panic("unexpected DeleteRange")`). -/
+abbrev mvcc.txnReadWrite.DeleteRange.spec : Prop :=
+  ∀ (trw : Loc) (key endk : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
+    (App (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"DeleteRange"))
+      (Val #key)) (Val #endk))
+  {{ (r : val), RET r; ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

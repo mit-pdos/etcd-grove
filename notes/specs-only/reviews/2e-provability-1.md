@@ -90,7 +90,7 @@ caller proves it from `walHolds R D` and raft's batch.
 
 **Evidence.**
 - 2f's `Transport.Start` needs `peerAddr ν a` for the local URLs, and `AddPeer`/`AddRemote` need it
-  for every peer URL (`Spec/.../rafthttp/Api.lean:38-41`, `316`). It comes only from
+  for every peer URL (`SpecPlan/Spec/.../rafthttp/Api.lean:38-41`, `316`). It comes only from
   `Http.addrFree a` (`peerAddr_reserve`, `rafthttp/Api.lean:518-520`).
 - None of `cluster_alloc`, `memberUrls_take`, the `memberStart` laws or `NewServer.spec` takes or
   carries an address resource. `rafthttpBootCfg` is a pure `Prop`, which cannot carry one. So
@@ -101,7 +101,7 @@ identical member ids and cluster id (`memberIdOf` of the same URLs and token), s
 cluster-id check (`checkClusterCompatibilityFromHeader`) passes. Messages of one cluster's members
 reach the other's processes at the same URLs, and the two ghost states are mixed.
 
-`Http.addrFree`'s environment premise ("one string per socket", `Spec/net/http/Api.lean:30-35`)
+`Http.addrFree`'s environment premise ("one string per socket", `SpecPlan/Spec/net/http/Api.lean:30-35`)
 would also settle the DNS and normalization aliases that `ValidateClusterAndAssignIDs` sees
 (`cluster.go:768`, `netutil.URLStringsEqual` resolves hosts, `pkg/netutil/netutil.go:147-197`).
 But only if the URL sets the join right is keyed by are reserved addresses.
@@ -123,7 +123,7 @@ pre admits.
 - `bootstrap` assigns the joiner the id of whichever existing member's peer URLs equal its own,
   at the time of `GetClusterFromRemotePeers` (`srv/etcdserver/bootstrap.go:343-373`,
   `cluster.go:755-783`).
-- W0's model has `memberUpdate id urls` (`Spec/go_etcd_io/etcd/api/v3/Model.lean:1150-1157`). It
+- W0's model has `memberUpdate id urls` (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean:1150-1157`). It
   refuses only URLs used by another member, not URLs a pending join right holds.
 
 **Run.**
@@ -310,7 +310,7 @@ stopped branch giving it back. `ReqPartition` then needs a token in its `Assumes
   as a refusal (state unchanged, `envUpd`'s update aborted) or as a permission error. Either fits
   `compactable`, but 2c's `Compact.spec` was not read.
 - Whether zap's `Fatal` in `bootstrap`/`purgeFile` is a non-returning call in the boundary's model
-  (a hang, which is fine for a WP) or a panic. `Spec/go_uber_org/zap` was not checked.
+  (a hang, which is fine for a WP) or a panic. `SpecPlan/Spec/go_uber_org/zap` was not checked.
 - `ReqSaveOrder` was not run. By hand, the model gives `hs.commit = 4`, `ents = [3, 4]`, and so does
   Go: no panic in Go.
 

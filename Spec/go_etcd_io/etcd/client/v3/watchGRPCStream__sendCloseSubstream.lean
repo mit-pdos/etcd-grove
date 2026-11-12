@@ -1,23 +1,22 @@
 /-
-`(*watchGRPCStream).sendCloseSubstream(ws, resp)`: a goroutine: the final error response on `outc` (or the watch's context done, or 250 ms), then `outc` closed (`wsCloser`: the one right to do both). Users: `closeSubstream`.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.watchGRPCStream).sendCloseSubstream(ws, resp)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,17 +24,23 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `s.sendCloseSubstream(ws, resp)`: never panics. -/
-def watchGRPCStream.sendCloseSubstream.spec : Prop :=
-  ∀ (s ws : Loc) (γ : Cluster) (who : Principal) (resp : Loc)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) (mw : WatchRespM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wsCloser ws s γ who mw ∗ resp ↦ v ∗ watchRespAt v mw }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"sendCloseSubstream")) (Val #ws)) (Val #resp))
+/-- `w.sendCloseSubstream(ws, resp)` (a goroutine of `closeSubstream`) with the producer's side of
+the substream's `outc` and a canceled response with no events, a fresh zero header and a close
+error grpc's `status` accepts: publishes it on `outc` (unless the watch's context is done or a
+timeout passes first) and closes `outc`. -/
+abbrev watchGRPCStream.sendCloseSubstream.spec : Prop :=
+  ∀ (V : WEnv GF) (P : WsPrm GF) (wgs resp : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wsIs V P ∗ outcProd P ∗
+      wsF P.ws go!"outc" ↦ P.outc ∗
+      resp ↦ v ∗ v.Header' ↦ (zero_val etcdserverpb.ResponseHeader) ∗
+      ⌜v.Header' ≠ null ∧ v.Events' = slice.nil ∧ v.CompactRevision' = W64 0 ∧
+        v.Canceled' = true ∧ v.Created' = false⌝ ∗ statusErrOk v.closeErr' }}
+    (App (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"sendCloseSubstream")) (Val #P.ws)) (Val #resp))
   {{ RET #(); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

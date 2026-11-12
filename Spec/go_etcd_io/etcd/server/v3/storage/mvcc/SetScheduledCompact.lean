@@ -1,18 +1,10 @@
 /-
-`SetScheduledCompact(tx, value)` (`store.go:38`). Internal: `updateCompactRev`.
-`tx.LockInsideApply()` (the storage's hook run, `Pre` to `Q'`, on the open share `kbOpen B q`; the
-lock's observation is the caller's first update, `kbObs`), `UnsafeSetScheduledCompact` (the entry
-bound: a 19-byte key and a 17-byte value), the deferred `tx.Unlock()` (`Pk` and the session's
-liveness back; the caller's nested update, built at the data the lock read: the write-back's step to
-`KeyData.mid D D' = D'` (a session of `Meta` puts only), then the commit's, which changes nothing;
-the open share back).
-
-**Changes** from `specs-ref`'s file: over the storage contract (`storageHook`, `hookRun`, `kbObs`) in
-place of `batchTxSpecG`, `lockArmS`, `mwLend`.
+`SetScheduledCompact` (`store.go`) (2026-10-13, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 
 @[expose] public section
 
@@ -20,34 +12,48 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `SetScheduledCompact(tx, value)`: the hook, then the scheduled key written and made visible
-(the storage's two-step publication, the second step a no-op for this session). -/
-def SetScheduledCompact.spec : Prop :=
-  ∀ (B : MvccStorage) (Pk : IProp GF) (q : Qp) (dq : DFrac) (f : GoFunc) (Pre Q' Post R : IProp GF)
-    (value : w64),
-  let D' (D : KeyData) := D.putMeta .sched (revBytes ⟨value, W64 0⟩ false)
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      keyBackend B Pk ∗ kbOpen B q ∗ storageHook B dq f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗
-      (Q' ={⊤}=∗ Pk ∗ Post) ∗
-      kbObs B (fun D => iprop(⌜D.metaMade = true⌝ ∗
-        AU <{ ∃∃ (D1 : KeyData), kbData B D1 }> @ ⊤, ∅ <{ kbData B (D' D), COMM
-          AU <{ ∃∃ (D2 : KeyData), kbData B D2 }> @ ⊤, ∅ <{ kbData B (D' D), COMM R }> }>)) }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact))
-      (Val #(GoInterface.ok (kbBatchTx B)))) (Val #value))
-  {{ RET #(); kbOpen B q ∗ storageHook B dq f ∗ Post ∗ R }}
+/-- `SetScheduledCompact(tx, value)`, `value ≥ 0`: its own critical section of the batch lock
+(`LockInsideApply`), `UnsafeSetScheduledCompact`, `Unlock`. By the post-lock hook's state (`lockArmS`;
+M2, the storage side, item 31, 2026-10-30): set to `f`, `LockInsideApply` runs it on the caller's
+`Pre` (`{P ∗ Pre} f() {Q}`) and the caller's update, with the lock's resource `W` (the store updates
+its record of the meta key there), comes before the `Unlock`: `Q ∗ W ={⊤}=∗ P ∗ W ∗ Post`; unset
+(the new backend `restore()` resumes a compaction on, inside `kv.Restore`), `LockInsideApply` runs
+nothing (`lockNilSpec`, with the unset hook `HN`): the batch lock's invariant `P` passes through to
+the `Unlock`, and the caller's update is `P ∗ Pre ∗ HN ={⊤}=∗ P ∗ Post` (`P` seen since 2026-11-06). Over the batch transaction in full
+generality (question 5's Draft, review round 14's F6, R9-3; the core stage, part (1)): its read and
+write tokens `RT`/`WT` (lent to `LockInsideApply`, the read token given back), put condition, tracked
+buckets' right and the compaction keys' write right `MW` are the caller's, and the caller's loan of
+the right at its values from the lock's resource, for the put (`mwLend W MW`, the snapshot image's
+(a), 2026-11-05: until then a swap of the whole resource, `mwSwap`, which a resource pinning the
+values cannot give back), gives the right for the `Meta` put and takes it back at the put's values
+(`fkPutV`), with the loan's `Ql` (the store's lower bound of its records' compaction revision, for
+the job: 2026-11-06), returned. -/
+abbrev mvcc.SetScheduledCompact.spec : Prop :=
+  ∀ (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
+    (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) (hk : Option val)
+    (value : w64) (Pre Q Post Ql : IProp GF),
+  0 ≤ sint.Z value →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗
+      mvcc.mwLend W MW (fun w => mvcc.fkPutV w mvcc.schedKeyBytes (mvcc.revBytes ⟨value, W64 0⟩ false)) Ql ∗
+      RT ∗ WT ∗ Pre ∗ mvcc.lockArmS bt RT WT W P HF Locked HN hk Pre Q Post }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact)) (Val #(GoInterface.ok bt)))
+      (Val #value))
+  {{ RET #(); RT ∗ Post ∗ Ql }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

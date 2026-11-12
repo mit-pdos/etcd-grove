@@ -1,25 +1,9 @@
 /-
-## `semver.MustParse(s)`: assumed
-
-**Users.** rafthttp (`util.go:154,164,174,175`, `stream.go:613`: a peer's version header, etcd's
-constants), the applier (`apply/backend.go:272`: a committed `ClusterVersionSet`'s `Ver`), the
-membership (`cluster.go:270,586,610`), the schema (`schema/membership.go:205`: the stored cluster
-version). Snippets: `examples/specreq/pkgleaves/leaves.go` (`ReqParseCompare`, `ReqRoundTrip`).
-
-**Assumed** (`version.go:327-333`): `NewVersion(s)`, a panic on its error. The premise is the
-callers': a header the protocol says parses, a constant (`parse_version`, `parse_plain`), a stored
-or committed `String()` of a version within `maxVersionLen` (`parse_render`).
-
-**Changes.** From `specs-ref`'s `MustParse.lean` (a disjunction with a panic result, over the
-applier's `semverValid`): the parse is the premise, the result a model.
-
-**Margin.** None (a fresh version; `verAt` gives it read-only).
+`semver.MustParse`: the trust boundary (`github.com/Masterminds/semver/v3` is names-only). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.github_com.Masterminds.semver.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestModel
 
 @[expose] public section
 
@@ -27,25 +11,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Semver
 
-open Iris Iris.BI
+open Iris Iris.BI 
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.Masterminds.semver.v3.Assumptions]
 
-/-- **The version `s` parses to** (it must parse: else a panic). -/
-def MustParse.spec : Prop :=
-  ∀ (s : GoString) (sv : SemVer),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 ∗ ⌜parse s = some sv⌝ }}
+/-- `semver.MustParse(s)`: a version, not nil, if `s` parses (`semverValid`), the version of
+`s` (`apply.semverIs`, D22, 2026-10-23: the value the cluster's `SetVersion` saves is its
+`String()`, `apply.semverNorm s`); else a panic (`MustParse` panics on an error of
+`NewVersion`). -/
+abbrev semver.MustParse.spec : Prop :=
+  ∀ (s : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 }}
     (App (Val (@! github_com.Masterminds.semver.v3.MustParse)) (Val #s))
-  {{ (v : Loc), RET #v; verAt v sv }}
+  {{ (r : val), RET r;
+      (⌜apply.semverValid s⌝ ∗ ∃ v : Loc, ⌜r = #v ∧ v ≠ null⌝ ∗ apply.semverIs v s) ∨
+        ⌜¬ apply.semverValid s ∧ ∃ p : val, r = PanicV p⌝ }}
 
 end spec
-end Semver
+
 end EtcdGrove
 end Perennial

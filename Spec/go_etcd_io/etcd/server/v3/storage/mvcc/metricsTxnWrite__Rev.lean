@@ -1,17 +1,13 @@
 /-
-`(*metricsTxnWrite).Rev` (promoted; `storeTxnCommon.Rev`, `storeTxnWrite.Rev`).
-
-**Users**: through `TxnRead`/`TxnWrite` values: the server's transactions (`txn/range.go:53`, `txn/txn.go:43, 67`, `txn/put.go:39`, `txn/delete.go:33`: `store.Read`/`Write` return a `*metricsTxnWrite`), the lessor's `Revoke` (`lessor.go:350, 361`, through `mvccDeleter`), the tester (`mvccrand.go:395-495, 627-647`). Snippets `ReqSoleWriter`, `ReqReadFloor` (`txn/txn.go:96, 152`).
-
-**Proof sketch**: a read transaction's `rev` (`currentRev` at `Read`), a write transaction's `beginRev`: both `σ.rev`.
-
-**Changes** from the old spec: unchanged in substance.
-
-**Margin**: none.
+`metricsTxnWrite.Rev` (`metrics_txn.go`: promoted from the wrapped `TxnWrite`: a read
+transaction's `txnReadWrite` around a `storeTxnRead`, down to `storeTxnCommon.Rev`, or a write
+transaction's `storeTxnWrite.Rev`). Lean-first
+(no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -19,7 +15,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -30,11 +25,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `Txn.Rev`'s contract at `*metricsTxnWrite`. -/
-def metricsTxnWrite.Rev.spec : Prop :=
-  ∀ s : Loc, Txn.Rev.contract (GF := GF) (go.GoType.PointerType metricsTxnWrite.ty) #s
+/-- `mw.Rev()` of a transaction of either kind: the revision it began at (`TxnKind.beginRev`: a
+read transaction's revision, a write transaction's committed log's last). -/
+abbrev mvcc.metricsTxnWrite.Rev.spec : Prop :=
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
+    (Z Tr : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTxnT mw s γ trace kind crev Z Tr }}
+    (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Rev")) (Val #()))
+  {{ RET #(kind.beginRev : w64); mvcc.isTxnT mw s γ trace kind crev Z Tr }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

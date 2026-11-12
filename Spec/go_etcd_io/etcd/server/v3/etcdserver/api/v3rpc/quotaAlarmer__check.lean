@@ -1,47 +1,52 @@
 /-
-`v3rpc.quotaAlarmer.check` (`server/etcdserver/api/v3rpc/`).
-
-Users: `quotaKVServer.Put`, `quotaKVServer.Txn`, `quotaLeaseServer.LeaseGrant`.
-
-Proof sketch: `newBackendQuota.spec` (a quota over the server's current backend: the fork's fix of `issues/etcd-quota-stale-backend-after-snapshot.md`), its `Available(r)` (2e's `quotaOk`); over the quota, `s.Alarm(ctx, ACTIVATE NOSPACE)` (2c's `EtcdServer.Alarm.spec` for `.alarmActivate`: the server's own environment step, its update built from the `envUpd` the server holds; any outcome) and `ErrGRPCNoSpace`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/quotaAlarmer__check.lean`: no `backendUnderQuota` premise (the refusal is the model's `.noSpace`, a refusal any request may meet).
-
-Margin: whether the request fits the quota is not specified.
+`v3rpc.quotaAlarmer.check` (`v3rpc/quota.go`; unit P3b). Lean-first (no Rocq counterpart); the
+vocabulary is `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvQuota.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `qa.check(ctx, r)` of a request message: `nil`, or `ErrGRPCNoSpace` (the `NOSPACE` alarm
-requested). -/
-def quotaAlarmer.check.spec : Prop :=
-  ∀ (qp : Loc) (qa : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (s : Loc) (γ : Cluster) (ctx : GoInterface) (t : go.GoType)
-    (q : Loc) (dq : DFrac) (c : Content) (gq : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ qp ↦□ qa ∗ quotaAlarmerAt qa s γ ∗ srvGate s gq ∗ Context.ctxOk ctx ∗ msgAt t q dq c ∗ ⌜depth c < depthMax⌝ }}
-    (App (App (Val (qp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer.ty @!! go!"check")) (Val #ctx))
-      (Val #(msgVal t q)))
-  {{ (err : GoInterface), RET #err; msgAt t q dq c ∗ srvGate s gq ∗
-      (⌜err = GoInterface.nil⌝ ∨ statusErr err (Rpctypes.code .noSpace) (Rpctypes.desc .noSpace)) }}
+/-- **`qa.check(ctx, r)`** of a request `r` of a type `rt` with `apply.quotaReqTy rt` (`*pb.PutRequest`,
+`*pb.TxnRequest`, `*pb.LeaseGrantRequest`): `newBackendQuota(qa.s, qa.name).Available(r)`, over
+the backend current at the check (`s.Backend()` under `s.bemu`: the fork's 8f793b820, D22g (A);
+until then a quota built at construction, over a backend a snapshot's install closes), which
+answers true (`apply.isQuota`, under the workload premise `apply.backendUnderQuota`, D19h, which
+`quotaAlarmerAt` holds), so the NOSPACE alarm's branch (`s.MemberID()`, `s.Alarm`, then
+`ErrGRPCNoSpace`) is not reached: it returns `nil` (k8s etcd3 7c, HS-6; until then the post
+said nothing of the error). The reader slots of `s.lgMu` and `s.bemu` (`quotaRd`) come back. -/
+abbrev v3rpc.quotaAlarmer.check.spec : Prop :=
+  ∀ (qa s : Loc) (ci : GoInterfaceOk) (r : Loc) (rt : go.GoType),
+  apply.quotaReqTy rt →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      v3rpc.quotaAlarmerAt qa s ∗ v3rpc.quotaRd s }}
+    (App (App (Val (qa @!! go.GoType.PointerType v3rpc.quotaAlarmer.ty @!! go!"check"))
+      (Val #(GoInterface.ok ci)))
+      (Val #(interface.mkOk rt #r : GoInterface)))
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ v3rpc.quotaRd s }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

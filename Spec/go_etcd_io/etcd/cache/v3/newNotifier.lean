@@ -1,13 +1,9 @@
 /-
-`newNotifier` (`cache/*.go`), an internal helper.
-Users: `newDemux`.
-Proof sketch: allocates the struct and an open channel.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`newNotifier()`. Lean-first (no Rocq counterpart); see `InvNotifier.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvNotifier
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,14 +21,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `newNotifier()`. -/
-def newNotifier.spec : Prop :=
+/-- `newNotifier()`: a `notifier` with count `0`, and the `RWMutex`'s tokens
+(`notifierHandle`). -/
+abbrev newNotifier.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 }}
-    (App (Val (@! go_etcd_io.etcd.cache.v3.newNotifier)) (Val #()))
-  {{ (n : Loc), RET #n; isNotifier n }}
+    (App (Val (@! newNotifier)) (Val #()))
+  {{ (n : Loc) (γ : NotifierNames), RET #n;
+      notifierLb γ 0 ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        notifierHandle n γ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

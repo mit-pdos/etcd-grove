@@ -1,20 +1,10 @@
 /-
-`(*DoubleBarrier).enteredClients(cli)` (`double_barrier.go`): `Get(key/waiters, WithPrefix(),
-WithSort(CreateRevision, Ascend))`.
-
-**Users**: `Enter` (twice). Internal.
-
-**Proof sketch**: `isClient_KV`; `KV.GetTriple` (`b.ctx`: `ctxOk`, `ctxPrin who ctx who`; `lo = 0`, `authLb γ 0`) with an update made of
-`etcdPeek` (its commit's `etcdLb γ σ`; `Reach σ0 σ` by `etcdLb_reach` inside it); the reply is the
-range's answer at `σ`'s store, or an error (`errVal`, `indefCall`: `recipeErrOk`).
-
-**Changes**: old spec over the recipes' client invariant; now the read's answer.
-
-**Margin**: none.
+`recipes.(*DoubleBarrier).enteredClients(cli)` (`client/v3/experimental/recipes/double_barrier.go`). Lean-first (no Rocq
+counterpart); see `InvDoubleBarrier.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvDoubleBarrier
 
 @[expose] public section
 
@@ -22,34 +12,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`b.enteredClients(c)`**: the waiters under `key/waiters` by creation revision, read at a state reached from `σ0`, or an error. -/
-def DoubleBarrier.enteredClients.spec : Prop :=
-  ∀ (b c : Loc) (γ : Cluster) (who : Principal) (key : GoString) (count id : w64)
-    (my : Option RKSt) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ dbOwn b γ who key count id my ∗ isClient c γ who ∗ etcdPeek γ ∗ etcdLb γ σ0 }}
-    (App (Val (b @!! go.GoType.PointerType DoubleBarrier.ty @!! go!"enteredClients")) (Val #c))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); dbOwn b γ who key count id my ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ (σ : State) (m : RangeRespM) (a : RangeAns),
-          etcdLb γ σ ∗ rangeRespOwn resp (DFrac.own 1) m ∗
-          ⌜Reach σ0 σ ∧ m.hdr.map (·.revision) = some (W64 σ.kv.rev) ∧ m.ofAns a ∧
-            (opGetM (waitersPfx key) [withPrefixM, withSortM SortByCreateRevision SortAscend]).rangeReq.answers
-              σ.kv.store a⌝) ∨
-       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ recipeErrOk err)) }}
+/-- **`b.enteredClients(client)`**, with the barrier's session's client, knowing etcd has reached
+`lo`: the get `Get(key + "/waiters", WithPrefix(), WithSort(SortByCreateRevision, SortAscend))`;
+`(resp, nil)` with `resp` listing the keys with the prefix `key/waiters` of etcd's state at its
+revision `R ≥ lo`, sorted by create revision (`waitersResp`), or `(nil, err)`. -/
+abbrev DoubleBarrier.enteredClients.spec : Prop :=
+  ∀ (b s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (key : GoString)
+    (count lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isDoubleBarrier b s γ client id key count ∗ etcdReached lo }}
+    (App (Val (b @!! go.GoType.PointerType DoubleBarrier.ty @!! go!"enteredClients"))
+      (Val #client))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (kvs : List EtcdKv), etcdReached R ∗
+        waitersResp (key ++ go!"/") (key ++ go!"/waiters") resp R kvs ∗ ⌜sint.Z lo ≤ sint.Z R⌝) ∨
+      ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

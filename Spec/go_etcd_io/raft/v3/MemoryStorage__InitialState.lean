@@ -1,17 +1,12 @@
-/-
-## `MemoryStorage.InitialState()`
+/- `MemoryStorage.InitialState` (`storage.go:121`).
 
-**Users.** raft's `newRaft` (through `isStorage`, at a start). **Proof sketch.** Reads `hardState`
-and the snapshot's `ConfState` **without the lock** (`issues/raft-memorystorage-initialstate-
-unlocked.md`): so it needs the contents exclusively, not an update a concurrent writer could fire.
-**Changes.** Restated over `memStor` (was the detached `memStorFresh`'s). **Margin.** The returned
-pointers alias the storage's (read-only).
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). It takes no lock and reads (and may write the `AutoLeave` of) the stored snapshot, which the locked `Snapshot` writes (`issues/raft-memorystorage-initialstate-unlocked.md`): it is specified before the storage's invariant exists, on the allocation's fuel (`memStorFresh`, which holds the snapshot), with `memStorMeta`. The conf state is returned read-only for good with its `AutoLeave` set (D7).
+
+Durability stage I (I-5, 2026-10-31): detached mode only (`memStorFresh ms γs c sv`, at any compaction point and stored snapshot `sv`, whose conf state it returns). An attached-mode spec cannot be proved: once a node runs, it races with the locked writers. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 
@@ -19,30 +14,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- The stored hard state (`nil` for the empty one) and the snapshot's configuration, on a storage
-no one else touches. -/
-def MemoryStorage.InitialState.spec : Prop :=
-
-  ∀ (ms : Loc) (σ : StorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStor ms σ }}
-    (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"InitialState")) (Val #()))
-  {{ (hp csp : Loc) (err : GoInterface), RET (PairV (PairV #hp #csp) #err);
-      ⌜err = interface.nil⌝ ∗ memStor ms σ ∗ hsPtr hp DFrac.discard σ.hs ∗
-      confStatePts csp DFrac.discard σ.snap.conf }}
+/-- `ms.InitialState()`. -/
+abbrev MemoryStorage.InitialState.spec : Prop :=
+  ∀ (ms : Loc) (γs : MemStorNames) (hs : HardStateM) (c : Nat) (sv : SnapshotM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memStorMeta ms γs hs ∗ memStorFresh ms γs c sv }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"InitialState")) (Val #()))
+  {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
+      hsOpt hp hs ∗ memStorMeta ms γs hs ∗ memStorFresh ms γs c sv ∗
+      csPts cs DFrac.discard sv.Metadata'.ConfState' true }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

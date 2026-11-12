@@ -1,19 +1,11 @@
 /-
-## `(*messageDecoder).decode()`
-
-**Users.** `streamReader.decodeLoop` (the message stream).
-
-**Proof sketch.** `decodeLimit` with the package variable `readBytesLimit`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (A8 F8, A5 F4): the encoding is raftpb's `msgEncodes` (was the provisional `pbEncodes`), the frame the transparent `msgFrame`; the message is delivered as `msgRecv` (a fresh message, owned with its `Entries` capacity: what `Process` and raft's `Step` take), was `msgPts` at `own 1`.
-
-**Margin.** None.
+`(*messageDecoder).decode()` (`msg_codec.go`): rafthttp's message decoder, the
+pipeline handler's and the `streamTypeMessage` stream reader's. Lean-first; the vocabulary:
+`rafthttp/Codec.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Codec
 
 @[expose] public section
 
@@ -21,26 +13,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) `decodeLimit(readBytesLimit)` (512 MiB). -/
-def messageDecoder.decode.spec : Prop :=
-  ∀ (dec : Loc) (rd : GoInterface) (Pre Φ : List w8 → IProp GF) (r : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ msgDecAt dec rd ∗ Http.readerAt rd Pre Φ r }}
-    (App (Val (dec @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder.ty @!! go!"decode")) (Val #()))
-  {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); Http.errOk err ∗ ((⌜err = interface.nil⌝ ∗ ∃ (m : Msg) (e : List w8), msgRecv ml m ∗ ⌜RaftPb.msgEncodes e m⌝ ∗ Http.readerAt rd Pre Φ (r ++ msgFrame e) ∗ □ Pre (r ++ msgFrame e)) ∨ (⌜err ≠ interface.nil⌝ ∗ ∃ r', Http.readerAt rd Pre Φ r')) }}
+/-- **`dec.decode()`**: `decodeLimit(readBytesLimit)`, the limit 512 MiB (rafthttp's package
+fact; 2026-10-23, stage 5c). -/
+abbrev rafthttp.messageDecoder.decode.spec : Prop :=
+  ∀ (dec : Loc) (r : GoInterface) (Rd B : List w8 → IProp GF) (rs : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      dec.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder, go!"r"] ↦□ r ∗
+      readFullAt r Rd B ∗ Rd rs ∗
+      □ (∀ bs : List w8, B (rs ++ msgFrame bs) -∗ ⌜bs.length < 2 ^ 63 → ∃ st, MsgWireOk st bs⌝) }}
+    (App (Val (dec @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder.ty @!! go!"decode")) (Val #()))
+  {{ (ml : Loc) (err : GoInterface), RET (PairV #ml #err); http.errStrOk err ∗
+      ∃ rs' : List w8, Rd rs' ∗
+        (⌜err = GoInterface.nil⌝ -∗ ∃ (bs : List w8) (st : MsgSt),
+          ⌜rs' = rs ++ msgFrame bs ∧ bs.length ≤ 536870912 ∧ MsgWireOk st bs⌝ ∗
+          □ B rs' ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

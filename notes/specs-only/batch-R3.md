@@ -1,13 +1,13 @@
 # Batch R3: raft's log (report)
 
-Author agent, 2026-11-09. Everything builds: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3`
+Author agent, 2026-11-09. Everything builds: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3`
 (131 modules with R1's; R3's are `ApiLog` and 63 spec files). Snippets: `examples/specreq/raftlog/`
 (`//go:build ignore`, package `raft`), gofmt-clean, and `go vet` clean when copied into a copy of the
 pinned raft module (`565c2bd`) without the build tag.
 
 ## Files
 
-- `Spec/go_etcd_io/raft/v3/ApiLog.lean`: the vocabulary (namespace `Raft`, importing R1's `Api`).
+- `SpecPlan/Spec/go_etcd_io/raft/v3/ApiLog.lean`: the vocabulary (namespace `Raft`, importing R1's `Api`).
 - `newLogWithSize`, `raftLog__{maybeAppend, append, findConflict, findConflictByTerm,
   nextUnstableEnts, hasNextUnstableEnts, hasNextOrInProgressUnstableEnts, nextCommittedEnts,
   hasNextCommittedEnts, maxAppliableIndex, nextUnstableSnapshot, hasNextUnstableSnapshot,
@@ -158,7 +158,7 @@ applied, stable index becomes a floor); the client's writes `logStor_install`, `
 ## Round 1 repairs
 
 Reviews: `reviews/R3-provability-1.md`, `reviews/R3-completeness-1.md`. Rebuilt
-(`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3`: OK), snippets gofmt-clean and `go vet` clean in
+(`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3`: OK), snippets gofmt-clean and `go vet` clean in
 a copy of the pinned raft module.
 
 - **Publishing the applied floor (both F1).** `LogState` has a ghost `frozen : Nat → Option w64`

@@ -1,27 +1,9 @@
 /-
-`(*clientv3.retryKVClient).Compact` (`client/v3/retry.go`).
-
-Users: `kv.Do`, `kv.Compact`, `txn.Commit` (through `kvHandle`'s `remoteKVAt`).
-
-Proof sketch: the stub's `Compact` with the same options (`retryKVHandle`'s `remoteKVAt`): the retry interceptor's default policy, not repeatable, resends only a request never sent (`isSafeRetryMutableRPC`), so the exclusive update passes.
-
-Integration (I1): the stub's call is 3h's generated `KVClient` method, i.e. `cc.Invoke` through the
-client's unary interceptor: 1c's `uiOk_call` (with `clientReady c`, from `retryKVHandle rkv c`'s premise)
-over 2a's `AttemptTriple` realization (`Grpc.attemptOk_call`, `V3rpc.etcdUnary`), its outcomes mapped to
-`wireReply`/`wireIndef` by `Rpctypes.callErr_view` (a definite answer whose error rpctypes does not map,
-e.g. `invalidClientAPIVersion`, reaches the client as `.other`: the update fired, `Q` dropped, the
-`wireIndef` disjunct). **Open**: this call's update is over `Step p rq σ σ' res lo` (`authLb γ lo`), 1c's `callAU`
-now takes `lo` (`AttemptTriple`, `uiOk_call` bind it with `authLb γ lo`), while 2a's `etcdUnary` carries
-none (its update is over `Step p rq` at the default `lo = 0`, which a client's `lo`-update does not
-accept): it must carry `lo` and `authLb γ lo` (`notes/specs-only/integration-I1.md`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryKVClient__Compact.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`(*clientv3.retryKVClient).Compact(ctx, in, opts...)` (`client/v3/retry.go`, translated for the client's `kv.Compact`, 2026-11-01). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -29,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -41,14 +21,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `rkv.Compact` meets the wire-level contract's `Compact` (`RemoteKV.CompactTriple`). -/
-def retryKVClient.Compact.spec : Prop :=
-  ∀ (rkv c : Loc) (γ : Cluster) (who : Principal),
-  RemoteKV.CompactTriple (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!! go!"Compact")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVHandle rkv c γ who ∗ clientReady c)) γ who
+/-- `rkv.Compact(ctx, in, opts...)` on a `retryKVClient` over the connection `conn`
+(`retryKVAt`): the stub's `Compact` with the same options (no retry policy added: the default,
+`nonRepeatable`), as `retryKVClient.Put`. (The client's `kv.Compact`, 2026-11-01.) -/
+abbrev retryKVClient.Compact.spec : Prop :=
+  ∀ (rkv conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbCompactionRequest pbCompactionResponse)
+    (Q : CompactRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.CompactionRequest) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Compact" Spec ∗
+      reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
+        (attemptPre conn (GoInterface.ok ctx) Spec ⟨req.Revision', req.Physical'⟩ Q) ∗
+      ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
+    (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
+        go!"Compact")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.CompactionRequest, inp ↦ req') ∗ compactCallOut Q resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,26 +1,10 @@
 /-
-## `(*lockServer).Lock(ctx, req)` (`lock.go:33-50`): translated
-
-**Users.** The `Lock` RPC (`etcdctl lock`, `v3lockpb` clients); `ReqLockOverInProc`.
-**Proof sketch.** 1d's `NewSession.spec` (the request's lease, the context), `Orphan`, `NewMutex`,
-`Mutex.Lock.spec` (the lent permission): the lock fact `lockedSince` at a reached state, or an error.
-**Changes** (from `specs-ref`'s `lockServer__Lock.lean`): over 1d's facts.
-Changes: verify-round: the prefix is `name ++ "/"` (`NewMutex`'s; A3 completeness F1, A8 provability
-F6: `lockedSince name` was false of a key `name ++ "z"` created earlier), in the effect and the fact;
-the key is the session's (`sessKey`, 1d's post) under the request's lease when non-zero; the lent
-token `P` is given back on success (1d returns it; A3 completeness F7); the messages are 3h's.
-**Margin.** As 1d's; on an error `P` is not returned (the error is not classified: a session error
-before the mutex, `ErrSessionExpired` and a transport error look alike to the caller).
-
-**The principal** (round 1, completeness F9): the in-process client (`v3client.New(s)`, default
-principal `dflt`: none) forwards each call's token, so the call's principal is the context's `who`
-(`ClientV3.ctxPrin dflt ctx who`), the effects under it, as 1d's specs state them. `v3client.New`'s
-spec (an `isClient … none` from `isServer`) is requested of 1c (`req/…client_v3.md`, "from 2e,
-round 1").
+`(*lockServer).Lock(ctx, req)` (`server/etcdserver/api/v3lock/lock.go`; the auth plan's A3c,
+2026-10-24). Lean-first (no Rocq counterpart); see `v3lock/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Defs
 
 @[expose] public section
 
@@ -28,33 +12,53 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3lock
+namespace v3lock
 
-open Iris Iris.BI EtcdModel ClientV3 Concurrency
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency concurrency
+  _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions]
+variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions]
 
-/-- **Acquires the lock `name`** (the prefix `name ++ "/"`): its key, the session's, and the lock
-fact at a state the cluster reached; the lent token back. -/
-def lockServer.Lock.spec : Prop :=
-  ∀ (ls c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (σ0 : State) (req : Loc) (name : GoString) (lease : w64) (Ts T : State → State → Prop) (P : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗ isLockServer ls c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ etcdLb γ σ0 ∗ lockReq req name lease ∗ etcdPerm γ Ts ∗
-      ⌜effIn (fun σ σ' => readEff σ σ' ∨ (lease = W64 0 ∧ grantEff 60 σ σ')) Ts⌝ ∗
-      etcdLent γ T P ∗ P ∗ ⌜∀ l : Int, effIn (mutexEff (name ++ go!"/") l) T⌝ }}
-    (App (App (Val (ls @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer.ty @!! go!"Lock")) (Val #ctx)) (Val #req))
+/-- **`Lock(ctx, req)`**: on a lock server over a client meeting `lockClientOk`, for a request
+whose name is `name` and lease `lease`, and a cancelable request context, it makes only these
+client calls: a session over the lease (`NewSession`, `WithLease(lease)`, `WithContext(ctx)`),
+`Orphan`, and a mutex on `name` (`NewMutex`, `Lock(ctx)`), so its keys are under `name/`. It returns
+the response `{Header, Key}` of a lock the mutex holds (`lockedAt`, or the key recreated,
+`keyRecreated`: `Mutex.Lock`'s), whose key is under `name/`, or no response and an error.
+
+The name is at most the server's receive limit long (`v3rpc.grpcRecvBytesOk`, the receive-size
+fact: grpc's server decoded the request under etcd's limit `v3rpc.etcdMaxRecvMsgSize maxReq`,
+`maxReq` the configuration's `MaxRequestBytes`, which meets `v3rpc.etcdMaxRequestBytesOk`;
+2026-10-30, `notes/decisions.md`, "The receive-size fact"). -/
+abbrev lockServer.Lock.spec : Prop :=
+  ∀ (ls c req : Loc) (nsl : GoSlice) (name : GoString) (lease : w64) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗
+      isLockServer ls c ∗ lockClientOk c ∗
+      structFieldRef v3lockpb.LockRequest go!"Name" req ↦□ nsl ∗
+      nsl ↦*□ name ∗
+      ⌜v3rpc.etcdMaxRequestBytesOk maxReq ∧
+        v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name⌝ ∗
+      structFieldRef v3lockpb.LockRequest go!"Lease" req ↦□ lease ∗
+      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+    (App (App (Val (ls @!! go.GoType.PointerType lockServer.ty @!! go!"Lock"))
+      (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (id : w64) (σ : State),
-          lockResp resp k ∗ etcdLb γ σ ∗
-          ⌜Reach σ0 σ ∧ (lease ≠ W64 0 → id = lease) ∧ k = sessKey (name ++ go!"/") (sint.Z id) ∧
-            lockedSince (name ++ go!"/") k cr σ⌝) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc) (ksl : GoSlice)
+          (v : v3lockpb.LockResponse),
+        resp ↦ v ∗ ⌜v.Header' = hdr ∧ v.Key' = ksl⌝ ∗ ksl ↦* key ∗ hdrRevAt hdr R ∗
+        etcdReached R ∗ (lockedAt (name ++ go!"/") key rev R ∨ keyRecreated (name ++ go!"/") key rev R) ∗
+        ⌜(name ++ go!"/") <+: key⌝) ∨
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end V3lock
+end v3lock
 end EtcdGrove
 end Perennial

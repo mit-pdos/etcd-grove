@@ -1,23 +1,11 @@
 /-
-## `(*EtcdServer).monitorClusterVersions()` (`server.go:2236-2257`)
-
-**Users.** `Start` (attached goroutine).
-
-**Proof sketch.** A loop until `stopping` closes that proposes a new cluster version (`updateClusterVersionV3`: an entry with no model effect, top.md K5) when the leader sees every member at a higher one; every field it reads is in
-`isServer`'s realization (the configuration's intervals, the cluster, the corruption checker
-`isCorruptionChecker`, the version manager); a proposal goes through 2c's `raftRequest`, whose
-apply fires nothing observable or `envUpd`'s step.
-
-**Changes** (from `specs-ref`'s `EtcdServer__monitorClusterVersions.lean`, over the monitors' configuration fields and a
-reader slot of `lgMu`): over `isServer`.
-
-**Margin.** None for safety.
-
-Changes: verify-round (A7-completeness F1): takes and gives back the goroutine's `threadTok` (`GoAttach` gives it one; `Notifier.Receive`, `Logger`, `raftRequest` take one).
+`(*EtcdServer).monitorClusterVersions()` (`server.go`): the trust boundary (names-only; one of the goroutines `Start`
+attaches). Lean-first (the request path's unit 4c).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MonitorsOn
 
 @[expose] public section
 
@@ -25,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,15 +23,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`monitorClusterVersions`**: runs until the server stops. -/
-def EtcdServer.monitorClusterVersions.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"monitorClusterVersions")) (Val #()))
-  {{ RET #(); threadTok }}
+/-- `s.monitorClusterVersions()` returns (names-only: the leader's cluster version monitor, until
+`stopping`). It proposes, through `s.updateClusterVersionV3` and `s.raftRequest`, only
+`ClusterVersionSet` requests of a version it decided (`semver.Version.String()`, which parses
+back: `semverValid`), with the permission `srvMonitorPermitM` gives (in either auth mode, `MonitorsOn.lean`, E3zb) (D19c, 2026-10-18,
+`InvMonitors.lean`; until then the contract took only the package's initialization, and its
+proposals were outside the model). (2026-11-02, the cluster-rows stage: its versions are not above
+the server's, `Major.Minor.0` of the members' minimum with the local member's among them, or
+`3.0.0`; `monitorReq lid`.) -/
+abbrev EtcdServer.monitorClusterVersions.spec : Prop :=
+  ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvMonitorPermitM on s E ρ }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorClusterVersions")) (Val #()))
+  {{ RET #(); True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

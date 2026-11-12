@@ -1,23 +1,14 @@
 /-
-## `NewInflights(size, maxBytes)`
+Port of election_proof/spec_tracker_NewInflights.v (feb5c73d4).
 
-**Users.** confchange's `initProgress` (a new peer), raft's `reset` (`raft.go:817`, each peer at a
-new term): with the tracker's `MaxInflight` (raft's `Config.MaxInflightMsgs`, positive by
-`validate`).
-
-**Proof sketch.** The literal; the empty ring (`count = 0`, no buffer).
-
-**Changes** (from `specs-ref`'s `tracker/NewInflights.lean`): the bound named (`inflightsMax`).
-
-**Margin.** The capacity bound is the model's, not Go's: below it the ring's `start + count` and
-`grow`'s doubling do not wrap; a Go program could not allocate a ring that large. It is a premise
-here and of the confchange specs that create a peer (they call this), not a law of the tracker.
+Lean notes:
+* Rocq's `own_Inflights` (the public, record-indexed predicate) is `ownInflights`;
+  `inflights_new` is `inflightsNew` (`Defs.lean`). The chained `0 ≤ x < 2^62` is a
+  conjunction.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -25,27 +16,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- An empty ring of capacity `size` messages, `maxBytes` bytes. -/
-def NewInflights.spec : Prop :=
+/-- `NewInflights` allocates one.
+
+The premise bounds the ring size. It is what `ownInflights`'s ring-buffer invariant
+(`InflightsOk`, `InvTracker.lean`) asks of a fresh `Inflights`: a negative `size` would
+make `0 ≤ len(buffer) ≤ size` false, and a `size` at or above `2^62` would let
+`Inflights.grow`'s `len(buffer) * 2` overflow. The one caller on this path is `reset`'s
+`Visit` closure, passing `r.trk.MaxInflight`, which `ownTracker`'s `HmaxInfl` bounds.
+Added 2026-09-20 with the invariant. The window is empty: `inflightsNew size maxBytes`
+(`Defs.lean`). -/
+abbrev tracker.NewInflights.spec : Prop :=
   ∀ (size maxBytes : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ⌜0 ≤ sint.Z size ∧ sint.Z size ≤ inflightsMax⌝ }}
-    (App (App (Val #(functions go_etcd_io.raft.v3.tracker.NewInflights [])) (Val #size))
-      (Val #maxBytes))
-  {{ (p : Loc), RET #p; inflightsOwn p (InflightsV.empty size maxBytes) }}
+  0 ≤ sint.Z size ∧ sint.Z size < 2 ^ 62 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker }}
+    (App (App (Val #(functions tracker.NewInflights [])) (Val #size)) (Val #maxBytes))
+  {{ (l : Loc), RET #l; ownInflights l (inflightsNew size maxBytes) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

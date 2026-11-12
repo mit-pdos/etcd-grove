@@ -1,5 +1,5 @@
 // Package clientv3watch holds the requirement snippets of etcd's Go client watch API (batch 1b,
-// Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean): minimal uses of the patterns the watch's users
+// SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean): minimal uses of the patterns the watch's users
 // rely on (client/v3/concurrency, leasing, recipes, mirror, naming, the cache, grpcproxy,
 // Kubernetes' etcd3 watcher and compactor, this repository's examples), each reliance an explicit
 // panic.

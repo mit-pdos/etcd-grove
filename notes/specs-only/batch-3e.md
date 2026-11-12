@@ -6,7 +6,7 @@ model, the storage an explicit contract, 3c's lessor token threaded.
 
 ## Files
 
-`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/` (namespace `Mvcc`; 3f's watch files share the
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/` (namespace `Mvcc`; 3f's watch files share the
 directory and namespace):
 
 - **Vocabulary**: `Model.lean` (pure: `MvccState`, the steps, `MvccReachable`, `MTxn`, `MRange`,
@@ -47,7 +47,7 @@ directory and namespace):
   `ReqReadFloor`, `ReqSoleWriter`, `ReqDeleteRange`, `ReqReadOnlyTxn`, `ReqRangeErrors`, `ReqViews`,
   `ReqCommit`, `ReqCompact`, `ReqCompactErrors`, `ReqBoot`, `ReqRestore`, `ReqClose`, `ReqPutLease`,
   `ReqRangeDeleter`, `ReqHash`.
-- Everything builds (`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/storage/mvcc`).
+- Everything builds (`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc`).
 
 ## Exported vocabulary
 

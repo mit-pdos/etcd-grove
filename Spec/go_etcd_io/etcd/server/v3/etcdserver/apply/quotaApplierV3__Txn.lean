@@ -1,29 +1,23 @@
 /-
-`(*quotaApplierV3).Txn(rt, skipRangeExecution)` (`quota.go:45-52`): the quota's `Available` before, then the backend's; `ErrNoSpace` if the backend was over its quota and the operation succeeded (**the write stays applied**).
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** `BackendQuota.Available` (2e's `ServerStorage`, any answer); the embedded backend applier's spec.
-
-**Changes** from `specs-ref`'s `quotaApplierV3__Txn.lean`: no `backendUnderQuota` (the over-quota answer is the result's margin, `resMatch`); the old per-mode chain predicates (`apply.chainRes`, `kvOwnPre`) restated over `applierAt`, `stAt` and `layersStep`
-
-**Margin.** `ErrNoSpace` after a write (`nonissues/etcd-apply-quota-nospace-after-write.md`).
+`apply.quotaApplierV3.Txn` (quota.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,23 +26,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`Txn` at the quotaApplierV3 layer**: the layers' step (the result `resMatch`). -/
-def quotaApplierV3.Txn.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (rq : Loc) (op : IrrOp) (sk : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3.ty) #p) [Layer.quota, Layer.backend] b aa ∗
-      beAt b mc γ γc R ∗
-      stAt b σ ∗
-      reqMsgAt rq op ∗ ⌜(∃ x, op = .req (.txn x)) ∧ op.ok⌝ ∗
-      R ∗
-      threadTok }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3.ty @!! go!"Txn")) (Val #rq)) (Val #sk))
-  {{ (resp : Loc) (trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      R ∗ threadTok ∗ ∃ σ' res res', ⌜layersStep mc σ [] 0 op [Layer.quota, Layer.backend] σ' res ∧ resMatch op sk res res'⌝ ∗
-      stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty) #resp) err ∗ TraceUtil.traceOpt trace }}
+/-- **`a.Txn(rt, skip)`**: the quota's `Available(rt)`, then the inner applier's `Txn`; `ErrNoSpace` in place of its `nil` if the quota said no (the transaction committed). -/
+abbrev apply.quotaApplierV3.Txn.spec : Prop :=
+  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel)
+    (log F : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.quotaIs p inner ∗ apply.applierSpec E c inner ∗
+      apply.txnPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info r rq t log Pre Q Post ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E }}
+    (App (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
+  {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
+      apply.kvPostF E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info rq log F (apply.txnAnswerIs log t skip resp err) Pre Post ∗
+      apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

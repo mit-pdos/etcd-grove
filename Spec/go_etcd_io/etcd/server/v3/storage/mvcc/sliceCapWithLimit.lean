@@ -1,13 +1,10 @@
 /-
-`sliceCapWithLimit[S](limit, s)` (`kvstore_txn.go:154`): `len(s)`, or `limit` when it is positive and
-below it. Internal (`rangeKeys`). Mirrors its code.
-
-**Changes** from `specs-ref`'s file: the result stated inline; no slice ownership (only its length is
-read).
+`sliceCapWithLimit` (`kvstore_txn.go`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
 
 @[expose] public section
 
@@ -15,26 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `len(s)` unless `0 < limit ≤ len(s)` (signed). -/
-def sliceCapWithLimit.spec : Prop :=
-  ∀ (S : go.GoType) (limit : w64) (s : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
+/-- `sliceCapWithLimit[S](limit, s)` is `capWithLimit limit (len s)` (for any element type
+`S` represented by `V`). -/
+abbrev mvcc.sliceCapWithLimit.spec : Prop :=
+  ∀ {V : Type} (S : go.GoType) [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V S]
+    (limit : w64) (s : GoSlice) (vs : List V) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ s ↦*{dq} vs }}
     (App (App (Val #(functions go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit [S]))
       (Val #limit)) (Val #s))
-  {{ RET #(if sint.Z limit ≤ 0 ∨ sint.Z s.len < sint.Z limit then s.len else limit); True }}
+  {{ RET #(W64 (mvcc.capWithLimit limit vs.length)); s ↦*{dq} vs }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

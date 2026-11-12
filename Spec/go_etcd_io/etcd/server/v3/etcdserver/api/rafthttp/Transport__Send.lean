@@ -1,19 +1,9 @@
 /-
-## `(*Transport).Send(msgs)`
-
-**Users.** etcd's `raftNode.start` (`server/etcdserver/raft.go:250`: a leader sends its `Ready`'s messages before the write; `raft.go:329`: a follower after it), on `processMessages`'s output (`MsgSnap`s diverted to `msgSnapC`, at most one `MsgAppResp`, none to removed members). Snippet: `transport.go` (`ReqSendReady`).
-
-**Proof sketch.** For each message: `To` read (`msgPts`); `0`: skipped. `RLock` with the token (a reader slot of the transport's pool), the maps read, `RUnlock`. A peer: `ServerStats.SendAppendReq` for a `MsgApp`, `peer.send` (its spec takes `outMsg`); a remote: `remote.send`; none: dropped (the facts are lost, which only loses a message), logged (`m.GetType().String()` for a log line is raftpb's `MessageType.String` (a trust-boundary spec, requested of raft-conf-pb: verify-round A5 F1)). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The bundle is raft's `msgSent`/`msgCredit` (was `netBundle`'s payload `P`/`O`); `sendable` is the old `MsgMarshals`/`AppShape` premise restated over R1's `Msg`. verify-round (A5 F1): the sketch cites raftpb's `MessageType.String`. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** No delivery is promised (liveness); the at-most-once delivery is what `raftOk`'s `Process` premise and the credit's exclusivity make of it.
+`(*Transport).Send(msgs)` (`transport.go`; rafthttp stage 6b). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportInv
 
 @[expose] public section
 
@@ -21,26 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Sends messages** (each with its `outMsg`: raft's facts, `sendable`), on a thread with its token: each is handed to the peer or remote of its `To` and delivered at most once (to `Process` of the member serving that peer's URLs, with `recvd`), or dropped. -/
-def Transport.Send.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid : w64) (sl : GoSlice) (ps : List Loc) (ms : List Msg) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ threadTok ∗ sl ↦*{dq} ps ∗ ⌜ps.length = ms.length⌝ ∗ ([∗list] pm ∈ ps.zip ms, outMsg ν lid pm.1 pm.2) }}
-    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Send")) (Val #sl))
-  {{ RET #(); threadTok ∗ sl ↦*{dq} ps }}
+/-- **`t.Send(msgs)`** on a started transport of the member `lid`, with a reader's token of its
+mutex, of messages the member sends (`sendMsg`): it returns, each message handed to the peer or
+remote of its `To` (`peer.send`, `remote.send`), or dropped (none such, or `To` zero); the token
+back. -/
+abbrev rafthttp.Transport.Send.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
+    (sl : GoSlice) (msL : List Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trFixed Rh t lid γd R ∗ trReadTok Rh t lid γd R γs γr ∗ sl ↦* msL ∗
+      [∗list] m ∈ msL, sendMsg Rh lid m }}
+    (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Send")) (Val #sl))
+  {{ RET #(); trReadTok Rh t lid γd R γs γr }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

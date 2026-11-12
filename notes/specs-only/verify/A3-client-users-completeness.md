@@ -19,7 +19,7 @@ Counts:
 - **Snippets read:** 78. That is 22 for concurrency, 19 for leasing (5 of them `UNMET`), 17 for recipes, 13 for the cache and 7 for the btree.
 - **User call sites checked:** 41 (listed below). 38 close; the 3 that do not are F1's v3lock `Lock`, v3election `Campaign`/`Leader` and v3election `Proclaim` at revision 0.
 - **Callers' specs checked:** 2e's v3lock and v3election (7 specs, 4 do not fit, see F1) and 3e's mvcc tree index (13 specs, which cite 1g only in their sketches; they fit).
-- **Coverage:** every function with a spec in `specs-ref` for these packages has one here. The one exception is btree's `initialize`, which is replaced by the generated `Spec.PkgInit` and is fine.
+- **Coverage:** every function with a spec in `specs-ref` for these packages has one here. The one exception is btree's `initialize`, which is replaced by the generated `SpecPlan.Spec.PkgInit` and is fine.
 
 ## First-tier findings
 
@@ -28,7 +28,7 @@ Counts:
 - **The code.** `NewMutex(s, pfx)` stores `pfx + "/"` (`client/concurrency/mutex.go:46`), and so does `NewElection` (`election.go:45`). 1d's specs say so: `NewMutex.spec` gives `isMutex m s (pfx ++ "/")` and `NewElection.spec` gives `isElection e s (pfx ++ "/")`.
 - **The posts.** So `Mutex.Lock.spec` returns `lockedSince (name ++ "/") k cr σ`, `Election.Campaign.spec` returns `waitedFor (name ++ "/") …`, and `Election.Leader.spec` returns `holdsAt (name ++ "/") …`. All three contain `noOlder (name ++ "/") c`.
 - **What 2e claims instead:**
-  - `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/lockServer__Lock.lean` (post): `lockedSince name k cr σ`.
+  - `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/lockServer__Lock.lean` (post): `lockedSince name k cr σ`.
   - `.../api/v3election/electionServer__Campaign.lean` (post): `waitedFor name k cr σ`.
   - `.../api/v3election/electionServer__Leader.lean` (post): `firstCreate name σ.kv.store [v]`.
 - **Why they are false of the code.** `noOlder name c` is strictly stronger than `noOlder (name ++ "/") c`: it also covers keys like `nameX/...`. Take election (or lock) `"a"` while an older key `"ab/1"` of election `"ab"` exists. `Campaign("a")`, `Lock("a")` and `Leader("a")` succeed, yet the posts claim no key under `"a"` is older.

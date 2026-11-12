@@ -1,10 +1,9 @@
 /-
-`(*leaseCache).Evict` (`cache.go`): drops `key`'s entry, records its revocation time; its revision
-or `0`. Proof sketch: write lock; `time.Now`. Changes: from `specs-ref`'s `leaseCache__Evict.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.Evict(key)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -12,27 +11,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.Evict(key)`. -/
-def leaseCache.Evict.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (key : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ lcAt lc γ γL }}
-    (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"Evict")) (Val #key))
-  {{ (rev : w64), RET #rev; True }}
+/-- **`lc.Evict(key)`** (write lock): in the state `st` it found, `key`'s entry (if any) is removed
+(frozen) and its revocation time set (`LeaseCacheSt.evict`, at a clock reading `t`); returns the
+entry's revision (`0` if none). The client's step `Hstep` follows the transition. -/
+abbrev leaseCache.Evict.spec : Prop :=
+  ∀ (lc : Loc) (γ : LeaseCacheNames) (pfx : GoString) (X : LeaseCacheSt → Qp → IProp GF)
+    (Qr : LeaseCacheSt → IProp GF) (key : GoString) (Q : LeaseCacheSt → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeaseCache lc γ pfx X ∗ lcPeek X Qr ∗
+      (∀ (st : LeaseCacheSt) (t : time.Time), X st 1 ={⊤}=∗ X (st.evict key t) 1 ∗ Q st) }}
+    (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"Evict")) (Val #key))
+  {{ (r : w64), RET #r;
+      ∃ st : LeaseCacheSt, ⌜r = st.revOf key⌝ ∗ entryFactsAt pfx key st ∗ □ Qr st ∗ Q st }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

@@ -1,9 +1,9 @@
 # R1 (raft's node API): provability review, round 1
 
-Reviewer: provability agent, 2026-11-09. Read: `Spec/go_etcd_io/raft/v3/{Model,Api}.lean` and
+Reviewer: provability agent, 2026-11-09. Read: `SpecPlan/Spec/go_etcd_io/raft/v3/{Model,Api}.lean` and
 every function spec, `examples/specreq/raftnode/*.go`, `notes/specs-only/req/go_etcd_io_raft_v3*.md`,
 the pinned Go (`.lake/src/raft`, `.lake/src/server/etcdserver`), Perennial's select/channel specs
-and `Spec/context/Api.lean`. I read the author's report (`notes/specs-only/batch-R1.md`) only after
+and `SpecPlan/Spec/context/Api.lean`. I read the author's report (`notes/specs-only/batch-R1.md`) only after
 I had my findings; its claims are checked at the end. I built nothing. "Uncertain" marks what I
 could not settle by reading.
 
@@ -121,7 +121,7 @@ error, with nothing saying `ctx` is done. Go returns `ctx.Err()` right after `<-
 (`http.go:148`, `:307`), so `node.Step.spec` cannot serve it. The snippets take an arbitrary
 `context.Context`.
 
-- **Fix.** State the node specs over W0's `Context.ctxOk ctx` (Spec/context/Api.lean). That is
+- **Fix.** State the node specs over W0's `Context.ctxOk ctx` (SpecPlan/Spec/context/Api.lean). That is
   what the ambient-context design is for.
 - This is first tier on completeness grounds (a user not served).
 

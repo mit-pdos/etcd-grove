@@ -1,17 +1,10 @@
 /-
-`(*fifo).run()` (`schedule.go`): the worker goroutine (internal; forked by `NewFIFOScheduler`).
-
-**Proof sketch**: loop: under the lock, take the head job's resources (`fifoHead`) if any, and run it
-(`executeJob(todo, false)`, which pops it); else wait on `resume` or the context's `Done`; once done,
-take the remaining pendings out of the invariant and run each (`executeJob(todo, true)`); the
-deferred close of `donec` carries the last job's post. Internal: mirrors the code.
-**Changes**: restated over `fifoWorker`/`fifoHead`. **Margin**: none.
+`(*fifo).run` (`schedule.go`), the scheduler's worker goroutine. Lean-first (2026-10-22, the
+scheduler translated with its body).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 
 @[expose] public section
 
@@ -19,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schedule
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,15 +22,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-def fifo.run.spec : Prop :=
-  ∀ (l : Loc) (γ : SchedNames) (Pay : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ isFifo l γ Pay ∗
-      fifoWorker l γ }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.schedule.fifo.ty @!!
-      go!"run")) (Val #()))
-  {{ RET #(); True }}
+/-- **`f.run()`**, the worker, with its resources (`workerRes`: the run token, its thread token
+among them): it runs the pending jobs in order until the scheduler is stopped, then the rest with
+the cancelled context, closes `f.donec` and `f.resume` and returns its thread token. -/
+abbrev schedule.fifo.run.spec : Prop :=
+  ∀ (l : Loc) (γ : schedule.SchedNames) (F : schedule.FifoNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
+      schedule.fifoIs l γ F ∗ schedule.workerRes γ F }}
+    (App (Val (l @!! go.GoType.PointerType schedule.fifo.ty @!! go!"run")) (Val #()))
+  {{ RET #(); threadTok }}
 
 end spec
-end Schedule
+
 end EtcdGrove
 end Perennial

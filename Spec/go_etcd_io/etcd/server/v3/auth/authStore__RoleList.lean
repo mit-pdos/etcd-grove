@@ -1,34 +1,22 @@
 /-
-## `(*authStore).RoleList(r)`
-
-**Users.** `applierV3backend.RoleList` (`apply/backend.go:263`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
-
-**Proof sketch.** `as.be.GetAllRoles()` (4b: the batch transaction's, under `LockInsideApply`, so the post-lock hook runs from `Pre`, `authBeHook` of the store's backend; it works; `nonissues/etcd-auth-readtx-getallroles-panics.md` is the read transaction's), names copied. No state change. The step's state, `storeNext` (the code's function of the request, its
-credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
-returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
-
-**Changes.** Restated over `admStep`. The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
-step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
-state `storeNext rq cred a` (was: every state the model allows).
-
-**Margin.** The order is not stated.
+`authStore.RoleList` (`server/auth/store.go`): the latest state's roles (the auth plan's E2j,
+2026-10-26). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/Reads.lean`
+(the replies) and `InvAuth.lean` (the backend's reads, `authBackendReads`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.Reads
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,14 +25,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.RoleList(r)`** by the writer, for a request `r` asking `.roleList`: the store moves
-to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
-(`admStep`) there, and the reply. -/
-def authStore.RoleList.spec : Prop :=
-  ∀ (st r : Loc),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"RoleList")) (Val #r)) (authReqAt r .roleList []) st .roleList []
+/-- **`as.RoleList(r)`**, with the admin side's authority at `hs`: the backend's `GetAllRoles` (its
+batch transaction: the lock runs the hook, `Post`) and the latest state's roles' names
+(`roleListOut`); the authority and the write resource kept. -/
+abbrev auth.authStore.RoleList.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleList")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); Post ∗ authOwn M hs ∗
+      authWR st M P f T ∗ ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ roleListOut sta resp err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

@@ -1,17 +1,10 @@
 /-
-`(concurrency.writeSet).cmps` (`client/v3/concurrency/stm.go`), internal.
-
-Users: the STM's methods and commits (`stm.go`).
-
-Proof sketch: a loop over the map: `ModRevision.spec`, `Compare.spec`, `append`.
-
-Changes: from `specs-ref`'s `writeSet__cmps.lean`: restated over `writeSetAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.writeSet.cmps(rev)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,28 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `ws.cmps(rev)`: `ModRevision(k) < rev` per written key, in the map's order. -/
-def writeSet.cmps.spec : Prop :=
-  ∀ (ws : GoMap) (writes : Key → Option WriteM) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ writeSetAt ws writes }}
-    (App (Val (ws @!! go_etcd_io.etcd.client.v3.concurrency.writeSet.ty @!! go!"cmps")) (Val #rev))
-  {{ (sl : GoSlice), RET #sl; writeSetAt ws writes ∗ ∃ ks : List GoString, ⌜keysOf writes ks⌝ ∗
-      cmpsAt sl (ks.map (fun k => some (writeCmp rev k))) }}
+/-- `ws.cmps(rev)`: one comparison `ModRevision(k) < rev` per written key (`WriteCmpsOk`).
+ -/
+abbrev writeSet.cmps.spec : Prop :=
+  ∀ (m : Loc) (dq : DFrac) (pfx : GoString) (wsMap : GMap GoString stmPut)
+    (writes : GMap GoString WriteM) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ m ↦${dq} wsMap ∗ writesAt pfx wsMap writes }}
+    (App (Val (m @!! writeSet.ty @!! go!"cmps")) (Val #rev))
+  {{ (sl : GoSlice), RET #sl; m ↦${dq} wsMap ∗
+      ∃ ms : List CmpModel, cmpsAt sl ms ∗ ⌜WriteCmpsOk writes rev ms⌝ }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

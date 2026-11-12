@@ -1,26 +1,19 @@
 /-
-`fmt.Sscanf(str, "%d", &n)` (Go's standard library): **assumed** (trust boundary; Perennial has the
-function's name only). Owned by batch 1f for the recipes' `newSequentialKV` (`key.go:88`), the one
-caller on this branch; restated from the old tree's trust-boundary spec (specs-ref
-`Spec/fmt/Sscanf.lean`, `notes/decisions.md`), in the weak form the caller needs.
+`fmt.Sscanf`: the trust boundary (Perennial translates `fmt` names-only and models `Sprintf`, not
+the scanner), for the one call shape the recipes make, `Sscanf(s, "%d", &n)` with `n` an `int`
+(`newSequentialKV`). Lean-first (no Rocq counterpart); see `decisions.md`, "Recipes", "Units 1b,
+2 and 3".
 
-**Why it is true of Go's `fmt`** (go1.27 `fmt/scan.go`): `Sscanf` scans `str` by the format; the
-verb `%d` with an `*int` operand runs `scanOne('d', arg)`, which reads an optional sign and decimal
-digits (`scanInt` with base 10: leading zeros allowed) and converts them with `strconv.ParseInt`
-(64 bits for `int`), storing the result through the pointer. A string of decimal digits whose
-value fits an `int64` is therefore scanned without error, and `n` gets that value (`Sscanf` does
-not require the input to be consumed in full, and the digits are the whole input here). Anything
-else either stores some integer (a prefix's value) and returns `nil`, or returns an error from
-`scanError`'s recovery: an `errors.New` value of `fmt`, `io.EOF`/`io.ErrUnexpectedEOF` (an empty
-input), or `ParseInt`'s `*strconv.NumError` (out of range): `Fmt.scanErr`. It never panics on a
-well-typed operand (`errorHandler` recovers the scanner's own panics); it reads the operand slice
-and writes only through the operand. The count returned is not modelled.
-
-**Users**: `newSequentialKV` (`Spec/go_etcd_io/etcd/client/v3/experimental/recipes/newSequentialKV.lean`).
+**The parse** (`fmt.scanInt s`, pure): Go's `%d` into an `int` skips leading spaces, accepts one
+sign (`+` or `-`), reads the longest run of decimal digits (it must be non-empty) and parses it
+(`strconv.ParseInt(tok, 10, 64)`: the value must fit an `int64`); what follows the digits is
+ignored (`"5abc"` scans as `5`). `scanInt` skips ASCII spaces only: Go skips every Unicode space
+(a tab too) but fails on a newline, so on an input whose first non-space byte is another space
+`scanInt` gives `none`, and the axiom then says nothing of the value (below).
 -/
 module
 
-public import Spec.fmt.Api
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -28,32 +21,48 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Fmt
 
 open Iris Iris.BI
+
+/-- An ASCII decimal digit, `'0'` to `'9'`. -/
+def fmt.isDigitByte (b : w8) : Bool := decide (48 ≤ uint.Z b ∧ uint.Z b ≤ 57)
+
+/-- The value of a run of decimal digits, most significant first. -/
+def fmt.digitsValue (ds : GoString) : Nat := ds.foldl (fun acc b => acc * 10 + (uint.nat b - 48)) 0
+
+/-- **`Sscanf(s, "%d", &n)` for an `int` `n`**, as far as it is modelled: the value of the
+longest run of decimal digits after the leading ASCII spaces (`W8 32`) and an optional sign
+(`W8 45` is `-`, `W8 43` is `+`), if that run is non-empty and its value fits an `int64`;
+`none` otherwise (where Go fails, or skips a space other than `' '`). -/
+def fmt.scanInt (s : GoString) : Option Int :=
+  let s1 := s.dropWhile (fun b => b == W8 32)
+  let s2 := if s1.head? = some (W8 45) ∨ s1.head? = some (W8 43) then s1.tail else s1
+  let ds := s2.takeWhile fmt.isDigitByte
+  let z : Int := if s1.head? = some (W8 45) then -(fmt.digitsValue ds : Int) else fmt.digitsValue ds
+  if ds ≠ [] ∧ -2 ^ 63 ≤ z ∧ z < 2 ^ 63 then some z else none
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : fmt.Assumptions]
+variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
-/-- **`fmt.Sscanf(str, "%d", p)`** with `p` an `*int`: on a string of decimal digits whose value
-fits an `int64`, `nil` with that value stored at `p`; otherwise `nil` with some value stored, or a
-scanning error (`scanErr`). -/
-def Sscanf_d.spec : Prop :=
-  ∀ (str : GoString) (sl : GoSlice) (p : Loc) (x : w64),
+/-- **`fmt.Sscanf(s, "%d", &n)`** for an `int` variable `n` (the arguments' slice `[&n]` as
+`any`s): returns a count and an error; with no error, `n` holds what Go's `%d` parsed, which is
+`scanInt s` where that is defined; with an error, `n` is unchanged. -/
+abbrev fmt.Sscanf.spec : Prop :=
+  ∀ (s : GoString) (sl : GoSlice) (dq : DFrac) (p : Loc) (n0 : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
-      sl ↦* [interface.mkOk (go.GoType.PointerType go.int) #p] ∗ p ↦ x }}
-    (App (App (App (Val (@! fmt.Sscanf)) (Val #str)) (Val #go!"%d")) (Val #sl))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      sl ↦* [interface.mkOk (go.GoType.PointerType go.int) #p] ∗ ∃ x' : w64, p ↦ x' ∗
-      (⌜err = GoInterface.nil⌝ ∨ scanErr err) ∗
-      ⌜∀ v, decValue str = some v → v < 2 ^ 63 → err = GoInterface.nil ∧ sint.Z x' = v⌝ }}
+      sl ↦*{dq} [interface.mkOk (go.GoType.PointerType go.int) #p] ∗ p ↦ n0 }}
+    (App (App (App (Val (@! _root_.Perennial.fmt.Sscanf)) (Val #s)) (Val #(go!"%d")))
+      (Val #sl))
+  {{ (cnt : w64) (err : GoInterface), RET (PairV #cnt #err);
+      sl ↦*{dq} [interface.mkOk (go.GoType.PointerType go.int) #p] ∗ ∃ n : w64, p ↦ n ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ⌜∀ z, fmt.scanInt s = some z → sint.Z n = z⌝) ∨
+        ⌜err ≠ GoInterface.nil ∧ n = n0⌝) }}
 
 end spec
 
-end Fmt
 end EtcdGrove
 end Perennial

@@ -49,7 +49,7 @@ reads the user from it: the first caller's token.
 
 no: the watch handler's spec checks the stream's principal (`srvWatchStreamAt st γ who g`), which
 for the in-process stream is the first opener's; and the in-process client is outside the handler's
-stream contract (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`'s header). It
+stream contract (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`'s header). It
 matters to a per-call principal of v3lock/v3election (1d, 2e).
 
 ## Fix

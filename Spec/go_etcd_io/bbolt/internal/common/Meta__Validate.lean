@@ -1,15 +1,10 @@
 /-
-## `(*Meta).Validate()` (`internal/common/meta.go`)
-
-**Users.** db.go:396,436 (`getPageSize`: `== nil` picks the page size), db.go:585-586 (`mmap`: both invalid is an error returned by `Open`), db.go:1226,1228 (`meta()`: the valid one with the higher txid). Snippet `ReqMetaRoundTrip`.
-**Proof sketch.** magic, version, `Sum64`; the error values are `bbolt/errors`' package variables (`isPkgInit` of `common` includes `bbolt/errors`'), read by `BboltErrors.errIs_init` and non-nil by `BboltErrors.errIs_distinct` (`Spec/go_etcd_io/bbolt/errors/Api.lean`; `req/go_etcd_io_bbolt_errors.md`).
-**Changes.** from `specs-ref`'s file of the same name: the error named (`metaErr`), and non-nil, which `Open`'s callers inspect.
-**Margin.** none: the post is what the code computes.
+`(*Meta).Validate`'s spec (`internal/common/meta.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
-public import Spec.go_etcd_io.bbolt.errors.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
+public import Proof.go_etcd_io.bbolt.Model.Meta
 
 @[expose] public section
 
@@ -17,28 +12,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `m.Validate()`: `nil` exactly for a valid meta; otherwise the value of the `bbolt/errors` variable `metaErr` names (`ErrInvalid`, `ErrVersionMismatch`, `ErrChecksum`), not `nil`. -/
-def Meta.Validate.spec : Prop :=
+/-- `m.Validate()`: `nil` exactly when the meta is valid (`metaValid`: bbolt's magic, version 2, and
+its checksum is `Sum64`'s); otherwise `ErrInvalid` (bad magic), `ErrVersionMismatch` (bad version)
+or `ErrChecksum` (bad checksum), which are not `nil`. -/
+abbrev Meta.Validate.spec : Prop :=
   ∀ (l : Loc) (v : Meta) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦{dq} v ∗ ⌜0 < l.addr⌝ }}
+  0 < l.addr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦{dq} v }}
     (App (Val (l @!! go.GoType.PointerType Meta.ty @!! go!"Validate")) (Val #()))
-  {{ (err : GoInterface), RET #err; l ↦{dq} v ∗
-      (⌜metaErr v = none ∧ err = GoInterface.nil⌝ ∨
-        ∃ g, ⌜metaErr v = some g⌝ ∗ BboltErrors.isErr g err) }}
+  {{ (e : GoInterface), RET #e; l ↦{dq} v ∗ ⌜e = GoInterface.nil ↔ metaValid v⌝ }}
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

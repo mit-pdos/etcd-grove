@@ -1,19 +1,11 @@
 /-
-## `(*Transport).RemovePeer(id)`
-
-**Users.** etcd's `applyConfChange` (`server.go:2085`, a removed member). Snippet: `transport.go` (`ReqMembership`).
-
-**Proof sketch.** `Lock` (the map invariant: `trMaps`), `removePeer`, `Unlock`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*rafthttp.Transport).RemovePeer(id)` (`transport.go`). Lean-first; D43 M5a (2026-10-26), for
+`applyConfChange`'s `RemoveNode`, stated over the transport's live state (`trLive`, the peers
+right: the user's decision on W3, D43); proved in `TransportRemove.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
 
 @[expose] public section
 
@@ -21,26 +13,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Removes a peer** (or does nothing for an unknown id): its goroutines stopped. -/
-def Transport.RemovePeer.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid }}
-    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"RemovePeer")) (Val #pid))
-  {{ RET #(); True }}
+/-- **`t.RemovePeer(id)`** on a live transport whose ids are `rs`: it returns, the peer of `id`
+removed if there was one (`transport.go`: under the write lock, `removePeer`: the peer's `stop`, its
+map entry deleted, its `LeaderStats.Followers` entry and its probers' entries removed, a log line),
+or a log line if there was none: the live transport with `id` no longer among the peers' ids. -/
+abbrev rafthttp.Transport.RemovePeer.spec : Prop :=
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trLive γn t c rs }}
+    (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemovePeer")) (Val #id))
+  {{ RET #(); trLive γn t c (rs.filter (· != id)) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

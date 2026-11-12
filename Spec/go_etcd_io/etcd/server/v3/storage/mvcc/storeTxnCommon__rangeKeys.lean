@@ -1,36 +1,9 @@
 /-
-`(*storeTxnCommon).rangeKeys(ctx, key, end, curRev, ro)` (`kvstore_txn.go:73`): a range of the
-transaction's view at `ro.Rev` (the current revision `curRev` for `ro.Rev ≤ 0`). Internal: the
-`Range`s of both transactions.
-
-**Proof sketch**: `ro.Rev > curRev`: `ErrFutureRev` (`{nil, curRev, -1}`); `rev < s.compactMainRev`
-(fixed: the transaction holds `s.mu` for reading; `txnCommon` ties it to `k.state.crev`):
-`ErrCompacted` (`{nil, 0, -1}`). Count only: `treeIndex.CountRevisions.spec` (atomic over
-`idxAt` (`InternalIdx.lean`), which the store's invariant keeps at the index of `k.readHist`'s events). Keys only:
-`treeIndex.Range.spec`, then fresh `KeyValue`s sharing the index's key slices (read-only; value
-`nil`, lease `0`: `keysOnlyM`). Full: `treeIndex.Revisions.spec`, `sliceCapWithLimit.spec`, then
-for each revision a `select` on `ctx.Done()` (`Context.doneRecv`/`Done.spec`: closed only once the
-context is done: the `ctxErr` arm, `nil` result and `fmt.Errorf`'s wrap of `ctx.Err()`,
-`rangeCtxErr`: Perennial's `Errorf` model, past its `ArgsWf` (the error argument), a trust-boundary
-step) and `tr.tx.UnsafeRange(Key, revBytes, nil, 0)`
-(`keyBackend`'s `rangeOk` on the snapshot `kbRead`/the batch's `kbLocked`; on a concurrent read
-transaction the single-key row, `KeyData.linger`, exact for a key the snapshot has; the bytes lent
-against a share of the transaction's liveness `kbLive`, which `txnCommon` holds, and given back once
-unmarshalled): exactly one value,
-because `txnCommon`'s realization keeps the storage's data at an image of `k.readHist` containing
-every revision the index returns at a revision at or above the compaction (so `lg.Fatal("range
-failed to find revision pair")` is unreachable: the pinned fork carries the doCompact fix of
-`issues/etcd-compaction-delete-then-put.md`); `proto.Unmarshal` of it (2a's boundary: the encoding
-the put wrote) gives `KeyValueM.ofKV` of the record. Each step steps the trace (`traceOwn`).
-
-**Changes** from `specs-ref`'s file: over `txnCommon`, `rangeOut` (W0's history) and the context's
-bundle (`Context.ctxOk`); no certificates, revision tokens or bucket maps.
-Changes: verify-round (second pass): the `ctxErr` outcome's error is `rangeCtxErr err` (the wrap),
-no longer `context.isCtxErr err`, which was false of the code (`kvstore_txn.go:121`).
+`storeTxnCommon__rangeKeys` (`kvstore_txn.go`). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -38,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -49,21 +21,56 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- A range of the transaction's view (`MTxn.readHist`) at `curRev`, its current revision. -/
-def storeTxnCommon.rangeKeys.spec : Prop :=
-  ∀ (c : Loc) (γ : MvccName) (trace : Loc) (k : MTxn) (ctx : GoInterface) (key endk : GoSlice)
-    (kk e : Bytes) (dk de : DFrac) (curRev : w64) (ro : RangeOptions),
+/-- `txc.rangeKeys(ctx, key, end, curRev, ro)` of a transaction at revision `curRev` of the log
+`log` answers `rangeOutcome`: the index's answers at that revision, with the key-values the
+bucket holds for them. What it uses of the `storeTxnCommon` at `txc`: its fields `s`, `tx` and
+`trace` (at any fraction, given back); of its reader `tx`: a reader of a bucket `m` holding
+`log`'s, but for keys compaction may have deleted (`keyReaderD … (delKey γ)`: a thinned snapshot,
+or the batch transaction), with the reader's own resource `R` (given back); of the index: what the
+transaction knows of it (`idxKnows`: a committed log's certificate for a read transaction,
+the writer's handle for a write transaction, with its pending revision; given back), and
+`curRev` a revision of `log`. The context is an `isContext` or `context.TODO()`'s (`rangeCtx`,
+`TxnRange.lean`), which is never done: at it, the result is not `nil` (no context error).
+The compaction revision `c` (`compactMainRev`, read under `s.mu`, which the transaction holds
+shared: part of its points-to and of the revision's authority, given back) makes a read below
+it `ErrCompacted` (`rangeOutcomeC`; 2026-10-13, compaction's unit 5a). A read at or above it
+names no key compaction deleted (`rangeAnswers_not_del`), given a certified log `lc` that `log`
+extends with `c` among its revisions (the read transaction's own log; the write transaction's
+committed one): the deleted keys' logs agree with `log` up to their compaction revisions
+(2026-10-13, unit 6a). -/
+abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
+  ∀ (txc s trace ti : Loc) (rt : GoInterfaceOk) (dq : DFrac) (m : mvcc.Bucket) (R : IProp GF)
+    (γ : mvcc.StoreNames) (kn : mvcc.IdxKnow) (log : mvcc.Log) (rev : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (qm qc : Qp) (c : Int) (lc : mvcc.Log)
+    (te : Bool) (dqi : DFrac),
+  trace ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      txnCommon c γ trace k ∗ ⌜curRev = W64 k.readHist.rev⌝ ∗ traceOwn trace ∗ Context.ctxOk ctx ∗
-      key ↦*{dk} kk ∗ endk ↦*{de} e }}
-    (App (App (App (App (App (Val (c @!! go.GoType.PointerType storeTxnCommon.ty @!! go!"rangeKeys"))
-      (Val #ctx)) (Val #key)) (Val #endk)) (Val #curRev)) (Val #ro))
+      mvcc.isStore s γ ∗
+      txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
+      txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
+      txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗
+      mvcc.keyReaderD rt m R (mvcc.delKey γ) ∗ R ∗ ⌜GMap.Subseteq (mvcc.bucketMap log) m⌝ ∗
+      mvcc.idxCert γ.idx lc ∗ ⌜lc <+: log ∧ c < lc.length⌝ ∗
+      mvcc.idxKnows γ.idx kn ∗ ⌜kn.log = log⌝ ∗ ⌜log ≠ []⌝ ∗
+      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝ ∗
+      mvcc.isTreeIndex ti γ.idx ∗ s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗ mvcc.crevUB γ.idx qc c ∗
+      ⌜-1 ≤ c ∧ c < 2 ^ 63⌝ ∗ traceutil.ownTrace trace te }}
+    (App (App (App (App (App (Val (txc @!! go.GoType.PointerType storeTxnCommon.ty @!!
+      go!"rangeKeys")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #rev)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      txnCommon c γ trace k ∗ traceOwn trace ∗ key ↦*{dk} kk ∗ endk ↦*{de} e ∗
-      ∃ out : RangeOut, ⌜rangeOut k.readHist k.state.crev (mrange kk endk e) ro out⌝ ∗
-        rangeResOwn ctx r err out }}
+      ⌜todo = true → r ≠ null⌝ ∗
+      txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
+      txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
+      txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗
+      R ∗ mvcc.idxKnows γ.idx kn ∗ mvcc.idxReader ti γ.idx ∗
+      s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗ mvcc.crevUB γ.idx qc c ∗
+      traceutil.ownTrace trace te ∗ mvcc.rangeOutcomeC r err log rev c (decide (endk = slice.nil)) k e ro }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

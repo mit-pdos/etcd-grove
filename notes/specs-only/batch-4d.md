@@ -6,11 +6,11 @@ the `Bbolt/` part is the older bank-test tree and is not this batch's.
 
 ## Files
 
-- `Spec/go_etcd_io/bbolt/internal/common/Api.lean` (namespace `BboltCommon`) and 89 spec files
+- `SpecPlan/Spec/go_etcd_io/bbolt/internal/common/Api.lean` (namespace `BboltCommon`) and 89 spec files
   (`Page__*`, `Meta__*`, `InBucket__*`, `Inode__*`, `leafPageElement__*`, `branchPageElement__*`,
   `Pgids__*`, `Pages__*`, `Mergepgids`, `ReadInodeFromPage`, `WriteInodeToPage`, `NewInBucket`,
   `Assert`, `Verify`, `Unsafe{Add,Index,ByteSlice}`), and `Page__Typ` (round 1): 90.
-- `Spec/go_etcd_io/bbolt/internal/freelist/Api.lean` (namespace `Freelist`) and 19 spec files
+- `SpecPlan/Spec/go_etcd_io/bbolt/internal/freelist/Api.lean` (namespace `Freelist`) and 19 spec files
   (`NewArrayFreelist`, `NewHashMapFreelist`, `Interface__{Init,Allocate,Count,FreeCount,
   PendingCount,EstimatedWritePageSize,AddReadonlyTXID,RemoveReadonlyTXID,ReleasePendingPages,Free,
   Freed,Rollback,Copyall,Read,Reload,NoSyncReload,Write}`), each holding the method's

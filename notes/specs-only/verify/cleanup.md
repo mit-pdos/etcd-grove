@@ -42,4 +42,4 @@ verb narrowing, the etcdserver top-level docstrings, `spec_del`'s key bytes).
 Nothing turned out to be first tier. A8 S3 was reported as a false encoder post, but it is not:
 `msgPts` already carries the index rule.
 
-Build: `etc/specs-build.sh` on the 8 changed modules and their importers' leaves (`etc/importers.py --leaves`, `Spec.*` only): `Build completed successfully (3586 jobs)`, 0 errors, run twice; both runs ended `specs-build: FAILED` with no error, i.e. its final `--no-build` check saw upstream modules the other agent was editing at the same time. `go vet`/`gofmt` clean on `specreq/{auth,raftpb,raftlog}`.
+Build: `etc/specs-build.sh` on the 8 changed modules and their importers' leaves (`etc/importers.py --leaves`, `SpecPlan.Spec.*` only): `Build completed successfully (3586 jobs)`, 0 errors, run twice; both runs ended `specs-build: FAILED` with no error, i.e. its final `--no-build` check saw upstream modules the other agent was editing at the same time. `go vet`/`gofmt` clean on `specreq/{auth,raftpb,raftlog}`.

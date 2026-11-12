@@ -594,7 +594,7 @@ New in `nonissues/`:
 Every decision the repair groups flagged for the user after the verification round (their "New
 decisions"/"Decisions for the user" sections, and the findings "fixed differently" in a way that
 changes an API shape), plus the coordinator's two. A report `repair-<group>` is
-`notes/specs-only/verify/repair-<group>.md`; spec paths are under `Spec/go_etcd_io/etcd/` unless they
+`notes/specs-only/verify/repair-<group>.md`; spec paths are under `SpecPlan/Spec/go_etcd_io/etcd/` unless they
 start otherwise. The specs are written to each choice; say if you disagree.
 
 ### Coordinator's decisions
@@ -618,7 +618,7 @@ C2. **bbolt F1: a database file bbolt creates may vanish at a crash.** bbolt ope
    name and `m.hi = 0`; `boltCrash` may conclude "no file" when `named = false`; the backend's `beCrash`
    and `beFile_none` follow. Alt.: (i) OsFs says a file's sync makes its name durable (true of
    ext4/xfs, false of POSIX; changes the shared model), (iii) forbid starting from no file (etcd's
-   first boot unprovable). Files: `Spec/go_etcd_io/bbolt/{Model,Api}.lean`,
+   first boot unprovable). Files: `SpecPlan/Spec/go_etcd_io/bbolt/{Model,Api}.lean`,
    `server/v3/storage/backend/Durable.lean`; `nonissues/bbolt-create-dir-not-synced.md`.
    (`repair-bbolt` F1, "New decisions"; `repair-backend-schema` second pass.)
 
@@ -656,14 +656,14 @@ C6. **`GetStream` takes no thread token** (fixed differently from "give it back"
 C7. **`ctx.Value` through a new persistent predicate `Context.ctxValueIs ctx key v`** (from
    `WithValue.spec`'s post; `Value.spec`, `ctxValueIs_child`/`_other`/`_wp`), rather than a value
    argument on `ctxValueAt`, which six other groups' files use; auth's `ctxValIs` is now its
-   abbreviation. Files: `Spec/context/Api.lean`, `server/v3/auth/Api.lean`. (`repair-client-core` A1-C F5;
+   abbreviation. Files: `SpecPlan/Spec/context/Api.lean`, `server/v3/auth/Api.lean`. (`repair-client-core` A1-C F5;
    `repair-lease-auth` second pass.)
 C8. **`ctxStreamKey_prin` is a law about W0's `ctxPrin`, stated in 1b's `ApiWatch.lean`**: two contexts
    with the same stream key have the same principal. It constrains every future `ctxPrin` introduction
    (outgoing metadata must print injectively), and an introduction at an arbitrary principal (1.5's
    unissued token) would contradict it. No functionality law for `ctxStreamKey` (grpc's
    `FromOutgoingContext` does not say whether an empty map was attached). Files: `client/v3/{ApiWatch,
-   streamKeyFromCtx,Api}.lean`, `Spec/fmt/{Api,Sprintf_md}.lean`. (`repair-client-watch` W2, "New
+   streamKeyFromCtx,Api}.lean`, `SpecPlan/Spec/fmt/{Api,Sprintf_md}.lean`. (`repair-client-watch` W2, "New
    decisions"; `repair-client-core` second pass.)
 C9. **Compaction affects only exactness, stated in `watchStep` and mvcc's `wStep`**: outside the
    `exactFrom` gate, every delivered event is a history event of its revision that the watch keeps (key
@@ -694,7 +694,7 @@ C12. **Sentinel errors are read from their globals; their values are existential
    stays a constant (`EtcdError` is a struct value). Alt.: Lean constants per error (unrealizable: fresh
    `errors.New` pointers). Files: `client/v3/{Api,concurrency/Api,experimental/recipes/Api}.lean`,
    `server/v3/{auth,lease,etcdserver/errors,etcdserver/api/membership,etcdserver/api/rafthttp,
-   storage/mvcc}/`, `Spec/golang_org/x/crypto/bcrypt/`, raft's `raft_init` (`errBreak`).
+   storage/mvcc}/`, `SpecPlan/Spec/golang_org/x/crypto/bcrypt/`, raft's `raft_init` (`errBreak`).
    (`repair-client-users` P-F4, "New decisions"; `repair-lease-auth` "New decisions"; `repair-server-core`;
    `repair-mvcc`; `repair-server-boot`; `repair-rafthttp`; `repair-client-core`; `repair-raft-core`.)
 
@@ -707,13 +707,13 @@ C13. **`Proto.Content` holds Go values; the wire carries `norm c`.** Quotienting
    canonical (`decodedAt` removed), `Equal` compares `norm`s, `Clone` gives `mergeDst … (norm c)`, and
    `endsDecoded t p` is redefined as a share of the message with the pure `endsOk`. Every owner of a
    message relation states a `*_norm` law (`raftpb_norm`, `schema_norm`, `ltlReply_norm`, 3h's
-   `holds_norm` under `endsOk`). Files: `Spec/google_golang_org/protobuf/proto/`,
-   `Spec/google_golang_org/grpc/Api.lean`, `api/v3/etcdserverpb/Api.lean`,
+   `holds_norm` under `endsOk`). Files: `SpecPlan/Spec/google_golang_org/protobuf/proto/`,
+   `SpecPlan/Spec/google_golang_org/grpc/Api.lean`, `api/v3/etcdserverpb/Api.lean`,
    `server/v3/etcdserver/api/v3rpc/`. (`repair-grpc-v3rpc` P-F2, "New decisions", follow-up;
    `repair-raft-conf-pb` second pass.)
 C14. **`Proto.depthMax = 10001`**: protobuf-go decodes 10000 levels; the old bound made the transaction
    reply at `--max-txn-ops = 4999` unsendable. Alt.: a stricter `maxTxnOps` premise. Files:
-   `Spec/google_golang_org/protobuf/proto/`, `api/v3/etcdserverpb/Api.lean` (`holds_depth_resp`).
+   `SpecPlan/Spec/google_golang_org/protobuf/proto/`, `api/v3/etcdserverpb/Api.lean` (`holds_depth_resp`).
    (`repair-grpc-v3rpc` P-F6, "New decisions".)
 C15. **The election and lock services sit under `etcdContract` with trivial contracts** (a member
    promises only that a run returns; their handlers run over the in-process `v3client`, 1.5). Alt.: a
@@ -726,7 +726,7 @@ C16. **Dial options are pass-through, with no chain model in `DialCfg`** (fixed 
    `statsOk`, `ctxDialerOk`), feeding `dialOptsOk_neutral`; otelgrpc's handlers give `statsOk`; the
    server's `StatsHandler.spec` takes `statsOk`. Alt.: the reviewer's `uis : List val` in `DialCfg`
    (changes `connAt`'s arity in other groups' files for no extra guarantee). Files:
-   `Spec/google_golang_org/grpc/`, `client/v3/Api.lean`, `Spec/go_opentelemetry_io/…/otelgrpc/`.
+   `SpecPlan/Spec/google_golang_org/grpc/`, `client/v3/Api.lean`, `SpecPlan/Spec/go_opentelemetry_io/…/otelgrpc/`.
    (`repair-grpc-v3rpc` C-F2; `repair-client-core` second pass 4.)
 
 ### Apply and txn
@@ -812,22 +812,22 @@ C27. **mvcc over a backend without `meta`**: `keyBackend_intro` takes `m : Bool`
 C28. **A bbolt commit's two updates are nested** (fixed differently from one law realized with an
    invariant): `Tx.Commit`/`DB.Update` take one `commitAU … S` whose commit yields the settling update,
    with one client predicate `S ok synced failed brk`; a holder of the whole state builds both
-   (`boltState_commit_au`). Every client changes shape. Files: `Spec/go_etcd_io/bbolt/{Api,Tx__Commit,
+   (`boltState_commit_au`). Every client changes shape. Files: `SpecPlan/Spec/go_etcd_io/bbolt/{Api,Tx__Commit,
    DB__Update}.lean`, the backend's commit citations. (`repair-bbolt` F5, "New decisions";
    `repair-backend-schema` second pass.)
 C29. **`DeleteBucket` resets the generations strictly below the deleted bucket** (`TxView.dropBkt`):
    its exact post was unreachable through its own recursion. Clients see no difference (those handles
-   were already stale). Files: `Spec/go_etcd_io/bbolt/{Model,Internal}.lean`. (`repair-bbolt` F9, "New
+   were already stale). Files: `SpecPlan/Spec/go_etcd_io/bbolt/{Model,Internal}.lean`. (`repair-bbolt` F9, "New
    decisions".)
 C30. **No keyed `bolt.Options` literal spec**: no translated code builds one; etcd's one keyed literal,
    `boltOpenOptions`, is an untranslated initializer whose value is the backend's assumed `PkgInit` fact
-   (`boltOpenOptions_init.spec`, `MmapFlags = MAP_POPULATE`). Files: `Spec/go_etcd_io/bbolt/Options.lean`,
+   (`boltOpenOptions_init.spec`, `MmapFlags = MAP_POPULATE`). Files: `SpecPlan/Spec/go_etcd_io/bbolt/Options.lean`,
    `server/v3/storage/backend/Durable.lean`. (`repair-bbolt` F7, "New decisions"; `repair-backend-schema`
    second pass.)
 C31. **The sector rule of 4.1 needs a second clause**: a sector past the file's durable size written by
    one `pwrite` since the last sync holds zeros or that write's bytes (ext4 `data=ordered`, xfs; not
    `data=writeback`), or `init`'s crash safety fails. Under (a) `boltCrash` is as written, under (b) over
-   `crashRestQ`. 4.1 itself is still yours. Files: `Spec/go_etcd_io/bbolt/Api.lean` (header).
+   `crashRestQ`. 4.1 itself is still yours. Files: `SpecPlan/Spec/go_etcd_io/bbolt/Api.lean` (header).
    (`repair-bbolt` F2, F10, "New decisions".)
 
 ### Raft and raft messages
@@ -838,29 +838,29 @@ C32. **An idle token for the raft struct, `coreIdle r`**: `node.Advance` returns
    token (every step from outside, `hup` and the ticks take it), and `RawNode.Advance.spec` now covers
    only the steps (a direct caller applies `rawNodeAt_advance` first). Alt.: a "pending Advance" node
    state (needs the same R3 change and still has the window). Files:
-   `Spec/go_etcd_io/raft/v3/{ApiCore,ApiLog}.lean`. (`repair-raft-core` P3, "New decisions".)
+   `SpecPlan/Spec/go_etcd_io/raft/v3/{ApiCore,ApiLog}.lean`. (`repair-raft-core` P3, "New decisions".)
 C33. **`storedLb` as a second, weaker storage bound**: snapshotting a delivered entry before `Advance`
    (kvdurable, kvreconf) needs only `storedLb` (given by `readyStor_append`'s COMM); compaction still
    needs `appliedLb`. Alt.: `appliedLb` only (those programs unprovable). Files:
-   `Spec/go_etcd_io/raft/v3/{Api,ApiLog}.lean`. (`repair-raft-core` F1, "New decisions".)
+   `SpecPlan/Spec/go_etcd_io/raft/v3/{Api,ApiLog}.lean`. (`repair-raft-core` F1, "New decisions".)
 C34. **`loggerOk` gives the logger no ownership of the arguments** (a transparent bundle: the methods
    raft calls return), as the old `isLogger` did; a formatting logger (zap's adapter) rests on its own
-   trust-boundary specs. Files: `Spec/go_etcd_io/raft/v3/Api.lean`. (`repair-raft-core` F3, "New
+   trust-boundary specs. Files: `SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean`. (`repair-raft-core` F3, "New
    decisions".)
 C35. **`fmt.Errorf` with non-`ArgsWf` arguments is a raftpb-local assumed spec**,
    `RaftPb.fmtErrorf.spec` (raftpb enums under any verb, held `*ConfState`s read only), for
    `Changer.apply` and `ConfState.Equivalent`. Alt.: restore the old general `Spec/fmt/Errorf.lean`
    (client-core's directory), or the Perennial change (gaps, below). Files:
-   `Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`. (`repair-raft-conf-pb` F2, F3, "New decisions".)
+   `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`. (`repair-raft-conf-pb` F2, F3, "New decisions".)
 C36. **`msgRecv` is introduced from protobuf's `mergeDst`** (`RaftPb.msgRecv_intro`; `Clone` and
    `Unmarshal` now give `mergeDst`), not from a new "fresh slices" fact; `msgRecv_lend` lends a read
    share, not `own 1` (with `own 1` the wand could swap the `Entries` slice). Files:
-   `Spec/go_etcd_io/raft/v3/raftpb/Api.lean`, `Spec/google_golang_org/protobuf/proto/`.
+   `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/Api.lean`, `SpecPlan/Spec/google_golang_org/protobuf/proto/`.
    (`repair-raft-conf-pb` A5-C F4, "New decisions".) See A12.
 C37. **Messages with `Responses` get their own predicate, `msgOut`**; `Msg`/`msgWf` stay without
    responses (only local `AsyncStorageWrites` messages carry them, never marshaled), and raft-core states
    `newStorageApplyMsg`/`newStorageAppendMsg` over it. Alt.: leave the two helpers unspecified as a scope
-   restriction (`ConfigOk` excludes async writes). Files: `Spec/go_etcd_io/raft/v3/raftpb/Api.lean`,
+   restriction (`ConfigOk` excludes async writes). Files: `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/Api.lean`,
    raft's `newStorage*Msg`. (`repair-raft-conf-pb` A5-C F5, "New decisions"; `repair-raft-core`.)
 C38. **rafthttp's codecs are transparent definitions** (`msgFrame`, `v2Frame`, `v2Chain`, `v2Compat`,
    over raftpb's `msgEncodes`; `pbEncodes` gone), not an opaque frame with a determinism law (smaller,
@@ -929,7 +929,7 @@ C48. **A second spec for one function: `Bucket.ForEachBucket.spec_del`** (bbolt 
    etcd-io/bbolt#1305). It departs from "one spec per function" (PRINCIPLES): the public spec is not an
    instance of it. Alt.: one general spec with the view-changing callback (heavier for every other caller),
    or restate `DeleteBucket` without going through `ForEachBucket`'s spec (the proof unfolds the loop). Files:
-   `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket*.lean`, `Bucket__DeleteBucket.lean`; source:
+   `SpecPlan/Spec/go_etcd_io/bbolt/Bucket__ForEachBucket*.lean`, `Bucket__DeleteBucket.lean`; source:
    `verify/repair-bbolt.md` "Re-review", `verify/RR-raftlog-bbolt.md`.
 
 ### Gaps left open by the repairs
@@ -1024,7 +1024,7 @@ Every decision the repairs after the re-reviews (`RR-*`, `F-*`) flagged ("New de
 in their final requests), from `notes/specs-only/verify/` `repair2-client`, `repair2-server`,
 `repair2-raft` (none), `repair2-server-core`, `repair2-relay`, `repair2-crash`, `repair3-boot`,
 `cleanup` (none; one law strengthened: `holds_norm`'s watch clause drops its `endsOk` premise),
-`repair4-lease`, `repair4-raft-crash`, `repair5-crash`. Spec paths are under `Spec/go_etcd_io/etcd/`
+`repair4-lease`, `repair4-raft-crash`, `repair5-crash`. Spec paths are under `SpecPlan/Spec/go_etcd_io/etcd/`
 unless they start otherwise. The specs are written to each choice except D6 (open) and D7 (pending).
 
 ### The user's answers (2026-11-10)
@@ -1077,6 +1077,16 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   streams; a node's crash closes its connections) with grpc and net/http as **trusted Go models
   over it**, replacing the preface-based design (C1); C5's trusted error table accepted while grpc
   is a trusted model.
+
+- **The network, option B (2026-11-12):** a trusted TCP extension plus trusted Go models of grpc-go
+  and net/http over it (`tcp-extension-design.md`); option A (verifying the real libraries,
+  `option-a-cost.md`: ~0.55-0.75M Lean lines vs B's ~60-110k) stays possible later, piece by piece.
+
+- **TCP design and trust boundaries (2026-11-12):** U1 (a crash reaches peers by
+  nondeterminism), U2 (models as patches of the real grpc/net/http packages), U3 (one stream or
+  request per connection), U5-U7 (the over-approximations) accepted. E3: a trusted per-type model of
+  `encoding/json`. E5: the WAL's torn-tail/CRC assumption is handled on the user's own `wal` branch;
+  do not design it here. E2 (protobuf-go): open, discussed.
 
 ### Needs your approval
 

@@ -1,22 +1,11 @@
 /-
-`types.NewURLs` (`client/pkg/v3/types/urls.go`).
-
-Users: `cluster.memberAdd`, `cluster.MemberUpdate` (the URLs' check); the server (membership, 2e).
-
-Proof sketch: per string `url.Parse` (trusted: `net/url`), the scheme and `host:port` checks
-(`net.SplitHostPort`), the path check; the result sorted (`sort.Sort`). `urlsValid`'s meaning.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/pkg/v3/types/NewURLs.lean` (plain peer URLs only,
-the URLs' parse described): any strings, the error case included; the parsed values not described.
-
-Integration (I1): the result described by `urlsStrs`/`urlsAt` over `urlsNorm`/`urlsHosts` (2e's
-and 2f's requests), made read-only for good (no caller writes it).
-
-Margin: the URLs' other fields (scheme) are not described.
+`types.NewURLs`: the trust boundary (`go.etcd.io/etcd/client/pkg/v3/types` is names-only; rafthttp
+stage 6a, `Transport.AddPeer`/`AddRemote`). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 
 @[expose] public section
 
@@ -24,30 +13,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Types
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
-/-- `NewURLs(strs)`: the parsed URLs, read-only for good (their hosts and `String()` forms), or an
-error exactly when they are not `urlsValid` (`urlsHosts ss = none`). -/
-def NewURLs.spec : Prop :=
+/-- **`types.NewURLs(strs)`** of a non-empty list of plain peer URL strings (`http://host:port`):
+no error, and a new slice of as many URLs, each the parse of one of the strings
+(`parsedPeerURL`: scheme `http`, its host, nothing else; sorted, so in some order). -/
+abbrev types.NewURLs.spec : Prop :=
   ∀ (sl : GoSlice) (dq : DFrac) (ss : List GoString),
+  ss ≠ [] → (∀ s ∈ ss, types.plainPeerURL s) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗ sl ↦*{dq} ss }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.types.NewURLs)) (Val #sl))
-  {{ (us : GoSlice) (err : GoInterface), RET (PairV #us #err); sl ↦*{dq} ss ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ hs, ⌜urlsHosts ss = some hs⌝ ∗ urlsStrs us (urlsNorm ss) ∗
-          urlsAt us hs) ∨
-       ⌜err ≠ GoInterface.nil ∧ urlsHosts ss = none⌝) }}
+  {{ (us : GoSlice) (uvs : List _root_.Perennial.net.url.URL), RET (PairV #us #GoInterface.nil);
+      sl ↦*{dq} ss ∗ us ↦* uvs ∗
+      ⌜uvs.length = ss.length ∧ ∀ u ∈ uvs, ∃ s ∈ ss, types.parsedPeerURL s u⌝ }}
 
 end spec
 
-end Types
 end EtcdGrove
 end Perennial

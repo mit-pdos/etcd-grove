@@ -1,15 +1,15 @@
 # Integration I1 (the client side): report
 
 Integration agent I1, 2026-11-09, per `integration-brief.md`. Directories: W0's model and client
-KV (`api/v3/{Model,State,Wire}.lean`, `client/v3/Api.lean` and W0's specs, `Spec/context`,
-`Spec/go_uber_org`), 1b (watch), 1c (lease, lifecycle, auth, cluster, maintenance, interceptors,
+KV (`api/v3/{Model,State,Wire}.lean`, `client/v3/Api.lean` and W0's specs, `SpecPlan/Spec/context`,
+`SpecPlan/Spec/go_uber_org`), 1b (watch), 1c (lease, lifecycle, auth, cluster, maintenance, interceptors,
 `kubernetes`, `credentials`, `internal/*`, `client/pkg/v3/*`), 1d (`concurrency`), 1e (`leasing`),
-1f (`recipes`, `Spec/fmt`), 1g (`cache`, the B-tree), `Spec/sort` (3c's; checked only). The work
+1f (`recipes`, `SpecPlan/Spec/fmt`), 1g (`cache`, the B-tree), `SpecPlan/Spec/sort` (3c's; checked only). The work
 per batch was done by forks of I1; their sections follow I1's summary.
 
 ## Build result (every directory I own)
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/api/v3 Spec/context Spec/go_uber_org/zap Spec/go_uber_org/zap/zapcore Spec/go_etcd_io/etcd/client/pkg/v3/{logutil,transport,types,verify} Spec/go_etcd_io/etcd/client/v3 Spec/go_etcd_io/etcd/client/v3/{concurrency,credentials,experimental/recipes,internal/endpoint,internal/resolver,kubernetes,leasing} Spec/go_etcd_io/etcd/cache/v3 Spec/k8s_io/utils/third_party/forked/golang/btree Spec/fmt Spec/sort`: **OK (746 modules)**, after all edits.
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/api/v3 SpecPlan/Spec/context SpecPlan/Spec/go_uber_org/zap SpecPlan/Spec/go_uber_org/zap/zapcore SpecPlan/Spec/go_etcd_io/etcd/client/pkg/v3/{logutil,transport,types,verify} SpecPlan/Spec/go_etcd_io/etcd/client/v3 SpecPlan/Spec/go_etcd_io/etcd/client/v3/{concurrency,credentials,experimental/recipes,internal/endpoint,internal/resolver,kubernetes,leasing} SpecPlan/Spec/go_etcd_io/etcd/cache/v3 SpecPlan/Spec/k8s_io/utils/third_party/forked/golang/btree SpecPlan/Spec/fmt SpecPlan/Spec/sort`: **OK (746 modules)**, after all edits.
 
 Snippets: `cd examples && go vet ./specreq/{clientv3kv,clientv3watch,clientv3lease,clientv3client,concurrency,leasing,recipes,cache,btree}/`
 clean; `gofmt -l` on them prints nothing.
@@ -20,7 +20,7 @@ Before integration the cache (`Cache__Get`, `Cache__serverRevision`, `Cache__get
 ## The peer-URL right (the coordinator's decision, after the forks)
 
 **For I4: the name and signature.** `EtcdModel.urlsRight (γ : Cluster) (urls : List GoString) :
-IProp GF` (opaque, exclusive) in `Spec/go_etcd_io/etcd/api/v3/State.lean`, with
+IProp GF` (opaque, exclusive) in `SpecPlan/Spec/go_etcd_io/etcd/api/v3/State.lean`, with
 `EtcdModel.urlsRight_excl.spec : ∀ (γ : Cluster) (urls urls' : List GoString), urls.Perm urls' →
 urlsRight γ urls ∗ urlsRight γ urls' ⊢ False`: the same signature and law as 2e's
 `EtcdServer.urlsRight`/`urlsRight_excl` (`etcdserver/ApiBoot.lean:235, :473`), which I4 deletes;
@@ -39,7 +39,7 @@ call is refused or fails. **Still needed of 2a**: a way for the right to reach t
 `etcdState`); the snippet `clientv3client/cluster.go` (`ReqMemberAddThenList`) assumes the caller
 holds `urlsRight γ [peerURL]`.
 
-Rebuilt after this change: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/api/v3 Spec/go_etcd_io/etcd/client/v3{,/concurrency,/experimental/recipes,/kubernetes,/leasing} Spec/go_etcd_io/etcd/cache/v3 Spec/go_etcd_io/etcd/server/v3/etcdserver`: OK (787 modules; 2e's `etcdserver` included: no clash); `go vet ./specreq/clientv3client/` clean.
+Rebuilt after this change: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/api/v3 SpecPlan/Spec/go_etcd_io/etcd/client/v3{,/concurrency,/experimental/recipes,/kubernetes,/leasing} SpecPlan/Spec/go_etcd_io/etcd/cache/v3 SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver`: OK (787 modules; 2e's `etcdserver` included: no clash); `go vet ./specreq/clientv3client/` clean.
 
 ## The known items, resolved
 
@@ -142,7 +142,7 @@ rests on a pure lemma clients prove: `exactFrom` at a later state implies it at 
 
 ## W0 (model, client KV, context, zap)
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/api/v3 Spec/context Spec/go_uber_org/zap Spec/go_uber_org/zap/zapcore Spec/sort` OK (32 modules); W0's client/v3 modules by name OK (142); `go vet ./specreq/clientv3kv/` clean, gofmt clean.
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/api/v3 SpecPlan/Spec/context SpecPlan/Spec/go_uber_org/zap SpecPlan/Spec/go_uber_org/zap/zapcore SpecPlan/Spec/sort` OK (32 modules); W0's client/v3 modules by name OK (142); `go vet ./specreq/clientv3kv/` clean, gofmt clean.
 
 Changed:
 - `api/v3/Model.lean` (I1): `EtcdModel.Event.key`, `EtcdModel.exactFrom` (3f's request; 1b's `ClientV3.exactFrom` is an `abbrev` of it).
@@ -151,7 +151,7 @@ Changed:
 - `kv__*` (7), `retryKVClient__*` (6): `∀ c`, `…Handle … c γ who ∗ clientReady c`; the retry sketches name the real path (3h's stub → 1c's `uiOk_call`/`siOk_call` → 2a's `AttemptTriple`/`etcdUnary`/`rangeStreamSpec`, `callErr_view`); `Range`, `Txn`, `Compact`, `RangeStream` mark the `lo` gap Open.
 - `NewKV`, `RetryKVClient`, `NewKVFromKVClient`: posts give the handle with `c` (`null` for `NewKVFromKVClient`).
 - `State.lean`: new law `etcdLb_leases` (no lease table has lease 0; every present key's non-zero lease is live) — 3a round 1 item 6.
-- `Spec/context/Api.lean`: `TODO.spec`/`Background.spec` name their values (`todoCtxVal`, `backgroundCtxVal`; 4b's request).
+- `SpecPlan/Spec/context/Api.lean`: `TODO.spec`/`Background.spec` name their values (`todoCtxVal`, `backgroundCtxVal`; 4b's request).
 
 Open (the biggest): the read window `lo`. `RemoteKV.{Range,RangeStream,Txn,Compact}Triple` take `authLb γ lo` and an update over `Step p rq σ σ' res lo`; 1c's `callAU` (hence `AttemptTriple`, `uiOk_call`, `siOk_call`), 2a's `V3rpc.etcdUnary` and `V3rpc.rangeStreamSpec` have no `lo` (work at `0`). An update over `Step … lo` does not accept every `Step … 0` transition, so `retryKVHandle_remoteKVAt` cannot be realized for reads and `Compact` until 1c and 2a carry `lo` and `authLb γ lo`. (1c: see its section.)
 
@@ -187,7 +187,7 @@ Not met, recorded: 2a `kaSpec.dn` must say a response's ID is a sent request's (
 
 ## 1d (concurrency)
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/client/v3/concurrency` OK (63 modules); `go vet ./specreq/concurrency/` clean, gofmt clean.
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency` OK (63 modules); `go vet ./specreq/concurrency/` clean, gofmt clean.
 
 Changed:
 - `concurrency/NewSession.lean`: pre `clientRest c γ dflt` (was `isClient`; `isClient_rest` gives it) — meets 1e round 1 (the proxy makes sessions after overwriting `client.KV`); sketch reaches `Client.Ctx`/`GetLogger` via `clientRest_core`, `clientCore_pre`, `clientPre_base`.
@@ -203,7 +203,7 @@ Requests 1d made: client_v3 "from 1d" items 1,2,4,5 met (1c `clientBase`, 1b `hd
 
 ## 1e (leasing)
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/client/v3/leasing` OK (68 modules) — was FAILED (`Api.lean:332,349,366,385,400`, `ctxPrin` arity); `go vet ./specreq/leasing/` clean, gofmt clean.
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing` OK (68 modules) — was FAILED (`Api.lean:332,349,366,385,400`, `ctxPrin` arity); `go vet ./specreq/leasing/` clean, gofmt clean.
 
 Changed:
 - `leasing/Api.lean`: per-call principal (W0 round 3): every `LKV.*Triple` binds `p` with `ctxPrin who ctx p` (`who` the client's default), update `p`'s; `LKV.TxnTriple` returns `ltxnAt iv γ p …`. Auth window (W0 round 4): `LStep`/`lstep` take `lo`, step `Step who rq σ σ' res lo` (and for `execReq`); `LKV.GetTriple`, `LKV.DoTriple`, `LTxn.CommitTriple` bind `(lo)` with `authLb γ lo`; `Put`/`Delete` at `lo = 0`. `ProtoStep pfx σ σ'` (was `ProtoStep pfx who`): the protocol's requests run with the caller's context or the KV's own, so any principal; it now admits a real `leaseGrant`/`leaseKeepAlive` `Step` (W0's grant appends to `leaseHist`; the old inline clause did not); the grant clause cites `Concurrency.grantEff`; `protoUpd γ pfx` loses `who`; imports concurrency's Api. `evKey` → W0's `Event.key`.
@@ -216,9 +216,9 @@ Checked: bridging laws `kvAt_lkvAt`, `txnAt_ltxnAt`, `lkvAt_methods` consistent 
 Requests: to 1e (`req/..._leasing.md` W0 items 1-2) met; from 1e (client_v3 "from 1e" 1-4, "from 1e (round 1)" item 5 per-request principal, concurrency 1-3) met.
 Found for 1d (fixed by I1): `Concurrency.grantEff` did not append to `leaseHist`, so W0's real grant was not a `grantEff` step and `NewSession`'s `effIn` permission did not cover the grant it fires. I added `leaseHist := σ.leaseHist ++ [σ.leases]` to `grantEff` (`concurrency/Api.lean`).
 
-## 1f (recipes, `Spec/fmt`)
+## 1f (recipes, `SpecPlan/Spec/fmt`)
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/client/v3/experimental/recipes Spec/fmt` OK (41 modules); `go vet ./specreq/recipes/` clean, gofmt clean.
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/client/v3/experimental/recipes SpecPlan/Spec/fmt` OK (41 modules); `go vet ./specreq/recipes/` clean, gofmt clean.
 
 Main finding (soundness): since 1b's round 3, `watchStep` gives a response's events only under `exactFrom σ.kv lo`; the recipes claimed them unconditionally. Watch-derived facts are now conditional; read-derived facts unchanged.
 
@@ -236,7 +236,7 @@ Needs (optional, 1b): an unconditional weak fact in `watchStep`'s events case (e
 
 ## 1g (cache, B-tree)
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/cache/v3 Spec/k8s_io/utils/third_party/forked/golang/btree` OK (161 modules) — the cache was FAILED (`Cache__Get.lean:84`, `Cache__serverRevision.lean:33`, `Cache__get.lean:36`: `ctxPrin` arity); `go vet ./specreq/cache/ ./specreq/btree/` clean, gofmt clean.
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/cache/v3 SpecPlan/Spec/k8s_io/utils/third_party/forked/golang/btree` OK (161 modules) — the cache was FAILED (`Cache__Get.lean:84`, `Cache__serverRevision.lean:33`, `Cache__get.lean:36`: `ctxPrin` arity); `go vet ./specreq/cache/ ./specreq/btree/` clean, gofmt clean.
 
 Changed (B-tree: none):
 - `cache/v3/Api.lean`: header paragraphs (compaction condition, principals, why the cache is not a `Watcher`); `deliv`, `quiet`, `getOk`: their exactness claims now under `EtcdModel.exactFrom h 0` at the fact's state; `eventOwn` now over W0's `EtcdWire.eventOwn p DFrac.discard m` (`m.del = e.del`, `m.prevKv = none`, `kvMatches e m.kv`), `evType` → `RevEvent.del`; `Cache.evKey` → W0's `Event.key`; `cacheRange` docstring: the cache treats `nil` and non-`nil` empty ends alike (one key: `len(endKey) == 0`), unlike W0's `OpM.endReq` — right for the cache's code.

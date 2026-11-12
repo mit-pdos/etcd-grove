@@ -1,20 +1,10 @@
 /-
-`(*Lease).persistTo(b)` (`lease.go:55`), an internal helper's spec (mirrors the code). **Users**:
-`Grant`, `Checkpoint`, under `le.mu`, on the apply thread. **Proof sketch**: `b.BatchTx()` (the open share `beOk b`, from the writer's token: integration I5),
-`LockInsideApply` (4a's `beHook b Pk f`: `Pk`, the hook run, `beHookRun`), 4b's `MustUnsafePutLease` of `{ID, TTL, RemainingTTL}`
-(the local struct made a message by `Schema.leaseMsg_of_struct`; `Schema.MustUnsafePutLease.spec`
-over `Schema.txWr` of the batch transaction and the view `R V` that `beLeases b B` realizes: the
-view's lease bucket gets a `leaseEnc` of `(id, t, r)` under `beU64 id`, so `leaseBktIs` holds of `B`
-at `id := t`; the remaining TTL not modelled), `Unlock` (deferred). **Changes**
-(from `specs-ref`'s `Lease__persistTo.lean`, the critical-section contract `csContractA` over the
-tracked buckets): over 4a/4b's provisional names and mvcc's hook contract. **Margin**: the record's `RemainingTTL`.
+`(*Lease).persistTo` (`server/lease/lease.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/lease/LessorBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 
 @[expose] public section
 
@@ -22,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,25 +22,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Write the object's record into `b`'s lease bucket** (inside an apply). -/
-def Lease.persistTo.spec : Prop :=
-  ∀ (l : Loc) (b : GoInterface) (B : Int → Option Int) (id t r : w64) (dq1 dq2 dq3 : DFrac)
-    (Pk Pre Q Post : IProp GF) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ beOk b ∗ beHook b Pk f ∗ Pre ∗
-      beHookRun b Pk f Pre Q ∗ (Q ={⊤}=∗ Pk ∗ Post) ∗
-      beLeases b B ∗
-      l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ID"] ↦{dq1} id ∗
-      l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ttl"] ↦{dq2} t ∗
-      l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"remainingTTL"] ↦{dq3} r }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.Lease.ty @!!
-      go!"persistTo")) (Val #b))
-  {{ RET #(); beOk b ∗ Post ∗
-      beLeases b (fun i => if i = sint.Z id then some (sint.Z t) else B i) ∗
-      l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ID"] ↦{dq1} id ∗
-      l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"ttl"] ↦{dq2} t ∗
-      l.[go_etcd_io.etcd.server.v3.lease.Lease, go!"remainingTTL"] ↦{dq3} r }}
+/-- `l.persistTo(b)`: writes the lease's record (`ID`, `ttl`, `remainingTTL`, read) into the
+backend's `Lease` bucket under the batch lock, the critical-section contract's `Pre` to `Post`
+(over mvcc's API's `hookRun`, strict M1, 2026-11-05):
+the tracked buckets `Rb` holds get the record (`lease.leaseEnc`) under the id's 8 big-endian bytes
+(leases T3, L3c, 2026-10-27). -/
+abbrev lease.Lease.persistTo.spec : Prop :=
+  ∀ (l : Loc) (b : GoInterface) (P : IProp GF) (f : GoFunc) (T R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) (rb : GMap GoString backend.BktData)
+    (Pre Q Post : IProp GF) (id t r : w64) (dq1 dq2 dq3 : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseBackend b P #f T R Rb ∗
+      srvApi.csContractA P f Pre Q Post ∗ T ∗ R ∗ Rb rb ∗
+      lsF go!"ID" l ↦{dq1} id ∗ lsF go!"ttl" l ↦{dq2} t ∗ lsF go!"remainingTTL" l ↦{dq3} r }}
+    (App (Val (l @!! go.GoType.PointerType Lease.ty @!! go!"persistTo")) (Val #b))
+  {{ RET #(); Post ∗ R ∗ Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id t r)) ∗
+      lsF go!"ID" l ↦{dq1} id ∗ lsF go!"ttl" l ↦{dq2} t ∗ lsF go!"remainingTTL" l ↦{dq3} r }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

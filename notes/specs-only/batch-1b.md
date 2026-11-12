@@ -7,8 +7,8 @@ modules below: OK); the snippets vet (`cd examples && go vet ./specreq/clientv3w
 
 | path | what |
 |---|---|
-| `Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean` | the watch vocabulary: pure model, `watchStep`, the wire protocol `wireStep`, resources, the `Watcher` contract (`Watcher.*Triple`, filling W0's `watcherAt`), laws, gRPC slots |
-| `Spec/go_etcd_io/etcd/client/v3/WatchInternal.lean` | internal vocabulary of `watch.go`'s goroutines (not client-facing) |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean` | the watch vocabulary: pure model, `watchStep`, the wire protocol `wireStep`, resources, the `Watcher` contract (`Watcher.*Triple`, filling W0's `watcherAt`), laws, gRPC slots |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/WatchInternal.lean` | internal vocabulary of `watch.go`'s goroutines (not client-facing) |
 | client-facing specs (10) | `watcher__{Watch,RequestProgress,Close}`, `Client__{Watch,RequestProgress}` (promoted), `NewWatcher`, `NewWatchFromWatchClient`, `WatchResponse__{Err,IsProgressNotify}`, `ensureWatchHeader` |
 | internal specs (28) | `valCtx__{Deadline,Done,Err}`, `streamKeyFromCtx`, `watchRequest__toPB`, `progressRequest__toPB`, `watcher__{newWatcherGRPCStream,closeStream}`, `watchGRPCStream__{close,run,nextResume,addSubstream,dispatchEvent,broadcastResponse,unicastResponse,closeSubstream,sendCloseSubstream,serveWatchClient,serveSubstream,startBufWait,recordBufWait,newWatcherStreamBufLogger,newWatchClient,waitCancelSubstreams,joinSubstreams,backoffIfUnavailable,openWatchClient}`, `watcherStream__resetBufWait` |
 | `examples/specreq/clientv3watch/{history,progress,ending,consume}.go` | 15 requirement snippets |

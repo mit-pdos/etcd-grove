@@ -1,17 +1,10 @@
 /-
-`clientv3.OpGet` (`client/v3/op.go`).
-
-Users: `kv.Get`, `client/v3/concurrency` (`stm.go:262`, `mutex.go:83`, `election.go:69` `Else(OpGet(...))`), leasing, the cache, Kubernetes' store (`Else(OpGet(key))`).
-
-Proof sketch: `IsOptsWithPrefix.spec`, `IsOptsWithFromKey.spec` (the options run on a `NewOp()`, given back), `Op{t, key}` then `Op.applyOpts.spec`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/OpGet.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.OpGet(key, opts...)` (`client/v3/op.go`, translated for the cache). Lean-first (no Rocq
+counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -19,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `OpGet(key, opts...)`: a range over `key` with the options applied. -/
-def OpGet.spec : Prop :=
-  ∀ (key : GoString) (sl : GoSlice) (gs : List (OpM → OpM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ optsAt sl gs ∗ ⌜¬ prefixAndFromKey gs⌝ }}
+/-- `OpGet(key, opts...)`: the `Op` modelled by `opGetModel key gs`; it panics if the options set both `WithPrefix` and `WithFromKey`, which the caller rules out. -/
+abbrev OpGet.spec : Prop :=
+  ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ optsAt sl gs ∗ ⌜¬ opGetPanics gs⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.OpGet)) (Val #key)) (Val #sl))
-  {{ (op : go_etcd_io.etcd.client.v3.Op), RET #op; optsAt sl gs ∗ opAt op (opGetM key gs) }}
+  {{ (op : go_etcd_io.etcd.client.v3.Op), RET #op; opFullAt op (opGetModel key gs) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

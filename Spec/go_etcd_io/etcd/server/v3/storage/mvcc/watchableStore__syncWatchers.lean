@@ -1,26 +1,9 @@
 /-
-`(*watchableStore).syncWatchers()` (internal): under `s.mu` and `revMu`, chooses up to
-`maxWatchersPerSync` unsynced watchers (`choose`: the compacted ones sent their compaction response),
-reads the events of revisions `[minRev, curRev]` from the storage (`rangeEvents`), batches them per
-watcher (`newWatcherBatch`), sends each watcher its batch (a full channel makes it a victim), moves the
-caught-up ones to the synced group. Returns the unsynced count.
-
-**Proof sketch.** `s.mu.Lock` (`wsMu`); `revMu.RLock` (the loop's reader, `wsLoopS`: one of the
-store's own slots of its current storage borrowed for the pass, 3e's internal hand-off; `wsReadAt`
-with the notified history `h`, nothing pending, the storage's image of it, `compactMainRev` its
-compaction revision or `-1`); `choose` (its spec, with each member's compaction response sendable:
-`cr ≤ h.compacted`, below its `minRev`; the least `minRev` it returns is at least `compactionRev`,
-`minRevOf`, so `h.compacted ≤` it: `rangeEvents`' premise); `rangeEvents` (the events of `h` from
-the least `minRev`, exact under the compaction condition: what the facts of the responses built
-here need); `newWatcherBatch`; for each chosen watcher not behind the compaction:
-`minRev` past `curRev`, or the batch's `moreRev`; `w.send` with the batch at `Revision: curRev`
-(`wsSendable`: the events of its range from its position, whole revisions up to the batch's last);
-`addVictim`; the gauges.
+`watchableStore.syncWatchers` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchSync.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 
 @[expose] public section
 
@@ -28,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,14 +21,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchableStore.syncWatchers.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ wsLoopS s γ }}
+/-- `s.syncWatchers()` with the caller's reader slots: under `s.mu` (and `s.store.revMu` read), a
+batch of the unsynced watchers (`choose`) gets the events of the committed log from its least
+`minRev` up to the current revision (`rangeEvents`), each its own (`newWatcherBatch`): a watcher
+with none becomes synced; one with events gets them in one response (all of them, or under the
+cap of `watchBatchMaxRevs` revisions those below the first revision left out, staying unsynced
+from there), and becomes synced, or a victim with its batch if its channel is full. The lock
+invariant is kept (every delivery recorded); the number returned is the unsynced watchers left. -/
+abbrev mvcc.watchableStore.syncWatchers.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"syncWatchers")) (Val #()))
-  {{ (n : w64), RET #n; wsLoopS s γ ∗ ⌜0 ≤ sint.Z n⌝ }}
+  {{ (n : w64), RET #n; mvcc.watchReader s st γ }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

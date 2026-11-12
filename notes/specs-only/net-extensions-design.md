@@ -7,7 +7,7 @@ the network between the nodes of Perennial's distributed language (`DistLang.lea
 `goose_dist_crash_adequacy`), **no TCP model beneath**, justified by grpc's and net/http's documented
 behavior. The program: several etcd members, each a node that crashes alone and reruns its boot
 program, and a client node that never crashes (clientv3 over grpc); members talk over rafthttp
-(net/http). The goal is that every `Spec/google_golang_org/grpc/**` and `Spec/net/http/**` statement
+(net/http). The goal is that every `SpecPlan/Spec/google_golang_org/grpc/**` and `SpecPlan/Spec/net/http/**` statement
 (E1, E7 of `trust-boundaries.md`) becomes a **theorem** proved from the model, so the adequacy
 theorem has no Iris axiom for the network.
 
@@ -114,7 +114,7 @@ incarnation. **Crash** (`ExtSemantics.crash`): `node' = node`, `epoch' = epoch +
   it (as OsFs's fixed domain of files). `Listen` of an address not the node's, and `Dial` of an
   address outside the plan, are **stuck**: the proof must show the program uses only plan strings.
   This replaces today's environment premise "one reserved string per socket" (`Http.addrFree`,
-  `Spec/net/http/Api.lean` header): aliases (`localhost:p` vs `127.0.0.1:p`) and port `0` are simply
+  `SpecPlan/Spec/net/http/Api.lean` header): aliases (`localhost:p` vs `127.0.0.1:p`) and port `0` are simply
   outside the model.
 * `bound : address → listener`; `lis : id → {addr, owner, isOpen, backlog}`: the listeners, each
   with the connections dialed to it and not yet accepted.
@@ -428,8 +428,8 @@ needs):
   extension's ghost state), the existing statements discharged. Of the order of 10k lines, the
   scale of the OsFs work.
 
-**What becomes theorems.** Every assumed statement of `Spec/google_golang_org/grpc/**` (62 files:
-36 function specs, 58 laws in `Api.lean`, 6 in `peer/Api.lean`) and `Spec/net/http/**` (14 function
+**What becomes theorems.** Every assumed statement of `SpecPlan/Spec/google_golang_org/grpc/**` (62 files:
+36 function specs, 58 laws in `Api.lean`, 6 in `peer/Api.lean`) and `SpecPlan/Spec/net/http/**` (14 function
 specs, 31 laws), and the names-only specs that sit on them in etcd's code once translated
 (`client/pkg/transport`'s listeners and transports, rafthttp's `NewRoundTripper`, cmux's
 functions). Their opaque predicates get definitions: `connAt`, `serves`, `addrAt`, `protoAt`,

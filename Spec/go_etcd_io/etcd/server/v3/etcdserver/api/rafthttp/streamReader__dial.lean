@@ -1,19 +1,10 @@
 /-
-## `(*streamReader).dial(t)`
-
-**Users.** `streamReader.run`.
-
-**Proof sketch.** `pick`, the path (`endpoint`, `path.Join`, `ID.String`), `NewRequest(GET)`, the headers (`X-Raft-To` the peer, `X-Server-From` the local id), `setPeerURLsHeader`, `WithContext`; the reader's fresh token map registered under a fresh name `τ` (`raftProto`'s request knowledge: a stream `GET` of `lid`'s reader); `RoundTrip` (no ticket: a `GET`); `serverVersion` of the response's headers (`raftProto` commits a parsable `X-Server-Version` with every response of a member's handler: no panic), `compareMajorMinorVersion`, `checkStreamSupport`; the status switch (`GracefulClose`, `ReadAll`, the `412` bodies, `reportCriticalError`, `fmt.Errorf`); `200`: the body with the reader's tokens (`streamBody`). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (brief item 3): the package's error variables' values come from `vars_init.spec` (each `errIs g e`, non-nil, `Http.errOk`; pairwise distinct by `errVars_distinct.spec`), not from Lean constants; statement unchanged. The `X-Server-Version` premise of the old spec is now `raftProto`'s response header knowledge. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*streamReader).dial` (`stream.go`; rafthttp stage 5c). Lean-first; the reader's predicates:
+`rafthttp/Reader.lean`, `rafthttp/ReaderRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 
 @[expose] public section
 
@@ -21,26 +12,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Dials the peer's stream** of type `t`: the `200` response's body (`streamBody`), or an error (a refused or failed dial; `errMemberRemoved` on `410`, reported on `errorc`). -/
-def streamReader.dial.spec : Prop :=
-  ∀ (cr : Loc) (ν : Net GF) (lid pid : w64) (t : StreamTy),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ srAt cr ν lid pid ∗ srRun cr }}
-    (App (Val (cr @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader.ty @!! go!"dial")) (Val #(t.str)))
-  {{ (rc : GoInterface) (err : GoInterface), RET (PairV #rc #err); srRun cr ∗ ((⌜err = interface.nil⌝ ∗ streamBody rc ν lid pid t) ∨ (⌜err ≠ interface.nil⌝ ∗ Http.errOk err)) }}
+/-- **`cr.dial(t)`** of the reader's stream type: a `GET` of the stream's path to one of the peer's
+URLs, with a fresh ticket registered as the stream's (`(γw, ty, lid)`), whose response at a `200`
+is the stream: its body (to read, with the right to close it) and the reader's tokens; or an error
+whose `Error()` returns. No panic: `semver.MustParse` of the peer's `X-Server-Version` header
+(`issues/etcd-rafthttp-stream-dial-bad-server-version-panic.md`) parses, the peer being a member of
+the program, whose handlers set it to `version.Version` or not at all (the protocol's `rhdr`,
+`verHdrOk`; proved in stage 5e-3). Nothing is reported on `errorc`: a member never answers `410`
+(no member is removed; stage 6). -/
+abbrev rafthttp.streamReader.dial.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy),
+  Rh.member lid → lid ≠ pid →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      srFixed Rh lid pid γd cr ∗ srDial Rh pid ty cr }}
+    (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"dial")) (Val #ty.str))
+  {{ (rc err : GoInterface), RET (PairV #rc #err); http.errStrOk err ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗
+        ∃ (R : http.HReq) (γk γw : GName), ⌜Rh.owner R.host = pid ∧ R.path ≠ probingPath⌝ ∗
+          http.respReader (raftHttpNet Rh) rc R γk (W64 200) [] ∗ http.respCloser rc ∗
+          ⌜rc ≠ GoInterface.nil⌝ ∗ streamReg Rh γk (γw, ty, lid) ∗ streamRd γw 0) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

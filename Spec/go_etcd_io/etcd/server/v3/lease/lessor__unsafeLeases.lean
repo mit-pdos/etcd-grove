@@ -1,14 +1,10 @@
 /-
-`(*lessor).unsafeLeases()` (`lessor.go:464`), an internal helper's spec (mirrors the code).
-**Users**: `Leases` (under `RLock`), `Promote`. **Proof sketch**: a slice of capacity
-`len(leaseMap)`, the map's values appended (map iteration: each once). **Changes** (from
-`specs-ref`'s `lessor__unsafeLeases.lean`): over `lessorFields`. **Margin**: the order.
+`(*lessor).unsafeLeases` (`server/lease/lessor.go`). Lean-first (no Rocq counterpart); the lease-read plan
+(`notes/lease-read-plan.md`, 2026-10-31).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -16,28 +12,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **The live objects** (under the lock), each once, in a fresh slice. -/
-def lessor.unsafeLeases.spec : Prop :=
-  ∀ (le : Loc) (c : Cfg) (dq : DFrac) (ls : LessorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorFields le c dq ls }}
-    (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
-      go!"unsafeLeases")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; lessorFields le c dq ls ∗ ∃ (ps : List Loc) (ids : List Int),
-      sl ↦* ps ∗ ⌜ids.Nodup ∧ (∀ x, x ∈ ids ↔ ls.leases x ≠ none) ∧
-        List.Forall₂ (fun p x => ∃ e, ls.leases x = some e ∧ p = e.obj) ps ids⌝ }}
+/-- `le.unsafeLeases()`, `le.mu` read-locked (its guarded state at `q`): a fresh slice of the lease
+map's values, each lease once with its id (`(l, id)` the map's pairs). -/
+abbrev lease.lessor.unsafeLeases.spec : Prop :=
+  ∀ (lp lm : Loc) (M : GMap w64 Loc) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+      lF go!"leaseMap" lp ↦{DFrac.own q} lm ∗ lm ↦${DFrac.own q} M }}
+    (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"unsafeLeases")) (Val #()))
+  {{ (sl : GoSlice) (ls : List (Loc × w64)), RET #sl; lF go!"leaseMap" lp ↦{DFrac.own q} lm ∗
+      lm ↦${DFrac.own q} M ∗ sl ↦* ls.map Prod.fst ∗
+      ⌜(ls.map Prod.snd).Nodup ∧ ∀ (id : w64) (l : Loc), (l, id) ∈ ls ↔ M.lookup id = some l⌝ }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

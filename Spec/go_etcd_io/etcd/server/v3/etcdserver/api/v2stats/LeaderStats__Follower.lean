@@ -1,13 +1,10 @@
 /-
-## `(*LeaderStats).Follower(name)` (`leader.go`): translated
-
-**Users.** 2f's `Transport.AddPeer`. **Proof sketch.** Under the lock, the map's entry or a new one.
-**Changes**: from `specs-ref`. **Margin.** None.
+`(*v2stats.LeaderStats).Follower(name)` (`leader.go`; rafthttp stage 6b, `Transport.AddPeer`):
+translated with its body since D43 M5a (2026-10-26; the trust boundary until then).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 
 @[expose] public section
 
@@ -15,26 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V2stats
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
 
-/-- **The follower's statistics** (made on first use). -/
-def LeaderStats.Follower.spec : Prop :=
-  ∀ (p : Loc) (name : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats ∗ isLeaderStats p }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats.ty @!! go!"Follower")) (Val #name))
-  {{ (f : Loc), RET #f; isFollowerStats f }}
+/-- `ls.Follower(name)` of the stats `ls`, with their followers' map (`v2stats.lsFollowers`, the
+caller's: the transport's write lock): a non-nil `*FollowerStats` (the follower's, made and stored
+if new, under the stats' lock), the map given back. (Until D43 M5a, 2026-10-26, an axiom with
+`ls ≠ null` only.) -/
+abbrev v2stats.LeaderStats.Follower.spec : Prop :=
+  ∀ (ls : Loc) (name : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats ∗
+      v2stats.isLeaderStats ls ∗ v2stats.lsFollowers ls 1 }}
+    (App (Val (ls @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats.ty @!! go!"Follower")) (Val #name))
+  {{ (fs : Loc), RET #fs; ⌜fs ≠ null⌝ ∗ v2stats.lsFollowers ls 1 }}
 
 end spec
 
-end V2stats
 end EtcdGrove
 end Perennial

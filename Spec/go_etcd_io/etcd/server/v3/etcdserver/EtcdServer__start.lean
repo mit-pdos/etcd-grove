@@ -1,35 +1,16 @@
 /-
-## `(*EtcdServer).start()` (`server.go:547-606`)
-
-**Users.** `Start` only (and etcd's own unit tests).
-
-**Proof sketch.** The snapshot settings defaulted (fields of `s.Cfg`, owned by `srvBuilt`); the
-fields the request path reads made (`wait.New`, `wait.NewTimeList`, the `done`/`stop`/`stopping`
-channels, `context.WithCancel`, `read.NewRead` over `s` and `s.r`, `notify.NewNotifier`: 2c's specs)
-and frozen: with `srvBuilt`'s request-path slot they make `isServer s γ` (2c's realization: the
-request path's invariant). `ClusterVersion` (logging only), then the compactor's `Run`
-(`V3compactor`'s `isCompactor`: any number of times), and `go s.run()` with 2d's `run` precondition
-(the raft node built, the apply thread's state, the scheduler: `srvBuilt`'s apply-thread slot; `run`'s
-stop escrow deposits `memberDisk` in `s.done`'s closing, which `srvRunning` reads).
-
-**Changes**: from `specs-ref`'s `EtcdServer__start.lean`: over `srvBuilt`.
-
-**Margin.** As `Start`.
-
-Changes: verify-round (server-boot's request): the compactor's `Run` takes `□ R` with `R := srvStarted s γ id` (`compactable c R`: A7-completeness F2).
-
-Changes: re-review (RR3): takes `srvMember s γ id` (`NewServer`'s, persistent: `srvMember_node` gives
-2d's `srvNode` for `run`'s precondition and `srvStarted_isServer`, `srvMember_fields` the getters'
-`srvFields`) and the caller's `threadTok`, given back: `Logger` (`server.go:548`), `ClusterVersion`
-(`server.go:575`, twice at most), `MemberID`, `Cluster` run on it and return it; the compactor's
-`Run` returns it (its loop is a goroutine of its own, `periodic.go:105`, `revision.go:67`, with its
-fork's token: `isCompactor_methods`); `go s.run()` runs on its fork's fresh token
-(`wp_fork_tok_body`). The two `Cfg` fields defaulted (`server.go:550-565`) are `srvBuilt`'s,
-read-only from then on in `srvStarted`.
+`(*EtcdServer).start()` (`server.go`), translated with its body: it sets the fields the server's
+goroutines share and starts `run`. Lean-first (the request path's unit 4c, 2026-10-13); see
+`InvStart.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 
 @[expose] public section
 
@@ -37,9 +18,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -48,17 +28,41 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`start`**: the request path's fields built, the compactor and the apply loop started. -/
-def EtcdServer.start.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id ∗
-      srvBuilt s γ id cfg ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"start")) (Val #()))
-  {{ RET #(); threadTok ∗ isServer s γ ∗ srvGate s 1 ∗ srvRunning s γ id (Config.dirsOf cfg) ∗ srvPublish s ∗
-      srvPurge s }}
+/-- **`s.start()`** in both auth modes (the auth component's stage 2, 2026-11-04; until then `spec`
+with auth off and `specOn` with auth on, now `specOff`/`specOn`, `ModeSpecs.lean`'s corollaries):
+from the construction premise in the component `C` (`isServerBuiltC`) and the lessor finding no
+lease (`acLessor C`), in the environment's mode, it sets the snapshot defaults, the wait registries
+(`w`, `applyWait`), the channels `done`, `stop`, `stopping`, the server's context, the read loop's
+`*Read` and the leader-change notifier, sets up `GoAttach`'s protocol, and starts `run`
+(`isServerRunC C`, with the write budget `srvWTPool E` made of the `N` write tokens, D19b: under
+the pure premise `receiptBound GF ≤ N + 1`); it returns the server's persistent views in the
+mode (`isServerReqM`, at the wait's fresh names, and `isServerReadM`), the store's range check at a
+reader's lower bound (`srvAuthLb`, trivial with auth off), and what `Start`'s goroutines and the
+request path's get (`srvStarted`, at the mode's model state), and (H2, 2026-11-05) the write
+budget with its register set to `GoAttach`'s receipts' name `γg.run`, with `Start`'s reader slot of
+`wgMu` at `γg` (so that the storage-version monitor `Start` attaches runs with a receipt at the
+registered name), and (R2c-4) the right to stop the server (`srvStopRight`, at its raft names
+`ρ.rd.raft.raft`, its member id and the configuration's data directory): `start` makes `stop`,
+on which `run` receives the stop requests, and `done`, whose close announces the stopped server's
+image escrowed for the right's claim (until then `run` never stopped). A new server: the apply
+thread from index `0` (each applied entry takes a write token, which bounds the applied index,
+`srvWTPool_bound`). -/
+abbrev EtcdServer.start.spec : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗
+      isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ acLessor C s }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
+  {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗
+      isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗
+      srvStarted s γr ρ Er.RQ (kvStM C.isOn γr.kv) ∗
+      ∃ (γp : WTNames) (γg : GoNames), srvWTPool E γp ∗
+        dghostVar γp.reg DFrac.discard (some γg.run) ∗ srvWgReaderAt s γg ∗
+        ∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ γn.id dd }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

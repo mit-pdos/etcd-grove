@@ -1,8 +1,8 @@
 # Verification, A1-client-kv, completeness (batch W0)
 
 Reviewer: completeness kind, independent. Commit under review: `1aa6fc1337` (HEAD of `specs-only`).
-Area: `Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`, `Spec/context/Api.lean`,
-`Spec/go_uber_org/zap/`, and the client's KV path in `Spec/go_etcd_io/etcd/client/v3/` (`Api.lean`,
+Area: `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`, `SpecPlan/Spec/context/Api.lean`,
+`SpecPlan/Spec/go_uber_org/zap/`, and the client's KV path in `SpecPlan/Spec/go_etcd_io/etcd/client/v3/` (`Api.lean`,
 `kv__*`, `Client__{Get,Put,Delete,Txn,Do,Compact,GetStream}`, `txn__*`, `Op*`, `With*`, `Cmp*`,
 `Compare`, the comparison targets, `CompactOp*`, `retryKVClient__*`, `RetryKVClient`, `NewKV*`, the
 responses, `GetStreamToGetResponse`, `RangeStreamResponse.Err`, `ContextError`, `WithRequireLeader`,
@@ -103,7 +103,7 @@ closes: 20 of the 25 usage patterns, and the sampled callers' sketches except th
 
 ### F5. The context API has no `Value` contract, and two verified callers compare or assert on `ctx.Value(k)`
 
-- **Spec.** `Spec/context/Api.lean` states no triple for `ctx.Value(k)` under `ctxOk`. The only `Value`
+- **Spec.** `SpecPlan/Spec/context/Api.lean` states no triple for `ctx.Value(k)` under `ctxOk`. The only `Value`
   call it covers is grpc's metadata key, inside the transparent `ctxNoMeta` (`:171`). `ctxValueAt`
   (`:151`) does not even record the value stored. The header says "everything else the client does
   with a context is to pass it to gRPC" (`:31`), which is false.

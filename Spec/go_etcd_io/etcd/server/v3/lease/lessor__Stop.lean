@@ -1,37 +1,22 @@
 /-
-## `(*lessor).Stop()` (`lessor.go:615`): names only (an assumed spec)
-
-**Users.** The server's `Cleanup` (`server.go:947`, 2e), once, on `run`'s shutdown or embed's error
-path. Snippet `lessor.go` (`ReqStop`).
-
-**Why it is true.** `close(le.stopC)` (the close right: `lessorStop le`, once; a second `Stop` would
-close it twice and panic); `<-le.doneC` (closed by the run loop when it returns: it may block
-meanwhile in the checkpointer, partial correctness). The lessor's other methods keep working after
-it (`specs-ref`'s axiom review, attack 11).
-
-**The run loop's thread token** (verify round, A9 3c F2; superseded by re-review RR-server-core
-RR4): the run loop runs on its fork's own token, `NewLessor` gives its caller's back at once, and
-`Stop` gives none.
-
-**Changes** (from `specs-ref`'s `lessor__Stop.lean`, `lessorStopTok`): renamed `lessorStop`; verify
-round: the run loop's `threadTok` given back.
-**Margin.** None: the writer's token (with the lease bucket, `lessorState_bkt`) is the caller's.
+`(*lease.lessor).Stop()` (`lessor.go`): names-only. Lean-first (no Rocq counterpart); R2b-3c part 2
+(2026-11-04, the user's approval), for `EtcdServer.Cleanup`; an axiom at the trust boundary
+(`Proof/.../lease/lessor__Stop.lean`), why it is true of the Go code below.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -40,16 +25,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Stop the lessor's run loop** (once). -/
-def lessor.Stop.spec : Prop :=
-  ∀ (le : Loc) (γ : Names) (c : Cfg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorStop le }}
-    (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
-      go!"Stop")) (Val #()))
+/-- **`le.Stop()`** of the lessor `lp`, with the right to stop it (`lessorStopTok lp`, `NewLessor`'s).
+Why it is true of the Go code (`lessor.go:615-618`, at the etcd pin): `Stop` is
+`close(le.stopC); <-le.doneC`. The close panics only on a closed channel: `newLessor` makes `stopC`
+and only `Stop` closes it, and the right is given once and consumed here. The receive cannot panic;
+it returns once `runLoop` (forked by `newLessor`) returns -- its `select` takes `stopC`'s close, and
+its deferred `close(le.doneC)` runs -- or blocks, which partial correctness allows. `runLoop` runs
+from `NewLessor` on (its effects are in `NewLessor`'s statement), so stopping it adds no behavior;
+the lessor's other methods do not depend on it. Nothing comes back: no client needs the stopped
+loop's state. What would discharge it: `runLoop` translated and verified (its ticker,
+`revokeExpiredLeases`, `checkpointScheduledLeases`), with the stop channels as broadcast channels,
+as the backend's `run`/`Close` are. -/
+abbrev lease.lessor.Stop.spec : Prop :=
+  ∀ (lp : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorStopTok lp }}
+    (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Stop"))
+      (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

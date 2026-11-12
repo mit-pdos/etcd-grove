@@ -1,9 +1,9 @@
-# Requirements on Go's `context` (W0's `Spec/context/Api.lean`)
+# Requirements on Go's `context` (W0's `SpecPlan/Spec/context/Api.lean`)
 
 ## from R1
 
 Raft's node methods (`node.Propose`, `Step`, `ProposeConfChange`, `Campaign`, `ForgetLeader`,
-`ReadIndex`, `TransferLeadership`: `Spec/go_etcd_io/raft/v3/node__*.lean`) take any context
+`ReadIndex`, `TransferLeadership`: `SpecPlan/Spec/go_etcd_io/raft/v3/node__*.lean`) take any context
 (`Context.ctxOk ctx`: rafthttp passes `context.TODO()`) and wait on it in a `select`
 (`node.stepWithWaitOption`, node.go:519-520, 535-536, 545-546):
 

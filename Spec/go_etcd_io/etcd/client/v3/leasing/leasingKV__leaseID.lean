@@ -1,10 +1,9 @@
 /-
-`(*leasingKV).leaseID` (`kv.go`): the current session's lease (`session` non-nil once ready).
-Proof sketch: read lock; `Session.Lease()` (1d). Changes: from `specs-ref`'s `leasingKV__leaseID.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`lkv.leaseID()` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -12,27 +11,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `leaseID()`, once a session is ready. -/
-def leasingKV.leaseID.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ sessionReady γL ∗ threadTok }}
-    (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"leaseID")) (Val #()))
-  {{ (id : w64), RET #id; threadTok }}
+/-- **`lkv.leaseID()`** (read lock), once a session was set: the current session's lease, not
+`NoLease`. -/
+abbrev leasingKV.leaseID.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ sessionReady γ }}
+    (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"leaseID")) (Val #()))
+  {{ (id : w64), RET #id; lkvReader lkv γ pfx ∗ ⌜id ≠ W64 0⌝ }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

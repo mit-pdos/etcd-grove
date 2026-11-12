@@ -1,26 +1,20 @@
 /-
-`grpc.NewServer(opts...)` (grpc-go, assumed: `server.go`).
-
-Users: `v3rpc.Server` (`grpc.go:89`, this batch).
-
-Why true: `NewServer` applies the options in order and allocates a server with no service
-registered; it neither listens nor starts goroutines that run handlers.
-
-Changes: from `specs-ref/Spec/google_golang_org/grpc/NewServer.lean`: over `SrvCfg`.
-
-Margin: none.
+`grpc.NewServer(opts...)` (names only; item 4, the server start): the server being built, with the
+options' interceptor chains.
+The vocabulary: `Proof/google_golang_org/grpc/InvGrpcServer.lean`.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -30,17 +24,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.NewServer(opts...)` with options acting as `fs`: a server being built, nothing
-registered. -/
-def NewServer.spec : Prop :=
-  ∀ (opts : GoSlice) (vs : List GoInterface) (fs : List (SrvCfg → SrvCfg)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ opts ↦*□ vs ∗ ([∗list] v; f ∈ vs; fs, srvOptAt v f) }}
-    (App (Val (@! google_golang_org.grpc.NewServer)) (Val #opts))
+/-- `grpc.NewServer(opts...)` with options of the kinds `ks` (`grpcSrvOpt`; the slice read-only)
+returns a `*grpc.Server` being built (`grpcSrvNew`), with the unary and stream chains the options'
+`ChainUnaryInterceptor`/`ChainStreamInterceptor` give, in order, and nothing registered. -/
+abbrev grpc.NewServer.spec : Prop :=
+  ∀ (sl : GoSlice) (vs : List GoInterface) (ks : List SrvOptKind),
+  {{ (sl ↦*□ vs ∗ ⌜List.Forall₂ grpcSrvOpt vs ks⌝ : IProp GF) }}
+    (App (Val (@! google_golang_org.grpc.NewServer)) (Val #sl))
   {{ (gs : Loc), RET #gs;
-      srvBuild gs (fs.foldl (fun B f => f B) { ics := [], sics := [], regs := [], sregs := [] }) }}
+      grpcSrvNew gs (srvOptsUnary ks) (srvOptsStream ks) [] [] [] }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

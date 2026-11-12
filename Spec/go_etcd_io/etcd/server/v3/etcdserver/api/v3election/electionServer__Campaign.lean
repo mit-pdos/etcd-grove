@@ -1,32 +1,10 @@
 /-
-## `(*electionServer).Campaign(ctx, req)` (`election.go:31-50`): translated
-
-**Users.** The Election service's `Campaign` RPC (`etcdctl elect`, `v3electionpb` clients), through
-2a's registration.
-
-**Proof sketch.** `session` (1d's `NewSession.spec` with the request's lease and context:
-`etcdPerm γ Ts`'s read or grant; then `Orphan`: the keep-alive ends), then 1d's method on a
-`NewElection`/`ResumeElection` of the request's name and key, with the lent permission
-`etcdLent γ T P ∗ P` 1d's method takes. `Election.Campaign.spec`: the key under the name created with the session's lease and
-`value`, and the wait's fact (`waitedFor`).
-
-**Changes** (from `specs-ref`'s `electionServer__Campaign.lean`, auth-on only): over 1d's facts, any
-auth mode.
-Changes: verify-round: the prefix is `name ++ "/"` (`NewElection`'s; A3 completeness F1, A8
-provability F6), in the effect and in `waitedFor`; the key is the session's (`sessKey`) and the
-reply's lease the session's (the request's when non-zero); the value held at a reached state (1d's
-`σv`); the lent token `P` given back on success (A3 completeness F7); the messages are 3h's.
-**Margin.** The header is not stated; on an error `P` is not returned.
-
-**The principal** (round 1, completeness F9): the in-process client (`v3client.New(s)`, default
-principal `dflt`: none) forwards each call's token, so the call's principal is the context's `who`
-(`ClientV3.ctxPrin dflt ctx who`), the effects under it, as 1d's specs state them. `v3client.New`'s
-spec (an `isClient … none` from `isServer`) is requested of 1c (`req/…client_v3.md`, "from 2e,
-round 1").
+`(*electionServer).Campaign(ctx, req)` (`server/etcdserver/api/v3election/election.go`; the auth
+plan's A3c, 2026-10-24). Lean-first (no Rocq counterpart); see `v3election/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Defs
 
 @[expose] public section
 
@@ -34,37 +12,57 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3election
+namespace v3election
 
-open Iris Iris.BI EtcdModel ClientV3 Concurrency
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency concurrency
+  _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assumptions]
+variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assumptions]
 
-/-- **Campaigns** for leadership of `name` (the prefix `name ++ "/"`) with `value`: the elected
-key (the session's), its create revision, the session's lease, and the wait's fact; the lent token
-back. -/
-def electionServer.Campaign.spec : Prop :=
-  ∀ (es c : Loc) (γ : Cluster) (dflt who : Principal) (ctx : GoInterface) (σ0 : State) (req : Loc) (name : GoString) (lease : w64) (value : GoString)
-    (Ts T : State → State → Prop) (P : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ isElectionServer es c ∗ ClientV3.isClient c γ dflt ∗ Context.ctxOk ctx ∗ ClientV3.ctxPrin dflt ctx who ∗ etcdLb γ σ0 ∗ campaignReq req name lease value ∗ etcdPerm γ Ts ∗
-      ⌜effIn (fun σ σ' => readEff σ σ' ∨ (lease = W64 0 ∧ grantEff 60 σ σ')) Ts⌝ ∗
-      etcdLent γ T P ∗ P ∗ ⌜∀ l : Int, effIn (campaignEff (name ++ go!"/") value l) T⌝ }}
-    (App (App (Val (es @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.ty @!! go!"Campaign")) (Val #ctx)) (Val #req))
+/-- **`Campaign(ctx, req)`**: a session over the request's lease (`session`) and a campaign of the
+election on the request's name with its value (`NewElection`, `Election.Campaign`): its keys are
+under `name/`. It returns the response `{Header, Leader: {Name, Key, Rev, Lease}}` of the
+campaign's key (`keyValAt`, under `name/`) and its outcome (`leaderAt`: the leader, or
+`campaignLost`: its key gone before it won), or no response and an error.
+
+The request's name and value are at most the server's receive limit long
+(`v3rpc.grpcRecvBytesOk`, the receive-size fact: grpc's server decoded the request under etcd's
+limit `v3rpc.etcdMaxRecvMsgSize maxReq`, `maxReq` the configuration's `MaxRequestBytes`, which
+meets `v3rpc.etcdMaxRequestBytesOk`; 2026-10-30, `notes/decisions.md`, "The receive-size
+fact"). -/
+abbrev electionServer.Campaign.spec : Prop :=
+  ∀ (es c req : Loc) (nsl vsl : GoSlice) (name val : GoString) (lease : w64) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
+      isElectionServer es c ∗ electionClientOk c ∗
+      ⌜v3rpc.etcdMaxRequestBytesOk maxReq⌝ ∗
+      structFieldRef v3electionpb.CampaignRequest go!"Name" req ↦□ nsl ∗ nsl ↦*□ name ∗
+      structFieldRef v3electionpb.CampaignRequest go!"Lease" req ↦□ lease ∗
+      structFieldRef v3electionpb.CampaignRequest go!"Value" req ↦□ vsl ∗ vsl ↦*□ val ∗
+      ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name ∧
+        v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) val⌝ ∗
+      context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs }}
+    (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Campaign"))
+      (Val #(GoInterface.ok ctx))) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ P ∗ ∃ (k : GoString) (cr : Nat) (id : w64) (σ σv : State),
-          campaignResp resp ⟨name, k, W64 cr, id⟩ ∗ etcdLb γ σ ∗ etcdLb γ σv ∗
-          ⌜Reach σ0 σ ∧ Reach σ0 σv ∧ (lease ≠ W64 0 → id = lease) ∧
-            k = sessKey (name ++ go!"/") (sint.Z id) ∧ waitedFor (name ++ go!"/") k cr σ ∧
-            ∃ r, σv.kv.store k = some r ∧ r.createRev = cr ∧ r.value = value⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r rv R id : w64) (hdr lk : Loc)
+          (ksl : GoSlice) (v : v3electionpb.CampaignResponse) (lv : v3electionpb.LeaderKey),
+        resp ↦ v ∗ lk ↦ lv ∗ ksl ↦* key ∗
+        ⌜v.Header' = hdr ∧ v.Leader' = lk ∧ lv.Name' = nsl ∧ lv.Key' = ksl ∧ lv.Rev' = rev ∧
+          lv.Lease' = id ∧ id ≠ W64 0 ∧ (lease ≠ W64 0 → id = lease)⌝ ∗
+        hdrRevAt hdr r ∗ etcdReached R ∗ keyValAt (name ++ go!"/") key rev val rv ∗
+        (leaderAt (name ++ go!"/") key rev R ∨ campaignLost (name ++ go!"/") key rev R) ∗
+        ⌜(name ++ go!"/") <+: key⌝) ∨
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end V3election
+end v3election
 end EtcdGrove
 end Perennial

@@ -1,8 +1,8 @@
 # Batch 2d, provability review, round 1
 
 Reviewer: provability (independent of the author). Worktree `specs-only` at `011846a908`.
-Targets: `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiApply.lean` and the 2d specs beside it,
-`.../etcdserver/cindex/`, `Spec/go_etcd_io/etcd/pkg/v3/schedule/`, snippets
+Targets: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiApply.lean` and the 2d specs beside it,
+`.../etcdserver/cindex/`, `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/schedule/`, snippets
 `examples/specreq/{etcdserverapply,cindex,schedule}/`, the `## from 2d` requests. Go: server
 `a4d2bb17` (`$S` = `.../server/v3@v3.0.0-20261107170612-a4d2bb1720b9`), raft `565c2bd`.
 `go vet` of the three snippet packages passes. I wrote my findings before reading

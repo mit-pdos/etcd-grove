@@ -1,31 +1,11 @@
 /-
-## `Changer.Simple(ccs...)`
-
-**Users.** `raft.applyConfChange` (`raft.go:1963`: a change that is neither a joint transition nor
-the leave: etcd's `ConfChange`s, `AsV2()`), `Restore`'s ops (`restore.go:142`, `151`); the
-examples' pre-check (`examples/raft/kvreconf/kv.go:236`). Snippets `raftconf/confchange.go`
-(`ReqApplyLikeRaft`, `ReqLastVoter`).
-
-**Proof sketch.** `checkAndCopy` (the working copy `ccState B cfg trk {m with autoLeave := false}`;
-the input check passes at a valid `m`, `configOwn_valid`); `joint` (`configOwn` gives the outgoing
-half); `apply` on `&cfg` (`ccWork`); `symdiff` of the tracker's incoming map and the copy's (both
-read); `checkAndReturn`; on success `m'` is valid (`transitions_valid`), so `ccState_done`; on an
-error `ccState_abort` (or nothing to give back before the copy). The receiver and the tracker's
-configuration are only read.
-
-**Changes** (from `specs-ref`'s `confchange/Changer__Simple.lean`): over `Membership` and the model's
-`simple` (was `simpleM` over `CCState`, the progress flags explicit); the result `changed` carries
-the progress values (`Carried`: the rings move from the tracker's `Progress` to the copies), where
-the old `ownResult` gave the copies with only their learner flags.
-
-**Margin.** On success the tracker's progress map and `Progress` structs are not given back (their
-rings now belong to the copies); raft replaces them (`switchToConfig`).
+`Changer.Simple` applies changes that alter the incoming config by at most one voter.
+Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
+public import Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 
@@ -33,31 +13,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `Simple(cs...)`: `changed B (simple cs m)`. -/
-def Changer.Simple.spec : Prop :=
-  ∀ (p : Loc) (dqp : DFrac) (chg : go_etcd_io.raft.v3.confchange.Changer) (dqc : DFrac)
-    (m : Membership) (B : Base) (sl : GoSlice) (dqs : DFrac) (cs : List Single),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dqp} chg ∗
-      configOwn chg.Tracker'.Config' dqc m ∗ progressMapOwn B.mp B.prs B.pv ∗
-      ⌜BaseOf chg B ∧ TrackerOk m B.pv⌝ ∗ ccsPts sl dqs cs }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.confchange.Changer.ty @!! go!"Simple")) (Val #sl))
-  {{ (cfg : go_etcd_io.raft.v3.tracker.Config) (trk : GoMap) (err : GoInterface),
+/-- `Simple(ccs...)`: `simpleM` on the tracker's state (`IsLearner` read from its
+`Progress` values `pvs`); on success a fresh configuration and progress map, each
+`Progress` a copy of the tracker's with only `IsLearner` changed or a fresh one
+(`ownResult`). The tracker is only read. The `MaxInflight` bound is `NewInflights`'s
+premise. (Generalized 2026-10-12 from `[AddNode id]` on a voters-only tracker; that case
+is `Simple_votersOnly` in `Proof/.../confchange/Restore.lean`.) (2026-10-15, raft v3.7 retarget,
+stage R2: `ccs` a slice of `*pb.ConfChangeSingle` pointers `ls`, each `ccsRO` of its change in
+`l`; was a slice of the struct values `l`.) -/
+abbrev confchange.Changer.Simple.spec : Prop :=
+  ∀ (p : Loc) (chg : confchange.Changer) (c : CfgM) (prs : GMap w64 Loc)
+    (pvs : GMap w64 tracker.Progress) (ccs : GoSlice) (ls : List Loc) (l : List ConfChangeSingleM)
+    (dq dqs dqc dqm dqp : DFrac),
+  (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ccs ↦*{dqs} ls ∗
+      ([∗list] q;c ∈ ls;l, ccsRO q c) ∗ ownTrackerCC chg.Tracker' dqc dqm dqp c prs pvs }}
+    (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"Simple")) (Val #ccs))
+  {{ (cfg : tracker.Config) (trk : Loc) (err : GoInterface),
       RET (PairV (PairV #cfg #trk) #err);
-      p ↦{dqp} chg ∗ configOwn chg.Tracker'.Config' dqc m ∗ ccsPts sl dqs cs ∗ changed B (simple cs m) cfg trk err }}
+      p ↦{dq} chg ∗ ccs ↦*{dqs} ls ∗ ownTrackerCC chg.Tracker' dqc dqm dqp c prs pvs ∗
+      ownResult chg pvs (simpleM l { cfg := c, prs := flagsOf pvs }) cfg trk err }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

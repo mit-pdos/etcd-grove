@@ -1,0 +1,76 @@
+/-
+Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__LeaseRevoke
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+
+theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
+    apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) := by
+  intro E c inner p r rq id log T rs Pre Q Post info
+  wp_start as ⟨-, Htt, Hpre⟩
+  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
+  iunfold apply.revokePre at Hpre
+  icases Hpre with ⟨%Hk, -, -, Hm, Hrr⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
+  wp_auto
+  iapply HΦ
+  iframe Htt
+  iunfold apply.revokeRes at Hrr
+  icases Hrr with ⟨Hrdat, Hrev, HltT, HRO, -⟩
+  · ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.corrupt c) rq (.rejected .corrupt) $$ []
+    · iapply apply.chainClass_corrupt_rejected
+    ihave #Hlc : apply.chainLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) (.corrupt c) rq (.rejected .corrupt) $$ []
+    · iapply apply.chainLeaseClass_corrupt_rejected
+    iunfold apply.kvPost
+    iexists (.rejected .corrupt)
+    isplitr
+    · ipureintro
+      simp only [apply.chainStep, apply.corruptRejects, Hk.2.1, ↓reduceIte]
+    simp only [apply.revokeOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+    iframe Hkv Hres Hcls Hlc
+    iunfold apply.revokeResAfter
+    rw [apply.revokeIds_rejected, apply.revokeRest_rejected]
+    ihave #Hra := apply.revokeAnswer_err (GF := GF) E rq null (GoInterface.ok eC)
+      (by intro h; cases h)
+    iframe Hrdat Hrev HltT HRO Hra
+    isplitl []
+    · isplitl []
+      · ipureintro; trivial
+      iunfold txn.errVarIs
+      iexists eC
+      iframe HeC
+      ipureintro; rfl
+    iright
+    iexact HPre
+
+end proof
+
+end EtcdGrove
+end Perennial

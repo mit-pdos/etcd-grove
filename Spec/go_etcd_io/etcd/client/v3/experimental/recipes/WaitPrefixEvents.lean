@@ -1,26 +1,10 @@
 /-
-`recipe.WaitPrefixEvents(c, prefix, rev, evs)` (`watch.go`): `WaitEvents` over the keys with the
-prefix (`WithPrefix()`).
-
-**Users**: `Queue.Dequeue`, `PriorityQueue.Dequeue` (the first put). `T/v3_closed_watch_test.go:117`
-(a compacted start revision: an error). Snippet: `recipes/queue.go`.
-
-**Proof sketch**: as `WaitEvents`', with `OpWatch(prefix, WithPrefix(), WithRev(rev))` (its range is
-`pfxRange prefix`).
-
-**Changes**: as `WaitEvents`'.
-
-**Premise**: as `WaitEvents`'.
-
-**Changes (second pass)**: the returned event is, unconditionally, a real event of some revision that the watch keeps (in its range, of its types): 1b's `watchStep` now states this outside the `exactFrom` gate; the prefix of the history stays gated.
-
-**Margin**: as `waitEvents`'.
-
-**Integration (I1)**: the prefix claim holds under `exactFrom σ.kv rev`, as `waitEvents`'.
+`recipes.WaitPrefixEvents(c, prefix, rev, evs)` (`client/v3/experimental/recipes/watch.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -28,40 +12,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`WaitPrefixEvents(c, prefix, rev, ts)`**: the event at which `ts` is first matched by the watch of the keys under `prefix` from revision `rev` on, or an error of the package. -/
-def WaitPrefixEvents.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (pre : GoString) (rev : w64) (sl : GoSlice)
-    (ts : List w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isClient c γ who ∗ sl ↦*□ ts ∗ ⌜ts ≠ [] ∧ 0 < sint.Z rev⌝ }}
+/-- **`WaitPrefixEvents(c, prefix, rev, evs)`**, for a client with the recipes' contracts on the prefix `pfx`
+(`isEtcdRecipesClient`: its watch channels may close) and a non-empty
+read-only slice of event types whose last is `typ`: a cancelable context
+(`WithCancel(Background())`, canceled on return by the deferred `cancel()`), the watch
+`Watch(prefix, WithPrefix(), WithRev(rev))` through the client's `Watcher` (`c.Watcher.Watch`), and `waitEvents` on its channel.
+Returns `(ev, nil)` with `ev` the event of type `typ` that completed the awaited types, under
+etcd's contract for an event of that watch (`waitedEvent`: at a revision at least `rev` etcd
+has reached; for a delete of the key, the key absent then: `waitedEvent_key_delete`; for a put,
+the key-value then: `waitedEvent_put`), or an error when the watch is canceled or its channel
+closes first (`waitEvents`' error, `ErrWatchClosed`: the verified fork's closed-watch fix, unit
+W-Q; never `(nil, nil)`). Never `ErrNoWatcher`: the watcher's channel is a channel, not nil
+(`isChan_not_null`). -/
+abbrev WaitPrefixEvents.spec : Prop :=
+  ∀ (c : Loc) (pfx kp : GoString) (rev : w64) (sl : GoSlice) (ts : List w32) (typ : w32),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ context.isClosedchanInit ∗ isEtcdRecipesClient c pfx ∗ sl ↦*□ ts ∗
+      ⌜ts.getLast? = some typ ∧ pfx <+: kp ∧ 0 ≤ sint.Z rev ∧ kp.length ≤ recipesStrMax⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.WaitPrefixEvents)) (Val #c))
-      (Val #pre)) (Val #rev)) (Val #sl))
-
+      (Val #kp)) (Val #rev)) (Val #sl))
   {{ (ev : Loc) (err : GoInterface), RET (PairV #ev #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (es : List WEv) (e : WEv) (m : EventM) (σ : State),
-        eventOwn ev (DFrac.own 1) m ∗ etcdLb γ σ ∗
-        ⌜m.del = e.del ∧ m.kv = e.kv ∧
-          (∃ (r : Nat) (ev0 : Event), ev0 ∈ σ.kv.eventsAt r ∧ (WEv.ofEvent r ev0).del = e.del ∧
-            (WEv.ofEvent r ev0).kv = e.kv ∧ ((opWatchM pre [withPrefixM, withRevM rev]).watchReq).keeps (WEv.ofEvent r ev0)) ∧
-          
-          (EtcdModel.exactFrom σ.kv (sint.Z rev).toNat →
-            es ++ [e] <+: watchEvents (opWatchM pre [withPrefixM, withRevM rev]).watchReq σ.kv (sint.Z rev).toNat σ.kv.rev) ∧
-          matchCount ts es < ts.length ∧ matchCount ts (es ++ [e]) = ts.length⌝) ∨
-      (⌜err ≠ GoInterface.nil ∧ ev = null⌝ ∗ recipeErrOk err) }}
+      (⌜err = GoInterface.nil⌝ ∗ waitedEvent pfx (prefixWatchOp kp rev) rev typ ev) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

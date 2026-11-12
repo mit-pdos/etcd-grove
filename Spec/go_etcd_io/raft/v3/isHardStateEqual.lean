@@ -1,13 +1,7 @@
-/-
-## `isHardStateEqual(a, b)` (internal)
-
-`IsEmptyHardState`, `readyWithoutAccept`, `HasReady`. Mirrors the code.
--/
+/- Port of election_proof/spec_isHardStateEqual.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -15,27 +9,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- (internal) Equality of hard states (`nil` the empty one). -/
-def isHardStateEqual.spec : Prop :=
+/-- Field-wise equality of two `HardState`s; `HardState` has exactly the three fields
+compared.
 
-  ∀ (a b : Loc) (dqa dqb : DFrac) (ha hb : HardState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr a dqa ha ∗ hsPtr b dqb hb }}
-    (App (App (Val (@! go_etcd_io.raft.v3.isHardStateEqual)) (Val #a)) (Val #b))
-  {{ (r : Bool), RET #r; hsPtr a dqa ha ∗ hsPtr b dqb hb ∗ ⌜r = decide (ha = hb)⌝ }}
+raft v3.7 (2026-10-15, stage R4): two `*pb.HardState`s compared through their getters
+(`node.go:117`), each possibly `nil` (`hsOpt`, read as the zero record). -/
+abbrev isHardStateEqual.spec : Prop :=
+  ∀ (a b : Loc) (ha hb : HardStateM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "#Ha" ∷ hsOpt a ha ∗ "#Hb" ∷ hsOpt b hb }}
+    (App (App (Val #(functions isHardStateEqual [])) (Val #a)) (Val #b))
+  {{ RET #(decide (ha.Term' = hb.Term' ∧ ha.Vote' = hb.Vote' ∧ ha.Commit' = hb.Commit'));
+      True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

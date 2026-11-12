@@ -1,13 +1,9 @@
 /-
-`isPrefixScan` (`cache/*.go`), an internal helper.
-Users: `snapshot.Range`.
-Proof sketch: the slice's length and first byte.
-Changes: unchanged.
-Margin: none known.
+`isPrefixScan(endKey)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,27 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `isPrefixScan(end)`: whether `end` is `"\x00"` (a from-key range). -/
-def isPrefixScan.spec : Prop :=
+/-- `isPrefixScan(endKey)`: whether `endKey` is the one byte `0`. -/
+abbrev isPrefixScan.spec : Prop :=
   ∀ (sl : GoSlice) (key : GoString) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ sl ↦*{dq} key }}
-    (App (Val (@! go_etcd_io.etcd.cache.v3.isPrefixScan)) (Val #sl))
+    (App (Val (@! isPrefixScan)) (Val #sl))
   {{ RET #(decide (key = [W8 0])); sl ↦*{dq} key }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

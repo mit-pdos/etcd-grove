@@ -1,18 +1,9 @@
 /-
-`(clientv3.Op).Txn` (`client/v3/op.go`).
-
-Users: leasing (`leasing/txn.go`,
-`leasing/util.go`: the comparisons and branches of a transaction it forwards).
-
-Proof sketch: `opAt_unfold`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__Txn.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.Op.Txn()` (`client/v3/op.go`, translated for `client/v3/leasing`); see `InvEtcdTxnOwn.lean` (`OpT`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -20,28 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.Txn()`: the comparisons, the `Then` and the `Else` operations (read-only). -/
-def Op.Txn.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
+/-- `op.Txn()`: the `Op`'s comparisons, then- and else-operations (its three slice fields). -/
+abbrev Op.Txn.spec : Prop :=
+  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op }}
     (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"Txn")) (Val #()))
-  {{ (cs ts es : GoSlice), RET (PairV (PairV #cs #ts) #es); opp ↦{dq} op ∗
-      cmpsAt cs o.cmps ∗ opsAt ts o.thenOps ∗ opsAt es o.elseOps }}
+  {{ RET (PairV (PairV #op.cmps' #op.thenOps') #op.elseOps'); opp ↦{dq} op }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

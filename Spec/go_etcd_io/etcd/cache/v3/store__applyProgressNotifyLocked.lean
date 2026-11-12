@@ -1,13 +1,9 @@
 /-
-`store.applyProgressNotifyLocked` (`cache/*.go`), an internal helper.
-Users: `store.Apply`.
-Proof sketch: sets `latest.rev` (if restored) and broadcasts on `revCond`; the newest snapshot's gap extended by the quiet fact.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`store.applyProgressNotifyLocked(revision)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,27 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.applyProgressNotifyLocked(rev)` under the lock, for a quiet notification at `rev ≥` the latest. -/
-def store.applyProgressNotifyLocked.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (lr : Nat) (a : Int) (rev : w64) (σ : State) (r : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ storeLocked s γ pfx lr ∗ etcdLb γ σ ∗ storeUpTo s a ∗ storeCeilLb s r ∗ ⌜lr ≤ sint.Z rev ∧ sint.Z rev ≤ r ∧ 0 < sint.Z rev ∧ quiet σ.kv (prefixRange pfx) (some a) (sint.Z rev).toNat⌝ }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"applyProgressNotifyLocked")) (Val #rev))
-  {{ RET #(); storeLocked s γ pfx (if lr = 0 then 0 else (sint.Z rev).toNat) }}
+/-- `s.applyProgressNotifyLocked(revision)`, under the write lock: `latest.rev` becomes
+`revision` unless it is `0`. -/
+abbrev store.applyProgressNotifyLocked.spec : Prop :=
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (lr revision : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isStore s γ cap ∗ storeLatestRevAddr s ↦ lr }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"applyProgressNotifyLocked")) (Val #revision))
+  {{ RET #(); storeLatestRevAddr s ↦ (if lr = W64 0 then lr else revision) }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

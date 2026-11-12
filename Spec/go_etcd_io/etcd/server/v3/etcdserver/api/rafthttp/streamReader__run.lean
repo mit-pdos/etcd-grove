@@ -1,19 +1,10 @@
 /-
-## `(*streamReader).run()`
-
-**Users.** `streamReader.start` (forked).
-
-**Proof sketch.** `dial`, `decodeLoop`, `errors.Is`, `transport.IsClosedConnError` (trust), `rate.Limiter.Wait` (trust: returns or the context's error), `ctx.Err()`; `close(done)` when cancelled. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*streamReader).run` (`stream.go`; rafthttp stage 5c). Lean-first; the reader's predicates:
+`rafthttp/Reader.lean`, `rafthttp/ReaderRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 
 @[expose] public section
 
@@ -21,26 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal; a goroutine) **The reader loop**: dial, decode until the stream breaks, wait for the rate limiter, until stopped (`done` closed). -/
-def streamReader.run.spec : Prop :=
-  ∀ (cr : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ srAt cr ν lid pid ∗ srRun cr }}
-    (App (Val (cr @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader.ty @!! go!"run")) (Val #()))
+/-- **`cr.run()`**, the reader's goroutine: dials the peer, then decodes the stream it gets
+(`decodeLoop`), again and again at the rate limiter's pace, until the reader's context is done; then
+closes `done` and returns. -/
+abbrev rafthttp.streamReader.run.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy),
+  Rh.member lid → lid ≠ pid →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      srFixed Rh lid pid γd cr ∗ srDial Rh pid ty cr ∗ srDoneRight cr }}
+    (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

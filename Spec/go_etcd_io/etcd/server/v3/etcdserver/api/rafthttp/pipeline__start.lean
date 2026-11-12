@@ -1,19 +1,9 @@
 /-
-## `(*pipeline).start()`
-
-**Users.** `startPeer`, `startRemote`.
-
-**Proof sketch.** `stopc`, `msgc` (`msgChanAt`), `wg.Add(4)` (the wait group backed by the workers' thread tokens: Perennial's `tokJoin`), four forks of `handle` with a `pipeWorker` each. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. The four `R`s are gone. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** None.
+`(*pipeline).start` (`pipeline.go`; rafthttp stage 4d). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
 
 @[expose] public section
 
@@ -21,26 +11,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Starts the pipeline**: its queue (64) and four workers. -/
-def pipeline.start.spec : Prop :=
-  ∀ (pl : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ pipeFresh pl ν lid pid }}
-    (App (Val (pl @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline.ty @!! go!"start")) (Val #()))
-  {{ RET #(); pipeAt pl ν lid pid ∗ pipeStopRight pl }}
+/-- `p.start()` of a pipeline `p` to the peer `to` with its fixed fields: makes its stop and
+message channels and starts its four goroutines (`handle`). (Until J8a-6, 2026-11-01, it took four
+of its `Raft`'s resources `R`, one per goroutine, which they never use.) -/
+abbrev rafthttp.pipeline.start.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      pipeFixed Rh p to R ∗ (∃ sc : GoChan, p.[rafthttp.pipeline, go!"stopc"] ↦ sc) ∗
+      (∃ mc : GoChan, p.[rafthttp.pipeline, go!"msgc"] ↦ mc) ∗
+      sync.join.ownAdder (p.[rafthttp.pipeline, go!"wg"]) (W32 0) iprop(True) }}
+    (App (Val (p @!! go.GoType.PointerType rafthttp.pipeline.ty @!! go!"start")) (Val #()))
+  {{ RET #(); pipeStarted Rh p to R }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

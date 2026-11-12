@@ -1,22 +1,10 @@
 /-
-`concurrency.WithAbortContext(ctx)` (`client/v3/concurrency/stm.go`).
-
-Users: etcd's tests (`tests/integration/clientv3/concurrency/example_stm_test.go`: a
-transfer between accounts keeping their sum, `NewSTM` with the default level;
-`tests/integration/clientv3/experimental/recipes/v3_stm_test.go`-style uses: every level,
-`WithPrefetch`, `WithAbortContext`, an aborted closure), etcd's benchmark tool (`tools/benchmark`,
-not in the pinned sources). No production caller in the pinned etcd, raft, Kubernetes or
-`examples/`. Snippet: `concurrency/stm.go` (`ReqSTMLevels`).
-
-Proof sketch: a closure writing the field (`NewSTM` takes the context's `ctxOk`).
-
-Changes: from `specs-ref`'s `WithAbortContext.lean`: any context.
-
-Margin: none.
+`concurrency.WithAbortContext(ctx)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -24,27 +12,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `WithAbortContext(ctx)`: an option setting the context of the STM's requests. -/
-def WithAbortContext.spec : Prop :=
-  ∀ (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.WithAbortContext)) (Val #ctx))
-  {{ (f : GoFunc), RET #f; stmOptAt f (withAbortContextM ctx) }}
+/-- `WithAbortContext(ctx)`: an option setting the context (any context; the model of the options
+does not record which). -/
+abbrev WithAbortContext.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ context.isContext ctx cs }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.WithAbortContext)) (Val #(GoInterface.ok ctx)))
+  {{ (f : GoFunc), RET #f; stmOptSpec f id }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

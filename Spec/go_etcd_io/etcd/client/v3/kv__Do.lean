@@ -1,36 +1,9 @@
 /-
-`(*clientv3.kv).Do` (`client/v3/kv.go`).
-
-Users: leasing (`leasing/kv.go:244` `Do` of every operation it forwards, `leasing/cache.go`), the
-cache (`cache/cache.go`, `cache/watcher.go` `Do(OpGet(...))`), Kubernetes' compactor
-(`etcd3/compact.go`). Snippet: `clientv3kv/ops.go` (`ReqDo`).
-
-Proof sketch: `kvHandle`: `kv.remote` is a `remoteKVAt` value, `kv.callOpts` the client's (`callOptsOk _
-false`). By `op.t` (`opAt_unfold`): a range: `IsSortOptionValid.spec`; if invalid, the code
-returns `rpctypes.ErrInvalidSortOption` (`errVal .invalidSortOption`, rpctypes' init law, 2a),
-and the proof **fires the caller's update itself** with `Step`'s answer `.err .invalidSortOption`
-(the model's range step allows it for an invalid sort), giving `Q`; else `toRangeRequest.spec`
-then `RemoteKV.RangeTriple` with the persistent update. A put or a delete: the request built in
-place (`putReqOwn_unfold`, `deleteReqOwn_unfold` from the fresh struct's fields and the `Op`'s
-read-only slices), `RemoteKV.PutTriple`/`DeleteRangeTriple`. A transaction: `toTxnRequest.spec`,
-`RemoteKV.TxnTriple` with `□?(isRead)` as given. The wire reply (`wireReply`) is the
-client-level one but for the error, which `ContextError.spec` maps (`.etcd e` to `errVal e`); the
-indefinite case stays indefinite (`indefCall`). The zero `OpResponse{}` on error.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kv__Do.lean`: every kind of `Op`, nested
-transactions included (the old one covered a range, a put and a delete without lease); the
-invalid-sort path is a linearized refusal.
-
-verify-round: premise `o.emptyEnd = false` (A1-provability F5: under it `Wire.endOf` of the `Op`'s
-`end` is `endReq`, and a member reached over gRPC reads the same range); a transaction's compares
-(read-only, from `cmpAt`) and its fresh `RequestOp`s and `TxnRequest` are put at one `discard`
-fraction by `protoRest_persist` (A1-provability F6).
-
-Margin: as the methods above.
+`(*clientv3.kv).Do(ctx, op)` (`client/v3/kv.go`, translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.KVService
 
 @[expose] public section
 
@@ -38,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -50,15 +21,46 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Do` meets the KV contract's `Do` (`KV.DoTriple`, `Api.lean`), for a `*kv` of the
-cluster `γ` as `who` (`kvHandle`). -/
-def kv.Do.spec : Prop :=
-  ∀ (kv c : Loc) (γ : Cluster) (who : Principal),
-  KV.DoTriple (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv c γ who ∗ clientReady c)) γ who
+/-- **What `kv.Do` needs of its `Op`** `o` on a `*kv` of etcd's KV `γ` (D44): a range (any sort
+option, checked against `etcdserverpb`'s enumerations, `sortNamesOk` if there
+is one) with the caller's persistent atomic read of `γ`'s state or, `Q` trivial, none; a put with
+no lease or a delete whose range end is not `[0]` (what etcd's specs cover), with the caller's atomic update of `γ`'s state by it (`kvOpStep`), persistent if the
+client's writes may be delivered more than once (`□?dup`), all of the request the server reads (`rangeWireOf o`, `putWireOf o`, `deleteWireOf o`); a transaction
+(`OpTxn`, `Op.toTxnRequest`) is not specified here (`kv.Txn`'s builder sends one:
+`txn.Commit`). -/
+def doRunOk (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) : IProp GF :=
+  iprop((⌜o.t = W64 1⌝ ∗ sortNamesIf o.base.sortSet ∗
+      □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf o).base.serializable = false⌝ ∗
+        AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>))) ∨
+    (⌜o.t = W64 2 ∧ (putWireOf o).leaseID = W64 0⌝ ∗
+      □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ (kvOpStep (.put (putWireOf o)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) ∨
+    (⌜o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0]⌝ ∗
+      □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf o)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)))
+
+/-- `kv.Do(ctx, op)` on a `*kv` of etcd's KV `γ` (`isKv`, D44), for an `Op` `op` modelled by `op_m`
+that is a range, a put or a delete (`doRunOk`): the request `op.toRangeRequest()`,
+`&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
+or `DeleteRange`, with the client's call options; `doOut` with the reply's fields as functions of
+the state the update fired at (`rangeStOk`, `putStOk`, `delStOk`). The request fits a gRPC message
+(`opSizeOk`; 2026-10-30, `grpcInvokerOk`).
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
+abbrev kv.Do.spec : Prop :=
+  ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (op : go_etcd_io.etcd.client.v3.Op) (op_m : OpFull)
+    (Q : KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ opFullAt op op_m ∗ doRunOk γ dup op_m Q ∗
+      ⌜opSizeOk op_m⌝ }}
+    (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
+      (Val #(GoInterface.ok ctx))) (Val #op))
+  {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
+      doOut op_m (putStOk γ (putWireOf op_m) Q) (rangeStOk (rangeWireOf op_m) Q)
+        (delStOk (deleteWireOf op_m) Q) r err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

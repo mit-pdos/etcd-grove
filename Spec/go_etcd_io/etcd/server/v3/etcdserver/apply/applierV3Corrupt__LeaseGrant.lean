@@ -1,29 +1,23 @@
 /-
-`(*applierV3Corrupt).LeaseGrant(r)` (`corrupt.go:49-51`): `ErrCorrupt`.
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** Immediate.
-
-**Changes** from `specs-ref`'s `applierV3Corrupt__LeaseGrant.lean`: the old per-mode chain predicates (`apply.chainRes`, `kvOwnPre`) restated over `applierAt`, `stAt` and `layersStep`
-
-**Margin.** None.
+`apply.applierV3Corrupt.LeaseGrant` (corrupt.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,24 +26,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`LeaseGrant` at the applierV3Corrupt layer**: the layers' step (the result `resMatch`). -/
-def applierV3Corrupt.LeaseGrant.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (ls : List Layer) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (u : GoString) (rev : w64) (rq : Loc) (op : IrrOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt.ty) #p) (Layer.corrupt :: ls) b aa ∗
-      beAt b mc γ γc R ∗
-      stAt b σ ∗
-      aiAt aa u rev ∗
-      reqMsgAt rq op ∗ ⌜(∃ i t, op = .req (.leaseGrant i t)) ∧ op.ok⌝ ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt.ty @!! go!"LeaseGrant")) (Val #rq))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ threadTok ∗ aiAt aa u rev ∗ ∃ σ' res res', ⌜layersStep mc σ u (uint.nat rev) op (Layer.corrupt :: ls) σ' res ∧ resMatch op false res res'⌝ ∗
-      stAt b σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty) #resp) err }}
+/-- **`a.LeaseGrant(lc)`**: `ErrCorrupt`; nothing written.  (The lease-grant stage, 2.11, 2026-11-03: the chain's grant triple, `grantPre`/`grantPost`;
+until then the generic triple of the methods that leave the log, over the write right `E.RW`.) -/
+abbrev apply.applierV3Corrupt.LeaseGrant.spec : Prop :=
+  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (g : LeaseGrantModel)
+    (log : mvcc.Log) (T : List w64) (rs : apply.RestM) (U : List w64) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
+      apply.applyTok E ∗ apply.grantPre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq g log T rs U
+        Pre Q Post }}
+    (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"LeaseGrant")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.applyTok E ∗ ∃ o : apply.Outcome,
+      apply.grantPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq g log T rs U
+        Pre Post resp err o }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

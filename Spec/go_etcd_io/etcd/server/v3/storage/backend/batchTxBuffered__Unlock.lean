@@ -1,47 +1,18 @@
 /-
-## `(*batchTxBuffered).Unlock()` (`batch_tx.go:328-361`): translated
-
-**Users.** Every session's end (the `Lock*` users above). Snippets `parts.go` (`ReqWriteThenRead`,
-`ReqDeleteVisible`).
-
-**Proof sketch.** With writes pending since the last commit: `readTx.Lock()` (the readers'
-authority), `writeback` (the write buffer's puts into the read buffer, with the last commit's hook
-leftovers, whose values are the committed ones: the visible image becomes the
-session's puts over its base, `Sess.mid`: **the first update fires here**; the version bumped),
-`readTx.Unlock()`. If the batch limit is reached or the session deleted (`pendingDeleteOperations`),
-`commit(false)` (`batchTxBuffered.commit.spec`): `readTx.Lock()`, the hooks (`hookOk`, from `Pk` and
-a session at the batch image whose base is `Sess.mid`: what readers see then), the old read transaction to its rollback goroutine (it waits for the
-interval's readers), bbolt's commit (4c's `Tx.Commit` over its nested `commitAU`, from the
-whole `boltState` the lock's invariant holds, `boltState_commit_au`; an error `lg.Fatal`s): **at its
-commit update (the meta page write) the second update fires** (the visible image is the batch's: the read buffer
-reset, a new read transaction at the commit), the hooks' update, then the client's commit step
-(`commitOk`: the history gets the batch image); a new write transaction and read transaction. With
-no commit, the session deleted nothing, so `Sess.mid`'s entries are the batch image's already and
-the second update fires right after the first. The second update's target `Sess.fin` keeps `mid`'s
-buffer flags (a lower bound: with a commit the buffer is in fact empty, which a later commit step
-records, `beCurIs_flush`). `batchTx.Unlock` (`pending ≥ batchLimit` is false now, or
-commits again the same way), the mutex released with `Pk` (the hooks' and the commit step's `Pk`
-back) and the session's turn (`beTurn γ`, which the second update handed over: the lock's
-invariant holds it between sessions, so the second update always fires before the next session's
-`Lock*` can return a turn).
-
-**Changes** (from `specs-ref`'s, the deleting/put session split, `relog`, `thinV`, `sbKept`, the
-write-back's budget): one statement for every session: two updates of the published footprint (the
-write-back's, the commit's), exact in both (`Sess.mid`), in place of a logical view kept thin of
-the physical one.
-
-verify-round (A10-provability B1): the second update's atomic precondition includes the session's
-turn `beTurn γ` (from the `Lock*`), which the backend takes back at its commit point. A client that
-parks lock-scoped state between sessions (mvcc's storage bridge, `MvccStorage.lean`: its batch part
-taken out at the lock, put back at this update) keeps the turn with the parked state and gives it up
-in the same step; a later session's turn then refutes the parked case (`beTurn_excl`).
-
-**Margin.** What readers see between the two updates is `Sess.mid` exactly; after a commit the
-buffer flags could be set (`Sess.fin` keeps them a lower bound).
+`Unlock` (the backend). `t.Unlock()`: the session's writes written back into the read buffer, and committed if a
+delete is pending or the batch limit reached (the pre-commit hook then runs, with the hooks'
+resource `Pk`). A deleting session (the new physical view thin of the old; a session that
+changed nothing the readers see, `viewSame`, is one) gives the lock's resources `W ∗ Pk`; a put
+session gives the clients' whole view and `Pk`, and gets the logical view back at `relog`, from
+which it makes `W` (a wand: `W` may hold part of the view). A write-back's budget either way. (`Pk` is handed over up front in both cases: the
+commit's hook needs it, before the new view exists.)
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 
 @[expose] public section
 
@@ -49,32 +20,53 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.Unlock()`**: the session ends; the published cells `F` become visible in two steps (the
-session's puts at the write-back, `Sess.mid`; its deletes at the commit, which a deleting session
-always makes); a commit runs the hooks and the client's commit step. The second update also takes
-back the session's turn. -/
-def batchTxBuffered.Unlock.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (F : Fp) (S : Sess)
-    (Ψ1 Ψ2 : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beSess γ q F S ∗ beLive γ (btLoc γ) 1 ∗ Pk ∗
-      (AU <{ ∃∃ (V : Image), beVis γ F V }> @ ⊤, ∅ <{ beVis γ F S.mid, COMM Ψ1 }>) ∗
-      (Ψ1 -∗ AU <{ ∃∃ (V : Image), beVis γ F V ∗ beTurn γ }> @ ⊤, ∅ <{ beVis γ F S.fin, COMM Ψ2 }>) }}
-    (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
-  {{ RET #(); beOpen γ q ∗ Ψ2 }}
+/-- `t.Unlock()`: the session's writes written back into the read buffer, and committed if a
+delete is pending or the batch limit reached (the pre-commit hook then runs, with `Pk`). Two kinds
+of session (question 2, option (a), 2026-10-29: one spec, the readers' view the logical view):
+* **a deleting session** (the compaction job's; a session that changed nothing the readers see,
+  `viewSame`, is its instance, `viewSame_thin`): it holds no clients' share of the view; the new
+  physical view (the writer's contents) is thin of the old (`thinV`: what it deleted is registered as
+  deletable), and its write buffer holds no puts to the non-hook buckets (review round 1, F8: `Unlock`
+  writes the buffer back into the read buffer before committing, so such a put would be seen by
+  readers between the two); it gives `W ∗ Pk ∗ Q`, and the logical view stays;
+* **a put session**: it gives the clients' whole view `vd` (the logical view) and `Pk`, and gets the
+  view back at `relog P vd st` (its writes over the logical view, keys compaction deleted earlier
+  kept), from which it makes `W ∗ Q`; it deleted no safe-range entry the readers see (`sbKept`;
+  the user's decision, 2026-11-04, probe M2: so the deleted entries stay the logical view's).
+A write-back's budget either way. Not in the hook's window, with room for the commit's hook.
+**A part of the tracked buckets handed in comes back idle** (decision 3, 2026-11-01, Q3:
+`rbPart γ S r` in, `rbOwnIn γ S r` out, for any bucket set `S`, the caller's choice; nothing for `S`
+empty, `Unlock.bare`): Go writes the session's puts back into the read buffer under
+`readTx.Lock()` and, when a delete is pending, commits (`pendingDeleteOperations`,
+etcd-io/etcd#17119), so a read transaction begun after it sees the writer's contents on `S`, up to
+a bucket created in the session and not yet committed (`batchTxBuffered` counts a creation as
+pending, not as a pending delete), which such a reader sees absent, as empty (`bktOf`); a later
+write to a bucket of `S` needs the holder's part.
+(Until question 2: the put branch got `sData P st.S` back, and the first branch was `viewSame`;
+a Draft `specC` had the deleting branch beside it.) -/
+abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
+    (S : GoString → Prop) (r : GMap GoString BktData),
+  st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
+      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗ rbPart γ S r ∗
+      ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
+         ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
+       (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
+    (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
+  {{ RET #(); Q ∗ rbOwnIn γ S r }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

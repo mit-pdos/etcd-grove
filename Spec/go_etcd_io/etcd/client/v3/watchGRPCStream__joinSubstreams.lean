@@ -1,23 +1,22 @@
 /-
-`(*watchGRPCStream).joinSubstreams()`: waits for every substream goroutine (`<-ws.donec`). Users: `run`'s teardown, `newWatchClient`.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.watchGRPCStream).joinSubstreams()` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +24,28 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `s.joinSubstreams()`. -/
-def watchGRPCStream.joinSubstreams.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (who : Principal) (r : RunM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsRun s γ who r }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"joinSubstreams")) (Val #()))
-  {{ RET #(); wgsRun s γ who { r with joined := true } }}
+/-- `w.joinSubstreams()`: waits for the `donec` of every substream in `substreams` and of every
+non-nil one in `resuming` (D25: each the current lifetime's, `Df ws`, with `run`'s half of the
+field, all of them substreams of `U`), and gets what each published. -/
+abbrev watchGRPCStream.joinSubstreams.spec : Prop :=
+  ∀ (wgs m : Loc) (M : GMap w64 Loc) (s : GoSlice) (l : List Loc) (dq1 dq2 dq3 dq4 : DFrac)
+    (U : GMap Loc Unit) (Df : Loc → DnInfo GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
+      wgsF wgs go!"resuming" ↦{dq3} s ∗ s ↦*{dq4} l ∗
+      ([∗map] ws ↦ _u ∈ U, donecAt ws (Df ws)) ∗
+      ⌜(∀ X ws, M !! X = some ws → U !! ws = some ()) ∧
+        (∀ ws ∈ l, ws ≠ null → U !! ws = some ())⌝ }}
+    (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"joinSubstreams")) (Val #()))
+  {{ RET #(); wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
+      wgsF wgs go!"resuming" ↦{dq3} s ∗ s ↦*{dq4} l ∗
+      ([∗map] ws ↦ _u ∈ U, donecAt ws (Df ws)) ∗
+      (□ ∀ (X : w64) (ws : Loc), ⌜M !! X = some ws⌝ → □ (Df ws).Q) ∗
+      (□ ∀ ws : Loc, ⌜ws ∈ l ∧ ws ≠ null⌝ → □ (Df ws).Q) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

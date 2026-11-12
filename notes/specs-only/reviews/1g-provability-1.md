@@ -1,7 +1,7 @@
 # Batch 1g (cache, B-tree): provability review, round 1
 
-Reviewer: provability. Read: `Spec/go_etcd_io/etcd/cache/v3/` (Api, Internal, the public specs and
-the internal ones the sketches lean on), `Spec/k8s_io/utils/third_party/forked/golang/btree/`
+Reviewer: provability. Read: `SpecPlan/Spec/go_etcd_io/etcd/cache/v3/` (Api, Internal, the public specs and
+the internal ones the sketches lean on), `SpecPlan/Spec/k8s_io/utils/third_party/forked/golang/btree/`
 (Api, Internal, the specs the cache and the snippets use), the snippets
 `examples/specreq/{cache,btree}/`, the Go code (`.lake/src/cache/*.go`; the B-tree at
 `k8s.io/utils@v0.0.0-20260108192941-914a6e750570`, the version `cache/go.mod:13` pins), 1b's

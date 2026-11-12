@@ -1,15 +1,9 @@
 /-
-`(*writeView).Put(key, value, lease)` (`kv_view.go:52`): `rv.kv.Write(traceutil.TODO())`, its `Put`,
-its `End` (deferred). Internal: the body of the store's promoted `Put` (`KV.Put.contract`). Proof
-sketch: `KV.Write.contract` at `kv` (the caller's update's atomic precondition read there, nothing
-pending: the write transaction pinned at `σ`), `Txn.Put.contract` (`putLs` over `txnStore σ [] =
-σ.kv.store`), `Txn.End.contract` (`.write σ [ev σ]`: the caller's two nested updates).
-
-**Changes** from `specs-ref`'s file: `KV.Put.contract`'s statement at the view's store.
+`writeView.Put` (kv_view.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -17,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,29 +21,39 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.Put`'s behaviour for the store the view writes. -/
-def writeView.Put.spec : Prop :=
-  ∀ (wv : Loc) (kv : GoInterface) (γ : MvccName) (γl : Lease.Names) (key value : GoSlice)
-    (kk vv : Bytes) (lid : w64) (n : Nat) (ls : Lease.LessorState) (q : Qp) (B : MvccStorage)
-    (Pk Pre Q' Post : IProp GF) (f : GoFunc) (Q : MvccState → IProp GF),
-  let ev (σ : MvccState) := putEv σ [] kk vv (sint.Z lid)
+/-- `wv.Put(key, value, lease)`: a write transaction of one put, committed: the new revision
+(`ilog`'s length, for the committed log `ilog` the transaction found) is certified. Under the
+batch lock, by the critical-section contract (`csContract`: the store's hook on `Pre`, the
+caller's update to `Post` before `Unlock`). For a store without watchers (`γ.watchQ = false`, unit
+W-K: the watchable store replaces the views). (Unit T3, L2b, 2026-10-25) The lease owner's item
+map `I` is that of every log the store certifies (the caller does not know which log the
+transaction finds: satisfiable by a store whose keys never had a lease, `I = ∅`); after, the
+committed state's. (M4, track B, 2026-11-06) The commit's ghost step is the caller's
+(`endCb`, at the committed log the transaction found and its compaction revision), the frozen
+state excluded by the caller's `G` (`storeTxnWrite.End`'s). -/
+abbrev mvcc.writeView.Put.spec : Prop :=
+  ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
+    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+    (G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      wv.[writeView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ mvccLessorIs γ γl ∗ mvccReaders γ 1 ∗
-      key ↦*□ kk ∗ value ↦*□ vv ∗
-      Lease.lessorState γl n ls ∗ ⌜sint.Z lid = 0 ∨ ls.leases (sint.Z lid) ≠ none⌝ ∗
-      mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
-        <{ ⌜σ.pending = []⌝ ∗ mvccState γ (σ.notify [ev σ]) ∗ ⧖ (evCount (σ.kv.commit [ev σ])), COMM
-            AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
-              <{ ⌜σ' = σ.notify [ev σ]⌝ ∗ mvccState γ σ'.commitPending, COMM Q σ }> }> }}
+      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.storeWT γ ∗
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
+      value ↦*□ v ∗ ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ lease.leaseOwn γ.leases L I ∗
+      □ (∀ ilog : mvcc.Log, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
+      ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      ⌜γ.watchQ = false⌝ ∗
+      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗
+      (∀ (ilog : mvcc.Log) (crev : Int),
+        mvcc.endCb γ ilog [.put k v leaseID] crev (mvcc.slotY γ ilog) R) }}
     (App (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"Put")) (Val #key))
-      (Val #value)) (Val #lid))
-  {{ (rev : w64), RET #rev; mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ Post ∗
-      ∃ (σ : MvccState) (n' : Nat), Q σ ∗
-        Lease.lessorState γl n' (putLs ls (σ.kv.store kk).isSome kk (sint.Z lid)) ∗
-        ⌜rev = W64 (σ.rev + 1)⌝ }}
+      (Val #value)) (Val #leaseID))
+  {{ (rev : w64), RET #rev; mvcc.storeReader s γ ∗ Post ∗ G ∗ R ∗
+      ∃ ilog : mvcc.Log, mvcc.idxCert γ.idx (ilog ++ [[.put k v leaseID]]) ∗
+        lease.leaseOwn γ.leases L (mvcc.pendItems ilog [.put k v leaseID]) ∗
+        ⌜rev = W64 (ilog.length : Int)⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

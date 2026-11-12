@@ -1,17 +1,10 @@
 /-
-## `(*raftLog).lastEntryID()` (internal)
-
-**Users**: `newRaft`, `campaign`/`hup` (`raft.go:1081`), vote handling, `restore`'s log lines,
-`readyWithoutAccept`'s append message. **Proof sketch**: `lastIndex`, then `term(lastIndex)`, which
-succeeds: `lastIndex ≥` the storage's compaction point (the floor is at most `committed`, the base at
-most `lastIndex`) and `termOf lastIndex` is defined (the last unstable entry, the snapshot, or the
-stored end). **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__lastEntryID.lean`.
+Port of election_proof/spec_raftLog__lastEntryID.v (feb5c73d4).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
 
@@ -19,26 +12,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The last entry's index and term. -/
-def raftLog.lastEntryID.spec : Prop :=
+/-- `l.lastEntryID()`: the id of the last entry, or of the compaction boundary `prev`
+when the log after it is empty -- `plogLast` (`Plog.lean`) of the log the protocol sees.
+
+The body (`raftLog.lastEntryID.impl`, `Code/go_etcd_io/raft/v3.lean`) is
+`lastIndex()` then `term(lastIndex())`, with a `Panicf` on an error from `term`; `term`'s
+iff kills it, and its widened postcondition (`plogTermAt … = some t`) pins the term.
+Until 2026-10-01 the result was unspecified (only `isUpToDate` read it, and a wrong
+answer there could only make the node decline a vote); log replication needs it: the
+vote rule now checks the candidate's log is up to date (`plogUpToDate`), and `campaign`
+sends it in `MsgVote`. -/
+abbrev raftLog.lastEntryID.spec : Prop :=
   ∀ (l : Loc) (ls : LogState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"lastEntryID")) (Val #()))
-  {{ (t : w64), RET #(go_etcd_io.raft.v3.entryID.mk t (W64 ls.lastIndex)); raftLog l ls ∗
-      ⌜ls.termOf ls.lastIndex = some t⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"lastEntryID")) (Val #()))
+  {{ (e : entryID), RET #e; ownRaftLog l ls ∗
+      ⌜e = plogLast ls.prev (ls.sents ++ ls.uents)⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

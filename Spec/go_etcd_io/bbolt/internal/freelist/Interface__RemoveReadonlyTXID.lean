@@ -1,14 +1,12 @@
 /-
-## `Interface.RemoveReadonlyTXID(tid)` (`shared.go`)
-
-**Users.** db.go:957 (`removeTx`, under `metalock`). Snippet `ReqReleaseSafe`.
-**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; the first occurrence swapped with the last and dropped (a multiset removal, `flReaders_perm`).
-**Changes.** new (as `AddReadonlyTXID`).
-**Margin.** none: the post is what the code computes.
+`Interface.RemoveReadonlyTXID` (bbolt/internal/freelist, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U2; used by U5 (`removeTx`). Proof:
+`Proof/go_etcd_io/bbolt/internal/freelist/Interface__RemoveReadonlyTXID.lean` (a `sorry` until U2).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.freelist.Api
+public import Proof.go_etcd_io.bbolt.Inv.Freelist
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,29 +14,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Freelist
+namespace bbolt
+namespace internal
+namespace freelist
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common BboltCommon
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common go_etcd_io.bbolt.internal.freelist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The contract of `RemoveReadonlyTXID` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.RemoveReadonlyTXID(tid)`: one occurrence of `tid` is no longer a reader (none if it is not one). -/
-def Interface.RemoveReadonlyTXID.contract (fl : GoInterface) (f : Expr) : Prop :=
-  ∀ (R : List Txid) (tid : Txid),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flReaders fl R }}
-    (App f (Val #tid))
-  {{ RET #(); flReaders fl (R.erase tid) }}
-
-/-- `f.RemoveReadonlyTXID(tid)`: one occurrence of `tid` is no longer a reader (none if it is not one). Through the interface (`flCall`): proved from `array.RemoveReadonlyTXID.spec`, `hashMap.RemoveReadonlyTXID.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
-def Interface.RemoveReadonlyTXID.spec : Prop := ∀ fl, Interface.RemoveReadonlyTXID.contract (GF := GF) fl (flCall fl go!"RemoveReadonlyTXID")
+/-- `f.RemoveReadonlyTXID(tid)`: one occurrence of `tid` removed from the readers' txids (the
+last moved into its place: the order is a permutation's).
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics). -/
+abbrev Interface.RemoveReadonlyTXID.spec : Prop :=
+  ∀ (fli : GoInterface) (ro : List w64) (tid : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flRoOwn fli ro }}
+    (App (ifaceCall fli go!"RemoveReadonlyTXID") (Val #tid))
+  {{ RET #(); ∃ ro', flRoOwn fli ro' ∗ ⌜ro'.Perm (ro.erase tid)⌝ }}
 
 end spec
 
-end Freelist
+end freelist
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

@@ -1,14 +1,12 @@
 /-
-## `(*Message).CloseNotify()` (`message.go:53-55`): trusted (names only)
-
-**Users.** 2d's `sendMergedSnap` (waits for the transport's verdict). **Why it is true.** The field.
-**Changes**: from `specs-ref`. **Margin.** None.
+`m.CloseNotify()` (`etcdserver/api/snap/message.go`; names only): the message's `closeC`. The
+trust boundary (D22 S-h, 2026-10-20; an axiom in `Proof/.../snap/Message__CloseNotify.lean`).
+Lean-first (no Rocq counterpart); the vocabulary is `Proof/.../snap/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Api
-public import Spec.go_uber_org.zap.Api
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 @[expose] public section
 
@@ -16,26 +14,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Snap
 
-open Iris Iris.BI
+open Iris Iris.BI snap
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
-/-- **The close-notification channel.** -/
-def Message.CloseNotify.spec : Prop :=
-  ∀ (p : Loc) (to tot : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗ isMessage p to tot }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty @!! go!"CloseNotify")) (Val #()))
-  {{ (ch : Loc), RET #ch; msgCloseCh p ch }}
+/-- `m.CloseNotify()`: `m`'s `closeC` (read-only). -/
+abbrev snap.Message.CloseNotify.spec : Prop :=
+  ∀ (m c : Loc),
+  {{ msgCloseC (GF := GF) m c }}
+    (App (Val (m @!! go.GoType.PointerType
+        _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty @!!
+        go!"CloseNotify")) (Val #()))
+  {{ RET #c; True }}
 
 end spec
 
-end Snap
 end EtcdGrove
 end Perennial

@@ -1,11 +1,9 @@
 /-
-`(*keyIndex).compact(lg, atRev, available)` (`key_index.go:215`) on a non-empty, well-formed key
-index (`lg.Panic` on an empty one; `doCompact`'s premises): `kiCompact`, the kept revision added to
-`available`. Internal (`treeIndex.Compact`). **Changes**: over `availAt`, premises for the panics.
+`keyIndex.compact` (`key_index.go`): compaction (2026-10-13, unit 5a; `Compact.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -13,29 +11,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ki.compact(lg, atRev, available)`. -/
-def keyIndex.compact.spec : Prop :=
-  ∀ (p lg m : Loc) (k : GoString) (ki : KeyIndexM) (atRev : w64) (A : Rev → Prop),
-  {{ pkgInit ∗ ⌜ki.gens ≠ [] ∧ kiIsEmpty ki = false ∧ kiWf ki⌝ ∗ ownKi p k ki (DFrac.own 1) ∗
-      availAt m A }}
+/-- `ki.compact(lg, atRev, available)` of a key index that is not empty (the tree never holds an
+empty one: `compact` would panic, `lg.Panic`) whose generations the walk can read (`gensOk`):
+the key index compacted (`kiCompact`: `doCompact`'s generation cut at its revision, the earlier
+ones dropped; a new generations slice), and the revision it keeps added to `available`. -/
+abbrev mvcc.keyIndex.compact.spec : Prop :=
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lg : Loc) (atRev : w64) (m : GoMap)
+    (A : GMap Revision Unit),
+  lg ≠ null → mvcc.gensOk ki → mvcc.kiIsEmpty ki = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownKi p gs ki (DFrac.own 1) ∗ ownMap m (DFrac.own 1) A }}
     (App (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"compact")) (Val #lg))
       (Val #atRev)) (Val #m))
-  {{ RET #(); ownKi p k (kiCompact ki atRev) (DFrac.own 1) ∗ availAt m (compactAvail A ki atRev) }}
+  {{ RET #(); ∃ gs' : GoSlice, mvcc.ownKi p gs' (mvcc.kiCompact atRev ki) (DFrac.own 1) ∗
+      ownMap m (DFrac.own 1) (mvcc.availAdd A (mvcc.kiAvail atRev ki)) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

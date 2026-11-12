@@ -1,5 +1,5 @@
 // Package cache holds the requirement snippets of etcd's cache (go.etcd.io/etcd/cache/v3; batch 1g,
-// Spec/go_etcd_io/etcd/cache/v3/): minimal uses of the patterns its users rely on
+// SpecPlan/Spec/go_etcd_io/etcd/cache/v3/): minimal uses of the patterns its users rely on
 // (examples/etcd/cache/cachekv.go, etcd's tests/integration/cache_test.go), each reliance an
 // explicit panic.
 //

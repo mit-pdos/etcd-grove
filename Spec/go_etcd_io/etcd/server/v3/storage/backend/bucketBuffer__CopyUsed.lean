@@ -1,11 +1,12 @@
 /-
-`bb.CopyUsed()` (`tx_buffer.go:244-253`): translated; internal. `verify.Assert` (off: `envOk`), a
-fresh buffer of the used entries, with no spare slot (not writable). Changes: `envOk`; round 1
-(S5): the copy not writable. Margin: none.
+`bucketBuffer.CopyUsed` (`tx_buffer.go`). `bb.CopyUsed()`: a new buffer of the entries, exactly as many slots (its `verify.Assert`
+holds); the buffer unchanged (any fraction).
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
+public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 
 @[expose] public section
 
@@ -13,26 +14,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`bb.CopyUsed()`**: a fresh buffer with the same entries. -/
-def bucketBuffer.CopyUsed.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk ∗ bbAt bb l w }}
-    (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"CopyUsed")) (Val #()))
-  {{ (c : Loc), RET #c; bbAt bb l w ∗ bbAt c l false }}
+/-- `bb.CopyUsed()`: a new buffer of the entries, exactly as many slots (its `verify.Assert`
+holds); the buffer unchanged (any fraction). -/
+abbrev backend.bucketBuffer.CopyUsed.spec : Prop :=
+  ∀ (bb : Loc) (dq : DFrac) (p : BBPhys) (es : List Ent),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb dq p es }}
+    (App (Val (bb @!! go.GoType.PointerType bucketBuffer.ty @!! go!"CopyUsed")) (Val #()))
+  {{ (c : Loc), RET #c; bbAt bb dq p es ∗
+      ∃ p' : BBPhys, bbAt c (DFrac.own 1) p' es ∗ ⌜p'.kvs.length = es.length⌝ }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

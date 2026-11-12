@@ -1,19 +1,10 @@
 /-
-`(*raftNode).onStop()` (`raft.go:432-440`): stop the raft node, the ticker and the transport, close
-the WAL storage, close `done`. Internal (the loop's deferred exit).
-
-**Proof sketch**: `r.Stop()` (R1's `node.Stop.spec`, with the loop's `nodeRunning` half and the
-other half the loop holds from the start: the node's vacancy comes back once its goroutine exits),
-`ticker.Stop()`, `transport.Stop()` (2f's), `storage.Close()` (2e's: no error under the disk premise,
-`lg.Panic` unreachable; the WAL's durable half returned), `close(done)` with `rnStopped`.
-**Changes**: over `rnLoop`/`rnStopped`. **Margin**: none.
+`(*raftNode).onStop()` (raft.go): the loop's deferred shutdown.
+Lean-first (no Rocq counterpart); see `InvRaftNode.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
 
@@ -21,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,17 +21,37 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def raftNode.onStop.spec : Prop :=
-  ∀ (r : Loc) (γ : Names) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isRaftNode r γ id n ∗ rnLoop r }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.raftNode.ty @!!
-      go!"onStop")) (Val #()))
+/-- `r.onStop()`, with the right to stop the transport (`E.ST`, which `<-r.stopped` gave; D43 M5c):
+stops the node, the ticker and the transport, closes the WAL (which succeeds, the WAL's I/O not failing,
+`storage.walCloseOk`: else `lg.Panic`) and then `done`, (2026-11-03, R2b-3b) with the stop's image
+escrowed (`rnDoneEsc`: the id vacant, the durable state, the WAL's files holding it). -/
+abbrev raftNode.onStop.spec : Prop :=
+  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
+  -- (2026-10-31, `notes/axiom-review/savesnap.md`) `Close` not failing (I/O)
+  storage.walCloseOk →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ rnDoneTok γ r ∗
+      E.ST ∗
+      -- (2026-10-30, the repair) the node's whole running token (the loop's half and the apply
+      -- side's, `stopped`'s), which `node.Stop` takes
+      (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN 1) ∗
+      -- (2026-10-31) the WAL's whole open token (the loop's half and the apply side's), which
+      -- `Close` takes; (2026-11-03, R2b-1 stage 6) the records, which `Close` also takes, from the
+      -- durability invariant (`rnDur_take`): the stop's claim, the apply thread's token, the loop's
+      -- view at no pending snapshot; and the metadata and the purge's right
+      rnWalTok r 1 ∗ token γ.wal.stop ∗ token γ.wal.app ∗
+      -- (2026-11-03, R2b-3b) the node's durable state `S`, the loop's view at it (no pending
+      -- snapshot, the handed log `L`), and `applyc`'s producer token with `cum` at its count, for
+      -- the stop's escrow (`rnDoneEsc`)
+      (∃ (S : RaftState) (p : HardStateM) (L : List EntryModel) (sent : List toApply),
+        raftState γ.node.cl γ.id S ∗ rnWalView γ ⟨S, p, none, srvLE γ.srv L⟩ ∗
+        sspscProducer γ.ap sent ∗ monoListIdxOwn γ.cum sent.length L) ∗
+      (∃ (st : GoInterface) (cid : w64), rnStorageAddr r ↦□ st ∗
+        walMetaIs (storage.walOf st) γ.id cid ∗ walPurgeRight (walDirOf (storage.walOf st))) }}
+    (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"onStop")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

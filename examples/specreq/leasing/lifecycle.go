@@ -1,5 +1,5 @@
 // Package leasing holds the requirement snippets of etcd's leasing KV (batch 1e,
-// Spec/go_etcd_io/etcd/client/v3/leasing/): minimal uses of the patterns its users rely on (the
+// SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/): minimal uses of the patterns its users rely on (the
 // gRPC proxy with --experimental-leasing-prefix, the integration tests), each reliance an explicit
 // panic. The files lifecycle.go, reads.go, writes.go and txn.go hold what the leasing contract
 // (LKV.*Triple) gives; unmet.go what the KV contract's users rely on and the pinned code violates

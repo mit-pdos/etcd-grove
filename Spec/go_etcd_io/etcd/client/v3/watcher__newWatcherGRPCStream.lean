@@ -1,26 +1,24 @@
 /-
-`(*watcher).newWatcherGRPCStream(inctx)`: a stream over `WithCancel(&valCtx{inctx})` (`valCtx_ctxOk`, `Context.WithCancel.spec`, `ctxPrin_child`), its channels, `run` forked (with `wgsRun` at `RunM.init` and `wgsDoneTok`). Users: `Watch`, `RequestProgress` (under `mu`).
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-verify-round (W3): `clientReady c` turns the handle's gated stub into the `remoteWatchAt` that
-`wgsAt` keeps for `run`'s `openWatchClient`; `streamKeyFromCtx.spec` (for `ctxKey`) takes the
-`ctxPrin` already here.
-**Margin**: mirrors the code.
+`(*clientv3.watcher).newWatcherGRPCStream(inctx)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.StreamKey
+public import Proof.context.WatchCtx
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,17 +26,27 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `w.newWatcherGRPCStream(inctx)`: a new stream of the watcher, its `run` started. -/
-def watcher.newWatcherGRPCStream.spec : Prop :=
-  ∀ (w c : Loc) (γ : Cluster) (who p : Principal) (inctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who ∗
-      clientReady c ∗ Context.ctxOk inctx ∗ ctxPrin who inctx p }}
-    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"newWatcherGRPCStream")) (Val #inctx))
-  {{ (s : Loc), RET #s; wgsAt s w γ p }}
+/-- `w.newWatcherGRPCStream(inctx)` (a model context): a new gRPC watch stream of `w` (`isWGS`,
+over the watcher's call options), its context `WithCancel(&valCtx{inctx})`, with `inctx`'s outgoing
+metadata (`WithCancelValCtx`'s; G2, 2026-10-30), its key `streamKeyFromCtx(inctx)`'s (`streamKeyOf`),
+its channels made, with its `run` started (under the thread bound `isClientWatcher` carries, which
+keeps its wait group's counter below `2^31`: `InvWatchWg.lean`). -/
+abbrev watcher.newWatcherGRPCStream.spec : Prop :=
+  ∀ (V : WEnv GF) (w : Loc) (inctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ EtcdGrove.context.watchCtx inctx cs }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"newWatcherGRPCStream")) (Val #(GoInterface.ok inctx)))
+  {{ (wgs : Loc), RET #wgs; ∃ (G : WgsPrm GF) (callSl : GoSlice),
+      ⌜G.wgs = wgs ∧ G.w = w⌝ ∗ watcherF w go!"callOpts" ↦□ callSl ∗ isWGS V G callSl ∗
+      -- (G2, 2026-10-30) the stream's context has `inctx`'s outgoing metadata, and its key is
+      -- `inctx`'s
+      ⌜metadata.outgoingOf (GoInterface.ok G.ctx) = metadata.outgoingOf (GoInterface.ok inctx) ∧
+        G.ckey = streamKeyOf (metadata.outgoingOf (GoInterface.ok inctx))⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

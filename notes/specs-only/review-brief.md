@@ -5,7 +5,7 @@ You judge one batch (`notes/specs-only/batches.md`) of the specs-only branch, in
 without the author's conclusions: read the specs, the Go code and the users yourself. Read-only,
 except your report. Read `notes/specs-only/README.md` (what a spec is here, the snippets, the review)
 and `.claude/skills/spec/PRINCIPLES.md` (the hard rules and preferences) first. The batch's files:
-`Spec/<its packages>/`, `examples/specreq/<its aliases>/`, its report `notes/specs-only/batch-<id>.md`.
+`SpecPlan/Spec/<its packages>/`, `examples/specreq/<its aliases>/`, its report `notes/specs-only/batch-<id>.md`.
 Go sources: `.lake/src/...`; old specs and notes: `/home/ubuntu/etcd-grove/.claude/worktrees/specs-ref`.
 
 Your kind is given in your prompt.

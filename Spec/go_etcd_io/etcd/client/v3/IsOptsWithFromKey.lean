@@ -1,17 +1,10 @@
 /-
-`clientv3.IsOptsWithFromKey` (`client/v3/op.go`).
-
-Users: `OpGet`, `OpDelete`; Kubernetes' store (`etcd3/store.go`: `IsOptsWithPrefix` of its own options).
-
-Proof sketch: `NewOp.spec`, then each closure (`optAt_call`), the flag read.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/IsOptsWithFromKey.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.IsOptsWithFromKey(opts)` (`client/v3/op.go`, translated for the cache). Lean-first (no Rocq
+counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -19,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `IsOptsWithFromKey(opts)`: the options applied to `NewOp()` set the flag. -/
-def IsOptsWithFromKey.spec : Prop :=
-  ∀ (sl : GoSlice) (gs : List (OpM → OpM)),
+/-- `IsOptsWithFromKey(opts)`: whether the options, applied to `NewOp()`, set `isOptsWithFromKey`. -/
+abbrev IsOptsWithFromKey.spec : Prop :=
+  ∀ (sl : GoSlice) (gs : List (OpFull → OpFull)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ optsAt sl gs }}
     (App (Val (@! go_etcd_io.etcd.client.v3.IsOptsWithFromKey)) (Val #sl))
-  {{ RET #(optsWithFromKey gs); optsAt sl gs }}
+  {{ RET #((opFold gs OpFull.newOp).withFromKey); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

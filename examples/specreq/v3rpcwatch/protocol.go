@@ -1,5 +1,5 @@
 // Package v3rpcwatch holds the requirement snippets of etcd's gRPC watch service (batch 2b,
-// Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean): what a client of a member's
+// SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean): what a client of a member's
 // Watch stream relies on, over a raw pb.WatchClient stream, as the Go client's watchGRPCStream
 // (client/v3/watch.go: run, serveWatchClient, dispatchEvent, serveSubstream) does, each reliance an
 // explicit panic.

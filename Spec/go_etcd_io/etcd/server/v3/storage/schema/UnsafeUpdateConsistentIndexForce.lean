@@ -1,20 +1,10 @@
 /-
-## `schema.UnsafeUpdateConsistentIndexForce(tx, index, term)`
-
-**Users.** `cindex.UpdateConsistentIndexForTest`-like `SetConsistentIndex` paths (`cindex.go:177`: `unsafeUpdateConsistentIndexForce`, used by `etcdutl` snapshot restore and tests). Snippet: `examples/specreq/schema/schema.go` (`ReqSaveThenRead`).
-
-**Proof sketch.** As `unsafeUpdateConsistentIndex` with `allowDecreasing`: no read.
-
-**Changes.** From `specs-ref`'s `UnsafeUpdateConsistentIndexForce.lean`.
-
-**Margin.** None.
+`schema.UnsafeUpdateConsistentIndexForce(tx, index, term)`. Lean-first (no Rocq
+counterpart); see `InvCindex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 
 @[expose] public section
 
@@ -22,26 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Writes the index (unless `0`) and the term (unless `0`), with no check.** -/
-def UnsafeUpdateConsistentIndexForce.spec : Prop :=
-  ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View) (m : BData) (i t : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.has .metaB ciKey ∧ S.has .metaB termKey⌝ ∗
-      ⌜i ≠ W64 0 → V .metaB = some m⌝ }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce)) (Val #tx)) (Val #i)) (Val #t))
-  {{ RET #(); R (if i = W64 0 then V else V.set .metaB (ciPut m i t)) }}
+/-- `UnsafeUpdateConsistentIndexForce(tx, index, term)`: `unsafeUpdateConsistentIndex`
+without the monotonicity check (the index may decrease). -/
+abbrev schema.UnsafeUpdateConsistentIndexForce.spec : Prop :=
+  ∀ (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF) (m : MetaCI) (index term : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ metaWriter tx TM PTi PTt ∗ TM m ∗ PTi ∗ PTt }}
+    (App (App (App (Val (@! schema.UnsafeUpdateConsistentIndexForce)) (Val #(GoInterface.ok tx)))
+      (Val #index)) (Val #term))
+  {{ RET #(); TM (metaAfterSave m index term) }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

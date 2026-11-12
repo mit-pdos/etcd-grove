@@ -1,19 +1,11 @@
 /-
-## `schema.UnsafeCreateLeaseBucket(tx)`
-
-**Users.** `lessor.initAndRecover` (`lease/lessor.go:812`: the batch transaction, `LockOutsideApply`).
-Snippet: `examples/specreq/schema/schema.go` (`ReqLeaseRecover`).
-
-**Proof sketch.** `tx.UnsafeCreateBucket(Lease)` (`txWr`).
-
-**Changes.** From `specs-ref`'s `UnsafeCreateLeaseBucket.lean`: over the contract.
-**Margin.** None.
+`schema.UnsafeCreateLeaseBucket(tx)` (`schema/lease.go:27`). Lean-first (no Rocq counterpart); the
+lease-expiry plan's S1 (2026-11-04), for `lessor.initAndRecover`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 
 @[expose] public section
 
@@ -21,25 +13,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Creates `Lease`** (if absent; its records unchanged). -/
-def UnsafeCreateLeaseBucket.spec : Prop :=
-  ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.canCreate .lease⌝ }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateLeaseBucket)) (Val #tx))
-  {{ RET #(); R (V.create .lease) }}
+/-- `UnsafeCreateLeaseBucket(tx)` calls `tx.UnsafeCreateBucket(Lease)`: under the contract of
+`tx`'s `UnsafeCreateBucket` on the `Lease` bucket (from the caller's `P` to its `Q`: the batch
+transaction's lock tokens in `lessor.initAndRecover`), it makes `Q`. -/
+abbrev schema.UnsafeCreateLeaseBucket.spec : Prop :=
+  ∀ (tx : GoInterfaceOk) (P Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ P ∗
+      □ (∀ b : GoInterface,
+        {{ P ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b }} (App (Val #(methods tx.ty go!"UnsafeCreateBucket" tx.v)) (Val #b))
+        {{ RET #(); Q }}) }}
+    (App (Val (@! schema.UnsafeCreateLeaseBucket)) (Val #(GoInterface.ok tx)))
+  {{ RET #(); Q }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

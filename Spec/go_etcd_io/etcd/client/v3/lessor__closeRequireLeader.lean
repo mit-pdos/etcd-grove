@@ -1,20 +1,10 @@
 /-
-`(*clientv3.lessor).closeRequireLeader` (`client/v3/lease.go`).
-
-Users: `recvKeepAliveLoop` (on `ErrNoLeader`).
-
-Proof sketch: under `l.mu`, for each entry, reads each context's outgoing metadata
-(`metadata.FromOutgoingContext`, 2a's metadata spec over `ctxOk`), closes the channels of those
-with `MetadataRequireLeaderKey` set (their close tokens, in the entry) and rebuilds the entry's
-slices without them.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader.lean`: restated over `lessorHandle`.
-
-Margin: none.
+`(*clientv3.lessor).closeRequireLeader()` (`client/v3/lease.go`; item 1, the client lease).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
 
@@ -22,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,15 +22,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `l.closeRequireLeader()`: closes the keep-alive channels whose contexts require a leader. -/
-def lessor.closeRequireLeader.spec : Prop :=
-  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c }}
+/-- `l.closeRequireLeader()` on a lessor (`lessorAt`): under the lock, for each keep-alive, it
+closes some of its channels (those whose contexts ask for a leader) and removes them from its
+`chs`, with their contexts from its `ctxs`, keeping the lock invariant; it returns. The lock
+invariant pairs each channel with its context (`kaPaired`: `chs[i]` and `ctxs[i]` are a pair
+`KeepAlive` registered), so keeping it checks the fork's fix (a7bd9a16e,
+`issues/etcd-lease-close-require-leader-ctx-misaligned.md`): a surviving channel `chs[i]` is
+copied with `ctxs[i]`, not with `ctxs[newIdx]`. -/
+abbrev lessor.closeRequireLeader.spec : Prop :=
+  ∀ (l : Loc) (addr : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"closeRequireLeader")) (Val #()))
-  {{ (v : val), RET v; True }}
+  {{ RET #(); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -2,21 +2,21 @@
 
 Author's report: the files, the exported vocabulary, the changes from the old specs, what was left
 out, the decisions the user should see, the open questions, the `req/` sections. Everything below
-builds (`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/api/v3 Spec/context
-Spec/go_etcd_io/etcd/client/v3 Spec/go_uber_org/zap Spec/go_uber_org/zap/zapcore`: 173 modules);
+builds (`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/api/v3 SpecPlan/Spec/context
+SpecPlan/Spec/go_etcd_io/etcd/client/v3 SpecPlan/Spec/go_uber_org/zap SpecPlan/Spec/go_uber_org/zap/zapcore`: 173 modules);
 the snippets vet (`cd examples && go vet ./specreq/clientv3kv/`).
 
 ## Files
 
 | path | what |
 |---|---|
-| `Spec/go_etcd_io/etcd/api/v3/Model.lean` (`EtcdModel`) | the pure model: `State`, `Req`, `Resp`, `Step`, `EnvCfg`, `EnvStep`, `Reach`, `EtcdErr` |
-| `Spec/go_etcd_io/etcd/api/v3/State.lean` (`EtcdModel`) | the resources: `Cluster`, `etcdState`, `etcdLb`, `etcdN`, `envUpd`, `servesAt`, `errVal`, `indefErr` |
-| `Spec/go_etcd_io/etcd/api/v3/Wire.lean` (`EtcdWire`) | the KV messages as heap predicates over models, with unfold laws |
-| `Spec/context/Api.lean` (`Context`, new namespace) | any Go context: `ctxOk`, `ctxDone`, `ctxWithValues`, `Err`'s specs |
-| `Spec/go_etcd_io/etcd/client/v3/Api.lean` (`ClientV3`) | the client's vocabulary, the KV contract (`KV.*Triple`), the wire contract (`RemoteKV.*Triple`), the `Txn` contract, slots |
-| `Spec/go_etcd_io/etcd/client/v3/*.lean` | 142 specs (below) |
-| `Spec/go_uber_org/zap/Api.lean` (`Zap`), `Spec/go_uber_org/zap/*.lean`, `zapcore/CheckedEntry__Write.lean` | the logger's trust boundary: `isLogger`, `entryOk`, 25 specs |
+| `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean` (`EtcdModel`) | the pure model: `State`, `Req`, `Resp`, `Step`, `EnvCfg`, `EnvStep`, `Reach`, `EtcdErr` |
+| `SpecPlan/Spec/go_etcd_io/etcd/api/v3/State.lean` (`EtcdModel`) | the resources: `Cluster`, `etcdState`, `etcdLb`, `etcdN`, `envUpd`, `servesAt`, `errVal`, `indefErr` |
+| `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Wire.lean` (`EtcdWire`) | the KV messages as heap predicates over models, with unfold laws |
+| `SpecPlan/Spec/context/Api.lean` (`Context`, new namespace) | any Go context: `ctxOk`, `ctxDone`, `ctxWithValues`, `Err`'s specs |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean` (`ClientV3`) | the client's vocabulary, the KV contract (`KV.*Triple`), the wire contract (`RemoteKV.*Triple`), the `Txn` contract, slots |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/*.lean` | 142 specs (below) |
+| `SpecPlan/Spec/go_uber_org/zap/Api.lean` (`Zap`), `SpecPlan/Spec/go_uber_org/zap/*.lean`, `zapcore/CheckedEntry__Write.lean` | the logger's trust boundary: `isLogger`, `entryOk`, 25 specs |
 | `examples/specreq/clientv3kv/{put_get,txn,ops,errors,history,stream}.go` | 18 requirement snippets |
 | `notes/specs-only/top.md` | the top-level story and the cluster contract (K1–K8) |
 | `notes/specs-only/req/*.md` | six `## from W0` sections (below) |

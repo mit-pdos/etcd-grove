@@ -1,21 +1,11 @@
 /-
-`(*clientv3.Client).dialSetupOpts` (`client/v3/client.go`).
-
-Users: `dial`.
-
-Proof sketch: keepalive parameters (grpc's `WithKeepaliveParams`), the caller's options, the
-transport credentials (or `insecure.NewCredentials()`), the retry limits and backoff from the
-configuration (`roundRobinQuorumBackoff`, `withBackoff`, `withMax`), the interceptors
-(`streamClientInterceptor(withMax(0), backoff)`, `unaryClientInterceptor(withMax(n), backoff)`: their
-specs, `siOk`, `uiOk`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__dialSetupOpts.lean`: over `clientPre`.
-
-Margin: none.
+`c.dialSetupOpts(creds, dopts...)` (`client/v3/client.go`; item 5): the dial options before
+authentication, with the client's interceptors. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -23,10 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,15 +23,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.dialSetupOpts(creds, dopts...)`: the client's dial options. -/
-def Client.dialSetupOpts.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (creds : GoInterface) (sl : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ transportCredsOk creds ∗ dialTargetOk sl γ }}
-    (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dialSetupOpts")) (Val #creds)) (Val #sl))
-  {{ (opts : GoSlice), RET #opts; clientDialOpts opts c γ who }}
+/-- `c.dialSetupOpts(creds, dopts...)` on a client `New` builds (`retryClientOk`; its
+configuration `cfg`, read-only), with the options `ds` (`dopts`): grpc's keepalive option if
+`cfg.DialKeepAliveTime` is positive (`kaOpts`, D28), `dopts`, then transport credentials (`creds`, or insecure ones), etcd's stream interceptor and the retry
+interceptor (`etcdInterceptorOkG`: its contract once the client is ready), in a new slice. -/
+abbrev Client.dialSetupOpts.spec : Prop :=
+  ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (sl : GoSlice)
+    (ds : List GrpcDialOpt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
+      dialOptsAt sl ds }}
+    (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dialSetupOpts")) (Val #cr)) (Val #sl))
+  {{ (osl : GoSlice), RET #osl; ∃ (si ic : GoFunc),
+      dialOptsAt osl (kaOpts cfg ++ ds ++ [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) ∗
+      ownSliceCap GoInterface osl (DFrac.own 1) ∗ ⌜etcdStreamInterceptor si⌝ ∗
+      -- (the auth plan's C1, 2026-10-28) gated on the client's readiness (D29: both modes)
+      etcdInterceptorOkG c ic }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

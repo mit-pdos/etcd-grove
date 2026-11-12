@@ -1,32 +1,10 @@
 /-
-`(*store).Read(mode, trace)` (`kvstore_txn.go:46`): a read transaction.
-
-**Users**: through `KV.Read` on the server's watchable store (promoted): `txn.Range`
-(`txn/range.go:53`), `txn.Txn`'s read-only path (`txn/txn.go:60`, then `NewReadOnlyTxnWrite`), the
-views (`readView.Range/Rev/FirstRev`), the tester's readers (`examples/mvccrand/mvccrand.go:625`).
-Snippets `examples/specreq/mvcc/store.go` (`ReqReadFloor`, `ReqReadOnlyTxn`).
-
-**Proof sketch**: `s.mu.RLock()` (a slot the reader token carries), `s.revMu.RLock()`;
-`s.b.ConcurrentReadTx()`, or `s.b.ReadTx()` then `tx.RLock()` (`keyBackend`: the token's storage
-slot; the snapshot `D` of `kbData`, which the store's invariant keeps at the image of the committed
-history while `s.revMu` is held); read `compactMainRev`, `currentRev` and fire the caller's update at
-`σ` (the invariant's state: `D` is `σ.kv`'s image, `currentRev = σ.rev`); `s.revMu.RUnlock()`;
-`newMetricsTxnRead` over the `storeTxnRead` (`storeTxnR`), whose `mvccTxn t γ trace (.read σ)` keeps
-`s.mu`'s read slot, `kbRead` and the transaction's liveness `kbLive` until `End`. (A concurrent read
-transaction's snapshot is exact only on the keys it has, `KeyData.linger`: the reads by revision ask
-only revisions the image has, so this is enough.)
-
-**Changes** from `specs-ref`'s `store__Read.lean`: the contract `KV.Read.contract` at `*store`
-(the frozen API's canonical spec), over W0's history; no certificates, revision tokens, tags or
-callbacks.
-
-**Margin**: none. The transaction reads the state its update saw: a writer takes `s.mu`'s read side
-too and may commit while it is open, but the read's storage snapshot and revision are fixed at its
-begin; only `Compact`/`Restore` (`s.mu` for writing) wait for it.
+`store__Read` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadCbC
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -34,7 +12,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -45,11 +22,47 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.Read`'s contract at `*store`. -/
-def store.Read.spec : Prop :=
-  ∀ s : Loc, KV.Read.contract (GF := GF) (go.GoType.PointerType store.ty) #s
+/-- `s.Read(mode, trace)` opens a read transaction of the committed log at its last revision:
+the transaction holds `s.mu` shared and a snapshot of the bucket, both taken under `s.revMu`.
+The log read is pinned between the caller's certificate and its revision tokens: it extends
+the certificate's log `log₀` (`s.revMu` holds half the committed log's authority), and the
+caller's `m` tokens, with the writer's, are among the budget's (`s.revMu` holds half its
+authority): `log.length + m + 3 ≤ 2 ^ 63`. (With every token not spent and the certificate of
+the last log committed, the log read is that log: the txn package's sole writer.) With `m = 0`
+(`ownToks_0`) and `log₀ = []` (`idxCert_nil`), both ghost updates, it is the spec without
+them.
+
+**The compaction revision** (2026-10-13, unit 6a): the transaction observes the compaction
+revision `crev` (`s.compactMainRev`, read under both locks, `firstRev`; fixed until `End`, since
+`Compact` updates it holding `s.mu` exclusively), at or above the caller's lower bound `c` (with
+`store.Compact`'s `crevLb` after a compaction at `rev`: `rev ≤ crev`), a revision of `log` (or
+`-1`); the reader's tag `Z` (persistent) is carried to `End`. The readers' statement (a store
+never compacted, `storeReader`: `crev = -1`) is `specR`, a corollary (`spec_R`, `ReaderSpecs.lean`). A caller lending a fraction of the committed log's authority
+(`logLent`, unit W-K) learns the log read is the one it names. 
+The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02).
+(Stage 2 of the mvcc API, 2026-11-05) the caller's read callback (`readCb`) runs at the read, under
+`s.revMu`, with its slot of the API's view at the log read: a read's update fires there (§3); its
+result `F log` is returned. (M4, track B, 2026-11-06) The callback is given the compaction revision
+too (`readCbC`: the slot's, which is the transaction's), and its result `F log crev` returned. The
+transaction is returned without its trace (`isTxnReadT` at `True`), the trace given back (the API's
+`KV.Read` returns the caller's `ownTrace trace te` itself). (Track A, request 3, 2026-11-06) The
+reader under a later (its first step strips it: a pool's loan, `rdSupply`, is under one). -/
+abbrev mvcc.store.Read.spec : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)
+    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → Int → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isStore s γ ∗ ▷ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
+      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa ∗
+      mvcc.readCbC γ F }}
+    (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
+  {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
+      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnReadT mw s γ trace log rev crev Z iprop(True) ∗
+        traceutil.ownTrace trace te ∗
+        ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ mvcc.certOk γ log ∗
+        ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
+        ⌜∀ q L, oa = some (q, L) → log = L⌝ ∗ F log crev }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

@@ -1,28 +1,12 @@
 /-
-## `RawNode.acceptReady(rd)` (internal)
+`RawNode.acceptReady` (`rawnode.go:405`), Lean-first (2026-10-10): the second half of
+`RawNode.Ready`, which `node.go`'s `run` calls after handing the `Ready` to the application.
 
-**Users.** `RawNode.Ready` (`rawnode.go:133`) and `node.run` (`node.go:435-436`, right after the send on
-`readyc`, at which `ready_handout` handed `rd` out). Snippet: `ready.go`.
-
-**Proof sketch.** The previous `Ready`'s acknowledgements were stepped (`ready_handout` took a fresh
-`Ready` computed with none queued), so no panic. `prevSoftSt`, `prevHardSt` move to `rd`'s;
-`readStates`, `msgs`, `msgsAfterAppend` cleared (handed out); the acknowledgements queued in
-`stepsOnAdvance` (released at `Advance` as `ackOk` by `rawNodeAt_advance`): the self-addressed
-responses of `msgsAfterAppend`,
-`newStorageAppendRespMsg` (the batch's last entry and snapshot, if any: `needStorageAppendRespMsg`),
-`newStorageApplyRespMsg` (the committed entries, if any), each over the opened struct; the log's
-`acceptUnstable` and `acceptApplying` (R3). `traceReady` (a no-op).
-
-**Changes** (from `specs-ref`'s `RawNode__acceptReady.lean`): over the `RawNode`'s phases (was the
-`Ready`'s record `rof` and the receipt handshake).
-
-**Margin.** A `Ready` not handed out cannot be accepted here (no caller does).
+Lean notes: as `RawNode.Ready.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 
 @[expose] public section
 
@@ -30,25 +14,57 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Accepts the `Ready` handed out: the next phase, its acknowledgements queued. -/
-def RawNode.acceptReady.spec : Prop :=
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (rd : go_etcd_io.raft.v3.Ready),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ readyHanded rn γ id k rd }}
-    (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"acceptReady")) (Val #rd))
-  {{ RET #(); rawNodeAt rn γ id (k + 1) true }}
+/-- `rn.acceptReady(rd)`, for the `Ready` `readyWithoutAccept` returned, with nothing in
+between (`ownRawNodeReady`): the node's new state as after `RawNode.Ready` -- `delivered`
+grows by `ce`, `unpersisted` is `es`, the local messages for `Advance` are queued
+(`steps`, opaque); the lower bounds `outlb` and `unst` are reset (2026-10-10: nothing
+is queued, and every unstable entry is handed out). The right to append `es` to the
+node's storage is handed out before the call, since 2026-10-10 (`ownRawNodeReady_handout`:
+the node comes in at `ownRawNodeReady … true`), and so are (2026-10-13) the messages' read
+credits, with the drain of the abstract outbox. It sets `r.readStates` to `nil` (2026-10-13; the
+`ReadState`s and their facts were handed out by `readyWithoutAccept`), a model step
+(`Step.takeReads`) the node's state hides. `acceptReady` does not read `rd.Messages`,
+which the application may already hold (`ms`, what `readyWithoutAccept` handed out there, is only an index of
+`ownRawNodeReady`, since 2026-10-10). (2026-10-16, stage R5, D8: it does read the messages to
+others of `msgsAfterAppend`' `To`, which it keeps at half (`ownRaftPhysReady`'s `Hother`); it
+stores `rd.HardState` in `prevHardSt` when not empty; the queued acknowledgements are fresh
+messages (`newStorageAppendRespMsg`, `newStorageApplyRespMsg`), the apply acknowledgement's
+`Entries` the committed entries' slice.) (D22l, 2026-10-20: `prevHardSt`'s record moves to
+`phsNext rs.phs h`, `h` the `Ready`'s hard state, `hsOpt rd.HardState' h`, which the caller
+names.) (D22 S-d3a, 2026-10-21) With a snapshot (`L`): the acknowledgement queued shares the
+`Ready`'s snapshot, the snapshot is in progress, and the node records the loan (`RNState.slent`);
+either way no snapshot is restored since this `Ready` (`psnap` off). (2026-11-01, durability stage
+I fix G2) The node records the batch's durable state (`readyDurable`, as the driver does:
+`NodeDriverState.afterReady`) and the role after the `Ready`'s soft state `ss` (`roleAfter`). -/
+abbrev RawNode.acceptReady.spec : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
+    (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗
+      "#Hh" ∷ hsOpt rd.HardState' h }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
+  {{ (steps : List Pending) (ss : Option (w64 × StateType)), RET #();
+      -- (2026-11-01, durability stage I fix G2) the `Ready`'s soft state, which the node records
+      "#Hss" ∷ softStateIs rd.SoftState' ss ∗
+      -- (2026-11-01, durability stage II (k)) `none` at a `nil` pointer
+      "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
+      "Hrn" ∷ ownRawNode γ rn id
+        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+                  outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
+                  slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                  role := roleAfter rs.role ss } }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

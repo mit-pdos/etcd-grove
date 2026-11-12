@@ -1,17 +1,10 @@
 /-
-`clientv3.toLeaseTimeToLiveRequest` (`client/v3/op.go`).
-
-Users: `lessor.TimeToLive` (1c).
-
-Proof sketch: `LeaseOp.applyOpts.spec` on a fresh `LeaseOp{id}`; a fresh request.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/toLeaseTimeToLiveRequest.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.toLeaseTimeToLiveRequest(id, opts...)` (`client/v3/op.go`; the closed lease example, `notes/lease-ex-plan.md`). Lean-first (no
+Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
 
 @[expose] public section
 
@@ -19,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,19 +22,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `toLeaseTimeToLiveRequest(id, opts...)`: a fresh `LeaseTimeToLiveRequest` of `id`, `Keys` as the
-options set it. -/
-def toLeaseTimeToLiveRequest.spec : Prop :=
+/-- `toLeaseTimeToLiveRequest(id, opts...)`: a new request (owned) for the lease `id`, its `Keys` what
+the options leave of `false` (`WithAttachedKeys` sets it), the rest zero. -/
+abbrev toLeaseTimeToLiveRequest.spec : Prop :=
   ∀ (id : w64) (sl : GoSlice) (gs : List (Bool → Bool)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ leaseOptsAt sl gs }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.toLeaseTimeToLiveRequest)) (Val #id)) (Val #sl))
-  {{ (p : Loc), RET #p; leaseOptsAt sl gs ∗
-      protoRest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest p (DFrac.own 1) ∗
-      p.[go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest, go!"ID"] ↦ id ∗
-      p.[go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest, go!"Keys"] ↦ gs.foldl (fun b g => g b) false }}
+  {{ (l : Loc), RET #l; l ↦ { (zeroValDef : etcdserverpb.LeaseTimeToLiveRequest) with
+      ID' := id, Keys' := leaseKeysFold gs false } }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

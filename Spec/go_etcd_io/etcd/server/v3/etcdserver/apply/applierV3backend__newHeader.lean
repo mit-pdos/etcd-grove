@@ -1,29 +1,23 @@
 /-
-`(*applierV3backend).newHeader()` (`backend.go:306-314`): a response header: the cluster and member ids, mvcc's current revision, the raft term, the leader.
-
-**Users.** the backend applier's replies.
-
-**Proof sketch.** The membership's `ID()` (2e), `statusOk`'s getters, 3e's `Rev()` at the store (`stAt`).
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** The ids, term and leader any.
+`apply.applierV3backend.newHeader` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,16 +26,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **A fresh header at the store's revision.** -/
-def applierV3backend.newHeader.spec : Prop :=
-  ∀ (p : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ beAt p mc γ γc R ∗ stAt p σ ∗ threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"newHeader")) (Val #()))
-  {{ (h : Loc), RET #h; stAt p σ ∗ threadTok ∗ ∃ m : EtcdWire.HeaderM,
-      EtcdWire.respHeaderOwn h (DFrac.own 1) m ∗ ⌜uint.nat m.revision = σ.kv.rev⌝ }}
+/-- **`a.newHeader()`**: a fresh `ResponseHeader` (the cluster's `ID`, the raft status's `MemberID`, `Term`, `Leader`, the KV's `Rev()`: `KV.Rev.contract` at the writer's read update, `envAus`; strict M1, 2026-11-05: the
+thread's token and the writer's half in place of mvcc's reader slots; 2026-11-06: the thread's tokens `applyTok E`, with the store's reader token `KV.Rev` holds). The post (the lease-grant stage, 2.11a, 2026-11-03): the
+header's four id fields owned (`hdrFields`), its `Revision` the writer's log's last revision,
+that log witnessed (`E.Nx`, the server's `kvNx`; the merge of `lean`, 2026-11-06: in place of mvcc's
+`certOk`, from `envAus`'s writer facts) and within the writer's bounds. -/
+abbrev apply.applierV3backend.newHeader.spec : Prop :=
+  ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log) (c : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      apply.applyTok E ∗ srvApi.wSt E.γs log c }}
+    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"newHeader")) (Val #()))
+  {{ (h : Loc), RET #h; apply.applyTok E ∗ srvApi.wSt E.γs log c ∗ ⌜h ≠ null⌝ ∗
+      apply.hdrFields h ∗
+      structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ W64 ((log.length : Int) - 1) ∗
+      □ E.Nx log ∗ srvApi.kvLogLb E.γs log ∗ ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

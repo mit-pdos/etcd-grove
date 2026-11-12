@@ -1,15 +1,7 @@
-/-
-## `(*unstable).restore` (internal)
-
-The embedded `unstable` of a `raftLog` (`raftLog`'s realization holds `unstable` of its field).
-Users: `raftLog`'s methods only. Mirrors the code over `UnstableState`.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/unstable__restore.lean`: over `UnstableState`.
--/
+/- Port of election_proof/spec_unstable__restore.v (857d09190). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -17,26 +9,54 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Restart at snapshot `s` (a clone kept). -/
-def unstable.restore.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableState) (sp : Loc) (dq : DFrac) (s : Snapshot),
-  uint.nat s.index + 1 < 2 ^ 64 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ unstable u us ∗ snapshotPts sp dq s }}
-    (App (Val (u @!! go.GoType.PointerType go_etcd_io.raft.v3.unstable.ty @!! go!"restore")) (Val #sp))
-  {{ RET #(); unstable u (us.restore s) ∗ snapshotPts sp dq s }}
+/-- `u.restore(s)` (`log_unstable.go:188`, `unstable.restore.impl`):
+
+    u.offset = s.Metadata.Index + 1
+    u.offsetInProgress = u.offset
+    u.entries = nil
+    u.snapshot = &s
+    u.snapshotInProgress = false
+
+`&s` is the address of the by-value parameter, a fresh heap cell; it becomes the
+state's `snap`, the snapshot's id (`snapId`), held as `ownSnap` together with the
+caller's read-only `ConfState.Voters` (since 2026-10-03: `raftLog.snapshot()` hands the
+stored snapshot's voters to `maybeSendSnapshot`). The old entries are dropped (the
+suffix is empty, a `nil` slice); the logger is left alone, which `ownUnstable` keeps
+without saying (until 2026-10-08 the post said so, on the Goose value). (2026-10-15, stage S)
+The snapshot, with its lists, joins the ones the node may send (`ksn`, `pendKsn`).
+
+raft v3.7 (stage R3, 2026-10-15): `s` is a `*pb.Snapshot`, read at any fraction and given back,
+and `u.snapshot = proto.Clone(s)` (`log_unstable.go:196`): the log holds a fresh clone,
+read-only for good (`ownSnap`; until the retarget `&s` of the by-value parameter with the
+caller's `ConfState` slices, `ownCSL` of the lists `voters`, now the record's own). -/
+abbrev unstable.restore.spec : Prop :=
+  ∀ (u : Loc) (us : UnstableSt) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
+  -- (2026-10-28, stage U0) its `ConfState` names a node (`pendKsn`)
+  (∃ x, sv.Metadata'.ConfState'.lists.Has x) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hun" ∷ ownUnstable u us ∗
+      -- (D22 S-d4 item 4) every pointer field set (`raft.restore`'s `EnsureSnapshot`)
+      "Hsnap" ∷ ownSnapS sp dq sv }}
+    (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"restore")) (Val #sp))
+  {{ RET #();
+      ownSnapS sp dq sv ∗
+      ownUnstable u { ents := [], offset := sv.Metadata'.Index' + W64 1,
+                      inprogress := sv.Metadata'.Index' + W64 1,
+                      snap := some (snapId sv),
+                      ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists],
+                      sip := false } }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

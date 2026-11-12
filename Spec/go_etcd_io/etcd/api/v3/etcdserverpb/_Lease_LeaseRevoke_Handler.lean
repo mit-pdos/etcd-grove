@@ -1,21 +1,12 @@
 /-
-`_Lease_LeaseRevoke_Handler(srv, ctx, dec, interceptor)` (`api/etcdserverpb/rpc_grpc.pb.go`, generated): the
-server-side handler of `/etcdserverpb.Lease/LeaseRevoke`.
-
-Users: grpc's `Serve` (2a: `regsOk`, from `Lease_ServiceDesc`'s `MethodDesc`), for the service value
-`v3rpc` registers (`RegisterLeaseServer`).
-Proof sketch: `new(LeaseRevokeRequest)` (a fresh message: some content), `dec(in)` (`Grpc.decOk_call`: the
-request's content, no error), then `handlerBodyWP`: the type assertion `srv.(LeaseServer)` (the
-premise), the method directly or through the interceptor (with a `*UnaryServerInfo` and the closure
-`func(ctx, req) { return srv.(LeaseServer).LeaseRevoke(ctx, req.(*LeaseRevokeRequest)) }`). 2a composes it with
-`icChain_call` and the method's `HandlerTriple` into `Grpc.unaryOk`.
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_Lease_LeaseRevoke_Handler.lean`: WP form over grpc's `decOk` and the request's content (2a), instead of the old `grpcHandlerOkMd` over caller-built `ProtoMsg`s (`specs-ref/notes/grpc-msg-models.md`); the interceptor chain is 2a's (`icChain_call`).
-verify-round (A6 F2): the decoded request is canonical, `⌜Proto.norm c = c⌝` (was `Proto.decodedAt`).
-Margin: none.
+`etcdserverpb._Lease_LeaseRevoke_Handler(srv, ctx, dec, interceptor)` (`api/etcdserverpb/rpc_grpc.pb.go`,
+the generated server-side handler of the Lease service's `LeaseRevoke`; translated for the client lease's stage (c); the server
+end of the gRPC boundary). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/google_golang_org/grpc/InvGrpc.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
+public import Proof.google_golang_org.grpc.InvGrpc
 
 @[expose] public section
 
@@ -23,10 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServerPb
 
-open Iris Iris.BI EtcdModel EtcdWire
-open go_etcd_io.etcd.api.v3
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,21 +24,37 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-/-- `_Lease_LeaseRevoke_Handler(srv, ctx, dec, ic)`: decode the request, then run `handlerBodyWP` (WP form). -/
-def _Lease_LeaseRevoke_Handler.spec : Prop :=
-  ∀ (srv : GoInterfaceOk) (ctx : GoInterface) (dec : val) (ic : GoFunc) (c : Proto.Content)
-    (Ψ : val → IProp GF),
+/-- **`_Lease_LeaseRevoke_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
+implements `LeaseServer` (a method-set fact) and whose `LeaseRevoke` meets `Spec` with the resource `S`
+(`grpcHandlerOk`), for messages whose types are `*LeaseRevokeRequest`/`*LeaseRevokeResponse` (a zero
+`*LeaseRevokeRequest` is the request's blank), under the chain `ics` of transparent interceptors with
+their resources `Rs`, for requests with `Q` (which the decoded request has;
+`srvInterceptorsOk`, given `grpcSrvChain ics interceptor`), with grpc's
+`dec` for the request at `m` and `Spec m Φ`: decodes a new `*LeaseRevokeRequest` and runs `srv.LeaseRevoke`
+through the chain; the resources come back, and on success the response (as `any`) is at some
+`m'` with `Φ m'`. -/
+abbrev etcdserverpb._Lease_LeaseRevoke_Handler.spec : Prop :=
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
+    (Φ : Rep.M → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+  Req.ty = etcdserverpb.LeaseRevokeRequest.ty → Rep.ty = etcdserverpb.LeaseRevokeResponse.ty →
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
-  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.LeaseRevokeRequest.ty c ∗
-    (∀ q : Loc, Proto.msgAt etcdserverpb.LeaseRevokeRequest.ty q (DFrac.own 1) c -∗
-      ⌜Proto.norm c = c⌝ -∗
-      handlerBodyWP srv go!"LeaseRevoke" etcdserverpb.LeaseRevokeRequest.ty etcdserverpb.LeaseRevokeResponse.ty go!"/etcdserverpb.Lease/LeaseRevoke"
-        ctx q ic Ψ) ⊢
-  WP (App (App (App (App (Val (@! etcdserverpb._Lease_LeaseRevoke_Handler)) (Val #(GoInterface.ok srv)))
-    (Val #ctx)) (Val dec)) (Val #ic)) {{ Ψ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseRevokeRequest) -∗ Req.blank l) ∗
+      grpcHandlerOk #(methods srv.ty go!"LeaseRevoke" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      (□ ∀ l : Loc, Req.recv l m -∗
+        Q (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeRequest.ty) #l)) ∗
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
+      grpcSrvChain ics ui ∗ Spec m Φ }}
+    (methodHandlerCall (@! etcdserverpb._Lease_LeaseRevoke_Handler) #(GoInterface.ok srv)
+      #(GoInterface.ok ci) dec ui)
+  {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
-end EtcdServerPb
 end EtcdGrove
 end Perennial

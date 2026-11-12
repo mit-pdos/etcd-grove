@@ -1,43 +1,40 @@
 /-
-## `schema.NewMembershipBackend(lg, be)`
-
-**Users.** Bootstrap (`bootstrap.go:133,512`), `applySnapshot` (`server.go:1132`: `SetBackend`).
-Snippet: `examples/specreq/schema/schema.go` (`ReqMembersSaveRead`).
-
-**Proof sketch.** Allocates `&membershipBackend{lg, be}`, read-only. **Changes.** From `specs-ref`'s
-`NewMembershipBackend.lean`. **Margin.** None.
+`schema.NewMembershipBackend(lg, be)` (`membership.go`). Lean-first (no Rocq counterpart); D22
+receiver epochs, S8c (2026-10-24), for `applySnapshot`'s `cluster.SetBackend`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **A membership backend over `be`** (read-only for good). -/
-def NewMembershipBackend.spec : Prop :=
+/-- `NewMembershipBackend(lg, be)` returns a fresh `*membershipBackend`
+wrapping `be` (its fields `lg`, `be`, persistent: no method writes them). -/
+abbrev schema.NewMembershipBackend.spec : Prop :=
   ∀ (lg : Loc) (be : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.NewMembershipBackend)) (Val #lg)) (Val #be))
-  {{ (mb : Loc), RET #mb; (mb ↦□ (go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.mk lg be) : IProp GF) }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.NewMembershipBackend)) (Val #lg))
+      (Val #be))
+  {{ (l : Loc), RET #l;
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" l ↦□ lg ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l ↦□ be }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

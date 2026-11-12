@@ -1,19 +1,15 @@
-/-
-## `MemoryStorage.ApplySnapshot(snap)`
+/- `MemoryStorage.ApplySnapshot` (`storage.go:218`).
 
-**Users.** etcd's `bootstrappedWAL.MemoryStorage` (`bootstrap.go:741`: detached, rebuilt from the WAL),
-`raftNode.start` (`raft.go:287`, `292`: the batch's snapshot and entries), `EtcdServer.snapshot`
-(`server.go:2132`: `CreateSnapshot` at the applied index), `EtcdServer.compact`/`purge`
-(`server.go:2180`: `Compact`), `EtcdServer.getSnapshot` (`server.go:755`); the examples' storages
-(`kvdurable/storage.go`, a wrapper calling these under its own lock). Snippets: `storage.go`, `readyloop.go`. **Proof sketch.** Under the lock: an older
-or equal non-empty stored snapshot refuses it (`ErrSnapOutOfDate`), else the snapshot cloned and the
-log reset to it (`StorState.applySnapshot`). **Changes.** Atomic (was `memStorAt`'s modes).
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). Takes the owned range from `j ≤ s` (`s` the snapshot's index) to the end, the end, the compaction's justification at `s` (`J.B s`: the API's `snapGiven`), the snapshot's validity and delivered bound, and the stored snapshot open for writes (`memSnapLb γs 0`); always succeeds (the stored snapshot's index is frozen, or `0`, so below `j`, whoever stored it); gives the snapshot `Advance`'s resources: compacted at `s`, the dummy at `s` frozen, the end at `s + 1`, and the stored index at least `s`. `s < 2^61`: the dummy's range bound (the contract's `Hlen`).
+
+kvreconf-snapshot-thread (2026-10-30): no exclusive `memSnapExact` (pre and post): `memSnapLb`.
+
+Durability stage I (I-5, 2026-10-31): the mode `o` (`memStorAt`; the bounds `J.B s ∗ J.SV sv ∗ J.DL s` are the attached mode's). Detached (`some (c, _)`): the token comes back at compaction point `max c s` and stored snapshot `sv`. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 
 @[expose] public section
 
@@ -21,31 +17,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- Installs snapshot `s`, atomically; `ErrSnapOutOfDate` (nothing changed) if the stored one is as
-new. -/
-def MemoryStorage.ApplySnapshot.spec : Prop :=
-
-  ∀ (ms : Loc) (sp : Loc) (dq : DFrac) (s : Snapshot) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ snapshotPts sp dq s ∗ (AU <{ ∃∃ (σ : StorState), memStor ms σ }> @ ⊤, ∅
-        <{ memStor ms (σ.applySnapshot s), COMM Q σ }>) }}
-    (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"ApplySnapshot")) (Val #sp))
-  {{ (err : GoInterface), RET #err; snapshotPts sp dq s ∗ ∃ σ, Q σ ∗
-      ((⌜err = interface.nil ∧ σ.applySnapshotErr s = false⌝) ∨
-       (⌜σ.applySnapshotErr s = true⌝ ∗ errIs go_etcd_io.raft.v3.ErrSnapOutOfDate err)) }}
+/-- `ms.ApplySnapshot(snap)`. -/
+abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat)
+    (old : List EntryM) (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
+  j ≤ uint.nat sv.Metadata'.Index' →
+  uint.nat sv.Metadata'.Index' < 2^61 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memStorAt ms γs J o
+        iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
+      memLog γs j (DFrac.own 1) old ∗ memEnd γs (j + old.length) ∗
+      snapArg sp dq sv ∗ memSnapLb γs 0 ∗ globalAddr ErrSnapOutOfDate ↦□ eood }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot")) (Val #sp))
+  {{ RET #interface.nil; ownSnapM sp dq sv ∗
+      memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+      memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+      memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗ memSnapLb γs (uint.nat sv.Metadata'.Index') ∗
+      (match o with
+       | some (c, _) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
+       | none => emp) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

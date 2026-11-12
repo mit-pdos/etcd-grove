@@ -1,42 +1,22 @@
 /-
-## `(*authStore).Recover(be)`
-
-**Users.** `EtcdServer.applySnapshot` (`server.go:1127`, 2d), the writer, with the snapshot's backend
-`schema.NewAuthBackend(lg, newbe)`. Snippet: `examples/specreq/auth/boot.go` (`ReqRecover`).
-
-**Proof sketch.** `beMu.Lock()`, `as.be = be` (the linearization point: the snapshot's state `a'`
-recorded as `i + 1`, `authReached`; the backend view moves; the old backend's share given back, its
-readers' transactions still open, which the server's close of it waits for, 4a), `Unlock`; the new
-backend's read transaction (a reader slot: `threadTok`): the flag, `setRevision` (the atomic view),
-`refreshRangePermCache` (the cache view), `RUnlock`; `enabledMu.Lock()`, the flag (the flag view),
-the provider's `enable()` if on.
-
-**Changes.** The old spec (`authRecoverOk`, mode `on` only after `notes/snapshot-auth-on-plan.md`)
-restated over W0's state at every mode: the snapshot's state follows the store's (`AuthReach`,
-which 2d has from the cluster's history: the snapshot is at a later index).
-
-Round 1 (review S2): `recordsFit a'` (the revision fits the atomic).
-Verify round (A9 3d F4): the store's backend moves (`authBeCur γa be0` to `be`), and the share given
-back is the replaced backend's, `be0` (it was an anonymous backend).
-
-**Margin.** The provider is not disabled when the snapshot's state has auth off (its tokens stay
-valid in it; `AuthInfoFromCtx` reads the flag first).
+`authStore.Recover` (`server/auth/store.go`): the admin side (the auth plan's S4, 2026-10-24).
+Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (the
+write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.TieRes
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -45,17 +25,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.Recover(be)`** by the writer: the snapshot backend's state `a'`, a successor of the
-store's, recorded as its next state; the replaced backend's share given back. -/
-def authStore.Recover.spec : Prop :=
-  ∀ (st : Loc) (be be0 : GoInterface) (γ : Cluster) (γa : AuthNames) (i : Nat) (a a' : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗ authBeCur γa be0 ∗ threadTok ∗ authBackendAt be a' ∗
-      authReached γ a' ∗ ⌜AuthReach a a' ∧ validPerms a' ∧ recordsFit a'⌝ }}
-    (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"Recover")) (Val #be))
-  {{ RET #(); authCur γa (i + 1) a' ∗ authBeCur γa be ∗ threadTok ∗
-      ∃ a0 : AuthState, authBackendAt be0 a0 }}
+/-- **`as.Recover(be)`**, one spec over the mode (the auth-on snapshot plan's decision 5 and
+candidate (ii), the Freeze of 2026-11-03): the new backend `be` (not nil) with its read contract in
+the mode (in `on γa` at its names `γc`, with its write token and whole currency and the apply
+thread's share of the old backend's names `γc₀`: `recoverIn`), the store's user's half of the field
+`be`, the admin side's halves of the flag and the cache, and the pending authority (`authOwnPM`: in
+`on γa` the history caught up to `hs ++ N` beforehand, the latest state still `hs`'s last).
+`Recover` swaps the backend under `beMu` (in `on γa` the new names current, the old backend's whole
+currency taken out), reads the new backend's state under its read transaction (the read resource
+`R`; in `on γa` the latest clause, with the write token: the caught-up history's last `stI`, which
+fits the cache, `recoverFit`), stores its revision (the latest state moves to it) and sets the flag
+and the cache from it: the authority at `hs ++ N`, with the halves tied to the latest state
+(`authOwnT`). It writes nothing, so it takes no write contract and appends no state. (Until then:
+the write contract, the whole authority with the lock's share, and an append of the state read.) -/
+abbrev auth.authStore.Recover.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (hs N : List AuthState) (stI : AuthState)
+    (be : GoInterface) (γc₀ γc : AuthBkNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      authOwnPM M hs N ∗ (∃ be0 : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be0) ∗
+      enabledHalf st M ∗ cacheHalf st M ∗ tpAdmin st M ∗ R ∗ ⌜be ≠ GoInterface.nil⌝ ∗
+      authBackendOk be R M γc ∗ recoverIn M γc₀ γc ∗ recoverFit M hs N stI }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Recover")) (Val #be))
+  {{ RET #(); tpAdmin st M ∗ R ∗ aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗
+      authOwnT st M (hs ++ N) ∗ recoverOut M γc₀ γc }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

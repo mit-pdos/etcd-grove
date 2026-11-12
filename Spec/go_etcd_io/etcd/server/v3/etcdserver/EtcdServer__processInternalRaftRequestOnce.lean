@@ -1,56 +1,13 @@
 /-
-## `(*EtcdServer).processInternalRaftRequestOnce(ctx, r)` (the proposal)
-
-**Users.** `raftRequest` (every write path), `Compact` (`v3_server.go:392`). Concurrent callers.
-Snippets: every write snippet of `examples/specreq/etcdserverreq/` (through `raftRequest`).
-
-**Proof sketch.** `getAppliedIndex`/`getCommittedIndex` (atomics, any values), `exceedsRequestLimit`
-(2e's spec; `ErrTooManyRequests`: outcome 2, nothing proposed); `r.Header = {ID: s.reqIDGen.Next()}`
-(`IdUtil.Generator.Next.spec`: `idFresh γi id`, the member's generator in `isServer`); unless
-`Authenticate`, `AuthInfoFromCtx(ctx)` (`AuthInfoFromCtx.spec`: `p`'s or `tls`'s name, by the auth
-state at the check, and the auth revision into the header, or an invalid token: outcome 2); `proto.Marshal(r)` (protobuf's boundary, at the
-depth premise: `irrOwn` gives bytes every member's apply decodes back to `ir` with this header; its
-error: outcome 2); `len(data) > MaxRequestBytes`: `ErrRequestTooLarge` (outcome 2); `id` (`r.ID` is
-`0`: `irrOwn`'s); `s.w.Register(id)` (`Wait.list.Register.spec`, its `waitTok` from the cluster's
-invariant, where `idFresh` shows `id` was never registered: `Wait.waitToks_take`; the receive half
-`waitRecv`); `context.WithTimeout(ctx, ReqTimeout())`; **the proposal**: `s.r.Propose(cctx, data)`
-(R1's `node.Propose.spec`, through the raft wrapper, 2d) with the update over `committedOps` that the
-cluster's invariant builds from the caller's (2d, `propose_upd`, `req/`): at the entry's commit it
-appends the entry to the history (`histAt`), fires the caller's update at `σ` with the answer the
-apply will compute (`answered γ k id res`; an apply refusal of outcome 2, `ErrAuthOldRevision`,
-fires nothing and keeps the update for the waiter), and deposits the waiter's share for `id` (the
-wait registry's `P id`). A `Propose` error: `Trigger(id, nil)` with `waitRecv` (`Wait.list.
-Trigger.spec`), the error unsettled (raft's `propErr`: dropped or the context's: the update may be
-in raft). The `select`: `ch` (`Wait.waitRecv_recv`: the apply thread's `*apply.Result` for the
-entry, `applyResult` with the fired `Q` or the update back); `cctx.Done()` (`Trigger(id, nil)`,
-`parseProposeCtxErr`: unsettled); `s.done` (`ErrStopped`: unsettled). Deferred: `cancel`, the
-metrics (4b's prometheus boundary).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__processInternalRaftRequestOnce.lean`: the
-request's names `ρ`, `idCred`, the proposal's ghost data, the outcome model) restated over W0's
-state: the caller's update over `etcdState` by `srvStep` (`irrUpd`), the three outcomes, the result as
-`applyResult`. Round 1: the message given back (`irrOwn`, its header set: Go keeps nothing of it, only
-the marshalled bytes are proposed); `irrWf` (the gRPC layer's validation and the depth); the
-principal pair; every error with `srvErrShape`; `irrBackOk` (an apply refusal, or `Authenticate`'s token
-issued at a moved auth revision: the update back).
-
-**Margin.** A result of outcome 1 for an apply refusal other than a token one (`ErrCorrupt`)
-is fired (a refusal is a `Step`); the code would allow giving it back. The token refusals
-(`srvFiredAns`: `ErrUserEmpty`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`) are always given back
-(integration I4, 2a's `firedAns`): at the apply they change nothing, so the invariant may. `ErrNoSpace` is indefinite
-(W0's round 5: an over-quota member applies a write and answers it), so it is outcome 1 or 3, never
-given back (`irrBackOk` excludes indefinite errors).
-
-**Integration (I4).** The model of the request is 3h's `IrrBody`; the request the caller's update
-is over is a separate `ao` (`irrAsks`), since the token's password is not in the message.
-
-Changes: verify-round (A7-provability F3, F5): see the verify round's repair: the context needs only its otel span (`reqCtxSpan`, any trace: the outer method's `EnsureTrace` installed one); the request message comes back with whatever header was set (`∃ h, irrOwnH r dq ir h`: the header is written before proposing).
+`s.processInternalRaftRequestOnce(ctx, r)` (`v3_server.go`): propose the request through raft
+and wait for the apply thread's result. Lean-first (no Rocq counterpart); see `InvProposer.lean`,
+`InvRequest.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -58,9 +15,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -69,25 +25,66 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Proposes `ir` and waits for its result**: the apply's result with the update fired at the
-entry's commit (outcome 1), or with the update given back for an apply refusal (outcome 2); an
-error before proposing, the update given back; an unsettled error. -/
-def EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc)
-    (dq : DFrac) (ir : IrrBody) (ao : Option Req) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxSpan ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
-      ⌜irrWf ir ∧ irrAsks ir ao⌝ ∗ authLb γ lo ∗
-      irrUpd γ p tls lo ao rep Q }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"processInternalRaftRequestOnce")) (Val #ctx)) (Val #r))
-  {{ (x : Loc) (err : GoInterface), RET (PairV #x #err); threadTok ∗ (∃ h, EtcdServerPb.irrOwnH r dq ir h) ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ irrFired ao Q σ σ' res ∗
-          applyResult γ x ir res) ∨
-       (⌜err = GoInterface.nil⌝ ∗ (∃ res, ⌜irrBackOk ir res⌝ ∗ applyResult γ x ir res) ∗
-          irrUpd γ p tls lo ao rep Q) ∨
-       (⌜x = null⌝ ∗ srvUnfired err ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q) ∨
-       (⌜x = null⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
+/-- **The handoff.** `s.processInternalRaftRequestOnce(ctx, r)`, any goroutine, at a context, for
+a request `r` holding `rq` but for its header (which it sets: the fresh id `Next` returns, the
+auth info's user name and revision), with no `ID` (the server's requests have none; `Apply` takes
+the header's), one id credit, a reader slot of `s.leadTimeMu` and (2026-10-14, unit A2) the auth store's reader
+resource `E.RD` (`AuthInfoFromCtx`):
+* success (`err = nil`): `res` is the apply thread's result of applying `rq'`, the request the
+  proposed data decode to (`irrWireOf`: `rq` with its header, up to the model's `[0]` range ends):
+  `resultIs E rq' res` (the apply package's `applyStep` and `applyResultIs` at the KV state the
+  entry met, and mvcc's certificate of the log after; 2026-10-14, unit C2a: `resultIsW E ρ.rd`, with
+  the witness that the log after is applied through an index of the committed log, `appliedWit`);
+  and (2026-10-14, unit T1) the result `Qr` of the proposal's update at a committed log (`reqPropOk
+  ρ.kv rq Qr`: the request has no KV write, `Qr` trivial; or, since 2026-10-15 (unit T2), it is a
+  plain write, a put, a delete or a transaction, with its client's update over the whole state,
+  `Qr L` the client's `□ Q` at the state of `L`'s model): `□ Qr L` of the committed log `L` before
+  the entry the result is of, whose model is the log `lb` the entry met (unit W-M3: the result's
+  `y.log`, so the update's state is the write's);
+* failure: no result, an error the gRPC layer can take (`applyErrIs`: in an error tree, a safe map
+  key, with a message; 2026-10-12, unit 3a), and the proposal, if made, deposited (`srvMaybeDeposited`: it may
+  still be applied: the request limit, the auth store's error, the marshal's error, the size
+  limit come before the proposal; `Propose`'s error, the context's (`parseProposeCtxErr`) and the
+  server's stop (`ErrStopped`) after it).
+
+**In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
+the mode `E.authOn`; the mode-off form, `specOff`, is a
+corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): `spec`'s,
+with the proposer's view of the server, the wait's results and the KV model of the mode
+(`isServerReqM`; the applied result `resPostM`: in the mode `on` with the auth state the entry met
+and the auth layer's verdict the model's grant there, `authTie`), and the proposal's permission at the header the server stamps
+(`reqPropOkM`: in the mode `on` the check reads the request's principal, which the server fills in
+from the context before it proposes; the result `Qh hm` is at that header `hm`, the one the post
+names); (E3t, 2026-10-27) with auth on, the auth state after the entry published (`pubAfterM`);
+(E3zb, 2026-10-28) with auth on, the stamped header's user bound to the context (`hdrBoundM`: the
+store's `AuthInfoFromCtx` reads the context's token, `srvAuthBound` in `isServerReqM true`). At
+`on = false` it is `spec` (`EtcdServer.processInternalRaftRequestOnce.wp_proof` is
+derived from it, a constant `Qh`). -/
+abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
+    (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
+  rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
+      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
+      (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
+      srvApi.kvLogLb E.γs F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
+      (Val #(GoInterface.ok ctx))) (Val #p))
+  {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
+          ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ resPostM E.authOn E ρ rq' F res L ∗
+            pubAfterM E.authOn E ρ rq' L ∗ □ Qh hm L ∗ hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+       (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
+
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

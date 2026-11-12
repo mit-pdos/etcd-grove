@@ -1,25 +1,18 @@
 /-
-`grpc.MaxSendMsgSize` (grpc-go, assumed: `server.go`).
-
-Users: `v3rpc.Server` (`grpc.go:86`: `math.MaxInt32`).
-
-Why true: a reply over the limit fails the call with `ResourceExhausted` after the run (grpc's own error to the client).
-
-Changes: from `specs-ref/.../grpc/MaxSendMsgSize.lean`.
-
-Margin: none.
+`grpc.MaxSendMsgSize(n)` (names only; item 4, the server start).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -29,15 +22,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.MaxSendMsgSize(...)`: a server option acting as shown. -/
-def MaxSendMsgSize.spec : Prop :=
+/-- `grpc.MaxSendMsgSize(n)` returns a neutral option. -/
+abbrev grpc.MaxSendMsgSize.spec : Prop :=
   ∀ (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ True }}
+  {{ (True : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.MaxSendMsgSize)) (Val #n))
-  {{ (v : GoInterface), RET #v; srvOptAt v (id) }}
+  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v .neutral⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

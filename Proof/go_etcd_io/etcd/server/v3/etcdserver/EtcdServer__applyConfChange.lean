@@ -1,0 +1,767 @@
+/-
+Proof of `Spec/.../EtcdServer__applyConfChange.lean` (D43 M5e, 2026-10-26; until then an axiom).
+Its `v3 = false` case, the replayed `AddNode`, is R2d'a's (swap batch 1, 2026-11-06; until then
+`ApplyConfChangeR.lean`'s `wp_proofRep`). Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfChange
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ValidateConfigurationChange
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__AddMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__RemoveMember
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustSaveMemberToBackend
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustDeleteMemberFromBackend
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustReadMembersFromBackend
+public import Spec.go_etcd_io.etcd.server.v3.storage.BackendHooks__SetConfState
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__RemovePeer
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetType
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetNodeId
+public import Spec.encoding.json.Unmarshal
+public import Spec.go_uber_org.zap.Logger__Error
+public import Spec.go_uber_org.zap.Bool
+public import Spec.go_uber_org.zap.Error
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportFull
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestMemId
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
+  go_etcd_io.etcd.server.v3.etcdserver.cindex
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- A conf change's `Context` field, borrowed (as `ValidateConfigurationChange`'s proof's). -/
+theorem ownConfChange_context_acc' (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p dq m ⊢ ∃ cs : GoSlice,
+      p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
+      (p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs -∗ ownConfChange p dq m) := by
+  unfold ownConfChange
+  iintro H
+  iNamed H
+  iexists cs
+  iframe HC Hcs
+  iintro HC
+  iexists pt, pn, pi, cs, uf
+  simp only [named]
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe #
+
+/-- An insert keeps the static side condition (the local member still in the map). -/
+theorem rcStatic_insert (k : w64) (l : Loc) :
+    ∀ lid ms rm, membership.rcStatic (GF := GF) lid ms rm ⊢
+      membership.rcStatic lid (GMap.insert k l ms) rm := by
+  intro lid ms rm
+  unfold membership.rcStatic
+  iintro %h
+  ipureintro
+  refine ⟨?_, h.2⟩
+  by_cases hk : k = lid
+  · subst hk; rw [GMap.lookup_insert]; simp
+  · rw [GMap.lookup_insert_ne _ _ hk]; exact h.1
+
+/-- An insert keeps the dynamic side condition (it says nothing of the map). -/
+theorem rcDyn_insert (γ : GName) (k : w64) (l : Loc) :
+    ∀ lid ms rm, membership.rcDyn (GF := GF) γ lid ms rm ⊢
+      membership.rcDyn γ lid (GMap.insert k l ms) rm := fun _ _ _ => .rfl
+
+/-- A conf change's `NodeId` field, replaced (`cc.NodeId = new(raft.None)`). -/
+theorem ownConfChange_nodeId_acc (p : Loc) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p (DFrac.own 1) m ⊢ ∃ pn : Loc,
+      p.[raftpb.ConfChange, go!"NodeId"] ↦ pn ∗
+      (∀ (pn' : Loc) (v : w64), p.[raftpb.ConfChange, go!"NodeId"] ↦ pn' -∗ cellRO pn' v -∗
+        ownConfChange p (DFrac.own 1) { m with nodeId := v }) := by
+  unfold ownConfChange
+  iintro H
+  iNamed H
+  iexists pn
+  iframe HN
+  iintro %pn' %v HN #cN'
+  iexists pt, pn', pi, cs, uf
+  simp only [named]
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe #
+
+/-- The members' buckets and `cluster` are disjoint (2026-11-02, the backend-auth-split stage). -/
+private theorem memberBkts_not_cluster :
+    ∀ n, membership.memberBkts n → n = go!"cluster" → False := by
+  rintro n (rfl | rfl) h <;> simp at h
+
+/-- The idle part of the cluster's buckets is that of the members' and of `cluster` (the
+backend-auth-split stage). -/
+private theorem clusterBkts_split (γB : backend.BNames) (r : GMap GoString backend.BktData) :
+    backend.rbOwnIn (GF := GF) γB membership.clusterBkts r ⊣⊢
+      iprop(backend.rbOwnIn γB membership.memberBkts r ∗ backend.rbOwnIn γB (· = go!"cluster") r) :=
+  (backend.rbOwnIn_set (GF := GF) γB membership.clusterBkts
+      (fun n => membership.memberBkts n ∨ n = go!"cluster") r (fun _ => Iff.rfl)).trans
+    (backend.rbOwnIn_split (GF := GF) γB membership.memberBkts (· = go!"cluster") r
+      memberBkts_not_cluster)
+
+/-- A put into `members` leaves the buckets outside the cluster's (the backend-auth-split stage). -/
+private theorem bkPut_members_off (bk : GMap GoString backend.BktData) (k v : GoString) :
+    ∀ n, ¬ membership.clusterBkts n → bk.lookup n = (apply.bkPut bk go!"members" k v).lookup n := by
+  intro n hn
+  have hne : go!"members" ≠ n := fun e =>
+    hn (e ▸ (Or.inl (Or.inl rfl) : membership.clusterBkts go!"members"))
+  unfold apply.bkPut
+  rw [GMap.lookup_insert_ne _ _ hne]
+
+set_option hygiene false in
+/-- `s.r.ApplyConfChange(cc)` of the change `cm` (`cc` read-only at it): the node's conf-change
+contract with the view (`hccp` its `srvCCPre`), lent the apply side's half of the running token;
+the answer `csp` (`Hcsp`) and the view after (`Hdvq`). -/
+local macro "raft_cc " cm:term:max " with " hccp:term:max " then " k:tactic : tactic => `(tactic| (
+  rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"ApplyConfChange")]
+  wp_pures
+  rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"ApplyConfChange")]
+  wp_pures
+  iunfold dvCCPre at Hdvp
+  icases Hdvp with ⟨#Hrnd, Hnc, #Hdl, Hrun⟩
+  ihave #Hrnd := Hrnd
+  iunfold srvRaftNodeCC at Hrnd
+  icases Hrnd with ⟨%nd, #Hnd, #Hdcc⟩
+  iunfold raftApplyCC at Hdcc
+  icases Hdcc with ⟨%ni, %Hni, #HACC⟩
+  wp_load
+  rw [Hni]
+  wp_pures
+  wp_apply HACC $$ %(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc) %$cm %ds %vw
+      %k %e %mb %((1 : Qp).half) %$hccp [Hnc Hrun]
+    as %csp ⟨Hcsp, Hnc, Hrun⟩
+  · iframe Hnc Hdl Hrun; simp only [ownConfChangeI]; iexists cc; iframe Hcc; ipureintro; rfl
+  -- (S5) the membership raft answers is the voters' (`srv_confAt_simple`, D3)
+  letI := srvStor (GF := GF) γs.raft
+  ihave ⟨Hnc, #Hck⟩ := nodeConfig_confAt _ _ _ _ $$ Hnc
+  ihave #Hdlc := deliveredLogLb_committed _ _ _ _ $$ Hdl
+  ihave #Hrn' := Hrn
+  iunfold srvRaftNode at Hrn'
+  icases Hrn' with ⟨%rn0, -, Hrp⟩
+  iunfold raftPropose at Hrp
+  icases Hrp with ⟨%rni0, -, #Hsrl, -⟩
+  have hk1 : k + 1 ≤ ds.length := by
+    obtain ⟨_, h, _⟩ := $hccp
+    have := (List.getElem?_eq_some_iff.1 h).1
+    omega
+  imod (srv_confAt_simple γs ds (k + 1) hk1 ⊤ (by simp) (by simp)) $$ [Hsrl Hdlc] with #Hsk
+  · iframe Hsrl Hdlc
+  ihave %Hmb := confAt_agree γs.raft.cl (k + 1) mb (Membership.simple γs.raft.cfg) $$ [Hck Hsk]
+  · iframe Hck Hsk
+  ihave Hdvq : dvCCPost (GF := GF) γs (some γn) k mb $$ [Hnc Hrun]
+  · simp only [dvCCPost]; iframe Hnc Hrun
+  clear $hccp
+  $k))
+
+/-- The steps `wp_auto` takes, one by one (in some contexts `wp_auto` reports no progress). -/
+local macro "wsteps" : tactic => `(tactic| repeat (first | wp_pure | wp_load | wp_store | wp_alloc_auto))
+
+set_option hygiene false in
+/-- A failed validation, after raft's no-op: the consistent index stored, the error returned. -/
+local macro "fail_tail" : tactic => `(tactic| (
+  ihave #Pci : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
+  · iPkgInit
+  wsteps
+  icases Hlens $$ Hpre with ⟨Hap, Hpre'⟩
+  wp_apply (hCAI ci i t) $$ [Hap] as Hap
+  · iframe #; iframe
+  ihave Hpre := Hpre' $$ Hap
+  wsteps
+  ihave Hwp := Hsci $$ Hpre
+  rw [method_unfold (t := go.GoType.PointerType consistentIndex.ty) (m := go!"SetConsistentIndex")]
+  wp_apply_core wp_wand $$ Hwp
+  iintro %_v ⟨%Hv, Hadv⟩
+  subst Hv
+  wp_auto
+  have hcr : ccRest true m rs = rs := by
+    unfold ccRest; rw [ite_eq_right (fun h => hv h.2)]
+  have hpa : ccPeersAfter true m rs.bk prs = prs := by
+    unfold ccPeersAfter
+    refine ite_eq_right (fun h => ?_)
+    rcases h.2 with h2 | h2
+    · cases h2
+    · exact absurd h2 hv
+  rw [hcr, hpa]
+  iapply HΦ
+  isplitr
+  · ipureintro; rfl
+  iframe Hlr Hua Hdvq Hmr Hrt Hpl Htk
+  isplitl [Hcs]
+  · iexists { m with nodeId := W64 0 }, cs
+    iframe Hcc Hcs
+    isplitr
+    · ipureintro; rfl
+    iright
+    ipureintro; exact ⟨by simpa using hv, rfl⟩
+  try simp only [↓reduceIte]
+  isplitl [Hmb Hcv Hnc Hcm Hal Hau Hle Hbef]
+  · iunfold srvRestOwnH; iunfold srvObjsOn; iunfold clusterBeOn
+    isplitl [Hmb Hcv Hnc Hcm]
+    · iunfold srvRestOwn
+      isplitl [Hmb Hcv]
+      · iapply (clusterBkts_split d.γB rs.bk).2
+        isplitl [Hmb]
+        · iexact Hmb
+        iexact Hcv
+      isplitl [Hnc]
+      · iexact Hnc
+      isplitl [Hcm]
+      · iexact Hcm
+      ipureintro; exact Hmi
+    iframe Hal Hau Hle
+    iexists mbl, lgm
+    iframe Hbef Hmbe Hmlg
+    ipureintro; exact Hlgmnn
+  iright
+  iexact Hadv))
+
+set_option hygiene false in
+/-- A passed validation, after raft's change: `ep.confState`, the backend hooks' conf state, the
+change's type. -/
+local macro "succ_tail" : tactic => `(tactic| (
+  wsteps
+  icases Hcsp with ⟨%csm, Hcsp, %Hcsm⟩
+  imod csPts_persist _ _ _ _ $$ Hcsp with #Hcsp
+  ihave #Hcsok : ownCSM (GF := GF) csp DFrac.discard csm $$ []
+  · iapply csPts_weaken; iexact Hcsp
+  wp_apply (hSetCS bh ix lgh csp) $$ []
+  · iframe #; first | done | (iright; iexists csm; iexact Hcsok)
+  wp_apply (hGetType.1 cc _ m) $$ [] as -
+  · iframe #
+  rw [hty0, show decide ((W32 0 : w32) = W32 3) = false by simp]
+  wsteps
+  icases ownConfChange_context_acc' cc _ m $$ Hcc with ⟨%csl, HC, #Hcsl, Hcc'⟩
+  wsteps
+  irename «$r0» => Hcv
+  wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId false hctx) $$ [Hcv]
+    as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, Hcus, %Hv'⟩
+  · iframe #; iframe
+  subst Herr
+  obtain ⟨Hvid, Hvprom, Hpus, Hvlrn, Hvnm⟩ := Hv'
+  ihave #Hcc := Hcc' $$ HC
+  wsteps
+  iStructNamed Hcv
+  ihave %Hmnn := typedPointsto_not_null _ _ _ $$ Member
+  iStructNamed Member
+  iStructNamed RaftAttributes
+  iStructNamed Attributes
+  wp_apply (hGetNodeId.1 cc _ m) $$ [] as -
+  · iframe #
+  rw [Hvid]
+  simp only [_root_.decide_true, Bool.not_true]
+  wsteps
+  rw [Hvprom]
+  wsteps
+  rw [Hvlrn, Hvnm]
+  subst Hpus
+  imod membership.memberAt_of_owned («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) _ _ Hmnn $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus] with Hm
+  · simp only [membership.ccMemberAt]
+    iframe
+  ihave #HbeSave : membership.beSaveOk
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
+      («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m)
+      iprop(Pre ∗ (Q ={⊤}=∗ E.Pk d ∗ Post) ∗ apply.bkWT d ∗ apply.bkRT d ∗
+        backend.rbPart d.γB membership.clusterBkts rs.bk)
+      iprop(Post ∗ apply.bkRT d ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
+        (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) $$ []
+  · iunfold membership.beSaveOk
+    iintro !> %Φ' !> ⟨⟨Hp, Hu, Hw, Ht, Hb⟩, Hmm⟩ HΦ'
+    wp_apply (hSave mbl lgm d (E.Pk d) E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) W (Or.inl (Or.inl rfl)) Hmem)
+      $$ [Hp Hu Hw Ht Hb Hmm] as ⟨Hpo, Ht, Hb, Hmm⟩
+    · iframe #; iframe
+      isplitr
+      · ipureintro; exact Hlgmnn
+      isplitr
+      · ipureintro; exact Hfnn
+      iunfold srvApi.csContractA
+      iframe Hp Hu
+      rw [mvcc.api.hookRun, if_neg Hfnn]
+      iexact Hhook
+    iapply HΦ'
+    iframe
+  simp only [ccMembRes]
+  icases Hmr with ⟨#Hrc, %γn, %c, %ps, %Hcl, Hlive, #Hmd, %Hdk⟩
+  ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
+  ihave Hrb := (clusterBkts_split d.γB rs.bk).2 $$ [Hmb Hcv]
+  · isplitl [Hmb]
+    · iexact Hmb
+    iexact Hcv
+  ihave Hrb := backend.rbOwnIn_part (GF := GF) _ _ _ $$ Hrb
+  wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
+    iprop(Pre ∗ (Q ={⊤}=∗ E.Pk d ∗ Post) ∗ apply.bkWT d ∗ apply.bkRT d ∗
+      backend.rbPart d.γB membership.clusterBkts rs.bk)
+    iprop(Post ∗ apply.bkRT d ∗ backend.rbOwnIn d.γB membership.clusterBkts (apply.bkPut rs.bk go!"members"
+      (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) (rcStatic_insert _ _) (Hsz hty0)) $$ [Hcm Hm Hbef Hpre Hupd Hwt Hrt Hrb]
+    as ⟨Hbef, Hpost⟩
+  · iframe #; iframe
+    isplitr
+    · ipureintro; exact Hclgnn
+    try simp only [↓reduceIte]
+    iframe #
+    iframe
+  try simp only [↓reduceIte]
+  icases Hpost with ⟨⟨Hpo, Hrt, Hrb⟩, Hcm⟩
+  icases membership.clusterMemIn_acc cl _ _ _ $$ Hcm with ⟨Hmh, Hcmb⟩
+  ihave Hmh : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (1 : Qp).half (membership.ccMemberAt m) $$ [Hmh]
+  · iExactEq Hmh
+    rw [GMap.lookup_insert]; rfl
+  iunfold membership.memberAt at Hmh
+  icases Hmh with ⟨%Hmhnn, %pu, %cu, ID, PeerURLs, IsLearner, Name, ClientURLs, Hpus, Hcus⟩
+  wsteps
+  wp_apply (hMID s lid) $$ []
+  · iframe #
+  have hidm : (membership.ccMemberAt m).id = m.nodeId := rfl
+  by_cases hlid : m.nodeId = lid
+  · wsteps
+    rw [decide_eq_true hlid]
+    simp only [Bool.not_true]
+    wsteps
+    ihave Hmh : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (1 : Qp).half (membership.ccMemberAt m) $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus]
+    · iunfold membership.memberAt
+      isplitr
+      · ipureintro; exact Hmhnn
+      iexists _, _
+      simp only [membership.ccMemberAt]
+      iframe
+    ihave Hcm := Hcmb $$ [Hmh]
+    · iExactEq Hmh
+      rw [GMap.lookup_insert]; rfl
+    ihave Hcm := membership.clusterMemIn_mem cl _ _ _ $$ Hcm
+    try rw [hidm] at *
+    have hcr : ccRest true m rs = ⟨apply.bkPut rs.bk go!"members" (apply.memberKey m.nodeId)
+        (apply.memberEnc (membership.ccMemberAt m)), rs.mem.insert m.nodeId (membership.ccMemberAt m)⟩ := by
+      unfold ccRest; rw [ite_eq_left ⟨rfl, hv⟩, ite_eq_left hty0]; rfl
+    have hpa : ccPeersAfter true m rs.bk prs = prs := by
+      unfold ccPeersAfter
+      refine ite_eq_right (fun h => ?_)
+      rw [hty0] at h; exact absurd h.1 (by simp)
+    rw [hcr, hpa]
+    iapply HΦ
+    isplitr
+    · ipureintro; rfl
+    iframe Hlr Hua Hdvq Hrt Hpl Htk
+    isplitl [Hcsf]
+    · iexists m, csp
+      iframe Hcc
+      isplitr
+      · ipureintro; rfl
+      isplitl [Hcsf]
+      · iunfold epConfState
+        iframe Hcsf
+        iunfold epCsOk; iright; iexists csm; iexact Hcsok
+      ileft
+      iunfold epCsVoters
+      iexists csm
+      iframe Hcsok
+      ipureintro; rw [← Hmb]; exact Hcsm
+    isplitl [Hrb Hnc Hcm Hal Hau Hle Hbef]
+    · iunfold srvRestOwnH; iunfold srvObjsOn; iunfold clusterBeOn
+      isplitl [Hrb Hnc Hcm]
+      · iunfold srvRestOwn
+        simp only [apply.RestM.putIn_bk]
+        isplitl [Hrb]
+        · iexact Hrb
+        isplitl [Hnc]
+        · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
+            (fun n hn => bkPut_members_off rs.bk _ _ n (restSet_ncl _ n hn))).1 $$ Hnc
+        isplitl [Hcm]
+        · iexact Hcm
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
+      iframe Hal Hau Hle
+      iexists mbl, lgm
+      iframe Hbef Hmbe Hmlg
+      ipureintro; exact Hlgmnn
+    try simp only [↓reduceIte]
+    isplitl [Hpo]
+    · ileft; iexact Hpo
+    try simp only [ccMembRes]
+    iframe Hrc
+    iexists γn, c, ps
+    iframe Hlive Hmd
+    ipureintro; exact ⟨Hcl, Hdk⟩
+  · wsteps
+    rw [decide_eq_false hlid]
+    simp only [Bool.not_false]
+    ihave #Ptr : isPkgInit (PROP := IProp GF)
+        pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
+    · iPkgInit
+    wsteps
+    wp_apply (rafthttp.Transport.AddPeer_known γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
+      $$ [Hlive] as Hlive
+    · iframe #; iframe
+    wsteps
+    ihave Hmh : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (1 : Qp).half (membership.ccMemberAt m) $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus]
+    · iunfold membership.memberAt
+      isplitr
+      · ipureintro; exact Hmhnn
+      iexists _, _
+      simp only [membership.ccMemberAt]
+      iframe
+    ihave Hcm := Hcmb $$ [Hmh]
+    · iExactEq Hmh
+      rw [GMap.lookup_insert]; rfl
+    ihave Hcm := membership.clusterMemIn_mem cl _ _ _ $$ Hcm
+    try rw [hidm] at *
+    have hcr : ccRest true m rs = ⟨apply.bkPut rs.bk go!"members" (apply.memberKey m.nodeId)
+        (apply.memberEnc (membership.ccMemberAt m)), rs.mem.insert m.nodeId (membership.ccMemberAt m)⟩ := by
+      unfold ccRest; rw [ite_eq_left ⟨rfl, hv⟩, ite_eq_left hty0]; rfl
+    have hpa : ccPeersAfter true m rs.bk prs = prs := by
+      unfold ccPeersAfter
+      refine ite_eq_right (fun h => ?_)
+      rw [hty0] at h; exact absurd h.1 (by simp)
+    rw [hcr, hpa]
+    iapply HΦ
+    isplitr
+    · ipureintro; rfl
+    iframe Hlr Hua Hdvq Hrt Hpl Htk
+    isplitl [Hcsf]
+    · iexists m, csp
+      iframe Hcc
+      isplitr
+      · ipureintro; rfl
+      isplitl [Hcsf]
+      · iunfold epConfState
+        iframe Hcsf
+        iunfold epCsOk; iright; iexists csm; iexact Hcsok
+      ileft
+      iunfold epCsVoters
+      iexists csm
+      iframe Hcsok
+      ipureintro; rw [← Hmb]; exact Hcsm
+    isplitl [Hrb Hnc Hcm Hal Hau Hle Hbef]
+    · iunfold srvRestOwnH; iunfold srvObjsOn; iunfold clusterBeOn
+      isplitl [Hrb Hnc Hcm]
+      · iunfold srvRestOwn
+        simp only [apply.RestM.putIn_bk]
+        isplitl [Hrb]
+        · iexact Hrb
+        isplitl [Hnc]
+        · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
+            (fun n hn => bkPut_members_off rs.bk _ _ n (restSet_ncl _ n hn))).1 $$ Hnc
+        isplitl [Hcm]
+        · iexact Hcm
+        ipureintro
+        exact ⟨memIdOk_insert _ _ _ Hmi.1 rfl,
+          by simpa only [apply.RestM.putIn_bk] using restPresent_putIn rs _ _ _ Hmi.2⟩
+      iframe Hal Hau Hle
+      iexists mbl, lgm
+      iframe Hbef Hmbe Hmlg
+      ipureintro; exact Hlgmnn
+    try simp only [↓reduceIte]
+    isplitl [Hpo]
+    · ileft; iexact Hpo
+    try simp only [ccMembRes]
+    iframe Hrc
+    iexists γn, c, ps
+    iframe Hlive Hmd
+    ipureintro; exact ⟨Hcl, Hdk⟩))
+
+set_option maxHeartbeats 4000000 in
+theorem EtcdServer.applyConfChange.wp_proof
+    (hLogger : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (hValid : membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG))
+    (hAdd : membership.RaftCluster.AddMember.spec (GF := GF) (hG := hG))
+    (hRemove : membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG))
+    (hSave : schema.membershipBackend.MustSaveMemberToBackend.spec (GF := GF) (hG := hG))
+    (hDelete : schema.membershipBackend.MustDeleteMemberFromBackend.spec (GF := GF) (hG := hG))
+    (hRead : schema.membershipBackend.MustReadMembersFromBackend.spec (GF := GF) (hG := hG))
+    (hSetCS : storage.BackendHooks.SetConfState.spec (GF := GF) (hG := hG))
+    (hCAI : consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG))
+    (hRemovePeer : rafthttp.Transport.RemovePeer.spec (GF := GF) (hG := hG))
+    (hGetType : raftpb.ConfChange.GetType.spec (GF := GF) (hG := hG))
+    (hGetNodeId : raftpb.ConfChange.GetNodeId.spec (GF := GF) (hG := hG))
+    (hUnmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG))
+    (hError : zap.Logger.Error.spec (GF := GF) (hG := hG))
+    (hBool : zap.Bool.spec (GF := GF) (hG := hG))
+    (hZErr : zap.Error.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) := by
+  intro s cc ep m cs v3 ci ua E γs Pre Q Post Adv i t γB cl rs d al st lp dv ds vw k mb e
+    lg bh ix lgh tl lid prs lgc cid Hok HRO Hpeer Hloc Hsz Hv3p
+  cases v3
+  · -- (R2d'a, swap batch 1) a replayed `AddNode`: `applyConfChange(cc, ep, false)`
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    clear Hv3p Hloc
+    obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
+        membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
+    wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hcl, #Hclg, %Hclgnn, #Hcid, Hcc, Hcs, #Hbh, #Hbhi, #Htr, #Hmid,
+      Hmr, HRS⟩
+    try wp_method_call
+    try wp_call
+    wp_auto
+    wp_apply hLogger $$ [Hlr] as ⟨-, Hlr⟩
+    · iframe #; iframe; ipureintro; exact Hlgnn
+    rw [HRO]
+    iunfold srvRestOwnH at HRS
+    iunfold srvRestOwn at HRS
+    iunfold srvObjsOn at HRS
+    iunfold clusterBeOn at HRS
+    icases HRS with ⟨⟨Hcb, Hnc, Hcm, %Hmi⟩, Hal, Hau, Hle, %mbl, %lgm, %Hlgmnn, Hbef, #Hmbe, #Hmlg⟩
+    ihave #Pmem : isPkgInit (PROP := IProp GF)
+        pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+    · iPkgInit
+    ihave #Prpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+    · iPkgInit
+    ihave #Pjson : isPkgInit (PROP := IProp GF) pkg_id.encoding.json $$ []
+    · iPkgInit
+    ihave #Pstor : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
+    · iPkgInit
+    -- `ValidateConfigurationChange(cc, false)`: `nil`, no read
+    wp_apply (hValid cl cc (DFrac.own 1) (DFrac.own 1) m false
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
+      iprop(True) (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 (.inl hty0)
+      (fun _ => ⟨_, hctx⟩))
+      $$ [Hbef Hcc] as %err ⟨Hbef, Hcc, Herr⟩
+    · simp only [Bool.false_eq_true, ↓reduceIte]; iframe #; iframe
+    try simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herr with %Herr
+    subst Herr
+    wp_pures
+    wp_auto
+    imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
+    iunfold epConfState at Hcs
+    icases Hcs with ⟨Hcsf, #Hcsok⟩
+    wsteps
+    -- `s.beHooks.SetConfState(ep.confState)`, the conf state kept
+    wp_apply (hSetCS bh ix lgh cs) $$ []
+    · iframe #
+      iunfold epCsOk at Hcsok
+      icases Hcsok with (%h | ⟨%c, #Hc⟩)
+      · ileft; ipureintro; exact h
+      · iright; iexists c; iapply csPts_weaken; iexact Hc
+    wp_apply (hGetType.1 cc _ m) $$ [] as -
+    · iframe #
+    rw [hty0, show decide ((W32 0 : w32) = W32 3) = false by simp]
+    wsteps
+    icases ownConfChange_context_acc' cc _ m $$ Hcc with ⟨%csl, HC, #Hcsl, Hcc'⟩
+    wsteps
+    irename «$r0» => Hcv
+    wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId false hctx) $$ [Hcv]
+      as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, Hcus, %Hv'⟩
+    · iframe #; iframe
+    subst Herr
+    obtain ⟨Hvid, Hvprom, Hpus, Hvlrn, Hvnm⟩ := Hv'
+    ihave #Hcc := Hcc' $$ HC
+    wsteps
+    iStructNamed Hcv
+    ihave %Hmnn := typedPointsto_not_null _ _ _ $$ Member
+    iStructNamed Member
+    iStructNamed RaftAttributes
+    iStructNamed Attributes
+    wp_apply (hGetNodeId.1 cc _ m) $$ [] as -
+    · iframe #
+    rw [Hvid]
+    simp only [_root_.decide_true, Bool.not_true]
+    wsteps
+    rw [Hvprom]
+    wsteps
+    rw [Hvlrn, Hvnm]
+    subst Hpus
+    imod membership.memberAt_of_owned («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) 1 (membership.ccMemberAt m) _ _ Hmnn $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus] with Hm
+    · simp only [membership.ccMemberAt]
+      iframe
+    simp only [ccMembRes]
+    icases Hmr with ⟨#Hrc, %γn, %c, %ps, %Hcl', Hlive, #Hmd, %Hdk⟩
+    ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
+    -- `AddMember(&ctx.Member, false)`: only a log line, under the cluster's lock
+    wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) false lgc
+      cid ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
+      iprop(True) iprop(True) (rcStatic_insert _ _) (Hsz hty0)) $$ [Hcm Hm Hbef]
+      as ⟨Hbef, Hpost⟩
+    · iframe #; iframe
+      isplitr
+      · ipureintro; exact Hclgnn
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      itrivial
+    try simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hpost with ⟨Hcm, Hmh⟩
+    iunfold membership.memberAt at Hmh
+    icases Hmh with ⟨%Hmhnn, %pu, %cu, ID, PeerURLs, IsLearner, Name, ClientURLs, Hpus, Hcus⟩
+    wsteps
+    wp_apply (hMID s lid) $$ []
+    · iframe #
+    -- the conclusion, after `AddPeer` or not
+    by_cases hlid : m.nodeId = lid
+    · wsteps
+      rw [decide_eq_true hlid]
+      simp only [Bool.not_true]
+      wsteps
+      iapply HΦ
+      isplitr
+      · ipureintro; rfl
+      iframe Hlr
+      isplitr
+      · iexists m; iframe Hcc; ipureintro; rfl
+      isplitl [Hcsf]
+      · iunfold epConfState; iframe Hcsf Hcsok
+      isplitl [Hlive]
+      · iframe Hrc; iexists γn, c, ps; iframe Hlive Hmd; ipureintro; exact ⟨Hcl', Hdk⟩
+      iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
+      iframe Hcb Hnc Hcm Hal Hau Hle
+      isplitr
+      · ipureintro; exact Hmi
+      iexists mbl, lgm
+      iframe Hbef Hmbe Hmlg
+      ipureintro; exact Hlgmnn
+    · wsteps
+      rw [decide_eq_false hlid]
+      simp only [Bool.not_false]
+      ihave #Ptr : isPkgInit (PROP := IProp GF)
+          pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
+      · iPkgInit
+      wsteps
+      wp_apply (rafthttp.Transport.AddPeer_known γn tl c prs m.nodeId _ (Hpeer hty0 hlid))
+        $$ [Hlive] as Hlive
+      · iframe #; iframe
+      wsteps
+      iapply HΦ
+      isplitr
+      · ipureintro; rfl
+      iframe Hlr
+      isplitr
+      · iexists m; iframe Hcc; ipureintro; rfl
+      isplitl [Hcsf]
+      · iunfold epConfState; iframe Hcsf Hcsok
+      isplitl [Hlive]
+      · iframe Hrc; iexists γn, c, ps; iframe Hlive Hmd; ipureintro; exact ⟨Hcl', Hdk⟩
+      iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
+      iframe Hcb Hnc Hcm Hal Hau Hle
+      isplitr
+      · ipureintro; exact Hmi
+      iexists mbl, lgm
+      iframe Hbef Hmbe Hmlg
+      ipureintro; exact Hlgmnn
+
+  -- `ApplyBoth`: (2026-10-30, the repair) a view; an `AddNode` (static membership, D3)
+  obtain ⟨Hkb, HγB, Hdv, Hdyn, Hmem, Hrem⟩ := Hv3p rfl
+  simp only [↓reduceIte]
+  obtain ⟨γn, rfl⟩ : ∃ n, dv = some n := Option.ne_none_iff_exists'.mp Hdv
+  have Hccp := Hdyn γn rfl
+  obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
+      membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
+  clear Hdyn Hdv Hloc
+  wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
+    #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hwt, ⟨%W, #HisBk⟩, #Hplh, %Hfnn, Hhook, Hupd,
+    Hlens, Hsci, Hpre⟩
+  wp_method_call
+  wp_call
+  wp_auto
+  wp_apply hLogger $$ [Hlr] as ⟨-, Hlr⟩
+  · iframe #; iframe; ipureintro; exact Hlgnn
+  -- the rest buckets, the members and the cluster's backend field
+  subst HγB
+  rw [HRO]
+  iunfold srvRestOwnH at HRS
+  iunfold srvRestOwn at HRS
+  iunfold srvObjsOn at HRS
+  iunfold clusterBeOn at HRS
+  icases HRS with ⟨⟨Hcl, Hnc, Hcm, %Hmi⟩, Hal, Hau, Hle, %mbl, %lgm, %Hlgmnn, Hbef, #Hmbe, #Hmlg⟩
+  -- (2026-11-02, the backend-auth-split stage) the members' buckets idle, for the read
+  icases (clusterBkts_split d.γB rs.bk).1 $$ Hcl with ⟨Hmb, Hcv⟩
+  iunfold srvBeRO at HbeRO
+  icases HbeRO with ⟨%gx, %Pk, #HisB⟩
+  ihave #Pmem : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+  · iPkgInit
+  ihave #Psch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
+  · iPkgInit
+  -- the backend's read, by its contract
+  ihave #HbeRead : membership.beReadOk
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
+      iprop(backend.rbOwnIn d.γB membership.memberBkts rs.bk ∗ backend.bkRPool d.γB d.P d.be ∗
+        threadTok)
+      (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 $$ []
+  · iunfold membership.beReadOk
+    iintro !> %Φ' !> ⟨Hmb, Hpl, Htk⟩ HΦ'
+    wp_apply (hRead mbl lgm d (mvcc.api.mvccW gx) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
+      as %mp %rp ⟨Hpl, Htk, Hmb, Hmr, Hrm⟩
+    · iframe #; iframe; ipureintro; exact Hlgmnn
+    iapply HΦ'
+    iframe
+  have Hty : m.type = W32 0 ∨ m.type = W32 1 := .inl hty0
+  have Hctx : m.type = W32 0 → ∃ i, membership.ccContextOf m.context = some (i, false) :=
+    fun _ => ⟨_, hctx⟩
+  ihave #Prpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
+  ihave #Pjson : isPkgInit (PROP := IProp GF) pkg_id.encoding.json $$ []
+  · iPkgInit
+  ihave #Pstor : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
+  · iPkgInit
+  -- the backend at the batch lock `E.Pk d` and its frozen hook `E.f` (R8: the caller's, in place of
+  -- `mvcc.hookOk` from the uber applier), the hook's triple
+  rw [mvcc.api.hookRun, if_neg Hfnn]
+  icases Hhook with #Hhook
+  wp_apply (hValid cl cc (DFrac.own 1) (DFrac.own 1) m true
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
+    iprop(backend.rbOwnIn d.γB membership.memberBkts rs.bk ∗ backend.bkRPool d.γB d.P d.be ∗
+      threadTok)
+    (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 Hty Hctx)
+    $$ [Hbef Hcc Hmb Hpl Htk] as %err ⟨Hbef, Hcc, Hres⟩
+  · simp only [↓reduceIte]; iframe #; iframe
+  try simp only [↓reduceIte]
+  icases Hres with ⟨⟨Hmb, Hpl, Htk⟩, %Herr⟩
+  have Herr' : err = GoInterface.nil ↔ membership.ccValidOn rs.bk m = true := by
+    rw [Herr]; unfold membership.ccValidOn; simp
+  ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  by_cases hv : membership.ccValidOn rs.bk m = true
+  · have he : err = GoInterface.nil := Herr'.2 hv
+    subst he
+    clear Herr Herr'
+    wp_pures
+    wp_auto
+    imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
+    iunfold epConfState at Hcs
+    icases Hcs with ⟨Hcsf, #Hcsok0⟩
+    have hccS : srvCCPre γs.raft.rule ds vw (.v1 m) k e mb := by
+      have := Hccp
+      unfold membership.ccRaftEff at this; rw [if_pos hv] at this; exact this
+    raft_cc m with hccS then succ_tail
+  · cases err with
+    | nil => exact absurd (Herr'.1 rfl) hv
+    | ok ei =>
+      clear Herr Herr'
+      wp_auto
+      wp_apply hBool as %f1 -
+      wp_apply hZErr as %f2 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      wp_auto
+      wp_apply hError $$ []
+      · ipureintro; exact Hlgnn
+      icases ownConfChange_nodeId_acc cc m $$ Hcc with ⟨%pn, HN, Hcc⟩
+      wp_auto
+      ipersist «$r0»
+      ihave Hcc := Hcc $$ %«$r0_ptr» %(W64 0) HN []
+      · iunfold cellRO; iright; iexact «$r0»
+      imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
+      have hcc0 : srvCCPre γs.raft.rule ds vw (.v1 { m with nodeId := W64 0 }) k e mb := by
+        have := Hccp
+        unfold membership.ccRaftEff at this; rw [if_neg hv] at this; exact this
+      raft_cc ({ m with nodeId := W64 0 }) with hcc0 then fail_tail
+
+end proof
+
+end EtcdGrove
+end Perennial

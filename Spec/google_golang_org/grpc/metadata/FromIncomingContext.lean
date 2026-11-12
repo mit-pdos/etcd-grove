@@ -1,22 +1,12 @@
 /-
-`metadata.FromIncomingContext(ctx)` (grpc-go, assumed: `metadata/metadata.go`).
-
-Users: `v3rpc.newUnaryInterceptor`, `newStreamInterceptor` (`interceptor.go:58,212`, this batch,
-on a run's context: `rpcCtx_inMD`); the auth store's `AuthInfoFromCtx`/`AuthInfoFromTLS` (3d, on any
-context: the server's `s.ctx` and its children have none).
-
-Why true: the run's context carries the incoming metadata grpc decoded from the headers
-(`rpcCtx`); `FromIncomingContext` returns a fresh copy with lowercased keys and `true` (every run's
-context has one).
-
-Changes: new. Integration I3 (3d's request): stated for any context over `ctxInMD` (was a run's
-context only, `rpcCtx`; `rpcCtx_inMD` gives it).
-
-Margin: none.
+`metadata.FromIncomingContext` (grpc, `metadata/metadata.go`): the trust boundary (grpc's
+`metadata` is types and names only). Lean-first (no Rocq counterpart; unit P2: the auth store's
+`AuthInfoFromCtx` reads the token from it).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+public import Proof.google_golang_org.grpc.metadata.Incoming
 
 @[expose] public section
 
@@ -24,30 +14,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
-open Iris Iris.BI
+open Iris Iris.BI google_golang_org.grpc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : google_golang_org.grpc.metadata.Assumptions]
 
-/-- `metadata.FromIncomingContext(ctx)`: a fresh copy of the context's incoming metadata and
-`true`, or `nil` and `false` for a context with none. -/
-def FromIncomingContext.spec : Prop :=
-  ∀ (ctx : GoInterface) (o : Option MD),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ ctxInMD ctx o }}
+/-- `metadata.FromIncomingContext(ctx)`: `(md, ok)`; `ok` exactly when the context has incoming
+metadata (`metadata.incomingOf ctx`, the auth plan's E2c, 2026-10-25), and then `md` is a fresh map
+(grpc copies the context's metadata: `out[key] = copyOf(v)`) with that metadata's keys, each value
+a fresh slice of that key's strings, **at least one**. The last is narrower than grpc's code, which
+copies whatever the context holds: it is true of the metadata grpc's transports put in a request's
+context (each key from at least one header field), not of a context built with
+`metadata.NewIncomingContext(ctx, MD{k: {}})`, on which etcd's `AuthInfoFromCtx` panics (`ts[0]`;
+`nonissues/etcd-auth-token-md-empty.md`). -/
+abbrev metadata.FromIncomingContext.spec : Prop :=
+  ∀ (ctx : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata }}
     (App (Val (@! google_golang_org.grpc.metadata.FromIncomingContext)) (Val #ctx))
-  {{ (m : Loc) (ok : Bool), RET (PairV #m #ok);
-      match o with
-      | some md => ⌜ok = true⌝ ∗ mdAt m (DFrac.own 1) md
-      | none => ⌜ok = false ∧ m = null⌝ }}
+  {{ (md : GoMap) (ok : Bool), RET (PairV #md #ok);
+      ⌜ok = false ∧ metadata.incomingOf ctx = none⌝ ∨
+      ∃ (md0 : GoString → Option (List GoString)) (m : GMap GoString GoSlice),
+        ⌜ok = true ∧ metadata.incomingOf ctx = some md0 ∧ ∀ k, m !! k = none ↔ md0 k = none⌝ ∗
+        md ↦$ m ∗
+        [∗map] k ↦ sl ∈ m, ∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝ ∗ ⌜md0 k = some vs⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

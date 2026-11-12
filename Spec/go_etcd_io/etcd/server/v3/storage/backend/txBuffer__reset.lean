@@ -1,10 +1,10 @@
 /-
-`txb.reset()` (`tx_buffer.go:32-40`): translated; internal. Every bucket buffer emptied; one
-already empty removed. Changes: over `txbAt`. Margin: which empty buckets stay.
+`txBuffer.reset` (`tx_buffer.go`). `txb.reset()`: the buckets with no entries dropped, the others emptied (`bksReset`).
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 
 @[expose] public section
 
@@ -12,26 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`txb.reset()`**: every bucket's entries gone. -/
-def txBuffer.reset.spec : Prop :=
-  ∀ (t : Loc) (B : TxB),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ txbAt t B }}
-    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.txBuffer.ty @!! go!"reset")) (Val #()))
-  {{ RET #(); ∃ B' : TxB, txbAt t B' ∗ ⌜∀ id, B' id = none ∨ B' id = some []⌝ }}
+/-- `txb.reset()`: the buckets with no entries dropped, the others emptied (`bksReset`). -/
+abbrev backend.txBuffer.reset.spec : Prop :=
+  ∀ (txb : Loc) (m : GoMap) (B : GMap w64 (List Ent)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ txb ↦ ({ buckets' := m } : txBuffer) ∗ ownBks m B }}
+    (App (Val (txb @!! go.GoType.PointerType txBuffer.ty @!! go!"reset")) (Val #()))
+  {{ RET #(); txb ↦ ({ buckets' := m } : txBuffer) ∗ ownBks m (bksReset B) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

@@ -1,18 +1,10 @@
 /-
-`resolver.New` (`client/v3/internal/resolver/resolver.go`).
-
-Users: `newClient` (the client's resolver), `Client.Dial` (one endpoint's).
-
-Proof sketch: `manual.NewBuilderWithScheme` (grpc, 2a), the struct allocated with the caller's
-slice (kept: read-only).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/internal/resolver/New.lean`.
-
-Margin: none.
+`resolver.New(endpoints...)` (`client/v3/internal/resolver`, names only; item 5): etcd's manual
+resolver over the endpoints. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.internal.resolver.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -20,26 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Resolver
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.client.v3.internal.resolver.Assumptions]
 
-/-- `New(eps...)`: a resolver with the endpoints. -/
-def New.spec : Prop :=
+/-- `resolver.New(eps...)` of the endpoints `eps` (read-only): a non-nil resolver, not yet
+dialed, with them (`etcdResolverOwn`). -/
+abbrev resolver.New.spec : Prop :=
   ∀ (sl : GoSlice) (eps : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver ∗ sl ↦*□ eps }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver ∗
+      sl ↦*□ eps }}
     (App (Val (@! go_etcd_io.etcd.client.v3.internal.resolver.New)) (Val #sl))
-  {{ (r : Loc), RET #r; resolverAt r eps }}
+  {{ (r : Loc), RET #r; ⌜r ≠ null⌝ ∗ etcdResolverOwn r eps }}
 
 end spec
 
-end Resolver
 end EtcdGrove
 end Perennial

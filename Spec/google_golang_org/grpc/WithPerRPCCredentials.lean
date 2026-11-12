@@ -1,17 +1,10 @@
 /-
-`grpc.WithPerRPCCredentials` (grpc-go, assumed: `dialoptions.go`).
-
-Users: the client's `dial` (`client.go:322`, 1c: the token bundle).
-
-Why true: the option appends `pc` to `dopts.copts.PerRPCCredentials`; every call and stream adds the metadata of each, in order (`http2_client.go`, `createHeaderFields`).
-
-Changes: from `specs-ref/.../grpc/WithPerRPCCredentials.lean`: the metadata as `R`.
-
-Margin: none.
+`grpc.WithPerRPCCredentials(creds)` (grpc's `dialoptions.go`, names only; 2026-10-25, the auth
+plan's E2d: `clientv3`'s dial of a client with a user name). Lean-first.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvDial
 
 @[expose] public section
 
@@ -19,7 +12,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -29,15 +21,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.WithPerRPCCredentials(...)`: a dial option acting as shown. -/
-def WithPerRPCCredentials.spec : Prop :=
-  ∀ (pc : GoInterface) (R : MD → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ perRPCAt pc R }}
-    (App (Val (@! google_golang_org.grpc.WithPerRPCCredentials)) (Val #pc))
-  {{ (v : GoInterface), RET #v; dialOptAt v (fun cfg => { cfg with R := fun md => iprop(∃ m1 m2, ⌜md = m1 ++ m2⌝ ∗ cfg.R m1 ∗ R m2) }) }}
+/-- `grpc.WithPerRPCCredentials(creds)`, any credentials: a dial option adding the per-RPC
+credentials `creds` (`.perRPCCreds creds`). -/
+abbrev grpc.WithPerRPCCredentials.spec : Prop :=
+  ∀ (creds : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
+    (App (Val (@! google_golang_org.grpc.WithPerRPCCredentials)) (Val #creds))
+  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.perRPCCreds creds)⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

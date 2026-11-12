@@ -1,25 +1,10 @@
 /-
-`(*clientv3.authClient).Authenticate` (`client/v3/auth.go`).
-
-Users: `Client.getToken` (`client.go`: the client's own token, at `New` and on every refresh); through the `Auth` bundle (and the promoted `Client.Authenticate`) (`authAt_methods`, `authHandle_authAt`).
-
-Proof sketch: allocates the request message (`reqOwn`, 3h's `protoRest_zero` and field writes), calls
-`auth.remote.Authenticate(ctx, req, auth.callOpts...)` (`authHandle` over a ready client: `remote` a `remoteAuthAt` value,
-`callOpts` with `callOptsOk _ false`; `remoteAuthAt_call` at the request: the caller's update,
-exclusive (sent at most once: the wrapper does not mark it repeatable), handed over), then `ContextError(ctx, err)` (W0's spec: a definite `.etcd e` becomes
-`errVal e`, the reply's `wireReply ansReply` becomes `ansReply`; an indefinite error stays
-`indefCall`), and returns the reply pointer converted. The reply carries `tokenOf γ tok name` (2a/3d: the token the server issues names the user it authenticated).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/authClient__Authenticate.lean`: restated over the model (`Step who` of the auth request, any principal, auth on or off, any answer: the old spec was for the admin's set-up only, auth off, with the reply's error only).
-
-Margin: none.
-
-Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
-ready (`clientReady`: the token refresh reads `c.Auth`).
+`(*clientv3.authClient).Authenticate` (`client/v3/auth.go`; the auth plan's C1, 2026-10-28, `getToken`'s
+call). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -27,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,17 +22,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `a.Authenticate(ctx, ...)`: the request `.authenticate name pw` linearized by the caller's update, or an
-error that settles nothing; the call's principal is its context's (`ctxPrin who ctx p`). -/
-def authClient.Authenticate.spec : Prop :=
-  ∀ (a c : Loc) (γ : Cluster) (who : Principal) (name pw : GoString),
-  Call.Triple (a @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"Authenticate")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authHandle a c γ who ∗ clientReady c) γ who [ #name, #pw]
-    (.authenticate name pw)
-    (authReply γ name)
+/-- `auth.Authenticate(ctx, name, password)` on the client's `*authClient` over a connection to
+`addr` (`authObjAt`): `auth.remote.Authenticate(ctx, &pb.AuthenticateRequest{Name: name, Password:
+password}, auth.callOpts...)`, the error through `ContextError`: the call's answer (`authnCallOut`:
+the reply's token `t` with `Q t`), for a spec `Spec` the server registered for the method and the
+caller's persistent `□ ▷ Spec (name, password) Q`. The strings it sends total at most `2 ^ 30`
+bytes (`strsSizeOk`; 2026-10-30: the request's encoding is below `grpcMsgMax`). -/
+abbrev authClient.Authenticate.spec : Prop :=
+  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (name pw : GoString)
+    (Spec : GrpcSpec (GF := GF) pbAuthenticateRequest pbAuthenticateResponse)
+    (Q : GoString → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAt api addr ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcs addr authnMethod Spec ∗
+      □ ▷ Spec (name, pw) Q ∗
+      ⌜strsSizeOk [name, pw]⌝ }}
+    (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!!
+      go!"Authenticate")) (Val #(GoInterface.ok ci))) (Val #name)) (Val #pw))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authnCallOut Q resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

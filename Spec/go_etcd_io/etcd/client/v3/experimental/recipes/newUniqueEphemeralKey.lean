@@ -1,19 +1,10 @@
 /-
-`recipe.newUniqueEphemeralKey(s, prefix)` (`key.go`): `newUniqueEphemeralKV(s, prefix, "")`.
-
-**Users**: `DoubleBarrier.Enter`, `RWMutex.Lock`, `RLock`. Internal.
-
-**Proof sketch**: `newUniqueEphemeralKV.spec`.
-
-**Changes**: as `newUniqueEphemeralKV`'s.
-
-Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
-
-**Margin**: as `newUniqueKV`'s.
+`recipes.newUniqueEphemeralKey(s, prefix)` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -21,39 +12,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`newUniqueEphemeralKey(s, prefix)`**: `newUniqueEphemeralKV` with an empty value. -/
-def newUniqueEphemeralKey.spec : Prop :=
-  ∀ (s c : Loc) (γ : Cluster) (who : Principal) (id : w64) (pre : GoString)
-    (Q : State → State → GoString → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ Concurrency.isSession s c γ id ∗ isClient c γ who ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (k : GoString) (res : Resp),
-             ⌜uniqueKeyIn pre k ∧ Step who (putNewReq k [] (sint.Z id)) σ σ' res ∧ ¬ txnCmpFailed res⌝ ∗
-             etcdState γ σ',
-           COMM Q σ σ' k res }> }}
-    (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphemeralKey)) (Val #s))
-      (Val #pre))
-
-  {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ putNewRetAt res rev err ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ekOwn rk γ who { live := true, key := k, rev := rev, val := [] }) ∨
-         ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
-      (⌜rk = null⌝ ∗ indefCall err) }}
+/-- **`newUniqueEphemeralKey(s, prefix)`** (unit 1b): `newUniqueEphemeralKV(s, prefix, "")`. -/
+abbrev newUniqueEphemeralKey.spec : Prop :=
+  ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx kp : GoString)
+    (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
+      etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10⌝ }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphemeralKey))
+      (Val #s)) (Val #kp))
+  {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (kv : GoInterfaceOk) (key : GoString) (r : w64),
+        clientKVAddr client ↦□ GoInterface.ok kv ∗
+        ownEphemeralKV ek ⟨GoInterface.ok kv, key, r, []⟩ ∗
+        etcdReached r ∗ keyCreatedAt pfx key [] id r ∗
+        ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) ∨
+      ⌜err ≠ GoInterface.nil ∧ ek = null⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

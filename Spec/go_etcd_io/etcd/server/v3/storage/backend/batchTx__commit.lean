@@ -1,15 +1,10 @@
 /-
-`t.commit(stop)` (`batch_tx.go:282-305`): translated; internal (under the batch mutex and
-`readTx.Lock`, after the hooks). Nothing pending and not stopping: nothing. Else bbolt's `Commit`
-(4c's `Tx.Commit` over its nested `commitAU`, built from the whole `boltState` the batch lock's
-invariant holds (`boltState_commit_au`): the commit update, at the meta page write, is where the
-client's commit step `commitOk` (from `isBackend`) and the published updates fire; its commit gives
-the settling update, fired when the commit ends (synced, or a failure); an error is `lg.Fatal`), the metrics, `pending := 0`; unless stopping, a new write transaction
-(`begin(true)`). Changes: over `btPhys`. Margin: none.
+`batchTx.commit` (`batch_tx.go`). `t.commit(stop)` on the writer: nothing if nothing is pending (and not stopping); else bbolt's write transaction committed (`lg.Fatal` on an error), `pending` reset, and, unless stopping, a new write transaction begun over the new committed data.
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -17,28 +12,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.commit(stop)`**: the write transaction's image committed (`beCommitted`); a new one
-begun unless stopping. -/
-def batchTx.commit.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (I : Image) (n d : Nat) (stop : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ btHeld γ ∗ rtHeld γ ∗ Pk ∗ btPhys γ I n d }}
-    (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"commit")) (Val #stop))
-  {{ RET #(); btHeld γ ∗ rtHeld γ ∗ Pk ∗ beCommitted γ I ∗
-      (if stop then btStopped γ else btPhys γ I 0 d) }}
+/-- `t.commit(stop)` on the writer: nothing if nothing is pending (and not stopping); else bbolt's write transaction committed (`lg.Fatal` on an error), `pending` reset, and, unless stopping, a new write transaction begun over the new committed data. -/
+abbrev backend.batchTx.commit.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db : Loc) (st : BSess) (stop : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ ownDB db γ.db st.C ∗ txDB st.tx db ∗ sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) }}
+    (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"commit")) (Val #stop))
+  {{ RET #(); sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
+      ((⌜st.pend = W64 0 ∧ stop = false⌝ ∗ btW γ t st ∗ ownDB db γ.db st.C ∗ txDB st.tx db) ∨
+       (⌜¬ (st.pend = W64 0 ∧ stop = false)⌝ ∗ ownDB db γ.db st.S ∗ pendOf t ↦ W64 0 ∗
+        ∃ tx' : Loc, txFOf t ↦ tx' ∗
+          (if stop then iprop(True) else iprop(ownWTx tx' γ.db st.S st.S ∗ txDB tx' db)))) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

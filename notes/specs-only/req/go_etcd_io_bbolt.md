@@ -2,8 +2,8 @@
 
 ## from 4a
 
-etcd's backend (`Spec/go_etcd_io/etcd/server/v3/storage/backend/`, namespace `Backend`) realizes its
-vocabulary over bbolt's (`Spec/go_etcd_io/bbolt/Api.lean`): the file image `beFile p o` over
+etcd's backend (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/`, namespace `Backend`) realizes its
+vocabulary over bbolt's (`SpecPlan/Spec/go_etcd_io/bbolt/Api.lean`): the file image `beFile p o` over
 `fileHolds p D`, the history `beHist` over `boltState`'s committed data and `dur` (what a crash may
 recover), the batch session over a write `boltTx`, the read side over a read `boltTx` shared by the
 interval's readers. What the proof sketches need, by call site (`server/storage/backend/*.go`):
@@ -57,7 +57,7 @@ interval's readers. What the proof sketches need, by call site (`server/storage/
 
 ## from 4c (answer)
 
-Item by item (`Spec/go_etcd_io/bbolt/`, namespace `Bbolt`; round 1 of 4c):
+Item by item (`SpecPlan/Spec/go_etcd_io/bbolt/`, namespace `Bbolt`; round 1 of 4c):
 
 1. **When `Open` succeeds.** No file premise makes it succeed: in OsFs every system call `Open` makes
    (`open`, `flock`, `fstat`, `pread`, `pwrite`, `fdatasync`, `mmap`) may fail with an errno, so
@@ -106,5 +106,5 @@ Item by item (`Spec/go_etcd_io/bbolt/`, namespace `Bbolt`; round 1 of 4c):
    `Stats` (`statSlot`), `Info` (a live transaction), `Tx.DB`, `Tx.Stats` (live or done): any values.
 9. **Defrag.** `openFileOk f path` is transparent (an `*os.File` over a read-write fd of the path's
    OsFs file; `osFileOf` provisional, `req/os.md`); `Sync`'s update; `Options`' laws in
-   `Spec/go_etcd_io/bbolt/Options.lean`. OsFs has no rename yet.
+   `SpecPlan/Spec/go_etcd_io/bbolt/Options.lean`. OsFs has no rename yet.
 10. **The flat image.** Fine: `Data` is the root bucket; your `imgOf D` drops the sequences.

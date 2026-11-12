@@ -1,35 +1,10 @@
 /-
-`recipe.newSequentialKV(kv, prefix, val)` (`key.go`): read the last key under `prefix`
-(`WithLastKey()`), take the next sequence number `n`, and put `__prefix` and `prefix/<n, 16 digits>`
-in a transaction guarded by `__prefix` not having been written since the read; retried on a failed
-guard.
-
-**Users**: `PriorityQueue.Enqueue`. Internal.
-
-**Proof sketch**: a loop carrying the caller's update. `kv.Get(TODO(), prefix, WithLastKey()...)`
-(`KV.GetTriple`, an update made of `etcdPeek`, whose commit gives `etcdLb γ σg`) gives the last key
-in key order (`lastKeyIn`: prefix, sorted by key descending, limit 1) and the header's revision
-`R = σg.kv.rev`; `strings.Split` (Perennial) its `lastField`; `Fmt.Sscanf_d.spec` (this batch's
-trust boundary, `Spec/fmt/Sscanf.lean`) the number: a scanning error is returned as is
-(`Fmt.scanErr`: `recipeErrOk`; update unfired); `n` the number plus one, so `seqNext (σg's store)
-prefix n` (an `int` overflow needs a field of `2^63 - 1`, which `seqNext` excludes);
-`fmt.Sprintf("%s/%016d")` the key `seqKey prefix n`; then the transaction `seqPutReq (seqBase
-prefix) (seqKey prefix n) val (R + 1)` (`R + 1 < 2^63`: `etcdLb_revFits`) with an update built from
-the caller's: a failed comparison aborts it and the call recurses, any other answer commits it, with
-`R ≤ σ.kv.rev` (`etcdLb_reach`) and `σ.kv.storeAt R` = `σg`'s store (the history only grows).
-
-**Changes**: old spec over the recipes' client invariant (the prefix written by the recipes only) and
-a sequence certificate; now the caller's update, with the transaction's request and its read: `R`
-and `seqNext (σ.kv.storeAt R) prefix n` (review 1f-completeness-1, C-2: for a prefix whose keys are
-`seqKey`s and whose writers bump `__prefix`, the new key is past every key present at `R`, and none
-was added since, the guard holding).
-
-**Margin**: for a last field that is not a decimal number below `2^63 - 1`, `n` is whatever `Sscanf`
-stored, plus one.
+`recipes.newSequentialKV(kv, prefix, val)` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesSeq
 
 @[expose] public section
 
@@ -37,40 +12,47 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`newSequentialKV(kv, prefix, val)`**: `__prefix` and a key `prefix/<n>` put by one guarded transaction the caller's update linearizes (attempts whose guard failed change nothing). -/
-def newSequentialKV.spec : Prop :=
-  ∀ (kv : GoInterface) (γ : Cluster) (who : Principal) (pre val : GoString)
-    (Q : State → State → Nat → Int → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ kvAt kv γ who ∗ etcdPeek γ ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (R : Nat) (n : Int) (res : Resp),
-             ⌜R ≤ σ.kv.rev ∧ seqNext (σ.kv.storeAt R) pre n ∧
-              Step who (seqPutReq (seqBase pre) (seqKey pre n) val (R + 1)) σ σ' res ∧
-              ¬ txnCmpFailed res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' R n res }> }}
-    (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newSequentialKV)) (Val #kv))
-      (Val #pre)) (Val #val))
+/-- **`newSequentialKV(kv, prefix, val)`**, for a prefix `kp` whose range and bookkeeping key
+`__kp` (`baseKey kp`) are under the prefix `pfx` of `kv`'s contracts (the priority queue's are
+at the empty prefix: `kp/...` and `__kp` are two disjoint prefixes), knowing etcd has reached
+`lo`: gets the last key under `kp` (at a revision `g ≥ lo`), parses its last `/`-field as a
+number `n` (`fmt.Sscanf`), and puts `__kp` and `kp/%016d(n + 1)` in one transaction at `r ≥ g`
+if `__kp` was not modified since `g` (otherwise retries): on success a fresh `*RemoteKV` for a
+key under `kp ++ "/"` put at `r` (`seqKeyPutAt`: the key made from etcd's state at `g`,
+`SeqNext`, and etcd's state at `r` the two puts on its state at `r - 1`); a nil pointer with
+the error otherwise (the get's, `Sscanf`'s on a last key whose field is not a number, the
+transaction's). Not "created": the transaction does not check that the key is absent. Its order
+and freshness hold under a premise on the keys under `kp` (`seqKeyPutAt_order`,
+`seqKeyPutAt_created`, `InvRecipesSeq.lean`). -/
+abbrev newSequentialKV.spec : Prop :=
+  ∀ (kv : GoInterfaceOk) (pfx kp val : GoString) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
+      isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ pfx <+: baseKey kp ∧
+        kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝ }}
+    (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newSequentialKV))
+      (Val #(GoInterface.ok kv))) (Val #kp)) (Val #val))
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ σ σ' R n res, Q σ σ' R n res ∗
-        ((⌜txnSucceeded res ∧ err = GoInterface.nil⌝ ∗
-           rkOwn rk γ who { live := true, key := seqKey pre n, rev := W64 σ'.kv.rev, val := val }) ∨
-         ⌜∃ e, res = .err e ∧ err = errVal e ∧ rk = null⌝)) ∨
-      (⌜err ≠ GoInterface.nil ∧ rk = null⌝ ∗ recipeErrOk err) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (g r : w64),
+        ownRemoteKV rk ⟨GoInterface.ok kv, key, r, val⟩ ∗ etcdReached r ∗
+        seqKeyPutAt pfx kp key val g r ∗
+        ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z g ∧ sint.Z g ≤ sint.Z r ∧
+          sint.Z r < 2 ^ 63 - 1⌝) ∨
+      ⌜err ≠ GoInterface.nil ∧ rk = null⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

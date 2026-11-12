@@ -1,13 +1,13 @@
 # Batch 3a: etcd's apply layer (`server/etcdserver/apply`)
 
 Author's report, 2026-11-09. Namespace `Apply`. Every file builds (`etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/server/v3/etcdserver/apply`: 74 modules OK).
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply`: 74 modules OK).
 
 ## Files
 
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`: the model of one apply and the
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`: the model of one apply and the
   resources (header: meaning, realization, laws, snippets).
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/ApiResult.lean`: the result predicate over 2c's
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/ApiResult.lean`: the result predicate over 2c's
   `applyResult`, `checksOut`, and the uber-applier's interface bundle `isUber_apply` (kept apart so
   the model does not import the request path's vocabulary).
 - 72 spec files, one per function of the old specs (all 72 kept):

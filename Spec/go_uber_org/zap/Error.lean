@@ -1,14 +1,10 @@
 /-
-`zap.Error`: the trust boundary.
-Users: the server's and the client's code throughout (every logging call); `NewNop`: the examples
-(`examples/etcd/*`, `zap.NewNop()` as the member's and the client's logger).
-Proof sketch: none (trust boundary, `Api.lean`'s header).
-Changes: from `specs-ref/Spec/go_uber_org/zap/Error.lean`: the namespace `Zap`.
-Margin: logging's output is not modelled.
+`zap.Error`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import GeneratedProof.go_uber_org.zap
 
 @[expose] public section
 
@@ -16,18 +12,17 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Zap
 
 open Iris Iris.BI go_uber_org
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `zap.Error(err)` returns a field (a plain value). -/
-def Error.spec : Prop :=
+/-- `zap.Error(...)` returns some field. -/
+abbrev zap.Error.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap }}
     (App (Val (@! zap.Error)) (Val #err))
@@ -35,6 +30,5 @@ def Error.spec : Prop :=
 
 end spec
 
-end Zap
 end EtcdGrove
 end Perennial

@@ -1,24 +1,10 @@
 /-
-`clientv3.LeaseValue` (`client/v3/compare.go`).
-
-Users: `client/v3/concurrency` (`mutex.go`, `election.go`: `Compare(CreateRevision(k), "=", 0)`;
-`stm.go`: `Compare(ModRevision(k), "<", rev+1)`, `Compare(Value(k), "=", v)`), recipes
-(`key.go`, `client.go`: `ModRevision`, `Version`), leasing (`txn.go`, `kv.go`: `CreateRevision`,
-`ModRevision`, `LeaseValue`), Kubernetes' store (`Compare(ModRevision(key), "=", rv)`) and
-compactor (`Compare(Version(key), "=", t)`), the examples (`txnlin/linkvtxn.go:804` `cmpOf`).
-Snippet: `clientv3kv/txn.go`.
-
-Proof sketch: a fresh `Compare` message (persisted).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/LeaseValue.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-verify-round: the fresh `*pb.Compare` (its `protoRest` from `protoRest_zero` at `own 1`) is made read-only for `cmpAt` by `protoRest_persist` (A1-provability F6: the sketch had no law for it).
-
-Margin: none.
+`clientv3.LeaseValue(key)` (`client/v3/compare.go`, translated for `client/v3/concurrency`). Lean-first (no
+Rocq counterpart); see `InvCmp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvCmp
 
 @[expose] public section
 
@@ -26,27 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `LeaseValue(key)`: a comparison of the key's lease, nothing else set. -/
-def LeaseValue.spec : Prop :=
+/-- `LeaseValue(key)`: a fresh comparison of the key's lease, `&pb.Compare{Key: []byte(key), Target: ...}`
+(operator `EQUAL`, no operand). -/
+abbrev LeaseValue.spec : Prop :=
   ∀ (key : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (@! go_etcd_io.etcd.client.v3.LeaseValue)) (Val #key))
-  {{ (c : go_etcd_io.etcd.client.v3.Cmp), RET #c; cmpAt c (some (cmpOfTarget cmpTLease key)) }}
+  {{ (c : go_etcd_io.etcd.client.v3.Cmp), RET #c; cmpAt c (cmpKeyM .lease key) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

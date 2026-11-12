@@ -1,43 +1,37 @@
 /-
-`(*store).HashStorage()` (`kvstore.go:548`).
-
-**Users**: `KV.HashStorage` on the server's store (promoted): the corruption checker
-(`server.go:367`), the maintenance server (`v3rpc/maintenance.go:101`). Snippet `ReqHash`.
-
-**Proof sketch**: the read-only field `s.hashes` (`NewStore`'s `NewHashStorage`; `isHashStorage`
-from the handle).
-
-**Changes** from `specs-ref`'s `store__HashStorage.lean`: `isHashStorage` (the hash storage's
-contracts) in place of `hashStoreOk` (only `Store`).
-
-**Margin**: none.
+`(*mvcc.store).HashStorage()` (`kvstore.go`: `return s.hashes`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`notes/decisions.md`), for `NewServer`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.HashStorage`'s contract at `*store`. -/
-def store.HashStorage.spec : Prop :=
-  ∀ s : Loc, KV.HashStorage.contract (GF := GF) (go.GoType.PointerType store.ty) #s
+/-- `s.HashStorage()` on a store returns its hash storage (some interface value). -/
+abbrev mvcc.store.HashStorage.spec : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ }}
+    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
+      go!"HashStorage")) (Val #()))
+  {{ (h : GoInterface), RET #h; True }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

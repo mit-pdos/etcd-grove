@@ -1,24 +1,10 @@
 /-
-`(*concurrency.stmSerializable).commit` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: `stmSerializable.gets.spec`, the conflicts closure (`readSet.cmps.spec`, and at
-`SerializableSnapshot` `readSet.first.spec`, `writeSet.cmps.spec` at `first() + 1`),
-`writeSet.puts.spec`; the KV contract's transaction with `Else(gets...)` (with writes: an
-exclusive update from the lent permission, a succeeded step `stmCommitted` as in `stm.commit`, and at
-`SerializableSnapshot` the written keys' mod revisions at most every read's header; without
-writes, read-only, linearizable unless empty); failed: the else-branch's ranges (`respReads`, at
-`σ`) added to the read set (`readSet.add.spec`) and kept as the prefetch, the gets' options
-cleared. An error: `panic(stmError{err})`.
-
-Changes: from `specs-ref`'s `stmSerializable__commit.lean`: restated over `stmSerAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stmSerializable.commit()` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -26,30 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.commit()` (serializable levels): `nil` if a comparison failed (the else-branch's reads become the next attempt's prefetched ones), else the committed attempt's reply; or the abort. -/
-def stmSerializable.commit.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmSerAt p γ who iso a ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
-      ⌜effIn (fun σ σ' => σ' = σ ∨ stmCommitted iso a σ σ') T⌝ }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stmSerializable.ty @!! go!"commit")) (Val #()))
-  {{ (r : val), RET r; stmRet r (fun resp : Loc => iprop(stmSerStale p γ who iso ∗
-      P ∗ (⌜resp = null⌝ ∨ ∃ (σ σ' : State) (m : TxnRespM), etcdLb γ σ ∗ etcdLb γ σ' ∗
-          ⌜Reach σ0 σ ∧ stmCommitted iso a σ σ' ∧ m.succeeded = true⌝ ∗ txnRespOwn resp (DFrac.own 1) m))) iprop(True) }}
+/-- `s.commit()` (a `*stmSerializable`), knowing etcd has reached `lo`: the transaction
+`If(conflicts...).Then(puts...).Else(gets of the read keys...)`; nil if it failed (the `Else`
+responses become the prefetched reads, and the gets are at the latest revision again), otherwise
+its response, with `stmOutcome`; the state is stale either way. A client error aborts it (`stmRet`). -/
+abbrev stmSerializable.commit.spec : Prop :=
+  ∀ (lvl : w64) (p : Loc) (pfx : GoString) (st : STMSt) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmState lvl pfx p st ∗ etcdReached lo ∗ ⌜isoSer lvl = true⌝ }}
+    (App (Val (p @!! go.GoType.PointerType stmSerializable.ty @!! go!"commit")) (Val #()))
+  {{ (r : val), RET r; stmRet r fun resp : Loc => iprop(stmStale lvl pfx p ∗
+      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp)) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

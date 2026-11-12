@@ -1,15 +1,11 @@
 /-
-## `(*backend).Size()` (`backend.go:454-456`): translated
-
-**Users.** The quota (`storage/quota.go:133, 177`, any goroutine, also after the close: 2e's
-`beReadable`), mvcc's metrics closures and compaction log (`kvstore.go:524`,
-`kvstore_compaction.go:75`), bootstrap (`bootstrap.go:284, 308`). **Proof sketch.**
-`atomic.LoadInt64(&b.size)` (an atomic's invariant: any `int64`). **Changes.** Unchanged.
-**Margin.** The value is not stated.
+`Size` (the backend). `b.Size()`: the size allocated (some number).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -17,26 +13,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.Size()`**: some `int64`, at any time. -/
-def backend.Size.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"Size")) (Val #()))
+/-- `b.Size()`: the size allocated (some number). -/
+abbrev backend.backend.Size.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Size")) (Val #()))
   {{ (n : w64), RET #n; True }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

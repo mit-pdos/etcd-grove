@@ -1,15 +1,9 @@
 /-
-## `(*unstable).shrinkEntriesArray` (internal)
-
-The embedded `unstable` of a `raftLog` (`raftLog`'s realization holds `unstable` of its field).
-Users: `raftLog`'s methods only. Mirrors the code over `UnstableState`.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/unstable__shrinkEntriesArray.lean`: over `UnstableState`.
+Port of `election_proof/spec_unstable__shrinkEntriesArray.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -17,25 +11,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Reallocate the entries' array if it is mostly unused (no change to the state). -/
-def unstable.shrinkEntriesArray.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ unstable u us }}
-    (App (Val (u @!! go.GoType.PointerType go_etcd_io.raft.v3.unstable.ty @!! go!"shrinkEntriesArray")) (Val #()))
-  {{ RET #(); unstable u us }}
+/-- `u.shrinkEntriesArray()` (`log_unstable.go:166`): with no entries left the slice
+becomes `nil`; when most of the backing array is unused the entries are copied into a
+fresh array of exactly their length; otherwise nothing changes. Only `u.entries` is
+written, and it holds the same entries (read-only, as always: the copy is
+persisted), so the state is unchanged (until 2026-10-08 the post named the new slice,
+`ownUnstable u { uv with entries' := sl } uents`). -/
+abbrev unstable.shrinkEntriesArray.spec : Prop :=
+  ∀ (u : Loc) (us : UnstableSt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hun" ∷ ownUnstable u us }}
+    (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"shrinkEntriesArray"))
+      (Val #()))
+  {{ RET #(); ownUnstable u us }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

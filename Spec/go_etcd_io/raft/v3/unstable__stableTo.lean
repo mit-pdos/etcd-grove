@@ -1,15 +1,11 @@
 /-
-## `(*unstable).stableTo` (internal)
+Port of `election_proof/spec_unstable__stableTo.v` (857d09190).
 
-The embedded `unstable` of a `raftLog` (`raftLog`'s realization holds `unstable` of its field).
-Users: `raftLog`'s methods only. Mirrors the code over `UnstableState`.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/unstable__stableTo.lean`: over `UnstableState`.
+Lean notes: `unstable_hit` is `UnstableHit`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -17,26 +13,58 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
+
+/-- When `u.stableTo(id)` moves entries: `id.index` is an index of the suffix and the
+entry there has term `id.term`. (On the state record since 2026-10-08; before, on the
+Goose value and the entries.) -/
+def UnstableHit [GooseExts] (us : UnstableSt) (id : entryID) : Prop :=
+  (uint.Z us.offset ≤ uint.Z id.index' ∧
+   uint.Z id.index' < uint.Z us.offset + (us.ents.length : Int)) ∧
+  ∃ e, us.ents[(uint.Z id.index' - uint.Z us.offset).toNat]? = some e ∧
+       e.Term' = id.term'
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Drop the entries through `id` if it is an unstable entry of its term. -/
-def unstable.stableTo.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableState) (id : go_etcd_io.raft.v3.entryID),
-  us.Wf →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ unstable u us }}
-    (App (Val (u @!! go.GoType.PointerType go_etcd_io.raft.v3.unstable.ty @!! go!"stableTo")) (Val #id))
-  {{ RET #(); unstable u (us.stableTo (uint.nat id.index') id.term') }}
+/-- `u.stableTo(id)` (`log_unstable.go:134`):
+
+    gt, ok := u.maybeTerm(id.index)
+    if !ok { Infof; return }
+    if id.index < u.offset { Infof; return }      // the snapshot's index
+    if gt != id.term { Infof; return }
+    num := int(id.index + 1 - u.offset)
+    u.entries = u.entries[num:]
+    u.offset = id.index + 1
+    u.offsetInProgress = max(u.offsetInProgress, u.offset)
+    u.shrinkEntriesArray()
+
+On a hit (`UnstableHit`) the suffix loses its first `id.index + 1 - offset` entries and
+`offset` moves past `id`; otherwise nothing changes. The premises are `maybeTerm`'s;
+the `Logger` for the `Infof`s is `ownUnstable`'s. Which entries may be moved -- the persisted ones -- is
+the caller's business (`raftLog.stableTo`'s `StableOk`). -/
+abbrev unstable.stableTo.spec : Prop :=
+  ∀ (u : Loc) (us : UnstableSt) (id : entryID),
+  (∀ sid, us.snap = some sid → uint.Z sid.index' < uint.Z us.offset) →
+  uint.Z us.offset + (us.ents.length : Int) < 2^64 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hun" ∷ ownUnstable u us }}
+    (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"stableTo")) (Val #id))
+  {{ (us' : UnstableSt), RET #();
+      ownUnstable u us' ∗
+      ⌜(UnstableHit us id →
+         us' = { us with
+                 ents := us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat,
+                 offset := id.index' + W64 1,
+                 inprogress := w64Max us.inprogress (id.index' + W64 1) }) ∧
+        (¬ UnstableHit us id → us' = us)⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

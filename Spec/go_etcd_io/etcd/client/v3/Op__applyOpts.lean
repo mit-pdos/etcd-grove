@@ -1,17 +1,10 @@
 /-
-`(*clientv3.Op).applyOpts` (`client/v3/op.go`).
-
-Users: the `Op` constructors.
-
-Proof sketch: a loop over the slice: `optAt_call` per closure, in order.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__applyOpts.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.Op.applyOpts(opts)` (`client/v3/op.go`, translated for the cache). Lean-first (no Rocq
+counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -19,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.applyOpts(opts)`: every option applied, in order; the options given back. -/
-def Op.applyOpts.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (sl : GoSlice) (gs : List (OpM → OpM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦ op ∗ opAt op o ∗ optsAt sl gs }}
+/-- `op.applyOpts(opts)`: the options applied in order (`opFold`). -/
+abbrev Op.applyOpts.spec : Prop :=
+  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (sl : GoSlice) (gs : List (OpFull → OpFull)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦ op ∗ opFullAt op o ∗ optsAt sl gs }}
     (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"applyOpts")) (Val #sl))
-  {{ RET #(); optsAt sl gs ∗ ∃ op' : go_etcd_io.etcd.client.v3.Op, opp ↦ op' ∗ opAt op' (applyOptsM gs o) }}
+  {{ (op' : go_etcd_io.etcd.client.v3.Op), RET #(); opp ↦ op' ∗ opFullAt op' (opFold gs o) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

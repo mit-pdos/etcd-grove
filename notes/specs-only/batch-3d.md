@@ -1,13 +1,13 @@
 # Batch 3d: etcd's auth store (`server/auth`)
 
 Author's report (2026-11-09). All files build (`etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/server/v3/auth Spec/golang_org/x/crypto/bcrypt`: 59 modules OK); the snippets
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth SpecPlan/Spec/golang_org/x/crypto/bcrypt`: 59 modules OK); the snippets
 vet (`go vet ./specreq/auth/`, gofmt clean).
 
 ## Files
 
-- `Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`: the vocabulary (namespace `Auth`).
-- `Spec/go_etcd_io/etcd/server/v3/auth/Internal.lean`: the package's internal vocabulary (its
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`: the vocabulary (namespace `Auth`).
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Internal.lean`: the package's internal vocabulary (its
   helpers' specs only).
 - 54 spec files, one per function of the old tree (`specs-ref`'s 54, none left out):
   - **admin, the writer's** (one `AdminTriple` each): `authStore__{UserAdd, UserDelete,
@@ -25,7 +25,7 @@ vet (`go vet ./specreq/auth/`, gofmt clean).
     `isValidPermissionRange`, `hasRootRole`, `commitRevision`, `setRevision`,
     `setupMetricsReporter`, `authInfoFromToken`, `decomposeOpts`; assumed (untranslated):
     `selectPassword`, `redactToken`, `tokenSimple.genTokenPrefix`.
-- `Spec/golang_org/x/crypto/bcrypt/{Api, GenerateFromPassword, CompareHashAndPassword}.lean`: the
+- `SpecPlan/Spec/golang_org/x/crypto/bcrypt/{Api, GenerateFromPassword, CompareHashAndPassword}.lean`: the
   bcrypt trust boundary (namespace `Bcrypt`, new): `hashOf h pw`; generation fails only above 72
   bytes or cost 31; a hash accepts its own password (nothing about others).
 - Snippets: `examples/specreq/auth/{check,token,admin,boot}.go` (13 requirement functions).
@@ -242,5 +242,5 @@ Open questions for the user, as of round 1:
 `go_etcd_io_etcd_server_v3_etcdserver_apply.md`, `go_etcd_io_etcd_api_v3.md`,
 `go_etcd_io_etcd_api_v3_etcdserverpb.md`.
 
-Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/auth Spec/golang_org/x/crypto/bcrypt`
+Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth SpecPlan/Spec/golang_org/x/crypto/bcrypt`
 OK (80 modules); `go vet ./specreq/auth/` and gofmt clean.

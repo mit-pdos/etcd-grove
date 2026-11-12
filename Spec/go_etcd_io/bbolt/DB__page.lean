@@ -1,10 +1,11 @@
 /-
-`db.page(id)` (`db.go`): the mapped page at `id`.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+`DB.page` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U4; used by U4 (`Tx.page`), U10 (`Commit`, `rollback`), U11 (`loadFreelist`). Proof:
+`Proof/go_etcd_io/bbolt/DB__page.lean` (a `sorry` until U4).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -12,26 +13,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) the page `id` of a transaction's snapshot. -/
-def DB.page.spec : Prop :=
-  ∀ [HasExt osFsExt] (db tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (id : w64) (p : Loc) (bs : List w8),
-  {{ boltTx (GF := GF) tx γ q T ∗ txDB tx db ∗ txPage tx γ id p bs }}
+/-- `db.page(id)`: the address of page `id` of the mapping (`&db.data[id * pageSize]`, which
+panics on a nil mapping or an index past `maxMapSize`: excluded by the premises). -/
+abbrev DB.page.spec : Prop :=
+  ∀ (db data : Loc) (id : w64) (dq : DFrac),
+  0 < data.addr → id.toNat * 4096 < 0xFFFFFFFFFFFF →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ db.[DB, go!"data"] ↦{dq} data ∗
+      db.[DB, go!"pageSize"] ↦□ W64 4096 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"page")) (Val #id))
-  {{ RET #p; boltTx tx γ q T }}
+  {{ RET #(data +ₗ ((id.toNat * 4096 : Nat) : Int)); db.[DB, go!"data"] ↦{dq} data }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

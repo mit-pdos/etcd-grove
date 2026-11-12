@@ -17,7 +17,7 @@ already recorded.
 
 ### F1. `kubernetes.New` drops the endpoints token, so no Kubernetes client can call `Status`
 
-- **File**: `Spec/go_etcd_io/etcd/client/v3/kubernetes/New.lean:39-50`. Its post is
+- **File**: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/kubernetes/New.lean:39-50`. Its post is
   `kc ↦ {…} ∗ clientMut c γ who` or an error. `clientv3.New`'s post (`New.lean:57-63`) also gives
   `⌜AutoSyncInterval ≠ 0⌝ ∨ ∃ eps, cfg.Endpoints' ↦*□ eps ∗ epsTok c (DFrac.own 1) eps`, and the
   "no endpoint ⇒ error" fact. `kubernetes.New` is `clientv3.New(cfg)` plus a wrapper
@@ -67,7 +67,7 @@ already recorded.
 
 ### F3. `NewKVFromKVClient` cannot be called on an in-process client, so `ReqInProcClient` is unprovable
 
-- **File**: `Spec/go_etcd_io/etcd/client/v3/NewKVFromKVClient.lean:39`. The pre is
+- **File**: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/NewKVFromKVClient.lean:39`. The pre is
   `⌜c = null⌝ ∨ ∃ γ' who', clientConnOk c γ' who'`.
 - **Step that does not close**: `NewCtxClient.spec` gives `clientBare c none`. The only law out of
   it, `clientBare_base`, gives `clientBase`, not `clientConnOk`. Its sibling constructors take
@@ -100,7 +100,7 @@ already recorded.
 - **Sketches that misuse the value form**: `rafthttp/checkClusterCompatibilityFromHeader.lean:6`
   and `rafthttp/streamReader__dial.lean:6` cite "`ID.String` (1c)". That is the value-receiver
   triple (`types/ID__String.lean:37`), which does not apply to those calls.
-- **Fix**: restore `ID.String_ptr.spec` in `Spec/go_etcd_io/etcd/client/pkg/v3/types/`, at any
+- **Fix**: restore `ID.String_ptr.spec` in `SpecPlan/Spec/go_etcd_io/etcd/client/pkg/v3/types/`, at any
   fraction with the points-to kept. Point the rafthttp, membership and etcdserver sketches to it.
 
 ## Second-tier findings

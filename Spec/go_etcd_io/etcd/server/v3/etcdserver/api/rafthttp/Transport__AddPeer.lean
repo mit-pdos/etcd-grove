@@ -1,19 +1,13 @@
 /-
-## `(*Transport).AddPeer(id, us)`
-
-**Users.** etcd's `NewServer` (`server.go:436`, the cluster's members), `applySnapshot` (`server.go:1166`, after `RemoveAllPeers`), `applyConfChange` (`server.go:2075`, an added member). Snippet: `transport.go` (`ReqStartTransport`, `ReqMembership`).
-
-**Proof sketch.** `Lock`; stopped (`peers` nil): impossible by `trRunning`; known: return. `types.NewURLs` (1c: `urlsHosts`) succeeds; `LeaderStats.Follower` (2e), `startPeer` (`peerAt`, its stop right into the map invariant), two `addPeerToProber` (trust: the probes only measure), log; `Unlock`. `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over `peerAddr` (was `trURLsOk`/the network directory `γn.dir`: the URLs had to be the member's own; delivery to another member is now harmless, `Process` checks `To`). verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** The peer set is not tracked in the statement (no client needs it).
+`(*rafthttp.Transport).AddPeer(id, urls)` (`transport.go`). Lean-first; for `NewServer` since stage
+N0 (2026-10-16, D13), an axiom from unit N4 (2026-10-17, D14e) to rafthttp stage 6d (2026-10-24),
+which restated it over the transport's state and proved it over its callees' specs
+(`rafthttp.Transport.AddPeer_ok`, `TransportSpecs.lean`; linked in stage 6f).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 
 @[expose] public section
 
@@ -21,26 +15,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`AddPeer(id, us)`** with URLs `NewURLs` accepts (it panics otherwise: the documented caller's responsibility), each host a peer address of `ν` and the transport not stopped (`AddPeer` after `Stop` panics: "transport stopped"). -/
-def Transport.AddPeer.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid pid : w64) (sl : GoSlice) (us hs : List GoString) (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ trRunning t q ∗ sl ↦*{DFrac.discard} us ∗ ⌜Types.urlsHosts us = some hs⌝ ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
-    (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddPeer")) (Val #pid)) (Val #sl))
-  {{ RET #(); trRunning t q }}
+/-- **`t.AddPeer(id, us)`** on a live transport, of `id`'s URL strings (non-empty, plain
+`http://` URLs, `types.plainPeerURL`, of hosts the directory gives `id`), a member other than the
+transport's own: `id` among the peers' ids. The peer's goroutines that call into `Raft` borrow
+their `R`s from the transport's pool (`raftPool`, `trFixed`'s), so `AddPeer` takes none (until
+J8a-6, 2026-11-01: eight, of which `RemoveAllPeers` gave four back). -/
+abbrev rafthttp.Transport.AddPeer.spec : Prop :=
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac)
+    (ss : List GoString),
+  ss ≠ [] → (∀ s ∈ ss, types.plainPeerURL s) →
+  (∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = id) → c.lid ≠ id → (netRh γn).member id →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trLive γn t c rs ∗ us ↦*{dq} ss }}
+    (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
+      (Val #us))
+  {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

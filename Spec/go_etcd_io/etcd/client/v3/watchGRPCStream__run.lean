@@ -1,56 +1,22 @@
 /-
-`(*watchGRPCStream).run()`: the stream's main goroutine (forked by `newWatcherGRPCStream`).
-
-**Proof sketch** (what it carries around its loop): `wgsRun s γ who r` and the current stream's
-sending half (`wgsSend`, from `newWatchClient.spec`; the receiving half went to
-`serveWatchClient`), `cancelSet` and `closing` (local maps: ids it asked to cancel, substreams it
-closed the `recvc` of), `cur` (a fragment being reassembled: the **first** fragment's
-`wireWatchRespOwn`, the later fragments' events appended to it, `watch.go:596-603`; the receiving
-state's `WireSt.frag` is `some (first, evs)` with `cur`'s model the first's with the events `evs`).
-The completing response's `wireStep` is stated on `m.toResp evs` for the last message `m`, which
-`wireStep` makes agree with the first on the header, the compaction revision and the cancel reason
-(and both are neither `Created` nor `Canceled`): so `m.toResp evs` is `cur`'s model's `toResp`, and
-`dispatchEvent.spec` gets the `deliverOk` of what it dispatches (verify-round W1). Cases: a `*watchRequest` from `reqc` (its `retc` protocol: a new
-substream, `wsOwn` at `WatchPos.init` handed to a forked `serveSubstream` with `wsServe`, the
-consumer's `watchChAt` kept for `retc`), sent on the stream if first in `resuming`
-(`watchRequest.toPB.spec`, `wireWatchSend_send`: recorded as sent even when `Send` fails, which
-`run` only logs); a progress request (forwarded); a response from
-`respc` (its `wireStep` facts: `Created` answers `resuming`'s head, `addSubstream.spec`, then
-`dispatchEvent.spec`; `Canceled` closes the substream's `recvc` and forgets its id (the fork's fix
-of `issues/etcd-watch-resume-stale-canceled-id.md`); a fragment waits; otherwise
-`dispatchEvent.spec`, and a cancel for an unknown id); an error from `errc` (`isHaltErr`,
-`ContextError` and `ErrNoLeader`: 1c's and W0's specs; else `backoffIfUnavailable.spec`,
-`newWatchClient.spec`, `nextResume.spec`); `ctx.Done()`; a stopped substream from `closingc`
-(`closeSubstream.spec`, a cancel request). The deferred teardown: close every `recvc` not yet
-closed, `joinSubstreams.spec`, `closeSubstream.spec` for each, `wg.Wait()` (the thread-token-backed
-wait group), `closeStream.spec` with `wgsDoneTok`. The `watchStep` facts each substream's consumer
-gets are `wireStep`'s for the registration of the substream's id, whose position the ghost tie
-keeps equal to the substream's: a resume re-creates it from `initReq.rev`, the position's
-`done + 1`; a progress of id `-1` holds for every registration, so for every substream
-(`broadcastResponse`).
-
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-verify-round (A2-provability W1): the fragment case now closes: `wireStep` keeps the first fragment
-(`WireSt.frag`) and makes the later ones agree with its header and compaction revision. The
-teardown's `closeStream.spec` takes the watcher's handle, which `wgsAt`'s realization keeps
-(`∃ c who', watcherHandle w c γ who'`).
-**Margin**: mirrors the code.
+`(*clientv3.watchGRPCStream).run()` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -58,16 +24,42 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `s.run()`: never panics; ends with the stream torn down. -/
-def watchGRPCStream.run.spec : Prop :=
-  ∀ (s w : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsAt s w γ who ∗ wgsRun s γ who RunM.init ∗ wgsDoneTok s γ who }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"run")) (Val #()))
-  {{ RET #(); True }}
+/-- **`w.run()`**, the gRPC watch stream's main goroutine, on a fresh stream (no substream, no
+close error, its `resumec` not yet closed (D25: of the generation `0` of `γend`, whose authority it
+holds), `respc`'s both sides with no epoch yet (D25), `donec` to be closed by it,
+its wait group at `0`): opens the gRPC stream (`newWatchClient`), serves the `Watch` requests of
+`reqc` (each a substream with its goroutine, `serveSubstream`, created on the gRPC stream one at a
+time: a create sent only for the head of `resuming`; D25: each goroutine a lifetime of its
+substream, with its own `donec` and invariant, `LifePrm`), dispatches the stream's responses
+(`respc`) to the substreams with the contract's facts, closes the substreams that stop
+(`closingc`) and those the server cancels; on a stream error `isHaltErr` retries on (D25),
+reconnects (`newWatchClient`, a new epoch at `respc`'s position, the head of `resuming` created on
+the new stream); stops when the stream's context is done, the gRPC stream fails with a halting
+error or `ErrNoLeader`, or no substream is left, shutting the
+substreams down and closing `donec` with its close error (`closeStream`). Its thread token
+(`threadTok`) is deposited at each `Add(1)` and replaced by the fresh one of each `go`
+(`wgAdder`). -/
+abbrev watchGRPCStream.run.spec : Prop :=
+  ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (m0 : Loc) (s0 : GoSlice) (rc : Loc)
+    (γrc : ChanNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isClientWatcher V G.w ∗ isWGS V G callSl ∗ watcherF G.w go!"callOpts" ↦□ callSl ∗
+      wgsF G.wgs go!"substreams" ↦ m0 ∗ ownMap m0 (DFrac.own 1) (∅ : GMap w64 Loc) ∗
+      wgsF G.wgs go!"resuming" ↦ s0 ∗ sliceOwn s0 [] ∗
+      wgsF G.wgs go!"closeErr" ↦ GoInterface.nil ∗
+      wgsF G.wgs go!"resumec" ↦ rc ∗ ownBroadcastChan rc γrc (monoNatLbOwn G.γend 1) .Pending ∗
+      monoNatAuthOwn G.γend 1 0 ∗
+      sspscConsumer G.γr ([] : List Loc) ∗ sspscProducer G.γr ([] : List Loc) ∗
+      monoListAuthOwn G.γep 1 ([] : List EpInfo) ∗
+      ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗ wgAdder G.wgs ∗ threadTok ∗
+      ghostMapAuth G.γws 1 (∅ : GMap Loc Unit) }}
+    (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"run")) (Val #()))
+  {{ RET #(); threadTok }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

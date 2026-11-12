@@ -1,19 +1,10 @@
 /-
-## `(*streamReader).start()`
-
-**Users.** `startPeer` (twice).
-
-**Proof sketch.** `done`, `errorc` from the transport, `context.WithCancel(Background)`, the fork of `run` with `srRun`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*streamReader).start` (`stream.go`; rafthttp stage 5c). Lean-first; the reader's predicates:
+`rafthttp/Reader.lean`, `rafthttp/ReaderRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 
 @[expose] public section
 
@@ -21,26 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Starts a stream reader** (its `run` goroutine). -/
-def streamReader.start.spec : Prop :=
-  ∀ (cr : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ srFresh cr ν lid pid }}
-    (App (Val (cr @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader.ty @!! go!"start")) (Val #()))
-  {{ RET #(); srAt cr ν lid pid ∗ srStopRight cr }}
+/-- **`cr.start()`** of a reader made as `startPeer` makes it (no `errorc`, no context): makes
+`done`, takes the transport's `ErrorC`, a cancellable context, and runs `run` in a goroutine. -/
+abbrev rafthttp.streamReader.start.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy) (dc0 : GoChan)
+    (cf0 : GoFunc),
+  Rh.member lid → lid ≠ pid →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      srFixed0 Rh lid pid γd cr ∗ srCfg Rh pid ty cr ∗
+      cr.[rafthttp.streamReader, go!"done"] ↦ dc0 ∗
+      cr.[rafthttp.streamReader, go!"errorc"] ↦ (chan.nil : GoChan) ∗
+      cr.[rafthttp.streamReader, go!"ctx"] ↦ GoInterface.nil ∗
+      cr.[rafthttp.streamReader, go!"cancel"] ↦ cf0 }}
+    (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"start")) (Val #()))
+  {{ RET #(); srFixed Rh lid pid γd cr ∗ srStopRight cr }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

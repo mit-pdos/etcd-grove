@@ -2,7 +2,7 @@
 
 Reviewer: completeness (independent of the author). Read: `notes/specs-only/README.md`,
 `review-brief.md`, `.claude/skills/spec/PRINCIPLES.md`; every spec of
-`Spec/go_etcd_io/etcd/client/v3/concurrency/` (the vocabulary in full, the exported functions'
+`SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency/` (the vocabulary in full, the exported functions'
 triples), the four snippet files, the Go code (`.lake/src/client/concurrency/{session,mutex,election,stm}.go`)
 and every user found below. `batch-1d.md` read only after the findings were formed (its open
 question 3 is my finding C1, with a different answer). Snippets: `cd examples && go vet

@@ -67,7 +67,7 @@ Answers to 2f's items in `req/go_etcd_io_etcd_server_v3_etcdserver.md` ("from 2f
 ## from I2 (integration, raft; the coordinator's decision on the `MsgApp` entries' capacity)
 
 raft's `node.Step.spec` (and `RawNode.Step.spec`) now take **`msgRecv ml m`** (raftpb's,
-`Spec/go_etcd_io/raft/v3/raftpb/Api.lean`) in place of `msgPts ml (DFrac.own 1) m`: an owned message
+`SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/Api.lean`) in place of `msgPts ml (DFrac.own 1) m`: an owned message
 whose `Entries` slice's spare capacity is owned too (`msgRecv_unfold`), because raft's `unstable`
 may adopt a `MsgApp`'s slice and append into it (`nonissues/raft-msgapp-inprocess-aliasing.md`).
 Every message rafthttp delivers has it (protobuf's unmarshalling allocates the slice fresh):

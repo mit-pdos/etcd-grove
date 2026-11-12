@@ -1,22 +1,12 @@
 /-
-`b.free()` (`bucket.go`): every page of the bucket freed as pending (none for an inline bucket). Users: `DeleteBucket`.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
-
-**Proof sketch (the freelist, integration I7).** `forEachPageNode` over the bucket's base-tree
-pages (a bucket that existed at `Begin`: one created in this transaction is inline, root `0`):
-4d's `Interface.Free` of each mapped page, `node.free` of each cached node. `canFree` from the
-invariant (`Internal.lean`, "The freelist's side"): the extents are disjoint (the file's
-well-formedness) and none was freed before in this transaction (a cached node's page is freed
-only through its node, which then has `pgid = 0`; the bucket is deleted once: its handle's path
-is gone from `T.cur`).
-**Changes** (verify-round, A11 F9): the post keeps the abstraction relation (`repKept`: the pages
-freed are pending, still readable in the snapshot), which `DeleteBucket`'s `physRep_delBkt` needs;
-the premise `C.bkts b = none` (`DeleteBucket` already dropped the handle from its parent's cache):
-on a cached handle `SetRootPage(0)` would make it read as an inline bucket.
+`Bucket.free` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U7; used by U7 (`DeleteBucket`), U9b (`Bucket.spill`'s inlineable children). Proof:
+`Proof/go_etcd_io/bbolt/Bucket__free.lean` (U7e's; batch 35).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 
 @[expose] public section
 
@@ -24,26 +14,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) the bucket's pages pending for this txid. -/
-def Bucket.free.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath) (gs : List Nat),
-  {{ wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p gs ∗ ⌜C.bkts b = none⌝ }}
-    (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"free")) (Val #()))
-  {{ RET #(); ∃ C' : TxCore, wtxCore tx γ C' ∗ ⌜repKept C C' ∧ C'.bkts = C.bkts⌝ }}
+/-- `b.free()` of a live bucket `bl`, the writer's database side live: nothing for an inline
+bucket; else every extent of its logical tree (`X.extents`, in `forEachPageNode`'s order: a
+page's, or a materialized node's page's) freed for the writer's txid, the nodes reached at page id
+`0`, and its header's root `0` (`bktFreed`). Batch 35 (U7e's `spec'`): in the tree case the bucket's
+logical tree is finite (`rtOK`, `Rebalance/RTreeX`: the walk's termination; `rtOK_init` from `wOK`
+for `DeleteBucket`, rebalance's post for `spill`), the records' meta txid is the writer's (`Free`
+takes `tx.meta.Txid()`), and no position has a page buffer (`tx.page` reads the view). -/
+abbrev Bucket.free.spec : Prop :=
+  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl : Loc) (B : BRec),
+  X.t.bs !! bl = some B → bl ∈ X.liveB →
+  (B.ib.root' ≠ W64 0 → bktLocalOK X bl ∧
+    (∀ pid ∈ X.positions bl, X.t.pm !! pid = none) ∧
+    w.fl.canFreeAll w.wtxid (X.extents bl) ∧ rtOK X bl ∧ X.t.mv.txid' = w.wtxid) →
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
+    (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"free")) (Val #()))
+  {{ RET #(); ∃ (X' : WX) (w' : WDb), wtxW K tx r m X' ∗ wdbW K tx X.v w' ∗
+      ⌜(B.ib.root' = W64 0 ∧ X' = X ∧ w' = w) ∨
+       (B.ib.root' ≠ W64 0 ∧ bktFreed X X' bl ∧
+         w' = w.withFl (w.fl.freeAll w.wtxid (X.extents bl)))⌝ }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

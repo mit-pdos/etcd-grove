@@ -1,25 +1,17 @@
 /-
-`ConfChangeType.String()` (`raftpb/raft.pb.go`, protoc-gen-go).
-
-**Assumed (trust boundary).** The method is not translated (`Code/go_etcd_io/raft/v3/raftpb.toml`:
-`"!*.String"`, protobuf plumbing): its body is `protoimpl.X.EnumStringOf(x.Descriptor(),
-protoreflect.EnumNumber(x))`, the value's name in raftpb's file descriptor (built by the package's
-initialization), or its number for an unknown value. It reads only that descriptor, writes nothing
-and never panics, for every value.
-
-**Users.** etcd's `lg.Panic` paths: `membership/cluster.go:386` (an unknown conf change type). (`fmt` formatting a `ConfChangeType` under `%v`/`%s` calls it too: covered by `fmtErrorf.spec`'s argument rule, not by this spec.)
-
-**Changes.** From `specs-ref/Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean` (the old
-`fmt.stringMethodSpec` form): restated as a triple over this branch's conventions; restored at the
-verify round (A5-completeness F1: it was left out as "logging only", but translated code calls it).
-
-**Margin.** The string is not specified (only loggers read it).
+`raftpb.ConfChangeType.String` (`raftpb/raft.pb.go:312`, protoc-gen-go; names-only in the
+translation, `Code/go_etcd_io/raft/v3/raftpb.toml`): the trust boundary. The old proof's
+axiom (`Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`) restated for the raft v3.7
+translation (2026-10-15, raft v3.7 retarget, stage R2): `confchange.Changer.apply`'s
+`fmt.Errorf("unexpected conf type %d", cc.GetType())` passes a `ConfChangeType`, a named type,
+which Perennial's `fmt.wp_Errorf` does not admit (`fmt.ArgsWf`: arguments of predeclared basic
+types only); etcd-grove's `fmt.Errorf` axiom (`Spec/fmt/Errorf.lean`) admits an argument whose
+`String()` returns some string.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Api
-
-set_option autoImplicit false
+public import Spec.fmt.Errorf
+public import Code.go_etcd_io.raft.v3.raftpb
 
 @[expose] public section
 
@@ -27,27 +19,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace RaftPb
 
-open Iris Iris.BI
-open go_etcd_io.raft.v3
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
 
-/-- **Assumed.** `x.String()` returns some string, for any value. -/
-def ConfChangeType.String.spec : Prop :=
-  ∀ (x : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
-    (App (Val (x @!! raftpb.ConfChangeType.ty @!! go!"String")) (Val #()))
-  {{ (s : GoString), RET #s; True }}
+/-- **Trust boundary** (protoc-gen-go's generated enum method, not translated). A
+`ConfChangeType`'s `String()` returns some string, needing nothing and changing nothing
+(`fmt.stringMethodSpec`).
+
+Read against raft v3.7's `raft.pb.go`: `func (x ConfChangeType) String() string { return
+protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x)) }`; `EnumStringOf` looks
+the number up in the enum's descriptor (built by the package's initializer, read-only after)
+and returns its name, or the decimal string of the number when there is none. -/
+abbrev raftpb.ConfChangeType.String.spec : Prop :=
+  ∀ (t : w32),
+    ⊢ fmt.stringMethodSpec (GF := GF) (interface.mk raftpb.ConfChangeType.ty #t) go!"String"
 
 end spec
 
-end RaftPb
 end EtcdGrove
 end Perennial

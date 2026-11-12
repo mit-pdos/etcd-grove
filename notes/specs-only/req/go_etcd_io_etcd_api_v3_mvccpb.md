@@ -6,7 +6,7 @@ mvcc marshals a `mvccpb.KeyValue` for each change it writes to the storage (`sto
 `delete`: `proto.Marshal(kv)`, `lg.Fatal` on an error) and unmarshals each one it reads back
 (`rangeKeys`, `restoreChunk`: `proto.Unmarshal(vs[0], kv)`, `lg.Fatal` on an error). Its results are
 stated with W0's `EtcdWire.keyValueOwn p dq m` (`KeyValueM`). What it needs, through the proto
-boundary (`Spec/google_golang_org/protobuf/proto/`):
+boundary (`SpecPlan/Spec/google_golang_org/protobuf/proto/`):
 
 1. **The content relation**: `keyValueOwn p dq m ⊣⊢ Proto.msgAt mvccpb.KeyValue.ty p dq (kvContent m)`
    for a pure `kvContent : KeyValueM → Proto.Content` (3h's `*_msgAt` laws, as for the other

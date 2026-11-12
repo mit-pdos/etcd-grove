@@ -1,14 +1,11 @@
 /-
-`ReportEventReceived(n)` (`metrics.go:318`): the watch metrics (`pendingEventsGauge.Sub`,
-`totalEventsCounter.Add`). **Users**: v3rpc's watch send loop (`v3rpc/watch.go:426, 430, 477, 572`,
-with `len(...)` of an events slice; 2b's req item 6). `n ≥ 0`: a Prometheus counter's `Add` panics
-on a negative value (the callers pass a length).
-
-**Changes** from `specs-ref`'s file: the premise in the precondition.
+`ReportEventReceived` (`metrics.go`, names-only: the trust boundary). Lean-first (no Rocq
+counterpart); D19j (2026-10-18: until then the package fact `reportEventOk` of the watch path,
+stated for every `n`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
 
@@ -16,25 +13,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `ReportEventReceived(n)` (`n ≥ 0`): no panic. -/
-def ReportEventReceived.spec : Prop :=
-  ∀ n : w64,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜0 ≤ sint.Z n⌝ }}
+/-- `ReportEventReceived(n)` of a non-negative `n` returns: `pendingEventsGauge.Sub(float64(n))`
+and `totalEventsCounter.Add(float64(n))` (prometheus metrics; a counter's `Add` panics on a
+negative value, hence `0 ≤ n`: the watch server passes `len(...)` of an event slice). -/
+abbrev mvcc.ReportEventReceived.spec : Prop :=
+  ∀ n : w64, 0 ≤ sint.Z n →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) (Val #n))
   {{ RET #(); True }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

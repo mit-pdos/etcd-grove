@@ -1,10 +1,9 @@
 /-
-`(*treeIndex).keyIndex(keyi)` (`index.go:88`), the lock held: the tree's key index of `keyi`'s key
-(1g's `Get`), lent, or `nil`. Internal (`unsafeGet`, `KeyIndex`). **Changes**: over `treeOwn`.
+`treeIndex.keyIndex` (`index.go`). Lean-first (no Rocq counterpart); see `InvIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 
 @[expose] public section
 
@@ -12,29 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ti.keyIndex(keyi)`. -/
-def treeIndex.keyIndex.spec : Prop :=
-  ∀ (ti : Loc) (dq : DFrac) (M : IndexM) (keyi : Loc) (k : GoString) (ki0 : KeyIndexM) (dq' : DFrac),
-  {{ pkgInit ∗ treeOwn ti dq M ∗ ownKi keyi k ki0 dq' }}
+/-- `ti.keyIndex(keyi)` (under the lock, on the tree at any fraction): the key index of
+`keyi`'s key, or `nil`. -/
+abbrev mvcc.treeIndex.keyIndex.spec : Prop :=
+  ∀ (ti t : Loc) (L : List mvcc.IdxEntry) (q : Qp) (keyi : Loc) (k : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      ti.[treeIndex, go!"tree"] ↦□ t ∗ mvcc.ownTree t L q ∗ mvcc.kiItemIs keyi (keyi, k) }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"keyIndex")) (Val #keyi))
-  {{ (p : Loc), RET #p; ownKi keyi k ki0 dq' ∗
-      ((⌜M k = none ∧ p = null⌝ ∗ treeOwn ti dq M) ∨
-       (∃ ki, ⌜M k = some ki ∧ p ≠ null⌝ ∗ ownKi p k ki dq ∗ (ownKi p k ki dq -∗ treeOwn ti dq M))) }}
+  {{ (p : Loc), RET #p; mvcc.ownTree t L q ∗
+      ⌜p = ((L.find? fun z => decide (z.2.1 = k)).map Prod.fst).getD null⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial
+

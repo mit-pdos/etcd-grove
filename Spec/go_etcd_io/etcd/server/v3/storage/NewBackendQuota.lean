@@ -1,21 +1,9 @@
 /-
-## `NewBackendQuota(lg, quotaBytes, be, name)` (`quota.go:73-127`): trusted (names only)
-
-**Users.** 3a's capped applier (`apply.newQuotaApplierV3`), 2a's quota interceptors
-(`v3rpc.NewQuotaKVServer`, `NewQuotaLeaseServer`). Snippet: `etcdserverboot/storage.go`.
-
-**Why it is true.** A `*passthroughQuota` for a negative size, else a `*BackendQuota` over `be`
-(the default size for `0`); a metric set; log lines (a logger: `lg.Info` on a nil logger panics).
-
-**Changes** (from `specs-ref`'s `NewBackendQuota.lean`, which carried the workload premise
-`apply.backendUnderQuota`): no workload premise: a quota refusal is a `Step` refusal and the
-`NOSPACE` alarm an environment step in W0's model. **Margin.** None.
+`storage.NewBackendQuota`: the trust boundary (`server/v3/storage` is names-only). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.Api
-public import Spec.go_etcd_io.raft.v3.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 
 @[expose] public section
 
@@ -23,26 +11,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ServerStorage
 
-open Iris Iris.BI
+open Iris Iris.BI 
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The backend quota** (or none, for a negative size). -/
-def NewBackendQuota.spec : Prop :=
-  ∀ (lg : Loc) (qb : w64) (be : GoInterface) (name : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ Zap.isLogger lg ∗ beReadable be }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewBackendQuota)) (Val #lg)) (Val #qb)) (Val #be)) (Val #name))
-  {{ (q : GoInterface), RET #q; isQuota q }}
+/-- `NewBackendQuota(lg, cfg, be, name)` (`newQuotaApplierV3`): a `Quota` (`isQuota`: a
+`passthroughQuota` for a negative `cfg`, else a `BackendQuota` over `be`; it sets a gauge and
+logs once). Its `Available` answers true only under the named workload premise
+`apply.backendUnderQuota` (audit phase B3, D19h, 2026-10-18: until then unconditional, false of
+Go once the backend reaches the quota).
+
+`be` is any backend, of any epoch (D22 S-k, decided by the orchestrator while the user was away
+(L1), 2026-10-26): the axiom takes no fact about it and gives no resource of it, so a quota built
+over the backend `s.Backend()` returned stays usable after `applySnapshot` swaps `s.be` and closes
+the old one (the `isQuota` triples have no precondition, nothing holds a `bOpen` share). True of
+Go for a real backend, open or closed: `Available` reads only `be.Size()`, an atomic load of
+`b.size` (`backend.backend.Size.spec` needs only the persistent `isBackend`, whose `metricsInv`
+outlives `Close`), so a closed backend answers with its last size, which `backendUnderQuota`
+covers as it covers the current one's. The callers pass a real backend (`srvBeIface d.be` from
+`EtcdServer.Backend`, `s.be` for the applier's). -/
+abbrev storage.NewBackendQuota.spec : Prop :=
+  ∀ (lg : Loc) (cfg : w64) (be : GoInterface) (name : GoString),
+  apply.backendUnderQuota →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewBackendQuota)) (Val #lg))
+      (Val #cfg)) (Val #be)) (Val #name))
+  {{ (q : GoInterface), RET #q; apply.isQuota q }}
 
 end spec
 
-end ServerStorage
 end EtcdGrove
 end Perennial

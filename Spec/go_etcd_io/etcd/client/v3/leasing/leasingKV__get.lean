@@ -1,22 +1,9 @@
 /-
-`(*leasingKV).get` (`kv.go`): `Get`'s and `Do`'s range. Proof sketch: not ready (`readySession`) or
-not cacheable (`leaseCache.Get`: a bad op, or serializable) or recently revoked (`MayAcquire`):
-`lkv.kv.Do` (W0's `KV.DoTriple`, the update restricted to `Step`, `LStep`'s first case); a cached
-response (`leaseCache.Get`: `leaseGetM o me` of an entry `me` with `entryOk` and an `etcdLb γ σ0`):
-the update opened at the current state, `Reach σ0 σ` (`etcdLb_reach`), committed with `σ' = σ` and
-the answer `CachedRange1` (`some`): from `recAtHdr`, W0's serializable answer (the view at the
-header's revision; `leaseGetM` is `RangeReq.answers` on one key, up to a keys-only answer's lease,
-a pure fact), or with the key's mark the shape; else `acquire` (a protocol step), then `leaseCache.Add` (`leaseGetM`: still
-`entryOk`) and a lease monitor (`wg.Add(1)` with the open token's share, the forked thread's
-token deposited; `monitorLease`), or the plain get's response as is
-(`issues/leasing-get-failed-acquire-options.md`): both fired as a cached answer at the current state.
-Changes: from `specs-ref`'s `leasingKV__get.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
-
-Changes: second pass: premise `o.emptyEnd = false` (W0's KV triples take it: A1-provability F5's scope premise; this call forwards the op to the client's KV).
+`lkv.get(ctx, op)` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -24,32 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `get(ctx, op)` for a range `op`: as `LKV.GetTriple`. -/
-def leasingKV.get.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (q : Qp) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗ ⌜o.t = tRange ∧ o.emptyEnd = false⌝ ∗ threadTok ∗
-      □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (.range o.rangeReq) σ σ' r ∗ etcdState γ σ',
-           COMM LQ Q σ σ' r }> }}
-    (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"get")) (Val #ctx)) (Val #op))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lkvOpen γL q ∗ threadTok ∗
-      ((∃ σ σ' res, Q σ σ' res ∗ getReply res resp err) ∨ ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
+/-- **`lkv.get(ctx, op)`** for a get `op` (`o`), knowing that etcd reached `lo`, with a fraction
+of the "open" token and the thread's token (with which it borrows a reader slot of the leasing KV's
+pool; an acquisition hands the slot to the lease monitor it starts): `getOutcome` (the client's
+answer, the cache's, an acquisition's, or a failed acquisition's). -/
+abbrev leasingKV.get.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
+    (lo : w64) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ opFullAt opv o ∗ etcdReached lo ∗
+      ⌜o.t = W64 1 ∧ OpShape opKeyMax opKeyMax opValMax o⌝ ∗ leasingOpen γ q ∗ threadTok }}
+    (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"get")) (Val #(GoInterface.ok ctx))) (Val #opv))
+  {{ (ret : Loc) (err : GoInterface), RET (PairV #ret #err); leasingOpen γ q ∗ threadTok ∗
+      getOutcome γ pfx lo o ret err }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

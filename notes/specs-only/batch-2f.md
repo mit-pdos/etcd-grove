@@ -1,12 +1,12 @@
 # Batch 2f: rafthttp, etcd's raft transport
 
-Author's report (2026-11-09). Build: `etc/specs-build.sh --dir Spec/net/http
-Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp`: OK (117 modules). Snippets: `cd examples &&
+Author's report (2026-11-09). Build: `etc/specs-build.sh --dir SpecPlan/Spec/net/http
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp`: OK (117 modules). Snippets: `cd examples &&
 go vet ./specreq/rafthttp/` and `gofmt -l`: clean.
 
 ## Files
 
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean` (namespace `Rafthttp`): the
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Api.lean` (namespace `Rafthttp`): the
   vocabulary, its header (the shape, the at-most-once argument, the intended realization), laws.
 - 103 spec files beside it, one per function: the client-facing `Transport` methods (`Start`,
   `Handler`, `Send`, `SendSnapshot`, `AddPeer`, `AddRemote`, `UpdatePeer`, `RemovePeer`,
@@ -17,7 +17,7 @@ go vet ./specreq/rafthttp/` and `gofmt -l`: clean.
   reader) mirroring the code with a short comment. The untranslated `NewListener`,
   `NewRoundTripper`, `newStreamRoundTripper`, `waitSchedule`, `addPeerToProber` are trust-boundary
   specs (said so in each).
-- `Spec/net/http/Api.lean` (namespace `Http`): **the HTTP boundary**, assumed: its model (header),
+- `SpecPlan/Spec/net/http/Api.lean` (namespace `Http`): **the HTTP boundary**, assumed: its model (header),
   vocabulary, the bundles `roundTripperOk`, `handlerOk` (with `servePre`/`serveDone`), and the
   assumed laws (`reserve`, `protoAt_agree`, tickets, a body's `Read`/`Close`, a response writer's
   `Header`/`WriteHeader`/`Write`/`Flush`, the field laws of requests and responses, the mux).
@@ -171,8 +171,8 @@ when this report was written; the server's uses were read from its code (`server
 ## Round 1 repairs (2026-11-09)
 
 Reviews: `reviews/2f-provability-1.md`, `reviews/2f-completeness-1.md`, with the coordinator's
-decisions. Rebuilt: `etc/specs-build.sh --dir Spec/net/http
-Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp` OK (119 modules). `go vet` and `gofmt` are
+decisions. Rebuilt: `etc/specs-build.sh --dir SpecPlan/Spec/net/http
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp` OK (119 modules). `go vet` and `gofmt` are
 clean on the snippets. `etc/issues-status.py --check` is clean (index regenerated).
 
 Some statements earlier in this report are superseded by this section: `snapImg` is now the
@@ -190,7 +190,7 @@ network's field `ν.img` over 2e's `BeImage`; `dbSaved`, `snapshotterOk` and `pr
   idempotency key **present** (any value), as `isReplayable` tests (`Header.has`). For such a
   method without a key, Go never replays the request, whether or not its body is rewindable. New
   law `postHdrs_onceOnly.spec`.
-- **F3, the closed world tied to the bound socket.** `net.Listen` (`Spec/net/http/Listen.lean`) and
+- **F3, the closed world tied to the bound socket.** `net.Listen` (`SpecPlan/Spec/net/http/Listen.lean`) and
   `NewListener` give a fresh `listenerAt l a` for the string the socket is actually bound at (port
   `0`: the actual one, `portZero`), plus `listenerCloser`. `Serve` takes the listener and the
   persistent `protoAt a P`. Only reserved strings can be dialed.

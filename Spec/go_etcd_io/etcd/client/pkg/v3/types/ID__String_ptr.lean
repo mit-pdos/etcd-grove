@@ -1,23 +1,14 @@
 /-
-`(*types.ID).String` (`client/pkg/v3/types/id.go`: the method set of `*ID` holds `ID`'s value
-method; Goose's wrapper loads the `ID` and calls it).
-
-Users: the server's logs and maps keyed by member ids through a pointer receiver (144 calls of
-`MethodResolve (PointerType types.ID.ty) "String"` in the translated `etcdserver`, `api/rafthttp`,
-`api/membership`: `streamWriter.run`, `streamHandler.ServeHTTP`, `RaftCluster.RemoveMember`,
-`checkClusterCompatibilityFromHeader`, `streamReader.dial`, ...).
-
-Proof sketch: the wrapper loads `*p` (any fraction, kept), then `ID.String.spec`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/pkg/v3/types/ID__String_ptr.lean`.
-verify-round: restored (A2-completeness F4: it had no counterpart here, and the server's sketches
-cited the value form at pointer calls); at any fraction, the points-to given back.
-
-Margin: none.
+`(*types.ID).String`, the pointer-receiver wrapper Go generates for the value method `ID.String`
+(`x.String()` on an addressable `ID`, as `NewServer`'s on `b.cluster.nodeID`): the trust boundary
+(`client/pkg/v3/types` is names-only, so the translation does not relate the two). Lean-first (no
+Rocq counterpart); unit N4 (2026-10-17).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.pkg.v3.types.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.unicode.utf8.Valid
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
 
 @[expose] public section
 
@@ -25,27 +16,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Types
 
-open Iris Iris.BI
+open Iris Iris.BI 
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
-/-- `p.String()` of a `*ID`: `idStr` of the `ID` at `p` (read at any fraction, kept). -/
-def ID.String_ptr.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (x : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗ p ↦{dq} x }}
+/-- `p.String()` loads the `ID` at `p` (read at any fraction, kept) and returns `(*p).String()`,
+its hexadecimal rendering (`types.idStr`; 2026-10-23, rafthttp stage 5d: until then an ASCII
+string, D19l (iii), and before 2026-10-18 some string). -/
+abbrev types.ID.String_ptr.spec : Prop :=
+  ∀ (p : Loc) (dq : DFrac) (id : go_etcd_io.etcd.client.pkg.v3.types.ID),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗ p ↦{dq} id }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.types.ID.ty @!! go!"String"))
       (Val #()))
-  {{ (s : GoString), RET #s; p ↦{dq} x ∗ ⌜s = idStr x⌝ }}
+  {{ (s : GoString), RET #s; p ↦{dq} id ∗ ⌜s = types.idStr id⌝ }}
 
 end spec
 
-end Types
 end EtcdGrove
 end Perennial

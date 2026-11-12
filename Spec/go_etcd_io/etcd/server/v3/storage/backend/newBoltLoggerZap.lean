@@ -1,16 +1,14 @@
 /-
-## `newBoltLoggerZap(bcfg)` (`backend.go:1107-1110`): trusted (names only)
-
-**Users.** `newBackend`. **Why it is true.** `bcfg.Logger.Named("bbolt")`,
-`WithOptions(AddCallerSkip(1)).Sugar()` (zap: a logger), wrapped in a fresh `*zapBoltLogger`: a
-pointer-typed `bolt.Logger` (4c's `loggerPtrOk`; its methods' contract is 4c's logger contract,
-requested in `req/go_etcd_io_bbolt.md`). **Changes.** From `specs-ref`'s: the logger's shape only.
-**Margin.** The logger's methods are 4c's.
+`newBoltLoggerZap` (`backend.go`): the trust boundary (names-only: its body is zap's
+`Named("bbolt")`, `WithOptions(zap.AddCallerSkip(1))` and `Sugar()`, wrapped as a
+`*zapBoltLogger`, a `bolt.Logger`). Go: on a non-nil logger it returns a logger whose methods log
+through zap (`Fatal`/`Panic` stop the process or panic, as bbolt expects of its logger): what
+`boltLogger` names, the logger bbolt's `Open` takes. Lean-first (no Rocq counterpart);
+2026-10-17, branch `construct` (the backend's constructor).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 
 @[expose] public section
 
@@ -18,27 +16,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`newBoltLoggerZap(bcfg)`**: a pointer-typed `bolt.Logger`. -/
-def newBoltLoggerZap.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ Zap.isLogger cfg.Logger' }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap)) (Val #cfg))
-  {{ (r : GoInterface), RET #r; ∃ l : Loc,
-      ⌜r = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.zapBoltLogger.ty) #l⌝ }}
+/-- `newBoltLoggerZap(bcfg)` (the configuration's logger not nil): a logger bbolt may call, a
+`*zapBoltLogger` (`&zapBoltLogger{...}`: its value a location; batch 38.1 of
+`notes/bbolt-proof-plan.md`, user-approved 2026-11-04, for bbolt's `OptsM.ok`'s `loggerPtrOk`). -/
+abbrev backend.newBoltLoggerZap.spec : Prop :=
+  ∀ (cfg : BackendConfig),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      ⌜cfg.Logger' ≠ Loc.null⌝ }}
+    (App (Val (@! newBoltLoggerZap)) (Val #cfg))
+  {{ (l : GoInterface), RET #l; boltLogger l ∗
+      ⌜∃ lc : Loc, l = interface.mkOk (go.GoType.PointerType zapBoltLogger.ty) #lc⌝ }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

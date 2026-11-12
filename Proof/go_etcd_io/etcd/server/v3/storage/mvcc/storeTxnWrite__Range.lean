@@ -1,0 +1,153 @@
+/-
+Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__rangeKeys
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+theorem mvcc.storeTxnWrite.Range.wp_proof
+    (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
+    mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) := by
+  intro trace tw s γ ilog pend ctx cd todo key endk k e ro te crev Z
+  wp_start as ⟨Htw, #Hctx, #Hkey, #Hend, Hown⟩
+  iunfold mvcc.storeTxnWriteIs at Htw
+  iNamed Htw
+  -- the writer's log and the number of changes
+  ihave %Hchl := ownSlice_len chs (DFrac.own 1) ps $$ Hchs
+  have hcl : chs.len = W64 (pend.length : Int) := by
+    rw [← Hps, Hchl.1]; exact (mvcc.W64_sint_nat chs.len Hchl.2).symm
+  ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
+  obtain ⟨Hwf', Hlen, Hplen, Hcs⟩ := Hwf
+  have hpos : 0 < ilog.length := List.length_pos_iff.2 Hne
+  have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 = W64 (ilog.length : Int) := by
+    rw [← mvcc.W64_add_one]; simp
+  have hwrZ : sint.Z (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) = mvcc.writeRev ilog pend := by
+    have := mvcc.writeRev_lt ilog pend Hne
+    simp only [List.length_append, List.length_singleton] at this
+    unfold sint.Z W64
+    rw [BitVec.toInt_ofInt_eq_self (by decide)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
+  -- the `storeTxnCommon`'s fields, for `rangeKeys`
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Htw
+  iStructNamedPrefix Htw "W"
+  ihave %Hnnc := typedPointsto_not_null _ _ _ $$ WstoreTxnCommon
+  iStructNamedPrefix WstoreTxnCommon "C"
+  have hpZ : sint.Z (W64 (pend.length : Int) : w64) = pend.length := by
+    unfold sint.Z W64
+    rw [BitVec.toInt_ofInt_eq_self (by decide)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
+      (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
+  have h0Z : sint.Z (W64 0 : w64) = 0 := by decide
+  (try wp_auto)
+  -- `rev := tw.beginRev; if len(tw.changes) > 0 { rev++ }`: the transaction's revision
+  wp_if_destruct
+  -- a change: the pending revision; no change: the committed log's last revision (`hwr` turns
+  -- the code's revision into `writeRev`, and back after the call)
+  all_goals first
+    | (have hpend : pend ≠ [] := by
+         intro h; subst h
+         rw [hcl] at Hif
+         first | (simp at Hif) | exact absurd Hif (by decide)
+       (try wp_auto)
+       have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) = W64 (ilog.length : Int) := by
+         unfold mvcc.writeRev; rw [ite_eq_right hpend]
+       rw [hrev, ← hwr])
+    | (have hpend : pend = [] := by
+         apply List.length_eq_zero_iff.1
+         have h := Hif
+         first | (rw [hcl, hpZ, h0Z] at h; omega) | (simp only [hcl, hpZ, h0Z] at h; omega)
+       have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) =
+           W64 ((ilog.length : Int) - 1) := by
+         unfold mvcc.writeRev; rw [ite_eq_left hpend]; congr 1; omega
+       (try wp_auto)
+       rw [← hwr])
+  -- `tw.rangeKeys(ctx, key, end, rev, ro)`: the promoted method, `storeTxnCommon`'s
+  all_goals
+    rw [method_unfold (t := go.GoType.PointerType storeTxnWrite.ty) (m := go!"rangeKeys")]
+    wp_call
+    (try wp_auto)
+    -- the bucket through the batch transaction (its own puts), the index by the writer
+    -- (but for keys compaction deleted: none the read names, `rangeKeys`)
+    -- the view's bucket `m`, thin of `ilog`'s (M2's item 15): a reader of it reads `ilog`'s
+    iunfold mvcc.bucketViewL at Hbv
+    icases Hbv with ⟨%m, Hbv, #Hbl⟩
+    ihave #Hrdr0 := mvcc.batchTx_readerD bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ)
+      (mvcc.storeRb γ) (mvcc.kbMWv γ.kb γ.bucket) (mvcc.pendPuts ilog pend) mvcc.txQ m $$ Hbt
+    ihave #Hthin := mvcc.snapThin_foldl_insert (mvcc.pendPuts ilog pend) (mvcc.bucketMap ilog) m
+      (mvcc.delKey γ) $$ [Hbl]
+    · iapply mvcc.bucketLog_thin; iexact Hbl
+    ihave #Hrdr := mvcc.keyReaderD_thin bt
+      ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
+      ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) m) _ _ $$ [Hrdr0 Hthin]
+    · iframe Hrdr0 Hthin
+    ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
+        mvcc.bucketView γ mvcc.txQ m) $$ [Hlocked Hbv]
+    · iframe Hlocked Hbv
+    ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
+    · rw [mvcc.idxKnows_writer]; iexact Hw
+    icases mvcc.muHeld_tree s γ crev ti $$ Hmu with ⟨Hmu, #Hidx⟩
+    icases mvcc.muHeld_cmp_idx s γ crev ti $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
+    wp_apply (hKeys (mvcc.txCommonW tw) s trace ti bt (DFrac.own 1)
+        ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
+        iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ mvcc.txQ m)
+        γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
+        ctx cd todo key endk k e ro _ _ crev ilog te _ (by assumption))
+      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hcert $Hkn $Hidx $Hidxf $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
+      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hidxf, Hcmp, Hcu, Hown, Hout⟩
+    · ipureintro
+      refine ⟨?_, ⟨List.prefix_append _ _, Hcrev.2⟩, rfl, by simp, ?_, Hcb⟩
+      · rw [mvcc.bucketMap_append ilog pend Hne]; exact fun _ _ h => h
+      · rw [hwrZ]; have := mvcc.writeRev_lt ilog pend Hne; omega
+    ihave Hmu := Hmub $$ Hcmp Hcu Hidxf
+    rw [mvcc.idxKnows_writer]
+    (try wp_auto)
+    -- the transaction back: the `storeTxnCommon`, then the `storeTxnWrite`
+    ihave Hc : (mvcc.txCommonW tw ↦ ({ s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace } : storeTxnCommon) : IProp GF)
+      $$ [Cs Ctx CfirstRev Crev Ctrace]
+    · iapply typedPointsto_combine _ _ _ Hnnc
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    rw [hwr]
+    ihave Htw : (tw ↦ ({ storeTxnCommon' := { s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace }, tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1), changes' := chs } : storeTxnWrite) : IProp GF)
+      $$ [Hc Wtx WbeginRev Wchanges]
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ihave Hbv : mvcc.bucketViewL γ mvcc.txQ ilog $$ [Hbv]
+    · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
+    iapply HΦ
+    isplitl []
+    · ipureintro; exact Htodo
+    iframe Hout Hown
+    iunfold mvcc.storeTxnWriteIs
+    iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+    simp only [named]
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv HY Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+
+end proof
+
+end EtcdGrove
+end Perennial

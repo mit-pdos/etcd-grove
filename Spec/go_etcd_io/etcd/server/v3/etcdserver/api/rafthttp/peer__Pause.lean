@@ -1,19 +1,9 @@
 /-
-## `(*peer).Pause()`
-
-**Users.** `Transport.CutPeer`/`MendPeer`/`Pause`/`Resume`.
-
-**Proof sketch.** `paused` under `mu`; both readers' `pause`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*peer).Pause()` (`peer.go`; rafthttp stage 6b). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -21,26 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Pauses the peer: outgoing messages dropped, stream-inbound ones dropped after decoding. -/
-def peer.Pause.spec : Prop :=
-  ∀ (p : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"Pause")) (Val #()))
+/-- **`p.Pause()`** of a started peer: it returns (`paused` set, its stream readers paused). -/
+abbrev rafthttp.peer.Pause.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF) (p : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      peerOk Rh lid pid γd R p }}
+    (App (Val (p @!! go.GoType.PointerType rafthttp.peer.ty @!! go!"Pause")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,0 +1,322 @@
+/- Lean-first (no Rocq counterpart). -/
+module
+
+public import Spec.go_etcd_io.raft.v3.node__stepWithWaitOption
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import Spec.context.ErrDone
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvBoot
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.NewRawNode
+import Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A message from the network goes onto `recvc` (`netP`); a proposal onto `propc` with a
+fresh result channel (`propP`, `Handoff`), whose result, `raft.Step`'s error for the proposal
+(`stepErr`, stage R7c), is then awaited. (2026-10-29, stage U9a) If `n.done` fires, `ErrStopped`.
+`ctx` is any `nodeCtx` (stage R7a, `InvNodeCtx.lean`): its `Done()` is `nil` (the case never
+fires) or a context's channel, from which a receive returns once the context is done, and the
+call returns `ctx.Err()` (`nodeDone_recv_clause`, `isContext_Err_done` over the trust-boundary
+spec `context.ErrDone`, a callee since stage R7c: the error is `Canceled` or `DeadlineExceeded`);
+in the last `select` the proposal's result is then abandoned (the handoff's consumer token
+dropped; `run` still sends and closes). (Raft v3.7, stage R5: `m` is a pointer, handed on for
+good; its type read by `m.GetType()`, a new callee, over the `msgIn` each case of `stepArg` holds;
+a network message's type is not `MsgProp` by `NetMsgOk`.) -/
+theorem node.stepWithWaitOption.wp_proof
+    (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
+    node.stepWithWaitOption.spec (GF := GF) (hG := hG) := by
+  intro γ id n m wait ctx cd
+  wp_start as ⟨#Hnode, #Hctx, Harg⟩
+  -- (2026-10-29, stage U9a) `ErrStopped`, for the `n.done` cases
+  ihave #Hinit := isInitialized_access $$ Hpkg
+  unfold isInitialized
+  icases Hinit with ⟨%eStop, %_, %_, %_, %_, %_, %_, %_, %_, %_, #Hinit⟩
+  iNamed Hinit
+  ihave #HeStop : errStopped (GF := GF) eStop $$ []
+  · unfold errStopped; iframe ErrStopped; ipureintro; exact HErrStopped
+  ihave #Hpctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  ihave #Hnode' := Hnode
+  open_node Hnode'
+  unfold stepArg
+  icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent, Htk⟩ | ⟨%Hw, Hfwd⟩)
+  · -- a message from the network: `recvc <- m`
+    icases netP_split γ id m $$ Hnet with ⟨%st, Hm, %Hok, Hback⟩
+    wp_auto
+    wp_apply wp_GetType.1 $$ [Hm] as Hm
+    · iexact Hm
+    wp_if_destruct
+    · rcases Hok with Hok | rfl
+      · exact absurd Hif (netStepTypes_ne_prop Hok)
+      · exact absurd Hif (by simp [hupSt, MsgProp])
+    wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
+    wp_auto_lc 3
+    wp_apply_core chan.wp_select_blocking_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance,
+        nv.recvc', γ.recvc, m
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      isplitr
+      · iapply isHandshake_isChan $$ Hrecvc
+      iapply handshake_send_au γ.recvc nv.recvc' m (netP γ id) iprop(True)
+        $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hm Hback]
+      · iapply Hback $$ Hm
+      inext
+      iintro -
+      wp_auto
+      iapply HΦ
+      iapply waitErrRaw_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- `case <-ctx.Done(): return ctx.Err()`
+      iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+      iintro ⟨#Hctx', #HPD, #HCC⟩
+      wp_auto
+      wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
+      iapply HΦ
+      iapply waitErrRaw_ctx $$ Hcerr
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro #Hst
+      wp_auto
+      iapply HΦ
+      iapply waitErrRaw_stopped
+      iframe HeStop Hst
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+  · -- a proposal: `propc <- pm`, then `<-pm.result`
+    subst Hw
+    wp_auto
+    wp_apply wp_GetType.1 $$ [Hm] as Hm
+    · iexact Hm
+    wp_if_destruct
+    rotate_left
+    · exact absurd rfl Hif
+    wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %rch %γrc ⟨#Hrch, %_, Hoc⟩
+    · ipureintro; decide
+    ihave Hoc : ownChan γrc GoInterface (.Buffered []) $$ Hoc
+    imod start_handoff rch stepErr iprop(True) iprop(True) γrc
+      $$ Hrch Hoc with ⟨%γr, %Hγr, #Hho, Hprod, Hcons⟩
+    subst Hγr
+    wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
+    wp_auto_lc 3
+    wp_apply_core chan.wp_select_blocking_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists msgWithResult, inferInstance, inferInstance, inferInstance, inferInstance,
+        nv.propc', γ.propc, ({ m' := m, result' := rch } : msgWithResult)
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      isplitr
+      · iapply isHandshake_isChan $$ Hpropc
+      iapply handshake_send_au γ.propc nv.propc' ({ m' := m, result' := rch } : msgWithResult)
+        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm Htk Hprod]
+      · unfold propP
+        ileft
+        iexists data, γr
+        iframe Hm Hent Htk Hho Hprod
+      inext
+      iintro -
+      wp_auto
+      wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch2 #Hd2
+      wp_auto_lc 3
+      wp_apply_core chan.wp_select_blocking_nil
+      iapply BigAndL.bigAndL_cons.2
+      isplit
+      · ileft
+        simp only [chan.blockingClausePre]
+        iexists GoInterface, inferInstance, inferInstance, inferInstance, inferInstance,
+          rch, γr.chanName
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · unfold isHandoff
+          icases Hho with ⟨$, -⟩
+        iapply handoff_rcv_au γr rch _ _ _ false $$ Hho Hlc1 Hcons
+        inext
+        iintro %v %ok ⟨-, Hgot⟩
+        unfold handoffGot
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        cases ok
+        · -- the channel closed without a value: `run` always sends first, but the handoff's
+          -- consumer, which never took the value, is only promised `Wc` (`True`); the zero
+          -- value is `nil`
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hgot with ⟨%Hv, -⟩
+          subst Hv
+          wp_auto
+          iapply HΦ
+          iapply propErrRaw_nil
+        · simp only [↓reduceIte]
+          icases Hgot with ⟨#Hse, -⟩
+          cases v with
+          | nil =>
+            wp_auto
+            iapply HΦ
+            iapply propErrRaw_nil
+          | ok e =>
+            wp_auto
+            iapply HΦ
+            iapply propErrRaw_of_stepErr $$ Hse
+      iapply BigAndL.bigAndL_cons.2
+      isplit
+      · -- `case <-ctx.Done(): return ctx.Err()`, the result abandoned
+        iapply nodeDone_recv_clause ctx cd dch2 _ _ $$ Hd2
+        iintro ⟨#Hctx', #HPD, #HCC⟩
+        wp_auto
+        wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
+        iapply HΦ
+        iapply propErrRaw_of_nodeErrRaw
+        iapply nodeErrRaw_ctx $$ Hcerr
+      iapply BigAndL.bigAndL_cons.2
+      isplit
+      · ileft
+        simp only [chan.blockingClausePre]
+        iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+        -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+        iapply node_done_recv_au γ nv.done' _ $$ Hdone
+        iintro #Hst
+        wp_auto
+        iapply HΦ
+        iapply propErrRaw_of_nodeErrRaw
+        iapply nodeErrRaw_stopped
+        iframe HeStop Hst
+      iapply BigAndL.bigAndL_nil.2
+      itrivial
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- `case <-ctx.Done(): return ctx.Err()`
+      iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+      iintro ⟨#Hctx', #HPD, #HCC⟩
+      wp_auto
+      wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
+      iapply HΦ
+      iapply propErrRaw_of_nodeErrRaw
+      iapply nodeErrRaw_ctx $$ Hcerr
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro #Hst
+      wp_auto
+      iapply HΦ
+      iapply propErrRaw_of_nodeErrRaw
+      iapply nodeErrRaw_stopped
+      iframe HeStop Hst
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+
+  · -- a forwarded proposal (2026-10-10): `propc <- pm`, no result channel
+    subst Hw
+    iunfold fwdP at Hfwd
+    icases Hfwd with ⟨%st, Hm, %Hty, #Hab, Htk⟩
+    wp_auto
+    wp_apply wp_GetType.1 $$ [Hm] as Hm
+    · iexact Hm
+    wp_if_destruct
+    rotate_left
+    · exact absurd Hty.1 Hif
+    wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
+    wp_auto_lc 3
+    wp_apply_core chan.wp_select_blocking_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists msgWithResult, inferInstance, inferInstance, inferInstance, inferInstance,
+        nv.propc', γ.propc, ({ m' := m, result' := zero_val GoChan } : msgWithResult)
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      isplitr
+      · iapply isHandshake_isChan $$ Hpropc
+      iapply handshake_send_au γ.propc nv.propc' ({ m' := m, result' := zero_val GoChan } : msgWithResult)
+        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm Htk]
+      · unfold propP
+        iright
+        isplitr
+        · ipureintro; rfl
+        iunfold fwdP
+        iexists st
+        iframe Hm Hab Htk
+        ipureintro; exact Hty
+      inext
+      iintro -
+      wp_auto
+      iapply HΦ
+      iapply nodeErrRaw_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- `case <-ctx.Done(): return ctx.Err()`
+      iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+      iintro ⟨#Hctx', #HPD, #HCC⟩
+      wp_auto
+      wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
+      iapply HΦ
+      iapply nodeErrRaw_ctx $$ Hcerr
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply ownBroadcastChan_is_chan _ _ _ _ $$ Hdone
+      -- (2026-10-29, stage U9a) the node stopped: `return ErrStopped`
+      iapply node_done_recv_au γ nv.done' _ $$ Hdone
+      iintro #Hst
+      wp_auto
+      iapply HΦ
+      iapply nodeErrRaw_stopped
+      iframe HeStop Hst
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+
+end proof
+
+end EtcdGrove
+end Perennial

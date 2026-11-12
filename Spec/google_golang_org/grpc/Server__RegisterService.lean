@@ -1,29 +1,19 @@
 /-
-`(*grpc.Server).RegisterService(sd, ss)` (grpc-go, assumed: `server.go`).
-
-Users: the generated `etcdserverpb.Register*Server` (3h), from `v3rpc.Server` (`grpc.go:91-99`).
-
-Why true: `RegisterService` checks that `ss` implements the descriptor's handler type (a fatal log
-otherwise: excluded, `ss` is the generated `Register*Server`'s typed argument) and records each
-method and stream by its full name `/svc/Method`; it fatals on a duplicate service (each of etcd's
-is registered once: the premise).
-
-Changes: from `specs-ref/Spec/google_golang_org/grpc/Server__RegisterService.lean`: the
-registrations as (full name, handler, service value).
-
-Margin: none.
+`(*grpc.Server).RegisterService(sd, ss)` (names only; item 4, the server start): what the generated
+`Register*Server` call.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -33,23 +23,22 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The full name of a method of service `svc`. -/
-def fullName (svc m : GoString) : GoString := go!"/" ++ svc ++ go!"/" ++ m
-
-/-- `gs.RegisterService(sd, ss)` of a service not registered yet: its methods and streams recorded
-with the service value. -/
-def Server.RegisterService.spec : Prop :=
-  ∀ (gs sd : Loc) (ss : GoInterface) (B : SrvCfg) (svc : GoString) (ms sts : List (GoString × val)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ srvBuild gs B ∗ serviceDescAt sd svc ms sts ∗
-      ⌜∀ r ∈ B.regs ++ B.sregs, ∀ m ∈ ms ++ sts, r.1 ≠ fullName svc m.1⌝ }}
+/-- `gs.RegisterService(sd, ss)` on a server being built, for a descriptor `sd` (`grpcDescIs`,
+read-only) of a service not registered yet, whose method and stream names are distinct, and a
+service value implementing its handler type, registers the service: its methods and streams under
+their full names, with their handlers and `ss`. -/
+abbrev grpc.Server.RegisterService.spec : Prop :=
+  ∀ (gs sd : Loc) (ss : GoInterface) (ics sics : List GoFunc) (svcs : List GoString)
+    (regs sregs : List (GoString × val × GoInterface)) (sn : GoString) (ht : GoInterface)
+    (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+  {{ grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ grpcDescIs (GF := GF) sd sn ht mds sds ∗ ⌜sn ∉ svcs⌝ ∗
+      ⌜grpcImplements ss ht⌝ ∗ ⌜(descNames mds sds).Nodup⌝ }}
     (App (App (Val (gs @!! go.GoType.PointerType google_golang_org.grpc.Server.ty @!! go!"RegisterService"))
       (Val #sd)) (Val #ss))
-  {{ RET #(); srvBuild gs { B with
-        regs := B.regs ++ ms.map (fun m => (fullName svc m.1, m.2, ss)),
-        sregs := B.sregs ++ sts.map (fun m => (fullName svc m.1, m.2, ss)) } }}
+  {{ RET #(); grpcSrvNew gs ics sics (svcs ++ [sn]) (regs ++ descRegs sn mds ss)
+      (sregs ++ descSRegs sn sds ss) }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

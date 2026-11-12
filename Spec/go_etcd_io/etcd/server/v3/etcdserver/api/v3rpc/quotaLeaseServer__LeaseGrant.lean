@@ -1,47 +1,53 @@
 /-
-`quotaLeaseServer.LeaseGrant` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.Lease/LeaseGrant` (the generated `_Lease_LeaseGrant_Handler`, 3h,
-registered by `v3rpc.Server`); 1c's `RemoteCallTriple` for the lease RPCs through grpc and the stub (`examples/specreq/clientv3lease/`, `examples/specreq/v3rpc/lease.go`).
-
-Proof sketch: `qa.check` (as `quotaKVServer.Put`): `.noSpace` fired; else `LeaseServer.LeaseGrant.spec`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/quotaLeaseServer__LeaseGrant.lean`.
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Changes: verify-round relay (server-core's RR request 1): takes `srvAt s γ ep`, passed to `LeaseServer`'s.
-
-Margin: none.
+`v3rpc.quotaLeaseServer.LeaseGrant` (`v3rpc/quota.go`; the client lease's stage (c)). Lean-first
+(no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvLease.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `quotaLeaseServer.LeaseGrant(ctx, r)` meets the contract of `/etcdserverpb.Lease/LeaseGrant`. -/
-def quotaLeaseServer.LeaseGrant.spec : Prop :=
-  ∀ (p : Loc) (ls : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaLeaseAt p ls s γ ∗ srvAt s γ ep) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseGrant") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty (srvGate s gq)
+/-- **`q.LeaseGrant(ctx, r)`** on a `*quotaLeaseServer` over a service `ls` whose `LeaseGrant`
+meets `Spec` with the resource `S` (`grpcHandlerOwnOk`: it may write the decoded request, whose
+owned part `Req.recvOwn` it is handed; the lease-grant plan, 2026-11-02), for the server `s`: the quota check, then
+`ls.LeaseGrant(ctx, r)`: `S` and the check's reader slots (`quotaRd`) come back, and on success the
+response is `ls.LeaseGrant`'s (at some `m'` with `Φ m'`); as `quotaKVServer.Put`. -/
+abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (q s : Loc) (ls : GoInterfaceOk)
+    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      v3rpc.quotaLeaseServerAt q ls s ∗ grpcHandlerOwnOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ∗
+      S ∗ v3rpc.quotaRd s ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗ Spec m Φ }}
+    (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

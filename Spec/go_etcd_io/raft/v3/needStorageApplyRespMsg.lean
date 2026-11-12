@@ -1,13 +1,9 @@
 /-
-## `needStorageApplyRespMsg(rd)` (internal)
-
-`acceptReady`. Mirrors the code.
+Port of `election_proof/spec_needStorageApplyRespMsg.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -15,27 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- (internal) `needStorageApplyMsg`. -/
-def needStorageApplyRespMsg.spec : Prop :=
-
-  ∀ (rd : go_etcd_io.raft.v3.Ready),
+/-- `needStorageApplyRespMsg(rd)` (`rawnode.go:369`) is `needStorageApplyMsg(rd)`:
+`len(rd.CommittedEntries) > 0`. -/
+abbrev needStorageApplyRespMsg.spec : Prop :=
+  ∀ (rd : Ready),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
-    (App (Val (@! go_etcd_io.raft.v3.needStorageApplyRespMsg)) (Val #rd))
-  {{ (b : Bool), RET #b; ⌜b = decide (sint.Z rd.CommittedEntries'.len > 0)⌝ }}
+    (App (Val #(functions needStorageApplyRespMsg [])) (Val #rd))
+  {{ RET #(decide (0 < sint.Z rd.CommittedEntries'.len)); True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

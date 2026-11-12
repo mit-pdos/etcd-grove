@@ -1,15 +1,10 @@
 /-
-## `newStorageApplyRespMsg(r, ents)` (internal)
-
-`acceptReady` (`rawnode.go:424`), `newStorageApplyMsg` (unreachable: `ConfigOk`). Mirrors the code:
-a fresh `MsgStorageApplyResp` to the node from the local apply thread, of term 0, carrying the
-entries (shared, read-only). **Changes.** New; round 1: over the opened struct.
+`newStorageApplyRespMsg(r, ents)` (`rawnode.go:387`), Lean-first (2026-10-16, stage R5 of the
+raft v3.7 retarget; the old proof stepped through it inline in `RawNode.acceptReady`'s).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 
@@ -17,27 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The apply acknowledgement of committed entries `es`. -/
-def newStorageApplyRespMsg.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (sl : GoSlice) (j : Nat) (es : List LogEntry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ entriesRO sl j es }}
-    (App (App (Val (@! go_etcd_io.raft.v3.newStorageApplyRespMsg)) (Val #r)) (Val #sl))
-  {{ (p : Loc), RET #p; ∃ mm, raftOpen r γ id o ∗ msgPts p (DFrac.own 1) mm ∗
-      ⌜mm.type = MsgStorageApplyResp ∧ mm.to = id ∧ mm.src = localApplyThread ∧
-        mm.term = W64 0 ∧ mm.entries = es⌝ }}
+/-- `newStorageApplyRespMsg(r, ents)` builds a fresh `&pb.Message{Type: MsgStorageApplyResp,
+To: new(r.id), From: new(LocalApplyThread), Term: new(uint64(0)), Entries: ents}`: the
+acknowledgement `applyAckM id` whose `Entries` is the slice `ents` itself (shared, read-only:
+`entsRO ents ce`, the committed entries a `Ready` handed out), owned as `raft.Step` takes it
+(`msgIn ml □`, the shape `RawNode`'s pending queue holds, `pendSt`; no `Entries` capacity, which
+`msgIn` asks only of a `MsgApp`). Stated on what it reads of the raft struct, `id`. -/
+abbrev newStorageApplyRespMsg.spec : Prop :=
+  ∀ (r : Loc) (id : w64) (ents : GoSlice) (ce : List EntryM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      r.[raft, go!"id"] ↦□ id ∗ entsRO ents ce }}
+    (App (App (Val #(functions newStorageApplyRespMsg [])) (Val #r)) (Val #ents))
+  {{ (ml : Loc), RET #ml; msgIn ml DFrac.discard ⟨applyAckM id, ce, none, [], []⟩ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

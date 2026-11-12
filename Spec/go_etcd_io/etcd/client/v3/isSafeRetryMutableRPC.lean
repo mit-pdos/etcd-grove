@@ -1,17 +1,10 @@
 /-
-`clientv3.isSafeRetryMutableRPC` (`client/v3/retry.go`).
-
-Users: the retry interceptor (1c: whether a non-repeatable call may be resent).
-
-Proof sketch: `status.FromError`, `rpctypes.ErrorDesc` (2a's specs over `callErr`: a `.notSent` error is a status `Unavailable` with one of the two descriptions, the other kinds have neither).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/isSafeRetryMutableRPC.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`isSafeRetryMutableRPC(err)` (`client/v3/retry.go`; unit P3a). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 
 @[expose] public section
 
@@ -19,10 +12,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk backoffOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,16 +23,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `isSafeRetryMutableRPC(err)`: true exactly for an error of a request that never left the
-client. -/
-def isSafeRetryMutableRPC.spec : Prop :=
-  ∀ (err : GoInterface) (k : CallErr),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ callErr err k }}
+/-- `isSafeRetryMutableRPC(err)` of an error grpc's `status` accepts returns some boolean
+(`true` only for "there is no address/connection available"). -/
+abbrev isSafeRetryMutableRPC.spec : Prop :=
+  ∀ (err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC)) (Val #err))
-  {{ (b : Bool), RET #b; ⌜b = true ↔ k = .notSent⌝ }}
+  {{ (b : Bool), RET #b;
+      -- (2026-10-21, D29) `true` only for grpc's old balancer's "no address"/"no connection"
+      ⌜b = true → go_etcd_io.etcd.cache.v3.errDesc err ∈ go_etcd_io.etcd.cache.v3.refusalDescs⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -50,7 +50,7 @@ What Go does:
 ### F2. `ReqWatchEnds` is unprovable: `WatchResponse.Err` on a `closeErr` response gives no `err ≠ nil`
 
 In `WatchResponse__Err.lean:44` the `some ck` case gives only `callErr err ck`. No law of W0's
-`Api.lean` turns `callErr` into `err ≠ nil`: I searched `Spec/` for one and found none. The canceled-with-reason case (the line
+`Api.lean` turns `callErr` into `err ≠ nil`: I searched `SpecPlan/Spec/` for one and found none. The canceled-with-reason case (the line
 after) does add `⌜err ≠ GoInterface.nil⌝`, so the gap looks like an oversight. Without it,
 `ended && wr.Err() == nil` (`ending.go:97`) cannot be ruled out, because a response after an
 error is a `closeErr` response.

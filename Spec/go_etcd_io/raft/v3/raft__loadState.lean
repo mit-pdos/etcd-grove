@@ -1,16 +1,13 @@
 /-
-## `raft.loadState(state)` (internal)
+Port of `election_proof/spec_raft__loadState.v` (feb5c73d4).
 
-**Users.** `newRaft` (`raft.go:482`, before the invariant is first established). **Proof sketch.**
-Mirrors the code: the commit within `[committed, lastIndex]` (Go panics otherwise, `raft.go:2039`:
-`newRaft`'s `StorageHolds`), then `committed`, `Term`, `Vote` set. **Changes** (from `specs-ref`'s
-`raft__loadState.lean`): over the opened struct. **Margin.** Exact.
+Lean notes: Rocq's three chained updates `s <| term := … |> <| vote := … |> <| logst :=
+… |>` are one `{ s with term := …, vote := …, logst := { s.logst with committed := … } }`
+(the same value). The premise `a ≤ b ≤ c` is written `a ≤ b ∧ b ≤ c`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -18,27 +15,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Loads a stored hard state into a fresh struct. -/
-def raft.loadState.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (p : Loc) (dq : DFrac) (hs : HardState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ hardStatePts p dq hs ∗
-      ⌜o.log.committed ≤ uint.nat hs.commit ∧ uint.nat hs.commit ≤ o.log.lastIndex⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"loadState")) (Val #p))
-  {{ RET #(); hardStatePts p dq hs ∗
-      raftOpen r γ id { o with view.hs := hs, log.committed := uint.nat hs.commit } }}
+/-- `r.loadState(hs)` restores a persisted `HardState`: `raftLog.committed`, `Term` and
+`Vote`. It `Panicf`s unless `hs.Commit` lies in `[committed, lastIndex()]`, hence the
+premise -- stated on the log's state `s.logst`, which `NState` records.
+
+`loadState` does not touch the tracker. (Until 2026-09-25 the *log* had to be on loan,
+because `ownRaftPhys` did not record its state.)
+
+raft v3.7 (2026-10-15, stage R4): `hs` is a `*pb.HardState` read through its getters, the
+caller's read-only `hsRO hp hs` (`newRaft` passes `InitialState`'s, after `IsEmptyHardState`
+said it is not empty, so not `nil`). -/
+abbrev raft.loadState.spec : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (hp : Loc) (hs : HardStateM),
+  uint.Z s.logst.committed ≤ uint.Z hs.Commit' ∧ uint.Z hs.Commit' ≤ uint.Z (logLast s.logst) →
+  -- the term does not move back (2026-10-10, `raft.wp_store_Term`); `newRaft` loads the
+  -- persisted state into a struct at term `0`
+  uint.Z s.term ≤ uint.Z hs.Term' →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+      "#Hhs" ∷ hsRO hp hs }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"loadState")) (Val #hp))
+  {{ RET #();
+      ownRaftPhys cfg r id
+        { s with term := hs.Term', vote := hs.Vote',
+                 logst := { s.logst with committed := hs.Commit' } } }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

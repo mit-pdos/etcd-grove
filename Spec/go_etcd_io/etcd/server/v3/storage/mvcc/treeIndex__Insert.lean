@@ -1,11 +1,9 @@
 /-
-`(*treeIndex).Insert(ki)` (`index.go:262`) on a private tree index, of an owned key index of a key
-it does not have (1g's `ReplaceOrInsert` inserts it). Internal (`restoreIntoIndex`). **Changes**:
-over `ownIdxPriv`.
+`treeIndex.Insert` (`index.go`). Lean-first (no Rocq counterpart); see `InvIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
 
@@ -13,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -23,17 +20,23 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ti.Insert(ki)` on a private index. -/
-def treeIndex.Insert.spec : Prop :=
-  ∀ (ti : Loc) P (kp : Loc) (k : GoString) (m : KeyIndexM),
-  {{ pkgInit ∗ ownIdxPriv ti P ∗ ⌜P k = none⌝ ∗ ownKi kp k m (DFrac.own 1) }}
-    (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Insert")) (Val #kp))
-  {{ RET #(); ownIdxPriv ti (fun k' => if k' = k then some (kp, m) else P k') }}
+/-- `ti.Insert(ki)` on a tree index no one else can reach (`ownIdxPriv`: its only caller,
+`restoreIntoIndex`'s goroutine, rebuilds a private index; `notes/restore-plan.md`, R3), with an
+owned key index `ki` of a key `k` the tree does not have: `ReplaceOrInsert` inserts it at its
+place (`btInsert`). -/
+abbrev mvcc.treeIndex.Insert.spec : Prop :=
+  ∀ (ti : Loc) (L : List mvcc.IdxEntry) (ki : Loc) (k : GoString) (gs : GoSlice)
+    (m : mvcc.KeyIndex),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownIdxPriv ti L ∗ ⌜ki ≠ null⌝ ∗ mvcc.kiKey ki k ∗ mvcc.ownKi ki gs m (DFrac.own 1) ∗
+      ⌜∀ z ∈ L, z.2.1 ≠ k⌝ }}
+    (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Insert")) (Val #ki))
+  {{ RET #(); mvcc.ownIdxPriv ti (btInsert mvcc.entryLess (ki, k, m) L) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial
+

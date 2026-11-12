@@ -1,19 +1,11 @@
 /-
-`(*credentials.perRPCCredential).GetRequestMetadata` (`client/v3/credentials/credentials.go`).
-
-Users: grpc (each attempt's metadata, 2a: the token the server authenticates).
-
-Proof sketch: `authTokenMu.RLock` (a reader slot of the credentials' own lock; see the margin),
-the token read, `RUnlock`; `""`: `nil`; else a fresh map `{"token": tok}`.
-
-Changes: from `specs-ref`.
-
-Margin: the read lock's reader slots are the credentials' own (its invariant), not counted at the
-caller (PRINCIPLES, "a bound is reasoned about where it is owned").
+`(*perRPCCredential).GetRequestMetadata(ctx, s...)` (`client/v3/credentials/credentials.go`, names
+only; the auth plan's C1, 2026-10-28). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/client/v3/credentials/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.credentials.Api
+public import Proof.go_etcd_io.etcd.client.v3.credentials.Defs
 
 @[expose] public section
 
@@ -21,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Credentials
 
-open Iris Iris.BI EtcdModel ClientV3
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,17 +23,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
-/-- `rc.GetRequestMetadata(ctx, uri...)`: no metadata, or `{"token": tok}` of a token `who` may
-send. -/
-def perRPCCredential.GetRequestMetadata.spec : Prop :=
-  ∀ (rc : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (s : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials ∗ rpcCredsAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.credentials.perRPCCredential.ty) #rc) γ who }}
-    (App (App (Val (rc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.credentials.perRPCCredential.ty @!! go!"GetRequestMetadata")) (Val #ctx)) (Val #s))
-  {{ (m : Loc) (err : GoInterface), RET (PairV #m #err); ⌜err = GoInterface.nil⌝ ∗
-      (⌜m = null⌝ ∨ ∃ tok, ⌜tok ≠ []⌝ ∗ tokenMd m tok ∗ tokFor γ who tok) }}
+/-- `rc.GetRequestMetadata(ctx, s...)` on credentials whose token is `""` or meets `P`
+(`credTokInv`): no error, and a map whose metadata meets `tokMdOk P` (`nil` for `""`, else
+`{"token": t}`). -/
+abbrev credentials.perRPCCredential.GetRequestMetadata.spec : Prop :=
+  ∀ (rc : Loc) (P : GoString → IProp GF) (ctx : GoInterface) (sl : GoSlice),
+  {{ credTokInv (GF := GF) rc P }}
+    (App (App (Val (rc @!! go.GoType.PointerType
+      go_etcd_io.etcd.client.v3.credentials.perRPCCredential.ty @!! go!"GetRequestMetadata"))
+      (Val #ctx)) (Val #sl))
+  {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err);
+      ⌜err = GoInterface.nil⌝ ∗ ∃ cm, credsMapIs mp cm ∗ tokMdOk P cm }}
 
 end spec
 
-end Credentials
 end EtcdGrove
 end Perennial

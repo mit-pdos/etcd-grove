@@ -1,13 +1,9 @@
 /-
-`(*leasingKV).deleteRangeRPC` (`kv.go`): `If(CreateRevision(pfx++key..pfx++end) < maxLeaseRev+1)
-.Then(OpGet(key, WithRange(end), WithKeysOnly()), OpDelete(key, WithRange(end)))`. Proof sketch: the
-inner `Commit` with the caller's update: success is the range delete without `prevKv` (`execReq`;
-the get before it reads the same store; valid by `kvStep`'s `t.valid`), failure aborts; on error `EvictRange`; on success
-`leaseCache.Delete` of each key (header copied). Changes: from `specs-ref`'s `leasingKV__deleteRangeRPC.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`lkv.deleteRangeRPC(ctx, maxLeaseRev, key, end)` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -15,34 +11,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `deleteRangeRPC(ctx, maxLeaseRev, key, end)` for the range delete `d` of `[key, end)`: nothing
-(`nil`, `nil`: the guard failed), an error, or the delete committed. -/
-def leasingKV.deleteRangeRPC.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (maxLeaseRev : w64) (key «end» : GoString) (d : DeleteReq)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ ⌜d.key = key ∧ d.rangeEnd = «end» ∧ «end» ≠ []⌝ ∗
-      lkvMarks γL (reqWrites (.deleteRange d)) ∗ □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (.deleteRange d) σ σ' r ∗ etcdState γ σ',
-           COMM LQ Q σ σ' r }> }}
-    (App (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"deleteRangeRPC")) (Val #ctx)) (Val #maxLeaseRev)) (Val #key)) (Val #«end»))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      ⌜resp = null ∧ err = GoInterface.nil⌝ ∨ (∃ σ σ' res, Q σ σ' res ∗ deleteReply res resp err) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+/-- The `Op` of `deleteRangeRPC`'s delete, `OpDelete(key, WithRange(end))`. -/
+def rangeDeleteOp (key e : GoString) : OpFull := opDeleteModel key [withRangeM e]
+
+/-- **`lkv.deleteRangeRPC(ctx, maxLeaseRev, key, end)`**: deletes the range `[key, end)` in a
+transaction guarded by every lease key of `[pfx ++ key, pfx ++ end)` created at or before
+`maxLeaseRev`, then deletes the deleted keys' entries from the cache. Returns `(nil, err)` on an
+error (the range is evicted: `EvictRange`, which evicts `key` alone, a finding), `(nil, nil)` if
+the guard failed, or the delete (`deleteCommitted`). -/
+abbrev leasingKV.deleteRangeRPC.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (maxLeaseRev : w64) (key e : GoString) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ etcdReached lo ∗
+      ⌜key.length ≤ opKeyMax ∧ e.length ≤ opKeyMax⌝ }}
+    (App (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"deleteRangeRPC")) (Val #(GoInterface.ok ctx))) (Val #maxLeaseRev)) (Val #key)) (Val #e))
+  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err);
+      ⌜dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo (rangeDeleteOp key e) dr) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

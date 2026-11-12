@@ -1,17 +1,9 @@
 /-
-`(*clientv3.CompactOp).applyCompactOpts` (`client/v3/compact_op.go`).
-
-Users: `OpCompact`.
-
-Proof sketch: a loop: `compactOptAt_call`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/CompactOp__applyCompactOpts.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`(*clientv3.CompactOp).applyCompactOpts(opts)` (`client/v3/compact_op.go`; the client's `kv.Compact`, 2026-11-01). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -19,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,18 +21,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.applyCompactOpts(opts)`: the options applied in order. -/
-def CompactOp.applyCompactOpts.spec : Prop :=
-  ∀ (p : Loc) (op : go_etcd_io.etcd.client.v3.CompactOp) (sl : GoSlice) (gs : List (CompactOpM → CompactOpM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ p ↦ op ∗ compactOptsAt sl gs }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.CompactOp.ty @!! go!"applyCompactOpts")) (Val #sl))
-  {{ RET #(); compactOptsAt sl gs ∗ ∃ op' : go_etcd_io.etcd.client.v3.CompactOp, p ↦ op' ∗
-      ⌜let m := gs.foldl (fun (o : CompactOpM) (g : CompactOpM → CompactOpM) => g o)
-          { revision := op.revision', physical := op.physical' };
-        op'.revision' = m.revision ∧ op'.physical' = m.physical⌝ }}
+/-- `op.applyCompactOpts(opts)` with no options (`nil`, what a call with no variadic arguments
+passes): `op` unchanged. -/
+abbrev CompactOp.applyCompactOpts.spec : Prop :=
+  ∀ (p : Loc) (op : go_etcd_io.etcd.client.v3.CompactOp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ p ↦ op }}
+    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.CompactOp.ty @!!
+      go!"applyCompactOpts")) (Val #slice.nil))
+  {{ RET #(); p ↦ op }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

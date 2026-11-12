@@ -1,23 +1,32 @@
-/-
-## `node.stepWithWaitOption(ctx, m, wait)` (internal)
+/- Lean-first (no Rocq counterpart).
 
-**Users.** `node.step`, `node.stepWait`. **Proof sketch.** Non-proposals go on `recvc`; proposals on
-`propc` (armed only with a leader), with a result channel when `wait`; `ctx` and `done` end the waits.
-The `ctx` case: `ctx.Done()` by W0's requested `Context.Done.spec` (a channel, or `nil` for a context
-never done, which no `select` case fires on), a receive on it by `Context.doneRecv.spec` (gives
-`Context.ctxDone ctx`), then `ctx.Err()` by `Context.ErrDone.spec` (`notes/specs-only/req/context.md`,
-"from R1"); hence `nodeErr`'s context arm. Every `node.*` spec taking a context rests on these.
-The message and its `stepOk` go to the run goroutine. **Changes.** Mirrors the code.
+## `node.stepWithWaitOption(ctx, m, wait)` (node.go:508)
 
-**Integration I2.** The message is a received one (`msgRecv`: its `Entries` capacity owned, which
-`raft.Step` hands to the log on a `MsgApp`) or an owned local message that is no `MsgApp` (R2's
-`stepMsg`).
+A message to `run`: a proposal on `propc`, with a result channel if `wait` (then waits for
+the result), anything else on `recvc`. Until stage R7a specified for `context.Background()` (its
+`Done()` is `nil`, so the `ctx` cases never fire); since (2026-10-16, D10 gap (2)) for any `nodeCtx ctx cd`
+(`InvNodeCtx.lean`): a `case <-ctx.Done()` fires once the context is done, returning `ctx.Err()`
+(`ctxErr`), in the second `select` abandoning the proposal's result channel (the handoff's consumer
+token is dropped). The error is `nodeErr cd err` (`nil`, `ErrStopped`, the context's), or, with
+`wait`, the proposal's result from `run` too (`propErr`). Specified for the two uses `Propose` and
+`Step` make of it: `Propose`'s message (`propMsg`, with `wait`), and a message from the network
+(`netP`).
+
+raft v3.7 (2026-10-16, stage R5): `m` is a `*pb.Message` (`ml`), handed to `run` for good.
+`Propose`'s message is `msgIn ml 1` of `propMsgM` with the one entry `propEntryM data` (D6: the
+bytes; until then the Goose value `propMsg esl`, `m = propMsg esl`, with the entries' slice,
+its capacity and the data slice). A message from the network is `netP` alone: its type, which
+`netP` quantifies with the message's state, is not `MsgProp` by `NetMsgOk`
+(`netStepTypes_ne_prop`; until then a separate conjunct `m.Type' ≠ MsgProp`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Perennial.Proof.context
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
@@ -25,31 +34,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- (internal) Hands `m` to the run goroutine. -/
-def node.stepWithWaitOption.spec : Prop :=
+/-- What `stepWithWaitOption` is called with (see the file header). -/
+def stepArg (γ : NodeNames) (id : w64) (ml : Loc) (wait : Bool) : IProp GF :=
+  iprop(netP γ id ml ∨
+    (⌜wait = true⌝ ∗ ∃ data : List w8,
+      msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
+      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data)) ∨
+    -- a proposal forwarded by a peer (2026-10-10)
+    (⌜wait = false⌝ ∗ fwdP γ ml))
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
-    (ml : Loc) (m : Msg) (wait : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗
-      (msgRecv ml m ∨ (msgPts ml (DFrac.own 1) m ∗ ⌜m.type ≠ MsgApp⌝)) ∗
-      stepOk n γ id m }}
-    (App (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"stepWithWaitOption")) (Val #ctx)) (Val #ml))
-      (Val #wait))
-  {{ (err : GoInterface), RET #err; propErr n ctx err }}
+/-- See the file header. (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStoppedRaw`.) -/
+abbrev node.stepWithWaitOption.spec : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc) (wait : Bool)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
+      nodeCtx ctx cd ∗
+      stepArg γ id ml wait }}
+    (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWithWaitOption"))
+      (Val #(interface.ok ctx))) (Val #ml)) (Val #wait))
+  {{ (err : GoInterface), RET #err; if wait then propErrRaw γ cd err else nodeErrRaw γ cd err }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

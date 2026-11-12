@@ -35,7 +35,7 @@ have been applied. A test could promote it: an integration cluster with a small
 
 ## Proof
 
-no: the specs model it. `Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`'s `resMatch`
+no: the specs model it. `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/Api.lean`'s `resMatch`
 lets a member's result carry `ErrNoSpace` in place of a write's successful answer (the model's state
 moves by the write either way); the client's model must then treat `ErrNoSpace` as not settling
 whether the request took effect (requested of W0: `notes/specs-only/req/go_etcd_io_etcd_api_v3.md`,

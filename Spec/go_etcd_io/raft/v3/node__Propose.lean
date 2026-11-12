@@ -1,30 +1,14 @@
-/-
-## `node.Propose(ctx, data)`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's `EtcdServer.processInternalRaftRequestOnce` (`server/etcdserver/v3_server.go:1114`:
-a request id in the data, waited on by `w.Register`; one-shot credit: rafthttp delivers a message at
-most once); the examples' `Replica.propose` (`kvdurable/kv.go:776`: retried on error, the operation
-id deduplicating at apply; persistent credit when their network duplicates). Snippet: `propose.go`
-(`ReqProposeOnce`, `ReqProposeRetry`).
+## `node.Propose`
 
-**Proof sketch.** `stepWait(ctx, MsgProp{data})`: the client's update rides with the message
-(`stepOk` of a local proposal) into the run goroutine; `raft.Step` (R2) either appends it at the
-leader (the update deposited with the entry, fired when it commits: `committedOps` grows by
-`opsOf [entry]`), forwards it in a `MsgProp` (the update in that message's `msgCredit`), or drops it
-(`ErrProposalDropped`; the update is dropped unfired, or, with `γ.dup`, kept by the copies). The
-result comes back on the proposal's channel; `ctx` or `done` may end the wait first.
-
-**Changes.** The update's commit is `ops ++ opsOf [entry]` (an empty proposal is a filler, which the
-operations leave out); otherwise unchanged.
-
-**Margin.** An error does not mean the proposal was dropped (it may still commit); `nil` does not mean
-it will commit (`Node.Propose`'s documentation: proposals can be lost).
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.Propose.specRaw`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -32,31 +16,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Proposes `data`**: the client's update (persistent if `γ.dup`) fires at most once per copy, when
-the entry commits (at some term `t`). Errors: the node's, or `ErrProposalDropped`. -/
-def node.Propose.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface)
-    (data_sl : GoSlice) (data : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx ∗ ownSlice data_sl data DFrac.discard ∗
-      (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (t : w64), committedOps γ (ops ++ opsOf [⟨t, EntryNormal, data⟩]), COMM True }>) }}
-    (App (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Propose")) (Val #ctx)) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; propErr n ctx err }}
+/-- **`node.Propose(ctx, data)`**: hands raft the update appending `data`'s entry to the committed
+requested entries, raft choosing its term; it fires at most once, when an entry of this proposal
+commits, on whichever node commits it, and never for `data = []` (the entry is a filler, `isFiller`).
+The error is `nil` (run took the proposal; it may still be lost), `ErrStopped`, `ErrProposalDropped`
+(raft refused it; it was not appended) or the context's. (2026-10-29, S1) The update is wrapped in
+`□?γ.dup`: the update itself in a cluster whose network never duplicates a `MsgProp` (`γ.dup =
+false`, `□?false U = U`), a persistent one in a cluster whose network may (`msgCredits_copy`), where it
+fires at every committed copy of the proposal. (raft-final, 2026-10-29, K5: the error is `propErrS`, whose stopped answer carries `nodeStopped`;
+until then `propErr`, which `propErrS_propErr` gives back.) -/
+abbrev node.Propose.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      data_sl ↦*□ data ∗
+      □?γ.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }>) }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
+      (Val #(interface.ok ctx))) (Val #data_sl))
+  {{ (err : GoInterface), RET #err; propErrS n γ N cd err }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

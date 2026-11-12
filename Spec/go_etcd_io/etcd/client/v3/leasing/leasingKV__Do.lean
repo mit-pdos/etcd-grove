@@ -1,40 +1,9 @@
 /-
-`(*leasingKV).Do` (`client/v3/leasing/kv.go`).
-
-Users: the gRPC proxy, for every KV request (`server/proxy/grpcproxy/kv.go:62` `Range`
-(`RangeRequestToOp`), `:86` `Put`, `:94` `DeleteRange`, `:116` `Txn` (`TxnRequestToOp`: `OpTxn` over
-slices of exactly their length, nested transactions as nested `OpTxn`s)); the integration tests
-(`TestLeasingDo`). Snippets: `leasing/txn.go` (`ReqDoProxyRange`, `ReqDoTxn`).
-
-Proof sketch: the getters (`Op.IsGet`, ... W0's specs over `opAt`) select the case; a range:
-`leasingKV.get.spec` (the open token's share used), then `GetResponse.OpResponse.spec`; a put:
-`leasingKV.put.spec`; a delete: `leasingKV.delete.spec`; a transaction: `Op.Txn.spec` (W0: the
-comparisons and branches, read-only), then `leasingKV.Txn.spec`, `LTxn.IfTriple`, `ThenTriple`,
-`ElseTriple` (`opsCapOk` of the branches, from `opCapOk op`), `CommitTriple` with the caller's update (its request is
-`.txn st.req` with `st` the comparisons and branches' requests: `toReq`'s); then
-`TxnResponse.OpResponse.spec`. The update is `lstep γL pfx p lo rq` throughout (the internal `put`/`delete` at this `lo`), the marks
-`reqWrites rq` (`toReq`). An `Op` of no
-type is excluded by `toReq` (the code returns an empty response, no panic).
-
-Changes: the old specs (`specs-ref`'s `leasingKV__*.lean`) took the old client's
-contracts at prefix `[]` (`isEtcdKV`, `isEtcdTxnKVO`), a revision certificate `etcdReached lo`, a
-size bound (`OpShape`), and returned implementation outcomes (`getCached`, `getAcquired`,
-`getNotAcquired`, `putCommitted`, `opCommitted`: the cache's states, its log, the history premise
-`LeasingProtocol`); restated over W0's `etcdState` as a weakening of the KV contract (`Api.lean`'s
-header): the caller's update persistent and over `lstep` (`LStep` with the marks of the keys
-written through the KV: a cached answer is W0's serializable one for an unmarked key, the old proof's
-"Theorem 1"), an error settling nothing; no size bound
-(W0: the gRPC boundary fails on an oversized message), no certificate (the answer's revision is in
-the update's state), no history premise (the contract claims nothing a protocol violation could
-break). **Nested transactions** (was flat only): a nested transaction's branch slices without spare
-capacity (`opCapOk`: `gatherOps` appends into them, `nonissues/leasing-gatherops-spare-capacity.md`);
-the proxy's `TxnRequestToOp` `make`s them so. **New**: the marks of the request's writes.
-
-Margin: as the three operations' and `Commit`'s.
+`lkv.Do(ctx, op)` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Api
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -42,26 +11,61 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lkv.Do` meets the leasing contract's `Do` (`LKV.DoTriple`). -/
-def leasingKV.Do.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who : Principal) (pfx : Key) (γL : LeasingNames) (q : Qp),
-  LKV.DoTriple (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"Do")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ lkvOpen γL q)) γ who pfx γL
+/-- What `Do` needs of a nested transaction `op` (`OpTxn(cmps, thenOps, elseOps)`): comparisons
+with their operands set, plain operations a transaction can run (fewer than `2^63` in all, for
+`Commit`'s `make`). -/
+def doTxnPre (pfx : GoString) (opv : go_etcd_io.etcd.client.v3.Op) : IProp GF :=
+  iprop(∃ (ms : List CmpModel) (tos eos : List OpFull) (tops eops : List TxnOp),
+    cmpsSetAt opv.cmps' ms ∗ opsAt opv.thenOps' tos ∗ opsAt opv.elseOps' eos ∗
+    ⌜tos.map txnOpOf = tops.map some ∧ eos.map txnOpOf = eops.map some ∧
+      (tos.length : Int) + eos.length < 2 ^ 63 ∧ (LTxnBuild.mk ms tos eos true true true).sizeOk pfx⌝)
+
+/-- **`lkv.Do(ctx, op)`**, by the kind of `op` (`o.t`): a get answers as `get` (in the
+`OpResponse`'s `get`), a put as `put`, a delete as `delete`, a transaction as `Txn(ctx).If(...)
+.Then(...).Else(...).Commit()` (`commitOutcome`); anything else, an empty `OpResponse` and `nil`.
+The thread's token is kept (a reader slot borrowed with it from the leasing KV's pool and given
+back); the context must be cancelable. A
+get, put or delete takes `OpShape opKeyMax opKeyMax opValMax`, a transaction `LTxnBuild.sizeOk`
+("Leasing's sizes"). -/
+abbrev leasingKV.Do.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
+    (lo : w64) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      opFullAt opv o ∗ etcdReached lo ∗ leasingOpen γ q ∗ threadTok ∗
+      ⌜(o.t = W64 2 → txnOpOf o ≠ none) ∧ (o.t ≠ W64 4 → OpShape opKeyMax opKeyMax opValMax o)⌝ ∗
+      (⌜o.t = W64 4⌝ -∗ doTxnPre pfx opv) }}
+    (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Do")) (Val #(GoInterface.ok ctx))) (Val #opv))
+  {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
+      leasingOpen γ q ∗ threadTok ∗
+      (if o.t = W64 1 then getOutcome γ pfx lo o r.get' err
+       else
+        (if o.t = W64 2 then
+          (⌜err ≠ GoInterface.nil ∧ r.put' = null⌝ ∨
+           (⌜err = GoInterface.nil⌝ ∗ ∃ top, ⌜txnOpOf o = some top⌝ ∗ putCommitted γ lo o top r.put'))
+        else if o.t = W64 3 then
+          (⌜err ≠ GoInterface.nil ∧ r.del' = null⌝ ∨
+           (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o r.del'))
+        else if o.t = W64 4 then
+          ∃ (ms : List CmpModel) (tos eos : List OpFull),
+            cmpsSetAt opv.cmps' ms ∗ opsAt opv.thenOps' tos ∗ opsAt opv.elseOps' eos ∗
+            commitOutcome γ lo (LTxnBuild.mk ms tos eos true true true) r.txn' err
+        else ⌜r = zero_val go_etcd_io.etcd.client.v3.OpResponse ∧ err = GoInterface.nil⌝)) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

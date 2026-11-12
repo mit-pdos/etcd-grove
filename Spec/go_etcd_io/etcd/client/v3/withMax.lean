@@ -1,18 +1,10 @@
 /-
-`clientv3.withMax` (`client/v3/retry_interceptor.go`).
-
-Users: `dialSetupOpts` (`withMax(0)` for streams, the unary limit), `lessor.resetRecv` (`withMax(0)`).
-
-Proof sketch: a `retryOption` whose `applyFunc` closure writes the field (`retryOptAt`'s intended
-realization: the closure's triple on an `*options` modelled by `o`).
-
-Changes: from `specs-ref`.
-
-Margin: none.
+`withMax(maxRetries)` (`client/v3/retry_interceptor.go`; unit P3a). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 
 @[expose] public section
 
@@ -20,10 +12,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk backoffOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +23,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `withMax(...)`: its retry option. -/
-def withMax.spec : Prop :=
+/-- `withMax(n)` returns a `retryOption` whose closure writes `max` (`optApplyOk`). -/
+abbrev withMax.spec : Prop :=
   ∀ (n : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withMax)) (Val #n))
-  {{ (v : go_etcd_io.etcd.client.v3.retryOption), RET #v; maxOptAt v n }}
+  {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; optApplyKeep ro.applyFunc' true }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,13 +1,9 @@
 /-
-`(*readView).FirstRev()` (`kv_view.go:26`): a read transaction's `FirstRev()`. Internal: the body
-of the store's promoted `FirstRev` (`KV.FirstRev.contract`). Proof sketch: as `readView.Rev`, with
-`Txn.FirstRev.contract` (`.read σ`: `σ.crev`).
-
-**Changes** from `specs-ref`'s file: `KV.FirstRev.contract`'s statement at the view's store.
+`readView__FirstRev` (metrics_txn.go / kv_view.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -15,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -26,16 +21,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.FirstRev`'s behaviour for the store the view reads. -/
-def readView.FirstRev.spec : Prop :=
-  ∀ (rv : Loc) (kv : GoInterface) (γ : MvccName) (rt : Bool) (Q : MvccState → IProp GF),
+/-- `rv.FirstRev()`: a read transaction opened and closed; the compaction revision it observed
+(`store.Read`'s `firstRev`), at or above the caller's lower bound `c` (2026-10-13, unit 6a). The
+frozen statement (`storeReader`, `-1`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
+abbrev mvcc.readView.FirstRev.spec : Prop :=
+  ∀ (rv s : Loc) (γ : mvcc.StoreNames) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      rv.[readView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ revRd γ rt ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }> }}
+      mvcc.isReadView rv s γ ∗ mvcc.storeReaderC s γ ∗ mvcc.crevLb γ.idx c }}
     (App (Val (rv @!! go.GoType.PointerType readView.ty @!! go!"FirstRev")) (Val #()))
-  {{ (r : w64), RET #r; revRd γ rt ∗ ∃ σ : MvccState, Q σ ∗ ⌜r = W64 σ.crev⌝ }}
+  {{ (v : w64), RET #v; mvcc.storeReaderC s γ ∗
+      ∃ crev : Int, mvcc.crevLb γ.idx crev ∗ ⌜v = W64 crev ∧ c ≤ crev ∧ -1 ≤ crev⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

@@ -1,32 +1,21 @@
 /-
-`grpc_health_v1.RegisterHealthServer(s, srv)` (grpc-go, assumed: generated
-`health/grpc_health_v1/health_grpc.pb.go:216`).
-
-Users: `v3rpc.Server` (`grpc.go:98`).
-
-Why true: `s.RegisterService(&Health_ServiceDesc, srv)`: the health service's `Check` and `List`
-and the stream `Watch` registered with grpc's own handlers and the health server.
-
-Changes: restored (round 1): the registrations are in `B` (the round-0 claim that they are not
-contradicted `RegisterService.spec`); their contracts are `V3rpc.etcdContract`'s health entries,
-met by grpc's health handlers (`V3rpc.healthRegs_ok`).
-
-Margin: none.
+`grpc_health_v1.RegisterHealthServer(s, srv)` (generated, names only; item 4, the server start):
+`v3rpc.Server` registers grpc's health server.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
-public import GeneratedProof.google_golang_org.grpc.health
+public import Proof.google_golang_org.grpc.InvGrpcServer
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
-public import Spec.PkgInit.google_golang_org.grpc.health.grpc_health_v1
+public import GeneratedProof.google_golang_org.grpc.health
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -36,18 +25,22 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `RegisterHealthServer(gs, hs)`: the health service's registrations added. -/
-def grpc_health_v1.RegisterHealthServer.spec : Prop :=
-  ∀ (gs hs : Loc) (B : SrvCfg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 ∗ srvBuild gs B ∗ healthAt hs }}
-    (App (App (Val (@! google_golang_org.grpc.health.grpc_health_v1.RegisterHealthServer)) (Val #gs))
-      (Val #(interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)))
-  {{ RET #(); srvBuild gs { B with
-        regs := B.regs ++ healthMethods.map (fun m => (m.1, m.2, interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)),
-        sregs := B.sregs ++ healthStreams.map (fun m => (m.1, m.2, interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs)) } }}
+/-- `RegisterHealthServer(gs, hs)`, of grpc's health server on a server being built that has no
+service `grpc.health.v1.Health` yet, registers that service: some methods and streams, all under
+`/grpc.health.v1.Health/`. -/
+abbrev grpc_health_v1.RegisterHealthServer.spec : Prop :=
+  ∀ (gs hs : Loc) (ics sics : List GoFunc) (svcs : List GoString)
+    (regs sregs : List (GoString × val × GoInterface)),
+  {{ grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ grpcHealthSrv hs ∗
+      ⌜go!"grpc.health.v1.Health" ∉ svcs⌝ }}
+    (App (App (Val (@! google_golang_org.grpc.health.grpc_health_v1.RegisterHealthServer))
+      (Val #(interface.mkOk (go.GoType.PointerType google_golang_org.grpc.Server.ty) #gs : GoInterface)))
+      (Val #(interface.mkOk (go.GoType.PointerType google_golang_org.grpc.health.Server.ty) #hs : GoInterface)))
+  {{ RET #(); ∃ rs srs : List (GoString × val × GoInterface),
+      grpcSrvNew gs ics sics (svcs ++ [go!"grpc.health.v1.Health"]) (regs ++ rs) (sregs ++ srs) ∗
+      ⌜∀ x ∈ rs ++ srs, go!"/grpc.health.v1.Health/" <+: x.1⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

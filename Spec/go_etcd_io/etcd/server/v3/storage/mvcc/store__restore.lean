@@ -1,34 +1,14 @@
 /-
-`(*store).restore()` (`kvstore.go:317`). Internal: `NewStore` and `Restore` (under `s.mu`, with a
-fresh index, scheduler and stop channel), over a storage holding an image of any history `h`.
-
-**Proof sketch**: `setupMetricsReporter`; `ReadTx`, `RLock` (a reader slot of `mvccStorageFor`'s;
-the snapshot `kbRead` and the whole liveness `kbLive B rt 1`);
-`UnsafeReadFinishedCompact` (the image's finished compaction: `compactMainRev`) and
-`UnsafeReadScheduledCompact` (each lent a share of the liveness, back at once); `restoreIntoIndex`
-over the image's `Key` entries in order (`RestoreEntsOk`: the image's keys parse, its values
-decode); `UnsafeRange` chunks of `restoreChunkKeys` (the shared read transaction's `rtRange`: exact
-cuts, the image `clean`, `mvccStorageFor`), each lent against a new share of the liveness (half of
-what is left: `rangeLent`), `restoreChunk` each with half of the chunk's lent fraction (the values
-back; the keys lent on to the index goroutine, `rkvProducer`'s loans), the next chunk's start after
-the last key (read with the other half; `BytesToRev` parses it); `close(rkvc)` (`rkvClose`); `<-revc`
-(`revRecv`: the index rebuilt, `idxRestore`, published, `idxShareC`, and the keys' loans back, so
-every chunk's wand gives its liveness share back: `kbLive B rt 1` again for `RUnlock`); `currentRev` at least the compaction revisions (so `h.rev`:
-an image's last revision is its history's, a compacted tail or a deleted tombstone at the scheduled
-compaction being why the Go code raises it); the leases re-attached through `le.Attach` (the store's lessor a real `*lessor`, `Lease.isLessor`:
-the `panic("no lessor to attach lease")` unreachable; each `Attach` steps the writer's token,
-`lessor.Attach.spec`; one failing for a lease the lessor lacks is logged: `RestoreLs`, any map
-order); `RUnlock`; with an unfinished compaction (`u`: the scheduled key
-above the finished one, so `h.compacted` the scheduled one) `compactLockfree(scheduled)`, which
-succeeds (the hook once, `Pre` to `Q'`, `Pk` back; one commit `X` to `Y`).
-
-**Changes** from `specs-ref`'s `store__restore.lean`: any image, compacted or not, with an unfinished
-compaction (`u`), not a fresh backend only (`backendNoCompaction`); over `mvccStorageFor` and the
-lessor's writer token (`Lease.lessorState`, 3c's).
+`store.restore` (`kvstore.go`), over a `Key` bucket with data (D22 S-g), a compaction job may
+have thinned (M2, the storage side, item 18).
+Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreRecs
 
 @[expose] public section
 
@@ -36,9 +16,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -47,23 +26,101 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `s.restore()`: the store's fields at the image of `h` (`storeRestored`); the leases attached;
-an unfinished compaction resumed (`u`: the hook and the commit), else `Pre` and `X` back. -/
-def store.restore.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) (le : Loc) (γl : Lease.Names)
-    (c : Lease.Cfg) (n : Nat) (ls : Lease.LessorState) (h : KVHist) (u : Bool) (dq : DFrac)
-    (f : GoFunc) (Pre Q' Post X Y : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ isStore s γ ∗
-      storeRestoring s γ B Pk (Lease.lessorIface le) ∗ mvccStorageFor B Pk h u ∗ schemaVars ∗
-      Lease.isLessor le γl c ∗ Lease.lessorState γl n ls ∗
-      storageHook B dq f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
-      X ∗ storageReq B Pk X Y }}
+/-- `s.restore()` over a backend whose `Key` bucket holds the entries `ents` of the restored log
+`L' = [[], []] ++ R` (`restoreLogOk R`: every revision of `R` with changes, the log well formed) a
+compaction job left at the restored revision, with the image's compaction records `r`
+(M2, the storage side, item 18, 2026-10-30), read-only: `NewStore` restores the empty bucket
+(the branch `ns`: `R = []`, no record, over the backend's contract), `store.Restore` a snapshot's
+(the restore plan's R4, R5c; M2's item 15: any restored log, the empty one with a record
+included), returning `nil`. It reads with a `ReadTx` (a reader's token `RT`, given back): out of
+`NewStore`'s branch, over a clean read buffer (`restoreViewR`: the store's clean view of the
+image's bucket `bucketOfEnts ents` and the backend's clean-view `ReadTx` at the records,
+`keyCleanReadR`; the backend's contract is not needed there, so `RT` may lend what the clean read
+needs: a compacting store's unfixed registration), where a limited range returns the range's first
+entries (`nonissues/etcd-unsafe-range-limit-buffer.md`).
+
+* **The image** (`entsCutAt L' r.crev ents`): the log's entries but, per key, a prefix deletable by
+  the compaction at the restored revision `r.crev` (`CmpRecs.crev`: the scheduled record if
+  `restore()` resumes it, else the finished one, else `-1`); the whole bucket at no record
+  (`entsCutAt_full`). The records are of `L'` (`recsOk`), read through the records' resource `NC`
+  (the backend's compaction-key flag as opened, `kbRecs` at the store; `kbNoCmp` at no record),
+  which `restore` gives back.
+* **The index** is rebuilt while private (`ownIdxPriv`, as `newTreeIndex` returns it:
+  `restoreIntoIndex`'s goroutine updates key indexes outside the tree's lock, the restore plan's
+  R3 design point), the bucket read in chunks of `restoreChunkKeys` entries and sent to the
+  goroutine, then made a lock-protected index (`isTreeIndex`, with every reader's token:
+  `idx_publishAt`) at `L'` and the compaction level `r.crev` (`IdxCRepN`, each key cut at its first
+  surviving revision: `idxRestore_cut`), from the lock's ghost part at that level (`idxLockGAt`)
+  and the writer's handle's lower bounds there (`idxWriterLb`: the caller keeps the handle), with a
+  receipt per entry the rebuild took (`ents.length`).
+* **`compactMainRev`** is stored the finished record, if any, under `s.revMu`'s first round
+  (`revFinW`: the lock's part `dql` of it, which with `restore`'s part `dqc` makes the whole when
+  there is a record).
+* **`currentRev`** is stored the last revision, `|L'| - 1` (the rebuild's answer raised to the two
+  records, `restoreCur_cut`), under `s.revMu`'s second round: the caller gives the lock's
+  protocol, `RevP` before, its part `q2` of `currentRev` (at `1`) with `RevK` once locked, `RevQ`
+  once unlocked with it at `|L'| - 1`, the view `restore` read through, the index's lock with every
+  reader's token and the restored log's persistent time receipt `⧖ (logCh L')` (M2's B2, 2026-11-01:
+  the writer's, in place of the pure bound below it; from the rebuild's receipts for the whole
+  bucket, else the caller's, the last conjunct of the pre: a compacted image's, carried with it);
+  `restore` holds the other part `q1`.
+* **The resumed compaction** (`resumeK`): if the records resume one (`CmpRecs.resumes`),
+  `compactLockfree` at the scheduled record, from what `restore` has then (`restoreDone`), as the
+  caller provides it; `restore` ends in the caller's `Fin`.
+* **The leases** (out of `NewStore`'s branch, 2026-11-06): `keyToLease` is built from the entries
+  (`restoreChunk`: `ktlApply`), then each key attached to its lease through the lessor (`isLessor le
+  γl`, from the owner's `leaseOwn γl Ls ∅`): each restored item's lease live (`∈ Ls`) and its key
+  short, so `Attach` returns `nil`; the owner's map becomes the restored state's (`pendItems L' []`).
+  `NewStore`'s branch restores the empty log: nothing to attach, no lessor needed.
+
+At no record, the whole bucket, `RevP0 = RevP` and `Fin` the post, today's text before item 18
+(`store.restore.specNC`, `store.restore.specNC_of_spec`). -/
+abbrev mvcc.store.restore.spec : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
+    (HF : val → IProp GF) (RT WT W Wi Dep NC : IProp GF) (Cmp : Prop)
+    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
+    (Rb : GMap GoString backend.BktData → IProp GF)
+    (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR SRh : IProp GF)
+    (dqb dqi : DFrac)
+    (R : mvcc.Log) (RevP0 RevP RevK RevQ : IProp GF) (dqc dql : DFrac) (q1 q2 : Qp)
+    (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF) (ns : Bool) (γl : GName)
+    (Ls : List w64),
+  mvcc.restoreLogOk R → q1 + q2 = 1 → mvcc.recsOk ([[], []] ++ R) r → (ns = true → R = []) →
+    (∀ x, r.fin = some x → dqc • dql = DFrac.own 1) →
+    mvcc.entsCutAt ([[], []] ++ R) r.crev ents →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      s.[store, go!"b"] ↦{dqb} b ∗
+      (if ns then mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT NC r PutOk (mvcc.delKey γ) W Wi Dep
+        Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) else iprop(True)) ∗
+      RT ∗ NC ∗ mvcc.restoreViewR b γ RT q ns (mvcc.bucketOfEnts ents) NC r ∗
+      s.[store, go!"kvindex"] ↦{dqi}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockGAt γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length r.crev ∗
+      mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
+      s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
+      ⌜lg ≠ null⌝ ∗
+      s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
+      s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP0 ∗
+      mvcc.revFinW s dql r.fin RevP0 RevP ∗
+      mvcc.revLockW s q2 RevP RevK ∗
+      mvcc.revUnlockW s q2 ([[], []] ++ R) RevK
+        iprop((if ns then mvcc.bucketView γ q ∅ else mvcc.bucketViewC γ q (mvcc.bucketOfEnts ents)) ∗
+          mvcc.isTreeIndex ti γ.idx ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            mvcc.idxReader ti γ.idx) ∗
+          ⧖ (mvcc.logCh ([[], []] ++ R))) RevQ ∗
+      mvcc.resumeK s r
+        (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R) ents r RT NC RevQ) Fin ∗
+      (⌜ents = mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length⌝ ∨
+        ⧖ (mvcc.logCh ([[], []] ++ R))) ∗
+      (if ns then iprop(True) else iprop(mvcc.isLessor le γl ∗ lease.leaseOwn γl Ls ∅ ∗
+        ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
+          lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝)) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #(GoInterface.nil); storeRestored s γ B Pk h ∗ storageHook B dq f ∗
-      (if u then iprop(Post ∗ Y) else iprop(Pre ∗ X)) ∗
-      ∃ (n' : Nat) (ls' : Lease.LessorState), ⌜RestoreLs ls h.store ls'⌝ ∗ Lease.lessorState γl n' ls' }}
+  {{ RET #GoInterface.nil; Fin ∗
+      (if ns then iprop(True) else lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) [])) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

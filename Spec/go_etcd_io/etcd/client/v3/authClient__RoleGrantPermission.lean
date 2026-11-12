@@ -1,25 +1,10 @@
 /-
-`(*clientv3.authClient).RoleGrantPermission` (`client/v3/auth.go`).
-
-Users: `examples/etcd/auth/authkv.go` (`SetUp`: a read-write range), snippet `clientv3client/auth.go`; through the `Auth` bundle (and the promoted `Client.RoleGrantPermission`) (`authAt_methods`, `authHandle_authAt`).
-
-Proof sketch: allocates the request message (`reqOwn`, 3h's `protoRest_zero` and field writes), calls
-`auth.remote.RoleGrantPermission(ctx, req, auth.callOpts...)` (`authHandle` over a ready client: `remote` a `remoteAuthAt` value,
-`callOpts` with `callOptsOk _ false`; `remoteAuthAt_call` at the request: the caller's update,
-exclusive (sent at most once: the wrapper does not mark it repeatable), handed over), then `ContextError(ctx, err)` (W0's spec: a definite `.etcd e` becomes
-`errVal e`, the reply's `wireReply ansReply` becomes `ansReply`; an indefinite error stays
-`indefCall`), and returns the reply pointer converted. The permission message is built from the strings' bytes and the type converted (`authpb.Permission_Type(permType)`); a type outside the model's three (`permTypeM`) is a scope restriction (the server stores any `int32`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/authClient__RoleGrantPermission.lean`: restated over the model (`Step who` of the auth request, any principal, auth on or off, any answer: the old spec was for the admin's set-up only, auth off, with the reply's error only).
-
-Margin: none.
-
-Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
-ready (`clientReady`: the token refresh reads `c.Auth`).
+`(*clientv3.authClient).RoleGrantPermission` (`client/v3/auth.go`; translated for the auth plan's E2h). Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 
 @[expose] public section
 
@@ -27,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,17 +22,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `a.RoleGrantPermission(ctx, ...)`: the request `.roleGrantPermission name { permType := pt, range := { key := key, rangeEnd := rangeEnd } }` linearized by the caller's update, or an
-error that settles nothing; the call's principal is its context's (`ctxPrin who ctx p`). -/
-def authClient.RoleGrantPermission.spec : Prop :=
-  ∀ (a c : Loc) (γ : Cluster) (who : Principal) (name key rangeEnd : GoString) (t : w32) (pt : PermType),
-  permTypeM t = some pt →
-  Call.Triple (a @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"RoleGrantPermission")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authHandle a c γ who ∗ clientReady c) γ who [ #name, #key, #rangeEnd, #t]
-    (.roleGrantPermission name { permType := pt, range := { key := key, rangeEnd := rangeEnd } })
+/-- `auth.RoleGrantPermission(ctx, ...)` on the client's `*authClient` over a connection to `addr`
+(`authObjAtC`): `auth.remote.RoleGrantPermission(ctx, &pb.AuthRoleGrantPermissionRequest{Name: name, Perm:
+perm}, auth.callOpts...)` of a new permission `perm` holding `permType`, `[]byte(key)` and
+`[]byte(rangeEnd)` (a key shorter than a slice's bound, as the auth store's permission predicate
+records, `auth.ownPermW`), the error through `ContextError`: the call's answer (`authCallOut`), for
+a spec `Spec` the server registered for the method and the caller's persistent
+`□ ▷ attemptPre conn (GoInterface.ok ci) Spec m Q` at the request's model `m`. The strings it sends total at most `2 ^ 30`
+bytes (`strsSizeOk`; 2026-10-30: the request's encoding is below `grpcMsgMax`). -/
+abbrev authClient.RoleGrantPermission.spec : Prop :=
+  ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (name key rangeEnd : GoString) (permType : w32)
+    (Spec : GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse) (Q : Unit → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜key.length < 2 ^ 63 - 1⌝ ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleGrantPermission" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ci) Spec (name, (⟨permType, key, rangeEnd⟩ : auth.PermW)) Q ∗
+      ⌜strsSizeOk [name, key, rangeEnd]⌝ }}
+    (App (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"RoleGrantPermission")) (Val #(GoInterface.ok ci))) (Val #name)) (Val #key)) (Val #rangeEnd)) (Val #permType))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCallOut Q resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

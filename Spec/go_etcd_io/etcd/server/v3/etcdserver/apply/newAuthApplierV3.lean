@@ -1,29 +1,23 @@
 /-
-`newAuthApplierV3(as, base, lessor)` (`auth.go:39-41`): the auth applier over `base` (its mutex, an empty `authInfo`).
-
-**Users.** `newApplierV3`.
-
-**Proof sketch.** Allocation; the mutex's invariant `∃ ai, aa.authInfo ↦ ai` (`applierAt`'s realization).
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** None.
+`apply.newAuthApplierV3` (auth.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,17 +26,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The auth applier over `base`**, with the options' auth store and lessor. -/
-def newAuthApplierV3.spec : Prop :=
-  ∀ (ast le base : GoInterface) (b aa0 : Loc) (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ applierAt base [Layer.quota, Layer.backend] b aa0 ∗ beAt b mc γ γc R ∗ beOpts b opts ∗
-      ⌜ast = opts.AuthStore' ∧ le = opts.Lessor'⌝ }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3)) (Val #ast)) (Val #base)) (Val #le))
-  {{ (aa : Loc), RET #aa;
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.ty) #aa) baseLayers b aa }}
+/-- **`newAuthApplierV3(as, base, lessor)`**: the auth applier over `base` (an applier of the chain `c`), the auth store `as` and the lessor `lessor` with their contracts: a pointer whose interface value is an applier of the chain `auth c` (its mutex made, with its `authInfo`; 2026-11-01, J8a: until then also the reader resource `E.RD`, which `Apply` now borrows from its caller). -/
+abbrev apply.newAuthApplierV3.spec : Prop :=
+  ∀ (st base le : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3))
+      (Val #st)) (Val #base)) (Val #le))
+  {{ (p : Loc), RET #p;
+      -- (the auth plan's E2m) its shape: an auth applier over `base`, read-only
+      structFieldRef authApplierV3 go!"applierV3" p ↦□ base ∗
+      -- (the auth plan's E3k) its store and lessor, read-only, and its structure (`authIs`)
+      structFieldRef authApplierV3 go!"as" p ↦□ st ∗ structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
+      □ (∀ E : AEnv GF,
+        apply.isAuthStore st E.Pk E.f E.BkTie E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.γ E.Pk E.f E.BkTie E.RO E.RW -∗
+        apply.authIs E p base) ∗
+      □ (∀ (E : AEnv GF) (c : apply.Chain),
+        apply.isAuthStore st E.Pk E.f E.BkTie E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.γ E.Pk E.f E.BkTie E.RO E.RW -∗
+        apply.applierSpec E c base -∗
+        apply.applierSpec E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p)) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

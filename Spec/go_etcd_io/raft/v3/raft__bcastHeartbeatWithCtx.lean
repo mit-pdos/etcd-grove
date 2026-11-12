@@ -1,15 +1,15 @@
 /-
-## `raft.bcastHeartbeatWithCtx(ctx)` (internal)
+Port of `election_proof/spec_raft__bcastHeartbeatWithCtx.v` (feb5c73d4).
 
-**Users.** `bcastHeartbeat` (`raft.go:725`). **Proof sketch.** R4's `Visit`; `sendHeartbeat` to
-every peer but itself. **Changes** (from `specs-ref`'s `raft__bcastHeartbeatWithCtx.lean`): over
-the opened struct. **Margin.** None on the view.
+Lean notes: the type of Rocq's untyped binder `pvs` is written out
+(`GMap w64 Progress`, as `NState.prvals` forces it); `prole.Leader` is `.leader`;
+`send_msgs s ms <| nstate.prvals := pvs |>` is `{ sendMsgs s ms with prvals := pvs }`;
+`Forall (heartbeat_ok id ps) ms` is `∀ m ∈ ms, HeartbeatOk id ps m`; `to_pstate`,
+`prvals_match` are `toPState`, `prvalsMatch` (`Defs.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -17,26 +17,50 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A leader sends heartbeats with the read-only queue's context to every other peer. -/
-def raft.bcastHeartbeatWithCtx.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (ctx : GoSlice) (c : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ coreInv r γ id o ∗ ownSlice ctx c DFrac.discard ∗
-      ⌜o.view.role = StateLeader ∧ c = hbCtxOf o.ro⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"bcastHeartbeatWithCtx")) (Val #ctx))
-  {{ RET #(); raftOpen r γ id o ∗ coreInv r γ id o }}
+/-- `r.bcastHeartbeatWithCtx(ctx)` (`raft.bcastHeartbeatWithCtx.impl`,
+`Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:3293;
+`raft.go:726`):
+
+    r.trk.Visit(func(id uint64, _ *tracker.Progress) {
+      if id == r.id { return }
+      r.sendHeartbeat(id, ctx)
+    })
+
+One heartbeat per peer other than the leader itself, each with
+`Commit = min(Match, committed)` (`Spec/raft__sendHeartbeat.lean`). The postcondition
+is what the model's `Step.beat` asks of the broadcast: every message sent is one
+`HeartbeatOk` allows at the protocol reading of the state the call started in.
+`HeartbeatOk` bounds `Commit` by `matchOf`, i.e. by `toPState`'s `matched`, which is
+the `Progress` `Match` values only for a leader -- hence the premise
+`s.role = .leader`. That the list has exactly one heartbeat per peer is true but not
+stated: the model does not need it. `SentCommit` moves no `Match`. Each carries the
+context's list `cl` (2026-10-12). -/
+abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8),
+  s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hctx" ∷ ctx ↦*□ cl }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeatWithCtx"))
+      (Val #ctx))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

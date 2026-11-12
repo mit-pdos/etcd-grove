@@ -1,22 +1,20 @@
-/-
-## `MemoryStorage.CreateSnapshot(i, cs, data)`
+/- `MemoryStorage.CreateSnapshot` (`storage.go:244`).
 
-**Users.** etcd's `bootstrappedWAL.MemoryStorage` (`bootstrap.go:741`: detached, rebuilt from the WAL),
-`raftNode.start` (`raft.go:287`, `292`: the batch's snapshot and entries), `EtcdServer.snapshot`
-(`server.go:2132`: `CreateSnapshot` at the applied index), `EtcdServer.compact`/`purge`
-(`server.go:2180`: `Compact`), `EtcdServer.getSnapshot` (`server.go:755`); the examples' storages
-(`kvdurable/storage.go`, a wrapper calling these under its own lock). Snippet: `storage.go` (`ReqSnapshotCompact`). **Proof sketch.** Under the lock: at or
-below the stored snapshot, `ErrSnapOutOfDate`; past the last index, or at an index compacted away,
-Go panics (`nonissues/raft-memorystorage-createsnapshot-bounds.md`), which the update's precondition
-excludes; else the stored snapshot set (the term read at `i`, `cs` cloned, `data` kept) and a clone
-returned. **Changes.** Atomic; a non-`nil` `cs` (every client passes one). **Margin.** The storage
-keeps `data`: read-only for good. Verify-round (A5 completeness F2, raft-conf-pb's request): `confStateFull` (Go's `ConfState()` sets `AutoLeave`), so the server can store it in a snapshot (`CreateSnapshot`, the merged `MsgSnap`).
--/
+U8 v2 step 3 (2026-10-29): over the range vocabulary at the storage's names (`InvMemstorage.lean`;
+`notes/raft-unified-plan.md`, "U8 v2"). Takes the frozen entry at `i` (so the term is the caller's), the new snapshot's validity and delivered bound (`J.DL i`: the API's delivered prefix reaching `i`), a non-`nil` `cs` (a `nil` one keeps the stored snapshot's conf state, which a writer beside another does not know), and the stored snapshot open for writes (`memSnapLb γs 0`). Either outcome gives `memSnapLb γs i`: success stores the snapshot at `i`; `ErrSnapOutOfDate` (`i` at or below the stored snapshot's index, which another writer may have moved: etcd's apply thread against the raft goroutine's `ApplySnapshot`, `server.go:2106`) says the stored index is at least `i`.
+
+kvreconf-snapshot-thread (2026-10-30): the exclusive `memSnapExact γs sv0` replaced by the persistent `memSnapLb`; `cs` non-`nil` (was `memCsArg`, `nil` allowed).
+
+Durability stage I (I-5, 2026-10-31): the mode `o` (`memStorAt`; the new snapshot's validity and delivered bound are the attached mode's). Detached (`some (c0, sv0)`): the token comes back at the same compaction point, the stored snapshot the new one on success, `sv0` on `ErrSnapOutOfDate`.
+
+kvdurable's openStorage (2026-11-01): detached, `ErrSnapOutOfDate` also says `i` is at most `sv0`'s
+index (no other writer moves a detached storage's snapshot), so a detached caller that knows `i` is
+past it knows the call succeeds (kvdurable's `openStorage` takes the stored snapshot again above the
+one it applied). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 
 @[expose] public section
 
@@ -24,36 +22,42 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- Stores the snapshot at `i` (configuration `cs`, `data`), atomically, and returns a copy; or
-`ErrSnapOutOfDate`. -/
-def MemoryStorage.CreateSnapshot.spec : Prop :=
-
-  ∀ (ms : Loc) (i : w64) (csp : Loc) (dq : DFrac) (cs : ConfState) (data_sl : GoSlice)
-    (data : List w8) (Q : StorState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ RaftPb.confStateFull csp dq cs ∗ ownSlice data_sl data DFrac.discard ∗
-      (AU <{ ∃∃ (σ : StorState), memStor ms σ ∗ ⌜uint.nat i ≤ uint.nat σ.snap.index ∨ (σ.off ≤ uint.nat i ∧ uint.nat i ≤ σ.last)⌝ }> @ ⊤, ∅
-        <{ memStor ms (σ.createSnapshot (uint.nat i) (some cs) data), COMM Q σ }>) }}
-    (App (App (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"CreateSnapshot")) (Val #i)) (Val #csp)) (Val #data_sl))
-  {{ (sp : Loc) (err : GoInterface), RET (PairV #sp #err); RaftPb.confStateFull csp dq cs ∗
-      ∃ σ, Q σ ∗
-      ((⌜err = interface.nil ∧ uint.nat σ.snap.index < uint.nat i⌝ ∗
-          snapshotPts sp (DFrac.own 1) (σ.createSnapshot (uint.nat i) (some cs) data).snap) ∨
-       (⌜sp = null ∧ uint.nat i ≤ uint.nat σ.snap.index⌝ ∗
-          errIs go_etcd_io.raft.v3.ErrSnapOutOfDate err)) }}
+/-- `ms.CreateSnapshot(i, cs, data)`. (2026-10-31, `notes/axiom-review/savesnap.md`) The snapshot
+returned with its metadata's conf state, index and term pointers set (`ownSnapV`; until then
+`ownSnapM`), what the WAL's `SaveSnapshot` validates. -/
+abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (i : w64)
+    (e : EntryM) (cs : Loc) (dq : DFrac) (c : ConfStateM) (data : GoSlice) (bs : List w8)
+    (eood : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memStorAt ms γs J o iprop(J.SV (memSnapMade i e.Term' c bs) ∗ J.DL (uint.nat i)) ∗
+      memLog γs (uint.nat i) DFrac.discard [e] ∗
+      memSnapLb γs 0 ∗ ownCSM cs dq c ∗ data ↦* bs ∗
+      globalAddr ErrSnapOutOfDate ↦□ eood }}
+    (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot")) (Val #i)) (Val #cs)) (Val #data))
+  {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
+      ownCSM cs dq c ∗ memSnapLb γs (uint.nat i) ∗
+      ((⌜err = interface.nil⌝ ∗ ownSnapV snap (DFrac.own 1) (memSnapMade i e.Term' c bs) ∗
+        (match o with
+         | some (c0, _) => memStorFresh ms γs c0 (memSnapMade i e.Term' c bs)
+         | none => emp)) ∨
+       (⌜snap = null ∧ err = eood⌝ ∗ data ↦* bs ∗
+        (match o with
+         | some (c0, sv0) =>
+           memStorFresh ms γs c0 sv0 ∗ ⌜uint.nat i ≤ uint.nat sv0.Metadata'.Index'⌝
+         | none => emp))) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

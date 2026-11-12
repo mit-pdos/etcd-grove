@@ -1,36 +1,23 @@
 /-
-`(*applierV3backend).ClusterVersionSet(r, shouldApplyV3)` (`backend.go:270-285`): the cluster's version set (`semver.MustParse`, `RaftCluster.SetVersion`); after a downgrade, a forced snapshot.
-
-**Users.** `uberApplier.dispatch` (through the outer layers' promoted methods), in both modes.
-
-**Proof sketch.** `semver.MustParse` (`clusterVerOk`'s `Semver.parse ver = some sv`);
-2e's `RaftCluster.Version.spec` (its update fired in `optsOk`'s `Membership.clusterVerInv γc`: the
-previous version, any); `RaftCluster.SetVersion.spec` with `verFits sv` (`clusterVerOk`), the
-backend's `Membership.beVer` (`stAt`'s `optsSt`, moved by `shouldApplyV3`) and its update fired in
-the same invariant (`{v with ver := some sv}` keeps `VerSt.ok` by `verFits sv`); `onSet`
-(`api.UpdateCapability`) with the logger; `snapSrvOk`'s `ForceSnapshot` with `R` after a downgrade.
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-verify-round (server-boot's request): `clusterVerOk` defined over 2e's `verFits`; 2e's `Version`,
-`SetVersion` cited, `beVer` and `clusterVerInv` from the options' slots; the statement is unchanged.
-
-**Margin.** The version is outside the model.
+`apply.applierV3backend.ClusterVersionSet` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,16 +26,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The cluster version set**: nothing in the model. -/
-def applierV3backend.ClusterVersionSet.spec : Prop :=
-  ∀ (p rq : Loc) (v3 : Bool) (ver : GoString) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ beAt p mc γ γc R ∗ stAt p σ ∗ reqMsgAt rq (.clusterVersionSet ver) ∗
-      ⌜clusterVerOk ver⌝ ∗ R ∗ threadTok }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"ClusterVersionSet")) (Val #rq)) (Val #v3))
-  {{ RET #(); stAt p σ ∗ R ∗ threadTok }}
+/-- **`a.ClusterVersionSet(r, shouldApplyV3)`** for a version that parses (`semver.MustParse` panics otherwise) and is not above the server's (`semverAtMostServer`: the cluster's `SetVersion` panics above it; the cluster-rows stage, 2026-11-02): the cluster's `SetVersion` (a critical section, or none); a downgrade logged and a snapshot forced. -/
+abbrev apply.applierV3backend.ClusterVersionSet.spec : Prop :=
+  ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF) (v : GoString)
+    (rs : apply.RestM)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      apply.clusterVersionSetIs r v ∗ ⌜semverValid v ∧ apply.semverAtMostServer v⌝ ∗
+      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗
+      E.FS ∗ E.RO rs }}
+    (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"ClusterVersionSet")) (Val #r)) (Val #v3))
+  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post ∗
+      E.FS ∗ E.RO (apply.restSetVersion v3 v rs) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

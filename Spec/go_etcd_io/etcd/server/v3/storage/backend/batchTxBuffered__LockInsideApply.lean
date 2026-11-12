@@ -1,27 +1,14 @@
 /-
-## `(*batchTxBuffered).LockInsideApply()` (promoted `batchTx.LockInsideApply`, `batch_tx.go:118-128`): translated
-
-**Users.** The apply thread's writers: mvcc's write transactions (`kvstore_txn.go:177`,
-`store.go:38` `SetScheduledCompact`), the lessor (`lease.go:58` `persistTo`), the schema's apply
-writers (`membership.go:58, 77, 152, 166`, `alarm.go:54, 70`, `auth.go:109`). Snippet `parts.go`
-(`ReqWriteThenRead` with a hook).
-
-**Proof sketch.** `t.lock()` (the session, `Pk`); the hook field read under the lock (its
-authority agrees with the caller's share: `f`); if non-nil, `ValidateCalledInsideApply` (a no-op:
-`envOk`) and `f()` by `hookRun γ q Pk f Pre Q`, holding the session (round 1, T6: the server's
-hook reads the consistent index through `ReadTx()` without `RLock`, `cindex.go:102-110`,
-`beSess_rd`); with `nil`, the caller's view shift.
-
-**Changes** (from `specs-ref`'s `plHookAt`): unchanged in shape (mvcc's contract row's). **Margin.**
-None.
-
-**Changes** (verify-round: A10-provability B1): the post also gives the session's turn
-`beTurn γ` (exclusive), which `Unlock`'s second update takes back: a client parks it with what it
-took out at the lock, so that a later session refutes a stale parked state (`beTurn_excl`).
+`LockInsideApply` (the backend). `t.LockInsideApply()`: the batch lock, free state (`freeOk`) and the lock holder's resource `W`,
+then the post-lock hook `f` (the client's share `dq` of it: `plHookRO γ f` once set for good) run
+on the hooks' resource `Pk` and the caller's `Pre` (`{Pk ∗ Pre} f() {Q}`, as mvcc's contract
+states it), or, with no hook set, `Q` made of `Pk ∗ Pre` by the caller.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -29,28 +16,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.LockInsideApply()`**: the batch lock, a session at the batch image, and the post-lock
-hook run under it from `Pk ∗ Pre` to `Q`. -/
-def batchTxBuffered.LockInsideApply.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (q : Qp) (dq : DFrac) (f : GoFunc)
+/-- `t.LockInsideApply()`: the batch lock, free state (`freeOk`) and the lock holder's resource `W`,
+then the post-lock hook `f` (the client's share `dq` of it: `plHookRO γ f` once set for good) run
+on the hooks' resource `Pk` and the caller's `Pre` (`{Pk ∗ Pre} f() {Q}`, as mvcc's contract
+states it), or, with no hook set, `Q` made of `Pk ∗ Pre` by the caller. -/
+abbrev backend.batchTxBuffered.LockInsideApply.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp) (dq : DFrac) (f : GoFunc)
     (Pre Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ beOpen γ q ∗ beHook γ dq f ∗ Pre ∗ hookRun γ q Pk f Pre Q }}
-    (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"LockInsideApply")) (Val #()))
-  {{ RET #(); ∃ I : Image, beSess γ q Fp.none (Sess.init I) ∗ beTurn γ ∗ beLive γ (btLoc γ) 1 ∗ beHook γ dq f ∗ Q }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo ∗ plHookAt γ dq f ∗ Pre ∗
+      ((⌜f = func.nil⌝ ∗ (Pk ∗ Pre -∗ Q)) ∨
+       (⌜f ≠ func.nil⌝ ∗ □ ({{ Pk ∗ Pre }} (App (Val #f) (Val #())) {{ RET #(); Q }}))) }}
+    (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"LockInsideApply")) (Val #()))
+  {{ RET #(); ∃ st : BSess, batchLocked γ P b st ∗ ⌜freeOk P st⌝ ∗ W ∗ Q ∗ bOpen γ qo ∗
+      plHookAt γ dq f }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

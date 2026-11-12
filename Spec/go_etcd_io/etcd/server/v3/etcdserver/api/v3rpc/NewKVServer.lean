@@ -1,43 +1,48 @@
 /-
-`v3rpc.NewKVServer` (`server/etcdserver/api/v3rpc/`).
-
-Users: `v3rpc.Server` (registration), `NewQuota*` wrappers.
-
-Proof sketch: `newHeader.spec`; the server as `RaftKV`; `&AuthAdmin{s}`; `s.Cfg.MaxTxnOps` (2e's configuration scope, carried by `isServer`: at most `maxTxnOpsMax`, `issues/etcd-txn-nested-depth-apply-panic.md`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/NewKVServer.lean`: over `isServer` (was the server's bundle of field readers).
-
-Margin: none.
+`v3rpc.NewKVServer` (`key.go`). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvKV.lean` and `Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `NewKVServer(s)`: the service object over `s`. -/
-def NewKVServer.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ isServer s γ }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer)) (Val #s))
-  {{ (v : GoInterface), RET #v; ∃ p : Loc, ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty) #p⌝ ∗ kvServerAt p s γ }}
+/-- **`NewKVServer(s)`**: a `KVServer` holding a `*kvServer` over the server `s` (its header,
+`s` as its `RaftKV`, `s.Cfg.MaxTxnOps` as its budget), for a budget within protobuf's recursion
+limit (`v3rpc.maxTxnOpsOk`, 2026-10-31, `issues/etcd-txn-nested-depth-apply-panic.md`: the object
+keeps it, for `kvServer.Txn`'s proposals). -/
+abbrev v3rpc.NewKVServer.spec : Prop :=
+  ∀ (s : Loc) (A : v3rpc.KVAns GF) (n : w64),
+  v3rpc.maxTxnOpsOk (sint.Z n) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.raftKV s A ∗
+      structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxTxnOps"
+        (structFieldRef EtcdServer go!"Cfg" s) ↦□ n }}
+    (App (Val (@! v3rpc.NewKVServer)) (Val #s))
+  {{ (kv : GoInterface), RET #kv; ∃ (p : Loc) (cid mid : w64),
+      ⌜kv = interface.mkOk (go.GoType.PointerType v3rpc.kvServer.ty) #p⌝ ∗
+      v3rpc.kvServerIs p s A cid mid n }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

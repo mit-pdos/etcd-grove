@@ -1,10 +1,9 @@
 /-
-`(*leaseCache).Rev` (`cache.go`): the entry's lease key revision, or `0`. Proof sketch: read lock
-(a reader slot of the thread token). Changes: from `specs-ref`'s `leaseCache__Rev.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.Rev(key)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -12,27 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.Rev(key)`. -/
-def leaseCache.Rev.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (key : GoString),
-  {{ lcAt (GF := GF) lc γ γL ∗ threadTok }}
-    (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"Rev")) (Val #key))
-  {{ (rev : w64), RET #rev; threadTok }}
+/-- **`lc.Rev(key)`** (read lock): the revision of `key`'s entry (`0` if none) in the state `st`
+it read, with the entry's facts and what the client learns of `st` (`Qr`). -/
+abbrev leaseCache.Rev.spec : Prop :=
+  ∀ (lc : Loc) (γ : LeaseCacheNames) (pfx : GoString) (X : LeaseCacheSt → Qp → IProp GF)
+    (Qr : LeaseCacheSt → IProp GF) (key : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeaseCache lc γ pfx X ∗ leaseCacheReader lc γ pfx X ∗ lcPeek X Qr }}
+    (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"Rev")) (Val #key))
+  {{ (r : w64), RET #r; leaseCacheReader lc γ pfx X ∗
+      ∃ st : LeaseCacheSt, ⌜r = st.revOf key⌝ ∗ entryFactsAt pfx key st ∗ □ Qr st }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

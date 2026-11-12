@@ -1,12 +1,9 @@
 /-
-`(*leasingKV).monitorLease` (`kv.go`): the goroutine a `get` starts after an acquisition; watches
-the lease key and rescinds on `"REVOKE"`. Proof sketch: `kv.Get` of the lease key (a read:
-`protoUpd`), `Watcher.Watch` (1b's `watcherAt`; its events read-only), `leaseID` (a reader slot of
-the thread's own token), `rescind`. Changes: from `specs-ref`'s `leasingKV__monitorLease.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`lkv.monitorLease(ctx, key, rev)` (`client/v3/leasing/kv.go`; unit 5: specified here, proved with the monitors). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -14,27 +11,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `monitorLease(ctx, key, rev)`: runs until it rescinds or the KV's context is done. -/
-def leasingKV.monitorLease.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ threadTok }}
-    (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"monitorLease")) (Val #ctx)) (Val #key)) (Val #rev))
-  {{ RET #(); threadTok }}
+/-- **`lkv.monitorLease(ctx, key, rev)`** (a goroutine of `get`, started after an acquisition at
+revision `rev`, once a session was set, with the reader slot it was given): it returns, with the slot (it watches the lease key and rescinds
+the lease when another client puts `"REVOKE"` into it). -/
+abbrev leasingKV.monitorLease.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (key : GoString) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ sessionReady γ ∗ context.isContext ctx cs ∗
+      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < 2 ^ 63 - 1 ∧ key.length ≤ opKeyMax⌝ }}
+    (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"monitorLease")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #rev))
+  {{ RET #(); lkvReader lkv γ pfx }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

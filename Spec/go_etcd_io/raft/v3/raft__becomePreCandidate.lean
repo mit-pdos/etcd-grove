@@ -1,17 +1,13 @@
 /-
-## `raft.becomePreCandidate()` (internal)
+Port of election_proof/spec_raft__becomePreCandidate.v (feb5c73d4).
 
-**Users.** `campaign` (`raft.go:1052`). **Proof sketch.** Not a leader (`raft.go:937`); the step
-function and tick of a candidate, the votes reset (R4), no leader, the role; the term and vote kept.
-The invariant: a pre-candidate holds `hup`'s guard (`CampaignGuard`) while it stays one.
-**Changes** (from `specs-ref`'s `raft__becomePreCandidate.lean`): over the opened struct.
-**Margin.** Exact on the view.
+Lean notes:
+* `become_precandidate` is `becomePrecandidate` (`Defs.lean`); `prole.Leader` is
+  `PRole.leader`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -19,26 +15,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Becomes a pre-candidate (term and vote kept). -/
-def raft.becomePreCandidate.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ coreInv r γ id o ∗ ⌜o.view.role ≠ StateLeader ∧ CampaignGuard id o⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"becomePreCandidate")) (Val #()))
-  {{ RET #(); ∃ o', raftOpen r γ id o' ∗ coreInv r γ id o' ∗
-      ⌜o'.view = { o.view with lead := W64 0, role := StatePreCandidate } ∧ o'.log = o.log⌝ }}
+/-- `becomePreCandidate` (raft.go:912, 2026-10-04): `r.step := stepCandidate`,
+`r.trk.ResetVotes()`, `r.tick`, `r.lead := None`, `r.state := StatePreCandidate`, and a
+log line. Term and vote are untouched and there is no `reset`, so the `Progress` values
+stay (`becomePrecandidate`, `Defs.lean`). The panic branch (`state = StateLeader`) is
+discharged from the role premise. -/
+abbrev raft.becomePreCandidate.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role ≠ .leader →
+  -- (2026-10-13) only a voter campaigns (`ownRaftPhys`'s `Hvoter`)
+  id ∈ c.voters →
+  -- (2026-10-14, reconfiguration stage B7 part 2) only with pre-vote on (`campaign`'s premise
+  -- for a pre-election): `ownRaftPhys` keeps that a pre-candidate has pre-vote on
+  s.prevote = true →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomePreCandidate"))
+      (Val #()))
+  {{ RET #(); ownRaftPhysCV c c.voters r id (becomePrecandidate s) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

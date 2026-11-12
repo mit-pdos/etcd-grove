@@ -1,29 +1,23 @@
 /-
-`(*applierV3backend).Alarm(r)` (`backend.go:109-136`): `GET`: the alarm store's `Get`; `ACTIVATE` (not `NONE`): `Activate`; `DEACTIVATE`: `Deactivate`.
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** 2e's `AlarmStore.Get`/`Activate`/`Deactivate` (their atomic updates fired on `alarmSt` inside `stAt`; the `Get` list a permutation: the result's `resMatch`); the gauge (`alarms`, names only).
-
-**Changes** from `specs-ref`'s `applierV3backend__Alarm.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
-
-**Margin.** The alarm list in the store's map order (`resMatch`).
+`apply.applierV3backend.Alarm` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,23 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`Alarm` at the applierV3backend layer**: the layers' step (the result `resMatch`). -/
-def applierV3backend.Alarm.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (rq : Loc) (op : IrrOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) [Layer.backend] p aa ∗
-      beAt p mc γ γc R ∗
-      stAt p σ ∗
-      reqMsgAt rq op ∗ ⌜(∃ a m t, op = .alarm a m t) ∧ op.ok⌝ ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"Alarm")) (Val #rq))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ threadTok ∗ ∃ σ' res res', ⌜layersStep mc σ [] 0 op [Layer.backend] σ' res ∧ resMatch op false res res'⌝ ∗
-      stAt p σ' ∗ replyAt γ op res' (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty) #resp) err }}
+/-- **`a.Alarm(ar)`**: `GET` reads the alarm store; `ACTIVATE` (of an alarm other than `NONE`) and `DEACTIVATE` write it (a critical section, or none) and move the alarm gauge; any other action returns `nil, nil`. -/
+abbrev apply.applierV3backend.Alarm.spec : Prop :=
+  ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      ((∃ am : AlarmModel, apply.alarmRequestIs r am) ∗ E.RW) ∗
+      apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Alarm")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

@@ -1,12 +1,9 @@
 /-
-`(*leaseCache).Get` (`cache.go`): `(nil, false)` for a bad op; else waits for the key's entry's
-waiter and copies it for `op` (`(nil, true)` if not cached or the context ends). Proof sketch:
-`isBadOp`, `notify`, the `select` (`waitRecv`, the context's `Done`), read lock, the entry (or the
-frozen copy of an evicted one) `cachedRespAt` with its `entryOk`/`etcdLb`; `leaseKey.get`. Changes: from `specs-ref`'s `leaseCache__Get.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.Get(ctx, op)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -14,30 +11,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.Get(ctx, op)`: `ok` is "not a bad op"; a response, if any, fresh: `leaseKey.get` of an entry
-of the get's key (`entryOk` at a state reached). -/
-def leaseCache.Get.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ lcAt lc γ γL ∗ Context.ctxOk ctx ∗ opAt op o ∗ threadTok }}
-    (App (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"Get")) (Val #ctx)) (Val #op))
-  {{ (resp : Loc) (ok : Bool), RET (PairV #resp #ok); threadTok ∗ ⌜ok = !isBadOpM o⌝ ∗
-      (⌜resp = null⌝ ∨ (⌜ok = true⌝ ∗ ∃ (σ0 : State) (me : RangeRespM), etcdLb γ σ0 ∗
-         entryOk γL o.key σ0 me ∗ rangeRespOwn resp (DFrac.own 1) (leaseGetM o me))) }}
+/-- **`lc.Get(ctx, op)`**: `(nil, false)` for an operation the cache does not serve (`isBadOp`);
+otherwise `ok = true` and either `nil` (no entry for the key, or the context was done while
+waiting), or, after waiting for the entry's waiter channel, the cached get's answer of the entry
+`e` as it is in the state `st` of the second read (still the key's entry, or frozen since:
+evicted after it was found), with its facts. -/
+abbrev leaseCache.Get.spec : Prop :=
+  ∀ (lc : Loc) (γ : LeaseCacheNames) (pfx : GoString) (X : LeaseCacheSt → Qp → IProp GF)
+    (Qr : LeaseCacheSt → IProp GF) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeaseCache lc γ pfx X ∗ leaseCacheReader lc γ pfx X ∗ lcPeek X Qr ∗
+      context.isContext ctx cs ∗ opFullAt opv o }}
+    (App (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"Get")) (Val #(GoInterface.ok ctx))) (Val #opv))
+  {{ (ret : Loc) (ok : Bool), RET (PairV #ret #ok); leaseCacheReader lc γ pfx X ∗
+      ((⌜isBadOpM o = true ∧ ret = null ∧ ok = false⌝) ∨
+       (⌜isBadOpM o = false ∧ ok = true ∧ ret = null⌝) ∨
+       (⌜isBadOpM o = false ∧ ok = true⌝ ∗ ∃ (st : LeaseCacheSt) (e : LeaseEntry),
+          □ Qr st ∗ ⌜st.entries !! o.key = some e ∨ (o.key, e) ∈ st.frozen⌝ ∗
+          entryFacts pfx o.key e ∗ freshGetResp ret e.hm e.more e.count (getResult o e))) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

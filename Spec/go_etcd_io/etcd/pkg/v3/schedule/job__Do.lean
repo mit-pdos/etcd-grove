@@ -1,13 +1,10 @@
 /-
-`job.Do(ctx)` (`schedule.go`): calls the closure. Internal (`jobOk`'s realization for `NewJob`'s
-jobs; `executeJob` calls `Do` through the `Job` interface).
-**Changes**: restated over `funcOk`. **Margin**: none.
+`job.Do` (`pkg/schedule/schedule.go`), translated with its body. Lean-first (2026-10-13, mvcc's
+compaction, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 
 @[expose] public section
 
@@ -15,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schedule
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,14 +22,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-def job.Do.spec : Prop :=
-  ∀ (jv : go_etcd_io.etcd.pkg.v3.schedule.job) (ctx : GoInterface) (Pay P Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
-      funcOk jv.do' Pay P Q ∗ schedCtx ctx Pay ∗ P }}
-    (App (Val (jv @!! go_etcd_io.etcd.pkg.v3.schedule.job.ty @!! go!"Do")) (Val #ctx))
-  {{ RET #(); Q }}
+/-- `j.Do(ctx)` of a `job` value whose closure has a job's triple: the closure's (with the
+context's payload premise, M2's storage side, passed on). -/
+abbrev schedule.job.Do.spec : Prop :=
+  ∀ (γ : schedule.SchedNames) (jv : go_etcd_io.etcd.pkg.v3.schedule.job) (ctx : GoInterfaceOk)
+    (cd : _root_.Perennial.context.ContextDesc (IProp GF)) (Pre Prev Post : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ schedule.jobFnSpec γ jv.do' Pre Prev Post ∗ schedule.schedRunning γ ∗ Pre ∗ Prev ∗
+      _root_.Perennial.context.isContext ctx cd ∗ □ (cd.PDone -∗ schedule.schedPay γ) }}
+    (App (Val (jv @!! go_etcd_io.etcd.pkg.v3.schedule.job.ty @!! go!"Do")) (Val #(GoInterface.ok ctx)))
+  {{ RET #(); schedule.schedRunning γ ∗ Post }}
 
 end spec
-end Schedule
+
 end EtcdGrove
 end Perennial

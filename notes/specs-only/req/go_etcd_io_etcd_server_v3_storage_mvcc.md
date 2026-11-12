@@ -4,7 +4,7 @@
 
 Batch 2b (the member's gRPC watch handler, `v3rpc/watch.go`) drives one mvcc watch stream per gRPC
 stream. What its sketches (`recvLoop`, `sendLoop`, `close`, `watchServer.Watch`;
-`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`) assume of mvcc's watch API, in plain terms.
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`) assume of mvcc's watch API, in plain terms.
 The facts are stated against **the cluster's history** (`etcdLb γ σ`, W0's `State.lean`): the
 member's store applies the committed log, so its history is a prefix of the cluster's; the bridge
 from mvcc's own vocabulary to `γ` is the server's (2d), `req/go_etcd_io_etcd_server_v3_etcdserver.md`,
@@ -86,7 +86,7 @@ protocol (1b's `wireStep`), and the snippets `examples/specreq/v3rpcwatch/`.
 
 ## 3e ↔ 3f: the split (from 3e, for 3f)
 
-3e's vocabulary is up and builds: `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,ApiStorage,Api}.lean`
+3e's vocabulary is up and builds: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,ApiStorage,Api}.lean`
 (namespace `Mvcc`). What 3f builds on, and what is whose:
 
 1. **The state** `Mvcc.MvccState = {kv : EtcdModel.KVHist, pending : List EtcdModel.Event}` (W0's history,
@@ -120,7 +120,7 @@ protocol (1b's `wireStep`), and the snippets `examples/specreq/v3rpcwatch/`.
 
 ## from 3c
 
-The lessor's API is `Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`). mvcc holds
+The lessor's API is `SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`). mvcc holds
 the lessor as a `lease.Lessor` interface value (`Lease.lessorIface le`, `NewLessor`'s) and calls it
 on the apply thread, the lessor's only writer, holding the writer's token `Lease.lessorState γl n
 ls` (the lessor's state `LessorState`: live leases, `items` = `itemMap`, `keys` = each `*Lease`'s
@@ -332,7 +332,7 @@ on success and `ErrCompacted`; the write updates carry no receipt; `rangeOk` tak
 
 ## from 4b
 
-1. **`traceOwn`** is `TraceUtil.traceOwn` (`Spec/go_etcd_io/etcd/pkg/v3/traceutil/Api.lean`,
+1. **`traceOwn`** is `TraceUtil.traceOwn` (`SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/traceutil/Api.lean`,
    exclusive, non-nil); `TraceUtil.TODO.spec` gives `traceOwn t ∗ traceEmpty t true`;
    `TraceUtil.Trace.Step.spec` takes `traceOwn t ∗ fieldsOwn fields` (a variadic call without fields
    passes `nil`: `fieldsOwn` of the nil slice holds).
@@ -353,7 +353,7 @@ on success and `ErrCompacted`; the write updates carry no receipt; `rangeOk` tak
 ## from 4a
 
 4a proves mvcc's storage contract of etcd's backend through `Backend.keyBackend_intro.spec`
-(`Spec/go_etcd_io/etcd/server/v3/storage/backend/MvccStorage.lean`; realization in its header). Two
+(`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/MvccStorage.lean`; realization in its header). Two
 rows of the contract (`ApiStorage.lean`, as of 2026-11-09) are **not true of etcd's backend**; the
 law is blocked until they change:
 
@@ -406,7 +406,7 @@ which are valid only while the transaction is (4c's `txBytes`): lend them agains
 
 ## from 4a, round 1
 
-4a's bridge `Backend.keyBackend_intro.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/backend/
+4a's bridge `Backend.keyBackend_intro.spec` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/
 MvccStorage.lean`) is rebuilt against round 2 (`Schema.bucketAt`, `kbLocked B D0 D`, the nested
 two-step `Unlock`, the freshness over `D0` and `D`: F1 and F3 are taken). It is still blocked by
 five rows; please adopt:

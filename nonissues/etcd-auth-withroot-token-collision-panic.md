@@ -23,7 +23,7 @@ code excludes it.
 ## Proof
 
 yes: a sound spec of `WithRoot` with the simple provider cannot exclude the panic; the spec takes
-the premise `rootTokOk` (`Spec/go_etcd_io/etcd/server/v3/auth/authStore__WithRoot.lean`), which the
+the premise `rootTokOk` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/authStore__WithRoot.lean`), which the
 no-op and JWT providers give and the simple one does not. A fix on the fork, or a probabilistic
 premise, is the user's decision (`notes/specs-only/batch-3d.md`).
 

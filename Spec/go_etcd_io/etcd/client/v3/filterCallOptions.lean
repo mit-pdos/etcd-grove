@@ -1,18 +1,10 @@
 /-
-`clientv3.filterCallOptions` (`client/v3/retry_interceptor.go`).
-
-Users: the interceptors.
-
-Proof sketch: a type switch per option (`retryOption` or not), two fresh slices by `append` onto
-`nil` (`callOptsOk`'s realization: its options are the client's gRPC ones and retry options).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/filterCallOptions.lean`.
-
-Margin: none.
+`filterCallOptions(opts)` (`client/v3/retry_interceptor.go`; unit P3a). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 
 @[expose] public section
 
@@ -20,10 +12,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk backoffOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,18 +23,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `filterCallOptions(opts)`: the gRPC options, and the retry options (the policy repeatable iff
-`rep`; a limit only `0`). -/
-def filterCallOptions.spec : Prop :=
-  ∀ (sl : GoSlice) (rep : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ callOptsOk sl rep }}
+/-- `filterCallOptions(opts)` of the client's call options (`callOptsOk`) splits them: grpc's
+(each holding only scalars; a fresh slice, owned with its capacity) and the `retryOption`s (each
+writing only `retryPolicy`, `retryApplyOk`; a fresh slice). -/
+abbrev filterCallOptions.spec : Prop :=
+  ∀ (sl : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ sl ↦*□ vs ∗ callOptsOk vs }}
     (App (Val (@! go_etcd_io.etcd.client.v3.filterCallOptions)) (Val #sl))
-  {{ (g r : GoSlice), RET (PairV #g #r); grpcCallOptsOk g ∗ ∃ fs, retryOptsAt r fs ∗
-      ⌜∀ o, (applyRetry fs o).rep = (o.rep || rep) ∧
-        ((applyRetry fs o).max = o.max ∨ (applyRetry fs o).max = W64 0)⌝ }}
+  {{ (g r : GoSlice), RET (PairV #g #r);
+      ∃ (gs : List GoInterface) (ros : List go_etcd_io.etcd.client.v3.retryOption),
+        g ↦* gs ∗ ownSliceCap GoInterface g (DFrac.own 1) ∗
+        ⌜∀ v ∈ gs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ grpcScalarOptTys⌝ ∗
+        r ↦* ros ∗ ([∗list] ro ∈ ros, retryApplyOk ro.applyFunc') ∗
+        -- (2026-10-21, D29) scalar options only: no retry options
+        ⌜(∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧
+          t ∈ grpcScalarOptTys) → ros = []⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

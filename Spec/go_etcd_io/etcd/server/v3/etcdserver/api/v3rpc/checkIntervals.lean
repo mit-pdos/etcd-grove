@@ -1,47 +1,53 @@
 /-
-`v3rpc.checkIntervals` (`server/etcdserver/api/v3rpc/`).
-
-Users: `kvServer.Txn` (each branch), itself (nested transactions).
-
-Proof sketch: the interval tree of the level's deletes (3f's `adt.IntervalTree`: `NewIntervalTree`, `Insert`, `Intersects`, `Union`), the recursive calls on nested transactions' branches, a fresh map of the puts; `ErrGRPCDuplicateKey` on a conflict.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/checkIntervals.lean`: the verdict as `intervalsOk` (opaque; its realization mirrors the code).
-
-Margin: the returned puts and deletes are what the recursion needs (the realization's internal spec states them); the client-visible statement says only the verdict.
+`v3rpc.checkIntervals` (`key.go`), over the interval tree's contract. Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvKV.lean` and `Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `checkIntervals(reqs)`: no error exactly when `intervalsOk`, else `ErrGRPCDuplicateKey`. The
-operations are read and given back. -/
-def checkIntervals.spec : Prop :=
-  ∀ (sl : GoSlice) (dq : DFrac) (ops : List RequestOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ msgsOwn requestOpOwn sl dq ops }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals)) (Val #sl))
-  {{ (puts : Loc) (dels : GoInterface) (err : GoInterface), RET (PairV #puts (PairV #dels #err));
-      msgsOwn requestOpOwn sl dq ops ∗
-      (⌜err = GoInterface.nil ∧ intervalsOk ops⌝ ∨
-       (⌜¬ intervalsOk ops⌝ ∗ statusErr err (Rpctypes.code .duplicateKey) (Rpctypes.desc .duplicateKey))) }}
+/-- **`checkIntervals(reqs)`** of the operations `us`: as `ivCheck` computes it. On `nil`, the
+map's keys are `ivCheck`'s puts and the tree (an owned `*intervalTree`, the whole tree:
+fraction `1`) holds, in some order, `ivCheck`'s deletes; otherwise `ErrGRPCDuplicateKey`. The
+deletes' range ends as off the wire (`reqOpsWire`), and fewer than `2^63` at every depth
+(`delCount`: the tree's count bound, which `Insert` and `Union` take). -/
+abbrev v3rpc.checkIntervals.spec : Prop :=
+  ∀ (sl : GoSlice) (ps : List Loc) (us : List v3rpc.ReqOp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ sl ↦*□ ps ∗ v3rpc.reqOpsIs ps us ∗
+      v3rpc.reqOpsWire ps us ∗ ⌜v3rpc.delCount us < 2 ^ 63⌝ }}
+    (App (Val (@! v3rpc.checkIntervals)) (Val #sl))
+  {{ (m : Loc) (t err : GoInterface), RET (PairV (PairV #m #t) #err);
+      match v3rpc.ivCheck us with
+      | some (puts, ds) => ⌜err = GoInterface.nil⌝ ∗
+          (∃ M : GMap GoString Unit, m ↦$ M ∗ ⌜∀ k, (M !! k).isSome = true ↔ k ∈ puts⌝) ∗
+          (∃ (tl : Loc) (L : List adt.Entry),
+            ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tl⌝ ∗
+            adt.ownIvt tl L 1 ∗ ⌜(L.map Prod.fst).Perm ds⌝)
+      | none => txn.errVarIs v3rpc.CheckErr.duplicateKey.var err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

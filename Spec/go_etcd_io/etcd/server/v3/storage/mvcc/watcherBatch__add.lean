@@ -1,12 +1,9 @@
 /-
-`watcherBatch.add(w, ev)` (internal): the event added to `w`'s batch (a new one if none).
-
-**Proof sketch.** The map lookup, `&eventBatch{}`, `eventBatch.add`.
+`watcherBatch.add` (`watcher_group.go`). Lean-first (no Rocq counterpart); see `InvWatchBatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 
 @[expose] public section
 
@@ -14,25 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watcherBatch.add.spec : Prop :=
-  ∀ (wb : GoMap) (B : WBatch) (w p : Loc) (e : EvM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wbOwn wb B ∗ evOwn p e ∗ ⌜wb ≠ null⌝ }}
-    (App (App (Val (wb @!! watcherBatch.ty @!! go!"add")) (Val #w)) (Val #p))
-  {{ RET #(); wbOwn wb (B.add w e) }}
+/-- `wb.add(w, ev)` (a map value receiver): the watcher's batch with the event added, a fresh
+batch if it had none. -/
+abbrev mvcc.watcherBatch.add.spec : Prop :=
+  ∀ (wb : GoMap) (Bm : GMap Loc mvcc.EventBatch) (w : Loc) (e : Loc) (ev : mvcc.EvM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownWatcherBatch wb Bm ∗ mvcc.evIs e ev }}
+    (App (App (Val (wb @!! watcherBatch.ty @!! go!"add")) (Val #w)) (Val #e))
+  {{ RET #(); mvcc.ownWatcherBatch wb
+      (<[w := mvcc.ebAdd ((Bm !! w).getD mvcc.EventBatch.empty) ev]> Bm) }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

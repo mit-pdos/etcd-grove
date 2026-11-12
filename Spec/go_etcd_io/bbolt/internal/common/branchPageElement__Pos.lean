@@ -1,14 +1,9 @@
 /-
-## `(*branchPageElement).Pos()` (`internal/common/page.go`)
-
-**Users.** bucket.go:676 (stats); `ReadInodeFromPage`. Snippet `ReqElementKeys`.
-**Proof sketch.** the element's typed view, one field load.
-**Changes.** from `specs-ref`'s file of the same name: relative to the page holding the element.
-**Margin.** none: the post is what the code computes.
+`(*branchPageElement).Pos`'s spec (`internal/common/page.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,26 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `e.Pos()` of element `i` of a page: its `pos` field (`branchElemOf`). -/
-def branchPageElement.Pos.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (bs : List w8) (i : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ bytesPointsto p dq bs ∗ ⌜elemOff (i + 1) ≤ bs.length⌝ }}
-    (App (Val ((elemLoc p i) @!! go.GoType.PointerType branchPageElement.ty @!! go!"Pos")) (Val #()))
-  {{ RET #((branchElemOf bs i).pos'); bytesPointsto p dq bs }}
+/-- `branchPageElement.Pos()` reads the field `pos`. -/
+abbrev branchPageElement.Pos.spec : Prop :=
+  ∀ (l : Loc) (v : branchPageElement) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦{dq} v }}
+    (App (Val (l @!! go.GoType.PointerType branchPageElement.ty @!! go!"Pos")) (Val #()))
+  {{ RET #(v.pos'); l ↦{dq} v }}
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

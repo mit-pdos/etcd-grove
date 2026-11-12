@@ -1,40 +1,39 @@
 /-
-`mkGteRange(rangeEnd)` (`delete.go`), internal: mirrors the code (`"\x00"`, "every key from the key
-on", becomes the empty non-`nil` slice mvcc's index reads as unbounded). Old spec: same.
+`txn.mkGteRange` (delete.go). Lean-first (no Rocq counterpart); see `Proof/.../etcdserver/txn/Write.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-open Classical in
-/-- `mkGteRange(rangeEnd)`: `[0]` becomes `[]byte{}` (non-`nil`), anything else is returned. -/
-def mkGteRange.spec : Prop :=
-  ∀ (rend : GoSlice) (e : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ rend ↦*□ e }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.mkGteRange)) (Val #rend))
+/-- `mkGteRange(rangeEnd)`: `[0]` ("every key from the key on", gRPC sends an empty range end
+as `nil`) becomes the empty, non-`nil` slice `[]byte{}`; any other range end is returned as
+it is. -/
+abbrev txn.mkGteRange.spec : Prop :=
+  ∀ (rangeEnd : GoSlice) (e : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ rangeEnd ↦*□ e }}
+    (App (Val (@! txn.mkGteRange)) (Val #rangeEnd))
   {{ (r : GoSlice), RET #r; r ↦*□ (if e = [W8 0] then [] else e) ∗
-      ⌜if e = [W8 0] then r ≠ slice.nil else r = rend⌝ }}
+      ⌜if e = [W8 0] then r ≠ slice.nil else r = rangeEnd⌝ }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

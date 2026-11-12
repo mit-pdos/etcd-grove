@@ -1,45 +1,44 @@
 /-
-`v3rpc.authMaintenanceServer.isPermitted` (`server/etcdserver/api/v3rpc/`).
-
-Users: the maintenance wrappers (the promoted method of the embedded `*AuthAdmin`).
-
-Proof sketch: `AuthInfoFromCtx(ctx)` (2c/3d, over `reqPrin ctx who tls`, `reqPrin_of_md`), `AuthStore()` and its `IsAdminPermitted`/`IsAuthEnabled` (3d), at the member's local auth state (no linearization: the callers fire their updates with the refusal, which the model allows at any state, or answer locally).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/authMaintenanceServer__isPermitted.lean`: over 2c's `reqPrin` and `srvErrOf` (was the auth plan's `authOn` modes: one spec for both).
-verify-round (server-core's request): over 2c's persistent `srvErr err e` (the sentinel values by `sentinelAt`), replacing the deprecated pure `srvErrOf`.
-
-Margin: a `nil` result says nothing (the check is at a possibly stale auth state).
+`v3rpc.authMaintenanceServer.isPermitted` (`maintenance.go`): the embedded `*AuthAdmin`'s
+`isPermitted`, promoted. Lean-first (no Rocq counterpart); the auth plan's A2 (2026-10-23).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `aa.isPermitted(ctx)`: `nil` (the user has the root role (or auth is off), at the member's auth state), or a server error of one of
-[.userEmpty, .userNotFound, .permissionDenied, .invalidAuthToken]. -/
-def authMaintenanceServer.isPermitted.spec : Prop :=
-  ∀ (aa s : Loc) (γ : Cluster) (ctx : GoInterface) (who tls : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ authMaintAt aa s γ ∗ Context.ctxOk ctx ∗ reqPrin ctx who tls }}
-    (App (Val (aa @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer.ty @!! go!"isPermitted")) (Val #ctx))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∨ ∃ e, ⌜e ∈ ([.userEmpty, .userNotFound, .permissionDenied, .invalidAuthToken] : List EtcdErr)⌝ ∗ srvErr err e }}
+/-- `ams.isPermitted(ctx)`: `ams.AuthAdmin.isPermitted(ctx)` (`AuthAdmin__isPermitted.lean`). -/
+abbrev v3rpc.authMaintenanceServer.isPermitted.spec : Prop :=
+  ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗
+      E.RD }}
+    (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"isPermitted"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOut E.authMode err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

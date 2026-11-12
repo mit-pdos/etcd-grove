@@ -1,11 +1,9 @@
 /-
-`watcherSetByKey.delete(wa)` (internal): `wa` removed from its key's set (the set removed when
-empty); whether it was there.
+`watcherSetByKey.delete` (`watcher_group.go`). Lean-first (no Rocq counterpart); see `InvWatchGroup.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchGroup
 
 @[expose] public section
 
@@ -13,26 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watcherSetByKey.delete.spec : Prop :=
-  ∀ (m : GoMap) (K : Key → List Loc) (wa : Loc) (ι : WsNames) (id : w64) (W : WatcherM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wskOwn m K ∗ watcherAt wa ι id W }}
-    (App (Val (m @!! watcherSetByKey.ty @!! go!"delete")) (Val #wa))
-  {{ RET #(decide (wa ∈ K W.range.key));
-      wskOwn m (fun k => if k = W.range.key then (K k).erase wa else K k) }}
+/-- `w.delete(wa)` (a map value receiver) of a single-key watcher `wa` (a member with its
+range `r`, or not a member): the key map of the members without it (its key's set deleted from
+the map when it becomes empty), and whether it was a member. -/
+abbrev mvcc.watcherSetByKey.delete.spec : Prop :=
+  ∀ (km : GoMap) (KM : GMap GoString GoMap) (W : GMap Loc mvcc.WatchRange) (wa : Loc)
+    (r : mvcc.WatchRange) (fcs : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownKeyMap km KM W ∗ mvcc.watcherFixed wa r fcs ∗
+      ⌜r.end? = none ∧ (W !! wa = none ∨ W !! wa = some r)⌝ }}
+    (App (Val (km @!! watcherSetByKey.ty @!! go!"delete")) (Val #wa))
+  {{ RET #((W !! wa).isSome); ∃ KM', mvcc.ownKeyMap km KM' (GMap.delete wa W) }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

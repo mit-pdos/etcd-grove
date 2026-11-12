@@ -1,39 +1,41 @@
 /-
-## `setIsLearnerMetric(m)` (`metrics.go`): names only
-
-**Users.** `AddMember`, `Recover`. **Why it is true.** Reads the learner flag; sets a gauge.
-**Changes**: from `specs-ref`. **Margin.** None.
+`membership.setIsLearnerMetric(m)` (`metrics.go`: the `is_learner` gauge set to `1` or `0` from
+`m.IsLearner`): the trust boundary (names only; D43 M5b, 2026-10-26). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Membership
 
-open Iris Iris.BI EtcdModel Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Sets the learner gauge** from the member's flag. -/
-def setIsLearnerMetric.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (m : Member),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ memberPts p dq m }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.setIsLearnerMetric)) (Val #p))
-  {{ RET #(); memberPts p dq m }}
+/-- `setIsLearnerMetric(m)` of a member `m` at some fraction returns, `m` kept. Faithful: it reads
+`m.IsLearner` and sets the package's `isLearner` gauge (`prometheus.Gauge.Set`, which neither blocks
+nor panics); it writes no memory the model describes. -/
+abbrev membership.setIsLearnerMetric.spec : Prop :=
+  ∀ (m : Loc) (q : Qp) (mm : apply.MemberM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+      membership.memberAt m q mm }}
+    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.membership.setIsLearnerMetric))
+      (Val #m))
+  {{ RET #(); membership.memberAt m q mm }}
 
 end spec
 
-end Membership
 end EtcdGrove
 end Perennial

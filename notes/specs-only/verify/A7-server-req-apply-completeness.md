@@ -4,9 +4,9 @@ Reviewer: independent verification round, kind **completeness** (2026-11-09). Re
 this file. I wrote the findings first. Only afterwards did I read `open-questions.md`,
 `batch-2{c,d,e}.md` and `integration-*.md`, to mark what they already record.
 
-Go: `S = .lake/src` (pinned `a4d2bb17`). Specs: `Spec/go_etcd_io/etcd/server/v3/etcdserver/` (2c's
+Go: `S = .lake/src` (pinned `a4d2bb17`). Specs: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` (2c's
 request path, 2d's apply thread and raft node), `.../{read,cindex,errors}/`,
-`Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify,schedule}/`.
+`SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify,schedule}/`.
 
 ## Verdicts
 

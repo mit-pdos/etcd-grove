@@ -1,16 +1,10 @@
 /-
-`(*clientv3.WatchResponse).IsProgressNotify()` (`client/v3/watch.go`).
-
-**Users**: Kubernetes' etcd3 watcher, the cache (`store`, `demux`), grpcproxy's broadcast, the
-examples (`progress.go`). **Proof sketch**: `len(Events)`, the fields, `Header.GetRevision()` (3h's
-getter: `0` on a `nil` header). **Changes** from `specs-ref/.../WatchResponse__IsProgressNotify.lean`:
-over the struct and an optional header (so that the cache's own responses are covered); for a
-response of a watch's channel it is `WatchRespM.isProgressNotify` (`watchRespAt_fields`).
-**Margin**: none.
+`clientv3.WatchResponse.IsProgressNotify()` (`client/v3/watch.go`, translated
+for the store). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -18,31 +12,45 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `wr.IsProgressNotify()`. -/
-def WatchResponse.IsProgressNotify.spec : Prop :=
-  ∀ (p : Loc) (dq dh : DFrac) (v : go_etcd_io.etcd.client.v3.WatchResponse) (h : Option HeaderM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ p ↦{dq} v ∗
-      optOwn respHeaderOwn v.Header' dh h }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.WatchResponse.ty @!!
-      go!"IsProgressNotify")) (Val #()))
-  {{ (b : Bool), RET #b; p ↦{dq} v ∗ optOwn respHeaderOwn v.Header' dh h ∗
-      ⌜b = decide (v.Events'.len = W64 0 ∧ v.Canceled' = false ∧ v.Created' = false ∧
-        v.CompactRevision' = W64 0 ∧ (h.map (·.revision)).getD (W64 0) ≠ W64 0)⌝ }}
+/-- `wr.IsProgressNotify()`: `RespModel.isProgressNotify` (no events, not canceled, not
+created, no compact revision, a non-zero header revision). A read, on any fraction; the header
+is read only if there are no events (Go's `&&` stops at the first false operand: the watch
+slice's unit W-C, whose `dispatchEvent` owns the header's `Revision` of a response with events
+and hands it on, `watchHdrOwn`). -/
+abbrev WatchResponse.IsProgressNotify.spec : Prop :=
+  ∀ (wr : Loc) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      wr ↦{dq} resp ∗ eventsAt resp.Events' r.events ∗
+      (⌜r.events = []⌝ -∗ hdrAt resp.Header' r.hdrRev) ∗
+      ⌜resp.CompactRevision' = r.compactRev ∧ resp.Canceled' = r.canceled ∧
+        resp.Created' = r.created⌝ }}
+    (App (Val (wr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.WatchResponse.ty @!! go!"IsProgressNotify")) (Val #()))
+  {{ RET #(r.isProgressNotify); wr ↦{dq} resp }}
+
+/-- A response modelled by `r` (`respAt`) meets `IsProgressNotify`'s precondition. -/
+theorem respAt_isProgressPre (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    respAt (GF := GF) resp r ⊢ eventsAt resp.Events' r.events ∗
+      (⌜r.events = []⌝ -∗ hdrAt resp.Header' r.hdrRev) ∗
+      ⌜resp.CompactRevision' = r.compactRev ∧ resp.Canceled' = r.canceled ∧
+        resp.Created' = r.created⌝ := by
+  unfold respAt
+  iintro ⟨#He, #Hh, %Hf⟩
+  iframe He
+  isplitr
+  · iintro -; iexact Hh
+  ipureintro; exact Hf
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

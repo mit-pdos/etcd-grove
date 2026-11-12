@@ -1,17 +1,10 @@
 /-
-`(*hashStorage).Store` (`hash.go:156`): appends, sorts and trims the stored hashes under `hashMu`. **Trusted**: hash.go is translated names-only; the
-contract (`Api.lean`'s `HashStorage.Store.contract`) claims only that it returns (the reader token
-back where it takes one).
-
-**Users**: the corruption checker (`etcdserver/corrupt.go`: `HashByRev`, `Hashes`), the
-maintenance server (`v3rpc/maintenance.go`: `Hash`, `HashByRev`), the compaction job (`Store`).
-
-**Changes** from `specs-ref`'s files: `Store` was an axiom over `hashStorageOk`; `Hash`, `HashByRev`,
-`Hashes` had no spec (their callers' sketches need one).
+`hashStorage.Store` (`hash.go`): the trust boundary.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
 
 @[expose] public section
 
@@ -19,22 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `HashStorage.Store`'s contract at `*hashStorage`. -/
-def hashStorage.Store.spec : Prop :=
-  ∀ hs : Loc, HashStorage.Store.contract (GF := GF) (go.GoType.PointerType hashStorage.ty) #hs
+/-- `hs.Store(hash)` of a hash storage with a logger (`hashStorageOk`: `Store` logs first, a nil
+logger panics; audit B4b, 2026-10-18) returns (the stored hashes are not modelled). -/
+abbrev mvcc.hashStorage.Store.spec : Prop :=
+  ∀ (hp : Loc) (h : KeyValueHash),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.hashStorageOk hp }}
+    (App (Val (hp @!! go.GoType.PointerType hashStorage.ty @!! go!"Store")) (Val #h))
+  {{ RET #(); True }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

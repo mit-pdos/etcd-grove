@@ -1,5 +1,5 @@
 // Package raftnode holds the requirement snippets of raft's node API (batch R1,
-// Spec/go_etcd_io/raft/v3/): minimal uses of the patterns etcd's server, rafthttp and this
+// SpecPlan/Spec/go_etcd_io/raft/v3/): minimal uses of the patterns etcd's server, rafthttp and this
 // repository's examples rely on, each reliance an explicit panic.
 package raftnode
 

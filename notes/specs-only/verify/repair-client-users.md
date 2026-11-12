@@ -1,7 +1,7 @@
 # Repair after the verification round: group `client-users` (2026-11-09)
 
-Files owned: `Spec/go_etcd_io/etcd/client/v3/{concurrency,experimental/recipes,leasing}/`,
-`Spec/go_etcd_io/etcd/cache/v3/`, `Spec/k8s_io/utils/third_party/forked/golang/btree/`,
+Files owned: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/{concurrency,experimental/recipes,leasing}/`,
+`SpecPlan/Spec/go_etcd_io/etcd/cache/v3/`, `SpecPlan/Spec/k8s_io/utils/third_party/forked/golang/btree/`,
 `examples/specreq/{concurrency,recipes,leasing,cache,btree}/`. Reports: `A3-client-users-provability.md` (P),
 `A3-client-users-completeness.md` (C).
 
@@ -145,7 +145,7 @@ New snippet `ReqDoPutDelete` (`leasing/txn.go`): `Do(OpPut(…, WithPrevKV()))` 
 and `Do(OpDelete(…, WithPrevKV()))` must give `Del() != nil`. Both come from `leasingKV.Do.spec`'s
 `doReplyL`. No spec changed.
 
-## Requests to server-boot (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/`)
+## Requests to server-boot (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/`)
 
 1. **`electionServer__Campaign.lean`** (C-F1).
    - Premise: replace `∀ l : Int, effIn (campaignEff name value l) T` with
@@ -171,7 +171,7 @@ and `Do(OpDelete(…, WithPrevKV()))` must give `Del() != nil`. Both come from `
    needs `ErrElectionNoLeader`'s value, read it from `globalAddr …ErrElectionNoLeader ↦□ err`
    (1d's `Election.Leader.spec`).
 
-## Requests to client-watch (`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`)
+## Requests to client-watch (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`)
 
 1. **Unconditional event facts** (P-F3's stronger fix). In `watchStep`'s events branch, add
    outside the `exactFrom` gate:

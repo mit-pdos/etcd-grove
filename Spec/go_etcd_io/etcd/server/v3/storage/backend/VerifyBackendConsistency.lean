@@ -1,13 +1,14 @@
 /-
-## `VerifyBackendConsistency(b, lg, skipSafeRangeBucket, buckets...)` (`verify.go:63-86`): trusted (names only)
-
-**Users.** 2d's `applyAll` (`server.go:982`), `applySnapshot` (`server.go:2295`). **Why it is
-true.** `verify.Verify` runs its closure only if `ETCD_VERIFY` names it (`envOk`: unset): a no-op.
-**Changes.** From `specs-ref`'s: `envOk` (was `envVerifyOff`). **Margin.** None.
+`backend.VerifyBackendConsistency(b, lg, skip, buckets...)` (`storage/backend/verify.go`):
+verification code (it checks, under `ETCD_VERIFY`, that the backend's read and batch
+transactions agree, and panics otherwise). Lean-first (no Rocq counterpart); the request path's
+unit 4b (2026-10-13).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -15,27 +16,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`VerifyBackendConsistency(...)`**: nothing, with verification off. -/
-def VerifyBackendConsistency.spec : Prop :=
-  ∀ (b : GoInterface) (lg : Loc) (skip : Bool) (sl : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envOk }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency)) (Val #b)) (Val #lg)) (Val #skip))
-      (Val #sl))
+/-- `backend.VerifyBackendConsistency(b, lg, skip, buckets)` returns (the trust boundary: names-only,
+verification code, as `verify.Verify`).
+(Sweep repairs 1, B4, 2026-11-07: with `ETCD_VERIFY` off, `envVerifyOff`, from program start; until
+then assumed unconditionally, false of a run with `ETCD_VERIFY=all`, `lock` or `assert`: Go
+`examples/sweeprepairs/b1`, `TestB4On`.) -/
+abbrev backend.VerifyBackendConsistency.spec : Prop :=
+  ∀ (b : GoInterface) (lg : Loc) (skip : Bool) (bs : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run (`envVerifyOff`)
+      envVerifyOff }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency))
+      (Val #b)) (Val #lg)) (Val #skip)) (Val #bs))
   {{ RET #(); True }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

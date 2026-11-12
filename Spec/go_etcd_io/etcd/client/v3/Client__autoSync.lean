@@ -1,23 +1,10 @@
 /-
-`(*clientv3.Client).autoSync` (`client/v3/client.go`).
-
-Users: `newClient` (a goroutine).
-
-Proof sketch: no interval: returns. Else a loop: the client's context done: returns; after the
-interval, `Sync` with a timeout child of `c.ctx` (`ctxPrin_child`; `verifyOff`: `cfgOk`'s, kept in
-`clientCore`), its error logged.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__autoSync.lean` (the interval `0`
-only): any interval.
-
-verify-round: only the interval `0` (returns at once): auto-sync is out of the top-level workloads
-(`cfgOk`; the coordinator's decision (b) on `issues/etcd-client-resolver-build-race.md`).
-
-Margin: none.
+`c.autoSync()` (`client/v3/client.go`; item 5: `newClient`'s goroutine). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -25,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,17 +22,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.autoSync()`: syncs the endpoints until the client is closed. -/
-def Client.autoSync.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗
-      ∃ cfg : go_etcd_io.etcd.client.v3.Config, c.[go_etcd_io.etcd.client.v3.Client, go!"cfg"] ↦□ cfg ∗
-        ⌜cfg.AutoSyncInterval' = W64 0⌝ }}
+/-- `c.autoSync()` with no auto-sync interval (the configuration `cfg`, read-only): returns. -/
+abbrev Client.autoSync.spec : Prop :=
+  ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientF c go!"cfg" ↦□ cfg ∗
+      ⌜cfg.AutoSyncInterval' = W64 0⌝ }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"autoSync")) (Val #()))
   {{ RET #(); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

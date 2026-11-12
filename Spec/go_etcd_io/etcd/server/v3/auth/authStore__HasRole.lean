@@ -1,34 +1,22 @@
 /-
-## `(*authStore).HasRole(user, role)`
-
-**Users.** `authApplierV3.RoleGet`'s check (`apply/auth.go:235`, 3a), the writer. Snippet:
-`examples/specreq/auth/check.go` (`ReqWriterCheck`).
-
-**Proof sketch.** The batch transaction (4b's `authBatchTx.Lock`: `LockInsideApply` runs the
-backend's post-lock hook from `Pre` to `Q`, `authBeHook`): the user read at the writer's `a`; absent: `false`
-(a warning); else whether `role` is among its roles.
-
-**Changes.** The old spec restated over the writer's state.
-
-Integration I5: the post-lock hook (always taken here, so `Q` back). Re-review (N1): the current backend's hook,
-`authBeCur γa be ∗ authBeHook be Pre Q` (was the store-indexed `authHook`).
-**Margin.** None.
+`authStore.HasRole` (`server/auth/store.go`): a read of the latest state (the auth plan's S4c, 2026-10-24).
+Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (the
+write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,17 +25,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.HasRole(user, role)`** by the writer: whether `user` has `role` at its state. -/
-def authStore.HasRole.spec : Prop :=
-  ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (i : Nat) (a : AuthState) (user role : GoString)
-    (be : GoInterface) (Pre Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authCur γa i a ∗
-      authBeCur γa be ∗ Pre ∗ authBeHook be Pre Q }}
-    (App (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"HasRole")) (Val #user)) (Val #role))
-  {{ (b : Bool), RET #b; authCur γa i a ∗ authBeCur γa be ∗ Q ∗
-      ⌜b = true ↔ ∃ ur, a.users user = some ur ∧ role ∈ ur.roles⌝ }}
+/-- **`as.HasRole(user, role)`** with the admin side's authority at `hs` (it takes the batch
+transaction's lock, `Lock`'s contract): whether the latest state's user `user` has the role
+`role` (false for a user the state lacks); the hook's post `Post` (the lock ran it), the
+authority and the write resource kept. -/
+abbrev auth.authStore.HasRole.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (user role : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post }}
+    (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"HasRole")) (Val #user))
+      (Val #role))
+  {{ (b : Bool), RET #b; Post ∗ authOwn M hs ∗ authWR st M P f T ∗
+      ⌜∃ sta : AuthState, histLast M hs sta ∧
+        (b = true ↔ ∃ u : User, sta.users !! user = some u ∧ role ∈ u)⌝ }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

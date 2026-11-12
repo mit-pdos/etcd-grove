@@ -3,11 +3,11 @@
 Scope: `server/etcdserver/txn/*.go` (Range, Count, Put, DeleteRange, Txn over mvcc; compares,
 nested transactions, the range response's sort/limit/count/keys-only/filters, `prevKV`; the
 warnings and metrics). Everything builds (`etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/server/v3/etcdserver/txn`: 48 modules); the snippets pass `go vet` and `gofmt`.
+SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/txn`: 48 modules); the snippets pass `go vet` and `gofmt`.
 
 ## Files
 
-- Vocabulary: `Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Api.lean` (namespace `Txn`).
+- Vocabulary: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Api.lean` (namespace `Txn`).
 - Specs (47, one per function with an old spec), same directory:
   - client-facing: `Range`, `Count`, `Put`, `DeleteRange`, `Txn`, `IsTxnReadonly`,
     `IsTxnSerializable`, `IsDefaultOrdering`, `HasRevisionFilters`,

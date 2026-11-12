@@ -1,12 +1,9 @@
 /-
-`(*storeTxnWrite).Rev()` (`kvstore_txn.go:187`): `beginRev`. Internal (`Txn.Rev.contract` through
-`metricsTxnWrite`).
-
-**Changes** from `specs-ref`'s file: over `storeTxnW`.
+`storeTxnWrite.Rev` (kvstore_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -14,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -25,15 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The revision the transaction began at. -/
-def storeTxnWrite.Rev.spec : Prop :=
-  ∀ (t : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List EtcdModel.Event),
+/-- `tw.Rev()`: the committed log's last revision (`beginRev`), on the transaction's core (its
+key-values are not read). -/
+abbrev mvcc.storeTxnWrite.Rev.spec : Prop :=
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (crev : Int) (Z : IProp GF)
+    (ld : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      storeTxnW t γ trace σ pend }}
-    (App (Val (t @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #(W64 σ.rev : w64); storeTxnW t γ trace σ pend }}
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ld }}
+    (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Rev")) (Val #()))
+  {{ RET #(W64 ((ilog.length : Int) - 1) : w64);
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ld }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

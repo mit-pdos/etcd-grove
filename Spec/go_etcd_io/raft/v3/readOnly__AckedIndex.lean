@@ -1,14 +1,11 @@
-/-
-## `(*readOnly).AckedIndex(voterID)` (internal)
+/- Port of election_proof/spec_readOnly__AckedIndex.v (feb5c73d4).
 
-**Users**: quorum's `CommittedIndex`, through the `AckedIndexer` interface (`maybeAdvance` passes
-`ro`; R4's contract, requested). Mirrors the code. **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/readOnly__AckedIndex.lean`.
+Lean notes: Rocq's `default (W64 0) x` is `x.getD (W64 0)`, and
+`bool_decide (is_Some x)` is `x.isSome` (the form `isAckedIndexer`'s contract uses).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,27 +13,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The position `id` acknowledged, if any. -/
-def readOnly.AckedIndex.spec : Prop :=
-  ∀ (ro : Loc) (rs : ReadOnlyState) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ readOnly ro rs }}
-    (App (Val (ro @!! go.GoType.PointerType go_etcd_io.raft.v3.readOnly.ty @!! go!"AckedIndex")) (Val #id))
-  {{ (idx : w64) (found : Bool), RET (PairV #idx #found); readOnly ro rs ∗
-      ⌜(found = true ∧ rs.acks !! id = some idx) ∨
-       (found = false ∧ rs.acks !! id = none ∧ idx = W64 0)⌝ }}
+/-- `ro.AckedIndex(voterID)` (`readOnly.AckedIndex.impl`,
+`Code/go_etcd_io/raft/v3.lean`; `read_only.go:72`), the read-only object seen
+as a `quorum.AckedIndexer`:
+
+    idx, found := ro.acks[voterID]
+    return quorum.Index(idx), found
+
+No panic, no call. The result is the voter's ack in the `(value-or-0, ok)` form of
+`isAckedIndexer`'s contract (`InvTracker.lean`), which is what this triple exists to
+discharge for `maybeAdvance`. -/
+abbrev readOnly.AckedIndex.spec : Prop :=
+  ∀ (ro : Loc) (r : ReadOnly) (voterID : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r }}
+    (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"AckedIndex")) (Val #voterID))
+  {{ RET (PairV #((r.acks !! voterID).getD (W64 0)) #((r.acks !! voterID).isSome));
+      ownReadOnly ro r }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

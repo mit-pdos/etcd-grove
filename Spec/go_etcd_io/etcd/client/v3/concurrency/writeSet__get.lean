@@ -1,17 +1,10 @@
 /-
-`(concurrency.writeSet).get` (`client/v3/concurrency/stm.go`), internal.
-
-Users: the STM's methods and commits (`stm.go`).
-
-Proof sketch: a loop over the keys, the map's lookup, a fresh copy.
-
-Changes: from `specs-ref`'s `writeSet__get.lean`: restated over `writeSetAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.writeSet.get(keys...)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,31 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `ws.get(keys...)`: a copy of the first written key's entry, or `nil`. -/
-def writeSet.get.spec : Prop :=
-  ∀ (ws : GoMap) (writes : Key → Option WriteM) (sl : GoSlice) (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ writeSetAt ws writes ∗ sl ↦*□ ks }}
-    (App (Val (ws @!! go_etcd_io.etcd.client.v3.concurrency.writeSet.ty @!! go!"get")) (Val #sl))
-  {{ (p : Loc), RET #p; writeSetAt ws writes ∗
-      ((⌜p = null ∧ ks.find? (fun k => decide (writes k ≠ none)) = none⌝) ∨
-       (∃ (k : GoString) (w : WriteM) (sp : go_etcd_io.etcd.client.v3.concurrency.stmPut),
-          ⌜ks.find? (fun k => decide (writes k ≠ none)) = some k ∧ writes k = some w ∧
-            sp.val' = w.value⌝ ∗ p ↦ sp)) }}
+/-- `ws.get(keys...)`: nil if no key of `keys` is written; otherwise a fresh copy of the write of
+one of them (the first in `keys`). -/
+abbrev writeSet.get.spec : Prop :=
+  ∀ (m : Loc) (dq : DFrac) (pfx : GoString) (wsMap : GMap GoString stmPut)
+    (writes : GMap GoString WriteM) (ksl : GoSlice) (ks : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ m ↦${dq} wsMap ∗ writesAt pfx wsMap writes ∗ ksl ↦*□ ks }}
+    (App (Val (m @!! writeSet.ty @!! go!"get")) (Val #ksl))
+  {{ (p : Loc), RET #p; m ↦${dq} wsMap ∗
+      (⌜p = null ∧ ∀ k ∈ ks, writes !! k = none⌝ ∨
+        ∃ (k : GoString) (w : WriteM) (sp : stmPut),
+          ⌜k ∈ ks ∧ writes !! k = some w ∧ sp.val' = w.val⌝ ∗ p ↦ sp) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

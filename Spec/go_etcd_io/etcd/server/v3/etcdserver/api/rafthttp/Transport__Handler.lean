@@ -1,19 +1,10 @@
 /-
-## `(*Transport).Handler()`
-
-**Users.** etcd's `EtcdServer.RaftHandler` (`server.go:646`), registered by `etcdhttp.NewPeerHandler` at `/raft` and `/raft/` (`etcdserver/api/etcdhttp/peer.go:64-65`) on the peer listener `embed` serves. Snippet: `receive.go` (`ReqServePeer`).
-
-**Proof sketch.** `newPipelineHandler`, `newStreamHandler`, `newSnapshotHandler` (each `phAt`/`sthAt`/`shAt` from `isTransport`'s `Raft` and snapshotter), `probing.NewHandler` (trust: a handler answering any request, which `raftProto` allows), `NewServeMux` and four `Handle`s (`Http.muxOwn`); `Http.mux_handlerOk.spec` with the handlers' contracts (their `ServeHTTP` specs) and `raftProto_muxAnswers.spec` for the unrouted paths.
-
-**Changes.** Restated: was `RaftHandler`'s `raftHandlerOf` over the network contract; now the HTTP boundary's handler contract, at the root, for every protocol compatible with rafthttp's (round 1: the handler is served at the root by the examples, beside other handlers by etcd's peer mux; `Http.handlerOk_narrow` gives a narrower pattern). The proof: `handlerOk h (raftProto ν) "/"` from the mux, then `Http.handlerOk_agree` with each pattern's agreement, the mux's own answers allowed by `raftCompat`.
-
-**Margin.** Says only what the HTTP boundary sees; what a delivery gives the receiver is `raftOk`'s `Process` premise.
+`(*Transport).Handler()` (`transport.go`; rafthttp stage 6c, its statement over the transport's
+state in 6d, 2026-10-24). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
 
 @[expose] public section
 
@@ -21,26 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The transport's HTTP handler**: a `ServeMux` serving rafthttp's protocol on `/raft` and its subtree (the pipeline at `/raft`, the streams under `/raft/stream/`, snapshots at `/raft/snapshot`, the probe at `/raft/probing`; the mux's `404`/`301` elsewhere). -/
-def Transport.Handler.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid }}
-    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
-  {{ (h : GoInterface), RET #h; □ ∀ P : Http.Proto GF, ⌜raftCompat ν P⌝ → Http.handlerOk h P go!"/" }}
+/-- **`t.Handler()`** on a frozen transport whose recorded peers cover every other member of the
+network (a static cluster's, all added before the freeze), of the member owning the address `a`:
+a handler of `a` for the raft protocol (`raftProto`), lending each invocation an `R` and one of
+the lock's reader tokens. A mux of the pipeline handler (`/raft`), the stream handler
+(`/raft/stream/`), the snapshot handler (`/raft/snapshot`, the snapshot stream's axiom) and the
+prober's (`/raft/probing`). -/
+abbrev rafthttp.Transport.Handler.spec : Prop :=
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (a : GoString),
+  (netRh γn).owner a = c.lid → (∀ f, (netRh γn).member f → f ≠ c.lid → f ∈ c.L) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trState γn t c }}
+    (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
+  {{ (h : GoInterface), RET #h;
+      http.handlerOk (raftHttpNet (netRh γn)) a iprop(c.R ∗ trTok γn t c) h }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

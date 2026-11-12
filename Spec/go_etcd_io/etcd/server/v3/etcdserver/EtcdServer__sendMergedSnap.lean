@@ -1,26 +1,13 @@
 /-
-`(*EtcdServer).sendMergedSnap(merged)` (`server.go:1874-1914`): count the snapshot in flight (which
-pauses the raft log's compaction), hand it to the transport, and attach a goroutine that releases the
-count when the transport reports it sent (30 s later on success) or the server stops.
-
-**Users**: `applyAll` (`server.go:1014`). Snippet `snapshot.go` (`ReqMergedSnapshot`).
-
-**Proof sketch**: `inflightSnapshots.Add(1)` (an atomic: no invariant needed; `compactRaftLog` reads
-it only to skip work); `s.r.transport.SendSnapshot(merged)` (2f's: takes `mergedSnap`, delivers the
-message with its `msgSent` and the db reader's image to the peer's snapshot handler, which saves it
-for `applySnapshot`'s `OpenSnapshotBackend`, `req/` 2f); `s.GoAttach(...)` (2e's: a goroutine of the
-server's wait group) receiving from `merged.CloseNotify()` (2e's `snap.Message`) or `s.stopping`.
-
-**Changes** from `specs-ref`'s spec: over `mergedSnap`. **Margin**: none.
-
-Changes: verify-round (A7-provability F1, completeness F1): takes and gives back the thread's `threadTok`; `isServer s γ.etcd` (for `GoAttach`, `LeaseRevoke`, `raftRequest`) from `srvStarted_isServer`; each attached goroutine runs with its own fresh token (`GoAttach.spec`); the internal requests hold no `srvGate` share (`LeaseRevoke.spec` takes none; `raftRequest` never did).
+`s.sendMergedSnap(merged)` (`server.go`): the merged snapshot sent through the transport, the
+in-flight count held until the send ends. Lean-first (no Rocq counterpart); D22 S-h, 2026-10-20
+(`notes/decisions.md`, "D22 S-h carried out"); the vocabulary is `InvSnapSend.lean`. (A
+`True`-postcondition axiom until D19p, 2026-10-18, which removed it as false.)
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvSnapSend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 
 @[expose] public section
 
@@ -28,9 +15,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,17 +24,29 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def EtcdServer.sendMergedSnap.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (mg : Loc) (m : Raft.Msg),
+/-- `s.sendMergedSnap(mg)`, by a goroutine with `GoAttach`'s resources (`srvGoRes`, the logger's
+reader slot), of a merged message `mg` of the raft message `ml` and the reader `rc`
+(`mergedMsg`) with the network's snapshot bundle (`netSnapBundle`: the message's protocol facts,
+the reader's streams, the image's certificate), given the server's started transport `tr`
+(`netTransport`, the raft wrapper's `transport` field), `s.inflightSnapshots`'s invariant
+(`srvInflight`), `s.stopping` and the member id: `inflightSnapshots.Add(1)`, the transport's
+`SendSnapshot(mg)` (which takes the bundle), and a goroutine through `GoAttach` that waits for the
+send's end (`CloseNotify()`) or the server's stop and, on a successful send, for
+`releaseDelayAfterSnapshot` (`time.After`) or the stop, then `inflightSnapshots.Add(-1)`; the
+log lines in between. -/
+abbrev EtcdServer.sendMergedSnap.spec : Prop :=
+  ∀ (s mg ml : Loc) (rc : GoInterface) (lg : Loc) (id : w64) (stg : Loc) (tr : GoInterface)
+    (γn : NetNames GF) (S TS : IProp GF) (lid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvStarted s γ id ∗ mergedSnap mg γ m ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"sendMergedSnap")) (Val #mg))
-  {{ RET #(); threadTok }}
+      srvGoRes s ∗ srvLgReader s ∗ srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      srvMemberIDAddr s ↦□ id ∗ srvInflight s ∗ srvStoppingAddr s ↦□ stg ∗ stopChan stg ∗
+      rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S TS ∗
+      mergedMsg mg ml rc ∗ netSnapBundle γn.N ml rc }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"sendMergedSnap")) (Val #mg))
+  {{ RET #(); srvGoRes s ∗ srvLgReader s }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

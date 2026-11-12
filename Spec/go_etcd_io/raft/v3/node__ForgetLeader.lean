@@ -1,19 +1,13 @@
-/-
-## `node.ForgetLeader(ctx)`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** the examples' disruptions (`kvdurable/reconf.go:118`); etcd does not call it. Snippet: `readyloop.go` (`ReqDisrupt`).
+## `node.ForgetLeader(ctx)` (node.go:604)
 
-**Proof sketch.** `n.step(ctx, MsgForgetLeader)` (`stepOk` of a local `MsgForgetLeader`: needs nothing); the run
-goroutine steps it (`raft.Step`: R2's spec, which keeps raft's invariants for any local message).
-
-**Changes.** Unchanged (over opaque predicates). **Margin.** The error says only how the hand-off
-ended, not what raft did.
+The node API's spec. (2026-10-29, stage U9a: over `isNode`; until then over raft's internals,
+`isNodeChan` and `NodeNames`, now the proof's private `node.ForgetLeader.specRaw`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -21,27 +15,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Asks node `n` to forget its leader** (a `MsgForgetLeader`); the error is the hand-off's. -/
-def node.ForgetLeader.spec : Prop :=
-
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ Context.ctxOk ctx }}
-    (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"ForgetLeader")) (Val #ctx))
-  {{ (err : GoInterface), RET #err; nodeErr n ctx err }}
+/-- **`node.ForgetLeader(ctx)`**, from any goroutine: a local `MsgForgetLeader` stepped by the
+node (a follower forgets its leader); nothing is promised of its effect. The error says only whether
+the message reached the node (`nodeErr`: `nil`, `ErrStopped`, or the context's). (raft-final, 2026-10-29, K5: the stopped answer carries `nodeStopped`, `nodeErrS`; until then
+`nodeErr`, which `nodeErrS_nodeErr` gives back.) -/
+abbrev node.ForgetLeader.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ForgetLeader"))
+      (Val #(interface.ok ctx)))
+  {{ (err : GoInterface), RET #err; nodeErrS n γ N cd err }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

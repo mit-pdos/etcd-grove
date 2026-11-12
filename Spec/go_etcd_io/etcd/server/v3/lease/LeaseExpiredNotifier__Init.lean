@@ -1,15 +1,10 @@
 /-
-`(*LeaseExpiredNotifier).Init()` (`lease_queue.go:75`), an internal helper's spec (mirrors the
-code). **Users**: `initAndRecover`. **Proof sketch**: `heap.Init` of the queue (4b's `container/heap`
-boundary: a permutation, indices kept by `Swap`), a fresh map rebuilt from the queue's cells.
-**Changes** (from `specs-ref`'s `LeaseExpiredNotifier__Init.lean`): unchanged in substance.
-**Margin**: none.
+`(*LeaseExpiredNotifier).Init` (`server/lease/lease_queue.go`). Lean-first (no Rocq counterpart);
+see `Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -17,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,15 +22,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Rebuild the notifier's heap and map.** -/
-def LeaseExpiredNotifier.Init.spec : Prop :=
+/-- `mq.Init()` (`lessor.initAndRecover`'s, at `Recover`): the notifier stays a notifier. Go
+heapifies the queue (`heap.Init`) and rebuilds the map from it: the queue's items stay, **not
+emptied** (the lease-expiry plan, S1 (i)), so after `Recover` the notifier may hold items of leases
+no longer in the lessor's map, which `notifierAt` admits (it ties the map to the queue, not to the
+lessor's leases; Go's `findExpiredLeases` drops such an item). -/
+abbrev lease.LeaseExpiredNotifier.Init.spec : Prop :=
   ∀ (np : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ notifierQ np }}
-    (App (Val (np @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier.ty @!!
-      go!"Init")) (Val #()))
-  {{ RET #(); notifierAt np (DFrac.own 1) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ notifierAt np 1 }}
+    (App (Val (np @!! go.GoType.PointerType LeaseExpiredNotifier.ty @!! go!"Init")) (Val #()))
+  {{ RET #(); notifierAt np 1 }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

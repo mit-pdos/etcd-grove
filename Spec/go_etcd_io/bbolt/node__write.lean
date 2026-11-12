@@ -1,24 +1,11 @@
 /-
-`n.write(p)` (`node.go`): the node into a page buffer (4d's `WriteInodeToPage`). Users: `node.spill`, `Bucket.write`.
-(internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
-
-**Proof sketch** (integration I7). `Assert(p.Count() == 0 && p.Flags() == 0)` by `nodeWritable`
-(4d's `Page.Count`/`Page.Flags`); `SetFlags`, the `0xFFFF` check (`nodeWritable`), `SetCount`
-(4d's `Page.SetFlags`/`SetCount`, composed by `hdr_withHdr` into one `withHdr`); for a non-empty
-node, 4d's `WriteInodeToPage` with the node's inodes (their slices from `wtxCore`'s realization,
-`NodeR.itemsM`): its premises `nodeFits` and the branch rule are `nodeWritable`'s, its room
-`pageHeaderSize + (nodeBody true ms).length = nodeSize N ≤ bs.length`. An empty node returns
-before it: `writeNode bs' [] = bs'`. A caller gets `nodeWritable`'s key clause from
-`wtxCore_keys`, the count from the split (`splitIdx`) or `inlineOk`, the empty header from a
-fresh buffer (`db.allocate`'s zeroed page, `Bucket.write`'s `make`).
-
-**Changes** (integration I7): the premise `nodeWritable` (the asserts and panics, 4d's
-`WriteInodeToPage` premises; without it the triple was false of a non-empty buffer) and the post
-`nodePage bs N` (was: some bytes of the same length).
+`node.write` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U9a; used by U9b (`Bucket.write`, `node.spill`). Proof:
+`Proof/go_etcd_io/bbolt/node__write.lean` (a `sorry` until U9a).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Internal
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
 
@@ -26,28 +13,45 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- (internal) `n.write(p)` into an empty page buffer: the buffer holds the node's page
-(`nodePage`: its kind and count in the header, then 4d's `writeNode` of its inodes). -/
-def node.write.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (n : Loc) (N : NodeR) (p : Loc) (bs : List w8),
-  {{ wtxCore (GF := GF) tx γ C ∗ ⌜C.nodes n = some N⌝ ∗ bytesPointsto p (DFrac.own 1) bs ∗
-      ⌜nodeSize N ≤ bs.length ∧ nodeWritable (BboltCommon.hdrOf bs) N⌝ }}
+/-- `n.write(p)` into an empty page (header `hdr` with no flags and no elements, then `R` zeroed
+bytes): the header becomes a leaf's or a branch's (as the node) with the inodes' count, and the
+inodes `ms` (their bytes read at `dqb`) are laid out after it (`pageBody`; nothing for an empty
+node). It panics on a non-empty page, `0xFFFF` or more inodes, an empty key or (a branch) a child
+id equal to the page's: excluded by the premises. -/
+abbrev node.write.spec : Prop :=
+  ∀ (n : Loc) (nv : node) (ins : List Inode) (ms : List InodeM) (dq dqi : DFrac)
+    (qk qv : Nat → DFrac) (p : Loc)
+    (hdr : Page) (R : Nat),
+  hdr.count' = W16 0 → hdr.flags' = W16 0 → ms.length < 0xFFFF → pageFits ms →
+  (pageBody true ms).length ≤ R → (nv.isLeaf' = false → ∀ m ∈ ms, m.pgid ≠ hdr.id') →
+  0 < p.addr → p.addr + 16 + R ≤ maxAddr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv ∗
+      nv.inodes' ↦*{dqi} ins ∗
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) ∗
+      p ↦ hdr ∗ bytesPointsto (p +ₗ 16) (DFrac.own 1) (List.replicate R (W8 0)) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"write")) (Val #p))
-  {{ RET #(); wtxCore tx γ C ∗ bytesPointsto p (DFrac.own 1) (nodePage bs N) }}
+  {{ RET #(); n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins ∗
+      ([∗list] k ↦ it;m ∈ ins;ms, ⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
+        it.key' ↦*{qk k} m.key ∗ it.value' ↦*{qv k} m.value) ∗
+      p ↦ hdrWritten hdr nv.isLeaf' ms.length ∗
+      bytesPointsto (p +ₗ 16) (DFrac.own 1)
+        (pageBody nv.isLeaf' ms ++ List.replicate (R - (pageBody nv.isLeaf' ms).length) (W8 0)) }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

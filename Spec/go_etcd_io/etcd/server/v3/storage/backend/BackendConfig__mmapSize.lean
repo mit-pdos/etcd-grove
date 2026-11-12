@@ -1,12 +1,11 @@
 /-
-## `BackendConfig.mmapSize()` (`config_linux.go:33`): translated
-
-**Users.** `newBackend` (`bopts.InitialMmapSize`). **Proof sketch.** Returns the field.
-**Changes.** Unchanged. **Margin.** None.
+`BackendConfig.mmapSize` (`config_linux.go`). `bcfg.mmapSize()`: the configuration's `MmapSize`,
+as an `int`. Lean-first (no Rocq counterpart); 2026-10-17, branch `construct` (the backend's
+constructor).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 
 @[expose] public section
 
@@ -14,26 +13,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`bcfg.mmapSize()`**: `bcfg.MmapSize`. -/
-def BackendConfig.mmapSize.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend }}
-    (App (Val (cfg @!! go_etcd_io.etcd.server.v3.storage.backend.BackendConfig.ty @!! go!"mmapSize")) (Val #()))
-  {{ RET #cfg.MmapSize'; True }}
+/-- `bcfg.mmapSize()`: `int(bcfg.MmapSize)` (the same bits). -/
+abbrev backend.BackendConfig.mmapSize.spec : Prop :=
+  ∀ (c : Loc) (cfg : BackendConfig),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      c ↦ cfg }}
+    (App (Val (c @!! go.GoType.PointerType BackendConfig.ty @!! go!"mmapSize")) (Val #()))
+  {{ RET #cfg.MmapSize'; c ↦ cfg }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

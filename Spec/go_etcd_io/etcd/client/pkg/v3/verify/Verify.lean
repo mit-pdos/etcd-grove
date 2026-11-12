@@ -1,20 +1,11 @@
 /-
-`verify.Verify` (`client/pkg/v3/verify/verify.go`).
-
-Users: `Client.Sync` (a non-empty member list); the server's assertions (2d, 2e, 3e).
-
-Proof sketch: `IsVerificationEnabled` reads `ETCD_VERIFY` (`os.Getenv`): `verifyOff`: false, nothing
-runs. Otherwise the check runs and its `false` panics: hence the alternative premise, the check's
-triple returning `true`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/pkg/v3/verify/Verify.lean` (the check always
-run, returning `true`): verification off allowed (no check needed then).
-
-Margin: none.
+`verify.Verify(msg, f)`, of etcd's `client/pkg/v3/verify` (translated names-only: it reads
+the environment variable `ETCD_VERIFY` through `os.Getenv`). The trust boundary.
+Lean-first (no Rocq counterpart); see `InvCindex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 
 @[expose] public section
 
@@ -22,26 +13,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Verify
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.client.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.pkg.v3.verify.Assumptions]
 
-/-- `Verify(msg, f)`: no panic, verification off or `f` returning `true` (keeping `P`). -/
-def Verify.spec : Prop :=
+/-- `Verify(msg, f)`: if `ETCD_VERIFY` enables assertions, runs `f` and panics unless its
+condition is `true`; otherwise does nothing. So the caller must show that `f` (if run, with
+the caller's `P`) returns `true`: Go's code says "the check passes", and the spec rules the
+panic out rather than assuming assertions are off. -/
+abbrev verify.Verify.spec : Prop :=
   ∀ (msg : GoString) (f : val) (P : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗ P ∗
-      (verifyOff ∨ (P -∗ WP (App (Val f) (Val #())) {{ r, ∃ d : val, ⌜r = PairV #true d⌝ ∗ P }})) }}
-    (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.verify.Verify)) (Val #msg)) (Val f))
+      (P -∗ WP (App (Val f) (Val #())) {{ r, ∃ d : val, ⌜r = PairV #true d⌝ ∗ P }}) }}
+    (App (App (Val (@! verify.Verify)) (Val #msg)) (Val f))
   {{ RET #(); P }}
 
 end spec
 
-end Verify
 end EtcdGrove
 end Perennial

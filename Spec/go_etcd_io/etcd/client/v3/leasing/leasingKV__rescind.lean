@@ -1,11 +1,9 @@
 /-
-`(*leasingKV).rescind` (`kv.go`): evicts `key` and deletes its lease key (a guarded transaction,
-retried until it succeeds or `ctx` is done). Proof sketch: `leaseCache.Evict`; each attempt's
-transaction writes only the lease key (`ProtoStep`), fired from `protoUpd`. Changes: from `specs-ref`'s `leasingKV__rescind.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
+`lkv.rescind(ctx, key, rev)` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -13,27 +11,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `rescind(ctx, key, rev)`. -/
-def leasingKV.rescind.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (key : GoString) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p }}
-    (App (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"rescind")) (Val #ctx)) (Val #key)) (Val #rev))
+/-- **`lkv.rescind(ctx, key, rev)`** (the lease monitor's, after another client's `"REVOKE"` at
+`rev`): evicts `key`'s entry (`LeaseCacheSt.evict`, a step of the cache's log); unless the entry
+was newer than `rev`, deletes the lease key `pfx ++ key` with the guarded transaction "if its
+create revision is below `rev`", retrying until it commits or `ctx` is done. It returns. -/
+abbrev leasingKV.rescind.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (key : GoString) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ context.isContext ctx cs ∗
+      ⌜key.length ≤ opKeyMax⌝ }}
+    (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"rescind")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #rev))
   {{ RET #(); True }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

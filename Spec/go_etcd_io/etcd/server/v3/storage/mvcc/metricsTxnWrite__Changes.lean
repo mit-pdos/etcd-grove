@@ -1,17 +1,12 @@
 /-
-`(*metricsTxnWrite).Changes` (promoted; `storeTxnWrite.Changes`, `txnReadWrite.Changes`).
-
-**Users**: through `TxnRead`/`TxnWrite` values: the server's transactions (`txn/range.go:53`, `txn/txn.go:43, 67`, `txn/put.go:39`, `txn/delete.go:33`: `store.Read`/`Write` return a `*metricsTxnWrite`), the lessor's `Revoke` (`lessor.go:350, 361`, through `mvccDeleter`), the tester (`mvccrand.go:395-495, 627-647`). Snippet `ReqSoleWriter` (`txn/txn.go:97, 153`: `len(Changes()) > 0`).
-
-**Proof sketch**: the inner slice `tw.changes` (one record per event: `put` and `delete` append one each), or `nil` for a read-only transaction; only its length is given (the records are shared with a watchable store's `End`, which writes a delete's `ModRevision`).
-
-**Changes** from the old spec: unchanged (length only).
-
-**Margin**: none.
+`metricsTxnWrite.Changes` (`metrics_txn.go`: promoted from the wrapped `TxnWrite`, here a write
+transaction's `storeTxnWrite.Changes`). Lean-first (no Rocq counterpart); added for the server's
+txn package (unit 3: `txn` and `executeTxn` test `len(txnWrite.Changes())`); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -19,7 +14,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -30,11 +24,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `Txn.Changes`'s contract at `*metricsTxnWrite`. -/
-def metricsTxnWrite.Changes.spec : Prop :=
-  ∀ s : Loc, Txn.Changes.contract (GF := GF) (go.GoType.PointerType metricsTxnWrite.ty) #s
+/-- `mw.Changes()` of a write transaction: its `changes` slice, the key-values of its pending
+changes (`changesAre`), one per pending change, the caller's (the watchable store's `End`
+shares them with the watchers); the transaction keeps its core (`isTxnWrite_join` gives the
+transaction back). -/
+abbrev mvcc.metricsTxnWrite.Changes.spec : Prop :=
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) (Tr : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev Z ld Tr }}
+    (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Changes")) (Val #()))
+  {{ (chs : GoSlice) (ps : List Loc), RET #chs;
+      chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
+      mvcc.isTxnWriteCoreY mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld
+        (mvcc.slotY γ ilog) Tr }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

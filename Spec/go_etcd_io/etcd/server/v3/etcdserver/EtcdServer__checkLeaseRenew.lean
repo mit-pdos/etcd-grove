@@ -1,31 +1,23 @@
 /-
-## `(*EtcdServer).checkLeaseRenew(ctx, ...)` (internal helper)
-
-Users: `v3_server.go:524,547`. Mirrors the code: the auth revision read (3d), `IsAuthEnabled`,
-`AuthInfoFromCtx` (its spec), `IsAdminPermitted`, the lessor's lease(s) and their keys (3c), `IsPutPermitted`
-for each key (3d), the revision compared again; each check at the auth
-store's state when it runs. Changes: the old spec (`specs-ref`'s `EtcdServer__checkLeaseRenew.lean`, the
-lease-keys plan) restated over `reqPrin` and the error classes. Margin: which keys and which state
-the checks ran at is not stated: the callers fire their update at the return, where W0's step allows a
-denial at any state (`leaseTimeToLive`, `leaseLeases`; `srvStep`'s keep-alive disjunct).
-
-Changes: verify-round (client-core's request): a permission denial is fired at W0's three-view `deniedSince` (the auth table the member checked, at or after the call's `lo`: `srvReadAt_auth`).
+`s.checkLeaseRenew(ctx, id)` (`v3_server.go`): the key check of a keep-alive (`LeaseRenew`). Lean-first (no Rocq counterpart); the lease-keys plan's
+Part B (2026-10-31), vocabulary `LeaseCheck.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,18 +26,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `nil`; a refusal (an invalid token, `ErrUserEmpty`, a stale auth revision); or a denial
-(`permErr` of `p` or `tls`). -/
-def EtcdServer.checkLeaseRenew.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (x : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"checkLeaseRenew")) (Val #ctx)) (Val x))
-  {{ (err : GoInterface), RET #err; threadTok ∗
-      (⌜err = GoInterface.nil⌝ ∨
-       (srvUnfired err ∨ ∃ w, ⌜w = p ∨ w = tls⌝ ∗ srvErr err (AuthState.permErr w)) ∗
-         srvErrShape err) }}
+/-- **`s.checkLeaseRenew(ctx, id)`**, any goroutine, with the resources of
+`checkLeaseTimeToLive.spec`: on `nil`, auth disabled at a state no older than `n`, or the request's
+principal an admin at one or allowed to write (`IsPutPermitted(k)`) every key of the lease `id` at a
+lessor index no older than `m`; on an error, an error the gRPC layer can take. **The margin**: the
+revision re-check (`ErrAuthOldRevision` unless `Revision()` is the same after the keys' checks as
+before) is not stated, and does not make Go check every key at one auth state. Each verdict
+(`auth.permVerdictFrom`) is of a state no older than `n`, possibly older than both reads' states:
+`commitRevision` publishes the new revision before `refreshRangePermCache` replaces the permission
+cache (`auth/store.go:712-713`, `849-850`; `Recover` likewise, `407-408`), so a check can read the
+new revision twice around a key verdict of the old cache. Nor do two reads of one revision make one
+state: `AuthEnable` keeps the stored revision (`store.go:299`) and `Recover` installs the new
+backend's. What closes that window in Go is `isOpPermitted`'s own check of the token's revision
+(`ErrAuthOldRevision` when it is below the store's, `store.go:873`), with tokens minted on the
+apply thread between auth mutations, which the model does not record. A statement would need each
+verdict bounded by the end read's state, and would still be weak (`notes/lease-revcheck-plan.md`:
+a post with only the two reads' states is implied by the first read alone). -/
+abbrev EtcdServer.checkLeaseRenew.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
+      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseRenew"))
+      (Val #(GoInterface.ok ctx))) (Val #id))
+  {{ (err : GoInterface), RET #err; E.RD ∗ threadTok ∗ applyErrIs err ∗
+      (∀ _ : err = GoInterface.nil, leaseCheckFrom s E (GoInterface.ok ctx) n
+        (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

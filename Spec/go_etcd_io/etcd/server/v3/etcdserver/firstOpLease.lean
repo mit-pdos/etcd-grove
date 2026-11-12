@@ -1,15 +1,10 @@
 /-
-## `firstOpLease(ops)` (`tracing.go:67-74`)
-
-**Users.** `EtcdServer.Txn`'s trace (2c).
-
-**Proof sketch.** As `firstOpKey`. **Changes**: from `specs-ref`'s `firstOpLease.lean`.
-**Margin.** Exact.
+`firstOpLease(ops)` (`tracing.go`): the first put's lease (a trace attribute).
+Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
-public import Spec.go_etcd_io.etcd.api.v3.Wire
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -17,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,17 +22,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`firstOpLease(ops)`**: the lease of the first put, or `-1`. -/
-def firstOpLease.spec : Prop :=
-  ∀ (sl : GoSlice) (dq : DFrac) (ops : List RequestOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq ops }}
+/-- `firstOpLease(ops)` on the operations of a request (`requestOpsIs`) returns some value. -/
+abbrev firstOpLease.spec : Prop :=
+  ∀ (sl : GoSlice) (ps : List Loc) (ops : List TxnOp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      sl ↦*□ ps ∗ txn.requestOpsIs ps ops }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.firstOpLease)) (Val #sl))
-  {{ RET #(W64 (((ops.filterMap (fun o => match o with
-          | .put p => some p.lease | _ => none)).head?).getD (-1)));
-      EtcdWire.msgsOwn EtcdWire.requestOpOwn sl dq ops }}
+  {{ (l : w64), RET #l; True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

@@ -6,7 +6,7 @@ modules (62 modules, OK). Snippets: `examples/specreq/raftcore/*.go` (`//go:buil
 
 ## Files
 
-- `Spec/go_etcd_io/raft/v3/ApiCore.lean`: the vocabulary (below), its header (shape, intended
+- `SpecPlan/Spec/go_etcd_io/raft/v3/ApiCore.lean`: the vocabulary (below), its header (shape, intended
   realization, snippets) and its laws.
 - Client-facing (R1's callers): `newRaft`, `raft__Step`, `raft__tickElection`, `raft__tickHeartbeat`,
   `raft__applyConfChange`, `raft__hasLeader`, `raft__softState`, `raft__hardState`, `getStatus`,
@@ -161,7 +161,7 @@ Traced through `newRaft`, `restore`, `appliedSnap`, `switchToConfig`, `hup`, `st
 ## Round 1 repairs
 
 Reviews: `reviews/R2-provability-1.md`, `reviews/R2-completeness-1.md`. Everything rebuilt
-(`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3`, R1's and R3's files included); snippets gofmt
+(`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3`, R1's and R3's files included); snippets gofmt
 clean and `go vet` clean in a scratch copy of the pinned raft module.
 
 First tier:

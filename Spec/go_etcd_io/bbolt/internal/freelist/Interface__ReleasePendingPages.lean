@@ -1,14 +1,12 @@
 /-
-## `Interface.ReleasePendingPages()` (`shared.go`)
-
-**Users.** db.go:944 (`beginRWTx`, under `rwlock` and `metalock`: before the writer allocates). Snippet `ReqReleaseSafe`.
-**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`: sorts `readonlyTXIDs` (Perennial's `sort.Sort`: its size bound), `release(minid - 1)` (every page freed before the oldest reader), then `releaseRange` over each gap between readers and after the last: a page freed and allocated in one gap has no reader between, so it is releasable; the skip on `lastReleaseBegin` only releases fewer. `mergeSpans` (array: `Pgids.Merge`; hash map: span merging, its `Verify` check through `reflect.DeepEqual`, trusted, `req/reflect.md`).
-**Changes.** from `specs-ref`'s `Interface__ReleasePendingPages.lean`: the released set characterized (releasable, and at least the pages freed before every reader) instead of the code's `release`/`releaseRange` replayed with `lastReleaseBegin`; the readers as their own resource. Premise `readersOk` (the old proof had it as `store_release`'s txid ≥ 1): with a reader at txid 0, a second call releases pages that reader sees (`tid - 1` wraps; `nonissues/bbolt-txid0-reader-release.md`), and a reader at `2^64-1` wraps `tid + 1`.
-**Margin.** which releasable pages beyond `mustRelease` are released (those freed and allocated between two readers, unless the entry was already looked at from the same gap's start) is left open.
+`Interface.ReleasePendingPages` (bbolt/internal/freelist, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U2; used by U5 (`beginRWTx`). Proof:
+`Proof/go_etcd_io/bbolt/internal/freelist/Interface__ReleasePendingPages.lean` (a `sorry` until U2).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.freelist.Api
+public import Proof.go_etcd_io.bbolt.Inv.Freelist
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,32 +14,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Freelist
+namespace bbolt
+namespace internal
+namespace freelist
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common BboltCommon
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common go_etcd_io.bbolt.internal.freelist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The contract of `ReleasePendingPages` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.ReleasePendingPages()` with the readers `R`: some set `S` of pending pages becomes free, each releasable (no reader sees it), including every page freed before all readers. -/
-def Interface.ReleasePendingPages.contract (fl : GoInterface) (f : Expr) : Prop :=
-  ∀ (F : FLState) (R : List Txid),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flOwn fl F ∗ flReaders fl R ∗
-      ⌜readersOk R ∧ R.length < 2 ^ 62 ∧ F.count < flMaxIds⌝ }}
-    (App f (Val #()))
-  {{ RET #(); ∃ S : GMap Pgid Unit,
-      ⌜(∀ p, p ∈ S → F.releasable R p) ∧ (∀ p, F.mustRelease R p → p ∈ S)⌝ ∗
-      flOwn fl (F.release S) ∗ flReaders fl R }}
-
-/-- `f.ReleasePendingPages()` with the readers `R`: some set `S` of pending pages becomes free, each releasable (no reader sees it), including every page freed before all readers. Through the interface (`flCall`): proved from `array.ReleasePendingPages.spec`, `hashMap.ReleasePendingPages.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
-def Interface.ReleasePendingPages.spec : Prop := ∀ fl, Interface.ReleasePendingPages.contract (GF := GF) fl (flCall fl go!"ReleasePendingPages")
+/-- `f.ReleasePendingPages()` (under `metalock`, which holds the read-only part `flRoOwn`): the
+pages pending for transactions no reader can see are free (`FLPg.releasePending` with the
+readers' txids `ro`, which it sorts in place).
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics).
+`FLPg.releasePending` keeps a touched entry's other pairs in the code's swap-removal order
+(U2 fix, `Model/FL`'s `srLoop`). -/
+abbrev Interface.ReleasePendingPages.spec : Prop :=
+  ∀ (fli : GoInterface) (fl : FLPg) (ro : List w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl ∗
+      flRoOwn fli ro }}
+    (App (ifaceCall fli go!"ReleasePendingPages") (Val #()))
+  {{ RET #(); flPgOwn fli (fl.releasePending ro) ∗ flRoOwn fli (sortPgids ro) }}
 
 end spec
 
-end Freelist
+end freelist
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

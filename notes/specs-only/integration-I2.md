@@ -1,14 +1,14 @@
 # Integration I2 (raft): report
 
-Integration agent I2, 2026-11-09. Scope: `Spec/go_etcd_io/raft/` (v3's `Model`, `Api`, `ApiCore`,
+Integration agent I2, 2026-11-09. Scope: `SpecPlan/Spec/go_etcd_io/raft/` (v3's `Model`, `Api`, `ApiCore`,
 `ApiLog` and specs; `tracker`, `quorum`, `confchange`, `raftpb`) and the snippets
 `examples/specreq/{raftnode,raftcore,raftlog,raftconf,raftpb}/`. Batches R1, R2, R3, R4, 3h's raftpb
 part.
 
 ## Build
 
-- `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3/raftpb Spec/go_etcd_io/raft/v3/tracker
-  Spec/go_etcd_io/raft/v3/quorum Spec/go_etcd_io/raft/v3/confchange Spec/go_etcd_io/raft/v3`:
+- `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3/raftpb SpecPlan/Spec/go_etcd_io/raft/v3/tracker
+  SpecPlan/Spec/go_etcd_io/raft/v3/quorum SpecPlan/Spec/go_etcd_io/raft/v3/confchange SpecPlan/Spec/go_etcd_io/raft/v3`:
   **OK (350 modules)**, after all the changes below.
 - The directories outside mine that import raft's vocabulary (`etcdserver`, `api/membership`,
   `api/rafthttp`, `api/snap`, `etcdserver/apply`, `etcdserver/read`, `storage`, `storage/wal`: 26
@@ -174,7 +174,7 @@ Nothing for the build. For provability: 2f's `recvd` and decoders giving `msgRec
 
 ## Files changed
 
-`Spec/go_etcd_io/raft/v3/`: `Model.lean`, `Api.lean`, `ApiCore.lean`, `ApiLog.lean`,
+`SpecPlan/Spec/go_etcd_io/raft/v3/`: `Model.lean`, `Api.lean`, `ApiCore.lean`, `ApiLog.lean`,
 `RawNode__HasReady.lean`, `RawNode__Ready.lean` (an unused binder), `RawNode__ProposeConfChange.lean`,
 `node__ProposeConfChange.lean`, `confChangeToMsg.lean`, `raft__switchToConfig.lean`,
 `raft__applyConfChange.lean`, `raft__handleAppendEntries.lean`, `logSliceFromMsgApp.lean`,

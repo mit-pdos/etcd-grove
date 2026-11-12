@@ -1,18 +1,10 @@
 /-
-`(*intervalTree).deleteFixup(x)` (internal; CLRS 13.4): from `DelInv` at `x` (possibly the
-sentinel, whose `parent` `Delete` set), a red-black tree with the same in-order list.
-
-**Proof sketch.** The loop on `DelInv`: the four cases, with rotations (their specs) and
-recolouring; `x` blackened at the exit.
-
-**Changes** from `specs-ref`'s file: at a key kind `c` (was a key representation `K` with
-its comparison contract); pure premises in the precondition.
-
-**Margin.** Mirrors the code.
+`intervalTree.deleteFixup` (`interval_tree.go`). Lean-first (no Rocq counterpart); see
+`TreeDelete.lean`, `CtxAt.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.Internal
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.CtxAt
 
 @[expose] public section
 
@@ -20,29 +12,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Adt
 
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3.adt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-def intervalTree.deleteFixup.spec : Prop :=
-  ∀ (c : Cmp) (t s : Loc) (dq : DFrac) (C : RbCtx Entry) (x p : Loc) (tx : RbT Entry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ ⌜(C.DelInv tx)⌝ ∗
+/-- `t.deleteFixup(x)` (internal, `Delete`'s; CLRS's `RB-DELETE-FIXUP`), at the hole `x` (child
+of `p`) of the context `C`, its subtree `tx` carrying an extra black over a tree that is
+red-black but for that (`DelInv`); `x` may be the sentinel (the spliced node had no child), whose
+`parent` is then `p` (`sentAt`): the whole tree (from the root field) red-black, with the same
+entries; the sentinel's fields are any (the code writes its colour when the tree is empty). -/
+abbrev adt.intervalTree.deleteFixup.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
+  ∀ (t s : Loc) (dq : DFrac) (C : adt.RbCtx adt.Entry) (x p : Loc) (tx : adt.RbT adt.Entry),
+  C.DelInv tx →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
       t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-      ownCtx c t s C x p tx.maxEnd ∗ ownNode c s (DFrac.own 1) p x tx ∗ sentAt s x p }}
+      adt.ownCtx K t s C x p tx.maxEnd ∗ adt.ownNode K s (DFrac.own 1) p x tx ∗ adt.sentAt s x p }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"deleteFixup")) (Val #x))
-  {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ ownSentinel s (DFrac.own 1) ∗
-      ∃ (r : Loc) (T : RbT Entry), t.[intervalTree, go!"root"] ↦ r ∗
-        ownNode c s (DFrac.own 1) s r T ∗ ⌜RbOk T ∧ T.inorder = (C.plug tx).inorder⌝ }}
+  {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ adt.ownSentinel s (DFrac.own 1) ∗
+      ∃ (r : Loc) (T : adt.RbT adt.Entry), t.[intervalTree, go!"root"] ↦ r ∗
+        adt.ownNode K s (DFrac.own 1) s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tx).inorder⌝ }}
 
 end spec
 
-end Adt
 end EtcdGrove
 end Perennial

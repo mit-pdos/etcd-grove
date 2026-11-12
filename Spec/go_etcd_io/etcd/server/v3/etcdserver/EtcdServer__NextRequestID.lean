@@ -1,23 +1,10 @@
 /-
-`(*EtcdServer).NextRequestID()` (`interface.go:34-36`): `s.reqIDGen.Next()`.
-
-**Users**: the read loop (`readEnv`'s `NextRequestID` row: each read round's context).
-
-**Proof sketch**: the read-only field `s.reqIDGen` (`srvNode`: 2c's `IdUtil.idGen` over the
-member's id space `srvIdSpace s γi`); `Generator.Next.spec`.
-
-**Changes**: verify round (A7-provability F4): new here (the old tree's
-`EtcdServer__NextRequestID.lean`).
-
-**Margin**: none (the id space's freshness across restarts is `idutil`'s recorded scope,
-`nonissues/etcd-request-id-restart-reuse.md`).
+`s.NextRequestID()` (`interface.go`). Lean-first (no Rocq counterpart); the request path's unit 4b
+(2026-10-13): a method of the read loop's `server` interface (`read/Inv.lean`, `isReadServer`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -25,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,18 +21,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`NextRequestID()`**: a fresh id of the member's id space. -/
-def EtcdServer.NextRequestID.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (γi : IdUtil.IdSpace),
+/-- `s.NextRequestID()`: `s.reqIDGen.Next()`, for one id credit (`idCred`, the id budget). -/
+abbrev EtcdServer.NextRequestID.spec : Prop :=
+  ∀ (s g : Loc) (γi : IdNames) (Φ : w64 → List w8 → GName → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvIdSpace s γi }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"NextRequestID")) (Val #()))
-  {{ (rid : w64), RET #rid; IdUtil.idFresh γi rid }}
+      srvReqIDGenAddr s ↦□ g ∗ idGen γi g Φ ∗ idCred γi 1 }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"NextRequestID")) (Val #()))
+  {{ (id : w64), RET #id; idFresh γi id }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

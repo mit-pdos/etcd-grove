@@ -1,18 +1,11 @@
 /-
-`credentials.NewPerRPCCredentialBundle` (`client/v3/credentials/credentials.go`).
-
-Users: `newClient` (a user name and password, or a token).
-
-Proof sketch: a fresh `perRPCCredential` (token `""`, its `RWMutex` invariant allocated with
-`tokFor`), the bundle over it.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/credentials/NewPerRPCCredentialBundle.lean`.
-
-Margin: none.
+`credentials.NewPerRPCCredentialBundle()` (`client/v3/credentials/credentials.go`; the auth plan's
+E2d). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/client/v3/credentials/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.credentials.Api
+public import Proof.go_etcd_io.etcd.client.v3.credentials.Defs
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -20,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Credentials
 
-open Iris Iris.BI EtcdModel ClientV3
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,15 +23,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
-/-- `NewPerRPCCredentialBundle()`: a bundle for any principal (its token `""`). -/
-def NewPerRPCCredentialBundle.spec : Prop :=
-  ∀ (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials }}
+/-- `NewPerRPCCredentialBundle()`: a token bundle (`tokenBundleAt`) whose tokens are `""` or meet
+any `P` the caller picks (`tokenBundleInv`; the auth plan's C1: its token starts `""`). -/
+abbrev credentials.NewPerRPCCredentialBundle.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (P : GoString → IProp GF),
+  {{ True }}
     (App (Val (@! go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle)) (Val #()))
-  {{ (b : GoInterface), RET #b; bundleAt b γ who }}
+  {{ (atb : GoInterface), RET #atb; tokenBundleInv (GF := GF) atb P }}
 
 end spec
 
-end Credentials
 end EtcdGrove
 end Perennial

@@ -1,50 +1,52 @@
 /-
-`v3rpc.logUnaryRequestStats` (`server/etcdserver/api/v3rpc/`).
-
-Users: `newLogUnaryInterceptor` (deferred; round 1: also after a failed handler, whose reply is `nil` or a typed `nil`, provability F5).
-
-Proof sketch: the logger's level (W0's `Zap`), `peer.FromContext` (grpc's), the type switch on the reply and request, `proto.Size` of each (`Proto.Size.spec`: both nest less than `depthMax`, the request decoded, the reply by `unaryOut`), the loggable request's `String()` (3h's generated stringers), `lg.Debug`/`lg.Warn`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/logUnaryRequestStats.lean`.
-
-Margin: none.
+`v3rpc.logUnaryRequestStats` (`v3rpc/interceptor.go`, names-only: the trust boundary of unit
+P3b). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvQuota.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `logUnaryRequestStats(...)` of a run's request and reply (messages read, given back): returns. -/
-def logUnaryRequestStats.spec : Prop :=
-  ∀ (ctx : GoInterface) (md : MD) (lg : Loc) (warn : w64) (info : Loc) (start : val)
-    (reqT repT : go.GoType) (q : Loc) (dq : DFrac) (c : Content) (rv : GoInterface) (Rr : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ Zap.isLogger lg ∗ rpcCtx ctx md ∗ (∃ fm : GoString, info.[google_golang_org.grpc.UnaryServerInfo, go!"FullMethod"] ↦□ fm) ∗
-      msgAt reqT q dq c ∗ ⌜depth c < depthMax⌝ ∗ Rr ∗
-      (⌜rv = GoInterface.nil ∨ rv = msgVal repT null⌝ ∨
-       □ (Rr -∗ ∃ (r : Loc) (dr : DFrac) (c' : Content), ⌜rv = msgVal repT r ∧ depth c' < depthMax⌝ ∗
-          msgAt repT r dr c' ∗ (msgAt repT r dr c' -∗ Rr))) }}
-    (App (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats)) (Val #ctx)) (Val #lg))
-      (Val #warn)) (Val #info)) (Val start)) (Val #(msgVal reqT q))) (Val #rv))
-  {{ RET #(); msgAt reqT q dq c ∗ Rr }}
+/-- **`logUnaryRequestStats(ctx, lg, warn, info, start, req, resp)` returns** (the log
+interceptor's deferred call): with a non-nil logger (`lg.Core().Enabled`, `lg.Debug`/`Warn`) and
+the call's `info` (`FullMethod`, read-only), it measures the call's duration, and if the logger
+is at debug level or the call was slow, logs the peer (`peer.FromContext`), the method and the
+request's and response's sizes and contents (`proto.Size`, the messages' stringers). It reads
+`req` and `resp` (a decoded request, the response the handler returned, as `any`), which the
+messages' predicates do not cover field by field (the protobuf runtime's reflection, the size
+cache): after the handler both are read-only, which the wire models trust (as the runtime's own
+marshaling of the response, `notes/decisions.md`, "A generic gRPC specification"). -/
+abbrev v3rpc.logUnaryRequestStats.spec : Prop :=
+  ∀ (ctx : GoInterface) (lg : Loc) (warn : w64) (info : Loc) (start : time.Time)
+    (req resp : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      ⌜lg ≠ null⌝ ∗ srvInfoIs info }}
+    (App (App (App (App (App (App (App (Val (@! v3rpc.logUnaryRequestStats)) (Val #ctx))
+      (Val #lg)) (Val #warn)) (Val #info)) (Val #start)) (Val #req)) (Val #resp))
+  {{ RET #(); True }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

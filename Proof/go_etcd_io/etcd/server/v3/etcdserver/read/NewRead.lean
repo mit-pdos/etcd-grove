@@ -1,0 +1,89 @@
+/-
+Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/read/NewRead.lean`. Lean-first (no Rocq
+counterpart); the request path's unit 4a.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.NewRead
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.newNotifier
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Read__LinearizableReadNotify
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.read
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
+
+theorem read.NewRead.wp_proof
+    (hNN : read.newNotifier.spec (GF := GF) (hG := hG))
+    (hNotify : read.Read.LinearizableReadNotify.spec (GF := GF) (hG := hG)) :
+    read.NewRead.spec (GF := GF) (hG := hG) := by
+  intro srv rf γr x F
+  wp_start as ⟨#Hd, #Hcci, Hgx⟩
+  iapply wp_fupd
+  wp_auto
+  wp_apply chan.wp_make2 (V := Unit) (W64 1) as %wc %γw ⟨#Hwc, -, Hwo⟩
+  · ipureintro; word
+  ihave #Hwc' := Hwc
+  imod start_bag (V := Unit) (fun _ => iprop(True)) _ wc γw (by trivial) $$ Hwc' Hwo with #Hbag
+  wp_apply hNN γr as %nc ⟨%γn, #Hnis, Hown, Hauth, Hlist⟩
+  irename «$r0» => Hr
+  generalize «$r0_ptr» = r at *
+  iStructNamed Hr
+  ipersist server
+  ipersist raft
+  ipersist waitC
+  imod ghostVar_update (nc, γn) γr.notifier x $$ Hgx with Hg
+  icases ghostVar_halves γr.notifier (nc, γn) $$ Hg with ⟨Hg1, Hg2⟩
+  imod monoNatLbOwn_0 γr.committed with #H0
+  ihave #Hc0 : committedAtLeast (GF := GF) γr (W64 0) $$ []
+  · iunfold committedAtLeast; rw [show uint.nat (W64 0) = 0 by word]; iexact H0
+  imod inv_alloc readInvN ⊤ iprop(∃ (nc : Loc) (γn : NeedNames) (n : w64) (gs : List GName),
+      ghostVar γr.notifier (1 : Qp).half (nc, γn) ∗ notifierIs nc γn γr ∗ notifierOwn nc γn γr ∗
+      monoNatAuthOwn γn.need 1 (uint.nat n) ∗ committedAtLeast γr n ∗
+      monoListAuthOwn γn.list 1 gs ∗ [∗list] g ∈ gs, regOk γr.kv g F)
+      $$ [Hg2 Hown Hauth Hlist] with #Hinv
+  · inext; iexists nc, γn, (W64 0), []; iframe Hg2 Hnis Hown Hc0 Hlist
+    rw [show uint.nat (W64 0) = 0 by word]; iframe Hauth
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
+  imod sync.init_RWMutex (readMuP r γr) (readMuAddr r) $$ [notifier Hg1] mux with Hslots
+  · inext; iunfold readMuP; iexists nc, γn; iframe notifier Hg1
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
+  ihave #Hrd : readInv (GF := GF) γr F $$ []
+  · iunfold readInv; iexact Hinv
+  ihave #Hpre : isReadPre (GF := GF) r γr F $$ []
+  · iunfold isReadPre
+    iexists srv, wc, γw
+    iframe server waitC Hbag Hrd Hd
+  imodintro
+  iapply HΦ
+  isplitr
+  · iunfold isReadNotify
+    iintro !> %ctx %cd %c %g %Q %Φ' !> ⟨#Hctx, #Hc, Hrr, #HsQ, #HdQ⟩ HΦ'
+    iapply hNotify r γr ctx cd c g Q F $$ [Hrr] HΦ'
+    iframe #; iframe Hrr
+  isplitr
+  · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp #Hmint
+    iunfold isReadLoopPre
+    iexists srv, rf, wc, γw
+    iframe #
+  rw [show readReader (GF := GF) r γr = sync.ownRWMutex (readMuAddr r) (readMuP r γr) from rfl]
+  iexact Hslots
+
+end proof
+
+end EtcdGrove
+end Perennial

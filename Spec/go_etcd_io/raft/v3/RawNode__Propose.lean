@@ -1,15 +1,45 @@
-/-
-## `RawNode.Propose(data)`
+/- Port of election_proof/spec_RawNode__Propose.v (857d09190).
 
-**Users.** No client calls `RawNode` directly (etcd and the examples use `node`); `node.run`
-calls it from its goroutine, holding the token. **Proof sketch.** As `node.Propose.spec`'s, synchronously. **Changes.** As `node.Propose`'s.
+## `RawNode.Propose` (rawnode.go:90), the client's entry point
+
+`Propose(data)` is one call: `rn.raft.Step(pb.Message{Type: MsgProp, From: rn.raft.id,
+Entries: []pb.Entry{{Data: data}}})` -- a one-entry batch whose entry is the zero
+`Entry` but for `Data` (`propEntry data_sl`). Since 2026-10-10 the client's atomic update
+for the proposal is deposited before (`prop_deposit`, `Protocol/Facts.lean`): the
+client hands in the entry's data record (`entData`: the zero slice, or a proposed slice
+whose data was deposited), and gets the error back -- `nil` when appended at a leader or
+forwarded to one, `ErrProposalDropped` otherwise. Whatever happens to the proposal, its
+update fires when the first entry with its data is committed.
+
+The `RawNode`'s client-facing state `rs` is unchanged (`ownRawNode`, `InvRawnode.lean`):
+`Step` of a `MsgProp` keeps what it tracks (`LocalStepOk`), so a proposal between
+`Ready` and `Advance` does not stop `Advance`.
+
+Until 2026-10-09 the spec was stated on the node's states (`NStateRel`, `Step`,
+`ownRaftGhost`); until 2026-10-10 it took the update itself (a plain wand, registered
+only when the node was the leader).
+
+`From: rn.raft.id` is why `Step`'s `MsgProp` premise and `send`'s `From` premise admit
+`From = id` since 2026-10-06.
+
+raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, "The node layer over pointer messages"):
+the message is `&pb.Message{Type: MsgProp.Enum(), From: new(rn.raft.id), Entries:
+[]*pb.Entry{{Data: data}}}`, a slice literal of one fresh entry holding `data`'s bytes (D6: the
+entry's record is `propEntryM data`, its `Data` the caller's frozen slice, `data_sl ↦*□ data`);
+`raft.Step` takes it (`msgIn ml 1`). Until 2026-10-27 the data had to be non-empty (`Hne`, D6:
+with bytes in the record an empty proposal and a leader's own entry are the same record); an empty
+one is now a filler (`Filler`), whose data is `none` and which carries no ticket (`propData`,
+`entTk`), so the premise went.
+
+Lean notes:
+* Rocq's `prop_entry` was `propEntry`, now `propEntryM` (the record).
+* As for `raft.Step.spec` (see its Lean notes), the section fixes `hlc :=
+  HasLC.hasLC` (`ownRawNode` holds `ownRaftGhost`, which needs `[InvGS GF]`, the heap's
+  invariant instance only at `.hasLC`) and has `[AllG GF]`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 
@@ -17,29 +47,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
+
+-- (2026-10-16, stage R5) `propEntry data_sl` (the Goose value) is `propEntryM data`
+-- (`InvRawnode.lean`): D6, the entry holds the bytes.
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+-- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `RawNode.Propose`: the update as `node.Propose`'s; the error `nil` or `ErrProposalDropped`. -/
-def RawNode.Propose.spec : Prop :=
-
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool) (data_sl : GoSlice) (data : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv ∗ ownSlice data_sl data DFrac.discard ∗ (□?γ.dup AU <{ ∃∃ (ops : List LogEntry), committedOps γ ops }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ∀∀ (t : w64), committedOps γ (ops ++ opsOf [⟨t, EntryNormal, data⟩]), COMM True }>) }}
-    (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"Propose")) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; rawNodeAt rn γ id k adv ∗
-      (⌜err = interface.nil⌝ ∨ errIs go_etcd_io.raft.v3.ErrProposalDropped err) }}
+/-- See the file header. -/
+abbrev RawNode.Propose.spec : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (data_sl : GoSlice) (data : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ ownRawNode γ rn id rs ∗
+      "#Hdata" ∷ data_sl ↦*□ data ∗
+      "#Hent" ∷ propData γ (propEntryM data) ∗
+      -- (2026-10-19, D21 M6) its ticket (or that it may be proposed any number of times)
+      "Htk" ∷ entTk γ (propEntryM data) }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Propose")) (Val #data_sl))
+  {{ (err : GoInterface), RET #err;
+      "Hrn" ∷ ownRawNode γ rn id rs ∗
+      "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

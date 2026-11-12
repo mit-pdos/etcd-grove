@@ -1,24 +1,11 @@
 /-
-`(*EtcdServer).ClusterVersion()` (`server.go:2215-2220`): `nil` without a cluster, else
-`s.cluster.Version()`.
-
-**Users**: `start` (logging), v3rpc's `maintenanceServer.Status` and `Downgrade` (through the
-version adapter), etcdhttp's version handler.
-
-**Proof sketch**: the read-only `s.cluster` (`srvFields`' realization: 2e's membership view);
-2e's `RaftCluster.Version` (its read lock: the caller's `threadTok`; a copy of the version or
-`nil`: requested of server-boot, A8-completeness F3).
-
-**Changes**: verify round (A7-completeness F3, A8-completeness F5): new here (the old tree's
-`EtcdServer__ClusterVersion.lean`).
-
-**Margin**: nothing is said of the version (a status report); a caller that reads it
-(`v.String()`) needs 2e's `RaftCluster.Version` contract, requested.
-Changes: re-review (RR2): over 2e's `srvFields` (the server literal's read-only fields), not `srvMember`: callable before the transport is set (`NewServer`'s own calls, `Process` from `tr.Start()` on, `start`); a caller holding `srvMember` uses `srvMember_fields`, one holding 2d's `srvNode` `srvNode_fields`.
+`s.ClusterVersion()` (`server.go`): `nil` without a cluster, else `s.cluster.Version()`.
+Lean-first (no Rocq counterpart); srvBuildGap's rows (2026-10-17): `start`'s `clusterVersionOk`
+from the cluster's `Version` contract (`clusterVersionMono`, `bootstrap`'s).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 
 @[expose] public section
 
@@ -26,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,17 +23,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`ClusterVersion()`**: the cluster's version, or `nil`. -/
-def EtcdServer.ClusterVersion.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvFields s γ id ∗
-      threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"ClusterVersion")) (Val #()))
-  {{ (v : Loc), RET #v; threadTok }}
+/-- `s.ClusterVersion()`, its `cluster` field `cl` (read-only) meeting `clusterVersionMono`:
+`nil` until the version is known, non-`nil` from then on. -/
+abbrev EtcdServer.ClusterVersion.spec : Prop :=
+  ∀ (s cl : Loc) (γcv : GName) (known : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvClusterAddr s ↦□ cl ∗ clusterVersionMono cl γcv ∗
+      (if known then monoNatLbOwn γcv 1 else True) }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ClusterVersion")) (Val #()))
+  {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨ ⌜v ≠ null⌝ ∗ monoNatLbOwn γcv 1 }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

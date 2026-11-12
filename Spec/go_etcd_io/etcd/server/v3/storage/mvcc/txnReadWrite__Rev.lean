@@ -1,18 +1,10 @@
 /-
-`(*txnReadWrite).Rev` (promoted).
+`txnReadWrite__Rev` (`kv.go`). Lean-first (no Rocq counterpart); see `InvRoTxn.lean`.
 
-**Users**: `txn.Txn`'s read-only path (`txn/txn.go:69`: `NewReadOnlyTxnWrite(txnRead)`, then `txn`/`executeTxn`/`checkTxn` call the `TxnWrite` methods), the tester's readers (`mvccrand.go:475-483, 626-634`). Snippet `ReqReadOnlyTxn`.
-
-**Proof sketch**: the inner `Rev` (`σ.rev`).
-
-**Changes** from `specs-ref`'s `txnReadWrite__Rev.lean`: the contract at `*txnReadWrite` (the frozen
-API's canonical spec).
-
-**Margin**: none.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
 
 @[expose] public section
 
@@ -20,7 +12,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -31,11 +22,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `Txn.Rev`'s contract at `*txnReadWrite`. -/
-def txnReadWrite.Rev.spec : Prop :=
-  ∀ s : Loc, Txn.Rev.contract (GF := GF) (go.GoType.PointerType txnReadWrite.ty) #s
+/-- `trw.Rev()`: the read transaction's revision, the last of its committed log. -/
+abbrev mvcc.txnReadWrite.Rev.spec : Prop :=
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev crev Z }}
+    (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Rev")) (Val #()))
+  {{ RET #rev; mvcc.isRoTxnWrite trw s γ trace log rev crev Z ∗
+      ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

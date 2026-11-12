@@ -1,40 +1,38 @@
 /-
-## `attribute.Int64(k, v)`: assumed
-
-**Users.** The server's span attributes (`etcdserver/v3_server.go`). **Assumed**: a struct literal
-(otel's `attribute/kv.go`), total.
+`attribute.Int64`: the trust boundary (`go.opentelemetry.io/otel/attribute` is names-only). Lean-first (no Rocq counterpart); the request path
+(`notes/decisions.md`, "The request path").
 -/
 module
 
-public import Spec.go_opentelemetry_io.otel.attribute.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace OtelAttribute
 
-open Iris Iris.BI
+open Iris Iris.BI 
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-/-- `attribute.Int64(k, v)` returns a key-value. -/
-def Int64.spec : Prop :=
+/-- `attribute.Int64(k, v)`: the key-value attribute of the key `k` and an `int64` `v` (a span's
+attribute: no effect the model sees); it returns. -/
+abbrev «attribute».Int64.spec : Prop :=
   ∀ (k : GoString) (v : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» }}
     (App (App (Val (@! go_opentelemetry_io.otel.«attribute».Int64)) (Val #k)) (Val #v))
-  {{ (r : val), RET r; True }}
+  {{ (kv : go_opentelemetry_io.otel.«attribute».KeyValue), RET #kv; True }}
 
 end spec
-end OtelAttribute
+
 end EtcdGrove
 end Perennial

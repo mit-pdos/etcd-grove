@@ -1,15 +1,9 @@
 /-
-## `entsSize(ents)` (internal)
-
-**Users**: `slice`, `acceptReady` (`rawnode.go:434`), `MsgStorageApplyResp` (`raft.go:1226`). The
-sum of `proto.Size` of each entry (2a's `proto`: some size, no panic), wrapping. Only budgets use it.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/entsSize.lean`: unchanged (the size is not modeled).
+Port of election_proof/spec_entsSize.v (feb5c73d4).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -17,25 +11,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The entries' encoded size (unspecified). -/
-def entsSize.spec : Prop :=
-  ∀ (sl : GoSlice) (k : Nat) (es : List LogEntry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ entriesRO sl k es }}
-    (App (Val (@! go_etcd_io.raft.v3.entsSize)) (Val #sl))
-  {{ (n : w64), RET #n; True }}
+/-- `entsSize(ents)`: the summed encoded size of the entries. The value is
+unspecified, since `Entry.Size` (pointer receiver) is (`spec_Entry__Size.v`);
+`raftLog.slice` only compares it against `maxSize` to decide whether to append the
+unstable part of its result, and either answer is fine.
+
+raft v3.7 (stage R3, 2026-10-15): the size of each entry is `proto.Size(ent)` (`util.go:277`,
+`proto.SizeEntry.spec`: some `n ≥ 0`), not gogoproto's `Entry.Size`; the statement is unchanged
+(the value was unspecified already). -/
+abbrev entsSize.spec : Prop :=
+  ∀ (s : GoSlice) (es : List EntryM) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPts s dq es }}
+    (App (Val #(functions entsSize [])) (Val #s))
+  {{ (n : w64), RET #n; entsPts s dq es }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

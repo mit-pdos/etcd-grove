@@ -1,35 +1,12 @@
 /-
-## `raft.applyConfChange(cc)`
-
-**Users.** `RawNode.ApplyConfChange` (`rawnode.go:111-113`, with `cc.AsV2()`); `node.run`'s `confc`
-arm (`node.go:400-427`, the `ConfChangeV2` `node.ApplyConfChange` sent). R1's `RawNode.ApplyConfChange.spec`
-and `node.ApplyConfChange.spec` take the same premises over the client's `ConfChangeI` `c`; `c2` is
-its `AsV2()` (3h's `ConfChange.AsV2.spec`/`ConfChangeV2.AsV2.spec`: `c2 = c.asV2`; then
-`applyChange (.v2 c.asV2) = applyChange c` holds by `Membership.applyChange`'s definition, R4's
-`changeV2` of the same transition and changes: integration I2). Snippet: `conf.go`.
-
-**Proof sketch.** confchange's `Changer` (R4) on the tracker, by the transition: `LeaveJoint`,
-`EnterJoint`, `Simple`; it succeeds (`Membership.applyChange c v.membership = some m'`), so no panic;
-`switchToConfig` (the tracker at `m'`; a removed or demoted leader steps down with
-`stepDownOnRemoval`; a leader commits what the new quorum allows, `maybeCommit`, and probes the new
-peers; the transfer aborted if its target left). The view: the decision `confDecided γ k (.apply c)`
-on the committed conf entry `k` and the skipped ones before it give `confAt γ (k+1) m'`
-(`confAt_skipped`, `confAt_decided`), which the node's tracker now holds (`nodeConf rn γ ⟨k+1, m'⟩`);
-an entry below the view changes nothing (`m' = v.membership`).
-
-**Changes** (from `specs-ref`'s `raft__applyConfChange.lean`): over R1's view and decisions (was
-`ccOk`/`CCApply` over the tracker's record). Round 1: the entry need only be committed
-(`committedLb`; R1's callers have `deliveredLb`, `deliveredLb_committed`), so that
-`RawNode.Bootstrap` applies the bootstrap changes before their entries are delivered (the view then
-ahead of the applied index: the realization's V1).
-
-**Margin.** The returned `ConfState` is fresh; nothing is said of the new view `ρ'`. Verify-round (A5 completeness F2, raft-conf-pb's request): `confStateFull` (Go's `ConfState()` sets `AutoLeave`), so the server can store it in a snapshot (`CreateSnapshot`, the merged `MsgSnap`).
+`raft.applyConfChange` (raft.go), Lean-first (2026-10-13, reconfiguration stage D): for a
+change that leaves the configuration unchanged; since stage A2 (2026-10-13) for any change.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvApplyConfC
+public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
 
 @[expose] public section
 
@@ -37,33 +14,270 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section pure
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- What `applyConfChange` did at a node moved to the configuration `c'` (2026-10-13,
+reconfiguration stage A2): installed new `Progress` objects (`prs`, tracking `c'`'s ids, records
+`pvs`, each `Match` the old one or `0`), then `switchToConfig`'s rest (`SwitchOkC`). -/
+def ApplyCCOkC (c' : CfgM) (id : w64) (s s' : NState) : Prop :=
+  ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
+    domSet prs = c'.ids ∧ MatchKept s.prvals pvs ∧
+    SwitchOkC c' id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } s'
+
+/-- The protocol reading of `ApplyCCOkC` at the new configuration `c'` (2026-10-14,
+reconfiguration stage A3): a node that is not a leader, or a leader that stays a voter of either
+half of `c'`, takes one `StepC c'` step receiving nothing (at a leader `reMatch`, then `commit`
+by a joint quorum if `maybeCommit` moved the commit index, then `sendApps`; `refl` at a
+non-leader), with `applyCCOk_step`'s frame. A leader removed or demoted (no voter of `c'`) takes
+the `reMatch` step and then, with `stepDownOnRemoval`, steps down at its own term
+(`becomeFollower(r.Term, None)`), which no `StepC` rule describes: `StepC` has no step-down of a
+leader at its own term (`abandon` is a non-leader's); (2026-10-25, T-M M2c) without it, the
+`reMatch` step only, in the first disjunct. -/
+theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c' id s s') :
+    (StepC c' id B (toPState s) [] (toPState s') ∧
+      s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
+      s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
+      s'.logst = { s.logst with committed := s'.logst.committed } ∧
+      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) ∨
+    (s.role = .leader ∧ id ∉ c'.voters ∧ s.sdr = true ∧
+      ∃ ps1, StepC c' id B (toPState s) [] ps1 ∧
+        toPState s' = pbecomeFollower ps1 s.term (W64 0)) := by
+  obtain ⟨prs, pvs, Hdom, Hmk, Hsw⟩ := H
+  unfold SwitchOkC at Hsw
+  by_cases Hl : s.role = .leader
+  · rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).role = .leader from Hl)] at Hsw
+    have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
+    -- the new `Progress` values
+    have H1 : StepC c' id B (toPState s) []
+        (toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id }) := by
+      have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } =
+          { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
+      rw [e]
+      refine .reMatch _ _ Hpl (fun v i hv => ?_)
+      simp only [prvalsMatch, GMap.lookup_fmap'] at hv
+      cases hp : pvs !! v with
+      | none => rw [hp] at hv; cases hv
+      | some p' =>
+        rw [hp] at hv
+        simp only [Option.map_some, Option.some.injEq] at hv
+        subst hv
+        rcases Hmk v p' hp with h0 | ⟨p, hp0, hm⟩
+        · exact .inl h0
+        · right
+          simp [toPState, Hl, prvalsMatch, hp0, hm]
+    by_cases Hv : id ∈ c'.voters
+    · rw [ite_eq_left Hv] at Hsw
+      left
+      obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
+      generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState) = s1 at H1 Hc Hms Hmm
+      have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
+      have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
+      -- the commit
+      have H2 : StepC c' id B (toPState s1) []
+          (toPState { s1 with logst := { s1.logst with committed := c } }) := by
+        rcases Hc with rfl | ⟨Hlt, Hle, Htm, Hq⟩
+        · have e : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
+              = s1 := by cases s1; rfl
+          rw [e]; exact .refl _
+        · have e : toPState { s1 with logst := { s1.logst with committed := c } } =
+              { toPState s1 with commit := c } := by simp [toPState, Hl1]
+          rw [e]
+          exact .commit _ c Hpl1 Hlt Hle Htm Hq
+      generalize Hs2 : ({ s1 with logst := { s1.logst with committed := c } } : NState) = s2
+        at H2 Hms
+      have Hl2 : s2.role = .leader := by rw [← Hs2]; exact Hl1
+      -- the appends
+      have H3 : StepC c' id B (toPState s2) []
+          (toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' }) := by
+        have e : toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' } =
+            toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
+        rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
+          rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
+        exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
+          (Hms.snapTo (by
+            rw [← Hs2, ← Hs1]
+            show domSet prs ⊆ c'.voters ∪ c'.learners
+            rw [Hdom]; exact GMap.subseteq_refl _))
+      refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
+      subst Hs1 Hs2
+      refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+      rcases Hc with rfl | ⟨Hlt, -⟩
+      · exact Int.le_refl _
+      · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
+    · -- removed or demoted: `reMatch`, then the step-down with `stepDownOnRemoval`; (2026-10-25,
+      -- T-M M2c) without it, `reMatch` only: the node stays leader
+      rw [ite_eq_right Hv] at Hsw
+      by_cases Hsd : s.sdr = true
+      · rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+            NState).sdr = true from Hsd)] at Hsw
+        right
+        obtain ⟨pvs', rfl⟩ := Hsw
+        refine ⟨Hl, Hv, Hsd, _, H1, ?_⟩
+        rw [toPState_prvals _ _ (fun h => by simp [becomeFollower] at h), toPState_becomeFollower]
+      · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+            NState).sdr = true from Hsd)] at Hsw
+        subst Hsw
+        left
+        exact ⟨H1, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
+  · rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).role = .leader from Hl)] at Hsw
+    subst Hsw
+    left
+    have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } =
+        toPState s := by
+      simp [toPState, Hl]
+    rw [e]
+    exact ⟨.refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
+
+end pure
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Applies conf change `c2`** (decided `c` for delivered entry `k`) to node `id`'s tracker: the configuration `m'`, the view past the entry. -/
-def raft.applyConfChange.spec : Prop :=
-  ∀ (r rn : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (p : Loc) (dq : DFrac)
-    (c2 : ConfChangeV2) (c : ConfChangeI) (v : ConfView) (l : List LogEntry) (k : Nat)
-    (m' : Membership),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ raftOf rn r ∗ confChangePts (interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty) #p) dq (.v2 c2) ∗
-      nodeConf rn γ v ∗ committedLb γ l ∗ confDecided γ k (.apply c) ∗
-      ⌜(∀ mm, Membership.applyChange (.v2 c2) mm = Membership.applyChange c mm) ∧
-        (∃ e, l[k]? = some e ∧ e.isConfChange) ∧ Membership.applyChange c v.membership = some m'⌝ ∗
-      (if v.applied ≤ k then confSkipped γ l v.applied k else iprop(⌜m' = v.membership⌝)) }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"applyConfChange")) (Val #p))
-  {{ (csp : Loc), RET #csp; ∃ (ρ' : CoreView) (cs : ConfState), raftCore r γ id ρ' ∗
-      confChangePts (interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty) #p) dq (.v2 c2) ∗ RaftPb.confStateFull csp (DFrac.own 1) cs ∗ ⌜cs.Is m'⌝ ∗
-      nodeConf rn γ (if v.applied ≤ k then ⟨k + 1, m'⟩ else v) }}
+
+/-- (2026-10-19, D21 M3) `applyConfChange` keeps the ghost fields (`NGhost`), the no-snapshot mode
+with them. -/
+theorem ApplyCCOkC.gh {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC c' id s s') :
+    s'.gh = s.gh := by
+  rcases applyCCOkC_step (B := 0) c' id s s' H with h | ⟨hl, hv, -, -⟩
+  · exact h.2.2.2.2.2.2.1
+  · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
+    unfold SwitchOkC at Hsw
+    simp only [hl, hv, ↓reduceIte] at Hsw
+    split at Hsw
+    · obtain ⟨pvs', rfl⟩ := Hsw
+      simp [becomeFollower, resetTo, resetTo0]
+    · subst Hsw; rfl
+
+/-- `r.applyConfChange(cc)`: builds a `confchange.Changer` on the node's tracker and last
+index, runs `LeaveJoint`, `EnterJoint` or `Simple` as `cc` says (panicking on an error),
+and installs the result (`switchToConfig`), returning the new `ConfState`.
+
+**Scope: a change that keeps the voters** -- its model answer is a non-joint state with the
+voters it started from and some learners `lrn'`: `ccApplyM cc.Transition ccs (cfgState cfg
+lrn) = some (cfgState cfg lrn')` for the node's learners `lrn = domSet s.progress \ cfg`
+(since 2026-10-13, stage L; until then `lrn' = lrn = ∅`): e.g. a change with `NodeId = 0`
+(`ccApplyM_single_noop`), an `AddLearnerNode` or a `RemoveNode` of a non-voter
+(`ccVoterKeep_addLearner`, `ccVoterKeep_removeLearner`); only `Simple` can answer that
+(`ccApplyM_simple`). `ownRaftPhys` stays at `cfg`. Even so the Go code installs new
+`Progress` objects (`checkAndCopy`'s copies, or fresh ones for a peer removed and re-added
+in one change, whose `Match` is `0`), and at a leader commits and sends appends: the result
+is `ApplyCCOkC` at the simple configuration, a protocol `StepC` that receives nothing
+(`applyCCOkC_step`). (Until
+2026-10-13 it took `id ∈ cfg`, which a leader's `maybeCommit` needs; a leader is a voter by
+`ownRaftPhys` now, and a learner may call this.)
+
+The order in which an application must call this relative to `Advance`
+(`issues/raft-advance-before-applyconfchange.md`) is `RawNode.ApplyConfChange`'s
+concern; for an unchanged configuration it does not matter.
+
+raft v3.7 (2026-10-15, stage R4): `cc` is a `*pb.ConfChangeV2` (`ownConfChangeV2 cc dq ccm`, R1's, read
+through `LeaveJoint`/`EnterJoint` and its `Changes` slice; given back), its content `ccm` (until
+the retarget the Goose value's `Transition'` and the list behind its `Changes'`); the result is
+`switchToConfig`'s fresh `*pb.ConfState` (`csPts cs 1 ... true`). -/
+abbrev raft.applyConfChange.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
+    (c' : CCState),
+  -- the model's answer: `confchange`'s errors (which `applyConfChange` turns into a panic)
+  -- and an undefined `Transition` with joint consensus (`ConfChangeV2.EnterJoint`'s panic,
+  -- `nonissues/raft-unknown-transition-panic.md`) are `none`
+  ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
+  -- not too many tracked ids (`ownTrackerC`'s bound)
+  (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →
+  -- (2026-10-29, stage U7) a leader's term past `0` (`switchToConfig`'s, for `send`'s stamp)
+  (s.role = .leader → s.term ≠ W64 0) →
+  -- (2026-10-25, T-M M2c; until then a premise: a removed or demoted leader steps down, `s.sdr`)
+  -- a removed or demoted leader steps down with `StepDownOnRemoval`, and stays leader without it
+  -- a candidate stays a voter (`switchToConfig`)
+  (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
+  -- (2026-10-19, D21 M3) a leader in the no-snapshot mode has a log past index `1` (its own
+  -- entry after the bootstrap log), so a peer it starts tracking probes at `Next ≥ 2` (`PrLo`)
+  (s.gh.ns = true → s.role = .leader →
+    2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
+  {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
+      ownRaftPhysCV c'.cfg c'.cfg.voters r id s' ∗
+      ownConfChangeV2 cc dq ccm ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c'.cfg.autoLeave) true ∗
+      ⌜xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
+        ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext⌝ ∗
+      ⌜ApplyCCOkC c'.cfg id s s'⌝ }}
+
+/-- The statement on `ownRaftPhys` until 2026-10-13 (a change that keeps the voters `cfg`),
+derived by `spec_simple`. -/
+abbrev raft.applyConfChange.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
+    (lrn' : GSet w64),
+  (∀ k, k ∈ lrn' → k ∉ cfg) →
+  (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 →
+  ccApplyM ccm.transition ccm.changes (cfgState cfg (domSet s.progress \ cfg)) =
+    some (cfgState cfg lrn') →
+  -- (2026-10-29, stage U7) a leader's term past `0`
+  (s.role = .leader → s.term ≠ W64 0) →
+  (s.gh.ns = true → s.role = .leader →
+    2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  -- (2026-10-25, T-M M2c) the node a voter (until then read off `ownRaftPhys` for a leader, which
+  -- now need not be one)
+  id ∈ cfg →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
+  {{ (cs : Loc) (xs ls : List w64) (s' : NState), RET #cs;
+      ownRaftPhys cfg r id s' ∗
+      ownConfChangeV2 cc dq ccm ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn'⌝ ∗
+      ⌜ApplyCCOkC (CfgM.simple cfg lrn') id s s'⌝ ∗
+      -- (D19p, 2026-10-18) the learners are the other tracked ids
+      ⌜lrn' = domSet s'.progress \ cfg⌝ }}
+
+
+open Iris.ProofMode in
+theorem raft.applyConfChange.spec_simple
+    (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
+    raft.applyConfChange.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hltz Hli2 Hin
+  iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  have Hv' : (cfgState cfg lrn').cfg.voters = cfg := CfgM.voters_simple cfg lrn'
+  have Hids : (cfgState cfg lrn').cfg.ids = cfg ∪ lrn' := by
+    show (CfgM.simple cfg lrn').ids = _
+    unfold CfgM.ids; rw [CfgM.voters_simple]; rfl
+  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
+      (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz') Hltz
+      (fun _ => by rw [Hv']; exact Hin) Hli2
+    $$ [$Hpkg $Hphys $Hccs]
+  inext
+  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩
+  ihave Hphys := (show ownRaftPhysCV (GF := GF) (cfgState cfg lrn').cfg (cfgState cfg lrn').cfg.voters r id s'
+      ⊢ ownRaftPhysC (CfgM.simple cfg lrn') r id s' from .rfl) $$ Hphys
+  icases ownRaftPhysC_simple_toPhys cfg lrn' r id s' $$ Hphys with ⟨Hphys, %Hlrn⟩
+  obtain ⟨H1, H2, H3, H4⟩ := Hcs
+  have Hos0 : os = [] := perm_elements_empty _ H2
+  have Hlns0 : lns = [] := perm_elements_empty _ H4
+  subst Hos0 Hlns0
+  iapply HΦ $$ %cs %xs %ls %s'
+  iframe Hphys Hccs
+  isplitl [Hcs']
+  · simp only [cfgState, cfgM]; iexact Hcs'
+  ipureintro
+  exact ⟨⟨H1, H3⟩, Hok, Hlrn⟩
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

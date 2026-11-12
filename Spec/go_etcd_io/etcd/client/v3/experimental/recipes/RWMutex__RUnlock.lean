@@ -1,20 +1,10 @@
 /-
-`(*RWMutex).RUnlock()` (`rwmutex.go`): `myKey.Delete()`.
-
-**Users**: `T/v3_lock_test.go:357`. Snippet: `recipes/rwmutex.go`.
-
-**Proof sketch**: `RemoteKV.Delete.spec` on `myKey`'s embedded `RemoteKV` (`ekOwn`, the promoted
-method) with the caller's update unchanged.
-
-**Changes**: old spec over the recipes' client invariant; now the caller's update over the delete.
-
-**Premise**: `myKey` set (`some`): `nil` panics (a nil dereference in the promoted call).
-
-**Margin**: as `RemoteKV.Delete`'s.
+`recipes.(*RWMutex).RUnlock()` (`client/v3/experimental/recipes/rwmutex.go`). Lean-first (no Rocq counterpart);
+see `InvRWMutex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRWMutex
 
 @[expose] public section
 
@@ -22,34 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`m.RUnlock()`**: the delete of the held key, linearized by the caller's update (nothing if it was deleted already). -/
-def RWMutex.RUnlock.spec : Prop :=
-  ∀ (m : Loc) (γ : Cluster) (who : Principal) (id : w64) (pfx : GoString) (st : RKSt)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ rwmOwn m γ who id pfx (some st) ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.deleteRange (delReq st.key)) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }> }}
+/-- **`rwm.RUnlock()`**: `rwm.myKey.Delete()` (a key must be in `myKey`: a nil `myKey` is a nil
+dereference), knowing etcd has reached `lo`: see `rwUnlockResult` (the key absent at some
+revision at least `lo`, or an error; `nil` if it was deleted already); the key's `KV` becomes nil. -/
+abbrev RWMutex.RUnlock.spec : Prop :=
+  ∀ (m : Loc) (pfx : GoString) (ek : Loc) (st : RemoteKVSt) (lo : w64),
+  {{ rwMyKey (GF := GF) m pfx (some (ek, st)) ∗ etcdReached lo }}
     (App (Val (m @!! go.GoType.PointerType RWMutex.ty @!! go!"RUnlock")) (Val #()))
-  {{ (err : GoInterface), RET #err; rwmOwn m γ who id pfx (some { st with live := false }) ∗
-      if st.live then (∃ σ σ' res, Q σ σ' res ∗ ⌜okOrErr res err⌝) ∨ indefCall err
-      else ⌜err = GoInterface.nil⌝ }}
+  {{ (err : GoInterface), RET #err;
+      rwMyKey m pfx (some (ek, { st with kv := GoInterface.nil })) ∗ rwUnlockResult pfx st lo err }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

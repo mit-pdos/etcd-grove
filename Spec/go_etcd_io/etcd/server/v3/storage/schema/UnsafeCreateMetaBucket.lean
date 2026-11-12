@@ -1,22 +1,10 @@
 /-
-## `schema.UnsafeCreateMetaBucket(tx)`
-
-**Users.** `mvcc.NewStore` (`kvstore.go:123`: the store's batch transaction, its lock held; mvcc's
-storage contract, 3e, whose part includes `Meta`'s existence). Snippet: `examples/specreq/schema/schema.go`
-(`ReqCreateBuckets`).
-
-**Proof sketch.** Loads `Meta` (`bucketVars_init`: `bucketAt .metaB`), `tx.UnsafeCreateBucket(Meta)`
-(`txWr`'s create: `S.canCreate .metaB`, the right mvcc's part holds without the
-other parts' keys).
-
-**Changes.** From `specs-ref`'s `UnsafeCreateMetaBucket.lean` (over the real backend's batch
-state): over the transaction contract. **Margin.** None.
+`schema.UnsafeCreateMetaBucket(tx)` (`cindex.go`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 
 @[expose] public section
 
@@ -24,25 +12,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **Creates `Meta`** (if absent). -/
-def UnsafeCreateMetaBucket.spec : Prop :=
-  ∀ (tx : GoInterface) (S : Scope) (R : View → IProp GF) (V : View),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ txWr tx S R ∗ R V ∗ ⌜S.canCreate .metaB⌝ }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket)) (Val #tx))
-  {{ RET #(); R (V.create .metaB) }}
+/-- `UnsafeCreateMetaBucket(tx)` calls `tx.UnsafeCreateBucket(Meta)`: under the contract of
+`tx`'s `UnsafeCreateBucket` on the `Meta` bucket (from the caller's `P` to its `Q`: the batch
+transaction's lock tokens, `batchTxInitSpec`'s triple in mvcc's `NewStore`), it makes `Q`
+(2026-10-13: the triple was on any bucket, keeping `P`; the backend's bridge needs the bucket's
+value, and counts the creations). -/
+abbrev schema.UnsafeCreateMetaBucket.spec : Prop :=
+  ∀ (tx : GoInterfaceOk) (P Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ P ∗
+      □ (∀ b : GoInterface,
+        {{ P ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b }} (App (Val #(methods tx.ty go!"UnsafeCreateBucket" tx.v)) (Val #b))
+        {{ RET #(); Q }}) }}
+    (App (Val (@! schema.UnsafeCreateMetaBucket)) (Val #(GoInterface.ok tx)))
+  {{ RET #(); Q }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

@@ -1,31 +1,11 @@
 /-
-## `(*EtcdServer).AuthInfoFromCtx(ctx)`
-
-**Users.** `processInternalRaftRequestOnce`, `doSerialize`, `requireAuthInfo`, the lease checks
-(`v3_server.go`); the gRPC interceptors and the watch server (2a, 2b: `isWatchPermitted`). Snippet:
-`examples/specreq/etcdserverreq/auth.go` (`ReqPrincipal`).
-
-**Proof sketch.** `AuthStore().AuthInfoFromCtx(ctx)` (3d: the token's user and revision, `nil`, or
-`ErrInvalidAuthToken`), then, if `nil` and the configuration's `ClientCertAuthEnabled`,
-`AuthStore().AuthInfoFromTLS(ctx)` (3d: the certificate's common name). `reqPrin ctx p tls` is that
-contract (its realization): with auth enabled and a token, the token's user `p`; otherwise the
-certificate's name `tls`, or `nil` (round 1: the principal depends on the auth flag at the check,
-provability F7).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__AuthInfoFromCtx.lean`, per auth mode)
-restated over `reqPrin`.
-
-**Margin.** The auth revision is not stated (the callers pass it on to the header or compare it).
-
-Changes: verify-round (A7-provability F3, F5): see the verify round's repair: the context needs only its otel span (`reqCtxSpan`, any trace: the outer method's `EnsureTrace` installed one); the request message comes back with whatever header was set (`∃ h, irrOwnH r dq ir h`: the header is written before proposing).
-
-Changes: verify-round (lease-auth's request): the call to 3d's `AuthInfoFromCtx` supplies `authGate γa R ∗ □ srvStarted s γ id` (the gate `NewAuthStore` gave, kept behind `isServer`), and `ctxToken`'s `tokKeysOk md` comes from the run's context (2a's `Grpc.rpcCtx_vals`; `ctxNoIncoming` contexts carry no metadata).
+`s.AuthInfoFromCtx(ctx)` (`v3_server.go`): the request's auth info, from its token, else (with
+`ClientCertAuthEnabled`) its TLS certificate. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 
 @[expose] public section
 
@@ -33,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -44,21 +23,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The request's credentials**: an `AuthInfo` naming `p`'s or `tls`'s user (at some auth
-revision), `nil` (no token with auth enabled, or auth disabled, and no certificate's name), or an
-invalid token's error (a refusal). -/
-def EtcdServer.AuthInfoFromCtx.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxSpan ctx ∗ reqPrin ctx p tls ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"AuthInfoFromCtx")) (Val #ctx))
-  {{ (ai : Loc) (err : GoInterface), RET (PairV #ai #err); threadTok ∗
-      ((⌜err = GoInterface.nil ∧ ai = null⌝) ∨
-       (⌜err = GoInterface.nil⌝ ∗ ∃ (u : GoString) (rev : w64), ⌜p = some u ∨ tls = some u⌝ ∗
-          ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Username"] ↦□ u ∗
-          ai.[go_etcd_io.etcd.server.v3.auth.AuthInfo, go!"Revision"] ↦□ rev) ∨
-       (⌜ai = null⌝ ∗ srvErr err .invalidAuthToken ∗ srvErrShape err)) }}
+/-- `s.AuthInfoFromCtx(ctx)` at a context, in the caller's auth mode `M`: an auth info (`nil` or one
+with its fields, `authInfoOpt`) and an error (the auth store's request side, `isReqAuth`, with the
+caller's reader resource `RD`: 2026-10-14, unit A2). With auth on, over the store's request side
+with the token binding (`isReqAuthBound`), the auth info is moreover bound to the request's token or
+came from the TLS fallback (`ctxBoundOrTLS`; the auth plan's E1/E3zb). The binding is gated by the
+mode only because the server's store with auth off comes from `NewAuthStore`'s axiom, which names
+the unbound request side (the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec, candidate
+G of `notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). With auth
+on, the error is moreover `nil` or one of the auth package's error variables (`authErrVarIs`; the
+store returns only `ErrInvalidAuthToken`; the lease-expiry plan's E3, 2026-11-05, gated as the
+binding is). -/
+abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
+  ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
+      □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
+      □ (⌜M.isOn = true⌝ → ctxBoundOrTLS s M (GoInterface.ok ctx) a) ∗
+      □ (⌜M.isOn = true⌝ → authErrVarIs err) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

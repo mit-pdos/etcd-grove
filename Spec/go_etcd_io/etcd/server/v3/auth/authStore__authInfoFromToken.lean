@@ -1,21 +1,10 @@
 /-
-## `(*authStore).authInfoFromToken(ctx, token)` (internal helper)
-
-**Users.** `AuthInfoFromCtx`.
-
-**Proof sketch.** The provider's `info(ctx, token, as.Revision())` (`tpOpen`, the opened `tokenProviderAt` contract).
-
-**Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary. Verify round
-(A9 3d F7): the provider's gate (`authGate γa R ∗ □ R`), which `info`'s waiter needs.
-
-**Margin.** None.
+`authStore.authInfoFromToken` (`server/auth/store.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (unit P2).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-public import Spec.context.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -23,28 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.authInfoFromToken(ctx, tok)`**: not valid, or an `AuthInfo` naming the user the cluster
-issued `tok` to. -/
-def authStore.authInfoFromToken.spec : Prop :=
-  ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (R : IProp GF) (ctx : GoInterface) (tok : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authGate γa R ∗ □ R ∗ Context.ctxOk ctx }}
-    (App (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"authInfoFromToken")) (Val #ctx)) (Val #tok))
-  {{ (ai : Loc) (ok : Bool), RET (PairV #ai #ok);
-      ⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ∃ (u : GoString) (rev : w64), tokenUser γ tok u ∗
-        authInfoAt ai DFrac.discard u rev) }}
+/-- `as.authInfoFromToken(ctx, token)`: the token provider's `info` at the store's revision; an
+accepted token's info is bound to it (`infoBound`; the auth plan's S5). -/
+
+abbrev auth.authStore.authInfoFromToken.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ctx : GoInterface) (token : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M }}
+    (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"authInfoFromToken")) (Val #ctx)) (Val #token))
+  {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
+      (if ok then infoBound M token a else iprop(True)) }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

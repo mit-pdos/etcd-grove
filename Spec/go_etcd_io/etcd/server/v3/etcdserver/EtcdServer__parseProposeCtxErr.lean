@@ -1,17 +1,11 @@
 /-
-## `(*EtcdServer).parseProposeCtxErr(err, start)` (internal helper)
-
-Users: `processInternalRaftRequestOnce` (`v3_server.go:1130`), with the proposal context's error.
-Mirrors the code: `ErrCanceled` for `Canceled`; for `DeadlineExceeded`, `ErrTimeoutDueToLeaderFail`,
-`ErrTimeoutDueToConnectionLost` (the transport's `ActiveSince`, `isConnectedSince`/`
-isConnectedToQuorumSince`, 2e's) or `ErrTimeout`; else the error itself. Changes: the old spec's
-classification (`applyErrIs`) restated as `srvIndef`. Margin: which of the timeouts is not stated.
+`s.parseProposeCtxErr(err, start)` (`server.go`): the error of a proposal whose context is
+done. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -19,9 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,14 +23,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- A context's error becomes an unsettled server error. -/
-def EtcdServer.parseProposeCtxErr.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (err : GoInterface) (start : time.Time),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ threadTok ∗ srvIndef err ∗ srvErrShape err }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"parseProposeCtxErr")) (Val #err)) (Val #start))
-  {{ (err' : GoInterface), RET #err'; threadTok ∗ srvIndef err' ∗ srvErrShape err' }}
+/-- `s.parseProposeCtxErr(err, start)`, any goroutine, for a done context's error `err` (a typed
+error, the value of `context.Canceled` or of `context.DeadlineExceeded`: Go's contract of
+`Context.Err`, `context.ErrDone`): an error, not `nil`, one the gRPC layer can take
+(`applyErrIs`): `ErrCanceled`, `ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` or
+`ErrTimeout` (the `default` branch, returning `err` itself, is not reached: `errors.Is` of an
+error at itself is `true`, `errors.IsCtxErr`; 2026-10-12, unit 3a). It read-locks
+`s.leadTimeMu`: the caller's reader slot.
+
+**In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
+the mode `E.authOn`). The mode views (the auth plan's E3b, 2026-10-26): the server as a proposer sees
+it in the auth mode `on` (`isServerReqM`; the function reads none of the mode's rows). At
+`on = false` it is `spec` (by definition). -/
+abbrev EtcdServer.parseProposeCtxErr.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (err : GoInterface) (start : time.Time),
+  context.isTypedErr err →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗
+      (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"parseProposeCtxErr"))
+      (Val #err)) (Val #start))
+  {{ (e : GoInterface), RET #e; srvLeadTimeReader s ∗ ⌜e ≠ GoInterface.nil⌝ ∗ applyErrIs e }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

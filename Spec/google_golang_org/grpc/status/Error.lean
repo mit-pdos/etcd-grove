@@ -1,21 +1,12 @@
 /-
-`status.Error(c, msg)` (grpc-go, assumed: `status/status.go`).
-
-Users: rpctypes' `ErrGRPC*` initializers (this batch, `init.spec`), the client's
-`WatchResponse.Err` (1b), `v3rpc.togRPCError`'s fallback (`status.Error(codes.Unknown,
-err.Error())`).
-
-Why true: `Error(c, msg)` is `New(c, msg).Err()`: `nil` for `OK`, else a fresh `*status.Error`
-holding the status, whose `GRPCStatus()` returns it.
-
-Changes: from `specs-ref/Spec/google_golang_org/grpc/status/Error.lean`: `statusErr` (was
-`statusErrOk` and `errDesc err = msg`).
-
-Margin: none.
+grpc's `status.Error(c, msg)` (`google.golang.org/grpc/status`), called by
+`clientv3.WatchResponse.Err`. grpc is not translated (`Code/google_golang_org/grpc/status.toml`
+declares only the names), so it is an axiom (`Proof/google_golang_org/grpc/status/Error.lean`).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 
 @[expose] public section
 
@@ -23,25 +14,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `status.Error(c, msg)` for a code other than `OK`: a status error with them. -/
-def Error.spec : Prop :=
+/-- `status.Error(c, msg)` (`New(c, msg).Err()`) for a code other than `codes.OK` returns a
+non-nil error (a `*status.Error`), one grpc's `status` accepts (`statusErrOk`, unit P3a; it was
+`errStrOk`): a leaf error whose `Error()` (it formats the code and the message) and `GRPCStatus()`
+return; its description (`errDesc`, what `status.FromError(err).Message()` and
+`rpctypes.ErrorDesc` return) is `msg` (k8s etcd3 7c-2: `togRPCError`'s fallback
+`status.Error(codes.Unknown, err.Error())` carries the message as its description). Nothing about
+the code, nor about `codes.OK` (for which it returns `nil`). -/
+abbrev status.Error.spec : Prop :=
   ∀ (c : w32) (msg : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ ⌜c ≠ cOK⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
+      ⌜(#c : val) ≠ google_golang_org.grpc.codes.OK⌝ }}
     (App (App (Val (@! google_golang_org.grpc.status.Error)) (Val #c)) (Val #msg))
-  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ statusErr err c msg }}
+  {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗ ⌜errDesc err = msg⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

@@ -1,14 +1,12 @@
 /-
-## `Interface.Rollback(txid)` (`shared.go`)
-
-**Users.** tx.go:318 (`nonPhysicalRollback`), tx.go:336 (`rollback`, then `NoSyncReload`/`Reload`). Snippet `ReqRollback`.
-**Proof sketch.** the interface's contract (`Interface.<M>.contract`), proved at each dynamic type (`array.<M>.spec`, `hashMap.<M>.spec`: the method, or `shared`'s promoted one, against `flOwn`'s realization); the interface call is then the instance at `flCall` by `flOwn_dyn`; per pending id of `txid`: out of `cache`, its allocating transaction back in `allocs` (the panic: `canRollback`); the entry deleted; `txid`'s `allocs` deleted. An early return when `txid` freed nothing.
-**Changes.** from `specs-ref`'s `Interface__Rollback.lean`: over `FLState`; the panic as the premise `canRollback`.
-**Margin.** none: the post is what the code computes.
+`Interface.Rollback` (bbolt/internal/freelist, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U2; used by U5 (`Tx.Rollback` of a writer), U10 (`rollback`). Proof:
+`Proof/go_etcd_io/bbolt/internal/freelist/Interface__Rollback.lean` (a `sorry` until U2).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.freelist.Api
+public import Proof.go_etcd_io.bbolt.Inv.Freelist
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,29 +14,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Freelist
+namespace bbolt
+namespace internal
+namespace freelist
 
-open Iris Iris.BI go_etcd_io.bbolt.internal.common BboltCommon
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common go_etcd_io.bbolt.internal.freelist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [hos : HasExt osFsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- The contract of `Rollback` at a freelist `fl` whose method is the expression `f` (the bundle's triple; each concrete spec is its instance). `f.Rollback(txid)`: undoes `txid`'s frees and forgets its allocations (`FLState.rollback`; nothing if it freed nothing). It panics if `txid` freed a page it allocated: `canRollback` excludes it. -/
-def Interface.Rollback.contract (fl : GoInterface) (f : Expr) : Prop :=
-  ∀ (F : FLState) (txid : Txid),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flOwn fl F ∗ ⌜F.canRollback txid⌝ }}
-    (App f (Val #txid))
-  {{ RET #(); flOwn fl (F.rollback txid) }}
-
-/-- `f.Rollback(txid)`: undoes `txid`'s frees and forgets its allocations (`FLState.rollback`; nothing if it freed nothing). It panics if `txid` freed a page it allocated: `canRollback` excludes it. Through the interface (`flCall`): proved from `array.Rollback.spec`, `hashMap.Rollback.spec` and `flOwn_dyn`/`flReaders_dyn` (Perennial's `method_interface_ok` steps the call to the dynamic type's method). -/
-def Interface.Rollback.spec : Prop := ∀ fl, Interface.Rollback.contract (GF := GF) fl (flCall fl go!"Rollback")
+/-- `f.Rollback(txid)`: `txid`'s pending pages are not pending, its allocations forgotten
+(`FLPg.rollback`). It panics if a page pending for `txid` was allocated by `txid`: excluded by
+the premise.
+Stated over `ifaceCall fli m`, what the call steps to (U2 fix, 2026-11-04: Go's `fl.M(args)`
+resolves the interface value's dynamic method; `methods Interface.ty m` has no semantics).
+`FLPg.rollback` changes nothing when `txid` has no pending entry (U2 fix: the code returns
+at once). -/
+abbrev Interface.Rollback.spec : Prop :=
+  ∀ (fli : GoInterface) (fl : FLPg) (txid : w64),
+  (∀ pd, fl.pending !! txid = some pd → txid ∉ pd.alloctx) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ flPgOwn fli fl }}
+    (App (ifaceCall fli go!"Rollback") (Val #txid))
+  {{ RET #(); flPgOwn fli (fl.rollback txid) }}
 
 end spec
 
-end Freelist
+end freelist
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

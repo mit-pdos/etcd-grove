@@ -1,13 +1,9 @@
 /-
-`demux.Compact` (`cache/*.go`), an internal helper.
-Users: none in the cache (kept: verified before).
-Proof sketch: as `Purge`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`demux.Compact(compactRev)`. Lean-first (no Rocq counterpart); see `InvDemux.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,15 +21,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `d.Compact(rev)`. -/
-def demux.Compact.spec : Prop :=
-  ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (compactRev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s }}
-    (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"Compact")) (Val #compactRev))
-  {{ RET #(); True }}
+/-- `d.Compact(compactRev)`, by the writer: `purge` under the lock (the revision is not used). -/
+abbrev demux.Compact.spec : Prop :=
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore)
+    (compactRev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap C ∗ demuxWriter d γd cap C c }}
+    (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"Compact")) (Val #compactRev))
+  {{ RET #(); demuxWriter d γd cap C DemuxCore.init }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

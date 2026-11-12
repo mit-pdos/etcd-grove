@@ -1,17 +1,10 @@
 /-
-`concurrency.respToValue(resp)` (`client/v3/concurrency/stm.go`), internal.
-
-Users: `stm.Get`, `stmSerializable.Get`.
-
-Proof sketch: the nil check, the first key-value's value converted.
-
-Changes: from `specs-ref`'s `respToValue.lean`: restated.
-
-Margin: none.
+`concurrency.respToValue(resp)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,27 +12,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `respToValue(resp)`: the read's value, `""` for `nil` or an absent key. -/
-def respToValue.spec : Prop :=
-  ∀ (p : Loc) (e : Option ReadM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ (match e with | none => iprop(⌜p = null⌝) | some e => readRespAt p e) }}
+/-- `respToValue(resp)`: `""` for nil, otherwise the read's value. -/
+abbrev respToValue.spec : Prop :=
+  ∀ (p : Loc) (v : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ (⌜p = null ∧ v = []⌝ ∨
+      ∃ (pfx k : GoString) (e : ReadM), readRespAt pfx k p e ∗ ⌜v = e.value⌝) }}
     (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.respToValue)) (Val #p))
-  {{ RET #((e.map ReadM.value).getD []); True }}
+  {{ RET #v; True }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

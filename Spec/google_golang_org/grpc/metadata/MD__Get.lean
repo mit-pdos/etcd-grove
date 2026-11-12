@@ -1,19 +1,11 @@
 /-
-`metadata.MD.Get(k)` (grpc-go, assumed: `metadata/metadata.go`).
-
-Users: `v3rpc.newUnaryInterceptor`, `newStreamInterceptor` (the client API version key).
-
-Why true: it lowercases the key and returns the map's slice for it (shared, read-only by
-convention: the interceptors only read it).
-
-Changes: new.
-Re-review (R-A6 N1): also of a `nil` map (`mdAtN true`: a lookup in a `nil` map gives `nil`, `md.get` of `[]` is `[]`).
-
-Margin: none.
+`metadata.MD.Get` (grpc, `metadata/metadata.go`): the trust boundary (grpc's `metadata` is types
+and names only; unit P3b: the server's unary interceptor reads the client's API version with
+it). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 
 @[expose] public section
 
@@ -21,26 +13,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
-open Iris Iris.BI
+open Iris Iris.BI google_golang_org.grpc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : google_golang_org.grpc.metadata.Assumptions]
 
-/-- `md.Get(k)`: the key's values (a read-only slice). -/
-def MD.Get.spec : Prop :=
-  ∀ (b : Bool) (m : Loc) (dq : DFrac) (md : MD) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ mdAtN b m dq md }}
-    (App (Val (m @!! google_golang_org.grpc.metadata.MD.ty @!! go!"Get")) (Val #k))
-  {{ (sl : GoSlice), RET #sl; mdAtN b m dq md ∗ sl ↦*□ md.get (lowerKey k) }}
+/-- `md.Get(k)` (through a `*MD` `l` holding the map `md`, read-only, as Goose calls a
+value-receiver method on a variable): `md[strings.ToLower(k)]`, the slice the map holds under the
+lower-cased key or `nil`. -/
+abbrev metadata.MD.Get.spec : Prop :=
+  ∀ (l : Loc) (md : GoMap) (m : GMap GoString GoSlice) (k : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ l ↦□ md ∗
+      md ↦$□ m }}
+    (App (Val (l @!! go.GoType.PointerType google_golang_org.grpc.metadata.MD.ty @!! go!"Get"))
+      (Val #k))
+  {{ (sl : GoSlice), RET #sl; ⌜sl = slice.nil ∨ ∃ k' : GoString, m !! k' = some sl⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

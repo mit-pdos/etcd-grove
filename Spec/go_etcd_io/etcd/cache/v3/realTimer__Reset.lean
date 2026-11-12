@@ -1,13 +1,9 @@
 /-
-`realTimer.Reset` (`cache/*.go`), an internal helper.
-Users: as `Chan`.
-Proof sketch: Perennial's `Timer.Reset`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`realTimer.Reset(d)` (`cache/clock.go`). Lean-first (no Rocq counterpart); see `InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -15,27 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `r.Reset(d)`. -/
-def realTimer.Reset.spec : Prop :=
+/-- `r.Reset(d)`: some `bool` (`time.Timer.Reset`). -/
+abbrev realTimer.Reset.spec : Prop :=
   ∀ (r : Loc) (d : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ realTimerAt r }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.realTimer.ty @!! go!"Reset")) (Val #d))
-  {{ (b : Bool), RET #b; realTimerAt r }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isRealTimer r }}
+    (App (Val (r @!! go.GoType.PointerType realTimer.ty @!! go!"Reset")) (Val #d))
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

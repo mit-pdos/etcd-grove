@@ -1,7 +1,7 @@
 # A11-bbolt: provability (verification round, 2026-11-09)
 
 Reviewer kind: **provability**, with the `axiom` skill's mindset on the crash law against OsFs
-(`GooseLang/Ext/OsFs/`, `Proof/OsFsPrelude.lean`). Area: batches 4c (`Spec/go_etcd_io/bbolt/`:
+(`GooseLang/Ext/OsFs/`, `Proof/OsFsPrelude.lean`). Area: batches 4c (`SpecPlan/Spec/go_etcd_io/bbolt/`:
 `Model`, `Api`, `Internal`, `Options`, every `<T>__<M>.lean`; `errors/Api.lean`, added at I7) and
 4d (`internal/common/`, `internal/freelist/`); snippets `examples/specreq/{bbolt,bboltinternal}/`.
 Commit under review: `1aa6fc1337` (HEAD of `specs-only`). Go: bbolt fork `743299d`
@@ -208,10 +208,10 @@ text is not the same under (a) and (b)).
 
 ## Proof plans
 
-### 4c public API (`Spec/go_etcd_io/bbolt/`)
+### 4c public API (`SpecPlan/Spec/go_etcd_io/bbolt/`)
 
 - **`Open`**: alloc `db`; `optsArg` read through `Options`' laws (F7, F8); `os.OpenFile` over OsFs
-  (no `Spec/os` on this branch: `osFileOf` provisional, recorded at I7) or `openFileOk` (F4); trivial
+  (no `SpecPlan/Spec/os` on this branch: `osFileOf` provisional, recorded at I7) or `openFileOk` (F4); trivial
   `flock`; open `boltFile γ` with `boltClosed γ` for the file's halves; `Stat`, `metasZero`, `init`
   (crash fact: F2) or `getPageSize`/`mmapUnlocked` (4d decoders, `Meta.Validate`), `loadFreelist`
   (4d `Read`/`Init` on a new freelist: premises trivially met); allocate `isBolt`'s invariants. Error

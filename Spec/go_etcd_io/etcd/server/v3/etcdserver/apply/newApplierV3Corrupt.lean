@@ -1,29 +1,23 @@
 /-
-`newApplierV3Corrupt(a)` (`corrupt.go:27`): the corrupt applier over `a`.
-
-**Users.** `uberApplier.restoreAlarms`.
-
-**Proof sketch.** Allocation.
-
-**Changes** from `specs-ref`'s file of the same name: restated over the new vocabulary (`beAt`, `stAt`, `applierAt`, the model state); one spec for every mode.
-
-**Margin.** None.
+`apply.newApplierV3Corrupt` (corrupt.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +26,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **The corrupt applier over `a`.** -/
-def newApplierV3Corrupt.spec : Prop :=
-  ∀ (base : GoInterface) (ls : List Layer) (b aa : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ applierAt base ls b aa }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Corrupt)) (Val #base))
-  {{ (c : Loc), RET #c; applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt.ty) #c) (Layer.corrupt :: ls) b aa }}
+/-- **`newApplierV3Corrupt(a)`**: the corrupt applier over `a` (an applier of the chain `c`): a pointer whose interface value is an applier of the chain `corrupt c`. -/
+abbrev apply.newApplierV3Corrupt.spec : Prop :=
+  ∀ (a : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
+    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Corrupt)) (Val #a))
+  {{ (p : Loc), RET #p; apply.corruptIs p a ∗
+      □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c a -∗
+        apply.applierSpec E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p)) }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

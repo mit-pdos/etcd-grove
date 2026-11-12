@@ -1,14 +1,9 @@
 /-
-## `(*raftLog).hasNextCommittedEnts(allowUnstable)` (internal)
-
-**Users**: `RawNode.HasReady` (`rawnode.go:463`). Mirrors the code (`nextCommittedEnts` is
-non-empty exactly then). **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__hasNextCommittedEnts.lean`.
+Port of `election_proof/spec_raftLog__hasNextCommittedEnts.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -16,26 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether `nextCommittedEnts` would return entries. -/
-def raftLog.hasNextCommittedEnts.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (allow : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"hasNextCommittedEnts")) (Val #allow))
-  {{ RET #(decide (ls.applyingPaused = false ∧ ls.us.snap = none ∧
-        ls.applying < ls.maxAppliable allow)); raftLog l ls }}
+/-- `l.hasNextCommittedEnts(allowUnstable)` (`log.go:246`): the cheap check for
+`nextCommittedEnts` -- `false` when applying is paused or a snapshot is pending, else
+whether `applying < maxAppliableIndex`. The paused flag is not in `LogState`, so the
+answer is pinned only when it is `true`: then there is something to apply. -/
+abbrev raftLog.hasNextCommittedEnts.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (au : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"hasNextCommittedEnts"))
+      (Val #au))
+  {{ (b : Bool), RET #b;
+      ownRaftLog l ls ∗
+      ⌜b = true → ls.snap = none ∧ uint.Z ls.applying < uint.Z ls.committed⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

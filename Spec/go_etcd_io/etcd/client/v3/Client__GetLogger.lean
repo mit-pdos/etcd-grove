@@ -1,19 +1,10 @@
 /-
-`(*clientv3.Client).GetLogger` (`client/v3/client.go`).
-
-Users: `concurrency.NewSession`, the interceptors, `NewLeaseFromLeaseClient`, `NewMaintenance`,
-the watcher (1b).
-
-Proof sketch: an atomic load of `c.lg`, whose invariant (`clientPre`) holds an `isLogger` (every
-store: `newClient`, `WithLogger`, stores one).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__GetLogger.lean`: over `clientPre`.
-
-Margin: none.
+`clientv3.Client.GetLogger()` (`client/v3/client.go`, translated for `client/v3/concurrency`). Lean-first (no
+Rocq counterpart); see `InvClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClient
 
 @[expose] public section
 
@@ -21,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,15 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.GetLogger()`: a logger. -/
-def Client.GetLogger.spec : Prop :=
-  ∀ (c : Loc) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientBase c who }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"GetLogger")) (Val #()))
-  {{ (lg : Loc), RET #lg; Zap.isLogger lg }}
+/-- `client.GetLogger()` (`c.lg.Load()`): some non-nil logger. -/
+abbrev Client.GetLogger.spec : Prop :=
+  ∀ (cl : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isClientLogger cl }}
+    (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"GetLogger")) (Val #()))
+  {{ (lg : Loc), RET #lg; ⌜lg ≠ null⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -20,4 +20,4 @@ returned an error.
 ## Proof
 
 yes: the leasing contract takes the caller's update for a write persistent, fired any number of
-times, also after the return (`Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`, header, 1.).
+times, also after the return (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`, header, 1.).

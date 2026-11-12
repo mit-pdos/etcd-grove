@@ -1,13 +1,9 @@
 /-
-`WithGetTimeout` (`cache/*.go`).
-Users: `New`'s callers (etcd's integration tests: `WithHistoryWindowSize`, `WithProgressNotifyInterval`, ...; snippet `cache/lifecycle.go` `ReqNewOptions`).
-Proof sketch: returns the closure `func(c *Config) { c.X = n }`, whose triple is a store to the field.
-Changes: unchanged (the closure contract renamed `cfgOptAt`).
-Margin: none known.
+`WithGetTimeout(d)` (`cache/config.go`). Lean-first (no Rocq counterpart); see `InvConfig.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Api
+public import Proof.go_etcd_io.etcd.cache.v3.InvConfig
 
 @[expose] public section
 
@@ -15,27 +11,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `WithGetTimeout(d)`: an option setting `GetTimeout`. -/
-def WithGetTimeout.spec : Prop :=
+/-- `WithGetTimeout(d)`: an `Option` setting the get timeout (`GetTimeout`) to `d`. -/
+abbrev WithGetTimeout.spec : Prop :=
   ∀ (d : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 }}
-    (App (Val (@! go_etcd_io.etcd.cache.v3.WithGetTimeout)) (Val #d))
-  {{ (f : GoFunc), RET #f; cfgOptAt f (fun c => { c with GetTimeout' := d }) }}
+    (App (Val (@! WithGetTimeout)) (Val #d))
+  {{ (f : GoFunc), RET #f; cfgOptSpec f (fun c => { c with GetTimeout' := d }) }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

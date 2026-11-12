@@ -1,5 +1,5 @@
 // Package auth holds the requirement snippets of etcd's auth store (batch 3d,
-// Spec/go_etcd_io/etcd/server/v3/auth/): what its callers (the apply layer, the request path,
+// SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/): what its callers (the apply layer, the request path,
 // the gRPC handlers, the watch server, the server's boot and snapshot install) rely on.
 package auth
 

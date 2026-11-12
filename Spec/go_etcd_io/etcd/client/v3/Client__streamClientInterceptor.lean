@@ -1,21 +1,10 @@
 /-
-`(*clientv3.Client).streamClientInterceptor` (`client/v3/retry_interceptor.go`).
-
-Users: `dialSetupOpts` (`withMax(0)`: every stream: watch, lease keep-alive, range stream, snapshot).
-
-Proof sketch: the closure: `withVersion(ctx)`, `getToken` (its spec; an error returned: `siOk_call`'s
-error disjunct), `filterCallOptions`, `reuseOrNewWithCallOptions`: the limit `0` (the interceptor's
-and no per-call option raises it: `callOptsOk_append`), so the streamer is called once and its
-result returned. The retrying stream (`serverStreamingRetryingStream`) is never built.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean`.
-
-Margin: with a limit above `0` the interceptor would wrap the stream (not specified: no caller
-asks).
+`c.streamClientInterceptor(optFuncs...)` (`client/v3/retry_interceptor.go`, names only; item 5): the
+client's stream interceptor, installed at dial. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -23,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,17 +22,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.streamClientInterceptor(optFuncs...)` with a limit of `0`: the client's stream interceptor
-(`siOk`). -/
-def Client.streamClientInterceptor.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (sl : GoSlice) (fs : List (RetryOptsM → RetryOptsM)),
-  (applyRetry fs RetryOptsM.default).max = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ retryOptsAt sl fs }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"streamClientInterceptor")) (Val #sl))
-  {{ (si : val), RET si; siOk si c γ who }}
+/-- `c.streamClientInterceptor(optFuncs...)` on a client `New` builds (`retryClientOk`), with
+options each building the interceptor's options (`optApplyOk`): etcd's stream interceptor
+(`etcdStreamInterceptor`, what grpc's `NewStream` axiom assumes). -/
+abbrev Client.streamClientInterceptor.spec : Prop :=
+  ∀ (c : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
+      sl ↦*□ ros ∗ [∗list] ro ∈ ros, optApplyOk ro.applyFunc' }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+      go!"streamClientInterceptor")) (Val #sl))
+  {{ (f : GoFunc), RET #f; ⌜etcdStreamInterceptor f⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

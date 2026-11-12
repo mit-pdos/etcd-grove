@@ -1,20 +1,9 @@
 /-
-`clientv3.ContextError` (`client/v3/client.go`).
-
-Users: every method of the client after a gRPC call (`kv.go`, `txn.go`, `lease.go`, `auth.go`, `cluster.go`, `maintenance.go`, `watch.go`); users that convert their own errors (none in scope).
-
-Proof sketch: `rpctypes.Error.spec` (2a, over `callErr`: `.etcd e` gives `errVal e`; the other kinds are left as
-they are), `errors.As` into an `EtcdError` (true exactly for `errVal`s: `errVal_ty`), else
-`status.FromError` (2a) and, for `Canceled`/`DeadlineExceeded`, `Context.Err.spec`/`ErrDone.spec`
-(a context's error is `.other`: `callErr_ctxErr`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/ContextError.lean`: over `callErr` (was the client's `kvErr` and `ctxErrClient`); the context any `ctxOk`.
-
-Margin: the code returns the context's own error for a gRPC `Canceled`/`DeadlineExceeded` once the context is done; the spec says only that the result is indefinite.
+`clientv3.ContextError(ctx, err)` (`client/v3/client.go`, translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -22,10 +11,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil errCellOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,21 +22,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `ContextError(ctx, err)` of a call's error: `nil` stays `nil`; an etcd error of kind `e`
-becomes `errVal e`; an indefinite one stays indefinite. -/
-def ContextError.spec : Prop :=
-  ∀ (ctx err : GoInterface) (k : CallErr),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ Context.ctxOk ctx ∗ (⌜err = GoInterface.nil⌝ ∨ callErr err k) }}
-    (App (App (Val (@! go_etcd_io.etcd.client.v3.ContextError)) (Val #ctx)) (Val #err))
+/-- `ContextError(ctx, err)` of a client error: `nil` for `nil`; otherwise a non-nil client error
+(`rpctypes.Error(err)`, or, for a gRPC `DeadlineExceeded`/`Canceled` when the context is done,
+the context's error). The error is one grpc's `status` accepts (`statusErrOk`, unit P3a:
+`rpctypes.Error` and `status.FromError` call its `Error()` and `GRPCStatus()`), and so is the
+result; and (D37) the result is no caller's `errors.New` value (`errCellOk`) if `err` is none. -/
+abbrev ContextError.spec : Prop :=
+  ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxErrClient ci cd ∗
+      ⌜err ≠ GoInterface.nil → clientErr err⌝ ∗ statusErrOk err }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.ContextError)) (Val #(GoInterface.ok ci)))
+      (Val #err))
   {{ (err' : GoInterface), RET #err';
-      (⌜err = GoInterface.nil ∧ err' = GoInterface.nil⌝) ∨
-      (callErr err k ∗
-        (match k with
-         | .etcd e => if e.indefinite then indefCall err' else iprop(⌜err' = errVal e⌝)
-         | _ => indefCall err')) }}
+      ⌜(err = GoInterface.nil → err' = GoInterface.nil) ∧
+        (err ≠ GoInterface.nil → err' ≠ GoInterface.nil ∧ clientErr err')⌝ ∗ statusErrOk err' ∗
+      -- (2026-10-23, D37) no caller's `errors.New` value if `err` is none (the context's error never)
+      □ (errCellOk err -∗ errCellOk err') }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

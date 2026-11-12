@@ -1,18 +1,7 @@
-/-
-## `Progress.IsPaused()`
-
-**Users.** `maybeSendAppend` (`raft.go:620`): R2. Snippet `raftconf/tracker.go`
-(`ReqProgressFlow`).
-
-**Proof sketch.** A switch on `State` (one of the three: `progressOwn`'s `PrState`; Go panics
-"unexpected state" on another value, which `progressOwn` excludes). **Changes.** Over the model.
-**Margin.** None.
--/
+/- Port of election_proof/spec_Progress__IsPaused.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -20,26 +9,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Whether sending appends to the peer is paused (always in snapshot state). -/
-def Progress.IsPaused.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"IsPaused")) (Val #()))
-  {{ RET #P.isPaused; progressOwn p P }}
+/-- `pr.IsPaused()` -- "should the leader hold off sending log entries to this peer".
+The body (`tracker.Progress.IsPaused.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`)
+switches on `pr.State`:
+
+    StateProbe, StateReplicate -> pr.MsgAppFlowPaused
+    StateSnapshot              -> true
+    anything else              -> panic("unexpected state")
+
+The fourth arm is why `ownProgress`'s record has an inductive state (`progressAbs`,
+`Defs.lean`): `bcastAppend` reaches `IsPaused` on every peer, so the panic has to be
+ruled out by an invariant rather than by inspection.
+
+The answer is `progressIsPaused p` (`Defs.lean`), a function of the record, and
+`maybeSendAppend` needs to know which branch it took: a `false` answer tells it
+`state ≠ .snapshot`, which is what makes the later `SentEntries` call legal (that one
+panics in `StateSnapshot`). -/
+abbrev tracker.Progress.IsPaused.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      "Hpr" ∷ ownProgress pr p }}
+    (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"IsPaused")) (Val #()))
+  {{ RET #(progressIsPaused p); ownProgress pr p }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

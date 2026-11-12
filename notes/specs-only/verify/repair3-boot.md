@@ -91,7 +91,7 @@ and server-core), `repair2-crash.md` (to grpc-v3rpc, raft-core, backend-schema, 
 
 ### 5. grpc-v3rpc: `Http.protoAt_gen` and `addrFree_gen` fixed
 
-- Both laws are `⊣⊢` at `L'`, in `Spec/net/http/Api.lean`'s laws, which now list them.
+- Both laws are `⊣⊢` at `L'`, in `SpecPlan/Spec/net/http/Api.lean`'s laws, which now list them.
 - **Realization:** the intended global map, in `GooseGlobalGS`. The protocol is a saved value, the
   same `P` on both sides.
 - `rafthttp/Api.lean`'s `peerAddr_gen` docstring now cites `protoAt_gen` (text only).

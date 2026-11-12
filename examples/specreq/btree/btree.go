@@ -1,5 +1,5 @@
 // Package btree holds the requirement snippets of the k8s fork of google/btree
-// (k8s.io/utils/third_party/forked/golang/btree; batch 1g, Spec/k8s_io/utils/third_party/forked/golang/btree/):
+// (k8s.io/utils/third_party/forked/golang/btree; batch 1g, SpecPlan/Spec/k8s_io/utils/third_party/forked/golang/btree/):
 // what etcd's cache (cache/store.go, cache/snapshot.go) relies on, each reliance an explicit panic.
 //
 // Common assumptions: none beyond the specs' preconditions (a degree in [2, 2^62]).

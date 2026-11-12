@@ -52,7 +52,7 @@ server would have to report the revision it registered the watch at.
 
 no: the client watch spec states the weaker guarantee the code has: a watch from the current
 revision is complete only from its first event on, and every event above the creation's header is
-delivered (`Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`, `WatchPos.init`'s `floor`).
+delivered (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`, `WatchPos.init`'s `floor`).
 
 ## Fix
 

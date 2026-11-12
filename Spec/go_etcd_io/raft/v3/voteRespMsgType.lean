@@ -1,14 +1,7 @@
-/-
-## `voteRespMsgType(msgt)` (internal)
-
-**Users**: vote handling (`raft.go:1077,1270,1279`), on a `MsgVote`/`MsgPreVote`. Panics on any
-other type (the premise). **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/voteRespMsgType.lean`.
--/
+/- Port of election_proof/spec_voteRespMsgType.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.Defs
 
 @[expose] public section
 
@@ -16,26 +9,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The response type of a vote or pre-vote. -/
-def voteRespMsgType.spec : Prop :=
-  ∀ (t : w32),
-  t = MsgVote ∨ t = MsgPreVote →
+/-- `voteRespMsgType` maps a vote request to its response type: `MsgVote` to
+`MsgVoteResp`, and (since 2026-10-04) `MsgPreVote` to `MsgPreVoteResp`. Any other type
+panics. Stated as a relation between `t` and the result `r`, so that a caller names the
+result it expects. -/
+abbrev voteRespMsgType.spec : Prop :=
+  ∀ (t r : w32),
+  (t = MsgVote ∧ r = MsgVoteResp) ∨ (t = MsgPreVote ∧ r = MsgPreVoteResp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
-    (App (Val (@! go_etcd_io.raft.v3.voteRespMsgType)) (Val #t))
-  {{ RET #(if t = MsgVote then MsgVoteResp else MsgPreVoteResp); True }}
+    (App (Val #(functions voteRespMsgType [])) (Val #t))
+  {{ RET #r; True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

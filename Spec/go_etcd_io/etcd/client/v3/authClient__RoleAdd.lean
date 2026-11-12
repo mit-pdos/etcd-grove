@@ -1,25 +1,10 @@
 /-
-`(*clientv3.authClient).RoleAdd` (`client/v3/auth.go`).
-
-Users: `examples/etcd/auth/authkv.go` (`SetUp`), snippet `clientv3client/auth.go`; through the `Auth` bundle (and the promoted `Client.RoleAdd`) (`authAt_methods`, `authHandle_authAt`).
-
-Proof sketch: allocates the request message (`reqOwn`, 3h's `protoRest_zero` and field writes), calls
-`auth.remote.RoleAdd(ctx, req, auth.callOpts...)` (`authHandle` over a ready client: `remote` a `remoteAuthAt` value,
-`callOpts` with `callOptsOk _ false`; `remoteAuthAt_call` at the request: the caller's update,
-exclusive (sent at most once: the wrapper does not mark it repeatable), handed over), then `ContextError(ctx, err)` (W0's spec: a definite `.etcd e` becomes
-`errVal e`, the reply's `wireReply ansReply` becomes `ansReply`; an indefinite error stays
-`indefCall`), and returns the reply pointer converted.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/authClient__RoleAdd.lean`: restated over the model (`Step who` of the auth request, any principal, auth on or off, any answer: the old spec was for the admin's set-up only, auth off, with the reply's error only).
-
-Margin: none.
-
-Round 1: the call's principal per call (W0's `ctxPrin who ctx p`); the handle records its client,
-ready (`clientReady`: the token refresh reads `c.Auth`).
+`(*clientv3.authClient).RoleAdd` (`client/v3/auth.go`; translated for the auth plan's E2h). Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 
 @[expose] public section
 
@@ -27,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,16 +22,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `a.RoleAdd(ctx, ...)`: the request `.roleAdd name` linearized by the caller's update, or an
-error that settles nothing; the call's principal is its context's (`ctxPrin who ctx p`). -/
-def authClient.RoleAdd.spec : Prop :=
-  ∀ (a c : Loc) (γ : Cluster) (who : Principal) (name : GoString),
-  Call.Triple (a @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"RoleAdd")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authHandle a c γ who ∗ clientReady c) γ who [ #name]
-    (.roleAdd name)
+/-- `auth.RoleAdd(ctx, ...)` on the client's `*authClient` over a connection to `addr`
+(`authObjAtC`): `auth.remote.RoleAdd(ctx, &pb.AuthRoleAddRequest{Name: name}, auth.callOpts...)`, the error through `ContextError`: the call's answer (`authCallOut`), for
+a spec `Spec` the server registered for the method and the caller's persistent
+`□ ▷ attemptPre conn (GoInterface.ok ci) Spec m Q` at the request's model `m`. The strings it sends total at most `2 ^ 30`
+bytes (`strsSizeOk`; 2026-10-30: the request's encoding is below `grpcMsgMax`). -/
+abbrev authClient.RoleAdd.spec : Prop :=
+  ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (name : GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse) (Q : Unit → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleAdd" Spec ∗
+      □ ▷ attemptPre conn (GoInterface.ok ci) Spec name Q ∗
+      ⌜strsSizeOk [name]⌝ }}
+    (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"RoleAdd")) (Val #(GoInterface.ok ci))) (Val #name))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCallOut Q resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

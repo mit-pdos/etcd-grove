@@ -1,14 +1,9 @@
 /-
-## `idutil.lowbit(x, n)` (internal helper)
-
-Users: `NewGenerator`, `Next`. Mirrors the code: `x & (MaxUint64 >> (64 - n))`. Changes: unchanged
-in content. Margin: none (exact).
+`idutil.lowbit(x, n)` (`id.go`): the `n` low bits of `x`. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.idutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Defs
 
 @[expose] public section
 
@@ -16,26 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace IdUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.pkg.v3.idutil.Assumptions]
 
-/-- `lowbit(x, n)` keeps the `n` low bits of `x` (`1 ≤ n ≤ 64`; Go's shift by `64 - n`). -/
-def lowbit.spec : Prop :=
-  ∀ (x : w64) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil ∗
-      ⌜1 ≤ uint.nat n ∧ uint.nat n ≤ 64⌝ }}
-    (App (App (Val (@! go_etcd_io.etcd.pkg.v3.idutil.lowbit)) (Val #x)) (Val #n))
-  {{ RET #(x &&& (W64 (2 ^ 64 - 1) >>> (W64 64 - n))); True }}
+/-- `lowbit(x, n)` for `n ≤ 64` is `x & (2 ^ n - 1)` (`math.MaxUint64 >> (64 - n)`; Perennial's
+shifts do not truncate the count, so `n > 64`, whose `64 - n` wraps, would give `0`: excluded,
+the code calls it with `40` and `48`). -/
+abbrev idutil.lowbit.spec : Prop :=
+  ∀ (x n : w64), uint.Z n ≤ 64 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil }}
+    (App (App (Val (@! idutil.lowbit)) (Val #x)) (Val #n))
+  {{ RET #(x &&& W64 (2 ^ uint.nat n - 1)); True }}
 
 end spec
-end IdUtil
+
 end EtcdGrove
 end Perennial

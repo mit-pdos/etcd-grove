@@ -1,13 +1,10 @@
 /-
-`(*raftNode).apply()` (`raft.go:416-418`): `r.applyc`. **Users**: `run`'s `select`
-(`server.go:840`, through `applyc_recv`). **Changes**: over `rnApplyc`. **Margin**: none.
+`(*raftNode).apply()` (raft.go): the channel `applyc`.
+Lean-first (no Rocq counterpart); see `InvRaftNode.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
 
@@ -15,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,16 +21,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-def raftNode.apply.spec : Prop :=
-  ∀ (r : Loc) (γ : Names) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode r γ id n }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.raftNode.ty @!!
-      go!"apply")) (Val #()))
-  {{ (ch : Loc), RET #ch; rnApplyc r ch }}
+/-- `r.apply()` returns `applyc`, the SPSC channel of the loop's payloads. -/
+abbrev raftNode.apply.spec : Prop :=
+  ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r }}
+    (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"apply")) (Val #()))
+  {{ (c : Loc), RET #c; isRNApplyc E γ c }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

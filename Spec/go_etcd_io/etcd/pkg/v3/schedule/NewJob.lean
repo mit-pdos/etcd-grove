@@ -1,21 +1,10 @@
 /-
-`schedule.NewJob(name, do)` (`schedule.go`).
-
-**Users**: `server.go:841` (`run`: `NewJob("server_applyAll", func(context.Context) { s.applyAll(&ep,
-&ap) })`), `kvstore.go:147, 201, 236` (mvcc's compaction and barrier jobs). Snippet `ReqFifoChain`.
-
-**Proof sketch**: the `job` value `{name, do}` boxed as a `Job` interface; its `Do` is
-`job.Do.spec`, which calls `do` under `funcOk`.
-
-**Changes**: restated over `funcOk`/`jobOk` (was `jobIs γ j Pre Prev Post` over saved names).
-
-**Margin**: the name is not modelled (`job.Name.spec` returns it).
+`schedule.NewJob` (`pkg/schedule/schedule.go`), translated with its body. Lean-first (2026-10-13,
+mvcc's compaction, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 
 @[expose] public section
 
@@ -23,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schedule
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,14 +22,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-/-- **A job** from a closure: its `Do` is the closure's contract. -/
-def NewJob.spec : Prop :=
-  ∀ (name : GoString) (f : GoFunc) (Pay P Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ funcOk f Pay P Q }}
+/-- `NewJob(name, do)` of a closure `do` with a job's triple (`jobFnSpec`: with the run token,
+`Pre` and `Prev`, for any context, returns the token and `Post`): a job (`jobIs`: the
+`job{name, do}` struct as a `Job` interface value, whose `Do` calls `do`). -/
+abbrev schedule.NewJob.spec : Prop :=
+  ∀ (γ : schedule.SchedNames) (name : GoString) (f : GoFunc) (Pre Prev Post : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ schedule.jobFnSpec γ f Pre Prev Post }}
     (App (App (Val (@! go_etcd_io.etcd.pkg.v3.schedule.NewJob)) (Val #name)) (Val #f))
-  {{ (j : GoInterface), RET #j; jobOk j Pay P Q }}
+  {{ (j : GoInterface), RET #j; schedule.jobIs γ j Pre Prev Post }}
 
 end spec
-end Schedule
+
 end EtcdGrove
 end Perennial

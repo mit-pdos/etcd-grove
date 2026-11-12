@@ -1,28 +1,14 @@
 /-
-## `(*batchTxBuffered).UnsafePut(bucket, key, value)` (`batch_tx.go:402-405`): translated
-
-**Users.** mvcc's compaction keys (`store.go:42, 56`), the schema's writers (4b: meta, lease, auth,
-membership, alarm, version), the hooks' consistent index and configuration (`cindex.go`,
-`confstate.go`, through the `UnsafeReadWriter` value). Snippet `parts.go`.
-
-**Proof sketch.** `batchTx.UnsafePut` (`unsafePut`: `t.tx.Bucket(name)`, nil is `lg.Fatal`; bbolt's
-`Put` (4c, under its size bound `bboltEntryMax`; its errors, an empty or oversized key, are
-`lg.Fatal`): the bbolt transaction's data, the batch image, at `put`; `pending++`), then the write
-buffer's `put` (the bucket marked non-sequential: sorted and deduplicated at the write-back). The
-cell's part agrees with the session's image (`beSess_cur`) and moves with it; a cell the session
-publishes, or one no client tracks, may change (`writable`). In a safe-range bucket the key is new
-and above every key (`Sess.fresh`): the read buffer and bbolt's read transaction then hold disjoint
-keys, the buffer's above (what `rdRange` assumes), and a non-blocking defragmentation's catch-up
-copies it.
-
-**Changes** (from `specs-ref`'s, `P.SB` premises over `BSess`): over the session and the cell's part;
-`bboltEntryMax` (4c's bound) in place of `keySized`.
-
-**Margin.** None.
+`UnsafePut` (the backend). `t.UnsafePut(bucket, key, value)` under the lock: bbolt's writer and the write buffer get the
+entry (a key of `1..MaxKeySize` bytes, read-only for good; in a safe-range bucket a key above the
+committed keys (the backend-compaction stage's thin-view round; until then the writer's contents);
+a value above `MaxValueSize` is fatal). A key may be put again in one session.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -30,30 +16,43 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafePut(bk, k, v)`**: the batch image at `k := v` in `bk`'s bucket; the cell's part
-moves with it. -/
-def batchTxBuffered.UnsafePut.spec : Prop :=
-  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (G : Fp) (C : Image) (bk : GoInterface)
-    (bi : BktInfo) (ks vs : GoSlice) (k v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ beCur γ G C ∗ ⌜G (.key bi.name k)⌝ ∗
-      writable γ F (Fp.key bi.name k) ∗ ⌜bi.safe = true → S.fresh bi.name k⌝ ∗
-      ⌜k.length + v.length ≤ Bbolt.bboltEntryMax⌝ ∗ ks ↦*□ k ∗ vs ↦*□ v }}
-    (App (App (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafePut")) (Val #bk)) (Val #ks)) (Val #vs))
-  {{ RET #(); beSess γ q F (S.put bi.name k v) ∗ beCur γ G (C.put bi.name k v) }}
+/-- `t.UnsafePut(bucket, key, value)` under the lock: bbolt's writer and the write buffer get the
+entry (a key of `1..MaxKeySize` bytes, read-only for good: both keep the slices; in a safe-range
+bucket, a key above the committed keys; a hook's own key (`P.hk`) with the client's half of them, `hkPut`, which it
+gives back updated; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's part of that
+bucket, `rbPut` (since decision 3, 2026-11-01, of its bucket only; a holder of `rbOwn` splits it with `rbPutAll_split`), likewise; a compaction key (`fkKey`, the backend-compaction stage,
+2026-10-29) with the client's half of their flag, `fkPut`, given back at some value: the code
+raises it to at least `1`, which the post does not say, no caller needing it), and a well-formed
+value (`P.FV`, question 4, 2026-10-29: so the backend's bit `fkV` stays true); in a safe-range
+bucket not a deleted entry (`st.dl`; the user's decision, 2026-11-04, probe M2: the deleted entries
+stay missing from the writer's contents). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
+exit: the call does not return (`nonissues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
+again in one session: the write-back keeps the last value (the fork's fix, etcd-io/etcd#21987;
+until 2026-10-18 the premise `kb ∉ … ∨ wbDupOk st bi.id` excluded it,
+`issues/etcd-backend-duplicate-put-stale-read.md`). -/
+abbrev backend.batchTxBuffered.UnsafePut.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
+  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
+  sint.Z st.pend + 1 < 2 ^ 58 →
+  (P.SB bi.name = true → (∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) ∧
+    st.dl.lookup (bi.name, kb) = none) →
+  (fkKey bi.name kb → P.FV vb) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S ∗ rbPut γ P bi.name st.S ∗ fkPut γ bi.name kb }}
+    (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafePut")) (Val #bk)) (Val #key)) (Val #value))
+  {{ RET #(); batchLocked γ P b (st.put bi kb vb false) ∗ hkPut γ P bi.name kb (st.put bi kb vb false).S ∗
+      rbPut γ P bi.name (st.put bi kb vb false).S ∗ fkPut γ bi.name kb }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

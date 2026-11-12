@@ -1,17 +1,15 @@
 /-
-## `Progress.BecomeSnapshot(i)`
+Port of election_proof/spec_Progress__BecomeSnapshot.v (feb5c73d4).
 
-**Users.** `maybeSendSnapshot` (`raft.go:686`): R2. Snippet `raftconf/tracker.go`
-(`ReqProgressFlow`).
-
-**Proof sketch.** `ResetState(StateSnapshot)`; the pending snapshot, `Next`, `sentCommit`.
-**Changes.** Over the model. **Margin.** None.
+Lean notes:
+* Rocq's `own_Progress pr p` with `p : progress.t` is `ownProgress pr p` with
+  `p : Progress` (`Defs.lean`); `progress_become_snapshot` is `progressBecomeSnapshot`.
+* The reference `Progress__BecomeSnapshotⁱᵐᵖˡ` is to the Lean generated code
+  `tracker.Progress.BecomeSnapshot.impl`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -19,26 +17,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Waits for snapshot `i` to be applied by the peer. -/
-def Progress.BecomeSnapshot.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV) (i : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"BecomeSnapshot")) (Val #i))
-  {{ RET #(); progressOwn p (P.becomeSnapshot i) }}
+/-- `pr.BecomeSnapshot(snapshoti)` moves a `Progress` into `StateSnapshot` and records
+the pending snapshot index (`tracker.Progress.BecomeSnapshot.impl`,
+`Code/go_etcd_io/raft/v3/tracker.lean`):
+
+    pr.ResetState(StateSnapshot)
+    pr.PendingSnapshot = snapshoti
+    pr.Next = snapshoti + 1
+    pr.sentCommit = snapshoti
+
+Like `BecomeReplicate`, it says nothing about votes, terms or roles, so the model does
+not see it. The new record is `progressBecomeSnapshot p snapshoti` (`Defs.lean`);
+`matched` is untouched (Match discipline, notes/raft-replication-model.md). -/
+abbrev tracker.Progress.BecomeSnapshot.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress) (snapshoti : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownProgress pr p }}
+    (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"BecomeSnapshot"))
+      (Val #snapshoti))
+  {{ RET #(); ownProgress pr (progressBecomeSnapshot p snapshoti) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

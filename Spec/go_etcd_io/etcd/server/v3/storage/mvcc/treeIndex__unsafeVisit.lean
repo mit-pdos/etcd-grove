@@ -1,12 +1,9 @@
 /-
-`(*treeIndex).unsafeVisit(key, end, f)` (`index.go:95`), the lock held: `f` on the key indexes from
-`key` (below `end` if non-empty: `idxEnts`) in order (1g's `AscendGreaterOrEqual`), until it returns
-false. `f`'s effects are the caller's family `I vis b` (`vis` the visited, `b` the last answer).
-Internal (`Revisions`, `CountRevisions`, `Range`). **Changes**: the visit as a prefix of `idxEnts`.
+`treeIndex.unsafeVisit` (`index.go`). Lean-first (no Rocq counterpart); see `InvIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 
 @[expose] public section
 
@@ -14,34 +11,44 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
+/-- The triple of the visitor `f` of `unsafeVisit`, over the entries `vis` it may visit: on the
+`i`-th, lent its key index (`ownEntry`, given back) with its item fact, under an invariant
+`P i`; it returns whether to go on (`Q` once it stops). -/
+def mvcc.visitSpec (f : GoFunc) (vis : List mvcc.IdxEntry) (q : Qp) (P : Nat → IProp GF)
+    (Q : IProp GF) : IProp GF :=
+  iprop(∀ (i : Nat) (z : mvcc.IdxEntry), ⌜vis[i]? = some z⌝ -∗
+    {{ P i ∗ mvcc.ownEntry z q ∗ mvcc.kiItemIs z.1 (z.1, z.2.1) }}
+      (App (Val #f) (Val #z.1))
+    {{ (cont : Bool), RET #cont; mvcc.ownEntry z q ∗ if cont then P (i + 1) else Q }})
 
-/-- `ti.unsafeVisit(key, end, f)`. -/
-def treeIndex.unsafeVisit.spec : Prop :=
-  ∀ (ti : Loc) (dq : DFrac) (M : IndexM) (key endk : GoSlice) (k e : GoString) (dk de : DFrac)
-    (f : GoFunc) (l : List (GoString × KeyIndexM)) (I : List (GoString × KeyIndexM) → Bool → IProp GF),
-  {{ pkgInit ∗ treeOwn ti dq M ∗ ⌜idxEnts M k e l⌝ ∗ key ↦*{dk} k ∗ endk ↦*{de} e ∗ I [] true ∗
-      □ (∀ (vis : List (GoString × KeyIndexM)) (p : Loc) (k' : GoString) (ki : KeyIndexM)
-          (Φ : val → IProp GF),
-        ⌜vis ++ [(k', ki)] <+: l⌝ -∗ I vis true -∗ ownKi p k' ki dq -∗
-        ▷ (∀ b : Bool, I (vis ++ [(k', ki)]) b -∗ ownKi p k' ki dq -∗ Φ #b) -∗
-        WP (App (Val #f) (Val #p)) {{ Φ }}) }}
-    (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"unsafeVisit")) (Val #key)) (Val #endk)) (Val #f))
-  {{ RET #(); treeOwn ti dq M ∗ key ↦*{dk} k ∗ endk ↦*{de} e ∗
-      ∃ (vis : List (GoString × KeyIndexM)) (b : Bool), I vis b ∗ ⌜vis <+: l ∧ (b = true → vis = l)⌝ }}
+instance mvcc.visitSpec_persistent (f : GoFunc) (vis : List mvcc.IdxEntry) (q : Qp)
+    (P : Nat → IProp GF) (Q : IProp GF) : Persistent (mvcc.visitSpec f vis q P Q) := by
+  unfold mvcc.visitSpec; infer_instance
+
+/-- `ti.unsafeVisit(key, end, f)` (under the lock, on the tree at any fraction): `f` is called
+on the entries of `[key, end)` (no bound if `end` is empty) in key order, until it stops. -/
+abbrev mvcc.treeIndex.unsafeVisit.spec : Prop :=
+  ∀ (ti t : Loc) (L : List mvcc.IdxEntry) (q : Qp) (key endk : GoSlice) (k e : GoString)
+    (f : GoFunc) (P : Nat → IProp GF) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      ti.[treeIndex, go!"tree"] ↦□ t ∗ mvcc.ownTree t L q ∗ key ↦*□ k ∗ endk ↦*□ e ∗ P 0 ∗
+      mvcc.visitSpec f (mvcc.rangeEntries L k e) q P Q }}
+    (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"unsafeVisit")) (Val #key))
+      (Val #endk)) (Val #f))
+  {{ RET #(); mvcc.ownTree t L q ∗ (Q ∨ P (mvcc.rangeEntries L k e).length) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

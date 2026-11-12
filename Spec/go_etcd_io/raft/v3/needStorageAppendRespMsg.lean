@@ -1,15 +1,10 @@
 /-
-## `needStorageAppendRespMsg(r, rd)` (internal)
-
-`acceptReady` (`rawnode.go:420`). Mirrors the code: unstable entries (in progress or next, R3's
-`hasNextOrInProgressUnstableEnts`), or a non-empty snapshot in the `Ready`. **Changes.** New;
-round 1: exact, over the opened struct (`acceptReady` runs with the realization open).
+`needStorageAppendRespMsg(r, rd)` (`rawnode.go:210`), Lean-first (2026-10-16, stage R5 of the
+raft v3.7 retarget; the old proof stepped through it inline in `RawNode.acceptReady`'s).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 
@@ -17,26 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether the batch needs a storage-append acknowledgement. -/
-def needStorageAppendRespMsg.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) (rd : go_etcd_io.raft.v3.Ready) (os : Option Snapshot),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ snapOpt rd.Snapshot' os }}
-    (App (App (Val (@! go_etcd_io.raft.v3.needStorageAppendRespMsg)) (Val #r)) (Val #rd))
-  {{ (b : Bool), RET #b; raftOpen r γ id o ∗
-      ⌜b = decide (o.log.us.ents ≠ [] ∨ ∃ s, os = some s ∧ s.index ≠ W64 0)⌝ }}
+/-- `needStorageAppendRespMsg(r, rd)` is `r.raftLog.hasNextOrInProgressUnstableEnts() ||
+!IsEmptySnap(rd.Snapshot)`: whether the log has unstable entries or the `Ready` hands out a snapshot
+(D22 S-d3a, 2026-10-21: `rd.Snapshot` `nil` or holding a non-empty snapshot `o`, at any fraction;
+until then `nil` only). Stated on what it reads of the raft struct, the `raftLog` field and the log
+(`RawNode.acceptReady` holds the struct open, `ownRaftPhysReady`, so not `ownRaftPhysCV`). -/
+abbrev needStorageAppendRespMsg.spec : Prop :=
+  ∀ (r l : Loc) (ls : LogState) (rd : Ready) (dq : DFrac) (o : Option SnapshotM),
+  (∀ sv, o = some sv → sv.Metadata'.Index' ≠ W64 0) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o }}
+    (App (App (Val #(functions needStorageAppendRespMsg [])) (Val #r)) (Val #rd))
+  {{ RET #(decide (ls.uents ≠ []) || o.isSome);
+      r.[raft, go!"raftLog"] ↦ l ∗ ownRaftLog l ls ∗ snapOpt rd.Snapshot' dq o }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

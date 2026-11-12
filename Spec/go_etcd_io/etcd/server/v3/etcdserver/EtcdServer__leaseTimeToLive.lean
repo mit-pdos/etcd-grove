@@ -1,80 +1,23 @@
 /-
-## `(*EtcdServer).leaseTimeToLive(ctx, r)` (internal helper; untranslated, an assumed contract)
-
-Users: `LeaseTimeToLive` (`v3_server.go:713`). The code: on the leader, `waitAppliedIndex`, the
-lessor's `Lookup` (3c: a lease of the member's lease table, its remaining TTL, granted TTL and keys),
-`ErrLeaseNotFound`, `ErrLeaderChanged` if the lessor was demoted meanwhile; else forwarded to the
-leader (`waitLeader`, `leasehttp.TimeToLiveHTTP`: the leader's answer, 3c's boundary), `ErrTimeout`/
-`ErrCanceled` at the context's end. **Assumes** the leader's peer URLs are etcd members' (the
-forwarding path panics on a malformed peer reply: `issues/etcd-leasehttp-timetolive-nil-{response,
-header}-panic.md`). Changes: round 1, the answer is justified at a state `σ₁` the answering lessor
-reflects, at or after the caller's bound `σ₀` (and at every state after `σ₁`: the lease tables and
-the history are kept), not at `σ₀` itself (provability F4). Margin: the TTLs; the key set (W0's
-mismatch: `le.Keys()` may see a transaction's attachments half done, `req/`).
-
-Changes: verify-round (A6-provability F1): the success reply has its header set (`srvHdrReply`, `replyHdrOwn`: the apply's `newHeader()`, `s.newHeader()`, `ResponseHeader{}`, or the leader's through `leasehttp`, whose decoded reply must carry one: requested of lease-auth), so the gRPC handler's `hdr.fill(resp.Header)` cannot panic.
-
-Changes: verify-round, second pass (lease-auth's request): the forwarding path gets the reply from `TimeToLiveHTTP`'s `ltlReply` through `ltlReply_replyHdr` (header set: `srvHdrReply`); its premise `leasePeerURL (url ++ LeaseInternalPrefix)` for each of the leader's peer URLs is the trusted deployment premise, taken here from the membership view's member (every member's peer URL set was reserved by `cluster_alloc`/`urls_reserve`, whose hosts serve etcd's peer handler): requested of lease-auth as a law relating it to the reserved addresses.
-
-Changes: verify-round (repair3-boot: the relay's server-core request): at the endpoint `ep` the
-member serves (`srvAt s γ ep`, 2e's) with the caller's optional bound (`srvLeaseLbOpt γ ep vi`), the
-success outcome also gives `srvLeaseFact`'s `TimeToLive` row in the form the caller converts:
-`soleMember γ -∗` an answer read from a table `j ≥ i` of a state `σ₂` the cluster reached
-(`etcdLb γ σ₂`, `σ₂.leaseAnsAt j`), with the member's view of `j`. `LeaseTimeToLive` takes it to the
-state its update fires at by `etcdLb_reach` (the lease tables are kept). **Why it is true** (under
-`soleMember γ` the member `id` that `srvAt` binds `ep` to is the cluster's only voter, so its own
-leader whenever there is one, and no `MemberUpdate` changes its URLs: none has a `urlsRight`):
-- on the leader path, `waitAppliedIndex` then `s.lessor.Lookup(id)` reads member `id`'s lessor at
-  its current table `j`, at or past every view `i` of that member (`srvAt`'s realization; the lessor
-  only moves forward); `nil` is `ErrLeaseNotFound` (`t id = none`), a lease is the reply with
-  `ID = r.ID` (`t id ≠ none`); `Demoted` is `ErrLeaderChanged`, not `leaseAnsRes`;
-- on the forwarding path, `waitLeader` returns member `id` itself; for each `u ∈ leader.PeerURLs`
-  (the membership view's record of `id`, a member of an applied state: `etcdLb`), 2e's
-  `leaseURLOf_intro` (with `srvAt`'s `srvEp` and this contract's deployment premise
-  `leasePeerURL (u ++ LeaseInternalPrefix)`) gives `leaseURLOf γ ep (u ++ …)`; `TimeToLiveHTTP`'s
-  `ltlView` then gives `j ≥ i`, `σ₂ = σ₀`, the view of `j` and whether `id` is in table `j`: a `200`
-  is `found` (`ltlReply`: `ID = id`), `ErrLeaseNotFound` (a `404`) is not found; another error is
-  retried or is `ErrTimeout`/`ErrCanceled` (`srvIndef`).
-**The deployment premise is not met by this repository's starters** (repair3-boot):
-`examples/lib/etcdstart` serves only `s.RaftHandler()` on the peer address, so a forwarded request
-gets a `404`, which `TimeToLiveHTTP` reports as `ErrLeaseNotFound`. A sole member restarted after a
-stop (a new server object at the same `ep`, in the same generation) and asked before its first
-election would answer `ErrLeaseNotFound` for a lease a client saw at `ep`: the row is false there.
-The fix is the harness's (serve `s.LeaseHandler()` at `/leases` and `/leases/internal` beside the raft
-handler, as `etcdhttp.newPeerHandler` does), with a spec of `LeaseHandler` that makes
-`leasePeerURL` derivable (open questions 3.2, C24).
-
-Changes: verify-round F1, F3 (`verify/F-client-api.md`). F1: the row was gated on `soleMember γ`
-alone, so the trusted contract was false under `etcdstart` (the case above). It is now gated on
-`soleMember γ ∗ peerLeaseServed γ` (W0: every member's peer URLs serve its own lessor's lease
-handler; 2e's `peerLeaseServed_intro` gives it for a one-member cluster only under 4b's deployment
-premise `leasePeerURL` of the member's peer URLs, which a starter meets by serving
-`s.LeaseHandler()` on the peer address, as `etcdhttp.newPeerHandler` does). So the contract is true
-of every starter: under `etcdstart` the gate cannot be met (no `leasePeerURL` there), and the base
-outcome (`Step` at `σ₁`, `leaseStep`'s not-found admissible at table 0) holds. The forwarding
-path's sketch now: from the gate, 2e's `peerLeaseServed_url` (at the leader's record in the
-membership view, a member of an applied state, `srvAt`'s `srvEp`) gives `leaseURLOf γ ep (u ++ …)`
-for each `u ∈ leader.PeerURLs`, and 4b's `leaseURLOf_peerURL` its `leasePeerURL`. F3:
-`TimeToLiveHTTP` takes the caller's view bound: this contract passes its own `srvLeaseLbOpt γ ep vi`
-(`Leasehttp.leaseLbOpt`, persistent, held from the call's start, so at every forwarding attempt),
-and `ltlView γ ep vi` with that `leaseURLOf` gives `j ≥ i`, `σ₂ = σ₀`, the view of `j` and whether
-`id` is in table `j`. The leader path is unchanged.
+`s.leaseTimeToLive(ctx, r)` (`v3_server.go`), names only: a trust-boundary contract. Lean-first (no Rocq counterpart); the lease-read plan
+(`notes/lease-read-plan.md`, 2026-10-31), vocabulary `LeaseRead.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -83,32 +26,88 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- An answer of W0's `leaseTimeToLive` step at a state `σ₁` the cluster reached at or after
-the caller's bound `σ₀`, and at every state after it, or an unsettled error. The caller fires its
-update at the return. With the caller's view bound `i` of `ep`'s member, and in a cluster that
-never had another member (`soleMember γ`) and whose members' peer URLs serve their lessors' lease
-handlers (`peerLeaseServed γ`), the answer was read from a table `j ≥ i` of that member's (see the
-Changes above). -/
-def EtcdServer.leaseTimeToLive.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ep : GoString) (vi : Option Nat) (ctx : GoInterface) (p : Principal)
-    (r : Loc) (dq : DFrac) (id : Int) (keys : Bool) (σ₀ : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvAt s γ ep ∗ srvLeaseLbOpt γ ep vi ∗ Context.ctxOk ctx ∗ threadTok ∗ etcdLb γ σ₀ ∗
-      ClientV3.reqOwn r dq (.leaseTimeToLive id keys) }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"leaseTimeToLive")) (Val #ctx)) (Val #r))
+/-- **`s.leaseTimeToLive(ctx, r)`** (names-only, a contract; the lease-read plan's S1, the user's
+choice), any goroutine, at a context, with the request side's and the read side's server facts, its
+lessor (`srvLessorRd`), the lessor's reader pool (`lessorRdPool`; a reader slot of the lessor's
+lock until the lease-src plan, 2026-11-02: on the leader the slot is borrowed for `Lookup` and given
+back before `Remaining()`, `Keys()` and `Demoted()`, which take the token one after another, each
+releasing its lock on return, `v3_server.go:636-675`; a follower takes no lessor lock) and a thread
+token, reading `r`: on
+`nil`, a fresh response (owned) with a fresh header (owned, not nil: the leader's
+`&pb.ResponseHeader{}`, under `// TODO: fill out ResponseHeader`; a follower's decoded by
+`proto.Unmarshal` from the leader's reply, whose header etcd's lease handler sets, empty too;
+stated 2026-11-01 for the gRPC handler's `fill`, `notes/lease-grpc-plan.md`; a reply whose
+response has no header panics that `fill`, `issues/etcd-leasehttp-timetolive-nil-header-panic.md`); on an error, no response and one of the
+server's or the lessor's package errors (`applyErrIs`: `ErrStopped`, `ErrTimeoutWaitAppliedIndex`,
+`ErrLeaseNotFound`, `ErrLeaderChanged`, `ErrNoLeader`, `ErrTimeout`, `ErrCanceled`). The response
+is about the asked lease (`ID`; stated 2026-11-02 for the closed lease example,
+`notes/lease-ex-plan.md`): the leader's literal has `ID: r.ID`, and a follower's
+`leasehttp.TimeToLiveHTTP` returns only a reply whose `LeaseTimeToLiveResponse.ID` is the asked ID
+(`lease: TTL id mismatch` otherwise, `http.go:274`). Nothing is stated of its TTL or keys: on the leader it looks the lease up again (`Lookup`,
+`Remaining`, `TTL`, `Keys`, `Demoted`, after `waitAppliedIndex`), on a follower it asks the leader
+(`waitLeader`, `leasehttp.TimeToLiveHTTP` to each of its peer URLs, until the request's timeout),
+so the keys are another lessor's or another lookup's (`issues/etcd-lease-timetolive-keys-toctou.md`).
+**Its assumption on the cluster**, the premise `leasePeersOk` (`LeaseRead.lean`; until the axiom
+review of 2026-11-02, `notes/axiom-review/lease-ttl-id.md`, it was only this docstring's, and a
+program serving a peer address with an empty `200` got a proof of a panicking call): whatever
+serves `/leases/internal` at the leader's peer URLs answers 200 only with a `LeaseTimeToLiveResponse`
+and its header set, as etcd's lease handler (`leasehttp.NewHandler`) does; a 200 reply without the
+former panics (`issues/etcd-leasehttp-timetolive-nil-response-panic.md`). A peer listener that does
+not serve that path (the examples' members serve only the raft handler, `examples/lib/etcdstart`'s
+`NewMember`) answers 404, which `TimeToLiveHTTP` reads as `ErrLeaseNotFound`: an error the triple
+allows, though the lease may exist (seen 2026-11-02, `examples/etcd/lease/leasekv_cluster_test.go`).
+
+**What the answer says of the lessor `γl`** (the lease-expiry plan's E2, revision 5, the user's,
+2026-11-05), at the caller's lower bound `m` of its history (`lessorLb γl m`), under the lease-TTL
+row (`leaseTTLRow s γl`: `s` is its cluster's only member, no membership change is admitted, in its
+first start): a found lease's `GrantedTTL` is its TTL at an index `≥ m`, or the lease is absent from
+`m` on; `ErrLeaseNotFound` (`errIsTrue` against it) means it is absent from `m` on. Why it is true of
+Go (`v3_server.go:636-696`): *the leader path* (`isLeader()` true at the check), without the row:
+`Lookup` runs after the check, at an index `≥ m` (the caller's `lessorLb γl m` and the history's
+monotonicity); found, `GrantedTTL` is `le.TTL()`, the lease's `ttl` field, written only by `Grant`
+before the lease enters the map (`lessor.go:301-302`; `ttlTie`); not found, `Lookup` returned `nil`.
+*The forwarded path* (`isLeader()` false), under the row: `s`'s first start (its node made by
+`StartNode`, `nodeStartedFresh`, so its log began as the bootstrap's configuration changes, and its
+lessor's history begins empty) applies no lease before raft stores its leadership (`r.lead` is
+stored from the `Ready` before its committed entries are sent to the apply loop,
+`raft.go:190-202,237`), and a sole voter (every committed configuration `{mid}`, `confAt`) keeps
+it once it has it: CheckQuorum counts the leader itself active (raft `raft.go:967-969,1299-1310`),
+the shutdown's leadership transfer is skipped for a single voter (`server.go:1258,1316`),
+`MoveLeader` rejects a transferee that is not a member (`server.go:1268-1271`) and raft ignores a
+transfer to itself (`raft.go:1667-1669`), no other member exists to send a higher term or a
+snapshot, and the trusted transport contract (decisions.md D21b (A)) delivers only the cluster's
+members' messages; so at the check's index (`≥ m`) the lessor had no lease at all, whatever the
+forwarded reply (`404`, which the examples' raft-only peer listeners answer,
+`etcdstart/common.go:172`, or another answer). Hence the found arm's disjunction and the not-found
+arm (Go's returned errors are leaves: `errIsTrue` with `ErrLeaseNotFound` means `err` is it).
+Without the row both are false (a follower forwards to another member's lessor; a restarted member
+applies replayed grants before its election and forwards: review round 3, R7). A change admitting
+configuration changes or restarts with leases must revisit this spec. -/
+abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
+  leasePeersOk →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
+    (v : etcdserverpb.LeaseTimeToLiveRequest) (m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
+      context.isContext ctx cd ∗ lease.lessorRdPool γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      lease.lessorLb γl m ∗ r ↦{dq} v }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
-      ClientV3.reqOwn r dq (.leaseTimeToLive id keys) ∗
-      ((∃ res σ₁, etcdLb γ σ₁ ∗
-          ⌜Reach σ₀ σ₁ ∧ ∀ σ, Reach σ₁ σ → Step p (.leaseTimeToLive id keys) σ σ res⌝ ∗
-          (match vi with
-           | some i => (iprop(⌜¬ ClientV3.leaseAnsRes res⌝ ∨
-               (soleMember γ ∗ peerLeaseServed γ -∗ ∃ (j : Nat) (σ₂ : State),
-                 ⌜i ≤ j ∧ σ₂.leaseAnsAt j (.leaseTimeToLive id keys) res⌝ ∗ etcdLb γ σ₂ ∗
-                 leaseViewLb γ ep j)) : IProp GF)
-           | none => iprop(True)) ∗
-          srvReply srvHdrReply res resp err) ∨
-       (⌜resp = null⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
+      r ↦{dq} v ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
+          ⌜w.Header' ≠ null⌝ ∗ ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+          □ (leaseTTLRow s γl -∗
+              (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+              lease.leaseAbsentFrom γl m v.ID')) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s γl -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

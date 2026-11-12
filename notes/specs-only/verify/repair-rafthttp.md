@@ -1,6 +1,6 @@
 # Repair: group `rafthttp` (2026-11-09)
 
-Owned: `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/`, `examples/specreq/rafthttp/`.
+Owned: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/`, `examples/specreq/rafthttp/`.
 Worked from the 2f parts of `A8-server-boot-transport-{provability,completeness}.md`, A5's F1/F4 as
 far as rafthttp is a user, and brief item 3 (sentinel errors).
 
@@ -92,7 +92,7 @@ server's `r.transport.(rafthttp.Pausable)` assertion and the calls go through.
 
 ## Requests to raft-conf-pb
 
-1. `Spec/go_etcd_io/raft/v3/raftpb/Api.lean`: add a law turning a decoded or cloned message into
+1. `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/Api.lean`: add a law turning a decoded or cloned message into
    `msgRecv`. In shape: `msgPts p (own 1) m ∗ <2a's fresh-capacity fact for raftpb.Message at p> ⊢
    msgRecv p m`, or directly from `Proto.msgAt raftpb.Message.ty p (own 1) c ∗ ⌜msgIs c m⌝ ∗ <fact>`.
    - Who needs it: `messageDecoder.decodeLimit` (`proto.Unmarshal`), `msgAppV2Decoder.decode`
@@ -101,7 +101,7 @@ server's `r.transport.(rafthttp.Pausable)` assertion and the calls go through.
    - This is A5 F4's step 2. The fact itself is grpc-v3rpc's: `Unmarshal`/`Clone` posts with the
      repeated fields' capacity owned, A5 F4 step 1. The coordinator should route that to
      grpc-v3rpc if raft-conf-pb does not.
-2. `Spec/go_etcd_io/raft/v3/raftpb/MessageType__String.lean`: restore `MessageType.String.spec` as
+2. `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/MessageType__String.lean`: restore `MessageType.String.spec` as
    a trust-boundary spec ("returns some string"), per A5 F1. rafthttp's sketches cite it.
 3. Optional, for convenience: a law `msgRecv p m ⊢ msgPts p (own 1) m ∗ (msgPts p (own 1) m -∗
    msgRecv p m)`. rafthttp's `isLinkHeartbeatMessage`/`isMsgApp`/getters take `msgPts`. It can be
@@ -144,7 +144,7 @@ server's `r.transport.(rafthttp.Pausable)` assertion and the calls go through.
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp`: **OK (105
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp`: **OK (105
 modules)**. The only warning is the old unused-`id` warning in `raftOk`. `go vet
 ./specreq/rafthttp/...`: clean. No other directory references the removed names (`pbEncodes`,
 rafthttp's `imgBytes`).
@@ -201,7 +201,7 @@ No Go bug found.
 
 ### Requests to backend-schema (pbutil)
 
-- `Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustUnmarshalMessage.lean`: give `Proto.mergeDst t p c`
+- `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustUnmarshalMessage.lean`: give `Proto.mergeDst t p c`
   (with `norm c = c`), as 2a's `Unmarshal.spec` now does, in place of `msgAt t p (own 1) c`.
   - Its body is `proto.Unmarshal`, so this follows directly.
   - Who needs it: rafthttp's `msgAppV2Decoder.decode`, whose full frame is

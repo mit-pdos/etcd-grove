@@ -1,23 +1,15 @@
 /-
-## `newTokenProviderSimple(lg, indexWaiter, TokenTTL)` (internal helper)
-
-**Users.** `NewTokenProvider` (`simple`).
-
-**Proof sketch.** A fresh `tokenSimple` with an empty token map (so every token it will hold is one an `authnCtx` assigned: `tokenUser γ`), the waiter (`waiterOk`: `isValidSimpleToken`'s receive), the TTL (`enable` replaces a non-positive one); no thread token: the TTL keeper goroutine `enable` starts (`go simpleTokenKeeper.run()`) runs on its fork's own (`wp_fork`), and `disable` stops and waits for it.
-
-**Changes.** The old spec (`simpleOk`, its ghost map) restated as the provider contract. Verify
-round (A9 3d F7): the waiter gated on `R`, which `info` needs (`□ R`).
-Changes: verify-round (server-core's RR4 request): no `threadTok` premise (the keeper's goroutine
-has its fork's token; the constructor only allocates).
-
-**Margin.** Root tokens may collide: not `rootTokOk` (`rt = false`).
+`newTokenProviderSimple(lg, indexWaiter, TokenTTL)` (`server/auth/simple_token.go`): the simple
+token provider's constructor, for `NewTokenProvider`. Lean-first (no Rocq counterpart); the auth
+plan's E2g (2026-10-25). Until E2g its proof was `tokenSimple_new` (S5e, `TokenKeeperRun.lean`),
+which takes a positive TTL and the index waiter's contract; this statement takes neither, so that
+`NewTokenProvider`, whose TTL and waiter are its caller's, can call it: the provider's facts are
+given for a positive TTL only, and its index waiter as the field's value (`tokenSimple_new`
+derives the old statement).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-public import Spec.go_uber_org.zap.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.TokenSimpleAdmin
 
 @[expose] public section
 
@@ -25,27 +17,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`newTokenProviderSimple(lg, iw, ttl)`**: a provider of the cluster's simple tokens. -/
-def newTokenProviderSimple.spec : Prop :=
-  ∀ (lg : Loc) (iw : GoFunc) (ttl : w64) (γ : Cluster) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ waiterOk iw R }}
+/-- `newTokenProviderSimple(lg, iw, ttl)`: a provider `p` whose index waiter is `iw` (read-only);
+for a positive TTL, under fresh names, the provider's read-only facts (`simpleOk`: its logger, not
+nil, `zap.NewNop()`'s for a nil `lg`, and its mutex with the lock invariant: no token, no keeper),
+the admin side's share (`simpleAdmin`, no keeper) and the authority over the rights to issue tokens
+(`γf`, empty). For a TTL not positive nothing is promised beyond the waiter (the lock invariant
+records a positive TTL, which the keeper's `run` needs). -/
+abbrev auth.newTokenProviderSimple.spec : Prop :=
+  ∀ (lg : Loc) (iw : GoFunc) (ttl : time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg))
       (Val #iw)) (Val #ttl))
-  {{ (p : Loc), RET #p;
-      tokenProviderAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p) γ R false }}
+  {{ (p : Loc), RET #p; auth.tsF go!"indexWaiter" p ↦□ iw ∗
+      (⌜sint.Z ttl ≤ 0⌝ ∨ ∃ γt γf : GName, auth.simpleOk p γt γf ∗ auth.simpleAdmin p ∗
+        ghostMapAuth γf 1 (∅ : GMap GoString Unit)) }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

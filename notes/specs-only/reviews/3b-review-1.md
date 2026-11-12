@@ -3,9 +3,9 @@
 Reviewer: independent of the author. Under review: `HEAD` = `9ca5a40087` (3b's files last changed
 in `ce20d0f6d7`; round 1, so no finding is stale). Read: `notes/specs-only/{README,review-brief,
 batch-3b,batch-3e}.md`, the spec skill's `PRINCIPLES.md`, all of
-`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/` (Api and the 47 specs), `examples/specreq/txn/`,
-W0's `Spec/go_etcd_io/etcd/api/v3/{Model,Wire}.lean`, **3e's written API**
-(`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,Api}.lean`), 3c's `lease/Api.lean` (the
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/` (Api and the 47 specs), `examples/specreq/txn/`,
+W0's `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,Wire}.lean`, **3e's written API**
+(`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/{Model,Api}.lean`), 3c's `lease/Api.lean` (the
 `LessorState` record and steps), 3a's `apply/{Api,applierV3backend__Txn}.lean`, 2c's `ApiReq.lean`
 (`txnChecked`), the `req/` sections from and to 3b, and the Go code (etcd `a4d2bb17`:
 `server/etcdserver/txn/*.go`, `storage/mvcc/{kvstore_txn,index,kvstore}.go`,
@@ -114,7 +114,7 @@ statements).
 *Principle*: sketches plausible against the callee specs when they exist (review brief,
 Provability 3); the user's decision on reader tokens (3e's report, 2026-11-07).
 
-*Evidence* (3e's `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, present at `HEAD`):
+*Evidence* (3e's `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`, present at `HEAD`):
 
 1. **Commit in two steps.** `Txn.End.contract` (`Api.lean:487-505`) and `KV.Put.contract` take a
    *nested* update: notify (`mvccState γ (σ.notify pend)`), then the bump (`σ'.commitPending`).

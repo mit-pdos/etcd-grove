@@ -2,8 +2,8 @@
 
 Reviewer: provability (independent of the author). Read: `README.md`, `review-brief.md`,
 `PRINCIPLES.md` (the hard rules, "A trusted statement never gives out a counted resource it did not
-take"), `Spec/net/http/*`, `Spec/.../rafthttp/*` (Api.lean and the specs on the paths below), the
-three snippets, the `## from 2f` requests, R1's `Spec/go_etcd_io/raft/v3/{Api,ApiCore,Model,node__Step}.lean`.
+take"), `SpecPlan/Spec/net/http/*`, `SpecPlan/Spec/.../rafthttp/*` (Api.lean and the specs on the paths below), the
+three snippets, the `## from 2f` requests, R1's `SpecPlan/Spec/go_etcd_io/raft/v3/{Api,ApiCore,Model,node__Step}.lean`.
 Go: `.lake/src/server/etcdserver/api/rafthttp/` (pinned fork), raft `.lake/src/raft/`, the pinned
 `snap/db.go` and `client/pkg/v3/{types,transport}`, Go go1.27.3's `net/http`
 (`/usr/local/go/src/net/http`). I read `batch-2f.md` only after writing the findings below.
@@ -17,7 +17,7 @@ false of the code. Seven findings are first tier.
 
 ## First tier
 
-### F1. `Serve` hands each handler run a thread token it never took (hard rule; `Spec/net/http/Serve.lean`, `Api.lean` `servePre`/`serveDone`)
+### F1. `Serve` hands each handler run a thread token it never took (hard rule; `SpecPlan/Spec/net/http/Serve.lean`, `Api.lean` `servePre`/`serveDone`)
 
 `Serve.spec`'s precondition holds no `threadTok`, but each `handlerOk` run gets one in `servePre`.
 Its justification is "the trusted model's forks: their thread tokens come from the thread fuel".
@@ -30,7 +30,7 @@ Here is how it goes wrong. `RoundTrip` takes no token either, so a program can o
 concurrent stream `GET`s. Each one makes a handler run that holds a token while it blocks
 (`<-c.closeNotify()`). Any `handlerOk` proof may stash its token in an invariant, and
 `threadToks T ⊢ False` then gives program-level `False`. The grpc batch makes the same claim
-(`Spec/google_golang_org/grpc/Api.lean:14-19`), so both must be fixed together.
+(`SpecPlan/Spec/google_golang_org/grpc/Api.lean:14-19`), so both must be fixed together.
 
 **Fix:** make the realization real.
 - Add a `TrustedCode/net/http` model of `Serve`: an accept loop that `Fork`s one goroutine per
@@ -42,7 +42,7 @@ concurrent stream `GET`s. Each one makes a handler run that holds a token while 
   handle that the owner of `Serve` passes in (the bounded-pool fix chosen for grpc, STATUS
   "Soundness bugs: the handler pool").
 
-### F2. `onceOnly` disagrees with Go's `isReplayable` (unsound trust statement; `Spec/net/http/Api.lean` `onceOnly`)
+### F2. `onceOnly` disagrees with Go's `isReplayable` (unsound trust statement; `SpecPlan/Spec/net/http/Api.lean` `onceOnly`)
 
 `Request.isReplayable` (`request.go:1561-1575`) tests `r.Header.has("Idempotency-Key")`, which is
 presence (`header.go:72-75`: `_, ok := h[key]`), not a non-empty value. `onceOnly` tests
@@ -260,9 +260,9 @@ state `Transport.Handler`'s post for every `P` agreeing with `raftProto ν` unde
 
 ## Targets ranked by need of revision
 
-1. `Spec/net/http/Api.lean`, `Serve.lean`, `NewListener.lean` (rafthttp's): F1, F2, F3, and
+1. `SpecPlan/Spec/net/http/Api.lean`, `Serve.lean`, `NewListener.lean` (rafthttp's): F1, F2, F3, and
    second-tier items 3, 5, 6.
-2. `Spec/.../rafthttp/Api.lean`: F4, F7 (with Http), and second-tier items 2 and 8.
+2. `SpecPlan/Spec/.../rafthttp/Api.lean`: F4, F7 (with Http), and second-tier items 2 and 8.
 3. The snapshot path: the snap request and `snapshotHandler.ServeHTTP`'s sketch (F5, second-tier
    item 4).
 4. `examples/specreq/rafthttp/receive.go` (F6, F7).

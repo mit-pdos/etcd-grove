@@ -1,17 +1,13 @@
 /-
-## `ProgressTracker.RecordVote(id, v)`
+Port of election_proof/spec_ProgressTracker__RecordVote.v (feb5c73d4).
 
-**Users.** `raft.poll` (`raft.go:1099`: a vote response, or the candidate's own vote): R2. Snippet
-`raftconf/tracker.go` (`ReqTallyVotes`).
-
-**Proof sketch.** A lookup; an insert if absent. **Changes.** Over `progressTracker`. **Margin.**
-None.
+Lean notes: the Rocq binder `from` is `src` (`from` is a Lean keyword). Rocq leaves
+the type of `tv` implicit; it is written out (`tracker.ProgressTracker`, as in
+`ownTracker`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -19,26 +15,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Records `id`'s vote `v`, unless it already voted. -/
-def ProgressTracker.RecordVote.spec : Prop :=
-  ∀ (p : Loc) (T : TrackerV) (id : w64) (v : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressTracker p T }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.ProgressTracker.ty @!! go!"RecordVote")) (Val #id)) (Val #v))
-  {{ RET #(); progressTracker p { T with votes := if id ∈ T.votes then T.votes else <[id := v]> T.votes } }}
+/-- `RecordVote` only inserts into the map `p.Votes` already refers to, so the tracker
+value is unchanged. First write wins, which is `recordVote`. -/
+abbrev tracker.ProgressTracker.RecordVote.spec : Prop :=
+  ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk)
+    (src : w64) (v : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
+      ownTrackerC c tv t }}
+    (App (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"RecordVote"))
+      (Val #src)) (Val #v))
+  {{ RET #(); trk ↦ tv ∗
+      ownTrackerC c tv { t with votes := recordVote t.votes src v } }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

@@ -1,36 +1,13 @@
 /-
-## `(*readTx).UnsafeRange(bucket, key, endKey, limit)` (promoted `baseReadTx.UnsafeRange`, `read_tx.go:75-121`): translated
-
-**Users.** mvcc's shared reads (`kvstore.go`: the compaction keys, `restore`'s chunks), auth's
-reads (`UnsafeGetUser`, ...), alarms, the consistent index (`UnsafeReadConsistentIndex`), the
-schema's version. Snippet `ranges.go`.
-
-**Proof sketch.** A `nil` end sets the limit to `1`, a non-positive one to `MaxInt64`; a limit
-above `1` on a bucket that is not safe-range panics (`IsSafeRangeBucket()` by `bucketOk`; excluded
-by the premise). The read buffer's `Range` (`txReadBuffer.Range.spec`: the buffer's part of the
-range, cut at the limit); if it fills the limit, returned; else the bucket's bbolt handle (cached in
-`buckets` under `txMu`; a missing bucket: the buffer's part), its cursor, `unsafeRange` with the
-rest of the limit: bbolt's part, then the buffer's appended. The read buffer holds the puts since
-the last commit (keys above the committed ones in a safe-range bucket: the put rows' premises; a
-single key's value shadowing bbolt's in another bucket), bbolt's read transaction the last commit:
-together the visible image `V` (`rdRange`). A pre-commit hook's puts linger in the write buffer and
-reach the read buffer at a later write-back, at their committed values (the hooks' leftovers): a
-single key reads its value either way, but a range of a safe-range bucket would return such a key
-twice, so a safe-range range needs a bucket with no hook cell (`beHookFp`; etcd's hooks write `meta`
-only). The bytes are lent while the read lasts (4c's `txBytes`): against a share of its liveness
-(`beLive`, integration I6), the read transaction kept, so several ranges' bytes may be out at once.
-
-**Changes** (from `specs-ref`'s): the hidden split stated (`rdRange`: the buffer's part cut first),
-in place of a plain cut range (false with a non-empty buffer and a limit); round 1: the bytes lent
-(T3), no hook cell in a safe-range range (T2). verify-round (A10-provability S1): the hook clause is
-waived for a `nil` end (`es = slice.nil`: `limit` is set to 1, so a key in both the buffer and bbolt
-is returned once), not for every empty end (a non-`nil` empty end keeps the caller's limit, and a
-hook's leftover key would be returned twice, `read_tx.go:78-121`). **Margin.** Which entries
-are buffered is not stated.
+`UnsafeRange` (the backend). `rt.UnsafeRange(bucket, key, endKey, limit)` of the held shared read transaction: `rtRange`
+of the readers' state (an end key nil or not empty; no limit above 1 on a bucket that is not
+safe-range: that panics).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -38,33 +15,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`rt.UnsafeRange(bk, k, e, limit)`** on the shared read transaction: the range of its view
-(`rdRange`), within the reader's footprint. -/
-def readTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BeNames) (F : Fp) (V : Image) (bk : GoInterface) (bi : BktInfo) (ks es : GoSlice)
-    (dk de : DFrac) (k e : GoString) (limit : w64) (pl : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ beLive γ (rtLoc γ) pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ⌜covers F bi.name k e⌝ ∗ ⌜bi.safe = true ∨ es = slice.nil ∨ sint.Z limit = 1⌝ ∗
-      (⌜bi.safe = false ∨ es = slice.nil⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
-    (App (App (App (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
-      (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜rdRange (V.ents bi.name) bi.safe (V.clean bi.name) k e (sint.Z limit) l⌝ ∗
-        beRd γ (rtLoc γ) F V ∗ rangeRes kl vl l (beLive γ (rtLoc γ) pl) }}
+/-- `rt.UnsafeRange(bucket, key, endKey, limit)` of the held shared read transaction, with any
+share `p` of bbolt's transaction (`rtHeld` is `rtHeldF … sync.rfrac.half`; the restore plan's
+R5b) and **no open share** (the backend-auth-split stage's decision 1: the held read's interval is
+live, `rtHeldF`; the guard is at the acquisition, `RLock`): `rtRange` of the readers' state (an
+end key nil or not empty; no limit above 1 on a bucket that is not safe-range: that panics). Go:
+the interval's bbolt transaction stays open while `readTx.mu` is read-locked (the commit that would
+roll it back, and the stop's, take `readTx.Lock()`). -/
+abbrev backend.readTx.UnsafeRange.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView) (p : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  (endKey = slice.nil ↔ eb = []) → (sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) → P.has bi →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeldF γ P b rtx rv p ∗ isBucket bk bi ∗
+      key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
+    (App (App (App (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); rtHeldF γ P b rtx rv p ∗
+      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

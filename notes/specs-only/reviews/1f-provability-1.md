@@ -1,6 +1,6 @@
 # Batch 1f (client recipes): provability review, round 1
 
-Reviewer: provability. Targets: `Spec/go_etcd_io/etcd/client/v3/experimental/recipes/` (`Api.lean` and
+Reviewer: provability. Targets: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/experimental/recipes/` (`Api.lean` and
 38 specs), `examples/specreq/recipes/*.go` (11 snippets), `nonissues/recipes-dbarrier-leave-without-key.md`,
 the `## from 1f` sections of `notes/specs-only/req/*.md`. Checked against the Go code
 (`.lake/src/client/experimental/recipes/*.go`), the server's watch handler, W0 (`api/v3/{Model,State}.lean`,
@@ -114,11 +114,11 @@ callErr err k) ∨ ⌜∃ e, err = recipeErr e⌝`.
 `key.go:88` calls `fmt.Sscanf(fields[len(fields)-1], "%d", &newSeqNum)`. The sketch and the batch
 report cite "Perennial's `fmt.Sscanf`". Perennial has only the name (`Perennial/Code/fmt.lean:269`):
 there is no spec under `Perennial/Spec/fmt/` (`Sprintf`, `Printf`, `Errorf` only). The old tree had
-it as an etcd-grove trust-boundary axiom (`Spec/fmt/Sscanf.lean`, `notes/decisions.md:2928`), and
+it as an etcd-grove trust-boundary axiom (`SpecPlan/Spec/fmt/Sscanf.lean`, `notes/decisions.md:2928`), and
 this branch deleted the old `Spec/`. Without it `newSequentialKV`, and so `PriorityQueue.Enqueue`,
 has no proof.
 
-**Fix**: restate the old trust-boundary spec in this branch (`Spec/fmt/Sscanf.lean`, with its
+**Fix**: restate the old trust-boundary spec in this branch (`SpecPlan/Spec/fmt/Sscanf.lean`, with its
 reason). The weak form is enough here: it writes some `int` through the pointer, and returns `nil`
 or an error. Say which batch owns it (W0 owns the ambient boundaries). `strings.Split`, `Sprintf` and
 `Time.UnixNano` do exist in Perennial.

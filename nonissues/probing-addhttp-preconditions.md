@@ -27,7 +27,7 @@ one, `transport.go:305-310`; a peer always has at least one URL), each followed 
 
 ## Proof
 
-no: the assumed `Probing.proberOk` bundle (`Spec/github_com/xiang90/probing/Api.lean`) takes the
+no: the assumed `Probing.proberOk` bundle (`SpecPlan/Spec/github_com/xiang90/probing/Api.lean`) takes the
 preconditions as `AddHTTP`'s premises (`0 < interval`, a non-empty read-only-for-good list, every URL
 `urlParses`), which rafthttp's `addPeerToProber` discharges.
 

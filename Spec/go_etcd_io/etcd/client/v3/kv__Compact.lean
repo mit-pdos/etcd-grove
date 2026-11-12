@@ -1,30 +1,11 @@
 /-
-`(*clientv3.kv).Compact` (`client/v3/kv.go`).
-
-Users: the cache (`cache/demux.go`, through the client it is given), leasing (`leasing/kv.go:120`),
-Kubernetes' compactor (`etcd3/compact.go:269` `client.Compact(ctx, rev)` after winning the
-compare-and-swap of `compact_rev_key`), the examples (`examples/etcd/compacted`,
-`compactwatch/compactkv.go`). Snippet: `clientv3kv/history.go` (`ReqCompactReached`).
-
-Proof sketch: `OpCompact.spec` folds the options (`compactOptsAt`, given back), `CompactOp.toRequest.spec`
-allocates the request (`compactReqOwn`), then the remote's `Compact` (`kvHandle`'s
-`remoteKVAt`, `RemoteKV.CompactTriple` with the client's call options, not repeatable), the
-caller's update passed through; `ContextError.spec` maps the error (`.etcd e` to `errVal e`).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kv__Compact.lean`: the old premise "the KV
-has reached `rev`" (`kvRevLb`) is gone: `rev` above the current revision is `ErrFutureRev`, a
-linearized answer; the scope restriction `rev ≠ 0` stays (was `1 ≤ rev`; a negative `rev` is
-`ErrCompacted`, as mvcc says).
-
-verify-round: the request carries the caller's `rev` by `compactOptAt_rev` (the options keep the
-revision; A1-provability F7).
-
-Margin: `physical` makes the server wait for the compaction to reach the backend; the model
-does not distinguish (the compaction revision is set when the request is applied).
+`(*clientv3.kv).Compact(ctx, rev, opts...)` (`client/v3/kv.go`; the client's `kv.Compact`,
+2026-11-01, `examples/etcd/compactwatch`; the approved spec, `.claude/skills/spec/examples/compact-client.md`).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.KVService
 
 @[expose] public section
 
@@ -32,10 +13,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -44,15 +23,37 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Compact` meets the KV contract's `Compact` (`KV.CompactTriple`, `Api.lean`), for a `*kv` of the
-cluster `γ` as `who` (`kvHandle`). -/
-def kv.Compact.spec : Prop :=
-  ∀ (kv c : Loc) (γ : Cluster) (who : Principal),
-  KV.CompactTriple (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Compact")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv c γ who ∗ clientReady c)) γ who
+/-- `kv.Compact(ctx, rev)` on a `*kv` of etcd's KV `γ` (`isKv`), with no options (`nil`, what a
+call with no variadic arguments passes: not physical; `WithCompactPhysical` makes the server wait
+for the physical deletion, which its spec does not cover): a compaction at `rev`, a revision past
+`0` (M2's scope, `EtcdServer.Compact.spec`'s `1 ≤ r`,
+`nonissues/etcd-restore-scheduled-compact-zero.md`) the KV has reached (`kvRevLb`, from a `Put`'s
+reply or at the start's revisions; the scope restriction that keeps `ErrFutureRev` out of the
+server's model: Go answers a future revision with that error and changes nothing), on a compacting
+cluster (`γ.cmp`, M2's scope); (C3's server stage, 2026-11-02, the user's) at least the cluster's
+retention (`γ.cret`) behind the revision reached (`kvRevLbZ`). It changes nothing of `γ`'s state as clients see it (`KVState`: a
+compaction is not a state change, M2's A4), so it takes no atomic update and may be delivered more
+than once. Returns `nil` and the reply's message (its header), or a client error (`kvErr`; among
+them the server's `ErrCompacted` when `rev` is at or below the compaction revision, the
+auto-compactor's or an earlier client's) and no reply.
+
+Margin: Go also guarantees that after a `nil` answer every read below `rev` fails with
+`ErrCompacted`, and that the error is `ErrCompacted` exactly when `rev` is at or below the
+compaction revision; neither is stated (the clients' state does not record the compaction
+revision, A4). The header's revision is the member's current one (not stated). -/
+abbrev kv.Compact.spec : Prop :=
+  ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (rev : w64),
+  1 ≤ sint.Z rev → γ.cmp = true →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ kvRevLbZ γ (sint.Z rev + γ.cret) }}
+    (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+        go!"Compact")) (Val #(GoInterface.ok ctx))) (Val #rev)) (Val #slice.nil))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ m : CompactRespM, compactRespMsg resp m) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

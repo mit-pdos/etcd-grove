@@ -1,24 +1,10 @@
 /-
-## `Config.Clone()`
-
-**Users.** `getStatus` (`status.go:74`: `Status.Config`, R1's `statusOwn`, the client's to keep),
-confchange's `checkAndCopy` (`confchange.go:283`). Snippet `raftconf/tracker.go` (`ReqCloneFresh`).
-
-**Proof sketch.** Four `clone`s of the maps (`nil` stays `nil`, a map is copied by `range` into a
-fresh one), the `Config` literal. The literal leaves `AutoLeave` out, so the copy has it `false`
-(`issues/raft-config-clone-autoleave.md`, `specs-ref`: `Status().Config.AutoLeave` is wrong in a
-joint configuration entered with auto-leave); `{m with autoLeave := false}` is still valid and in
-canonical form.
-
-**Changes** (from `specs-ref`'s `tracker/Config__Clone.lean`): over `configOwn` (was `ownCfgCC`).
-
-**Margin.** None.
+`Config.Clone` copies a configuration's maps. Lean-first (no Rocq counterpart); see
+`InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 
@@ -26,28 +12,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A fresh copy of the configuration, without its auto-leave flag. -/
-def Config.Clone.spec : Prop :=
-  ∀ (p : Loc) (dqp : DFrac) (cfg : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac)
-    (m : Membership),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ p ↦{dqp} cfg ∗ configOwn cfg dq m }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Config.ty @!! go!"Clone")) (Val #()))
-  {{ (cfg' : go_etcd_io.raft.v3.tracker.Config), RET #cfg'; p ↦{dqp} cfg ∗ configOwn cfg dq m ∗
-      configOwn cfg' (DFrac.own 1) { m with autoLeave := false } }}
+/-- `Clone()` on a configuration representing `c`: a configuration with fresh maps holding
+the same sets (a `nil` map cloned as `nil`, so the canonical representations stay
+canonical) and **`AutoLeave` false**: `Clone` does not copy it (`raft-config-clone-autoleave`
+in `issues/`). (Generalized 2026-10-12 from the voters-only config.) -/
+abbrev tracker.Config.Clone.spec : Prop :=
+  ∀ (p : Loc) (cfg : tracker.Config) (c : CfgM) (dq dqc : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      p ↦{dq} cfg ∗ ownCfgCC cfg dqc c }}
+    (App (Val (p @!! go.GoType.PointerType tracker.Config.ty @!! go!"Clone")) (Val #()))
+  {{ (cfg' : tracker.Config), RET #cfg';
+      p ↦{dq} cfg ∗ ownCfgCC cfg dqc c ∗ ownCfgCC cfg' (DFrac.own 1) { c with autoLeave := false } }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

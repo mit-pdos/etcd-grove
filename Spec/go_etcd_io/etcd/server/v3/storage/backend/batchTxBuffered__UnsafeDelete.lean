@@ -1,25 +1,12 @@
 /-
-## `(*batchTxBuffered).UnsafeDelete(bucket, key)` (`batch_tx.go:412-415`): translated
-
-**Users.** mvcc's compaction (`kvstore_compaction.go:62`, `Key`, a safe-range bucket), the lessor's
-revoke (`schema/lease.go`, `lessor.go:359`, under mvcc's session), the schema's deletes
-(`auth_users.go:49`, `auth_roles.go:65`, `alarm.go:81`, `membership.go`, `version.go:66`,
-`actions.go:48`). Snippet `parts.go` (`ReqDeleteVisible`, `ReqLentWrite`).
-
-**Proof sketch.** `batchTx.UnsafeDelete` (bbolt's `Delete` on the write transaction: the batch
-image without `k`; `pending++`; a missing bucket or an error is `lg.Fatal`), then
-`pendingDeleteOperations++` (so `Unlock` commits: the readers see the delete at the commit, the
-second update). A safe-range bucket's delete holds the safe-range lock, so no non-blocking
-defragmentation copies the key back.
-
-**Changes** (from `specs-ref`'s `thinV`/`DelKeys`): an exact delete of the batch image; the
-safe-range lock (new in the pinned code).
-
-**Margin.** None.
+`UnsafeDelete` (the backend). `t.UnsafeDelete(bucket, key)` under the lock: bbolt's writer deletes the entry; a pending
+delete (the `Unlock` commits).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -27,30 +14,48 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafeDelete(bk, k)`**: the batch image without `k` in `bk`'s bucket. -/
-def batchTxBuffered.UnsafeDelete.spec : Prop :=
-  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (G : Fp) (C : Image) (bk : GoInterface)
-    (bi : BktInfo) (ks : GoSlice) (dk : DFrac) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ bkt γ bk bi ∗ beCur γ G C ∗ ⌜G (.key bi.name k)⌝ ∗
-      writable γ F (Fp.key bi.name k) ∗ (if bi.safe then beDelHeld γ else iprop(True)) ∗
-      ks ↦*{dk} k }}
-    (App (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #ks))
-  {{ RET #(); beSess γ q F (S.del bi.name k) ∗ beCur γ G (C.del bi.name k) ∗
-      (if bi.safe then beDelHeld γ else iprop(True)) ∗ ks ↦*{dk} k }}
+/-- `t.UnsafeDelete(bucket, key)` under the lock: bbolt's writer deletes the entry; a pending
+delete (the `Unlock` commits). In any bucket, a safe-range one too (the compaction's; 3.1: which
+keys the readers may then miss is `Unlock`'s deleting branch's premise, `thinV`), but not at a hook's
+own key (`P.hk`); in a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's part of
+that bucket (`rbPut`: since decision 3, 2026-11-01, of its bucket only; a holder of `rbOwn` splits it with `rbPutAll_split`),
+given back updated. The key is the caller's slice (`own`) or one read
+from the transaction itself (`txBytes`: the compaction deletes the keys its range returned). Not a
+compaction key (`fkKey`, the M2 storage plan's items 27/29, 2026-10-30: the backend tracks their
+values from the open, `fkOkG`; only mvcc writes them, and never deletes one). (Until
+question 2, 2026-10-29: not in a safe-range bucket, an owned key only; a Draft `specC` had this
+statement beside it, with a premise `dlIs` at a safe-range key that nothing used: review round 12,
+R12-1.) In a safe-range bucket (the user's decision, 2026-11-04, probe M2: a snapshot's observation
+knows the safe-range bucket exactly), with the client's half of the deleted entries (`dlPut`: inside
+`fkOwn`), given back updated, and an entry of the writer's contents the readers see (so that the
+deleted entries stay the logical view's: the compaction deletes what its range read of the
+committed data returned). -/
+abbrev backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
+    (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
+  P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → ¬ fkKey bi.name kb →
+  (P.SB bi.name = true → (sData P st.S).lookup (bi.name, kb) ≠ none →
+    (vData P (st.C, st.R)).lookup (bi.name, kb) ≠ none) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
+      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗
+      (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗
+      rbPut γ P bi.name st.S ∗ dlPut γ P bi.name }}
+    (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
+  {{ RET #(); batchLocked γ P b (st.del bi kb) ∗
+      (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗ rbPut γ P bi.name (st.del bi kb).S ∗
+      dlPut γ P bi.name }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

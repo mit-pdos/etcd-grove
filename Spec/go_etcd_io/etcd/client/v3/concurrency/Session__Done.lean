@@ -1,24 +1,10 @@
 /-
-`(*concurrency.Session).Done` (`client/v3/concurrency/session.go`).
-
-Users: `server/etcdserver/api/v3lock/lock.go:36` and `v3election/election.go:126` (`WithLease(req.Lease)`,
-`WithContext(ctx)`, then `Orphan()`: a session over a lease the remote client holds, never
-refreshed by the server; `Leader`/`Observe` pass lease `-1`; a session per RPC), `client/leasing/kv.go:147` (a
-session per monitor round, in a loop, its `Done()` awaited), `server/proxy/grpcproxy/register.go:65`
-(`WithTTL`, its lease on an endpoint key, `Close()` on error or shutdown, a new session per expiry), recipes
-(`key.go:142`, `rwmutex.go:69`, `double_barrier.go:47`: `Client()` and `Lease()`), etcd's tests
-(`tests/integration/clientv3/concurrency/session_test.go`). Snippet: `concurrency/session.go` (`ReqSessionDone`, `ReqSessionLoop`).
-
-Proof sketch: the field `donec`, read (`isSession`'s realization holds `ownBroadcastChan donec γc True .Unknown`).
-
-Changes: from `specs-ref`'s `Session__Done.lean`: restated over `isSession` (no ghost names; round 1:
-the session names its client).
-
-Margin: the channel closes when the keep-alive stops, which says nothing of the lease (time is not modelled): `Q := True`.
+`concurrency.Session.Done()` (`client/v3/concurrency/session.go`). Lean-first (no Rocq counterpart); see
+`InvSession.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSession
 
 @[expose] public section
 
@@ -26,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.Done()`: a channel that is only ever closed (when the keep-alive ends), which a receive or a `select` may wait on. -/
-def Session.Done.spec : Prop :=
-  ∀ (s c : Loc) (γ : Cluster) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s c γ id }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Session.ty @!! go!"Done")) (Val #()))
-  {{ (ch : GoChan), RET #ch; ∃ γc : ChanNames, ownBroadcastChan ch γc iprop(True) .Unknown }}
+/-- `s.Done()`: the session's done channel, closed once the session ends. -/
+abbrev Session.Done.spec : Prop :=
+  ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id }}
+    (App (Val (s @!! go.GoType.PointerType Session.ty @!! go!"Done")) (Val #()))
+  {{ (ch : GoChan), RET #ch; sessionDoneChan ch γ }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

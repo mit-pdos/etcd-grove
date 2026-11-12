@@ -23,8 +23,8 @@ string's protocol is set once from its single `addrFree`.
    must route it only to the probing handler.
 3. `Rafthttp.semverAt v` (provisional) is `Semver.verAt v sv` (a model `SemVer`), `semverParses s` is
    `(Semver.parse s).isSome`; `MustParse`, `New`, `Major`, `Minor`, `LessThan`, `String` have specs
-   (`Spec/github_com/Masterminds/semver/v3/`); `rate.*` and `probing.*` likewise
-   (`Spec/golang_org/x/time/rate/`, `Spec/github_com/xiang90/probing/`).
+   (`SpecPlan/Spec/github_com/Masterminds/semver/v3/`); `rate.*` and `probing.*` likewise
+   (`SpecPlan/Spec/golang_org/x/time/rate/`, `SpecPlan/Spec/github_com/xiang90/probing/`).
 
 ## from 4b, round 1
 

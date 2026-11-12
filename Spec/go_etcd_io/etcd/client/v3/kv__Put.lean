@@ -1,38 +1,9 @@
 /-
-`(*clientv3.kv).Put` (`client/v3/kv.go`).
-
-Users: `client/v3/concurrency` (`Session`'s keys are written in transactions; `election.go` `Proclaim`
-via `Txn`), `experimental/recipes` (`double_barrier.go:53` `Put` of the barrier key, `queue.go`,
-`key.go:91` `putNewKV` via `Txn`), the examples (`examples/etcd/txnlin/linkvtxn.go:874` `callPut`,
-`putget`, `putget3`, `compacted`, `compactwatch/compactkv.go`), Kubernetes' compactor
-(`k8s.io/apiserver/pkg/storage/etcd3/compact.go`, through `Txn`). Snippets:
-`clientv3kv/put_get.go` (`ReqPutThenGet`, `ReqPutRevision`), `clientv3kv/errors.go` (`ReqPutErrors`).
-
-Proof sketch: `OpPut.spec` builds `opAt op (opPutM key val gs)` and gives back `optsAt opts gs` (its
-premise `¬ putPanics`); then `kv.Do.spec` at that `op`, whose request is `.put (opPutM ...).putReq`
-(`toReq` of a put), not a read, so it takes the caller's exclusive update unchanged; its post
-`doReply` is `putReply res r.put' err` (or the indefinite case); `ContextError.spec` on that error
-(`.etcd e` of `errVal e` by `callErr_errVal`: unchanged; an indefinite one: indefinite) gives the
-post.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kv__Put.lean`: **relaxed**: any lease (was
-`leaseID = 0`), auth on or off (the principal `who` of the handle), compaction and every mode, all
-in the model's `Step`; no `opSizeOk` payload bound (the gRPC boundary must fail, not panic, on an
-oversized message: `req/google_golang_org_grpc.md`); no `dup` flag (a write's update is exclusive:
-the client sends a write once, the cluster applies an entry once: `req/` of 2c, 2d); **restated**:
-the update over the client-owned `etcdState` (was the server's `etcdKV`), the answer `res` and the
-reply's message model in place of `PutRespM`'s fields, the error classes (a definite error is a
-linearized answer, `Q` given; an indefinite one gives nothing; was `kvErr`), the old `kvRevLb`
-certificate subsumed by `etcdLb` (taken by the caller inside its update); no `kvRoom` (the
-revision bound is the law `etcdState_revFits`).
-
-Margin: on success the code also guarantees the reply's header names the member that
-answered (`MemberId`, `RaftTerm`), not modelled; on an indefinite error the code may still have
-applied the put (the update fires later or not at all), which is all the spec says.
+`(*clientv3.kv).Put(ctx, key, val, opts...)` (`client/v3/kv.go`, translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.KVService
 
 @[expose] public section
 
@@ -40,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -52,15 +21,44 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Put` meets the KV contract's `Put` (`KV.PutTriple`, `Api.lean`), for a `*kv` of the
-cluster `γ` as `who` (`kvHandle`). -/
-def kv.Put.spec : Prop :=
-  ∀ (kv c : Loc) (γ : Cluster) (who : Principal),
-  KV.PutTriple (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Put")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvHandle kv c γ who ∗ clientReady c)) γ who
+/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D44: its members hidden):
+`kv.Do` of `OpPut(key, val, opts...)` (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
+ties the slice `opts_sl` of their closures to them; `[]` for none), options that do not make `OpPut` panic nor change
+the operation's type, a put with no lease (etcd's `Put` spec covers no other),
+with the caller's atomic update of `γ`'s state by the put the server
+reads (`putWireOf`; `kvOpStep`), persistent if the client's writes may be delivered more than once
+(`□?dup`); the error through `ContextError`:
+`nil` and the reply's message `m` with `Q σ` for the state `σ` the update fired at, the reply's
+revision `σ`'s next and its previous key-value the key's record in `σ`'s current store if asked,
+`σ` and the state after the put well-formed small logs' states (`kvLogOk`, D48), and the KV has
+reached the reply's revision (`kvRevLb`, persistent: what a later `Compact` takes; the client's
+`kv.Compact`, 2026-11-01); or a client error
+(`kvErr`) and no reply. The request fits a gRPC message (`opSizeOk`; 2026-10-30, `grpcInvokerOk`).
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
+abbrev kv.Put.spec : Prop :=
+  ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (key val : GoString) (opts_sl : GoSlice)
+    (opts : List (OpFull → OpFull)) (Q : KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAt opts_sl opts ∗
+      ⌜¬ (opPutModel key val opts).putPanics ∧ (opPutModel key val opts).t = W64 2 ∧
+        (putWireOf (opPutModel key val opts)).leaseID = W64 0⌝ ∗
+      □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>) ∗
+      ⌜opSizeOk (opPutModel key val opts)⌝ }}
+    (App (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+        go!"Put")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #val)) (Val #opts_sl))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
+        ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
+          m.prev = (if (putWireOf (opPutModel key val opts)).base.prevKV then
+            (σ.store.lookup (putWireOf (opPutModel key val opts)).key).map (KVRec.toKv (putWireOf (opPutModel key val opts)).key) else none) ∧
+          kvRevFits (σ.rev + 1) ∧ kvLogOk σ ∧
+          kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ)⌝ ∗
+        kvRevLb γ m.hdr.revision) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

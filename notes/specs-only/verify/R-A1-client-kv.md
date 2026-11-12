@@ -1,9 +1,9 @@
 # Re-review A1 (client KV, batch W0) after the repairs
 
 Reviewer: independent, read-only. HEAD `974e05095b`. Baseline for regressions: `1aa6fc1337`.
-Area: `Spec/go_etcd_io/etcd/client/v3/` (KV, Op, Txn, Cmp, retry, ctx; the shared `Api.lean`'s KV part),
-`Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`, `Spec/go_uber_org/zap/`, `Spec/context/`,
-`Spec/fmt/`; snippets `examples/specreq/clientv3kv/` (there is no `examples/specreq/context/`).
+Area: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/` (KV, Op, Txn, Cmp, retry, ctx; the shared `Api.lean`'s KV part),
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`, `SpecPlan/Spec/go_uber_org/zap/`, `SpecPlan/Spec/context/`,
+`SpecPlan/Spec/fmt/`; snippets `examples/specreq/clientv3kv/` (there is no `examples/specreq/context/`).
 I wrote my verdict on each finding before reading `repair-*.md`. Afterwards I read only
 `repair-client-core.md` §8, `repair-grpc-v3rpc.md` P-F7 and `open-questions.md` C3/1.5/A14, to check
 the disagreements below.

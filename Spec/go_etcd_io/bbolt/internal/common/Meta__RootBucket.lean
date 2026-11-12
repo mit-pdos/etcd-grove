@@ -1,14 +1,9 @@
 /-
-## `(*Meta).RootBucket()` (`internal/common/meta.go`)
-
-**Users.** tx.go:58 (`init`: `*tx.meta.RootBucket()` copied), tx.go:213 (`Commit`: `RootBucket().SetRootPage(...)`).
-**Proof sketch.** `&m.root`.
-**Changes.** from `specs-ref`'s file of the same name (unchanged).
-**Margin.** none: the post is what the code computes.
+`(*Meta).RootBucket`'s spec (`internal/common/meta.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,19 +11,21 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `m.RootBucket()`: the address of the field `root` (Perennial's struct field access splits `l ↦ v` there). -/
-def Meta.RootBucket.spec : Prop :=
+/-- `m.RootBucket()`: the address of the field `root` (`&m.root`). Pure in the address. -/
+abbrev Meta.RootBucket.spec : Prop :=
   ∀ (l : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common }}
     (App (Val (l @!! go.GoType.PointerType Meta.ty @!! go!"RootBucket")) (Val #()))
@@ -36,6 +33,8 @@ def Meta.RootBucket.spec : Prop :=
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

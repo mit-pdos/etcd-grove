@@ -1,15 +1,10 @@
 /-
-`(*watcherGroup).choose(maxWatchers, curRev, compactRev)` (internal; under `s.mu`): the group
-itself when smaller than `maxWatchers`, else a fresh group of `maxWatchers` of its members; then
-`chooseAll` on it. (On a copy, the compacted members leave only the copy: they stay in the source
-and are sent their compaction again by a later sync, `issues/etcd-watch-compacted-resent.md`.)
-
-**Proof sketch.** `newWatcherGroup`, `add` of the members (the map's iteration order), `chooseAll`.
+`watcherGroup.choose` (`watcher_group.go`). Lean-first (no Rocq counterpart); see `InvWatchBatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchCmpSend
 
 @[expose] public section
 
@@ -17,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,25 +22,43 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watcherGroup.choose.spec : Prop :=
-  ∀ (wg : Loc) (v : watcherGroup) (dq : DFrac) (G : List (Loc × MRange)) (R : Loc → WRec)
-    (maxW curRev compactRev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wg ↦{dq} v ∗ wgOwn v (DFrac.own 1) G ∗ ([∗list] x ∈ G, wRecAt x.1 (R x.1)) ∗
-      ([∗list] x ∈ G, if decide ((R x.1).minRev < sint.Z compactRev) then
-        wsCmpSendable x.1 compactRev else True) ∗
-      ⌜∀ x ∈ G, (R x.1).minRev ≤ sint.Z curRev ∨ (R x.1).restore = true⌝ }}
-    (App (App (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"choose")) (Val #maxW)) (Val #curRev))
-      (Val #compactRev))
-  {{ (g : Loc) (m : w64), RET (PairV #g #m); wg ↦{dq} v ∗
-      ∃ (C : List (Loc × MRange)) (R' : Loc → WRec),
-        ⌜(∀ x ∈ C, x ∈ G) ∧ sint.Z m = minRevOf R C (sint.Z compactRev)⌝ ∗
-        ([∗list] x ∈ G, wRecAt x.1 (R' x.1)) ∗
-        ((⌜g = wg⌝ ∗ ∃ G' : List (Loc × MRange), ⌜List.Sublist G' G⌝ ∗ wgOwn v (DFrac.own 1) G') ∨
-         (∃ (vc : watcherGroup) (C' : List (Loc × MRange)), g ↦ vc ∗ wgOwn vc (DFrac.own 1) C' ∗
-            ⌜∀ x ∈ C', x ∈ C⌝ ∗ wgOwn v (DFrac.own 1) G)) }}
+/-- `wg.choose(maxWatchers, curRev, compactRev)`: with fewer than `maxWatchers` members, `chooseAll` on
+the group itself (`g = wg`); else on a fresh group of `maxWatchers` of them (`max 0 maxWatchers`
+for a negative one), `wg` unchanged. The members are as `chooseAll` takes them, and `chooseAll`'s
+post holds of the chosen ones `W'`. (Watches across a compaction, 2026-11-01:) the members behind
+`compactRev` `chooseAll` sent their compaction response (`Cm`) are deleted from the group it ran
+on, so in the copy branch they stay in `wg` (`issues/etcd-watch-compacted-resent.md`). -/
+abbrev mvcc.watcherGroup.choose.spec : Prop :=
+  ∀ (γ : mvcc.WsNames) (ql : Qp) (wg : Loc) (W : GMap Loc mvcc.WatchRange)
+    (ST : GMap Loc mvcc.WatcherSt) (maxWatchers curRev compactRev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownWatcherGroup wg W ∗ mvcc.ownStates ST ∗
+      mvcc.cmpPerm γ (sint.Z compactRev) ∗
+      ([∗map] w ↦ st ∈ ST, if decide (sint.Z st.minRev < sint.Z compactRev) then
+        mvcc.cmpSendPre γ w st.ch ql else iprop(True)) ∗
+      ⌜(∀ w, (W !! w).isSome → (ST !! w).isSome) ∧
+        ∀ w st, ST !! w = some st → 0 ≤ sint.Z st.minRev ∧
+          (sint.Z st.minRev ≤ sint.Z curRev ∨ st.restore = true)⌝ ∗
+      ⌜GMap.size W + 1 < 2 ^ 63⌝ }}
+    (App (App (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"choose"))
+      (Val #maxWatchers)) (Val #curRev)) (Val #compactRev))
+  {{ (g : Loc) (minRev : w64), RET (PairV #g #minRev);
+      ∃ (W' : GMap Loc mvcc.WatchRange) (Cm : GMap Loc Unit),
+        ⌜W' ⊆ W ∧ ∀ w, (Cm !! w).isSome → (W' !! w).isSome ∧
+          ∃ st, ST !! w = some st ∧ sint.Z st.minRev < sint.Z compactRev⌝ ∗
+        ((⌜g = wg ∧ W' = W ∧ (GMap.size W : Int) < sint.Z maxWatchers⌝ ∗
+            mvcc.ownWatcherGroup wg (Iris.Std.PartialMap.filter (fun w _ => !(Cm !! w).isSome) W)) ∨
+         (⌜sint.Z maxWatchers ≤ (GMap.size W : Int) ∧
+            (GMap.size W' : Int) = max 0 (sint.Z maxWatchers)⌝ ∗
+            mvcc.ownWatcherGroup wg W ∗
+            mvcc.ownWatcherGroup g (Iris.Std.PartialMap.filter (fun w _ => !(Cm !! w).isSome) W'))) ∗
+        mvcc.ownStates (mvcc.chooseCmp Cm (mvcc.chooseRst curRev (domSet W') ST)) ∗
+        ([∗map] w ↦ st ∈ ST, if decide (sint.Z st.minRev < sint.Z compactRev) then
+          mvcc.cmpSendPre γ w st.ch ql else iprop(True)) ∗
+        ⌜sint.Z minRev = mvcc.minRevOf ST
+          (Iris.Std.PartialMap.filter (fun w _ => mvcc.notBehind ST compactRev w) (domSet W'))⌝ }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

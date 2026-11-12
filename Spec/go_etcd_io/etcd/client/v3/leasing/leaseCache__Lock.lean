@@ -1,11 +1,9 @@
 /-
-`(*leaseCache).Lock` (`cache.go`): gives `key`'s entry a fresh waiter channel (readers of the entry
-wait for it), returned with the entry's revision; `nil` if not cached. Proof sketch: write lock; the
-new channel's receive side kept in the entry (`waitRecv`), the close right returned. Changes: from `specs-ref`'s `leaseCache__Lock.lean`: over `lcAt`/`lcHeld` (was the cache's exact state transitions over a client part `X`); what the leasing contract's proofs need.
+`leaseCache.Lock(key)` (`client/v3/leasing/cache.go`). Lean-first (no Rocq counterpart); see `InvLeaseCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCache
 
 @[expose] public section
 
@@ -13,27 +11,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `lc.Lock(key)`: the waiter channel to close, or `nil`. -/
-def leaseCache.Lock.spec : Prop :=
-  ∀ (lc : Loc) (γ : Cluster) (γL : LeasingNames) (key : GoString),
-  {{ lcAt (GF := GF) lc γ γL }}
-    (App (Val (lc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leaseCache.ty @!! go!"Lock")) (Val #key))
-  {{ (wc : GoChan) (rev : w64), RET (PairV #wc #rev); ⌜wc = null⌝ ∨ waitCloser wc }}
+/-- **`lc.Lock(key)`** (write lock): in the state `st` it found, if `key` has an entry, a fresh
+waiter channel `wc` replaces the entry's (`LeaseCacheSt.setWaitc`) and is returned with the
+entry's revision, for the caller to close (`waitcClose`); otherwise `(nil, 0)`. The client's
+part of the invariant must not depend on waiter channels (`lcWaitcStep`). -/
+abbrev leaseCache.Lock.spec : Prop :=
+  ∀ (lc : Loc) (γ : LeaseCacheNames) (pfx : GoString) (X : LeaseCacheSt → Qp → IProp GF)
+    (Qr : LeaseCacheSt → IProp GF) (key : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeaseCache lc γ pfx X ∗ lcPeek X Qr ∗ lcWaitcStep X }}
+    (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"Lock")) (Val #key))
+  {{ (wc : GoChan) (r : w64), RET (PairV #wc #r);
+      ∃ st : LeaseCacheSt, ⌜r = st.revOf key⌝ ∗ entryFactsAt pfx key st ∗ □ Qr st ∗
+        ((⌜st.entries !! key = none ∧ wc = null⌝) ∨
+         (⌜(st.entries !! key).isSome = true⌝ ∗ waitcClose wc)) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

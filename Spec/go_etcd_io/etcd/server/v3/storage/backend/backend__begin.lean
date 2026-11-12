@@ -1,31 +1,10 @@
 /-
-`b.begin(write)` (`backend.go:1086-1098`): translated; internal. `unsafeBegin` under `mu.RLock`, then
-`tx.Size()`, `tx.DB()`, `db.Stats()` and `db.Info()`, the size and open-transaction atomics stored.
-
-**Users.** `write = true`: `batchTx.commit` (a new write transaction after a commit) and
-`newBatchTxBuffered` (through `Commit`), under the batch mutex with no write transaction
-(`btStopped`); `write = false`: `batchTxBuffered.unsafeCommit` (`batch_tx.go:405`: the new read
-transaction after a commit), under the batch mutex and `readTx.Lock`, the new write transaction
-already begun (`btPhys γ I 0 d`: `I` is the last commit, which no commit can pass while the batch
-mutex is held).
-
-**Proof sketch.** `b.mu.RLock()`; bbolt's `Begin(write)` (4c; an error is `lg.Fatal`: excluded by
-`dbBroken_state`, the last commit having succeeded); `b.mu.RUnlock()`; `tx.Size()`, `tx.DB()`;
-`db.Stats()` with **`statSlot (some (tx, T))`**: the transaction's whole `boltTx`, for a read
-transaction and, by 4c's `statSlot_wtx` (`T.rw = true`: the writer holds `rwlock`, and `isBolt`
-keeps one spare `statlock` reader slot for it), for a write transaction (re-review N2: the law
-exists).
-`db.Info()` (the page size); the atomics stored. A read transaction's own reader slot is the
-caller's `threadTok` (a fresh one: the thread that will roll it back gets the old read
-transaction's, `wp_fork_tok_self`), held by `rtNew`.
-
-**Changes.** verify-round (A11-completeness F4): one spec for both modes (it was stated at `#true`
-only, with no account of `Stats`); `Stats`' slot named. **Margin.** The atomics' values.
+`backend.begin` (`backend.go`). `b.begin(write)`: `unsafeBegin` under a reader's slot of `b.mu`, then the size metrics stored.
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
-public import Perennial.ProgramLogic.Bounds
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BeginCtx
 
 @[expose] public section
 
@@ -33,29 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`b.begin(write)`**: a bbolt transaction at the committed image (a write one under the batch
-lock). -/
-def backend.begin.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (I : Image) (d : Nat) (w : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ btHeld γ ∗
-      (if w then btStopped γ ∗ beCommitted γ I else rtHeld γ ∗ btPhys γ I 0 d ∗ threadTok) }}
-    (App (Val (b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty @!! go!"begin")) (Val #w))
-  {{ (tx : Loc), RET #tx; btHeld γ ∗
-      (if w then btPhys γ I 0 d else rtHeld γ ∗ btPhys γ I 0 d ∗ rtNew γ tx I) }}
+/-- `b.begin(write)`: `unsafeBegin` under a reader's slot of `b.mu`, then the size metrics stored (a read transaction holds the caller's `threadTok`, 2026-11-06 `notes/begin-tok-plan.md`). -/
+abbrev backend.backend.begin.spec : Prop :=
+  ∀ (γd : DBNames) (b db : Loc) (D : Data) (w : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beginCtx b ∗ sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ ownDB db γd D ∗ (if w then wrTok γd else threadTok) }}
+    (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"begin")) (Val #w))
+  {{ (tx : Loc), RET #tx; sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ ownDB db γd D ∗ txDB tx db ∗ (if w then ownWTx tx γd D D else iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

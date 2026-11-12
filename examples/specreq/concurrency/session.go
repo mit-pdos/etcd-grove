@@ -1,5 +1,5 @@
 // Package concurrency holds the requirement snippets of etcd's client/v3/concurrency package
-// (batch 1d, Spec/go_etcd_io/etcd/client/v3/concurrency/): sessions, mutexes, elections and the
+// (batch 1d, SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency/): sessions, mutexes, elections and the
 // STM as their users (v3lock, v3election, leasing, the grpc proxy, recipes, etcd's tests) rely on
 // them, each reliance an explicit panic.
 //

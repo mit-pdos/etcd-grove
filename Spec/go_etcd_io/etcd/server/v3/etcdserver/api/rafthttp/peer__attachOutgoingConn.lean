@@ -1,19 +1,10 @@
 /-
-## `(*peer).attachOutgoingConn(conn)`
-
-**Users.** `streamHandler.ServeHTTP`.
-
-**Proof sketch.** `conn.t` is one of the two types (`outConn`): the matching writer's `attach`; `false`: `conn.Close()` (the close right: the close notifier, which gives the response writer back to the handler).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*peer).attachOutgoingConn` (`peer.go`; rafthttp stage 5e-2). Lean-first; the peer:
+`rafthttp/Peer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Peer
 
 @[expose] public section
 
@@ -21,26 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Hands an outgoing stream connection** to the writer of its type, or closes it (the writer stopped). -/
-def peer.attachOutgoingConn.spec : Prop :=
-  ∀ (p : Loc) (ν : Net GF) (lid pid : w64) (c : Loc) (t : StreamTy),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid ∗ outConn c ν lid pid t }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"attachOutgoingConn")) (Val #c))
+/-- **`p.attachOutgoingConn(conn)`** of a connection of type `ty` from `lid` to `pid`: hands it to
+the peer's stream writer of that type, or closes it (giving its writer back to its handler). -/
+abbrev rafthttp.peer.attachOutgoingConn.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (p conn : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      peerStreams Rh lid pid p ∗ outConnOk Rh ty lid pid conn }}
+    (App (Val (p @!! go.GoType.PointerType rafthttp.peer.ty @!! go!"attachOutgoingConn"))
+      (Val #conn))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

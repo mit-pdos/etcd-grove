@@ -1,10 +1,10 @@
 /-
-`t.UnsafeDelete(bucket, k)` (`batch_tx.go:228-245`): translated; internal. bbolt's `Delete` (a
-missing bucket or an error: `lg.Fatal`), `pending++`. Changes: over `btPhys`. Margin: none.
+`batchTx.UnsafeDelete` (`batch_tx.go`). `t.UnsafeDelete(bucket, key)` on the writer: bbolt's writer deletes the entry (the bucket must exist: else `lg.Fatal`), one more pending operation.
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -12,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafeDelete(bk, k)`** on the embedded `batchTx`: bbolt's write transaction at `del`. -/
-def batchTx.UnsafeDelete.spec : Prop :=
-  ∀ (γ : BeNames) (I : Image) (n d : Nat) (bk : GoInterface) (bi : BktInfo) (ks : GoSlice)
-    (dk : DFrac) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ btPhys γ I n d ∗ bucketOk bk bi ∗ ks ↦*{dk} k }}
-    (App (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #ks))
-  {{ RET #(); btPhys γ (I.del bi.name k) (n + 1) d ∗ ks ↦*{dk} k }}
+/-- (The backend-compaction stage, review round 2, R2-6: the key either the caller's own slice or
+one of the session's bbolt transaction, `own`, as bbolt's `Bucket.Delete_kv`.) `t.UnsafeDelete(bucket, key)` on the writer: bbolt's writer deletes the entry (the bucket must exist: else `lg.Fatal`), one more pending operation. -/
+abbrev backend.batchTx.UnsafeDelete.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac)
+    (own : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗
+      (if own then key ↦*{dk} kb else txBytes st.tx key kb) }}
+    (App (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
+  {{ RET #(); btW γ t (st.del bi kb) ∗ (if own then key ↦*{dk} kb else txBytes st.tx key kb) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

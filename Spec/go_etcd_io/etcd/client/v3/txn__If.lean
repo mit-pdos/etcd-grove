@@ -1,27 +1,9 @@
 /-
-`(*clientv3.txn).If` (`client/v3/txn.go`).
-
-Users: `client/v3/concurrency` (`mutex.go:83` `tryAcquire`, `election.go:69` `Campaign`, `stm.go:203`
-`commit`), `experimental/recipes` (`key.go:91` `putNewKV`, `queue.go`), leasing (`leasing/txn.go`),
-Kubernetes' store (`etcd3/store.go` `Create`/`GuaranteedUpdate`/`Delete`: `If(ModRevision(key) =
-rv).Then(OpPut(...)).Else(OpGet(key))`) and compactor (`etcd3/compact.go`: `If(Version(key) =
-t).Then(OpPut(key, "")).Else(OpGet(key))`), the examples (`txnlin/linkvtxn.go:935` `callTxn`).
-Snippets: `clientv3kv/txn.go`.
-
-Proof sketch: `txnAt` of the `*txn`: its fields under `t.mu`'s lock invariant. Locks `t.mu`; the flags
-(premise: all false, else it panics); for each `Cmp` of `cs` (`cmpsAt`): `Cmp.Clone.spec` (a fresh
-copy, `cmpAt _ m`), `Cmp.GetCompare.spec` (a zero `Cmp` gets a zero `Compare`), appended to
-`t.cmps` (slice append, Perennial); unlocks.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/txn__If.lean`: restated over `txnAt` and the model's requests; otherwise unchanged.
-
-verify-round: `Cmp.GetCompare` of a zero `Cmp` allocates a `Compare`, persisted by `protoRest_persist` (A1-provability F6); `Txn.IfTriple` takes the state predicate as a parameter (`txnAt_intro`, A1-completeness F2).
-
-Margin: none.
+`(*clientv3.txn).If(cs...)` (`client/v3/kv.go`, translated for the vertical slice's unit V2). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvTxnBuilder
 
 @[expose] public section
 
@@ -29,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -41,14 +21,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `t.If` of a `*txn` (`kv.Txn`'s) meets the `Txn` contract's `If` (`Txn.IfTriple`). -/
-def txn.If.spec : Prop :=
-  ∀ (t : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface),
-  Txn.IfTriple (GF := GF) (t @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"If")
-    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #t) γ who ctx
+/-- `t.If(cs...)` on a builder that has called none of `If`, `Then`, `Else` (else it panics): the
+comparisons' clones appended (`Cmp.Clone`), `cif` set; returns the builder as a `Txn`. -/
+abbrev txn.If.spec : Prop :=
+  ∀ (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
+      cmpsAt sl ms ∗ ⌜b.cif = false ∧ b.cthen = false ∧ b.celse = false⌝ }}
+    (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"If")) (Val #sl))
+  {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp : GoInterface);
+      txnObjAt tp addr ci cd { b with model := { b.model with cmps := b.model.cmps ++ ms }, cif := true } }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

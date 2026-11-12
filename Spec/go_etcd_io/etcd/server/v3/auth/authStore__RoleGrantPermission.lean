@@ -1,50 +1,67 @@
 /-
-## `(*authStore).RoleGrantPermission(r)`
-
-**Users.** `applierV3backend.RoleGrantPermission` (`apply/backend.go:223`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
-
-**Proof sketch.** A nil `Perm`: `ErrPermissionNotGiven`; `isValidPermissionRange` false: `ErrInvalidAuthMgmt` (so every recorded state keeps `validPerms`); the role read (absent: `ErrRoleNotFound`); every permission of the same range replaced by the new one, `sort.Sort(permSlice)`, put, `commitRevision`, refresh. The step's state, `storeNext` (the code's function of the request, its
-credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
-returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
-
-**Changes.** Restated over `admStep`; the old premise on `Permission_Type_name` is the package's initialization (`isPkgInit`). The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
-step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
-state `storeNext rq cred a` (was: every state the model allows).
-
-**Margin.** Which of the two validation errors, and when, is exact in the code (`authReqAt`'s `Perm` non-nil rules out the first); W0's model allows either at any state.
+`authStore.RoleGrantPermission` (`server/auth/store.go`): the admin side (the auth plan's S4d,
+2026-10-24). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean`
+(the write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+
+/-- **`authpb.Permission_Type_name` holds a map, read-only** (`RoleGrantPermission` looks the
+granted type's name up for its log line): `authpb`'s fact gives it (`typeNamesOk_of_init`; until the
+auth plan's S4e, 2026-10-24, a premise of the spec, the map literal untranslated). -/
+def auth.typeNamesOk : IProp GF :=
+  iprop(∃ (mp : Loc) (Mn : GMap w32 GoString),
+    globalAddr authpb.Permission_Type_name ↦□ mp ∗ mp ↦$□ Mn)
+
+instance auth.typeNamesOk_persistent : Persistent (auth.typeNamesOk (GF := GF)) := by
+  unfold auth.typeNamesOk; infer_instance
+
+/-- `authpb`'s fact (`authpbInit`) gives `typeNamesOk`. -/
+theorem auth.typeNamesOk_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb ⊢ auth.typeNamesOk (GF := GF) := by
+  iintro #Hp
+  ihave Hi : (go_etcd_io.etcd.cache.v3.authpbInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hi with ⟨%mp, %Mn, #H1, #H2, -⟩
+  unfold auth.typeNamesOk
+  iexists mp, Mn
+  iframe #
+
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.RoleGrantPermission(r)`** by the writer, for a request `r` asking `.roleGrantPermission name perm`: the store moves
-to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
-(`admStep`) there, and the reply. -/
-def authStore.RoleGrantPermission.spec : Prop :=
-  ∀ (st r : Loc) (name : GoString) (perm : Perm),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"RoleGrantPermission")) (Val #r)) (authReqAt r (.roleGrantPermission name perm) []) st (.roleGrantPermission name perm) []
+/-- **`as.RoleGrantPermission(r)`** for a request naming the role `name` (within bbolt's key
+bound) and the wire permission `w` (or none): the step `roleGrantPermissionR name w`. -/
+abbrev auth.authStore.RoleGrantPermission.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜stepOk M hs (roleGrantPermissionR name w)⌝ ∗ capNextM M hs (roleGrantPermissionR name w) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+      respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
+      adminOut M hs (roleGrantPermissionR name w) noExtra err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

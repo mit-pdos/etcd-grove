@@ -1,43 +1,14 @@
 /-
-## `(*EtcdServer).Compact(ctx, r)`
-
-**Users.** The gRPC KV handler (`api/v3rpc/key.go:144`), the auto-compactors (`api/v3compactor/
-periodic.go:142`, `revision.go:92`: `Compactable.Compact` with an update built from W0's `envUpd`
-(an `EnvStep.compact`, the identity aborted), the caller's context `s.ctx`), Kubernetes' compactor
-through the client. Snippet: `examples/specreq/etcdserverreq/kv.go` (`ReqCompactorCompact`).
-**The premise `rev ≠ 0`, its sources**: the compactors (`revision.go:82` skips `rev <= 0`; periodic's
-revisions are `Rev()` values `≥ 1`), W0's client contract (`KV.CompactTriple`), and for a raw gRPC
-client 2a's contract of `/etcdserverpb.KV/Compact` (requested: `req/…api_v3rpc.md`, "from 2c" round
-1). It is needed: at a never-compacted store mvcc's `compactMainRev` is `-1`, so `Compact(0)`
-succeeds where W0's model answers `ErrCompacted`
-(`issues/etcd-restore-scheduled-compact-zero.md`).
-
-**Proof sketch.** The span, `EnsureTrace`, `processInternalRaftRequestOnce(ctx, {Compaction: r})`
-(`processInternalRaftRequestOnce.spec` at `.req (.compact rev phys)`): on a result, its trace's
-steps (`applyResult`'s owned `traceOpt`, 4b), then, if `physical`, a receive on `result.Physc` (`applyResult`'s `recvAny`:
-closed once mvcc's compaction finished, 3e) and `s.be.ForceCommit()` under `s.bemu`'s read lock
-(the reader slot from the caller's `threadTok`; 4a's `ForceCommit`); `result.Err` (the answer's
-error, fired; or a refusal given back); else the response (a `*pb.CompactionResponse`, made if
-`nil`), its header made if `nil`, `Header.Revision = s.kv.Rev()` (3e's `Rev`).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__Compact.lean`, the pilot's: `kvRevLb γ rev`
-excluding `ErrFutureRev`, `compact-client.md`) restated: `ErrFutureRev` and `ErrCompacted` are
-fired answers of W0's `Step`, so no revision certificate is needed; `rev ≠ 0` is W0's scope
-restriction (`issues/etcd-restore-scheduled-compact-zero.md`: a member crashing during a compaction
-at `0` restores a different compaction revision), taken here because this is the only proposer of
-compaction entries.
-
-**Margin.** The reply's header revision (the member's store revision after the apply) is not stated
-(W0's `compactReply` does not model it); with `physical`, the call returns only after the compaction
-is done and committed to the backend, not stated either.
-
-Changes: verify-round (A7-completeness F1, F2): a share of `srvGate` only for a physical compaction (`phys = true`: `s.be.ForceCommit()` reads the backend `Cleanup` closes); the auto-compactor's non-physical compactions, which run until `Cleanup` stops the compactor, need none.
+`EtcdServer.Compact` (`v3_server.go`): the auto-compactor's `Compactable` (the spec-first pilot,
+`notes/compactor-pilot-plan.md`, phase 1). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactMode
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactReq
 
 @[expose] public section
 
@@ -45,9 +16,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3 go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -56,15 +26,70 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.Compact(ctx, r)`**: the compaction at `rev` (not `0`), as `Put`. -/
-def EtcdServer.Compact.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (rev : w64) (phys : Bool),
-  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Compact")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ (if phys then srvGate s q else iprop(True)) ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys ∗ ⌜rev ≠ W64 0⌝)
-    iprop((if phys then srvGate s q else iprop(True)) ∗ threadTok ∗ compactReqOwn r dq (sint.Z rev) phys) γ p tls (.compact (sint.Z rev) phys) false (ClientV3.compactReply)
+/-- What `Compact` returns: `nil` and a response whose header holds a revision the store has reached
+(`s.kv.Rev()`, the call's last line; past the store's start, so not `0`: since the client's
+`kv.Compact`, 2026-11-01, which needs the header's revision set, `v3rpc.hdrRevIn`), or an error the server's request path can report
+(`applyErrIs`, which `errors.Is` can test: the compactor's `ErrCompacted` check). -/
+def compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (v : etcdserverpb.ResponseHeader)
+      (log : mvcc.Log), structFieldRef etcdserverpb.CompactionResponse go!"Header" resp ↦ h ∗ h ↦ v ∗
+      srvApi.kvLogLb E.γs log ∗
+      ⌜log ≠ [] ∧ 2 ≤ log.length ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝) ∨
+    (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
+
+/-- `s.Compact(ctx, r)` for a non-physical compaction request (the pilot's scope: the compactor never
+sets `Physical`; the physical wait, `Physc` and `ForceCommit`, is the gRPC caller's and not specified
+yet) at a revision the KV has reached (`kvRevLb`: the apply's `store.Compact` needs it, M2's review
+round 1, S2-3; since the client's `kv.Compact`, 2026-10-31, the cluster's bound in place of the
+store's own certificate `srvRevLb`, weaker: a client's comes from another member's reply, the
+compactor's permit gives the store's, `kvRevLb_of_srvRevLb`), on a server in compaction
+mode (`isServerReq` with `⌜E.cmp = true⌝`: the KV invariant admits the compaction entry in the
+cluster's compaction mode, S2-1; M2's apply side, item 15, 2026-10-31: until then the compaction
+mode's own view, `isServerReqC`; the readers' names the request path's, `ρ.rd`, F5-2: the
+proposal's reached revision from the certificates `isServerRead` reaches. Go serves a client's
+`Compact` RPC with the auto-compactor off too; such a server's invariant admits no compaction entry,
+so a client compaction at an off server stays outside the model, review round 2's S-6): it proposes the
+compaction through raft and returns `compactOutIs`, under a context carrying no trace (`traceutil.ctxTraceIs ctx
+none`: `traceutil.EnsureTrace` reads `ctx.Value(TraceKey{})` and writes to a trace it finds; M2's
+freeze repair, `notes/decisions.md`, "The compactor's contract after the freeze"),
+giving back the caller's reader slots (the lead-time and logger mutexes', `E.RD`; the logger's and
+the server's read facts, `isServerRead`, for `s.Logger()` and `s.kv.Rev()`: M2's S3 glue, which the
+pilot's statement lacked) and a reader token of the store (R8's second round, 2026-11-07: until then
+also `threadTok`, which mvcc's `KV.Rev` no longer takes; `mvccReaders E.γ 1`: the call's last line reads `s.kv.Rev()`, `KV.Rev.contract`'s; strict M1,
+2026-11-06, and the reader tokens, R6, 2026-11-07: until then the store's compaction-aware reader
+`storeReaderC`; the header's log a floor `kvLogLb`, mvcc's `idxCert` until then).
+(Phase 1's statement: what the apply does with the compaction, C2/C3, is not stated yet. The
+compactor's C1 permit stops here until then: a per-call permit parameter would be vacuous, since each
+caller picks it (round 3 of the review); C3 needs a server-wide permit, fixed at `NewServer` and
+recorded by the compaction form of the proposal permit, designed with the model step.) 
+
+**M2's scope restriction** (2026-10-30, the user's Q7 (a), the approval's item 35): the revision is
+at least `1`, no compaction at revision `0` (`nonissues/etcd-restore-scheduled-compact-zero.md`: a
+member that applied `Compact(0)` and installs an image with that compaction scheduled but unfinished
+goes from compaction revision `0` back to `-1`). A client's `Compact(0)` RPC is out of M2's scope;
+M2's compactor never issues it (both of its permits carry `0 < r`: `compactableOk_server`). The
+premise is stricter than the decision by a margin (review round 5's S4): it also excludes the
+negative revisions, which Go handles harmlessly (`updateCompactRev` answers `ErrCompacted` for
+`rev ≤ compactMainRev`, which is at least `-1`, and writes no record); no caller issues one. -/
+abbrev EtcdServer.Compact.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
+  -- (M2, the storage side, 2026-10-30: M2's scope restriction, the user's Q7 (a), the approval's
+  -- item 35) a revision past `0`
+  1 ≤ r →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗
+      srvLgReader s ∗ E.RD ∗
+      mvcc.api.mvccReaders E.γ 1 ∗ idCred ρ.ids 1 ∗
+      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx none ∗
+      kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret) ∗
+      compactReqIs p r }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
+      (Val #(GoInterface.ok ctx))) (Val #p))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗
+      srvLgReader s ∗ E.RD ∗ mvcc.api.mvccReaders E.γ 1 ∗ compactOutIs E resp err }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

@@ -1,38 +1,23 @@
 /-
-`(*applierV3backend).LeaseGrant(r)` (`backend.go:83-92`): the lessor's `Grant(id, ttl)` (the TTL raised to the member's minimum).
-
-**Users.** `uberApplier.dispatch` through the chain (promoted methods of the outer layers).
-
-**Proof sketch.** 3c's `lessor.Grant` at the writer's `Lease.lessorState γl n ls` (`stAt`'s
-`lessorSt`, whose `ls.be` is the options' backend) with the backend's hook (`Lease.beHook ls.be Pk f ∗
-Pre ∗ Lease.beHookRun ls.be Pk f Pre Q ∗ (Q ={⊤}=∗ Pk ∗ Post)` at `Pre := R`, `Post := R`: `beAt`'s
-`optsOk`'s `hooksOk`; verify-round A9 F3/F6: integration Y, the server's hook proved once over 4a's
-`Backend.hookRun γ q Pk f Pre Q` at every share, made the lessor's by `Backend.leaseHookRun_intro`,
-mvcc's by `keyBackend_intro`'s conversion, the schema's by `applyHook_intro`): `ErrLeaseNotFound` (id `0`), `ErrLeaseTTLTooLarge`,
-`ErrLeaseExists`, or the state `ls.grant id l (grantTTL c ttl)` at `n + 1` (`grantTTL c ttl = max ttl
-mc.minLeaseTTL`, `lessorOk`'s `c.minTTL`); `l.ID`, `l.TTL()` (`lessorAt_obj`, `Lease.TTL.spec`);
-`newHeader`.
-
-**Changes** from `specs-ref`'s `applierV3backend__LeaseGrant.lean`: the old triple over the chain's `AEnv`, the mvcc log and the write tokens (`putPre`, `kvPostF`, `mPostW`, ...) restated over the model state (`stAt`, `layersStep`): any auth mode, leases, compaction
-verify-round (A9 F3, F6): the hook's contract has a source (`hooksOk`); the statement is unchanged.
-
-**Margin.** The header's other fields (cluster, member, term, leader) any.
+`apply.applierV3backend.LeaseGrant` (backend.go). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Chain.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.ApiResult
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Apply
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -41,23 +26,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`LeaseGrant` at the applierV3backend layer**: the layers' step (exact). -/
-def applierV3backend.LeaseGrant.spec : Prop :=
-  ∀ (p : Loc) (b aa : Loc) (mc : MemberCfg) (γ : Cluster) (γc : Membership.CNames) (R : IProp GF) (σ : State) (rq : Loc) (op : IrrOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      applierAt (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) [Layer.backend] p aa ∗
-      beAt p mc γ γc R ∗
-      stAt p σ ∗
-      reqMsgAt rq op ∗ ⌜(∃ i t, op = .req (.leaseGrant i t)) ∧ op.ok⌝ ∗
-      R ∗
-      threadTok }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty @!! go!"LeaseGrant")) (Val #rq))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ threadTok ∗ ∃ σ' res, ⌜layersStep mc σ [] 0 op [Layer.backend] σ' res⌝ ∗ stAt p σ' ∗
-      replyAt γ op res (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty) #resp) err }}
+/-- **`a.LeaseGrant(lc)`**: the lessor's `Grant` (a critical section, or none), a fresh response with the lease's `ID`, `TTL()` and `newHeader()` if it succeeded.  (The lease-grant stage, 2.11, 2026-11-03: the chain's grant triple, `grantPre`/`grantPost`;
+until then the generic triple of the methods that leave the log, over the write right `E.RW`.) -/
+abbrev apply.applierV3backend.LeaseGrant.spec : Prop :=
+  ∀ (E : AEnv GF) (p r : Loc) (rq : IRRModel) (g : LeaseGrantModel)
+    (log : mvcc.Log) (T : List w64) (rs : apply.RestM) (U : List w64) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
+      apply.applyTok E ∗ apply.grantPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info r rq g log T rs U
+        Pre Q Post }}
+    (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"LeaseGrant")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.applyTok E ∗ ∃ o : apply.Outcome,
+      apply.grantPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq g log T rs U
+        Pre Post resp err o }}
 
 end spec
 
-end Apply
 end EtcdGrove
 end Perennial

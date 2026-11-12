@@ -1,29 +1,9 @@
 /-
-`(*clientv3.lessor).KeepAlive` (`client/v3/lease.go`).
-
-Users: `concurrency.NewSession` (`session.go:58`: `for range keepAlive`, then `close(donec)`),
-leasing and recipes through sessions; snippet `clientv3lease/session.go` (`ReqSessionLifecycle`,
-`ReqKeepAliveValues`).
-
-Proof sketch: a fresh channel of capacity `LeaseResponseChSize` (the package variable, read-only by
-W0's `init.spec`: `16`); under `l.mu` (the lessor's invariant): if `donec` is closed,
-closes the channel (its close token is fresh) and returns it with `ErrKeepAliveHalted`; else adds the
-channel (its `kaChan` invariant allocated, its close token into the entry) and `ctx` (wrapped by
-`context.WithValue` when `ctx.Done() != nil`: W0's context API) to the lease's entry (a new one, its
-`donec` fresh, if none); then the context closer goroutine (`keepAliveCtxCloser`) if the context can
-be done, and the first time (`firstKeepAliveOnce`) the receive and deadline loops.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/lessor__KeepAlive.lean` (an `isChanAny`
-channel, any error): the channel's values (`kaChan`: about `id`, positive TTL, read-only), no server
-fact needed (the old spec took the keep-alive stream's address facts).
-
-Margin: the error's value (`ErrKeepAliveHalted{loopErr}`) and that the channel is closed then are
-not stated (no user reads them); that the channel closes once the lease is lost or `ctx` is done is
-liveness.
+`(*clientv3.lessor).KeepAlive(ctx, id)` (`client/v3/lease.go`; item 1, the client lease). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
 
@@ -31,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -43,14 +21,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `l.KeepAlive(ctx, id)`: a keep-alive channel of lease `id` (`kaChan`), and `nil` or a halted
-error (the channel then closed). -/
-def lessor.KeepAlive.spec : Prop :=
-  ∀ (l c : Loc) (γ : Cluster) (who : Principal),
-  Lease.KeepAliveTriple (fun s => l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! s) iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorHandle l c γ who ∗ clientReady c) who
+/-- `l.KeepAlive(ctx, id)` on a lessor (`lessorAt`) over a connection to `addr` serving the
+keep-alive stream (with the facts the receive loop's error checks need), for a context: a new
+channel the caller may receive from (`isChanAny`; the lessor keeps its close token), added to the
+lease `id`'s keep-alive (a new one if there is none), with a goroutine closing it once `ctx` is done
+and, the first time, the receive and deadline loops; or, if the receive loop has stopped, a closed
+channel and an `ErrKeepAliveHalted` error. -/
+abbrev lessor.KeepAlive.spec : Prop :=
+  ∀ (l : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
+      leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗ context.isContext ctx cd }}
+    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"KeepAlive")) (Val #(GoInterface.ok ctx))) (Val #id))
+  {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err);
+      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ ∃ γ : ChanNames, isChanAny γ ch) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

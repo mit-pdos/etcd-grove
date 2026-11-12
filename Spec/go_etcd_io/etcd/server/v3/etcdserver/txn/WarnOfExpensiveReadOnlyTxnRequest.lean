@@ -1,64 +1,53 @@
 /-
-## `WarnOfExpensiveReadOnlyTxnRequest(lg, d, now, r, txnResponse, err)` (`util.go`)
+`txn.WarnOfExpensiveReadOnlyTxnRequest` (`util.go`, translated: unit P4, 2026-10-14; it was a
+trust-boundary axiom, "it returns" with no premise, false of the code: unit P1). Lean-first (no
+Rocq counterpart); the request path (`notes/decisions.md`, "The request path").
 
-**Users.** `EtcdServer.Txn`'s deferred warning for a read-only transaction (`v3_server.go:359`: its
-request, the reply, `nil`, or the partly filled response after a context error). Snippet: none.
-
-**Proof sketch.** `pb.NewLoggableTxnRequest(r)` (3h's: `stringerAt s` lent from the request's share, given back by
-`stringerAt s -∗ msgAt …`; its depth premise from 3h's `txnReqOwn_msgAt` and `holds_depth_txn`,
-`depth c ≤ txnMsgDepth t`, and this spec's premise); past the duration,
-`isNil`, the loop over `Responses` (each a range response, its message `nil` or a reply:
-`GetResponseRange`, `GetKvs`, 3h's getters), `proto.Size` (a read-only transaction's response is at
-most four levels deep), `warnOfExpensiveGenericRequest`.
-
-**Changes.** The old spec's `roTxnRespRd` kept as `roTxnResp`, beside a full reply.
-Recheck (RR4): premise `txnMsgDepth t < Proto.depthMax`, what `NewLoggableTxnRequest` needs (its
-text marshaling recurses per level); its caller's transaction is read-only, so `txnMsgDepth t ≤ 3`
-(only ranges in both branches: `opMsgDepth (.range _) = 2`). The premise is the need, not
-`t.readonly`, which would be stronger.
-**Margin.** None.
+When the transaction took longer than `d`, it makes the request's stringer
+(`pb.NewLoggableTxnRequest`, which reads the request: `txnRequestIs`), formats the response
+(unless nil: each range's `GetKvs()` length, `txnRespShow`, and `proto.Size`) and warns through
+`lg` (`warnOfExpensiveGenericRequest`). So: a logger, the request, and a nil response or its
+`Responses` (read-only) and `proto.Size` of it (`sizeOk`, lent `P`: the server's `Txn` lends its
+header's id fields). The server's read-only `Txn` passes a response even on the context's error
+(partly filled: `txn.Txn.specRead`), which these premises cover (`roTxnRespRd`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvWarn
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `WarnOfExpensiveReadOnlyTxnRequest(...)` with the request and a read-only transaction's reply
-(`some m`, every response a range), or `nil` or a partly filled one (`none`): returns, both given
-back. -/
-def WarnOfExpensiveReadOnlyTxnRequest.spec : Prop :=
-  ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (rt : Loc) (dqr : DFrac) (t : TxnReq)
-    (resp : Loc) (dq : DFrac) (mo : Option TxnRespM) (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Zap.isLogger lg ∗ txnReqOwn rt dqr t ∗
-      ⌜EtcdServerPb.txnMsgDepth t < Proto.depthMax⌝ ∗
-      (match mo with
-       | some m => iprop(txnRespOwn resp dq m ∗ ⌜∀ ro ∈ m.responses, ∃ rm, ro = .range rm⌝)
-       | none => iprop(⌜resp = null⌝ ∨ roTxnResp resp)) }}
-    (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest)) (Val #lg)) (Val #d)) (Val #now)) (Val #rt)) (Val #resp)) (Val #err))
-  {{ RET #(); txnReqOwn rt dqr t ∗
-      (match mo with
-       | some m => iprop(txnRespOwn resp dq m ∗ ⌜∀ ro ∈ m.responses, ∃ rm, ro = .range rm⌝)
-       | none => iprop(⌜resp = null⌝ ∨ roTxnResp resp)) }}
+/-- `WarnOfExpensiveReadOnlyTxnRequest(lg, d, now, r, resp, err)`, with a logger, the request `r`
+(`txnRequestIs`), and a nil response or one whose responses it can read (`txnRespShow`) and
+`proto.Size` of which returns lent `P`: it returns, `P` given back. -/
+abbrev txn.WarnOfExpensiveReadOnlyTxnRequest.spec : Prop :=
+  ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (r : Loc) (t : TxnModel) (resp : Loc)
+    (err : GoInterface) (P : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜lg ≠ null⌝ ∗
+      txn.txnRequestIs r t ∗ P ∗
+      (⌜resp = null⌝ ∨ txn.txnRespShow resp ∗
+        txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #resp) P) }}
+    (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest)) (Val #lg)) (Val #d))
+      (Val #now)) (Val #r)) (Val #resp)) (Val #err))
+  {{ RET #(); P }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

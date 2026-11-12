@@ -1,22 +1,10 @@
 /-
-`(*RemoteKV).Delete()` (`key.go`): delete the key (if not deleted already through this object), and
-mark the object deleted (`kv = nil`).
-
-**Users**: `RWMutex.Unlock`, `RUnlock`; `DoubleBarrier.Enter` (too many clients), `Leave` (promoted
-through `myKey`). Snippet: `recipes/rwmutex.go`.
-
-**Proof sketch**: live: `kvAt_methods`' `KV.DeleteTriple` at the field's `kv` with `TODO()` and no
-option (`OpDelete(key)`: `delReq key`), the caller's update unchanged; then store `nil`. Deleted: return
-`nil`; the update is dropped.
-
-**Changes**: old spec over the recipes' client invariant; now the caller's update in W0's shape.
-
-**Margin**: on an object already deleted, nothing is sent and the caller's update is dropped (the code
-would allow giving it back).
+`recipes.(*RemoteKV).Delete()` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -24,33 +12,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`rk.Delete()`**: a live object deletes its key (`Delete(key)`, linearized by the caller's update) and becomes deleted; a deleted one returns `nil`. -/
-def RemoteKV.Delete.spec : Prop :=
-  ∀ (rk : Loc) (γ : Cluster) (who : Principal) (st : RKSt) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ rkOwn rk γ who st ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.deleteRange (delReq st.key)) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }> }}
+/-- **`rk.Delete()`**, knowing etcd has reached `lo`: with no `KV` (deleted already), `nil`;
+otherwise `kv.Delete(context.TODO(), key)` (a key under the prefix `pfx` of `kv`'s contracts),
+returning its `deleteResult` (an error, or a revision `r ≥ lo` at which the key is absent:
+`deleteTxn_absent`); either way the `kv` field becomes nil. -/
+abbrev RemoteKV.Delete.spec : Prop :=
+  ∀ (rk : Loc) (st : RemoteKVSt) (pfx : GoString) (lo : w64),
+  {{ ownRemoteKV (GF := GF) rk st ∗ isRecipesKV st.kv pfx ∗ etcdReached lo ∗ ⌜pfx <+: st.key⌝ }}
     (App (Val (rk @!! go.GoType.PointerType RemoteKV.ty @!! go!"Delete")) (Val #()))
-  {{ (err : GoInterface), RET #err; rkOwn rk γ who { st with live := false } ∗
-      if st.live then (∃ σ σ' res, Q σ σ' res ∗ ⌜okOrErr res err⌝) ∨ indefCall err
-      else ⌜err = GoInterface.nil⌝ }}
+  {{ (err : GoInterface), RET #err; ownRemoteKV rk { st with kv := GoInterface.nil } ∗
+      match st.kv with
+      | .nil => iprop(⌜err = GoInterface.nil⌝)
+      | .ok _ => deleteResult pfx lo (opDeleteModel st.key []) err }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

@@ -1,9 +1,9 @@
 # Batch 2d, completeness review, round 1
 
 Reviewer: completeness (independent of the author). Worktree `specs-only` at `011846a908` plus the
-uncommitted batch files. Targets: `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiApply.lean` and 2d's
+uncommitted batch files. Targets: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiApply.lean` and 2d's
 specs in that directory (the apply thread, the atomics, `Process`/`Report*`/`IsIDRemoved`, the raft
-node driver), `.../etcdserver/cindex/`, `Spec/go_etcd_io/etcd/pkg/v3/schedule/`; snippets
+node driver), `.../etcdserver/cindex/`, `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/schedule/`; snippets
 `examples/specreq/{etcdserverapply,cindex,schedule}/`. Go: the pinned server
 `/home/ubuntu/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261107170612-a4d2bb1720b9`
 (below `S/`), pkg `.../pkg/v3@...`, raft `565c2bd`. I formed the findings below before reading

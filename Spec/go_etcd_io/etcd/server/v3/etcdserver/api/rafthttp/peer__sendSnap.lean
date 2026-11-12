@@ -1,19 +1,9 @@
 /-
-## `(*peer).sendSnap(m)`
-
-**Users.** `Transport.SendSnapshot`.
-
-**Proof sketch.** Fork `snapshotSender.send` (`ssAt` from `peerAt`) with `outSnap`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*peer).sendSnap(m)` (`peer.go`; rafthttp stage 7d, D42). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -21,26 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Sends a merged snapshot** on a new goroutine (`snapshotSender.send`). -/
-def peer.sendSnap.spec : Prop :=
-  ∀ (p : Loc) (ν : Net GF) (lid pid : w64) (mp : Loc) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid ∗ outSnap ν mp }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"sendSnap")) (Val #mp))
+/-- **`p.sendSnap(m)`** of a started peer of `pid` and a merged message for `pid`: its snapshot
+sender's `send` runs on a goroutine; it returns. -/
+abbrev rafthttp.peer.sendSnap.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF) (p m ml : Loc)
+    (rc : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      peerOk Rh lid pid γd R p ∗ snap.msgIs m ml rc ∗ snapBundleTo Rh.γn.N pid ml rc }}
+    (App (Val (p @!! go.GoType.PointerType rafthttp.peer.ty @!! go!"sendSnap")) (Val #m))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

@@ -1,40 +1,38 @@
 /-
-## `NewServerStats(name, id)` (`server.go` of v2stats): names only
-
-**Users.** `NewServer`. **Why it is true.** A struct literal with its mutex. **Changes**: from
-`specs-ref`. **Margin.** None.
+`v2stats.NewServerStats(name, id)` (`server.go`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`notes/decisions.md`), for `NewServer`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Api
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V2stats
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
 
-/-- **The server's statistics.** -/
-def NewServerStats.spec : Prop :=
+/-- `NewServerStats(name, id)` returns some `*ServerStats`, not nil (a fresh allocation,
+`&ServerStats{…}`; the non-nil result since unit N4, 2026-10-17: the transport uses it). -/
+abbrev v2stats.NewServerStats.spec : Prop :=
   ∀ (name id : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewServerStats)) (Val #name)) (Val #id))
-  {{ (p : Loc), RET #p; isServerStats p }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewServerStats))
+      (Val #name)) (Val #id))
+  {{ (p : Loc), RET #p; ⌜p ≠ null⌝ }}
 
 end spec
 
-end V2stats
 end EtcdGrove
 end Perennial

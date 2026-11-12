@@ -1,19 +1,8 @@
-/-
-## `DescribeConfChange(cc)`
-
-**Users**: `stepLeader`'s log line for a refused conf change (`raft.go:1358`). Formatting only.
-**Assumed** (trust boundary; verify-round, A5 F1): the body formats with `fmt.Fprintf` into a
-`strings.Builder` (`util.go:247-259`), of which neither Perennial (only `fmt.{Errorf,Printf,Sprintf}`;
-`strings.Builder` without methods) nor this repository (raftpb's `fmtErrorf` covers `Errorf` only)
-has a spec. True of the code: `cc.AsV2()` (3h's) reads the change, the builder is local, `Fprintf`
-into a `*strings.Builder` never fails, and the change is given back unmodified.
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/DescribeConfChange.lean`: over R1's `confChangePts`.
--/
+/- `DescribeConfChange` (`util.go`, raft v3.7), Lean-first (2026-10-16, stage R4): what
+`stepLeader`'s conf-change refusal log line calls on the decoded conf change. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -21,25 +10,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A description of the change (unspecified). -/
-def DescribeConfChange.spec : Prop :=
-  ∀ (v : GoInterface) (dq : DFrac) (c : ConfChangeI),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ confChangePts v dq c }}
-    (App (Val (@! go_etcd_io.raft.v3.DescribeConfChange)) (Val #v))
-  {{ (s : GoString), RET #s; confChangePts v dq c }}
+/-- `DescribeConfChange(cc)` formats a conf change (`cc.AsV2()`, its transition, changes and
+context, through `fmt.Fprintf` into a `strings.Builder`) into a log string. Of the string
+nothing is said (raft only logs it); the conf change, a `*pb.ConfChange` or a
+`*pb.ConfChangeV2` behind the `ConfChangeI` interface (what `stepLeader` decodes with
+`proto.Unmarshal`), is read and given back. -/
+abbrev DescribeConfChange.spec : Prop :=
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChange p dq m }}
+      (App (Val #(functions DescribeConfChange []))
+        (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p)))
+    {{ (str : GoString), RET #str; ownConfChange p dq m }}) ∧
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeV2 p dq m }}
+      (App (Val #(functions DescribeConfChange []))
+        (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p)))
+    {{ (str : GoString), RET #str; ownConfChangeV2 p dq m }})
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

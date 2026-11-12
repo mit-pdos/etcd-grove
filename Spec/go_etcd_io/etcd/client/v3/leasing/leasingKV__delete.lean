@@ -1,13 +1,9 @@
 /-
-`(*leasingKV).delete` (`kv.go`): `Delete`'s and `Do`'s delete. Proof sketch: `waitSession`; a range:
-`deleteRange`; one key: as `put` (`tryModifyOp`, else `revoke`), then `leaseCache.Delete` with the
-reply's header (copied). Changes: from `specs-ref`'s `leasingKV__delete.lean`: restated over `isLeasingKV`/`Internal.lean` (was the cache's log states and the history premise); weakened to what the leasing contract's proofs need.
-
-Changes: second pass: premise `o.emptyEnd = false` (W0's KV triples take it: A1-provability F5's scope premise; this call forwards the op to the client's KV).
+`lkv.delete(ctx, op)` (`client/v3/leasing/kv.go`). Lean-first (no Rocq counterpart); see `InvLeasingKV.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.leasing.Internal
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
 
 @[expose] public section
 
@@ -15,33 +11,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Leasing
+namespace leasing
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- `delete(ctx, op)` for a delete `op`: as `LKV.DeleteTriple`. -/
-def leasingKV.delete.spec : Prop :=
-  ∀ (lkv : Loc) (γ : Cluster) (who p : Principal) (lo : Nat) (pfx : Key) (γL : LeasingNames) (ctx : GoInterface) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ who pfx γL ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p ∗ authLb γ lo ∗ opAt op o ∗ ⌜o.t = tDeleteRange ∧ o.emptyEnd = false⌝ ∗
-      lkvMarks γL (reqWrites (.deleteRange o.deleteReq)) ∗ threadTok ∗
-      □ AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (r : Option Resp), lstep γL pfx p lo (.deleteRange o.deleteReq) σ σ' r ∗ etcdState γ σ',
-           COMM LQ Q σ σ' r }> }}
-    (App (App (Val (lkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.leasing.leasingKV.ty @!! go!"delete")) (Val #ctx)) (Val #op))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
-      ((∃ σ σ' res, Q σ σ' res ∗ deleteReply res resp err) ∨ ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
+/-- **`lkv.delete(ctx, op)`** for a delete `op` (`o`): after `waitSession`, a range delete goes to
+`deleteRange`; a key's delete is committed by `tryModifyOp` or `revoke` (both, if the key is not
+cached: a finding) until one succeeds or the context is done, and deleted from the cache.
+Returns an error, or the delete of `o`'s range (`deleteCommitted`). The context must be
+cancelable. -/
+abbrev leasingKV.delete.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
+    (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 3 ∧ OpShape opKeyMax opKeyMax opValMax o⌝ }}
+    (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"delete")) (Val #(GoInterface.ok ctx))) (Val #opv))
+  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); lkvReader lkv γ pfx ∗
+      (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o dr)) }}
 
 end spec
 
-end Leasing
+end leasing
 end EtcdGrove
 end Perennial

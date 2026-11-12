@@ -1,13 +1,9 @@
 /-
-`demux.Broadcast` (`cache/*.go`), an internal helper.
-Users: `Cache.watchEvents` (each upstream response).
-Proof sketch: under the write lock: `not initialized` and `validateRevisions.spec`'s errors leave everything; else `demux.updateStoreLocked.spec` (the history and `maxRev`) and `demux.broadcastLocked.spec` (each active watcher enqueued from its position, `watcher.enqueueResponse.spec`, a full one moved to lagging). The store's ceiling covers the response (`storeCeilLb`), so the store watcher's responses carry it.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`demux.Broadcast(resp)`. Lean-first (no Rocq counterpart); see `InvDemux.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,18 +21,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `d.Broadcast(resp)` by the feeder, for an upstream response certified from the feed's position: `nil` and the position moved, or an error and nothing changed. -/
-def demux.Broadcast.spec : Prop :=
-  ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc) (pos pos' : Option Int) (r : Nat)
-    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ demuxFeed d γ pfx s pos ∗ watchRespAt resp m ∗ respFact γ (prefixRange pfx) pos m pos' ∗ storeCeilLb s r ∗ ⌜m.hdrRev ≤ r ∧ ∀ e ∈ m.events, e.rev ≤ r⌝ }}
-    (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"Broadcast")) (Val #resp))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ demuxFeed d γ pfx s pos') ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ demuxFeed d γ pfx s pos) }}
+/-- `d.Broadcast(resp)`, by the writer, for a response modelled by `r` whose events are in
+revision order (etcd's watch stream; `updateStoreLocked` relies on it) and whose revisions are
+below `2^63 - 1` (`RespRevsBounded`, the overflow premise): `broadcastCore` says whether it
+fails (`minRev = 0`: "not initialized", or `validateRevisions`; nothing changes) and the new
+state. Every active watcher is sent its part of the response (or a progress notification), or
+becomes lagging; which one depends on its consumer, so it is not stated, but the delivery
+invariant is kept. If the response is accepted, the caller certifies its batches (`respCert`:
+chained from the stream's last batch, or `base`), or, for a progress notification, that it is at
+or above `base`, with its revision's certificate (`C.prog`). An error's `Error()` returns some
+string (`errStrOk`: `errors.New`'s, or `validateRevisions`'). -/
+abbrev demux.Broadcast.spec : Prop :=
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF) (c : DemuxCore)
+    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap C ∗ demuxWriter d γd cap C c ∗
+      respAt resp r ∗ ⌜EvRevSorted r.events ∧ RespRevsBounded r⌝ ∗
+      (⌜c.minRev ≠ W64 0 ∧ validRevisions r c.maxRev = true⌝ -∗ respCert C c r) }}
+    (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"Broadcast")) (Val #resp))
+  {{ (err : GoInterface), RET #err; errStrOk err ∗
+      match broadcastCore cap c r with
+      | none => demuxWriter d γd cap C c ∗ ⌜∃ e, err = GoInterface.ok e⌝
+      | some c' => demuxWriter d γd cap C c' ∗ ⌜err = GoInterface.nil⌝ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

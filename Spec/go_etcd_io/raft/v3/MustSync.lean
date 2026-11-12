@@ -1,15 +1,10 @@
 /-
-## `MustSync(st, prevst, entsnum)`
-
-**Users.** The examples' durability decision (`kvdurable/kv.go:465`); `RawNode.readyWithoutAccept`.
-Snippet: `readyloop.go` (`ReqDurableLoop`). **Proof sketch.** Getters on possibly-`nil` pointers.
-**Changes.** Unchanged.
+Port of `election_proof/spec_MustSync.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import Proof.go_etcd_io.raft.v3.InvStorage
 
 @[expose] public section
 
@@ -17,28 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `true` iff there are entries or the term or vote changed. -/
-def MustSync.spec : Prop :=
+/-- `MustSync(st, prevst, entsnum)` (`rawnode.go:193`): whether the `Ready` has to be
+written durably before its messages are sent --
+`entsnum != 0 || st.Vote != prevst.Vote || st.Term != prevst.Term`.
 
-  ∀ (st prevst : Loc) (dq dq' : DFrac) (hs hs' : HardState) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ hsPtr st dq hs ∗ hsPtr prevst dq' hs' }}
-    (App (App (App (Val (@! go_etcd_io.raft.v3.MustSync)) (Val #st)) (Val #prevst)) (Val #n))
-  {{ (b : Bool), RET #b; hsPtr st dq hs ∗ hsPtr prevst dq' hs' ∗
-      ⌜b = decide (sint.Z n ≠ 0 ∨ hs.vote ≠ hs'.vote ∨ hs.term ≠ hs'.term)⌝ }}
+raft v3.7 (2026-10-15, stage R4): `st`, `prevst` are `*pb.HardState`s read through their
+getters, each possibly `nil` (`hsOpt`). -/
+abbrev MustSync.spec : Prop :=
+  ∀ (st prevst : Loc) (hs phs : HardStateM) (n : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "#Hst" ∷ hsOpt st hs ∗ "#Hprev" ∷ hsOpt prevst phs }}
+    (App (App (App (Val #(functions MustSync [])) (Val #st)) (Val #prevst)) (Val #n))
+  {{ RET #(decide (n ≠ W64 0 ∨ hs.Vote' ≠ phs.Vote' ∨ hs.Term' ≠ phs.Term'));
+      True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

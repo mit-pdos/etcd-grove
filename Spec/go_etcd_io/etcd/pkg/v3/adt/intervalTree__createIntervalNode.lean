@@ -1,17 +1,9 @@
 /-
-`(*intervalTree).createIntervalNode(ivl, val)` (internal): a fresh red node, its children and
-parent the sentinel, its `max` the interval's end.
-
-**Proof sketch.** A struct literal.
-
-**Changes** from `specs-ref`'s file: at a key kind `c` (was a key representation `K` with
-its comparison contract); pure premises in the precondition.
-
-**Margin.** Mirrors the code.
+`intervalTree.createIntervalNode` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Ctx.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.Internal
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Ctx
 
 @[expose] public section
 
@@ -19,31 +11,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Adt
 
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3.adt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-def intervalTree.createIntervalNode.spec : Prop :=
-  ∀ (c : Cmp) (t s : Loc) (dq : DFrac) (vb ve : val) (b e : GoString) (v : GoInterface),
+/-- `t.createIntervalNode(ivl, v)` (internal, `Insert`'s), over the keys `K` (the interval's
+values holding its keys read-only: the node keeps them): a new red node with the entry, its
+`max` the interval's end, its links the sentinel (read from the tree struct). -/
+abbrev adt.intervalTree.createIntervalNode.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
+  ∀ (t s : Loc) (dq : DFrac) (vb ve : val) (b e : GoString) (v : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
-      t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ keyAt c DFrac.discard vb b ∗ keyAt c DFrac.discard ve e }}
+      t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ K.keyAt .discard vb b ∗ K.keyAt .discard ve e }}
     (App (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"createIntervalNode"))
-      (Val #(c.ivl vb ve))) (Val #v))
+      (Val #(K.ivl vb ve))) (Val #v))
   {{ (z : Loc), RET #z; t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ ⌜z ≠ null⌝ ∗
-      ivAt c (z.[intervalNode, go!"iv"]) (DFrac.own 1) ((b, e), v) ∗
-      maxAt c (z.[intervalNode, go!"max"]) (DFrac.own 1) e ∗
+      K.ivAt z.[intervalNode, go!"iv"] (DFrac.own 1) ((b, e), v) ∗
+      K.maxAt z.[intervalNode, go!"max"] (DFrac.own 1) e ∗
       z.[intervalNode, go!"left"] ↦ s ∗ z.[intervalNode, go!"right"] ↦ s ∗
-      z.[intervalNode, go!"parent"] ↦ s ∗ z.[intervalNode, go!"c"] ↦ colorW .red }}
+      z.[intervalNode, go!"parent"] ↦ s ∗ z.[intervalNode, go!"c"] ↦ adt.colorW .red }}
 
 end spec
 
-end Adt
 end EtcdGrove
 end Perennial

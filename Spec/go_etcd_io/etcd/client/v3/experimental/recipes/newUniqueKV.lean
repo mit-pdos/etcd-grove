@@ -1,25 +1,11 @@
 /-
-`recipe.newUniqueKV(kv, prefix, val)` (`key.go`): `putNewKV` of `prefix/<time.Now().UnixNano()>`,
-retried with a new time while the key exists.
-
-**Users**: `Queue.Enqueue`. Internal.
-
-**Proof sketch**: a loop carrying the caller's update; each attempt `fmt.Sprintf("%s/%v", prefix,
-UnixNano)` (Perennial's `fmt`, `time` specs: the key is `uniqueKeyIn prefix k`), then `putNewKV.spec`
-with an update built from the caller's: a failed comparison (`σ' = σ`) aborts it (the key existed:
-`ErrKeyExists`, `errors.Is` true, retry); any other answer commits it (`Q σ σ' k res`); an indefinite
-error is returned (`errors.Is(err, ErrKeyExists)` is false: `errorsIs_recipeErr`).
-
-**Changes**: old spec over the recipes' client invariant; now the caller's update, the key's shape
-stated (`uniqueKeyIn`).
-
-Changes: verify-round: `ErrKeyExists` is the value its variable holds (`putNewRetAt`), not a Lean constant (A3 F4).
-
-**Margin**: the key's suffix is a decimal time, not tied to a clock (the model has none).
+`recipes.newUniqueKV(kv, prefix, val)` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
+public import Perennial.Proof.fmt
 
 @[expose] public section
 
@@ -27,39 +13,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`newUniqueKV(kv, prefix, val)`**: a key `prefix/<n>` that did not exist, created with `val` (no lease) by one transaction the caller's update linearizes (attempts on existing keys change nothing). -/
-def newUniqueKV.spec : Prop :=
-  ∀ (kv : GoInterface) (γ : Cluster) (who : Principal) (pre val : GoString)
-    (Q : State → State → GoString → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ kvAt kv γ who ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (k : GoString) (res : Resp),
-             ⌜uniqueKeyIn pre k ∧ Step who (putNewReq k val 0) σ σ' res ∧ ¬ txnCmpFailed res⌝ ∗
-             etcdState γ σ',
-           COMM Q σ σ' k res }> }}
-    (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueKV)) (Val #kv))
-      (Val #pre)) (Val #val))
-
+/-- **`newUniqueKV(kv, prefix, val)`** (unit 1b), for a prefix `kp` under the prefix `pfx` of
+`kv`'s contracts, knowing etcd has reached `lo`: tries `putNewKV` (no lease) on keys
+`kp ++ "/" ++ <decimal of time.Now().UnixNano()>` until one is created or the error is not
+`ErrKeyExists`: on success a fresh `*RemoteKV` for a key `kp/<decimal of an int64>` created at
+`r ≥ lo` (`keyCreatedAt`); a nil pointer with the error otherwise. -/
+abbrev newUniqueKV.spec : Prop :=
+  ∀ (kv : GoInterfaceOk) (pfx kp val : GoString) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝ }}
+    (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueKV))
+      (Val #(GoInterface.ok kv))) (Val #kp)) (Val #val))
   {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (∃ (σ σ' : State) (k : GoString) (res : Resp) (rev : w64), Q σ σ' k res ∗ putNewRetAt res rev err ∗
-        ((⌜err = GoInterface.nil⌝ ∗ rkOwn rk γ who { live := true, key := k, rev := rev, val := val }) ∨
-         ⌜err ≠ GoInterface.nil ∧ rk = null⌝)) ∨
-      (⌜rk = null⌝ ∗ indefCall err) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
+        ownRemoteKV rk ⟨GoInterface.ok kv, key, r, val⟩ ∗ etcdReached r ∗
+        keyCreatedAt pfx key val (W64 0) r ∗
+        ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧
+          ∃ t : w64, key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z t)⌝) ∨
+      ⌜err ≠ GoInterface.nil ∧ rk = null⌝ }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

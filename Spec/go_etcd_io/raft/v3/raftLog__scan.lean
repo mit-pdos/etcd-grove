@@ -1,21 +1,7 @@
-/-
-## `(*raftLog).scan(lo, hi, pageSize, v)` (internal)
-
-**Users**: `hasUnappliedConfChanges` (`raft.go:1027`: `[applied+1, committed]`, a callback that
-breaks at the first conf change). Snippet `raftlog/reads.go` (`ReqScanConfChanges`).
-
-**Proof sketch**: a loop of `slice(lo, hi, pageSize)` (no `ErrCompacted`: above the floor; never
-empty), the callback's triple on each page with `I` of the pages before; stop at its first error.
-
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__scan.lean`: over `LogState`.
-
-**Margin**: none.
--/
+/- Port of election_proof/spec_raftLog__scan.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -23,36 +9,47 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Visit the entries of `[lo, hi)` page by page; `nil` once all were visited, or the callback's first error. -/
-def raftLog.scan.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (lo hi ps : w64) (v : val) (I : List LogEntry → IProp GF)
-    (B : GoInterface → IProp GF),
-  ls.compactFloor < uint.nat lo → uint.nat lo ≤ uint.nat hi → uint.nat hi ≤ ls.lastIndex + 1 →
-  uint.nat hi - uint.nat lo < 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls ∗ I [] ∗
-      □ (∀ (sl : GoSlice) (done es : List LogEntry),
-          {{ entriesRO sl (uint.nat lo + done.length) es ∗ I done ∗
-              ⌜es ≠ [] ∧ done ++ es <+: ls.range (uint.nat lo) (uint.nat hi)⌝ }}
-            (App (Val v) (Val #sl))
-          {{ (err : GoInterface), RET #err;
-              (⌜err = interface.nil⌝ ∗ I (done ++ es)) ∨ (⌜err ≠ interface.nil⌝ ∗ B err) }}) }}
-    (App (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"scan")) (Val #lo)) (Val #hi)) (Val #ps)) (Val v))
-  {{ (err : GoInterface), RET #err; raftLog l ls ∗
-      ((⌜err = interface.nil⌝ ∗ I (ls.range (uint.nat lo) (uint.nat hi))) ∨
-       (⌜err ≠ interface.nil⌝ ∗ B err)) }}
+/-- `l.scan(lo, hi, pageSize, v)`: page through the entries at `[lo, hi)`, handing
+each page to `v`; `nil` unless a page is empty or `v` errs (`log.go`).
+
+The callback is described by `scanClosure f L I B` (`InvRaftlog.lean`), at the scanned
+range `L = scanRange ls lo hi`: it gets each page (read-only) with the caller's state
+`I acc` for the pages `acc` before it, and either returns `nil` with `I (acc ++ es)` or
+stops the scan with an error `err` and `B err`. The "got 0 entries" error is dead
+(`slice` returns a non-empty page on `lo < hi`), so `scan` returns `nil` after the
+whole range (`I L`), or the callback's error (`B err`). (Until 2026-10-13 the callback had
+to return `nil`, and got a fact `P` of every entry instead of the page's position.)
+
+`lo <= hi` rather than `lo < hi`: with `lo = hi` the loop does not run and the result
+is `nil` at once, and `hasUnappliedConfChanges` only knows
+`applied + 1 <= committed + 1`. -/
+abbrev raftLog.scan.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (lo hi pageSize : w64) (f : GoFunc)
+    (I : List EntryM → IProp GF) (B : GoInterface → IProp GF),
+  uint.Z ls.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
+    uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+      + (ls.uents.length : Int) + 1 →
+  -- (D19i part 1) above the floor: no page is compacted
+  uint.Z ls.fl < uint.Z lo →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hlog" ∷ ownRaftLog l ls ∗
+      "HI" ∷ I [] ∗ "#Hf" ∷ □ scanClosure f (scanRange ls lo hi) I B }}
+    (App (App (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"scan"))
+      (Val #lo)) (Val #hi)) (Val #pageSize)) (Val #f))
+  {{ (err : GoInterface), RET #err; ownRaftLog l ls ∗
+      ((⌜err = interface.nil⌝ ∗ I (scanRange ls lo hi)) ∨ (⌜err ≠ interface.nil⌝ ∗ B err)) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

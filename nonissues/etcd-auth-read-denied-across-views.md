@@ -25,6 +25,6 @@ is read before the disable, the cache after the revoke.
 ## Proof
 
 no: W0's model admits the denial over the check's three views (`State.deniedSince`,
-`Spec/go_etcd_io/etcd/api/v3/Model.lean`: the flag on at one auth table since the call's start, the
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`: the flag on at one auth table since the call's start, the
 user not of the root role at a second, the range not covered at a third), which is what 3d's
 `checkPost` gives.

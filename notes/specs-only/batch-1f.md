@@ -1,15 +1,15 @@
 # Batch 1f (client recipes): report
 
 Author's report. Everything builds (`etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/client/v3/experimental/recipes`: 39 modules, after W0's round-1 repairs); the
+SpecPlan/Spec/go_etcd_io/etcd/client/v3/experimental/recipes`: 39 modules, after W0's round-1 repairs); the
 snippets vet (`cd examples && go vet ./specreq/recipes/`, gofmt-clean).
 
 ## Files
 
 | path | what |
 |---|---|
-| `Spec/go_etcd_io/etcd/client/v3/experimental/recipes/Api.lean` (`Recipes`, new namespace) | the vocabulary, the laws, the slots for 1b and 1d |
-| `Spec/go_etcd_io/etcd/client/v3/experimental/recipes/*.lean` | 38 specs: every function with an old spec |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/experimental/recipes/Api.lean` (`Recipes`, new namespace) | the vocabulary, the laws, the slots for 1b and 1d |
+| `SpecPlan/Spec/go_etcd_io/etcd/client/v3/experimental/recipes/*.lean` | 38 specs: every function with an old spec |
 | `examples/specreq/recipes/{barrier,queue,pqueue,rwmutex,doublebarrier,watch}.go` | 11 requirement snippets |
 | `nonissues/recipes-dbarrier-leave-without-key.md` (+ `nonissues/INDEX.md` regenerated) | a new finding (below) |
 | `notes/specs-only/req/go_etcd_io_etcd_client_v3.md` (`## from 1f`), `req/go_etcd_io_etcd_client_v3_concurrency.md` (new), `req/go_etcd_io_etcd_api_v3.md` (new) | needs of 1b, 1d, W0 |
@@ -135,7 +135,7 @@ on a nil `myKey` when others wait and this process's `Enter` did not create a ke
 Reviews: `reviews/1f-provability-1.md` (F1–F4, S1–S8), `reviews/1f-completeness-1.md` (C-1–C-9).
 Built against W0's round 2 (`etcdPerm`/`etcdPeek`, `putOnce`, `etcdLb_init`, `etcdLb_revFits`,
 `callErr_errorsNew`) and 1b's `ApiWatch.lean`: `etc/specs-build.sh --dir
-Spec/go_etcd_io/etcd/client/v3/experimental/recipes Spec/fmt` (41 modules OK); snippets vet and are
+SpecPlan/Spec/go_etcd_io/etcd/client/v3/experimental/recipes SpecPlan/Spec/fmt` (41 modules OK); snippets vet and are
 gofmt-clean.
 
 * **F1** (`WaitEvents` on `""`): the watch specs are stated over 1b's `watchEvents w` with `w` the
@@ -149,9 +149,9 @@ gofmt-clean.
   `enteredClients`, `Enter`, `Leave`, `Lock`/`RLock`, `waitOnLastRev`; `errorsIs_recipeErr` takes
   it; `Enter`'s "not `ErrTooManyClients`" from `recipeErr_ne`, `recipeErr_fresh` (now also W0's
   `callErr_errorsNew`).
-* **F4** (`Sscanf`): new trust-boundary spec `Spec/fmt/Sscanf.lean` (`Fmt.Sscanf_d.spec`, the `%d`
+* **F4** (`Sscanf`): new trust-boundary spec `SpecPlan/Spec/fmt/Sscanf.lean` (`Fmt.Sscanf_d.spec`, the `%d`
   form into an `*int`: digits below `2^63` give `nil` and the value; otherwise some value or
-  `Fmt.scanErr`), vocabulary `Spec/fmt/Api.lean` (`decValue`, `scanErr`); 1f owns `Spec/fmt/`.
+  `Fmt.scanErr`), vocabulary `SpecPlan/Spec/fmt/Api.lean` (`decValue`, `scanErr`); 1f owns `SpecPlan/Spec/fmt/`.
 * **C-1** (double barrier): `Enter` takes one-shot updates for creating its waiter key (`Qc`) and
   for deleting that key (`∀ k`, `Qd k`), `Leave` one for deleting its key; `dbPerm` (now W0's
   `etcdPerm`) covers only the `ready` key: its put after `count` waiters (`Enter`'s, `own = none`),

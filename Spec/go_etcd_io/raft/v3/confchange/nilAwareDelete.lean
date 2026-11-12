@@ -1,13 +1,10 @@
 /-
-## `nilAwareDelete(m, id)` (internal)
-
-**Users.** `makeVoter`, `remove`. Mirrors the code: `id` deleted, the map `nil` once empty.
+`confchange.nilAwareDelete(m, id)` deletes `id` from `*m`, nil'ing the map if it
+becomes empty. Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 
@@ -15,27 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ConfChange
 
-open Iris Iris.BI
-open Classical Tracker
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.confchange.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Removes `id` from the set at `mp`, `nil` once empty. -/
-def nilAwareDelete.spec : Prop :=
-  ∀ (mp : Loc) (mv : GoMap) (s : GSet w64) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ mp ↦ mv ∗ Quorum.majorityOwn mv (DFrac.own 1) s }}
-    (App (App (Val #(functions go_etcd_io.raft.v3.confchange.nilAwareDelete [])) (Val #mp)) (Val #id))
-  {{ RET #(); ∃ mv', mp ↦ mv' ∗ Quorum.majorityOwn mv' (DFrac.own 1) (s \ {[id]}) ∗
-      ⌜mv' = map.nil ↔ s \ {[id]} = ∅⌝ }}
+/-- `nilAwareDelete(&m, id)`: `*m` (`nil` or a map) afterwards holds the set without `id`,
+canonically (`ownIdsetC`): `nil` exactly when that set is empty. A `nil` map is left
+alone (generalized 2026-10-12 from the `nil` case `makeVoter` met on `Restore`'s path). -/
+abbrev confchange.nilAwareDelete.spec : Prop :=
+  ∀ (mp m : Loc) (id : w64) (s : GSet w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ mp ↦ (m : GoMap) ∗ ownIdsetQ m (DFrac.own 1) s }}
+    (App (App (Val #(functions confchange.nilAwareDelete [])) (Val #mp)) (Val #id))
+  {{ (m' : Loc), RET #(); mp ↦ (m' : GoMap) ∗ ownIdsetC m' (DFrac.own 1) (GMap.delete id s) }}
 
 end spec
-end ConfChange
+
 end EtcdGrove
 end Perennial

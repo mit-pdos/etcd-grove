@@ -1,20 +1,10 @@
 /-
-`version.LessThan(a, b)` (`api/version/version.go:84`): `a.LessThan(&b)`, a full semver comparison.
-
-Users: the lessor's `greaterOrEqual` (`lease/lessor.go:391`: whether the cluster supports
-checkpointing, 3c).
-
-**Assumed** (a translation gap): names only, as `Cluster`. True of the code: semver's comparison of
-two values, no panic.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/version/LessThan.lean`: unchanged (some
-boolean).
-Margin: the answer is not specified (the lessor's spec does not depend on it).
+`version.LessThan(a, b)` (`api/v3/version`, names only: the trust boundary). Lean-first (no Rocq
+counterpart); the lessor's `greaterOrEqual` (2026-10-13, unit 9).
 -/
 module
 
-public import GeneratedProof.go_etcd_io.etcd.api.v3.version
-public import Spec.PkgInit.go_etcd_io.etcd.api.v3.version
+public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 
 @[expose] public section
 
@@ -22,26 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Version
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.version.Assumptions]
 
-/-- `LessThan(a, b)`: some boolean. -/
-def LessThan.spec : Prop :=
-  ∀ (a b : val),
+/-- `LessThan(a, b)` compares two `semver.Version` values (by value: their major and minor
+numbers); it returns some boolean. -/
+abbrev version.LessThan.spec : Prop :=
+  ∀ (a b : github_com.Masterminds.semver.v3.Version),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version }}
-    (App (App (Val (@! go_etcd_io.etcd.api.v3.version.LessThan)) (Val a)) (Val b))
+    (App (App (Val (@! go_etcd_io.etcd.api.v3.version.LessThan)) (Val #a)) (Val #b))
   {{ (r : Bool), RET #r; True }}
 
 end spec
 
-end Version
 end EtcdGrove
 end Perennial

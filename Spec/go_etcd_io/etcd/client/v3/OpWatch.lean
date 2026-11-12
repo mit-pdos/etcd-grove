@@ -1,17 +1,10 @@
 /-
-`clientv3.OpWatch` (`client/v3/op.go`).
-
-Users: `watcher.Watch` (1b), the cache (`cache/cache.go` `validateWatch`).
-
-Proof sketch: `Op{t, key}` then `Op.applyOpts.spec`, the `switch` (premise).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/OpWatch.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.OpWatch(key, opts...)` (`client/v3/op.go`, translated for the cache). Lean-first (no Rocq
+counterpart); see `InvOp.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -19,27 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `OpWatch(key, opts...)`: a watch's `Op` over `key` with the options applied. -/
-def OpWatch.spec : Prop :=
-  ∀ (key : GoString) (sl : GoSlice) (gs : List (OpM → OpM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ optsAt sl gs ∗ ⌜¬ (opWatchM key gs).watchPanics⌝ }}
+/-- `OpWatch(key, opts...)`: the `Op` modelled by `opWatchModel key gs`; it panics if the options set a lease, a limit, a sort order, `serializable`, `countOnly` or a revision filter (`opWatchPanics`), which the caller rules out. -/
+abbrev OpWatch.spec : Prop :=
+  ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ optsAt sl gs ∗ ⌜¬ opWatchPanics key gs⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.OpWatch)) (Val #key)) (Val #sl))
-  {{ (op : go_etcd_io.etcd.client.v3.Op), RET #op; optsAt sl gs ∗ opAt op (opWatchM key gs) }}
+  {{ (op : go_etcd_io.etcd.client.v3.Op), RET #op; opFullAt op (opWatchModel key gs) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

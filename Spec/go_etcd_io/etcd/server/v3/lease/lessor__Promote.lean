@@ -1,28 +1,10 @@
 /-
-## `(*lessor).Promote(extend)` (`lessor.go:480`): names only (an assumed spec)
-
-**Users.** 2d's `applyEntryNormal` (`server.go:1990`): on the empty entry of a new term, if the
-member is the leader, `Promote(s.Cfg.ElectionTimeout())`, on the apply thread.
-
-**Why it is true.** Under `le.mu`: a fresh `demotec`; every live lease's expiry refreshed by
-`extend` plus its remaining TTL (wrapping arithmetic, `time.Time.Add`: no panic), registered in the
-notifier, `scheduleCheckpointIfNeeded` (the logger's `Debug`: `isLessor`'s `isLogger`, the zero
-logger panicking is excluded there, `specs-ref`'s axiom sweep B3-2); with at least
-`leaseRevokeRate` (non-negative: `NewLessor`'s premise; `0` defaulted to 1000) leases, the expiries spread by a float
-computation and `sort.Sort` by remaining time (`leases[0]` exists). Nothing of the model changes
-(the primary flag and the expiries are time). **The checkpointer's gate** (round 1): from now on
-the lessor is primary and may call its checkpointer (`Renew`, the run loop): `Promote` deposits
-`□ R` of `ckptGate le R` in the invariant beside `demotec`. Untranslated (floats, float-to-integer conversions),
-so assumed.
-
-**Changes** (from `specs-ref`'s `lessor__Promote.lean`, `lessorInv ∗ lessorCfg`): over `isLessor`,
-which carries the logger fact the sweep found missing. **Margin.** The expiries.
+`(*lessor).Promote` (`server/lease/lessor.go`, names only: the trust boundary). Lean-first (no
+Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -30,28 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Become the primary lessor** (any goroutine, the checkpointer's gate `R` holding): no change
-to the model. -/
-def lessor.Promote.spec : Prop :=
-  ∀ (le : Loc) (γ : Names) (c : Cfg) (extend : time.Duration) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      ckptGate le R ∗ □ R }}
-    (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
-      go!"Promote")) (Val #extend))
+/-- `le.Promote(extend)` (write-locked): makes the lessor primary (a fresh `demotec`), refreshes
+every lease's expiry, registers it with the expiry notifier and schedules its checkpoint, and
+spreads out the expiries of piled-up leases (float arithmetic, a float-to-integer conversion,
+`sort.Sort` of the leases by `Remaining()`, which read-locks each lease's `expiryMu`); it touches
+only the lessor's memory under its lock. It indexes the sorted leases' first only when there are
+at least `leaseRevokeRate` of them, which `lessorCfg` makes positive (audit B4b, 2026-10-18: a
+negative rate with no lease panics; until then the configuration's rate was unconstrained). -/
+abbrev lease.lessor.Promote.spec : Prop :=
+  ∀ (lp : Loc) (γl : GName) (d : _root_.Perennial.time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
+      lessorCfg lp }}
+    (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Promote")) (Val #d))
   {{ RET #(); True }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

@@ -2,7 +2,7 @@
 
 Reports: `A4-raft-node-core-{provability,completeness}.md` (all), the R3 parts of
 `A5-raft-log-conf-pb-{provability,completeness}.md`, and the coordinator's relay of raft-conf-pb's
-requests. Files are under `Spec/go_etcd_io/raft/v3/` and `examples/specreq/` unless a path is given.
+requests. Files are under `SpecPlan/Spec/go_etcd_io/raft/v3/` and `examples/specreq/` unless a path is given.
 
 ## A4 provability
 
@@ -187,13 +187,13 @@ requests. Files are under `Spec/go_etcd_io/raft/v3/` and `examples/specreq/` unl
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3`: **OK (229 modules)**.
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3`: **OK (229 modules)**.
 `cd examples && go vet ./specreq/raftnode/...` is clean. The `raftcore` and `raftlog` snippets are
 `//go:build ignore`; `gofmt` parses them and finds nothing to change.
 
 ## Second pass (coordinator: does the crash law the server cites match?)
 
-The split `raftState_crash` is in the tree: `Spec/go_etcd_io/raft/v3/Api.lean:909`. Its premises
+The split `raftState_crash` is in the tree: `SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean:909`. Its premises
 (`:915`, `:917`) are, besides `b.snap = none`, `j ≤ |b.ents|`, `wcommit ≤ hs.commit`,
 `hs.commit ≤ (D.crashed b j hs).last` and `confAboveOk`:
 - **(old record)** `hs.term = D.term ∧ hs.vote = D.vote ∧ hs.commit ≤ D.commit`, or
@@ -249,5 +249,5 @@ a commit up to the batch's. It no longer exists. Where the citations differ:
 - **S-d**: not done here. `notes/perennial-changes.md` is outside my ownership. **Request to the
   coordinator**: add an entry there for the missing `fmt.Fprintf` / `strings.Builder` specs, which
   are why `DescribeConfChange` is assumed.
-- Build after these fixes: `etc/specs-build.sh --dir Spec/go_etcd_io/raft/v3` OK (229 modules); `go vet ./specreq/raftnode/...` clean.
+- Build after these fixes: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/raft/v3` OK (229 modules); `go vet ./specreq/raftnode/...` clean.
 - **Recheck NR1** (`RR-raftlog-bbolt.md`): fixed. `ReqCompactApplied` (`raftlog/ready.go`) now assumes `applied >= base` as well as `floor <= applied` (not between a restore's `stableSnapTo` and its `appliedSnap`). The false comment is corrected: `compactFloor` is then the applied index. `gofmt` is clean.

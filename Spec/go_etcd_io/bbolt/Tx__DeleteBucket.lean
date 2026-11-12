@@ -1,10 +1,7 @@
 /-
-`tx.DeleteBucket(name)` (`tx.go`): the root's.
-
-**Users.** The backend's `UnsafeDeleteBucket` (`batch_tx.go:148`: `errors.Is(err,
-ErrBucketNotFound)` is accepted, any other error fatal). Snippet: `ReqDeleteBucketNotFound`.
-**Proof sketch.** `Bucket.DeleteBucket.spec` at the root. **Changes.** As
-`Bucket.DeleteBucket.spec`.
+`Tx.DeleteBucket` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/Tx__DeleteBucket.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -16,36 +13,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.DeleteBucket(name)`: deletes the top-level bucket `name` (see `Bucket.DeleteBucket.spec`). -/
-def Tx.DeleteBucket.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ key ↦*{dk} kb ∗ ⌜T.rw = true → q = 1⌝ }}
-    (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"DeleteBucket")) (Val #key))
-  {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
-      (if T.rw = false then
-         iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
-       else match T.cur.atPath [kb] with
-         | some (Ent.bkt _ _) => iprop(⌜err = GoInterface.nil⌝ ∗ boltTx tx γ q (T.dropBkt [] kb))
-         | some (Ent.val _) => iprop(boltTx tx γ q T ∗
-             isErr go_etcd_io.bbolt.errors.ErrIncompatibleValue err)
-         | none =>
-           if kb.length = 0 ∧ T.ents [] = [] then
-             iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrIncompatibleValue err)
-           else iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrBucketNotFound err)) }}
+/-- `tx.DeleteBucket(name)` in a write transaction: the bucket deleted and its name's generation
+bumped (its handles are no longer current: bbolt frees its nodes); or, if absent,
+`errors.ErrBucketNotFound`'s value and nothing changed; or, for the empty name (never a bucket's:
+`CreateBucket` refuses it), `errors.ErrIncompatibleValue`'s value and nothing changed (D-M: in an
+empty root bucket the seek finds no key and `bytes.Equal([]byte{}, nil)` holds, so bbolt reports
+an incompatible value; `nonissues/bbolt-deletebucket-empty-name.md`). -/
+abbrev Tx.DeleteBucket.spec : Prop :=
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (name : GoSlice) (n : GoString) (dq : DFrac),
+  {{ boltTx (GF := GF) tx γ 1 T ∗ name ↦*{dq} n ∗ ⌜T.rw = true⌝ }}
+    (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"DeleteBucket")) (Val #name))
+  {{ (err : GoInterface), RET #err; name ↦*{dq} n ∗
+      ((⌜T.cur.lookup n = none⌝ ∗ boltTx tx γ 1 T ∗
+         globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound ↦□ err) ∨
+       (⌜n = [] ∧ T.cur.lookup n = none⌝ ∗ boltTx tx γ 1 T ∗
+         globalAddr go_etcd_io.bbolt.errors.ErrIncompatibleValue ↦□ err) ∨
+       (⌜T.cur.lookup n ≠ none ∧ err = GoInterface.nil⌝ ∗ boltTx tx γ 1 (T.dropBkt n))) }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

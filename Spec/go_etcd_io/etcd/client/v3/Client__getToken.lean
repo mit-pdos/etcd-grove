@@ -1,26 +1,15 @@
 /-
-`(*clientv3.Client).getToken` (`client/v3/client.go`).
-
-Users: `newClient` (the first token), `refreshToken` (the unary interceptor's refresh), the stream
-interceptor (before every stream); snippet `clientv3client/auth.go` (`ReqPasswordChangeRefresh`).
-
-Proof sketch: a token configured: `UpdateAuthToken(c.Token)` (`bundleAt`: the token names `who`,
-`cfgPrincipal_token`). No user name or password: `nil`. Else `c.Auth.Authenticate(ctx, Username,
-Password)` (`clientCore` with `clientReady c`: `authAt` of the set `Auth` field; the update built from `idUpd γ`: an
-authentication changes nothing); `ErrAuthNotEnabled` (`errors.Is`, W0's `errorsIs_errVal`): the
-token `""`, `nil`; another error returned (`ContextError`'d by `Authenticate`: `errVal e` of a
-definite answer, `ErrAuthFailed` and the refusals; else indefinite); a token (`authReply`:
-`tokenUser γ tok Username`) into the bundle.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__getToken.lean` (`clientTokAt` with a
-caller's token predicate `P`): the token names the client's principal (`bundleAt`).
-
-Margin: an authentication's other definite answers are not refusals (only `authFailed` and
-`authNotEnabled` are possible besides them, `authStep`).
+`c.getToken(ctx)` (`client/v3/client.go`, names only; unit P3a): the client's auth part (the
+retry interceptor's `refreshToken`): with a token, `c.authTokenBundle.UpdateAuthToken(c.Token)`;
+with a user name and password, `c.Auth.Authenticate` (a gRPC call through the same connection, its
+retry interceptor included) and the bundle's update. (Item 5, client construction, 2026-10-17:
+with no user name, `nil`: `newClient` calls it with no credentials and closes the client on an
+error.)
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -28,10 +17,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -40,18 +28,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.getToken(ctx)`: the bundle's token refreshed for `who`; `nil`, an indefinite error, or a
-refusal (`ErrAuthFailed`: the password changed or the user deleted). -/
-def Client.getToken.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (p : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken")) (Val #ctx))
-  {{ (err : GoInterface), RET #err;
-      ⌜err = GoInterface.nil⌝ ∨ indefCall err ∨
-      ∃ e, callErr err (.etcd e) ∗ ⌜e.refusal = true⌝ }}
+/-- `c.getToken(ctx)` on a client `clientv3.New` built (`retryClientOk`: a bundle whenever a
+token), ready (`clientReady`: its `Auth` over the connection `conn` to `eps`; the bundle's tokens
+`""` or meeting some `P`, and `Authenticate`'s reply to its user name and password a token meeting
+`P`: the token it stores keeps the bundle's invariant, `clientAuthAt`) returns `nil` or a client error grpc's `status` accepts (`clientErrOk`: `Authenticate`'s,
+through the client's retry interceptor). -/
+abbrev Client.getToken.spec : Prop :=
+  ∀ (c conn : Loc) (eps : List GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
+      -- (the auth plan's C1, 2026-10-28) the client ready (`c.Auth` over `conn`, the token's
+      -- facts), its connection (later: the retry interceptor's refresh path calls this under its
+      -- own induction hypothesis)
+      clientReady c conn eps ∗ ▷ isEtcdConn conn eps ∗ ctxOk ctx cd }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; clientErrOk err ∗
+      -- (item 5) with no user name (read-only), `nil`: a token is set without a call, and no
+      -- token and no user name returns at once
+      □ (structFieldRef go_etcd_io.etcd.client.v3.Client go!"Username" c ↦□ ([] : GoString) -∗
+        ⌜err = GoInterface.nil⌝) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -39,7 +39,7 @@ package there):
 
 ## Proof
 
-no: the client's specs (batch 1c, `Spec/go_etcd_io/etcd/client/v3/`) take the endpoints token
+no: the client's specs (batch 1c, `SpecPlan/Spec/go_etcd_io/etcd/client/v3/`) take the endpoints token
 `epsTok` at a non-empty list for `Client.Dial`, `Client.dial` and `maintenance.Status` (a fraction:
 no concurrent `SetEndpoints`; `New` gives the token only with auto-sync off), a precondition every
 user in scope meets (Kubernetes and the examples never change endpoints).

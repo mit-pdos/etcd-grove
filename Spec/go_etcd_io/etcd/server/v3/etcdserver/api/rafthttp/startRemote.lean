@@ -1,19 +1,9 @@
 /-
-## `startRemote(tr, urls, id)`
-
-**Users.** `Transport.AddRemote`.
-
-**Proof sketch.** `newURLPicker`, `newPeerStatus`, the pipeline literal and `start`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`startRemote(tr, urls, id)` (`remote.go`; rafthttp stage 6b). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -21,26 +11,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Starts a remote** (a pipeline only) for `pid`. -/
-def startRemote.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid pid : w64) (urls : GoSlice) (hs : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ Types.urlsAt urls hs ∗ ⌜hs ≠ []⌝ ∗ ([∗list] a ∈ hs, peerAddr ν a) }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.startRemote)) (Val #t)) (Val #urls)) (Val #pid))
-  {{ (g : Loc), RET #g; remoteAt g ν lid pid ∗ remoteStopRight g }}
+/-- **`startRemote(tr, urls, id)`** on a started transport of the member `lid`, with `id`'s URLs
+(non-empty, its own): a started remote and the right to stop it. (Until J8a-6, 2026-11-01, four of
+the transport's `Raft` resources, for its pipeline's goroutines, which need none.) -/
+abbrev rafthttp.startRemote.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (urls : GoSlice)
+    (uvs : List net.url.URL) (pid : w64),
+  uvs ≠ [] → (∀ u ∈ uvs, peerURL Rh pid u) → Rh.member lid → lid ≠ pid → Rh.member pid →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      trFixed Rh t lid γd R ∗ urls ↦*□ uvs }}
+    (App (App (App (Val (@! rafthttp.startRemote)) (Val #t)) (Val #urls)) (Val #pid))
+  {{ (g : Loc), RET #g; remoteOk Rh lid pid R g ∗ remoteStop Rh pid R g }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

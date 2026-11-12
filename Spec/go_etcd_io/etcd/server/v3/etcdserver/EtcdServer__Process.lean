@@ -1,47 +1,21 @@
 /-
-`(*EtcdServer).Process(ctx, m)` (`server.go:700-722`): the transport's inbound message: refused
-(an HTTP 403 error) from a removed member or to another member, else stepped into raft.
-
-**Users**: rafthttp's stream and pipeline handlers (`api/rafthttp/peer.go`, `stream.go`,
-`pipeline.go`, `snapshot_sender`'s receiver `http.go`: batch 2f), through the `rafthttp.Raft`
-interface. Snippet `raftnode.go` (`ReqProcess`).
-
-**Proof sketch**: `s.Logger()`, `s.MemberID()` over `srvFields` (`srvNode_fields`: re-review RR2,
-no `srvMember`, which needs the transport set after `tr.Start()`); `s.cluster.IsIDRemoved(from)` (2e's `Membership`: any answer); `MemberID() != to`:
-an error (`httptypes.NewHTTPError`, 2e's); a `MsgApp`'s size (`proto.Size`, 2a's) into the stats
-(2e's `v2stats`); `s.r.Step(ctx, m)` (`raftNode.Step.spec`, with `m.to = id` now known). The message
-comes with 2f's `recvd ν (W64 id) m` for the server's network (2e's `srvNet γ.etcd ν`, whose `img` is 2d's `imgAt γ`): `msgSent`, `msgCredit`, and for a
-`MsgSnap` of index `i` its database kept in **this member's** snapshot directory (`ν.dbIn (W64 id)
-i`: second crash pass, F-server-boot F4, `dbIn` is keyed by the receiver), which `Process` deposits
-in the member's invariant over its snapshot directory, where the batch of the snapshot's install
-takes it (`snapImage`, round 1, completeness F6; the record is generation-independent, ApiBoot's
-realization of `ν.dbIn`, so a deposit by any incarnation's handler serves the install).
-Changes: verify-round (second crash pass, F-server-boot F4): takes `recvd ν (W64 id) m`, the
-receiver's own (was `recvd ν m`, whose `dbIn i` named no receiver). **Changes** from `specs-ref`'s spec (the transport's `stepIn` bundle): over R1's
-`msgSent`/`msgCredit`; the error is 2f's `procErr` (its `raftOk` contract: `procErr_forbidden`
-for the 403s, `Rafthttp.procErr_nodeErr` for raft's), and the thread token 2f's contract lends
-(`lgMu` and the membership are read under read locks). Callable from `NewServer` on (`srvNode`):
-the transport starts before `start`. **Margin**: which error is not described (rafthttp only
-logs it or answers it).
-
-Changes: verify-round (rafthttp's and raft-conf-pb's request): the message is raftpb's `msgRecv` (a decoded message with its `Entries` slice's capacity: what rafthttp's decoders deliver, `msgRecv_intro`, and raft's `node.Step` takes).
+`(*EtcdServer).Process` (`server.go`): rejects a message from a removed member or to another member with a `403`, counts a `MsgApp` in the server's stats, and steps the message into raft (`s.r.Step`). Lean-first (no Rocq counterpart); D21 stage M2
+(2026-10-19): the inbound path from the transport (`rafthttp.Raft`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiApply
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvNet
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -49,21 +23,24 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Step an inbound message** a node of the cluster sent. -/
-def EtcdServer.Process.spec : Prop :=
-  ∀ (s : Loc) (γ : Names) (id : Nat) (ν : Rafthttp.Net GF) (ctx : GoInterface) (mp : Loc)
-    (m : Raft.Msg),
+/-- **`s.Process(ctx, m)`** on the server `s`, member `id` of the network `γn` (`srvProcOk`), a
+message the network delivers to it (`netRecv`) and a context the node API takes, with one of
+`lgMu`'s reader slots (`Logger()`): returns some error, the slot back. The two `403` branches are
+dead: the cluster removes no member (`IsIDRemoved` is `false`) and the message is addressed to
+`id` (the network's promise); the message is stepped into raft's node (`stepP`, `stepP_of_recv`). (D22 S-i) `γd` names the
+member's snapshot directory, whose fact for a `MsgSnap` (`netSnapRecv`) `node.Step` takes
+(2026-11-01, J8a: `snapLocalMsg`, `srvProcOk`'s directory; until then not read). -/
+abbrev EtcdServer.Process.spec : Prop :=
+  ∀ (γn : NetNames GF) (γd : GName) (s : Loc) (id : w64) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (ml : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNode s γ id ∗ srvNet γ.etcd ν ∗ Context.ctxOk ctx ∗ Raft.msgRecv mp m ∗
-      Rafthttp.recvd ν (W64 id) m ∗ threadTok }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"Process")) (Val #ctx)) (Val #mp))
-  {{ (err : GoInterface), RET #err; Rafthttp.procErr err ∗ threadTok }}
+      srvProcOk γn s id γd ∗ nodeCtx ctx cd ∗ srvLgReader s ∗ netRecv γn id γd ml }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Process"))
+      (Val #(GoInterface.ok ctx))) (Val #ml))
+  {{ (err : GoInterface), RET #err; nodeErr cd err ∗ srvLgReader s }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

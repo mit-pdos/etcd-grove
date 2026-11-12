@@ -1,19 +1,9 @@
 /-
-## `serverVersion(h)`
-
-**Users.** `checkClusterCompatibilityFromHeader`, `streamReader.dial` (on the response's headers).
-
-**Proof sketch.** `Header.Get`, `semver.MustParse` (trust: semver; it parses what `verHdrOk` says).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** A malformed header panics: `issues/etcd-rafthttp-stream-dial-bad-server-version-panic.md` (the premise is met between members).
+`serverVersion(h)` (`util.go`; rafthttp stage 5e-3): a peer's version from its headers. Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Stream
 
 @[expose] public section
 
@@ -21,26 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The `X-Server-Version` header as a version (`2.0.0` if absent); its value must parse (`MustParse`). -/
-def serverVersion.spec : Prop :=
-  ∀ (hm : GoMap) (hs : List (GoString × GoString)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ Http.hdrRO hm hs ∗ ⌜verHdrOk (Http.hdrGet hs go!"X-Server-Version")⌝ }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.serverVersion)) (Val #hm))
-  {{ (v : Loc), RET #v; semverAt v }}
+/-- **`serverVersion(h)`** of a header map `hm` holding `hs`: a version (not `nil`), or (2026-10-24,
+rafthttp stage 6e: any header, a request handler's) a panic when its `X-Server-Version` does not
+parse (`semver.MustParse`), never when it does (`verHdrOk`: unset, or valid). -/
+abbrev rafthttp.serverVersion.spec : Prop :=
+  ∀ (hm : Loc) (hs : List (GoString × GoString)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.hdrAt hm hs }}
+    (App (Val (@! rafthttp.serverVersion)) (Val #hm))
+  {{ (r : val), RET r; ⌜(∃ v : Loc, r = #v ∧ v ≠ null) ∨ (¬ verHdrOk hs ∧ ∃ p : val, r = PanicV p)⌝ }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

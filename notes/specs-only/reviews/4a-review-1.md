@@ -1,6 +1,6 @@
 # Batch 4a (storage backend): review, round 1 (provability and completeness)
 
-Reviewer agent, 2026-11-09. Targets: `Spec/go_etcd_io/etcd/server/v3/storage/backend/` (`Api.lean`,
+Reviewer agent, 2026-11-09. Targets: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/` (`Api.lean`,
 `Internal.lean`, `MvccStorage.lean`, 97 specs), `examples/specreq/backend/`, `## from 4a` in
 `req/*.md`, the report `batch-4a.md`. 4a's draft is `51a613f05c`; HEAD is `55a0ad7fb6` (3e round 2,
 `a0e2b76347`, landed after the draft), and the worktree has 4b's uncommitted round-1 changes
@@ -163,7 +163,7 @@ Reviewer agent, 2026-11-09. Targets: `Spec/go_etcd_io/etcd/server/v3/storage/bac
   - Every range post gives `bytesListAt kl …`, that is `p ↦*□ b`, for keys and values bbolt's cursor
     returned.
   - 4c gives `txBytes tx γ s b`, "the slice `s` holds `b` while `tx` is live", readable only through
-    `txBytes_acc` with `boltTx` (`Spec/go_etcd_io/bbolt/Api.lean:196-198, 356-359`).
+    `txBytes_acc` with `boltTx` (`SpecPlan/Spec/go_etcd_io/bbolt/Api.lean:196-198, 356-359`).
   - In Go these slices point into the mmap or the transaction's nodes. After the read transaction
     rolls back and a later write remaps, reading them faults.
 - The author asked 4c for the lifetime (`req/go_etcd_io_bbolt.md`, "from 4a" item 5) but wrote the
@@ -214,7 +214,7 @@ Reviewer agent, 2026-11-09. Targets: `Spec/go_etcd_io/etcd/server/v3/storage/bac
     `beHist γ L` into a `beFile p (some I)` with `I ∈ L` after a crash.
   - 2d item 3 ("a crash keeps the last commit's image") and 3c item 4 ("writes under one lock hold
     land in one commit … the crash image must keep them together") are unserved.
-  - 4c has `boltCrash` (`Spec/go_etcd_io/bbolt/Api.lean:102`) to build it from.
+  - 4c has `boltCrash` (`SpecPlan/Spec/go_etcd_io/bbolt/Api.lean:102`) to build it from.
   - Fix: a `beCrash` law over `beHist`, gated by a recorded `UnsafeNoFsync` mode (Q3: record it in
     `isBackend`'s index or as a persistent `beSynced γ` from `New`).
 

@@ -40,7 +40,7 @@ which builds its own `OpDelete(key, WithRange(end))`, dropping the caller's othe
 ## Proof
 
 yes: the leasing contract states the request made without `prevKv`
-(`Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`, `execReq`), so the leasing KV does not meet the
+(`SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`, `execReq`), so the leasing KV does not meet the
 client's KV contract for range deletes.
 
 ## Fix

@@ -1,30 +1,10 @@
 /-
-## `(*Lease).Keys()` (`lease.go:106`)
-
-**Users.** The writer: `Revoke` (`lessor.go:347`). Readers (2c): `checkLeaseRenew`
-(`v3_server.go:594`), `checkLeaseTimeToLive` (`:626`), `leaseTimeToLive` (`:653`), on an object
-`Lookup` returned (possibly revoked since). Snippets `lessor.go` (`ReqAttachDetach`,
-`ReqReaderLowerBound`).
-
-**Proof sketch.** `l.mu.RLock()`: the object's lock invariant holds its `itemSet` at `ls.keys l` of
-the lessor's current state `j ≥ i` (every writer changing an object's set holds both `le.mu` and
-`l.mu` and appends the history under both: the history's authority is in an invariant both locks'
-holders open); a fresh slice of the set's keys (map iteration: each once, any order); `RUnlock`.
-
-**Changes** (from `specs-ref`'s `Lease__Keys.lean`, the owner's item set): one spec for any caller,
-from a state of the history. **Margin.** A state of the history may be one in the middle of an
-applied entry (between two `Detach`es of a revocation's deletes, two `Attach`es of a transaction's
-puts), so a reader may see a key set no revision had:
-`nonissues/etcd-lease-keys-mid-apply.md`; the server's tie of the history to its own (2d) says which.
-**Round 1.** A reader token (`lessorReaders γ 1`: the slot of the `RWMutex` it read-locks; the
-writer borrows one, `lessorState_reader`), the bounds plan's reader slots.
+`(*Lease).Keys` (`server/lease/lease.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Api
-
-set_option autoImplicit false
-set_option linter.iris.dupNamespace false
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -32,29 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **The keys attached to the object `l`** (any goroutine): at a state `j ≥ i`, its item set, each
-key once, in some order, in a fresh slice. -/
-def Lease.Keys.spec : Prop :=
-  ∀ (γ : Names) (l : Loc) (id ttl : Int) (i : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ leaseObj γ l id ttl ∗
-      lessorReaders γ 1 ∗ lessorLb γ i }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.Lease.ty @!!
-      go!"Keys")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; lessorReaders γ 1 ∗ ∃ (j : Nat) (ls : LessorState) (ks : List Key),
-      ⌜i ≤ j⌝ ∗ lessorAt γ j ls ∗ sl ↦* ks ∗ ⌜ks.Nodup ∧ ∀ k, k ∈ ks ↔ ls.keys l k⌝ }}
+/-- `l.Keys()` (read-locked; unit T3, 2026-10-25): the keys of the lease's item set, a fresh
+slice, no key twice. By the lease owner (`.owner I`: its half of the set, `leaseItemsOwn l I id`,
+and a reader slot of the lease's lock), the keys are those the owner's item map `I` puts on `id`; by
+a reader (`.reader m`, the lease-keys plan's Part B, 2026-10-31: `l` the lease of `id` at an index
+no earlier than `m`, and a thread token, with which it borrows a slot of the lock from the lease's
+pool, at most `2^30 - 1` live threads), the keys the item map puts on `id` at an index no earlier than
+`m` where the lease map has `l` (`leaseKeysFrom`; the last such index, `setsOk`). -/
+abbrev lease.Lease.Keys.spec : Prop :=
+  ∀ (γl : GName) (l : Loc) (id : w64) (K : KeysBy),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLeaseObj γl l ∗
+      keysPre γl l id K }}
+    (App (Val (l @!! go.GoType.PointerType Lease.ty @!! go!"Keys")) (Val #()))
+  {{ (s : GoSlice) (ks : List GoString), RET #s; s ↦* ks ∗ keysPre γl l id K ∗
+      keysPost γl l id ks K ∗ ⌜ks.Nodup⌝ }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

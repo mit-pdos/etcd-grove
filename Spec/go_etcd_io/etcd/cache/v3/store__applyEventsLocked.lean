@@ -1,13 +1,9 @@
 /-
-`store.applyEventsLocked` (`cache/*.go`), an internal helper.
-Users: `store.Apply`.
-Proof sketch: for each revision's events: deletes (`BTree.Delete.spec`; the key present, so no error) and puts (`newKVItem.spec`, `BTree.ReplaceOrInsert.spec`), then the revision's snapshot (`newClonedSnapshot.spec`, `ringBuffer.Append.spec`) certified by the events (`deliv`), `revCond` broadcast.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`store.applyEventsLocked(events)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,28 +11,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `s.applyEventsLocked(events)` under the lock, for events certified from `a`, above the latest revision. -/
-def store.applyEventsLocked.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (pfx : GoString) (lr : Nat) (a b : Int) (evSl : GoSlice)
-    (evs : List RevEvent) (σ : State) (r : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ storeLocked s γ pfx lr ∗ eventsAt evSl evs ∗ etcdLb γ σ ∗ storeUpTo s a ∗ storeCeilLb s r ∗ ⌜deliv σ.kv (prefixRange pfx) (some a) evs b ∧ ∀ e ∈ evs, lr < e.rev ∧ e.rev ≤ r⌝ }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.store.ty @!! go!"applyEventsLocked")) (Val #evSl))
-  {{ RET #GoInterface.nil; ∃ lr', storeLocked s γ pfx lr' ∗ ⌜evs.getLast?.map (·.rev) = some lr'⌝ }}
+/-- `s.applyEventsLocked(events)`, under the write lock: the physical state becomes
+`(applyEvents cap st evs).1`, and the error is `nil` iff `(applyEvents cap st evs).2` (an error's
+`Error()` returns some string, `errStrOk`: `fmt.Errorf`'s). The
+events must be in revision order and above the latest revision (what `Apply`'s
+`validateRevisions` checks), so that the history's revisions increase, and certified
+(`snapCerts E (applyEventsSnaps st.latest evs)`: every snapshot it appends). -/
+abbrev store.applyEventsLocked.spec : Prop :=
+  ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (st : StoreState) (evSl : GoSlice)
+    (evs : List EvModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isStore s γ cap ∗ storeLockedPhys s cap E st ∗ ⌜StoreInv cap st⌝ ∗ eventsAt evSl evs ∗
+      ⌜EvRevSorted evs ∧ ∀ e ∈ evs, sint.Z st.latestRev < sint.Z e.rev⌝ ∗
+      snapCerts E (applyEventsSnaps st.latest evs) }}
+    (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"applyEventsLocked")) (Val #evSl))
+  {{ (err : GoInterface), RET #err; errStrOk err ∗
+      storeLockedPhys s cap E (applyEvents cap st evs).1 ∗
+      ⌜StoreInv cap (applyEvents cap st evs).1 ∧
+        sint.Z st.latestRev ≤ sint.Z (applyEvents cap st evs).1.latestRev⌝ ∗
+      ⌜if (applyEvents cap st evs).2 then err = GoInterface.nil
+        else ∃ e, err = GoInterface.ok e⌝ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

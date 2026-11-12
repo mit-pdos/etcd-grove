@@ -1,0 +1,591 @@
+/-
+The pure model of the backend above its buffers (`batch_tx.go`, `read_tx.go`, `backend.go`):
+the batch transaction's state, the readers' view, and what the batch lock keeps true. Lean-first
+(no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value
+contract, the locks and the views".
+
+**Buckets.** The backend's clients name a bucket by a `Bucket` value with an id and a name
+(`BucketInfo`); the buffers are keyed by id, bbolt by name. `BParams.BT` is the clients' table of
+buckets (name to id, injective: schema's buckets).
+
+**Views.** A view (`VFun`) is a lookup function: bucket name, key, value. `dget D` is bbolt's
+data's; `ovB BT B base` overlays the buffer buckets `B` (by id) on `base` (the newest entry of a
+key in its bucket wins: `lastVal`). The readers see `viewOf st = ovB BT st.R.bks (dget st.C)`:
+the committed data of the batch interval with the read buffer over it. The writer's bbolt
+contents `S`, while no delete is pending, are the committed data with the read buffer then the
+write buffer over it. `agreeOff HB f g`: the two views agree except on the hook's buckets `HB`.
+
+**The batch transaction's state** (`BSess`): committed data `C`, writer contents `S`, read and
+write buffers, `pending` and `pendingDeleteOperations`, and bbolt's write transaction `tx` (only a
+commit changes it: the slices a range of the writer returns are valid while it is the same).
+`sessWf` holds always; `freeOk` when the lock is free (no delete pending, `pending` below the
+limit, the write buffer empty but for the hook's buckets: the leftovers of the last commit's
+hook).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace backend
+
+/-- The backend's parameters: the clients' buckets (name to id), the buckets the pre-commit hook
+writes, the safe-range buckets (`SB`: put to in increasing key order and never deleted from, so
+a range read of bbolt's entries then the read buffer's is the bucket's range; schema's `Key`),
+how many entries one run of the hook puts at most, and the configuration's batch limit; and the
+hook's own keys (`HK`, bucket name and key, counted only in a hook's bucket: `BParams.hk`): their
+values in the writer's contents are tracked by a ghost variable whose other half is the client's
+(`hkOwn`), so only its holder (the hook, through the hooks' resource) changes them, and a session
+that does not hold it leaves them as they were (etcd's consistent index and term, which only the
+pre-commit hook writes). And (D22, 2026-10-23: the backend over every bucket) the tracked
+buckets (`RB`): their contents in the writer's contents (`rbData`, absent buckets absent) are
+tracked by a ghost variable whose other half is the client's (`rbOwn`), so a session that puts in,
+deletes from, creates or deletes one needs it, and the pre-commit hook leaves them (etcd's rest
+buckets, `mvcc.restBuckets`: the lessor's, the auth store's, the alarm store's and the
+membership's, which the apply thread alone writes). And (the backend-compaction stage, question 4,
+2026-10-29) the values the compaction keys (`fkKey`) may be written with (`FV`: mvcc's revision
+values, `mvcc.metaRevVal`), which a put of one needs (`UnsafePut`'s premise) and which the backend
+tracks when its data at creation had only such values (`fkV`). -/
+structure BParams where
+  BT : GMap GoString w64
+  HB : GoString → Bool
+  SB : GoString → Bool
+  HK : GoString → GoString → Bool
+  RB : GoString → Bool
+  hookMax : Nat
+  limit : w64
+  FV : GoString → Prop := fun _ => True
+
+/-- The parameters are sane: bucket ids distinct, the limit positive and small enough that the
+buffers do not overflow (`bufBound`), the hook's puts few, the safe-range buckets not the hook's. -/
+def BParams.Wf (P : BParams) : Prop :=
+  (∀ n1 n2 i, P.BT.lookup n1 = some i → P.BT.lookup n2 = some i → n1 = n2) ∧
+  0 < sint.Z P.limit ∧ sint.Z P.limit ≤ 2 ^ 57 ∧ P.hookMax ≤ 2 ^ 16 ∧
+  ∀ n, P.SB n = true → P.HB n = false
+
+/-- A hook's own key: in a hook's bucket, and one of `HK`. -/
+def BParams.hk (P : BParams) (n k : GoString) : Bool := P.HB n && P.HK n k
+
+/-- A bucket of the table. -/
+def BParams.has (P : BParams) (bi : BucketInfo) : Prop := P.BT.lookup bi.name = some bi.id
+
+/-- A view: bucket name, key, value. -/
+abbrev VFun := GoString → GoString → Option GoString
+
+/-- bbolt's data as a view. -/
+def dget (D : Data) : VFun := fun n k => (D.lookup n).bind (fun m => m.lookup k)
+
+/-- The buffer buckets `B` (by id, through the table) over the view `base`. -/
+def ovB (BT : GMap GoString w64) (B : GMap w64 (List Ent)) (base : VFun) : VFun :=
+  fun n k => ((BT.lookup n).bind (fun i => lastVal (bkOf B i) k)).or (base n k)
+
+/-- Two views agree off the hook's buckets. -/
+def agreeOff (HB : GoString → Bool) (f g : VFun) : Prop :=
+  ∀ n, HB n = false → ∀ k, f n k = g n k
+
+/-- The batch lock's ghost counters of a state (`bgOk`): `k` paid commits and `c` commits since
+the last write-back, `p0` the pending count at the last write-back, `e` the hook's leftovers moved
+into the read buffer since the last commit. Ghost data: the session's operations and the hook keep
+them; only the batch transaction's own `Unlock` and commit change them. -/
+structure BCnt where
+  k : Nat
+  c : Nat
+  p0 : Nat
+  e : Nat
+  /-- the hook's window: the pre-commit hook is running (the commit then resets the read buffer,
+  dropping its emptied buckets) -/
+  hw : Bool
+
+/-- The batch transaction's state. -/
+structure BSess where
+  C : Data
+  S : Data
+  R : RBuf
+  W : WBuf
+  pend : w64
+  ndel : w64
+  tx : Loc
+  cnt : BCnt
+  /-- Ghost data (the user's decision, 2026-11-04, probe M2: a snapshot's observation knows the
+  safe-range buckets exactly): every entry deleted from the writer's contents while present, since
+  the open (bucket and key, to the value deleted). Only `UnsafeDelete` changes it (`BSess.del`);
+  the batch lock tracks its safe-range part (`dlR`) with the client (`dlsOwn`). -/
+  dl : GMap (GoString × GoString) GoString := ∅
+  /-- Ghost data (2026-11-04): the state is an `Unlock`'s commit window (the batch lock's quarter
+  of the view at the exact new physical view until the commit's close moves it to the session's
+  logical view, `relog`), where the deleted entries need not be the logical view's. -/
+  win : Bool := false
+
+/-- What the readers see of a state: the committed data with the read buffer over it. -/
+def viewOf (P : BParams) (st : BSess) : VFun := ovB P.BT st.R.bks (dget st.C)
+
+/-- What the readers see, as a value: the committed data of the batch interval and the read
+buffer (a ghost variable holds it: a view function is not countable). -/
+abbrev RView := Data × RBuf
+
+instance rbuf_countable : Pos.Countable RBuf :=
+  countableOfLeftInverse (fun r : RBuf => (r.bks, r.ver)) (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
+
+/-- The view of a readers' state. -/
+def vOf (P : BParams) (rv : RView) : VFun := ovB P.BT rv.2.bks (dget rv.1)
+
+/-! ## The readers' view as a finite map -/
+
+/-- The keys a view of `rv` can have: the committed data's, and the read buffer's (through the
+table). -/
+def vKeys (P : BParams) (rv : RView) : List (GoString × GoString) :=
+  rv.1.toList.flatMap (fun nm => nm.2.toList.map (fun kv => (nm.1, kv.1))) ++
+  P.BT.toList.flatMap (fun ni => (bkOf rv.2.bks ni.2).map (fun e => (ni.1, e.1)))
+
+theorem lastVal_isSome_mem {l : List Ent} {k : GoString} (h : (lastVal l k).isSome) :
+    ∃ e ∈ l, e.1 = k := by
+  unfold lastVal at h
+  cases hf : l.reverse.find? (fun e => decide (e.1 = k)) with
+  | none => rw [hf] at h; simp at h
+  | some e =>
+    have hm := List.mem_of_find?_eq_some hf
+    have hk := List.find?_some hf
+    exact ⟨e, List.mem_reverse.1 hm, by simpa using hk⟩
+
+theorem vOf_isSome_mem (P : BParams) (rv : RView) (n k : GoString)
+    (h : (vOf P rv n k).isSome) : (n, k) ∈ vKeys P rv := by
+  unfold vOf ovB at h
+  unfold vKeys
+  rw [List.mem_append]
+  cases hb : (P.BT.lookup n).bind (fun i => lastVal (bkOf rv.2.bks i) k) with
+  | some v =>
+    right
+    obtain ⟨i, hi, hl⟩ := Option.bind_eq_some_iff.1 hb
+    obtain ⟨e, he, hek⟩ := lastVal_isSome_mem (l := bkOf rv.2.bks i) (k := k) (by rw [hl]; rfl)
+    rw [List.mem_flatMap]
+    refine ⟨(n, i), (GMap.mem_toList _ _ _).2 hi, ?_⟩
+    rw [List.mem_map]
+    exact ⟨e, he, by rw [hek]⟩
+  | none =>
+    left
+    rw [hb, Option.none_or] at h
+    unfold dget at h
+    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 h
+    obtain ⟨m, hm, hk⟩ := Option.bind_eq_some_iff.1 hv
+    rw [List.mem_flatMap]
+    refine ⟨(n, m), (GMap.mem_toList _ _ _).2 hm, ?_⟩
+    rw [List.mem_map]
+    exact ⟨(k, v), (GMap.mem_toList _ _ _).2 hk, rfl⟩
+
+/-- The readers' view off the hook's buckets, as a finite map from (bucket, key) to the value:
+the ghost state's value (two states with one view have one `vData`). -/
+def vData (P : BParams) (rv : RView) : GMap (GoString × GoString) GoString :=
+  ⟨fun nk => if P.HB nk.1 then none else vOf P rv nk.1 nk.2,
+   ⟨vKeys P rv, fun nk h => by
+      split at h
+      · simp at h
+      · exact vOf_isSome_mem P rv nk.1 nk.2 h⟩⟩
+
+/-- bbolt's data off the hook's buckets, as a finite map (what the writer's contents read as). -/
+def sData (P : BParams) (S : Data) : GMap (GoString × GoString) GoString := vData P (S, ⟨∅, W64 0⟩)
+
+/-- The buffers' buckets are the table's. -/
+def idsOk (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
+  ∀ i es, B.lookup i = some es → ∃ n, P.BT.lookup n = some i
+
+/-- The write-back's read buffer keeps the buffers' buckets the table's. -/
+theorem idsOk_writebackR {P : BParams} {W : WBuf} {R : RBuf} (hW : idsOk P W.bks)
+    (hR : idsOk P R.bks) : idsOk P (writebackR W R).bks := by
+  intro i es h
+  simp only [writebackR, wbMerge] at h
+  change ((gmapImap _ W.bks).lookup i).or (R.bks.lookup i) = some es at h
+  cases hw : W.bks.lookup i with
+  | some es' => exact hW i es' hw
+  | none =>
+    have : (gmapImap (fun id es => canon (bkOf R.bks id ++ es)) W.bks).lookup i = none := by
+      show (W.bks.lookup i).map _ = none; rw [hw]; rfl
+    rw [this, Option.none_or] at h
+    exact hR i es h
+
+/-- A bucket's contents in bbolt's data (empty if absent). -/
+def bktOf (D : Data) (n : GoString) : BktData := (D.lookup n).getD ∅
+
+/-- **The tracked buckets of bbolt's data** (`BParams.RB`), absent buckets absent: the value of
+the ghost variable `γ.rbk` (half the batch lock's, half the client's `rbOwn`). -/
+def rbData (P : BParams) (S : Data) : GMap GoString BktData := S.filter (fun n _ => P.RB n)
+
+theorem rbData_lookup (P : BParams) (S : Data) (n : GoString) :
+    (rbData P S).lookup n = if P.RB n then S.lookup n else none := by
+  unfold rbData
+  show (S.lookup n).filter (fun _ => P.RB n) = _
+  cases S.lookup n <;> cases P.RB n <;> rfl
+
+/-- Two contents that agree on the tracked buckets have one `rbData`. -/
+theorem rbData_eq {P : BParams} {S S' : Data}
+    (h : ∀ n, P.RB n = true → S'.lookup n = S.lookup n) : rbData P S' = rbData P S := by
+  apply GMap.ext
+  intro n
+  rw [rbData_lookup, rbData_lookup]
+  cases hn : P.RB n
+  · rfl
+  · simp only [↓reduceIte]; exact h n hn
+
+/-- A change of an untracked bucket leaves `rbData`. -/
+theorem rbData_insert_other {P : BParams} {S : Data} {n : GoString} (b : BktData)
+    (h : P.RB n = false) : rbData P (S.insert n b) = rbData P S := by
+  apply rbData_eq
+  intro n' hn'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  exact GMap.lookup_insert_ne _ _ this
+
+theorem rbData_delete_other {P : BParams} {S : Data} {n : GoString}
+    (h : P.RB n = false) : rbData P (S.delete n) = rbData P S := by
+  apply rbData_eq
+  intro n' hn'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  exact GMap.lookup_delete_ne _ this
+
+/-- The safe-range discipline on a readers' state: in every safe-range bucket, every key of the
+committed data is below every key of the read buffer (so the backend's range, bbolt's then the
+read buffer's, is in key order and has no key twice). -/
+def safeRv (P : BParams) (rv : RView) : Prop :=
+  ∀ n i, P.BT.lookup n = some i → P.SB n = true → ∀ (kc vc : GoString) (e : Ent),
+    (bktOf rv.1 n).lookup kc = some vc → e ∈ bkOf rv.2.bks i → strLt kc e.1
+
+/-- The safe-range discipline on the batch state, for every safe-range bucket (name `n`, id
+`i`): the readers' state is safe (`safeRv`), and every committed key is below every key of the
+write buffer (each put was above the committed keys: `UnsafeSeqPut`'s premise). Until the
+backend-compaction stage (its thin-view Draft round, 2026-10-29) also "every committed key is in the
+writer's contents" (no deletes in safe-range buckets): compaction deletes committed keys of `Key`,
+so the put's premise names the committed keys itself. -/
+def safeSt (P : BParams) (st : BSess) : Prop :=
+  safeRv P (st.C, st.R) ∧
+  ∀ n i, P.BT.lookup n = some i → P.SB n = true →
+    ∀ (kc vc : GoString) (e : Ent), (bktOf st.C n).lookup kc = some vc →
+      e ∈ bkOf st.W.bks i → strLt kc e.1
+
+/-- The state's facts at any time. -/
+def sessWf (P : BParams) (st : BSess) : Prop :=
+  st.W.Wf ∧ st.R.Wf ∧ idsOk P st.W.bks ∧ idsOk P st.R.bks ∧
+  0 ≤ sint.Z st.pend ∧ sint.Z st.pend < 2 ^ 58 ∧ 0 ≤ sint.Z st.ndel ∧
+  sint.Z st.ndel ≤ sint.Z st.pend ∧
+  (st.pend = W64 0 → ∀ i, bkOf st.R.bks i = []) ∧
+  (st.ndel = W64 0 → agreeOff P.HB (dget st.S) (ovB P.BT st.W.bks (viewOf P st))) ∧
+  safeSt P st
+
+/-- The state's facts when the batch lock is free. -/
+def freeOk (P : BParams) (st : BSess) : Prop :=
+  sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧
+  (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []) ∧ st.cnt.hw = false
+
+/-- The read buffer has nothing off the hook's buckets (what a backend's readers' view promises
+while its `γ.cln` flag is `true`: the restore plan's R5a). -/
+def rbClean (P : BParams) (R : RBuf) : Prop :=
+  ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf R.bks i = []
+
+/-- The session changed nothing the readers see: the writer's contents read, off the hook's
+buckets, as the readers' view, and the write buffer is empty off them (so the write-back leaves
+the view as it is). A session that only put in, or deleted from, the hook's buckets has it (and
+any `freeOk` state: `viewSame_of_freeOk`); a delete pending is allowed (the `Unlock` then
+commits, which changes no `vData`). -/
+def viewSame (P : BParams) (st : BSess) : Prop :=
+  vData P (st.C, st.R) = sData P st.S ∧
+  ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []
+
+/-- The buffers' sizes, bounded through the batch lock's ghost counters (`st.cnt`, and `n` the
+write-back tokens out, `w` the write-backs so far, `u` the write-back after which the `run`
+goroutine's last unpaid commit came: at most one unpaid commit after each write-back; after a
+commit, until the next write-back, the read buffer is empty). A commit
+does not write the write buffer back: the hook's puts stay in it (at most `hookMax` a commit,
+`c` of them since the last write-back); its other entries since the last write-back are puts
+(`pend - p0`). `free`: the lock is free (every session's puts written back: `p0 = pend`; a
+pending operation means a write-back since `run`'s last unpaid commit). (D22 receiver epochs,
+S8a, 2026-10-24) The write-backs are at most the read buffer's version (each increments both), so
+a write-back since the backend was made means a write-back token spent (`hook_fresh_false`). -/
+def bgOk (P : BParams) (st : BSess) (free : Bool) (n w u : Nat) : Prop :=
+  uint.Z st.R.ver + n + st.cnt.k < 2 ^ 40 ∧ u ≤ w ∧
+  st.cnt.c ≤ st.cnt.k + 1 + (if u = w then 1 else 0) ∧
+  st.cnt.p0 ≤ sint.nat st.pend ∧
+  ((st.cnt.e = 0 ∨ st.cnt.c = 0) ∧ (st.cnt.c = 0 ∨ ∀ i, bkOf st.R.bks i = [])) ∧
+  st.cnt.e ≤ P.hookMax * (2 ^ 40 + 2) ∧
+  (∀ i, (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0 + P.hookMax * st.cnt.c ∧
+    (bkOf st.R.bks i).length ≤ st.cnt.p0 + st.cnt.e) ∧
+  (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false →
+    (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0) ∧
+  (free = true → st.cnt.p0 = sint.nat st.pend ∧ (st.pend ≠ W64 0 → u < w)) ∧
+  (w : Int) ≤ uint.Z st.R.ver
+
+end backend
+end EtcdGrove
+end Perennial
+
+namespace Perennial
+namespace EtcdGrove
+namespace backend
+
+/-! ## The batch transaction's operations -/
+
+/-- `UnsafePut(bucket, k, v)` (and `UnsafeSeqPut`, with the write buffer's `putSeq`): bbolt's
+writer sets the entry, the write buffer gets it, one more pending operation. -/
+def BSess.put (st : BSess) (bi : BucketInfo) (k v : GoString) (seq : Bool) : BSess :=
+  { st with S := st.S.insert bi.name ((bktOf st.S bi.name).insert k v),
+            W := if seq then st.W.putSeq bi.id (k, v) else st.W.put bi.id (k, v),
+            pend := st.pend + W64 1 }
+
+/-- `UnsafeDelete(bucket, k)`: bbolt's writer deletes the entry (no buffer), one more pending
+operation and pending delete. -/
+def BSess.del (st : BSess) (bi : BucketInfo) (k : GoString) : BSess :=
+  { st with S := st.S.insert bi.name ((bktOf st.S bi.name).delete k),
+            pend := st.pend + W64 1, ndel := st.ndel + W64 1,
+            dl := match (bktOf st.S bi.name).lookup k with
+              | some v => st.dl.insert (bi.name, k) v
+              | none => st.dl }
+
+/-- `UnsafeCreateBucket(bucket)`: the bucket, empty if it was absent. -/
+def BSess.create (st : BSess) (bi : BucketInfo) : BSess :=
+  { st with S := if st.S.lookup bi.name = none then st.S.insert bi.name ∅ else st.S,
+            pend := st.pend + W64 1 }
+
+/-- `UnsafeDeleteBucket(bucket)`: the bucket deleted (absent or not), one more pending operation
+and pending delete. -/
+def BSess.delBucket (st : BSess) (bi : BucketInfo) : BSess :=
+  { st with S := st.S.delete bi.name, pend := st.pend + W64 1, ndel := st.ndel + W64 1 }
+
+/-! ## The safe-range buckets' deleted entries (the user's decision, 2026-11-04, probe M2)
+
+A snapshot's observation must know the safe-range (`Key`) bucket of the data exactly, not only
+thin of the logical view (`thinV`: each missing entry deletable): `restore()` rebuilds the index
+from whatever the bucket holds. The batch lock tracks the entries deleted from a safe-range bucket
+(`dlR` of the session's `dl`), half with the client (`dlsOwn`), and keeps the logical view `L`, the
+writer's contents and them in agreement (`dlsOk`): exactly the logical entries missing from the
+writer's contents are the deleted ones. -/
+
+/-- The safe-range part (off the hook's buckets) of a set of deleted entries. -/
+def dlR (P : BParams) (X : GMap (GoString × GoString) GoString) : GMap (GoString × GoString) GoString :=
+  GMap.filter (fun nk _ => P.SB nk.1 && !P.HB nk.1) X
+
+/-- **The deleted entries agree with the logical view `L` and the writer's contents**: in a
+safe-range bucket (off the hook's), an entry of `L` missing from the writer's contents was
+deleted, and a deleted entry is missing from them and is `L`'s. -/
+def dlsOk (P : BParams) (st : BSess) (L : GMap (GoString × GoString) GoString) : Prop :=
+  (∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → L.lookup nk ≠ none →
+    (sData P st.S).lookup nk = none → st.dl.lookup nk ≠ none) ∧
+  (∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → st.dl.lookup nk ≠ none →
+    (sData P st.S).lookup nk = none ∧ L.lookup nk ≠ none)
+
+/-- **The deleted entries are missing from the writer's contents** (the agreement's part that
+holds in an `Unlock`'s commit window too). -/
+def dlsS (P : BParams) (st : BSess) : Prop :=
+  ∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → st.dl.lookup nk ≠ none →
+    (sData P st.S).lookup nk = none
+
+/-- **The batch lock's agreement of the deleted entries** with its logical view `L`: missing from
+the writer's contents always; out of an `Unlock`'s commit window (`win`), the full agreement
+`dlsOk`; and a state out of a commit's hook window (`hw`) is out of an `Unlock`'s window. -/
+def dlsW (P : BParams) (st : BSess) (L : GMap (GoString × GoString) GoString) : Prop :=
+  dlsS P st ∧ (st.win = false → dlsOk P st L) ∧ (st.cnt.hw = false → st.win = false)
+
+/-- **A physical view `vd` is the logical view `L` but the deleted entries `X`** (on the safe-range
+buckets; what a snapshot's observation is handed, `backend.Snapshot`): an entry of `L` missing
+from `vd` is in `X`, and an entry of `X` is a safe-range one missing from `vd` and in `L`. -/
+def dlVd (P : BParams) (vd L X : GMap (GoString × GoString) GoString) : Prop :=
+  (∀ nk, P.SB nk.1 = true → P.HB nk.1 = false → L.lookup nk ≠ none → vd.lookup nk = none →
+    X.lookup nk ≠ none) ∧
+  (∀ nk, X.lookup nk ≠ none →
+    P.SB nk.1 = true ∧ P.HB nk.1 = false ∧ vd.lookup nk = none ∧ L.lookup nk ≠ none)
+
+/-- One run of the pre-commit hook, from `st` to `st'`: the committed data and the read buffer
+untouched, the writer's contents changed only in the hook's buckets, the write buffer's
+other buckets untouched, at most `hookMax` operations more, bbolt's write transaction and the
+batch lock's ghost counters unchanged (the hook only calls the batch transaction's operations,
+which keep them); and (D22, 2026-10-23) the tracked buckets untouched (`rbData`); and (2026-11-04)
+no safe-range entry deleted (`dlR`), the window marker kept. -/
+def hookStep (P : BParams) (st st' : BSess) : Prop :=
+  st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧ rbData P st'.S = rbData P st.S ∧
+  (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
+  sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend ≤ sint.Z st.pend + P.hookMax ∧
+  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt ∧
+  dlR P st'.dl = dlR P st.dl ∧ st'.win = st.win
+
+/-- What the pre-commit hook may count on when it runs (`hooksSpec`): the hook's window is open,
+there is room for its operations, and every bucket of the write buffer is empty or has an empty
+read-buffer bucket (a commit right after a write-back finds the write buffer empty; one after
+another commit, the read buffer). The last clause let a hook re-put its keys while the
+write-back assumed no repeated key (`wbDupOk`, gone with the fork's fix of
+`issues/etcd-backend-duplicate-put-stale-read.md`, 2026-10-18); no hook needs it now. -/
+def hookPre (P : BParams) (st : BSess) : Prop :=
+  st.cnt.hw = true ∧ sint.Z st.pend + P.hookMax < 2 ^ 58 ∧
+  ∀ i, bkOf st.W.bks i = [] ∨ bkOf st.R.bks i = []
+
+/-- The keys of bbolt's data (bucket name, key). -/
+def dKeys (D : Data) : List (GoString × GoString) :=
+  D.toList.flatMap (fun nm => nm.2.toList.map (fun kv => (nm.1, kv.1)))
+
+theorem dget_isSome_mem (D : Data) (n k : GoString) (h : (dget D n k).isSome) :
+    (n, k) ∈ dKeys D := by
+  unfold dget at h
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 h
+  obtain ⟨m, hm, hk⟩ := Option.bind_eq_some_iff.1 hv
+  unfold dKeys
+  rw [List.mem_flatMap]
+  refine ⟨(n, m), (GMap.mem_toList _ _ _).2 hm, ?_⟩
+  rw [List.mem_map]
+  exact ⟨(k, v), (GMap.mem_toList _ _ _).2 hk, rfl⟩
+
+/-- The writer's contents on the hook's own keys (`BParams.hk`), as a finite map: the value of
+the ghost variable `γ.hkd` (half the batch lock's, half the client's `hkOwn`). -/
+def hkData (P : BParams) (S : Data) : GMap (GoString × GoString) GoString :=
+  ⟨fun nk => if P.hk nk.1 nk.2 then dget S nk.1 nk.2 else none,
+   ⟨dKeys S, fun nk h => by
+      split at h
+      · exact dget_isSome_mem S nk.1 nk.2 h
+      · simp at h⟩⟩
+
+theorem hkData_lookup (P : BParams) (S : Data) (n k : GoString) :
+    (hkData P S).lookup (n, k) = if P.hk n k then dget S n k else none := rfl
+
+/-- Two contents that agree on the hook's own keys have one `hkData`. -/
+theorem hkData_eq {P : BParams} {S S' : Data}
+    (h : ∀ n k, P.hk n k = true → dget S' n k = dget S n k) : hkData P S' = hkData P S := by
+  apply GMap.ext
+  intro nk
+  show (if P.hk nk.1 nk.2 then dget S' nk.1 nk.2 else none) =
+    (if P.hk nk.1 nk.2 then dget S nk.1 nk.2 else none)
+  cases hh : P.hk nk.1 nk.2
+  · rfl
+  · simp only [↓reduceIte]
+    exact h _ _ hh
+
+/-! ## The compaction keys' tracked absence -/
+
+/-- **The `Meta` bucket's compaction keys** (`schema.ScheduledCompactKeyName`,
+`FinishedCompactKeyName`), whose absence the backend tracks (the backend-compaction stage,
+2026-10-29: the ghost `γ.fk`, `fkOwn`): only mvcc's compaction writes them, and a put of one needs
+the client's half (`fkPut`). Fixed here rather than a parameter: the backend serves one schema. -/
+def fkKey (n k : GoString) : Prop :=
+  n = go!"meta" ∧ (k = go!"scheduledCompactRev" ∨ k = go!"finishedCompactRev")
+
+instance fkKey_dec (n k : GoString) : Decidable (fkKey n k) := by
+  unfold fkKey; infer_instance
+
+/-- bbolt's data has no compaction key. -/
+def fkAbsD (D : Data) : Prop := ∀ n k, fkKey n k → dget D n k = none
+
+/-- A buffer's buckets have no entry at a compaction key (through the table). -/
+def fkAbsB (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
+  ∀ n k i, fkKey n k → P.BT.lookup n = some i → ∀ e ∈ bkOf B i, e.1 ≠ k
+
+/-- A readers' state has no compaction key: neither its committed data nor its read buffer. -/
+def fkAbsRv (P : BParams) (rv : RView) : Prop := fkAbsD rv.1 ∧ fkAbsB P rv.2.bks
+
+/-- The batch state has no compaction key: the readers' state, the writer's contents, the write
+buffer. -/
+def fkAbsSt (P : BParams) (st : BSess) : Prop :=
+  fkAbsRv P (st.C, st.R) ∧ fkAbsD st.S ∧ fkAbsB P st.W.bks
+
+/-- The flag's initial value over bbolt's data `D`: `0` if it has no compaction key. -/
+def fkInit (D : Data) : Nat := by
+  classical exact if fkAbsD D then 0 else 1
+
+/-- bbolt's data holds only well-formed values (`P.FV`) at the compaction keys. -/
+def fkWfD (P : BParams) (D : Data) : Prop := ∀ n k v, fkKey n k → dget D n k = some v → P.FV v
+
+/-- A buffer's buckets' entries at a compaction key hold well-formed values. -/
+def fkWfB (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
+  ∀ n k i, fkKey n k → P.BT.lookup n = some i → ∀ e ∈ bkOf B i, e.1 = k → P.FV e.2
+
+/-- A readers' state holds only well-formed values at the compaction keys. -/
+def fkWfRv (P : BParams) (rv : RView) : Prop := fkWfD P rv.1 ∧ fkWfB P rv.2.bks
+
+/-- The batch state holds only well-formed values at the compaction keys. -/
+def fkWfSt (P : BParams) (st : BSess) : Prop :=
+  fkWfRv P (st.C, st.R) ∧ fkWfD P st.S ∧ fkWfB P st.W.bks
+
+/-- **What the compaction keys' flag `f` and well-formedness bit `w` say of a batch state**
+(question 4, 2026-10-29): at `f = 0` no compaction key, with `w` only well-formed values. -/
+def fkOk (P : BParams) (f : Nat) (w : Bool) (st : BSess) : Prop :=
+  (f = 0 → fkAbsSt P st) ∧ (w = true → fkWfSt P st)
+
+/-- The same of a readers' state. -/
+def fkOkRv (P : BParams) (f : Nat) (w : Bool) (rv : RView) : Prop :=
+  (f = 0 → fkAbsRv P rv) ∧ (w = true → fkWfRv P rv)
+
+/-- The well-formedness bit over bbolt's data `D` at creation: whether its compaction keys hold
+only well-formed values. -/
+def fkWInit (P : BParams) (D : Data) : Bool := by
+  classical exact decide (fkWfD P D)
+
+/-! ### The compaction keys' values at the open (items 27/29 of the M2 storage plan, 2026-10-30) -/
+
+/-- **A pair of compaction-key values** (finished, scheduled): what the two keys hold. -/
+abbrev FkVals := Option GoString × Option GoString
+
+/-- The value the pair `v` gives the compaction key `k` (`finishedCompactRev`, else
+`scheduledCompactRev`). -/
+def fkAt (v : FkVals) (k : GoString) : Option GoString :=
+  if k = go!"finishedCompactRev" then v.1 else v.2
+
+/-- bbolt's data's compaction-key values. -/
+def fkVals (D : Data) : FkVals :=
+  (dget D go!"meta" go!"finishedCompactRev", dget D go!"meta" go!"scheduledCompactRev")
+
+/-- bbolt's data holds `v` at the compaction keys. -/
+def fkValD (v : FkVals) (D : Data) : Prop := ∀ n k, fkKey n k → dget D n k = fkAt v k
+
+/-- A readers' state holds `v` at the compaction keys: its committed data does, and its read buffer
+has no entry at one. -/
+def fkValRv (P : BParams) (v : FkVals) (rv : RView) : Prop := fkValD v rv.1 ∧ fkAbsB P rv.2.bks
+
+/-- The batch state holds `v` at the compaction keys: its committed data and writer's contents
+do, its buffers have no entry at one. -/
+def fkValSt (P : BParams) (v : FkVals) (st : BSess) : Prop :=
+  fkValD v st.C ∧ fkAbsB P st.R.bks ∧ fkValD v st.S ∧ fkAbsB P st.W.bks
+
+/-- **The compaction keys' ghost value** (`γ.fkv`, discarded at allocation): the well-formedness
+bit, and the flag's value and the keys' values at the open. -/
+abbrev FkG := Bool × Nat × FkVals
+
+/-- **What the flag `f` and the ghost value `g` say of a batch state**: `fkOk` (the flag at `0`,
+no key; the bit, well-formed values), and the open's records clause: the flag never below its
+value at the open, and while it is there, the keys hold the open's values (a put of one raises the
+flag; nothing else changes them, `UnsafeDelete`/`UnsafeDeleteBucket` not taking a compaction key or
+the `meta` bucket). -/
+def fkOkG (P : BParams) (f : Nat) (g : FkG) (st : BSess) : Prop :=
+  fkOk P f g.1 st ∧ g.2.1 ≤ f ∧ (f = g.2.1 → fkValSt P g.2.2 st)
+
+/-- The same of a readers' state, at a lower bound `f` of the flag: at or below the open's value,
+the keys hold the open's values. -/
+def fkOkRvG (P : BParams) (f : Nat) (g : FkG) (rv : RView) : Prop :=
+  fkOkRv P f g.1 rv ∧ (f ≤ g.2.1 → fkValRv P g.2.2 rv)
+
+/-! ## Ranges -/
+
+/-- The limit `UnsafeRange` uses: 1 for a single key (no end key), else `limit` (all of them if
+`limit ≤ 0`). -/
+def rangeLimit (endKey : GoString) (limit : w64) : w64 :=
+  if endKey = [] then W64 1 else if sint.Z limit ≤ 0 then W64 (2 ^ 63 - 1) else limit
+
+/-- `unsafeRange(cursor, key, endKey, limit)` over a bucket's sorted entries: from the first
+entry not below `key`, the entries below `endKey`, or the one equal to `key` (no end key), at most
+`limit` (all if `limit ≤ 0`). -/
+def cursorRange (es : List Ent) (key endKey : GoString) (limit : w64) : List Ent :=
+  let rest := es.drop (seekIdx es key)
+  if endKey = [] then (rest.takeWhile (fun e => decide (e.1 = key))).take 1
+  else (rest.takeWhile (fun e => decide (strLt e.1 endKey))).take
+    (if sint.Z limit ≤ 0 then 2 ^ 63 - 1 else (sint.Z limit).toNat)
+
+/-- A read transaction's `UnsafeRange(bucket, key, endKey, limit)` over the readers' state
+`rv`: the read buffer's range, and, if it has fewer than the limit, bbolt's range for the rest
+before it. -/
+def rtRange (rv : RView) (bi : BucketInfo) (key endKey : GoString) (limit : w64) : List Ent :=
+  let lim := rangeLimit endKey limit
+  let bufR := bbRange (bkOf rv.2.bks bi.id) key endKey lim
+  if (bufR.length : Int) = sint.Z lim then bufR
+  else cursorRange (bktEnts (bktOf rv.1 bi.name)) key endKey (lim - W64 bufR.length) ++ bufR
+
+end backend
+end EtcdGrove
+end Perennial

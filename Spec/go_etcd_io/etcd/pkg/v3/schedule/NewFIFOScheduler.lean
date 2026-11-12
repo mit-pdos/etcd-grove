@@ -1,28 +1,10 @@
 /-
-`schedule.NewFIFOScheduler(lg)` (`schedule.go`).
-
-**Users**: `server.go:761` (`run`: the apply jobs' chain), `kvstore.go:107, 310` (mvcc's store:
-compaction jobs, rebuilt at `Restore`). Snippets `examples/specreq/schedule/schedule.go`
-(`ReqFifoChain`, `ReqStopRunsPending`, `ReqCancelledCtx`).
-
-**Proof sketch**: `verify.Assert(lg != nil)` passes (`isLogger lg`); allocate the `fifo` (its
-channels, `sync.NewCond`), `context.WithCancel(Background())` (`ctxOk`, `cancelOk`); allocate the
-ghost state: `schedTail γ True`, `schedOpen γ 1`, and `isFifo`'s lock invariant with no pending job,
-`cancel` live, the context's done-ness tied to `□ Pay` (only `Stop`, which takes `□ Pay`, calls
-`cancel`); fork `run` with `fifoWorker` (`fifo.run.spec`). `isFifo_isSched` gives the bundle.
-
-**Changes**: the old spec's queue of saved names (`schedQueue γ Ps`, `savedProp`) and its tracked /
-untracked split (`schedPre`/`schedPost`, `schedLive`, `schedStopTok`) become one chain end
-`schedTail γ P` and a fractional right `schedOpen` (an untracked user keeps the tail at `True`); the
-payload `schedPayIs γ Pay` is the bundle's index `Pay`.
-
-**Margin**: none (the metrics `Pending`/`Scheduled`/`Finished` are not modelled).
+`schedule.NewFIFOScheduler` (`schedule.go`), proved since 2026-10-22, when the scheduler was translated
+with its body (the trust boundary until then). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 
 @[expose] public section
 
@@ -30,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schedule
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -41,16 +22,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-/-- **A new FIFO scheduler** for a logger: the `Scheduler` bundle, the whole right to schedule, an
-empty chain (`True`), for any `Pay` its context's being done will give. -/
-def NewFIFOScheduler.spec : Prop :=
+/-- `schedule.NewFIFOScheduler(lg)`, with a non-nil logger (`verify.Assert` otherwise), returns a
+scheduler (`isFifo`, persistent: a `Scheduler` interface value with its names; its goroutine holds
+the run token, `schedRunning`, which it lends each job it runs), the stop token, and the queue (the stop
+token's name `n`, then the tracked jobs' `Post`s' names, here the initial one, `True`) (the request path's unit
+4c: the FIFO chain; mvcc's store gives up the stop token, `schedLive_of_stopTok`, for
+`isScheduler`); and (M2, the storage side, 2026-10-30: review round 3's F2) with the payload
+`Pay` the caller fixes (`schedPayIs γ Pay`: the scheduler's context is done with it, so `Stop`
+presents it and a job finding the context cancelled learns it). -/
+abbrev schedule.NewFIFOScheduler.spec : Prop :=
   ∀ (lg : Loc) (Pay : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ Zap.isLogger lg }}
-    (App (Val (@! go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler)) (Val #lg))
-  {{ (sc : GoInterface), RET #sc; ∃ γ : SchedNames,
-      isSched sc γ Pay ∗ schedOpen γ 1 ∗ schedTail γ iprop(True) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗ ⌜lg ≠ null⌝ }}
+    (App (Val (@! schedule.NewFIFOScheduler)) (Val #lg))
+  {{ (sc : GoInterface), RET #sc; ∃ (γ : schedule.SchedNames) (n p₀ : GName),
+      schedule.isFifo sc γ ∗ schedule.schedStopTok γ ∗ schedule.schedQueue γ [n, p₀] ∗
+      schedule.savedProp p₀ iprop(True) ∗ schedule.schedPayIs γ Pay }}
 
 end spec
-end Schedule
+
 end EtcdGrove
 end Perennial

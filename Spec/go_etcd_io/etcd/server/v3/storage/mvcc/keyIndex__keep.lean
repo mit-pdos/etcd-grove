@@ -1,11 +1,9 @@
 /-
-`(*keyIndex).keep(atRev, available)` (`key_index.go:238`): nothing for an empty key index; else
-`doCompact`'s revision added, deleted again for a tombstone ending a generation that is not the last
-(`keepAvail`). A read. Internal (`treeIndex.Keep`). **Changes**: over `availAt`.
+`keyIndex.keep` (`key_index.go`): the hash's kept revisions (2026-10-13, unit 5a; `Compact.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -13,27 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `ki.keep(atRev, available)`. -/
-def keyIndex.keep.spec : Prop :=
-  ∀ (p m : Loc) (k : GoString) (ki : KeyIndexM) (dq : DFrac) (atRev : w64) (A : Rev → Prop),
-  {{ pkgInit ∗ ⌜ki.gens ≠ [] ∧ kiWf ki⌝ ∗ ownKi p k ki dq ∗ availAt m A }}
+/-- `ki.keep(atRev, available)`, reading the key index (any fraction): `available` with the
+revision `keep` keeps (`keepApply`: `doCompact`'s, but not a tombstone ending a generation that
+is not the last, `kiKeep`; nothing for an empty key index). -/
+abbrev mvcc.keyIndex.keep.spec : Prop :=
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (dq : DFrac) (atRev : w64) (m : GoMap)
+    (A : GMap Revision Unit),
+  mvcc.gensOk ki →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) A }}
     (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"keep")) (Val #atRev)) (Val #m))
-  {{ RET #(); ownKi p k ki dq ∗ availAt m (keepAvail A ki atRev) }}
+  {{ RET #(); mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) (mvcc.keepApply A atRev ki) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

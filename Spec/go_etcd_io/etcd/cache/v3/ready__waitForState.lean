@@ -1,13 +1,9 @@
 /-
-`ready.waitForState` (`cache/*.go`), an internal helper.
-Users: `ready.WaitReady`, `ready.WaitNotReady`.
-Proof sketch: a loop: the predicate under the mutex (`readyPredFor`); if it holds, `ctx.Err()`; else a `select` on the state channel and `ctx.Done()` (`Context.Done.spec`, `doneRecv.spec`).
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`ready.waitForState(ctx, pred)`. Lean-first (no Rocq counterpart); see `InvReady.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvReady
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,17 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `r.waitForState(ctx, pred)`: `nil` once it saw `pred` hold (for `b = true`, the flag set), or the context's error once done. -/
-def ready.waitForState.spec : Prop :=
-  ∀ (r : Loc) (ctx : GoInterface) (pred : GoFunc) (b : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isReady r ∗ Context.ctxOk ctx ∗ readyPredFor r pred b }}
-    (App (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.ready.ty @!! go!"waitForState")) (Val #ctx)) (Val #pred))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ (if b then readyWasSet r else True)) ∨
-      (Context.ctxDone ctx ∗ context.isCtxErr err) }}
+/-- `r.waitForState(ctx, pred)`, for a closure `pred` returning `P` of the state
+(`readyPredSpec`): `nil` once it saw a state satisfying `P` (in an epoch at least `e0`), or
+a non-nil error once the context is done (`readyWaitResult`). -/
+abbrev ready.waitForState.spec : Prop :=
+  ∀ (r : Loc) (γ : ReadyNames) (e0 : Nat) (ctx : GoInterfaceOk)
+    (s : context.ContextDesc (IProp GF)) (pred : GoFunc) (P : Bool → Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isReady r γ ∗ readyEpochLb γ e0 ∗ context.isContext ctx s ∗ readyPredSpec r pred P }}
+    (App (App (Val (r @!! go.GoType.PointerType ready.ty @!! go!"waitForState"))
+      (Val #(GoInterface.ok ctx))) (Val #pred))
+  {{ (err : GoInterface), RET #err; readyWaitResult γ e0 s P err }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

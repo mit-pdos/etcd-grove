@@ -1,22 +1,9 @@
 /-
-`(*consistentIndex).SetBackend(be)` (`cindex.go`): under the mutex, the backend replaced and the
-index reset to `0` (the next `ConsistentIndex()` reads the new backend).
-
-**Users**: `applySnapshot` (`server.go:1080`, the snapshot's backend, before the lessor and mvcc
-recover from it), bootstrap (`bootstrap.go`, the opened backend: batch 2e). Snippet
-`ReqReloadAfterSetBackend`.
-
-**Proof sketch**: lock; store `be` and `SetConsistentIndex(0, 0)` (the store of the index is the
-linearization point; `ciWriter`); unlock.
-
-**Changes**: over `ciState` with the new backend's stored index `beStoredCI be v` (provisional, 4a's).
-**Margin**: none.
+`(*consistentIndex).SetBackend(be)`. Lean-first (no Rocq counterpart); see `InvCindex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 
 @[expose] public section
 
@@ -24,29 +11,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cindex
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
-/-- **Point the indexer at backend `be`** (whose stored index is `v`): index `0`, to be reloaded. -/
-def consistentIndex.SetBackend.spec : Prop :=
-  ∀ (l : Loc) (γ : CINames) (be : GoInterface) (v : w64) (Φ : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isCI l γ ∗ ciWriter γ ∗ beStoredCI be v ∗
-      (AU <{ ∃∃ (m : CIState), ciState γ m }> @ ⊤, ∅
-        <{ ciState γ { m with idx := W64 0, be := be, stored := some v }, COMM Φ }>) }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!!
-      go!"SetBackend")) (Val #be))
-  {{ RET #(); ciWriter γ ∗ Φ }}
+/-- `ci.SetBackend(be)` (by the owner, under `mutex`) makes `be` the backend and resets the
+index to 0 (the linearization point), so that the next read loads it from `be`. -/
+abbrev consistentIndex.SetBackend.spec : Prop :=
+  ∀ (ci : Loc) (γ : CINames) (b0 be : GoInterface),
+  ⊢ ∀ Φ : val → IProp GF,
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗ isCI ci γ ∗ ciOwner ci b0) -∗
+    (|={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ k ∗ (ciIdx γ (W64 0) ={∅, ⊤ \ ↑ciN}=∗
+      (ciOwner ci be -∗ Φ #()))) -∗
+    WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"SetBackend")) (Val #be)) {{ Φ }}
 
 end spec
-end Cindex
+
 end EtcdGrove
 end Perennial

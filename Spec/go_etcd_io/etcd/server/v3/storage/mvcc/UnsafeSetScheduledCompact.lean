@@ -1,12 +1,9 @@
 /-
-`UnsafeSetScheduledCompact(tx, value)` (`store.go:44`). Internal: `SetScheduledCompact`. Under the
-batch lock (`kbLocked`), writes `Meta`'s scheduled key: `RevToBytes(Revision{Main: value})`.
-
-**Changes** from `specs-ref`'s file: over the storage contract (`kbLocked`, `KeyData.putMeta`).
+`UnsafeSetScheduledCompact` (`store.go`) (2026-10-13, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
@@ -14,27 +11,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `UnsafeSetScheduledCompact(tx, value)` on the storage's locked batch transaction. -/
-def UnsafeSetScheduledCompact.spec : Prop :=
-  ∀ (B : MvccStorage) (Pk : IProp GF) (q : Qp) (D0 D : KeyData) (value : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ schemaVars ∗
-      keyBackend B Pk ∗ kbLocked B q D0 D ∗ ⌜D.metaMade = true⌝ }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact))
-      (Val #(GoInterface.ok (kbBatchTx B)))) (Val #value))
-  {{ RET #(); kbLocked B q D0 (D.putMeta .sched (revBytes ⟨value, W64 0⟩ false)) }}
+/-- `UnsafeSetScheduledCompact(tx, value)`, `value ≥ 0`: its `UnsafePut` of
+`RevToBytes(Revision{Main: value})` at the compaction key, through a capability to put a compaction
+key into `Meta` from the token `X` to `Y` at the key and the value put (`metaPutCap`; the backend-compaction stage, review round
+2, R2-3: a fresh session's lock to an `Unlock`-only token, `SetScheduledCompact`'s, or a step of a
+compacting range's token, the job's; until then `Locked l` of mvcc's assumed backend). The store's
+record of the key (`metaCompact`) is its own: the caller updates it. -/
+abbrev mvcc.UnsafeSetScheduledCompact.spec : Prop :=
+  ∀ (bt : GoInterfaceOk) (X : IProp GF) (Y : GoString → GoString → IProp GF) (value : w64),
+  0 ≤ sint.Z value →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.metaPutCap bt X Y ∗ X }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact)) (Val #(GoInterface.ok bt)))
+      (Val #value))
+  {{ RET #(); Y mvcc.schedKeyBytes (mvcc.revBytes ⟨value, W64 0⟩ false) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

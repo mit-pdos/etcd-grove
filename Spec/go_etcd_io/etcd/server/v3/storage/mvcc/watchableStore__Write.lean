@@ -1,23 +1,9 @@
 /-
-`(*watchableStore).Write(trace)` (`watchable_store_txn.go`): a write transaction whose `End` notifies
-the watchers: the `KV` interface's `Write` contract (3e's `KV.Write.contract`) at the watchable store.
-
-**Users.** The apply path (`etcdserver/txn`, 2d: puts, deletes, transactions through `kv.Write`), the
-lessor's range deleter (`watchable_store.go:107`: `s.Write(traceutil.TODO())`, 3c's revoke), the
-store's write view (`kv_view.go:47, 53`). Snippet: `mvccwatch/store.go` `ReqStoreWrites`.
-
-**Proof sketch.** `s.store.Write(trace)` (3e's `store.Write` spec: the inner transaction, its update
-fired, the hook run), wrapped with `s` as a `*watchableStoreTxnWrite`, whose `mvccTxn` is the inner
-one's with the watchable store's invariant (`watchableAt`) for `End`'s notification.
-
-**Changes** from `specs-ref`'s file: the canonical instance of 3e's restated contract.
-
-**Margin.** As the contract's.
+`watchableStore.Write` (`watchable_store_txn.go`). Lean-first (no Rocq counterpart); see `InvWatchStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 
 @[expose] public section
 
@@ -25,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,11 +21,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `s.Write` meets `KV.Write`'s contract. -/
-def watchableStore.Write.spec : Prop := ∀ s : Loc, KV.Write.contract (GF := GF) (go.GoType.PointerType watchableStore.ty) #s
+/-- `s.Write(trace)` opens a write transaction of the inner store (`store.Write`, at its committed
+log `ilog`; the trace not `nil`, as `store.Write` takes it) and wraps it with the store, for `End` to
+notify. As `store.Write`, the inner `LockInsideApply` runs the store's post-lock hook `f` (invariant
+`P`, `hookIs`) on the caller's `Pre`: its `Q` is the caller's. (2026-11-06) No sole writer: the inner
+store's writer state keeps the revision tokens and the pin, the lock the whole notified log, so the
+caller brings nothing of them and learns the log from the transaction. -/
+abbrev mvcc.watchableStore.Write.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
+    (G : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.storeWT γ.st ∗
+      ⌜trace ≠ null⌝ ∗
+      mvcc.hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      traceutil.ownTrace trace te ∗ G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) }}
+    (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))
+  {{ (tw : Loc) (ilog : mvcc.Log) (crev : Int),
+      RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
+      mvcc.isWatchTxnWrite tw s st γ trace ilog [] (W64 0) (W64 0) (W64 0) crev ∗ Q ∗
+      mvcc.hookIs γ.st P f ∗ G }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

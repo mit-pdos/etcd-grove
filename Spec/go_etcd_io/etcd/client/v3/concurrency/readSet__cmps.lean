@@ -1,17 +1,10 @@
 /-
-`(concurrency.readSet).cmps` (`client/v3/concurrency/stm.go`), internal.
-
-Users: the STM's methods and commits (`stm.go`).
-
-Proof sketch: a loop over the map: `isKeyCurrent.spec`, `append`.
-
-Changes: from `specs-ref`'s `readSet__cmps.lean`: restated over `readSetAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.readSet.cmps()` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,28 +12,31 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `rs.cmps()`: one `isKeyCurrent` comparison per read, in the map's order. -/
-def readSet.cmps.spec : Prop :=
-  ∀ (rs : GoMap) (γ : Cluster) (reads : Key → Option ReadM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ readSetAt rs γ reads }}
-    (App (Val (rs @!! go_etcd_io.etcd.client.v3.concurrency.readSet.ty @!! go!"cmps")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; readSetAt rs γ reads ∗ ∃ ks : List GoString, ⌜keysOf reads ks⌝ ∗
-      cmpsAt sl (ks.filterMap (fun k => (reads k).map (fun e => some (curCmp k e)))) }}
+/-- `rs.cmps()`: one `isKeyCurrent` comparison per read, in the map's order (`ReadCmpsOk`).
+The slice's capacity is the caller's (`mkSTM`'s conflicts closure appends to it). -/
+abbrev readSet.cmps.spec : Prop :=
+  ∀ (m : Loc) (dq : DFrac) (pfx : GoString) (rsMap : GMap GoString Loc)
+    (reads : GMap GoString ReadM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ m ↦${dq} rsMap ∗ readsAt pfx rsMap reads }}
+    (App (Val (m @!! readSet.ty @!! go!"cmps")) (Val #()))
+  {{ (sl : GoSlice), RET #sl; m ↦${dq} rsMap ∗
+      ∃ ms : List CmpModel, cmpsAt sl ms ∗ ownSliceCap go_etcd_io.etcd.client.v3.Cmp sl (DFrac.own 1) ∗
+        ⌜ReadCmpsOk reads ms⌝ }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

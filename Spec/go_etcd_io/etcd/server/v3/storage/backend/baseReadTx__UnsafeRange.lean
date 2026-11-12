@@ -1,11 +1,12 @@
 /-
-`baseReadTx.UnsafeRange(bucket, key, endKey, limit)` (`read_tx.go:75-121`): translated; internal
-(the embedded receiver of the shared read transaction's `UnsafeRange`; a concurrent one's is
-`concurrentReadTx.UnsafeRange`'s). Changes: as `readTx.UnsafeRange`. Margin: as there.
+`UnsafeRange` (the backend). `base.UnsafeRange(bucket, key, endKey, limit)` of a read transaction (shared or concurrent):
+`rtRange` of its state.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -13,33 +14,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`base.UnsafeRange(...)`** on the shared read transaction's embedded `baseReadTx`: as
-`readTx.UnsafeRange`. -/
-def baseReadTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BeNames) (F : Fp) (V : Image) (bk : GoInterface) (bi : BktInfo)
-    (ks es : GoSlice) (dk de : DFrac) (k e : GoString) (limit : w64) (pl : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beRd γ (rtLoc γ) F V ∗ beLive γ (rtLoc γ) pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ⌜covers F bi.name k e⌝ ∗ ⌜bi.safe = true ∨ es = slice.nil ∨ sint.Z limit = 1⌝ ∗
-      (⌜bi.safe = false ∨ es = slice.nil⌝ ∨ ∃ Fh, beHookFp γ Fh ∗ ⌜∀ x, ¬ Fh (.key bi.name x)⌝) }}
-    (App (App (App (App (Val ((structFieldRef go_etcd_io.etcd.server.v3.storage.backend.readTx go!"baseReadTx" (rtLoc γ)) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.baseReadTx.ty @!!
-      go!"UnsafeRange")) (Val #bk)) (Val #ks)) (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜rdRange (V.ents bi.name) bi.safe (V.clean bi.name) k e (sint.Z limit) l⌝ ∗
-        beRd γ (rtLoc γ) F V ∗ rangeRes kl vl l (beLive γ (rtLoc γ) pl) }}
+/-- `base.UnsafeRange(bucket, key, endKey, limit)` of a read transaction (shared or concurrent):
+`rtRange` of its state. -/
+abbrev backend.baseReadTx.UnsafeRange.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (base : Loc) (dq : DFrac) (rtx : Loc) (rv : RView) (q : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  (endKey = slice.nil ↔ eb = []) → (sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) → P.has bi →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ baseRd γ P base dq rtx rv q ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗
+      endKey ↦*{de} eb }}
+    (App (App (App (App (Val (base @!! go.GoType.PointerType baseReadTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); baseRd γ P base dq rtx rv q ∗
+      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

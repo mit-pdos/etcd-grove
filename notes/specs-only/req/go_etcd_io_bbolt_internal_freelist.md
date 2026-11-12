@@ -2,7 +2,7 @@
 
 ## from 4c
 
-bbolt's public API (`Spec/go_etcd_io/bbolt/`, namespace `Bbolt`) keeps the freelist in its
+bbolt's public API (`SpecPlan/Spec/go_etcd_io/bbolt/`, namespace `Bbolt`) keeps the freelist in its
 invariants: `flOwn db.freelist F` under `rwlock` (the writer's), `flReaders db.freelist R` under
 `metalock` (`R` the txids of the registered read transactions). Its sketches rely on:
 

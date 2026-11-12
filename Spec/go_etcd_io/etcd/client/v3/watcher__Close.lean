@@ -1,32 +1,22 @@
 /-
-`(*clientv3.watcher).Close()` (`client/v3/watch.go`).
-
-**Users**: `Client.Close` (`E client/v3/client.go:150`, the error dropped), the namespace wrapper
-(`namespace/watch.go:79`). Snippet `clientv3watch/ending.go` `ReqWatcherClose`.
-
-**Proof sketch.** Under `mu`, take the map and set `streams` to `nil` (the lock invariant's closed
-state: later `Watch`es return a closed channel); for each stream, `watchGRPCStream.close.spec`
-(persistent `wgsAt`: concurrent closes are fine); `errors.Is` (2a's spec, any error).
-
-**Changes**: over `watcherHandle`. verify-round (W3): the handle records its client `c`; no
-`clientReady c` (`Close` opens no stream). **Margin**: the error is not modelled; that every watch's
-channel then closes is liveness. `issues/etcd-watch-close-hang-refused-create.md` (a hang, fixed
-or not, is liveness only).
+`(*clientv3.watcher).Close()` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiWatch
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -34,15 +24,20 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `watcher.Close` meets `Watcher.CloseTriple`. -/
-def watcher.Close.spec : Prop :=
-  ∀ (w c : Loc) (γ : Cluster) (who : Principal),
-  Watcher.CloseTriple (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")
-    (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who))
+/-- `w.Close()`: closes the watcher (its streams map `nil`) and every stream (`close`); returns an
+error. -/
+abbrev watcher.Close.spec : Prop :=
+  ∀ (V : WEnv GF) (w : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.errors ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
+        ⌜_root_.Perennial.errors.IsPointerError e⌝) ∗ isClientWatcher V w }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Close")) (Val #()))
+  {{ (err : GoInterface), RET #err; True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

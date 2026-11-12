@@ -1,41 +1,40 @@
 /-
-## `MembersByID.Less(i, j)` (`member.go:122`): translated
-
-**Users.** `sort.Sort` in `Members()`. **Proof sketch.** Two pointer reads, two id reads.
-**Changes**: from `specs-ref`. **Margin.** Exact.
+`membership.MembersByID.Less` (`member.go`: `ms[i].ID < ms[j].ID`). Lean-first (no Rocq counterpart); unit P1b (2026-10-14).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Membership
 
-open Iris Iris.BI EtcdModel Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Whether member `i`'s id is below member `j`'s.** -/
-def MembersByID.Less.spec : Prop :=
-  ∀ (sl : GoSlice) (dq dq' : DFrac) (ps : List Loc) (ms : List Member) (i j : w64) (mi mj : Member),
-  ms[sint.nat i]? = some mi → ms[sint.nat j]? = some mj → ps.length = ms.length →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*{dq} ps ∗ ([∗list] pm ∈ ps.zip ms, memberPts pm.1 dq' pm.2) }}
+/-- `ms.Less(i, j)` over the members `l` (pointer, id) of the slice `sl`, `i`, `j` in range:
+`ms[i].ID < ms[j].ID` (unsigned). -/
+abbrev membership.MembersByID.Less.spec : Prop :=
+  ∀ (sl : GoSlice) (l : List (Loc × w64)) (dq : DFrac) (i j : w64) (a b : Loc × w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ sl ↦*{dq} l.map Prod.fst ∗
+      ([∗list] p ∈ l, membership.memberIs p.1 p.2) ∗
+      ⌜0 ≤ sint.Z i ∧ 0 ≤ sint.Z j ∧ l[sint.nat i]? = some a ∧ l[sint.nat j]? = some b⌝ }}
     (App (App (Val (sl @!! go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID.ty @!! go!"Less")) (Val #i)) (Val #j))
-  {{ RET #(decide (mi.id < mj.id)); sl ↦*{dq} ps ∗
-      ([∗list] pm ∈ ps.zip ms, memberPts pm.1 dq' pm.2) }}
+  {{ RET #(decide (uint.Z a.2 < uint.Z b.2)); sl ↦*{dq} l.map Prod.fst ∗
+      [∗list] p ∈ l, membership.memberIs p.1 p.2 }}
 
 end spec
 
-end Membership
 end EtcdGrove
 end Perennial

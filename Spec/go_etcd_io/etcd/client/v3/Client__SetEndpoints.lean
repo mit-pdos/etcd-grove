@@ -1,23 +1,10 @@
 /-
-`(*clientv3.Client).SetEndpoints` (`client/v3/client.go`).
-
-Users: `newClient`, `Sync`; (Kubernetes: none); snippet `clientv3client/lifecycle.go`.
-
-Proof sketch: `epMu.Lock`; stores the caller's slice (kept: read-only); `c.resolver.SetEndpoints`
-(`internal/resolver`'s spec: grpc's resolver state updated, 2a); `Unlock`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__SetEndpoints.lean`: endpoints of the
-cluster (`servesAt`) instead of the old fixed address list.
-
-verify-round: premise `resolverIdle c` (no RPC can wake the connection concurrently: the
-coordinator's decision (b) on `issues/etcd-client-resolver-build-race.md`; `newClient`'s own call,
-before it dials, is the only one in scope).
-
-Margin: none.
+`c.SetEndpoints(eps...)` (`client/v3/client.go`; item 5, client construction: `newClient` sets the
+configured endpoints). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -25,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,16 +22,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.SetEndpoints(eps...)`: the client's endpoints replaced by `eps`, each serving `γ`. -/
-def Client.SetEndpoints.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (sl : GoSlice) (eps0 eps : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientPre c γ who ∗ resolverIdle c ∗ epsTok c (DFrac.own 1) eps0 ∗ sl ↦*□ eps ∗
-      [∗list] ep ∈ eps, servesAt γ ep }}
+/-- `c.SetEndpoints(eps...)` (the endpoints `eps`, read-only) on a client whose `epMu` guards
+nothing of the proof's (`isRWMutexGuard` of `True`) and whose resolver is not dialed yet: the
+client's `endpoints` and the resolver's are `eps`. -/
+abbrev Client.SetEndpoints.spec : Prop :=
+  ∀ (c mu r : Loc) (esl0 : GoSlice) (eps0 : List GoString) (sl : GoSlice) (eps : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientF c go!"epMu" ↦□ mu ∗
+      sync.isRWMutexGuard mu (fun _ => iprop(True)) ∗ clientF c go!"endpoints" ↦ esl0 ∗
+      clientF c go!"resolver" ↦□ r ∗ etcdResolverOwn r eps0 ∗ sl ↦*□ eps }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"SetEndpoints")) (Val #sl))
-  {{ RET #(); resolverIdle c ∗ epsTok c (DFrac.own 1) eps }}
+  {{ RET #(); clientF c go!"endpoints" ↦ sl ∗ etcdResolverOwn r eps }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

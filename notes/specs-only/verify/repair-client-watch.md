@@ -1,6 +1,6 @@
 # Repair after the verification round: group `client-watch` (2026-11-09)
 
-Files: `Spec/go_etcd_io/etcd/client/v3/{ApiWatch, WatchInternal, streamKeyFromCtx, watcher__Watch,
+Files: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/{ApiWatch, WatchInternal, streamKeyFromCtx, watcher__Watch,
 watcher__RequestProgress, watcher__Close, watcher__closeStream, watcher__newWatcherGRPCStream,
 NewWatcher, NewWatchFromWatchClient, watchGRPCStream__run}.lean`, `examples/specreq/clientv3watch/
 {consume,ending}.go`, and a new issue `issues/etcd-client-resolver-build-race.md` (with its test).
@@ -102,7 +102,7 @@ None in the watch files: errors are classified by kind (`closeErrOk`, `callErr`)
 
 ## Requests to grpc-v3rpc
 
-1. **`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/NewWatchClient.lean`** (W3): the post
+1. **`SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/NewWatchClient.lean`** (W3): the post
    `ClientV3.remoteWatchAt v γ who` is unprovable: the stub opens streams through the connection's
    stream interceptor, whose token refresh reads `c.Auth`, unset when `newClient` calls
    `NewWatcher` (`client.go:460-461`). Give the contract gated on the readiness of the client whose
@@ -121,7 +121,7 @@ None in the watch files: errors are classified by kind (`closeErrOk`, `callErr`)
 
 ## Requests to mvcc
 
-1. **`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiWatch.lean`, `wStep`** (S2): add, outside the
+1. **`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiWatch.lean`, `wStep`** (S2): add, outside the
    `exactFrom` guard, that each event of `r.evs` is an event of `h` at its revision whose key the
    watcher's range contains (`∀ e ∈ r.evs, ∃ rv ev, ev ∈ h.eventsAt rv ∧ e = evOf rv ev ∧ W`'s range
    contains its key`). True: `syncWatchers` reads backend records of real revisions and
@@ -164,7 +164,7 @@ None in the watch files: errors are classified by kind (`closeErrOk`, `callErr`)
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/client/v3`: OK (347 modules), once client-core's
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/client/v3`: OK (347 modules), once client-core's
 in-progress `Api.lean` built again. No module outside the directory names `watcherHandle`,
 `ctxStreamKey` or `WireSt.frag`'s old type. `go vet ./specreq/clientv3watch/...`: clean.
 `etc/issues-status.py --index`/`--check`: clean.

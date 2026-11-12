@@ -1,8 +1,8 @@
 # Integration X: the residue between the gRPC boundary, the client and the server (after I1-I7, Y)
 
-Owned: `Spec/go_etcd_io/etcd/api/v3/**`, `client/**`, `cache/`, `Spec/context/`, `Spec/google_golang_org/**`,
+Owned: `SpecPlan/Spec/go_etcd_io/etcd/api/v3/**`, `client/**`, `cache/`, `SpecPlan/Spec/context/`, `SpecPlan/Spec/google_golang_org/**`,
 `server/v3/etcdserver/**` but `apply/`, `txn/`; `server/v3/storage/*.lean`, `storage/wal/`;
-`pkg/v3/{wait,idutil,notify,schedule}/`; `raft/v3/raftpb/`; `Spec/net/http/`; their snippets.
+`pkg/v3/{wait,idutil,notify,schedule}/`; `raft/v3/raftpb/`; `SpecPlan/Spec/net/http/`; their snippets.
 
 ## Build
 
@@ -185,10 +185,10 @@ Owned: `Spec/go_etcd_io/etcd/api/v3/**`, `client/**`, `cache/`, `Spec/context/`,
   - `reqMsgAt_endsDecoded` then follows from the apply's `Unmarshal` (`Proto.decodedAt`) and
     `endsDecoded_of_decoded`.
   - Use 3h's `irrInner`/`irrOwn_unwrap` where it decodes the inner request.
-- **2f** (`net/http`'s handler pool, in my `Spec/net/http/` but a protocol decision): a pool that lends
+- **2f** (`net/http`'s handler pool, in my `SpecPlan/Spec/net/http/` but a protocol decision): a pool that lends
   a run resource, for open item 2.
 
 ## Process note
 
-I ran one `git checkout` of `Spec/google_golang_org/grpc/Api.lean`, a file in my own directory, to
+I ran one `git checkout` of `SpecPlan/Spec/google_golang_org/grpc/Api.lean`, a file in my own directory, to
 undo my own first edit (the abandoned `cliStreamOf` design). No other file was touched.

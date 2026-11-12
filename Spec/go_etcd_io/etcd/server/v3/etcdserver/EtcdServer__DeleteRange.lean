@@ -1,24 +1,13 @@
 /-
-## `(*EtcdServer).DeleteRange(ctx, r)`
-
-**Users.** The gRPC KV handler (`api/v3rpc/key.go:104`, after `checkDeleteRequest`), the
-grpc-proxy's adapter. Snippet: `examples/specreq/etcdserverreq/kv.go` (`ReqDeleteThenRange`).
-
-**Proof sketch.** As `Put.spec`: the span, `raftRequest` at `.req (.deleteRange d)`, the type
-assertion `resp.(*pb.DeleteRangeResponse)` (`respTy`). The premise `d.key ≠ []` is
-`checkDeleteRequest`'s (the server would answer an empty-key delete `Deleted 0`; W0's model says
-`ErrEmptyKey`).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__DeleteRange.lean`, over `KVState` and
-`kvOpStep`) restated as `Put`'s (see `EtcdServer__Put.lean`).
-
-**Margin.** As `Put`.
+`s.DeleteRange(ctx, r)` (`v3_server.go`): a delete through raft and the apply thread. Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.context.ReqKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -26,9 +15,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,15 +25,45 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.DeleteRange(ctx, r)`**: the delete `d`, as `Put`. -/
-def EtcdServer.DeleteRange.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (d : DeleteReq),
-  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"DeleteRange")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ deleteReqOwn r dq d ∗ ⌜d.key ≠ []⌝)
-    iprop(srvGate s q ∗ threadTok ∗ deleteReqOwn r dq d) γ p tls (.deleteRange d) false (ClientV3.deleteReply)
+/-- **`s.DeleteRange(ctx, r)`**, **in the environment's auth mode** (`E.authOn`; `Put.spec`'s,
+the auth-mode merge's step 5): the delete's permission `deletePermitM` (off, its range end not
+`[0]` and the client's update fired at most once; on, also the key and range end of the permission
+cache's shape, the update told its grant); success, the apply package's answer to the wire request
+`rq'` (`deleteOutcomeIs`), its result `Q` at the log the entry met, with auth on the header bound
+to the context and the grant at the committed log before the entry; failure, the apply's error or
+the proposal's. Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
+modes' former specs). -/
+abbrev EtcdServer.DeleteRange.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull) (Q : KVState → IProp GF)
+    (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗
+      context.startTimeOk ctx ∗
+      txn.deleteRangeRequestIs r op ∗ deletePermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ srvApi.kvLogLb E.γs F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (op' : OpFull)
+          (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
+          ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq' ∧ rq'.deleteRange = some op' ∧
+            (irrNoZeroEnd (irrDeleteRange op) → op' = op) ∧
+            apply.applyStep rq' true x x' (.dispatched o skip) ∧ (∃ log', o = .applied log' false) ∧
+            F <+: x.log⌝ ∗
+          apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗
+          apply.appliedHdr x.log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
+          srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          E.Nx x'.log ∗
+          ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+          Q (kvStateOf x.log) ∗ hdrBoundM E.authOn s E (GoInterface.ok ctx) hm ∗
+          □ (⌜E.authOn = true⌝ → ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 rq' L⌝ ∗ pubAfterM true E ρ rq' L)) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+         ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+            ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq'⌝ ∗ appliedErr E rq' F err ∗
+            hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+          srvMaybeDeposited ρ (irrDeleteRange op)))) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

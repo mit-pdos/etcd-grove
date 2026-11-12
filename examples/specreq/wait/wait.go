@@ -1,5 +1,5 @@
 // Package wait holds the requirement snippets of etcd's pkg/wait, pkg/idutil and pkg/notify (batch
-// 2c, Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify}/), as the server uses them: the request
+// 2c, SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/{wait,idutil,notify}/), as the server uses them: the request
 // registry (s.w), the applied-index waiters (s.applyWait), the request id generator (s.reqIDGen), the
 // leader-change and first-commit notifiers. Each reliance an explicit panic.
 package wait

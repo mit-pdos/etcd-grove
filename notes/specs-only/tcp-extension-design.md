@@ -479,16 +479,16 @@ The previous design's control server for joiners is not needed (crashreconf poll
 
 | assumed today (E1, E7 of `trust-boundaries.md`) | becomes |
 |---|---|
-| `Spec/net/http/Listen.lean`, `Listener__Close.lean` (`net.Listen` and its listener) | theorems of N over T's specs |
-| `Spec/net/http/Serve.lean` | a theorem of M (net/http server) |
+| `SpecPlan/Spec/net/http/Listen.lean`, `Listener__Close.lean` (`net.Listen` and its listener) | theorems of N over T's specs |
+| `SpecPlan/Spec/net/http/Serve.lean` | a theorem of M (net/http server) |
 | `NewRequest`, `Request__WithContext`, `Header__Get`/`Set`/`Get_owned`, `StatusText`, `URL__String`, `NewServeMux`, `ServeMux__Handle`, `Error` | theorems of R (real code), `Error` of M if patched |
 | `Transport__CloseIdleConnections`; rafthttp's `NewRoundTripper`, `transport.NewTimeoutTransport` (names-only today) | M (`RoundTrip`, a no-op close), W over M and N |
-| `Spec/net/http/Api.lean` (31 laws: `protoAt`, `addrFree`, `reserve`, `respW`, `readerAt`, request tickets) | definitions over T's `tcpProto`/pipes and M's frame protocol, laws as lemmas (a protocol prelude) |
+| `SpecPlan/Spec/net/http/Api.lean` (31 laws: `protoAt`, `addrFree`, `reserve`, `respW`, `readerAt`, request tickets) | definitions over T's `tcpProto`/pipes and M's frame protocol, laws as lemmas (a protocol prelude) |
 | grpc `NewServer`, `Server__RegisterService`/`Serve`/`Stop`/`GracefulStop`, `NewClient`, `ClientConn__Invoke`/`NewStream`/`Close` | theorems of M (`Invoke` through real `invoke`), `ClientConn__Target` of R |
 | grpc option constructors (`MaxRecvMsgSize`, `CustomCodec`, `Chain*Interceptor`, `KeepaliveParams`, `With*`, `WaitForReady`, `MaxCall*`, `Peer`, `StaticMethod`, `Creds`, `StatsHandler`) | theorems of R (real constructors over the real option structs); `Creds`/`StatsHandler` with non-nil arguments reach M's panics |
 | `Server__ServeHTTP` | M panics: the spec becomes unreachability (TLS path not modelled) |
 | `status/*`, `metadata/*`, `peer/*`, `credentials/insecure`, `health/*`, `health/grpc_health_v1/*`, `grpclog/SetLoggerV2` | theorems of R (status over E2's `spb.Status`) |
-| `Spec/google_golang_org/grpc/Api.lean` (58 laws) and `peer/Api.lean` (6): `connAt`, `serves`, `addrAt`, `UnarySpec`, `StreamSpec`, `statusErr`, `sentStatus`, `ownErr`, `grpcMsg`, `outMD`, `dialOptAt`, `callOptOk`, `msgsFit` | definitions: `statusErr`, `outMD` in R; `connAt`, `serves`, `addrAt`, the contracts in M's protocol prelude; `grpcMsg` the model's finite own-message set; `msgsFit` moves to E2 |
+| `SpecPlan/Spec/google_golang_org/grpc/Api.lean` (58 laws) and `peer/Api.lean` (6): `connAt`, `serves`, `addrAt`, `UnarySpec`, `StreamSpec`, `statusErr`, `sentStatus`, `ownErr`, `grpcMsg`, `outMD`, `dialOptAt`, `callOptOk`, `msgsFit` | definitions: `statusErr`, `outMD` in R; `connAt`, `serves`, `addrAt`, the contracts in M's protocol prelude; `grpcMsg` the model's finite own-message set; `msgsFit` moves to E2 |
 | etcd's wrappers, cmux (names-only today) | theorems of W over N (a wrapper over a connection with protocol `P` is a connection with protocol `P`) |
 
 **How the at-most-once claim is proved** (the protocol prelude's core, internal): a connection's

@@ -1,22 +1,23 @@
 /-
-`checkAndGetPrevKV(trace, txnWrite, p)` (`put.go`), internal (`Put`, `checkPut`): `getPrevKV`, then
-`ErrKeyNotFound` for an ignore flag on a missing key. Old spec: over the log. Round 1: 3e's API.
+`txn.checkAndGetPrevKV` (put.go). Lean-first (no Rocq counterpart); see `Proof/.../etcdserver/txn/Write.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,24 +26,29 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-open Classical in
-/-- `checkAndGetPrevKV(trace, rv, p)`: `ErrKeyNotFound` for an ignore flag on a key missing from the
-transaction's current store; else `getPrevKV`'s result. -/
-def checkAndGetPrevKV.spec : Prop :=
-  ∀ (trace : Loc) (rv : GoInterface) (γ : Mvcc.MvccName) (k : Mvcc.MTxn) (p : Loc) (dq : DFrac)
-    (pm : PutReq),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ TraceUtil.traceOwn trace ∗ Mvcc.mvccTxn rv γ trace k ∗ putReqOwn p dq pm }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.checkAndGetPrevKV)) (Val #trace)) (Val #rv)) (Val #p))
-  {{ (prevKV : Loc) (err : GoInterface), RET (PairV #prevKV #err); TraceUtil.traceOwn trace ∗
-      Mvcc.mvccTxn rv γ trace k ∗ putReqOwn p dq pm ∗
-      (if ignores pm = true ∧ k.readHist.store pm.key = none then
-         iprop(⌜prevKV = null⌝ ∗ errIs err .keyNotFound)
-       else iprop(⌜err = GoInterface.nil⌝ ∗ (if needsPrev pm then
-         rrOwn prevKV ((k.readHist.store pm.key).map (KV.ofRec pm.key)).toList (viewRev k)
-           (k.readHist.store pm.key).toList.length
-       else iprop(⌜prevKV = null⌝)))) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `checkAndGetPrevKV(trace, txnWrite, p)` at a transaction of either kind: `getPrevKV`'s answer,
+or `ErrKeyNotFound` when an ignore flag needs a previous key-value the state has not.
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.)
+(The trace kept at `te`: `Trace.StepWithFunction` keeps the flag, decided by the coordinator,
+2026-11-05, superseding gap E.) -/
+
+abbrev txn.checkAndGetPrevKV.spec : Prop :=
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (p : Loc) (o : OpFull),
+  {{ pkgInit ∗ ⌜trace ≠ null⌝ ∗ mvcc.api.mvccTxn t γ trace k ∗ traceutil.ownTrace trace te ∗
+      ⌜txn.Reach k.state⌝ ∗ txn.putRequestIs p o }}
+    (App (App (App (Val (@! txn.checkAndGetPrevKV)) (Val #trace)) (Val #t)) (Val #p))
+  {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); mvcc.api.mvccTxn t γ trace k ∗
+      traceutil.ownTrace trace te ∗
+      ((⌜err = GoInterface.nil⌝ ∗
+          ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.mstate k)).isSome⌝ ∗
+          if txn.readsPrev o then txn.prevKvIs r (txn.mstate k) o.key else ⌜r = null⌝) ∨
+       (⌜txn.needsPrev o = true ∧ mvcc.findKey o.key (txn.mstate k) = none ∧ r = null⌝ ∗
+          txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err)) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

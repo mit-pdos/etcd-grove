@@ -1,18 +1,14 @@
 /-
-`kubernetes.kvFromTxnResponse` (`client/v3/kubernetes/client.go`).
+`kvFromTxnResponse(resp)` (`client/v3/kubernetes/client.go`; phase 3 of `notes/k8s-etcd3-plan.md`).
+Lean-first (no Rocq counterpart).
 
-Users: `OptimisticPut`, `OptimisticDelete` (the failure branch's get).
-
-Proof sketch: `resp.GetResponseRange()` (3h's getter over `responseOpOwn`: the range message, which
-the premise says it is: on another kind it is `nil` and `.Kvs` panics), the one key-value or `nil`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/kubernetes/kvFromTxnResponse.lean`.
-
-Margin: none.
+A transaction's range response (`resp.GetResponseRange()`): its key-value if it has exactly one,
+else `nil`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Api
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Defs
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Base
 
 @[expose] public section
 
@@ -20,10 +16,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Kubernetes
+namespace kubernetes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,16 +27,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
-/-- `kvFromTxnResponse(p)` of a range response: its one key-value, or `nil`. -/
-def kvFromTxnResponse.spec : Prop :=
-  ∀ (p : Loc) (m : RangeRespM) (rev : Nat) (a : RangeAns),
-  ResponseOpM.ofResp (.range m) (.range rev a) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗ responseOpOwn p (DFrac.own 1) (.range m) }}
+/-- See the file header. -/
+abbrev kvFromTxnResponse.spec : Prop :=
+  ∀ (p : Loc) (rev : w64) (kvs : List EtcdKv) (more : Bool) (count : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
+      opRespMsg p (.range rev kvs more count) }}
     (App (Val (@! go_etcd_io.etcd.client.v3.kubernetes.kvFromTxnResponse)) (Val #p))
-  {{ (kv : Loc), RET #kv; singleKV a kv }}
+  {{ (kv : Loc), RET #kv; kvOut kv (single kvs) }}
 
 end spec
 
-end Kubernetes
+end kubernetes
 end EtcdGrove
 end Perennial

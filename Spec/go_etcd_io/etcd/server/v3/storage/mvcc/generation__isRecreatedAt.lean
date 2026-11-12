@@ -1,10 +1,11 @@
 /-
-`(*generation).isRecreatedAt(rev)` (`key_index.go:365`): non-empty, its first revision's main is
-`rev` (`genRecreatedAt`). Internal (`doCompact`). **Changes**: over `ownGenAt`.
+`generation.isRecreatedAt` (`key_index.go`; the fork's fix of etcd-io/etcd#22377, M2, 2026-10-28).
+Lean-first (no Rocq counterpart); see `Compact.lean` (`genRecreatedAt`), `Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalIdx
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
 
 @[expose] public section
 
@@ -12,28 +13,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- `g.isRecreatedAt(rev)`. -/
-def generation.isRecreatedAt.spec : Prop :=
-  ∀ (p : Loc) (og : Option Gen) (dq : DFrac) (rev : w64),
-  {{ pkgInit ∗ match og with | none => ⌜p = null⌝ | some g => ownGenAt p g dq }}
-    (App (Val (p @!! go.GoType.PointerType generation.ty @!! go!"isRecreatedAt")) (Val #rev))
-  {{ RET #(match og with | none => false | some g => genRecreatedAt g rev);
-      match og with | none => True | some g => ownGenAt p g dq }}
+/-- `g.isRecreatedAt(rev)`: whether `g` has a revision and its first one's main is `rev`
+(`genRecreatedAt`; a read, at any fraction). -/
+abbrev mvcc.generation.isRecreatedAt.spec : Prop :=
+  ∀ (g : Loc) (gv : generation) (gm : mvcc.Gen) (dq : DFrac) (rev : w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        ⌜g ≠ null⌝ ∗ g ↦{dq} gv ∗ mvcc.ownGen gv gm dq }}
+      (App (Val (g @!! go.GoType.PointerType generation.ty @!! go!"isRecreatedAt")) (Val #rev))
+    {{ RET #(mvcc.genRecreatedAt rev gm); g ↦{dq} gv ∗ mvcc.ownGen gv gm dq }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

@@ -1,22 +1,10 @@
 /-
-`(*RemoteKV).Put(val)` (`key.go`): put `val` at the key (no lease; the object's value field is not
-updated).
-
-**Users**: none in the package or its callers (exported). Kept (it had a spec).
-
-**Proof sketch**: `kvAt_methods`' `KV.PutTriple` at the field's `kv` (live: not `nil`) with `TODO()`
-and no option (`putReq0 key val 0`), the caller's update unchanged.
-
-**Changes**: old spec over the recipes' client invariant; now the caller's update.
-
-**Premise**: the object is live: a deleted one's `kv` is `nil`, and the call panics (a nil
-interface's method).
-
-**Margin**: none.
+`recipes.(*RemoteKV).Put(val)` (`client/v3/experimental/recipes/key.go`). Lean-first (no Rocq counterpart);
+see `InvRecipesClient.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.experimental.recipes.Api
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
 
 @[expose] public section
 
@@ -24,33 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Recipes
+namespace recipes
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.client.v3.experimental.recipes
+open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-/-- **`rk.Put(val)`** on a live object: `Put(key, val)`, linearized by the caller's update. -/
-def RemoteKV.Put.spec : Prop :=
-  ∀ (rk : Loc) (γ : Cluster) (who : Principal) (st : RKSt) (val : GoString)
-    (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ rkOwn rk γ who st ∗ ⌜st.live = true⌝ ∗
-      AU <{ ∃∃ (σ : State), etcdState γ σ }> @ ⊤ \ ↑etcdN, ∅
-        <{ ∀∀ (σ' : State) (res : Resp),
-             ⌜Step who (.put (putReq0 st.key val 0)) σ σ' res⌝ ∗ etcdState γ σ',
-           COMM Q σ σ' res }> }}
+/-- **`rk.Put(val)`**, for a `RemoteKV` with a `KV` (the code dereferences it: after `Delete`
+it is nil, a misuse ruled out here), knowing etcd has reached `lo`: `kv.Put(context.TODO(),
+key, val)` (no lease: etcd detaches the key from any lease), returning its `putResult`. The
+record is unchanged (the code does not update its `val`). -/
+abbrev RemoteKV.Put.spec : Prop :=
+  ∀ (rk : Loc) (st : RemoteKVSt) (kv : GoInterfaceOk) (pfx val : GoString) (lo : w64),
+  {{ ownRemoteKV (GF := GF) rk st ∗ ⌜st.kv = GoInterface.ok kv⌝ ∗ isRecipesKV st.kv pfx ∗
+      etcdReached lo ∗ ⌜pfx <+: st.key ∧ val.length ≤ recipesStrMax⌝ }}
     (App (Val (rk @!! go.GoType.PointerType RemoteKV.ty @!! go!"Put")) (Val #val))
-  {{ (err : GoInterface), RET #err; rkOwn rk γ who st ∗
-      ((∃ σ σ' res, Q σ σ' res ∗ ⌜okOrErr res err⌝) ∨ indefCall err) }}
+  {{ (err : GoInterface), RET #err; ownRemoteKV rk st ∗
+      putResult pfx lo (.put st.key val (W64 0)) err }}
 
 end spec
 
-end Recipes
+end recipes
 end EtcdGrove
 end Perennial

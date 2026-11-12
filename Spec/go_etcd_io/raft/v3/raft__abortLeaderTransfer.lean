@@ -1,14 +1,7 @@
-/-
-## `raft.abortLeaderTransfer` (internal)
-
-`reset`, `tickHeartbeat`, `stepLeader`, `switchToConfig`. Mirrors the code. **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
-`raft__abortLeaderTransfer.lean`, over `NState`); round 1: the result is stated over the state.
--/
+/- Port of election_proof/spec_raft__abortLeaderTransfer.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +9,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Abandons a leader transfer. -/
-def raft.abortLeaderTransfer.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"abortLeaderTransfer")) (Val #()))
-  {{ RET #(); raftOpen r γ id { o with leadTransferee := W64 0 } }}
+/-- `abortLeaderTransfer` clears `leadTransferee` (`NState.lt`, tracked since 2026-10-13;
+until then `ownRaftPhys` pinned it to zero). -/
+abbrev raft.abortLeaderTransfer.spec : Prop :=
+  ∀ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"abortLeaderTransfer")) (Val #()))
+  {{ RET #(); ownRaftPhysCV c V r id { s with lt := W64 0 } }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

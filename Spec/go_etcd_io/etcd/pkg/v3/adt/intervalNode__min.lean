@@ -1,17 +1,9 @@
 /-
-`(*intervalNode).min(sentinel)` (internal): the leftmost node of a non-empty subtree, with the path
-down to it (only left frames).
-
-**Proof sketch.** The loop on `left`, the path grown frame by frame (`ownPathAt`).
-
-**Changes** from `specs-ref`'s file: at a key kind `c` (was a key representation `K` with
-its comparison contract); pure premises in the precondition.
-
-**Margin.** Mirrors the code.
+`intervalNode.min` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `CtxAt.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.Internal
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.CtxAt
 
 @[expose] public section
 
@@ -19,30 +11,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Adt
 
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3.adt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-def intervalNode.min.spec : Prop :=
-  ∀ (c : Cmp) (x s p : Loc) (T : RbT Entry),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ ⌜(T ≠ .leaf)⌝ ∗ ownNode c s (DFrac.own 1) p x T }}
+/-- `x.min(sentinel)` (internal, `successor`'s), at the root `x` (child of `p`) of a subtree
+`T` that is not the leaf: the leftmost node `y` of the subtree (no left child), as its subtree
+under the path of left frames from `x` down to it (`ownPathAt`, `AllL`). -/
+abbrev adt.intervalNode.min.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
+  ∀ (x s p : Loc) (T : adt.RbT adt.Entry),
+  T ≠ .leaf →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownNode K s (DFrac.own 1) p x T }}
     (App (Val (x @!! go.GoType.PointerType intervalNode.ty @!! go!"min")) (Val #s))
   {{ (y : Loc), RET #y;
-      ∃ (A : RbCtx Entry) (ls : List (Loc × Loc)) (yp : Loc) (k : RbColor)
-        (ye : Entry) (yr : RbT Entry),
-        ownPathAt c s (DFrac.own 1) A ls y yp (some (nodeMax .leaf ye yr)) ∗
-        ownNode c s (DFrac.own 1) yp y (.node k .leaf ye yr) ∗
-        ⌜topAt A ls y yp = (x, p) ∧ A.plug (.node k .leaf ye yr) = T ∧ A.AllL⌝ }}
+      ∃ (A : adt.RbCtx adt.Entry) (ls : List (Loc × Loc)) (yp : Loc) (c : adt.RbColor)
+        (ye : adt.Entry) (yr : adt.RbT adt.Entry),
+        adt.ownPathAt K s (DFrac.own 1) A ls y yp (some (adt.nodeMax .leaf ye yr)) ∗
+        adt.ownNode K s (DFrac.own 1) yp y (.node c .leaf ye yr) ∗
+        ⌜adt.topAt A ls y yp = (x, p) ∧ A.plug (.node c .leaf ye yr) = T ∧ A.AllL⌝ }}
 
 end spec
 
-end Adt
 end EtcdGrove
 end Perennial

@@ -1,42 +1,44 @@
 /-
-## `(*snapshot).Size()` (bbolt's `(*Tx).Size`, promoted): trusted (names only)
-
-**Users.** 2d's `createMergedSnapshotMessage` (`snapshot_merge.go:49`: the message's size), the
-maintenance server. **Why it is true.** bbolt's `Tx.Size` is the transaction's file size
-(`pgid * pageSize`), the length of what `WriteTo` writes (4c). **Changes.** The size is the bytes'
-length (`imgBytes_size`: below `2^48`). verify-round (A11-completeness F5): the size `n` that
-`beSnapN` carries (every `WriteTo` writes that many). **Margin.** None.
+`Size` (the backend's `snapshot`, `backend.go`: the method its embedded `*bolt.Tx` promotes; names
+only). `s.Size()`: the size of the database the snapshot's read transaction sees (bbolt's
+`Tx.Size`: its high-water page id times the page size). The trust boundary (D22 S-h, 2026-10-20; an
+axiom in `Proof/go_etcd_io/etcd/server/v3/storage/backend/snapshot__Size.lean`). Lean-first (no Rocq
+counterpart); the vocabulary is `InvSnapshot.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
+
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`s.Size()`**: the length of the snapshot's bytes. -/
-def snapshot.Size.spec : Prop :=
-  ∀ (γ : BeNames) (s : Loc) (I : Image) (n : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSnapN γ s I n }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty @!! go!"Size")) (Val #()))
-  {{ (m : w64), RET #m; beSnapN γ s I n ∗ ⌜uint.nat m = n⌝ }}
+/-- `s.Size()` of a share of an open snapshot: some number in `[0, 2^62)` (sweep repairs 1, S2,
+2026-11-08: the database's file size bound, `fileHolds`; see the axiom's docstring) (the merged message's size field, which
+the sender only logs and the transport's exact-size reader checks the stream against), the share
+given back (`Size` only reads; after `Close` it would dereference the transaction's nil `meta`). -/
+abbrev backend.snapshot.Size.spec : Prop :=
+  ∀ (sp : Loc) (D : Data) (γ : GName) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      snapOpenQ sp D γ q }}
+    (App (Val (sp @!! go.GoType.PointerType snapshot.ty @!! go!"Size")) (Val #()))
+  {{ (n : w64), RET #n; snapOpenQ sp D γ q ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝ }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

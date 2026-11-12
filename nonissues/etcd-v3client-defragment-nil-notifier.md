@@ -27,7 +27,7 @@ admin check runs first, so a non-root caller with auth on gets `ErrPermissionDen
 
 ## Proof
 
-no: `NewMaintenanceServer.spec` takes `notifierAt hn` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`),
+no: `NewMaintenanceServer.spec` takes `notifierAt hn` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`),
 which no law gives for `nil`. So the in-process client's maintenance service is outside the
 handlers' specs. It is out of scope, and no premise is needed elsewhere.
 

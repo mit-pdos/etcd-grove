@@ -9,16 +9,16 @@ scratch (`.lake/b4/`), not part of the branch.
 
 | directory | namespace | files |
 |---|---|---|
-| `Spec/go_etcd_io/etcd/server/v3/storage/schema/` | `Schema` | `Api.lean` + 69 specs |
-| `Spec/go_etcd_io/etcd/pkg/v3/traceutil/` | `TraceUtil` | `Api.lean` + 20 specs |
-| `Spec/go_etcd_io/etcd/pkg/v3/pbutil/` | `PbUtil` | `Api.lean`, `MustMarshalMessage`, `MustUnmarshalMessage` |
-| `Spec/go_etcd_io/etcd/pkg/v3/ioutil/` | `IoUtil` | `Api.lean` (2 laws), `NewLimitedBufferReader` |
-| `Spec/go_etcd_io/etcd/pkg/v3/httputil/` | `HttpUtil` | `Api.lean`, `GracefulClose` (assumed) |
-| `Spec/github_com/Masterminds/semver/v3/` | `Semver` | `Api.lean`, `MustParse`, `NewVersion`, `New`, `Version__{LessThan,Major,Minor,String}` (assumed) |
-| `Spec/golang_org/x/time/rate/` | `Rate` | `Api.lean`, `Every`, `NewLimiter`, `Limiter__Wait`, `Limiter__Reserve`, `Reservation__Delay` (assumed) |
-| `Spec/github_com/xiang90/probing/` | `Probing` | `Api.lean`, `NewProber`, `NewHandler` (assumed) |
-| `Spec/go_opentelemetry_io/otel/trace/` | `OtelTrace` | `Api.lean`, `SpanFromContext`, `WithAttributes` (assumed) |
-| `Spec/go_opentelemetry_io/otel/attribute/` | `OtelAttribute` | `Api.lean`, `String`, `Int64`, `Int`, `Bool` (assumed) |
+| `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/schema/` | `Schema` | `Api.lean` + 69 specs |
+| `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/traceutil/` | `TraceUtil` | `Api.lean` + 20 specs |
+| `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/pbutil/` | `PbUtil` | `Api.lean`, `MustMarshalMessage`, `MustUnmarshalMessage` |
+| `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/ioutil/` | `IoUtil` | `Api.lean` (2 laws), `NewLimitedBufferReader` |
+| `SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/httputil/` | `HttpUtil` | `Api.lean`, `GracefulClose` (assumed) |
+| `SpecPlan/Spec/github_com/Masterminds/semver/v3/` | `Semver` | `Api.lean`, `MustParse`, `NewVersion`, `New`, `Version__{LessThan,Major,Minor,String}` (assumed) |
+| `SpecPlan/Spec/golang_org/x/time/rate/` | `Rate` | `Api.lean`, `Every`, `NewLimiter`, `Limiter__Wait`, `Limiter__Reserve`, `Reservation__Delay` (assumed) |
+| `SpecPlan/Spec/github_com/xiang90/probing/` | `Probing` | `Api.lean`, `NewProber`, `NewHandler` (assumed) |
+| `SpecPlan/Spec/go_opentelemetry_io/otel/trace/` | `OtelTrace` | `Api.lean`, `SpanFromContext`, `WithAttributes` (assumed) |
+| `SpecPlan/Spec/go_opentelemetry_io/otel/attribute/` | `OtelAttribute` | `Api.lean`, `String`, `Int64`, `Int`, `Bool` (assumed) |
 | `examples/specreq/pkgleaves/` | | `trace.go` (5 snippets), `leaves.go` (10) |
 | `examples/specreq/schema/` | | `schema.go` (6 snippets) |
 
@@ -211,7 +211,7 @@ Review: `reviews/4b-review-1.md` (11 first-tier). Rebuilt: the ten directories, 
 * **F11**: the ioutil sketches cite 2f's intro laws `Http.readerAt_wrap`/`readerCloser_wrap`,
   requested in `req/net_http.md` ("from 4b, round 1").
 
-Second tier: (1) `api/version.LessThan` and `V3_6` are 3h's (`Spec/go_etcd_io/etcd/api/v3/version/
+Second tier: (1) `api/version.LessThan` and `V3_6` are 3h's (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/version/
 LessThan.lean` exists, assumed): said in `req/…_lease.md`; (2) `OtelTrace.spanOk` adds `SpanContext`
 and `IsRecording`; (3) the alarm and membership assumed specs say the lock calls' `ETCD_VERIFY`
 checks are 4a's environment premise, carried by `alarmBkt`/`memberBkts`/`applyHook`; (4)

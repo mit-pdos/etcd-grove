@@ -1,34 +1,22 @@
 /-
-## `(*authStore).UserGrantRole(r)`
-
-**Users.** `applierV3backend.UserGrantRole` (`apply/backend.go:191`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
-
-**Proof sketch.** The user read (absent: `ErrUserNotFound`); a role other than `root` read (absent: `ErrRoleNotFound`); `sort.SearchStrings` over the user's sorted roles: present, no change; else appended, `sort.Strings`, put, `commitRevision`, refresh. The step's state, `storeNext` (the code's function of the request, its
-credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
-returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
-
-**Changes.** Restated over `admStep` (the model appends the role; the store keeps the list sorted: `authBackendAt`'s "up to order"). The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
-step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
-state `storeNext rq cred a` (was: every state the model allows).
-
-**Margin.** None.
+`authStore.UserGrantRole` (`server/auth/store.go`): the admin side (the auth plan's S4c, 2026-10-24).
+Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (the
+write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,14 +25,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserGrantRole(r)`** by the writer, for a request `r` asking `.userGrantRole user role`: the store moves
-to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
-(`admStep`) there, and the reply. -/
-def authStore.UserGrantRole.spec : Prop :=
-  ∀ (st r : Loc) (user role : GoString),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"UserGrantRole")) (Val #r)) (authReqAt r (.userGrantRole user role) []) st (.userGrantRole user role) []
+/-- **`as.UserGrantRole(r)`** for a request naming `user` (within bbolt's key bound: the put
+contract's premise) and `role`, the user's roles in the latest state fewer than `2^62` (`sort.Strings`'
+bound, after the append): the step `userGrantRoleR user role`. -/
+abbrev auth.authStore.UserGrantRole.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
+        u.length < 2 ^ 62⌝ ∗
+      ⌜stepOk M hs (userGrantRoleR user role)⌝ ∗ capNextM M hs (userGrantRoleR user role) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserGrantRole")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+      respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗
+      adminOut M hs (userGrantRoleR user role) noExtra err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

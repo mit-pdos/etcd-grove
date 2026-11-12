@@ -1,17 +1,10 @@
 /-
-`(*concurrency.stm).Del` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: `OpDelete.spec`, the map insert.
-
-Changes: from `specs-ref`'s `stm__Del.lean`: restated over `stmCoreAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stm.Del(key)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,28 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.Del(key)`: the delete in the write set. -/
-def stm.Del.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"Del")) (Val #k))
-  {{ RET #(); stmCoreAt p γ who iso
-      { a with writes := fun k' => if k' = k then some .del else a.writes k' } gs }}
+/-- `s.Del(k)`: the write set gets the delete of `k`. -/
+abbrev stm.Del.spec : Prop :=
+  ∀ (b : Loc) (pfx : GoString) (writes : GMap GoString WriteM) (k : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmWsetOwn pfx b writes ∗ ⌜pfx <+: k⌝ }}
+    (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"Del")) (Val #k))
+  {{ RET #(); stmWsetOwn pfx b (GMap.insert k .del writes) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

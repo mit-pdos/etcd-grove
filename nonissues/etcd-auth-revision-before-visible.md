@@ -38,7 +38,7 @@ watch create needs only a reached state that permits, which the check's state is
 sidesteps it with a weaker client model: W0's round 6 (`notes/specs-only/batch-W0.md`, "Round 6
 repairs") lets a linearizable read succeed when permitted at some auth state since the call started
 (`State.permittedSince`, in place of `authOffSince`), which admits this race; the model now covers
-it. The auth store's specs state the exact timing (`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`,
+it. The auth store's specs state the exact timing (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`,
 `checkPost`: each view at a recorded state at or after the reader's bound; `Revision.spec`'s
 Changes). The fork fix below would let the model drop the weakening.
 

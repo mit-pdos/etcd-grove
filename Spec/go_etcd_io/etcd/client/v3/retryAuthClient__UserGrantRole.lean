@@ -1,19 +1,10 @@
 /-
-`(*clientv3.retryAuthClient).UserGrantRole` (`client/v3/retry.go`).
-
-Users: `authClient.*` (through `remoteAuthAt`, `retryAuthHandle_remoteAuthAt`).
-
-Proof sketch: passes the options through to the stub (non-repeatable: `callOptsOk _ false`): `rac.ac` is `pb.NewAuthClient(c.conn)`, the generated stub over the client's
-connection (`retryAuthHandle`: the stub meets the wire contract over `connOk`, 2a/3h), whose triple is
-`RemoteCallTriple` itself.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryAuthClient__UserGrantRole.lean`: restated over the wire contract (`RemoteCallTriple`).
-
-Margin: none.
+`(*clientv3.retryAuthClient).UserGrantRole(ctx, in, opts...)` (`client/v3/retry.go`; translated for the auth
+plan's E2h). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiClient
+public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 
 @[expose] public section
 
@@ -21,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,14 +22,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `r.UserGrantRole`: the wire contract at its request. -/
-def retryAuthClient.UserGrantRole.spec : Prop :=
-  ∀ (r c : Loc) (γ : Cluster) (who : Principal) (user role : GoString),
-  RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!! s)
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthHandle r c γ who ∗ clientReady c) γ who (.userGrantRole user role)
+/-- `rac.UserGrantRole(ctx, in, opts...)` on a `*retryAuthClient` over a stub on a connection to `addr`:
+`rac.ac.UserGrantRole(ctx, in, opts...)` (no retry option added: an admin call): the call's answer
+(`authCallOut`). -/
+abbrev retryAuthClient.UserGrantRole.spec : Prop :=
+  ∀ (rac conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthUserGrantRoleRequest (GF := GF)).M)
+    (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthAt rac conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗ □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗
+      (pbAuthUserGrantRoleRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
+      ⌜(pbAuthUserGrantRoleRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
+    (App (App (App (Val (rac @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!!
+        go!"UserGrantRole")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (pbAuthUserGrantRoleRequest (GF := GF)).send inp m ∗ authCallOut Φ resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

@@ -1,19 +1,9 @@
 /-
-## `(*peer).pick(m)`
-
-**Users.** `peer.send`.
-
-**Proof sketch.** `isMsgSnap`, the writers' `writec` (each a `msgChanAt`), `isMsgApp`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** The queue picked accepts `m` (`K m`: the msgappv2 writer's queue only `MsgApp`s). The post does not say which queue (the msgappv2 queue's frames need a `MsgApp`: its channel's invariant asks for it, and `pick` sends only `MsgApp`s there; stated inside `msgChanAt`'s realization per writer type).
+`(*peer).pick(m)` (`peer.go`; rafthttp stage 6b). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -21,26 +11,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Picks the queue for a message**: the pipeline's for a `MsgSnap`, the msgappv2 writer's for a `MsgApp` while it works, the message writer's while it works, else the pipeline's. -/
-def peer.pick.spec : Prop :=
-  ∀ (p : Loc) (ν : Net GF) (lid pid : w64) (ml : Loc) (dq : DFrac) (m : Msg),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ peerAt p ν lid pid ∗ msgPts ml dq m }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty @!! go!"pick")) (Val #ml))
-  {{ (ch : GoChan) (name : GoString), RET (PairV #ch #name); msgPts ml dq m ∗ ∃ K, msgChanAt ch ν lid pid K ∗ ⌜K m⌝ }}
+
+/-- **`p.pick(m)`** of a started peer and a message of state `st`: the channel to send it on, a bag
+of the msgappv2 stream's messages (for a `MsgApp`), the message stream's, or the pipeline's. -/
+abbrev rafthttp.peer.pick.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF) (p ml : Loc) (st : MsgSt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      peerOk Rh lid pid γd R p ∗ msgOwn ml DFrac.discard st }}
+    (App (Val (p @!! go.GoType.PointerType rafthttp.peer.ty @!! go!"pick")) (Val #ml))
+  {{ (wc : GoChan) (name : GoString), RET (PairV #wc #name);
+      (∃ γ, isChanBag γ wc (swMsg Rh .msgAppV2 lid pid) ∗ ⌜st.msg.Type' = MsgApp⌝) ∨
+      (∃ γ, isChanBag γ wc (swMsg Rh .message lid pid)) ∨
+      (∃ γ, isChanBag γ wc (pipeMsg Rh pid)) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

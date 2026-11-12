@@ -1,17 +1,10 @@
 /-
-`(*concurrency.stm).Put` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: `OpPut.spec` (premise `¬ putPanics`), the map insert of `stmPut{val, op}`.
-
-Changes: from `specs-ref`'s `stm__Put.lean`: restated over `stmCoreAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stm.Put(key, val, opts...)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,28 +12,29 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.Put(key, val, opts...)`: the put in the write set. -/
-def stm.Put.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (k v : GoString) (opts : GoSlice) (ogs : List (OpM → OpM)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs ∗ optsAt opts ogs ∗ ⌜¬ (opPutM k v ogs).putPanics⌝ }}
-    (App (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"Put")) (Val #k)) (Val #v)) (Val #opts))
-  {{ RET #(); optsAt opts ogs ∗ stmCoreAt p γ who iso
-      { a with writes := fun k' => if k' = k then some (.put (opPutM k v ogs).putReq) else a.writes k' } gs }}
+/-- `s.Put(k, v, opts...)`: the write set gets the put of `k` (options a put supports). -/
+abbrev stm.Put.spec : Prop :=
+  ∀ (b : Loc) (pfx : GoString) (writes : GMap GoString WriteM) (k v : GoString) (sl : GoSlice)
+    (gs : List (OpFull → OpFull)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmWsetOwn pfx b writes ∗ optsAt sl gs ∗ ⌜pfx <+: k ∧ PutOptsOk k v gs⌝ }}
+    (App (App (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"Put")) (Val #k)) (Val #v))
+      (Val #sl))
+  {{ RET #(); stmWsetOwn pfx b (GMap.insert k (.put v (opPutModel k v gs).leaseID) writes) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

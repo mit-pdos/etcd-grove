@@ -1,15 +1,7 @@
-/-
-## `IsLocalMsg(t)`
-
-**Users.** `node.Step`, `RawNode.Step` (and transports filtering). **Proof sketch.** `isMsgInArray` over a package array: `int(msgt)` indexes it,
-so a negative type panics (round 2: the premise; received messages have one by `msgSent_type`).
-**Changes.** The premise `0 ≤ t` (was missing).
--/
+/- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -17,27 +9,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- `isLocalMsgType`. -/
-def IsLocalMsg.spec : Prop :=
-
+/-- `IsLocalMsg(msgt)`, a lookup in the table `isLocalMsg` (`util.go`). Only that it
+returns is specified (see `isMsgInArray.spec`). -/
+abbrev IsLocalMsg.spec : Prop :=
   ∀ (t : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ⌜0 ≤ sint.Z t⌝ }}
-    (App (Val (@! go_etcd_io.raft.v3.IsLocalMsg)) (Val #t))
-  {{ (b : Bool), RET #b; ⌜b = isLocalMsgType t⌝ }}
+  0 ≤ sint.Z t →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+    (App (Val #(functions IsLocalMsg [])) (Val #t))
+  {{ (b : Bool), RET #b; True }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,19 +1,10 @@
 /-
-## `newStreamHandler(t, pg, r, id, cid)`
-
-**Users.** `Transport.Handler` (`pg` the transport itself, `id` its member's).
-
-**Proof sketch.** The literal.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`newStreamHandler(t, pg, r, id, cid)` (`http.go`; rafthttp stage 6c, `Transport.Handler`).
+Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler__ServeHTTP
 
 @[expose] public section
 
@@ -21,26 +12,42 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The stream handler of the transport. -/
-def newStreamHandler.spec : Prop :=
-  ∀ (t : Loc) (ν : Net GF) (lid : w64) (r : GoInterface) (cid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ isTransport t ν lid ∗ raftOk ν lid r }}
-    (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamHandler)) (Val #t)) (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t))) (Val #r)) (Val #lid)) (Val #cid))
-  {{ (h : GoInterface), RET #h; ∃ hp : Loc, ⌜h = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler.ty) #hp⌝ ∗ sthAt hp ν lid }}
+/-- **`newStreamHandler(t, pg, r, id, cid)`** of a transport whose logger is set and whose id is
+`id`, the member owning `a`; `r` its `Raft`, `pg` a peer getter (`Get`, borrowing `Rs`), the
+transport's `AddRemote` returning: a stream handler of `a` (`streamHandlerOk`). -/
+abbrev rafthttp.newStreamHandler.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (t : Loc) (gi : GoInterfaceOk)
+    (r : GoInterface) (id cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (lg : Loc),
+  lg ≠ null → Rh.owner a = id →
+  {{ t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ t.[rafthttp.Transport, go!"ID"] ↦□ id ∗
+      □ netRaftOk Rh.γn id γd Rs r ∗
+      □ (∀ pid : w64, {{ Rs }}
+          (App (Val #(methods gi.ty go!"Get" gi.v)) (Val #pid))
+        {{ (pi : GoInterface), RET #pi; Rs ∗ (⌜pi = GoInterface.nil⌝ ∨
+            ∃ pl : Loc, ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #pl⌝ ∗
+              peerStreams Rh id pid pl) }}) ∗
+      □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString),
+        {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ id ∧ peerURLsOk Rh pid us⌝ }}
+          (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
+            (Val #pid)) (Val #sl))
+        {{ RET #(); True }}) ∗
+      globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" }}
+    (App (App (App (App (App (Val (@! rafthttp.newStreamHandler)) (Val #t))
+      (Val #(GoInterface.ok gi))) (Val #r)) (Val #id)) (Val #cid))
+  {{ (h : GoInterface), RET #h; ∃ hl : Loc,
+      ⌜h = interface.mkOk (go.GoType.PointerType rafthttp.streamHandler.ty) #hl⌝ ∗
+      streamHandlerOk Rh a γd Rs hl }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

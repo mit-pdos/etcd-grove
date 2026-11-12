@@ -14,7 +14,7 @@
 
 ## from 4c
 
-bbolt's `Open` (`Spec/go_etcd_io/bbolt/Open.lean`) opens its file with `os.OpenFile` (or a client's
+bbolt's `Open` (`SpecPlan/Spec/go_etcd_io/bbolt/Open.lean`) opens its file with `os.OpenFile` (or a client's
 `OpenFile`, `Bbolt.openFileOk`) and uses the `*os.File` through `Fd`, `Stat`, `ReadAt`, `WriteAt`,
 `Sync`, `Close` (over OsFs's `osFd`, `osMeta`, `osBytes`). It names the representation provisionally
 `Bbolt.osFileOf f fd` ("`f` is an `*os.File` over the fd `fd`", exclusive): please provide it (the

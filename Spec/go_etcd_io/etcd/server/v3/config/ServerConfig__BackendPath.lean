@@ -1,13 +1,13 @@
 /-
-## `(*ServerConfig).BackendPath()` (`config.go`)
-
-**Users.** `bootstrap`, `OpenBackend`, `OpenSnapshotBackend` (2d's `applySnapshot`). **Proof sketch.** names only: trusted (`datadir.ToBackendFileName`). **Changes**: from `specs-ref`'s
-`ServerConfig__BackendPath.lean` where it existed (`config.backendPathOf`); `walDirOf` keyed by both
-directories (the WAL API's critique 3). **Margin.** Exact (the path is opaque).
+`config.ServerConfig.BackendPath` (`config.go`: `datadir.ToBackendFileName(c.DataDir)`; names
+only). The trust boundary (D22 S-f, 2026-10-19; an axiom in
+`Proof/go_etcd_io/etcd/server/v3/config/ServerConfig__BackendPath.lean`). Lean-first (no Rocq
+counterpart); the vocabulary is `Proof/go_etcd_io/etcd/server/v3/config/Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.config.Api
+public import Proof.go_etcd_io.etcd.server.v3.config.Defs
+public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 
 @[expose] public section
 
@@ -15,26 +15,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Config
 
 open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.config.Assumptions]
 
-/-- **`BackendPath()`**: the backend file's path under the data directory. -/
-def ServerConfig.BackendPath.spec : Prop :=
-  ∀ (c : Loc) (datadir : GoString),
-  {{ (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DataDir" c) datadir DFrac.discard : IProp GF) }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.config.ServerConfig.ty @!! go!"BackendPath")) (Val #()))
-  {{ RET #(Config.backendPathOf datadir); True }}
+/-- `c.BackendPath()` (`c.DataDir` read, at any fraction): `backendPathOf c.DataDir`. -/
+abbrev config.ServerConfig.BackendPath.spec : Prop :=
+  ∀ (c : Loc) (dq : DFrac) (d : GoString),
+  {{ (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DataDir" c ↦{dq} d : IProp GF) }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.config.ServerConfig.ty @!!
+      go!"BackendPath")) (Val #()))
+  {{ RET #(config.backendPathOf d);
+      structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DataDir" c ↦{dq} d }}
 
 end spec
 
-end Config
 end EtcdGrove
 end Perennial

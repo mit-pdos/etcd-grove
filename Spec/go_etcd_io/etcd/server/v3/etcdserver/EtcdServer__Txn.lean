@@ -1,46 +1,13 @@
 /-
-## `(*EtcdServer).Txn(ctx, r)`
-
-**Users.** The gRPC KV handler (`api/v3rpc/key.go:130`, after `checkTxnRequest` at the server's
-`--max-txn-ops`, which bounds the nesting: `txnChecked`, and the depth, `irr-depth.md`), the
-grpc-proxy's adapter. Snippets: `examples/specreq/etcdserverreq/kv.go` (`ReqTxnReadOnly`,
-`ReqTxnCAS`).
-
-**Proof sketch.** `txn.IsTxnReadonly(r)` (3b: `t.readonly`). Read-only: as `Range.spec` (the
-registry's ticket; the read index unless `txn.IsTxnSerializable(r)`, 3b: `t.serializable`; then
-`doSerialize` with `chk` = `apply.CheckTxnAuth` (3a: the permission of `RequestOp.txn`'s
-`perms` and `leases` at the auth store's state; it takes and gives back `txnReqOwn r dq' t` at a
-share `dq'` the proof splits off this one's `dq` and rejoins, the range ends' `endsOk` inside it) and
-`get` = `txn.Txn(...)` (3b: `TxnRun` at the member's store; a read-only run commits nothing); the
-deferred `txn.WarnOfExpensiveReadOnlyTxnRequest` (3b) at the request's share, its depth premise
-`txnMsgDepth t < Proto.depthMax` from `t.readonly` (only ranges: `txnMsgDepth t ≤ 3`). A write: as `Put.spec` (`raftRequest` at `.req
-(.txn t)`, its depth premise from this one's; the type assertion `resp.(*pb.TxnResponse)`).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__Txn.lean`: `txnPermit`, a depth premise of a
-writing transaction) restated as `Put` and `Range`: one spec for both modes, the update persistent
-exactly for a read (`□?`), the depth premise kept (`irr-depth.md`: the receiver's need, not v3rpc's
-budget), `txnChecked` the gRPC layer's validation (2a's).
-Integration X (superseded at the re-review, below): the scope premise `EtcdServerPb.endsDecoded` (its
-range ends `nil` or non-empty, `nonissues/etcd-auth-empty-range-end-point-check.md`; I5's request;
-2a's handler has it from grpc's decoder; a caller that
-builds its range request, by 3h's `endsOk_range_intro`).
-
-**Margin.** As `Range` and `Put` (the depth and `txnChecked` premises are `irrWf`'s). A compare-only transaction is answered from a member's possibly
-stale store (`issues/etcd-txn-empty-serializable.md`: W0's model has it).
-
-Changes: verify-round, second pass (grpc-v3rpc's request): `endsDecoded` is now a share of the request message with the pure `endsOk` fact; 2a's handler gets it by `endsDecoded_of_canon` (`Proto.norm c = c` of a decoded message), a builder by `endsDecoded_range_intro`.
-
-Changes: recheck (RR3, RR4): `CheckTxnAuth` takes no separate `endsDecoded` share any more (3h
-retired it), so the read path gives back `txnReqOwn r dq t` whole; the read-only warning's depth
-bound comes from `t.readonly`, so the depth premise stays a write's only.
-
-Changes: re-review (R-A6 N2): no separate `endsDecoded` share: the request's owned predicate (W0's `rangeReqOwn`/`txnReqOwn`) already carries `endsOk` of its content (3h's `*ReqOwn_msgAt`), and a share beside full ownership asked for more than the message (`kvServer.RangeStream` writes `r.Limit`, `r.Revision`, `r.Key`). `Proto.decodedAt`, `endsDecoded_of_decoded` and `endsDecoded_range_intro` no longer exist: 3h's `endsOk_canon` and `endsOk_range_intro`.
+`s.Txn(ctx, r)` (`v3_server.go`): a read-only transaction read locally (as `Range`), a writing one through raft (as `Put`).
+Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -48,9 +15,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -59,16 +25,87 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.Txn(ctx, r)`**: the transaction `t`: read-only, as `Range` (persistent update, the linearizable or serializable read); a write, as `Put` (through raft). -/
-def EtcdServer.Txn.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (q : Qp) (ctx : GoInterface) (p tls : Principal) (r : Loc) (dq : DFrac) (t : TxnReq),
-  SrvCallTriple (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Txn")) (Val #ctx)) (Val #r))
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvGate s q ∗
-        Context.ctxOk ctx ∗ reqCtxOk ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ txnReqOwn r dq t ∗
-        ⌜txnChecked t⌝ ∗ ⌜(Req.txn t).isRead = false → txnMsgDepth t + 1 ≤ 10000⌝)
-    iprop(srvGate s q ∗ threadTok ∗ txnReqOwn r dq t) γ p tls (.txn t) (Req.txn t).isRead (ClientV3.txnReply)
+/-- **`Txn(ctx, r)`, in the server's auth mode** (the auth component's stage 4; it replaces
+`spec`, `specOn` and `specOnR`). `t` is the transaction `r` describes.
+
+*Read-only* (`txnReadonly t`): the read path. A linearizable read waits for the read index, then
+`doSerialize` runs the auth check (`CheckTxnAuth`) and the txn package's read. The caller also
+gives the auth store's lower bounds (`srvAuthLb`, and `authPubLbM E.authMode n`, which is `True`
+with auth off). A success gives:
+- the answer read at a log `F` extends (`txnReadOkM`, at the mode's model);
+- the auth state the check met, at least `n`;
+- the user's verdicts there (`txnClassFrom`, which at `.off` is every check passed);
+- the user bound to the context (`infoBoundM`, `True` off);
+- unless serializable, that state is at the read index's floor (`authFloorAt`).
+
+An error leaves `resp` unconstrained, as Go returns it.
+
+*Writing*: the proposal path. The caller's permit (`txnPermitM`) gives the update its step and,
+with auth on, the transaction's shape checked against the permission cache and the update's
+grant. A success is applied by the apply thread (`txnAppliedOk`). An error is `applyErrIs` with
+what was applied or deposited (`txnErrOkM`).
+
+**The gated grant.** With auth on, a success also names the grant: the wire transaction `tw`,
+the header `hm` the server stamped, whose user is bound to the context (`hdrBoundM`), the
+committed log `L` before the entry at which the request was granted (`grantedAt`), and the
+publications after it (`pubAfterM`). Off, the row is `□ (⌜false = true⌝ → …)`, which is `True`. It
+is behind `□` because it is persistent and a caller opens it more than once; `srvKVAnsM`'s rows
+need no `□` (`KVAns.ok` is not persistent).
+
+**Scope restriction (read-only only).** `⌜E.authMode ≠ .any⌝` is required of a read-only
+transaction: its check is not covered in the mode `.any`, where the server has no fixed auth
+state. It was the former `specOnR`'s (its `γa`), and is `Range.spec`'s, restriction (step 5, `notes/decisions.md`,
+"The request path in the environment's mode", the user's B). A writing transaction is covered in every mode, as by the former
+`spec` and `specOn`.
+
+**Departure.** The writing case takes all of `srvRdCall`. The writing path needs only its logger's
+field and reader slot (`EnsureTrace` reads `s.Logger()`, `v3_server.go:341`) and the auth store's
+reader resource `E.RD` (`raftRequest`, `Spec/…/EtcdServer__raftRequest.lean:49`). The rest of
+`srvRdCall` (`storeReader`, `committedAtLeast`, `srvReadReader`) is the read path's. Today's `spec`
+does the same, and every writing caller holds `srvRdCall`, so this is no regression. The footprint
+is wider than the code's.
+
+`Range.spec` states its restriction as a Lean premise `E.authMode ≠ .any →`
+(`Spec/.../EtcdServer__Range.lean:51`). `Txn.spec` states it in the precondition, guarded by
+`txnReadonly t` as the other read-only premises are. `Range.spec` converts when it next
+changes. -/
+abbrev EtcdServer.Txn.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
+    (Q : KVState → IProp GF) (Qr : List EntryModel → IProp GF) (ot : Option Loc) (te : Bool)
+    (F : mvcc.Log) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
+      srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
+      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗
+      traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
+      ⌜txn.txnReadonly t = true → txn.txnGetsOk t ∧ E.authMode ≠ .any⌝ ∗
+      ⌜txn.txnReadonly t = false → apply.txnDepthOk t⌝ ∗ srvApi.kvLogLb E.γs F ∗
+      (if txn.txnReadonly t then
+         iprop(srvAuthLb s E ∗ auth.authPubLbM E.authMode n ∗ kvDep γr.kv Qr (kvStM E.authOn γr.kv))
+       else txnPermitM E.authOn ρ.raft ρ.kv (hdrBoundM E.authOn s E (GoInterface.ok ctx)) t Q) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
+      if txn.txnReadonly t then
+        iprop(idCred ρ.ids 1 ∗
+          ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
+              (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
+                txnClassFrom E.authMode m info t ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
+                (if txn.txnSerializable t then iprop(True) else authFloorAt E.authMode γr c m)) ∗
+              txnReadOkM E.authOn E γr c F t Qr resp) ∨
+           (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))
+      else
+        iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp ∗
+            □ (⌜E.authOn = true⌝ → ∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (L : List EntryModel),
+              ⌜tw.toModel = t ∧ grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrTxn tw) hm) L⌝ ∗
+              hdrBoundM E.authOn s E (GoInterface.ok ctx) hm ∗
+              pubAfterM E.authOn E ρ (apply.withHeader (irrTxn tw) hm) L)) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+            txnErrOkM E.authOn s E ρ (GoInterface.ok ctx) F t err)) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

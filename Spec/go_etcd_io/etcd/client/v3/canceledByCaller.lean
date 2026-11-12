@@ -1,18 +1,9 @@
 /-
-`clientv3.canceledByCaller` (`client/v3/client.go`).
-
-Users: `lessor.recvKeepAliveLoop`.
-
-Proof sketch: `ctx.Err()` (W0's `Err.spec`), `status.FromError`, `status.Code`, `errors.Is`, the
-error's `Error()` (2a's specs over `callErr`).
-
-Changes: from `specs-ref`.
-
-Margin: the result is not described (its callers only branch on it).
+`clientv3.canceledByCaller(stopCtx, err)` (`client/v3/client.go`; item 1, the client lease). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
 
@@ -20,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -32,15 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `canceledByCaller(...)`: no panic. -/
-def canceledByCaller.spec : Prop :=
-  ∀ (ctx err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ Context.ctxOk ctx ∗ (⌜err = GoInterface.nil⌝ ∨ ∃ k, callErr err k) }}
-    (App (App (Val (@! go_etcd_io.etcd.client.v3.canceledByCaller)) (Val #ctx)) (Val #err))
+/-- `canceledByCaller(stopCtx, err)`, for a context whose `Err()` returns client errors
+(`ctxErrClient`) and an error grpc's `status` accepts: some boolean (`stopCtx.Err()` and
+`errors.Is` against `context.Canceled` and `context.DeadlineExceeded`, which `context`'s facts
+give: `ctxErrTargets`). -/
+abbrev canceledByCaller.spec : Prop :=
+  ∀ (sc : GoInterfaceOk) (scd : context.ContextDesc (IProp GF)) (err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxErrClient sc scd ∗
+      ctxErrTargets ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
+    (App (App (Val (@! go_etcd_io.etcd.client.v3.canceledByCaller)) (Val #(GoInterface.ok sc)))
+      (Val #err))
   {{ (b : Bool), RET #b; True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

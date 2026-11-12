@@ -1,17 +1,10 @@
 /-
-`(concurrency.readSet).first` (`client/v3/concurrency/stm.go`), internal.
-
-Users: the STM's methods and commits (`stm.go`).
-
-Proof sketch: a loop over the map.
-
-Changes: from `specs-ref`'s `readSet__first.lean`: restated over `readSetAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.readSet.first()` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,29 +12,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `rs.first()`: the least header revision of the reads, `MaxInt64 - 1` if none is less. -/
-def readSet.first.spec : Prop :=
-  ∀ (rs : GoMap) (γ : Cluster) (reads : Key → Option ReadM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ readSetAt rs γ reads }}
-    (App (Val (rs @!! go_etcd_io.etcd.client.v3.concurrency.readSet.ty @!! go!"first")) (Val #()))
-  {{ (f : w64), RET #f; readSetAt rs γ reads ∗
-      ⌜sint.Z f ≤ 2 ^ 63 - 2 ∧ (∀ k e, reads k = some e → sint.Z f ≤ e.hdr) ∧
-        (sint.Z f = 2 ^ 63 - 2 ∨ ∃ k e, reads k = some e ∧ sint.Z f = e.hdr)⌝ }}
+/-- `rs.first()`: the least header revision of the reads (`FirstOk`). -/
+abbrev readSet.first.spec : Prop :=
+  ∀ (m : Loc) (dq : DFrac) (pfx : GoString) (rsMap : GMap GoString Loc)
+    (reads : GMap GoString ReadM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ m ↦${dq} rsMap ∗ readsAt pfx rsMap reads }}
+    (App (Val (m @!! readSet.ty @!! go!"first")) (Val #()))
+  {{ (f : w64), RET #f; m ↦${dq} rsMap ∗ ⌜FirstOk reads f⌝ }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

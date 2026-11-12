@@ -1,19 +1,10 @@
 /-
-`(*clientv3.retryLeaseClient).LeaseRevoke` (`client/v3/retry.go`).
-
-Users: `lessor.*` (through `remoteLeaseAt`, `retryLeaseHandle_remoteLeaseAt`).
-
-Proof sketch: appends `withRepeatablePolicy()` (`callOptsOk_append`: a repeatable slice) and calls
-`rlc.lc`, the stub over `connOk` (2a/3h): the update persistent, as `RemoteCallTriple` asks of a
-repeatable RPC.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/retryLeaseClient__LeaseRevoke.lean`: restated over the wire contract; the update persistent (the old `LeaseGrant`, `LeaseRevoke` specs took an exclusive one, unsound against the resend).
-
-Margin: none.
+`(*clientv3.retryLeaseClient).LeaseRevoke(ctx, in, opts...)` (`client/v3/retry.go`; item 1, the
+client lease). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvLease
 
 @[expose] public section
 
@@ -21,10 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,14 +22,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `r.LeaseRevoke`: the wire contract at its request. -/
-def retryLeaseClient.LeaseRevoke.spec : Prop :=
-  ∀ (r c : Loc) (γ : Cluster) (who : Principal) (id : Int),
-  RemoteCallTriple (fun s => r @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!! s)
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseHandle r c γ who ∗ clientReady c) γ who (.leaseRevoke id)
+/-- `rlc.LeaseRevoke(ctx, in, opts...)` (as `retryLeaseClient.LeaseGrant`): the call's answer
+(`leaseRevokeCallOut`). -/
+abbrev retryLeaseClient.LeaseRevoke.spec : Prop :=
+  ∀ (rlc conn : Loc) (addr : List GoString)
+    (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
+    (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.LeaseRevokeRequest) (opts : GoSlice) (vs : List GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
+      □ ▷ Spec req.ID' Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
+      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
+      ⌜req.unknownFields' = slice.nil⌝ }}
+    (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
+        go!"LeaseRevoke")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (∃ req' : etcdserverpb.LeaseRevokeRequest, inp ↦ req') ∗ leaseRevokeCallOut Q resp err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

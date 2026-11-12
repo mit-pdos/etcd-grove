@@ -1,7 +1,7 @@
 # Integration I7: bbolt (batches 4c, 4d)
 
-Directories: `Spec/go_etcd_io/bbolt/` (public, internal, `Model`/`Api`/`Internal`/`Options`),
-`Spec/go_etcd_io/bbolt/errors/` (new), `Spec/go_etcd_io/bbolt/internal/{common,freelist}/`;
+Directories: `SpecPlan/Spec/go_etcd_io/bbolt/` (public, internal, `Model`/`Api`/`Internal`/`Options`),
+`SpecPlan/Spec/go_etcd_io/bbolt/errors/` (new), `SpecPlan/Spec/go_etcd_io/bbolt/internal/{common,freelist}/`;
 snippets `examples/specreq/{bbolt,bboltinternal}/`. Done in three parts: the API-level items
 (here), a sweep of 4c's specs that call `internal/common`, and a sweep of the freelist interplay
 (both sweeps ran as forks of this agent; their changes are listed below).
@@ -11,8 +11,8 @@ they were in progress. The rest are uncommitted in the worktree.
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/bbolt Spec/go_etcd_io/bbolt/errors
-Spec/go_etcd_io/bbolt/internal/common Spec/go_etcd_io/bbolt/internal/freelist`: **OK, 295
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/bbolt SpecPlan/Spec/go_etcd_io/bbolt/errors
+SpecPlan/Spec/go_etcd_io/bbolt/internal/common SpecPlan/Spec/go_etcd_io/bbolt/internal/freelist`: **OK, 295
 modules**. The backend's and schema's `Api` (importers of `Bbolt`) still build. `go vet
 ./specreq/bbolt/...` is clean. `bboltinternal/*.go` are gofmt-clean, and `go vet`-clean when
 dropped into a copy of the pinned bbolt's `internal/common` and `internal/freelist`.
@@ -123,7 +123,7 @@ callers. All nine are restated.
 
 ## Provisional names
 
-- **Left: `Bbolt.osFileOf`** (`Api.lean`, used by `openFileOk`). There is no `Spec/os/` on this
+- **Left: `Bbolt.osFileOf`** (`Api.lean`, used by `openFileOk`). There is no `SpecPlan/Spec/os/` on this
   branch and no batch owns `os`. It stays until someone provides the `os` package's `*os.File`
   representation, with `os.OpenFile` and `os.CreateTemp` giving it and the methods `Fd`, `Stat`,
   `ReadAt`, `WriteAt`, `Sync`, `Close` taking it (`req/os.md`, "from 4c").
@@ -139,7 +139,7 @@ callers. All nine are restated.
 3. **`io`** (Perennial's): `io.NewSectionReader`, `io.CopyN`, and `(*os.File).ReadAt` through them,
    for `Tx.WriteTo`. No spec exists.
 4. **`sort`**: `sort.SliceIsSorted` (`req/sort.md` item 3, for the hash map's `Init`). Not present
-   in `Spec/sort/` (only `SortAnyLess`, `StringSlice__Sort`).
+   in `SpecPlan/Spec/sort/` (only `SortAnyLess`, `StringSlice__Sort`).
 5. **`strings.ToLower`, `reflect.DeepEqual`**: requested in `req/strings.md` and `req/reflect.md`.
    No spec exists.
 6. **OsFs** (this repository's extension): the 4c-D1 sector rule if the user chooses (a); `rename`

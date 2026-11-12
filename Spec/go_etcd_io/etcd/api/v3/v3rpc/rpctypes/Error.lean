@@ -1,28 +1,15 @@
 /-
-`rpctypes.Error(err)` (`api/v3rpc/rpctypes/error.go:256`).
-
-Users: the client's `ContextError` (every client call's error), the retry interceptor's
-`shouldRefreshToken` and `isSafeRetry*` (1c), `WatchResponse.Err` (1b), the package's own client-side
-variables (`init.spec`). Snippets: `examples/specreq/clientv3kv/errors.go` (W0).
-
-Proof sketch: `nil` returns `nil`. Else `ErrorDesc(err)` (its spec: the description `msg` of the
-view), the map lookup in `errStringToError` (the package's initialized map: its keys are the mapped
-descriptions, its values the `ErrGRPC*` status errors, `init.spec`'s variables; a law of the map's
-initialization, from `ErrorDesc` of each status); a miss returns `err`; a hit `ErrGRPC_e` goes
-through `status.FromError` (a status: `ok`), `Message()` (`desc e`), `Code()` (`code e`), and the
-result is `EtcdError{code e, desc e}` = `errVal e` (`errVal_fields`).
-
-Over W0's `callErr` (`callErr_view`): `.etcd e` gives `errVal e`; `.other` and `.notSent` give
-`err` itself.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Error.lean`: the result exactly
-(it was "some client error with the same description"), over `errView` (was `statusErrOk`).
-
-Margin: none.
+`rpctypes.Error(err)` (`api/v3rpc/rpctypes/error.go`), called by `clientv3.WatchResponse.Err`,
+`clientv3.ContextError` and the client's retry interceptor (`shouldRefreshToken`). Translated
+(unit P3a, 2026-10-14; it was an axiom): its callees grpc's `status.FromError` and the `*Status`'s
+`Message`/`Code` are the trust boundary (`Spec/google_golang_org/grpc/status/FromError.lean`), the
+map `errStringToError` a package-init fact (`cache/v3/Base.lean`, `rpctypesInit`). Lean-first (no
+Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
+public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 
 @[expose] public section
 
@@ -30,30 +17,42 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rpctypes
 
-open Iris Iris.BI EtcdModel ClientV3
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
-/-- `rpctypes.Error(err)` of an error seen as (`c`, `msg`, `ok`): `nil` for `nil`; `errVal e` when
-`msg` is the mapped description of `e`; else `err` itself. -/
-def Error.spec : Prop :=
-  ∀ (err : GoInterface) (c : w32) (msg : GoString) (ok : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗ Grpc.errView err c msg ok }}
+/-- `rpctypes.Error(err)` for a non-nil `err` that grpc's `status` accepts (`statusErrOk`:
+`ErrorDesc` and `status.FromError` call its `Error()` and `GRPCStatus()`) returns a non-nil error
+(`err` itself, or the `EtcdError` its gRPC description maps to) that grpc's `status` accepts too
+(an `EtcdError` is a leaf error without `GRPCStatus`, whose `Error` returns its description);
+and (2026-10-14, unit C1: `ContextError` passes the result to `errors.As`) a client error gives a
+client error (`clientErr`: the result is `err` itself, or an `EtcdError` value, a leaf error).
+Nothing about which error, nor about a nil `err` (for which it returns `nil`).
+
+(2026-10-14, unit P3a) It was an axiom with the premise `err ≠ nil` only and the postcondition
+`□ (errStrOk err -∗ errStrOk err')`, which is false: `ErrorDesc` calls `err.Error()` (when
+`status.FromError` fails) and `FromError` calls `err.Error()` and `err.GRPCStatus()`, either of
+which may panic. -/
+abbrev rpctypes.Error.spec : Prop :=
+  ∀ (err : GoError),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗
+      ⌜err ≠ interface.nil⌝ ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error)) (Val #err))
-  {{ (err' : GoInterface), RET #err';
-      ⌜(err = GoInterface.nil ∧ err' = GoInterface.nil) ∨
-       (err ≠ GoInterface.nil ∧ ∃ e, mapped e = true ∧ msg = desc e ∧ err' = errVal e) ∨
-       (err ≠ GoInterface.nil ∧ (∀ e, mapped e = true → msg ≠ desc e) ∧ err' = err)⌝ }}
+  {{ (err' : GoError), RET #err'; ⌜err' ≠ interface.nil⌝ ∗ statusErrOk err' ∗
+      ⌜clientErr err → clientErr err'⌝ ∗
+      -- (2026-10-21, D29) the description kept
+      ⌜errDesc err' = errDesc err⌝ ∗
+      -- (2026-10-23, D37) no caller's `errors.New` value if `err` is none: `err` itself or an
+      -- `EtcdError` value
+      □ (errCellOk err -∗ errCellOk err') }}
 
 end spec
 
-end Rpctypes
 end EtcdGrove
 end Perennial

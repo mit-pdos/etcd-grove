@@ -1,40 +1,38 @@
 /-
-## `(*Trace).enableStep()` (internal)
-
-**Users.** `StepWithFunction`. **Proof sketch.** A store of `stepDisabled`. **Changes.** From
-`specs-ref`'s `Trace__enableStep.lean`.
+`(*traceutil.Trace).enableStep` (`trace.go`: sets `t.stepDisabled`). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- Sets whether steps are recorded; the trace kept. -/
-def Trace.enableStep.spec : Prop :=
-  ∀ (t : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceOwn t }}
+/-- `t.enableStep()` of an owned trace returns; the trace kept. -/
+abbrev traceutil.Trace.enableStep.spec : Prop :=
+  ∀ (t : Loc) (e : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"enableStep")) (Val #()))
-  {{ RET #(); traceOwn t }}
+  {{ RET #(); traceutil.ownTrace t e }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

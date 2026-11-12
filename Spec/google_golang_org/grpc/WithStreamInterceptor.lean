@@ -1,17 +1,9 @@
 /-
-`grpc.WithStreamInterceptor` (grpc-go, assumed: `dialoptions.go`).
-
-Users: the client's `dialSetupOpts` (`client.go:269`, 1c).
-
-Why true: the option sets `dopts.streamInt`; `NewStream` then calls it (`stream.go`).
-
-Changes: from `specs-ref/.../grpc/WithStreamInterceptor.lean`: over `DialCfg`.
-
-Margin: none.
+`grpc.WithStreamInterceptor(f)` (grpc's `dialoptions.go`, names only; item 5). Lean-first.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvDial
 
 @[expose] public section
 
@@ -19,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -29,15 +20,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.WithStreamInterceptor(...)`: a dial option acting as shown. -/
-def WithStreamInterceptor.spec : Prop :=
-  ∀ (f : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ True }}
+/-- `grpc.WithStreamInterceptor(f)`: a dial option setting the stream interceptor `f`. -/
+abbrev grpc.WithStreamInterceptor.spec : Prop :=
+  ∀ (f : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithStreamInterceptor)) (Val #f))
-  {{ (v : GoInterface), RET #v; dialOptAt v (fun cfg => { cfg with si := some f }) }}
+  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.streamInterceptor f)⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

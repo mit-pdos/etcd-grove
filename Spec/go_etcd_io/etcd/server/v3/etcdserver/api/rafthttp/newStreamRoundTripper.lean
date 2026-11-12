@@ -1,19 +1,12 @@
 /-
-## `newStreamRoundTripper(tlsInfo, dialTimeout)`
-
-**Users.** `Transport.Start`.
-
-**Proof sketch.** Assumed: Go's `*http.Transport` meets the HTTP boundary's `RoundTrip` contract (`Http.roundTripperOk`); the TLS configuration may fail.
-
-**Changes.** New (no old spec; was a names-only call inside the `Start` axiom).
-
-**Margin.** None.
+`newStreamRoundTripper(tlsInfo, dialTimeout)` (`util.go`, untranslated; rafthttp stage 6c, `Transport.Start`'s
+round trippers): the trust boundary (the HTTP boundary's, D39). Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.net.http.Boundary
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
 @[expose] public section
 
@@ -21,26 +14,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (trust boundary: untranslated; `transport.NewTimeoutTransport`) **A round tripper** (an `*http.Transport`, or a TLS error). -/
-def newStreamRoundTripper.spec : Prop :=
-  ∀ (tls : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (d : _root_.Perennial.time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ True }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamRoundTripper)) (Val #tls)) (Val #d))
-  {{ (rt : GoInterface) (err : GoInterface), RET (PairV #rt #err); (⌜err ≠ interface.nil⌝ ∗ Http.errOk err) ∨ (⌜err = interface.nil⌝ ∗ Http.roundTripperOk rt) }}
+/-- **`newStreamRoundTripper(tlsInfo, dialTimeout)`** (the streams' round tripper): an error, or a round tripper of
+any network `H` (`http.roundTripperOk`). -/
+abbrev rafthttp.newStreamRoundTripper.spec : Prop :=
+  ∀ (H : http.HttpNet GF) (tls : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dt : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }}
+    (App (App (Val (@! rafthttp.newStreamRoundTripper)) (Val #tls)) (Val #dt))
+  {{ (rt err : GoInterface), RET (PairV #rt #err);
+      ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ http.roundTripperOk H rt }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

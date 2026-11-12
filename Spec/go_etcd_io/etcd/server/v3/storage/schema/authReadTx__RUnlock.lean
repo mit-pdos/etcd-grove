@@ -1,43 +1,37 @@
 /-
-## `(*authReadTx).RUnlock()`
-
-**Users.** as `RLock`. Snippet: `examples/specreq/schema/schema.go` (`ReqAuthWriteRead`).
-
-**Proof sketch.** `atx.tx.RUnlock()`: the caller's triple of it (`callOk`), passed through.
-**Changes.** From `specs-ref`'s `authReadTx__RUnlock.lean` (the old backend's read pool): the backend call's triple is the premise.
-**Margin.** None.
+`(*authReadTx).RUnlock()` (`auth.go`): the transaction's `tx.RUnlock()`. The auth plan's S1 (2026-10-23; `notes/auth-plan.md`; the contracts: `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvAuthBackend.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvAuthBackend
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **`tx.RUnlock()`'s effect** (the caller's triple of it). -/
-def authReadTx.RUnlock.spec : Prop :=
-  ∀ (atx lg : Loc) (tx : GoInterface) (P Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (atx ↦□ (go_etcd_io.etcd.server.v3.storage.schema.authReadTx.mk tx lg) : IProp GF) ∗ callOk tx go!"RUnlock" P Q ∗ P }}
+/-- An `authReadTx` whose `tx` is the transaction `rt` over the auth buckets for `R`: the token
+of a snapshot becomes `R` again. -/
+abbrev schema.authReadTx.RUnlock.spec : Prop :=
+  ∀ (atx : Loc) (rt : GoInterfaceOk) (R : IProp GF) (Held : schema.AuthData → IProp GF)
+    (D : schema.AuthData),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.authRTx rt R Held ∗ Held D }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RUnlock")) (Val #()))
-  {{ RET #(); Q }}
+  {{ RET #(); R }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

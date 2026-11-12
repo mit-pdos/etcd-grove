@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Build spec modules on the specs-only branch, serialized: several agents share one worktree and
-# one .lake, so every `lake build` goes through this lock. Usage:
-#   etc/specs-build.sh Spec.go_etcd_io.etcd.client.v3.Api Spec.go_etcd_io.etcd.client.v3.kv__Put
-#   etc/specs-build.sh --dir Spec/go_etcd_io/etcd/client/v3     # every module directly in DIR
+# Build modules of the spec plan (the part SpecPlan/), serialized: agents sharing one worktree and
+# one .lake build through this lock. Usage:
+#   etc/specs-build.sh SpecPlan.Spec.go_etcd_io.etcd.client.v3.Api SpecPlan.Spec.go_etcd_io.etcd.client.v3.kv__Put
+#   etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/client/v3   # every module directly in DIR
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mods=()

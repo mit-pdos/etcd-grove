@@ -1,10 +1,10 @@
 # W0 (the anchor: the client-observable model and the client's KV API): completeness review, round 1
 
 Reviewer: completeness, independent of the author. Commit under review: `f1ec1df585` (the draft;
-first round, so nothing is stale). Read: `Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`,
-`Spec/context/Api.lean`, `Spec/go_etcd_io/etcd/client/v3/Api.lean` and the KV-path specs
+first round, so nothing is stale). Read: `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`,
+`SpecPlan/Spec/context/Api.lean`, `SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean` and the KV-path specs
 (`kv__*`, `Client__*`, `txn__*`, `ContextError`, `WithRequireLeader`, `kv__GetStream`, ...),
-`Spec/go_uber_org/zap/`, the snippets `examples/specreq/clientv3kv/*.go`, `notes/specs-only/top.md`
+`SpecPlan/Spec/go_uber_org/zap/`, the snippets `examples/specreq/clientv3kv/*.go`, `notes/specs-only/top.md`
 and the `req/` sections from W0; the skill's PRINCIPLES and the examples `range.md`, `put.md`,
 `compact-client.md` (by their rules). I read `batch-W0.md` only after forming the findings below.
 
@@ -222,7 +222,7 @@ included), so nothing relies on the identity.
   pattern (a put through one client, then a get through another sees it: Kubernetes' several API
   servers, `txnlin`'s concurrent goroutines). Each is provable from the model as it stands; they
   are missing requirements, not missing facts.
-* **S4. Context introductions**: `Spec/context/Api.lean` owns the context bundle but gives no spec
+* **S4. Context introductions**: `SpecPlan/Spec/context/Api.lean` owns the context bundle but gives no spec
   for `context.WithValue` (Kubernetes' request contexts; Perennial has none) nor intro for
   `wait.ContextForChannel` (k8s `compact.go:193,256`; no batch in `batches.md` owns the Kubernetes
   store, whose old specs exist: `specs-ref/Spec/k8s_io/apiserver/pkg/storage/etcd3/`);

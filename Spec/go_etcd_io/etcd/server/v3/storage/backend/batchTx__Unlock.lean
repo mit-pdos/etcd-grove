@@ -1,11 +1,10 @@
 /-
-`t.Unlock()` (`batch_tx.go:135-140`): translated; internal (the end of `batchTxBuffered.Unlock`,
-which committed what it must, so nothing is pending: the `pending ≥ batchLimit` commit finds
-nothing). The mutex released with its content. Changes: over `btHeld`. Margin: none.
+`batchTx.Unlock` (`batch_tx.go`). `t.Unlock()` (the batch transaction's own): the batch lock released with its free resource (nothing to commit: `pending` is below the limit, or the backend stopped).
+Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 
 @[expose] public section
 
@@ -13,26 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.Unlock()`** on the embedded `batchTx`, nothing pending: the mutex released. -/
-def batchTx.Unlock.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF) (I : Image) (d : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk ∗ btHeld γ ∗ Pk ∗ btPhys γ I 0 d }}
-    (App (Val ((bt0Loc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTx.ty @!! go!"Unlock")) (Val #()))
+/-- `t.Unlock()` (the batch transaction's own): the batch lock released with its free resource (nothing to commit: `pending` is below the limit, or the backend stopped). -/
+abbrev backend.batchTx.Unlock.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ sync.ownMutex (muOf t) ∗
+      ((∃ (st : BSess) (db : Loc), batchPhys γ b t db st ∗ batchGhostAt γ P st true ∗ ⌜freeOk P st⌝ ∗ W ∗ Pk) ∨
+       (pendOf t ↦ W64 0 ∗ bStopped γ)) }}
+    (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"Unlock")) (Val #()))
   {{ RET #(); True }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

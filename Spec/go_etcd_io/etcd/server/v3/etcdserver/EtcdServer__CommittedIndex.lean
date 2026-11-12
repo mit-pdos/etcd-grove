@@ -1,18 +1,10 @@
 /-
-`(*EtcdServer).CommittedIndex()` (`server.go:1764`): `s.getCommittedIndex()`.
-
-**Users**: v3rpc's `maintenanceServer.Status` (`maintenance.go:277`), etcd's tests.
-
-**Proof sketch**: the atomic `s.committedIndex` (`srvMember`'s realization: any value).
-
-**Changes**: verify round (A7-completeness F3, A8-completeness F5): new here (the old tree's
-`EtcdServer__CommittedIndex.lean`).
-
-**Margin**: the value is not tied to the committed log (a status report).
+`s.CommittedIndex()` (`server.go`). Lean-first (no Rocq counterpart); the request path's unit 4b
+(2026-10-13): a method of the read loop's `server` interface (`read/Inv.lean`, `isReadServer`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -20,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,16 +22,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`CommittedIndex()`**: an index (any). -/
-def EtcdServer.CommittedIndex.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (id : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvMember s γ id }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!!
-      go!"CommittedIndex")) (Val #()))
-  {{ (i : w64), RET #i; True }}
+/-- `s.CommittedIndex()`: `s.getCommittedIndex()`, an index the committed index has reached. -/
+abbrev EtcdServer.CommittedIndex.spec : Prop :=
+  ∀ (s : Loc) (γr : ReadNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvCommittedInv s γr }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"CommittedIndex")) (Val #()))
+  {{ (v : w64), RET #v; committedAtLeast γr v }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

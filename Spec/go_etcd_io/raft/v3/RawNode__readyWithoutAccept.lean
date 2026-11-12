@@ -1,26 +1,13 @@
 /-
-## `RawNode.readyWithoutAccept()` (internal)
+`RawNode.readyWithoutAccept` (`rawnode.go:141`), Lean-first (2026-10-10): the first half
+of `RawNode.Ready`, which `node.go`'s `run` calls on its own, handing the `Ready` to the
+application before `acceptReady`.
 
-**Users.** `RawNode.Ready` (`rawnode.go:132`) and `node.run` (`node.go:363`, at each loop with
-`HasReady()` true and no `Advance` due). Snippet: `ready.go` (`ReqReadyFresh`, `ReqReadyStale`).
-
-**Proof sketch.** Reads the log (R3: `nextUnstableEnts`, `nextCommittedEnts(true)`,
-`hasNextUnstableSnapshot`/`nextUnstableSnapshot`), `msgs`, the soft and hard state against the
-`RawNode`'s previous ones (`SoftState.equal`, `isHardStateEqual`), `readStates`, `MustSync`, and
-appends the `msgsAfterAppend` not addressed to the node itself (synchronous writes: `ConfigOk`).
-Nothing changes: the result is the `Ready` of the current state (`readyFresh`), its slices sharing
-raft's arrays (the core keeps them until `ready_handout`).
-
-**Changes** (from `specs-ref`'s `RawNode__readyWithoutAccept.lean`): over the `RawNode`'s phases
-(was `ownRawNode` with `RNState`'s lower bounds `outlb`/`unst`/`clb`).
-
-**Margin.** The `Ready`'s contents are stated by `ready_handout` (R1's `readyGot`), not here.
+Lean notes: as `RawNode.Ready.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 
 @[expose] public section
 
@@ -28,25 +15,105 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The `Ready` of the `RawNode`'s current state. -/
-def RawNode.readyWithoutAccept.spec : Prop :=
-  ∀ (rn : Loc) (γ : Cluster) (id : w64) (k : Nat) (adv : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rawNodeAt rn γ id k adv }}
-    (App (Val (rn @!! go.GoType.PointerType go_etcd_io.raft.v3.RawNode.ty @!! go!"readyWithoutAccept")) (Val #()))
-  {{ (rd : go_etcd_io.raft.v3.Ready), RET #rd; readyFresh rn γ id k adv rd }}
+/-- `rn.readyWithoutAccept()` builds the `Ready` and changes nothing in the node (Go:
+"a read-only operation").
+
+Premises as `RawNode.Ready.spec`'s: `Advance` ran since the last accepted `Ready` and the
+application appended its entries (in `node.go`: `advancec == nil`).
+
+What the application gets with `rd` (all of `RawNode.Ready.spec`'s postcondition but the
+node and the right to append): the committed entries `ce` extending `rs.delivered`, the
+entries `es` to append, the messages to send (their facts with the cut, `ownRawNodeReady_handout`, since 2026-11-01), no snapshot, and (since
+2026-10-13) the read states `sts`: `rd.ReadStates` read-only, each `ReadState`
+`readStateRaw` -- its context a proposed slice whose read was created knowing a committed
+log of length at most its index (`readOk`). The slice is read-only because the node
+keeps it until `acceptReady` (which sets `r.readStates` to `nil`). The node is `ownRawNodeReady` (`InvRawnodeReady.lean`): the outbox's slice is now
+`rd.Messages`, and `acceptReady rd` takes it to `ownRawNode` at the post-`Ready` state.
+
+Since 2026-10-10 also:
+- `Hmsgs_term`: every message handed out is of a term within the node's term ceiling
+  (`rs.tc`; until 2026-10-17, with pre-vote off, at most the node's term `rs.term`), which
+  `node.go`'s budget covers;
+- `Habandon`: the `Ready` may be dropped instead of accepted (`node.go`'s `select` takes
+  another case): with the messages given back, the node is whole again, at `rs` with the
+  lower bounds raised to what the `Ready` held (`ownRawNodeReady_abandon`).
+
+raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, D8): **the messages are handed out** --
+`rd.Messages` (a `[]*pb.Message` aliasing `r.msgs`, extended by the `msgsAfterAppend` messages to
+others) holds the pointers of `ms : List QMsg`, each message owned at `readyDq` (a
+`MsgAppResp`/`MsgVoteResp`/`MsgPreVoteResp` at half: `acceptReady` reads the other half's
+`To`; the application gets those read-only, `nonissues/raft-ready-messages-read-after-handout.md`;
+every other message whole); `Habandon` takes them back. `Entries`/`CommittedEntries` are
+`entsRO` (`[]*pb.Entry`, read-only), the read states `readStatesPts` (their contexts bytes, D6),
+`rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOpt rd.HardState' h` (new:
+the `Ready` hands out `hardState()`'s fresh pointer, or `nil`). (D22 S-b, 2026-10-19: with the
+witness `hsWit` of a non-`nil` one: the node's term and commit index at the `Ready`, `commitWit`,
+and the committed log handed out within the commit index.) (D22l, 2026-10-20: the witness is of
+`prevHardSt` as `acceptReady` leaves it, `phsNext rs.phs h`: for a `nil` `HardState` the node's
+hard state is `prevHardSt`'s, `RNState.phs`, so every `Ready` bounds its committed log by the
+witness of the last non-empty hard state handed out.) (2026-10-31: the log it bounds is the committed log
+handed out after the `Ready`, `dlvAfter`: with a snapshot, the log up to the snapshot.) (D22 S-d3a, 2026-10-21: **with a
+snapshot pending** too, until then a premise `rs.psnap = false`: the `Ready` then hands it out --
+`rd.Snapshot` a fresh clone, half of it the application's (`rdSnapOut`), with the committed log up
+to it, the loan `L` (`SnapLoan`); no committed entries -- and with no snapshot restored since the
+last `Ready` (`rs.psnap = false`) none, as until then.) -/
+abbrev RawNode.readyWithoutAccept.spec : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
+  rs.steps = [] →
+  rs.unpersisted = [] →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ ownRawNode γ rn id rs }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
+      (Val #()))
+  {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
+      (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan), RET #rd;
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms false L ∗
+      "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
+      "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
+      "#Hents" ∷ entsRO rd.Entries' es ∗
+      "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗
+      "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
+      -- (2026-10-16, stage R5, D8) the messages handed out, a response at half
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
+      -- (2026-11-01, durability stage II (k), fix C; until then each message's `isRaftMsg` here)
+      -- the messages' facts come with the cut (`ownRawNodeReady_handout`)
+      -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
+      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
+      "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗
+                    ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
+                    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
+                    ownRawNodeReady γ rn id rs rd ce es ms false L -∗
+                    ∃ (n : Nat) (u : Bool) (c : w64),
+                      ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
+                       (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
+                         uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
+                      ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c }) ∗
+      -- (D22 S-d3a) the snapshot: none, or the loan's (until then `rd.Snapshot' = null`); none
+      -- with no snapshot restored since the last `Ready`
+      "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
+      "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
+      -- the read states (2026-10-13)
+      "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
+      "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateRaw γ st) ∗
+      -- (2026-10-16, stage R5) the hard state: `nil` when unchanged, else `hardState()`'s fresh
+      -- read-only one
+      "#Hhard" ∷ hsOpt rd.HardState' h ∗
+      -- (D22 S-b) a non-`nil` one is the node's hard state: its witness (`hsWit`), bounding the
+      -- committed log handed out; (D22l) of `prevHardSt` after the `Ready` (`phsNext`): a `nil`
+      -- or empty one leaves the witness `prevHardSt`'s (`rs.phs`), the node's hard state then
+      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (dlvAfter rs.delivered ce L).length }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

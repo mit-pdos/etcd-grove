@@ -1,8 +1,8 @@
 # Batch 2a, provability review, round 1
 
 Reviewer: provability (soundness, snippets), round 1, at `b5cecfd608` plus the working tree. Targets:
-`Spec/google_golang_org/protobuf/proto/`, `Spec/google_golang_org/grpc/**`,
-`Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/`, `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`
+`SpecPlan/Spec/google_golang_org/protobuf/proto/`, `SpecPlan/Spec/google_golang_org/grpc/**`,
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/`, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/`
 (not `ApiWatch`/`WatchInternal`), `examples/specreq/{v3rpc,grpc}/`. Go: grpc-go v1.84.0,
 protobuf-go v1.36.12 (`examples/go.mod`), etcd fork `a4d2bb17` (module cache). I wrote my findings
 before reading `batch-2a.md`. Afterwards I marked which ones the author already lists ("known").
@@ -13,12 +13,12 @@ Both snippet packages pass `go vet`. I did not build any Lean.
 ### F1. Two independent "one per address" tokens: a program can fake a gRPC reply (unsound)
 
 `Grpc.addrFree ep` (`grpc/Api.lean:269`, bound by `addrFree_bind`) and `Http.addrFree a`
-(`Spec/net/http/Api.lean:193`, bound by `reserve` to `protoAt a P`) are separate exclusive
+(`SpecPlan/Spec/net/http/Api.lean:193`, bound by `reserve` to `protoAt a P`) are separate exclusive
 resources, and the adequacy theorem hands out both for every string. Nothing stops a program from
 binding the same socket twice:
 
 - `Grpc.addrAt a C`, with some `C.unary m = S`;
-- `Http.protoAt a P`, then serving at `a` with `net/http` (`Spec/net/http/Serve.lean`).
+- `Http.protoAt a P`, then serving at `a` with `net/http` (`SpecPlan/Spec/net/http/Serve.lean`).
 
 The net/http handler can answer a gRPC client's HTTP/2 request with gRPC framing
 (`content-type: application/grpc`, a length-prefixed message, trailer `grpc-status: 0`). This is
@@ -62,7 +62,7 @@ A dispatch model alone is not enough either. Its loop must receive the requests 
 become trusted Goose code. That turns every spec in `grpc/` from an axiom into a theorem about the
 model, which contradicts the header ("every spec ... is assumed").
 
-The repository's decision for net/http (`Spec/net/http/Api.lean`, "Handler runs borrow their
+The repository's decision for net/http (`SpecPlan/Spec/net/http/Api.lean`, "Handler runs borrow their
 caller's thread tokens", citing the grpc pool decision) is a pool of `n` tokens from `Serve`'s
 caller, with the physical premise of at most `n` concurrent runs.
 

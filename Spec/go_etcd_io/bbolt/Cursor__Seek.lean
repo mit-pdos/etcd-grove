@@ -1,13 +1,7 @@
 /-
-`c.Seek(key)` (`cursor.go`): positions at the first entry whose key is not below `key`.
-
-**Users.** The backend's ranges (`batch_tx.go:218`: `Seek` then `Next` while below the end key; the
-same in read transactions), defrag's catch-up. Snippets: `ReqBackendBatch`, `ReqBackendRead`.
-
-**Proof sketch.** `seek`: search from the root (binary search in each page or node, 4d's element
-reads), then, past the last element of a leaf, `next`. `seekIdx` of the entries.
-
-**Changes.** Repositioning at the current view; over paths and nested buckets.
+`Cursor.Seek` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/Cursor__Seek.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -19,29 +13,34 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `c.Seek(key)`: repositions the cursor at the first entry not below `key` in the current view. -/
-def Cursor.Seek.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (p : BPath) (gs : List Nat) (pos : Option Nat) (T' : TxView) (key : GoSlice)
-    (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T' ∗ boltCur tx γ c p gs T pos ∗ key ↦*{dk} kb ∗ ⌜T'.gens p = gs⌝ }}
+/-- `c.Seek(key)`: the first entry whose key is not below `key` (nil, nil past the end, where the
+cursor then is). -/
+abbrev Cursor.Seek.spec : Prop :=
+  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
+    (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos ∗ key ↦*{dk} kb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Seek")) (Val #key))
-  {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T' ∗ key ↦*{dk} kb ∗
-      boltCur tx γ c p gs T' (some (seekIdx (T'.ents p) kb)) ∗
-      curAt tx γ (T'.ents p) (seekIdx (T'.ents p) kb) k v }}
+  {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗ key ↦*{dk} kb ∗
+      boltCur tx γ c T es (some (seekIdx es kb)) ∗ curAt tx γ es (seekIdx es kb) k v }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

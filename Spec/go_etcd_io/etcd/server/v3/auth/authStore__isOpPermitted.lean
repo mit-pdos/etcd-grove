@@ -1,19 +1,10 @@
 /-
-## `(*authStore).isOpPermitted(userName, revision, key, rangeEnd, permTyp)` (internal helper)
-
-**Users.** `IsPutPermitted`, `IsRangePermitted`, `IsDeleteRangePermitted`.
-
-**Proof sketch.** `IsAuthEnabled` (off: `nil`, at `jf`); revision `0`: `ErrUserEmpty`; `Revision()` above `revision`: `ErrAuthOldRevision`; `lockedReadTx` (at `jx`): the user (absent: `ErrPermissionDenied`, so not root), `hasRootRole` (the stored roles are sorted: `authBackendAt`); `isRangeOpPermitted` (at `jc`); the deferred `RUnlock`.
-
-**Changes.** The old spec restated over `Api.lean`'s and `Internal.lean`'s vocabulary.
-
-**Margin.** None.
+`authStore.isOpPermitted` (`server/auth/store.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (unit P2).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -21,32 +12,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- The permission type `isOpPermitted` checks (`authpb.Permission_READ` is `0`, `WRITE` `1`). -/
-def ptOf (pt : w32) : PermType := if pt = W32 0 then .read else .write
+/-- `as.isOpPermitted(info.Username, info.Revision, key, rangeEnd, permtyp)` for the `AuthInfo` `info`
+(the callers pass an `AuthInfo`'s fields): `nil` or one of the package's errors, with the mode's
+verdict (`permVerdict`: in `off` `nil`; in `on γa`, if it passed a recorded state that permitted
+the operation and one whose revision admitted the token, if it refused the view of recorded states
+in which it refuses; the auth plan's S3); the slices and the reader resource kept. -/
 
-/-- **`as.isOpPermitted(u, rev, key, rangeEnd, pt)`** for `READ` or `WRITE`: `checkPost`. -/
-def authStore.isOpPermitted.spec : Prop :=
-  ∀ (st : Loc) (γ : Cluster) (γa : AuthNames) (i0 : Nat) (u : GoString) (rev : w64)
-    (key re : GoSlice) (dk de : DFrac) (k e : List w8) (pt : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authStoreAt st γ γa ∗ authLb γa i0 ∗ threadTok ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗
-      ⌜(pt = W32 0 ∨ pt = W32 1) ∧ sint.Z key.len < 2 ^ 63 - 1 ∧ sint.Z re.len < 2 ^ 63 - 1⌝ }}
-    (App (App (App (App (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"isOpPermitted")) (Val #u)) (Val #rev)) (Val #key)) (Val #re))
+abbrev auth.authStore.isOpPermitted.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (info : AuthInfo) (key re : GoSlice) (k e : List w8)
+    (dk de : DFrac) (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
+      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+    (App (App (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"isOpPermitted")) (Val #info.Username')) (Val #info.Revision')) (Val #key)) (Val #re))
       (Val #pt))
-  {{ (err : GoInterface), RET #err; threadTok ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗
-      checkPost γa i0 u rev (ptOf pt) { key := k, rangeEnd := e } err }}
+  {{ (err : GoInterface), RET #err; authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ authErrIs err ∗
+      permVerdict M info k e (permOp pt) err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

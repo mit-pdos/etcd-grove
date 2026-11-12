@@ -1,10 +1,11 @@
 /-
-`rt.Lock()` (`read_tx.go:129`): translated; internal (the write-back and the commit). `mu.Lock()`:
-the read side's content. Changes: over `rtHeld`. Margin: none.
+`readTx.Lock` (the backend, `read_tx.go`). `rt.Lock()` (by the batch lock's holder, through the guard): `readTx.mu`'s whole resource.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -12,26 +13,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`rt.Lock()`**: `readTx.mu` held for writing. -/
-def readTx.Lock.spec : Prop :=
-  ∀ (γ : BeNames) (b : Loc) (p : GoString) (Pk : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ b p Pk }}
-    (App (Val ((rtLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"Lock")) (Val #()))
-  {{ RET #(); rtHeld γ }}
+/-- `rt.Lock()` (by the batch lock's holder, through the guard): `readTx.mu`'s whole resource. -/
+abbrev backend.readTx.Lock.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (rt : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) }}
+    (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"Lock")) (Val #()))
+  {{ RET #(); sync.ownRWMutexWLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗ rtRes γ P rt 1 }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

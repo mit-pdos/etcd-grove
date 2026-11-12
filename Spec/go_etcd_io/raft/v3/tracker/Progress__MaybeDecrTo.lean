@@ -1,15 +1,7 @@
-/-
-## `Progress.MaybeDecrTo(rejected, matchHint)`
-
-**Users.** `stepLeader`'s rejected `MsgAppResp` (`raft.go:1521`): R2.
-
-**Proof sketch.** Field reads and writes. **Changes.** Over the model. **Margin.** None.
--/
+/- Port of election_proof/spec_Progress__MaybeDecrTo.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -17,26 +9,50 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Moves `Next` back after a rejection (a stale one changes nothing); whether it moved. -/
-def Progress.MaybeDecrTo.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV) (rej hint : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"MaybeDecrTo")) (Val #rej)) (Val #hint))
-  {{ RET #(P.maybeDecrTo rej hint).2; progressOwn p (P.maybeDecrTo rej hint).1 }}
+/-- `pr.MaybeDecrTo(rejected, matchHint)` reacts to a rejected `MsgApp`
+(`tracker.Progress.MaybeDecrTo.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`;
+progress.go:226):
+
+    if pr.State == StateReplicate {
+      if rejected <= pr.Match { return false }            // exit 1: stale
+      pr.Next = pr.Match + 1
+      pr.sentCommit = min(pr.sentCommit, pr.Next-1)
+      return true                                          // exit 2
+    }
+    if pr.Next-1 != rejected { return false }              // exit 3: stale
+    pr.Next = max(min(rejected, matchHint+1), pr.Match+1)
+    pr.sentCommit = min(pr.sentCommit, pr.Next-1)
+    pr.MsgAppFlowPaused = false
+    return true                                            // exit 4
+
+Four exits, no panic, no call (`min`/`max` are builtins). `Match`, `State` and the
+`Inflights` are never written. Every `+1`/`-1` is `uint64` arithmetic, which Go wraps
+silently and Goose renders as `w64` addition/subtraction -- `ownProgress` bounds neither
+`Next` nor `Match`, so `pr.Next-1` at `Next = 0` and `pr.Match+1` at `Match = 2^64-1`
+really do wrap. The postcondition therefore states the body's arithmetic verbatim
+rather than excluding the wrap by a premise; `w64Min`/`w64Max` (`Defs.lean`) are
+Goose's `min`/`max`. `progressMaybeDecrTo p rejected matchHint` (`Defs.lean`) is the
+pair (result, new record), the four exits in order. -/
+abbrev tracker.Progress.MaybeDecrTo.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress) (rejected matchHint : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      "Hpr" ∷ ownProgress pr p }}
+    (App (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"MaybeDecrTo"))
+      (Val #rejected)) (Val #matchHint))
+  {{ RET #((progressMaybeDecrTo p rejected matchHint).1);
+      ownProgress pr (progressMaybeDecrTo p rejected matchHint).2 }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

@@ -1,21 +1,15 @@
 /-
-## `(*batchTxBuffered).UnsafeRange(bucket, key, endKey, limit)` (promoted `batchTx.UnsafeRange`, `batch_tx.go:193-204`): translated
-
-**Users.** mvcc's compaction (`kvstore_compaction.go:58`), the schema's reads on the batch
-transaction (4b: lease, membership, auth `Get*` under the writer's lock, the version, the
-consistent index in the hooks' tests). Snippet `ranges.go`.
-
-**Proof sketch.** `t.tx.Bucket(name)` (nil: `lg.Fatal`), `unsafeRange` over bbolt's cursor of the
-write transaction (4c's `Cursor.Seek`/`Next`: the batch image's bucket in key order; an empty end
-the key alone, else cut at a positive limit). The slices are bbolt's: lent while the session lives
-(4c's `txBytes`): lent against a share of the session's liveness (`beLive`, `rangeRes`; integration
-I6), the session kept: it may write while they are out (mvcc's compaction deletes the keys it read).
-
-**Changes** (from `specs-ref`'s): over the session; the bytes lent (round 1, T3). **Margin.** None.
+`UnsafeRange` (the backend). `t.UnsafeRange(bucket, key, endKey, limit)` under the lock: the range of bbolt's writer's
+contents (it sees the session's writes), as slices valid while bbolt's write transaction is `st.tx` (until the next commit); a
+capability to read them under the lock in a state with that transaction (2026-10-12: it was
+`st'.C = st.C`, false: a commit that leaves the data unchanged still replaces the
+transaction).
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -23,29 +17,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.UnsafeRange(bk, k, e, limit)`**: the batch image's range (`btRange`). -/
-def batchTxBuffered.UnsafeRange.spec : Prop :=
-  ∀ (γ : BeNames) (q : Qp) (F : Fp) (S : Sess) (pl : Qp) (bk : GoInterface) (bi : BktInfo)
-    (ks es : GoSlice) (dk de : DFrac) (k e : GoString) (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beSess γ q F S ∗ beLive γ (btLoc γ) pl ∗ bkt γ bk bi ∗ ks ↦*{dk} k ∗ es ↦*{de} e }}
-    (App (App (App (App (Val ((btLoc γ) @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #ks))
-      (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜btRange (S.cur.ents bi.name) k e (sint.Z limit) l⌝ ∗ beSess γ q F S ∗ rangeRes kl vl l (beLive γ (btLoc γ) pl) }}
+/-- `t.UnsafeRange(bucket, key, endKey, limit)` under the lock: the range of bbolt's writer's
+contents (it sees the session's writes), as slices valid while bbolt's write transaction is `st.tx` (until the next commit); a
+capability to read them under the lock in a state with that transaction (2026-10-12: it was
+`st'.C = st.C`, false: a commit that leaves the data unchanged still replaces the
+transaction). -/
+abbrev backend.batchTxBuffered.UnsafeRange.spec : Prop :=
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  (endKey = slice.nil ↔ eb = []) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗
+      endKey ↦*{de} eb }}
+    (App (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); batchLocked γ P b st ∗
+      key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗
+      kvsOutRd st.tx keys vals (cursorRange (bktEnts (bktOf st.S bi.name)) kb eb limit) ∗
+      □ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB st.tx s v -∗ batchLocked γ P b st' -∗
+          ⌜st'.tx = st.tx⌝ -∗
+          ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked γ P b st')) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

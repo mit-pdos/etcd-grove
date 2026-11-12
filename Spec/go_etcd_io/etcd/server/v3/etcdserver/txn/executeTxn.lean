@@ -1,27 +1,25 @@
 /-
-`executeTxn(ctx, lg, txnWrite, rt, txnPath, tresp, skip)` (`txn.go`), internal (`txn`, recursively).
-**Proof sketch.** Per operation of the taken branch: `executeRange` (no view error: the checks
-passed at `σ.kv`, and the view's revision is `σ.rev` or one more; `skip`: the header only),
-`getPrevKV` and `put` (an ignore key present: the premise, kept by `opsSafe` across the branch's
-deletes; the lease live: `opsCheck`, `leasesLive`), `deleteRange`, a nested `executeTxn` (its
-path the rest). Old spec: over the log, `PathsIgnOk`. Round 1: 3e's API (F4); the lessor's state
-after by `evsLs` of the new events.
+`executeTxn` (`txn.go`). Lean-first; see `TxnRun.lean`, `InvTxn.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvWarn
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,39 +28,45 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `executeTxn(ctx, lg, tw, rt, path, tresp, skip)` on an open transaction begun at `σ` with the events
-`pend` (a read one: none): `execOps` of the taken branch from the current store, filling the response
-tree (header revision `0`); or the context's error. -/
-def executeTxn.spec : Prop :=
-  ∀ (ctx : GoInterface) (lg : Loc) (tw : GoInterface) (γ : Mvcc.MvccName) (tr : Loc) (w : Bool)
-    (σ : Mvcc.MvccState) (pend : List Event) (rt : Loc) (dq : DFrac) (t : TxnReq) (path : GoSlice)
-    (rest : List Bool) (tresp : Loc) (skip : Bool) (γl : Lease.Names) (n : Nat)
-    (ls : Lease.LessorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ Context.ctxOk ctx ∗ Zap.isLogger lg ∗ TraceUtil.ctxTraceIs ctx (some tr) ∗
-      TraceUtil.traceOwn tr ∗ Mvcc.mvccTxn tw γ tr (txnK w σ pend) ∗ txnReqOwn rt dq t ∗
-      path ↦*□ (txnPathOf t σ.kv.store ++ rest) ∗
-      respSkel tresp σ.kv.store (cmpsHold t.compare σ.kv.store) (if cmpsHold t.compare σ.kv.store then t.success else t.failure) ∗
-      ⌜opsSafe (if cmpsHold t.compare σ.kv.store then t.success else t.failure) ∧ opsCheck σ.kv ls.table (if cmpsHold t.compare σ.kv.store then t.success else t.failure) = none ∧
-        (∀ key ∈ opsIgnTaken σ.kv.store (if cmpsHold t.compare σ.kv.store then t.success else t.failure), Mvcc.txnStore σ pend key ≠ none) ∧
-        (w = true ∨ (pend = [] ∧ ∀ op ∈ (if cmpsHold t.compare σ.kv.store then t.success else t.failure), ∃ r, op = .range r))⌝ ∗
-      (if w then iprop(Mvcc.mvccLessorIs γ γl ∗ Lease.lessorState γl n ls ∗
-         ⌜leasesLive (Mvcc.txnStore σ pend) ls⌝)
-       else iprop(True)) }}
-    (App (App (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.executeTxn)) (Val #ctx)) (Val #lg)) (Val #tw)) (Val #rt)) (Val #path)) (Val #tresp)) (Val #skip))
-  {{ (cnt : w64) (err : GoInterface), RET (PairV #cnt #err); TraceUtil.traceOwn tr ∗
-      txnReqOwn rt dq t ∗
-      ((⌜err = GoInterface.nil ∧ cnt = W64 ((txnPathOf t σ.kv.store).length - 1)⌝ ∗
-          Mvcc.mvccTxn tw γ tr (txnK w σ (execOps σ.kv skip (Mvcc.txnStore σ pend, pend) (if cmpsHold t.compare σ.kv.store then t.success else t.failure)).1.2) ∗
-          (if w then iprop(∃ n' : Nat, Lease.lessorState γl n'
-              (evsLs ls (Mvcc.txnStore σ pend) ((execOps σ.kv skip (Mvcc.txnStore σ pend, pend) (if cmpsHold t.compare σ.kv.store then t.success else t.failure)).1.2.drop pend.length)))
-           else iprop(True)) ∗
-          ∃ m : TxnRespM, txnRespOwn tresp (DFrac.own 1) m ∗
-            ⌜m.hdr = hdrAt 0 ∧ m.ofResps (cmpsHold t.compare σ.kv.store) (execOps σ.kv skip (Mvcc.txnStore σ pend, pend) (if cmpsHold t.compare σ.kv.store then t.success else t.failure)).2⌝) ∨
-       (∃ pend' : List Event, Mvcc.mvccTxn tw γ tr (txnK w σ pend') ∗ Context.ctxDone ctx ∗ ctxErr err ∗
-          (if w then iprop(∃ (n' : Nat) (ls' : Lease.LessorState), Lease.lessorState γl n' ls')
-           else iprop(True)))) }}
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `executeTxn(ctx, lg, txnWrite, rt, txnPath, tresp, skip)` at a transaction `k`: a write one
+(begun at `σ`, `pend` pending), or (`k.isRead`) the read-only wrapper of a read transaction at
+`σ`. No size premise (each get's sort from its range's `stateOk`).
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+abbrev txn.executeTxn.spec : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
+    (γ : MvccName) (trace : Loc) (te : Bool) (tw : GoInterface) (k : MTxn) (rt : Loc)
+    (t : TxnModel) (pl : GoSlice) (rest : List Bool) (tresp : Loc) (skip : Bool) (L : List w64),
+  let s0 := mvcc.stateAfter k.state.log
+  let ops := t.branch (txn.txnOk s0 t)
+  let run := txn.srvOps s0 (W64 (k.state.log.length : Int)) (txn.mstate k) ops
+  {{ pkgInit ∗ mvcc.api.mvccTxn tw γ trace k ∗ traceutil.ownTrace trace te ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx (some trace) ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+      txn.txnRequestIs rt t ∗ pl ↦*□ (txn.txnPath s0 t ++ rest) ∗ txn.respsSkel s0 tresp ops ∗
+      txn.leasesOk L (txn.opsLeases s0 ops) ∗
+      (if txn.MTxn.isRead k then iprop(True) else txn.leasesKnown L (txn.mstate k)) ∗
+      (⌜txn.MTxn.isRead k = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems k.state.log k.pend)) ∗
+      ⌜txn.Reach k.state ∧
+        txn.OpsOk false s0 (W64 (k.state.log.length : Int)) (txn.mstate k) ops ∧
+        (txn.MTxn.isRead k = true → ∀ op ∈ ops, txn.opIsGet op = true) ∧
+        (nd = false → txn.MTxn.isRead k = true)⌝ }}
+    (App (App (App (App (App (App (App (Val (@! txn.executeTxn)) (Val #(GoInterface.ok ctx)))
+      (Val #lg)) (Val #tw)) (Val #rt)) (Val #pl)) (Val #tresp)) (Val #skip))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); traceutil.ownTrace trace te ∗
+      ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount s0 t : Int) ∧
+            (txn.MTxn.isRead k = true → run.1 = [])⌝ ∗
+        mvcc.api.mvccTxn tw γ trace (txn.MTxn.append k run.1) ∗
+        txn.respsIs skip tresp ops run.2 ∗
+        (if txn.MTxn.isRead k then iprop(True)
+         else txn.leasesKnown L (txn.mstate (txn.MTxn.append k run.1))) ∗
+        (⌜txn.MTxn.isRead k = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L
+          (mvcc.pendItems k.state.log (k.pend ++ run.1)))) ∨
+      (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗ mvcc.api.mvccTxn tw γ trace k ∗ txn.roRespsRd tresp)) }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

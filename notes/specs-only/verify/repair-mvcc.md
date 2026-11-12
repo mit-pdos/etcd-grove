@@ -44,7 +44,7 @@ items are 3a's/2d's; A7's `KV.Rev.contract` mentions are "not checked", no findi
 ### A10-completeness F2 (first tier, 4a's; affects 3e's `New`/`NewStore`): mvccrand's boot without `Meta`: **snippet added; spec fix requested of backend-schema**
 
 mvcc's side already supports it (`mvccStorageFor` makes `Meta`'s existence conditional,
-`mvccImage_empty` holds either way), so nothing changes in `Spec/.../mvcc`. New snippet
+`mvccImage_empty` holds either way), so nothing changes in `SpecPlan/Spec/.../mvcc`. New snippet
 `examples/specreq/mvcc/boot.go` `ReqBootNoMeta` (`mvcc.New` over a fresh backend with no
 `CreateMetaBucket`, then `Rev() == 1`, `FirstRev() == -1`; users `examples/mvccrand/mvccrand.go:809-811`).
 It is provable once 4a's `keyBackend_intro` has the case below (request).
@@ -75,7 +75,7 @@ back, `D.keys k = D0.keys k` (no put in the session). Through etcd's backend it 
 
 ## Requests to backend-schema
 
-- **`Spec/go_etcd_io/etcd/server/v3/storage/backend/MvccStorage.lean`, `keyBackend_intro`** (A10
+- **`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/MvccStorage.lean`, `keyBackend_intro`** (A10
   completeness F2): add the case where `Meta` does not exist yet: when `C.made metaBkt = false`,
   `Meta`'s existence cell is in mvcc's footprint (`mvccFp ∪ Fp.made metaBkt`) and `keyDataOf`'s
   `metaMade := V.made metaBkt` (today fixed `true`, `:110`), with the premise `beMade γ metaBkt`
@@ -85,7 +85,7 @@ back, `D.keys k = D0.keys k` (no put in the session). Through etcd's backend it 
 
 ## Requests to grpc-v3rpc
 
-- **`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean:86-91`** (A10 completeness
+- **`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean:86-91`** (A10 completeness
   S1): the "Open (3f's reader tokens)" paragraph is stale: cite 2d's `srvReader_mvcc.spec` for the
   `mvccReaders γ 1` of `Range`, `Rev`, `Watch`, `RequestProgress` in the sendLoop/recvLoop sketches.
 - **recvLoop's sketch**: with the new `Mvcc.wsOpen_closed`, a valid create is answered as created
@@ -102,8 +102,8 @@ brief's.)
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/storage/mvcc`: OK (184 modules).
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/pkg/v3/adt`: OK (31 modules; no file changed there).
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc`: OK (184 modules).
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/adt`: OK (31 modules; no file changed there).
 `go vet ./specreq/mvcc/... ./specreq/mvccwatch/... ./specreq/adt/...`: clean; `gofmt -l`: nothing.
 
 ## Second pass (coordinator's list, `second-pass.md`)
@@ -159,8 +159,8 @@ vocabulary is client-core's/3h's, not this group's.
 
 ### Requests to server-core (second pass)
 
-- **`Spec/go_etcd_io/etcd/server/v3/etcdserver/errors/Api.lean`**: add `public import
-  Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api` and
+- **`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/errors/Api.lean`**: add `public import
+  SpecPlan.Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api` and
   ```lean
   def mvccErr_srv.spec : Prop := ∀ (g : GoString) (e : EtcdErr) (v : GoInterface),
     (g, e) ∈ [(go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted, EtcdErr.compacted),
@@ -183,4 +183,4 @@ vocabulary is client-core's/3h's, not this group's.
 
 ### Build (second pass)
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/storage/mvcc`: OK (184 modules), after waiting out a parse error in backend-schema's in-progress `schema/Api.lean`. `go vet` of the mvcc, mvccwatch, adt snippets: clean (no snippet changed in this pass). `rangeResOwn`'s signature is unchanged, so its importers (txn) see only the `.ctxErr` case's new conjunct.
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc`: OK (184 modules), after waiting out a parse error in backend-schema's in-progress `schema/Api.lean`. `go vet` of the mvcc, mvccwatch, adt snippets: clean (no snippet changed in this pass). `rangeResOwn`'s signature is unchanged, so its importers (txn) see only the `.ctxErr` case's new conjunct.

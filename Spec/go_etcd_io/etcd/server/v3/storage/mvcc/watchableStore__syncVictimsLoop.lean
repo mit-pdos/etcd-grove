@@ -1,15 +1,9 @@
 /-
-`(*watchableStore).syncVictimsLoop()` (internal, a goroutine of `New`): `moveVictims` until it moves
-nothing, then waits for a victim, 10ms when victims remain, or `stopc`.
-
-**Proof sketch.** Loop invariant `wsLoopV s γ`; `moveVictims` (its spec); `s.mu.RLock` (the loop's
-reader); `time.After` (Perennial's `time`); the `select` (`victimc`'s receive; `stopc` closed: `Done`
-deposits the loop's reader).
+`watchableStore.syncVictimsLoop` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchSync.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 
 @[expose] public section
 
@@ -17,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,14 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchableStore.syncVictimsLoop.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ wsLoopV s γ }}
+/-- `s.syncVictimsLoop()` (a goroutine `New` starts), with reader slots of the store and a done
+token of its wait group: resends the victims' batches (`moveVictims`, while it moves some), then
+waits for a tick (if victims are left), a new victim (`victimc`) or the stop channel's close,
+until the latter, then `s.wg.Done()`. It returns (no panic), (R-D1) its reader of the inner store
+left at its deferred `Done`, for the closer (`wsWgInv`). -/
+abbrev mvcc.watchableStore.syncVictimsLoop.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ ∗ mvcc.wsDone s st γ.st }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"syncVictimsLoop")) (Val #()))
   {{ RET #(); True }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

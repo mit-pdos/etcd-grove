@@ -1,18 +1,7 @@
 /-
-`b.Get(key)` (`bucket.go`): seek the key; nil if absent or a nested bucket.
-
-**Users.** The bank (`bbolttest.go:125-131`), etcd's schema reads through the backend's ranges
-(which use cursors, not `Get`); `examples/axiomcx/bboltnan`. Snippets: `ReqBank`, `ReqNested`.
-
-**Proof sketch.** `Cursor.seek` from the bucket's root (pages through the mapping, nodes through the
-transaction's node cache: either way the entries of `T.cur` at `p`, in key order, by `boltTx`'s
-abstraction relation); compare the key; return the value slice (`txBytes`: in the mapping or in a
-node, valid while the transaction is live).
-
-**Changes.** Over paths and nested buckets (a bucket's key gives nil); the old `m.lookup kb`.
-
-**Margin.** A value written with a nil slice in this transaction is returned as nil (indistinguishable
-from an absent key, as in Go).
+`Bucket.Get` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
+`Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
+`Proof/go_etcd_io/bbolt/Bucket__Get.lean` (unfinished until bbolt's invariants are designed).
 -/
 module
 
@@ -24,30 +13,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Bbolt
+namespace bbolt
 
-open Iris Iris.BI go_etcd_io.bbolt
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+/- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+the head of each triple (a section variable is dropped from a definition that does not use it),
+and in the signature of each vocabulary predicate, so that every statement carries it (checked
+with `#check`). -/
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `b.Get(key)`, any transaction, any fraction: the value at `key` in the bucket at `p` (valid
-while the transaction is live), or nil if there is none or it is a nested bucket. -/
-def Bucket.Get.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ key ↦*{dk} kb ∗ ⌜T.gens p = gs⌝ }}
+/-- `b.Get(key)` of a current handle, any fraction of either kind of transaction (it only reads):
+the value, valid while the transaction is live, or nil if absent. (Margin: a present key whose
+value was put as nil also reads back nil; Go's `Get` cannot tell them apart.) -/
+abbrev Bucket.Get.spec : Prop :=
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
+    (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ boltBkt tx γ b n (T.gen n) ∗ key ↦*{dk} kb ∗ ⌜T.cur.lookup n = some m⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Get")) (Val #key))
   {{ (v : GoSlice), RET #v; boltTx tx γ q T ∗ key ↦*{dk} kb ∗
-      (match T.cur.atPath (p.child kb) with
-       | some (Ent.val vb) => txBytes tx γ v vb
-       | _ => iprop(⌜v = slice.nil⌝)) }}
+      (match m.lookup kb with
+       | none => iprop(⌜v = slice.nil⌝)
+       | some vb => txBytes tx γ v vb) }}
 
 end spec
 
-end Bbolt
+end bbolt
 end EtcdGrove
 end Perennial

@@ -1,47 +1,86 @@
 /-
-## `(*membershipBackend).MustSaveMemberToBackend(p)`: assumed (names only)
-
-**Users.** `RaftCluster.AddMember`, `UpdateAttributes`, `PromoteMember`, `UpdateRaftAttributes` with `shouldApplyV3` (2e). Snippet: `examples/specreq/schema/schema.go` (`ReqMembersSaveRead`).
-
-**Assumed** (`membership.go`): `BackendMemberKey(m.ID)`, `json.Marshal(m)` (strings, `uint64`s, `bool`s: no error, `lg.Panic` unreachable), `be.BatchTx()`, `LockInsideApply()` (`applyHook`), `UnsafePut(Members, key, json)`, `Unlock()`. The buckets' records are as `memberBkts` says (the API's
-header; the lock calls' `ETCD_VERIFY` checks hold at etcd's call sites: 4a's environment premise,
-carried by `memberBkts`'s and `applyHook`'s realization); a read transaction sees them as their only writer left them (the holder is outside a write
-section: `specs-ref`'s `TestBksReadInsidePendingBatch`).
-
-**Changes.** From `specs-ref`'s `membershipBackend__MustSaveMemberToBackend.lean` where there was one (over the real
-backend's ghost names): over the schema's `memberBkts`. **Margin.** None.
+`(*membershipBackend).MustSaveMemberToBackend(m)` (`membership.go`): the trust boundary for the
+member backend's save (D43 M5b′, 2026-10-26, the user's decision: a contract axiom over the
+tracked buckets, not proved through the batch lock's hook). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
 open Iris Iris.BI
+
+section addrs
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- A field of the membership backend `*membershipBackend` `mb`. -/
+abbrev schema.mbF (n : GoString) (mb : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend n mb
+
+end addrs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **Stores the member** (the post-lock hook run). -/
-def membershipBackend.MustSaveMemberToBackend.spec : Prop :=
-  ∀ (mb lg : Loc) (be : GoInterface) (cb : ClusterBkts) (p : Loc) (dq : DFrac) (mm : EtcdModel.Member) (Pre Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ (mb ↦□ (go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.mk lg be) : IProp GF) ∗ Zap.isLogger lg ∗ memberBkts be (some cb) ∗ Membership.memberPts p dq mm ∗ ⌜memberFits mm⌝ ∗ applyHook be Pre Q ∗ Pre }}
-    (App (Val (mb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty @!! go!"MustSaveMemberToBackend")) (Val #p))
-  {{ RET #(); memberBkts be (some { cb with st := cb.st.add mm }) ∗ Membership.memberPts p dq mm ∗ Q }}
+/-- **`mb.MustSaveMemberToBackend(m)`** (the trust boundary; D43 M5b′, 2026-10-26, the user's
+decision): on the membership backend `mb` over the real backend `d`
+(`mb.be`, `mb.lg` read-only; `isBackend d.γB …`, persistent, pins the ghost names to that backend,
+2026-11-02, round 3: until then a caller could pick names with made-up contents), under the
+caller's critical-section contract at the backend's batch lock `P` and post-lock hook `f`
+(`isBackend` at `P` and `plHookRO d.γB f`, `f` not `nil`: `P` and `f` are the backend's;
+`csContractA`, as the cluster's other writers', `apply.isCluster`), a write session's token
+(`apply.bkWT d`, spent: the `Unlock`'s write-back) and the reader's token (`apply.bkRT d`, lent),
+it puts the member `m` (owned, read: `json.Marshal`) as `members/<id> := json(m)`
+(`memberKey`, `memberEnc` of its value `mm`) into a part of any bucket set `S` containing `members`
+(`rbPart d.γB S`, the writer's contents: `bk` to `bkPut bk …`), which comes back **idle**
+(`rbOwnIn d.γB S`: `LockInsideApply`, `UnsafePut`, then its `Unlock`, which writes the put back into
+the read buffer, the file header's Go basis: a read transaction right after sees it,
+`TestBksSaveThenRead`, and every other bucket as the writer has it, `TestBks2WriterAnySIdle`;
+2026-11-01, the backend-auth-split stage: until then the whole writer's half `rbOwn`), and returns
+`Post`. The `members` bucket exists (`UnsafePut` into a missing bucket is fatal). (R8, 2026-11-07:
+restated over mvcc's API, the same meaning: until then over mvcc's store names `γ` with `γ.kb =
+some d`, `mvcc.hookOk γ P f` (the store's batch-lock invariant `P`, its frozen non-`nil` hook `f`:
+here `isBackend` at `P`, `plHookRO d.γB f`, `f ≠ nil`), `mvcc.csContract` (the same as
+`csContractA` at a non-`nil` hook), `mvcc.storeWT γ`/`storeRT γ` (`kbWT`/`kbRT` of `d`, the same
+as `apply.bkWT d`/`bkRT d`), and `isBackend` at a separate `Pk`.) -/
+abbrev schema.membershipBackend.MustSaveMemberToBackend.spec : Prop :=
+  ∀ (mb lg : Loc) (d : mvcc.KBReal) (P : IProp GF) (f : GoFunc)
+    (Pre Q Post : IProp GF) (S : GoString → Prop) (bk : GMap GoString backend.BktData) (m : Loc)
+    (mm : apply.MemberM) (W : IProp GF),
+  S go!"members" → (bk.lookup go!"members").isSome →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      schema.mbF go!"be" mb ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+          #d.be : GoInterface) ∗
+      schema.mbF go!"lg" mb ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      backend.plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ∗ srvApi.csContractA P f Pre Q Post ∗
+      apply.bkWT d ∗ apply.bkRT d ∗
+      backend.isBackend d.γB d.P W P d.be ∗
+      backend.rbPart d.γB S bk ∗ membership.memberAt m 1 mm }}
+    (App (Val (mb @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty @!!
+      go!"MustSaveMemberToBackend")) (Val #m))
+  {{ RET #(); Post ∗ apply.bkRT d ∗
+      backend.rbOwnIn d.γB S
+        (apply.bkPut bk go!"members" (apply.memberKey mm.id) (apply.memberEnc mm)) ∗
+      membership.memberAt m 1 mm }}
+
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

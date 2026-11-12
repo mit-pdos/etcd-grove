@@ -1,21 +1,9 @@
 /-
-`(clientv3.Op).toTxnRequest` (`client/v3/op.go`).
-
-Users: `kv.Do` (a transaction), `Op.toRequestOp` (a nested one).
-
-Proof sketch: two fresh slices of `toRequestOp.spec`'s results, the comparisons cloned (`Cmp.Clone.spec`, `Cmp.GetCompare.spec`); `txnReqOwn_unfold`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Op__toTxnRequest.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-verify-round (re-review NF1): premise `o.emptyEnd = false` (no non-`nil` empty range end at any
-depth): the request message's unfold law now carries `es = slice.nil ∨ ebs ≠ []` (`Wire.lean`), which
-the built message would not meet otherwise; every caller has it (the KV triples' scope premise).
-
-Margin: none.
+`clientv3.Op.toTxnRequest()` (`client/v3/op.go`, nested transactions, `notes/txn-nested.md`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -23,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,18 +21,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.toTxnRequest()`: the `TxnRequest` of its comparisons and branches, owned. -/
-def Op.toTxnRequest.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpM) (dq : DFrac) (s f : List RequestOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o ∗
-      ⌜OpM.toReqOps o.thenOps = some s ∧ OpM.toReqOps o.elseOps = some f ∧ o.emptyEnd = false⌝ }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"toTxnRequest")) (Val #()))
-  {{ (p : Loc), RET #p; opp ↦{dq} op ∗
-      txnReqOwn p (DFrac.own 1)
-        { compare := o.cmps.map (fun c => c.getD Compare.zero), success := s, failure := f } }}
+/-- `op.toTxnRequest()` of a nested transaction tree `.txn o cs ts es` (its plain operations gets,
+puts and deletes): a new `*pb.TxnRequest` whose comparisons are clones of the `Op`'s (`cs`), and
+whose `Success` and `Failure` hold the requests of `ts` and `es` (`Op.toRequestOp`'s), read-only:
+the fields of `reqOpAt`'s nested case. -/
+abbrev Op.toTxnRequest.spec : Prop :=
+  ∀ (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (cs : List CmpModel) (ts es : List OpT),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      opTAtC false opv (.txn o cs ts es) ∗
+      ⌜∀ x ∈ (OpT.txn o cs ts es).leaves, (x.t = W64 1 ∨ x.t = W64 2 ∨ x.t = W64 3) ∧
+        (x.t = W64 2 → x.ignoreValue = true → x.val = [])⌝ }}
+    (App (Val (opv @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"toTxnRequest")) (Val #()))
+  {{ (r : Loc), RET #r; ⌜r ≠ null⌝ ∗ txnReqFieldsAt r cs (OpT.wireL ts) (OpT.wireL es) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

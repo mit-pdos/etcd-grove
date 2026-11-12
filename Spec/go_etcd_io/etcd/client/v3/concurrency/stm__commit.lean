@@ -1,24 +1,10 @@
 /-
-`(*concurrency.stm).commit` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: the conflicts closure (`readSet.cmps.spec` or none), `writeSet.puts.spec`; the KV
-contract's `Txn(...).If(cmps...).Then(puts...).Commit()`: with writes, an exclusive update built
-from the lent permission (`P` given up, back at the commit): a succeeded step is the writes applied at `σ` (`applied`) with every
-comparison true there (each read key at its read mod revision: `readsAgree` at `σ`, with
-`etcdLb_init` for the absent ones and W0's history for the present ones), a failed one or an
-error no change; without writes, a read-only transaction (serializable if empty: answered at a
-view, `RepeatableReads`' stale case of `stmCommitted`) with the persistent read update. An error:
-`panic(stmError{err})`.
-
-Changes: from `specs-ref`'s `stm__commit.lean`: restated over `stmCoreAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stm.commit()` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -26,30 +12,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.commit()` (`RepeatableReads`, `ReadCommitted`): `nil` if a comparison failed, else the committed attempt's reply; or the abort. -/
-def stm.commit.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (T : State → State → Prop) (P : IProp GF) (σ0 : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs ∗ etcdLent γ T P ∗ P ∗ etcdLb γ σ0 ∗
-      ⌜effIn (fun σ σ' => σ' = σ ∨ stmCommitted iso a σ σ') T⌝ }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"commit")) (Val #()))
-  {{ (r : val), RET r; stmRet r (fun resp : Loc => iprop(stmCoreStale p γ who iso gs ∗
-      P ∗ (⌜resp = null⌝ ∨ ∃ (σ σ' : State) (m : TxnRespM), etcdLb γ σ ∗ etcdLb γ σ' ∗
-          ⌜Reach σ0 σ ∧ stmCommitted iso a σ σ' ∧ m.succeeded = true⌝ ∗ txnRespOwn resp (DFrac.own 1) m))) iprop(True) }}
+/-- `s.commit()` (a `*stm`; any level's conflicts closure), knowing etcd has reached `lo`: the
+transaction `If(conflicts...).Then(puts...)`; nil if it failed, otherwise its response, with
+`stmOutcome`. A client error aborts it (`stmRet`). The attempt is within its sizes (`STMSizeOk`, so
+that the transaction fits a gRPC message, `stmCommit_size`). -/
+abbrev stm.commit.spec : Prop :=
+  ∀ (lvl : w64) (b : Loc) (pfx : GoString) (st : STMSt) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
+      stmConflictsAt lvl pfx b ∗ etcdReached lo ∗ ⌜STMSizeOk st⌝ }}
+    (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"commit")) (Val #()))
+  {{ (r : val), RET r; stmRet r fun resp : Loc => iprop(
+      stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
+      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp)) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

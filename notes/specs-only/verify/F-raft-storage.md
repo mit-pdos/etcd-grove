@@ -43,7 +43,7 @@ Why S-e's law holds in Go:
 
 ### F1. `Raft.raftState_gen.spec` (and `raftState_crash.spec`) at the current generation: a second `nodeVacant`, hence `False`
 
-**Location:** `Spec/go_etcd_io/raft/v3/Api.lean:956-960` (`raftState_gen`), `:983-989` (`raftState_crash`).
+**Location:** `SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean:956-960` (`raftState_gen`), `:983-989` (`raftState_crash`).
 
 **Principle:** Sound (no way to prove `False`); a premise stated with a ∀ must be checked against the instances it does not pin down.
 
@@ -84,7 +84,7 @@ theorem rv_false (h : raftState_gen.spec (GF := GF)) (hx : exclusive.spec (GF :=
 
 ### F2. `backend.Close.spec` cannot be proved when the file was created in this generation (a recorded gap, not an open question)
 
-**Location:** `Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Close.lean:70-80`; `Api.lean:685-688` (`beCloseUpd`'s `COMM` needs `beFile p (some I)`).
+**Location:** `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Close.lean:70-80`; `Api.lean:685-688` (`beCloseUpd`'s `COMM` needs `beFile p (some I)`).
 
 **Principle:** Sound (a reachable input with no proof). An unsound candidate is replaced by a true one, not left standing.
 
@@ -226,7 +226,7 @@ No new bug. Neither F1 nor F2 is a Go bug: F1 is in our spec. F2's root is
 
 ## Ranked by need of revision
 
-1. `Spec/go_etcd_io/raft/v3/Api.lean`: `raftState_gen`/`raftState_crash` (F1). Their realization text and `ApiBoot.lean`'s `memberBoot_crash`/`memberJoin_crash` realizations follow.
+1. `SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean`: `raftState_gen`/`raftState_crash` (F1). Their realization text and `ApiBoot.lean`'s `memberBoot_crash`/`memberJoin_crash` realizations follow.
 2. `backend__Close.lean` / `beCloseUpd` / `beFile_crash` (F2): record it as an open question, or give `beFile` its name state; fix `ReqReopen`'s Assumes.
 3. `examples/specreq/raftnode/restart.go`: cover the crash crossing (s1).
 4. `backend/Durable.lean` header: `beDurInv` across defrag (s2).

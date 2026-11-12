@@ -1,12 +1,11 @@
 /-
-`unsafeRange(c, key, endKey, limit)` (`batch_tx.go:206-226`): translated; internal. A non-positive
-limit unbounded; an empty end the key alone (`limit := 1`); the cursor from `Seek(key)` while below
-the end. Over a cursor of a bucket whose entries are `L` (4c's cursor, provisional `curOver`).
-Changes: unchanged. Margin: none.
+`unsafeRange` (the backend, `batch_tx.go`). `unsafeRange(c, key, endKey, limit)` over a bbolt cursor of the transaction `tx` (read or write: a fraction of `txLive`) over the entries `es`: `cursorRange`, the slices valid while `tx` is open.
+Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
+the buffers, bbolt as a key-value contract, the locks and the views".
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 
@@ -14,28 +13,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`unsafeRange(c, k, e, limit)`**: `btRange` of the cursor's bucket. -/
-def unsafeRange.spec : Prop :=
-  ∀ (c : Loc) (L : GoString → Option GoString) (ks es : GoSlice) (dk de : DFrac) (k e : GoString)
-    (limit : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ curOver c L ∗ ks ↦*{dk} k ∗ es ↦*{de} e }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.unsafeRange)) (Val #c)) (Val #ks)) (Val #es)) (Val #limit))
-  {{ (kl vl : GoSlice), RET (PairV #kl #vl); ks ↦*{dk} k ∗ es ↦*{de} e ∗
-      ∃ l, ⌜btRange L k e (sint.Z limit) l⌝ ∗ rangeRes kl vl l (curOver c L) }}
+/-- `unsafeRange(c, key, endKey, limit)` over a bbolt cursor of the transaction `tx` (read or write: a fraction of `txLive`) over the entries `es`: `cursorRange`, the slices valid while `tx` is open. -/
+abbrev backend.unsafeRange.spec : Prop :=
+  ∀ (tx c : Loc) (es : List Ent) (pos : Option Nat) (q : Qp) (key endKey : GoSlice)
+    (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      ownCur tx c es pos ∗ txLive tx q ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
+    (App (App (App (App (Val (@! unsafeRange)) (Val #c)) (Val #key)) (Val #endKey)) (Val #limit))
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); (∃ pos', ownCur tx c es pos') ∗
+      txLive tx q ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗
+      kvsOutRd tx keys vals (cursorRange es kb eb limit) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

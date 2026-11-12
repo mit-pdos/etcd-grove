@@ -1,16 +1,14 @@
 /-
-## `(*raftLog).commitTo(tocommit)` (internal)
+Port of election_proof/spec_raftLog__commitTo.v (feb5c73d4).
 
-**Users**: `maybeCommit`, `maybeAppend`, `handleHeartbeat` (`raft.go:1851`), `restore`'s
-fast-forward (`raft.go:1933`). **Proof sketch**: the `Panicf` (`lastIndex < tocommit`) excluded by
-the premise; `Wf`'s `committed ≤ end` since `lastIndex ≤ end`. **Changes**: from
-`specs-ref/Spec/go_etcd_io/raft/v3/raftLog__commitTo.lean`.
+Lean notes:
+* The reference `raftLog__commitToⁱᵐᵖˡ, new/code/go_etcd_io/raft/v3.v:930` is to the
+  Lean generated code `raftLog.commitTo.impl`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
 
@@ -18,26 +16,40 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Raise `committed` to `tocommit`, which the log has. -/
-def raftLog.commitTo.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (c : w64),
-  (uint.nat c ≤ ls.committed ∨ uint.nat c ≤ ls.lastIndex) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"commitTo")) (Val #c))
-  {{ RET #(); raftLog l { ls with committed := max ls.committed (uint.nat c) } }}
+/-- `l.commitTo(tocommit)`: raise `committed` to `tocommit`, never lower it --
+`plogCommitTo` (`Plog.lean`).
+
+The body (`raftLog.commitTo.impl`, `Code/go_etcd_io/raft/v3.lean`):
+
+    if l.committed < tocommit {
+        if l.lastIndex() < tocommit { l.logger.Panicf(...) }
+        l.committed = tocommit
+    }
+
+The premise `tocommit <= lastIndex()` is exactly what makes the `Panicf` dead; it is the
+protocol fact of the design's table ("Protocol facts the code needs": a leader's commit
+index in an accepted `MsgApp`/`MsgHeartbeat` is within the follower's log), and for
+`maybeCommit` it follows from `matchTerm`. It also keeps `ownRaftLog`'s `Hcommitted`
+true at the new value. -/
+abbrev raftLog.commitTo.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (tocommit : w64),
+  uint.Z tocommit ≤ plogLastIndexZ ls.prev (ls.sents ++ ls.uents) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"commitTo")) (Val #tocommit))
+  {{ RET #();
+      ownRaftLog l { ls with committed := plogCommitTo ls.committed tocommit } }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

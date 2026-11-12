@@ -4,7 +4,7 @@ Reviewer: provability kind, verification round (2026-11-09), on `specs-only` at 
 Area: batch **R3** (`ApiLog.lean`, the specs of `log.go`, `log_unstable.go`, `read_only.go`,
 `util.go`, `types.go`), batch **R4** (`tracker/`, `quorum/`, `confchange/`), batch **3h**'s raftpb
 part (`raftpb/`), and the snippets `examples/specreq/{raftlog,raftconf,raftpb}/`. Callees checked:
-`Spec/google_golang_org/protobuf/proto/`, `isStorage` in `Api.lean`, the `MemoryStorage.*` specs,
+`SpecPlan/Spec/google_golang_org/protobuf/proto/`, `isStorage` in `Api.lean`, the `MemoryStorage.*` specs,
 and Perennial's `fmt`, `strings` and `slices`.
 
 I wrote the findings below before reading the batch, integration and open-question notes. I read
@@ -52,7 +52,7 @@ invariant, the quorum, tracker and confchange models, and the raftpb ownership d
     (`.lake/packages/perennial/Perennial/Spec/fmt/`). Its `strings` translation is the `Builder`
     type only (`Perennial/Code/strings.toml`: `translate = ["Builder", "asciiSpace"]`), with no
     methods. `fmt.Fprintf` is names-only.
-  - This repository has no spec of them either (`Spec/fmt/` holds only `Api.lean` and
+  - This repository has no spec of them either (`SpecPlan/Spec/fmt/` holds only `Api.lean` and
     `Sscanf.lean`).
   - Yet the sketches say "`fmt`/`strings.Builder` (Perennial's)" (`DescribeConfChange.lean:5`,
     `ConfChangesToString.lean:6-7`).
@@ -63,7 +63,7 @@ invariant, the quorum, tracker and confchange models, and the raftpb ownership d
   `DescribeEntry`, not `DescribeConfChange`.
 - **Fix.** State both as assumed at the trust boundary. Either:
   - add specs of `fmt.Fprintf` into a `*strings.Builder` (any string; the arguments' getters only)
-    and of `strings.Builder.{WriteByte,WriteString,String}`, in `Spec/fmt/` and `Spec/strings/`; or
+    and of `strings.Builder.{WriteByte,WriteString,String}`, in `SpecPlan/Spec/fmt/` and `SpecPlan/Spec/strings/`; or
   - mark the two functions' triples as assumed, with the reason (formatting only; the conf change
     is read and given back).
 
@@ -159,7 +159,7 @@ invariant, the quorum, tracker and confchange models, and the raftpb ownership d
 
 - **Evidence.** `raftconf/confchange.go:14`:
   `&pb.ConfChangeSingle{..., NodeId: proto.Uint64(id)}`. `proto` is translated names-only
-  (`Code/google_golang_org/protobuf/proto.toml`), and `Spec/google_golang_org/protobuf/proto/` has no
+  (`Code/google_golang_org/protobuf/proto.toml`), and `SpecPlan/Spec/google_golang_org/protobuf/proto/` has no
   `Uint64`. The raftpb snippets already switched to `new(id)` (`batch-3h.md:194`).
 - **Fix.** Use `new(id)` in `single`.
 

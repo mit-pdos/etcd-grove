@@ -1,10 +1,9 @@
 /-
-`watcherSet.add(wa)` (internal): `wa` added (`panic` if present: the premise).
+`watcherSet.add` (`watcher_group.go`). Lean-first (no Rocq counterpart); see `InvWatchGroup.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchGroup
 
 @[expose] public section
 
@@ -12,25 +11,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watcherSet.add.spec : Prop :=
-  ∀ (m : GoMap) (S : List Loc) (wa : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsetOwn m (DFrac.own 1) S ∗ ⌜wa ∉ S⌝ }}
+/-- `w.add(wa)` (a map value receiver) of a watcher not in the set: the set with it (the
+`panic("add watcher twice!")` is excluded by the premise). -/
+abbrev mvcc.watcherSet.add.spec : Prop :=
+  ∀ (m : GoMap) (S : GMap Loc Unit) (wa : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.ownWatcherSet m S ∗ ⌜S !! wa = none⌝ }}
     (App (Val (m @!! watcherSet.ty @!! go!"add")) (Val #wa))
-  {{ RET #(); wsetOwn m (DFrac.own 1) (S ++ [wa]) }}
+  {{ RET #(); mvcc.ownWatcherSet m (<[wa := ()]> S) }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

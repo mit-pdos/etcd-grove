@@ -1,5 +1,5 @@
 // Package raftpb holds the requirement snippets of raft's protobuf messages (batch 3h):
-// Spec/go_etcd_io/raft/v3/raftpb/.
+// SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/.
 package raftpb
 
 import (

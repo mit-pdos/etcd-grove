@@ -1,6 +1,6 @@
 # Integration I4: the server (2c, 2d, 2e, 2f)
 
-Owned: `Spec/go_etcd_io/etcd/server/v3/etcdserver/` (but `api/v3rpc/`, `apply/`, `txn/`, the
+Owned: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` (but `api/v3rpc/`, `apply/`, `txn/`, the
 v3lockpb/v3electionpb message files): the package's `ApiReq`/`ApiApply`/`ApiBoot` and specs,
 `errors/`, `read/`, `cindex/`, `api/{membership,snap,v2stats,v3compactor,v3alarm,v3election,v3lock,
 rafthttp}/`; `storage/*.lean`, `storage/wal/`; `config/`, `features/`; `pkg/v3/{wait,idutil,notify,

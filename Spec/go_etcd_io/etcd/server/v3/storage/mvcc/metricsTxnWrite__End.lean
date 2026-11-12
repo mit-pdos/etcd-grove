@@ -1,17 +1,9 @@
 /-
-`(*metricsTxnWrite).End` (`metrics_txn.go:56`): the metrics, then (deferred) the inner `End`.
-
-**Users**: through `TxnRead`/`TxnWrite` values: the server's transactions (`txn/range.go:53`, `txn/txn.go:43, 67`, `txn/put.go:39`, `txn/delete.go:33`: `store.Read`/`Write` return a `*metricsTxnWrite`), the lessor's `Revoke` (`lessor.go:350, 361`, through `mvccDeleter`), the tester (`mvccrand.go:395-495, 627-647`). Snippets `ReqSoleWriter`, `ReqReadFloor`.
-
-**Proof sketch**: the counters (no panic); the inner `End`: a read transaction's `storeTxnRead.End` (`RUnlock`s: the storage slot and `s.mu`'s, the token back); a write transaction's `storeTxnWrite.End`: with changes, `s.revMu.Lock()`, `currentRev++` (both of the caller's updates fire here: a store without watchers notifies at its bump), `tx.Unlock()` (`Pk` back; the batch's data visible, `kbData`), `s.revMu.Unlock()`; without, `Unlock` only (the updates fire with nothing pending: `notify []`, the commit of nothing); `s.mu.RUnlock()`.
-
-**Changes** from `specs-ref`'s file: the two-step commit (the frozen API), no writer fragments.
-
-**Margin**: none.
+`metricsTxnWrite.End` (metrics_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -19,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -30,11 +21,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `Txn.End`'s contract at `*metricsTxnWrite`. -/
-def metricsTxnWrite.End.spec : Prop :=
-  ∀ s : Loc, Txn.End.contract (GF := GF) (go.GoType.PointerType metricsTxnWrite.ty) #s
+/-- `tw.End()` of a transaction (a read or a write one, `TxnKind`; a write one without its
+key-values, `isTxnEnd`: `isTxn_toEnd`): the metrics updated, the wrapped transaction ended
+(`storeTxnRead.End` or `storeTxnWrite.End`): the tokens are back, and a write transaction's
+committed log is certified (`txnEndPost`). A write transaction's `Unlock` takes the batch
+lock's invariant back (`txnEndPre`). At any compaction revision `crev`, the tokens back as
+`storeReaderC` with the reader's tag `Z` (2026-10-13, unit 6a); the readers' statement
+(`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). (M4, track B, 2026-11-06;
+`Api/TxnSteps.lean`) A write transaction's slot is any `Y` (`isTxnEndY`), and the API's ghost state
+moves by the caller's step, with the frozen state excluded by the caller's `G` (`txnEndX`, given
+back with the step's result, `txnEndXPost`: `storeTxnWrite.End`'s). (M4, track B, 2026-11-06, the two
+internal changes) The transaction's trace part is any `Tr` (`isTxnEndY`'s, given back: the API's
+transaction holds none), and a write transaction's `Unlock` takes the batch lock's invariant by the
+store's name of it alone (`txnEndPreH`: `hookP`), with no writer's fragment back (`txnEndPostH`). -/
+abbrev mvcc.metricsTxnWrite.End.spec : Prop :=
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
+    (Z Y G R Tr : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTxnEndY mw s γ trace kind crev Z Y Tr ∗
+      mvcc.txnEndPreH γ kind ∗ mvcc.txnEndX γ kind crev Y G R }}
+    (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPostH γ kind ∗
+      Tr ∗ mvcc.txnEndXPost kind G R }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

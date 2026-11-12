@@ -1,39 +1,39 @@
 /-
-`(*kvSort).Swap(i, j)` (`range.go`), internal (the sorters' `Swap`, through `sort.Sort`): mirrors the
-code. Old spec: same.
+`kvSort.Swap` (`range.go`): exchanges two elements of the sorter's slice. Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `s.Swap(i, j)`: the `i`-th and `j`-th pointers exchanged. -/
-def kvSort.Swap.spec : Prop :=
-  ∀ (s : Loc) (sl : GoSlice) (ps : List Loc) (i j : w64) (a b : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ s.[go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort, go!"kvs"] ↦□ sl ∗ sl ↦* ps ∗
+/-- `s.Swap(i, j)`: the slice `s.kvs` with its `i`-th and `j`-th pointers exchanged. -/
+abbrev txn.kvSort.Swap.spec : Prop :=
+  ∀ (ks : Loc) (sl : GoSlice) (ps : List Loc) (i j : w64) (a b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
+      ks.[kvSort, go!"kvs"] ↦□ sl ∗ sl ↦* ps ∗
       ⌜0 ≤ sint.Z i ∧ 0 ≤ sint.Z j ∧ ps[sint.nat i]? = some a ∧ ps[sint.nat j]? = some b⌝ }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort.ty @!! go!"Swap")) (Val #i)) (Val #j))
-  {{ RET #(); sl ↦* ((ps.set (sint.nat i) b).set (sint.nat j) a) }}
+    (App (App (Val (ks @!! go.GoType.PointerType kvSort.ty @!! go!"Swap")) (Val #i)) (Val #j))
+  {{ RET #(); sl ↦* (ps.set (sint.nat i) b).set (sint.nat j) a }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial

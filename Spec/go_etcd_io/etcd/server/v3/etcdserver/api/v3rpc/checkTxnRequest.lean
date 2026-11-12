@@ -1,44 +1,43 @@
 /-
-`v3rpc.checkTxnRequest` (`server/etcdserver/api/v3rpc/`).
-
-Users: `kvServer.Txn`, `checkRequestOp` (nested transactions).
-
-Proof sketch: the operation count against `n`, the comparisons' keys, `checkRequestOp.spec` of each operation at `n - opc`; together with `checkIntervals` and the server's `--max-txn-ops` (`kvServerAt`), the law `txnCheck_checked` turns `nil` into 2c's `txnChecked t` and the depth bound.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/checkTxnRequest.lean`: over `txnReqOwn` and `txnCheck`; the depth fact moved to the law `txnCheck_checked` (`notes/irr-depth.md`).
-
-Margin: none.
+`v3rpc.checkTxnRequest` (`key.go`). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvKV.lean` and `Defs.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `checkTxnRequest(r, n)`: `nil`, or the `ErrGRPC*` of `txnCheck n t`. -/
-def checkTxnRequest.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (t : TxnReq) (n : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ txnReqOwn p dq t }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest)) (Val #p)) (Val #n))
-  {{ (err : GoInterface), RET #err; txnReqOwn p dq t ∗ (⌜txnCheck (sint.Z n) t = none ∧ err = GoInterface.nil⌝ ∨
-       ∃ e, ⌜txnCheck (sint.Z n) t = some e⌝ ∗ statusErr err (Rpctypes.code e) (Rpctypes.desc e)) }}
+/-- **`checkTxnRequest(r, n)`**: `nil` iff the transaction passes at the budget `n`
+(`txnCheck`: at most `n` comparisons and operations per branch, non-empty comparison keys,
+`checkRequestOp` of every operation at `n` less that width), else the `rpctypes` error
+`txnCheck` names. -/
+abbrev v3rpc.checkTxnRequest.spec : Prop :=
+  ∀ (r : Loc) (cs : List CmpModel) (ts es : List v3rpc.ReqOp) (n : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.txnReqIs r cs ts es }}
+    (App (App (Val (@! v3rpc.checkTxnRequest)) (Val #r)) (Val #n))
+  {{ (err : GoInterface), RET #err; v3rpc.checkRes (v3rpc.txnCheck (sint.Z n) cs ts es) err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

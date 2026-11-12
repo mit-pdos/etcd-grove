@@ -1,19 +1,10 @@
 /-
-## `(*streamReader).stop()`
-
-**Users.** `peer.stop`.
-
-**Proof sketch.** Under `mu`: `cancel`, `close` (`readerCloser`); a receive on `done`.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*streamReader).stop` (`stream.go`; rafthttp stage 5c). Lean-first; the reader's predicates:
+`rafthttp/Reader.lean`, `rafthttp/ReaderRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 
 @[expose] public section
 
@@ -21,26 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Cancels the reader, closes its stream, waits for `run`. -/
-def streamReader.stop.spec : Prop :=
-  ∀ (cr : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ srAt cr ν lid pid ∗ srStopRight cr }}
-    (App (Val (cr @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader.ty @!! go!"stop")) (Val #()))
+/-- **`cr.stop()`**: cancels the reader's context, closes its stream's body (under `mu`) and waits
+for `run` to return (`done`). -/
+abbrev rafthttp.streamReader.stop.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      srFixed Rh lid pid γd cr ∗ srStopRight cr }}
+    (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

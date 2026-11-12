@@ -1,33 +1,13 @@
 /-
-## `(*EtcdServer).raftRequest(ctx, r)`
-
-**Users.** Every write entry point of `v3_server.go` (`Put`, `DeleteRange`, a write `Txn`, the lease
-grant and revocation, `Alarm`, the auth methods, `Authenticate`'s token); the server's internal
-requesters: the lease checkpoints (`server.go:402`, `.noop`), the alarms (`server.go:2025`,
-`corrupt.go:441`, `.alarmActivate`, an update from `envUpd`), `publishV3` (`server.go:1848`,
-`.publish`), the cluster version (`server.go:2344`, `.noop`), the downgrade (`adapters.go:50,56`,
-`.noop`). Snippets: `examples/specreq/etcdserverreq/kv.go`, `lease.go`, `auth.go`.
-
-**Proof sketch.** `processInternalRaftRequestOnce` (its spec); an error: the span's `RecordError`
-(otel's boundary), returned (outcomes 2, 3); `result.Err`: returned (the answer's error: outcome 1
-with `srvErr`, or outcome 2 with the update); `ctx.Value(StartTimeKey{})` and the trace's steps
-(`applyResult`'s owned `traceOpt`, 4b); `result.Resp` (`irrReply`).
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__raftRequest.lean`) restated as
-`processInternalRaftRequestOnce`'s (round 1 likewise: the message given back, `irrWf`, the principal
-pair, the errors' shape, `irrBackOk`: the reply of `Authenticate`'s token with its update back).
-
-**Margin.** As `processInternalRaftRequestOnce`.
-
-Changes: verify-round (A7-provability F3, F5): see the verify round's repair: the context needs only its otel span (`reqCtxSpan`, any trace: the outer method's `EnsureTrace` installed one); the request message comes back with whatever header was set (`∃ h, irrOwnH r dq ir h`: the header is written before proposing).
-
-Changes: verify-round (client-core's request): `ctx.Value(StartTimeKey{})` by `Context.Value.spec` (the value at the key, or `nil`; the checked assertion then).
+`s.raftRequest(ctx, r)` (`v3_server.go`): the request's response, or the apply's error. Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_opentelemetry_io.otel.trace.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.context.ReqKeys
 
 @[expose] public section
 
@@ -35,9 +15,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -46,28 +25,52 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **A request through raft**: its reply (outcome 1), or its error (outcome 1, the answer's;
-outcome 2, the update given back; outcome 3). -/
-def EtcdServer.raftRequest.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (ctx : GoInterface) (p tls : Principal) (lo : Nat) (r : Loc)
-    (dq : DFrac) (ir : IrrBody) (ao : Option Req) (rep : Bool) (Q : State → State → Resp → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ Context.ctxOk ctx ∗ reqCtxSpan ctx ∗ reqPrin ctx p tls ∗ threadTok ∗ irrOwn r dq ir ∗
-      ⌜irrWf ir ∧ irrAsks ir ao⌝ ∗ authLb γ lo ∗
-      irrUpd γ p tls lo ao rep Q }}
-    (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"raftRequest")) (Val #ctx)) (Val #r))
-  {{ (resp : GoInterface) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ (∃ h, EtcdServerPb.irrOwnH r dq ir h) ∗
-      ((∃ σ σ' res, ⌜srvFiredAns res⌝ ∗ irrFired ao Q σ σ' res ∗
-          match res with
-          | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ irrReply γ ir res resp)
-          | .err e => iprop(⌜resp = GoInterface.nil⌝ ∗ srvErr err e ∗ srvErrShape err)) ∨
-       (∃ res, ⌜irrBackOk ir res⌝ ∗
-          match res with
-          | .ok _ => iprop(⌜err = GoInterface.nil⌝ ∗ irrReply γ ir res resp ∗ irrUpd γ p tls lo ao rep Q)
-          | .err _ => iprop(⌜resp = GoInterface.nil⌝ ∗ srvUnfired err ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q)) ∨
-       (⌜resp = GoInterface.nil⌝ ∗ srvUnfired err ∗ srvErrShape err ∗ irrUpd γ p tls lo ao rep Q) ∨
-       (⌜resp = GoInterface.nil⌝ ∗ srvIndef err ∗ srvErrShape err)) }}
+/-- `s.raftRequest(ctx, r)` (as `processInternalRaftRequestOnce`): success, the apply thread's
+answer to `rq'` (`appliedOk`: dispatched, the apply package's response, no error); failure, no
+response and an error (2026-10-14, unit C2a: the success with the result's witness at `ρ.rd`,
+`appliedWit`): the apply's (`appliedErr`), or `processInternalRaftRequestOnce`'s (the
+proposal, if made, deposited). Unit W-M3: the update's committed log `L` is the raft prefix whose
+model is the log `lb` the entry met (`appliedOk`'s `x.log`), and the log after is certified.
+
+**In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
+the mode `E.authOn`; the mode-off form, `specOff`, is a
+corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): over
+`processInternalRaftRequestOnce.spec`; the success post at the committed prefix `L` before the
+entry, with what the proposer learns of the model there (`appliedOkM`, `modelOutM`: in the mode `on`
+the auth state the entry met and the auth layer's verdict the model's grant there). (Sweep repairs 1,
+B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
+`Value(StartTimeKey{})` is type-asserted from).  (Sweep repairs 1,
+B2, 2026-11-08) The context's start time is a time (`context.startTimeOk`: what the result's
+`Value(StartTimeKey{})` is type-asserted from). -/
+abbrev EtcdServer.raftRequest.spec : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
+    (Qh : apply.HeaderModel → List EntryModel → IProp GF) (F : mvcc.Log),
+  rq.id = W64 0 →
+  -- (2026-10-31) the request within protobuf's recursion limit (`proto.MarshalIRR`'s premise: a
+  -- deeper one would be proposed and panic every member's apply,
+  -- `issues/etcd-txn-nested-depth-apply-panic.md`)
+  apply.irrDepthOk rq →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
+      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ context.startTimeOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
+      (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
+      srvApi.kvLogLb E.γs F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
+      (Val #(GoInterface.ok ctx))) (Val #p))
+  {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+          (L : List EntryModel),
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ srvRLogLb ρ.raft L ∗
+          appliedOkM E.authOn E ρ rq' F resp L ∗ pubAfterM E.authOn E ρ rq' L ∗ □ Qh hm L ∗
+          hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+       (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+         ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+            ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' F err ∗
+            hdrBoundM E.authOn s E (GoInterface.ok ctx) hm) ∨
+          srvMaybeDeposited ρ rq))) }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

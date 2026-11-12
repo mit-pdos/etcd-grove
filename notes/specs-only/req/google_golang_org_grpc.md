@@ -2,8 +2,8 @@
 
 ## from W0
 
-Batch W0 (the anchor: `Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`,
-`Spec/go_etcd_io/etcd/client/v3/Api.lean` and the client's KV specs) states the client's KV path
+Batch W0 (the anchor: `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`,
+`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean` and the client's KV specs) states the client's KV path
 over **one wire-level contract**, `remoteKVAt v γ who` (`client/v3/Api.lean`, `RemoteKV.*Triple`):
 a `pb.KVClient` value whose `Range`, `Put`, `DeleteRange`, `Txn`, `Compact`, `RangeStream` take the
 request message (`api/v3/Wire.lean`'s `rangeReqOwn`, ...) and the caller's atomic update, and
@@ -57,7 +57,7 @@ complete it (`req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`,
    (`rangeRespOwn resp (own 1) m`, ...).
    Used by: `kv.Do.spec` (the request built from the `Op`'s read-only slices), `txn.Commit.spec`.
 
-5. **Contexts**: the call takes any `Context.ctxOk ctx` (`Spec/context/Api.lean`: Background,
+5. **Contexts**: the call takes any `Context.ctxOk ctx` (`SpecPlan/Spec/context/Api.lean`: Background,
    TODO, WithValue chains, Perennial's contexts, a caller's own); a call whose context is done
    returns a status `Canceled`/`DeadlineExceeded` (an `.other`) or its reply.
    Used by: every client call (`Context.ctxOk` in every `KV.*Triple`).
@@ -87,7 +87,7 @@ complete it (`req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`,
 
 ## from 1b
 
-Batch 1b (the client's watch, `Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`) states the gRPC watch
+Batch 1b (the client's watch, `SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiWatch.lean`) states the gRPC watch
 stream as three slots with their laws (obligations of 2a's boundary, with 3h's stub and 2b's
 handler, `req/go_etcd_io_etcd_server_v3_etcdserver_api_v3rpc.md`): `remoteWatchAt v γ who` (a
 `pb.WatchClient`), the stream's halves `wireWatchSend wc γ who g ss` / `wireWatchRecv wc γ who g st`
@@ -136,7 +136,7 @@ and `wireWatchSentLb g ss`. What 1b's sketches (`watchGRPCStream.openWatchClient
 
 ## from 1c
 
-Batch 1c (`Spec/go_etcd_io/etcd/client/v3/ApiClient.lean`, `ApiLease.lean`) realizes W0's `connOk`
+Batch 1c (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/ApiClient.lean`, `ApiLease.lean`) realizes W0's `connOk`
 from grpc's connection and the client's interceptors. What its sketches assume of grpc (slots named
 in `ApiClient.lean`, to be stated as 2a's specs or laws):
 
@@ -187,7 +187,7 @@ in `ApiClient.lean`, to be stated as 2a's specs or laws):
 ## from 2b
 
 Batch 2b (the member's watch handler, `v3rpc/watch.go`) states the **server end of a watch stream**
-as slots in `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`, with their laws as
+as slots in `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`, with their laws as
 obligations of 2a's boundary (with 3h's messages), mirroring 1b's client end (the same
 `WatchStreamNames` `g` name the stream at both ends):
 
@@ -271,7 +271,7 @@ Used by: `watchServer.Watch.spec`, `serverWatchStream.{recvLoop,sendLoop,isWatch
 ## from 3h
 
 Batch 3h's generated stubs (`kVClient.Put.spec`, ..., WP form: `unaryStubWP`, `streamStubWP` in
-`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/Api.lean`) and handlers (`_KV_Range_Handler.spec`, ...,
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/Api.lean`) and handlers (`_KV_Range_Handler.spec`, ...,
 `handlerBodyWP`) are stated over this boundary's vocabulary. What they need of it:
 
 1. **`grpc.StaticMethod()`**: returns a call option with `callOptOk` (no panic; it only marks the
@@ -285,12 +285,12 @@ Batch 3h's generated stubs (`kVClient.Put.spec`, ..., WP form: `unaryStubWP`, `s
    is at the concrete type): nothing to add if Goose's interface-call rule suffices; noted for the
    `New*Client.spec` sketches.
 3. **`HandlerTriple`'s home**: 2a's `V3rpc.HandlerTriple` is written in grpc's vocabulary only; if it
-   moves to `Grpc` (`Spec/google_golang_org/grpc/Api.lean`), 3h's handler specs can state their
+   moves to `Grpc` (`SpecPlan/Spec/google_golang_org/grpc/Api.lean`), 3h's handler specs can state their
    `unaryOk` corollary directly (today they are WP forms 2a composes with `icChain_call`).
 
 ## from 2f
 
-Batch 2f (the net/http boundary, `Spec/net/http/Api.lean`) and 2a's grpc boundary should state
+Batch 2f (the net/http boundary, `SpecPlan/Spec/net/http/Api.lean`) and 2a's grpc boundary should state
 the handler runs' thread tokens the same way. The coordinator's decision (2f round 1, provability
 F1), from the repository's earlier fix (`specs-ref/notes/STATUS.md`, "Soundness bugs:
 grpc.serve's handler pool", the user's decision via etcd-grove-82): **`Serve` takes from its caller
@@ -307,7 +307,7 @@ over such a pool. If both boundaries share one pool predicate, 2f will use 2a's 
 
 The auth store reads a request context's incoming metadata and TLS peer (`AuthInfoFromCtx`,
 `AuthInfoFromTLS`, `WithRoot`). Its specs are stated over two provisional slots in
-`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`, to be realized by this boundary:
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`, to be realized by this boundary:
 
 1. **`Auth.ctxInMD ctx o`** (persistent): `metadata.FromIncomingContext(ctx)`'s answer for *any*
    context, not only a run's (`Grpc.rpcCtx`): `some md` (every key with at least one value: the

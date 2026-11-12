@@ -1,20 +1,11 @@
 /-
-## `raft.hasUnappliedConfChanges` (internal)
+Port of `election_proof/spec_raft__hasUnappliedConfChanges.v` (feb5c73d4).
 
-`hup`. Mirrors the code: R3's `scan` of `(applied, committed]` (held by the storage or the unstable log: the compaction point is at most the applied index), paginated; no panic. **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
-`raft__hasUnappliedConfChanges.lean`, over `NState`); round 1: the result is stated over the state. Verify-round (A4 P3): the premise that no floor is published above `applied` (`hup` has it from `coreIdle_floor`); the scan from `applied + 1` then meets no compaction. `errBreak`'s value is `raft_init`'s. Re-review N2: the premise is `compactFloor ≤ applied` (the published floor and the base at most `applied`): with a restored snapshot pending, `committed = s.index` is past `applied` and the first index is `s.index + 1`, so Go's scan meets `ErrCompacted` and panics. `hup` calls it only after `promotable` (no pending snapshot: the base is then at most `applied`, the invariant's) and has the floor from `coreIdle_floor`.
-Verify-round (RR-raft-core N3, S-e): the premise also takes `us.snap = none`: with a snapshot pending,
-`base ≤ applied < committed` and `lastIndex < committed` (unstable entries empty, `offset = s.index + 1`)
-is admitted by `Wf`, and Go's scan then panics (`log.go:562`). `hup` has `us.snap = none` from
-`promotable` (`raft.go:1949`: `!hasNextOrInProgressSnapshot()`, i.e. `unstable.snapshot == nil`,
-`log.go:290`), and `compactFloor ≤ applied` from `coreIdle_floor` (both `floor ≤ applied` and, the
-snapshot absent, `base ≤ applied`).
+Lean notes: `None` is `none`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -22,26 +13,52 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Whether a committed conf entry is not applied. -/
-def raft.hasUnappliedConfChanges.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗
-      ⌜o.log.us.snap = none ∧ o.log.compactFloor ≤ o.log.applied⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"hasUnappliedConfChanges")) (Val #()))
-  {{ (b : Bool), RET #b; raftOpen r γ id o ∗ ⌜b = true ↔ o.unappliedConf⌝ }}
+/-- `r.hasUnappliedConfChanges()`: whether a committed entry not applied yet (at
+`(applied, committed]`, `unappliedEnts`) is a configuration change (`IsConfEnt`).
+
+(Until 2026-10-13: always `false`, from `ownRaftLog`'s `HnoConfChange`, the scope
+assumption that no configuration change is ever requested. Reconfiguration stage D lets
+conf-change entries into the log, and this is the real answer.)
+
+The generated body opens with `if r.raftLog.applied >= r.raftLog.committed { return
+false }` (the range is then empty); otherwise it `scan`s the range, its callback setting
+`found` and stopping the scan with `errBreak` at the first conf-change entry, and
+`Panicf`s on any other error (dead: `scan`'s only errors are the callback's).
+
+**Owns the receiver.** The method has a pointer receiver and reads `r.raftLog` through
+it four times before anything else, so the triple takes `ownRaftPhys` (until 2026-09-19
+it was stated on an unrelated `l : Loc` with no ownership of `r` at all; main's
+notes/false-statements.md). `r.logger` is also read, but only on the `Panicf` path,
+which is dead. -/
+abbrev raft.hasUnappliedConfChanges.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  -- no snapshot pending: `applied` is then at or above the compaction boundary, so
+  -- `scan`'s range starts inside the log. With one pending `applied` may lie below the
+  -- snapshot's index and `scan` would return `ErrCompacted` into the `Panicf` -- the
+  -- reason `hup` tests `promotable` (which checks `hasNextOrInProgressSnapshot`)
+  -- first. Added 2026-10-02.
+  s.logst.snap = none →
+  -- (D19i part 1) the floor at most `applied`, so `scan` from `applied + 1` finds the entries in
+  -- the storage: `node.go` raises the floor to `applying` when the application's `Advance` is
+  -- handed over, and `RawNode.Advance` moves `applied` up to it right after (`RNState.flw`)
+  uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
+      (Val #()))
+  {{ (b : Bool), RET #b; ownRaftPhysCV c c.voters r id s ∗
+      ⌜b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

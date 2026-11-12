@@ -1,17 +1,9 @@
 /-
-`(*metricsTxnWrite).Put` (`metrics_txn.go:49`).
-
-**Users**: through `TxnRead`/`TxnWrite` values: the server's transactions (`txn/range.go:53`, `txn/txn.go:43, 67`, `txn/put.go:39`, `txn/delete.go:33`: `store.Read`/`Write` return a `*metricsTxnWrite`), the lessor's `Revoke` (`lessor.go:350, 361`, through `mvccDeleter`), the tester (`mvccrand.go:395-495, 627-647`). Snippets `ReqPutRev`, `ReqPutLease`.
-
-**Proof sketch**: count and size, then `storeTxnWrite.Put` (`put`: the index's `Get` for the creation revision and version, `GetLease`, `UnsafeSeqPut`, the index's `Put`, `Detach`/`Attach` on 3c's writer token (`lessor.Detach.spec`, `.Attach.spec`: `putLs`); `Attach` of a live lease succeeds, else it panics, hence `lid = 0 ∨ ls.leases lid ≠ none`; a `Detach` of a lease not live changes nothing).
-
-**Changes** from `specs-ref`'s file: the event `putEv` over W0's records; the old key-length bound of `Attach` dropped (the lessor's internal invariant, 3c's).
-
-**Margin**: none.
+`metricsTxnWrite.Put` (metrics_txn.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -19,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -30,11 +21,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `Txn.Put`'s contract at `*metricsTxnWrite`. -/
-def metricsTxnWrite.Put.spec : Prop :=
-  ∀ s : Loc, Txn.Put.contract (GF := GF) (go.GoType.PointerType metricsTxnWrite.ty) #s
+/-- `tw.Put(key, value, lease)` of a write transaction: the counters, then the wrapped `Put`. -/
+abbrev mvcc.metricsTxnWrite.Put.spec : Prop :=
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (puts deletes putSize : w64) (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64)
+    (crev : Int) (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
+    (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))
+      (Val #value)) (Val #leaseID))
+  {{ RET #(W64 (ilog.length : Int) : w64);
+      mvcc.isTxnWrite mw s γ trace ilog (pend ++ [.put k v leaseID]) (puts + W64 1) deletes
+        (putSize + (key.len + value.len)) crev Z ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

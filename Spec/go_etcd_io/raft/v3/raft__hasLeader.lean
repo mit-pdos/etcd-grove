@@ -1,14 +1,14 @@
-/-
-## `raft.hasLeader()`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** `node.run` (`node.go:368`: whether to take proposals). **Proof sketch.** Reads `lead`.
-**Changes.** Over the view. **Margin.** Exact.
+## `raft.hasLeader()` (raft.go:497)
+
+`r.lead != None`, on the field alone: `node.go`'s `run` reads it with the raft struct open
+in any of its states (`ownRawNode`, `ownRawNodeIdle`, `ownRawNodeReady`); the result is
+not tracked (it only arms `run`'s proposal channel).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.Defs
 
 @[expose] public section
 
@@ -16,9 +16,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,14 +26,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Whether the view has a leader. -/
-def raft.hasLeader.spec : Prop :=
-  ∀ (r : Loc) (id : w64) (ρ : CoreView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftRO r id ρ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"hasLeader")) (Val #()))
-  {{ (b : Bool), RET #b; raftRO r id ρ ∗ ⌜b = decide (ρ.lead ≠ W64 0)⌝ }}
+/-- See the file header. -/
+abbrev raft.hasLeader.spec : Prop :=
+  ∀ (r : Loc) (ld : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"lead"] ↦ ld }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasLeader")) (Val #()))
+  {{ (b : Bool), RET #b; r.[raft, go!"lead"] ↦ ld }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

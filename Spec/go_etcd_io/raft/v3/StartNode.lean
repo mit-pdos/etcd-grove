@@ -1,35 +1,14 @@
-/-
-## `StartNode(c, peers)`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's `bootstrappedRaft.newRaftNode` (`server/etcdserver/bootstrap.go:599`), a member of a
-new cluster (`--initial-cluster-state new`, no WAL): `raftConfig` (CheckQuorum on, PreVote as
-configured, `Applied` 0) over a fresh `MemoryStorage`, peers the members with their JSON contexts.
-No example uses it (they start with `RestartNode` on a storage holding the configuration). Snippet:
-`examples/specreq/raftnode/restart.go` (`ReqStartFresh`).
+## `StartNode`
 
-**Proof sketch.** `setupNode` (`NewRawNode`: `newRaft` validates the configuration, reads the empty
-storage's `InitialState` and attaches it -- `S StorState.empty` into the node's invariant, with
-`nodeStorage`; `Bootstrap` appends and commits the bootstrap log, which `bootLog γ boot` says is the
-cluster's, and switches the tracker to the voters, `confAt γ |boot|` from `cluster_alloc`); the client's
-update fires inside `newRaft` at the storage read (checks the durable state is empty); `newNode`;
-`go n.run()` with `nodeLoop`. The node's invariant is allocated at `γ.ns`, holding the vacancy.
-
-**Changes** (from `specs-ref/Spec/go_etcd_io/raft/v3/StartNode.lean`): over opaque predicates; the
-storage is any `Storage` (its contract `isStorage`), not a `MemoryStorage` key; the configuration
-premises are `ConfigOk` (no `ReadOnlyOption`/`DisableProposalForwarding` restriction beyond
-`ConfigOk`'s scope, any CheckQuorum/PreVote/StepDownOnRemoval/size limits); no `nodeStartedFresh`,
-`readyFits` (receipt bounds); the view starts after the bootstrap log (the bootstrap `AddNode`s are
-re-delivered and re-applied as no-ops: `node.ApplyConfChange.spec`'s second case).
-
-**Margin.** A non-empty storage is excluded (Go logs a warning and runs the node as a restart:
-`nonissues/raft-startnode-nonempty-storage-silent-restart.md`); the config `c` is returned with
-`validate`'s defaults written.
+The node API's spec (2026-10-30, stage R5; until U9, 2026-10-29, the static cluster's
+`StartNode.spec` and the dynamic one's `StartNode.dynamicSpec`, deleted with them).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -37,44 +16,70 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Starts node `id` of `γ` as a founding member** from an empty storage: the bootstrap log `boot`
-of `peers` is the cluster's; the client's update checks its durable state is empty. Returns the
-running node, its `Ready` loop's token at the empty delivered log, its configuration view at the
-voters after the bootstrap log, and its storage's handle. -/
-def StartNode.spec : Prop :=
+/-- **`StartNode(c, peers)` in a cluster with a bootstrap log** (2026-10-30, stage R5;
+`cluster_alloc` with a non-empty `boot`, `InvNodeRule.lean`): starts node `cv.ID'`, one of the
+voters `vs` of the cluster (`nodeBoot`, persistent since 2026-11-01), its id vacant (`nodeVacant`),
+the peers `peers` those voters with the contexts `ctxs` (`peersCtx`). raft's `Bootstrap` appends
+the voters' `AddNode`s, the cluster's bootstrap log, committed, which the first `Ready`s hand out for
+the application to apply (`node.ApplyConfChange`; each a no-op at the voters' membership), and its
+first `Ready` writes.
 
-  ∀ (γ : Cluster) (id : w64) (c : Loc) (cv : go_etcd_io.raft.v3.Config) (peers : GoSlice)
-    (dq : DFrac) (ps : List (w64 × List w8)) (boot : List LogEntry)
-    (S : StorState → IProp GF) (cf : StorState → ConfState) (Q : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗
-      ⌜ConfigOk cv ∧ cv.ID' = id ∧ cv.Applied' = W64 0 ∧ ps ≠ [] ∧ BootLog ps boot ∧
-        cf StorState.empty = ConfState.empty⌝ ∗
-      (⌜cv.Logger' = interface.nil⌝ ∨ loggerOk cv.Logger') ∗
-      isStorage cv.Storage' S cf ∗ S StorState.empty ∗ peersPts peers dq ps ∗ bootLog γ boot ∗
-      nodeVacant γ id ∗
-      (AU <{ ∃∃ (D : Durable), raftState γ id D ∗ ⌜D = Durable.init⌝ }> @ ⊤ \ ↑γ.ns, ∅
-        <{ raftState γ id D, COMM Q }>) }}
-    (App (App (Val (@! go_etcd_io.raft.v3.StartNode)) (Val #c)) (Val #peers))
+(2026-11-01, durability stage I-7) The client's update (`AU`) fires inside `StartNode` over its
+durable state, which must be `RaftState.init` (a node that has stored nothing), and leaves it. The
+storage is a fresh one (`restartStorage` at the empty contents: no snapshot, the hard state empty,
+the base `⟨0, 0⟩`), its `InitialState` answering the **empty** conf state: a new cluster's
+(`Bootstrap` installs the voters; a bare `MemoryStorage`'s answer). The post is `RestartNode.spec`'s,
+plus (2026-11-05, the lease-expiry plan's E2 revision 5) that the node was made by `StartNode`
+(`nodeStartedFresh`, persistent: its log began as the bootstrap log), which `RestartNode` does not
+give: the node, its `Ready` loop's token from the empty log (`NodeDriverState.init` at the storage's key),
+its view of the configuration at the voters' membership with nothing applied, its running token,
+the update's `COMM` and the storage's frame; and the peers' slice. -/
+abbrev StartNode.spec : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (c : Loc) (cv : Config)
+    (lok si : GoInterfaceOk) (csm : ConfStateM) (Q : IProp GF) (F : GName → IProp GF)
+    (peers : GoSlice) (dq : DFrac) (pv : List Peer),
+  -- `NewRawNode`'s premises
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.DisableProposalForwarding' = false →
+  cv.ReadOnlyOption' = W64 0 →
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  cv.Applied' = W64 0 →
+  -- the empty conf state (a new cluster's)
+  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  -- the peers are the cluster's voters
+  vs = pv.map Peer.ID' →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacant γ cv.ID' ∗
+      AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
+         <{ raftState γ cv.ID' S, COMM Q }> ∗
+      restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F ∗
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs }}
+    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc) (cv' : go_etcd_io.raft.v3.Config), ⌜nd = nodeIface n⌝ ∗ c ↦ cv' ∗
-      isNode n γ id ∗ nodeRunning n 1 ∗
-      nodeDriver n γ (Driver.start [] HardState.empty Durable.init) ∗
-      nodeConf n γ ⟨boot.length, Membership.simple (listToSet (ps.map (·.1)))⟩ ∗
-      nodeStorage n γ S ∗ appliedLb n 0 ∗ storSnapLb n 0 ∗ peersPts peers dq ps ∗ Q }}
+      ∃ (n : Loc) (K : GName), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        -- (2026-11-05, the lease-expiry plan's E2 revision 5) made by `StartNode`
+        nodeStartedFresh n γ N vs ctxs cv.ID' ∗
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗
+        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
+        nodeRunning n γ N 1 ∗ Q ∗ F K ∗ peers ↦*{dq} pv }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

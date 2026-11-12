@@ -1,0 +1,318 @@
+/-
+**`v3rpc.Server`'s premises and `etcd_kv_started`'s slots, from `NewServer` and `Start`** (D19g
+(b), 2026-10-18; item 9's point 7). Lean-first (no Rocq counterpart).
+
+* `grpcCfgOk_of_started`: the server's fields and contracts `v3rpc.Server` reads (`grpcCfgOk`),
+  from `Start`'s views (`isServerReq`, `isServerRead`: `raftKV` through the server's linked
+  specs, `raftKV_server`) and `NewServer`'s serving facts (`srvServeFacts`: the configuration
+  fields) and `srvWatchBuilt` (the watchable store with its watch-token pool, which `NewServer`
+  allocates), at the answers `etcd_kv_started` takes
+  (`srvKVAns s E ρ γr 0 [] .none`). Two premises no construction gives, stated as such:
+  `v3rpc.eofVar` (`io.EOF`'s value: Perennial's `io` fact does not keep it, D19j) and
+  `runsNoRequireLeader` (no client asks for a leader on a stream), and the tracer options' slice.
+  The rest of `watch.go`'s package variables (`watchVars`) comes from `isPkgInit v3rpc` (D19j,
+  2026-10-18: until then the premise `watchVars`). (`membership.localKept`, the local member stays in the cluster, was
+  a third until 2026-10-18: now the cluster's own fact, `localKept_of_isRaftCluster`.)
+* `etcdGrpcSlots_of_started`: `N` of `etcd_kv_started`'s slots (`etcdGrpcSlot`) from `3 N` reader
+  slots each of `leadTimeMu`, `lgMu` and the auth store, `N` of the store and of `bemu`
+  (`srvServeBuilt`'s) and `N` of the read loop's (`Start`'s): per slot, the handlers' one each of
+  `leadTimeMu`, `lgMu`, the store, the read loop and the auth store, the quota check's of `lgMu`
+  and `bemu` (`v3rpc.quotaRd`, D22g (A)) and the log interceptor's of `lgMu`.
+
+`etcd_kv_started` and `etcd_watch_served_chain` are unchanged: these lemmas give their premises.
+-/
+module
+
+public import Proof.go_etcd_io.etcd.client.v3.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace client
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+section start
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **`v3rpc.Server`'s `grpcCfgOk`, from `Start`'s and `NewServer`'s postconditions** (see the
+file header). -/
+theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
+    (hlg : cfg.Logger' ≠ null) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
+        srvWatchBuilt s E ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
+        cfg.TracerOptions' ↦*□ tos ⊢
+      |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
+        ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  imod (auth.modeTag_alloc (GF := GF) E.authMode) with ⟨%tag, #Htag⟩
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
+  ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
+  · iframe #
+  ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
+  · iframe #
+  ihave #Hkv' := Hkv
+  iunfold v3rpc.raftKV at Hkv'
+  icases Hkv' with ⟨-, -, -, -, #Hget⟩
+  ihave #Hids := v3rpc.srvIdsOk_of_kvGetOk s _ $$ Hget
+  iunfold v3rpc.kvGetOk at Hget
+  icases Hget with ⟨-, -, -, #Hrs⟩
+  iunfold srvServeFacts at Hf
+  icases Hf with ⟨-, #Hcf⟩
+  iunfold srvWatchBuilt at Hwb
+  icases Hwb with ⟨%wsl, #Hkvf, %Hkvw, #Hmv⟩
+  iunfold srvServeCfg at Hcf
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
+  iunfold isServerReq at Hsrv
+  icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
+  iunfold srvReqFieldsAt at Hv
+  icases Hv with ⟨-, -, -, -, -, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm, #Hauth, #HisReq, -, -,
+    #Hmid, #Hlead, #Hcl, -, #Hpeers, -, -, -, -⟩
+  iunfold isServerRead at Hsrd
+  icases Hsrd with ⟨%w, #Hw⟩
+  iunfold srvReadFieldsAt at Hw
+  icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
+    -, -, -, #Hstp, #Hstc, #Hrb⟩
+  icombine Hauth Hauth' gives %Hae
+  iunfold srvPeersOk at Hpeers
+  icases Hpeers with ⟨-, #Hrc, -⟩
+  imodintro
+  iexists (⟨v3rpc.srvKVAns s E ρ γr (W64 0) [] .none, E, tag, wsl, w.lg, cfg.Logger',
+    cfg.QuotaBackendBytes', v.memberID, cfg.MaxTxnOps', cfg.WarningUnaryRequestDuration',
+    v.cluster, w.stopping, v.tickMs, v.electionTicks, v.maxReq, v.fg, cfg.Metrics',
+    cfg.EnableDistributedTracing', cfg.TracerOptions', tos, cfg.MaxConcurrentStreams'⟩ :
+      v3rpc.GrpcCfg GF)
+  isplitl
+  · iunfold v3rpc.grpcCfgOk
+    simp only
+    iframe #
+    isplitr
+    · iunfold v3rpc.watchSrvOk
+      iframe #
+      rw [← Hae]
+      iexact HisReq
+    isplitr
+    · ipureintro; exact hlg
+    isplitr
+    · ipureintro; exact Hlgn
+    isplitr
+    · ipureintro; exact Hmto
+    isplitr
+    · iunfold srvLeadInv
+      iunfold srvAtomicU64 at Hlead
+      iexact Hlead
+    iapply membership.localKept_of_isRaftCluster
+    iexact Hrc
+  · ipureintro; exact ⟨rfl, rfl⟩
+
+/-- **`v3rpc.Server`'s premises from a started server, in the auth mode `on`** (the auth component's
+stage 5; `Start.spec`'s views in the mode, `isServerReqM on`, `isServerReadM on`, `srvAuthLb`): at any KV answers
+`A` the server's contract holds at (`raftKV s A`; `raftKV_serverM`'s at the mode's answers). -/
+theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
+    (hlg : cfg.Logger' ≠ null) (K : Nat) (on : Bool) (A : v3rpc.KVAns GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReqM on s E ρ ∗ isServerReadM on s E γr ∗ srvAuthLb s E ∗ v3rpc.raftKV s A ∗
+        srvServeFacts s E cfg ∗ srvWatchReaders s E K ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
+        cfg.TracerOptions' ↦*□ tos ⊢
+      |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗ ⌜C.A = A ∧ C.E = E⌝ ∗
+        mvcc.api.mvccReaders E.γ K := by
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hlb, #Hkv, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  imod (auth.modeTag_alloc (GF := GF) E.authMode) with ⟨%tag, #Htag⟩
+  ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
+  · iframe #
+  ihave #Hkv' := Hkv
+  iunfold v3rpc.raftKV at Hkv'
+  icases Hkv' with ⟨-, -, -, -, #Hget⟩
+  ihave #Hids := v3rpc.srvIdsOk_of_kvGetOk s _ $$ Hget
+  iunfold v3rpc.kvGetOk at Hget
+  icases Hget with ⟨-, -, -, #Hrs⟩
+  iunfold srvServeFacts at Hf
+  icases Hf with ⟨-, #Hcf⟩
+  iunfold srvWatchReaders at Hwb
+  icases Hwb with ⟨#Hwb, Hrds⟩
+  iunfold srvWatchBuilt at Hwb
+  icases Hwb with ⟨%wsl, #Hkvf, %Hkvw, #Hmv⟩
+  iunfold srvServeCfg at Hcf
+  icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
+  ihave #Hsp := (isServerReqM_split on s E ρ).1 $$ Hsrv
+  icases Hsp with ⟨⟨%v, #Hv⟩, -⟩
+  iunfold srvReqFieldsAtM at Hv
+  icases Hv with ⟨-, -, -, -, -, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm, #Hauth, #HisReq, -, -,
+    #Hmid, #Hlead, #Hcl, -, #Hpeers, -, -, -, -⟩
+  iunfold isServerReadM at Hsrd
+  icases Hsrd with ⟨%w, #Hw⟩
+  iunfold srvReadFieldsAtM at Hw
+  icases Hw with ⟨-, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
+    -, -, -, #Hstp, #Hstc, #Hrb⟩
+  icombine Hauth Hauth' gives %Hae
+  iunfold srvPeersOk at Hpeers
+  icases Hpeers with ⟨-, #Hrc, -⟩
+  imodintro
+  iexists (⟨A, E, tag, wsl, w.lg, cfg.Logger',
+    cfg.QuotaBackendBytes', v.memberID, cfg.MaxTxnOps', cfg.WarningUnaryRequestDuration',
+    v.cluster, w.stopping, v.tickMs, v.electionTicks, v.maxReq, v.fg, cfg.Metrics',
+    cfg.EnableDistributedTracing', cfg.TracerOptions', tos, cfg.MaxConcurrentStreams'⟩ :
+      v3rpc.GrpcCfg GF)
+  isplitr [Hrds]
+  · iunfold v3rpc.grpcCfgOk
+    simp only
+    iframe #
+    isplitr
+    · iunfold v3rpc.watchSrvOk
+      iframe #
+      rw [← Hae]
+      iexact HisReq
+    isplitr
+    · ipureintro; exact hlg
+    isplitr
+    · ipureintro; exact Hlgn
+    isplitr
+    · ipureintro; exact Hmto
+    isplitr
+    · iunfold srvLeadInv
+      iunfold srvAtomicU64 at Hlead
+      iexact Hlead
+    iapply membership.localKept_of_isRaftCluster
+    iexact Hrc
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl⟩
+  iexact Hrds
+
+/-- **`grpcCfgOk_of_started` with the watchable store's reader slots** (2026-10-20, watchkv):
+`NewServer`'s `srvWatchReaders` in place of `srvWatchBuilt`, its `K` reader slots at the
+configuration's watchable store (`C.wsl`, `C.γ`: the watch server's, `v3rpc.Server`'s `R`). -/
+theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
+    (hlg : cfg.Logger' ≠ null) (K : Nat) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
+        srvWatchReaders s E K ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
+        cfg.TracerOptions' ↦*□ tos ⊢
+      |==> ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
+        ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ ∗
+        mvcc.api.mvccReaders E.γ K := by
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  ihave %hon := isServerReq_authOn s E ρ $$ Hsrv
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
+  ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
+  · iframe #
+  iapply (grpcCfgOk_of_startedM s E ρ γr cfg tos hlg K E.authOn
+    (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none))
+  rw [hon, isServerReqM_false, isServerReadM_false]
+  iframe; iframe #
+
+/-- **`N` of the watch service's run slots** (2026-10-20, watchkv; `etcd_watch_served_chain`'s
+`watchRunSlot`s; the store's readers as client-held tokens, 2026-11-07): two reader tokens of the
+store at the watch path's names (`mvccReaders W.γm 2`, one per loop) and one of the auth store each,
+under the thread bound the send loop's progress-interval read needs. -/
+theorem watchRunSlots_of (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (R : v3rpc.WSrv GF)
+    (W : v3rpc.SrvW GF) (N : Nat) :
+    ∀ M : Nat, N ≤ M →
+    mvcc.api.mvccReaders W.γm (2 * N) ∗
+        ([∗list] _x ∈ List.replicate M (), R.E.RD) ∗
+        ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ⊢
+      [∗list] _x ∈ List.replicate N (), v3rpc.watchRunSlot R W := by
+  induction N with
+  | zero =>
+    intro M _
+    iintro -
+    rw [List.replicate_zero]
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | succ n ih =>
+    intro M hM
+    iintro ⟨Hw, Hrd, %Hb⟩
+    ihave ⟨Hw1, Hw⟩ := (hRS W.γm 2 (2 * n)).1 $$ [Hw]
+    · rw [show 2 + 2 * n = 2 * (n + 1) by omega]; iexact Hw
+    icases replicate_take1 _ _ (by omega) $$ Hrd with ⟨Hrd1, Hrd⟩
+    rw [List.replicate_succ]
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hw1 Hrd1]
+    · iunfold v3rpc.watchRunSlot
+      iframe
+      ipureintro; exact Hb
+    iapply (ih (M - 1) (by omega))
+    iframe
+    ipureintro; exact Hb
+
+/-- **`N` of `etcd_kv_started`'s slots** (see the file header). -/
+theorem etcdGrpcSlots_of_started (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (N : Nat) :
+    ∀ K S M B : Nat, 3 * N ≤ K → N ≤ S → N ≤ M → N ≤ B →
+    ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader (GF := GF) s) ∗
+        ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
+        ([∗list] _x ∈ List.replicate K (), E.RD) ∗
+        ([∗list] _x ∈ List.replicate S (), mvcc.api.mvccReaders E.γ 1) ∗
+        ([∗list] _x ∈ List.replicate M (), srvReadReader s γr) ∗
+        ([∗list] _x ∈ List.replicate B (), srvBemuReader s) ⊢
+      [∗list] _x ∈ List.replicate N (), etcdGrpcSlot s E γr := by
+  induction N with
+  | zero =>
+    intro K S M B _ _ _ _
+    iintro -
+    rw [List.replicate_zero]
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | succ n ih =>
+    intro K S M B hK hS hM hB
+    iintro ⟨Hlt, Hlg, Hrd, Hst, Hrr, Hbm⟩
+    icases replicate_take1 _ _ (by omega) $$ Hlt with ⟨Hlt1, Hlt⟩
+    icases replicate_take2 _ _ (by omega) $$ Hlg with ⟨Hlg1, Hlg2, Hlg⟩
+    icases replicate_take1 _ _ (by omega) $$ Hlg with ⟨Hlg3, Hlg⟩
+    icases replicate_take1 _ _ (by omega) $$ Hrd with ⟨Hrd1, Hrd⟩
+    icases replicate_take1 _ _ (by omega) $$ Hst with ⟨Hst1, Hst⟩
+    icases replicate_take1 _ _ (by omega) $$ Hrr with ⟨Hrr1, Hrr⟩
+    icases replicate_take1 _ _ (by omega) $$ Hbm with ⟨Hbm1, Hbm⟩
+    icases replicate_takeN _ (K - 3) _ (by omega) $$ Hlt with ⟨Hlt, -⟩
+    icases replicate_takeN _ (K - 3) _ (by omega) $$ Hrd with ⟨Hrd, -⟩
+    icases replicate_takeN _ (K - 3) _ (by omega) $$ Hlg with ⟨Hlg, -⟩
+    rw [List.replicate_succ]
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hlt1 Hlg1 Hlg2 Hlg3 Hrd1 Hst1 Hrr1 Hbm1]
+    · unfold etcdGrpcSlot etcdRunSlot etcdIcRs v3rpc.quotaRd
+      isplitl [Hlt1 Hst1 Hlg1 Hrr1 Hrd1 Hlg3 Hbm1]
+      · iframe
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hlg2
+      iapply BigSepL.bigSepL_cons.2
+      isplitr
+      · itrivial
+      iapply BigSepL.bigSepL_cons.2
+      isplitr
+      · itrivial
+      iapply BigSepL.bigSepL_nil.2
+      itrivial
+    · iapply (ih (K - 3) (S - 1) (M - 1) (B - 1) (by omega) (by omega) (by omega) (by omega))
+      iframe Hlt Hlg Hrd Hst Hrr Hbm
+
+end start
+
+end client
+end EtcdGrove
+end Perennial
+
+#print axioms Perennial.EtcdGrove.client.grpcCfgOk_of_started
+#print axioms Perennial.EtcdGrove.client.etcdGrpcSlots_of_started

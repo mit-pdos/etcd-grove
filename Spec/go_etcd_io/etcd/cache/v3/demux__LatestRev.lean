@@ -1,13 +1,9 @@
 /-
-`demux.LatestRev` (`cache/*.go`), an internal helper.
-Users: none in the cache (kept: verified before).
-Proof sketch: reads `maxRev` under the read lock; the invariant holds it reached by the cluster.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`demux.LatestRev()`. Lean-first (no Rocq counterpart); see `InvDemux.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,15 +21,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `d.LatestRev()`: a revision the cluster reached. -/
-def demux.LatestRev.spec : Prop :=
-  ∀ (d : Loc) (γ : Cluster) (pfx : GoString) (s : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γ pfx s ∗ threadTok }}
-    (App (Val (d @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.demux.ty @!! go!"LatestRev")) (Val #()))
-  {{ (r : w64), RET #r; threadTok ∗ ∃ σ : State, etcdLb γ σ ∗ ⌜sint.Z r ≤ σ.kv.rev⌝ }}
+/-- `d.LatestRev()` (under a read lock): the `maxRev` of some state of the demux. (No lower
+bound: `purge` resets `maxRev` to `0`.) -/
+abbrev demux.LatestRev.spec : Prop :=
+  ∀ (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isDemux d γd cap C ∗ demuxHandle d γd cap C }}
+    (App (Val (d @!! go.GoType.PointerType demux.ty @!! go!"LatestRev")) (Val #()))
+  {{ (r : w64), RET #r; demuxHandle d γd cap C ∗ ⌜∃ c, DemuxInv cap c ∧ r = c.maxRev⌝ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

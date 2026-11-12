@@ -1,13 +1,9 @@
 /-
-`newStore` (`cache/*.go`), an internal helper.
-Users: `newCache`.
-Proof sketch: `btree.New.spec` at `kvItemLess` (`BTree.New.spec`, the degree's bounds), `newRingBuffer.spec`, `sync.NewCond` on the read locker; allocates the invariant (latest `0`, no snapshot) and the ceiling at `0`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`newStore(degree, historyCapacity)`. Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvStore
 
 @[expose] public section
 
@@ -15,27 +11,38 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `newStore(degree, historyCapacity)`: an empty store for any cluster and prefix. -/
-def newStore.spec : Prop :=
-  ∀ (γ : Cluster) (pfx : GoString) (degree cap : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ ⌜2 ≤ sint.Z degree ∧ sint.Z degree ≤ 2 ^ 62 ∧ 0 < sint.Z cap ∧ sint.Z cap ≤ 2 ^ 61⌝ }}
-    (App (App (Val (@! go_etcd_io.etcd.cache.v3.newStore)) (Val #degree)) (Val #cap))
-  {{ (s : Loc), RET #s; isStore s γ pfx ∗ storeCeil s 0 }}
+/-- `newStore(degree, historyCapacity)`: an empty store (`StoreState.init`) with a
+history of capacity `historyCapacity`, for `1 < degree <= 2^62` (`btree.New` panics below;
+above, the btree's `maxItems()` overflows and its second insert panics) and
+`0 < historyCapacity ≤ 2^61` (`newRingBuffer`'s bound; Go's caller validates the
+capacity). Returns the persistent `isStore` and `isStoreWriter` (any number of writers), a lower
+bound `0`, and all but one of the `RWMutex`'s reader tokens. `E` is the store's snapshot
+certificate (`snapCert`), `R` its latest revision's, `G` its gaps' (`gapList`), chosen by the caller (`R 0` for
+the empty store; nothing of `G`: the empty store has no snapshot, so no gap). -/
+abbrev newStore.spec : Prop :=
+  ∀ (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF) (G : w64 → Int → IProp GF) (degree historyCapacity : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      ⌜1 < sint.Z degree ∧ sint.Z degree ≤ 2 ^ 62⌝ ∗ ⌜0 < sint.Z historyCapacity ∧ sint.Z historyCapacity ≤ 2 ^ 61⌝ ∗
+      □ R (W64 0) }}
+    (App (App (Val (@! newStore)) (Val #degree)) (Val #historyCapacity))
+  {{ (s : Loc) (γ : StoreNames), RET #s;
+      isStore s γ (sint.nat historyCapacity) ∗
+      isStoreWriter s γ (sint.nat historyCapacity) E R G ∗
+      storeRevLb γ (W64 0) ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
+        storeReader s γ (sint.nat historyCapacity) E R G }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

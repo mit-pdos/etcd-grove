@@ -1,20 +1,12 @@
-/-
-## `raft.becomeLeader()` (internal)
+/- Port of election_proof/spec_raft__becomeLeader.v (feb5c73d4).
 
-**Users.** `stepCandidate` (`raft.go:1719`, after `poll` gave `VoteWon`). **Proof sketch.** Not a
-follower (`raft.go:953`); `reset(term)`; its own progress exists (the guard of its campaign: it was
-in its configuration, and no conf entry was applied since, the candidate's commit not moving) and
-becomes `Replicate`, recently active; `pendingConfIndex` at the last index; `appendEntry` of the
-empty entry (never refused: the uncommitted size is zero after `reset`). The invariant: the node is
-the term's leader (`leaderOf`, from the votes `poll` counted); the term log starts at its log.
-**Changes** (from `specs-ref`'s `raft__becomeLeader.lean`): over the opened struct and `leaderOf`.
-**Margin.** The appended entry is not stated.
+Lean notes: Rocq's `become_leader id s <| nstate.prvals := pvs |>` is
+`{ becomeLeader id s with prvals := pvs }`, and the type of the untyped binder `pvs` is
+written out.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -22,28 +14,41 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A candidate that won its term becomes its leader. -/
-def raft.becomeLeader.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o ∗ coreInv r γ id o ∗ ⌜o.view.role = StateCandidate ∧ (o.view.prs !! id).isSome⌝ ∗
-      leaderOf γ o.view.hs.term id }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"becomeLeader")) (Val #()))
-  {{ RET #(); ∃ o', raftOpen r γ id o' ∗ coreInv r γ id o' ∗
-      ⌜o'.view.hs.term = o.view.hs.term ∧ o'.view.hs.vote = o.view.hs.vote ∧ o'.view.lead = id ∧
-        o'.view.role = StateLeader ∧ o'.view.prs = o.view.prs⌝ }}
+/-- `becomeLeader` is `reset`, the role transition, marking its own `Progress`
+replicating, and the empty entry, which `appendEntry` acknowledges with a
+self-addressed `MsgAppResp` (`becomeLeader`, `Defs.lean`). It dereferences
+`r.trk.Progress[r.id]`, so the node's own `Progress` must be there: since 2026-10-13
+(reconfiguration stage A2, at any configuration `c`) that is not a premise, it follows from
+`ownRaftPhysC`'s `Hvoter` -- a candidate is a voter of either half (2026-10-25: a leader need not
+be, hence the premise that the node is none), and every voter is
+tracked (`CfgM.ids`). (The old statement, `raft.becomeLeader.specS`, took `id ∈ cfg`; it had no caller and is gone, 2026-10-17.) The term is nonzero (2026-10-10): `appendEntry`
+stamps the self-acknowledgement with it (a candidate's term, which `stepCandidate` has
+from the winning `MsgVoteResp`). -/
+abbrev raft.becomeLeader.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role ≠ .follower →
+  -- (2026-10-25, T-M M2c) a candidate's (`stepCandidate`): a leader need not be a voter
+  s.role ≠ .leader →
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
+  {{ (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { becomeLeader id s with prvals := pvs } ∗
+      -- `Match` is what `reset` left: `BecomeReplicate` and the `RecentActive` store do
+      -- not move it, and `appendEntry` does not touch a `Progress`
+      ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

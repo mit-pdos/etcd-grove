@@ -7,8 +7,8 @@ afterwards, only for the crash part, to check whether my new findings were alrea
 them was.
 
 Scope:
-- `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/{membership,snap,v2stats,v3alarm,v3compactor,v3election,v3lock,rafthttp}`;
-- `Spec/go_etcd_io/etcd/server/v3/{storage (top level), storage/wal, config, features}`;
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/{membership,snap,v2stats,v3alarm,v3compactor,v3election,v3lock,rafthttp}`;
+- `SpecPlan/Spec/go_etcd_io/etcd/server/v3/{storage (top level), storage/wal, config, features}`;
 - the crash parts of `etcdserver/ApiBoot.lean`;
 - the snippets `examples/specreq/{etcdserverboot,rafthttp}`.
 

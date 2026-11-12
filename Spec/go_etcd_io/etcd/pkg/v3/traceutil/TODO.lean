@@ -1,48 +1,38 @@
 /-
-## `traceutil.TODO()`
-
-**Users.** mvcc's views and range deleter (`kv_view.go:31,40,47`, `kvstore.go:117`), the server's
-lessor recovery (`server.go:1087`), `Get` of a context without a trace. Snippet: `examples/specreq/pkgleaves/trace.go`
-(`ReqMvccTodoTrace`).
-
-**Proof sketch.** Allocates `&Trace{isEmpty: true}`: its fields slices are `nil` (`fieldsOwn` of
-the nil slice), `lg` nil; `traceEmpty` is the `isEmpty` field's discarded points-to.
-
-**Changes.** From `specs-ref`'s `TODO.lean` (`ownTrace t true`): the emptiness split off as the
-persistent `traceEmpty`.
-
-**Margin.** None.
+`traceutil.TODO` (`trace.go`: `&Trace{isEmpty: true}`). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
-public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace TraceUtil
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- **A fresh empty trace**, the caller's. -/
-def TODO.spec : Prop :=
+/-- `traceutil.TODO()` returns a fresh trace, owned (an empty one, used where no trace is
+wanted). -/
+abbrev traceutil.TODO.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil }}
-    (App (Val (@! go_etcd_io.etcd.pkg.v3.traceutil.TODO)) (Val #()))
-  {{ (t : Loc), RET #t; traceOwn t ∗ traceEmpty t true }}
+    (App (Val (@! traceutil.TODO)) (Val #()))
+  {{ (t : Loc), RET #t; ⌜t ≠ null⌝ ∗ traceutil.ownTrace t true }}
 
 end spec
-end TraceUtil
+
 end EtcdGrove
 end Perennial

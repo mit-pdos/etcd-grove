@@ -1,16 +1,11 @@
 /-
-## `bucket.String()`
-
-**Users.** The backend (4a: a `backend.Bucket`'s `ID`, `Name`, `IsSafeRangeBucket`; `String` in its
-logs), the package's `init` (`IsSafeRangeBucket`, `Name`). **Proof sketch.** A field read (`String`:
-`string(b.Name())`, a copy of the read-only name). **Changes.** From `specs-ref`'s
-`bucket__String.lean`: over `bucketIs`. **Margin.** None.
+`bucket.String` (`bucket.go`). `b.String()`: its name's bytes as a string (`string(b.Name())`).
+Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.schema.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 
 @[expose] public section
 
@@ -18,25 +13,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Schema
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage go_etcd_io.etcd.server.v3.storage.schema
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- The bucket's name, as a string. -/
-def bucket.String.spec : Prop :=
-  ∀ (b : Bkt) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ bucketIs b v }}
-    (App (Val (v @!! go_etcd_io.etcd.server.v3.storage.schema.bucket.ty @!! go!"String")) (Val #()))
-  {{ RET #b.name; True }}
+/-- `b.String()`: its name's bytes as a string (`string(b.Name())`). -/
+abbrev schema.bucket.String.spec : Prop :=
+  ∀ (b : bucket) (s : GoString) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ b.name' ↦*{dq} s }}
+    (App (Val (b @!! bucket.ty @!! go!"String")) (Val #()))
+  {{ RET #s; b.name' ↦*{dq} s }}
 
 end spec
-end Schema
+
 end EtcdGrove
 end Perennial

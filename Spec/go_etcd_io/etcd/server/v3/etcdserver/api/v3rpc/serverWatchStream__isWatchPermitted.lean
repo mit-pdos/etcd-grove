@@ -1,45 +1,27 @@
 /-
-`(*serverWatchStream).isWatchPermitted(wcr)` (`watch.go`): the permission check of a create.
-
-**Users.** `recvLoop` (`watch.go:289`), on each create with a non-negative start revision, its key
-already normalized (`"\x00"` for an empty one) and its range end as received.
-
-**Proof sketch.** `sws.gRPCStream.Context()` (`srvWatchStreamAt_context`: a context with
-`srvCtxPrin ctx who`); `sws.ag.AuthInfoFromCtx(ctx)` (`ag` the member as `AuthGetter`,
-`watchMemberAt`'s triple, 2c over 3d: an error, or `nil`, or an `*AuthInfo` naming `who`'s user
-with its token's auth revision; with `ClientCertAuthEnabled` and no token, `AuthInfoFromTLS`'s:
-the TLS peer's CN, which `srvCtxPrin` must then name, `req/go_etcd_io_etcd_server_v3_auth.md`); `nil` is replaced by `&auth.AuthInfo{}` (no user, revision `0`);
-`sws.ag.AuthStore()` (the member's auth store), `IsRangePermitted(info, wcr.Key, wcr.RangeEnd)`
-(3d, with the thread token as the store's reader slot: `nil` only if a reached state `σa` has auth
-off, or has `info`'s user, of the root role or with read permission over the range: `σa.permits
-who [(.read, ⟨key, end⟩)] []`, the model's `KeyRange.mem` reading `"\x00"` as from-key as
-`rangePermCache` does). `req/go_etcd_io_etcd_server_v3_auth.md` and
-`req/go_etcd_io_etcd_server_v3_etcdserver.md`, `## from 2b`.
-
-**Changes** from `specs-ref`'s file: the auth store's reader resource (`r.srv.E.RD`), the lower
-bound check (`srvAuthLb`), the published-index bound `n` (`authPubLbM`) and the apply package's
-class (`apply.classResFrom`, `principalBoundI`, `applyErrIs`) replaced by the cluster's model: a
-reached state `σa` that permits the stream's principal (`etcdLb γ σa`, `State.permits`), one
-statement for auth on and off; the key-length premise (`k.length < 2 ^ 63 - 1`) dropped (a slice's
-length fits by construction); the thread token in place of the reader resource.
-
-**Margin.** A refusal's error is not classified here (`recvLoop` maps it with `errors.Is`, any
-error being one of auth's or not).
+`v3rpc.serverWatchStream.isWatchPermitted` (`watch.go`). Lean-first (no Rocq counterpart); the
+vocabulary is `v3rpc/InvWatchStream.lean` and `v3rpc/InvWatch.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchInternal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.api.v3
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -47,27 +29,41 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`sws.isWatchPermitted(wcr)`**: `nil` only if a state the cluster reached permits the stream's
-principal to read the range `[Key, RangeEnd)`. -/
-def serverWatchStream.isWatchPermitted.spec : Prop :=
-  ∀ (sws : Loc) (γ : EtcdModel.Cluster) (who : Principal) (st : GoInterface) (g : WatchStreamNames)
-    (wcr : Loc) (ks es : GoSlice) (k e : GoString) (dk de : DFrac),
+/-- **`sws.isWatchPermitted(wcr)`** with the auth store's reader resource: the auth info of the
+stream's context, then the auth store's `IsRangePermitted` of the request's range: an error the
+apply package's `applyErrIs` describes (`nil`: permitted). 2026-10-23 (auth plan A1): permitted
+only with, for some auth info (the stream's context's, or the empty one), that info's read
+permission class of the watch's range (`apply.classRes`, with auth on: `classOk`).
+With auth on, a passed check's principal is moreover the anonymous one or bound to the request's
+token (`principalBoundI`; the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec).
+G2 (2026-10-30): at a bound `n` on the auth store's published index (`authPubLbM`), with the store's
+lower-bound check (`srvAuthLb`, as `Range`'s), the class is at states no older than `n`
+(`classResFrom`); at `n = 0` it is the plain class (`classResFrom_zero`). -/
+abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (wcr : Loc) (ks es : GoSlice) (k e : List w8)
+    (dk de : DFrac) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      swsAt sws γ who st g ∗ threadTok ∗
-      wcr.[etcdserverpb.WatchCreateRequest, go!"Key"] ↦{dk} ks ∗ ks ↦*□ k ∗
-      wcr.[etcdserverpb.WatchCreateRequest, go!"RangeEnd"] ↦{de} es ∗ es ↦*□ e }}
+      v3rpc.swsIs sws r Up Dn st ci cd ∗ r.srv.E.RD ∗
+      srvAuthLb r.srv.s r.srv.E ∗ □ auth.authPubLbM r.srv.E.authMode n ∗
+      structFieldRef etcdserverpb.WatchCreateRequest go!"Key" wcr ↦{dk} ks ∗ ks ↦*□ k ∗
+      structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" wcr ↦{de} es ∗ es ↦*□ e ∗
+      ⌜k.length < 2 ^ 63 - 1⌝ }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"isWatchPermitted"))
       (Val #wcr))
-  {{ (err : GoInterface), RET #err; threadTok ∗
-      wcr.[etcdserverpb.WatchCreateRequest, go!"Key"] ↦{dk} ks ∗
-      wcr.[etcdserverpb.WatchCreateRequest, go!"RangeEnd"] ↦{de} es ∗
-      (⌜err ≠ GoInterface.nil⌝ ∨
-       (⌜err = GoInterface.nil⌝ ∗ ∃ σa : State, etcdLb γ σa ∗
-          ⌜σa.permits who [(.read, { key := k, rangeEnd := e })] []⌝)) }}
+  {{ (err : GoInterface), RET #err; r.srv.E.RD ∗
+      structFieldRef etcdserverpb.WatchCreateRequest go!"Key" wcr ↦{dk} ks ∗
+      structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" wcr ↦{de} es ∗
+      applyErrIs err ∗
+      (∀ _ : err = GoInterface.nil, ∃ info,
+        apply.classResFrom r.srv.E.authMode n info [(k, e, auth.PermType.read)] ∗
+        □ (⌜r.srv.E.authMode.isOn = true⌝ →
+          principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok ci) info)) }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

@@ -1,33 +1,15 @@
-/-
-## `node.Advance()`
+/- Lean-first (no Rocq counterpart).
 
-**Users.** etcd's `raftNode.start` (`raft.go:347`: after the WAL save, the `MemoryStorage` writes,
-and the wait for the batch's conf changes to be applied, `notifyc`); the examples' run loops after
-applying (`kvdurable/kv.go:511`). Snippet: `readyloop.go` (`ReqReadyLoop`).
+## `node.Advance`
 
-**Proof sketch.** Send on `advancec`: at the rendezvous (the channel's handshake, the run
-goroutine's `nodeLoop` holding `rawNodeAt`), R2's `rawNodeAt_advance` with the client's resources
-gives the post (the driver, `appliedLb` at the delivered log: R3's floor published at once, the view
-wand) to the sender and `rawNodeAdv` to the run goroutine, which then calls `RawNode.Advance` (the
-steps queued at `acceptReady`: the storage-append and apply responses; a snapshot's configuration
-takes effect in the tracker, `appliedSnap`) concurrently with the returned caller; until those steps
-end the struct is not idle (`coreIdle`), and `node.run` steps nothing else. Or `done`.
-(Verify-round, A4 P3: the post had no source at the return when it came from the closing.)
-
-**Changes.** The storage's receipt is `readyStor` with nothing left (was `advReceipt`); the snapshot's
-batch is the driver's `lastSnap` (was the driver's `handling`); the conf entries not applied by
-the view must have been decided skip, as before (`issues/raft-advance-before-applyconfchange.md`).
-
-**Margin.** After a stop nothing moves. (Rounds 1-2) After a snapshot, the client names the view's
-point: any committed `a ≥` the snapshot's index whose configuration the snapshot lists (it knows
-which from its own record of the snapshot, `snapsMade`; etcd takes its consistent index); the
-entries below it are not applied again.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.Advance.specRaw`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section
 
@@ -35,38 +17,59 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [ctx_sem : context.Assumptions]
 
-/-- **Acknowledges the batch entered**: its storage writes done and its conf changes applied (or
-decided skip). The node's applied index moves to the delivered log, and a snapshot's configuration
-becomes the view's. -/
-def node.Advance.spec : Prop :=
+/-- **`node.Advance()` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
+`isCluster`, `InvNodeRule.lean`): the driver, done with a `Ready`, hands it back; the loop is idle
+again; (2026-10-29, stage U9a) or the node stopped first (`nodeStopped`), the loop idle as well,
+nothing else promised. Premises of the snapshot path, all of what the client has from the `Ready`
+(`readySnap`): the snapshot's certificate and its index the length of its committed log. Every conf
+entry of the committed log delivered is applied (the loop's A1 at `run`'s `RawNode.Advance`; the
+conf-change decision switch: or decided `.skip`, `skippedIn`; raft-final, 2026-10-29, the design's
+A1: after a `Ready` without a snapshot only).
 
-  ∀ (n : Loc) (γ : Cluster) (id : w64) (st : Driver) (k : Nat) (v : ConfView),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ id ∗ nodeDriver n γ st ∗ readyStor n none k [] ∗ nodeConf n γ v ∗
-      (match st.lastSnap with
-       | none => confSkipped γ st.delivered v.applied st.delivered.length
-       | some _ => iprop(True)) }}
-    (App (Val (n @!! go.GoType.PointerType go_etcd_io.raft.v3.node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ { st with lastSnap := none } ∗
-      ((appliedLb n st.delivered.length ∗
-        match st.lastSnap with
-        | none => nodeConf n γ v
-        | some s => (∀ a m, confAt γ a m -∗ ⌜uint.nat s.index ≤ a ∧ s.conf.Is m⌝ -∗
-            |={⊤}=> nodeConf n γ ⟨a, m⟩)) ∨
-       (nodeStopped n ∗ nodeConf n γ v)) }}
+(U8 v2, 2026-10-29, the frozen design's §3) The storage part: the `Ready`'s batch back
+(`advReceipt`: a frozen prefix within the committed log delivered and an owned rest, with the end;
+nothing for no entries), or after a snapshot `Ready` the storage compacted at the snapshot with its
+dummy and the batch after it (`snapReceipt`); the post: raft's applied index has reached the
+committed log delivered (`nodeAppliedLb`, the snapshot's index after a snapshot `Ready`). (Until U8
+v2 the old contract's receipts and `storFloor`/`storTermsAt`; until then also the static cluster's
+`node.Advance.spec` and the dynamic one's `node.Advance.dynamicSpec`, dropped in U8 v2 ahead of U9.)
+(2026-11-01, durability stage I-4: `nodeAppliedLb` of the storage's key, `st.key`.) -/
+abbrev node.Advance.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
+    (L : Option SnapLoan) (v : ConfigView),
+  st.handling = some (es, L) →
+  (∀ l, L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗ isNode n γ N id ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage st.delivered.length es L ∗ nodeConfig n γ N v ∗
+      -- (raft-final, 2026-10-29, the design's A1, review 1's H1) the conf entries skipped only after a
+      -- `Ready` without a snapshot (after one, the configuration is the snapshot's, `confAt`); until
+      -- then after both
+      (match L with
+       | none => skippedIn γ st.delivered v.applied st.delivered.length
+       | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
+      nodeAppliedLb γ st.key st.delivered.length ∗
+      match L with
+      | none => nodeConfig n γ N v
+      | some l => ∃ m : Membership,
+          nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
+          confAt γ (uint.nat l.snap.Metadata'.Index') m ∗
+          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∨
+    -- (2026-10-29, stage U9a) the node stopped: the loop idle again
+    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

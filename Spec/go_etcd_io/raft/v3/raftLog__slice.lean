@@ -1,26 +1,15 @@
 /-
-## `(*raftLog).slice(lo, hi, maxSize)` (internal)
+Port of election_proof/spec_raftLog__slice.v (857d09190).
 
-**Users**: `entries`, `nextCommittedEnts`, `scan`. Snippet `raftlog/reads.go`.
-
-**Proof sketch**: `mustCheckOutOfBounds` (its `ErrCompacted`); `lo == hi`: `nil`. All unstable:
-`limitSize(unstable.slice(lo, hi))`, capped. Else `Storage.Entries(lo, min(hi, offset), maxSize)`
-through `isStorage` (`ErrCompacted` returned, below the floor; `ErrUnavailable` impossible: the
-storage holds `[σ.off+1, stable]` and `lo` is in it), a non-empty prefix of `stored`'s (the
-invariant); if it is short or reaches the size, it is the answer; else the unstable part
-(`limitSize`), `entsSize`, and `extend` (allocating: the storage's slice has no spare capacity, R1's
-contract, requested; the sum is below `2^63`, the premise).
-
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__slice.lean`: over `LogState`; the `2^63` premise is new (the old
-proof left `extend`'s `len + len` to an unproved bound): the memory limitation of Perennial's slices.
-
-**Margin**: the size limit is not stated.
+Lean notes:
+* The return `(#s, #interface.nil)` is `PairV #s #interface.nil`;
+  `Z.of_nat (length es)` is `(es.length : Int)`; `` `prefix_of` `` is `<+:`.
+* `plog_from` is `plogFrom` (`Plog.lean`, imported through `InvRaftPhys`; the Rocq
+  file does not `Require` `plog` either).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -28,29 +17,75 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A prefix of the entries `[lo, hi)`, non-empty if the range is (or `ErrCompacted`). -/
-def raftLog.slice.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (lo hi mx : w64),
-  uint.nat lo ≤ uint.nat hi → uint.nat hi ≤ ls.lastIndex + 1 → uint.nat hi - uint.nat lo < 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"slice")) (Val #lo)) (Val #hi)) (Val #mx))
-  {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); raftLog l ls ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ es, entriesRO sl (uint.nat lo) es ∗
-          ⌜es <+: ls.range (uint.nat lo) (uint.nat hi) ∧ (uint.nat lo < uint.nat hi → es ≠ [])⌝) ∨
-       (errIs go_etcd_io.raft.v3.ErrCompacted err ∗ ⌜uint.nat lo ≤ ls.compactFloor⌝ ∗ logCompactedLb l (uint.nat lo))) }}
+/-- `l.slice(lo, hi, maxSize)`: a non-empty prefix of the log entries at `[lo, hi)`,
+cut to roughly `maxSize` bytes (`log.go:497`).
+
+Stated at the log's state `ls`: it calls `mustCheckOutOfBounds` (hence
+`firstIndex`/`lastIndex`) and reads the unstable suffix and the `Storage` directly. The
+range premise makes every failure path dead: `mustCheckOutOfBounds` returns `nil`,
+`Storage.Entries` cannot return `ErrCompacted`/`ErrUnavailable` (the contract in
+`InvStorage.lean` says so on this range), so the `Panicf` and the `panic` are
+unreachable, and `lo < hi` rules out the empty early return.
+
+The result **aliases the log** in two of the three cases (a sub-slice of
+`unstable.entries`, or one the `Storage` handed out); in the third (a range spanning
+the stable/unstable boundary) it is a fresh slice from `extend`. In every case it is
+returned **read-only and for good**, `entsRO s es`, and the log comes back unchanged: no
+entry of the log is ever written again once it is in it -- `unstable` never writes in
+place (`ownUnstable`, `InvRaftlog.lean`) and `Storage` promises the same (`isStorageD`'s
+`Entries`, `InvStorage.lean`) -- so there is nothing to give back. `maybeSendAppend`
+relies on it: it puts the result in a `MsgApp`, which `r.msgs` keeps, and reads it again
+(`payloadsSize`) after `r.send`. (Until 2026-09-29 the result was *lent*, and the log
+came back "on loan of that page", `logstate.page`.)
+
+What the result *is* is stated only as far as `scan` and its callers need: non-empty,
+at most `hi - lo` entries, every one an entry of the log, a prefix of the log from `lo`.
+That is enough for `scan` (which, since 2026-10-13, hands its callback each page's position
+in the scanned range, for `hasUnappliedConfChanges`). If a later caller needs the indices -- `maybeSendAppend` will --
+strengthen this triple rather than adding a second one.
+
+(D19i part 1, 2026-10-18) The application may have compacted the storage up to the floor
+raft published (`LogState.fl`): a range starting at or below it may answer `ErrCompacted`
+(from `mustCheckOutOfBounds` or `Storage.Entries`), as Go does; above it the error is
+impossible, which is where every panicking caller reads (`nextCommittedEnts` from
+`applying + 1`, `hasUnappliedConfChanges` from `applied + 1`). -/
+abbrev raftLog.slice.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (lo hi maxSize : w64),
+  uint.Z ls.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
+    uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+      + (ls.uents.length : Int) + 1 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"slice"))
+      (Val #lo)) (Val #hi)) (Val #maxSize))
+  {{ (s : GoSlice) (es : List EntryM) (err : GoInterface),
+      RET (PairV #s #err);
+      ownRaftLog l ls ∗
+      ((⌜err = interface.nil⌝ ∗ entsRO s es ∗
+        ⌜es ≠ [] ∧
+          (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
+          (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
+          -- the log's entries at `[lo, lo+1, ...]`, cut short by `maxSize`
+          es <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo⌝ ∗
+        -- no spare capacity anyone else owns (2026-10-05): every exit re-caps
+        -- (`ents[:len:len]`), returns `Storage.Entries`' capped slice, or `extend`s into a
+        -- fresh one -- so the caller may hand the slice on where its capacity is demanded
+        -- (`Step`'s `Hents_cap`, for `Advance`'s `MsgStorageApplyResp`)
+        ownSliceCap Loc s (DFrac.own 1)) ∨
+       -- (D19i part 1) `ErrCompacted`: `lo` at most the floor, the storage compacted past it
+       (⌜s = slice.nil ∧ uint.Z lo ≤ uint.Z ls.fl⌝ ∗ globalAddr ErrCompacted ↦□ err ∗
+        storPast ls.storage (uint.Z lo))) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

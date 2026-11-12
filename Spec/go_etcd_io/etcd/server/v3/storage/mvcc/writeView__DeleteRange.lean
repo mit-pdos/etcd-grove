@@ -1,14 +1,9 @@
 /-
-`(*writeView).DeleteRange(key, end)` (`kv_view.go:46`): `rv.kv.Write(traceutil.TODO())`, its
-`DeleteRange`, its `End` (deferred). Internal: the body of the store's promoted `DeleteRange`
-(`KV.DeleteRange.contract`). Proof sketch: as `writeView.Put`, with `Txn.DeleteRange.contract` (the
-range's present keys `ds` of `σ.kv.store`, the outer update's `∀∀ ds` instantiated at them).
-
-**Changes** from `specs-ref`'s file: `KV.DeleteRange.contract`'s statement at the view's store.
+`writeView.DeleteRange` (kv_view.go). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -16,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,30 +21,43 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `KV.DeleteRange`'s behaviour for the store the view writes. -/
-def writeView.DeleteRange.spec : Prop :=
-  ∀ (wv : Loc) (kv : GoInterface) (γ : MvccName) (γl : Lease.Names) (key endk : GoSlice)
-    (kk e : Bytes) (dk de : DFrac) (n : Nat) (ls : Lease.LessorState) (q : Qp) (B : MvccStorage)
-    (Pk Pre Q' Post : IProp GF) (f : GoFunc) (Q : MvccState → List Key → IProp GF),
+/-- `wv.DeleteRange(key, end)`: a write transaction deleting the range, committed if it
+deleted something: the keys deleted (`delKeys` of the committed log `ilog` the transaction
+found) and the revision; the range's keys fit a revision (trivially, for one key). Under the
+batch lock, by the critical-section contract (`csContract`). For a store without watchers
+(`γ.watchQ = false`, unit W-K: the watchable store replaces the views). (Unit T3, L2b, 2026-10-25) The lease owner's item
+map `I` is that of every log the store certifies (the caller does not know which log the
+transaction finds: satisfiable by a store whose keys never had a lease, `I = ∅`); after, the
+committed state's. (M4, track B, 2026-11-06) The commit's ghost step is the caller's
+(`endCb`, at the committed log the transaction found and its compaction revision), the frozen
+state excluded by the caller's `G` (`storeTxnWrite.End`'s). -/
+abbrev mvcc.writeView.DeleteRange.spec : Prop :=
+  ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
+    (key endk : GoSlice) (k e : GoString) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+    (G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      wv.[writeView, go!"kv"] ↦□ kv ∗ isMvcc kv γ ∗ mvccLessorIs γ γl ∗ mvccReaders γ 1 ∗
-      key ↦*{dk} kk ∗ endk ↦*{de} e ∗ Lease.lessorState γl n ls ∗
-      mvccBackend γ q B Pk ∗ hookIs B f ∗ Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗
-      AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅
-        <{ ∀∀ (ds : List Key), ⌜σ.pending = [] ∧ rangeKeys σ.kv.store (mrange kk endk e) ds⌝ ∗
-            mvccState γ (σ.notify (ds.map .delete)) ∗
-            ⧖ (evCount (σ.kv.commit (ds.map .delete))), COMM
-            AU <{ ∃∃ (σ' : MvccState), mvccState γ σ' }> @ ⊤ \ ↑mvccN, ∅
-              <{ ⌜σ' = σ.notify (ds.map .delete)⌝ ∗ mvccState γ σ'.commitPending,
-                 COMM Q σ ds }> }> }}
+      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.storeWT γ ∗
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
+      endk ↦*□ e ∗ lease.leaseOwn γ.leases L I ∗
+      □ (∀ ilog : mvcc.Log, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
+      ⌜γ.watchQ = false⌝ ∗
+      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗
+      (∀ (ilog : mvcc.Log) (crev : Int),
+        mvcc.endCb γ ilog ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del) crev (mvcc.slotY γ ilog) R) }}
     (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"DeleteRange")) (Val #key))
       (Val #endk))
-  {{ (nd rev : w64), RET (PairV #nd #rev); mvccReaders γ 1 ∗ mvccBackend γ q B Pk ∗ Post ∗
-      key ↦*{dk} kk ∗ endk ↦*{de} e ∗
-      ∃ (σ : MvccState) (ds : List Key) (n' : Nat), Q σ ds ∗ Lease.lessorState γl n' (delsLs ls ds) ∗
-        ⌜nd = W64 ds.length ∧ rev = W64 (if ds = [] then σ.rev else σ.rev + 1)⌝ }}
+  {{ (n rev : w64), RET (PairV #n #rev); mvcc.storeReader s γ ∗ Post ∗ G ∗ R ∗
+      ∃ ilog : mvcc.Log,
+        mvcc.idxCert γ.idx (mvcc.commitLog ilog
+          ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del)) ∗
+        lease.leaseOwn γ.leases L
+          (mvcc.pendItems ilog ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del)) ∗
+        ⌜n = W64 ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).length : Int) ∧
+          rev = W64 ((mvcc.writeRev ilog
+            ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del) : Nat) : Int)⌝ }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

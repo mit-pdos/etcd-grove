@@ -1,15 +1,10 @@
 /-
-`ringBuffer.moduloIndex` (`cache/ringbuffer.go`), an internal helper: the spec mirrors the code.
-Users: the ring buffer's own methods, and no caller in the cache (kept: verified before).
-Proof sketch: as the old proof (`specs-ref/Proof/go_etcd_io/etcd/cache/v3/ringBuffer__moduloIndex.lean`), over
-`ownRingBuffer`'s realization (`Internal.lean`'s header).
-Changes: restated over `Internal.lean`'s opaque `ownRingBuffer` and its transparent pure model (the
-same definitions); otherwise unchanged.
-Margin: none known.
+`ringBuffer[T].moduloIndex(index)`. Lean-first (no Rocq counterpart); see
+`InvRingBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvRingBuffer
 
 @[expose] public section
 
@@ -17,14 +12,13 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
 open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -35,7 +29,7 @@ overflow a Go `int`.
 Stated on the struct points-to, not on `ownRingBuffer`: the result depends on nothing
 else, and the caller `at` has already loaded `r.buffer` when it calls this, so it needs
 the struct back unchanged (an `ownRingBuffer` postcondition would hide which buffer). -/
-def ringBuffer.moduloIndex.spec : Prop :=
+abbrev ringBuffer.moduloIndex.spec : Prop :=
   ∀ {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'] (T : go.GoType)
     [IntoValTyped (GF := GF) T' T]
     (r : Loc) (rb : ringBuffer T') (dq : DFrac) (index : w64),
@@ -48,6 +42,5 @@ def ringBuffer.moduloIndex.spec : Prop :=
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

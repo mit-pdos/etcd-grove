@@ -1,24 +1,22 @@
 /-
-`(*watcher).closeStream(wgs)`: `run`'s teardown: under `mu`, close `donec` (once: `wgsDoneTok`, publishing `closeErr`), cancel, drop the map entry. Users: `run`'s deferred function.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-verify-round (W3): `watcherHandle` records its client `c`.
-**Margin**: mirrors the code.
+`(*clientv3.watcher).closeStream(wgs)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,16 +24,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `w.closeStream(s)`: `s` closed and forgotten. -/
-def watcher.closeStream.spec : Prop :=
-  ∀ (w c s : Loc) (γ : Cluster) (who p : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watcherHandle w c γ who ∗ wgsAt s w γ p ∗ wgsDoneTok s γ p }}
-    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"closeStream")) (Val #s))
+/-- `w.closeStream(wgs)` (by `run`, once, its close error published): closes the stream's `donec`,
+cancels its context and removes its key from the streams map (unless the watcher is closed). -/
+abbrev watcher.closeStream.spec : Prop :=
+  ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isClientWatcher V G.w ∗
+      isWGS V G callSl ∗ ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗
+      closeErrPub G.wgs }}
+    (App (Val (G.w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"closeStream")) (Val #G.wgs))
   {{ RET #(); True }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

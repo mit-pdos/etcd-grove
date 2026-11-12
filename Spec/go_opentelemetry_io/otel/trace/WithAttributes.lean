@@ -1,40 +1,37 @@
 /-
-## `trace.WithAttributes(attrs...)`: assumed
-
-**Users.** The server's spans (`v3_server.go`, `Tracer.Start`'s options). **Assumed**: otel's
-`trace/config.go` wraps the slice in an `attributeOption` (no copy, no check), total.
+`trace.WithAttributes`: the trust boundary (`go.opentelemetry.io/otel/trace` is names-only). Lean-first (no Rocq counterpart); the request path
+(`notes/decisions.md`, "The request path").
 -/
 module
 
-public import Spec.go_opentelemetry_io.otel.trace.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace OtelTrace
 
-open Iris Iris.BI
+open Iris Iris.BI 
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_opentelemetry_io.otel.trace.Assumptions]
 
-/-- `trace.WithAttributes(attrs...)` returns an option. -/
-def WithAttributes.spec : Prop :=
-  ∀ (attrs : GoSlice),
+/-- `trace.WithAttributes(kvs...)`: a span start option (the attributes of a trace span: no
+effect the model sees); it returns. -/
+abbrev trace.WithAttributes.spec : Prop :=
+  ∀ (kvs : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace }}
-    (App (Val (@! go_opentelemetry_io.otel.trace.WithAttributes)) (Val #attrs))
+    (App (Val (@! go_opentelemetry_io.otel.trace.WithAttributes)) (Val #kvs))
   {{ (o : GoInterface), RET #o; True }}
 
 end spec
-end OtelTrace
+
 end EtcdGrove
 end Perennial

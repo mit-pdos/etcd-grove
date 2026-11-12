@@ -1,30 +1,21 @@
 /-
-`(*lessor).initAndRecover()` (`lessor.go:808`), an internal helper's spec (mirrors the code).
-**Users**: `newLessor`, `Recover`, under `le.mu` (or before the lessor is shared), with fresh maps.
-**Proof sketch**: `le.b.BatchTx()`, `LockOutsideApply` (`beOk`), 4b's `UnsafeCreateLeaseBucket`
-(no change: the bucket exists or is created empty) and `MustUnsafeGetAllLeases`
-(`Schema.MustUnsafeGetAllLeases.spec` over `Schema.txRd` and the view of `beLeases ls.be ls.bkt`:
-one fresh `leaseAt p r` per record, each id once, in some order; the map assignments below do not
-depend on the order), `Unlock`; a fresh object per record, its TTL raised to
-`minLeaseTTL`; the notifier's `Init`, `heap.Init` of the checkpoint heap; `ForceCommit()`.
-**Changes** (from `specs-ref`'s `lessor__initAndRecover.lean`, the tracked buckets): over
-`lessorFields` and 4b's `beLeases` (inside it). **Margin**: none.
+`(*lease.lessor).initAndRecover()` (`lessor.go:808`). Lean-first (no Rocq counterpart); the
+lease-expiry plan's S1 (2026-11-04), for `Recover`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Internal
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorRecover
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease go_etcd_io.etcd.server.v3.storage
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,18 +24,41 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- **Load the leases of the backend's bucket** into empty maps (under the lock). -/
-def lessor.initAndRecover.spec : Prop :=
-  ∀ (le : Loc) (c : Cfg) (ls : LessorState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ beOk ls.be ∗
-      lessorFields le c (DFrac.own 1)
-        { ls with leases := fun _ => none, items := fun _ => 0 } }}
-    (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
-      go!"initAndRecover")) (Val #()))
-  {{ RET #(); beOk ls.be ∗ ∃ objs : Int → Loc,
-      lessorFields le c (DFrac.own 1) (LessorState.loaded c ls.be ls.rd ls.bkt objs ls.keys) }}
+/-- **`le.initAndRecover()`** under `le.mu` (its caller, `Recover`, holds the lock and the fields):
+the lessor's `b` the real backend at `be`, its lease map `lm` empty, its minimum TTL `mt`, its
+expiry notifier and checkpoint heap; the backend open, two write-back tokens and a part of the
+tracked buckets `S` containing `lease`, whose `lease` bucket holds the records of `recs`, in key
+order (`bktEnts`, `leaseRecEnc`: what `Grant` writes). `b.BatchTx()`, `LockOutsideApply`,
+`UnsafeCreateLeaseBucket` (present or created empty), `MustUnsafeGetAllLeases` (the records),
+`Unlock` (one token; the part idle after it), then one lease per record into the map, each with its
+TTL raised to `mt` (`recLease`), the notifier and the heap re-initialized, `ForceCommit` (one
+token). The map holds the recovered leases (`recMap`), one per record, with a time receipt of their
+number. -/
+abbrev lease.lessor.initAndRecover.spec : Prop :=
+  ∀ (lp lm np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (mt : w64) (γB : backend.BNames)
+    (P : backend.BParams) (W Pk : IProp GF) (be : Loc) (qo : Qp) (S : GoString → Prop)
+    (r : GMap GoString backend.BktData) (recs : List (w64 × w64 × w64)),
+  S mvcc.leaseName → mvcc.leaseParams P →
+  backend.bktEnts ((r.lookup mvcc.leaseName).getD ∅) = recs.map leaseRecEnc →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+      lF go!"b" lp ↦ (interface.mkOk (go.GoType.PointerType backend.backend.ty) #be : GoInterface) ∗
+      lF go!"leaseMap" lp ↦ lm ∗ lm ↦$ (∅ : GMap w64 Loc) ∗ lF go!"minLeaseTTL" lp ↦□ mt ∗
+      lF go!"leaseExpiredNotifier" lp ↦ np ∗ notifierAt np 1 ∗
+      lF go!"leaseCheckpointHeap" lp ↦ h ∗ queueAt h hx 1 ∗
+      backend.isBackend γB P W Pk be ∗ backend.bOpen γB qo ∗ ownToks γB.wb 2 ∗
+      backend.rbPart γB S r }}
+    (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"initAndRecover")) (Val #()))
+  {{ RET #(); ∃ (ls : List Loc) (h' : GoSlice) (hx' : List (Loc × w64)),
+      ⌜ls.length = recs.length⌝ ∗
+      lF go!"b" lp ↦ (interface.mkOk (go.GoType.PointerType backend.backend.ty) #be : GoInterface) ∗
+      lF go!"leaseMap" lp ↦ lm ∗ lm ↦$ recMap (recs.zip ls) ∗
+      ([∗list] p ∈ recs.zip ls, recLease mt p.1 p.2) ∗ ⧖ recs.length ∗
+      lF go!"leaseExpiredNotifier" lp ↦ np ∗ notifierAt np 1 ∗
+      lF go!"leaseCheckpointHeap" lp ↦ h' ∗ queueAt h' hx' 1 ∗
+      backend.bOpen γB qo ∗
+      backend.rbOwnIn γB S (r.insert mvcc.leaseName ((r.lookup mvcc.leaseName).getD ∅)) }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

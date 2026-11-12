@@ -1,19 +1,10 @@
 /-
-`endpoint.RequiresCredentials` (`client/v3/internal/endpoint/endpoint.go`).
-
-Users: `Client.credentialsForEndpoint`.
-
-Proof sketch: `translateEndpoint` (prefix checks; `mustSplit2` only on strings it checked contain
-the separator: no panic; `url.Parse`, `path.Base`), `schemeToCredsRequirement`: one of three.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/internal/endpoint/RequiresCredentials.lean`.
-
-Margin: which one is not described.
+`endpoint.RequiresCredentials(ep)` (`client/v3/internal/endpoint`, names only; item 5). Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import GeneratedProof.go_etcd_io.etcd.client.v3.internal.endpoint
-public import Spec.PkgInit.go_etcd_io.etcd.client.v3.internal.endpoint
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -21,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Endpoint
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,17 +21,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `RequiresCredentials(ep)`: one of the three requirements. -/
-def RequiresCredentials.spec : Prop :=
+/-- `endpoint.RequiresCredentials(ep)`: one of the three requirements, `CredsOptional` for a
+plain endpoint. -/
+abbrev endpoint.RequiresCredentials.spec : Prop :=
   ∀ (ep : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint }}
     (App (Val (@! go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials)) (Val #ep))
-  {{ (r : w64), RET #r; ⌜#r = go_etcd_io.etcd.client.v3.internal.endpoint.CredsRequire ∨
-      #r = go_etcd_io.etcd.client.v3.internal.endpoint.CredsDrop ∨
-      #r = go_etcd_io.etcd.client.v3.internal.endpoint.CredsOptional⌝ }}
+  {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ ∗
+      ⌜plainEndpoint ep → r = W64 2⌝ }}
 
 end spec
 
-end Endpoint
 end EtcdGrove
 end Perennial

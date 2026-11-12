@@ -29,7 +29,7 @@ restart panics (`etcd-backend-name-lost-restart-panic.md`, found 2026-11-09).
 
 ## Proof
 
-no: bbolt's specs record it in the client-owned state (`Spec/go_etcd_io/bbolt/Model.lean`,
+no: bbolt's specs record it in the client-owned state (`SpecPlan/Spec/go_etcd_io/bbolt/Model.lean`,
 `BoltSt.named`): a generation that starts from no file (or an empty file whose name may not be
 durable: `boltFresh_alloc`) has `named = false`, and then a crash may leave no file, the empty
 database (`BoltSt.recovers`). A client that needs every acknowledged commit durable from the first

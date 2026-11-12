@@ -1,45 +1,54 @@
 /-
-`quotaKVServer.Txn` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.KV/Txn` (the generated `_KV_Txn_Handler`, 3h,
-registered by `v3rpc.Server`); W0's `RemoteKV.*Triple` through grpc and the stub (`examples/specreq/clientv3kv/`, `examples/specreq/v3rpc/kv.go`).
-
-Proof sketch: `qa.check(ctx, r)` (`quotaAlarmer.check.spec`): over the quota, the member raises the `NOSPACE` alarm (through raft: an environment step at its apply, 2d's `envUpd`) and the handler fires the caller's update with the refusal `.noSpace` (`Step.refuse`), returning `ErrGRPCNoSpace`; else the wrapped `KVServer`'s `Txn` (`kvServer.Txn.spec` at the `*kvServer` `quotaKVAt` holds).
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/quotaKVServer__Txn.lean`: no `backendUnderQuota` premise (the refusal is an answer).
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Margin: none.
+`v3rpc.quotaKVServer.Txn` (`v3rpc/quota.go`; unit P3b). Lean-first (no Rocq counterpart); the
+vocabulary is `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvQuota.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `quotaKVServer.Txn(ctx, r)` meets the contract of `/etcdserverpb.KV/Txn`. -/
-def quotaKVServer.Txn.spec : Prop :=
-  ∀ (p : Loc) (kv : GoInterface) (s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Txn")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ quotaKVAt p kv s γ) (etcdUnary γ ep go!"/etcdserverpb.KV/Txn") go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty (srvGate s gq)
+/-- **`q.Txn(ctx, r)`** on a `*quotaKVServer` over a service `kv` whose `Txn` meets `Spec` with
+the resource `S` (`grpcHandlerOkMd`: at the run's metadata, E3zb), for the server `s`: the quota check, then `kv.Txn(ctx, r)`:
+`S` and the check's reader slots (`quotaRd`, as `Put`'s) come back, and on success the response is
+`kv.Txn`'s (at some `m'` with `Φ m'`). -/
+abbrev v3rpc.quotaKVServer.Txn.spec : Prop :=
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (q s : Loc) (kv : GoInterfaceOk)
+    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOkMd #(methods kv.ty go!"Txn" kv.v) S Spec ∗
+      S ∗ v3rpc.quotaRd s ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗
+      Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+    (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
+      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

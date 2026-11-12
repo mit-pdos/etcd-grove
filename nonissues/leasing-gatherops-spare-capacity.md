@@ -21,4 +21,4 @@ Code: [`gatherOps`](https://github.com/etcd-io/etcd/blob/a2e3642bcd2cca3a802503c
 ## Proof
 
 no: the leasing contract takes the precondition (`opCapOk`, `opsCapOk`,
-`Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`), which the proxy's slices meet.
+`SpecPlan/Spec/go_etcd_io/etcd/client/v3/leasing/Api.lean`), which the proxy's slices meet.

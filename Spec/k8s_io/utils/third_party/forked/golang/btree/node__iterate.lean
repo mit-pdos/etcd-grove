@@ -1,15 +1,7 @@
-/-
-`node.iterate` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
-Users: the package's own methods (internal helper: the spec mirrors the code).
-Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/node__iterate.lean`),
-over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
-Changes: restated over the opaque vocabulary of `Api.lean` and `Internal.lean` (the model
-functions renamed `mLookup`, `mInsert`, `mDelete`); otherwise unchanged.
-Margin: none known.
--/
 module
-
-public import Spec.k8s_io.utils.third_party.forked.golang.btree.Internal
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Defs
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Model
+public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 
 @[expose] public section
 
@@ -17,14 +9,14 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BTree
+namespace btree
 
 open Iris Iris.BI k8s_io.utils.third_party.forked.golang.btree
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
@@ -37,7 +29,7 @@ The subtree's entries in range, `seg`, continue an iteration over `r` that has v
 `acc`. Every caller with a `start` has `includeStart`, and only `descend` reads `hit`
 (whether an entry was visited already: then none of this subtree has `start`'s key);
 it comes back true exactly if some entry has been visited. -/
-def node.iterate.spec : Prop :=
+abbrev node.iterate.spec : Prop :=
   ∀ {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {T : go.GoType}
     [IntoValTyped (GF := GF) V T] {K : Type} (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) (n : Loc) (t : Tree (V × K))
     (dir : w64) (start stop : optionalItem V) (ks ku : Option K) (includeStart hit : Bool)
@@ -61,6 +53,6 @@ def node.iterate.spec : Prop :=
 
 end spec
 
-end BTree
+end btree
 end EtcdGrove
 end Perennial

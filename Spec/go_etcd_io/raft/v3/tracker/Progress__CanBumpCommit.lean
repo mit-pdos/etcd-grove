@@ -1,16 +1,7 @@
-/-
-## `Progress.CanBumpCommit(i)`
-
-**Users.** `stepLeader`'s `MsgAppResp` (`raft.go:1570`: an empty append to tell the peer the
-commit index): R2.
-
-**Proof sketch.** Field reads. **Changes.** Over the model. **Margin.** None.
--/
+/- Port of election_proof/spec_Progress__CanBumpCommit.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -18,26 +9,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Whether the peer should be told commit index `i`. -/
-def Progress.CanBumpCommit.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV) (i : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"CanBumpCommit")) (Val #i))
-  {{ RET #(P.canBumpCommit i); progressOwn p P }}
+/-- `pr.CanBumpCommit(index)` is a pure test on the `Progress`
+(`tracker.Progress.CanBumpCommit.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`;
+progress.go:189):
+
+    return index > pr.sentCommit && pr.sentCommit < pr.Next-1
+
+One exit, no panic, no call, no write. `pr.Next-1` is `uint64` arithmetic and wraps to
+`2^64-1` at `Next = 0` (the body does not guard it; `ownProgress` does not bound
+`Next`), so the subtraction is `w64` subtraction in `progressCanBumpCommit`
+(`Defs.lean`). -/
+abbrev tracker.Progress.CanBumpCommit.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress) (index : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      "Hpr" ∷ ownProgress pr p }}
+    (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"CanBumpCommit"))
+      (Val #index))
+  {{ RET #(progressCanBumpCommit p index); ownProgress pr p }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

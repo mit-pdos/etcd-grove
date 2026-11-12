@@ -1,24 +1,10 @@
 /-
-## `(*EtcdServer).publishV3(timeout)` (`server.go:1823-1872`)
-
-**Users.** `Start` (its attached goroutine). What it does for clients: the member's name and client
-URLs reach the cluster's members (`EnvStep.publish`, K5) and `ReadyNotify()` closes.
-
-**Proof sketch.** Loop until `stopping` is closed: `raftRequest` (2c) of a `ClusterMemberAttrSet`
-under a timeout context; the apply thread (2d) fires `envUpd`'s publication at its commit when the
-member is still a member (else nothing: the update aborted). On `nil`, `close(s.readych)` with
-`srvPublish` (once), return.
-
-**Changes** (from `specs-ref`'s `EtcdServer__publishV3.lean`): the publication is an environment
-step of W0's model (it was invisible to the old KV-only model).
-
-**Margin.** None for safety.
-
-Changes: verify-round (A7-completeness F1): takes and gives back the goroutine's `threadTok` (`GoAttach` gives it one; `Notifier.Receive`, `Logger`, `raftRequest` take one).
+`(*EtcdServer).publishV3(timeout)` (`server.go`): names-only, one of the goroutines `Start` attaches. Lean-first (the request path's unit 4c).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MonitorsOn
 
 @[expose] public section
 
@@ -26,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,15 +22,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Publishes the member's attributes** until it succeeds or the server stops. -/
-def EtcdServer.publishV3.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster) (tmo : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ∗ srvPublish s ∗ threadTok }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"publishV3")) (Val #tmo))
-  {{ RET #(); threadTok }}
+/-- `s.publishV3(timeout)` returns (names-only: it publishes the member's attributes through raft
+until it succeeds or `stopping` is closed). It proposes, through `s.raftRequest`, only
+`ClusterMemberAttrSet` requests (`server.go`: `req := pb.InternalRaftRequest{ClusterMemberAttrSet:
+…}`), with the permission `srvMonitorPermitM` gives (in either auth mode, `MonitorsOn.lean`, E3zb) (D19c, 2026-10-18, `InvMonitors.lean`; until
+then the contract took only the package's initialization, and its proposals were outside the
+model). On success it closes `s.readych` (`close(s.readych)`), with the right to (`srvReadyCloser`,
+2026-10-23: until then the contract closed a channel it did not own). (2026-11-02, the cluster-rows
+stage: its requests name the server's own id, `s.MemberID()`, `monitorReq lid`.) -/
+abbrev EtcdServer.publishV3.spec : Prop :=
+  ∀ (on : Bool) (s : Loc) (d : _root_.Perennial.time.Duration) (E : apply.AEnv GF) (ρ : ReqNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvMonitorPermitM on s E ρ ∗ srvReadyCloser s }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"publishV3")) (Val #d))
+  {{ RET #(); True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

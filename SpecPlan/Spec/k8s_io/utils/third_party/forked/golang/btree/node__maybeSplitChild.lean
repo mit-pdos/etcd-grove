@@ -1,0 +1,58 @@
+/-
+`node.maybeSplitChild` (`k8s.io/utils/third_party/forked/golang/btree/btree.go`).
+Users: the package's own methods (internal helper: the spec mirrors the code).
+Proof sketch: as the old proof (`specs-ref/Proof/k8s_io/utils/third_party/forked/golang/btree/node__maybeSplitChild.lean`),
+over the realization of the predicates given in `Api.lean`'s and `Internal.lean`'s headers.
+Changes: restated over the opaque vocabulary of `Api.lean` and `Internal.lean` (the model
+functions renamed `mLookup`, `mInsert`, `mDelete`); otherwise unchanged.
+Margin: none known.
+-/
+module
+
+public import SpecPlan.Spec.k8s_io.utils.third_party.forked.golang.btree.Internal
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace BTree
+
+open Iris Iris.BI k8s_io.utils.third_party.forked.golang.btree
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
+
+/-- `(*node[T]).maybeSplitChild(i, maxItems)`: if child `i` is full (`maxItems` items),
+split it at `maxItems / 2`, the middle item moving up to `i`; whether it did. -/
+def node.maybeSplitChild.spec : Prop :=
+  ∀ {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {T : go.GoType}
+    [IntoValTyped (GF := GF) V T] {K : Type} (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (n : Loc) (is : List (V × K))
+    (cs : List (Tree (V × K))) (i maxItems : w64) (cis : List (V × K))
+    (ccs : List (Tree (V × K))),
+  0 ≤ sint.Z i → sint.nat i ≤ is.length → cs[sint.nat i]? = some (.node cis ccs) →
+  (ccs = [] ∨ ccs.length = cis.length + 1) → 0 < sint.Z maxItems →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.utils.third_party.forked.golang.btree ∗ isCow o c f less ∗ ownedNode o c f less (DFrac.own 1) n (.node is cs) }}
+    (App (App (Val (n @!! go.GoType.PointerType (node.ty T) @!! go!"maybeSplitChild")) (Val #i)) (Val #maxItems))
+  {{ (b : Bool), RET #b;
+      if cis.length < sint.nat maxItems then
+        ⌜b = false⌝ ∗ ownedNode o c f less (DFrac.own 1) n (.node is cs)
+      else
+        ⌜b = true⌝ ∗ ∃ e : V × K, ⌜cis[sint.nat maxItems / 2]? = some e⌝ ∗
+        ownedNode o c f less (DFrac.own 1) n
+          (.node (is.take (sint.nat i) ++ e :: is.drop (sint.nat i))
+            (cs.take (sint.nat i) ++
+              .node (cis.take (sint.nat maxItems / 2)) (ccs.take (sint.nat maxItems / 2 + 1)) ::
+              .node (cis.drop (sint.nat maxItems / 2 + 1)) (ccs.drop (sint.nat maxItems / 2 + 1)) ::
+              cs.drop (sint.nat i + 1))) }}
+
+end spec
+
+end BTree
+end EtcdGrove
+end Perennial

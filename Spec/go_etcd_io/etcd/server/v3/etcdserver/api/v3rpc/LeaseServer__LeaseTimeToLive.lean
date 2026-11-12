@@ -1,52 +1,58 @@
 /-
-`LeaseServer.LeaseTimeToLive` (`server/etcdserver/api/v3rpc/`).
-
-Users: grpc's run of `/etcdserverpb.Lease/LeaseTimeToLive` (the generated `_Lease_LeaseTimeToLive_Handler`, 3h,
-registered by `v3rpc.Server`); 1c's `RemoteCallTriple` for the lease RPCs through grpc and the stub (`examples/specreq/clientv3lease/`, `examples/specreq/v3rpc/lease.go`).
-
-Proof sketch: `ls.le.LeaseTimeToLive(ctx, r)` (2c's `EtcdServer.LeaseTimeToLive.spec` at `srvAt s γ ep`, the contract's bound `vi` passed as `srvLeaseLbOpt γ ep vi` and 2c's `srvLeaseFact` given back as the contract's `leaseFact` (the same definition), the update passed on, the principal `reqPrin ctx who tls` from the contract's `mdPrin` (`reqPrin_of_md`)); `ErrLeaseNotFound` becomes the reply `ID`, `TTL = -1` (`ansOutcome`'s case: the update fired with `.err .leaseNotFound`). errors through `togRPCError`; `hdr.fill`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseTimeToLive.lean`: over the contract (was the lease rows' `leaseServerAt` with its own answers).
-verify-round (A6 F1, with server-core's fix): 2c's success reply is `srvHdrReply` (`replyHdrOwn`): `replyHdrOwn_header` gives the `Header` field and a non-`nil` header for `hdr.fill` (`header.fill.spec`), `replyHdrOwn_replyOwn` the reply back.
-
-Round 1: the contract is the member's at `ep` (`etcdContract γ ep`; the lease requests' `leaseFact`); the first way fires no token or learner refusal (`firedAns`: 2c returns an apply-time `ErrUserEmpty`/`ErrAuthOldRevision`/`ErrInvalidAuthToken` unfired, its outcome 2, which this handler sends by the second way); errors reach `togRPCError` with 2c's `srvErrOk`; a read composes with 2c's `SrvCallTriple` (W0's `lo`, rounds 4-6; integration I3: the Api header's "Composition with 2c").
-
-Recheck RR-1: `leaseFact`'s `TimeToLive` row is gated on W0's `soleMember γ` (the cluster never had a member but `ep`'s): an answer of the lessor then gives `leaseViewLb γ ep j` at the table `j ≥ i` it was read from, from 2c's `EtcdServer.LeaseTimeToLive` (requested of server-core: 2c's lease specs give no per-member view yet, for `Grant` and `Leases` either).
-
-Changes: verify-round relay (server-core's RR request 1): takes `srvAt s γ ep` (2c's lease specs do: the lease view is the member's at the endpoint it serves); `leaseFact` is 2c's `srvLeaseFact`.
-
-Changes: verify-round F1 (`verify/F-client-api.md`): `leaseFact`'s `TimeToLive` row is gated on `soleMember γ ∗ peerLeaseServed γ` (2c's, passed through; statement unchanged). S1: the "no per-member view yet" remark above is stale: 2c's `Grant`, `Leases` and `TimeToLive` give `srvLeaseFact` since the recheck.
-
-Margin: none.
+`v3rpc.LeaseServer.LeaseTimeToLive` (`v3rpc/lease.go`; the lease rows at the gRPC level,
+`notes/lease-grpc-plan.md`). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvLeaseRead.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseRead
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `LeaseServer.LeaseTimeToLive(ctx, r)` meets the contract of `/etcdserverpb.Lease/LeaseTimeToLive`. -/
-def LeaseServer.LeaseTimeToLive.spec : Prop :=
-  ∀ (p s : Loc) (γ : Cluster) (ep : GoString) (gq : Qp),
-  HandlerTriple (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive")
-    iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ leaseServerAt p s γ ∗ srvAt s γ ep) (etcdUnary γ ep go!"/etcdserverpb.Lease/LeaseTimeToLive") go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty (srvGate s gq)
+/-- **`ls.LeaseTimeToLive(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
+(`leaseServerAt`), whose lease reads meet the contract `raftLeaseRead s E γl S A.revR`, with the
+contract's per-call resources `S` and the header's revision reader `A.revR`, at a context and the
+lower bounds `n`, `m`, on the request `r`: `s.LeaseTimeToLive(ctx, r)`, `ErrLeaseNotFound`
+(`errors.Is`) turned into a fresh response with `TTL` `-1`, another error through `togRPCError`,
+then the header filled. Everything back, and `leaseTTLOut`: on success the response, about the
+asked lease (its `ID` the request's), with its header filled and the server's verdict (the request authenticated, with `r.Keys` the key check's),
+or the not-found response; on an error `nil`. The request is owned (`r ↦{dq} v`), not the gRPC
+wire model's persistent fields (`pbLeaseGrantRequest.recv`'s form): the stage that links the
+handler to the gRPC server reconciles them. -/
+abbrev v3rpc.LeaseServer.LeaseTimeToLive.spec : Prop :=
+  ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
+    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc)
+    (dq : DFrac) (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ∗ S ∗ A.revR ∗
+      context.isContext ci cd ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+      r ↦{dq} v }}
+    (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive"))
+      (Val #(GoInterface.ok ci))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ A.revR ∗ r ↦{dq} v ∗
+      v3rpc.leaseTTLOut s E γl ci n m v cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

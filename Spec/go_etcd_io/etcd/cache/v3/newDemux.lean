@@ -1,13 +1,9 @@
 /-
-`newDemux` (`cache/*.go`), an internal helper.
-Users: `NewDemux`.
-Proof sketch: allocates the maps, the history ring (`newRingBuffer.spec`, batches by their first event's revision), the notifier; allocates the invariant (nothing registered, not initialized).
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`newDemux(historyWindowSize, resyncInterval)`. Lean-first (no Rocq counterpart); see `InvDemux.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,15 +21,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `newDemux(historyWindowSize, resyncInterval)`: a demux for any cluster, prefix and store, not yet fed. -/
-def newDemux.spec : Prop :=
-  ∀ (γ : Cluster) (pfx : GoString) (s : Loc) (hws : w64) (ri : time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ ⌜0 < sint.Z hws ∧ sint.Z hws ≤ 2 ^ 61⌝ }}
-    (App (App (Val (@! go_etcd_io.etcd.cache.v3.newDemux)) (Val #hws)) (Val #ri))
-  {{ (d : Loc), RET #d; isDemux d γ pfx s ∗ demuxFeed d γ pfx s none }}
+/-- `newDemux(historyWindowSize, resyncInterval)`: an empty demux (`DemuxCore.init`, no
+registrations) with a history of capacity `historyWindowSize`, which must be in
+`(0, 2^61]` (`newRingBuffer`'s bound; Go's caller validates it). Returns the persistent
+`isDemux` (for any certificate `C` of the caller's choice: the stream starts empty), the
+writer's view, the `RWMutex`'s other tokens, and the handles on its notifier `resynced` (ghost
+names `γn`, no notification yet). -/
+abbrev newDemux.spec : Prop :=
+  ∀ (C : DemuxCert GF) (historyWindowSize : w64) (resyncInterval : time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      ⌜0 < sint.Z historyWindowSize ∧ sint.Z historyWindowSize ≤ 2 ^ 61⌝ }}
+    (App (App (Val (@! newDemux)) (Val #historyWindowSize)) (Val #resyncInterval))
+  {{ (d : Loc) (γd : DemuxNames) (γn : NotifierNames), RET #d;
+      isDemux d γd (sint.nat historyWindowSize) C ∗
+      demuxWriter d γd (sint.nat historyWindowSize) C DemuxCore.init ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
+        demuxHandle d γd (sint.nat historyWindowSize) C) ∗
+      notifierLb γn 0 ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        demuxResyncHandle d γn }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

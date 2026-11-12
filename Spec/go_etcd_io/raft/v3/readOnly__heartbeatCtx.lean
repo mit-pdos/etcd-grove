@@ -1,14 +1,11 @@
-/-
-## `(*readOnly).heartbeatCtx()` (internal)
+/- Port of election_proof/spec_readOnly__heartbeatCtx.v (feb5c73d4).
 
-**Users**: `bcastHeartbeat` (`raft.go:725`), `stepLeader`'s `MsgReadIndex` (`raft.go:2164`).
-Mirrors the code. **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/readOnly__heartbeatCtx.lean`.
+Lean notes: Rocq's `u64_le` is `u64Le`, `own_slice_cap w8 sl (DfracOwn 1)` is
+`ownSliceCap w8 sl (DFrac.own 1)`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,26 +13,42 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) `nil` with nothing queued, else the last position, little-endian, in a fresh slice. -/
-def readOnly.heartbeatCtx.spec : Prop :=
-  ∀ (ro : Loc) (rs : ReadOnlyState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ readOnly ro rs }}
-    (App (Val (ro @!! go.GoType.PointerType go_etcd_io.raft.v3.readOnly.ty @!! go!"heartbeatCtx")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; readOnly ro rs ∗
-      sl ↦* (if rs.pending = [] then [] else u64Le (W64 rs.position)) }}
+/-- `ro.heartbeatCtx()` (`readOnly.heartbeatCtx.impl`,
+`Code/go_etcd_io/raft/v3.lean`; `read_only.go:93`):
+
+    if len(ro.unconfirmedReads) == 0 { return nil }
+    pos := ro.confirmedReads + uint64(len(ro.unconfirmedReads))
+    enc := make([]byte, 8)
+    binary.LittleEndian.PutUint64(enc, pos)
+    return enc
+
+No panic. With no pending request the result is `nil` -- under the phase-1 scope
+(`ownRaftMisc`'s `pending = []`) always, which is what `bcastHeartbeat` relies on.
+Otherwise a fresh eight-byte slice, fully owned, holding `readonlyPosition r`
+little-endian (`u64Le`). The object is unchanged. The receiver is a pointer and the
+body reads `ro.unconfirmedReads` through it, so the spec owns the object. -/
+abbrev readOnly.heartbeatCtx.spec : Prop :=
+  ∀ (ro : Loc) (r : ReadOnly),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r }}
+    (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"heartbeatCtx")) (Val #()))
+  {{ (sl : GoSlice), RET #sl;
+      ownReadOnly ro r ∗
+      (⌜r.pending = [] ∧ sl = slice.nil⌝ ∨
+       ⌜r.pending ≠ []⌝ ∗
+       sl ↦* u64Le (readonlyPosition r) ∗
+       ownSliceCap w8 sl (DFrac.own 1)) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,23 +1,22 @@
 /-
-`(*watchGRPCStream).closeSubstream(ws)`: a stopped substream: its channel to a waiting `Watch` (`retc`, unless `outc` is `nil`), then its consumer's channel ended (an error response from a goroutine, `sendCloseSubstream`, if `closeErr` is set and the watch's context not done; else closed), and forgotten. Users: `run`.
-Internal (`WatchInternal.lean`'s vocabulary). **Changes** from `specs-ref`'s file of the same
-name: restated over this branch's vocabulary (the old `isWGS`, `WEnv`, `watchSrvFacts` gone).
-**Margin**: mirrors the code.
+`(*clientv3.watchGRPCStream).closeSubstream(ws)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.WatchInternal
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,21 +24,29 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `s.closeSubstream(ws)`. -/
-def watchGRPCStream.closeSubstream.spec : Prop :=
-  ∀ (s w ws : Loc) (γ : Cluster) (who : Principal) (r : RunM) (q : WsM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wgsAt s w γ who ∗ wgsRun s γ who r ∗ wsClosed ws s γ who q }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"closeSubstream")) (Val #ws))
-  {{ RET #(); ∃ r' : RunM, wgsRun s γ who r' ∗
-      ⌜r'.closeErr = r.closeErr ∧ r'.joined = r.joined ∧
-        (if q.id ≠ -1 then r'.subs = r.subs.filter (fun e => decide (e.1 ≠ q.id)) ∧
-           r'.resuming = r.resuming
-         else r'.subs = r.subs ∧
-           r'.resuming = r.resuming.map (fun x => if x = ws then null else x))⌝ }}
+/-- `w.closeSubstream(ws)` of a substream that stopped (`closingc`'s message: the producer's side
+of its `outc`, its `retc` field), with its `id` and the stream's `closeErr` (an error grpc's
+`status` accepts): sends the substream's channel on its `retc` if it can (with the caller's
+resources, if it never sent it), publishes a canceled response with the close error before closing
+`outc` (in a goroutine, if there is a close error and the watch's context is not done) or closes
+it; then unregisters the substream: from `substreams` if it has an id, otherwise its first place
+in `resuming` set to nil. -/
+abbrev watchGRPCStream.closeSubstream.spec : Prop :=
+  ∀ (V : WEnv GF) (wgs ws : Loc) (id : w64) (e : GoInterface) (dq1 dq2 dq3 : DFrac) (m : Loc)
+    (M : GMap w64 Loc) (s : GoSlice) (l : List Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ closingBody V ws ∗
+      wsF ws go!"id" ↦ id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗ statusErrOk e ∗
+      wgsF wgs go!"substreams" ↦{dq2} m ∗ ownMap m (DFrac.own 1) M ∗
+      wgsF wgs go!"resuming" ↦{dq3} s ∗ s ↦* l }}
+    (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"closeSubstream")) (Val #ws))
+  {{ RET #(); wsF ws go!"id" ↦ id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗
+      wgsF wgs go!"substreams" ↦{dq2} m ∗ wgsF wgs go!"resuming" ↦{dq3} s ∗
+      (if decide (id = W64 (-1)) then iprop(ownMap m (DFrac.own 1) M ∗ s ↦* nilOut l ws)
+       else iprop(ownMap m (DFrac.own 1) (GMap.delete id M) ∗ s ↦* l)) }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

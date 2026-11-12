@@ -1,19 +1,11 @@
 /-
-`(*clientv3.Client).refreshToken` (`client/v3/retry_interceptor.go`).
-
-Users: the unary interceptor (after `shouldRefreshToken`), the retrying stream (unused: see the
-report).
-
-Proof sketch: no token bundle (TLS or no credentials): `nil` (the interceptor then resends: a stale
-auth revision is retried as is); else `getToken`.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/Client__refreshToken.lean`.
-
-Margin: none.
+`c.refreshToken(ctx)` (`client/v3/retry_interceptor.go`; unit P3a). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
 
 @[expose] public section
 
@@ -21,10 +13,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk backoffOk)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,17 +24,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.refreshToken(ctx)`: as `getToken`. -/
-def Client.refreshToken.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (ctx : GoInterface) (p : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCore c γ who ∗ clientReady c ∗ Context.ctxOk ctx ∗ ctxPrin who ctx p }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"refreshToken")) (Val #ctx))
-  {{ (err : GoInterface), RET #err;
-      ⌜err = GoInterface.nil⌝ ∨ indefCall err ∨
-      ∃ e, callErr err (.etcd e) ∗ ⌜e.refusal = true⌝ }}
+/-- `c.refreshToken(ctx)` on the retry interceptor's client, ready (`clientReady`, as
+`getToken`'s), returns `nil` (no bundle) or
+`getToken`'s answer: `nil` or a client error grpc's `status` accepts (`clientErrOk`). -/
+abbrev Client.refreshToken.spec : Prop :=
+  ∀ (c conn : Loc) (eps : List GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
+      -- (C1) as `getToken`'s
+      clientReady c conn eps ∗ ▷ isEtcdConn conn eps ∗ ctxOk ctx cd }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+      go!"refreshToken")) (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; clientErrOk err }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

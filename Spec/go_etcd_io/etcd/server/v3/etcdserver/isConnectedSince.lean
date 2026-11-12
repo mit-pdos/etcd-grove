@@ -1,44 +1,39 @@
 /-
-## `isConnectedSince(transport, since, remote)` (`util.go:52-55`)
-
-**Users.** `numConnectedSince`; `parseProposeCtxErr` (2c).
-
-**Proof sketch.** The transporter's `ActiveSince` (2f, `transporterOk`), `time.Time`'s `IsZero`,
-`Before` (Perennial).
-
-**Changes**: from `specs-ref`'s `isConnectedSince.lean`. **Margin.** Any answer: time is not
-modelled.
+`isConnectedSince` (`util.go`: `transport.ActiveSince(remote)`, then `!t.IsZero() && t.Before(since)`). Lean-first (no Rocq counterpart); the request path (`notes/decisions.md`, "The request path");
+unit P1b (2026-10-14): the transport's contract (`rafthttp.isTransporter`), the members owned.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`isConnectedSince`**: some answer. -/
-def isConnectedSince.spec : Prop :=
-  ∀ (tp : GoInterface) (ν : Rafthttp.Net GF) (lid : w64) (since : time.Time) (remote : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ Rafthttp.transporterOk tp ν lid ∗ threadTok }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince)) (Val #tp)) (Val #since)) (Val #remote))
-  {{ (b : Bool), RET #b; threadTok }}
+/-- `isConnectedSince(transport, since, remote)`, the transport a `rafthttp.isTransporter`: some
+boolean (whether the transport has been active with `remote` since `since`; `parseProposeCtxErr`
+only classifies its error by it). -/
+abbrev isConnectedSince.spec : Prop :=
+  ∀ (tr : GoInterface) (since : time.Time) (remote : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rafthttp.isTransporter tr }}
+    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince)) (Val #tr)) (Val #since)) (Val #remote))
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

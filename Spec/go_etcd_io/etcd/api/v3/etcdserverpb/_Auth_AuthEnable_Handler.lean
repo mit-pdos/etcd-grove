@@ -1,21 +1,12 @@
 /-
-`_Auth_AuthEnable_Handler(srv, ctx, dec, interceptor)` (`api/etcdserverpb/rpc_grpc.pb.go`, generated): the
-server-side handler of `/etcdserverpb.Auth/AuthEnable`.
-
-Users: grpc's `Serve` (2a: `regsOk`, from `Auth_ServiceDesc`'s `MethodDesc`), for the service value
-`v3rpc` registers (`RegisterAuthServer`).
-Proof sketch: `new(AuthEnableRequest)` (a fresh message: some content), `dec(in)` (`Grpc.decOk_call`: the
-request's content, no error), then `handlerBodyWP`: the type assertion `srv.(AuthServer)` (the
-premise), the method directly or through the interceptor (with a `*UnaryServerInfo` and the closure
-`func(ctx, req) { return srv.(AuthServer).AuthEnable(ctx, req.(*AuthEnableRequest)) }`). 2a composes it with
-`icChain_call` and the method's `HandlerTriple` into `Grpc.unaryOk`.
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_Auth_AuthEnable_Handler.lean`: WP form over grpc's `decOk` and the request's content (2a), instead of the old `grpcHandlerOkMd` over caller-built `ProtoMsg`s (`specs-ref/notes/grpc-msg-models.md`); the interceptor chain is 2a's (`icChain_call`).
-verify-round (A6 F2): the decoded request is canonical, `⌜Proto.norm c = c⌝` (was `Proto.decodedAt`).
-Margin: none.
+`etcdserverpb._Auth_AuthEnable_Handler(srv, ctx, dec, interceptor)` (`api/etcdserverpb/rpc_grpc.pb.go`,
+the generated server-side handler of the Auth service's `AuthEnable`; translated for the auth plan's E3za,
+as the KV service's for unit P3b). Lean-first (no Rocq counterpart); the vocabulary is
+`Proof/google_golang_org/grpc/InvGrpc.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.Api
+public import Proof.google_golang_org.grpc.InvGrpc
 
 @[expose] public section
 
@@ -23,10 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServerPb
 
-open Iris Iris.BI EtcdModel EtcdWire
-open go_etcd_io.etcd.api.v3
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -35,21 +24,38 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-/-- `_Auth_AuthEnable_Handler(srv, ctx, dec, ic)`: decode the request, then run `handlerBodyWP` (WP form). -/
-def _Auth_AuthEnable_Handler.spec : Prop :=
-  ∀ (srv : GoInterfaceOk) (ctx : GoInterface) (dec : val) (ic : GoFunc) (c : Proto.Content)
-    (Ψ : val → IProp GF),
+/-- **`_Auth_AuthEnable_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
+implements `AuthServer` (a method-set fact) and whose `AuthEnable` meets `Spec` with the resource `S`, given
+what it owns of the decoded request (`grpcHandlerOwnOkMd`, at the run's metadata), for messages whose types are
+`*AuthEnableRequest`/`*AuthEnableResponse` (a zero `*AuthEnableRequest` is the request's blank), under the chain `ics` of transparent interceptors with
+their resources `Rs`, for requests with `Q` (which the decoded request has;
+`srvInterceptorsOk`, given `grpcSrvChain ics interceptor`), with grpc's
+`dec` for the request at `m` and `Spec` at the run's incoming metadata: decodes a new `*AuthEnableRequest` and runs `srv.AuthEnable`
+through the chain; the resources come back, and on success the response (as `any`) is at some
+`m'` with `Φ m'`. -/
+abbrev etcdserverpb._Auth_AuthEnable_Handler.spec : Prop :=
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
+    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+  Req.ty = etcdserverpb.AuthEnableRequest.ty → Rep.ty = etcdserverpb.AuthEnableResponse.ty →
   go.typeSetContains srv.ty etcdserverpb.AuthServer.ty = true →
-  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ Grpc.decOk dec etcdserverpb.AuthEnableRequest.ty c ∗
-    (∀ q : Loc, Proto.msgAt etcdserverpb.AuthEnableRequest.ty q (DFrac.own 1) c -∗
-      ⌜Proto.norm c = c⌝ -∗
-      handlerBodyWP srv go!"AuthEnable" etcdserverpb.AuthEnableRequest.ty etcdserverpb.AuthEnableResponse.ty go!"/etcdserverpb.Auth/AuthEnable"
-        ctx q ic Ψ) ⊢
-  WP (App (App (App (App (Val (@! etcdserverpb._Auth_AuthEnable_Handler)) (Val #(GoInterface.ok srv)))
-    (Val #ctx)) (Val dec)) (Val #ic)) {{ Ψ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthEnableRequest) -∗ Req.blank l) ∗
+      grpcHandlerOwnOkMd #(methods srv.ty go!"AuthEnable" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      (□ ∀ l : Loc, Req.recv l m -∗
+        Q (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableRequest.ty) #l)) ∗
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
+      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+    (methodHandlerCall (@! etcdserverpb._Auth_AuthEnable_Handler) #(GoInterface.ok srv)
+      #(GoInterface.ok ci) dec ui)
+  {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+      (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+        Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 
-end EtcdServerPb
 end EtcdGrove
 end Perennial

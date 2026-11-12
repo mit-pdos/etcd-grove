@@ -1,7 +1,7 @@
 # Repair: group `apply-txn` (3a `etcdserver/apply`, 3b `etcdserver/txn`), 2026-11-09
 
 From the 3a/3b parts of `A9-apply-txn-lease-auth-{provability,completeness}.md`. Files changed:
-`Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/{Api,ApiResult,NewUberApplier,newApplierV3Backend,
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/{Api,ApiResult,NewUberApplier,newApplierV3Backend,
 authApplierV3__Apply,applierV3backend__{Txn,Put,LeaseGrant,LeaseCheckpoint,LeaseRevoke,UserAdd,
 UserDelete,UserChangePassword,UserGrantRole,UserRevokeRole,RoleAdd,RoleDelete,RoleGrantPermission,
 RoleRevokePermission,AuthEnable,AuthDisable}}.lean`; `examples/specreq/apply/{apply,alarm}.go`.
@@ -89,7 +89,7 @@ No 3b file needed a change.
    `s.be` (from `NewAuthStore`'s/`Recover`'s post) and `hooksOk`'s auth half (from 4a's
    `authBeHook` introduction).
 
-1. `Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`: a law `txnChecked_admitted.spec : ∀ t,
+1. `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/ApiReq.lean`: a law `txnChecked_admitted.spec : ∀ t,
    txnChecked t → Apply.txnAdmitted t` (or `txnChecked t → t.valid ∧ ∀ … putOnce evs`, with
    `txnChecked_safe` for the `txnSafe` conjunct): the apply thread's `ir.op.ok` for a transaction
    (`isUber_apply`'s premise) has no source otherwise (A9 provability F1, "related").
@@ -112,7 +112,7 @@ No 3b file needed a change.
 
 ## Requests to client-core
 
-1. `Spec/go_etcd_io/etcd/api/v3/Model.lean`: A9 completeness F1, `State.deniedSince lo who ps` as
+1. `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`: A9 completeness F1, `State.deniedSince lo who ps` as
    the three views `checkDenied` reports (flag at `jf`, backend at `jx`, cache at `jc`, all ≥ `lo`).
 
 ## Requests to mvcc
@@ -165,7 +165,7 @@ No 3b file needed a change.
 
 ## Build
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}`: OK (122 modules), after
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}`: OK (122 modules), after
 the lease-auth and server-boot requests; the importers `etcdserver.ApiApply`, `ApiReq` also build.
 `cd examples && go vet ./specreq/apply/... ./specreq/txn/...`: clean.
 
@@ -224,7 +224,7 @@ the lease-auth and server-boot requests; the importers `etcdserver.ApiApply`, `A
 
 ### Build (second pass)
 
-`etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}`: OK (122 modules);
+`etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}`: OK (122 modules);
 importers `etcdserver.{ApiApply,ApiReq,EtcdServer__Range,EtcdServer__Txn}` OK; `go vet
 ./specreq/apply/... ./specreq/txn/...` clean.
 
@@ -244,5 +244,5 @@ importers `etcdserver.{ApiApply,ApiReq,EtcdServer__Range,EtcdServer__Txn}` OK; `
 - **S1**: `authnIdx`'s stated meaning now carries `0 < idx < 2 ^ 64` and, for the entry asking
   `Authenticate(name, tok)`, `tok` without `.` (3d's `authnCtx` needs both; 2d's `applyLent_opts`
   states them).
-- Build: `etc/specs-build.sh --dir Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}` OK (122
+- Build: `etc/specs-build.sh --dir SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/{apply,txn}` OK (122
   modules); `go vet ./specreq/apply/... ./specreq/txn/...` clean.

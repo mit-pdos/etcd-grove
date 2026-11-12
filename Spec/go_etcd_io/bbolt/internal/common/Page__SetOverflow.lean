@@ -1,14 +1,9 @@
 /-
-## `(*Page).SetOverflow(v)` (`internal/common/page.go`)
-
-**Users.** db.go:1247 (`allocate`). Snippet `ReqNodeRoundTrip`.
-**Proof sketch.** the typed view of the header's bytes (`bytesPointsto_view`), one field store; the bytes after the header are untouched (`hdr_withHdr`).
-**Changes.** from `specs-ref`'s file of the same name: over the page's bytes (`withHdr`).
-**Margin.** none: the post is what the code computes.
+`(*Page).SetOverflow`'s spec (`internal/common/page.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,26 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `p.SetOverflow(v)`: the header's `overflow` field becomes `v`, in the page's bytes (`withHdr`). -/
-def Page.SetOverflow.spec : Prop :=
-  ∀ (p : Loc) (bs : List w8) (v : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ bytesPointsto p (DFrac.own 1) bs ∗ ⌜pageHeaderSize ≤ bs.length⌝ }}
-    (App (Val (p @!! go.GoType.PointerType Page.ty @!! go!"SetOverflow")) (Val #v))
-  {{ RET #(); bytesPointsto p (DFrac.own 1) (withHdr bs { hdrOf bs with overflow' := v }) }}
+/-- `Page.SetOverflow(x)` writes the field `overflow`. -/
+abbrev Page.SetOverflow.spec : Prop :=
+  ∀ (l : Loc) (v : Page) (x : w32),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦ v }}
+    (App (Val (l @!! go.GoType.PointerType Page.ty @!! go!"SetOverflow")) (Val #x))
+  {{ RET #(); l ↦ ({ v with overflow' := x } : Page) }}
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

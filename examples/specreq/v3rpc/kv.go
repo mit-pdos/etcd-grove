@@ -1,5 +1,5 @@
 // Package v3rpc holds the requirement snippets of etcd's gRPC services (batch 2a,
-// Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Api.lean): what a client of a member's KV,
+// SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Api.lean): what a client of a member's KV,
 // Lease, Auth, Cluster and Maintenance services relies on, over the raw generated clients (as the
 // Go client's retry wrappers call them), each reliance an explicit panic.
 //

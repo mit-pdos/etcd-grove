@@ -1,39 +1,12 @@
 /-
-`clientv3.New` (`client/v3/client.go`).
-
-Users: every client program: `examples/lib/etcdstart` (`NewClient`), `examples/etcd/auth`
-(`newUserClient`: a user name and password), `client/v3/kubernetes.New` (Kubernetes' storage factory:
-TLS, dial options with chained interceptors, a stats handler and a context dialer, a logger),
-`examples/k8s/*`; snippets `clientv3client/lifecycle.go` (`ReqNewWrapClose`, `ReqNewNoEndpoints`),
-`clientv3client/auth.go` (`ReqUserClient`).
-
-Proof sketch: no endpoint: `ErrNoAvailableEndpoints`. Else `newClient(&cfg)` (its spec) with the
-configuration's copy.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/New.lean` (plain endpoints, no TLS, no token,
-no dial options, keepalive, auto-sync or version check, `clientCfgOk`; the result `isNewClient` with
-its watch environment): any configuration `cfgOk` admits (TLS, a token or a user name, Kubernetes'
-dial options, `RejectOldCluster`; auto-sync off since the verify round), the principal `who` the
-configuration names, the result W0's `clientMut` (the `KV` field writable, Kubernetes wraps it).
-
-Round 1: no endpoint: an error and `nil` (the post says so); the endpoints token (with auto-sync
-off the caller owns the endpoint list, `epsTok`); the principal per call (W0's round 3: `who` is the
-default one); `cfgPrincipal_user`'s certificate premise; `cfgOk`'s dial options are the neutral
-ones (`dialOptsOk_neutral`; the gRPC proxy's replacing interceptors are not covered).
-
-re-review (S-a, S-d): the success post says the endpoint list is non-empty (what
-`Maint.StatusTriple` needs); stale Changes text corrected.
-verify-round: the no-endpoint error is `ErrNoAvailableEndpoints`'s value, read from the global
-(the sentinel encoding: `init.spec` gives it read-only, non-`nil`, distinct from the package's other
-errors; `errors.New`'s value is a fresh pointer, so no fixed Lean value).
-
-Margin: a zap `LogConfig` without a `Logger` is out of scope (`cfgOk`); with both a token and a
-user name (`ErrMutuallyExclusiveCfg`) `cfgPrincipal` has no introduction, so no caller can call
-`New` so (the error is the only outcome).
+`clientv3.New(cfg)` (`client/v3/client.go`; item 5, client construction): a client connected to
+the configured endpoint. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.ApiLease
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
+public import Proof.go_etcd_io.etcd.client.v3.InvClientAuth
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -41,10 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -52,22 +23,34 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `New(cfg)`: a client of `γ` as `who` with its `KV` field writable (`clientMut`), or an error
-and `nil`; with no endpoint, `ErrNoAvailableEndpoints`'s value (read from the global: `init.spec`). -/
-def New.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.client.v3.Config) (γ : Cluster) (who : Principal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ cfgOk cfg γ who }}
+/-- **`clientv3.New(cfg)`** of a configuration of plain endpoints `eps` (at least one; one until
+2026-10-21, `notes/decisions.md` D27) with no TLS, no
+token, no dial options, keepalive, auto-sync or version check of the caller's, a logger
+of the caller's (`clientCfgOk`), given the package's variables (`clientNewVars`, from its facts):
+the client (`isNewClient`: connected to `eps` with the retry interceptor installed, `clientKVAt`;
+its `KV` a `kvObjAt`, what `client_*_end_to_end` take; its `Watcher` a watcher over the
+connection, at the caller's watch environment `V`) whose KV calls carry no credentials' token or
+one meeting `P` (`clientTokAt`; the auth plan's C1, 2026-10-28: with a user name and a password,
+`Authenticate`'s reply to them meets `P`, `clientAuthPre`), or an error (the dial's) and `nil`. No fact
+about the watch server (D19f): constructing the watcher only allocates it, so a client that never
+watches needs none; `isNewClient_watcher` adds `watchAddrFacts V` (with `eps = [V.addr]`: a watch is
+a stream, to one address) before the first `Watch`. -/
+abbrev clientv3.New.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
+    (P : GoString → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      clientCfgOk cfg eps ∗
+      -- (the auth plan's C1, 2026-10-28) its credentials' tokens
+      clientAuthPre cfg eps P }}
     (App (Val (@! go_etcd_io.etcd.client.v3.New)) (Val #cfg))
-  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
-      (⌜cfg.Endpoints'.len ≠ W64 0⌝ ∨
-        ⌜c = null⌝ ∗ globalAddr go_etcd_io.etcd.client.v3.ErrNoAvailableEndpoints ↦□ err) ∗
-      ((⌜err = GoInterface.nil⌝ ∗ clientMut c γ who ∗
-         (∃ eps, cfg.Endpoints' ↦*□ eps ∗ ⌜eps ≠ []⌝ ∗ epsTok c (DFrac.own 1) eps)) ∨
-       ⌜c = null ∧ err ≠ GoInterface.nil⌝) }}
+  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

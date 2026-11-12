@@ -1,18 +1,10 @@
 /-
-`concurrency.isKeyCurrent(k, r)` (`client/v3/concurrency/stm.go`), internal.
-
-Users: `readSet.cmps`.
-
-Proof sketch: `ModRevision.spec`, `Compare.spec` with the first key-value's mod revision (an
-`int64`) or `0` (an `int`): the same comparison.
-
-Changes: from `specs-ref`'s `isKeyCurrent.lean`: restated.
-
-Margin: none.
+`concurrency.isKeyCurrent(k, r)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -20,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `isKeyCurrent(k, r)`: the comparison `ModRevision(k) = ` the read's mod revision (`0` if absent). -/
-def isKeyCurrent.spec : Prop :=
-  ∀ (k : GoString) (p : Loc) (e : ReadM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ readRespAt p e }}
+/-- `isKeyCurrent(k, r)` for the read `e` of `k`: `ModRevision(k) = ` its mod revision (`readCmp`). -/
+abbrev isKeyCurrent.spec : Prop :=
+  ∀ (pfx k : GoString) (p : Loc) (e : ReadM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ readRespAt pfx k p e }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.isKeyCurrent)) (Val #k)) (Val #p))
-  {{ (c : go_etcd_io.etcd.client.v3.Cmp), RET #c; cmpAt c (some (curCmp k e)) }}
+  {{ (c : go_etcd_io.etcd.client.v3.Cmp), RET #c; cmpAt c (readCmp k e) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

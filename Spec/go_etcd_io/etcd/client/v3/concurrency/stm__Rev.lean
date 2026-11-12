@@ -1,17 +1,10 @@
 /-
-`(*concurrency.stm).Rev` (`client/v3/concurrency/stm.go`), internal: the STM's method.
-
-Users: the user's closure through `STM` (`stmAt_methods`), `runSTM`, `stmSerializable`'s methods.
-
-Proof sketch: `stm.fetch.spec` on `[key]`; the first key-value's mod revision, or `0`.
-
-Changes: from `specs-ref`'s `stm__Rev.lean`: restated over `stmCoreAt` and the `Attempt` model.
-
-Margin: none.
+`concurrency.stm.Rev(key)` (`client/v3/concurrency/stm.go`). Lean-first (no Rocq counterpart); see
+`InvSTM.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvSTM
 
 @[expose] public section
 
@@ -19,28 +12,32 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `s.Rev(key)`: the key's mod revision as read (`RevPost`), or the abort. -/
-def stm.Rev.spec : Prop :=
-  ∀ (p : Loc) (γ : Cluster) (dflt who : Principal) (iso : w64) (a : Attempt) (gs : List (OpM → OpM)) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmCoreAt p γ who iso a gs }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.stm.ty @!! go!"Rev")) (Val #k))
-  {{ (r : val), RET r; stmRet r (fun rev : w64 => iprop(∃ a',
-      stmCoreAt p γ who iso a' gs ∗ ⌜RevPost k a rev a'⌝)) iprop(True) }}
+/-- `s.Rev(k)`: `fetch(k)`'s mod revision of `k` (`0`: absent); the reads grow by `k` and hold
+it. A client error aborts it (`stmRet`). The key is within `stmKeyMax`. -/
+abbrev stm.Rev.spec : Prop :=
+  ∀ (b : Loc) (pfx : GoString) (reads : GMap GoString ReadM) (gs : List (OpFull → OpFull))
+    (k : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b reads ∗ stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗
+      ⌜pfx <+: k ∧ k.length ≤ stmKeyMax⌝ }}
+    (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"Rev")) (Val #k))
+  {{ (r : val), RET r; stmRet r fun rev : w64 => iprop(
+      ∃ reads' : GMap GoString ReadM, stmRsetOwn pfx b reads' ∗
+      stmOptsOwn b gs ∗ ⌜ReadsGrow reads reads' [k] ∧ ∃ e, reads' !! k = some e ∧ rev = e.modRev⌝) }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

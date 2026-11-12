@@ -1,18 +1,11 @@
 /-
-`(*txnReadWrite).Range` (promoted).
+`txnReadWrite__Range` (`kv.go`). Lean-first (no Rocq counterpart); see `InvRoTxn.lean`.
 
-**Users**: `txn.Txn`'s read-only path (`txn/txn.go:69`: `NewReadOnlyTxnWrite(txnRead)`, then `txn`/`executeTxn`/`checkTxn` call the `TxnWrite` methods), the tester's readers (`mvccrand.go:475-483, 626-634`). Snippet `ReqReadOnlyTxn`.
-
-**Proof sketch**: the inner `Range` (`rangeOut σ.kv σ.crev`).
-
-**Changes** from `specs-ref`'s `txnReadWrite__Range.lean`: the contract at `*txnReadWrite` (the frozen
-API's canonical spec).
-
-**Margin**: none.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -20,7 +13,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -31,11 +23,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `Txn.Range`'s contract at `*txnReadWrite`. -/
-def txnReadWrite.Range.spec : Prop :=
-  ∀ s : Loc, Txn.Range.contract (GF := GF) (go.GoType.PointerType txnReadWrite.ty) #s
+/-- `trw.Range(ctx, key, end, ro)`: the read transaction's range
+(`metricsTxnWrite.Range`; at a context never canceled, `todo`, no context error), at the
+compaction revision `crev` it observed (`rangeOutcomeC`; 2026-10-13, unit 6a). The frozen
+statement is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
+abbrev mvcc.txnReadWrite.Range.spec : Prop :=
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool) (key endk : GoSlice)
+    (k e : GoString) (ro : RangeOptions) (crev : Int) (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev crev Z ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗
+      endk ↦*□ e }}
+    (App (App (App (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Range"))
+      (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
+  {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isRoTxnWrite trw s γ trace log rev crev Z ∗
+      mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

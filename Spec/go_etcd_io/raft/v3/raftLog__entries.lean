@@ -1,23 +1,12 @@
 /-
-## `(*raftLog).entries(i, maxSize)` (internal)
+Port of `election_proof/spec_raftLog__entries.v` (feb5c73d4).
 
-**Users**: `maybeSendAppend` (`raft.go:640`: `ErrCompacted` means "send a snapshot"). Snippet
-`raftlog/reads.go` (`ReqEntriesForSend`).
-
-**Proof sketch**: past `lastIndex`: `nil`. Else `slice(i, lastIndex + 1, maxSize)` (`lastIndex + 1 <
-2^64`: `Wf`).
-
-**Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__entries.lean`: over `LogState`; `ErrCompacted` with
-`logCompactedLb`. The premise bounding the range below `2^63` is new and is the memory limitation of
-`extend` (`slice`).
-
-**Margin**: the size limit is not stated.
+Lean notes: ``es `prefix_of` l`` is `es <+: l`; `plog_from` is `plogFrom` (`Plog.lean`,
+reached through `InvRaftPhys`, as in Rocq).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 
@@ -25,30 +14,54 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A non-empty prefix of the entries from `i` to the end (none past the end), or `ErrCompacted`. -/
-def raftLog.entries.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (i mx : w64),
-  ls.lastIndex + 1 - uint.nat i < 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"entries")) (Val #i)) (Val #mx))
-  {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); raftLog l ls ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ es, entriesRO sl (uint.nat i) es ∗
-          ⌜(ls.lastIndex < uint.nat i ∧ es = []) ∨
-           (uint.nat i ≤ ls.lastIndex ∧ es ≠ [] ∧ es <+: ls.range (uint.nat i) (ls.lastIndex + 1))⌝) ∨
-       (errIs go_etcd_io.raft.v3.ErrCompacted err ∗ ⌜uint.nat i ≤ ls.compactFloor⌝ ∗ logCompactedLb l (uint.nat i))) }}
+/-- `l.entries(i, maxSize)` -- the log from index `i` on, capped (`raftLog.entries.impl`,
+`Code/go_etcd_io/raft/v3.lean`; Rocq new/code/go_etcd_io/raft/v3.v:1102):
+
+    if i > l.lastIndex() { return nil, nil }
+    return l.slice(i, l.lastIndex()+1, maxSize)
+
+So the error is always `nil` on this path, and the only premise is the lower one: `i`
+must not be below the compaction boundary, or `raftLog.slice` would return
+`ErrCompacted` (and the caller, `maybeSendAppend`, would go to `maybeSendSnapshot`).
+The empty return is *not* an error -- a peer whose `Next` is past the end of the log
+gets an empty `MsgApp`.
+
+The result is read-only and the caller's for good, like `raftLog.slice`'s, and the log
+comes back unchanged. Its contents are not described, because `maybeSendAppend` only
+takes its length (for `Progress.SentEntries`) and its payload size, and puts it in a
+message. (Until 2026-09-29 it was lent, and the log came back "on loan of the page",
+`logstate.page`.)
+
+(D19i part 1, 2026-10-18) `ErrCompacted` is possible again, at or below the floor
+(`raftLog.slice`); `maybeSendAppend` then sends a snapshot, as Go does. -/
+abbrev raftLog.entries.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (i maxSize : w64),
+  uint.Z ls.prev.index' + 1 ≤ uint.Z i →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"entries")) (Val #i))
+      (Val #maxSize))
+  {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
+      ownRaftLog l ls ∗
+      ((⌜err = interface.nil⌝ ∗ entsRO s es ∗
+        -- every entry returned is an entry of the log, and they are the log's from `i` on,
+        -- cut short by `maxSize` (`raftLog.slice`)
+        ⌜(∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
+          es <+: plogFrom ls.prev (ls.sents ++ ls.uents) i⌝) ∨
+       -- (D19i part 1) `ErrCompacted`: `i` at most the floor, the storage compacted past it
+       (⌜s = slice.nil ∧ uint.Z i ≤ uint.Z ls.fl⌝ ∗ globalAddr ErrCompacted ↦□ err ∗
+        storPast ls.storage (uint.Z i))) }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

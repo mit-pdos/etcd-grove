@@ -1,5 +1,5 @@
 // Package backend holds the requirement snippets of etcd's storage backend (batch 4a,
-// Spec/go_etcd_io/etcd/server/v3/storage/backend/): what its users (mvcc, the lessor, auth,
+// SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/): what its users (mvcc, the lessor, auth,
 // membership, alarms, the consistent index and the server's hooks, the server's snapshot and
 // shutdown) rely on, each a panic on its violation.
 //

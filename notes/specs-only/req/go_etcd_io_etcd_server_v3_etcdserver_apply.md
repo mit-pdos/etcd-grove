@@ -65,7 +65,7 @@ Used by: `applyEntryNormal.spec`, `applySnapshot.spec`.
 
 ## from 3c
 
-The lessor's API: `Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`). The applier
+The lessor's API: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/Api.lean` (namespace `Lease`). The applier
 is its writer, holding `Lease.lessorState γl n ls` (and, inside an apply, 4a's `Lease.beApplyTok
 ls.be`). What 3c's specs give and need there:
 
@@ -93,7 +93,7 @@ ls.be`). What 3c's specs give and need there:
 
 ## from 3d
 
-The auth store's API (`Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`) against 3a's provisional
+The auth store's API (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/Api.lean`) against 3a's provisional
 slots (`apply/Api.lean`):
 
 1. **`authOk ast γ`** is `∃ st γa, ⌜ast = interface.mkOk (PointerType authStore.ty) #st⌝ ∗

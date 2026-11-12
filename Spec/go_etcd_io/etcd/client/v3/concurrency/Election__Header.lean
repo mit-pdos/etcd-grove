@@ -1,22 +1,10 @@
 /-
-`(*concurrency.Election).Header` (`client/v3/concurrency/election.go`).
-
-Users: `server/etcdserver/api/v3election/election.go` (`Campaign`:45 a new election, `Campaign`,
-then `Header()`, `Key()`, `Rev()` and the lease returned as the leader key; `Proclaim`:68 and
-`Resign`:118 on `ResumeElection(s, name, key, rev)` from the remote client's leader key;
-`Leader`:103 and `Observe`:80 on a new election, sessions with lease `-1`), etcdctl's `elect`
-command (not in the pinned sources), etcd's tests
-(`tests/integration/clientv3/concurrency/election_test.go`, `example_election_test.go`). Snippet: `concurrency/election.go` (`ReqCampaignProclaim`).
-
-Proof sketch: the field, read.
-
-Changes: from `specs-ref`'s `Election__Header.lean`: restated over `electionSt`.
-
-Margin: none.
+`concurrency.Election.Header()` (`client/v3/concurrency/election.go`). Lean-first (no Rocq counterpart); see
+`InvElection.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.concurrency.Api
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvElection
 
 @[expose] public section
 
@@ -24,27 +12,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Concurrency
+namespace concurrency
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `e.Header()`: the header of the last successful election request (its ownership is that request's post). -/
-def Election.Header.spec : Prop :=
-  ∀ (e : Loc) (st : ElectionSt),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ electionSt e st }}
-    (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.concurrency.Election.ty @!! go!"Header")) (Val #()))
-  {{ RET #(st.hdr); electionSt e st }}
+/-- **`e.Header()`**: `hdr`. -/
+abbrev Election.Header.spec : Prop :=
+  ∀ (e s : Loc) (st : ElectionSt),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ electionState e s st }}
+    (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Header")) (Val #()))
+  {{ RET #st.hdr; electionState e s st }}
 
 end spec
 
-end Concurrency
+end concurrency
 end EtcdGrove
 end Perennial

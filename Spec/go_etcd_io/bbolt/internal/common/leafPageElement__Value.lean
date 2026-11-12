@@ -1,14 +1,9 @@
 /-
-## `(*leafPageElement).Value()` (`internal/common/page.go`)
-
-**Users.** cursor.go:386 (`keyValue`), bucket.go:659 (stats: `openBucket(e.Value())`). Snippet `ReqElementKeys`.
-**Proof sketch.** `pos`, `ksize`, `vsize` through the element's view, then `UnsafeByteSlice(e, 0, i, j)`: inside the page's bytes by `leafElemIn`, so in the address space. The bytes are reached by `pageKV_access`.
-**Changes.** from `specs-ref`'s file of the same name: relative to the page; the slice named (`leafValueSlice`) for `pageKV_access`.
-**Margin.** none: the post is what the code computes.
+`(*leafPageElement).Value`'s spec (`internal/common/page.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,26 +11,35 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- `e.Value()` of element `i` of a page: the slice of its value in the page (`leafValueSlice`; length and capacity its size). Nothing else is read. -/
-def leafPageElement.Value.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (bs : List w8) (i : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ bytesPointsto p dq bs ∗ ⌜leafElemIn bs i⌝ }}
-    (App (Val ((elemLoc p i) @!! go.GoType.PointerType leafPageElement.ty @!! go!"Value")) (Val #()))
-  {{ RET #(leafValueSlice p bs i); bytesPointsto p dq bs }}
+/-- `n.Value()`: the element's value as a byte slice into its page, the `vsize` bytes after its key
+(`pos + ksize` bytes past the element; length and capacity `vsize`). For element `i` of the leaf
+page `pg` at `p` this is `valSliceAt p pg i`. The slice must lie in the address space. -/
+abbrev leafPageElement.Value.spec : Prop :=
+  ∀ (l : Loc) (v : leafPageElement) (dq : DFrac),
+  0 < l.addr → l.addr + uint.Z v.pos' + uint.Z v.ksize' + uint.Z v.vsize' ≤ maxAddr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦{dq} v }}
+    (App (Val (l @!! go.GoType.PointerType leafPageElement.ty @!! go!"Value")) (Val #()))
+  {{ RET #(slice.mk (l +ₗ (uint.Z v.pos' + uint.Z v.ksize')) (W64 (uint.Z v.vsize'))
+             (W64 (uint.Z v.vsize')));
+      l ↦{dq} v }}
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

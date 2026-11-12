@@ -1,6 +1,6 @@
 # R3 (raft's log: raftLog, unstable, readOnly, util.go): completeness review, round 1
 
-Reviewer: completeness, independent of the author. Read: `Spec/go_etcd_io/raft/v3/ApiLog.lean`, every
+Reviewer: completeness, independent of the author. Read: `SpecPlan/Spec/go_etcd_io/raft/v3/ApiLog.lean`, every
 R3 spec file (`newLogWithSize`, `raftLog__*`, `unstable__*`, `newReadOnly`, `readOnly__*`, the
 util.go/types.go helpers), the snippets `examples/specreq/raftlog/*.go`, the callers in the pinned
 raft (`.lake/src/raft/{raft,rawnode,node,status,bootstrap}.go`), etcd's server

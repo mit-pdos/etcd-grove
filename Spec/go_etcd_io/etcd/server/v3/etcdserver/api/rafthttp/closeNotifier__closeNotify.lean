@@ -1,19 +1,9 @@
 /-
-## `(*closeNotifier).closeNotify()`
-
-**Users.** `streamHandler.ServeHTTP`.
-
-**Proof sketch.** A field read.
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** The channel's facts are `cnAt`'s realization.
+`closeNotifier.closeNotify` (`http.go`; rafthttp stage 5e-2). Lean-first; the notifier: `rafthttp/CloseNotifier.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.CloseNotifier
 
 @[expose] public section
 
@@ -21,26 +11,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) The notifier's channel. -/
-def closeNotifier.closeNotify.spec : Prop :=
-  ∀ (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ cnAt n }}
-    (App (Val (n @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier.ty @!! go!"closeNotify")) (Val #()))
-  {{ (ch : GoChan), RET #ch; True }}
+/-- **`n.closeNotify()`**: its `done` channel, closed once `P` is handed over. -/
+abbrev rafthttp.closeNotifier.closeNotify.spec : Prop :=
+  ∀ (n : Loc) (γ : GName) (P : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      cnRecv n γ P }}
+    (App (Val (n @!! go.GoType.PointerType rafthttp.closeNotifier.ty @!! go!"closeNotify"))
+      (Val #()))
+  {{ (dc : GoChan), RET #dc; ∃ γc, ownBroadcastChan dc γc (cnQ γ P) .Unknown }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

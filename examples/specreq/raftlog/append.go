@@ -2,7 +2,7 @@
 
 // Requirement snippets for raft's log (batch R3): appends and commits. The log's types are
 // unexported, so these compile only inside package raft (go.etcd.io/raft/v3); they are kept
-// gofmt-clean and checked by reading against the specs in Spec/go_etcd_io/raft/v3/raftLog__*.lean.
+// gofmt-clean and checked by reading against the specs in SpecPlan/Spec/go_etcd_io/raft/v3/raftLog__*.lean.
 package raft
 
 import (

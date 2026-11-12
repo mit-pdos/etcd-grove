@@ -1,14 +1,14 @@
 /-
-## `raft.sendAppend` (internal)
+Port of election_proof/spec_raft__sendAppend.v (feb5c73d4).
 
-**Users.** `bcastAppend`, `stepLeader` (`raft.go:1526`, `:1575`, `:1612`, `:1680`). **Proof sketch.** `maybeSendAppend(to, true)`. **Changes** (from `specs-ref`'s `raft__sendAppend.lean`, if any): over
-`raftCore`. **Margin.** The messages are inside the token until a `Ready` hands them out.
+Lean notes:
+* Rocq's `send_msgs s ms <| nstate.prvals := pvs |>` is
+  `{ sendMsgs s ms with prvals := pvs }`, and the type of the untyped binder `pvs` is
+  written out.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +16,37 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A leader sends an append (or a snapshot) to peer `to`. -/
-def raft.sendAppend.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (ρ : CoreView) (to : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftCore r γ id ρ ∗ ⌜ρ.role = StateLeader ∧ to ≠ id ∧ (ρ.prs !! to).isSome⌝ }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"sendAppend")) (Val #to))
-  {{ RET #(); raftCore r γ id ρ }}
+/-- `r.sendAppend(to)` is `r.maybeSendAppend(to, true)` and nothing else
+(`raft.sendAppend.impl`, `Code/go_etcd_io/raft/v3.lean`) -- the boolean
+result is dropped. Same postcondition, therefore: the outbox grows by some list of
+messages `ReplOk` allows, and `Match` does not move. -/
+abbrev raft.sendAppend.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64),
+  to ≠ id →
+  to ∈ domSet s.progress →
+  -- (2026-10-16, stage R8a) a leader's, as `maybeSendAppend`
+  s.role = .leader →
+  -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜ReplSends id s ms⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

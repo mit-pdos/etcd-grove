@@ -1,17 +1,9 @@
 /-
-`(*clientv3.DeleteResponse).OpResponse` (`client/v3/kv.go`).
-
-Users: leasing (`leasing/kv.go`, `leasing/txn.go`: its replies as `OpResponse`s).
-
-Proof sketch: a struct literal.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/client/v3/DeleteResponse__OpResponse.lean`: restated over this branch's vocabulary (the `OpM` model, `opAt`, `optsAt`); otherwise unchanged.
-
-Margin: none.
+`clientv3.DeleteResponse.OpResponse()` (`client/v3/kv.go`, translated for `client/v3/leasing`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.Api
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
 
 @[expose] public section
 
@@ -19,20 +11,18 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace ClientV3
 
-open Iris Iris.BI EtcdModel EtcdWire
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `resp.OpResponse()`: an `OpResponse` holding `resp` alone. -/
-def DeleteResponse.OpResponse.spec : Prop :=
+/-- `resp.OpResponse()`: `OpResponse{del: resp}`. -/
+abbrev DeleteResponse.OpResponse.spec : Prop :=
   ∀ (resp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (resp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.DeleteResponse.ty @!! go!"OpResponse")) (Val #()))
@@ -40,6 +30,5 @@ def DeleteResponse.OpResponse.spec : Prop :=
 
 end spec
 
-end ClientV3
 end EtcdGrove
 end Perennial

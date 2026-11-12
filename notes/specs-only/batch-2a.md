@@ -5,9 +5,9 @@ All files build (`etc/specs-build.sh`, 153 modules, 2026-11-09). The generators 
 
 ## Files
 
-- **protobuf's `proto`**, `Spec/google_golang_org/protobuf/proto/` (namespace `Proto`, assumed):
+- **protobuf's `proto`**, `SpecPlan/Spec/google_golang_org/protobuf/proto/` (namespace `Proto`, assumed):
   `Api.lean`, `Size`, `Marshal`, `Unmarshal`, `Clone`, `Equal`, `Merge`.
-- **grpc**, `Spec/google_golang_org/grpc/` (namespace `Grpc`, assumed):
+- **grpc**, `SpecPlan/Spec/google_golang_org/grpc/` (namespace `Grpc`, assumed):
   - `Api.lean`;
   - the client: `NewClient`, `ClientConn__Invoke`, `ClientConn__NewStream`, `ClientConn__Close`;
   - the dial options: `WithUnaryInterceptor`, `WithStreamInterceptor`, `WithResolvers`,
@@ -26,9 +26,9 @@ All files build (`etc/specs-build.sh`, 153 modules, 2026-11-09). The generators 
     methods: `cliSend_send`, `cliSend_closeSend`, `cliRecv_recv`, `srvRecv_recv`, `srvSend_send`,
     `srvStream_context`), as are the invoker's and streamer's triples (`attemptOk_call`,
     `streamerOk_call`).
-- **rpctypes**, `Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/` (namespace `Rpctypes`): `Api.lean`,
+- **rpctypes**, `SpecPlan/Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/` (namespace `Rpctypes`): `Api.lean`,
   `Error`, `ErrorDesc`, `EtcdError__Code`, `EtcdError__Error`.
-- **v3rpc**, `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/` (namespace `V3rpc`; 2b's watch
+- **v3rpc**, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/` (namespace `V3rpc`; 2b's watch
   files share the directory): `Api.lean` and 99 specs.
   - The KV handlers: `kvServer__{Range,Put,DeleteRange,Txn,Compact,RangeStream}`,
     `quotaKVServer__{Put,Txn,Range,DeleteRange,Compact}`.

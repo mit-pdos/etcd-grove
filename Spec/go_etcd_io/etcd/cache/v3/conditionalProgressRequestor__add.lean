@@ -1,13 +1,10 @@
 /-
-`conditionalProgressRequestor.add` (`cache/*.go`), an internal helper.
-Users: `Cache.waitTillRevision`.
-Proof sketch: under the mutex: `waiting++` (an `int32`, wrapping), `Signal`.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`conditionalProgressRequestor.add()` (`cache/progress_requestor.go`). Lean-first (no Rocq
+counterpart); see `InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -15,27 +12,26 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `p.add()`. -/
-def conditionalProgressRequestor.add.spec : Prop :=
+/-- `p.add()`: one more waiter (the count, under `p.mux`, wraps as an `int32`), and `p.cond`
+signaled. -/
+abbrev conditionalProgressRequestor.add.spec : Prop :=
   ∀ (p : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isProgressRequestor p }}
-    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.conditionalProgressRequestor.ty @!! go!"add")) (Val #()))
+    (App (Val (p @!! go.GoType.PointerType conditionalProgressRequestor.ty @!! go!"add")) (Val #()))
   {{ RET #(); True }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

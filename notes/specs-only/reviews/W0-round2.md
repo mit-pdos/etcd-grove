@@ -2,8 +2,8 @@
 
 Reviewer: round 2, both kinds. Commit under review: `143abd4caa` ("specs-only W0 round-1 repairs"),
 against round 1's `reviews/W0-provability-1.md` (P-) and `reviews/W0-completeness-1.md` (C-).
-Read: the diff of `143abd4caa` on `Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`,
-`Spec/context/Api.lean`, `Spec/go_etcd_io/etcd/client/v3/Api.lean` (and `kv__GetStream.lean`,
+Read: the diff of `143abd4caa` on `SpecPlan/Spec/go_etcd_io/etcd/api/v3/{Model,State,Wire}.lean`,
+`SpecPlan/Spec/context/Api.lean`, `SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean` (and `kv__GetStream.lean`,
 `txn__If.lean`), the snippets `examples/specreq/clientv3kv/`, `notes/specs-only/top.md` (K1-K8),
 the `req/` items naming `ctxPrin`, and the two new nonissues. Go: the fork under `.lake/src/`
 (`a4d2bb17`), Go 1.27.3's `context` (`~/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.3.linux-amd64/src/context/context.go`),
@@ -27,7 +27,7 @@ grpc v1.84.0, Kubernetes' apiserver `v0.0.0-20261021221356-9c4ec15b8038`, Perenn
 | P-F3.8 TTL above granted; permission errors on lease reads | fixed | `leaseStep .leaseTimeToLive`, `.leaseLeases` |
 | P-F3.9 member errors; admin checked at a stale local state | fixed | `clusterStep` |
 | P-F4 `ReqListPrefix` count | fixed | `etcdState_sizeFits` (`State.lean`) |
-| P-F5 `WithCancel` over `ctxOk` | fixed for the snippet; the new context laws have two false statements (F3, F4) | `Spec/context/Api.lean` |
+| P-F5 `WithCancel` over `ctxOk` | fixed for the snippet; the new context laws have two false statements (F3, F4) | `SpecPlan/Spec/context/Api.lean` |
 | C-F2 stream chunk shape | fixed, verified | `streamMatches` against `EtcdServer.rangeStream` (`server/etcdserver/v3_server.go:197-283`): non-final chunks have no header, `More`/`Count` zero and key-values (not done ⇒ `resp.More` ⇒ a non-empty page, `asembleRangeResponse`, `txn/range.go:147-160`); final `Count` = streamed + `txn.Count` of the rest = the range's count at the pinned revision |
 | C-F3 nested range headers | fixed, verified | `TxnRun.range` revision `if st.2 = [] then h.rev else R` = `storeTxnWrite.Range`'s `beginRev` (+1 once `changes` non-empty: an empty delete adds none, `kvstore_txn.go:189-201`); read-only txns' `NewReadOnlyTxnWrite` reads at `currentRev`; `rangeKeys` returns `Rev: curRev` on every path (`kvstore_txn.go:84-150`); `Wire.lean` `ResponseOpM.ofResp.range` requires the header |
 | C-F4 principal from the context's metadata | **sound**, but one introduction law is false (F5) and Kubernetes cannot establish the premise (F6) | below |
@@ -61,7 +61,7 @@ remaining count **at the pinned revision** before sending anything (`txn.Count(.
 count fail with `ErrCompacted` (`mvcc/kvstore_txn.go:81-83`), and the stream ends with that error
 and **no chunk**. For the client's request (revision `0`) `RangeReq.revErr` gives no `.compacted`,
 `.compacted` is no refusal and not indefinite, and the new disjunct requires `ms ≠ []`: no
-disjunct of `streamAt_recv.spec` (`Spec/go_etcd_io/etcd/client/v3/Api.lean`, the terminal error
+disjunct of `streamAt_recv.spec` (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean`, the terminal error
 case) holds. Kubernetes reaches it: `streamChunks` streams unpinned (`withRev == 0`) **with**
 `WithLimit(limit)` (`k8s.io/apiserver/pkg/storage/etcd3/store.go:944-951`).
 Fix: drop `ms ≠ []` from both slots (`⌜v.closeErr' = errVal .compacted⌝` with no `Q`, and
@@ -229,13 +229,13 @@ did not write it (read-only).
 
 ## Targets ranked by need of revision
 
-1. **`Spec/go_etcd_io/etcd/client/v3/Api.lean`**: F1 (`ms ≠ []`), F2 (stream open), F5, F6
+1. **`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean`**: F1 (`ms ≠ []`), F2 (stream open), F5, F6
    (`ctxPrin` intros), F7 (negative-revision streams); S7.
-2. **`Spec/context/Api.lean`**: F3 (`ctxChild_done`), F4 (`WithValue`'s key), F6 (keep the key),
+2. **`SpecPlan/Spec/context/Api.lean`**: F3 (`ctxChild_done`), F4 (`WithValue`'s key), F6 (keep the key),
    S2 (the realization).
 3. **`nonissues/`**: S4 (the doSerialize fix note), S5 (the leak window); a new entry for F7.
 4. **`examples/specreq/clientv3kv/`**: S6.
-5. **`Spec/go_etcd_io/etcd/api/v3/Model.lean`**: S1, S8; `notes/specs-only/top.md`: S3.
+5. **`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`**: S1, S8; `notes/specs-only/top.md`: S3.
 6. **`Wire.lean`, `State.lean`**: no finding (the nested header and `sizeFits` check out).
 
 ## Verdict

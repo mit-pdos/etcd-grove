@@ -1,10 +1,10 @@
 /-
-`bb.Swap(i, j)` (`tx_buffer.go:242`): translated; internal (`sort.Interface`). Changes: unchanged.
-Margin: none.
+`bucketBuffer.Swap` (`tx_buffer.go`). `bb.Swap(i, j)` (`sort.Interface`): the two entries exchanged.
+Lean-first (no Rocq counterpart); see `InvBuffer.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.backend.Internal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 
 @[expose] public section
 
@@ -12,26 +12,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Backend
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`bb.Swap(i, j)`**: entries `i` and `j` exchanged. -/
-def bucketBuffer.Swap.spec : Prop :=
-  ∀ (bb : Loc) (l : List (GoString × GoString)) (w : Bool) (i j : w64) (x y : GoString × GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ bbAt bb l w ∗ ⌜l[sint.nat i]? = some x ∧ l[sint.nat j]? = some y ∧ 0 ≤ sint.Z i ∧ 0 ≤ sint.Z j⌝ }}
-    (App (App (Val (bb @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer.ty @!! go!"Swap")) (Val #i)) (Val #j))
-  {{ RET #(); bbAt bb ((l.set (sint.nat i) y).set (sint.nat j) x) w }}
+/-- `bb.Swap(i, j)` (`sort.Interface`): the two entries exchanged. -/
+abbrev backend.bucketBuffer.Swap.spec : Prop :=
+  ∀ (bb : Loc) (es : List Ent) (i j : w64) (a b : Ent),
+  0 ≤ sint.Z i → 0 ≤ sint.Z j → es[sint.nat i]? = some a → es[sint.nat j]? = some b →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ ownBB bb es }}
+    (App (App (Val (bb @!! go.GoType.PointerType bucketBuffer.ty @!! go!"Swap")) (Val #i)) (Val #j))
+  {{ RET #(); ownBB bb ((es.set (sint.nat i) b).set (sint.nat j) a) }}
 
 end spec
 
-end Backend
 end EtcdGrove
 end Perennial

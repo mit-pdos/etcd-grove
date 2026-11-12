@@ -1,43 +1,50 @@
 /-
-`v3rpc.newUnaryInterceptor` (`server/etcdserver/api/v3rpc/`).
-
-Users: `v3rpc.Server` (the unary chain).
-
-Proof sketch: the capability check (`ErrGRPCNotCapable`, indefinite), the learner check (the fork's fixed `IsLocalMemberLearner`, `issues/etcd-unary-interceptor-learner-removed.md`; `ErrGRPCNotSupportedForLearner`: the contract's second way, the update given back), the incoming metadata (`FromIncomingContext`, `MD.Get`; an invalid client version: `ErrGRPCInvalidClientAPIVersion`, unmapped, so a status that settles nothing), the require-leader key (`ErrGRPCNoLeader`, indefinite), then the handler once with its arguments.
-
-Changes: from `specs-ref/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/newUnaryInterceptor.lean`: as `icEtcdOk` (was `srvInterceptorOk` with a per-interceptor predicate).
-
-Margin: none.
+`v3rpc.newUnaryInterceptor` (`v3rpc/interceptor.go`; unit P3b). Lean-first (no Rocq
+counterpart); the vocabulary is `Proof/google_golang_org/grpc/InvGrpc.lean` and
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvQuota.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace V3rpc
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3 Grpc Proto EtcdServer
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
+  go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `newUnaryInterceptor(s)`: an interceptor preserving etcd's contracts. -/
-def newUnaryInterceptor.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ isServer s γ }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInterceptor)) (Val #s))
-  {{ (i : GoFunc), RET #i; icEtcdOk i γ }}
+/-- **`newUnaryInterceptor(s)`** returns a transparent interceptor (`srvInterceptorOk`, no
+resource, for requests the learner check can read, `learnerReqOk`): it answers an error without
+calling the handler if the v3 RPC capability is off, if the member is a learner and the request
+not one a learner serves, if the client's API version is not UTF-8, or if the client requires a
+leader and there is none; otherwise it calls the handler. Premises: the server's member id, its
+`lead` (`s.Leader()`), its cluster (`IsMemberExist`, `IsLearner`) with the local member in it
+(`membership.localKept`). -/
+abbrev v3rpc.newUnaryInterceptor.spec : Prop :=
+  ∀ (s c : Loc) (mid : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvMemberIDAddr s ↦□ mid ∗ srvLeadInv s ∗ srvClusterAddr s ↦□ c ∗
+      membership.isRaftCluster c ∗ membership.localKept c }}
+    (App (Val (@! v3rpc.newUnaryInterceptor)) (Val #s))
+  {{ (ic : GoFunc), RET #ic; srvInterceptorOk ic iprop(True) v3rpc.learnerReqOk }}
 
 end spec
 
-end V3rpc
 end EtcdGrove
 end Perennial

@@ -1,13 +1,9 @@
 /-
-`watcher.enqueueResponse` (`cache/*.go`), an internal helper.
-Users: the demux's broadcasts and resync (under its lock).
-Proof sketch: filters the events by the predicate (`keyPredAt`); a response left empty is reported delivered; a non-blocking send on the channel (open: the producer end is held).
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`watcher.enqueueResponse(resp)`. Lean-first (no Rocq counterpart); see `InvWatcher.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvWatcher
 
 @[expose] public section
 
@@ -15,10 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,17 +21,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `w.enqueueResponse(resp)` by the producer end, for a response certified from its position (on a range containing the watcher's): `true` and the position moved (sent, or filtered to nothing), or `false` (the buffer full) and nothing sent. -/
-def watcher.enqueueResponse.spec : Prop :=
-  ∀ (w : Loc) (γ : Cluster) (rng rng0 : KeyRange) (pos pos' : Option Int)
-    (resp : go_etcd_io.etcd.client.v3.WatchResponse) (m : WatchRespM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isWatcher w ∗ watcherProducer w γ rng pos ∗ watchRespAt resp m ∗ respFact γ rng0 pos m pos' ∗ ⌜∀ k, KeyRange.mem rng k → KeyRange.mem rng0 k⌝ }}
-    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.watcher.ty @!! go!"enqueueResponse")) (Val #resp))
-  {{ (ok : Bool), RET #ok;
-      if ok then watcherProducer w γ rng pos' else watcherProducer w γ rng pos }}
+/-- The outcome of `enqueueResponse` for a response `r`, from log `sent`: a response the filter
+drops is not sent and reported delivered (`true`); otherwise the filtered one (`filterResp`)
+was sent if `ok`, and nothing was sent if not (the non-blocking send found the buffer full). -/
+def enqueueResult (pred : Option (GoString → Bool)) (r : RespModel) (sent : List RespModel)
+    (ok : Bool) (sent' : List RespModel) : Prop :=
+  match filterResp pred r with
+  | none => ok = true ∧ sent' = sent
+  | some r' => if ok then sent' = sent ++ [r'] else sent' = sent
+
+/-- `w.enqueueResponse(resp)` by the producer (`watcherOpen`, so the channel is open and the
+send cannot panic): see `enqueueResult`. The response sent has a non-nil `Header`
+(`respSent`). The caller publishes the log the send would make (`Pb.pub none`, for the
+filtered response). Not stated: that `ok = false` only when the buffer is full, which needs the
+consumer's view. -/
+abbrev watcher.enqueueResponse.spec : Prop :=
+  ∀ (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool)) (Pb : WatcherPub GF)
+    (sent : List RespModel) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isWatcher w γ pred Pb ∗ watcherOpen γ sent ∗ respAt resp r ∗
+      □ (∀ r', ⌜filterResp pred r = some r'⌝ -∗ Pb.pub none (sent ++ [r'])) }}
+    (App (Val (w @!! go.GoType.PointerType watcher.ty @!! go!"enqueueResponse")) (Val #resp))
+  {{ (ok : Bool), RET #ok; ∃ sent', watcherOpen γ sent' ∗ ⌜enqueueResult pred r sent ok sent'⌝ }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

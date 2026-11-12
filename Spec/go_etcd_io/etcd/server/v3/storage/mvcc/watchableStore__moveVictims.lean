@@ -1,18 +1,9 @@
 /-
-`(*watchableStore).moveVictims()` (internal): resends each victim's pending response (outside
-`s.mu`), then under `s.mu` and `revMu` puts each watcher whose send succeeded back in a group
-(unsynced if its `minRev` is at or below the current revision, else synced); the failed ones stay
-victims. Returns how many were moved.
-
-**Proof sketch.** Under `s.mu`: the victims taken (each batch with its watchers' `wsSendable`
-responses: `Revision` `minRev - 1`); `w.send` (its spec) for each; under `s.mu` and `revMu.RLock`
-(the loop's reader, `wsLoopV`) each record updated, `unsynced.add`/`synced.add`; the failed ones
-appended to `victims` again.
+`watchableStore.moveVictims` (`watchable_store.go`). Lean-first (no Rocq counterpart); see `InvWatchSync.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.WatchInternal
-public import Spec.go_uber_org.zap.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 
 @[expose] public section
 
@@ -20,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,14 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-def watchableStore.moveVictims.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ wsInv s γ ∗ wsLoopV s γ }}
+/-- `s.moveVictims()` with the caller's reader slots: takes the victim batches out of `s.mu`
+(their watchers out with the mover: `moverRes`), resends each batch outside the lock, and puts
+each watcher whose batch was sent back under the lock (unsynced at or below the current revision,
+else synced); the others become victims again (one batch appended). The lock invariant is kept;
+the number returned is the batches sent. -/
+abbrev mvcc.watchableStore.moveVictims.spec : Prop :=
+  ∀ (s st : Loc) (γ : mvcc.WsNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.watchReader s st γ }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"moveVictims")) (Val #()))
-  {{ (moved : w64), RET #moved; wsLoopV s γ ∗ ⌜0 ≤ sint.Z moved⌝ }}
+  {{ (moved : w64), RET #moved; mvcc.watchReader s st γ }}
 
 end spec
 
-end Mvcc
 end EtcdGrove
 end Perennial

@@ -1,14 +1,9 @@
 /-
-## `(*leafPageElement).SetPos(v)` (`internal/common/page.go`)
-
-**Users.** `WriteInodeToPage` only (internal).
-**Proof sketch.** one field store.
-**Changes.** from `specs-ref`'s file of the same name (unchanged: an internal setter over the typed element, which `WriteInodeToPage`'s proof views).
-**Margin.** none: the post is what the code computes.
+`(*leafPageElement).SetPos`'s spec (`internal/common/page.go`; U0b of `notes/bbolt-proof-plan.md`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.internal.common.Api
+public import Proof.go_etcd_io.bbolt.PkgInit
 
 @[expose] public section
 
@@ -16,26 +11,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace BboltCommon
+namespace bbolt
+namespace internal
+namespace common
 
 open Iris Iris.BI go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
-/-- (internal) `e.SetPos(v)` writes the field `pos`. -/
-def leafPageElement.SetPos.spec : Prop :=
-  ∀ (e : Loc) (v : leafPageElement) (x : w32),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ e ↦ v }}
-    (App (Val (e @!! go.GoType.PointerType leafPageElement.ty @!! go!"SetPos")) (Val #x))
-  {{ RET #(); e ↦ ({ v with pos' := x } : leafPageElement) }}
+/-- `leafPageElement.SetPos(x)` writes the field `pos`. -/
+abbrev leafPageElement.SetPos.spec : Prop :=
+  ∀ (l : Loc) (v : leafPageElement) (x : w32),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common ∗ l ↦ v }}
+    (App (Val (l @!! go.GoType.PointerType leafPageElement.ty @!! go!"SetPos")) (Val #x))
+  {{ RET #(); l ↦ ({ v with pos' := x } : leafPageElement) }}
 
 end spec
 
-end BboltCommon
+end common
+end internal
+end bbolt
 end EtcdGrove
 end Perennial

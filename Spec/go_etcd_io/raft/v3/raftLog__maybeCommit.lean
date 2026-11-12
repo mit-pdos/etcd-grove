@@ -1,15 +1,11 @@
-/-
-## `(*raftLog).maybeCommit(at)` (internal)
+/- Port of election_proof/spec_raftLog__maybeCommit.v (feb5c73d4).
 
-**Users**: `raft.maybeCommit` (`raft.go:796`: the quorum's match index at the leader's term).
-**Proof sketch**: `matchTerm(at)` is exact above `committed ≥ compactFloor`; `commitTo` (no panic:
-a matched index is at most `lastIndex`). **Changes**: from `specs-ref/Spec/go_etcd_io/raft/v3/raftLog__maybeCommit.lean`.
+Lean notes: `bool_decide` is `decide`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiLog
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
 
@@ -17,28 +13,42 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Commit through `at` if it is past `committed`, of a non-zero term, and in the log. -/
-def raftLog.maybeCommit.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (aid : go_etcd_io.raft.v3.entryID),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType go_etcd_io.raft.v3.raftLog.ty @!! go!"maybeCommit")) (Val #aid))
-  {{ (r : Bool), RET #r;
-      ⌜r = decide (aid.term' ≠ W64 0 ∧ ls.committed < uint.nat aid.index' ∧
-        ls.termOf (uint.nat aid.index') = some aid.term')⌝ ∗
-      raftLog l (if r then { ls with committed := uint.nat aid.index' } else ls) }}
+/-- `l.maybeCommit(at)`: commit up to `at.index` if `at` is a non-zero-term entry of
+our log past the commit index.
+
+The body (`raftLog.maybeCommit.impl`, `Code/go_etcd_io/raft/v3.lean`):
+
+    if at.term != 0 && at.index > l.committed && l.matchTerm(at) {
+        l.commitTo(at.index); return true
+    }
+    return false
+
+The result `b` is exactly the guard, and the log moves to `committed := at.index` when
+it is `true`. `commitTo`'s premise (`at.index <= lastIndex()`) is not a premise here:
+`matchTerm` put `at.index` inside the log (`plogTermAt_some_range`), so its `Panicf` is
+dead with no help from the caller. The leader's `raft.maybeCommit` calls this with
+`at = (trk.Committed(), r.Term)`. -/
+abbrev raftLog.maybeCommit.spec : Prop :=
+  ∀ (l : Loc) (ls : LogState) (aid : entryID),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"maybeCommit")) (Val #aid))
+  {{ (b : Bool), RET #b;
+      ownRaftLog l (if b then { ls with committed := aid.index' } else ls) ∗
+      ⌜b = decide (aid.term' ≠ W64 0 ∧
+                   uint.Z ls.committed < uint.Z aid.index' ∧
+                   PlogMatches ls.prev (ls.sents ++ ls.uents) aid)⌝ }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

@@ -1,34 +1,22 @@
 /-
-## `(*authStore).UserDelete(r)`
-
-**Users.** `applierV3backend.UserDelete` (`apply/backend.go:175`). Snippet: `examples/specreq/auth/admin.go` (`ReqAdminSteps`).
-
-**Proof sketch.** `as.enabled` read without its lock (the writer's half, in `authCur`): `root` with auth on: `ErrInvalidAuthMgmt`. The user read; absent: `ErrUserNotFound`; deleted, `commitRevision`, the cache refreshed, the provider's `invalidateUser` (its tokens dropped: a later `AuthInfoFromCtx` refuses them, allowed). The step's state, `storeNext` (the code's function of the request, its
-credential and `a`), is recorded at index `i + 1` (`authCur`), every view at it when the call
-returns; its answer is one W0's `authStep` gives (`storeNext_adm`).
-
-**Changes.** Restated over `admStep`. The old per-mode verdicts (`adminOut M hs`) are W0's `authStep` effect at
-the writer's state (`admStep`), with no mode index. Round 1 (review F1, F2): `admStep` lifts W0's
-step (which appends to `authHist`) by its auth part; the writer's premise is about the one next
-state `storeNext rq cred a` (was: every state the model allows).
-
-**Margin.** None.
+`authStore.UserDelete` (`server/auth/store.go`): the admin side (the auth plan's S4, 2026-10-24).
+Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` (the
+write side's contracts) and `Steps.lean` (the model's steps).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.auth.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Auth
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,14 +25,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`as.UserDelete(r)`** by the writer, for a request `r` asking `.userDelete name`: the store moves
-to `storeNext` (the code's next state, which the writer shows reached), an answer of W0's step
-(`admStep`) there, and the reply. -/
-def authStore.UserDelete.spec : Prop :=
-  ∀ (st r : Loc) (name : GoString),
-    AdminTriple (GF := GF) (App (Val (st @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!! go!"UserDelete")) (Val #r)) (authReqAt r (.userDelete name) []) st (.userDelete name) []
+/-- **`as.UserDelete(r)`** for a request naming `name`: having read the flag `en` (outside
+`enabledMu`), the step `userDeleteF en name` (`root` refused with auth enabled, `ErrUserNotFound`,
+or the user deleted and the revision bumped). -/
+abbrev auth.authStore.UserDelete.spec : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userDeleteReqIs r name ∗ authOwn M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+      ⌜∀ en : Bool, stepOk M hs (stepOf (userDeleteF en name))⌝ ∗
+      (□ ∀ en : Bool, capNextM M hs (stepOf (userDeleteF en name))) }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserDelete")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T ∗
+      respOk etcdserverpb.AuthUserDeleteResponse resp err ∗ ∃ en : Bool, enabledVerdict M en ∗ adminOut M hs (stepOf (userDeleteF en name)) noExtra err }}
 
 end spec
-end Auth
+
 end EtcdGrove
 end Perennial

@@ -54,7 +54,7 @@ coordinator's relayed requests from lease-auth and client-watch.
 - **F4** (unissued token): not fixed: open question 1.5 (`tokenUnissued` is 3d's). Note: an
   introduction of `ctxPrin` at *any* principal would contradict 1b's `ctxStreamKey_prin`; whoever
   decides 1.5 must give a fixed principal there.
-- **F5** (`ctx.Value`): fixed. `Spec/context/Api.lean`: `ctxValueIs ctx key v` (persistent),
+- **F5** (`ctx.Value`): fixed. `SpecPlan/Spec/context/Api.lean`: `ctxValueIs ctx key v` (persistent),
   `WithValue.spec`'s post gives it, `Value.spec` (returns the recorded value if any),
   `ctxValueIs_child`, `ctxValueIs_other`, and (lease-auth's request) `ctxValueIs_wp` (the WP form
   of `Auth.ctxValIs`). I added a predicate rather than an argument to `ctxValueAt`, which six other
@@ -195,10 +195,10 @@ This is the only way I found to serve both `NewLease` (readiness needed) and the
 ## Build
 
 `etc/specs-build.sh` OK on everything I touched and its importers in the client and auth: `--dir`
-`Spec/go_etcd_io/etcd/api/v3`, `Spec/context`, `Spec/go_uber_org/zap`, `Spec/fmt`,
-`Spec/go_etcd_io/etcd/client/pkg/v3/types`, `Spec/go_etcd_io/etcd/client/v3` (with the watch files),
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3`, `SpecPlan/Spec/context`, `SpecPlan/Spec/go_uber_org/zap`, `SpecPlan/Spec/fmt`,
+`SpecPlan/Spec/go_etcd_io/etcd/client/pkg/v3/types`, `SpecPlan/Spec/go_etcd_io/etcd/client/v3` (with the watch files),
 `.../kubernetes`, `.../concurrency`, `.../leasing`, `.../experimental/recipes`,
-`Spec/go_etcd_io/etcd/api/v3/etcdserverpb`, `Spec/go_etcd_io/etcd/server/v3/auth`, otel `trace`,
+`SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb`, `SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth`, otel `trace`,
 `pkg/v3/traceutil` (771 modules). `server/.../api/v3rpc` was not checked: it imports apply-txn's
 `apply/Api.lean`, which failed (`go.Semantics` instance, line 924) while that group was working.
 After the last changes (the `SetEndpoints` decision, `urlsRight_norm`): `api/v3`, `types`,
@@ -219,14 +219,14 @@ Snippets: `go vet` and `gofmt -l` clean for `clientv3kv`, `clientv3client`, `cli
 3. **`reqRight` in `AttemptTriple`/`uiOk_call` (P-F7)**: done. Both take `reqRight γ rq`; the
    attempt gives it back in its unfired outcome (3); the interceptor spends it.
 4. **otelgrpc gives `statsOk` (C-F2)**: done. New trust-boundary specs
-   `Spec/go_opentelemetry_io/contrib/instrumentation/google_golang_org/grpc/otelgrpc/{NewClientHandler,
+   `SpecPlan/Spec/go_opentelemetry_io/contrib/instrumentation/google_golang_org/grpc/otelgrpc/{NewClientHandler,
    NewServerHandler}.lean` (namespace `OtelGrpc`): `Grpc.statsOk h`. The `dialOptsOk` docstrings no
    longer wait on a chain model: 2a's pass-through chains, stats handlers and context dialers are
    neutral on `DialCfg`, so `dialOptsOk_neutral` covers Kubernetes' options. The gRPC proxy's replacing
    `With*Interceptor` stay uncovered.
 5. **`clientConnOk` gives `c.conn`**: done, `clientConnOk_conn.spec` (`client/v3/Api.lean`).
 6. **Stale `retryKVClient__RangeStream` note**: dropped. 2a's `rangeStreamSpec` carries `lo`.
-7. **`Sprintf("%+v", md)`**: done, `Spec/fmt/Sprintf_md.lean` (assumed): `sl ↦*{dq}
+7. **`Sprintf("%+v", md)`**: done, `SpecPlan/Spec/fmt/Sprintf_md.lean` (assumed): `sl ↦*{dq}
    [MD map m] ∗ Grpc.mdAt m dm md` gives `s = Fmt.printMD md` (`printMD_inj` in `fmt/Api.lean`).
 8. **`Proto.norm` survival**: W0 has no relation over `Proto.Content`; 3h realizes `Wire.lean`'s
    predicates through its own `*Holds` relations, covered by its `holds_norm` (requests under

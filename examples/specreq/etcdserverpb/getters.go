@@ -1,5 +1,5 @@
 // Package etcdserverpb holds the requirement snippets of etcd's v3 API messages (batch 3h):
-// Spec/go_etcd_io/etcd/api/v3/etcdserverpb/.
+// SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/.
 package etcdserverpb
 
 import (

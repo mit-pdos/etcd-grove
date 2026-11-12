@@ -1,0 +1,104 @@
+/-
+Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+theorem mvcc.readView.Range.wp_proof
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
+    (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
+    (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
+    mvcc.readView.Range.spec (GF := GF) (hG := hG) := by
+  intro rv s γ ctx cd todo key endk k e ro clb
+  wp_start as ⟨#Hrv, Hrd, #Hclb, #Hctx, #Hkey, #Hend⟩
+  iunfold mvcc.isReadView at Hrv
+  icases Hrv with ⟨%kv, Hrv⟩
+  iNamed Hrv
+  ihave %Hkvok := mvcc.kvOver_ok kv s $$ Hkvo
+  obtain ⟨kty, kvv, rfl⟩ := Hkvok
+  ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply hTODO as %t ⟨%Ht, Htrc⟩
+  (try wp_auto)
+  -- `rv.kv.Read(ConcurrentReadTxMode, trace)`: the store's
+  imod ownToks_0 (GF := GF) γ.revs with Hnone
+  imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
+  wp_apply (mvcc.kvOver_Read hRead kty kvv s γ _ t 0 [] true clb iprop(True) none) $$ [$Hkvo $Hs $Hrd $Hnone $Hc0 $Hclb $Htrc]
+    as %mw ⟨%log, %rev, %crev, Htx, -, #Hlbc, #HpermC, #Hrok, %Hp, -, -⟩
+  · isplitr
+    · iintro !>; itrivial
+    isplitr
+    · ipureintro; exact Ht
+    unfold mvcc.logLent; itrivial
+  (try wp_auto)
+  -- `tr.Range(...)`: `metricsTxnWrite.Range`
+  ihave Htx : mvcc.isTxn mw s γ t (.read log rev) crev iprop(True) $$ [Htx]
+  · simp only [mvcc.isTxn]; iexact Htx
+  wp_apply (hRange t mw s γ (.read log rev) ctx cd todo key endk k e ro crev iprop(True))
+    $$ [$Htx $Hctx $Hkey $Hend] as %r %err ⟨%Hnn, Htx, Hout⟩
+  (try wp_auto)
+  simp only [mvcc.isTxn, mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
+  iunfold mvcc.isTxnRead at Htx
+  iNamed Htx
+  ihave #HtrT := Htr
+  iunfold mvcc.storeTxnReadIs at HtrT
+  iNamedSuffix HtrT "T"
+  -- the deferred `tr.End()`: `metricsTxnWrite.End`
+  ihave Htx : mvcc.isTxnRead mw s γ t log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti Htrc]
+  · iunfold mvcc.isTxnRead
+    iexists p, trw, tr, ti, rt, ranges
+    iframe
+    iframe #
+  ihave Htx' : mvcc.isTxn mw s γ t (.read log rev) crev iprop(True) $$ [Htx]
+  · simp only [mvcc.isTxn]; iexact Htx
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
+  ihave Hep : mvcc.txnEndPreH γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPreH]; itrivial
+  ihave Htx' := mvcc.isTxnEnd_Y_read _ _ _ _ _ _ crev iprop(True) iprop(True) $$ Htx'
+  ihave Hx : mvcc.txnEndX γ (.read log rev) crev iprop(True) iprop(True) iprop(True) $$ []
+  · simp only [mvcc.txnEndX]; itrivial
+  wp_apply (hEnd t mw s γ (.read log rev) crev iprop(True) iprop(True) iprop(True) iprop(True)) $$ [$Htx' $Hep $Hx]
+    as ⟨Hrd, -, -, -, -⟩
+  (try wp_auto)
+  iapply HΦ
+  iframe Hrd
+  isplitr
+  · ipureintro; exact Hnn
+  iexists log, rev, crev
+  withPhys_simp
+  iframe HcertT Hout Hlbc HpermC
+  ipureintro
+  exact ⟨HneT, HrevT, Hp.2.2, HcrevT.1⟩
+
+end proof
+
+end EtcdGrove
+end Perennial

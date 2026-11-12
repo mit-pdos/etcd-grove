@@ -1,22 +1,9 @@
 /-
-`(*Cache).WaitReady(ctx)` (`cache/cache.go`): wait until the cache is ready or the context is done.
-
-Users: `Cache.Watch`, `Cache.Get` (internally); etcd's integration tests after every `New`
-(`if err := c.WaitReady(ctx); err != nil { t.Fatalf }`). Snippet: `cache/lifecycle.go`
-`ReqReadyThenGet`.
-
-Proof sketch: `ready.WaitReady.spec`: `nil` once it saw the ready flag set (then `cacheRevLb c 1`, as
-for `Ready`), or the context's error once it is done (`waitForState` returns `ctx.Err()` even when
-ready: then the context is done, `Context.Err.spec`).
-
-Changes: from `specs-ref`'s `Cache__WaitReady.lean`: W0's context bundle (`Context.ctxOk`) instead of
-Perennial's `isContext` (the callers pass any context); the client-facing `cacheRevLb c 1`.
-
-Margin: none.
+`Cache.WaitReady(ctx)` (`cache/cache.go`). Lean-first (no Rocq counterpart); see `InvCache.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Api
+public import Proof.go_etcd_io.etcd.cache.v3.InvCache
 
 @[expose] public section
 
@@ -24,28 +11,28 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **`c.WaitReady(ctx)`**: `nil` once the cache has loaded, or the context's error once it is
-done. -/
-def Cache.WaitReady.spec : Prop :=
-  ∀ (c : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ isCache c γ who pfx ∗ Context.ctxOk ctx }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.cache.v3.Cache.ty @!! go!"WaitReady")) (Val #ctx))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ cacheRevLb c 1) ∨ (Context.ctxDone ctx ∗ context.isCtxErr err) }}
+/-- `c.WaitReady(ctx)`: `c.ready.WaitReady(ctx)`, `nil` once ready (in an epoch at least
+`e0`) or a non-nil error once the context is done. -/
+abbrev Cache.WaitReady.spec : Prop :=
+  ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap e0 : Nat)
+    (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
+      isCacheFields c cf γr γd cap ∗ readyEpochLb γr e0 ∗ context.isContext ctx s }}
+    (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"WaitReady")) (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; readyWaitResult γr e0 s id err }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

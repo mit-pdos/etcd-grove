@@ -13,7 +13,7 @@ the snapshotter, `bootstrap.go`, `raft.go`.
 `⟨hG.goose_globalGS, L'⟩`: checkable, and meaning "built from the global ghost state only") or a
 crossing law that consumes the old generation's exclusive resource.
 
-- **Raft** (`Spec/go_etcd_io/raft/v3/Api.lean`, new subsection "Crashes and generations"):
+- **Raft** (`SpecPlan/Spec/go_etcd_io/raft/v3/Api.lean`, new subsection "Crashes and generations"):
   - `global.spec`: `committedLb`, `committedOps`, `confAt`, `confDecisions`, `confDecided`,
     `snapsMade`, `snapValid`, `readCtxs`, `readCtx`, `readState`, `msgSent`, `msgCredit`,
     `freshIds`, `bootLog` are the same at every local generation. Realization: `own`s of `GF`'s
@@ -35,7 +35,7 @@ crossing law that consumes the old generation's exclusive resource.
     persistent, so the law would give two vacancies, and `exclusive.spec` would then refute it. The
     vacancy has to come with an exclusive resource that the crossing consumes, and `raftState` is
     that resource.
-- **W0** (`Spec/go_etcd_io/etcd/api/v3/State.lean`, crash laws only, new subsection "Across a
+- **W0** (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/State.lean`, crash laws only, new subsection "Across a
   crash"):
   - `etcdState_gen`, `etcdLb_gen`, `urlsRight_gen`, `urlsReserve_gen`, `soleMember_gen` (`⊣⊢`).
   - `envUpd_gen` (`⊢`; it follows from `etcdState_gen`, and is stated so that no client unfolds

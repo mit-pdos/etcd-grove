@@ -1,39 +1,63 @@
 /-
-## `(*RaftCluster).IsIDRemoved(id)` (`cluster.go`): translated
-
-**Users.** 2d's `Process` (`IsIDRemoved` of a message's sender), the transport's `isIDRemoved`. **Proof sketch.** Under the lock, a map lookup: a read of the view.
-**Changes**: from `specs-ref`'s `RaftCluster__IsIDRemoved.lean`: the view's atomic read. **Margin.** Exact.
+`membership.RaftCluster.IsIDRemoved` (`cluster.go:181-185`: under the lock, `c.removed[id]`).
+Lean-first (no Rocq counterpart); D21 M2 (2026-10-19): `EtcdServer.Process`'s check of the sender.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Api
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Membership
 
-open Iris Iris.BI EtcdModel Classical
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **whether `id` was removed** in the view. -/
-def RaftCluster.IsIDRemoved.spec : Prop :=
-  ∀ (c : Loc) (γ : CNames) (cid lid : w64) (id : w64) (Q : ClusterSt → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ isCluster c γ cid lid ∗ (AU <{ ∃∃ (st : ClusterSt), clusterSt γ st }> @ ⊤, ∅ <{ clusterSt γ st, COMM Q st }>) }}
+/-- `c.IsIDRemoved(id)` (`c` a cluster, `isRaftClusterG`) returns the removed map's entry for `id`,
+for a removed map of which the side condition says `Pr` (D43 M4, 2026-10-26; until then `false`,
+the static cluster's: `spec_static`). -/
+abbrev membership.RaftCluster.IsIDRemoved.spec : Prop :=
+  ∀ (c : Loc) (RM : membership.RcSide GF) (Pr : GMap w64 Bool → Prop) (id : w64),
+  (∀ lid ms rm, RM lid ms rm ⊢ ⌜Pr rm⌝ ∗ RM lid ms rm) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.isRaftClusterG c RM }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"IsIDRemoved")) (Val #id))
-  {{ (b : Bool), RET #b; ∃ st : ClusterSt, Q st ∗ ⌜b = decide (uint.nat id ∈ st.removed)⌝ }}
+  {{ (b : Bool), RET #b; ⌜∃ rm, Pr rm ∧ b = (rm !! id).getD false⌝ }}
+
+/-- The static cluster's (`isRaftCluster`): its removed map is empty, so `false`. -/
+theorem membership.RaftCluster.IsIDRemoved.spec_static
+    (h : membership.RaftCluster.IsIDRemoved.spec (GF := GF) (hG := hG)) (c : Loc) (id : w64) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.isRaftCluster c }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"IsIDRemoved")) (Val #id))
+  {{ RET #false; True }} := by
+  rw [(membership.isRaftCluster_static c).to_eq]
+  iintro %Φ Hpre HΦ
+  iapply (h c membership.rcStatic (fun rm => rm = ∅) id
+    (fun lid ms rm => by
+      unfold membership.rcStatic
+      iintro %H
+      isplitr <;> ipureintro
+      · exact H.2
+      · exact H)) $$ Hpre
+  iintro %b %Hb
+  obtain ⟨rm, Hrm, Hb⟩ := Hb
+  subst Hrm
+  simp only [GMap.lookup_empty, Option.getD_none] at Hb
+  subst Hb
+  iapply HΦ
+  itrivial
 
 end spec
 
-end Membership
 end EtcdGrove
 end Perennial

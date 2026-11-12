@@ -1,22 +1,8 @@
-/-
-## `Progress.SentEntries(n, bytes)`
-
-**Users.** `maybeSendAppend` (`raft.go:659`, after `IsPaused()` was false, so not in snapshot
-state; entries only to a replicating peer whose ring is not full, `raft.go:639`): R2.
-
-**Proof sketch.** In replicate: `Next += n` and `Inflights.Add` (not full: premise) if `n > 0`; the
-pause is `Full()`. In probe: paused if `n > 0`. In snapshot state Go panics ("sending append in
-unhandled state"): premise.
-
-**Changes** (from `specs-ref`'s `tracker/Progress__SentEntries.lean`): over the model.
-
-**Margin.** None.
--/
+/- Port of election_proof/spec_Progress__SentEntries.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
+public import Spec.go_etcd_io.raft.v3.tracker.Inflights__Full
 
 @[expose] public section
 
@@ -24,27 +10,46 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Tracker
 
-open Iris Iris.BI
-open Classical
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.tracker.Assumptions]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Accounts for an append of `n` entries (`bytes` of payload) sent to the peer. -/
-def Progress.SentEntries.spec : Prop :=
-  ∀ (p : Loc) (P : ProgressV) (n bytes : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ progressOwn p P ∗
-      ⌜P.state ≠ .snapshot ∧ (P.state = .replicate → 0 < sint.Z n → P.ins.full = false)⌝ }}
-    (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.tracker.Progress.ty @!! go!"SentEntries")) (Val #n)) (Val #bytes))
-  {{ RET #(); progressOwn p (P.sentEntries n bytes) }}
+/-- `pr.SentEntries(entries, bytes)` records a `MsgApp` carrying `entries` entries
+(`tracker.Progress.SentEntries.impl`, `Code/go_etcd_io/raft/v3/tracker.lean`).
+It switches on `pr.State`:
+
+    StateReplicate: Next += entries (if entries > 0), then
+                    Inflights.Add(Next-1, bytes), then
+                    MsgAppFlowPaused = Inflights.Full()
+    StateProbe:     MsgAppFlowPaused = true (if entries > 0)
+    otherwise:      panic("sending append in unhandled state %s")
+
+Hence the two premises. `state ≠ .snapshot` rules out the panic, and the second premise
+is `Inflights.Add`'s: `Add` panics on a full window. Both are exactly what
+`maybeSendAppend` has when it gets here -- it only reaches this line after `IsPaused()`
+returned `false` (so the state is not Snapshot) and, in `StateReplicate`, entries are
+non-empty only when `!pr.Inflights.Full()` was the branch that fetched them.
+
+The new record is `progressSentEntries p entries bytes` (`Defs.lean`); it leaves
+`matched` alone (Match discipline, notes/raft-replication-model.md). (Until 2026-10-02
+the result was existential, with only `Match` pinned.) -/
+abbrev tracker.Progress.SentEntries.spec : Prop :=
+  ∀ (pr : Loc) (p : Progress) (entries bytes : w64),
+  p.state ≠ .snapshot →
+  (p.state = .replicate → 0 < sint.Z entries → inflightsFull p.infl = false) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
+      "Hpr" ∷ ownProgress pr p }}
+    (App (App (Val (pr @!! go.GoType.PointerType tracker.Progress.ty @!! go!"SentEntries"))
+      (Val #entries)) (Val #bytes))
+  {{ RET #(); ownProgress pr (progressSentEntries p entries bytes) }}
 
 end spec
-end Tracker
+
 end EtcdGrove
 end Perennial

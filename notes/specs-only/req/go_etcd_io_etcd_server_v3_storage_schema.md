@@ -36,7 +36,7 @@ Used by `RaftCluster.*.spec`, `NewAlarmStore.spec`, `AlarmStore.Recover.spec`, `
 
 ## from 3e
 
-mvcc's storage contract (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiStorage.lean`) names the
+mvcc's storage contract (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiStorage.lean`) names the
 bucket values and key names by pure constants; the schema's initialization must give them:
 
 1. **The buckets**: `globalAddr schema.Key ↦□ Mvcc.bucketVal .keyB` and `globalAddr schema.Meta ↦□
@@ -54,7 +54,7 @@ bucket values and key names by pure constants; the schema's initialization must 
 
 ## from 3d
 
-The auth store (`Spec/go_etcd_io/etcd/server/v3/auth/`) is stated over one provisional slot of this
+The auth store (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/`) is stated over one provisional slot of this
 package: **`Auth.authBackendAt be a`** (exclusive): `be` is an `AuthBackend` (`schema.NewAuthBackend(lg,
 be)`'s `*authBackend`) whose three auth buckets (`auth`, `authUsers`, `authRoles`) hold the auth
 state `a` (W0's `AuthState`): the enabled flag and revision keys, each user's `authpb.User` (its
@@ -84,7 +84,7 @@ tx := as.be.ReadTx(); tx.RLock()                                     // lockedRe
 
 ## from 4a
 
-4a's vocabulary (`Spec/go_etcd_io/etcd/server/v3/storage/backend/Api.lean`, namespace `Backend`) for
+4a's vocabulary (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/Api.lean`, namespace `Backend`) for
 the bundles of 4a's req "from 4b": parts are footprints of cells (`Cell.bkt b`, `.key b k`, `.buf
 b`); `beCur γ F C` the batch view, `beVis γ F V` the published view (or `beNoVis γ F`: nobody reads
 it through read transactions), `beSess γ q F S` the lock held; `beHist` the committed images

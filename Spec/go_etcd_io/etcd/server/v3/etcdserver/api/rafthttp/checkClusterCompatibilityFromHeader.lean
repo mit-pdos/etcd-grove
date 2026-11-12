@@ -1,19 +1,10 @@
 /-
-## `checkClusterCompatibilityFromHeader(lg, localID, header, cid)`
-
-**Users.** the three handlers.
-
-**Proof sketch.** `Header.Get`s, `serverVersion`, `minClusterVersion`, `checkVersionCompatibility`, `ID.String` (1c). `types.ID`'s `String()` on an addressable `ID` (log fields, headers) is 1c's `Types.ID.String_ptr.spec` (Goose's pointer receiver).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour. verify-round (brief item 3): the package's error variables' values come from `vars_init.spec` (each `errIs g e`, non-nil, `Http.errOk`; pairwise distinct by `errVars_distinct.spec`), not from Lean constants; statement unchanged. verify-round (second pass): the sketch cites `Types.ID.String_ptr.spec`.
-
-**Margin.** A request from a non-member with a malformed version header panics the handler, which `Serve` recovers (outside the closed world).
+`checkClusterCompatibilityFromHeader(lg, localID, header, cid)` (`http.go`; rafthttp stage 4): the
+pipeline and stream handlers' version and cluster check of a request's headers. Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pipe
 
 @[expose] public section
 
@@ -21,26 +12,33 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) **Checks a request's version and cluster headers**: `nil`, `errIncompatibleVersion` or `ErrClusterIDMismatch`. The version headers parse (`semver.MustParse` panics otherwise: a member's request sets them to its own versions). -/
-def checkClusterCompatibilityFromHeader.spec : Prop :=
-  ∀ (lg : Loc) (localID : w64) (hm : GoMap) (hs : List (GoString × GoString)) (cid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ (⌜lg = null⌝ ∨ Zap.isLogger lg) ∗ Http.hdrRO hm hs ∗ ⌜verHdrOk (Http.hdrGet hs go!"X-Server-Version") ∧ verHdrOk (Http.hdrGet hs go!"X-Min-Cluster-Version")⌝ }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkClusterCompatibilityFromHeader)) (Val #lg)) (Val #localID)) (Val #hm)) (Val #cid))
-  {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∨ errIs go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errIncompatibleVersion err ∨ errIs go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ErrClusterIDMismatch err }}
+/-- **The handlers' header check**, on a received request's headers: `nil`, or one of the two
+errors it reports (`errIncompatibleVersion`, `ErrClusterIDMismatch`), or a panic (`semver`'s
+`MustParse` of an unparsable version header). -/
+abbrev rafthttp.checkClusterCompatibilityFromHeader.spec : Prop :=
+  ∀ (lg : Loc) (localID cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (hm : Loc)
+    (hs : List (GoString × GoString)),
+  lg ≠ null →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      http.hdrAt hm hs }}
+    (App (App (App (App (Val (@! rafthttp.checkClusterCompatibilityFromHeader)) (Val #lg))
+      (Val #localID)) (Val #hm)) (Val #cid))
+  {{ (r : val), RET r;
+      ⌜r = #GoInterface.nil ∨ ∃ p, r = PanicV p⌝ ∨
+      ∃ e : GoInterface, ⌜r = #e⌝ ∗
+        (globalAddr rafthttp.errIncompatibleVersion ↦□ e ∨
+         globalAddr rafthttp.ErrClusterIDMismatch ↦□ e) }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

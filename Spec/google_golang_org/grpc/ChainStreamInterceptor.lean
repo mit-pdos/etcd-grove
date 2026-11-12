@@ -1,25 +1,18 @@
 /-
-`grpc.ChainStreamInterceptor` (grpc-go, assumed: `server.go`).
-
-Users: `v3rpc.Server` (`grpc.go:83`, this batch).
-
-Why true: the option appends to `opts.chainStreamInts`; chained in order (`chainStreamServerInterceptors`).
-
-Changes: from `specs-ref/.../grpc/ChainStreamInterceptor.lean`: over `SrvCfg`.
-
-Margin: none.
+`grpc.ChainStreamInterceptor(ics...)` (names only; item 4, the server start).
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
+public import Proof.google_golang_org.grpc.InvGrpcServer
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -29,15 +22,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `grpc.ChainStreamInterceptor(...)`: a server option acting as shown. -/
-def ChainStreamInterceptor.spec : Prop :=
-  ∀ (sl : GoSlice) (sics : List GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ sl ↦*□ sics }}
+/-- `grpc.ChainStreamInterceptor(ics...)`, the slice read-only, returns an option that appends `ics`
+to the server's stream chain (`.chainStream ics`). -/
+abbrev grpc.ChainStreamInterceptor.spec : Prop :=
+  ∀ (sl : GoSlice) (ics : List GoFunc),
+  {{ (sl ↦*□ ics : IProp GF) }}
     (App (Val (@! google_golang_org.grpc.ChainStreamInterceptor)) (Val #sl))
-  {{ (v : GoInterface), RET #v; srvOptAt v (fun B => { B with sics := B.sics ++ sics }) }}
+  {{ (v : GoInterface), RET #v; ⌜grpcSrvOpt v (.chainStream ics)⌝ }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

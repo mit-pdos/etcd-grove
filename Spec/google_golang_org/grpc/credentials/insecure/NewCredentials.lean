@@ -1,19 +1,10 @@
 /-
-`insecure.NewCredentials()` (grpc-go, assumed: `credentials/insecure/insecure.go`).
-
-Users: the client's `dialSetupOpts` without TLS (`client.go:244`, 1c).
-
-Why true: a fresh `insecureTC{}` value.
-
-Changes: restored (round 1).
-
-Margin: none.
+`insecure.NewCredentials()` (grpc's `credentials/insecure`, names only; item 5). Lean-first.
 -/
 module
 
-public import Spec.google_golang_org.grpc.Api
-public import GeneratedProof.google_golang_org.grpc.credentials.insecure
-public import Spec.PkgInit.google_golang_org.grpc.credentials.insecure
+public import Proof.google_golang_org.grpc.InvDial
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 
 @[expose] public section
 
@@ -21,7 +12,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Grpc
 
 open Iris Iris.BI
 
@@ -31,14 +21,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `insecure.NewCredentials()`: some transport credentials (any, for `WithTransportCredentials`). -/
-def insecure.NewCredentials.spec : Prop :=
+/-- `insecure.NewCredentials()`: some transport credentials (grpc's `insecureTC{}`). -/
+abbrev insecure.NewCredentials.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure }}
     (App (Val (@! google_golang_org.grpc.credentials.insecure.NewCredentials)) (Val #()))
-  {{ (tc : GoInterface), RET #tc; True }}
+  {{ (c : GoInterface), RET #c; True }}
 
 end spec
 
-end Grpc
 end EtcdGrove
 end Perennial

@@ -877,6 +877,15 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Translate `reflect`'s type declarations (`translate_types`, or `Type` alone: an
   interface type, whose values Perennial represents as any interface's), keeping its functions
   names only. A Perennial change, designed and reviewed on its own.
+- **Two incoherent instances (2026-11-10, k8s 7e-2).** `Proof/reflect/Values.lean` now gives
+  `reflect.Type'` a higher-priority `TypedPointsto` (`type_typed_pointsto`: `heapTypedPointsto` from
+  the axiom `type_intoVal_inj : go.IntoValInj reflect.Type'`, so it depends on `hG` and `intoVal`) and
+  an `IntoValTypedUnderlying` axiom (`type_into_val_typed`), so that `getNewItemFunc` (which
+  allocates a `reflect.Type` cell) no longer reaches the generated `sorry`s. The generated
+  `Type'_typed_pointsto`/`Type'_into_val_typed` still exist, and the reflector's
+  `Reflector.expectedType` field was elaborated against them: the two instances are incoherent
+  (a proof that mixes a struct's `Type'` field with a `Type'` cell would not connect them). Not
+  unsound, but only a fix at the source (above) gives one instance.
 - **Status.** Not started.
 
 ### Goose: a names-only package's constants are values of unknown shape
@@ -2060,6 +2069,92 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
 
+## `strings.Cut` has no model (2026-11-08, k8s 7e-3b)
+
+- **What happened.** Perennial's `strings` translates `Cut` names-only (no body, no spec). The k8s
+  etcd3 driver's `splitKey` called it.
+- **Local workaround.** The driver (our test code) splits the key with a byte loop instead; no spec
+  or axiom added.
+- **Proposed (general; record only).** A model of `strings.Cut` (a translated body, or a spec:
+  `s[:i]`, `s[i+len(sep):]`, `true` at the first occurrence `i`; `s`, `""`, `false` if none) is a
+  candidate general addition to Perennial's `strings`.
+- **Status.** Recorded only.
+
+## `func.forRange` (range over a function) has no WP rule (2026-11-10, k8s 7e-2, branch `k8s-7e`)
+
+- **Missing.** Perennial defines `func.forRange n` (`Perennial/Golang/Defn/Loop.lean`, Go 1.23's
+  `for k, v := range f`) but proves no WP rule for it; `doFor` has `wp_for`.
+- **Needed by.** `store.GetList`'s `for chunk, chunkErr := range chunks`
+  (`k8s.io/apiserver/pkg/storage/etcd3/store.go:829`).
+- **Workaround here.** A local, proved lemma `wp_forRange2` (`n = 2`) in
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/ForRange.lean`: the caller proves the iterator's WP for
+  an abstract yield `GoFunc` holding a token `Tok` (forRange's `state` cell at `0` and its `exit`
+  cell untouched), with the yield's spec (the body's outcome `executeVal`/`continueVal` gives `Tok`
+  back and `true`; `breakVal`/`returnVal r` gives `Done bv` and `false`); after the iterator returns
+  with `Tok` or `Done bv`, the loop's outcome follows. Bodies that panic are not covered. Plus
+  `wp_app_recV` (a closure argument as a `GoFunc` value). No axiom.
+- **Proposed change.** The same rule in `Perennial/Golang/Theory/Loop.lean` for `n = 0, 1, 2`, with
+  a sealed postcondition in `wp_for`'s style and a panicking-body case; a `wp_for_range` tactic.
+- **Status.** Candidate; not started in Perennial.
+
+## `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2)
+
+- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
+  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
+  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
+- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
+- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
+  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
+  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
+  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
+  below would remove it.
+- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
+  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
+- **Status.** Recorded; not started in Perennial (the axiom here stands in for it).
+
+## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
+
+- **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
+  compaction mode, `restore()` resumes a compaction (`compactLockfree`) before the deferred
+  `s.mu.Unlock()`. That call takes the store (`isStore`), whose `s.mu` must be a lock
+  (`isRWMutexGuard`); but `sync.init_RWMutex` takes an unlocked `RWMutex` (`zero_val`) and its
+  resource `▷ P 1`, which `NewStore` has only after `restore()` (the index it publishes, the fixed
+  registration).
+- **Local workaround.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/RWMutexWLocked.lean`:
+  `init_RWMutex_wlocked P rw : rw ↦ rwW ={E}=∗ ownRWMutexWLocked rw P ∗ [∗list] … ownRWMutex rw P`
+  (every slot), from the write-locked memory `plain.wp_Lock` leaves; `P 1` is given at the unlock
+  (`RWMutex.wp_Unlock_guard`). Proved over Perennial's sealed RWMutex internals
+  (`rwmutex.ownRWMutexInvariant_unseal`, `isRWMutex_unseal`, `isLock_unseal`, `ownLock_unseal`,
+  `isMutex_unseal`, `ownMutex_unseal`, the guard's `invSt`), mirroring `rwmutex.init_RWMutex` at the
+  protocol's `Locked`/`IsLocked` state, with `init_lock_locked` for the inner `Mutex`. No axiom.
+- **Proposed (general).** `sync.init_RWMutex_wlocked` (and `init_Mutex_locked`) in Perennial, next to
+  `init_RWMutex`: a lock made by its holder.
+- **Status.** Local lemma; to be proposed.
+
+## `Int64.Load` with the fraction chosen inside the update (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `sync.atomic.Int64.Load.spec` (and `LoadInt64.spec`) quantify the fraction `dq` before
+  the atomic update; a caller whose fraction is known only once it opens its invariant (the update's
+  `∃ dq x, ownInt64 u dq x ∗ …`) cannot use them, although their proofs open the update before the
+  load and would prove the stronger form unchanged.
+- **Needed by.** mvccfull's `inBounds.spec` (frozen): `check(v <= hi.Load())` with the caller's
+  accessor picking the fraction.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/AtomicLoad.lean`:
+  `wp_LoadInt64_ex`, `wp_Int64_Load_ex`, Perennial's two proofs re-run with `∃ dq` inside the
+  update (`wp_load_bytes_typed`, the struct field). No axiom.
+- **Proposed (general).** State `LoadInt64`/`Int64.Load` (and the other atomic loads) with the
+  fraction inside the update, the current form a corollary.
+- **Status.** Local lemma; to be proposed.
+
+## `GoStringLe` as the negation of the converse `GoStringLt` (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `go.GoStringLe a b ↔ ¬ go.GoStringLt b a`, a general fact about Perennial's string
+  order.
+- **Workaround here.** `goStringLe_iff_not_lt` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
+- **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
+- **Status.** Local lemma; to be proposed.
+
 ## `fmt.Errorf`'s spec does not admit an error argument (`%w`) or a `Stringer` (2026-11-09, branch `specs-only`)
 
 - **The gap.** Perennial's `fmt.Errorf.spec` requires `ArgsWf` (basic-typed arguments). Three calls the
@@ -2067,7 +2162,7 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `kvstore_txn.go:121`), raft confchange's `Changer.apply` (a `ConfChangeType`, which has `String`) and
   raftpb's `ConfState.Equivalent` (four `*ConfState`s).
 - **Local workaround.** raftpb states a local assumed spec, `RaftPb.fmtErrorf.spec`
-  (`Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`); mvcc's `rangeKeys` proof will rest on the model at
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/FmtErrorf.lean`); mvcc's `rangeKeys` proof will rest on the model at
   that step (`Mvcc.rangeCtxErr`'s laws: non-nil, fresh, none of mvcc's sentinels). Related: the entry
   above (the model can be unfolded to learn false facts).
 - **Proposed (general; record only, nothing changed in Perennial).** `fmt.Errorf.spec` for a `%w` argument
@@ -2083,7 +2178,7 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   the directory only in some paths.
 - **Local workaround.** The specs-only branch states `Snap.dbFile_rename` as a trusted triple and gives the
   backend a `beRevert`/`beNoRevert` token with a revert case in `beCrash`
-  (`Spec/go_etcd_io/etcd/server/v3/storage/backend/`); that case's realization is open until OsFs has it.
+  (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/`); that case's realization is open until OsFs has it.
   The second crash pass (`notes/specs-only/verify/repair5-crash.md`, G-b) adds two more uses of the same
   gap: a file renamed over while still open (`Backend.beDetached`, `applySnapshot`'s old backend, whose
   open handle keeps the unlinked inode until `Close`), and its close or crash folding that inode's image
@@ -2138,7 +2233,7 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **The gap.** raft's `DescribeConfChange` and raftpb's `ConfChangesToString` build strings with a
   `strings.Builder` and `fmt.Fprintf`, which Perennial does not specify.
 - **Local workaround.** Both are stated as assumed trust-boundary specs on the specs-only branch
-  (`Spec/go_etcd_io/raft/v3/DescribeConfChange.lean`, `raftpb/ConfChangesToString.lean`).
+  (`SpecPlan/Spec/go_etcd_io/raft/v3/DescribeConfChange.lean`, `raftpb/ConfChangesToString.lean`).
 - **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
   and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
 - **Status.** Recorded only.

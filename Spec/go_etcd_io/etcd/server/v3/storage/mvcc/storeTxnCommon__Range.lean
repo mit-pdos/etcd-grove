@@ -1,13 +1,9 @@
 /-
-`(*storeTxnCommon).Range(ctx, key, end, ro)` (`kvstore_txn.go:69`): `rangeKeys` at the transaction's
-`Rev()`. Internal: a read transaction's `Range` (promoted to `storeTxnRead`; `storeTxnWrite` has its
-own). Proof sketch: `Rev.spec`, then `rangeKeys.spec` at `rev = σ.rev = (.read σ).readHist.rev`.
-
-**Changes** from `specs-ref`'s file: over `txnCommon` and `rangeOut` (W0's history).
+`storeTxnCommon__Range` (`kvstore_txn.go`). Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalTxn
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -15,9 +11,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
-open Iris Iris.BI EtcdModel EtcdWire go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -26,19 +21,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- A read transaction's range: its outcome over the transaction's state. -/
-def storeTxnCommon.Range.spec : Prop :=
-  ∀ (c : Loc) (γ : MvccName) (trace : Loc) (σ : MvccState) (ctx : GoInterface) (key endk : GoSlice)
-    (kk e : Bytes) (dk de : DFrac) (ro : RangeOptions),
+/-- `tr.Range(ctx, key, end, ro)` is `rangeKeys` at the transaction's revision (at
+`context.TODO()`, `todo`, no context error), at the compaction revision `crev` the transaction
+observed (its hold of `s.mu`, `muHeld` at `crev`, given back: `ErrCompacted` below it, the
+uncompacted outcome at or above it, `rangeOutcomeC`; 2026-10-13, unit 6a), under the
+transaction's reader (`txReader`, kept). The readers' statement (a store never compacted, `crev =
+-1`: `rangeOutcome`) is `specR`, a corollary (`spec_R`, `ReaderSpecs.lean`). -/
+abbrev mvcc.storeTxnCommon.Range.spec : Prop :=
+  ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (te : Bool) (crev : Int)
+    (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      txnCommon c γ trace (.read σ) ∗ traceOwn trace ∗ Context.ctxOk ctx ∗ key ↦*{dk} kk ∗ endk ↦*{de} e }}
-    (App (App (App (App (Val (c @!! go.GoType.PointerType storeTxnCommon.ty @!! go!"Range"))
-      (Val #ctx)) (Val #key)) (Val #endk)) (Val #ro))
+      mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev crev Z ∗ mvcc.txReader γ rt log ∗
+      mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      mvcc.muHeld s γ crev ti ∗ traceutil.ownTrace trace te }}
+    (App (App (App (App (Val (mvcc.txCommon tr @!! go.GoType.PointerType storeTxnCommon.ty @!!
+      go!"Range")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      txnCommon c γ trace (.read σ) ∗ traceOwn trace ∗ key ↦*{dk} kk ∗ endk ↦*{de} e ∗
-      ∃ out : RangeOut, ⌜rangeOut σ.kv σ.crev (mrange kk endk e) ro out⌝ ∗ rangeResOwn ctx r err out }}
+      ⌜todo = true → r ≠ null⌝ ∗
+      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ crev ti ∗ mvcc.txReader γ rt log ∗
+      traceutil.ownTrace trace te ∗
+      mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

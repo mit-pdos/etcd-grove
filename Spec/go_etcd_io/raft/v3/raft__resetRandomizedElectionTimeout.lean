@@ -1,14 +1,7 @@
-/-
-## `raft.resetRandomizedElectionTimeout` (internal)
-
-`reset`. Mirrors the code: `lockedRand.Intn(electionTimeout)` (positive: `ConfigOk`). **Changes.** Over the opened struct (internal layer, `ApiCore.lean`; from `specs-ref`'s
-`raft__resetRandomizedElectionTimeout.lean`, over `NState`); round 1: the result is stated over the state.
--/
+/- Port of election_proof/spec_raft__resetRandomizedElectionTimeout.v (feb5c73d4). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.ApiCore
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 
@@ -16,25 +9,36 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Raft
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) A new randomized timeout. -/
-def raft.resetRandomizedElectionTimeout.spec : Prop :=
-  ∀ (r : Loc) (γ : Cluster) (id : w64) (o : CoreOpen) ,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ raftOpen r γ id o }}
-    (App (Val (r @!! go.GoType.PointerType go_etcd_io.raft.v3.raft.ty @!! go!"resetRandomizedElectionTimeout")) (Val #()))
-  {{ RET #(); ∃ t, raftOpen r γ id { o with randomizedElectionTimeout := t } }}
+/-- `resetRandomizedElectionTimeout` draws from the global RNG and writes
+`r.randomizedElectionTimeout`. The *RNG* is outside core raft and is assumed
+(`Spec/rand_Int.lean`); this wrapper is raft code, so it is a theorem. The field it
+writes appears in no other conjunct of `ownRaftPhys`, and the model has no clock, so
+the new value is existential.
+
+`0 < electionTimeout` is not optional. The body is
+`r.electionTimeout + globalRand.Intn(r.electionTimeout)`, and `lockedRand.Intn` reaches
+`crypto/rand.Int`, which **panics** on a non-positive bound -- so without the premise
+the triple is false at `electionTimeout ≤ 0`. Raft establishes it in `Config.validate`
+(`ElectionTick > HeartbeatTick > 0`) and `ownRaftPhys` carries it as
+`HelectionTimeout`; `reset` passes it through. Added 2026-09-20. -/
+abbrev raft.resetRandomizedElectionTimeout.spec : Prop :=
+  ∀ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"resetRandomizedElectionTimeout"))
+      (Val #()))
+  {{ RET #(); ownRaftPhysCV c V r id s }}
 
 end spec
-end Raft
+
 end EtcdGrove
 end Perennial

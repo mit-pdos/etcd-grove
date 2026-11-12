@@ -1,62 +1,101 @@
 /-
-## `(*lessor).Recover(b, rd)` (`lessor.go:600`)
-
-**Users.** 2d's `applySnapshot` (`server.go:1087`): over the backend opened from a received
-snapshot's image (`newbe`), with a deleter of the KV store (`s.kv.Write`), before mvcc's `Restore`
-(which re-attaches the keys: `Attach`), on the apply thread. Snippet `lessor.go` (`ReqRecover`).
-
-**Proof sketch.** `le.mu.Lock()`; `le.b = b`, `le.rd = rd` (both halves), fresh `leaseMap`,
-`itemMap`; `initAndRecover()` (`lessor.initAndRecover.spec`: `b.BatchTx()`, `LockOutsideApply`
-(`beOk b`), 4b's `UnsafeCreateLeaseBucket` (the bucket exists: no change to `B`) and
-`MustUnsafeGetAllLeases` (its records decode: `beLeases b B`, each id once, in some order), `Unlock`; for each record a fresh
-`*Lease` with the TTL raised to the minimum, an empty item set, its own `revokec`; the notifier's
-`Init`, `heap.Init` of the checkpoint heap; `b.ForceCommit()`); the history appended with the
-loaded state (`n + 1`); the old backend's bucket and open share (`beLeases ls.be ls.bkt`, `beOk
-ls.be`, held in the writer's token) go back to the caller (2d's `applySnapshot` closes the old
-backend), the new one's into the token; unlock. The old objects' item sets are kept (readers may hold them).
-
-**Changes** (from `specs-ref`'s `lessor__Recover.lean`, the lease-expiry plan's S1 over the
-backend's tracked buckets): over the lessor's state and 4b's `beLeases`. **Integration (I5).** The old backend's open share `beOk ls.be` is handed back too (4a: `beOk` is
-no longer persistent, `req/..._lease.md`, "from 4a"). **Margin.** The old
-objects' `revokec` are never closed (a `Renew` waiting on one waits for `demotec` or `stopC`).
+`(*lease.lessor).Recover(b, rd)` (`lessor.go:600`). Lean-first (no Rocq counterpart); D22
+receiver epochs, S8c (2026-10-24), for `applySnapshot`; until the lease-expiry plan's S1
+(2026-11-04) an axiom at the trust boundary, now translated and proved
+(`Proof/.../lease/lessor__Recover.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.lease.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorRecover
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Lease
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Reload from backend `b`** (the writer): the leases of `b`'s lease bucket `B` (fresh objects,
-TTLs raised to the minimum, no key attached), `b` and `rd` the lessor's backend and deleter; the old
-backend's bucket and open share handed back. -/
-def lessor.Recover.spec : Prop :=
-  ∀ (le : Loc) (γ : Names) (c : Cfg) (n : Nat) (ls : LessorState) (b : GoInterface) (rd : GoFunc)
-    (B : Int → Option Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ isLessor le γ c ∗
-      lessorState γ n ls ∗ beOk b ∗ beLeases b B }}
-    (App (App (Val (le @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
-      go!"Recover")) (Val #b)) (Val #rd))
-  {{ RET #(); ∃ objs : Int → Loc, beOk ls.be ∗ beLeases ls.be ls.bkt ∗
-      lessorState γ (n + 1) (LessorState.loaded c b rd B objs ls.keys) }}
+/-- **`le.Recover(b, rd)`** of the lessor `lp` (its configuration `lessorCfg`, its mode `mono`) on
+the real backend at `oldbe` (its user's half of `le.b`, `lessorBeOn`), the owner's half of the live
+set at some `L` with its item map `I` and its close rights (`leaseOwn γl L I`, `leaseRevokers γl
+L`) and of the range deleter at some `rd0` (`rdOwn`), onto the real backend `d` whose lease bucket
+holds the records `recs`, in key order, each what `Grant` writes (`leaseRecEnc`; absent or empty:
+`recs = []`; a part of any bucket set `S` containing `lease`, `rbPart d.γB S r`; the bucket in the
+table, tracked, none of its keys a hook's, `mvcc.leaseParams d.P`), every recovered id meeting the
+lessor's grant guard (`leaseGranted`; the live set's leases all do, `lessorAuth`), and in the
+monotone mode every live id among the records' (a monotone history keeps every lease):
+the lessor on `d`, the live set the records' ids in the caller's order `Lr` with no item
+(`leaseOwn γl Lr ∅`, `leaseRevokers γl Lr`), the range deleter `rd` (`rdOwn γl rd`), the lease bucket of `d` present
+(created if absent) and **the part idle** (`rbOwnIn d.γB S (r.insert "lease" _)`), at two
+write-back tokens; and the lessor's history has at some index the recovered snapshot: one lease per
+record (fresh `*Lease`s `ls`, `recMap`), no item, each record's TTL raised to the minimum `mt`
+(`recTTLs`, the lease-expiry plan's R5). (E3 (c), 2026-11-05; review r1 F5) The records' ids are
+added to the ids the lessor ever had (`leaseEver γl U`); one it already had must be live (`id ∈ L`);
+with no record, the ids' half is neither taken nor given back (the caller keeps it; a cluster that
+grants none holds none). (Review r2 Q, DRAFT 2026-11-06: until then `⌜recs = []⌝ ∨ …` in pre and
+post, which could swallow a `leaseEver` handed in at `recs = []`.)
+
+What Go does (`lessor.go:600-609`, `initAndRecover` `:808-835`): under `le.mu`, `le.b = b`,
+`le.rd = rd`, fresh `leaseMap` and `itemMap`, then `initAndRecover`
+(`lessor.initAndRecover.spec`: the lease bucket created, its records read, `MustUnsafeGetAllLeases`,
+one `Lease` per record into the map, the notifier and the checkpoint heap re-initialized,
+`ForceCommit`). The old leases leave the lessor: their `*Lease`s keep their item sets (frozen, as
+after `Revoke`) and their close rights are dropped. (2026-11-04, the lease-expiry plan's S1:
+until then an axiom taking an empty bucket and a revocable lessor, and not returning `le.rd`'s
+half, which the audit flagged.) (The lease-expiry plan's S2–S4, 2026-11-05: Q-S4 (A), Q-S7, Q-S8)
+A record's id need not be new to `U`: one the lessor ever had must be live (`id ∈ L`, so that each
+id stays live over an interval of the history); the caller names each record's request `reqOf`
+(review r1 F8: until then `rq`), at most its TTL, and for an id of `U` holds its request
+(`leaseReqIs`), which every recovered lease then has; and the live set is the records' ids in the
+caller's order `Lr` (a permutation of them). (Review r1 F6) A scope restriction: Go recovers any
+records; this spec excludes a revoked id granted again (an explicit `ID`), which the revocable
+mode's generated ids (`kvGrantIds`) and the monotone mode's `histMono` rule out (with `histCover`:
+`ever_live_mono`, every id the lessor ever had live). -/
+abbrev lease.lessor.Recover.spec : Prop :=
+  ∀ (lp : Loc) (γl : GName) (oldbe : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
+    (S : GoString → Prop) (r : GMap GoString backend.BktData) (rd rd0 : GoFunc) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (mono : Bool)
+    (recs : List (w64 × w64 × w64)) (U : List w64) (reqOf : w64 → w64) (Lr : List w64),
+  S go!"lease" → mvcc.leaseParams d.P →
+  backend.bktEnts ((r.lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc →
+  (mono = true → ∀ id ∈ L, id ∈ recs.map (·.1)) → (∀ id ∈ recs.map (·.1), id ∈ U → id ∈ L) →
+  (∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) → Lr.Perm (recs.map (·.1)) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+      lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorModeIs γl mono ∗
+      (if recs = [] then iprop(True) else lease.leaseEver γl U) ∗
+      □ ([∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨ lease.leaseReqIs γl x.1 (reqOf x.1)) ∗
+      lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L I ∗ lease.leaseRevokers γl L ∗
+      lease.rdOwn γl rd0 ∗ □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted γl id) ∗
+      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
+      backend.rbPart d.γB S r }}
+    (App (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
+      go!"Recover")) (Val #(interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
+      (Val #rd))
+  {{ RET #(); lease.lessorBeOn lp d.be ∗ lease.leaseOwn γl Lr ∅ ∗
+      (if recs = [] then iprop(True) else lease.leaseEver γl (U ++ recs.map (·.1))) ∗
+      □ ([∗list] x ∈ recs, lease.leaseReqIs γl x.1 (reqOf x.1)) ∗
+      lease.leaseRevokers γl Lr ∗ lease.rdOwn γl rd ∗
+      backend.bOpen d.γB qo ∗
+      backend.rbOwnIn d.γB S (r.insert go!"lease" ((r.lookup go!"lease").getD ∅)) ∗
+      ∃ (i : Nat) (ls : List Loc) (mt : w64), ⌜ls.length = recs.length⌝ ∗
+        lease.lF go!"minLeaseTTL" lp ↦□ mt ∗
+        lease.lessorAt γl i (lease.recMap (recs.zip ls), ∅, lease.recTTLs mt recs) }}
 
 end spec
-end Lease
+
 end EtcdGrove
 end Perennial

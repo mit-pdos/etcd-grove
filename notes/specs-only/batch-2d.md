@@ -8,7 +8,7 @@ module cache).
 
 ## Files
 
-`Spec/go_etcd_io/etcd/server/v3/etcdserver/` (namespace `EtcdServer`):
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/` (namespace `EtcdServer`):
 - `ApiApply.lean`: the vocabulary (below).
 - The apply thread: `EtcdServer__{run, applyAll, applySnapshot, applyEntries, apply,
   applyEntryNormal, applyConfChange, snapshotIfNeededAndCompactRaftLog, shouldSnapshotToDisk,
@@ -24,11 +24,11 @@ module cache).
   and raft's methods promoted through the driver: `raftNode__{Propose, ReadIndex, Step,
   ReportUnreachable, ReportSnapshot, ApplyConfChange}.lean` (R1's statements at the driver).
 
-`Spec/go_etcd_io/etcd/server/v3/etcdserver/cindex/` (namespace `Cindex`, new): `Api.lean`,
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/cindex/` (namespace `Cindex`, new): `Api.lean`,
 `NewConsistentIndex`, `consistentIndex__{ConsistentIndex, UnsafeConsistentIndex, SetConsistentIndex,
 SetConsistentApplyingIndex, ConsistentApplyingIndex, UnsafeSave, SetBackend}`.
 
-`Spec/go_etcd_io/etcd/pkg/v3/schedule/` (namespace `Schedule`, new): `Api.lean`, `NewFIFOScheduler`,
+`SpecPlan/Spec/go_etcd_io/etcd/pkg/v3/schedule/` (namespace `Schedule`, new): `Api.lean`, `NewFIFOScheduler`,
 `NewJob`, `job__{Name, Do}`, `fifo__{Schedule, Stop, run, executeJob}`.
 
 Snippets: `examples/specreq/etcdserverapply/` (`apply.go`: `ReqWriteAnswered`, `ReqAppliedRead`,
@@ -170,7 +170,7 @@ deterministic, `shouldApplyV3` writes), `req/go_etcd_io_raft_v3_raftpb.md` (3h: 
   15 s after 2e wrote `EtcdServer__{CutPeer, RaftHandler}.lean`; if 2e had also written these three,
   2d's write replaced them (2d's generator did not check for existing files then; it does now).
   Please check 2e's report.
-- At the start of this batch, `Spec/PkgInit/...bbolt*` imported a missing `Spec.PkgInit.«unsafe»`
+- At the start of this batch, `SpecPlan/Spec/PkgInit/...bbolt*` imported a missing `SpecPlan.Spec.PkgInit.«unsafe»`
   (`etc/gen-specs-pkginit.py`'s `perennial_instances` regex misses `pkg_id.«unsafe»`); it was fixed
   during the batch.
 

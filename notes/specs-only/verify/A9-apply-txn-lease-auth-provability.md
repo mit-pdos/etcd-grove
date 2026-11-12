@@ -1,10 +1,10 @@
 # A9 (apply, txn, lease, auth, bcrypt): provability review
 
 Reviewer: independent provability agent, 2026-11-09, at `1aa6fc1337`. Scope: batches 3a
-(`Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/`), 3b (`.../etcdserver/txn/`), 3c
-(`Spec/go_etcd_io/etcd/server/v3/lease/`, `lease/leasehttp/`), 3d (`Spec/go_etcd_io/etcd/server/v3/auth/`,
-`Spec/golang_org/x/crypto/bcrypt/`); snippets `examples/specreq/{apply,txn,lease,auth}/`. Target: an
-applied client request is exactly W0's `Step` (`Spec/go_etcd_io/etcd/api/v3/Model.lean:1296`) in every
+(`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/apply/`), 3b (`.../etcdserver/txn/`), 3c
+(`SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/`, `lease/leasehttp/`), 3d (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/auth/`,
+`SpecPlan/Spec/golang_org/x/crypto/bcrypt/`); snippets `examples/specreq/{apply,txn,lease,auth}/`. Target: an
+applied client request is exactly W0's `Step` (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean:1296`) in every
 mode. Go sources: `/home/ubuntu/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261107170612-a4d2bb1720b9`
 (below `S/`).
 

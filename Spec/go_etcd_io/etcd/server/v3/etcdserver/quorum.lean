@@ -1,42 +1,36 @@
 /-
-## `quorum(num)` (`util.go:46-48`)
-
-**Users.** `isConnectedToQuorumSince`, `isConnectedToQuorumAfterAddingNewMemberSince` (2c's error
-classification, `parseProposeCtxErr`; the member checks).
-
-**Proof sketch.** Go's `int` arithmetic. **Changes**: from `specs-ref`'s `quorum.lean`.
-**Margin.** Exact.
+`quorum` (`util.go`: `num/2 + 1`). Lean-first (no Rocq counterpart); unit P1b (2026-10-14).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`quorum(n) = n / 2 + 1`** (Go's `int` arithmetic, wrapping). -/
-def quorum.spec : Prop :=
-  ∀ (n : w64),
+/-- `quorum(num)`: some count (`num / 2 + 1`; `isConnectedToQuorumSince` only compares with it). -/
+abbrev quorum.spec : Prop :=
+  ∀ (num : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.quorum)) (Val #n))
-  {{ RET #(W64 (sint.Z n / 2 + 1)); True }}
+    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.quorum)) (Val #num))
+  {{ (q : w64), RET #q; True }}
 
 end spec
 
-end EtcdServer
 end EtcdGrove
 end Perennial

@@ -1,19 +1,10 @@
 /-
-## `(*remote).Pause()`
-
-**Users.** `Transport.CutPeer`/`MendPeer`.
-
-**Proof sketch.** `paused` under `mu` (idempotent: the fork's flag).
-
-**Changes.** Restated over the new vocabulary (was over `specs-ref`'s `TransportState`/`TransportInv` records, `NetNames`, `netBundle`); same behaviour.
-
-**Margin.** None.
+`(*remote).Pause()` (`remote.go`; #8's J8a-7, 2026-11-01, the fork's `goose-lean-remotepause`).
+Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -21,26 +12,24 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rafthttp
 
-open Iris Iris.BI Raft
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (internal) Sets the remote's `paused` flag (paused traffic). -/
-def remote.Pause.spec : Prop :=
-  ∀ (g : Loc) (ν : Net GF) (lid pid : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ remoteAt g ν lid pid }}
-    (App (Val (g @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote.ty @!! go!"Pause")) (Val #()))
+/-- **`g.Pause()`** of a started remote: it returns, `paused` set (J8a-7: a remote paused by a flag, as a peer; until then `Pause` stopped the pipeline, a second call panicking). -/
+abbrev rafthttp.remote.Pause.spec : Prop :=
+  ∀ (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+      remoteOk Rh lid pid R g }}
+    (App (Val (g @!! go.GoType.PointerType rafthttp.remote.ty @!! go!"Pause")) (Val #()))
   {{ RET #(); True }}
 
 end spec
-end Rafthttp
+
 end EtcdGrove
 end Perennial

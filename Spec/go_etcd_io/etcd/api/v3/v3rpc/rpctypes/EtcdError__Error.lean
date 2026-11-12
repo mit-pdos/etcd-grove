@@ -1,19 +1,11 @@
 /-
-`rpctypes.EtcdError.Error()` (`error.go:252`).
-
-Users: every caller printing or comparing an etcd error's message (`errors.Is` does not call it;
-`ErrorDesc` of an `EtcdError` does), the server's `togRPCError` fallback is not reached by one.
-
-Proof sketch: returns the field. (`errVal_errMsg`, a law of the package, is this spec at
-`errVal e`.)
-
-Changes: from `specs-ref/.../rpctypes/EtcdError__Error.lean`: unchanged.
-
-Margin: none.
+`rpctypes.EtcdError.Error()` (`api/v3rpc/rpctypes/error.go`, a value receiver): its description.
+What makes the `EtcdError` `rpctypes.Error` returns an error whose `Error()` returns (unit P3a,
+2026-10-14). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Api
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 
 @[expose] public section
 
@@ -21,26 +13,25 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Rpctypes
 
-open Iris Iris.BI EtcdModel ClientV3
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
-/-- `e.Error()`: the `desc` field. -/
-def EtcdError.Error.spec : Prop :=
-  ∀ (ee : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes }}
-    (App (Val (ee @!! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty @!! go!"Error")) (Val #()))
-  {{ RET #ee.desc'; True }}
+/-- `e.Error()` of an `EtcdError` value `e` returns its description. -/
+abbrev rpctypes.EtcdError.Error.spec : Prop :=
+  ∀ (e : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError),
+  {{ (True : IProp GF) }}
+    (App (Val #(methods go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty go!"Error" #e))
+      (Val #()))
+  {{ RET #e.desc'; True }}
 
 end spec
 
-end Rpctypes
 end EtcdGrove
 end Perennial

@@ -2,7 +2,7 @@
 
 ## from W0
 
-W0 owns the client's vocabulary (`Spec/go_etcd_io/etcd/client/v3/Api.lean`) and its KV path. It
+W0 owns the client's vocabulary (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean`) and its KV path. It
 left **slots** (opaque predicates whose meaning is stated in `Api.lean`'s header) for 1b and 1c to
 spec against and realize, and its sketches need these of them:
 
@@ -68,7 +68,7 @@ spec against and realize, and its sketches need these of them:
 
 ## from 1f
 
-The recipes (`client/v3/experimental/recipes`, `Spec/.../experimental/recipes/Api.lean`, namespace
+The recipes (`client/v3/experimental/recipes`, `SpecPlan/Spec/.../experimental/recipes/Api.lean`, namespace
 `Recipes`) wait on watches. Until 1b's vocabulary exists they state their watch needs as **slots**
 in their own `Api.lean` (`watchChanAt`, `watchEvOwn`, the laws `watchChanAt_recv`,
 `watchEvOwn_unfold`); 1b's predicates replace them at integration (rename, same content).
@@ -184,7 +184,7 @@ in their own `Api.lean` (`watchChanAt`, `watchEvOwn`, the laws `watchChanAt_recv
 
 ## from 1d
 
-Batch 1d (`Spec/go_etcd_io/etcd/client/v3/concurrency/`) calls the client's KV contract (W0), the
+Batch 1d (`SpecPlan/Spec/go_etcd_io/etcd/client/v3/concurrency/`) calls the client's KV contract (W0), the
 `Lease` field (1c, `ApiLease.lean`'s `Lease.methods`) and the `Watcher` field (1b, `ApiWatch.lean`).
 Every update it hands those calls is built from the caller's `Concurrency.etcdPerm γ T` (a
 persistent update performing any transition `T σ σ'`): the shapes W0's `KV.*Triple` and 1c's
@@ -305,7 +305,7 @@ an open question in `notes/specs-only/batch-1c.md`):
 W0 added `clientRest c γ who` (persistent: everything of the client but its `KV` field) with
 `clientMut_split` (`clientMut` gives the `KV` field's points-to, writable, its current `kvAt` value,
 and `clientRest` for good), `isClient_rest`, `clientRest_conn`, `clientRest_fields`
-(`Spec/go_etcd_io/etcd/client/v3/Api.lean`). The gRPC proxy's `client.KV, _, _ =
+(`SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean`). The gRPC proxy's `client.KV, _, _ =
 leasing.NewKV(client, pfx)` (1e's item 1) is then: split, call `leasing.NewKV` with `clientRest` and
 the `KV` field (it reads `client.KV` once), write the leasing KV into the field, and keep `c.KV ↦ lkv`
 (or `↦□`) with 1e's `lkvAt`. 1c's `New` returns `clientMut` as before and realizes `clientRest`
@@ -328,7 +328,7 @@ its `KV` contract. The promoted `Client.{Get,...}` specs still need `isClient` (
 ## from 2b (to 1b: a correction of `wireStep`)
 
 Batch 2b (the member's watch handler, `v3rpc/watch.go`) states its contract as 1b's wire protocol,
-`srvWireStep` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`): `wireStep`
+`srvWireStep` (`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ApiWatch.lean`): `wireStep`
 with **one correction**, which 2b needs 1b to adopt in `wireStep` itself (then `srvWireStep` is
 `wireStep`, and 2a's boundary can carry a sent response's facts to the client's `Recv`).
 
@@ -424,9 +424,9 @@ no longer orders headers: false after a reconnect to a lagging member); item 5 i
 
 ## from 2a
 
-What 2a's boundary gives 1c and W0 to realize their slots, and needs of them (`Spec/google_golang_org/
-grpc/Api.lean`, `Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Api.lean`,
-`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Api.lean`):
+What 2a's boundary gives 1c and W0 to realize their slots, and needs of them (`SpecPlan/Spec/google_golang_org/
+grpc/Api.lean`, `SpecPlan/Spec/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Api.lean`,
+`SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Api.lean`):
 
 1. **`connOk`** from `Grpc.connAt cc A ui si R` (`Grpc.NewClient.spec` with the client's options:
    `WithUnaryInterceptor`, `WithStreamInterceptor`, `WithResolvers` of a `resolverAt r A` with

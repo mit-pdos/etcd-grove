@@ -1,23 +1,10 @@
 /-
-## `(*EtcdServer).Watchable()`
-
-**Users.** The gRPC watch server (`api/v3rpc/watch.go`, `NewWatchServer`: `s.Watchable()`, 2b).
-Snippet: none of its own (2b's watch snippets go through it).
-
-**Proof sketch.** `isServer_kv` (the read-only `s.kv` with `srvWatchable` of its value), then
-`s.KV()` (`KV.spec` at that points-to: re-review RR2), as a `WatchableKV`.
-
-**Changes.** The old spec (`specs-ref`'s `EtcdServer__Watchable.lean`, the watch slice's W-S) restated
-over the provisional slot `srvWatchable` (3f's watchable store at the member's applied history,
-2d's), requested in `req/`.
-
-**Margin.** None.
+`s.Watchable()` (`v3_server.go`: `return s.KV()`): the server's KV as a `mvcc.WatchableKV`.
+Lean-first (no Rocq counterpart); the watch slice's unit W-S (2026-10-14).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiReq
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 
 @[expose] public section
 
@@ -25,9 +12,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace EtcdServer
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -36,14 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- The member's watchable store. -/
-def EtcdServer.Watchable.spec : Prop :=
-  ∀ (s : Loc) (γ : Cluster),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ }}
-    (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty @!! go!"Watchable")) (Val #()))
-  {{ (w : GoInterface), RET #w; srvWatchable s γ w }}
+/-- `s.Watchable()` returns `s.kv` (read-only). -/
+abbrev EtcdServer.Watchable.spec : Prop :=
+  ∀ (s : Loc) (kv : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvKVAddr s ↦□ kv }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Watchable")) (Val #()))
+  {{ RET #kv; True }}
 
 end spec
-end EtcdServer
+
 end EtcdGrove
 end Perennial

@@ -2,7 +2,7 @@
 
 ## from 4c
 
-bbolt's public API (`Spec/go_etcd_io/bbolt/`, namespace `Bbolt`) is proved over 4d's byte-level
+bbolt's public API (`SpecPlan/Spec/go_etcd_io/bbolt/`, namespace `Bbolt`) is proved over 4d's byte-level
 vocabulary (`BboltCommon`); its sketches rely on:
 
 1. **The meta page's round trip and its place in the page** (`Tx.writeMeta.spec`, `Open.spec`,

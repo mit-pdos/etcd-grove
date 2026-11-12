@@ -1,16 +1,9 @@
 /-
-`(*store).compactLockfree(rev)` (`kvstore.go:262`). Internal: `restore`, resuming a compaction the
-image scheduled and did not finish (under `s.mu`).
-
-**Proof sketch**: `checkPrevCompactionCompleted` (a reader slot), `updateCompactRev` (the caller's
-update over `revsAt`, the hook, the commit), then on success `compact` with a fresh trace
-(`traceutil.TODO()`, 4b's).
-
-**Changes** from `specs-ref`'s file: over `InternalStore.lean`, the hook at any share.
+`store.compactLockfree` (`kvstore.go`) (2026-10-13, unit 5a).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.InternalStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 
 @[expose] public section
 
@@ -18,7 +11,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Mvcc
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
@@ -29,26 +21,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `s.compactLockfree(rev)` (`rev ≥ 1`, `s.mu` held): `updateCompactRev`'s outcome, the job
-scheduled on success. -/
-def store.compactLockfree.spec : Prop :=
-  ∀ (s : Loc) (γ : MvccName) (rev : w64) (B : MvccStorage) (Pk : IProp GF) (dq : DFrac)
-    (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Φ : Nat → Int → IProp GF),
-  let ok (cur : Nat) (c : Int) : Prop := c < sint.Z rev ∧ sint.Z rev ≤ (cur : Int)
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ isStore s γ ∗
-      storeWB s γ B Pk ∗ schedRight s γ ∗ kbRdToks B 1 ∗ ⌜1 ≤ sint.Z rev⌝ ∗ storageHook B dq f ∗
-      Pre ∗ hookRun B Pk f Pre Q' ∗ (Q' ={⊤}=∗ Pk ∗ Post) ∗ X ∗ storageReq B Pk X Y ∗ schemaVars ∗
-      AU <{ ∃∃ (cur : Nat) (c : Int), revsAt γ cur c }> @ ⊤ \ ↑mvccN, ∅
-        <{ revsAt γ cur (if ok cur c then sint.Z rev else c), COMM Φ cur c }> }}
+/-- `s.compactLockfree(rev)` (`restore()`'s resumed compaction, with `s.mu` held exclusively:
+`muInvLag s γ rev cp`, its finished record `cp` lagging the scheduled one `rev`): `updateCompactRev`,
+which succeeds (past the finished record, a revision of the committed log), then `compact` (at
+`context.TODO()`'s trace), the job scheduled on the compaction right's queue (2026-10-13, unit 5c).
+Of a store whose backend supports the compaction (`storeCmp`), at a revision past `0` (the records'
+`recsPos`). The compaction revision is already `rev` (`restore()` set it to the scheduled record):
+`updateCompactRev`'s ghost step is the identity (`cmpCb_refl`), and its excluder is `s.mu`'s deposit
+ghost (`ghostVar γ.wr 1 ()`, lent: the restoring state's; the frozen state's, by the placeholder
+`slotF_excl_M1`, `KV.Restore.contract`'s); `KV.Compact.contract`, 2026-11-06: until then the
+caller's certificate of a log with revision `rev`, and two error arms the resume never takes. -/
+abbrev mvcc.store.compactLockfree.spec : Prop :=
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (cp : Int) (P : IProp GF) (hk : Option val)
+    (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF),
+  mvcc.storeCmp γ → cp < sint.Z rev → 1 ≤ sint.Z rev →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isStore s γ ∗ mvcc.muInvLag s γ (sint.Z rev) cp ∗ mvcc.compactRightR s γ (sint.Z rev) ∗
+      mvcc.crevPermAt γ (sint.Z rev) ∗
+      mvcc.lockCtxM γ P hk Pre Q Post dq ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ ghostVar γ.wr 1 () ∗
+      mvcc.slotFr γ ∗ X ∗ mvcc.storeReq γ X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
-      storeWB s γ B Pk ∗ schedRight s γ ∗ kbRdToks B 1 ∗ storageHook B dq f ∗
-      ∃ (cur : Nat) (c : Int), Φ cur c ∗
-      ((⌜ok cur c ∧ err = GoInterface.nil⌝ ∗ Post ∗ Y ∗ compactChanOk ch) ∨
-       (⌜sint.Z rev ≤ c⌝ ∗ globalAddr ErrCompacted ↦□ err ∗ Pre ∗ X ∗ compactChanOk ch) ∨
-       (⌜(cur : Int) < sint.Z rev ∧ ch = chan.nil⌝ ∗ globalAddr ErrFutureRev ↦□ err ∗ Pre ∗ X)) }}
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk dq ∗
+      ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ ⌜err = GoInterface.nil⌝ ∗ mvcc.muInvAt s γ 1 (sint.Z rev) ∗
+      mvcc.compactRightR s γ (sint.Z rev) ∗ mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗
+      mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗ mvcc.lagTok γ (sint.Z rev) cp ∗ Y }}
 
 end spec
-end Mvcc
+
 end EtcdGrove
 end Perennial

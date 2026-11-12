@@ -1,13 +1,10 @@
 /-
-`newCache` (`cache/*.go`), an internal helper.
-Users: `New`.
-Proof sketch: as `New.spec`'s sketch, from `CfgValid` on.
-Changes: restated over the opaque vocabulary of `Internal.lean` (the old internal handles, ghost names and certificate parameters replaced by predicates over W0's model); the spec mirrors the code.
-Margin: none known.
+`newCache(client, prefix, cfg, clock)` (`cache/cache.go`). Lean-first (no Rocq counterpart); see `InvNew.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.cache.v3.Internal
+public import Proof.go_etcd_io.etcd.cache.v3.InvNew
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -15,30 +12,39 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Cache
 
-open Iris Iris.BI EtcdModel EtcdWire ClientV3
-open Classical
+open Iris Iris.BI go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `newCache(client, prefix, cfg, clock)`: `New` after the options. -/
-def newCache.spec : Prop :=
-  ∀ (client : Loc) (γ : Cluster) (who : Principal) (pfx : GoString) (cfg : go_etcd_io.etcd.cache.v3.Config)
-    (clk : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗ isClient client γ who ∗ etcdPeek γ ∗ clockOk clk ∗ ⌜CfgValid cfg → CfgBounded cfg⌝ }}
-    (App (App (App (App (Val (@! go_etcd_io.etcd.cache.v3.newCache)) (Val #client)) (Val #pfx)) (Val #cfg)) (Val #clk))
-  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
-      ⌜¬ CfgValid cfg ∧ c = null ∧ err ≠ GoInterface.nil⌝ ∨
-      (⌜CfgValid cfg ∧ err = GoInterface.nil⌝ ∗ isCache c γ who pfx ∗ cacheOpen c 1) }}
+/-- `newCache(client, prefix, cfg, clock)`, for a client of etcd (`isEtcdClient`) and a clock
+(`isClock`): it rejects a configuration with `HistoryWindowSize ≤ 0` or `BTreeDegree < 2`
+(`nil` and an error); otherwise it builds the store, `ready`, the progress requestor and the demux
+(`NewDemux`, which starts the resync loop), with the internal context
+`context.WithCancel(context.Background())`, starts the watch loop (`getWatchLoop`, with the
+store's and the demux's writers) and the progress requestor's loop (`run`) on the wait group, and
+returns the cache with its handles (`newCacheResult`). A configuration it accepts must moreover be
+`CfgBounded` (finding 5: a negative `PerWatcherBufferSize` panics later, and Perennial's
+`make(chan T, n)` needs it below `2^32`; the capacity and the degree must not overflow). `context.isClosedchanInit` (`context`'s package-init fact about
+`closedchan`) is for `WithCancel(Background())`. The prefix is at most `2 ^ 28` bytes (kept in
+`isCacheFields`, 2026-10-30). Fewer than `2 ^ 31 - cacheWgOwedMax`
+threads are live at once (the instance; the wait group's counter, `notes/bounds-plan.md`, B3). -/
+abbrev newCache.spec : Prop :=
+  ∀ [ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax)] (client : Loc) (pfx : GoString) (cfg : Config) (clk : GoInterfaceOk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
+      isEtcdClient client pfx ∗ isClock clk ∗ ⌜CfgValid cfg → CfgBounded cfg⌝ ∗
+      ⌜pfx.length ≤ 2 ^ 28⌝ }}
+    (App (App (App (App (Val (@! newCache)) (Val #client)) (Val #pfx)) (Val #cfg))
+      (Val #(GoInterface.ok clk)))
+  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err); newCacheResult pfx cfg c err }}
 
 end spec
 
-end Cache
 end EtcdGrove
 end Perennial

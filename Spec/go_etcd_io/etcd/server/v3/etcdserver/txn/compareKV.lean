@@ -1,22 +1,21 @@
 /-
-`compareKV(c, ckv)` (`txn.go`), internal: mirrors the code (W0's `Compare.holdsOf`; the numbers
-compared as `int64`: `kvFits`). Old spec: same.
+`compareKV` (`txn.go`). Lean-first; see `TxnRun.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Api
-
-set_option autoImplicit false
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Txn
 
-open Iris Iris.BI EtcdModel EtcdWire
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,15 +24,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-open Classical in
-/-- `compareKV(c, kv)`: W0's `Compare.holdsOf`. -/
-def compareKV.spec : Prop :=
-  ∀ (c : Loc) (dq : DFrac) (cm : EtcdModel.Compare) (p : Loc) (dq' : DFrac) (kv : KV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ compareOwn c dq cm ∗ keyValueOwn p dq' (KeyValueM.ofKV kv) ∗ ⌜kvFits kv⌝ }}
-    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.compareKV)) (Val #c)) (Val #p))
-  {{ RET #(decide (cm.holdsOf kv)); compareOwn c dq cm ∗ keyValueOwn p dq' (KeyValueM.ofKV kv) }}
+/-- `compareKV(c, ckv)`: the client model's `cmpKv` of the comparison `c` denotes against the
+key-value `ckv` holds (read-only). -/
+abbrev txn.compareKV.spec : Prop :=
+  ∀ (c ckv : Loc) (cm : CmpModel) (v : EtcdKv),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.compareIs c cm ∗ txn.kvIs ckv v }}
+    (App (App (Val (@! txn.compareKV)) (Val #c)) (Val #ckv))
+  {{ RET #(cmpKv cm v); True }}
 
 end spec
-end Txn
+
 end EtcdGrove
 end Perennial
