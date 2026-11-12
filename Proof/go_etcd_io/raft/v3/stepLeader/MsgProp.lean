@@ -631,7 +631,9 @@ theorem wp_stepLeader_prop
     wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
         (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 Hlen' Hnz $$ [$Hphys Hes $Hrc]
       as %acc ⟨#Hrc1, -, -, Hphys⟩
-    · iunfold entsPts
+    · -- (out_size C3, temporary) the received proposal's sizes: `entsPtsZ_sized_TODO` (`msgInC`)
+      iapply entsPtsZ_sized_TODO
+      iunfold entsPts
       iexists els
       iframe Hes Hents
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]

@@ -59,7 +59,7 @@ def lake(*args):
 
 
 # the tests of examples/pbschema that need no dump (d1post_test.go, descriptor_test.go)
-POST_TESTS = "^(TestD1PostMessage|TestD1PostEntry|TestD2P2EntryEncoder|TestD2P2MessageEncoder|TestSizeBoundCondition|TestB2CCDecoderUf|TestB2MustUnmarshalCC|TestA3CCLen|TestA3CC2Len)$"
+POST_TESTS = "^(TestD1PostMessage|TestD1PostEntry|TestD2P2EntryEncoder|TestD2P2MessageEncoder|TestSizeBoundCondition|TestB2CCDecoderUf|TestB2MustUnmarshalCC|TestA3CCLen|TestA3CC2Len|TestC3DecodedFresh)$"
 
 
 def go_toolchain():
@@ -142,8 +142,8 @@ def main():
             fail.append("the Go D1/D2/P2 tests failed:\n" + "\n".join(
                 l for l in out.splitlines() if ("_test.go" in l and ("FAIL" in l or "Error" in l))
                 or l.startswith("--- FAIL") or l.startswith("FAIL")))
-        elif out.count("--- PASS") != 9:
-            fail.append(f"the Go D1/D2/P2 and ConfChange tests: {out.count('--- PASS')} passed, want 9 ({POST_TESTS})")
+        elif out.count("--- PASS") != 10:
+            fail.append(f"the Go D1/D2/P2 and ConfChange tests: {out.count('--- PASS')} passed, want 10 ({POST_TESTS})")
     if fail:
         print("pbschema: FAILED")
         for f in fail:

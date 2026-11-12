@@ -142,6 +142,21 @@ theorem entRoC_entRZ (sz : Bool) (l : Loc) (c : EntryC) (h : entSizeOk c) :
   ipureintro
   exact ⟨rfl, fun _ => h⟩
 
+/-- An entry at a content bounded when `sz` is an `entRZ sz`. -/
+theorem entRoC_entRZ_imp (sz : Bool) (l : Loc) (c : EntryC) (h : sz = true → entSizeOk c) :
+    entRoC (GF := GF) l c ⊢ entRZ sz l c.model := by
+  iintro #H
+  unfold entRZ
+  iexists c
+  iframe H
+  ipureintro
+  exact ⟨rfl, h⟩
+
+/-- `entRoC_entRZ_imp` at a model given up to equality. -/
+theorem entRoC_entRZ_eq (sz : Bool) (l : Loc) (c : EntryC) (e : EntryM) (hm : c.model = e)
+    (h : sz = true → entSizeOk c) : entRoC (GF := GF) l c ⊢ entRZ sz l e := by
+  subst hm; exact entRoC_entRZ_imp sz l c h
+
 /-- `entRZ` at `true` is one at any flag. -/
 theorem entRZ_true (sz : Bool) (l : Loc) (e : EntryM) :
     entRZ (GF := GF) true l e ⊢ entRZ sz l e := by

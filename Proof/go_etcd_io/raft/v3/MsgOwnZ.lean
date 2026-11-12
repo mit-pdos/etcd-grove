@@ -42,6 +42,14 @@ def msgSzC (sz : Bool) (c : MsgC) : Prop :=
 def msgOwnZ (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF :=
   iprop(∃ c : MsgC, msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧ msgSzC sz c⌝)
 
+/-- (out_size C3, Scope §2.3) **A received message at a content**, as `msgIn` holds it (the struct
+owned, the entries slice at `dqe`, its capacity when `needsCap`), of bounded size under the node's flag
+`sz` but a `MsgSnap`: what `raft.Step` takes, so that the handlers that move the message's objects
+(forwards, appended entries, stored read requests) keep their sizes. -/
+def msgInC (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt) : IProp GF :=
+  iprop(∃ c : MsgC, msgPtsCC l (DFrac.own 1) dqe (needsCap st.msg) c ∗
+    ⌜c.model = st ∧ c.csUfNil ∧ (sz = true → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝)
+
 end defs
 
 section lemmas
@@ -60,6 +68,28 @@ theorem msgOwnZ_msgOwn (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt) :
   rw [← Hm]
   simp only [msgOwn, msgPts]
   iapply msgPtsCC_msgPtsC l dq DFrac.discard false c Hok.1 $$ Hc
+
+/-- (out_size C3) A received message at a content is one in today's form (`msgIn`). -/
+theorem msgInC_msgIn (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt) :
+    msgInC (GF := GF) sz l dqe st ⊢ msgIn l dqe st := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  obtain ⟨Hm, Hok, -⟩ := H
+  simp only [msgIn]
+  ihave H := msgPtsCC_msgPtsC l (DFrac.own 1) dqe (needsCap st.msg) c Hok $$ Hc
+  rw [Hm]; iexact H
+
+/-- (out_size C3) At the flag `false`, a received message in today's form is one at a content. -/
+theorem msgIn_msgInC (l : Loc) (dqe : DFrac) (st : MsgSt) :
+    msgIn (GF := GF) l dqe st ⊢ msgInC false l dqe st := by
+  simp only [msgIn]
+  iintro H
+  ihave ⟨%c, Hc, %Hc⟩ := (msgPtsC_iff_CC l (DFrac.own 1) dqe (needsCap st.msg) st).1 $$ H
+  unfold msgInC
+  iexists c
+  iframe Hc
+  ipureintro
+  exact ⟨Hc.1, Hc.2, fun h => absurd h (by simp)⟩
 
 /-- The flag forgotten. -/
 theorem msgOwnZ_unsize (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt) :

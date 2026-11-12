@@ -37,7 +37,10 @@ skipped, so presence and nil-versus-empty `bytes` are kept: `codec_message.go:13
 (the instance's `decC l' c'`): faithful because the clone copies the source's fields (presence and
 nil versus empty included) and unknown fields verbatim, so it holds exactly a content `c'`, the same
 as `c` when `c` marshals. The instance's model-level `dec` follows from it when `c'` is one `dec`
-describes (`decC_dec`, a proved field, under `decOk`). `c'`'s facts are pure. Go's stack exhaustion on a deep chain of `Message` responses (a recursion through `Responses`, a fatal error, not a panic) is outside the model, as memory exhaustion is (`notes/txn-nested.md`, the axiom review's note on very deep trees). -/
+describes (`decC_dec`, a proved field, under `decOk`). `c'`'s facts are pure. The clone shares
+nothing with the source (out_size C3: at `Entry` too, whose `decC` is owned since then): storing into
+every field of a clone, `bytes` and unknown fields in place, leaves the source's content unchanged,
+at `Entry` and at a `Message`'s entries (`TestC3DecodedFresh`, gated). Go's stack exhaustion on a deep chain of `Message` responses (a recursion through `Responses`, a fatal error, not a panic) is outside the model, as memory exhaustion is (`notes/txn-nested.md`, the axiom review's note on very deep trees). -/
 abbrev proto.ClonePb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (l : Loc) (c : I.data.C),

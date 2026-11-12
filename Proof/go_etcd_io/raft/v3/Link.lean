@@ -122,7 +122,7 @@ public import Proof.go_etcd_io.raft.v3.payloadSize
 public import Proof.go_etcd_io.raft.v3.payloadsSize
 public import Proof.go_etcd_io.raft.v3.pbEntryID
 public import Proof.google_golang_org.protobuf.proto.CloneConfState
-public import Proof.google_golang_org.protobuf.proto.CloneEntry
+public import Proof.google_golang_org.protobuf.proto.ClonePb
 public import Proof.google_golang_org.protobuf.proto.CloneSnapshot
 public import Proof.google_golang_org.protobuf.proto.MarshalConfChange
 public import Proof.google_golang_org.protobuf.proto.MarshalConfChangeV2
@@ -899,13 +899,9 @@ theorem raftLog.wp_append [StorageModel GF] :
     raftLog.append.spec (GF := GF) (hG := hG) :=
   raftLog.append.wp_proof raftLog.wp_lastIndex unstable.wp_truncateAndAppend raftpb.Entry.wp_GetIndex
 
-theorem proto.wp_CloneEntry :
-    proto.CloneEntry.spec (GF := GF) (hG := hG) :=
-  proto.CloneEntry.wp_proof
-
-theorem raft.wp_appendEntry [StorageModel GF] :
-    raft.appendEntry.spec (GF := GF) (hG := hG) :=
-  raft.appendEntry.wp_proof raftLog.wp_lastIndex raft.wp_increaseUncommittedSize wp_traceReplicate raftLog.wp_append raft.wp_send proto.wp_CloneEntry raftpb.MessageType.wp_Enum
+theorem proto.wp_ClonePb :
+    proto.ClonePb.spec (GF := GF) (hG := hG) :=
+  proto.ClonePb.wp_proof
 
 theorem tracker.Inflights.wp_reset :
     tracker.Inflights.reset.spec (GF := GF) (hG := hG) :=
@@ -918,10 +914,6 @@ theorem tracker.Progress.wp_ResetState :
 theorem tracker.Progress.wp_BecomeReplicate :
     tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG) :=
   tracker.Progress.BecomeReplicate.wp_proof tracker.Progress.wp_ResetState
-
-theorem raft.wp_becomeLeader [StorageModel GF] :
-    raft.becomeLeader.spec (GF := GF) (hG := hG) :=
-  raft.becomeLeader.wp_proof raft.wp_reset wp_traceBecomeLeader raftLog.wp_lastIndex raft.wp_appendEntry tracker.Progress.wp_BecomeReplicate
 
 theorem tracker.Progress.wp_IsPaused :
     tracker.Progress.IsPaused.spec (GF := GF) (hG := hG) :=
@@ -1469,6 +1461,14 @@ theorem raft.wp_hasUnappliedConfChanges [StorageModel GF] :
 theorem raft.wp_hup [StorageModel GF] :
     raft.hup.spec (GF := GF) (hG := hG) :=
   raft.hup.wp_proof raft.wp_campaign raft.wp_promotable raft.wp_hasUnappliedConfChanges
+
+theorem raft.wp_appendEntry [StorageModel GF] :
+    raft.appendEntry.spec (GF := GF) (hG := hG) :=
+  raft.appendEntry.wp_proof raftLog.wp_lastIndex raft.wp_increaseUncommittedSize wp_traceReplicate raftLog.wp_append raft.wp_send proto.wp_ClonePb raftpb.MessageType.wp_Enum
+
+theorem raft.wp_becomeLeader [StorageModel GF] :
+    raft.becomeLeader.spec (GF := GF) (hG := hG) :=
+  raft.becomeLeader.wp_proof raft.wp_reset wp_traceBecomeLeader raftLog.wp_lastIndex raft.wp_appendEntry tracker.Progress.wp_BecomeReplicate
 
 theorem raftLog.wp_entries [StorageModel GF] :
     raftLog.entries.spec (GF := GF) (hG := hG) :=
