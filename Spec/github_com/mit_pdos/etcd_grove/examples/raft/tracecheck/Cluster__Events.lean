@@ -4,11 +4,12 @@ Lean-first (no Rocq counterpart). Trace-check's layer D, S7 (part 1) (2026-11-11
 (`c.rec.Events()`). Its spec is the recorder's (`SyncRecorder.Events.spec`) through the field: given
 `c.rec` (read-only), a recorder of the trace `γt` and the caller's view shift at the recorder's half
 of the trace, it returns a slice holding the trace `L` at that moment, `Ψ L`, and
-`L.length < receiptBound GF`.
+`traceLenFits GF L` (the event count below the receipts' bound, `Fits.lean`).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.RunConcurrent
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Fits
 
 @[expose] public section
 
@@ -35,7 +36,7 @@ abbrev Cluster.Events.spec : Prop :=
       (∀ L, traceAuth γt L ={⊤}=∗ traceAuth γt L ∗ Ψ L) }}
     (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster.ty
       @!! go!"Events")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; ∃ L, traceEventsRep sl L ∗ ⌜L.length < receiptBound GF⌝ ∗ Ψ L }}
+  {{ (sl : GoSlice), RET #sl; ∃ L, traceEventsRep sl L ∗ ⌜traceLenFits GF L⌝ ∗ Ψ L }}
 
 end spec
 

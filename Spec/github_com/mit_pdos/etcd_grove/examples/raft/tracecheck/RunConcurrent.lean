@@ -13,7 +13,8 @@ and its events have the facts the simulation keeps: `MainPure.lean`).
 
 The premises: package initialization, `context`'s `isClosedchanInit` (the proposer's
 `context.WithTimeout(context.Background(), ...)`, as `raft_kv.Main.spec`), and the time receipts'
-bound past the bootstrap log (`receiptBound GF + 3 ≤ 2^61`: the traced cluster's `cluster_alloc`
+bound past the bootstrap log (`tcRunFits GF`, `receiptBound GF + 3 ≤ 2^61`, named since 2026-11-12,
+`Fits.lean`: the traced cluster's `cluster_alloc`
 with the voters' three bootstrap entries, raft's `readyFits`; with the adequacy theorem's
 `receiptBound = n + 1`, executions of `n + 4 ≤ 2^61` steps).
 
@@ -28,6 +29,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Recorder
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.MainPure
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Fits
 
 @[expose] public section
 
@@ -70,7 +72,7 @@ def runOver (c : Loc) : IProp GF :=
 
 /-- See the file header. -/
 abbrev RunConcurrent.spec : Prop :=
-  receiptBound GF + 3 ≤ 2 ^ 61 →
+  tcRunFits GF →
   ∀ (cfg : G.CConfig), Workload cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
       context.isClosedchanInit }}

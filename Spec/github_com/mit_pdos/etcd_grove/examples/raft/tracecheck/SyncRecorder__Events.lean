@@ -6,13 +6,14 @@ copy of the recorded events. Its spec (S7 (part 1), 2026-11-11; until then it to
 `traceFrag γt L`, which the harness cannot hand over: the simulation's invariant keeps it): the caller's
 view shift `∀ L, traceAuth γt L ={⊤}=∗ traceAuth γt L ∗ Ψ L`, run under the lock against the
 recorder's half of the trace, so at the trace `L` the copy holds; it returns a slice holding `L`
-(`traceEventsRep`, read-only), `Ψ L`, and the event count's bound `L.length < receiptBound GF` (the
-lock holds a time receipt per event). The former form is the case `Ψ L := ⌜L = L0⌝ ∗ traceFrag γt L0`
+(`traceEventsRep`, read-only), `Ψ L`, and the event count's bound `traceLenFits GF L` (`L.length <
+receiptBound GF`, named since 2026-11-12, `Fits.lean`: the lock holds a time receipt per event). The former form is the case `Ψ L := ⌜L = L0⌝ ∗ traceFrag γt L0`
 with the half in the view shift.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Recorder
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Fits
 
 @[expose] public section
 
@@ -38,7 +39,7 @@ abbrev SyncRecorder.Events.spec : Prop :=
       isSyncRecorder γt r ∗ (∀ L, traceAuth γt L ={⊤}=∗ traceAuth γt L ∗ Ψ L) }}
     (App (Val (r @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder.ty
       @!! go!"Events")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; ∃ L, traceEventsRep sl L ∗ ⌜L.length < receiptBound GF⌝ ∗ Ψ L }}
+  {{ (sl : GoSlice), RET #sl; ∃ L, traceEventsRep sl L ∗ ⌜traceLenFits GF L⌝ ∗ Ψ L }}
 
 end spec
 
