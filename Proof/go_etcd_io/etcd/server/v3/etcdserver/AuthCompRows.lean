@@ -127,8 +127,69 @@ def applyBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
 
-/-- **`start`'s construction premise** (`isServerBuilt` off, `isServerBuiltOn` on: the
-model rows at `C.isOn`, the KV invariants and the apply thread's resources the component's). -/
+/-- **`Hsnap`'s restart form** (R2d'a A9; `rnSnapOnce`'s, `InvRunRes.lean:334`): `run`'s one call of
+the raft storage's `Snapshot()` (`server.go:760` at `673da07c8`) answers a snapshot at index `i` and
+term `t` whose conf state is read-only and reports the voters after the ghost log `A₀` (`epCsAt γ A₀`:
+at a restart the WAL snapshot's `ConfState`, `bootstrap.go:449-478`; nothing at `A₀ = []`), with a
+lower bound of the storage's snapshot (`memSnapLb γs 0`, the writers' handle; a first start's from
+`memSnapNone`) and the storage's invariant. -/
+def rnSnapOnceR (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (i t : w64)
+    (γ : ServerRaftNames) (A₀ : List EntryModel) : IProp GF :=
+  iprop(∀ Φ : val → IProp GF,
+    ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
+      ⌜sv.Metadata'.Index' = i ∧ sv.Metadata'.Term' = t ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
+      ownSnapM sn DFrac.discard sv -∗
+      sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
+      pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
+      epCsOk cs -∗ epCsAt γ A₀ cs -∗ (|==> memSnapLb γs 0) -∗
+      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
+      Φ (PairV #sn #(GoInterface.nil))) -∗
+    WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
+      (Val #())) {{ Φ }})
+
+/-- **`applyBuiltC`'s restart form** (restart S4, 2026-11-12): the apply thread's resources when
+`start` begins at Go's index `ai` (the storage snapshot's, `|P|`), with the backend's ghost log `A₀`:
+the ghost rows at `A₀` (the applied index `g₀ = ai₀ + |A₀|`, the consistent index `ciEff` at `g₀`,
+`kvRunM`, `srvRest`, `srvApRes`), Go's at `ai` (`loopOk`), the auth state `sa₀` the one after `A₀`.
+`srvRestartAtR` less what `start` adds (the wait group's reader, `srvApplyKVC`'s assembly, the
+snapshot path's `srvSnapOwn`). A first start's `applyBuiltC` is its instance `A₀ = []`
+(`applyBuiltR_first`). -/
+def applyBuiltR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
+    (A₀ : List EntryModel) (ai : w64) : IProp GF :=
+  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool) (g₀ : w64) (sa₀ : auth.AuthState),
+    applyThread γ st₀ ∗
+    ⌜loopOk γ st₀ ai ∧ g₀ = ciEff γ st₀.k ∧ uint.Z g₀ = uint.Z ai₀ + A₀.length⌝ ∗
+    applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
+    mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
+    (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ acRes C s E ua sa₀ ∗
+      apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
+    revAuth E x₀.log ∗
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
+    srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
+    srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
+
+/-- **The built restart form** (restart S4, 2026-11-12; `/shared/tmp/restart-s4/plan.md` §1.3, D1):
+`isServerBuiltC`'s start conjuncts at the restart point. `P`, the log raft handed before this
+incarnation (in Go `A₀`'s prefix up to the WAL snapshot's index `σ.b`), is pinned by the loop's and
+the apply side's tokens at it (the raft loop's `cum` authority) and by the storage snapshot's index
+`|P|` (`rnSnapOnceR`, whose conf state reports the voters after the backend's log `γn.a0`); its last
+term is the snapshot's (`at₀`, Go's `appliedt`); the apply thread's resources are at `γn.a0`, Go's
+index `|P|` (`applyBuiltR`). A first start is the instance `P = []`, `γn.a0 = []`
+(`srvBuiltRestartR_first`). -/
+def srvBuiltRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (γn : RNNames) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
+    IProp GF :=
+  iprop(∃ P : List EntryModel, ⌜P <+: γn.a0 ∧ lastTermIs P at₀⌝ ∗
+    (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft γn.a0) ∗
+    rnLoopTok γn P ∗ rnApplyTok γn P ∗
+    applyBuiltR C s γ ci b E γr ai₀ c₀ x₀ γn.a0 (W64 P.length))
+
+/-- **`start`'s construction premise** (the model rows at `C.isOn`, the KV invariants and the apply
+thread's resources the component's; restart S4, 2026-11-12: at the restart point, `HBr`). Implied by
+`isServerBuilt` off and `isServerBuiltOn` on with the stop's slot (`isServerBuiltM_C`, a first start
+at `P = []`), and strictly weaker since S4 (until then equivalent). -/
 def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
@@ -146,15 +207,15 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
+    -- (restart S4, 2026-11-12: R2d'a A6's `γn.a0 = []`, a first start, dropped; the restart point's
+    -- conjuncts are `HBr`'s)
     "%HEr" ∷ ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
-      -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
-      γn.a0 = []⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
     -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
-    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
-    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2s
+    -- (restart S7) removes it; S1 removed row 3, so the restart meaning is limited by this premise
+    -- and by `rnRestartOk`'s graceful-only `|a0| ≤ commit0`; free at a first start, `srvWinPend_first`)
     "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
@@ -176,8 +237,11 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
     -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
     "#HmetaSnap" ∷ srvMetaSnap γ ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗
+    -- (restart S4, 2026-11-12) the restart point: the storage's snapshot, the loop's and the apply
+    -- side's tokens at `P`, the apply thread's resources at `γn.a0` (until then `Hsnap` (`rnSnapOnce`
+    -- at `ai₀`), `Hloop`/`Happly` at `[]` and `Happ` (`applyBuiltC`), a first start's)
+    "HBr" ∷ srvBuiltRestartR C s γ ci b E γr γn ai₀ at₀ c₀ x₀ ∗
+    "Hsend" ∷ Er.S ∗
     "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
@@ -203,7 +267,6 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hnot" ∷ (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
-    "Happ" ∷ applyBuiltC C s γ ci b E γr ai₀ c₀ x₀ ∗
     "Hlr" ∷ srvLgReader s ∗
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
@@ -226,26 +289,6 @@ def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
     srvSnapOwn s ci E γr γ ai₀)
 
-/-- **`Hsnap`'s restart form** (R2d'a A9; `rnSnapOnce`'s, `InvRunRes.lean:334`): `run`'s one call of
-the raft storage's `Snapshot()` (`server.go:760` at `673da07c8`) answers a snapshot at index `i` and
-term `t` whose conf state is read-only and reports the voters after the ghost log `A₀` (`epCsAt γ A₀`:
-at a restart the WAL snapshot's `ConfState`, `bootstrap.go:449-478`; nothing at `A₀ = []`), with a
-lower bound of the storage's snapshot (`memSnapLb γs 0`, the writers' handle; a first start's from
-`memSnapNone`) and the storage's invariant. -/
-def rnSnapOnceR (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames) (i t : w64)
-    (γ : ServerRaftNames) (A₀ : List EntryModel) : IProp GF :=
-  iprop(∀ Φ : val → IProp GF,
-    ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
-      ⌜sv.Metadata'.Index' = i ∧ sv.Metadata'.Term' = t ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
-      ownSnapM sn DFrac.discard sv -∗
-      sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
-      pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
-      epCsOk cs -∗ epCsAt γ A₀ cs -∗ (|==> memSnapLb γs 0) -∗
-      (letI : MemStorReg GF := ⟨rg⟩; memStorInv ms γs cl nk) -∗
-      Φ (PairV #sn #(GoInterface.nil))) -∗
-    WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
-      (Val #())) {{ Φ }})
-
 /-- **`applyStartC`'s restart form** (R2d'a A9): the apply thread's resources when `run` starts at Go's
 index `ai` (`ep.appliedi`'s first value, the WAL snapshot's index), with the backend's ghost log
 `A₀`: the ghost rows at `A₀` (the applied index `g₀ = ai₀ + |A₀|`, `kvRunM`, `srvRest`, `srvApRes`,
@@ -266,33 +309,38 @@ def srvRestartAtR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
     srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
     srvSnapOwn s ci E γr γ ai)
 
-/-- **A9's texts for `isServerRunC`** (R2d'a A9, Q24 (c); in the hub since swap batch 5, 2026-11-07,
-with `run.wp_proof`'s restart proof). Three of `isServerRunC`'s conjuncts at a restart, **`σ.b = 0` only**: a restart before the member's first WAL snapshot, so that nothing was
-handed before the start (`γn.pre = []`, `ai₀ = 0`: `rnEnvOk` unchanged), Go's log restarts at index 0
-and the backend's ghost log `A₀` (`γn.a0`, A6's field) is replayed through the window `(0, |A₀|]`.
-`σ.b > 0` is R2d'b's, with the raft side's restart data (Q24 (a)).
-- `%HEr`: today's conjuncts with `γn.a0 = A₀` for some `A₀` (was `γn.a0 = []`), `A₀`'s entries
-  normal or conf changes, and room past it (`ai₀ + |A₀| + 1 < 2^64`); the last two are restart-only
-  premises 6 and 7 of the eight (`notes/restart-plan.md`, "R2d'a restart-only premises"; R2d'b
-  produces both; 7 holds of etcd's logs because etcd proposes only v1 `ConfChange`s);
-- `Hsnap`: `rnSnapOnceR` at index `ai₀` (`= 0`), the conf state at `A₀`;
-- `Hstart`: `srvRestartAtR` at `A₀`, Go's index `ai₀`.
-At `A₀ = []` they are today's (`srvRunRestartR_first`). -/
+/-- **`isServerRunC`'s restart conjuncts** (R2d'a A9, Q24 (c), in the hub since swap batch 5,
+2026-11-07; restart S4, 2026-11-12, at any WAL snapshot index, `/shared/tmp/restart-s4/plan.md` §1.1,
+D1): the server's names start at index `0` (`γn.pre = []`, `ai₀ = 0`: `rnEnvOk` unchanged, the
+ghost log counted from raft's first entry); `P`, the log raft handed before this incarnation (in Go `A₀`'s prefix up to the WAL
+snapshot's index `σ.b`, `P = []` at a first start or `σ.b = 0`), is Go's start: the storage's
+snapshot at index `|P|` with term `at₀`, `P`'s last term (`ep.appliedi`, `appliedt`, `server.go:808-814`
+at `673da07c8`), the loop's and the apply side's tokens at `P`; the backend's ghost log `A₀`
+(`γn.a0`) is replayed through the window `(|P|, |A₀|]`.
+- pure: `γn.a0 = A₀`, `P <+: A₀`, `lastTermIs P at₀`, `A₀`'s entries normal or conf changes, and room
+  past it (`ai₀ + |A₀| + 1 < 2^64`); the last two are R2d'a's restart-only premises 6 and 7, which
+  `start` derives from row 8 in `isRaftNode` (Q38 (a), `srvRunRows_of_rn`);
+- `rnSnapOnceR` at index `|P|`, the conf state at `A₀`;
+- `srvRestartAtR` at `A₀`, Go's index `|P|`;
+- `rnLoopTok γn P`, `rnApplyTok γn P` (until S4 `isServerRunC`'s, at `[]`).
+At `A₀ = P = []` they are a first start's (`srvRunRestartR_first`). -/
 def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
-  iprop(∃ A₀ : List EntryModel,
+  iprop(∃ (A₀ P : List EntryModel),
     ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
-      γn.a0 = A₀ ∧ (∀ m ∈ A₀, m.typ = W32 0 ∨ m.typ = W32 1) ∧
+      γn.a0 = A₀ ∧ P <+: A₀ ∧ lastTermIs P at₀ ∧
+      (∀ m ∈ A₀, m.typ = W32 0 ∨ m.typ = W32 1) ∧
       uint.Z ai₀ + A₀.length + 1 < 2 ^ 64⌝ ∗
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.raft A₀) ∗
-    srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ ai₀)
+      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft A₀) ∗
+    srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ (W64 P.length) ∗
+    rnLoopTok γn P ∗ rnApplyTok γn P)
 
-/-- **What `run` needs**, at a first start or a restart at `σ.b = 0` (R2d'a swap batch 5,
-2026-11-07: the start's conjuncts are `HRr ∷ srvRunRestartR`, the backend's ghost log `A₀ = γn.a0`;
-until then `InvRun.lean`'s `isServerRun` off and `RunOn.lean`'s `isServerRunOn` on, both deleted
+/-- **What `run` needs**, at a first start or a restart (R2d'a swap batch 5, 2026-11-07: the start's
+conjuncts are `HRr ∷ srvRunRestartR`, the backend's ghost log `A₀ = γn.a0`; restart S4, 2026-11-12:
+at any WAL snapshot index, with Go's start log `P` and the tokens at it in `HRr`; until then `InvRun.lean`'s `isServerRun` off and `RunOn.lean`'s `isServerRunOn` on, both deleted
 2026-11-07). The stop
 requests' `SP` and the done channel's `DQ`, and (R2c-4) the stop's slot, `srvStop.slot`. -/
 def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -310,14 +358,14 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (R2d'a A9, swap batch 5, 2026-11-07; until then `%HEr` with `γn.a0 = []`, `Hsnap` (`rnSnapOnce`)
     -- and `Hstart` (`applyStartC`), a first start's, which give it: `srvRunRestartR_first`) a start
-    -- or a restart at `σ.b = 0`: the backend's ghost log `A₀ = γn.a0`, the storage's snapshot's conf
-    -- state at it, the apply thread's ghost rows at it
+    -- or a restart (S4: at any WAL snapshot index, Go's start log `P`): the backend's ghost log
+    -- `A₀ = γn.a0`, the storage's snapshot's conf state at it, the apply thread's ghost rows at it
     "HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ ρ.wait ∗
     -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
     -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
-    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
-    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2s
+    -- (restart S7) removes it; S1 removed row 3, so the restart meaning is limited by this premise
+    -- and by `rnRestartOk`'s graceful-only `|a0| ≤ commit0`; free at a first start, `srvWinPend_first`)
     "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
@@ -335,7 +383,8 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
     -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
     "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    -- (restart S4, 2026-11-12: the loop's and the apply side's tokens moved into `HRr`, at `P`)
+    "Hsend" ∷ Er.S ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd DQ .Pending ∗
     "Hclose" ∷ token γg.close ∗
@@ -521,14 +570,69 @@ theorem applyBuiltOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
     · iexists ua; iframe Hua Hub Hfor Hakv
     iapply (kvRunM_nil_on γr ai₀ c₀ x₀).2 $$ Hkr
 
+/-- **A first start's `Hsnap` gives the restart form at `A₀ = []`**. -/
+theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames)
+    (i t : w64) (γ : ServerRaftNames) :
+    rnSnapOnce (GF := GF) rg cl nk ms γs i t ⊢ rnSnapOnceR rg cl nk ms γs i t γ [] := by
+  iintro H
+  iunfold rnSnapOnceR
+  iintro %Φ HΦ
+  iunfold rnSnapOnce at H
+  iapply H
+  inext
+  iintro %sn %pm %cs %sv %h Hsn Hpm Hcs #Hok Hnone Hinv
+  ihave #Hca : epCsAt γ [] cs $$ []
+  · iunfold epCsAt; ileft; ipureintro; rfl
+  ihave Hlb : iprop(|==> memSnapLb γs 0) $$ [Hnone]
+  · iapply (memSnapNone_open (GF := GF) γs) $$ Hnone
+  iapply HΦ $$ %sn %pm %cs %sv %h Hsn Hpm Hcs Hok Hca Hlb Hinv
+
+/-- **A first start's `applyBuiltC` is the restart form at `A₀ = []`** (Go's index `ai₀`; restart S4). -/
+theorem applyBuiltR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (hc : c₀ = ai₀) :
+    applyBuiltC (GF := GF) C s γ ci b E γr ai₀ c₀ x₀ ⊢
+      applyBuiltR C s γ ci b E γr ai₀ c₀ x₀ [] ai₀ := by
+  iintro H
+  iunfold applyBuiltC at H
+  icases H with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hrdk, Hbo, Hua, Hra, Hrd, Hao,
+    Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
+  iunfold applyBuiltR
+  iexists st₀, a, t, f, ai₀, srvAuthSt0
+  iframe Hth Hbe Hca Hlg Hbm Hrdk Hbo Hua Hra Hrd Hao Hal Hkr Hrest Hap Hfs Htok
+  ipureintro
+  exact ⟨Hok.1, by rw [← hc]; exact Hok.2, by simp⟩
+
+/-- **A first start's construction conjuncts give the built restart form** at `P = []` (restart S4):
+`Hsnap` (`rnSnapOnce` at `ai₀ = 0`), the tokens at `[]` and `applyBuiltC`, with `γn.a0 = []`. -/
+theorem srvBuiltRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (γn : RNNames) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV)
+    (ha0 : γn.a0 = []) (hai : ai₀ = W64 0) (hc : c₀ = ai₀) :
+    (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+        rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
+      rnLoopTok γn [] ∗ rnApplyTok γn [] ∗ applyBuiltC C s γ ci b E γr ai₀ c₀ x₀ ⊢
+    srvBuiltRestartR C s γ ci b E γr γn ai₀ at₀ c₀ x₀ := by
+  iintro ⟨⟨%ms, #Hms, Hsnap⟩, Hloop, Happly, Happ⟩
+  iunfold srvBuiltRestartR
+  iexists []
+  rw [ha0]
+  rw [show W64 (([] : List EntryModel).length) = ai₀ by rw [hai]; rfl]
+  iframe Hloop Happly
+  isplitr
+  · ipureintro; exact ⟨List.nil_prefix, Or.inl rfl⟩
+  isplitl [Hsnap]
+  · iexists ms; iframe Hms
+    iapply rnSnapOnceR_first $$ Hsnap
+  iapply applyBuiltR_first C s γ ci b E γr ai₀ c₀ x₀ hc $$ Happ
+
 /-- **`start`'s construction premise is the component's** (`isServerBuilt` off,
-`isServerBuiltOn` on). -/
+`isServerBuiltOn` on; restart S4, 2026-11-12: one way, a first start's construction gives the restart
+form at `P = []`, `srvBuiltRestartR_first`; until then `⊣⊢`). -/
 theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (hC : E.authMode = C.mode) :
     isServerBuiltM (GF := GF) C.isOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
-        srvStop.slot s E γn Er ⊣⊢
+        srvStop.slot s E γn Er ⊢
       isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   have hK := srvKVInvsM_C (GF := GF) C s E γr
   cases C with
@@ -537,33 +641,31 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     dsimp only [AuthC.isOn, srvKVInvsM] at hK
     unfold isServerBuiltM isServerBuilt isServerBuiltC
     simp only [AuthC.isOn, srvReqBuiltM_false, srvAppliedInvM_false, srvCM_false]
-    constructor
-    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
-      isplitr
-      · iapply hK.1 $$ Hkvi
-      iapply hA.1 $$ Happ
-    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
-      isplitr
-      · iapply hK.2 $$ Hkvi
-      iapply hA.2 $$ Happ
+    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+    obtain ⟨h1, h2, h3, h4⟩ := HEr
+    ihave Happ := hA.1 $$ Happ
+    ihave HBr := srvBuiltRestartR_first .off s γ ci b E γr γn ai₀ at₀ c₀ x₀ h4 h3.2.2
+      (by have := h3.1; have := h3.2.2; subst ai₀; word) $$ [Hsnap Hloop Happly Happ]
+    · iframe Hsnap Hloop Happly Happ
+    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    isplitr
+    · iapply hK.1 $$ Hkvi
+    ipureintro; exact ⟨h1, h2, h3⟩
   | on γa =>
     have hA := applyBuiltOn_C (GF := GF) γa s γ ci b E γr ai₀ c₀ x₀ hC
     dsimp only [AuthC.isOn] at hK
     unfold isServerBuiltM isServerBuiltOn isServerBuiltC
     simp only [AuthC.isOn]
-    constructor
-    · iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
-      isplitr
-      · iapply hK.1 $$ Hkvi
-      iapply hA.1 $$ Happ
-    · iintro ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb, Hsk⟩
-      iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
-      isplitr
-      · iapply hK.2 $$ Hkvi
-      iapply hA.2 $$ Happ
+    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+    obtain ⟨h1, h2, h3, h4⟩ := HEr
+    ihave Happ := hA.1 $$ Happ
+    ihave HBr := srvBuiltRestartR_first (.on γa) s γ ci b E γr γn ai₀ at₀ c₀ x₀ h4 h3.2.2
+      (by have := h3.1; have := h3.2.2; subst ai₀; word) $$ [Hsnap Hloop Happly Happ]
+    · iframe Hsnap Hloop Happly Happ
+    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    isplitr
+    · iapply hK.1 $$ Hkvi
+    ipureintro; exact ⟨h1, h2, h3⟩
 
 /-- `applyStart` is the off component's. -/
 theorem applyStart_C (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
@@ -650,7 +752,7 @@ theorem isServerBuiltC_of_gap (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
         srvStop.slot s E γn Er ⊢
       isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   iintro ⟨Hb, Hg, Hsk⟩
-  iapply (isServerBuiltM_C C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hC).1
+  iapply (isServerBuiltM_C C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hC)
   iframe Hsk
   iapply isServerBuilt_of_gapM C.isOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   iframe Hb Hg
@@ -876,23 +978,6 @@ theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
     icases H with ⟨%h, -⟩
     ipureintro; exact ⟨h, fun h' => by cases h'⟩
 
-/-- **A first start's `Hsnap` gives the restart form at `A₀ = []`**. -/
-theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (γs : MemStorNames)
-    (i t : w64) (γ : ServerRaftNames) :
-    rnSnapOnce (GF := GF) rg cl nk ms γs i t ⊢ rnSnapOnceR rg cl nk ms γs i t γ [] := by
-  iintro H
-  iunfold rnSnapOnceR
-  iintro %Φ HΦ
-  iunfold rnSnapOnce at H
-  iapply H
-  inext
-  iintro %sn %pm %cs %sv %h Hsn Hpm Hcs #Hok Hnone Hinv
-  ihave #Hca : epCsAt γ [] cs $$ []
-  · iunfold epCsAt; ileft; ipureintro; rfl
-  ihave Hlb : iprop(|==> memSnapLb γs 0) $$ [Hnone]
-  · iapply (memSnapNone_open (GF := GF) γs) $$ Hnone
-  iapply HΦ $$ %sn %pm %cs %sv %h Hsn Hpm Hcs Hok Hca Hlb Hinv
-
 /-- **A first start's `applyStartC` is the restart form at `A₀ = []`** (Go's index `ai₀`). -/
 theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
     (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) :
@@ -909,8 +994,8 @@ theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (
   exact ⟨Hok.1, by rw [← hc]; exact Hok.2, by simp⟩
 
 
-/-- **A first start's conjuncts give A9's** (`A₀ = []`): today's `%HEr` (with A6's `γn.a0 = []`),
-`Hsnap` and `Hstart`. -/
+/-- **A first start's conjuncts give A9's** (`A₀ = P = []`): today's `%HEr` (with A6's `γn.a0 = []`),
+`Hsnap`, `Hstart` and (restart S4) the tokens at `[]`. -/
 theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName)
@@ -918,16 +1003,18 @@ theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) 
       (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧ γn.a0 = []) :
     (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
         rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
-      applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw ⊢
+      applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw ∗ rnLoopTok γn [] ∗ rnApplyTok γn [] ⊢
     srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ γw := by
   obtain ⟨h1, h2, ⟨hc, hp, ha⟩, h4⟩ := hEr
   have hc0 : c₀ = ai₀ := by subst ha; word
-  iintro ⟨⟨%ms, #Hms, Hsnap⟩, Hst⟩
+  iintro ⟨⟨%ms, #Hms, Hsnap⟩, Hst, Hloop, Happly⟩
   iunfold srvRunRestartR
-  iexists []
+  iexists [], []
+  rw [show W64 (([] : List EntryModel).length) = ai₀ by rw [ha]; rfl]
+  iframe Hloop Happly
   isplitr
   · ipureintro
-    refine ⟨h1, h2, ⟨hc, hp, ha⟩, h4, by simp, ?_⟩
+    refine ⟨h1, h2, ⟨hc, hp, ha⟩, h4, List.nil_prefix, Or.inl rfl, by simp, ?_⟩
     subst ha; simp <;> word
   isplitl [Hsnap]
   · iexists ms
@@ -936,6 +1023,43 @@ theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) 
   iapply srvRestartAtR_first $$ [Hst]
   iframe Hst
   ipureintro; exact hc0
+
+/-- **Rows 6 and 7 from row 8** (restart S4, Q38 (a)): the raft node's restart log `γn.a0`
+(`rnRestartOk`'s `srvRLogLb`, or empty) has normal or v1 conf entries (`srvIdxOkW`) and room past it
+(`isCommittedLogLb_length`, with `readyFits` from `rnEnvOk`'s `srvClusterOk`). -/
+theorem srvRunRows_of_rn (E : RNEnv GF) (γn : RNNames) (r : Loc) :
+    isRaftNode E γn r ⊢
+      ⌜(∀ m ∈ γn.a0, m.typ = W32 0 ∨ m.typ = W32 1) ∧
+        uint.Z (W64 0) + γn.a0.length + 1 < 2 ^ 64⌝ := by
+  iintro #Hrn
+  iunfold isRaftNode at Hrn
+  iNamed Hrn
+  iunfold rnRestartOk at Hrok
+  icases Hrok with (%h0 | ⟨%hr, #Hlb, -⟩)
+  · ipureintro
+    rw [h0.1]
+    simp
+    word
+  · iunfold rnEnvOk at Henv
+    icases Henv with ⟨-, %Hn, -, #Hinv, -⟩
+    iunfold srvRaftLogInv at Hinv
+    icases Hinv with ⟨-, #Hcl, -⟩
+    iunfold srvClusterOk at Hcl
+    icases Hcl with ⟨-, -, -, #Hrf, -⟩
+    ihave #Hrf' : (letI := srvStor (GF := GF) γn.node; readyFits γn.node.cl srvClusterN) $$ []
+    · rw [← Hn.1]; iexact Hrf
+    iunfold srvRLogLb at Hlb
+    icases Hlb with ⟨#Hc, %Hidx⟩
+    icases (letI := srvStor (GF := GF) γn.node; isCommittedLogLb_length γn.node.cl srvClusterN _) $$ [Hrf' Hc] with %Hlen
+    · iframe Hrf' Hc
+    ipureintro
+    rw [srvLE_length] at Hlen
+    simp only [hr.1, List.length_nil, Nat.zero_add] at Hlen
+    refine ⟨fun m hm => ?_, (by have h0 : uint.Z (W64 0) = 0 := (by word); omega)⟩
+    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    rcases (Hidx n m hn).2 with h | ⟨h, -⟩
+    · exact .inl h
+    · exact .inr h
 
 end bridges
 

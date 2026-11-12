@@ -605,7 +605,7 @@ theorem isServerBuilt_offC (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   have hB := isServerBuiltM_C (GF := GF) .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hm
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_false] at hB
-  ihave Hb' := hB.1 $$ [Hb Hsk]
+  ihave Hb' := hB $$ [Hb Hsk]
   · iframe Hb Hsk
   have hL : acLessor (GF := GF) .off s = iprop(True) := by rw [← srvLessorNilM_eq]; rfl
   rw [hL]

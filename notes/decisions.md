@@ -34926,6 +34926,33 @@ exclusive. **Follow-ups, not in stage B**: `purgeFile.spec` takes no `lgMu` slot
 67 roots); gate keys naming the binder path, so an entry cannot silently accept a future real duplication in
 `isServerReadM`; deleting `ckptEffectsOk` (above).
 
+
+## Restart S4: the hubs at the restart point, `P` existential (2026-11-12 · plan approved by etcd-grove-81 under the user's delegation, `/shared/tmp/restart-s4/plan.md` · branch `restart-s4`)
+
+**Problem.** The hubs between `NewServer` and `run` (`isServerBuiltC`, `srvRunRestartR`,
+`isServerRunC`) pinned Go's start index to `ai₀ = 0` and the loop's tokens to `[]`, so `run.spec`'s
+restart meaning covered only `σ.b = 0`. r2db's Q40 (F1, decided 2026-11-07) said `snap0` would replace
+`|P|` in the hubs: `P := γn.a0.take γn.snap0`, a name.
+
+**Decision (D1; supersedes Q40's hub form).** `P`, the log raft handed before the incarnation, is an
+existential of the hubs (`srvRunRestartR`: `∃ A₀ P, ⌜… P <+: A₀ ∧ lastTermIs P at₀ …⌝`, Go's index
+`W64 |P|`, `rnLoopTok γn P ∗ rnApplyTok γn P`; `isServerBuiltC`'s new `srvBuiltRestartR`, `∃ P`).
+Why not the name:
+- the existential makes the frozen `run.spec` a pure widening (the old precondition is the instance
+  `P = []`); with the name, an old state with tokens at `[]` and `snap0 > 0` (constructible from
+  `newRaftNode.spec`, whose `L₀` and `snap0` are independent binders) would no longer be covered;
+- `P` is not a free witness: the tokens agree with the raft loop's `cum` authority, and
+  `rnSnapOnceR`'s index is `|P|`;
+- S7 reuses the window at a snapshot install point, which does not start at boot;
+- a crash image needs no change.
+`snap0` stays in `RNNames` (for `rnRestartOk` and the loop fact); S6's `NewServer` instantiates
+`P := A₀.take snap0`.
+
+**Also decided.** D2: the four built hubs and `NewServer` stay at a first start until S6. D3:
+`lastTermIs P at₀` is a hub conjunct (Go's `appliedt` is the storage snapshot's term; S6 supplies it
+from `walSnapCert`), `rnSnapOnceR` unchanged. D4: the hub texts and the widened meanings of
+`run.spec`, `start.spec`, `Start.spec` approved in principle, with a Freeze package at CP3.
+
 ## Deleting `ckptEffectsOk` (2026-11-12 · accepted, approved by the user via etcd-grove-81)
 
 Supersedes the part of D14h (and D14e/D14g's named premise) that kept `ckptEffectsOk`, the opaque
