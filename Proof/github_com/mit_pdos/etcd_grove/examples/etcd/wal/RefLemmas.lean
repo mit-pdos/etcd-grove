@@ -353,6 +353,180 @@ theorem tNameBound_le_openBound {imgs : List (List TOp)} {img : List TOp} (a : w
     (h : img ∈ imgs) : uint.nat (tNameBound img a) ≤ uint.nat (tOpenBound imgs a) :=
   (tOpenBound_fold_ge a imgs (W64 0)).2 img h
 
+/-! ## The last index, cut positions and the name bound -/
+
+theorem tLastEnt_abs : ∀ (l : List TOp) (x : w64),
+    uint.nat (l.foldl (fun x o => if o.snap then x else (o.ents.getLast?.map (·.index')).getD x) x) =
+      (l.map absOp).foldl walLastEntF (uint.nat x) := by
+  intro l
+  induction l with
+  | nil => intro x; rfl
+  | cons o l ih =>
+    intro x
+    simp only [List.foldl_cons, List.map_cons]
+    rw [ih]
+    congr 1
+    cases ho : o.snap
+    · simp only [absOp, ho, Bool.false_eq_true, ite_false, walLastEntF, List.getLast?_map]
+      cases o.ents.getLast? <;> rfl
+    · simp [absOp, ho, walLastEntF]
+
+theorem tMaxSnap_abs : ∀ (l : List TOp) (x : w64),
+    uint.nat (l.foldl (fun x o => if o.snap ∧ uint.nat x < uint.nat o.idx then o.idx else x) x) =
+      (l.map absOp).foldl walMaxSnapF (uint.nat x) := by
+  intro l
+  induction l with
+  | nil => intro x; rfl
+  | cons o l ih =>
+    intro x
+    simp only [List.foldl_cons, List.map_cons]
+    rw [ih]
+    congr 1
+    cases ho : o.snap
+    · simp [absOp, ho, walMaxSnapF]
+    · simp only [absOp, ho, ite_true, walMaxSnapF, absSnapMd, true_and]
+      split <;> omega
+
+/-- **`lastIdx` is `walLastIdx`** (no bound needed: no arithmetic). -/
+theorem tLastIdx_abs (h : List TOp) : uint.nat (tLastIdx h) = walLastIdx (h.map absOp) := by
+  rw [walLastIdx_eq]
+  unfold tLastIdx
+  simp only
+  have h1 := tLastEnt_abs h (W64 0)
+  have h2 := tMaxSnap_abs h (W64 0)
+  simp only [show uint.nat (W64 0) = 0 from rfl] at h1 h2
+  split
+  · rename_i hc; rw [h1, h2] at hc; rw [h2]; exact (Nat.max_eq_right (Nat.le_of_lt hc)).symm
+  · rename_i hc; rw [h1, h2] at hc; rw [h1]; exact (Nat.max_eq_left (Nat.le_of_not_lt hc)).symm
+
+/-- **`cutPos` is `walCutPos`**. -/
+theorem tCutPos_abs (h : List TOp) (b : Nat) : tCutPos h b = true ↔ walCutPos (h.map absOp) b := by
+  unfold tCutPos walCutPos
+  rw [List.getElem?_map]
+  by_cases hb : b = 0
+  · simp [hb]
+  · simp only [hb, decide_false, Bool.false_or, false_or]
+    cases hx : h[b - 1]? with
+    | none => simp
+    | some o =>
+      simp only [Option.map_some, Option.some.injEq]
+      cases ho : o.snap
+      · simp only [absOp, ho, Bool.false_eq_true, ite_false, WalOpG.save.injEq, Bool.not_false,
+          Bool.true_and, Bool.not_eq_true', Bool.and_eq_false_iff]
+        constructor
+        · intro hne
+          refine ⟨_, _, ⟨rfl, rfl⟩, ?_⟩
+          rintro ⟨he, hn⟩
+          rcases hne with hne | hne
+          · rw [(tHsEmpty_iff o.hs).2 he] at hne; cases hne
+          · rw [List.map_eq_nil_iff] at hn; rw [hn] at hne; cases hne
+        · rintro ⟨_, _, ⟨rfl, rfl⟩, hne⟩
+          by_cases he : tHsEmpty o.hs = true
+          · right
+            cases hes : o.ents with
+            | nil => exact absurd ⟨(tHsEmpty_iff o.hs).1 he, by simp [hes]⟩ hne
+            | cons _ _ => rfl
+          · left; simpa using he
+      · simp [absOp, ho]
+
+/-- Every index of a well-formed history is below `2^63`. -/
+theorem tHistWf_take {h : List TOp} (hw : tHistWf h) (b : Nat) : tHistWf (h.take b) :=
+  fun o ho => hw o (List.mem_of_mem_take ho)
+
+theorem tLastEnt_lt : ∀ (l : List TOp) (x : w64), tHistWf l → uint.nat x < 2 ^ 63 →
+    uint.nat (l.foldl (fun x o => if o.snap then x else (o.ents.getLast?.map (·.index')).getD x) x) <
+      2 ^ 63 := by
+  intro l
+  induction l with
+  | nil => intro x _ hx; exact hx
+  | cons o l ih =>
+    intro x hw hx
+    simp only [List.foldl_cons]
+    apply ih _ (fun o' ho' => hw o' (List.mem_cons_of_mem _ ho'))
+    cases ho : o.snap
+    · simp only [Bool.false_eq_true, ite_false]
+      cases hl : o.ents.getLast? with
+      | none => exact hx
+      | some e =>
+        exact ((hw o (List.mem_cons_self ..)).2 ho e (List.mem_of_getLast? hl)).2.2.1
+    · simpa using hx
+
+theorem tMaxSnap_lt : ∀ (l : List TOp) (x : w64), tHistWf l → uint.nat x < 2 ^ 63 →
+    uint.nat (l.foldl (fun x o => if o.snap ∧ uint.nat x < uint.nat o.idx then o.idx else x) x) <
+      2 ^ 63 := by
+  intro l
+  induction l with
+  | nil => intro x _ hx; exact hx
+  | cons o l ih =>
+    intro x hw hx
+    simp only [List.foldl_cons]
+    apply ih _ (fun o' ho' => hw o' (List.mem_cons_of_mem _ ho'))
+    split
+    · rename_i hc; exact ((hw o (List.mem_cons_self ..)).1 hc.1).1
+    · exact hx
+
+/-- The last index of a well-formed history is below `2^63`. -/
+theorem tLastIdx_lt {h : List TOp} (hw : tHistWf h) : uint.nat (tLastIdx h) < 2 ^ 63 := by
+  have h1 := tLastEnt_lt h (W64 0) hw (by decide)
+  have h2 := tMaxSnap_lt h (W64 0) hw (by decide)
+  unfold tLastIdx
+  simp only
+  split <;> assumption
+
+/-- A well-formed history has no index `2^64-1`. -/
+theorem tHistWf_noMax {h : List TOp} (hw : tHistWf h) : ¬ walHasMaxIdx (h.map absOp) := by
+  rintro ⟨o', ho', hm⟩
+  obtain ⟨o, ho, rfl⟩ := List.mem_map.1 ho'
+  have hwo := hw o ho
+  cases hs : o.snap
+  · simp only [absOp, hs, Bool.false_eq_true, ite_false] at hm
+    obtain ⟨e', he', hi⟩ := hm
+    obtain ⟨e, he, rfl⟩ := List.mem_map.1 he'
+    have := (hwo.2 hs e he).2.2.1
+    simp only [absEnt] at hi; omega
+  · simp only [absOp, hs, ite_true, absSnapMd] at hm
+    have := (hwo.1 hs).1; omega
+
+open Classical in
+/-- **`nameBound` is `walNameBound … false`** for a well-formed history (no index wraps, so
+`lastIdx + 1` does not) of fewer than `2^64` operations (the bound fits a `uint64`). -/
+theorem tNameBound_eq {h : List TOp} (hw : tHistWf h) (hl : h.length < 2 ^ 64) (a : w64) :
+    uint.nat (tNameBound h a) = walNameBound (h.map absOp) (uint.nat a) false := by
+  unfold tNameBound walNameBound
+  rw [if_neg (tHistWf_noMax hw)]
+  simp only [List.length_map, Bool.false_eq_true, ite_false]
+  have hfil : (List.range (h.length + 1)).filter (fun b =>
+      tCutPos h b && decide (uint.nat (tLastIdx (h.take b) + W64 1) ≤ uint.nat a)) =
+      (List.range (h.length + 1)).filter (fun b => decide (walCutPos (h.map absOp) b ∧
+        walLastIdx ((h.map absOp).take b) + 1 ≤ uint.nat a)) := by
+    apply List.filter_congr
+    intro b _
+    have hlt := tLastIdx_lt (tHistWf_take hw b)
+    have hadd : uint.nat (tLastIdx (h.take b) + W64 1) = uint.nat (tLastIdx (h.take b)) + 1 := by
+      word
+    rw [hadd, tLastIdx_abs, ← List.map_take]
+    by_cases hc : walCutPos (h.map absOp) b
+    · simp [(tCutPos_abs h b).2 hc, hc]
+    · have : tCutPos h b = false := by
+        cases hh : tCutPos h b
+        · rfl
+        · exact absurd ((tCutPos_abs h b).1 hh) hc
+      simp [this, hc]
+  rw [hfil]
+  have hmem : ∀ x ∈ ((List.range (h.length + 1)).filter (fun b => decide (walCutPos (h.map absOp) b ∧
+        walLastIdx ((h.map absOp).take b) + 1 ≤ uint.nat a))).getLast?, x ≤ h.length := by
+    intro x hx
+    have := List.mem_of_getLast? hx
+    rw [List.mem_filter, List.mem_range] at this
+    omega
+  cases hg : ((List.range (h.length + 1)).filter (fun b => decide (walCutPos (h.map absOp) b ∧
+        walLastIdx ((h.map absOp).take b) + 1 ≤ uint.nat a))).getLast? with
+  | none => rfl
+  | some x =>
+    have := hmem x (by rw [hg]; rfl)
+    simp only [Option.getD_some]
+    word
+
 end pure
 
 end etcd_wal
