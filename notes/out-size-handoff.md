@@ -54,6 +54,18 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
   start** (raft fully proved, P2-P6): next checkpoint C3. NodeStart and InvBoot may be edited; tell
   etcd-grove-81 before touching anything else outside raft.
 
+- **C3 in progress**, 2026-11-12, commit `18142fa3a5` (P2 partial): `PbSized` bridges proved
+  (`entsPtsC_entsPtsZ`, `entsPtsZ_entsPtsC`) and `entRZ_of_struct` (a fresh entry, no unknown fields,
+  frozen at a sized content); `isStorageP_unsize`/`entsPtsC_unsize` (InvStorage) and
+  `memStorage_isStorage` proved; `memstorageFields ms sz σ` holds `entsROz sz` (the helper specs
+  `MemoryStorage.{first,last}Index` take `∀ sz`); `entsROz_lookup`/`entsROz_cons_len` (LemmasEnts);
+  MemoryStorage `Append`, `Compact`, `ApplySnapshot`, `NewMemoryStorage` and the readers check.
+  **Open:** `MemoryStorage__Entries` (needs `limitSize` content-level with the cut), `limitSize`/
+  `entsSize` onto `SizePb`, kv instances, then the raft build. **Blocked (reported to etcd-grove-81):**
+  B1, raft cannot reach `pbEntryC`/`pbEntryC_reg` (they live in the server's
+  `rafthttp/PerTypeEntry.lean`, at `HasLC.hasLC`); B2, no registered `ConfChange` instance, so
+  `MarshalPb` cannot bound a proposed conf change's data (`ccSize`).
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
