@@ -1,5 +1,5 @@
 /-
-`(*wal.WAL).SaveSnapshot` (WAL W4a, 2026-11-11; the approved W4 Draft's §1.4, `notes/decisions.md`, "WAL W4a") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `b18c2d500` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
+`(*wal.WAL).SaveSnapshot` (WAL W4a, 2026-11-11, revised after the Freeze review; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
 -/
 module
 
@@ -40,7 +40,7 @@ abbrev wal.WAL.SaveSnapshot.spec : Prop :=
         <{ walDisk dir (H ++ [WalOpG.snap md]) sized, COMM Q H }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"SaveSnapshot")) (Val #sp))
   {{ (err : GoInterface), RET #err; walOpenW w dir ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ H : WalHist, Q H ∗ walLenLb w (H.length + 1) ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ H : WalHist, Q H ∗ walLenLb w dir (H.length + 1) ∗
           walSyncedLb dir (H.length + 1)) ∨
        ⌜¬ storage.walSaveOk⌝) }}
 

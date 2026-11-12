@@ -12,6 +12,7 @@ described by `storage.WalRecs`, the tester's (W4c) by this (option B of Q-W4a-1)
 module
 
 public import GooseLang.Ext.AbsDisk.Specs
+public import GooseLang.Ext.Durable.Specs
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalHist
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal.walpb
 
@@ -51,6 +52,30 @@ def walLastSnapPos {E : Type} (H : List (WalOpG E)) (a : w64) : Nat :=
     | some (WalOpG.snap m) => decide (m.Index' = a)
     | _ => false)).getLast?.getD 0
 
+/-- **Every file a cut names after `H`'s last snapshot record of index `a` (position `p`) is named
+above `a`** (a sufficient condition, by the Go code; M1 of the Freeze review): every saved commit
+from `p` on is at least `a` (so `a` is a valid snapshot of every image holding `p`, and a restart
+starts at or above it); every entry record after a snapshot record of index `≥ a` has index `> a`;
+every snapshot record after `p` has index `≥ a`. Then `w.enti ≥ a` at every cut after `p`, across
+restarts (`SaveSnapshot` and `ReadAll` raise it to the snapshot's index, S/wal.go:1158, :578), and
+the file names (`enti + 1`) exceed `a`. -/
+def walRelGuard (H : WalHist) (a : w64) (p : Nat) : Prop :=
+  (∀ j, p < j → j ≤ H.length → uint.nat a ≤ uint.nat (walLastHS (H.take j)).Commit') ∧
+  (∀ (q j : Nat) (m : SnapshotMetadataM) (h : HardStateM) (es : List EntryM) (e : EntryM),
+     H[q]? = some (WalOpG.snap m) → uint.nat a ≤ uint.nat m.Index' → q < j →
+     H[j]? = some (WalOpG.save h es) → e ∈ es → uint.nat a < uint.nat e.Index') ∧
+  (∀ (j : Nat) (m : SnapshotMetadataM), p < j → H[j]? = some (WalOpG.snap m) → uint.nat a ≤ uint.nat m.Index')
+
+open Classical in
+/-- **A position before which `ReleaseLockTo(a)` / a restart's `Open` at `a` leaves records
+unlocked, and from which every record stays locked**: 0 for `a = 0` (file 0 is named 0, every later
+file higher); the last snapshot record of index `a` under `walRelGuard`; otherwise the history's
+length (the tail file is never released). -/
+def walReleasePos (H : WalHist) (a : w64) : Nat :=
+  if a = W64 0 then 0
+  else if (∃ (i : Nat) (m : SnapshotMetadataM), H[i]? = some (WalOpG.snap m) ∧ m.Index' = a) ∧ walRelGuard H a (walLastSnapPos H a)
+    then walLastSnapPos H a else H.length
+
 end pure
 
 section defs
@@ -59,6 +84,25 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt absDiskExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+
+open Classical in
+/-- **No durable name lies under the WAL area `r`**: durable's reservation of `r`, when the program
+has the durable extension. -/
+def durableResvD (r : GoString) : IProp GF :=
+  if h : HasExt durableExt then (haveI := h; durableReserved (L := hG.goose_localGS) r)
+  else iprop(True)
+
+instance durableResvD_persistent (r : GoString) : Persistent (durableResvD (GF := GF) r) := by
+  unfold durableResvD; split <;> infer_instance
+
+/-- **The WAL area is `r`, and no other path user writes or reads under it**: absDisk's area, and
+durable's reservation of it when the program has the durable extension (every WAL function that
+takes a directory requires it). -/
+def walAreaOk (r : GoString) : IProp GF :=
+  iprop(walArea (L := hG.goose_localGS) r ∗ durableResvD r)
+
+instance walAreaOk_persistent (r : GoString) : Persistent (walAreaOk (GF := GF) r) := by
+  unfold walAreaOk; infer_instance
 
 /-- **The WAL in `dir` holds the history `H`, with flag `sized`** (the extension's points-to, read
 over `EntryM`): its durable state's history, as model entries, and flag; the marks, purge positions
@@ -92,15 +136,17 @@ instance walSnapIdTerm_persistent (sp : Loc) (s : w64 × w64) :
 
 /-- **The purge law** (the approved Draft's §1.5; proved from the extension's purge step, which the
 tester's trusted `purgeRound` model performs, W4c): a purge round in `dir`, while the purge's right
-is held, may delete the records before `unl` (`pur := max pur unl`). Stated over the step itself
+is held, may delete the records before `unl` (`pur := max pur unl`), and moves the read position to the
+start `k` of the first file it left (`cut ≤ k ≤ max pur unl`). Stated over the step itself
 until the tester's `purgeRound` (and its model) exist. -/
-theorem walPurge_step (dir : GoString) (d : WalDur) :
+theorem walPurge_step (dir : GoString) (d : WalDur) (k : Nat) (hk : d.cut ≤ k)
+    (hk' : k ≤ max d.pur d.unl) :
     {{ walDiskAt (L := hG.goose_localGS) dir d ∗ walPurgeRight (GF := GF) dir }}
-      (ExternalOp absDiskExt.name "WalPurge" (Val (#dir)))
-    {{ RET #(); walDiskAt (L := hG.goose_localGS) dir { d with pur := max d.pur d.unl } ∗
+      (ExternalOp absDiskExt.name "WalPurge" (Val (PairV (#dir) (#(walCode k)))))
+    {{ RET #(); walDiskAt (L := hG.goose_localGS) dir { d with pur := max d.pur d.unl, cut := k } ∗
         walPurgeRight dir }} := by
   iintro %Φ ⟨Hd, Hr⟩ HΦ
-  iapply wp_WalPurge dir d Φ
+  iapply wp_WalPurge dir k d ⟨hk, hk'⟩ Φ
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hclose
   iframe Hd

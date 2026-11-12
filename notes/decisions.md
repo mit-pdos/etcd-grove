@@ -34695,3 +34695,38 @@ the same size and mappings (`Open/SyncAcc.wdbCore_file_acc`); `wdbOK` reads only
 (`wdbOK_withMeta`). The error exit makes the database (`open_writer`) and runs `DB.Close`. `Open`'s
 spec is unchanged: in-process durability is out of its scope. No trusted statement changed. The
 trusted docstrings that cite `db.go` line numbers name `743299d8cec8`, so they stay accurate.
+
+## WAL W4a revision: the WAL area, the fork's `Exist` fix, and the Freeze review's findings (2026-11-12 · the revision design approved by etcd-grove-81; M3's fork fix chosen by the user, 2026-11-11 · branch `wal-w4`)
+
+The Freeze review of W4a (two lenses, both NOT READY; `/shared/tmp/wal-spec/w4/review-findings.txt`)
+found five blockers (Create's footprint and `TouchDirAll` against `Exist`; durable's names against the
+WAL's; `ReadAll` twice; `named` after a kill), three majors (`unl` over-claimed; reads from `cut`
+against a purge; `Exist` on a `ReadDir` failure) and minors. The revision (design
+`/shared/tmp/wal-spec/w4/revision.md`; old → new in `/shared/tmp/wal-spec/w4/freeze-w4a.md`,
+"Revision after review"):
+
+- **A fixed WAL area** (`AbsDiskState.area`, `GooseLang/Ext/AbsDisk/Paths.lean`): WAL directories
+  are `area/n` (`walAreaDir`, `n` free of `/` and `.`); `"WalCreate"` requires all of
+  `walCreateRegion dir` free (implied by `walAbsent dir` and the ctx invariant that every WAL key is
+  in the area); `"DirDurable"` (`TouchDirAll`) never under the area; the start constrained by
+  `absDiskInitOk` (`initP`). Why one area rather than per-call roots: the invariant lets
+  `walAbsent dir` imply the region free in any generation (revision §1.2).
+- **Durable's one-shot reservation** of the area (`durableReserved r`, in durable's ghost state,
+  surviving crashes), required by every WAL function that takes a directory (`walAreaOk r`); the
+  durable Go specs take a mode `o` (today's at `o = none`). A premise on one side cannot work
+  (revision §1.2: a durable write inside a WAL directory; a durable read of a WAL's file).
+- `walCrash` keeps `named`; a write-mode `ReadAll` makes it durable (`"WalNamed"`, F-N4) and needs
+  `dirDurable r`; `Open` no longer needs `walNamed`.
+- `ReadAll`'s error arm gives `walReadFailed`, accepted only by `Close`.
+- `unl` is `walReleasePos` (the snapshot record's position under `walRelGuard`, else `|H|`; `0` at
+  `a = 0`); `"WalPurge"` also moves `cut` to the remaining first file's start.
+- **`wal.Exist`**: the user chose the fork fix over an environment premise (option A) or a weak
+  spec (B): `Exist` returns true on any `ReadDir` error but not-found (`c90b03b56`), so its spec says
+  `b = false → o = none` with no premise, and ValidSnapshotEntries/Open/Repair take `walDirIs dir o`
+  and fail on `none`. It also closes the hazard the review found (`renameWAL`'s `RemoveAll` deleting
+  a live WAL after two failed `ReadDir`s; nonissue `etcd-wal-exist-readdir-error-removes-wal`).
+- Gates recorded for W4c and C6 (revision §1.4): the tester's adequacy quantifies the start
+  universally, constrained only at its own directories (`s0.area = root/data/member`, no WAL at
+  `area/wal`), never `s0.wal = ∅`; C6's restart start names directories by premise and hands the
+  durable reservation from its start. The remaining path aliasing (symbolic links) is a world
+  assumption in `Impl.lean`.

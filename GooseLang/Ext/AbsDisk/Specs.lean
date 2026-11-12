@@ -1,6 +1,7 @@
 /-
 Iris reasoning principles for the abstract-disk extension (`Impl.lean`; WAL W4a, 2026-11-11, the
-approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a"). Proved: nothing here is trusted.
+approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a", and its revision after the Freeze review,
+"WAL W4a revision"). Proved: nothing here is trusted.
 
 * **The WALs' state**: one ghost variable of the whole map of WAL directories (`GMap GoString
   WalDur`), half of it in the state interpretation and half the program's, with an exclusive
@@ -10,20 +11,37 @@ approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a"). Proved: nothing her
   has one WAL directory (the tester's, the server's); a claim operation would be needed to own
   directories separately, since the map has no fragments for the infinitely many directories
   without a WAL.
+* **The WAL area** (`walArea r`, persistent): the state's fixed `area`. The interpretation keeps
+  every WAL key in the area (`walKeysInArea`), so `walAbsent dir` of an area directory gives the
+  whole of `Create`'s region free (`walCreateRegion_free`): nothing in `Create(area/n)`'s region can
+  be a WAL key (`area/n.tmp` and `area/n.broken.*` contain `.`, `area/n/…` has a `/` in the name),
+  and no durable directory or durable file is under the area. So the whole-map ownership is no
+  longer what makes `Create` sound (cross-key effects are gone, M2 of the Freeze review's aliasing
+  lens): a per-directory split (rung 3) would only need the invariant.
+* **The start** (`absDiskInitOk`, the adequacy theorem's premise through `initP`): the area clean,
+  the WAL keys in it, no durable directory under it; `absDiskStart` still hands `walOwn s0.wal` for
+  a concrete `s0`. **W4c gate:** the tester's adequacy quantifies `s0` universally, constrained only
+  at its own directories (`s0.area = root/data/member`, `s0.wal !! (area/wal) = none`, the real disk
+  empty under the area), never fixing `s0.wal = ∅`. **C6 gate:** a restart start with a WAL present
+  names its directories by premise (B3-1), and hands the durable reservation from the start or
+  proves that no durable operation precedes it.
 * **Facts** (persistent): `absPast s`, the extension's state was `s` at some point of this
-  generation; the state only grows (`absLe`: marks, lengths, `named` and the durable directories
-  do not decrease, no WAL disappears), so a past state bounds the present one. `walSyncedLb`,
-  `walNamed`, `dirDurable` are facts about a past state; `walLenLb w n` also names `w`'s directory
-  (a persistent handle fact).
-* **Handles**: `walOpenW w dir` / `walOpening w dir s`, exclusive ghost-map elements keyed by the
-  `*wal.WAL` location, in maps whose authority is in the state interpretation (only the
-  extension's steps could allocate them; the WAL's axioms give them). Per generation.
+  generation; the state only grows (`absLe`: the area kept, marks, lengths, `named` and the durable
+  directories do not decrease, no WAL disappears), so a past state bounds the present one.
+  `walSyncedLb`, `walNamed`, `dirDurable`, `walArea` are facts about a past state; `walLenLb w dir n`
+  also names a handle of `w` (a persistent handle fact).
+* **Handles**: `walOpenW w dir` / `walOpening w dir s` / `walReadFailed w dir`, an exclusive mode
+  (`WalMode`) and a persistent `(w, dir)` under a ghost name `γ` that the step allocating the handle
+  picks fresh (`walHandle_alloc`), in maps whose authority is in the state interpretation: only a
+  step can allocate a handle or change its mode (`wp_WalCreate`, `wp_WalOpenHandle`,
+  `wp_WalReadFail`, `wp_WalNamedOpen`), so no freshness of `w` is needed. Per generation.
 * **The steps** (`wp_WalCreate`, ...): one spec per external operation, logically atomic, each
   returning the new state's fact.
 * **The crash** (`absDisk_crash_interp`): the new generation's ghost state is allocated from the
   crashed state; `absDiskCrashStart old new` holds the old generation's half of the WAL map and its
   facts' authority, and the new generation's half and start fact, with the crash relation between
-  them. `walDiskAt_crash` is the Draft's `walDisk_crash` in these terms.
+  them. `walDiskAt_crash` is the Draft's `walDisk_crash` in these terms, `walDiskAt_crash_any` the
+  same without `walNamed` (the WAL may vanish).
 -/
 module
 
@@ -54,25 +72,30 @@ instance : Pos.Countable WalDur :=
 instance : DecidableEq AbsDiskState := fun a b => Classical.propDecidable (a = b)
 
 instance : Pos.Countable AbsDiskState :=
-  .ofInjective (fun s => Pos.Countable.encode (s.wal, s.dirs))
+  .ofInjective (fun s => Pos.Countable.encode (s.area, s.wal, s.dirs))
     (by intro a b h; cases a; cases b; simp_all)
 
-/-- **The state only grows**: no durable directory or WAL disappears, and a WAL's synced mark,
-length and `named` do not decrease. -/
+/-- **The state only grows**: the area is kept, no durable directory or WAL disappears, and a WAL's
+synced mark, length and `named` do not decrease. -/
 def absLe (s s' : AbsDiskState) : Prop :=
+  s'.area = s.area ∧
   (∀ d, s.dirs !! d = some () → s'.dirs !! d = some ()) ∧
   ∀ dir d, s.wal !! dir = some d → ∃ d', s'.wal !! dir = some d' ∧
     d.m ≤ d'.m ∧ d.H.length ≤ d'.H.length ∧ (d.named = true → d'.named = true)
 
 theorem absLe_refl (s : AbsDiskState) : absLe s s :=
-  ⟨fun _ h => h, fun _ d h => ⟨d, h, Nat.le_refl _, Nat.le_refl _, id⟩⟩
+  ⟨rfl, fun _ h => h, fun _ d h => ⟨d, h, Nat.le_refl _, Nat.le_refl _, id⟩⟩
 
 theorem absLe_trans {s1 s2 s3 : AbsDiskState} (h12 : absLe s1 s2) (h23 : absLe s2 s3) :
     absLe s1 s3 := by
-  refine ⟨fun d h => h23.1 d (h12.1 d h), fun dir d h => ?_⟩
-  obtain ⟨d2, h2, hm2, hl2, hn2⟩ := h12.2 dir d h
-  obtain ⟨d3, h3, hm3, hl3, hn3⟩ := h23.2 dir d2 h2
+  refine ⟨h23.1.trans h12.1, fun d h => h23.2.1 d (h12.2.1 d h), fun dir d h => ?_⟩
+  obtain ⟨d2, h2, hm2, hl2, hn2⟩ := h12.2.2 dir d h
+  obtain ⟨d3, h3, hm3, hl3, hn3⟩ := h23.2.2 dir d2 h2
   exact ⟨d3, h3, Nat.le_trans hm2 hm3, Nat.le_trans hl2 hl3, fun x => hn3 (hn2 x)⟩
+
+theorem absDiskUpd_area (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur) :
+    (absDiskUpd s dir f).area = s.area := by
+  unfold absDiskUpd; cases s.wal !! dir <;> rfl
 
 /-- An update of one WAL that keeps its marks, length and `named` from decreasing. -/
 theorem absLe_upd (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur)
@@ -82,7 +105,7 @@ theorem absLe_upd (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur)
   cases hd : s.wal !! dir with
   | none => exact absLe_refl s
   | some d0 =>
-    refine ⟨fun _ h => h, fun dir' d h => ?_⟩
+    refine ⟨rfl, fun _ h => h, fun dir' d h => ?_⟩
     simp only
     by_cases hdir : dir = dir'
     · subst hdir
@@ -94,7 +117,90 @@ theorem absDiskUpd_wal (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDu
     (hd : s.wal !! dir = some d) : (absDiskUpd s dir f).wal = <[dir := f d]> s.wal := by
   unfold absDiskUpd; rw [hd]
 
+/-- `"WalUnlock"` of position 0 changes nothing. -/
+theorem absDiskUpd_unl0 (s : AbsDiskState) (dir : GoString) :
+    absDiskUpd s dir (fun d => { d with unl := max d.unl 0 }) = s := by
+  unfold absDiskUpd
+  cases h : s.wal !! dir with
+  | none => rfl
+  | some d =>
+    have hd : { d with unl := max d.unl 0 } = d := by cases d; simp
+    simp only [hd]
+    rw [GMap.insert_id _ _ _ h]
+
+/-! ## The WAL area -/
+
+/-- **Every WAL directory lies in the area** (the interpretation's invariant). -/
+def walKeysInArea (s : AbsDiskState) : Prop :=
+  ∀ k d, s.wal !! k = some d → walAreaDir s.area k
+
+theorem walKeysInArea_upd (s : AbsDiskState) (dir : GoString) (f : WalDur → WalDur)
+    (hk : walKeysInArea s) : walKeysInArea (absDiskUpd s dir f) := by
+  intro k d h
+  rw [absDiskUpd_area]
+  unfold absDiskUpd at h
+  cases hd : s.wal !! dir with
+  | none => rw [hd] at h; exact hk k d h
+  | some d0 =>
+    rw [hd] at h
+    simp only at h
+    by_cases hdir : dir = k
+    · subst hdir; exact hk dir d0 hd
+    · rw [GMap.lookup_insert_ne _ _ hdir] at h; exact hk k d h
+
+theorem walKeysInArea_crash {s s' : AbsDiskState} (hc : absDisk_semantics.crash s s')
+    (hk : walKeysInArea s) : walKeysInArea s' := by
+  intro k d' h'
+  rw [hc.1]
+  cases hs : s.wal !! k with
+  | none => rw [hc.2.2.2 k hs] at h'; cases h'
+  | some d => exact hk k d hs
+
+private theorem prefix_slash_mem {n n' : GoString} (h : (n ++ go!"/") <+: n') : W8 47 ∈ n' :=
+  h.subset (by simp)
+
+/-- **`Create`'s region holds no WAL** when `dir` is an area directory without one: no area key is
+`dir.tmp` (it contains `.`), or under `dir/` or `dir.tmp/` (a `/` in the name). -/
+theorem walCreateRegion_free {s : AbsDiskState} {dir : GoString} (hk : walKeysInArea s)
+    (hdir : walAreaDir s.area dir) (hnone : s.wal !! dir = none) :
+    ∀ k, walCreateRegion dir k → s.wal !! k = none := by
+  intro k hreg
+  cases hs : s.wal !! k with
+  | none => rfl
+  | some d =>
+    exfalso
+    obtain ⟨n', ⟨-, hn1', hn2'⟩, rfl⟩ := hk k d hs
+    obtain ⟨n, -, rfl⟩ := hdir
+    unfold walCreateRegion underDir at hreg
+    simp only [List.append_assoc] at hreg
+    rcases hreg with h | h | h | h
+    · have := List.append_cancel_left (List.append_cancel_left h)
+      subst this
+      rw [hnone] at hs; cases hs
+    · exact hn1' (prefix_slash_mem ((List.prefix_append_right_inj _).1
+        ((List.prefix_append_right_inj _).1 h)))
+    · have := List.append_cancel_left (List.append_cancel_left h)
+      subst this
+      exact hn2' (by simp)
+    · have h' := (List.prefix_append_right_inj _).1 ((List.prefix_append_right_inj _).1 h)
+      rw [← List.append_assoc] at h'
+      exact hn1' (prefix_slash_mem h')
+
 /-! ## Ghost state -/
+
+/-- **A handle's mode**: ready to append, opened for reading at a snapshot, or failed (its
+`ReadAll` returned an error: only `Close` accepts it). -/
+inductive WalMode where
+  | append
+  | opening (s : w64 × w64)
+  | failed
+
+instance : Pos.Countable WalMode :=
+  .ofInjective (fun m => Pos.Countable.encode (match m with
+      | .append => (none : Option (Option (w64 × w64)))
+      | .opening s => some (some s)
+      | .failed => some none))
+    (by intro a b h; cases a <;> cases b <;> simp_all)
 
 /-- What the adequacy theorem provides: the universal camera. -/
 class AbsDiskGpreS (GF : BundledGFunctors) where
@@ -109,9 +215,12 @@ structure AbsDiskGS (GF : BundledGFunctors) where
   γt : GName
   /-- The past states (persistent elements). -/
   γf : GName
-  /-- The handles' modes (exclusive elements): `none` ready to append, `some s` opened at `s`. -/
+  /-- The area (a persistent element at `()`). -/
+  γa : GName
+  /-- The handles' modes (exclusive elements, keyed by the handle's ghost name). -/
   γh : GName
-  /-- The handles' directories (persistent elements). -/
+  /-- The handles' locations and directories (persistent elements, keyed by the handle's ghost
+  name). -/
   γhd : GName
 
 section ghost
@@ -122,30 +231,38 @@ def walOwnAt (hL : AbsDiskGS GF) (M : GMap GoString WalDur) : IProp GF :=
   letI := hL.absDiskAllG
   iprop(ghostVar hL.γs (1 : Qp).half M ∗ token hL.γt)
 
-/-- **The state was `s` at some point of this generation** (persistent). -/
+/-- **The state was `s` at some point of this generation** (persistent; with its area). -/
 def absPastAt (hL : AbsDiskGS GF) (s : AbsDiskState) : IProp GF :=
   letI := hL.absDiskAllG
-  s ↪[hL.γf]□ ()
+  iprop(s ↪[hL.γf]□ () ∗ () ↪[hL.γa]□ s.area)
 
 instance absPastAt_persistent (hL : AbsDiskGS GF) (s : AbsDiskState) :
     Persistent (absPastAt hL s) := by
   unfold absPastAt; infer_instance
 
-/-- The authority of the past states, all below `s`. -/
+/-- The authority of the past states, all below `s`, and `s`'s area. -/
 def absPastAuth (hL : AbsDiskGS GF) (s : AbsDiskState) : IProp GF :=
   letI := hL.absDiskAllG
   iprop(∃ F : GMap AbsDiskState Unit, ghostMapAuth hL.γf 1 F ∗
-    ([∗map] p ↦ _u ∈ F, p ↪[hL.γf]□ ()) ∗ ⌜∀ p, F !! p = some () → absLe p s⌝)
+    ([∗map] p ↦ _u ∈ F, p ↪[hL.γf]□ ()) ∗ ⌜∀ p, F !! p = some () → absLe p s⌝ ∗
+    () ↪[hL.γa]□ s.area)
+
+/-- The handles' authorities, every ghost name from `n` on unused. -/
+def absHandleAuth (hL : AbsDiskGS GF) : IProp GF :=
+  letI := hL.absDiskAllG
+  iprop(∃ (n : Nat) (Hh : GMap GName WalMode) (Hd : GMap GName (Loc × GoString)),
+    ghostMapAuth hL.γh 1 Hh ∗ ghostMapAuth hL.γhd 1 Hd ∗
+    ⌜∀ k, n ≤ k → Hh !! k = none ∧ Hd !! k = none⌝)
 
 /-- **The interpretation of the state `s`**: the WAL map's other half, the past states (all below
-`s`), the handles' authorities. -/
+`s`), the handles' authorities, every WAL directory in the area. -/
 def absDiskCtx (hL : AbsDiskGS GF) (s : AbsDiskState) : IProp GF :=
   letI := hL.absDiskAllG
-  iprop(ghostVar hL.γs (1 : Qp).half s.wal ∗ absPastAuth hL s ∗
-    (∃ Hh : GMap Loc (Option (w64 × w64)), ghostMapAuth hL.γh 1 Hh) ∗
-    (∃ Hd : GMap Loc GoString, ghostMapAuth hL.γhd 1 Hd))
+  iprop(ghostVar hL.γs (1 : Qp).half s.wal ∗ absPastAuth hL s ∗ absHandleAuth hL ∗
+    ⌜walKeysInArea s⌝)
 
-/-- What the program starts with: the WAL map and the start state's fact. -/
+/-- What the program starts with: the WAL map and the start state's fact (which gives the area,
+`absPast_walArea`). -/
 def absDiskStart (hL : AbsDiskGS GF) (s : AbsDiskState) : IProp GF :=
   iprop(walOwnAt hL s.wal ∗ absPastAt hL s)
 
@@ -153,7 +270,7 @@ theorem absPast_le (hL : AbsDiskGS GF) (s p : AbsDiskState) :
     ⊢@{IProp GF} absPastAuth hL s -∗ absPastAt hL p -∗ ⌜absLe p s⌝ := by
   letI := hL.absDiskAllG
   unfold absPastAuth absPastAt
-  iintro ⟨%F, HA, -, %Hle⟩ #Hp
+  iintro ⟨%F, HA, -, %Hle, -⟩ ⟨#Hp, -⟩
   icases ghost_map_lookup $$ HA Hp with %Hl
   ipureintro; exact Hle p Hl
 
@@ -162,31 +279,33 @@ theorem absPast_grow (hL : AbsDiskGS GF) (s s' : AbsDiskState) (hle : absLe s s'
     ⊢@{IProp GF} absPastAuth hL s -∗ absPastAuth hL s' := by
   letI := hL.absDiskAllG
   unfold absPastAuth
-  iintro ⟨%F, HA, HE, %Hle⟩
+  iintro ⟨%F, HA, HE, %Hle, #Ha⟩
   iexists F
   iframe HA HE
-  ipureintro; exact fun p hp => absLe_trans (Hle p hp) hle
+  isplitr
+  · ipureintro; exact fun p hp => absLe_trans (Hle p hp) hle
+  · rw [hle.1]; iexact Ha
 
 /-- The present state's fact. -/
 theorem absPast_snap (hL : AbsDiskGS GF) (s : AbsDiskState) :
     ⊢@{IProp GF} absPastAuth hL s ==∗ absPastAuth hL s ∗ absPastAt hL s := by
   letI := hL.absDiskAllG
   unfold absPastAuth absPastAt
-  iintro ⟨%F, HA, #HE, %Hle⟩
+  iintro ⟨%F, HA, #HE, %Hle, #Ha⟩
   cases hF : F !! s with
   | some u =>
     icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := F)
       (Φ := fun p _ => iprop(p ↪[hL.γf]□ ())) hF).1 $$ HE with ⟨#Hs, -⟩
     imodintro
     isplitl [HA]
-    · iexists F; iframe HA HE; ipureintro; exact Hle
-    · iexact Hs
+    · iexists F; iframe HA HE Ha; ipureintro; exact Hle
+    · isplitl; iexact Hs; iexact Ha
   | none =>
     imod ghost_map_insert_persist s () hF $$ HA with ⟨HA, #Hs⟩
     imodintro
     isplitl [HA]
     · iexists (F.insert s ())
-      iframe HA
+      iframe HA Ha
       isplitl
       · iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := F)
           (Φ := fun p _ => iprop(p ↪[hL.γf]□ ())) hF).2
@@ -197,18 +316,65 @@ theorem absPast_snap (hL : AbsDiskGS GF) (s : AbsDiskState) :
         by_cases hps : s = p
         · subst hps; exact absLe_refl s
         · simp only [hps, ite_false] at hp; exact Hle p hp
-    · iexact Hs
+    · isplitl; iexact Hs; iexact Ha
 
-theorem absDisk_local_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) :
+/-- **A new handle** of `w` in `dir` in mode `m`, under a fresh ghost name. -/
+theorem absHandle_alloc (hL : AbsDiskGS GF) (w : Loc) (dir : GoString) (m : WalMode) :
+    ⊢@{IProp GF} absHandleAuth hL ==∗ absHandleAuth hL ∗
+      ∃ γ : GName, (letI := hL.absDiskAllG; γ ↪[hL.γhd]□ (w, dir)) ∗
+        (letI := hL.absDiskAllG; γ ↪[hL.γh] m) := by
+  letI := hL.absDiskAllG
+  unfold absHandleAuth
+  iintro ⟨%n, %Hh, %Hd, HA, HD, %Hf⟩
+  obtain ⟨h1, h2⟩ := Hf n (Nat.le_refl n)
+  imod ghost_map_insert n m h1 $$ HA with ⟨HA, Hm⟩
+  imod ghost_map_insert_persist n (w, dir) h2 $$ HD with ⟨HD, #Hdir⟩
+  imodintro
+  isplitl [HA HD]
+  · iexists (n + 1), (Hh.insert n m), (Hd.insert n (w, dir))
+    iframe HA HD
+    ipureintro
+    intro k hk
+    have hne : n ≠ k := by omega
+    obtain ⟨h1', h2'⟩ := Hf k (by omega)
+    exact ⟨by rw [GMap.lookup_insert_ne _ _ hne]; exact h1',
+      by rw [GMap.lookup_insert_ne _ _ hne]; exact h2'⟩
+  · iexists n; iframe Hdir Hm
+
+/-- **A handle's mode changed.** -/
+theorem absHandle_set (hL : AbsDiskGS GF) (γ : GName) (m m' : WalMode) :
+    ⊢@{IProp GF} absHandleAuth hL -∗ (letI := hL.absDiskAllG; γ ↪[hL.γh] m) ==∗ absHandleAuth hL ∗
+      (letI := hL.absDiskAllG; γ ↪[hL.γh] m') := by
+  letI := hL.absDiskAllG
+  unfold absHandleAuth
+  iintro ⟨%n, %Hh, %Hd, HA, HD, %Hf⟩ Hm
+  icases ghost_map_lookup $$ HA Hm with %Hl
+  imod ghost_map_update m' $$ HA Hm with ⟨HA, Hm⟩
+  imodintro
+  iframe Hm
+  iexists n, (Hh.insert γ m'), Hd
+  iframe HA HD
+  ipureintro
+  intro k hk
+  obtain ⟨h1, h2⟩ := Hf k hk
+  have hne : γ ≠ k := by
+    rintro rfl
+    have : Hh !! γ = some m := Hl
+    rw [h1] at this; cases this
+  exact ⟨by rw [GMap.lookup_insert_ne _ _ hne]; exact h1, h2⟩
+
+theorem absDisk_local_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysInArea s) :
     ⊢@{IProp GF} |==> ∃ hL : AbsDiskGS GF, absDiskCtx hL s ∗ absDiskStart hL s := by
   letI := hPre.absDiskPreAllG
   imod ghostVar_alloc (GF := GF) s.wal with ⟨%γs, Hs⟩
   icases (ghostVar_split_half γs 1 _).1 $$ Hs with ⟨Hs1, Hs2⟩
   imod token_alloc (GF := GF) with ⟨%γt, Ht⟩
   imod (ghost_map_alloc (GF := GF) (GMap.singleton s ())) with ⟨%γf, HF, HFe⟩
-  imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Option (w64 × w64))) with ⟨%γh, Hh⟩
-  imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := GoString)) with ⟨%γhd, Hhd⟩
-  let hL : AbsDiskGS GF := ⟨hPre.absDiskPreAllG, γs, γt, γf, γh, γhd⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := Unit) (V := GoString)) with ⟨%γa, Ha⟩
+  imod ghost_map_insert_persist (GF := GF) () s.area (GMap.lookup_empty _) $$ Ha with ⟨-, #Ha⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Loc × GoString)) with ⟨%γhd, Hhd⟩
+  let hL : AbsDiskGS GF := ⟨hPre.absDiskPreAllG, γs, γt, γf, γa, γh, γhd⟩
   have hsing : (GMap.singleton s () : GMap AbsDiskState Unit) = (∅ : GMap _ _).insert s () := rfl
   rw [hsing]
   icases (BigSepM.bigSepM_insert (PROP := IProp GF) (m := (∅ : GMap AbsDiskState Unit))
@@ -217,11 +383,11 @@ theorem absDisk_local_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) :
   imodintro
   iexists hL
   isplitl [Hs1 HF Hh Hhd]
-  · unfold absDiskCtx absPastAuth
+  · unfold absDiskCtx absPastAuth absHandleAuth
     iframe Hs1
     isplitl [HF]
     · iexists ((∅ : GMap AbsDiskState Unit).insert s ())
-      iframe HF
+      iframe HF Ha
       isplitl
       · iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := (∅ : GMap AbsDiskState Unit))
           (Φ := fun p _ => iprop(p ↪[γf]□ ())) rfl).2
@@ -233,16 +399,17 @@ theorem absDisk_local_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) :
         by_cases hps : s = p
         · subst hps; exact absLe_refl s
         · simp [hps, GMap.lookup_empty] at hp
-    · isplitl [Hh]
-      · iexists ∅; iexact Hh
-      · iexists ∅; iexact Hhd
+    · isplitl [Hh Hhd]
+      · iexists 0, ∅, ∅; iframe Hh Hhd; ipureintro; intro k _; exact ⟨rfl, rfl⟩
+      · ipureintro; exact hk
   · unfold absDiskStart walOwnAt absPastAt
-    iframe Hs2 Ht Hse
+    iframe Hs2 Ht Hse Ha
 
 end ghost
 
 /-- The ghost state of the abstract disk. The program gets the whole WAL map and the start
-state's fact (as the durable extension's `durableOwn`). -/
+state's fact (as the durable extension's `durableOwn`); the adequacy theorem covers only starts
+meeting `absDiskInitOk`. -/
 instance absDisk_interp : ExtInterp absDiskExt where
   LocalGS := AbsDiskGS
   GlobalGS _ := Unit
@@ -250,12 +417,12 @@ instance absDisk_interp : ExtInterp absDiskExt where
   globalCtx _ _ := iprop(True)
   PreG := AbsDiskGpreS
   initgP _ := True
-  initP _ _ := True
+  initP s _ := absDiskInitOk s
   globalStart _ _ := iprop(True)
   localStart := absDiskStart
   global_init _ _ _ _ := by
     iapply bupd_intro; iexists (); isplitl [] <;> itrivial
-  local_init _ hPre s _ _ := absDisk_local_init hPre s
+  local_init _ hPre s _ h := absDisk_local_init hPre s h.2.1
 
 /-! ## The crash -/
 
@@ -277,8 +444,8 @@ theorem absDisk_local_crash (hPre : AbsDiskGpreS GF) (hL : AbsDiskGS GF) (s s' :
       absDiskCrashStart hL hL' := by
   iintro Hctx
   iunfold absDiskCtx at Hctx
-  icases Hctx with ⟨Hs, HP, -, -⟩
-  imod absDisk_local_init hPre s' with ⟨%hL', Hctx', Hst'⟩
+  icases Hctx with ⟨Hs, HP, -, %hk⟩
+  imod absDisk_local_init hPre s' (walKeysInArea_crash hc hk) with ⟨%hL', Hctx', Hst'⟩
   imodintro
   iexists hL'
   iframe Hctx'
@@ -313,6 +480,10 @@ def absPast (s : AbsDiskState) : IProp GF := absPastAt (gooseAbsDiskGS (L := L))
 instance absPast_persistent (s : AbsDiskState) : Persistent (absPast (L := L) s) := by
   unfold absPast; infer_instance
 
+/-- **The WAL area is `r`** (persistent; the state's `area`, which no step changes). -/
+def walArea (r : GoString) : IProp GF :=
+  iprop(∃ s : AbsDiskState, absPast (L := L) s ∗ ⌜s.area = r⌝)
+
 /-- **The WAL directory `dir` holds `o`** (`none`: no WAL; the whole map's ownership, see the
 header). -/
 def walDirIs (dir : GoString) (o : Option WalDur) : IProp GF :=
@@ -337,36 +508,46 @@ def walNamed (dir : GoString) : IProp GF :=
 def dirDurable (d : GoString) : IProp GF :=
   iprop(∃ s : AbsDiskState, absPast (L := L) s ∗ ⌜s.dirs !! d = some ()⌝)
 
-/-- **The `*wal.WAL` `w` writes the WAL in `dir`** (persistent). -/
-def walHandleDir (w : Loc) (dir : GoString) : IProp GF :=
+/-- **The handle named `γ` is of the `*wal.WAL` `w`, which writes the WAL in `dir`**
+(persistent). -/
+def walHandleDir (w : Loc) (dir : GoString) (γ : GName) : IProp GF :=
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
-  w ↪[(gooseAbsDiskGS (L := L)).γhd]□ dir
+  γ ↪[(gooseAbsDiskGS (L := L)).γhd]□ (w, dir)
 
-/-- **The open WAL `w` has written its directory's history up to length `n`** (persistent; per
-generation): what `Sync` takes. -/
-def walLenLb (w : Loc) (n : Nat) : IProp GF :=
-  iprop(∃ (dir : GoString) (s : AbsDiskState) (d : WalDur), walHandleDir (L := L) w dir ∗
-    absPast (L := L) s ∗ ⌜s.wal !! dir = some d ∧ n ≤ d.H.length⌝)
+/-- **`w` is a handle of the WAL in `dir`, in mode `m`** (exclusive). -/
+def walHandleSt (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
+  letI := (gooseAbsDiskGS (L := L)).absDiskAllG
+  iprop(∃ γ : GName, walHandleDir (L := L) w dir γ ∗ γ ↪[(gooseAbsDiskGS (L := L)).γh] m)
+
+/-- **The open WAL `w` has written its directory `dir`'s history up to length `n`** (persistent; per
+generation): what `Sync` takes. It names `dir`, so that it agrees with a `walOpenW w dir` without any
+freshness of `w` (the handles are keyed by ghost names). -/
+def walLenLb (w : Loc) (dir : GoString) (n : Nat) : IProp GF :=
+  iprop(∃ (γ : GName) (s : AbsDiskState) (d : WalDur),
+    walHandleDir (L := L) w dir γ ∗ absPast (L := L) s ∗ ⌜s.wal !! dir = some d ∧ n ≤ d.H.length⌝)
 
 /-- **`w` is the WAL opened in `dir`, ready to append** (exclusive). -/
-def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
-  letI := (gooseAbsDiskGS (L := L)).absDiskAllG
-  iprop(walHandleDir (L := L) w dir ∗ w ↪[(gooseAbsDiskGS (L := L)).γh] (none : Option (w64 × w64)))
+def walOpenW (w : Loc) (dir : GoString) : IProp GF := walHandleSt (L := L) w dir .append
 
 /-- **`w` is the WAL opened in `dir` for reading at the snapshot `s`** (exclusive). -/
 def walOpening (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
-  letI := (gooseAbsDiskGS (L := L)).absDiskAllG
-  iprop(walHandleDir (L := L) w dir ∗ w ↪[(gooseAbsDiskGS (L := L)).γh] (some s))
+  walHandleSt (L := L) w dir (.opening s)
 
+/-- **`w`'s `ReadAll` in `dir` failed** (exclusive): only `Close` accepts it. -/
+def walReadFailed (w : Loc) (dir : GoString) : IProp GF := walHandleSt (L := L) w dir .failed
+
+instance walArea_persistent (r : GoString) : Persistent (walArea (L := L) r) := by
+  unfold walArea; infer_instance
 instance walSyncedLb_persistent (dir : GoString) (n : Nat) :
     Persistent (walSyncedLb (L := L) dir n) := by unfold walSyncedLb; infer_instance
 instance walNamed_persistent (dir : GoString) : Persistent (walNamed (L := L) dir) := by
   unfold walNamed; infer_instance
 instance dirDurable_persistent (d : GoString) : Persistent (dirDurable (L := L) d) := by
   unfold dirDurable; infer_instance
-instance walHandleDir_persistent (w : Loc) (dir : GoString) :
-    Persistent (walHandleDir (L := L) w dir) := by unfold walHandleDir; infer_instance
-instance walLenLb_persistent (w : Loc) (n : Nat) : Persistent (walLenLb (L := L) w n) := by
+instance walHandleDir_persistent (w : Loc) (dir : GoString) (γ : GName) :
+    Persistent (walHandleDir (L := L) w dir γ) := by unfold walHandleDir; infer_instance
+instance walLenLb_persistent (w : Loc) (dir : GoString) (n : Nat) :
+    Persistent (walLenLb (L := L) w dir n) := by
   unfold walLenLb; infer_instance
 
 instance walOwn_timeless (M : GMap GoString WalDur) : Timeless (walOwn (L := L) M) := by
@@ -400,30 +581,47 @@ theorem walSyncedLb_mono (dir : GoString) (n n' : Nat) (h : n' ≤ n) :
   iintro ⟨%s, %d, Hs, %Hd⟩
   iexists s, d; iframe Hs; ipureintro; exact ⟨Hd.1, Nat.le_trans h Hd.2⟩
 
-theorem walLenLb_mono (w : Loc) (n n' : Nat) (h : n' ≤ n) :
-    ⊢@{IProp GF} walLenLb (L := L) w n -∗ walLenLb (L := L) w n' := by
+theorem walLenLb_mono (w : Loc) (dir : GoString) (n n' : Nat) (h : n' ≤ n) :
+    ⊢@{IProp GF} walLenLb (L := L) w dir n -∗ walLenLb (L := L) w dir n' := by
   unfold walLenLb
-  iintro ⟨%dir, %s, %d, Hw, Hs, %Hd⟩
-  iexists dir, s, d; iframe Hw Hs; ipureintro; exact ⟨Hd.1, Nat.le_trans h Hd.2⟩
+  iintro ⟨%γ, %s, %d, Hw, Hs, %Hd⟩
+  iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨Hd.1, Nat.le_trans h Hd.2⟩
 
-theorem walHandleDir_agree (w : Loc) (dir dir' : GoString) :
-    ⊢@{IProp GF} walHandleDir (L := L) w dir -∗ walHandleDir (L := L) w dir' -∗ ⌜dir = dir'⌝ := by
+theorem walHandleDir_agree (w w' : Loc) (dir dir' : GoString) (γ : GName) :
+    ⊢@{IProp GF} walHandleDir (L := L) w dir γ -∗ walHandleDir (L := L) w' dir' γ -∗
+      ⌜w = w' ∧ dir = dir'⌝ := by
   unfold walHandleDir
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
   iintro #H1 #H2
-  iapply ghostMapElem_agree $$ H1 H2
+  icases ghostMapElem_agree $$ H1 H2 with %H
+  ipureintro; exact Prod.mk.inj H
 
-theorem walOpenW_excl (w : Loc) (dir dir' : GoString) :
-    ⊢@{IProp GF} walOpenW (L := L) w dir -∗ walOpenW (L := L) w dir' -∗ False := by
-  unfold walOpenW
+/-- An open handle's length fact, from a past state of its directory. -/
+theorem walOpenW_lenLb (w : Loc) (dir : GoString) (s : AbsDiskState) (d : WalDur) (n : Nat)
+    (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
+    ⊢@{IProp GF} walOpenW (L := L) w dir -∗ absPast (L := L) s -∗
+      walOpenW (L := L) w dir ∗ walLenLb (L := L) w dir n := by
+  unfold walOpenW walHandleSt walLenLb
+  iintro ⟨%γ, #Hw, Hm⟩ #Hs
+  isplitl [Hm]
+  · iexists γ; iframe Hw Hm
+  · iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨hd, hn⟩
+
+/-- Two facts of the area agree. -/
+theorem walArea_agree (r r' : GoString) :
+    ⊢@{IProp GF} walArea (L := L) r -∗ walArea (L := L) r' -∗ ⌜r = r'⌝ := by
+  unfold walArea absPast absPastAt
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
-  iintro ⟨-, H1⟩ ⟨-, H2⟩
-  icases ghostMapElem_ne _ _ _ _ _ _ $$ H1 H2 with %Hne
-  exact absurd rfl Hne
+  iintro ⟨%p, ⟨-, #Hp⟩, %hp⟩ ⟨%q, ⟨-, #Hq⟩, %hq⟩
+  icases ghostMapElem_agree $$ Hp Hq with %H
+  ipureintro; rw [← hp, ← hq]; exact H
 
-theorem walOpenW_handleDir (w : Loc) (dir : GoString) :
-    ⊢@{IProp GF} walOpenW (L := L) w dir -∗ walHandleDir (L := L) w dir := by
-  unfold walOpenW; iintro ⟨#H, -⟩; iexact H
+/-- A past state's area. -/
+theorem absPast_walArea (s : AbsDiskState) :
+    ⊢@{IProp GF} absPast (L := L) s -∗ walArea (L := L) s.area := by
+  unfold walArea
+  iintro #Hs
+  iexists s; iframe Hs; ipureintro; rfl
 
 theorem absDisk_local_ctx_eq (s : AbsDiskState) :
     ExtInterp.localCtx (E := absDiskExt) (extLocalGS absDiskExt) s ⊣⊢
@@ -444,6 +642,21 @@ theorem absPast_ctx_le (s p : AbsDiskState) :
   iintro ⟨-, HP, -⟩ Hp
   iapply absPast_le $$ HP Hp
 
+/-- The area under the interpretation. -/
+theorem walArea_ctx (s : AbsDiskState) (r : GoString) :
+    ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ walArea (L := L) r -∗ ⌜s.area = r⌝ := by
+  unfold walArea
+  iintro Hc ⟨%p, Hp, %hp⟩
+  icases absPast_ctx_le $$ Hc Hp with %Hle
+  ipureintro; rw [Hle.1, hp]
+
+/-- The interpretation's invariant: every WAL directory in the area. -/
+theorem absDiskCtx_keys (s : AbsDiskState) :
+    ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ ⌜walKeysInArea s⌝ := by
+  unfold absDiskCtx
+  iintro ⟨-, -, -, %hk⟩
+  ipureintro; exact hk
+
 /-- The synced mark is at most the history's length. -/
 theorem walDiskAt_syncedLb_le (s : AbsDiskState) (dir : GoString) (d : WalDur) (n : Nat) :
     ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ walDiskAt (L := L) dir d -∗
@@ -454,13 +667,35 @@ theorem walDiskAt_syncedLb_le (s : AbsDiskState) (dir : GoString) (d : WalDur) (
   icases absPast_ctx_le $$ Hc Hp with %Hle
   subst HM
   ipureintro
-  obtain ⟨d', h', hm, -⟩ := Hle.2 dir dp Hdp.1
+  obtain ⟨d', h', hm, -⟩ := Hle.2.2 dir dp Hdp.1
   rw [HMd] at h'; cases h'
   exact Nat.le_trans Hdp.2 hm
 
+/-- **A new handle** (inside a step: the interpretation holds the handles' authorities). -/
+theorem walHandle_alloc (s : AbsDiskState) (w : Loc) (dir : GoString) (m : WalMode) :
+    ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s ==∗
+      absDiskCtx (gooseAbsDiskGS (L := L)) s ∗ walHandleSt (L := L) w dir m := by
+  unfold absDiskCtx walHandleSt walHandleDir
+  iintro ⟨Hs, HP, HH, Hk⟩
+  imod absHandle_alloc _ w dir m $$ HH with ⟨HH, Hh⟩
+  imodintro
+  iframe Hs HP HH Hk Hh
+
+/-- **A handle's mode changed** (inside a step). -/
+theorem walHandle_set (s : AbsDiskState) (w : Loc) (dir : GoString) (m m' : WalMode) :
+    ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ walHandleSt (L := L) w dir m ==∗
+      absDiskCtx (gooseAbsDiskGS (L := L)) s ∗ walHandleSt (L := L) w dir m' := by
+  unfold absDiskCtx walHandleSt
+  iintro ⟨Hs, HP, HH, Hk⟩ ⟨%γ, #Hd, Hm⟩
+  imod absHandle_set _ γ m m' $$ HH Hm with ⟨HH, Hm⟩
+  imodintro
+  iframe Hs HP HH Hk
+  iexists γ; iframe Hd Hm
+
 /-- **The interpretation at a bigger state** (a step's ghost update): the WAL map set to the new
 state's, the past states kept, and the new state's fact. -/
-theorem absDisk_upd (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : absLe s s') :
+theorem absDisk_upd (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : absLe s s')
+    (hk : walKeysInArea s → walKeysInArea s') :
     ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ walOwn (L := L) M ==∗
       ⌜M = s.wal⌝ ∗ absDiskCtx (gooseAbsDiskGS (L := L)) s' ∗ walOwn (L := L) s'.wal ∗
       absPast (L := L) s' := by
@@ -470,14 +705,14 @@ theorem absDisk_upd (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : absL
   unfold absDiskCtx walOwn walOwnAt absPast
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
   iintro
-  icases Hc with ⟨Hs, HP, Hh, Hhd⟩
+  icases Hc with ⟨Hs, HP, Hh, %Hk⟩
   icases HM with ⟨HM, Ht⟩
   imod ghostVar_update_halves s'.wal _ _ _ $$ Hs HM with ⟨Hs, HM⟩
   ihave HP := absPast_grow _ s s' hle $$ HP
   imod absPast_snap _ s' $$ HP with ⟨HP, Hp⟩
   imodintro
-  iframe Hs HM Ht HP Hh Hhd Hp
-  ipureintro; rfl
+  iframe Hs HM Ht HP Hh Hp
+  ipureintro; exact ⟨rfl, hk Hk⟩
 
 /-- The same for a step that changes only the durable directories (no WAL map needed). -/
 theorem absDisk_upd_dirs (s s' : AbsDiskState) (hw : s'.wal = s.wal) (hle : absLe s s') :
@@ -485,12 +720,15 @@ theorem absDisk_upd_dirs (s s' : AbsDiskState) (hw : s'.wal = s.wal) (hle : absL
       absDiskCtx (gooseAbsDiskGS (L := L)) s' ∗ absPast (L := L) s' := by
   iintro Hc
   unfold absDiskCtx absPast
-  icases Hc with ⟨Hs, HP, Hh, Hhd⟩
+  icases Hc with ⟨Hs, HP, Hh, %Hk⟩
   ihave HP := absPast_grow _ s s' hle $$ HP
   imod absPast_snap _ s' $$ HP with ⟨HP, Hp⟩
   imodintro
   rw [hw]
-  iframe Hs HP Hh Hhd Hp
+  iframe Hs HP Hh Hp
+  ipureintro
+  intro k d h
+  rw [hle.1]; rw [hw] at h; exact Hk k d h
 
 /-! ## The steps -/
 
@@ -524,6 +762,47 @@ theorem wp_absDisk_step (op : String) (v : val) (P : AbsDiskState → Prop)
   iapply wp_value'
   iexact HΦ
 
+/-- A WAL step of `dir` that updates its WAL by `upd` (no change if there is none), with a ghost
+update `R ==∗ R'` under the interpretation at the step (a handle's allocation or mode change). -/
+theorem wp_absDisk_walStepR (op : String) (v : val) (dir : GoString) (upd : WalDur → WalDur)
+    (Pd : WalDur → Prop) (hv : v.isPanic = false)
+    (hf : ∀ d, d.m ≤ (upd d).m ∧ d.H.length ≤ (upd d).H.length ∧
+      (d.named = true → (upd d).named = true))
+    (Hprog : ∀ h s g, (∀ d, s.wal !! dir = some d → Pd d) →
+      AbsDiskStep op v h s g (Val #()) h (absDiskUpd s dir upd) g)
+    (Hdet : ∀ h s g e' h' s' g', AbsDiskStep op v h s g e' h' s' g' →
+      h' = h ∧ e' = Val #() ∧ s' = absDiskUpd s dir upd) (d : WalDur) (Hd : Pd d)
+    (R R' : IProp GF)
+    (Hupd : ∀ s, ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ R ==∗
+      absDiskCtx (gooseAbsDiskGS (L := L)) s ∗ R')
+    (Φ : val → IProp GF) :
+    (|={E,∅}=> walDiskAt (L := L) dir d ∗ R ∗
+      (walDiskAt (L := L) dir (upd d) -∗ R' -∗ (∀ s', absPast (L := L) s' -∗
+        ⌜s'.wal !! dir = some (upd d)⌝ -∗ ▷ |={∅,E}=> Φ #())))
+    ⊢ WP (ExternalOp absDiskExt.name op (Val v)) @ st; E {{ Φ }} := by
+  unfold walDiskAt walDirIs
+  iintro HAU
+  iapply wp_absDisk_step op v (fun s => s.wal !! dir = some d) (fun s => absDiskUpd s dir upd) hv
+    (fun h s g hs => Hprog h s g (fun d' hd' => by rw [hs] at hd'; cases hd'; exact Hd)) Hdet
+  imod HAU with ⟨⟨%M, HM, %HMd⟩, HR, Hk⟩
+  imodintro
+  iintro %s Hc
+  imod absDisk_upd s (absDiskUpd s dir upd) M (absLe_upd s dir upd hf)
+    (walKeysInArea_upd s dir upd) $$ Hc HM with ⟨%HMs, Hc, HM, #Hp⟩
+  subst HMs
+  imod Hupd _ $$ Hc HR with ⟨Hc, HR⟩
+  have hw := absDiskUpd_wal s dir upd d HMd
+  imodintro
+  isplitr
+  · ipureintro; exact HMd
+  iframe Hc
+  have hl : (absDiskUpd s dir upd).wal !! dir = some (upd d) := by
+    rw [hw]; exact GMap.lookup_insert _ _ _
+  ihave Hd : (∃ M' : GMap GoString WalDur, walOwn (L := L) M' ∗ ⌜M' !! dir = some (upd d)⌝) $$ [HM]
+  · iexists (absDiskUpd s dir upd).wal; iframe HM; ipureintro; exact hl
+  iapply Hk $$ Hd HR Hp
+  ipureintro; exact hl
+
 /-- A WAL step of `dir` that updates its WAL by `upd` (no change if there is none). -/
 theorem wp_absDisk_walStep (op : String) (v : val) (dir : GoString) (upd : WalDur → WalDur)
     (Pd : WalDur → Prop) (hv : v.isPanic = false)
@@ -538,27 +817,16 @@ theorem wp_absDisk_walStep (op : String) (v : val) (dir : GoString) (upd : WalDu
       (walDiskAt (L := L) dir (upd d) -∗ (∀ s', absPast (L := L) s' -∗
         ⌜s'.wal !! dir = some (upd d)⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name op (Val v)) @ st; E {{ Φ }} := by
-  unfold walDiskAt walDirIs
   iintro HAU
-  iapply wp_absDisk_step op v (fun s => s.wal !! dir = some d) (fun s => absDiskUpd s dir upd) hv
-    (fun h s g hs => Hprog h s g (fun d' hd' => by rw [hs] at hd'; cases hd'; exact Hd)) Hdet
-  imod HAU with ⟨⟨%M, HM, %HMd⟩, Hk⟩
+  iapply wp_absDisk_walStepR op v dir upd Pd hv hf Hprog Hdet d Hd iprop(True) iprop(True)
+    (fun s => by iintro Hc -; imodintro; iframe Hc) Φ
+  imod HAU with ⟨Hd, Hk⟩
   imodintro
-  iintro %s Hc
-  imod absDisk_upd s (absDiskUpd s dir upd) M (absLe_upd s dir upd hf) $$ Hc HM
-    with ⟨%HMs, Hc, HM, #Hp⟩
-  subst HMs
-  have hw := absDiskUpd_wal s dir upd d HMd
-  imodintro
+  iframe Hd
   isplitr
-  · ipureintro; exact HMd
-  iframe Hc
-  have hl : (absDiskUpd s dir upd).wal !! dir = some (upd d) := by
-    rw [hw]; exact GMap.lookup_insert _ _ _
-  ihave Hd : (∃ M' : GMap GoString WalDur, walOwn (L := L) M' ∗ ⌜M' !! dir = some (upd d)⌝) $$ [HM]
-  · iexists (absDiskUpd s dir upd).wal; iframe HM; ipureintro; exact hl
-  iapply Hk $$ Hd Hp
-  ipureintro; exact hl
+  · itrivial
+  · iintro Hd -
+    iapply Hk $$ Hd
 
 /-! ### The WAL steps, one by one -/
 
@@ -581,21 +849,46 @@ theorem wp_WalAppend (dir : GoString) (o : WalOpG WalEnt) (d : WalDur) (Φ : val
     obtain rfl := walCode_inj (go.intoVal_inj Ho)
     exact ⟨rfl, rfl, rfl⟩
 
-theorem wp_WalNamed (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
-    (|={E,∅}=> walDiskAt (L := L) dir d ∗
-      (walDiskAt (L := L) dir ({ d with named := true }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with named := true })⌝ -∗ ▷ |={∅,E}=> Φ #())))
-    ⊢ WP (ExternalOp absDiskExt.name "WalNamed" (Val (#dir))) @ st; E {{ Φ }} := by
-  refine wp_absDisk_walStep "WalNamed" _ dir (fun d => { d with named := true }) (fun d => True)
-    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, fun _ => rfl⟩) ?_ ?_ d trivial Φ
+/-- The `"WalNamed"` step's program and determinism. -/
+private theorem walNamed_prog (dir : GoString) :
+    (∀ h s g, (∀ d, s.wal !! dir = some d → True) →
+      AbsDiskStep "WalNamed" (#dir) h s g (Val #()) h
+        (absDiskUpd s dir (fun d => { d with named := true })) g) ∧
+    (∀ h s g e' h' s' g', AbsDiskStep "WalNamed" (#dir) h s g e' h' s' g' →
+      h' = h ∧ e' = Val #() ∧ s' = absDiskUpd s dir (fun d => { d with named := true })) := by
+  refine ⟨?_, ?_⟩
   · intro h s g hP
     simp only [AbsDiskStep]
-    refine ⟨?_, ?_, dir, ?_, ?_⟩ <;> first | trivial | rfl | exact hP
+    refine ⟨?_, ?_, dir, ?_, ?_⟩ <;> first | trivial | rfl
   · intro h s g e' h' s' g' Hst
     simp only [AbsDiskStep] at Hst
     obtain ⟨rfl, rfl, dir', Hv, rfl⟩ := Hst
     obtain rfl := go.intoVal_inj Hv
     exact ⟨rfl, rfl, rfl⟩
+
+theorem wp_WalNamed (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
+    (|={E,∅}=> walDiskAt (L := L) dir d ∗
+      (walDiskAt (L := L) dir ({ d with named := true }) -∗ (∀ s', absPast (L := L) s' -∗
+        ⌜s'.wal !! dir = some ({ d with named := true })⌝ -∗ ▷ |={∅,E}=> Φ #())))
+    ⊢ WP (ExternalOp absDiskExt.name "WalNamed" (Val (#dir))) @ st; E {{ Φ }} :=
+  wp_absDisk_walStep "WalNamed" _ dir (fun d => { d with named := true }) (fun _ => True)
+    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, fun _ => rfl⟩)
+    (walNamed_prog dir).1 (walNamed_prog dir).2 d trivial Φ
+
+/-- `"WalNamed"` of `dir` that also turns the handle `w`, opened for reading at `s`, into one ready
+to append (a successful write-mode `ReadAll`'s last step). -/
+theorem wp_WalNamedOpen (w : Loc) (dir : GoString) (s : w64 × w64) (d : WalDur)
+    (Φ : val → IProp GF) :
+    (|={E,∅}=> walDiskAt (L := L) dir d ∗ walOpening (L := L) w dir s ∗
+      (walDiskAt (L := L) dir ({ d with named := true }) -∗ walOpenW (L := L) w dir -∗
+        (∀ s', absPast (L := L) s' -∗
+          ⌜s'.wal !! dir = some ({ d with named := true })⌝ -∗ ▷ |={∅,E}=> Φ #())))
+    ⊢ WP (ExternalOp absDiskExt.name "WalNamed" (Val (#dir))) @ st; E {{ Φ }} :=
+  wp_absDisk_walStepR "WalNamed" _ dir (fun d => { d with named := true }) (fun _ => True)
+    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, fun _ => rfl⟩)
+    (walNamed_prog dir).1 (walNamed_prog dir).2 d trivial
+    (walOpening (L := L) w dir s) (walOpenW (L := L) w dir)
+    (fun s' => walHandle_set s' w dir (.opening s) .append) Φ
 
 theorem wp_WalSync (dir : GoString) (n : Nat) (d : WalDur) (Hn : n ≤ d.H.length) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
@@ -615,16 +908,16 @@ theorem wp_WalSync (dir : GoString) (n : Nat) (d : WalDur) (Hn : n ≤ d.H.lengt
     obtain rfl := walCode_inj (go.intoVal_inj Ho)
     exact ⟨rfl, rfl, rfl⟩
 
-theorem wp_WalUnlock (dir : GoString) (p : Nat) (d : WalDur) (Φ : val → IProp GF) :
-    (|={E,∅}=> walDiskAt (L := L) dir d ∗
-      (walDiskAt (L := L) dir ({ d with unl := max d.unl p }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with unl := max d.unl p })⌝ -∗ ▷ |={∅,E}=> Φ #())))
-    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode p))))) @ st; E {{ Φ }} := by
-  refine wp_absDisk_walStep "WalUnlock" _ dir (fun d => { d with unl := max d.unl p }) (fun d => True)
-    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩) ?_ ?_ d trivial Φ
-  · intro h s g hP
+/-- The `"WalUnlock"` step's program and determinism. -/
+private theorem walUnlock_prog (dir : GoString) (p : Nat) :
+    (∀ h s g, AbsDiskStep "WalUnlock" (PairV (#dir) (#(walCode p))) h s g (Val #()) h
+        (absDiskUpd s dir (fun d => { d with unl := max d.unl p })) g) ∧
+    (∀ h s g e' h' s' g', AbsDiskStep "WalUnlock" (PairV (#dir) (#(walCode p))) h s g e' h' s' g' →
+      h' = h ∧ e' = Val #() ∧ s' = absDiskUpd s dir (fun d => { d with unl := max d.unl p })) := by
+  refine ⟨?_, ?_⟩
+  · intro h s g
     simp only [AbsDiskStep]
-    refine ⟨?_, ?_, dir, p, ?_, ?_⟩ <;> first | trivial | rfl | exact hP
+    refine ⟨?_, ?_, dir, p, ?_, ?_⟩ <;> first | trivial | rfl
   · intro h s g e' h' s' g' Hst
     simp only [AbsDiskStep] at Hst
     obtain ⟨rfl, rfl, dir', p', Hv, rfl⟩ := Hst
@@ -633,20 +926,87 @@ theorem wp_WalUnlock (dir : GoString) (p : Nat) (d : WalDur) (Φ : val → IProp
     obtain rfl := walCode_inj (go.intoVal_inj Ho)
     exact ⟨rfl, rfl, rfl⟩
 
-theorem wp_WalPurge (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
+theorem wp_WalUnlock (dir : GoString) (p : Nat) (d : WalDur) (Φ : val → IProp GF) :
     (|={E,∅}=> walDiskAt (L := L) dir d ∗
-      (walDiskAt (L := L) dir ({ d with pur := max d.pur d.unl }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with pur := max d.pur d.unl })⌝ -∗ ▷ |={∅,E}=> Φ #())))
-    ⊢ WP (ExternalOp absDiskExt.name "WalPurge" (Val (#dir))) @ st; E {{ Φ }} := by
-  refine wp_absDisk_walStep "WalPurge" _ dir (fun d => { d with pur := max d.pur d.unl }) (fun d => True)
-    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩) ?_ ?_ d trivial Φ
+      (walDiskAt (L := L) dir ({ d with unl := max d.unl p }) -∗ (∀ s', absPast (L := L) s' -∗
+        ⌜s'.wal !! dir = some ({ d with unl := max d.unl p })⌝ -∗ ▷ |={∅,E}=> Φ #())))
+    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode p))))) @ st; E {{ Φ }} :=
+  wp_absDisk_walStep "WalUnlock" _ dir (fun d => { d with unl := max d.unl p }) (fun _ => True)
+    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩)
+    (fun h s g _ => (walUnlock_prog dir p).1 h s g) (walUnlock_prog dir p).2 d trivial Φ
+
+/-- **A no-op step** (`"WalUnlock"` of position 0, which changes nothing), with a ghost update
+`R ==∗ R'` under the interpretation at the step: what a body that allocates a handle or changes
+its mode without another step performs (`Open`, a failed `ReadAll`). -/
+theorem wp_WalNoop (dir : GoString) (R R' : IProp GF)
+    (Hupd : ∀ s, ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ R ==∗
+      absDiskCtx (gooseAbsDiskGS (L := L)) s ∗ R')
+    (Φ : val → IProp GF) :
+    (|={E,∅}=> R ∗ (R' -∗ ▷ |={∅,E}=> Φ #()))
+    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode (0 : Nat))))))
+      @ st; E {{ Φ }} := by
+  iintro HAU
+  iapply wp_absDisk_step "WalUnlock" _ (fun _ => True)
+    (fun s => absDiskUpd s dir (fun d => { d with unl := max d.unl 0 })) (by simp [val.isPanic])
+    (fun h s g _ => (walUnlock_prog dir 0).1 h s g) (walUnlock_prog dir 0).2
+  imod HAU with ⟨HR, Hk⟩
+  imodintro
+  iintro %s Hc
+  rw [absDiskUpd_unl0]
+  imod Hupd s $$ Hc HR with ⟨Hc, HR⟩
+  imodintro
+  isplitr
+  · ipureintro; trivial
+  iframe Hc
+  iapply Hk $$ HR
+
+/-- **`Open`'s handle**: a no-op step that allocates the handle `w`, opened in `dir` for reading at
+`s`. -/
+theorem wp_WalOpenHandle (w : Loc) (dir : GoString) (s : w64 × w64) (Φ : val → IProp GF) :
+    (|={E,∅}=> walOpening (L := L) w dir s -∗ ▷ |={∅,E}=> Φ #())
+    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode (0 : Nat))))))
+      @ st; E {{ Φ }} := by
+  iintro HAU
+  iapply wp_WalNoop dir iprop(True) (walOpening (L := L) w dir s)
+    (fun s' => by unfold walOpening; iintro Hc -; iapply walHandle_alloc s' w dir (.opening s) $$ Hc) Φ
+  imod HAU with Hk
+  imodintro
+  isplitr
+  · itrivial
+  · iexact Hk
+
+/-- **A failed `ReadAll`**: a no-op step that turns the handle `w`, opened for reading, into a
+failed one. -/
+theorem wp_WalReadFail (w : Loc) (dir : GoString) (s : w64 × w64) (Φ : val → IProp GF) :
+    (|={E,∅}=> walOpening (L := L) w dir s ∗ (walReadFailed (L := L) w dir -∗ ▷ |={∅,E}=> Φ #()))
+    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode (0 : Nat))))))
+      @ st; E {{ Φ }} :=
+  wp_WalNoop dir (walOpening (L := L) w dir s) (walReadFailed (L := L) w dir)
+    (fun s' => walHandle_set s' w dir (.opening s) .failed) Φ
+
+/-- `"WalPurge"` of `(dir, k)`: `pur` raised to `unl`, the read position moved to `k`, the start
+of the first file the round left. -/
+theorem wp_WalPurge (dir : GoString) (k : Nat) (d : WalDur) (Hk : d.cut ≤ k ∧ k ≤ max d.pur d.unl)
+    (Φ : val → IProp GF) :
+    (|={E,∅}=> walDiskAt (L := L) dir d ∗
+      (walDiskAt (L := L) dir ({ d with pur := max d.pur d.unl, cut := k }) -∗
+        (∀ s', absPast (L := L) s' -∗
+          ⌜s'.wal !! dir = some ({ d with pur := max d.pur d.unl, cut := k })⌝ -∗
+            ▷ |={∅,E}=> Φ #())))
+    ⊢ WP (ExternalOp absDiskExt.name "WalPurge" (Val (PairV (#dir) (#(walCode k))))) @ st; E
+      {{ Φ }} := by
+  refine wp_absDisk_walStep "WalPurge" _ dir (fun d => { d with pur := max d.pur d.unl, cut := k })
+    (fun d => d.cut ≤ k ∧ k ≤ max d.pur d.unl)
+    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩) ?_ ?_ d Hk Φ
   · intro h s g hP
     simp only [AbsDiskStep]
-    refine ⟨?_, ?_, dir, ?_, ?_⟩ <;> first | trivial | rfl | exact hP
+    refine ⟨?_, ?_, dir, k, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hP
   · intro h s g e' h' s' g' Hst
     simp only [AbsDiskStep] at Hst
-    obtain ⟨rfl, rfl, dir', Hv, rfl⟩ := Hst
-    obtain rfl := go.intoVal_inj Hv
+    obtain ⟨rfl, rfl, dir', k', Hv, -, rfl⟩ := Hst
+    obtain ⟨Hd, Ho⟩ := val.PairV.inj Hv
+    obtain rfl := go.intoVal_inj Hd
+    obtain rfl := walCode_inj (go.intoVal_inj Ho)
     exact ⟨rfl, rfl, rfl⟩
 
 theorem wp_WalUnsize (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
@@ -665,28 +1025,41 @@ theorem wp_WalUnsize (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
     obtain rfl := go.intoVal_inj Hv
     exact ⟨rfl, rfl, rfl⟩
 
-/-- `"WalCreate"` of `(dir, md)`: a fresh WAL where there was none. -/
-theorem wp_WalCreate (dir : GoString) (md : List w8) (Φ : val → IProp GF) :
+/-- `"WalCreate"` of `(dir, md)`, `dir` a directory of the area `r`: a fresh WAL where there was
+none (the rest of `Create`'s region is then free too, `walCreateRegion_free`), and the handle `w`
+ready to append. -/
+theorem wp_WalCreate (w : Loc) (r dir : GoString) (md : List w8) (hdir : walAreaDir r dir)
+    (Φ : val → IProp GF) :
+    walArea (L := L) r ∗
     (|={E,∅}=> walAbsent (L := L) dir ∗
-      (walDiskAt (L := L) dir (walDurFresh md) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some (walDurFresh md)⌝ -∗ ▷ |={∅,E}=> Φ #())))
+      (walDiskAt (L := L) dir (walDurFresh md) -∗ walOpenW (L := L) w dir -∗
+        (∀ s', absPast (L := L) s' -∗
+          ⌜s'.wal !! dir = some (walDurFresh md)⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalCreate" (Val (PairV (#dir) (#md)))) @ st; E {{ Φ }} := by
-  unfold walAbsent walDiskAt walDirIs
-  iintro HAU
+  unfold walAbsent walDiskAt walDirIs walOpenW
+  iintro ⟨#HA, HAU⟩
   have hle : ∀ s : AbsDiskState, s.wal !! dir = none →
       absLe s { s with wal := <[dir := walDurFresh md]> s.wal } := by
     intro s hs
-    refine ⟨fun _ h => h, fun dir' d h => ⟨d, ?_, Nat.le_refl _, Nat.le_refl _, id⟩⟩
+    refine ⟨rfl, fun _ h => h, fun dir' d h => ⟨d, ?_, Nat.le_refl _, Nat.le_refl _, id⟩⟩
     have hne : dir ≠ dir' := by rintro rfl; rw [hs] at h; cases h
     simp only; rw [GMap.lookup_insert_ne _ _ hne]; exact h
-  iapply wp_absDisk_step "WalCreate" _ (fun s => s.wal !! dir = none)
+  have hkeys : ∀ s : AbsDiskState, walAreaDir s.area dir → walKeysInArea s →
+      walKeysInArea { s with wal := <[dir := walDurFresh md]> s.wal } := by
+    intro s hd hk k d h
+    simp only at h ⊢
+    by_cases hne : dir = k
+    · subst hne; exact hd
+    · rw [GMap.lookup_insert_ne _ _ hne] at h; exact hk k d h
+  iapply wp_absDisk_step "WalCreate" _
+    (fun s => walAreaDir s.area dir ∧ ∀ k, walCreateRegion dir k → s.wal !! k = none)
     (fun s => { s with wal := <[dir := walDurFresh md]> s.wal }) (by simp [val.isPanic])
   · intro h s g hs
     simp only [AbsDiskStep]
-    refine ⟨?_, ?_, dir, md, ?_, ?_, ?_⟩ <;> first | trivial | rfl | exact hs
+    refine ⟨?_, ?_, dir, md, ?_, hs.1, hs.2, ?_⟩ <;> first | trivial | rfl
   · intro h s g e' h' s' g' Hst
     simp only [AbsDiskStep] at Hst
-    obtain ⟨rfl, rfl, dir', md', Hv, -, rfl⟩ := Hst
+    obtain ⟨rfl, rfl, dir', md', Hv, -, -, rfl⟩ := Hst
     obtain ⟨Hd, Hm⟩ := val.PairV.inj Hv
     obtain rfl := go.intoVal_inj Hd
     obtain rfl := go.intoVal_inj Hm
@@ -695,38 +1068,44 @@ theorem wp_WalCreate (dir : GoString) (md : List w8) (Φ : val → IProp GF) :
   imodintro
   iintro %s Hc
   icases walOwn_agree $$ Hc HM with %HMs
+  icases walArea_ctx $$ Hc HA with %Har
+  icases absDiskCtx_keys $$ Hc with %Hks
   subst HMs
-  imod absDisk_upd s _ s.wal (hle s HMd) $$ Hc HM with ⟨-, Hc, HM, #Hp⟩
+  have hds : walAreaDir s.area dir := by rw [Har]; exact hdir
+  imod absDisk_upd s _ s.wal (hle s HMd) (hkeys s hds) $$ Hc HM with ⟨-, Hc, HM, #Hp⟩
+  imod walHandle_alloc _ w dir .append $$ Hc with ⟨Hc, Hw⟩
   have hl : (<[dir := walDurFresh md]> s.wal) !! dir = some (walDurFresh md) := GMap.lookup_insert _ _ _
   imodintro
   isplitr
-  · ipureintro; exact HMd
+  · ipureintro; exact ⟨hds, walCreateRegion_free Hks hds HMd⟩
   iframe Hc
   ihave Hd : (∃ M' : GMap GoString WalDur, walOwn (L := L) M' ∗ ⌜M' !! dir = some (walDurFresh md)⌝) $$ [HM]
   · iexists _; iframe HM; ipureintro; exact hl
-  iapply Hk $$ Hd Hp
+  iapply Hk $$ Hd Hw Hp
   ipureintro; exact hl
 
-/-- `"DirDurable"` of `d`: `d`'s entry and its ancestors' durable (no WAL map needed). -/
-theorem wp_DirDurable (d : GoString) (Φ : val → IProp GF) :
-    (|={E,∅}=> dirDurable (L := L) d -∗ ▷ |={∅,E}=> Φ #())
+/-- `"DirDurable"` of `d`, a directory not under the area `r`: `d`'s entry and its ancestors'
+durable (no WAL map needed). -/
+theorem wp_DirDurable (r d : GoString) (hd : ¬ underDir r d) (Φ : val → IProp GF) :
+    walArea (L := L) r ∗ (|={E,∅}=> dirDurable (L := L) d -∗ ▷ |={∅,E}=> Φ #())
     ⊢ WP (ExternalOp absDiskExt.name "DirDurable" (Val (#d))) @ st; E {{ Φ }} := by
-  iintro HAU
-  iapply wp_absDisk_step "DirDurable" _ (fun _ => True)
+  iintro ⟨#HA, HAU⟩
+  iapply wp_absDisk_step "DirDurable" _ (fun s => ¬ underDir s.area d)
     (fun s => { s with dirs := <[d := ()]> s.dirs }) (by simp [val.isPanic])
-  · intro h s g _
+  · intro h s g hs
     simp only [AbsDiskStep]
-    refine ⟨?_, ?_, d, ?_, ?_⟩ <;> first | trivial | rfl
+    refine ⟨?_, ?_, d, ?_, hs, ?_⟩ <;> first | trivial | rfl
   · intro h s g e' h' s' g' Hst
     simp only [AbsDiskStep] at Hst
-    obtain ⟨rfl, rfl, d', Hv, rfl⟩ := Hst
+    obtain ⟨rfl, rfl, d', Hv, -, rfl⟩ := Hst
     obtain rfl := go.intoVal_inj Hv
     exact ⟨rfl, rfl, rfl⟩
   imod HAU with Hk
   imodintro
   iintro %s Hc
+  icases walArea_ctx $$ Hc HA with %Har
   have hle : absLe s { s with dirs := <[d := ()]> s.dirs } := by
-    refine ⟨fun d' h => ?_, fun dir dd h => ⟨dd, h, Nat.le_refl _, Nat.le_refl _, id⟩⟩
+    refine ⟨rfl, fun d' h => ?_, fun dir dd h => ⟨dd, h, Nat.le_refl _, Nat.le_refl _, id⟩⟩
     simp only
     by_cases hd : d = d'
     · subst hd; exact GMap.lookup_insert _ _ _
@@ -734,7 +1113,7 @@ theorem wp_DirDurable (d : GoString) (Φ : val → IProp GF) :
   imod absDisk_upd_dirs s { s with dirs := <[d := ()]> s.dirs } rfl hle $$ Hc with ⟨Hc, #Hp⟩
   imodintro
   isplitr
-  · ipureintro; trivial
+  · ipureintro; rw [Har]; exact hd
   iframe Hc
   iapply Hk
   unfold dirDurable
@@ -762,12 +1141,12 @@ theorem absDisk_crash_view (M : GMap GoString WalDur) :
 
 /-- **The Draft's `walDisk_crash`**: the old generation's WAL in `dir` at `d`, synced to `n`, its
 entry durable, is the new generation's at an image of its history at or past `n`, with a purged
-prefix `k ≤ d.pur` to read from, still synced to `n` and named. -/
+prefix `k ≤ d.pur` to read from, still synced to `n` and named (`named` kept: it is `true`). -/
 theorem walDiskAt_crash (dir : GoString) (d : WalDur) (n : Nat) :
     ⊢@{IProp GF} absDiskCrashStart (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
       walDiskAt (L := L) dir d -∗ walSyncedLb (L := L) dir n -∗ walNamed (L := L) dir -∗
       ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H n I ∧ k ≤ d.pur⌝ ∗
-        walDiskAt (L := L') dir { d with H := I, cut := k, named := true } ∗
+        walDiskAt (L := L') dir { d with H := I, cut := k } ∗
         walSyncedLb (L := L') dir n ∗ walNamed (L := L') dir := by
   unfold walDiskAt walDirIs walSyncedLb walNamed absPast
   iintro Hcs ⟨%M, HM, %HMd⟩ ⟨%p, %dp, Hp, %Hdp⟩ ⟨%q, %dq, Hq, %Hdq⟩
@@ -776,12 +1155,12 @@ theorem walDiskAt_crash (dir : GoString) (d : WalDur) (n : Nat) :
   subst HMs
   icases absPast_le _ s p $$ HP Hp with %Hlp
   icases absPast_le _ s q $$ HP Hq with %Hlq
-  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2 dir dp Hdp.1
-  obtain ⟨d2, h2, -, -, hn2⟩ := Hlq.2 dir dq Hdq.1
+  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2 dir dp Hdp.1
+  obtain ⟨d2, h2, -, -, hn2⟩ := Hlq.2.2 dir dq Hdq.1
   rw [HMd] at h1 h2; cases h1; cases h2
   have hn : n ≤ d.m := Nat.le_trans Hdp.2 hm1
   have hnamed : d.named = true := hn2 Hdq.2
-  obtain ⟨-, hcw, -⟩ := hc
+  obtain ⟨-, -, hcw, -⟩ := hc
   rcases hcw dir d HMd with ⟨hnf, -⟩ | ⟨I, k, hI, hk, hs'⟩
   · rw [hnamed] at hnf; cases hnf
   obtain ⟨j, hj1, hj2, hj3⟩ := hI
@@ -792,7 +1171,39 @@ theorem walDiskAt_crash (dir : GoString) (d : WalDur) (n : Nat) :
   · iexists s'.wal; iframe HM'; ipureintro; exact hs'
   isplitr
   · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
-  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', rfl⟩
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hnamed⟩
+
+/-- **The crash of a WAL whose entry may not be durable**: it vanishes (only if its entry was not
+durable), or it is the new generation's as in `walDiskAt_crash`. -/
+theorem walDiskAt_crash_any (dir : GoString) (d : WalDur) (n : Nat) :
+    ⊢@{IProp GF} absDiskCrashStart (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      walDiskAt (L := L) dir d -∗ walSyncedLb (L := L) dir n -∗
+      ((walAbsent (L := L') dir ∗ ⌜d.named = false⌝) ∨
+        ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H n I ∧ k ≤ d.pur⌝ ∗
+          walDiskAt (L := L') dir { d with H := I, cut := k } ∗ walSyncedLb (L := L') dir n) := by
+  unfold walDiskAt walAbsent walDirIs walSyncedLb absPast
+  iintro Hcs ⟨%M, HM, %HMd⟩ ⟨%p, %dp, Hp, %Hdp⟩
+  icases absDisk_crash_view (L := L) L' M $$ Hcs HM with ⟨%s, %s', ⟨%hc, %HMs⟩, HP, HM', #Hp'⟩
+  iunfold absPast at Hp'
+  subst HMs
+  icases absPast_le _ s p $$ HP Hp with %Hlp
+  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2 dir dp Hdp.1
+  rw [HMd] at h1; cases h1
+  have hn : n ≤ d.m := Nat.le_trans Hdp.2 hm1
+  obtain ⟨-, -, hcw, -⟩ := hc
+  rcases hcw dir d HMd with ⟨hnf, hnone⟩ | ⟨I, k, hI, hk, hs'⟩
+  · ileft
+    isplitl [HM']
+    · iexists s'.wal; iframe HM'; ipureintro; exact hnone
+    · ipureintro; exact hnf
+  obtain ⟨j, hj1, hj2, hj3⟩ := hI
+  iright
+  iexists I, k
+  isplitr
+  · ipureintro; exact ⟨⟨j, Nat.le_trans hn hj1, hj2, hj3⟩, hk⟩
+  isplitl [HM']
+  · iexists s'.wal; iframe HM'; ipureintro; exact hs'
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
 
 /-- A directory with no WAL has none after the crash. -/
 theorem walAbsent_crash (dir : GoString) :
@@ -802,7 +1213,7 @@ theorem walAbsent_crash (dir : GoString) :
   iintro Hcs ⟨%M, HM, %HMd⟩
   icases absDisk_crash_view (L := L) L' M $$ Hcs HM with ⟨%s, %s', ⟨%hc, %HMs⟩, -, HM', -⟩
   subst HMs
-  iexists s'.wal; iframe HM'; ipureintro; exact hc.2.2 dir HMd
+  iexists s'.wal; iframe HM'; ipureintro; exact hc.2.2.2 dir HMd
 
 /-- A durable directory stays durable (from the old generation's past states' authority, which
 `absDisk_crash_view` returns). -/
@@ -812,7 +1223,16 @@ theorem dirDurable_crash (s s' : AbsDiskState) (hc : absDisk_semantics.crash s s
   unfold dirDurable absPast
   iintro HP #Hp' ⟨%p, Hp, %Hd⟩
   icases absPast_le _ s p $$ HP Hp with %Hlp
-  iexists s'; iframe Hp'; ipureintro; rw [hc.1]; exact Hlp.1 d Hd
+  iexists s'; iframe Hp'; ipureintro; rw [hc.2.1]; exact Hlp.2.1 d Hd
+
+/-- The area stays the area (as `dirDurable_crash`). -/
+theorem walArea_crash (s s' : AbsDiskState) (hc : absDisk_semantics.crash s s') (r : GoString) :
+    ⊢@{IProp GF} absPastAuth (gooseAbsDiskGS (L := L)) s -∗ absPast (L := L') s' -∗
+      walArea (L := L) r -∗ walArea (L := L') r := by
+  unfold walArea absPast
+  iintro HP #Hp' ⟨%p, Hp, %Hr⟩
+  icases absPast_le _ s p $$ HP Hp with %Hlp
+  iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
 
 end crashGen
 
