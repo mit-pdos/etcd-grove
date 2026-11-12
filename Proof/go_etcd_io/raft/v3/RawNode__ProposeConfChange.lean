@@ -103,7 +103,7 @@ theorem RawNode.ProposeConfChange.wp_proof
         unfold isMessage absMsg absMsgFrom
         isplitr
         · ipureintro
-          exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
+          exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e _ => TrNoConf.of_none HtrG e⟩
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
         iexact Hent
     isplitl [Hcr]

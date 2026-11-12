@@ -435,6 +435,8 @@ theorem isEntryR_receipt [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64)
 theorem propDataIs_timeless (γ : RaftNames) (e : EntryM) (o : Option (List w8)) : Timeless
     (propDataIs γ e o)
 
+theorem TrNoConf.of_none {γ : RaftNames} (h : γ.reTrace = none) (e : EntryM) : TrNoConf γ e
+
 theorem logRecs_take [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (n : Nat) : ⊢ logRecs γ base0
     F -∗ logRecs γ base0 (List.take n F)
 
@@ -593,7 +595,7 @@ def leadFull [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) : IProp
   iprop(∃ ldr bL l fp, leadPrefix γ ldr t bL l ∗ lpfull γ ldr t bL l fp ∗ ⌜G = fp ++ l⌝)
 
 theorem isEntryR_of_core [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) (h : γ.reDyn ≠ none
-    → ¬IsEmptyV2 e) : isEntryC γ e pt ⊢ isEntryR γ e pt
+    → ¬IsEmptyV2 e) (htr : TrNoConf γ e) : isEntryC γ e pt ⊢ isEntryR γ e pt
 
 theorem snapDataOk_persistent (γ : RaftNames) (i : w64) (d : List w8) : Persistent (snapDataOk γ i
     d)
@@ -649,6 +651,8 @@ theorem RaftNames.reTracked_of_dyn {γ : RaftNames} (h : γ.reDyn ≠ none) : γ
 
 theorem entData_persistent (γ : RaftNames) (e : EntryM) : Persistent (entData γ e)
 
+theorem TrNoConf.of_normal (γ : RaftNames) {e : EntryM} (h : e.Type' = W32 0) : TrNoConf γ e
+
 theorem msgsTks_subperm [ReceiptGS GF] (γ : RaftNames) (ms ms' : List Msg) (h : (propsOf
     ms').Subperm (propsOf ms)) : msgsTks γ ms ⊢ msgsTks γ ms'
 
@@ -656,6 +660,9 @@ theorem full_match [ReceiptGS GF] (γ : RaftNames) (F1 F2 : List EntryM) (i : w6
     → PlogWf base0 F2 → (plogTermAt base0 F1 i).isSome = true → plogTermAt base0 F1 i = plogTermAt
     base0 F2 i → ⊢ logRecs γ base0 F1 -∗ logRecs γ base0 F2 -∗ ⌜∀ (j : w64), uint.Z j ≤ uint.Z i →
     plogTermAt base0 F1 j = plogTermAt base0 F2 j⌝
+
+def TrNoConf (γ : RaftNames) (e : EntryM) : Prop :=
+  γ.reTrace ≠ none → ¬IsConfEnt e
 
 def isCommittedIdx [ReceiptGS GF] (γ : RaftNames) (i : w64) : IProp GF :=
   iprop(⌜uint.Z i ≤ ↑γ.reBoot.length⌝ ∨ ∃ t n G, ⌜uint.Z i ≤ uint.Z n⌝ ∗ cq γ t n G)
@@ -881,6 +888,9 @@ theorem take_agree_le.{u_1} {α : Type u_1} {F F' : List α} {lim m : Nat} (h : 
 
 theorem entDataIs_timeless (γ : RaftNames) (e : EntryM) (o : Option (List w8)) : Timeless (entDataIs
     γ e o)
+
+theorem PropRepl.trNoConf {γ : RaftNames} {es es' : List EntryM} (H : PropRepl es es') (h : ∀ (e :
+    EntryM), e ∈ es → TrNoConf γ e) (e : EntryM) : e ∈ es' → TrNoConf γ e
 
 def entKey (ty : w32) (d : List w8) : List w8 :=
   u32Le ty ++ d
@@ -1156,13 +1166,14 @@ theorem isEntryR_boot_leader [ReceiptGS GF] (γ : RaftNames) (e1 : EntryM) (pt1 
     False
 
 def ev2Rec [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
-  iprop(∀ x,
-      ∃ P M c,
-        logRecsC γ base0 P ∗
-          decLb γ M ∗
-            ⌜PlogWf base0 P ∧
-                ↑P.length + 1 = uint.Z e.Index' ∧
-                  plogTermAt base0 P (W64 ↑P.length) = some pt ∧ CfgAt γ M P c ∧ c.joint = true⌝)
+  iprop(⌜TrNoConf γ e⌝ ∗
+      ∀ x,
+        ∃ P M c,
+          logRecsC γ base0 P ∗
+            decLb γ M ∗
+              ⌜PlogWf base0 P ∧
+                  ↑P.length + 1 = uint.Z e.Index' ∧
+                    plogTermAt base0 P (W64 ↑P.length) = some pt ∧ CfgAt γ M P c ∧ c.joint = true⌝)
 
 theorem propTk_persist [ReceiptGS GF] (γ : RaftNames) (d : List w8) (h : γ.dup = true) : propTk γ d
     ⊢ □ propTk γ d

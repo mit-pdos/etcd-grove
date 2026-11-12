@@ -37392,3 +37392,34 @@ harness's `tcRunFits GF` and `traceLenFits GF L` (`Proof/.../tracecheck/Fits.lea
 gained over a name). `acceptReady`'s margin `γ.reBoot.length` is the cluster's, not a constant. A
 post (`Events`') cannot be an instance. After Q38 (a) lands (`n + 2 ≤ 2^31`), `tcRunFits` can become
 `[ReceiptBoundLe GF (2^60)]` with the `+ 3` derived in `Fits.lean`, at no cost to a closed result.
+
+## G3 (a): no conf entry past the bootstrap log (2026-11-12 · trace-check, `notes/trace-check-design.md` "G3 (a)"; decided by the agent under the user's delegation (raft-internal statements) · branch `trace-check-g3`)
+
+**Context.** G3 (a) (design §3.4 item 4): at a traced cluster no entry of any log past the bootstrap log
+is a conf entry, what the leader exclusion of the `confc` arm reads. Step 2 left it with two obstacles
+(the minting site sees no trace fact; (a2), the empty `ConfChangeV2`, needed the decoder's value on the
+bootstrap entries' bytes).
+
+**Decisions.**
+- *A stronger (a): no conf entry at all is minted at a traced cluster, the empty `ConfChangeV2`
+  included* (`TrNoConf γ e := γ.reTrace ≠ none → ¬ IsConfEnt e`). So no (a2): the automatic leave is
+  never minted at a traced node (`raft.Step.spec`'s existing premise `MsgStorageApplyResp → ents ≠ [] →
+  c.autoLeave = true → s.gh.tr = none`), rather than admitted and then refuted through `ev2Rec`'s fold.
+  Revision 3 kept the leave admitted so that (a) would not depend on (b) (`c.autoLeave = false`); that
+  concern was about the order of proof, and it does not arise: (a)'s statement does not mention (b),
+  and the premise's discharge at the traced `RawNode.Advance` was already (b)'s job, so step 3's
+  obligations are unchanged. Supersedes the design's revision-3 (a1)/(a2) split.
+- *The trace fact enters through `isMessage`'s proposal case* (a gated conjunct `∀ e ∈ m.entries,
+  TrNoConf γ e` of its pure part), read at the two `propose` arms and passed to
+  `ownRaftGhost_step_propose`'s new premise, which stores it per record in `ev2Rec` (so in `isEntryR`).
+  Rejected: threading a premise from `raft.Step`'s `MsgProp` branch through `ghost_step_md`/
+  `ghost_stepCD`/the `StepR` arms (every `raft.Step` branch would discharge it); a clause on the term
+  logs' authority (the per-record form is what the logs' `logRecs` already carry). The producers each
+  have the fact: `node.Propose`'s normal entry, the `γ.reTrace = none` premises of `RawNode.Propose`,
+  `RawNode.ProposeConfChange` and `node.ProposeConfChange`, the forward (same entries), and the
+  automatic leave (`isMessage_leave` now takes `γ.reTrace = none`; `wp_Step_MsgStorageApplyResp`'s
+  `%Hrecv` gains `recv ≠ [] → s.gh.tr = none`; `ghost_step_mdL`, `ghost_step_md` over a list of `isMessage`s, for it).
+- *The record in `ev2Rec`* (first conjunct), not a new conjunct of `isEntryR`: fewer destructurings
+  change (ev2Rec is built at two sites, the win and the propose steps).
+- `raft.Step.spec`'s `MsgProp` trace premise is now derivable from `#Hmsg` and `NsLink`; kept (removing it
+  changes `raft.Step.spec`'s statement for no gain here).

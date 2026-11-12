@@ -7,10 +7,15 @@ Lean-first (no Rocq counterpart). **The leader case of the `confc` arm, excluded
   log whose first entries are the bootstrap log's configuration entries, committed past them, `hup`
   refuses to campaign (`hasUnappliedConfChanges`) while `applied` is short of them: a campaign happens
   only at `applied ≥ |boot|`.
+- **G3 (a), no conf entry past the bootstrap log** (2026-11-12, `notes/trace-check-design.md`, "G3 (a)";
+  `notes/decisions.md`, "G3 (a): no conf entry past the bootstrap log"; `isEntryR_trNoConf`,
+  `logRecs_trNoConf`, `ownStepGhost_trNoConf`): at a traced cluster every conf entry of a log with
+  records sits within the bootstrap log, since a leader's records carry `TrNoConf` (`ev2Rec`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.SpecResults
+public import Proof.go_etcd_io.raft.v3.StepGhostMode
 
 @[expose] public section
 
@@ -63,6 +68,74 @@ theorem hupCampaigns_applied_boot [GoGlobalContext] [GoSemanticsFunctions] {c : 
   exact h.2.2.2 (bootPrefix_unapplied s.logst boot hprev hpre hconf hcm hcmb hlt)
 
 end lemmaI
+
+section g3
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+
+open Iris.BI Iris.ProofMode
+
+/-- **G3 (a), one record**: at a traced cluster an entry with a record is a conf entry only within
+the bootstrap log: a leader's record carries `TrNoConf` (`ev2Rec`), a boot record is at an index
+`≤ |γ.reBoot|` (`BootRec`). -/
+theorem isEntryR_trNoConf (γ : RaftNames) (e : EntryM) (pt : w64) (htr : γ.reTrace ≠ none) :
+    isEntryR (GF := GF) γ e pt ⊢ ⌜IsConfEnt e → uint.Z e.Index' ≤ γ.reBoot.length⌝ := by
+  unfold isEntryR
+  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, -, -, -, #Hev2⟩ | ⟨%Hb, -⟩)
+  · unfold ev2Rec
+    icases Hev2 with ⟨%Ht, -⟩
+    ipureintro
+    intro hc
+    exact absurd hc (Ht htr)
+  · ipureintro
+    intro _
+    have h1 := (List.getElem?_eq_some_iff.mp Hb.2.1).1
+    have h2 := Hb.1
+    omega
+
+/-- **G3 (a), a log with records** (base `b`): at a traced cluster its `k`-th entry is a conf entry
+only at an index `b.index + k + 1 ≤ |γ.reBoot|`. -/
+theorem logRecs_trNoConf (γ : RaftNames) (b : entryID) (es : List EntryM)
+    (htr : γ.reTrace ≠ none) (Hwf : PlogWf b es) :
+    logRecs (GF := GF) γ b es ⊢ ⌜∀ (k : Nat) (e : EntryM), es[k]? = some e → IsConfEnt e →
+      uint.Z b.index' + k + 1 ≤ γ.reBoot.length⌝ := by
+  refine (BI.forall_intro fun k => ?_).trans BI.pure_forall.2
+  refine (BI.forall_intro fun e => ?_).trans BI.pure_forall.2
+  refine (BI.forall_intro fun Hk => ?_).trans BI.pure_forall.2
+  have Hi := Hwf k e Hk
+  have Hr := uint_Z_lt e.Index'
+  unfold logRecs
+  refine (BigSepL.bigSepL_lookup Hk).trans ?_
+  have Hr' : uint.Z b.index' + (k : Int) + 1 < 2 ^ 64 := by push_cast at Hi; omega
+  simp only [Hr', ↓reduceIte]
+  iintro ⟨%pt, -, #He⟩
+  ihave %H := isEntryR_trNoConf γ e pt htr $$ He
+  ipureintro
+  intro hc
+  have := H hc
+  push_cast at Hi
+  omega
+
+/-- **G3 (a) at a node** (what the leader exclusion reads, design §3.4 items 4(b) and 5): at a traced
+cluster the `k`-th entry of the node's log (`sents ++ uents`, after `prev`) is a conf entry only at
+an index `prev.index + k + 1 ≤ |γ.reBoot|` (at `prev = 0`: position `k < |γ.reBoot|`, lemma (i)'s
+shape). -/
+theorem ownStepGhost_trNoConf (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (htr : γ.reTrace ≠ none) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ⌜∀ (k : Nat) (e : EntryM), (s.logst.sents ++ s.logst.uents)[k]? = some e → IsConfEnt e →
+        uint.Z s.logst.prev.index' + k + 1 ≤ γ.reBoot.length⌝ ∗ ownStepGhost γ md c id s := by
+  iintro Hgh
+  iunfold ownStepGhost at Hgh
+  icases Hgh with ⟨Hg, Hr⟩
+  ihave ⟨%Hwf, #Hrecs⟩ := ownRaftGhost_logRecs γ id (toPState s) md.isDyn $$ Hg
+  ihave %H := logRecs_trNoConf γ (toPState s).base (toPState s).log htr Hwf $$ Hrecs
+  isplitr
+  · ipureintro; exact H
+  iunfold ownStepGhost
+  iframe Hg Hr
+
+end g3
 
 end EtcdGrove
 end Perennial

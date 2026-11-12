@@ -1588,15 +1588,47 @@ def IsEmptyV2 (e : EntryM) : Prop := e.Data' = [] ∧ e.Type' = W32 2
 
 instance (e : EntryM) : Decidable (IsEmptyV2 e) := by unfold IsEmptyV2; infer_instance
 
+/-- **No conf entry at a traced cluster** (2026-11-12, trace-check's G3 (a),
+`notes/trace-check-design.md`, "G3 (a)"): at a traced cluster (`γ.reTrace ≠ none`) `e` is no
+configuration entry (`IsConfEnt`: of type `1` or `2`, empty or not). A proposal's entries say it
+(`isMessage`'s proposal case), and so does every record a leader mints (`ev2Rec`): a traced node
+proposes no conf change and never leaves a joint configuration automatically, so the bootstrap
+entries are the cluster's only conf entries (`isEntryR_trNoConf`). Vacuous untraced. -/
+def TrNoConf (γ : RaftNames) (e : EntryM) : Prop := γ.reTrace ≠ none → ¬ IsConfEnt e
+
+theorem TrNoConf.of_none {γ : RaftNames} (h : γ.reTrace = none) (e : EntryM) : TrNoConf γ e :=
+  fun h' => absurd h h'
+
+/-- A normal entry (type `0`) is no conf entry. -/
+theorem TrNoConf.of_normal (γ : RaftNames) {e : EntryM} (h : e.Type' = W32 0) : TrNoConf γ e := by
+  intro _ hc
+  unfold IsConfEnt at hc
+  rw [h] at hc
+  rcases hc with hc | hc <;> (revert hc; word)
+
+/-- `stepLeader`'s conf-change loop keeps it: a replaced entry is the empty normal one. -/
+theorem PropRepl.trNoConf {γ : RaftNames} {es es' : List EntryM} (H : PropRepl es es')
+    (h : ∀ e ∈ es, TrNoConf γ e) : ∀ e ∈ es', TrNoConf γ e := by
+  induction H with
+  | nil => intro e he; cases he
+  | @cons a b l l' hab _ ih =>
+    intro e he
+    rcases List.mem_cons.1 he with rfl | he
+    · rcases hab with rfl | ⟨_, rfl⟩
+      · exact h e List.mem_cons_self
+      · exact fun _ => not_isConfEnt_zero
+    · exact ih (fun x hx => h x (List.mem_cons_of_mem _ hx)) e he
+
 /-- **An empty `EntryConfChangeV2` sits at a joint configuration** (2026-10-29, stage U5,
 `committed_emptyV2_joint`): in the dynamic mode, the full log before the entry `P` (with the
 cores of its records, its last term the entry's predecessor term `pt`) folds, over some recorded
 decisions, to a joint configuration. `stepLeader` keeps such an entry only at a joint
 configuration with every conf entry of its log applied (`propConf`), so the fold of the leader's
 log is its configuration's. Log matching (`full_take_eq_pure`) carries it to every full log
-holding the entry. -/
+holding the entry. (2026-11-12, trace-check's G3 (a)) Also: at a traced cluster the entry is no
+conf entry (`TrNoConf`), first. -/
 def ev2Rec (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
-  iprop(∀ (_ : γ.reDyn ≠ none ∧ IsEmptyV2 e),
+  iprop(⌜TrNoConf γ e⌝ ∗ ∀ (_ : γ.reDyn ≠ none ∧ IsEmptyV2 e),
     ∃ (P : List EntryM) (M : DecMap) (c : CfgM), logRecsC γ base0 P ∗ decLb γ M ∗
       ⌜PlogWf base0 P ∧ (P.length : Int) + 1 = uint.Z e.Index' ∧
         plogTermAt base0 P (W64 (P.length : Int)) = some pt ∧ CfgAt γ M P c ∧ c.joint = true⌝)
@@ -1681,15 +1713,17 @@ theorem isEntryR_of_core_ev2 (γ : RaftNames) (e : EntryM) (pt : w64) :
     ipureintro; exact H5
   · iright; iexact Hb
 
-/-- A record of an entry that is no empty `ConfChangeV2` (or a static mode's) from its core. -/
+/-- A record of an entry that is no empty `ConfChangeV2` (or a static mode's) from its core;
+(2026-11-12, G3 (a)) and no conf entry at a traced cluster. -/
 theorem isEntryR_of_core (γ : RaftNames) (e : EntryM) (pt : w64)
-    (h : γ.reDyn ≠ none → ¬ IsEmptyV2 e) :
+    (h : γ.reDyn ≠ none → ¬ IsEmptyV2 e) (htr : TrNoConf γ e) :
     isEntryC (GF := GF) γ e pt ⊢ isEntryR γ e pt := by
   unfold isEntryR isEntryC
   iintro (⟨%l, %γt, %b, %l0, %F0, #H1, #H2, #H3, #H4, %H5, #H6, #H7⟩ | #Hb)
   · ileft; iexists l, γt, b, l0, F0; iframe H1 H2 H3 H4 H6 H7
     isplitr; · ipureintro; exact H5
     unfold ev2Rec
+    isplitr; · ipureintro; exact htr
     iintro %h'; exfalso; exact h h'.1 h'.2
   · iright; iexact Hb
 instance isEntry_persistent (γ : RaftNames) (e : EntryM) :
@@ -2435,6 +2469,7 @@ theorem logRecs_ev2 (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
     exfalso
     exact Hboot e (List.mem_of_getElem? Hb.2.1) Hev
   iunfold ev2Rec at Hev2
+  icases Hev2 with ⟨-, #Hev2⟩
   icases Hev2 $$ %(⟨Hdyn, Hev⟩ : γ.reDyn ≠ none ∧ IsEmptyV2 e) with ⟨%P, %M, %c, #HP, #HM, %HPf⟩
   obtain ⟨HwP, HPl, HPt, HcP, Hj⟩ := HPf
   ihave #HGc := logRecs_core γ base0 G $$ HG

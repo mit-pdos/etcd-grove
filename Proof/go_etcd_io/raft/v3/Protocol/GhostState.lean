@@ -241,9 +241,12 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch short enough
       -- for `appendEntry`, each entry with its data (`entData`: a normal entry's proposed,
       -- its update deposited before it left the proposing node; since 2026-10-13 also
-      -- conf-change entries, whose bytes decode -- until then normal entries only)
+      -- conf-change entries, whose bytes decode -- until then normal entries only);
+      -- (2026-11-12, trace-check's G3 (a)) at a traced cluster no conf entry (`TrNoConf`: a traced
+      -- node proposes no conf change, nor leaves a joint configuration automatically), which the
+      -- leader that appends it records (`ev2Rec`)
       iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧
-          (m.entries.length : Int) < 2 ^ 61⌝ ∗
+          (m.entries.length : Int) < 2 ^ 61 ∧ ∀ e ∈ m.entries, TrNoConf γ e⌝ ∗
         [∗list] e ∈ m.entries, propData γ e)
   -- (2026-10-12) read-index: a heartbeat response's position, acknowledged; a request's
   -- context, created; a response's read index, at least its context's log

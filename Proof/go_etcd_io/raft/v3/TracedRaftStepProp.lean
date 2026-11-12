@@ -163,7 +163,7 @@ theorem ghost_stepProp (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : 
   have hrole' : (toPState s).role = .leader := by rw [toPState_role, hrole]; rfl
   ihave Hg := ownRaftGhost_step_propose γ id (toPState s) ents
     ((plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length + ents.length)
-    hrole' (by omega) (by omega) $$ Hrc Hd Htk [] Hg
+    hrole' (by omega) (by omega) (fun e he _ => hnc e he) $$ Hrc Hd Htk [] Hg
   · iintro !> %fp' %k %x %Hx
     exfalso
     obtain ⟨-, hk, -, hv2⟩ := Hx

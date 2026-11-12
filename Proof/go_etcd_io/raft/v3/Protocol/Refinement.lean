@@ -802,10 +802,12 @@ private theorem ev2Rec_of_prefix (γ : RaftNames) (b : entryID) (fp es : List En
     (x : EntryM) (pt : w64) (M : DecMap) (c : CfgM)
     (Hfull : FullOk b fp) (Hwf : PlogWf b es) (Hk : es[k]? = some x)
     (Hpt : plogTermAt b es (pidx b k) = some pt)
-    (Hc : CfgAt γ M ((fp ++ es).take (fp.length + k)) c) (Hj : c.joint = true) :
+    (Hc : CfgAt γ M ((fp ++ es).take (fp.length + k)) c) (Hj : c.joint = true)
+    (Htr : TrNoConf γ x) :
     ⊢ logRecsC (GF := GF) γ base0 fp -∗ logRecsC γ b es -∗ decLb γ M -∗ ev2Rec γ x pt := by
   iintro #Hf #He #HM
   unfold ev2Rec
+  isplitr; · ipureintro; exact Htr
   iintro %_
   iexists (fp ++ es).take (fp.length + k), M, c
   isplitr
@@ -1097,8 +1099,9 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
     · iapply (preceipt_mono (GF := GF) (show (uint.Z e.Index').toNat - γ.reBoot.length ≤ n by
         omega))
       iexact Hrcpt
-    -- (2026-10-29, stage U5) a normal entry
+    -- (2026-10-29, stage U5) a normal entry; (2026-11-12, G3 (a)) so no conf entry
     unfold ev2Rec
+    isplitr; · ipureintro; exact TrNoConf.of_normal γ (by rw [← He]; rfl)
     iintro %Hc
     exfalso
     have h2 := Hc.2.2
@@ -3019,6 +3022,9 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
     -- (2026-10-18, D19b stage 5) the new entries' indices are covered by the receipt `⧖ n`
     plogLastIndexZ s.base s.log + (ents.length : Int) ≤ (n : Int) + γ.reBoot.length →
+    -- (2026-11-12, trace-check's G3 (a)) at a traced cluster no conf entry (the proposal's,
+    -- `isMessage`'s clause): each new record carries it (`ev2Rec`)
+    (∀ e ∈ ents, TrNoConf γ e) →
     ⊢ ⧖ n -∗ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗
       -- (2026-10-29, stage U5) an empty `ConfChangeV2` of the batch at a joint configuration
       (□ ∀ (fp' : List EntryM) (k : Nat) (x : EntryM),
@@ -3032,7 +3038,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       ownRaftGhost γ id
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
           [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))]) md := by
-  intro Hrole Hnw Hrb
+  intro Hrole Hnw Hrb Htrnc
   rw [show plastIndex s = W64 (plogLastIndexZ s.base s.log) from rfl]
   generalize HL : plogLastIndexZ s.base s.log = L at Hnw Hrb ⊢
   iintro #Hrcpt #Hed Htk #Hev Hown
@@ -3076,7 +3082,17 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       have := (List.getElem?_eq_some_iff.mp Hy).1
       exact ⟨stamp_index_eq L k HL0 (by omega), rfl⟩
   have Hlen : (ents.mapIdx (stamp s.term (W64 L))).length = ents.length := List.length_mapIdx
-  generalize Hnwdef : ents.mapIdx (stamp s.term (W64 L)) = nw at Hnwk Hlen ⊢
+  have Hnwtr : ∀ (k : Nat) (x : EntryM), (ents.mapIdx (stamp s.term (W64 L)))[k]? = some x →
+      TrNoConf γ x := by
+    intro k x Hk
+    rw [List.getElem?_mapIdx] at Hk
+    cases Hy : ents[k]? with
+    | none => rw [Hy] at Hk; cases Hk
+    | some y =>
+      rw [Hy] at Hk; cases Hk
+      intro ht hc
+      exact Htrnc y (List.mem_of_getElem? Hy) ht ((isConfEnt_stamp _ _ _ y).1 hc)
+  generalize Hnwdef : ents.mapIdx (stamp s.term (W64 L)) = nw at Hnwk Hlen Hnwtr ⊢
   have HlenL : uint.Z s.base.index' + (s.log.length : Int) = L := by rw [← HL]; rfl
   have HbZ := uint_Z_nonneg s.base.index'
   have Hwl' : PlogWf s.base (s.log ++ nw) :=
@@ -3161,10 +3177,11 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       iexists pt
       isplitr; · ipureintro; exact Hpt
       iapply isEntryR_of_core_ev2 γ x pt $$ Hx
-      unfold ev2Rec
-      iintro %Hc
       have Hk' := Hk
       rw [List.getElem?_append_right (by omega)] at Hk'
+      unfold ev2Rec
+      isplitr; · ipureintro; exact Hnwtr _ x Hk'
+      iintro %Hc
       icases Hev $$ %fp %(k - s.log.length) %x
         %(⟨Hfp, Hk', Hc.1, Hc.2⟩ : FullOk s.base fp ∧ nw[k - s.log.length]? = some x ∧
           γ.reDyn ≠ none ∧ IsEmptyV2 x) Hfrecs with ⟨%M0, %c, #HM0, %Hcf⟩
@@ -3175,8 +3192,9 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
         rw [Hkk, ← List.append_assoc, List.take_length_add_append]
       rw [Htk] at Hcf
       ihave #He2 := ev2Rec_of_prefix γ s.base fp (s.log ++ nw) k x pt M0 c Hfp Hwl' Hk Hpt
-        Hcf.1 Hcf.2 $$ HfrecsC HrecsC HM0
+        Hcf.1 Hcf.2 (Hnwtr _ x Hk') $$ HfrecsC HrecsC HM0
       iunfold ev2Rec at He2
+      icases He2 with ⟨-, #He2⟩
       iapply He2 $$ %Hc
   ihave #Hlf' : leadFrags γt l0 (s.log ++ nw) $$ []
   · unfold leadFrags
@@ -5461,7 +5479,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     ihave #Hm := recv_one $$ Hrecv
     iunfold isMessage at Hm
     rw [Hty]
-    icases Hm with ⟨-, #Hed⟩
+    icases Hm with ⟨%Hmp, #Hed⟩
     ihave #Hed' := propData_propRepl γ _ _ Hents $$ Hed
     -- (2026-10-19, D21 M6) the proposal's tickets, for its entries' indices
     ihave Htk := (msgsTks_singleton γ m).1 $$ Htk
@@ -5469,7 +5487,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     rw [if_pos Hty]
     ihave Htk' := entTk_propRepl γ _ _ Hents $$ Htk
     imod ownRaftGhost_step_propose γ id s ents (B.toNat - γ.reBoot.length) Hrole (by omega)
-      (by omega) $$ Hrc Hed' Htk' [] Hown with Hown
+      (by omega) (Hents.trNoConf Hmp.2.2.2) $$ Hrc Hed' Htk' [] Hown with Hown
     · -- (2026-10-29, stage U5) the static mode: nothing
       imodintro
       iintro %fp' %k %x %Hc

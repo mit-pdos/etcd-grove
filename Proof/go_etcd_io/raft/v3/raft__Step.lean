@@ -1136,12 +1136,25 @@ theorem raft.Step.wp_proof
       unfold rdCount; rw [List.countP_eq_zero]
       intro x hx; rw [Hrecv.1 x hx]; simp [leaveAbs, absMsg, absMsgFrom]
     imod rdCred_zero (GF := GF) γ with Hz
-    ihave #Hml := isMessage_leave (GF := GF) γ
-    imod ghost_step_md γ md c id m s s' leaveAbs recv 0 B HBb.2.2 Hrecv.1 Hst
+    -- (2026-11-12, G3 (a)) the leave, received only at an untraced node (`NsLink`), is legitimately
+    -- sent there (`isMessage_leave`)
+    icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnl, Hrest⟩
+    ihave #Hml : iprop([∗list] x ∈ recv, isMessage (GF := GF) γ x) $$ []
+    · by_cases hr : recv = []
+      · subst hr
+        iapply (BigSepL.bigSepL_nil (Φ := fun _ x => isMessage (GF := GF) γ x)).2
+        iempintro
+      · ihave #Hl := isMessage_leave (GF := GF) γ (Hnl.trace_none (Hrecv.2.2 hr))
+        iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ leaveAbs))
+          (fun k x hx => by
+            rw [Hrecv.1 x (List.mem_of_getElem? hx)]
+            exact intuitionistically_elim))
+        iexact Hl
+    imod ghost_step_mdL γ md c id m s s' recv 0 B HBb.2.2 Hst
       (fun _ _ _ _ hmd _ HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
         (fun _ => Happ') hmd HI)
       (by omega) Hfr.1.nsst Hot $$ HrcB Hml Hz [] Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
-    · iapply msgsTks_recv γ _ recv Hrecv.1 Hrecv.2
+    · iapply msgsTks_recv γ _ recv Hrecv.1 Hrecv.2.1
       iapply msgTks_leave
     imodintro
     iapply HΦ $$ %err %s' %c %md'
