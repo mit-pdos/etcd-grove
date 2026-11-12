@@ -32,7 +32,8 @@ variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 its files from the last one named `≤ s.1` on (`searchIndex`, `openAtIndex`, S/wal.go:395-466) and
 leaving the earlier ones unlocked: `unl` is raised to `walOpenPos H s.1`, a position at or after the
 start of the file `Open` locks from: the smaller of the guard's position (`walGuardPos`: the
-snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`) and the name bound
+`|H|` if an index may wrap (unreachable), else 0 at index 0, else the
+snapshot record's last position under `walRelGuard`, else `|H|`) and the name bound
 (the last position a file named at most `s.1` can start at, `walNameBound … false`; WAL W4a.2, R1:
 `Open` locks from a file named exactly `s.1`, where `ReleaseLockTo` would not, so the two bounds
 differ) (the step `"WalUnlock"` of that position, `wp_WalOpenHandle`; revision round 3, F1: the purge

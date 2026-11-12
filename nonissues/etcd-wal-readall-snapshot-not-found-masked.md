@@ -57,17 +57,22 @@ it did was wrong: WAL W4a.2, finding F-W4a2-2, `notes/decisions.md`), and withou
 arm (the read of the whole history) and the purge bounds' name lower bound (`walLastIdx`,
 `WalDisk.lean`, which counts snapshot records) rest on the second commit too, and on no index `2^64-1`
 in the history: `Save` and `SaveSnapshot` take indices below it (WAL W4a.2 revision 1; nonissue
-`etcd-wal-segment-name-wraps`), a premise on the WAL's writers, not on `ReadAll`.
+`etcd-wal-segment-name-wraps`), a premise on the WAL's writers, not on `ReadAll`, and every history is
+one the run builds from `Create` (no WAL at the start, `absDiskInitOk`, revision 2).
 
 **Before upstreaming (an upgrade regression of the fork commits):** `0b50f0426` names only the segments
 it cuts. A WAL written by an older etcd (segments named `enti+1`) in the forgotten-snapshot shape still
 holds a segment named below a snapshot record before it; upstream's masked read restarts there, the
 fork's `ReadAll` (with `1aaca041c`, with or without `0b50f0426`) returns `ErrSnapshotNotFound` and
 `bootstrap` exits (the W4a.2 review's Go test `TestReviewUpgradeOldNamedWAL`,
-`/shared/tmp/coord-81/wal-w4a2-review/purge-restart/`). No soundness problem (an error is always
-allowed; the model covers WALs from `Create`), but an upstream fix must keep such WALs restartable: make
+`/shared/tmp/coord-81/wal-w4a2-review/purge-restart/`). Not a soundness problem for the model (an error is
+always allowed; the model covers only WALs the run creates, `absDiskInitOk`); a start with an old-named
+WAL would be a soundness problem, not only liveness (its names can sit below a snapshot record before
+them), so C6 cannot admit one, but an upstream fix must keep such WALs restartable: make
 `Open` select the file holding the start record (fall back to an earlier file when the selected ones do
-not match it), or keep the masked success for a WAL whose segments were named by the old scheme.
+not match it), or keep the masked success for a WAL whose segments were named by the old scheme (which
+brings F-W4a2-2 back for those WALs: the masked read is wrong there in general, so the first option is
+the sound one).
 
 ## Notes
 

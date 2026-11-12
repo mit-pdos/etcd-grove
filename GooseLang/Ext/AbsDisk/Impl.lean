@@ -149,7 +149,7 @@ def walImg {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Pr
 are synced. `unl`: while a handle of the directory with its purge right is live, every record from
 position `unl` on is in a file it keeps locked (records before it may be in unlocked files:
 `ReleaseLockTo`, and a restart's `Open`, which locks from the opened snapshot's file on and raises
-`unl` to `walOpenPos H s.1`, a position at or after the start of the file `Open` locks from (the smaller of the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`, and the last position a file named at most `s.1` can start at; WAL W4a.2)); an upper bound on what is unlocked while the right is
+`unl` to `walOpenPos H s.1`, a position at or after the start of the file `Open` locks from (the smaller of `|H|` if an index may wrap (unreachable), else 0 at index 0, else the snapshot record's last position under `walRelGuard`, else `|H|`, and the last position a file named at most `s.1` can start at; WAL W4a.2)); an upper bound on what is unlocked while the right is
 held. After `Close` or a crash no file is locked, and nothing may purge until a handle exists again
 (the purge right, `walPurgeW`, exists only with a live handle). `pur`: no record from position `pur`
 on has been deleted (records before it may have been: a purge round ran while `unl` was that).
@@ -188,12 +188,20 @@ structure AbsDiskState where
 instance : Inhabited AbsDiskState := ⟨⟨[], ∅, ∅⟩⟩
 
 /-- **The start's paths** [trusted: the adequacy theorem's premise, through `absDisk_interp.initP`]:
-the area is a clean absolute path, every WAL directory lies in it, no durable directory lies under it.
-The adequacy theorem covers only such starts; the program's own directories are constrained by the
-closed theorem (W4c). -/
+the area is a clean absolute path, every WAL directory lies in it, no durable directory lies under it,
+and **no WAL exists at the start** (`s.wal = ∅`; WAL W4a.2 revision 2, decided by etcd-grove-81: the
+re-review found that a WAL present at the start may hold an index `2^64-1`, or be named by an older
+etcd, which brings back the name wrap's false `ReadAll` and breaks `walOpenPos`; so every WAL history
+is one the run builds from `Create`, under `Save`'s and `SaveSnapshot`'s premises). A crash's next
+generation is not a start: it gets the crashed state (`absDisk_local_crash`). The adequacy theorem
+covers only such starts; the program's own directories are constrained by the closed theorem (W4c).
+**C6 gate:** a start with a WAL present needs a stronger condition ("written by etcd at the pin from
+its `Create`, under the `Save`/`SaveSnapshot` premises"); a WAL named by an older etcd does not meet it
+(a soundness problem, not only liveness). -/
 def absDiskInitOk (s : AbsDiskState) : Prop :=
   cleanAbsPath s.area ∧ (∀ k d, s.wal !! k = some d → walAreaDir s.area k) ∧
-  (∀ k, s.dirs !! k = some () → cleanAbsPath k ∧ ¬ underDir s.area k)
+  (∀ k, s.dirs !! k = some () → cleanAbsPath k ∧ ¬ underDir s.area k) ∧
+  s.wal = ∅
 
 /-- The abstract-disk extension. No values of its own, no global state. -/
 @[reducible] def absDiskExt : GooseExt where

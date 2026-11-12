@@ -16,7 +16,9 @@ snapshot record after the wrap, `Open(0)` followed by `ReadAll` succeeds reading
 segment (fewer entries than the WAL holds).
 
 **Why not an issue:** raft never reaches index `2^64-1` (an index grows by one per entry), and etcd
-writes the WAL only through raft's `Ready`; the WAL's own API documents no index range. Shown with Go
+writes the WAL with raft's indices: the entries and snapshot of raft's `Ready`, etcdserver's own
+`SaveSnapshot` at the applied index, and `etcdutl` restore's snapshot record at the restored index;
+the WAL's own API documents no index range. Shown with Go
 tests at the fork: `TestW4a2NameWrapReleaseLockTo`, `TestW4a2NameWrapUnlocksGuardedRecord`
 (`/shared/tmp/wal-spec/w4a2/tests/w4a2_wrap_test.go`) and the W4a.2 review's
 `TestReviewWrapZeroReadAllSucceeds`, `TestReviewWrapZeroReadAllFewerEntries`
@@ -24,9 +26,10 @@ tests at the fork: `TestW4a2NameWrapReleaseLockTo`, `TestW4a2NameWrapUnlocksGuar
 
 ## Proof
 
-no (after WAL W4a.2 revision 1): `(*WAL).Save` and `(*WAL).SaveSnapshot`'s trust-boundary specs take
-indices below `2^64-1` (`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`,
-`WAL__SaveSnapshot.lean`), so no modelled history holds the index, and `ReadAll`'s read of the whole
+no (after WAL W4a.2 revisions 1 and 2): `(*WAL).Save` and `(*WAL).SaveSnapshot`'s trust-boundary specs
+take indices below `2^64-1` (`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`,
+`WAL__SaveSnapshot.lean`), and no WAL exists at the start (`absDiskInitOk`), so every history the run
+builds from `Create` lacks the index, and `ReadAll`'s read of the whole
 history and the purge bounds hold. Before it, the wrap made `ReadAll`'s success arm and the purge
 bounds false (findings F-W4a2-1 and the review's B1, `notes/decisions.md`, "WAL W4a.2"). A caller
 (the WAL tester, later the server) discharges the premise from raft's index bound.

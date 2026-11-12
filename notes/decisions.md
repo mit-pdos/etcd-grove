@@ -35167,4 +35167,28 @@ etcd-grove-81).**
 - **Upgrade regression (before upstreaming):** a WAL named by an older etcd in the forgotten-snapshot
   shape fails to restart with `1aaca041c` (`TestReviewUpgradeOldNamedWAL`); upstream fix options in
   the nonissue (`Open` falls back to the file holding the start record, or the masked success kept for
-  old-named WALs). Not a soundness problem (the model covers WALs from `Create`).
+  old-named WALs, which brings F-W4a2-2 back for them). Not a soundness problem for the model (it covers
+  only WALs the run creates, revision 2).
+
+**Revision 2 (2026-11-12, after the re-review: READY WITH CHANGES from both lenses; decided by
+etcd-grove-81; a restricting change, no further round).**
+- **The start (major, both lenses):** the trusted start (`absDiskInitOk`/`absDiskStart`) accepted any
+  WAL history, so a WAL present at the start holding index `2^64-1`, or named by an older etcd, brought
+  B1 back and broke `walOpenPos` (Go test `/shared/tmp/coord-81/wal-w4a2-rereview/startwal/`). Fix:
+  `absDiskInitOk` requires `s.wal = ∅`: every WAL history is one the run builds from `Create`, under
+  the `Save`/`SaveSnapshot` premises. W4c's gate already fixes its own directory; crashes go through
+  generations (`absDisk_local_crash` takes the crashed state, with only the keys-in-area fact), not
+  through the start, so nothing else needs a WAL at the start. **C6 gate:** a start with a WAL present
+  would need "written by etcd at the pin from its `Create`, under the `Save`/`SaveSnapshot` premises";
+  a WAL named by an older etcd does not meet it, and that is a soundness problem (names below a
+  snapshot record before them: `walOpenPos`, `ReadAll`'s read), not only the restart's liveness.
+- **How C6 discharges the index premises:** `Save`'s entries are raft's `Ready` entries, below `2^64-1`
+  by raft's room fact (the `PreFacts` bound on the last index); etcd's own `SaveSnapshot` is at the
+  applied index, at most the last index, so below it; `Ready`'s snapshot (a received snapshot, saved
+  through `SaveSnapshot` in `raftNode`) has no step precondition bounding its index in raft's specs:
+  **a C6 item** (a bound on a received snapshot's index, from the sender's log, or a premise).
+  `etcdutl` restore writes a snapshot record at the restored index (outside the verified server).
+- Minors: the wrap nonissue's writers (raft's `Ready`, etcdserver's `SaveSnapshot`, `etcdutl`
+  restore); the five summaries of `walGuardPos` (`Impl.lean`'s `WalDur.unl`, `Specs.lean` thrice,
+  `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
+  masked success for old-named WALs" brings F-W4a2-2 back.
