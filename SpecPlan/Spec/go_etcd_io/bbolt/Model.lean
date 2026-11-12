@@ -456,6 +456,41 @@ def bktsUnder_mem.spec : Prop :=
   ∀ (e : Ent) (q : BPath), e.wf →
     (∀ d, d ∈ e.bktsUnder q ↔ q.IsPrefix d ∧ e.bktAt d) ∧ (e.bktsUnder q).Nodup
 
+/-- **The bucket paths after a bucket's creation** (`CreateBucket*` of a key absent from the
+bucket at `p`): the new bucket's path and its own buckets' (none for `CreateBucket`'s empty
+bucket) join the old ones, up to order. Well-formed data: keys sorted and distinct, so `setKey`
+on each ancestor replaces its one entry (on unsorted entries `insEnt` could insert a second copy
+of an ancestor's key, whose paths `bktPaths` would count twice). What a client keeping
+`[∗list] d ∈ T.cur.bktPaths, …` (the backend's lock invariant) rebuilds its list by. -/
+def bktPaths_create.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString) (x : Ent), e.wf → e.bktAt p →
+    e.atPath (p.child k) = none → x.isBkt = true →
+    (e.modAt p (fun b => b.setKey k (some x))).bktPaths.Perm
+      ((p.child k :: x.bktPaths.map (p.child k ++ ·)) ++ e.bktPaths)
+
+/-- **The bucket paths after a bucket's deletion** (`DeleteBucket`, `TxView.dropBkt`): those at or
+below `p.child k` go (the tokens `DeleteBucket` consumes, `bktsUnder`), the others stay, up to
+order. With no bucket at `p.child k` (absent, a value), nothing goes; with no bucket at `p`,
+`modAt` changes nothing. -/
+def bktPaths_dropBkt.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString), e.wf →
+    (e.modAt p (fun b => b.setKey k none)).bktPaths.Perm
+      (e.bktPaths.filter (fun d => !((p.child k).isPrefixOf d)))
+
+/-- **A value's put or delete leaves the bucket paths as they were** (`Put`, `Delete`,
+`Cursor.Delete`: the key holds no bucket, and what is set is a value or nothing; values add no
+path, so even the order is kept). -/
+def bktPaths_setVal.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString) (x : Option Ent), e.wf →
+    (e.atPath (p.child k)).any Ent.isBkt = false → (∀ y, x = some y → y.isBkt = false) →
+    (e.modAt p (fun b => b.setKey k x)).bktPaths = e.bktPaths
+
+/-- **A sequence update leaves the bucket paths as they were** (`SetSequence`, `NextSequence`:
+`setSeq` keeps a bucket's entries). -/
+def bktPaths_setSeq.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (n : w64), e.wf →
+    (e.modAt p (fun b => b.setSeq n)).bktPaths = e.bktPaths
+
 end Ent
 
 end Bbolt
