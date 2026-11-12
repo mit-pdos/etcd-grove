@@ -39,7 +39,8 @@ its peer URLs `urls` (read-only) and `nil`; or `nil` and `ErrStopped` or `ErrNoL
 fresh and nothing writes it after, so it may be shared read-only. (k8s 7f-4, T-f) The context is a
 stream handler's weak one (`srvCtxWeak`, which every `isContext` is: `srvCtxWeak_of_isContext`): it
 only selects on `ctx.Done()` (fork `673da07c8f` `server/etcdserver/v3_server.go:785-803`), never
-calls `Err()`. -/
+calls `Err()`. (k8s 7f-4, T-f') `srvCtxWeak`'s `Err` clauses take a level token
+(`levelTok v3rpc.ctxErrLvl`), which this call never needs, since it never calls `Err()`. -/
 abbrev EtcdServer.waitLeader.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),

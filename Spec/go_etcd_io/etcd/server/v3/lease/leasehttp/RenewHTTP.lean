@@ -54,7 +54,11 @@ only decides whether to dial again. An `Err()` of `ErrGRPCNoLeader`, or a non-ni
 `Done`, at most changes which error is returned, and the post accepts every error here
 (`examples/premisefix/streamctx`, `TestRenewHTTPErrTiming`: a context whose `Err()` panics before
 `Done` and is `ErrGRPCNoLeader` after; it is never called, and the cancelled call returns a
-`*url.Error` of `context.Canceled`). -/
+`*url.Error` of `context.Canceled`). (k8s 7f-4, T-f') `srvCtxWeak`'s `Err` clauses take a level
+token (`levelTok v3rpc.ctxErrLvl`, the reader slot of the wrapper's `RWMutex`), which the premise
+does not hand over: net/http calls `ctx.Err()` only from live goroutines (the caller's and the
+transport's own), each a thread, so the read locks it holds at one time are bounded by the threads,
+which is what the token accounts for in the logic (the Freeze addendum T-f'). -/
 abbrev leasehttp.RenewHTTP.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
     (rt : GoInterface),

@@ -327,6 +327,53 @@ etcd-grove-81 (questions.md).
   (`#HParentCC` excludes the `afterFuncer`/`stopCtx` rewrite). m2: the per-execution reading sentence
   (the same as `WithValue.spec`'s `incomingOf` post).
 
+## Addendum T-f' (2026-11-12): the weak context's `Err` pays a level token (decided by etcd-grove-81, option (A))
+
+- **Why** (step 4's blocker, `notes/k8s-7f4-handoff.md` "Steps 3-4, third agent"): etcd's wrapper's
+  `Err` (fork `673da07c8f` `server/etcdserver/api/v3rpc/interceptor.go:297-304`) takes
+  `c.lock.RLock()`. Perennial's `RLock` (`sync.RWMutex.wp_RLock_of`) needs a reader token
+  (`ownRWMutex rw P`; `2^30 - 1` per lock, the bound below which Go's reader counter does not
+  overflow). T-f's `"#HErr"`/`"#HErrDone"` gave a persistent `Err` triple with no resource, which no
+  finite stock of reader tokens can pay for (unboundedly many concurrent callers), so
+  `srvCtxWeak (ccCtx l)` was not provable. The bounds plan's answer (`notes/bounds-plan.md`): a reader
+  pays with its thread token, through a thread pool of the lock's reader tokens
+  (`init_RWMutex_threadPoolL`).
+- **Text** (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SrvCtxWeak.lean`): new
+  `abbrev v3rpc.ctxErrLvl : Nat := 4`; `"#HErr"` is
+  `□ ∀ Φ, levelTok v3rpc.ctxErrLvl -∗ ▷ (∀ err, levelTok v3rpc.ctxErrLvl -∗ Φ #err) -∗ WP Err()`,
+  and `"#HErrDone"` takes `levelTok v3rpc.ctxErrLvl` after `ContextClosed` and returns it with the
+  error. The other clauses are unchanged. `srvCtxWeak_of_isContext` still holds (an `isContext`'s
+  `Err` needs no token; it is passed through) and `auth.ctxDoneAny_of_srvCtxWeak` is untouched.
+- **The level** (from `Proof/google_golang_org/grpc/InvGrpcRun.lean`): grpc's run splits its thread
+  token into levels 0-3 and `threadTokFrom 4` (`threadTok_levels0123`): level 0 is the handler's own
+  (the lessor's and leases' pools, `lessorLvl = leaseLvl = 0`), 1 `raftPoolN`, 2 the revoke pools
+  (`srvRevokeInnerN`/`srvRevokeOuterN`), 3 `srvRunN` (`grpcStreamRunOk_of_pools`). No pool of the
+  repository is at a level above 3 (`isThreadPoolL` and `levelTok` occurrences, 2026-11-12). Level 4
+  is in the run's `threadTokFrom 4`, which it keeps: the wrapper's handle work hands `levelTok 4` to
+  the handler with its bundle (`threadTokFrom 4 ⊣⊢ levelTok 4 ∗ threadTokFrom 5`), and a forked
+  goroutine keeps the whole token `wp_fork_tok` gives it.
+- **Effect on the trust base** (weaker premises, so stronger axioms): the `Err` part of the premise
+  of `EtcdServer.waitLeader.spec` and `leasehttp.RenewHTTP.spec` (both take `srvCtxWeak ctx cd`), and
+  of `Tracer.Start.spec`'s premise and wand (`txnCtx ∨ srvCtxWeak`, `□ (srvCtxWeak ctx cd -∗
+  srvCtxWeak ctx' cd)`). Their statements are textually unchanged; each docstring has a T-f' sentence.
+- **Go:**
+  - `waitLeader` (`v3_server.go:785-803`) only selects on `ctx.Done()`; it never calls `Err()`, so
+    a premise whose `Err` needs a token it does not have is never exercised.
+  - `RenewHTTP`: net/http calls `ctx.Err()` only from live goroutines (the caller's and the
+    transport's own; HTTP/2 after `Done`, and `shouldRetryDial`'s nil test,
+    `internal/http2/client_conn_pool.go:284`). Each is a thread, so the read locks held at one time
+    on the wrapper's `RWMutex` are bounded by the live threads (`threadBound GF`, 2^28 < 2^30), which
+    is what the token accounts for in the logic. In Go the reader counter cannot overflow from them.
+  - `Tracer.Start`: `ContextWithSpan(ctx, s)` is a `valueCtx` whose `Err()` is `ctx.Err()` (the
+    same call, paid with the same token), or `ctx` itself (the no-op tracer).
+- **Review point:** the level choice (4) and that the three trust-boundary texts only use `Err`
+  from threads. Callers of the weak context's `Err` in proofs (after the handle work): `watchServer.Watch`
+  (after `Done`), `recvLoop` (`watch.go:203`, forked), `leaseKeepAlive` (`lease.go:106,118,149`),
+  and the local `WithTimeout` lemma (`propagateCancel`'s `parent.Err()`).
+- **Checks:** `SrvCtxWeak.lean` and every module that mentions `srvCtxWeak`
+  (`Tracer__Start`, `StartLaws`, `SrvCtxWeakLaws`, `EtcdServer__waitLeader`, `RenewHTTP`) pass
+  `etc/lean-check.py -a`; build and gates below.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5
