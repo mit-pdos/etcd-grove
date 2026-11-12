@@ -738,6 +738,16 @@ instance walLenLb_persistent (w : Loc) (dir : GoString) (n : Nat) :
     Persistent (walLenLb (L := L) w dir n) := by
   unfold walLenLb; infer_instance
 
+instance absPast_timeless (s : AbsDiskState) : Timeless (absPast (L := L) s) := by
+  unfold absPast absPastAt; infer_instance
+instance walArea_timeless (r : GoString) : Timeless (walArea (L := L) r) := by
+  unfold walArea; infer_instance
+instance walSyncedLb_timeless (dir : GoString) (n : Nat) : Timeless (walSyncedLb (L := L) dir n) := by
+  unfold walSyncedLb; infer_instance
+instance walNamed_timeless (dir : GoString) : Timeless (walNamed (L := L) dir) := by
+  unfold walNamed; infer_instance
+instance dirDurable_timeless (d : GoString) : Timeless (dirDurable (L := L) d) := by
+  unfold dirDurable; infer_instance
 instance walOwn_timeless (M : GMap GoString WalDur) : Timeless (walOwn (L := L) M) := by
   unfold walOwn walOwnAt; infer_instance
 instance walDirIs_timeless (dir : GoString) (o : Option WalDur) :
@@ -1812,6 +1822,40 @@ theorem walDiskAt_crash_any_keep (dir : GoString) (d : WalDur) (n : Nat) :
   · iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
   · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
 
+/-- **`walDiskAt_crash_any_keep` at the mark 0, with no synced lower bound** (WAL W4c step 2): for
+the WAL `Create` has just committed (its `walSyncedLb dir 0` comes only with `Create`'s return). -/
+theorem walDiskAt_crash_any_keep0 (dir : GoString) (d : WalDur) :
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      walDiskAt (L := L) dir d -∗
+      walDiskAt (L := L) dir d ∗ ((walAbsent (L := L') dir ∗ ⌜d.named = false⌝) ∨
+        ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H 0 I ∧ k ≤ min d.pur I.length⌝ ∗
+          walDiskAt (L := L') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }) := by
+  unfold walDiskAt walAbsent walDirIs
+  iintro Hcs ⟨%M, HM, %HMd⟩
+  icases absDisk_crash_view_keep (L := L) L' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, -, HM', -⟩
+  obtain ⟨dr, hdr, hle⟩ := walDiskAt_crash_real HMd HMs
+  obtain ⟨-, -, hcw, -⟩ := hc
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
+  rcases hcw dir dr hdr with ⟨hnf, hnone⟩ | ⟨I, k, hI, hk, hs'⟩
+  · ileft
+    isplitl [HM']
+    · iexists s'.wal; iframe HM'; ipureintro; rw [hnone]; trivial
+    · ipureintro
+      cases hdn : d.named
+      · rfl
+      · rw [hle.2.2.2.2.2.2.2 hdn] at hnf; cases hnf
+  obtain ⟨j, -, hj2, hj3⟩ := hI
+  iright
+  iexists I, k
+  isplitr
+  · ipureintro
+    refine ⟨⟨j, Nat.zero_le _, ?_, ?_⟩, ?_⟩
+    · rw [hle.1]; exact hj2
+    · rw [hle.1]; exact hj3
+    · rw [hle.2.2.1]; exact hk
+  iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
+
 /-- **`walAbsent_crash`, keeping the old generation's copy** (WAL W4c, Q1). -/
 theorem walAbsent_crash_keep (dir : GoString) :
     ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
@@ -1845,6 +1889,31 @@ theorem walArea_crash (s s' : AbsDiskState) (hc : absDisk_semantics.crash s s') 
   iintro HP #Hp' ⟨%p, Hp, %Hr⟩
   icases absPast_le _ s p $$ HP Hp with %Hlp
   iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
+
+/-- **`dirDurable_crash`, keeping the crash start** (WAL W4c step 2): a durable directory stays
+durable, and the crash start comes back, for the WAL's crash lemmas (which consume it). -/
+theorem dirDurable_crash_keep (d : GoString) :
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      dirDurable (L := L) d -∗
+      absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) ∗ dirDurable (L := L') d := by
+  unfold absDiskCrashWal dirDurable absPast
+  iintro ⟨%s, %s', %hc, HG, HP, HM', #Hp'⟩ ⟨%p, Hp, %Hd⟩
+  icases absPast_le _ s p $$ HP Hp with %Hlp
+  isplitl [HG HP HM']
+  · iexists s, s'; iframe HG HP HM' Hp'; ipureintro; exact hc
+  · iexists s'; iframe Hp'; ipureintro; rw [hc.2.1]; exact Hlp.2.1 d Hd
+
+/-- **`walArea_crash`, keeping the crash start** (WAL W4c step 2). -/
+theorem walArea_crash_keep (r : GoString) :
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+      walArea (L := L) r -∗
+      absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) ∗ walArea (L := L') r := by
+  unfold absDiskCrashWal walArea absPast
+  iintro ⟨%s, %s', %hc, HG, HP, HM', #Hp'⟩ ⟨%p, Hp, %Hr⟩
+  icases absPast_le _ s p $$ HP Hp with %Hlp
+  isplitl [HG HP HM']
+  · iexists s, s'; iframe HG HP HM' Hp'; ipureintro; exact hc
+  · iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
 
 end crashGen
 
