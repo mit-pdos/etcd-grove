@@ -121,3 +121,35 @@ W4b, W4c as the Draft's §8 (Freeze review of W4a first: `spec-reviewer` fresh +
 export TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json
 flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake --packages=/shared/tmp/manifest-ddc.json build
 ```
+
+## W4a revision, Phase 2 (fifth agent, 2026-11-12)
+
+Approved (questions.md): the revision design as a whole (etcd-grove-81); M3 = the fork fix (the user).
+Done:
+- Fork fix `c90b03b56` ("wal: Exist reports a WAL when its directory cannot be read", + `util_exist_test.go`)
+  on `goose-lean` `b18c2d500` (fast-forward), branch `goose-lean-exist`, worktree
+  `/shared/tmp/wal-spec/w4/etcd-exist` (of the clone `/shared/tmp/wal-spec/w3/etcd`). WAL + fileutil
+  tests pass; the test fails at the pin and at upstream main. Tester (k-posix, 150 chains, killpl 0.6)
+  against it: 0 violations (`/shared/tmp/wal-spec/w4/tester-run/k-posix.log`). Upstream candidate
+  `fix/etcd-wal-exist-readdir-error` `a6afba76d` in `/shared/tmp/wal-spec/w3/upstream-etcd`.
+  **Push (the user):** `git -C /shared/tmp/wal-spec/w4/etcd-exist push git@github.com:upamanyus/etcd.git c90b03b56:refs/heads/goose-lean`.
+- nonissue `etcd-wal-exist-readdir-error-removes-wal` (`d1998a573b`); lean `49fff2f95c` merged (`a390bfad8d`).
+- Lean: `de4a78bdb0` Paths/Impl; `7fefe95aca` durable (reservation, mode `o`); `65f86beb2b` Specs.lean
+  (area, `walKeysInArea`, handles by ghost name, `walReadFailed`, step specs `wp_WalOpenHandle`,
+  `wp_WalReadFail`, `wp_WalNamedOpen`, `walDiskAt_crash_any`, `walArea_crash`), WalDisk
+  (`walRelGuard`, `walReleasePos`, `durableResvD`, `walAreaOk`, `walPurge_step` with `k`), the axioms
+  (generator `/shared/tmp/wal-spec/w4/gen/genspecs.py`; the pre-revision one `genspecs-w4a.py`),
+  TouchDirAll. Form decided: `walLenLb w dir n` (names its directory, so Sync's consistency needs no
+  freshness of `w`).
+- Go tests (§10): `/shared/tmp/wal-spec/w4/rev-tests/` (all as predicted; table in the Freeze package).
+
+Next, in order:
+1. When `git ls-remote https://github.com/upamanyus/etcd.git refs/heads/goose-lean` shows `c90b03b56`:
+   bump the etcd pin in `etc/goose.py` to it, regenerate (`etc/goose.py --project etcd`, PATH export,
+   no GOWORK=off), move examples' go.mod/go.sum (as W4a step 2 did for b18c2d500), `goose.py --check`.
+   Until then the axioms' headers name `c90b03b56` while the pin is `b18c2d500` (Exist's spec is false
+   of `b18c2d500` under a `ReadDir` failure): do not land before the bump.
+2. Checks after the full build: tcb `--check` (+ collections), gen-interface `--check`, api-check,
+   gen-init `--check`, goose `--check`, bounds, issues.
+3. Freeze package "Revision after review" (`/shared/tmp/wal-spec/w4/gen/rev-head.md` + diffs), then
+   the second independent review; STOP before land.sh.
