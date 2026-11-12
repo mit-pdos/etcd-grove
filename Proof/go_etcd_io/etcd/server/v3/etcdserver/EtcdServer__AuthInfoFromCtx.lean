@@ -66,7 +66,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         · iframe #
         iintro -
         wp_auto
-        wp_apply HFromTLS $$ %ctx %cd [] as %a' Ha'
+        wp_apply HFromTLS $$ %ctx [] as %a' Ha'
         · iframe #
         iapply HΦ; iframe Hrd Ha'; isplitr
         · iapply authApplyErrIs_nil

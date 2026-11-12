@@ -19,6 +19,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Error
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchLemmas
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.StartLaws
 
 @[expose] public section
 
@@ -449,7 +450,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        wp_apply hStart tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
+        wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
         · iframe #
           iunfold mvcc.txnCtx
           iright; iexact Hctxis

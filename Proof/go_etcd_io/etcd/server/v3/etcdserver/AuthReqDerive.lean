@@ -119,7 +119,7 @@ theorem isReqAuth_of_authInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %ctx %cd %Φ !> ⟨-, #Hlib, Hrd⟩ HΦ
+  · iintro !> %ctx %Φ !> ⟨#Hlib, Hrd⟩ HΦ
     iunfold context.libCtxOk at Hlib
     icases Hlib with ⟨#Hinc, -, -, -⟩
     iunfold auth.authRd at Hrd
@@ -133,7 +133,7 @@ theorem isReqAuth_of_authInv
     isplitr
     · iapply authInfoRO_authInfoOpt a $$ Ha
     iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
-  · iintro !> %ctx %cd %Φ !> ⟨-, #Hlib⟩ HΦ
+  · iintro !> %ctx %Φ !> #Hlib HΦ
     iunfold context.libCtxOk at Hlib
     icases Hlib with ⟨#Hinc, -, #Hpeer, -⟩
     iapply (hTLS st R M ctx) $$ []
@@ -153,7 +153,7 @@ theorem isReqAuthBound_of_authInv
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
-  iintro !> %ctx %cd %Φ !> ⟨-, #Hlib, Hrd⟩ HΦ
+  iintro !> %ctx %Φ !> ⟨#Hlib, Hrd⟩ HΦ
   iunfold context.libCtxOk at Hlib
   icases Hlib with ⟨#Hinc, -, -, -⟩
   iunfold auth.authRd at Hrd
@@ -183,8 +183,8 @@ theorem isReqAuthBound_ctx (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode
   iexists ai
   isplitr
   · ipureintro; exact Hai
-  iintro !> %ctx %cd %Φ !> Hpre HΦ
-  iapply H $$ %ctx %cd [$Hpre]
+  iintro !> %ctx %cd %Φ !> ⟨-, Hpre⟩ HΦ
+  iapply H $$ %ctx [$Hpre]
   iintro !> %a %err ⟨HRD, Ha, Herr, -⟩
   iapply HΦ
   iframe HRD Ha
@@ -208,8 +208,8 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     icases Ha with ⟨%ai1, %Hai1, #H, -⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
-    iintro !> %ctx %cd %Φ !> Hpre HΦ
-    iapply H $$ %ctx %cd [$Hpre]
+    iintro !> %ctx %cd %Φ !> ⟨-, Hpre⟩ HΦ
+    iapply H $$ %ctx [$Hpre]
     iintro !> %a %err ⟨HRD, Hai, Herr⟩
     iapply HΦ
     iframe HRD Hai Herr
@@ -224,8 +224,8 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     icases Hb' with ⟨%ai1, %Hai1, #H⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
-    iintro !> %ctx %cd %Φ !> Hpre HΦ
-    iapply H $$ %ctx %cd [$Hpre]
+    iintro !> %ctx %cd %Φ !> ⟨-, Hpre⟩ HΦ
+    iapply H $$ %ctx [$Hpre]
     iintro !> %a %err ⟨HRD, Hai, #Herr, #Hbd⟩
     iapply HΦ
     iframe HRD Hai

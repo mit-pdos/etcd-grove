@@ -47,112 +47,167 @@ So the weak stream end carries `srvCtxWeak ∗ libCtxOk ∗ trace.spanCtxOk` of 
 `etcdstart.commonPremises`, `putget3`'s premises or `ServeFromStart`. Regenerate the list (with
 `etc/tcb-report.py`'s roots) at step 6.
 
-## 2. The trusted package (step 2): text
+## 2. The trusted package (step 2): as written in Lean (2026-11-12)
 
-Each item says where it goes, what it says, and why it is true in Go. "Stronger post" = an axiom
-gives more; "weaker pre" = an axiom asks less. All go through the `axiom` skill in 81's review.
+Written into Lean on branch `k8s-7f4` (commit in the handoff). Each item: where it is, what it says,
+why it is true in Go, the Go evidence (`examples/premisefix/streamctx/streamctx_test.go`, run at the
+pins with GOWORK=off, go1.27.1 locally), and what the review should check. T-d (F2) is deferred to
+7f-3 (decided by etcd-grove-81, 2026-11-12). "Stronger post" = an axiom gives more; "weaker pre" =
+an axiom asks less.
 
 ### T-a. The raw stream end carries the run context's library facts in the chain form (R-1)
 
-`srvRawStreamIs` (`Proof/google_golang_org/grpc/InvGrpcStream.lean:387`, given by `acceptRun`'s stream
-arm through `grpcAccepted`, and by grpc-prometheus's interceptor contract) gains, after
-`context.isContext ci cd ∗ grpcRunCtx ci`, the conjunct `context.libCtxOkC ci ∗ trace.spanCtxOkC ci`.
-The unary path (`grpcAccepted`'s unary arm, `grpcRunCtx`) is untouched. New vocabulary
-(`Proof/context/LibKeysChain.lean`, beside `outgoingCtxOkC`):
-
-```lean
-/-- `ctx`'s library values, as Perennial's chain says (persistent): `libCtxOk`'s four facts with
-`context.value`'s chain (`ctxValue`) in place of the WP form, so that `WithCancel` and the deadline
-constructors carry them (`ctxValueFrom`). -/
-def context.libCtxOkC (ctx : GoInterfaceOk) : IProp GF :=
-  iprop((∃ v, ⌜metadata.incomingRes v⌝ ∗ ctxValue ctx metadata.mdIncomingKeyAny (· = v)) ∗
-    metadata.outgoingCtxOkC ctx ∗ ctxValue ctx peer.peerKeyAny peer.peerRes)
-
-/-- `ctx`'s span is a span, in the chain form (persistent). -/
-def trace.spanCtxOkC (ctx : GoInterfaceOk) : IProp GF :=
-  iprop(∃ R : GoInterface → Prop,
-    □ (∀ v, ⌜R v⌝ -∗ (⌜v = GoInterface.nil⌝ ∨ trace.isSpan v)) ∗ ctxValue ctx trace.spanKeyVal R)
-```
-
-(`libCtxOkC` leaves otel's key to `spanCtxOkC`: `libCtxOk`'s `spanValOk` uses `trace.spanRes`, whose
-`otelSpan → isSpan` has no law; the handlers need `spanCtxOk`, and the run context's `spanValOk` stays
-in `grpcRunCtx`.)
-
-- **Stronger post** of `acceptRun` (stream arm) and of `grpc_prometheus.ServerMetrics.
-  StreamServerInterceptor` (its handler's `st'` must carry the same facts: same `ci`, so they are
-  the input's).
-- **True in Go:** grpc's run context is built by `context.WithValue` links (`metadata.
-  NewIncomingContext`, `peer.NewContext`, grpc's internal keys, otelgrpc's `ContextWithSpan`) over the
-  transport's `context.WithCancel` of the server's base context; `context.value()` walks exactly
-  these links (`*valueCtx`, `*cancelCtx`, `*timerCtx`, `backgroundCtx`), so the chain answers each key
-  as the WP form does. To check in review: no link of another type in grpc v1.84.0's server path
-  (`http2_server.go` `operateHeaders`, `server.go` `handleStream`/`processStreamingRPC`, otelgrpc's
-  `TagRPC`); a link of another type is still covered if it is not one `value()` special-cases
-  (`ctxValue_other`).
-- **Laws** (proved, step 3): `libCtxOkC ci ∗ ctxValueFrom ci c ⊢ libCtxOkC c` (keys not `*int`:
-  `libKeys_notIntPtr`); `isPkgInit context ∗ libCtxOkC c ⊢ libCtxOk c` minus otel's key (+
-  `spanCtxOkC` for it); the same two for `spanCtxOkC`.
+- **Vocabulary** (`Proof/context/LibKeysChain.lean:64` `context.libCtxOkC`, `:77`
+  `trace.spanCtxOkC`; persistent): `libCtxOk`'s facts at grpc's three keys (incoming: one value
+  `v`, `incomingRes v`; outgoing: `outgoingCtxOkC`; peer: `peerRes`) and `spanCtxOk`, each with
+  Perennial's `ctxValue` (the chain) in place of the WP form. Otel's key only in `spanCtxOkC`
+  (`spanRes`'s `otelSpan → isSpan` has no law).
+- **Text** (`Proof/google_golang_org/grpc/InvGrpcStream.lean:400-423`, `srvRawStreamIs`): the last
+  conjuncts are now `isContext ci cd ∗ grpcRunCtx ci ∗ context.libCtxOkC ci ∗ trace.spanCtxOkC ci`.
+  The unary arm (`grpcAccepted`'s, `grpcRunCtx`) is untouched.
+- **Stronger post** of grpc's `acceptRun` (stream arm, through `grpcAccepted`,
+  `InvGrpcRun.lean:157`) and of `grpc_prometheus.ServerMetrics.StreamServerInterceptor` (its
+  handler's `st'` has the same `ci`).
+- **Go:** grpc v1.84.0 builds a stream's context as `Background()` (`server.go:1024`) →
+  `SetConnection`, `peer.NewContext` (`server.go:1072-1073`, `WithValue`) → otelgrpc's `TagConn`
+  (identity) → the transport's `WithTimeout`/`WithCancel` (`http2_server.go:537-539`) →
+  `NewIncomingContext` (`:544`) → `contextWithServer`, otelgrpc's `TagRPC` (`extract`: the
+  propagators' `WithValue`s; `tracer.Start`: `ContextWithSpan`) → `NewContextWithServerTransportStream`
+  (`server.go:1306`) → `newContextWithRPCInfo` (`:1429`); prometheus's wrapper returns that
+  context unchanged. All `*valueCtx`/`*cancelCtx`/`*timerCtx` over `backgroundCtx`, which
+  `context.value()` walks.
+- **Evidence:** `TestRunCtxChain` walks `ss.Context()`'s links by reflection, with/without
+  grpc-prometheus, otelgrpc's stats handler (SDK tracer) and a client deadline: every link is one of
+  the four types, ending at `context.backgroundCtx` (7-11 links).
+- **Review point (from the previous agent):** no link of another type in grpc's server context
+  chain. Two paths not covered by the test: `EnableTracing` (`newTraceContext`, x/net/trace's
+  `NewContext`, a `WithValue`) and the `pprof.WithLabels` label path (a `WithValue`), both off by
+  default; and grpc's `ServeHTTP` (`server.go:1152`, net/http's request context, standard types too,
+  and `handler_server.go`'s `WithCancel`/`WithTimeout`), which etcd uses when gRPC and HTTP share a
+  TLS port (transport is low priority).
 
 ### T-b. F1-general: the incoming metadata is a function of `Value(mdIncomingKey{})` (R-2)
 
-New axiom (`Proof/google_golang_org/grpc/metadata/Incoming.lean`, beside the opaque `incomingOf`):
+- **Text** (new axiom, `Proof/google_golang_org/grpc/metadata/Incoming.lean:51`):
 
 ```lean
-/-- (TRUSTED) `metadata.FromIncomingContext(ctx)` reads only `ctx.Value(mdIncomingKey{})`
-(grpc v1.84.0 `metadata/metadata.go`), and the `MD` stored there is never written after
-(`transportMD`): two contexts whose `Value` at that key returns the same value on every call have the
-same incoming metadata. -/
 axiom metadata.incomingOf_of_value (c c' : GoInterfaceOk) (v : GoInterface) :
     context.valueAt (GF := GF) c metadata.mdIncomingKeyAny (· = v) ∗
       context.valueAt c' metadata.mdIncomingKeyAny (· = v) ⊢
     ⌜metadata.incomingOf (GoInterface.ok c) = metadata.incomingOf (GoInterface.ok c')⌝
 ```
 
-To check in review: `incomingOf` is opaque and indexes the stream `Spec`; the axiom must not let a
-proof equate the metadata of contexts whose values differ (it only concludes from equal values).
-A value that is not an `MD` (`incomingRes`'s first disjunct): `FromIncomingContext` returns
-`(nil, false)` for both, so `incomingOf` agrees (`none`).
+  (`Incoming.lean` now imports `Proof.context.LibKeys` for `valueAt`.)
+- **Go:** `FromIncomingContext` (grpc v1.84.0 `metadata/metadata.go:268-282`) is
+  `ctx.Value(mdIncomingKey{}).(MD)` then a lower-cased copy: a function of that value; `(nil,
+  false)` for a non-`MD`. The `MD` the transport stores is never written after (`transportMD`).
+- **Evidence:** `TestIncomingOfValue`: in a real handler (prometheus + otelgrpc), the handler's
+  metadata equals (`DeepEqual`) that of etcd's wrapper over `WithCancel(ss.Context())` after
+  `Cancel(ErrGRPCNoLeader)`, of a context whose `Done`/`Err`/`Deadline` panic and whose `Value`
+  delegates, and of a `WithValue` child; two unrelated contexts holding the same `MD` value agree;
+  two with nothing at the key both give `(nil, false)`.
+- **Review point:** it concludes only from equal values (both `valueAt ... (· = v)` with the same
+  `v`); nothing equates contexts whose values differ. It inherits the header's assumption that a
+  stored `MD` is not mutated after (true of the transport's; a program's own `NewIncomingContext`
+  with a map it mutates later would already break "`incomingOf` is a function of the context").
 
 ### T-c. F3: the raw stream is a comparable map key (Draft §6 R1)
 
-`srvRawStreamIs`'s `∃ si, st = GoInterface.ok si` gains `⌜rawStreamKeyTy si.ty⌝`, where
-`rawStreamKeyTy t` (new, `InvGrpcStream.lean`) is: `t` is a pointer type, or a named struct type all of
-whose fields are interfaces or pointers (grpc-prometheus's `monitoredServerStream`; checked against
-its translation). **Stronger post** of `acceptRun` (grpc-go passes `*serverStream`) and of
-prometheus's contract (its `st'` is `&monitoredServerStream{...}` or the struct: to check against
-`go-grpc-middleware/providers/prometheus` at the pin). The local `SafeMapKey` instance of the
-mapkey check (`notes/k8s-7f4-mapkey-check.lean.txt`) consumes it.
-
-### T-d. F2: `clientv3.WithRequireLeader` over a caller's context
-
-As the Draft §4 (`Spec/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`, a new `spec'` beside the
-`Background()` one, which becomes a corollary). Consumer: 7f-3/7f-5a (the store's `watchContext`);
-written now so the package is one review, or deferred to 7f-3 if 81 prefers (recommended: defer;
-7f-4's server half does not use it).
+- **Text** (`InvGrpcStream.lean:379` `rawStreamKeyTy t := ∃ t', t = go.GoType.PointerType t'`;
+  `:403` `srvRawStreamIs`'s `∃ si, ⌜st = GoInterface.ok si⌝ ∗ ⌜rawStreamKeyTy si.ty⌝ ∗ …`).
+  **Form decided (narrower than the text draft):** a pointer type only, not "or a named struct of
+  interfaces and pointers": grpc-prometheus passes `&monitoredServerStream{…}`, a pointer
+  (go-grpc-middleware v2.3.4 `interceptors/server.go:36`), not the struct.
+- **Stronger post** of `acceptRun` (grpc passes `ss := &serverStream{…}`, `server.go:1307`) and of
+  prometheus's contract.
+- **Evidence:** `TestRawStreamKey`: at the last interceptor's position (etcd's) and in the handler,
+  `*grpc.serverStream` without prometheus, `*interceptors.monitoredServerStream` with it; both are
+  pointers and work as `map[grpc.ServerStream]int` keys, alone and inside a
+  `serverStreamWithCtx{ServerStream, *cancellableContext}`.
+- **Review point:** prometheus's wrapper type (above). Etcd's chain has no other stream
+  interceptor (`v3rpc/grpc.go`: `[serverMetrics.StreamServerInterceptor(), newStreamInterceptor(s)]`;
+  otelgrpc is a stats handler, it wraps no stream).
 
 ### T-e. `NewAuthStore`'s request side without `txnCtx` (§1a)
 
-`isReqAuth`'s two triples and `isReqAuthBound`'s take `context.libCtxOk ctx (∗ RD)` only. **Stronger
-post** of `auth.NewAuthStore` (axiom). Go: the store's `AuthInfoFromCtx`/`AuthInfoFromTLS` never call
-`Done`/`Err` (fork `673da07c8f` `server/auth/store.go`, `AuthInfoFromCtx`, `AuthInfoFromTLS`).
+- **Text** (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRequest.lean:2636-2668`): `isReqAuth`'s
+  two triples and `isReqAuthBound`'s are `∀ ctx, {{ context.libCtxOk ctx ∗ RD }}` (resp. `{{
+  context.libCtxOk ctx }}`): the `mvcc.txnCtx ctx cd` conjunct and the `cd` binder are gone.
+- **Stronger post** of `auth.NewAuthStore` (axiom, auth off). Its realizers never used `txnCtx`
+  (`AuthReqDerive.lean`). The derived internal lemmas `isReqAuthBound_ctx`, `isReqAuth_ctxM` keep
+  their `txnCtx`-taking statements for now (weaker; they drop it); step 5 strengthens them for W3/L5.
+- **Go:** `AuthInfoFromCtx`/`AuthInfoFromTLS` (fork `673da07c8f` `server/auth/store.go`) read only
+  the metadata and the peer, never `Done`/`Err`/`Deadline`.
 
 ### T-f. The weak handler context and the three weakened trust-boundary premises (Draft §2, §4)
 
-Vocabulary (new, `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/` or a grpc-side module the
-specs below can import; `srvCtxWeak`, `noLeaderErr` as the Draft §2, with `#HErrDone` giving
-`isCtxErr err ∨ noLeaderErr err`).
+- **Vocabulary** (new module `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SrvCtxWeak.lean`;
+  imports only Perennial's context proofs and the generated `rpctypes`): `noLeaderErr err` (`:40`,
+  the value of `rpctypes.ErrGRPCNoLeader`); `srvCtxWeak c s` (`:59`); the law
+  `srvCtxWeak_of_isContext : isContext c s ⊢ srvCtxWeak c s` (`:98`, proved).
+  **Form decided, stronger than the Draft's §2:** `srvCtxWeak` is Perennial's `isContextDef` with
+  only its two `Err` clauses weakened (`#HErr`: `Err()` returns any value; `#HErrDone`: after
+  `ContextClosed`, `err ≠ nil` and `isCtxErr err ∨ noLeaderErr err`); the other clauses
+  (`#HDeadline`, `#HDone`, `#HValue` at `&cancelCtxKey`, `#HDoneFresh`, `#HParentCC`,
+  `#HClosedchan`) are `isContext`'s. Why: `LeaseRenew` calls `WithTimeout(ctx1)` on
+  `Tracer.Start`'s context, and `WithDeadline`/`propagateCancel` call the parent's `Deadline`,
+  `Done`, `Value(&cancelCtxKey)` and `parentCancelCtx`: with only the Draft's three clauses, no
+  local `WithTimeout` lemma over a weak parent could be proved through `Tracer.Start`'s post. The
+  extra clauses are true of the wrapper (promoted from its embedded `WithCancel(ci)` child) and of
+  a `valueCtx` over a weak context (delegated). This only strengthens the vocabulary: `waitLeader`'s
+  and `RenewHTTP`'s premises ask more than with the Draft's form; `Tracer.Start`'s wand claims
+  more, by delegation. (No `isTypedErr` in `#HErrDone`: `ErrGRPCNoLeader`'s typing is not
+  available; step 5's lemma will tell whether it is needed.)
+- `traceutil.Tracer.Start.spec` (`Spec/go_etcd_io/etcd/pkg/v3/traceutil/Tracer__Start.lean:66-84`):
+  pre `mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd` (**weaker pre**); in the post the `txnCtx` of `ctx'`
+  becomes `□ (mvcc.txnCtx ctx cd -∗ mvcc.txnCtx ctx' {cd with Values := vs})` (it has to be a
+  wand now that the premise may be the weak one), and `□ (srvCtxWeak ctx cd -∗ srvCtxWeak ctx' cd)`
+  is added (**stronger post**). The old triple is a proved corollary,
+  `traceutil.Tracer.Start.spec_txn` (`Proof/go_etcd_io/etcd/pkg/v3/traceutil/StartLaws.lean:30`),
+  which the nine callers now apply (one token each). Go: `ContextWithSpan(ctx, s)` is a
+  `WithValue`, or the no-op tracer returns `ctx` itself. The spec's open note (isSpan for every
+  `txnCtx`) is not widened: the weak contexts passed are children of grpc's run contexts.
+- `EtcdServer.waitLeader.spec` (axiom; `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__waitLeader.lean:47`):
+  `srvCtxWeak ctx cd` in place of `isContext ctx cd` (**weaker pre**). Go: it only selects on
+  `ctx.Done()` (`v3_server.go:785-803`).
+- `leasehttp.RenewHTTP.spec` (axiom; `Spec/go_etcd_io/etcd/server/v3/lease/leasehttp/RenewHTTP.lean:58`):
+  `srvCtxWeak ctx cd` in place of `isContext ctx cd` (**weaker pre**). Go: net/http's transport
+  works on its own `context.WithCancelCause(req.Context())` (go1.27 `net/http/transport.go:675`);
+  HTTP/2 reads `ctx.Err()` only after `ctx.Done()`, but for `shouldRetryDial`'s nil test
+  (`internal/http2/client_conn_pool.go:284`). **Evidence:** `TestRenewHTTPErrTiming`: `RenewHTTP`
+  over a `*http.Transport` with a context whose `Err()` panics before `Done` and returns
+  `ErrGRPCNoLeader` after: the successful call and the cancelled call (blocked server, then cancel)
+  never call `Err()`; the cancelled call returns a `*url.Error` of `context.Canceled`.
+- **Review point (from the previous agent):** net/http's `Err()` vs `Done`: above. Remaining: the
+  post `applyErrIs err` for a `*url.Error` wrapping `ErrGRPCNoLeader` (reachable only if the
+  derived context took the parent's `Err()` through propagateCancel's goroutine path, which a
+  wrapper whose `Value(&cancelCtxKey)` is its inner `*cancelCtx` does not take); the old text
+  already claims `applyErrIs` of every `*url.Error` the client returns. The `srvCtxWeak` form
+  decision above.
 
-- `traceutil.Tracer.Start.spec`: pre `mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd`; post adds
-  `□ (srvCtxWeak ctx cd -∗ srvCtxWeak ctx' cd)` (otel's `ContextWithSpan` is a `WithValue`, so
-  `Done`/`Err` are `ctx`'s; the no-op tracer may return `ctx` itself). **Weaker pre, stronger post.**
-  The open note of that spec (isSpan for every `txnCtx`) is not widened: `srvCtxWeak` contexts here
-  carry `spanCtxOk`.
-- `EtcdServer.waitLeader.spec` (axiom): pre `srvCtxWeak ctx cd` in place of `isContext ctx cd`
-  (it selects on `ctx.Done()` only). **Weaker pre.**
-- `leasehttp.RenewHTTP.spec` (axiom): pre `srvCtxWeak ctx cd` in place of `isContext ctx cd`
-  (`req.WithContext(ctx)`; net/http uses `Done`/`Err`). **Weaker pre.** To check in review: whether
-  net/http's transport reads `ctx.Err()` before `Done` and acts on a non-context error (the
-  Err-before-Done window, `issues/etcd-stream-interceptor-err-before-done.md`).
+### Checks run (2026-11-12, on this commit)
+
+- Full build (`etc/timed-build.py`, under the 64G cap): passes. Two earlier full builds from the
+  stale tree were OOM-killed at the cap (aggregate of parallel jobs, `run-…scope: oom-kill`, 64G
+  peak); a targeted build of the changed modules' users, then the timed full build, passed.
+- `etc/tcb-report.py --check`: **matches the baseline unchanged (865 axioms, 5 sorries)**. The new
+  axiom `metadata.incomingOf_of_value` is not yet used by any result, so no root reaches it; it
+  enters the baseline (`--check --update`) at step 3, when the wrapper's metadata lemma uses it.
+  The 55 collections match. No `--update` was run.
+- axiom-tok (and its selftests), model-param, errdesc: ok.
+- `etc/gen-interface.py` for the six API lists: no diff (none of them exposes these texts).
+- Go: `examples/premisefix/streamctx` passes (the four tests above).
+
+### Coordination (etcd-grove-81's note, 2026-11-12)
+
+The planned auth stage S1 makes the auth token contract's info clause take `auth.ctxDoneAny`
+(`Done()` returns nil or a channel safe to receive on). `srvCtxWeak`'s `#HDone` is `isContext`'s, so
+it gives that. **Conflict with T-e:** `isReqAuth`'s triples now take only `libCtxOk ctx`, and the
+`txnCtx` they drop (`doneNil ∨ isContext`) was the only Done fact there. If S1's `AuthInfoFromCtx`
+needs `ctxDoneAny`, `isReqAuth`'s triples must take it back: recommended form `libCtxOk ctx ∗
+auth.ctxDoneAny ctx (∗ RD)`, which both `txnCtx` and `srvCtxWeak` give, rather than restoring
+`txnCtx` (which a weak handler context does not meet). Either S1 adds it, or T-e is restated so
+now if S1's definition is available.
 
 ### Not trusted (definitions and proofs only; listed for the review's completeness)
 

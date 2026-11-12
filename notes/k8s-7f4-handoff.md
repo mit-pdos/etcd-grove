@@ -11,23 +11,21 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
 - Step 1 (enumerate): `notes/k8s-7f4-freeze.md` §1.
 - Step 2 (the trusted package): **as text only**, `notes/k8s-7f4-freeze.md` §2 (T-a..T-f).
 
+- Step 2 in Lean (2026-11-12, this branch): T-a, T-b, T-c, T-e, T-f as `notes/k8s-7f4-freeze.md` §2
+  states them now (with file:line references and the review points); T-d deferred to 7f-3 (81).
+  Go evidence: `examples/premisefix/streamctx` (passes; run with GOWORK=off). New modules:
+  `Proof/.../api/v3rpc/SrvCtxWeak.lean` (`srvCtxWeak`, `noLeaderErr`, `srvCtxWeak_of_isContext`),
+  `Proof/go_etcd_io/etcd/pkg/v3/traceutil/StartLaws.lean` (`Tracer.Start.spec_txn`, the old triple;
+  the nine request-path callers use it).
+
 ## Next, in order
-1. Write §2 into Lean: the new vocabulary (`context.libCtxOkC`, `trace.spanCtxOkC`,
-   `rawStreamKeyTy`, `srvCtxWeak`, `noLeaderErr`), the changed texts (`srvRawStreamIs` +
-   T-a/T-c; `isReqAuth`/`isReqAuthBound` without `txnCtx`, T-e; `Tracer.Start`, `waitLeader`,
-   `RenewHTTP`, T-f), and the axiom `metadata.incomingOf_of_value` (T-b). Keep the build green with
-   the smallest proof repairs (patterns that destructure `srvRawStreamIs`: `srvStreamIs_of_raw`,
-   `newStreamInterceptor.lean`, `srvStreamChainWP_of_ok`; `isReqAuth`'s consumers drop a `txnCtx`
-   argument). T-d (F2) deferred to 7f-3 unless 81 asks (recommended in §2).
-2. Build (targeted first: `etc/importers.py --leaves` on the changed files), then the full build,
-   gen-interface (regenerate and commit the diffs: they are the review material), `tcb-report.py
-   --check` (it will differ: list the axiom added and the statements changed; do NOT `--update`
-   before 81's review).
-3. **STOP: the Freeze package for 81's independent review** (the commit, the interface diffs,
-   `notes/k8s-7f4-freeze.md` §2, the tcb diff). Hard stop under the rules (trusted text).
-4. After the review: steps 3-6 of the re-baseline's §4 (laws; interceptor branch and monitor, `sKey`
-   first; Watch, with the mvcc API checkpoint; LeaseKeepAlive with LeaseRenew and the local
-   `WithTimeout` lemma; the deletion of `runsNoRequireLeader`, hard stop).
+1. **STOP: the Freeze package for 81's independent review** (freeze §2, the commit, the interface
+   diffs, the tcb diff: one new axiom `metadata.incomingOf_of_value`). Hard stop (trusted text).
+2. After the review: steps 3-6 of the re-baseline's §4 (laws: `libCtxOkC`/`spanCtxOkC` from
+   `ctxValueFrom`, back to the WP forms; R-4's lemma; interceptor branch and monitor, `sKey` first;
+   Watch, with the mvcc API checkpoint; LeaseKeepAlive with LeaseRenew and the local `WithTimeout`
+   lemma over `srvCtxWeak`; strengthen `isReqAuth_ctxM`/`isReqAuthBound_ctx` to drop `txnCtx`;
+   the deletion of `runsNoRequireLeader`, hard stop).
 
 ## Pitfalls
 - `context.wp_WithCancel_any`/`wp_WithTimeout` need `isContext parent`: the interceptor's input must
