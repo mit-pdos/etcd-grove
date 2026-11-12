@@ -30,7 +30,7 @@ Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1
   restart `Open`s fail it (436 clause 1 at `j = p+1`: a received snapshot's record precedes the Save
   that commits it; 3 clause 2). R1: C2 as stated is false (entries above `a` saved before the
   snapshot record, purged with `k ≤ p`; the model's `walReleasePos` is coarser than Go's file naming).
-- CP2 report: waiting for etcd-grove-81 (R1/R2 decisions: trusted refinement of `walRelGuard` /
+- CP2 report sent (R1: C2 holds in every run under guard + Go file-naming bound `enti(H.take k)+1 < a`; R2: Open clause-1 failures at `j = p+1`); waiting for etcd-grove-81.
   `walReleasePos`, or premises).
 
 ## Next, in order (after CP2)
