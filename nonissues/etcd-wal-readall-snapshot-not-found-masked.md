@@ -18,21 +18,64 @@ WAL never recorded it (the hard state and the entries are then not known to be c
 creates no encoder and reports it. The same at upstream main (6974f522338b) and at the etcd pin
 (`c90b03b56`).
 
-**Why not an issue:** a precondition etcd meets. `bootstrap` opens the WAL only at a snapshot the
-WAL lists: it reads `wal.ValidSnapshotEntries(dir)` and loads the newest snapshot file among those
-(`LoadNewestAvailable`), so a record matches. The test in
-[etcd-wal-readall-snapshot-not-found-masked/](etcd-wal-readall-snapshot-not-found-masked/)
-(`TestReadAllSnapshotNotFound`, a WAL of entries 1-5 with no snapshot record, opened at (3,1)) fails at
-`c90b03b56`: `ReadAll` returns no error and 2 entries.
+**Why not an issue:** a precondition etcd meets, but not for the reason first given here. `bootstrap`
+opens the WAL at the newest snapshot `wal.ValidSnapshotEntries(dir)` lists, and VSE lists every
+snapshot record in the directory, while `Open` reads only from the last file named at or below the
+snapshot's index (`searchIndex`). A record VSE lists can therefore lie before the files `ReadAll` reads:
+when an entry below the snapshot's index is saved after its record, a cut names the next segment
+`enti+1` at or below the index, and `Open` at the (valid) snapshot starts in that segment
+(`TestReadAllStartRecordBeforeOpenedFile`). The masked error then also leaves `w.enti` unraised, so a
+later cut names a segment below the snapshot, and a later `Open` or `ReleaseLockTo` leaves earlier
+records unlocked for the purge. etcd can reach the unmatched read: a follower that persists a received
+snapshot's record and crashes before the hard state that commits it restarts at an older snapshot,
+then saves the entries the leader re-sends below the snapshot's index after its record; once the
+commit reaches the snapshot, the next restart opens a segment after its record
+(`TestRestartAtSnapshotSavedBeforeReSentEntries`, seen once in the W4a.2 probe). There the masked read
+happens to be right (the re-sent entries are at or below the start, so they truncate), which is why
+this stays a nonissue for etcd; the unsound cases need histories etcd does not write (an entry below
+a committed snapshot after its record and a lowered commit, or an index of 2^64-1). The tests in
+[etcd-wal-readall-snapshot-not-found-masked/](etcd-wal-readall-snapshot-not-found-masked/) assert the
+fixed behaviour (below) and fail at `c90b03b56`: `TestReadAllSnapshotNotFound` (a WAL of entries 1-5
+with no snapshot record, opened at (3,1)): `ReadAll` returns no error and 2 entries;
+`TestReadAllStartRecordBeforeOpenedFile` and `TestRestartAtSnapshotSavedBeforeReSentEntries`: the cut
+names its segment after the last entry (4, resp. 39), below the snapshot (5, resp. 41).
 
 ## Proof
 
-no: `(*WAL).ReadAll`'s trust-boundary spec (`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReadAll.lean`)
-takes the premise that the opened snapshot is the newest valid one of the history
-(`some s = walNewestPair (walValidSnaps …)`), which excludes this case; its docstring says so.
+no: fixed on the fork by two commits on `goose-lean-exist` (on `c90b03b56`): `1aaca041c`, a
+write-mode `ReadAll` returns `ErrSnapshotNotFound` when no record matched its start snapshot (the
+one-line fix after `newFileEncoder`); and `0b50f0426`, a cut names its segment
+`max(w.enti, w.snapi)+1`, `w.snapi` the highest snapshot index saved or read, so every segment is named
+above every snapshot record before it and `Open` at a snapshot of the WAL starts at or before its
+record (the restart above succeeds, as the masked read did, instead of failing as with the first
+commit alone). `(*WAL).ReadAll`'s trust-boundary spec
+(`Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReadAll.lean`) relies on the first: its premise that
+the opened snapshot is the newest valid one does not exclude an unmatched read (the earlier claim that
+it did was wrong: WAL W4a.2, finding F-W4a2-2, `notes/decisions.md`), and without the fix its result
+(`walReadCut` of the whole history) differs from Go's, and the purge bounds of `Open`, `ReadAll` and
+`ReleaseLockTo` are unsound. With the fix every successful write-mode `ReadAll` matched. Its success
+arm (the read of the whole history) and the purge bounds' name lower bound (`walLastIdx`,
+`WalDisk.lean`, which counts snapshot records) rest on the second commit too, and on no index `2^64-1`
+in the history: `Save` and `SaveSnapshot` take indices below it (WAL W4a.2 revision 1; nonissue
+`etcd-wal-segment-name-wraps`), a premise on the WAL's writers, not on `ReadAll`, and every history is
+one the run builds from `Create` (no WAL at the start, `absDiskInitOk`, revision 2).
+
+**Before upstreaming (an upgrade regression of the fork commits):** `0b50f0426` names only the segments
+it cuts. A WAL written by an older etcd (segments named `enti+1`) in the forgotten-snapshot shape still
+holds a segment named below a snapshot record before it; upstream's masked read restarts there, the
+fork's `ReadAll` (with `1aaca041c`, with or without `0b50f0426`) returns `ErrSnapshotNotFound` and
+`bootstrap` exits (the W4a.2 review's Go test `TestReviewUpgradeOldNamedWAL`,
+`/shared/tmp/coord-81/wal-w4a2-review/purge-restart/`). Not a soundness problem for the model (an error is
+always allowed; the model covers only WALs the run creates, `absDiskInitOk`); a start with an old-named
+WAL would be a soundness problem, not only liveness (its names can sit below a snapshot record before
+them), so C6 cannot admit one, but an upstream fix must keep such WALs restartable: make
+`Open` select the file holding the start record (fall back to an earlier file when the selected ones do
+not match it), or keep the masked success for a WAL whose segments were named by the old scheme (which
+brings F-W4a2-2 back for those WALs: the masked read is wrong there in general, so the first option is
+the sound one).
 
 ## Notes
 
-Found by the W4a Freeze review's second round (2026-11-12, the fresh lens, m1). A one-line fix
-(`if err == nil && !match { err = ErrSnapshotNotFound }` after the encoder) would make the
-documented behavior true; not on the fork (no proof needs it).
+Found by the W4a Freeze review's second round (2026-11-12, the fresh lens, m1). The wrong argument
+("the premise excludes this case") was found by WAL W4a.2 (2026-11-12): Go tests
+`/shared/tmp/wal-spec/w4a2/tests/w4a2_wrap_test.go` (`TestW4a2UnmatchedRestartUnlocksGuardedRecord`).

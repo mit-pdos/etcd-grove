@@ -146,7 +146,7 @@ theorem raftLog.slice.wp_proof
   rw [decide_eq_false (by rintro rfl; omega)]
   wp_auto
   iNamed Hlog
-  ihave %Hulen := entsPts_len $$ Huents
+  ihave %Hulen := entsPtsZ_len _ _ _ _ $$ Huents
   wp_auto
   wp_if_destruct
   · -- the result lies entirely in the unstable suffix
@@ -157,6 +157,7 @@ theorem raftLog.slice.wp_proof
     wp_apply wp_unstable_slice _ (unstableOf lv ls) _ _ Hus Hnwu $$ [$Hun]
       as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
     obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
+    ihave #Hs0 := entsROz_entsRO _ _ _ $$ Hs0
     wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
     ihave %Hs1len := entsPts_len $$ Hs1
     ihave %Hs1wf := entsPts_wf $$ Hs1
@@ -361,6 +362,7 @@ theorem raftLog.slice.wp_proof
       wp_apply wp_unstable_slice _ (unstableOf lv ls) _ _ Hus Hnwu $$ [$Hun]
         as %s0 %es0 ⟨Hun, #Hs0, %Hes0p⟩
       obtain ⟨Hlen0, Hin0, Hcap0, Hes0⟩ := Hes0p
+      ihave #Hs0 := entsROz_entsRO _ _ _ $$ Hs0
       wp_apply wp_limitSize $$ [$Hs0] as %s1 %nlim ⟨%Hn1, #Hs1, -⟩
       reopen_unstable
       have Hne0 : es0 ≠ [] := by

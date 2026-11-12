@@ -14,7 +14,7 @@ theorem unstable.truncateAndAppend.wp_proof [package_sem : Assumptions] (wp_unst
             ∀ Φ,
               (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                   "Hun" ∷ ownUnstable u us ∗
-                    "Hes" ∷ entsPts es dq ents ∗
+                    "Hes" ∷ entsPtsZ us.sz es dq ents ∗
                       "Hadopt" ∷
                         if
                             uint.Z e0.Index' ≤ uint.Z us.offset ∧
@@ -25,12 +25,12 @@ theorem unstable.truncateAndAppend.wp_proof [package_sem : Assumptions] (wp_unst
                     ((ownUnstable u
                           { ents := List.take (uint.Z e0.Index' - uint.Z us.offset).toNat us.ents ++ ents,
                             offset := w64Min e0.Index' us.offset, inprogress := truncOffsetInProgress us e0.Index',
-                            snap := us.snap, ksn := us.ksn, sip := us.sip } ∗
+                            snap := us.snap, ksn := us.ksn, sip := us.sip, sz := us.sz } ∗
                         if
                             uint.Z e0.Index' ≤ uint.Z us.offset ∧
                               uint.Z e0.Index' ≠ uint.Z us.offset + ↑us.ents.length then
                           True
-                        else entsPts es dq ents) -∗
+                        else entsPtsZ us.sz es dq ents) -∗
                       Φ (intoVal ())) -∗
                   WP
                     ((intoVal

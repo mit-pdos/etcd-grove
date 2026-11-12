@@ -55,7 +55,7 @@ def entrySize [GooseExts] (c : EntryC) : Nat :=
 section entDefs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 
@@ -683,7 +683,7 @@ end defs
 section fromOwn
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- A cell read as `v` is a cell at some presence reading as `v`. -/
@@ -754,6 +754,14 @@ theorem entsRO_entsRoC : ∀ (els : List Loc) (es : List EntryM),
     simp only [BigSepL2.bigSepL2_cons, List.map_cons]
     iframe Hc Hcs
     ipureintro; rw [hc, hcs]
+
+end fromOwn
+
+section fromOwnC
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
 
 theorem csPts_csRoC (p : Loc) (c : ConfStateM) (al : Bool) :
     csPts (GF := GF) p DFrac.discard c al ⊢ ∃ cc : CSC, csRoC p cc ∗ ⌜cc.model = c ∧ cc.uf = []⌝ := by
@@ -924,7 +932,7 @@ theorem entsRoC_entsRO (els : List Loc) (ecs : List EntryC) :
     (fun _ _ => entRoC_entRO _ _)).trans
     (BigSepL2.bigSepL2_map_right (Φ := fun _ p e => entRO (GF := GF) p e) EntryC.model).2
 
-end fromOwn
+end fromOwnC
 
 end EtcdGrove
 end Perennial

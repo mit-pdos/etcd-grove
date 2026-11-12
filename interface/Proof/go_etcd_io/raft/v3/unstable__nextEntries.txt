@@ -11,7 +11,8 @@ theorem unstable.nextEntries.wp_proof [package_sem : Assumptions] : unstable.nex
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hun" ∷ ownUnstable u us -∗
             (▷
                 ∀ s,
-                  ownUnstable u us ∗ entsRO s (List.drop (uint.Z us.inprogress - uint.Z us.offset).toNat us.ents) -∗
+                  ownUnstable u us ∗
+                      entsROz us.sz s (List.drop (uint.Z us.inprogress - uint.Z us.offset).toNat us.ents) -∗
                     Φ (intoVal s)) -∗
               WP
                 ((intoVal

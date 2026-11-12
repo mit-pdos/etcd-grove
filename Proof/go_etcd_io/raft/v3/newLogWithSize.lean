@@ -59,7 +59,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
   ihave #Hus := (ownSnap_None (GF := GF) null).2 $$ %rfl
   ihave #Hpk := pendKsn_none (GF := GF) null []
   ihave #Hkc := ksnCerts_nil (GF := GF) sn
-  ihave #Hen := entsPts_nil (GF := GF) DFrac.discard
+  ihave #Hen := entsPtsZ_nil (GF := GF) false DFrac.discard
   ihave Hcap := ownSliceCap_nil (V := Loc) (GF := GF)
   ihave #Hlv : isLoggerVal (GF := GF) (interface.ok lok) $$ []
   · unfold isLoggerVal; iexists lok; iframe Hlg; ipureintro; rfl

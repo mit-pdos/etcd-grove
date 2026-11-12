@@ -148,9 +148,12 @@ theorem raftLog.append.wp_proof
       apply propext; omega
     simp only [Hadopt_eq]
     lend_unstable
+    -- (out_size C1) the log's flag is off (`unstableOf`)
+    ihave Hes := entsPts_entsPtsZ _ _ _ $$ Hes
     wp_apply wp_unstable_truncateAndAppend _ (unstableOf lv ls) _ _ _ _ He0 Hle' Hnw'
         $$ [$Hun $Hes Hadopt] as ⟨Hun, Hes⟩
     · iexact Hadopt
+    ihave Hes := ite_entsPtsZ_false _ _ _ _ $$ Hes
     iclear Husnap Hpksn Hu_logger
     icases ownUnstable_reopen _ _ _ $$ Hlback Hun
       with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hpksn, #Hu_logger, %Hoffm, %Hoip', %Hsipm⟩

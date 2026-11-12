@@ -22,8 +22,14 @@ behaviour, derived from the proved step specs of `GooseLang/Ext/AbsDisk/Specs.le
 * `Close`'s first conjunct (`walClose_commit`): inside the access the body performs `"WalSync"` of
   the history's length with the accessed `walDiskAt` and commits it unchanged (the mark a lower
   bound, `walDiskAt_weaken`), giving `walSyncedLb dir |H|`; then `wp_WalCloseHandle` (the token).
-* `ReadAll` (`walReadAll_sync_named`): a plain triple that holds `walDiskAt` throughout; its sync and
-  name steps use it (shown for the two steps that give its past-state facts).
+* `ReadAll` (`walReadAll_commit`, WAL W4a.2, logically atomic): `"WalNamed"` with the accessed
+  `walDiskAt` and the opening handle is the commit (the accessed state committed unchanged, `named` a
+  lower bound); then `"WalSync"` from the handle's fact. (`walReadAll_sync_named`, the landed plain
+  triple's body, holds `walDiskAt` throughout; kept, unused.)
+* `Open` (`walOpen_commit`) and `ReleaseLockTo` (`walReleaseLockTo_commit`), WAL W4a.2: `"WalUnlock"`
+  of `walOpenPos`/`walReleasePos` with the accessed `walDiskAt` is the commit (`Open`'s with the
+  handle, `wp_WalOpenHandle`). `Exist` and `Repair` perform no step (their commit is the accessed
+  state unchanged).
 
 **What the lemmas do not show** (the re-review's m-b). With `wp_WalSyncLen`, any `walSyncedLb n`
 backed by a `walLenLb n` has a body, so the faithfulness of each sync claim rests on Go: a real body
@@ -223,6 +229,97 @@ theorem walReadAll_sync_named (w : Loc) (dir : GoString) (s : w64 × w64) (d : W
   · unfold walSyncedLb
     iexists s1, d1; iframe Hp1; ipureintro
     exact ⟨hd1, Nat.le_trans (Nat.le_max_right _ _) hle1.2.2.2.2.2.2.1⟩
+
+/-! ### WAL W4a.2: the logically atomic `Open`, `ReleaseLockTo` and `ReadAll`
+
+Each is stated at the access (the accessed state given, as `walClose_commit`): the body's argument is
+a position it computes from the state it tracks. The axioms' `walDirIs dir ((some d).map f)` is
+`walDiskAt dir (f d)` by definition. -/
+
+/-- **`Open`'s commit** (success): at the access, `"WalUnlock"` of `walOpenPos` with the accessed
+`walDiskAt`, taking the lock token into the new opening handle (`wp_WalOpenHandle`), and the commit
+of the raised state. (Its error after the locks: then `wp_WalCloseHandle` gives the token back; with
+no WAL, `o = none`, the body commits `none` unchanged.) -/
+theorem walOpen_commit (w : Loc) (dir : GoString) (s : w64 × w64) (d : WalDur) (Ψ : IProp GF) :
+    walUnlockedTok (L := hG.goose_localGS) ∗
+      (|={⊤,∅}=> walDiskAt (L := hG.goose_localGS) dir d ∗
+        (walDiskAt (L := hG.goose_localGS) dir
+            { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) } ={∅,⊤}=∗ Ψ))
+    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock"
+          (Val (PairV (#dir) (#(walCode (walOpenPos (d.H.map WalOpG.toM) s.1)))))) {{ _v,
+        Ψ ∗ walOpening (L := hG.goose_localGS) w dir s }} := by
+  iintro ⟨Hu, Hacc⟩
+  iapply wp_WalOpenHandle w dir s _ d
+  imod Hacc with ⟨Hd, Hcommit⟩
+  imodintro
+  iframe Hd Hu
+  iintro Hd Ho %s' #Hp %hs
+  inext
+  imod Hcommit $$ Hd with HΨ
+  imodintro
+  iframe HΨ Ho
+
+/-- **`ReleaseLockTo`'s commit**: at the access, `"WalUnlock"` of `walReleasePos` with the accessed
+`walDiskAt`, and the commit of the raised state. -/
+theorem walReleaseLockTo_commit (dir : GoString) (a : w64) (d : WalDur) (Ψ : IProp GF) :
+    (|={⊤,∅}=> walDiskAt (L := hG.goose_localGS) dir d ∗
+        (walDiskAt (L := hG.goose_localGS) dir
+            { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) } ={∅,⊤}=∗ Ψ))
+    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock"
+          (Val (PairV (#dir) (#(walCode (walReleasePos (d.H.map WalOpG.toM) a)))))) {{ _v, Ψ }} := by
+  iintro Hacc
+  iapply wp_WalUnlock dir _ d
+  imod Hacc with ⟨Hd, Hcommit⟩
+  imodintro
+  iframe Hd
+  iintro Hd %s' #Hp %hs
+  inext
+  imod Hcommit $$ Hd with HΨ
+  imodintro
+  iexact HΨ
+
+/-- **`ReadAll`'s commit and sync** (success): at the access, `"WalNamed"` with the accessed
+`walDiskAt` and the opening handle, which becomes an appending one with its purge right
+(`wp_WalNamedOpen`), and the commit of the accessed state itself (`named` a lower bound,
+`walDiskAt_weaken`); then, the update consumed, `"WalSync"` of `|H|` from the handle's length fact
+(`walOpenW_lenLb`, `wp_WalSyncLen`). The post gives what `ReadAll`'s success post gives, its
+past-state facts included. (Go fsyncs before it names; the order of the two steps, which only raise
+real values, is immaterial to the post.) -/
+theorem walReadAll_commit (w : Loc) (dir : GoString) (s : w64 × w64) (d : WalDur) (Ψ : IProp GF) :
+    walOpening (L := hG.goose_localGS) w dir s ∗
+      (|={⊤,∅}=> walDiskAt (L := hG.goose_localGS) dir d ∗
+        (walDiskAt (L := hG.goose_localGS) dir d ={∅,⊤}=∗ Ψ))
+    ⊢ WP (ExternalOp absDiskExt.name "WalNamed" (Val (#dir))) {{ _v,
+        Ψ ∗ walOpenW (L := hG.goose_localGS) w dir ∗ walPurgeW (L := hG.goose_localGS) w dir ∗
+        walNamed (L := hG.goose_localGS) dir ∗ walLenLb (L := hG.goose_localGS) w dir d.H.length ∗
+        WP (ExternalOp absDiskExt.name "WalSync" (Val (PairV (#dir) (#(walCode d.H.length))))) {{ _u,
+          walSyncedLb (L := hG.goose_localGS) dir d.H.length }} }} := by
+  iintro ⟨Ho, Hacc⟩
+  iapply wp_WalNamedOpen w dir s d
+  imod Hacc with ⟨Hd, Hcommit⟩
+  imodintro
+  iframe Hd Ho
+  iintro Hd ⟨Hw, Hpw⟩ %s' #Hp %hs
+  obtain ⟨d', hd', hle⟩ := hs
+  ihave Hd := walDiskAt_weaken dir d { d with named := true }
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ => rfl⟩ $$ Hd
+  inext
+  imod Hcommit $$ Hd with HΨ
+  imodintro
+  have hlen : d.H.length ≤ d'.H.length := Nat.le_of_eq (congrArg List.length hle.1)
+  icases walOpenW_lenLb w dir s' d' d.H.length hd' hlen $$ Hw Hp with ⟨Hw, #Hl⟩
+  iframe HΨ Hw Hpw Hl
+  isplitl []
+  · unfold walNamed
+    iexists s', d'; iframe Hp; ipureintro; exact ⟨hd', hle.2.2.2.2.2.2.2 rfl⟩
+  · iapply wp_WalSyncLen w dir d.H.length
+    iframe Hl
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hclose #Hs
+    inext
+    imod Hclose
+    imodintro
+    iexact Hs
 
 end bodies
 

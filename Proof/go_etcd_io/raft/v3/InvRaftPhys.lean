@@ -3332,7 +3332,7 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
   -- (D22 S-d1b) the stable part's bound (the storage may be lent)
   icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
   iNamed H0
-  ihave %Hul := entsPts_len _ _ _ $$ Huents
+  ihave %Hul := entsPtsZ_len _ _ _ _ $$ Huents
   isplitr
   · ipureintro
     have : (ls.uents.length : Int) < 2^63 := by

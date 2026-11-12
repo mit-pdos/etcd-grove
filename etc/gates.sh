@@ -238,11 +238,23 @@ fail=0
 # error kubernetes.Client returns has one of clientErrTys' four dynamic types, under partitions,
 # deadlines and a closed client (TestClientErrorTypes, about 4 minutes), and etcd's per-RPC
 # credential never errs (TestCredentialNilError, perRPCCredsOk)
-if (cd examples/k8s/etcd3 && GOWORK=off go test -count=1 -timeout 30m \
-    -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
-  echo "k8s client error types: ok"
+# A run whose in-process cluster fails to start ("StartCluster failed": a port taken by another
+# gate run's cluster under the parallel load, 2026-11-12, three times) is retried, up to 3 attempts;
+# any other failure fails at once.
+cet_try=0; cet_ok=0; cet_miss=
+while [ $cet_try -lt 3 ]; do
+  cet_try=$((cet_try + 1))
+  if (cd examples/k8s/etcd3 && GOWORK=off go test -count=1 -timeout 30m \
+      -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
+    cet_ok=1; break
+  fi
+  grep -q "StartCluster failed" "$tmp/cet.log" || break
+  cet_miss="$cet_miss attempt $cet_try: StartCluster failed;"
+done
+if [ $cet_ok = 1 ]; then
+  echo "k8s client error types: ok (attempt $cet_try of 3${cet_miss:+;$cet_miss})"
 else
-  echo "k8s client error types: FAILED"; tail -20 "$tmp/cet.log"; fail=1
+  echo "k8s client error types: FAILED (attempt $cet_try${cet_miss:+;$cet_miss})"; tail -20 "$tmp/cet.log"; fail=1
 fi
 
 # 9e. the attack programs behind grpcInvokerOk's attempt-level error types (k8s 7e Freeze review):
