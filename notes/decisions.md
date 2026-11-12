@@ -35214,3 +35214,87 @@ etcd-grove-81; a restricting change, no further round).**
   restore); the five summaries of `walGuardPos` (`Impl.lean`'s `WalDur.unl`, `Specs.lean` thrice,
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
+
+## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
+
+Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
+trusted text; trust base unchanged.
+
+- **What landed.** `storage/WalHistLemmas.lean` (pure): A1 the `walImg` algebra; A2 `walReadCut_hs`;
+  A3 the read's base is the newest valid pair (`walReadCut_base`, `walReadCut_snap`); A4
+  `walReadCut_wf`, `walReadCut_last_le` (S3's `walRead_wf`); A5 `walReadCut_ents_sub(_raw)`; A6 the
+  purge-bound lemmas, restated for W4a.2 (`walGuardPos_le_length`, `walNameBound_le_length`,
+  `walNameBound_strict_le`, `walReleasePos_le_length`, `walOpenPos_le_length`,
+  `walReleasePos_le_openPos`, `walHasMaxIdx_snoc`, `walRelGuard_snoc` with clause 4 as a premise on
+  the new operation); B3 `walImg_snoc_cases`/`walImg_append_cases`; C. `storage/WalViews.lean`: B1/B2
+  over the lower-bound `walDiskAt` (`walDiskAt_crash_img(_any)`, `walDiskAt_crash_graceful`,
+  `walCrashKeeps(_trans)`, `walDisk_walDiskAt`, `walDiskAt_excl`, ...). `walDiskM` (the plan's B1
+  second half) does not exist: W4a.1 made `walDiskAt` itself the lower-bound view.
+- **C2 holds in the exact form `σ' = σ`, and C4 needs no `walNoDormant`.** `walReadFrom_eq`: for
+  `0 < k ≤ walNameBound I (uint.nat a) false` (`Open`'s name bound, so also `walOpenPos` and
+  `walReleasePos`, `walReadR_eq_openPos`/`_releasePos`), `¬ walHasMaxIdx I`, a snapshot record of
+  index `a` in `I` within its commit, and `walCommitLe I`: `walRead I = some σ → walReadFrom I k =
+  some σ' → σ' = σ`. The name bound puts every snapshot record before `k` below `a`, so the purged
+  prefix holds no record as high as the newest one `M` of the rest (no dormant record), and the
+  two folds agree from `M`'s first record on (`walFoldChk_sim`: before it, the two reads' entries
+  are synced, or the unpurged read's last index is below `M`, or the purged read is empty with a
+  `Save` with entries ahead, `walPairSt`). C2 (`walReadFrom_compacts`), C3 (`walReadCut_compacts`,
+  `walReadR_compacts`) and C4 (`walReadCut_eq`, `walReadR_eq`) follow; `StorCompacts`'s strict
+  arm is not needed under these premises.
+- **The guard is not a premise**; the name bound alone carries the argument (with the record of
+  index `a`, which `ReleaseLockTo`'s and `Open`'s callers have; within the commit for `Open`).
+- **`walCommitLe` is a new premise, and C2 is false without it** (the plan's risk R1). Counterexample
+  (`a = 2`, `k = 1`; the two reads machine-checked in `/shared/tmp/wal-spec/w4b/scratch/Cex.lean`
+  (scratch: two `simp` examples over `walRead`/`walReadFrom` of that history), the name bound by hand): `[save c0 [1], save c2 [2], snap 2, save c2 [3,4,5], snap 3, save c4 [], snap
+  4]`. The unpurged read ends at base 4 with no entry (the received snapshot 3, above the running
+  commit 2, empties it; snapshot 4 drops nothing more), the purged read keeps entry 5 above base 4.
+  The history raises the commit to 4 with the read's last index at 3: raft never does
+  (`committed ≤ lastIndex`, and a `Save`'s hard state is `Ready`'s). `walCommitLe I`: every prefix of
+  the restart's kept records, folded from `walFresh`, has `commit ≤ last` (`walCommitLeFrom`). Its
+  consumers (C3's crash clause, C6's `walFiles`) discharge it from raft's `Ready` invariants; it is a
+  premise of pure lemmas only, of no spec.
+
+## k8s 7f-4 Revision 1: the stream wrapper's metadata by constructor; `Tracer.Start`'s context premise (2026-11-12 · decided by etcd-grove-81 on the trusted package's review, NOT READY · branch `k8s-7f4`; the trusted texts await the re-review, `notes/k8s-7f4-freeze.md`, "Revision 1")
+
+**The wrapper's metadata (B1).** T-b (`metadata.incomingOf_of_value`, equal `Value(mdIncomingKey{})`
+WPs ⊢ equal `incomingOf`) was refuted: a WP is partial correctness, so a context whose `Value` loops
+has `valueAt` for every value and equates every two contexts' metadata through itself. The two
+replacements were (a) indexing the handler side by the stored metadata value, (b) per-constructor
+preservation. Every use of `incomingOf` listed (`FromIncomingContext.spec`, `WithValue.spec`,
+`Tracer.Start`, `EnsureTrace`, auth's `ctxTokenOf`/`ctxBound`/`isReqAuthBound`, the unary handlers'
+specs, `Outgoing.lean`'s delivery, the stream contracts): (a) would re-index auth's token binding,
+which the unary path shares, so it spreads past the stream path; (b) stays on it. **Decision:** (b),
+two axioms, each a pure fact from a persistent points-to of one Go type's field, never from a WP:
+`metadata.incomingOf_cancelCtx` (a `*cancelCtx` has its parent's) and
+`v3rpc.incomingOf_cancellableContext` (etcd's wrapper has its embedded context's); a local
+`v3rpc.wp_WithCancel_cancelCtx` exposes the child's location and field, which Perennial's
+`wp_WithCancel_any` hides. A looping context gives no such points-to; each `*cancelCtx` or wrapper is
+related to its one field value (`*_unique`), so the equations follow parent links only.
+
+**`Tracer.Start`'s premise (M2, m2).** *Superseded in part by "k8s 7f-4 Revision 2": `spanCtxOk` did not exclude the refutation; the premise takes `spanValOk`.* `trace.spanCtxOk ctx` joins the premise (the former Open
+refutation through `ctx`'s span). The premise stays the disjunction `txnCtx ∨ srvCtxWeak`, a known
+departure from the spec principles (alternatives as a disjunction rather than the one fact the
+tracers read): the common generalization (no Done/Err premise, the context-kind transfers as proved
+laws from one "delegates to `ctx` except at otel's key" fact) is a larger restatement of a trusted
+text that the k8s stage does not need. `srvCtxWeak` admits program contexts `txnCtx` did not, but
+`isContext`'s arm already admitted the same kind; with `spanCtxOk` required, neither arm reaches the
+refutation.
+
+**`isReqAuth` keeps the whole `libCtxOk` (m1).** The store reads only the incoming and peer parts;
+every caller carries the whole fact, and the request path's internal specs (`checkLeaseRenew`,
+`LeaseRenew`, the KV calls) take the same, so a narrower premise would split one context fact in two.
+
+## k8s 7f-4 Revision 2: `Tracer.Start` takes `trace.spanValOk` (2026-11-12 · decided by etcd-grove-81 on the re-review · branch `k8s-7f4`; supersedes Revision 1's "`Tracer.Start`'s premise (M2, m2)" in part)
+
+Revision 1 put `trace.spanCtxOk ctx` in `Tracer.Start`'s premise and called the Open refutation
+fixed. It was not: `spanCtxOk` says the span is `nil` or `isSpan`, and `isSpan` covers only `End`,
+`AddEvent` and `RecordError`, while the no-op tracer etcd uses calls `SpanContext()` and
+`IsRecording()` (`examples/premisefix/tracerspan`, `TestStartRefutes`: a span whose `SpanContext`
+panics, under a `doneNil` context and under `ContextWithSpan(Background(), …)`). The axiom was
+refutable on `lean` before 7f-4, and stayed so after Revision 1. **Decision:** the premise is
+`trace.spanValOk ctx` (`Value(currentSpanKey)` is `nil` or `trace.otelSpan`, whose docstring now
+lists `IsRecording` among the methods that return), which every caller already carries inside
+`context.libCtxOk`; `spec_txn` takes `libCtxOk` and projects it. Revision 1's knock-on premises are
+reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Range.spec`,
+`EtcdServer.LeaseRenew.spec` and `v3rpc.raftLeaseRenew` are back to `lean`'s text. Strengthening
+`isSpan` instead would recheck every `isSpan` producer for a property only `Start` needs.

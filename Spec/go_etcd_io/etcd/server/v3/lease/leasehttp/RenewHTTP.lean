@@ -6,6 +6,7 @@ trust-boundary contract. Lean-first (no Rocq counterpart); the lease-renew plan
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 public import Code.net.http
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Base
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasehttp
@@ -43,12 +44,22 @@ it returns; its errors are the marshal's, the request's, the client's (a `*url.E
 status, or a reply whose ID is not `id`) or the decode's, each an error value with an `Error()`.
 **Its assumption on the cluster**, as `leaseTimeToLive.spec`'s: a peer's reply is small enough to
 buffer (`readResponse` reads up to `maxLeaseHTTPResponseSize`, 100 MiB, per call); the model has no
-memory bound to state it with. -/
+memory bound to state it with.
+(k8s 7f-4, T-f) The context is a stream handler's weak one (`srvCtxWeak`, which every `isContext`
+is: `srvCtxWeak_of_isContext`): `req.WithContext(ctx)`; net/http's transport works on its own
+`context.WithCancelCause(req.Context())` (go1.27 `net/http/transport.go:675`), whose `Err`/`Cause`
+are its own `*cancelCtx`'s, and HTTP/2's (`net/http/internal/http2`) reads `ctx.Err()` only once
+`ctx.Done()` is closed, but for `shouldRetryDial`'s nil test (`client_conn_pool.go:284`), which
+only decides whether to dial again. An `Err()` of `ErrGRPCNoLeader`, or a non-nil one before
+`Done`, at most changes which error is returned, and the post accepts every error here
+(`examples/premisefix/streamctx`, `TestRenewHTTPErrTiming`: a context whose `Err()` panics before
+`Done` and is `ErrGRPCNoLeader` after; it is never called, and the cancelled call returns a
+`*url.Error` of `context.Canceled`). -/
 abbrev leasehttp.RenewHTTP.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
     (rt : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗
-      context.isContext ctx cd ∗
+      srvCtxWeak ctx cd ∗
       ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #url)) (Val #rt))

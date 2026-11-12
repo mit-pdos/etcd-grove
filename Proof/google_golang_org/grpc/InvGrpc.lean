@@ -196,7 +196,10 @@ well formed (`context.libCtxOk`, `Proof/context/LibKeys.lean`): grpc's server st
 `mdIncomingKey{}` the `MD` its transport read from the stream's headers (`transportMD`), under
 `peerKey{}` the transport's `*Peer` (`transportPeer`), nothing under `mdOutgoingKey{}` (only
 `NewOutgoingContext`/`AppendToOutgoingContext` store there, which no server code here calls on a
-run's context), and under otel's `currentSpanKey` nothing or otelgrpc's span (`otelSpan`). -/
+run's context), and under otel's `currentSpanKey` nothing or otelgrpc's span (`otelSpan`). (k8s
+7f-4, Revision 1, m1) Of etcd's configuration: no `GRPCAdditionalServerOptions`
+(`server/embed/etcd.go:789`) adds interceptors or stats handlers that store values at these keys, as
+in the etcd binary (`etcdmain` never sets it). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
   iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
     ▷ Φ #GoInterface.nil -∗

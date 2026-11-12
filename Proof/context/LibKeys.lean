@@ -77,7 +77,9 @@ opaque peer.transportPeer [GooseExts] : GoInterface → Prop
 `*recordingSpan` or a `nonRecordingSpan`), by its no-op tracer (`noopSpan`), or the
 `nonRecordingSpan` of `trace.ContextWithRemoteSpanContext` (otel v1.47.0 `trace/context.go`,
 `sdk/trace/tracer.go`, `trace/noop.go`): a `trace.Span` whose methods return (`End`, `AddEvent`,
-`RecordError`, `SpanContext`, `TracerProvider`, ...), and whose `TracerProvider()` is one of
+`RecordError`, `SpanContext`, `IsRecording`, `TracerProvider`, ...: each of these types' methods
+returns, `*recordingSpan`'s under its own mutex; k8s 7f-4 Revision 2 lists `IsRecording`, which the
+no-op tracer's `Start` calls), and whose `TracerProvider()` is one of
 otel's, whose `Tracer(...).Start` returns another such span. -/
 opaque trace.otelSpan [GooseExts] : GoInterface → Prop
 

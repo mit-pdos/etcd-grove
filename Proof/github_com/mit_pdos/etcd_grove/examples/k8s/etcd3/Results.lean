@@ -49,14 +49,16 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
 (`client/v3/kubernetes/Client__List.lean`), restated `Client.Get.spec` at any revision, and made
 `clientErrPlain` a lemma (`clientErrPlain_holds`).
 
-**Resting on refuted axioms (axiom sweep batch 1, 2026-11-07; checked 2026-11-10).** The `_safe`
-theorems rest on `errors.IsCtxErr` (premise `context.isTypedErr`, `notes/axiom-review/isctxerr.md`),
-one of the batch's refuted families that sweep repairs 1 left unrepaired. Another,
-`zap.Logger.{Debug,Error,Fatal,Info,Warn}`, took `⌜l ≠ null⌝`, which a zero `&zap.Logger{}` meets and
-panics on; they take `zapLoggerOk l` since premise fixes 6 (`Panic` keeps `l ≠ null`). The
-batch's other ones this header listed were repaired (`http.Handle`, B3; the default feature gate's and `DefaultFeatureSupportChecker`'s
-initializers, B5; `context.ValueStartTime`, a theorem since B2), and the `pbEnc_ok` axiom and grpc's
-refuted `ProtoMsg` axioms are gone (per-type protobuf models, stage A).
+**The refuted axioms these results rested on are repaired (checked 2026-11-12 against
+`notes/STATUS.md`).** Axiom sweep batch 1 (2026-11-07) refuted two families the `_safe` theorems
+reach; premise fixes 6 (2026-11-11, STATUS "Premise fixes 6") repaired both: `errors.IsCtxErr` takes
+`context.isCtxErr err` in place of `isTypedErr err` (`notes/axiom-review/isctxerr.md`), and
+`zap.Logger.{Debug,Error,Fatal,Info,Warn}` take `zapLoggerOk l` in place of `l ≠ null` (`Panic`
+keeps `l ≠ null`). The batch's other ones were repaired by sweep repairs 1 (`http.Handle`, B3; the
+default feature gate's and `DefaultFeatureSupportChecker`'s initializers, B5; `context.ValueStartTime`,
+a theorem since B2). The inconsistent `pbEnc_ok` axiom was deleted by per-type stage A (lean
+`de9c19e020`, 2026-11-10), and grpc's axioms that took any message model (`ProtoMsg`, `StreamMsg`)
+take registered ones since stages A and B (lean `51e51adb99`, 2026-11-12).
 -/
 module
 
@@ -188,7 +190,8 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **The Kubernetes etcd3 store's linearizability instance over three members under any partition
 schedule is safe, in the operational semantics** (`k8s_etcd3_partition_adequate`, see the file
-header and `Adequacy.lean`; resting on the refuted `zap.Logger` and `errors.IsCtxErr` axioms: see the file header). -/
+header and `Adequacy.lean`; the `zap.Logger` and `errors.IsCtxErr` axioms it once rested on were
+refuted and are repaired since premise fixes 6: see the file header). -/
 theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]

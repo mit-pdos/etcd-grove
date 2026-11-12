@@ -150,7 +150,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   wp_auto
   ihave #Hss' := Hss
   iunfold srvRawStreamIs at Hss'
-  icases Hss' with ⟨%si, %Hsi, -, -, #HCtx, #Hctx, #Hrc⟩
+  icases Hss' with ⟨%si, %Hsi, -, -, -, #HCtx, #Hctx, #Hrc, -⟩
   subst Hsi
   wp_auto
   wp_apply HCtx

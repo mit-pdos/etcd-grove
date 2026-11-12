@@ -374,6 +374,11 @@ abbrev msgAny (T : go.GoType) (l : Loc) : GoInterface :=
 
 /-! ## The server end -/
 
+/-- **A raw server stream's dynamic type** (k8s 7f-4, T-c): a pointer type, so that the stream is a
+comparable map key (Go's `==` on two such interface values compares the types, then the pointers). -/
+def rawStreamKeyTy (t : go.GoType) : Prop :=
+  ∃ t' : go.GoType, t = go.GoType.PointerType t'
+
 /-- **The server end of a stream, raw** (persistent): grpc's `ServerStream` `st` the runtime
 passes to a stream handler. `RecvMsg(&out)` into an owned message (`Req.own out`) decodes the next
 request into it (`Req.recv out m`, owned) with the client's content `Up i m` for its position `i`
@@ -383,11 +388,23 @@ requests received (`upClosed`), or another error (`out` back owned), a status er
 premise fixes 7, `examples/premisefix/ctxvalue` `TestRealStreamErrors`); `SendMsg(&l)` of a message
 `Rep.send l m` (given back) with the handler's content `Dn j m` for its position `j` grows the
 sender's token, or fails, the message delivered or not (the token at the old or the new list);
-`Context()` returns the run's context `ci` (`isContext ci cd`, `grpcRunCtx ci`). -/
+`Context()` returns the run's context `ci` (`isContext ci cd`, `grpcRunCtx ci`).
+(k8s 7f-4, T-c) Its dynamic type is a pointer type (`rawStreamKeyTy`), so that it is a comparable map
+key (etcd's `monitorLeader` keys a map by it): grpc passes a `*serverStream` (`server.go`
+`processStreamingRPC`), grpc-prometheus's interceptor a `*monitoredServerStream`
+(go-grpc-middleware v2.3.4 `interceptors/server.go:36`). (k8s 7f-4, T-a) `ci`'s library values and its
+span also in the chain form (`context.libCtxOkC`, `trace.spanCtxOkC`), which `WithCancel` carries to a
+child (`ctxValueFrom`): grpc's run context is a chain of `*valueCtx` links (`NewIncomingContext`,
+`peer.NewContext`, grpc's internal keys, otelgrpc's `ContextWithSpan`) over the transport's
+`WithCancel`/`WithTimeout` of `Background()`, which `context.value()` walks. (Revision 1, m1) Of
+etcd's configuration: the server's options are etcd's own (`v3rpc/grpc.go`), with no
+`GRPCAdditionalServerOptions` (`server/embed/etcd.go:789`, appended by `v3rpc.Server`) adding stream
+interceptors or stats handlers, as in the etcd binary (`etcdmain` never sets it): such an option
+could wrap the stream in a non-pointer value or store values at grpc's or otel's keys. -/
 def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
+  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗ ⌜rawStreamKeyTy si.ty⌝ ∗
     □ (∀ (L : List Req.M) (out : Loc),
       {{ srvRecvTok (Req := Req) γ L ∗ Req.own out }}
         (App (Val #(methods si.ty go!"RecvMsg" si.v)) (Val #(msgAny Req.ty out)))
@@ -407,7 +424,7 @@ def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L')) }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
-    context.isContext ci cd ∗ grpcRunCtx ci)
+    context.isContext ci cd ∗ grpcRunCtx ci ∗ context.libCtxOkC ci ∗ trace.spanCtxOkC ci)
 
 instance srvRawStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -566,7 +583,7 @@ theorem srvStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal V]
       (google_golang_org.grpc.GenericServerStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Dn ci cd := by
   iintro ⟨#Hf, #Hraw, #Hown⟩
   iunfold srvRawStreamIs at Hraw
-  icases Hraw with ⟨%si, %Hst, #HRecv, #HSend, #HCtx, #Hctx, #Hrc⟩
+  icases Hraw with ⟨%si, %Hst, -, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, -⟩
   subst Hst
   unfold srvStreamIs
   iexists _
