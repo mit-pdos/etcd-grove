@@ -652,7 +652,7 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     (hlin : o.base.serializable = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
-        traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
+        trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
         srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
@@ -665,7 +665,7 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
               txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, #Hlib, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, #Hlib, #Hspc, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   -- `Range.spec` at the off view (the mode is off, the floor `0`)
   ihave %hon := isServerReq_authOff s E ρ $$ Hq
   ihave #HaLb := srvAuthLb_off s E ρ $$ Hq
@@ -714,7 +714,7 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     (hcut : ¬ txn.cutEarly o) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
-        traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
+        trace.spanCtxOk ctx ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
         srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
         (Val #(GoInterface.ok ctx))) (Val #r))
@@ -725,7 +725,7 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
               txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
-  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, #Hlib, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, #Hlib, #Hspc, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   ihave %Hset := txn.rangeRequestIs_sortSet r o $$ Hr
   -- `Range.spec` at the off view (the mode is off, the floor `0`)
   ihave %hon := isServerReq_authOff s E ρ $$ Hq

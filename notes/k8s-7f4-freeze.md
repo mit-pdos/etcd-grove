@@ -283,7 +283,13 @@ etcd-grove-81 (questions.md).
   `EtcdServer.Range.spec` and `EtcdServer.LeaseRenew.spec` gain it (internal specs; their callers
   `kvRangeOk_of_serverM` and `raftLeaseRenew_of_server` have it from `srvCall`/the contract), and so
   does the contract `v3rpc.raftLeaseRenew` (its user `leaseKeepAlive` from `spanCtxOk_of_runCtx`);
-  `recvLoop` from `spanCtxOk_of_runCtx`.
+  `recvLoop` from `spanCtxOk_of_runCtx`. **Exported text changed** (decided by etcd-grove-81, as
+  premise fixes 8's `libCtxOk` on the same results): `range_linearizable` and `range_serializable`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/Results.lean`) take `trace.spanCtxOk ctx`. No other
+  result's statement changes: no `Results.lean`/`MainLinked.lean` of the examples changed (the
+  `*_safe` theorems), nothing uses the two range results, and `raftLeaseRenew_server`'s text is
+  unchanged (its contract asks one more premise of its user, discharged inside `leaseKeepAlive`
+  from the run context).
 - m2: the disjunction stays, recorded as a known departure (`notes/decisions.md`, "k8s 7f-4
   Revision 1"); the docstring's "not widened" is made precise (`srvCtxWeak` admits program contexts
   `txnCtx` did not, but `isContext`'s arm already admitted the same kind; with `spanCtxOk` required
@@ -299,6 +305,29 @@ etcd-grove-81 (questions.md).
   Revision 1").
 - m3 (axiom lens, `Value(&cancelCtxKey)` determinism): no change (a Perennial question shared with
   `isContext`; noted by the reviewer as not a finding).
+
+### Checks run, Revision 1 (2026-11-12)
+
+- Targeted build of the changed modules, then the full build (`etc/timed-build.py`, 64G cap, under
+  the build lock): passes (17487 jobs).
+- `etc/tcb-report.py --check`: matches the baseline unchanged (865 axioms, 5 sorries). The two new
+  axioms (`metadata.incomingOf_cancelCtx`, `v3rpc.incomingOf_cancellableContext`) are used by no root
+  yet; they enter the baseline when the weakening interceptor contract uses them (step 3 of §4).
+  The 55 collections match.
+- axiom-tok: T-e''s `auth.ctxDoneAny` puts an `∃ s : ContextDesc` (inside `isContextDone`) into
+  every axiom holding `isReqAuth`: ten rule-7 findings (`EtcdServer.{adjustTicks, ensureLeadership,
+  leaseTimeToLive, monitorClusterVersions, monitorStorageVersion, publishV3, purgeFile,
+  waitAppliedIndex, waitLeader}.wp_proof`, `etcd_noRefusal`), accepted by new entries in
+  `etc/axiom-tok-allow.txt` (rule 7's neutral case through a handle, as `NewStream`'s `cd'`: `s.PDone`
+  only under Perennial's irreducible `isContextDone`, and the auth store's posts mention nothing of
+  `s`). **For the review.** With them: ok (811 Prop axioms walked: 779 pass, 32 by an entry or pair); selftest 0 failures.
+- model-param, errdesc, errorf-wrap, bounds (331, baseline 331): ok. gen-interface `--check` on the
+  six lists: no diff.
+- m4, the collections whose baselines include `grpc.model.acceptRun`/`acceptRunConns` and
+  prometheus's `ServerMetrics.StreamServerInterceptor` (both): authkv, cachekv, compactkv,
+  k8scompactor, k8setcd3, leasecatchup, leaseexpiry, leasekv, linkv3p, linkvtxn, m2, putget, putget3,
+  watchkv; prometheus's only: v3rpc. They rest on T-a/T-c's and M1's stronger `srvRawStreamIs`.
+- Go: `examples/premisefix/streamctx` at go1.27.3: passes.
 
 ### Checks run (2026-11-12, on 783fd4c8c8)
 

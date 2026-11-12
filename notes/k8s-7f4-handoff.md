@@ -40,11 +40,10 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
 `v3rpc.incomingOf_cancellableContext` (new `v3rpc/WrapperMd.lean`, with the proved
 `v3rpc.incomingOf_wrapper` and `v3rpc.wp_WithCancel_cancelCtx`). T-e' built; `Tracer.Start` takes
 `trace.spanCtxOk` (Range/LeaseRenew specs and `raftLeaseRenew` gain it); `libCtxOkC` gains otel's key,
-laws `libCtxOk_of_libCtxOkC`, `spanCtxOk_of_spanCtxOkC`, `*_from`; minors. **Build (2026-11-12): targeted
-build passed; the full build fails only in `etcdserver/Results.lean` (`range_linearizable`,
-`range_serializable`: exported, their pres lack `trace.spanCtxOk ctx`, which `Range.spec` now takes
-for M2). STOPPED for 81: add `trace.spanCtxOk ctx` to those two exported pres (recommended), then
-rebuild, gates, and the re-review.** Then: STOP for 81's
+laws `libCtxOk_of_libCtxOkC`, `spanCtxOk_of_spanCtxOkC`, `*_from`; minors. **Done (2026-11-12): 81 accepted (b), the extra forms, and `spanCtxOk` on `range_linearizable`/
+`range_serializable`; full build passes; tcb --check matches (865/5); 55 collections match;
+axiom-tok ok with ten new rule-7 entries for T-e' (for the review); selftest, model-param, errdesc,
+gen-interface ok; m4 listed in the freeze note. STOPPED for 81's re-review.**.** Then: STOP for 81's
 re-review, then steps 3-6 of the re-baseline's §4 (the weakening interceptor contract uses
 `v3rpc.incomingOf_wrapper`; `newCancellableContext`'s proof must persist the `Context` field's
 points-to and call `v3rpc.wp_WithCancel_cancelCtx`).
