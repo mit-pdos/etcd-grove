@@ -63,20 +63,6 @@ structure raft.Step.ReplPbPostulates : Prop where
 
 namespace StepProof
 
-/-- A message `Step` received, off a proposal, as the `stepX` specs take it. (Over any
-capacity flag `cap`, `msgIn`'s `needsCap st.msg`, so that it applies to a `msgIn` unfolded by a
-generic `msgPtsC` lemma.) -/
-theorem msgIn_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} {cap : Bool} (h : m.Type' ≠ MsgProp) :
-    msgPtsC (GF := GF) ml (DFrac.own 1) DFrac.discard cap st ⊢
-      msgPtsC ml (DFrac.own 1) (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) cap st := by
-  simp only [h, ↓reduceIte]; exact .rfl
-
-/-- A proposal `Step` received, as the `stepX` specs take it. -/
-theorem msgIn_prop {ml : Loc} {m : MessageM} {st : MsgSt} {cap : Bool} (h : m.Type' = MsgProp) :
-    msgPtsC (GF := GF) ml (DFrac.own 1) (DFrac.own 1) cap st ⊢
-      msgPtsC ml (DFrac.own 1) (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) cap st := by
-  simp only [h, ↓reduceIte]; exact .rfl
-
 /-- `m.GetSnapshot()` of a message holding no snapshot: `nil`. -/
 theorem wp_GetSnapshot_none (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) (h : ms.snap = none) :
@@ -144,7 +130,7 @@ theorem msgOwn_of_scalars (sz : Bool) (l : Loc) (v : raftpb.Message) (mm : Messa
     iframe Hnil Hnilb Hnilr
     iapply BigSepL2.bigSepL2_nil.2; itrivial
   imodintro
-  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun _ => ⟨rfl, rfl, by simp⟩⟩
+  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun _ _ => ⟨rfl, rfl, by simp⟩⟩
   iframe Hm Hp
 
 end StepProof

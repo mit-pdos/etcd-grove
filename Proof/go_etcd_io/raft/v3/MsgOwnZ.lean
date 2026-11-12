@@ -128,7 +128,7 @@ theorem msgSizeOk_of_lit (c : MsgC) (hu : c.f.uf = []) (he : c.model.ents = [])
 fields, `msgOwn_of_struct_uf`): at a content of bounded size when it has no entries, no snapshot and
 a context of at most `entBytesMax` bytes, unless a `MsgSnap`. -/
 theorem msgOwnZ_of_uf (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt)
-    (Hst : st.resps = [] ∧ (st.msg.Type' ≠ MsgSnap →
+    (Hst : st.resps = [] ∧ (sz = true → st.msg.Type' ≠ MsgSnap →
       st.ents = [] ∧ st.snap = none ∧ st.ctx.length ≤ entBytesMax)) :
     msgOwn (GF := GF) l dq st ∗ pbMsg raftpb.Message l [] ⊢ msgOwnZ sz l dq st := by
   iintro ⟨H, #Hp⟩
@@ -140,9 +140,9 @@ theorem msgOwnZ_of_uf (sz : Bool) (l : Loc) (dq : DFrac) (st : MsgSt)
   iexists c
   iframe Hc
   ipureintro
-  refine ⟨Hmod, ⟨Hcs, fun _ => Hu⟩, fun _ hty => ?_⟩
+  refine ⟨Hmod, ⟨Hcs, fun _ => Hu⟩, fun hs hty => ?_⟩
   rw [Hmod] at hty
-  obtain ⟨h1, h2, h3, h4⟩ := (⟨Hst.1, Hst.2 hty⟩ : _ ∧ _)
+  obtain ⟨h1, h2, h3, h4⟩ := (⟨Hst.1, Hst.2 hs hty⟩ : _ ∧ _)
   exact msgSizeOk_of_lit c Hu (by rw [Hmod]; exact h2) (by rw [Hmod]; exact h3)
     (by rw [Hmod]; exact h1) (by rw [Hmod]; exact h4)
 
@@ -337,6 +337,305 @@ theorem msgOwnZ_store_Term (sz : Bool) (l : Loc) (st : MsgSt) :
     exact ⟨h1, h2, h3, h4⟩
 
 end stores
+
+/-! ### Received messages at a content (out_size C3, the msgInC plan) -/
+
+section recv
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (out_size C3) **The message types whose handlers move the received message's objects** (Scope
+§2.3): a proposal (appended, or forwarded), a `MsgApp` (its entries appended), a heartbeat (its
+context echoed), a read-index request (stored and answered, or forwarded) and a leader-transfer
+request (forwarded). The `stepX` specs take a received message at its content under the node's flag
+for these types only (`msgInC (s.gh.sn.sz && movesB m.Type')`). -/
+def movesB (t : w32) : Bool :=
+  decide (t = MsgProp ∨ t = MsgApp ∨ t = MsgHeartbeat ∨ t = MsgReadIndex ∨ t = MsgTransferLeader)
+
+set_option hygiene false in
+/-- `movesB m.Type' = false` from the type hypothesis `Hty` in scope. -/
+macro "movesB_tac" : tactic =>
+  `(tactic| first
+    | decide
+    | (rw [Hty]; decide)
+    | (simp only [movesB, decide_eq_false_iff_not]; intro hc;
+       rcases hc with hc | hc | hc | hc | hc <;>
+         simp_all [MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader]))
+
+theorem movesB_MsgProp : movesB MsgProp = true := by decide
+theorem movesB_MsgApp : movesB MsgApp = true := by decide
+theorem movesB_MsgHeartbeat : movesB MsgHeartbeat = true := by decide
+theorem movesB_MsgReadIndex : movesB MsgReadIndex = true := by decide
+theorem movesB_MsgTransferLeader : movesB MsgTransferLeader = true := by decide
+
+theorem movesB_false_of {t : w32} (h1 : t ≠ MsgProp) (h2 : t ≠ MsgApp) (h3 : t ≠ MsgHeartbeat)
+    (h4 : t ≠ MsgReadIndex) (h5 : t ≠ MsgTransferLeader) : movesB t = false := by
+  simp only [movesB, decide_eq_false_iff_not]
+  rintro (h | h | h | h | h) <;> contradiction
+
+/-- The flag of a moving type is the node's. -/
+theorem flag_moves {sz : Bool} {t : w32} (ht : movesB t = true) : (sz && movesB t) = sz := by
+  simp [ht]
+
+/-- The flag of another type is `false`. -/
+theorem flag_nomoves {sz : Bool} {t : w32} (ht : movesB t = false) : (sz && movesB t) = false := by
+  simp [ht]
+
+/-- A weaker flag. -/
+theorem msgInC_flag (sz sz' : Bool) (h : sz' = true → sz = true) (l : Loc) (dqe : DFrac) (st : MsgSt) :
+    msgInC (GF := GF) sz l dqe st ⊢ msgInC sz' l dqe st := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  iexists c
+  iframe Hc
+  ipureintro
+  exact ⟨H.1, H.2.1, fun hs ht => H.2.2 (h hs) ht⟩
+
+/-- A received message's pointer is not `nil`. -/
+theorem msgInC_nn (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt) :
+    msgInC (GF := GF) sz l dqe st ⊢ ⌜l ≠ null⌝ ∗ msgInC sz l dqe st := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  unfold msgPtsCC
+  icases Hc with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rs, %Hnn, Hc⟩
+  isplitr
+  · ipureintro; exact Hnn
+  iexists c
+  isplitl
+  · iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs
+    isplitr
+    · ipureintro; exact Hnn
+    iexact Hc
+  · ipureintro; exact H
+
+/-- At a moving type, the node's flag. -/
+theorem msgInC_moves {sz : Bool} {t : w32} (ht : movesB t = true) (l : Loc) (dqe : DFrac)
+    (st : MsgSt) : msgInC (GF := GF) (sz && movesB t) l dqe st ⊢ msgInC sz l dqe st := by
+  rw [flag_moves ht]
+
+/-- The context of a received message at a content is at most `entBytesMax` bytes under the flag
+(unless a `MsgSnap`): what an echo of it (`handleHeartbeat`'s response) needs. -/
+theorem msgInC_ctx (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt) :
+    msgInC (GF := GF) sz l dqe st ⊢ msgInC sz l dqe st ∗
+      ⌜sz = true → st.msg.Type' ≠ MsgSnap → st.ctx.length ≤ entBytesMax⌝ := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  isplitl [Hc]
+  · iexists c; iframe Hc; ipureintro; exact H
+  ipureintro
+  intro hs ht
+  obtain ⟨Hm, -, Hz⟩ := H
+  have h2 := (Hz hs ht).2.1
+  rw [← Hm]
+  simp only [MsgC.model, hdrBytes] at h2 ⊢
+  omega
+
+theorem ite_dfrac_halves (P : Prop) [Decidable P] :
+    (if P then DFrac.own 1 else DFrac.discard) =
+      (if P then dqh else DFrac.discard) • (if P then dqh else DFrac.discard) := by
+  split
+  · exact dqh_op.symm
+  · rfl
+
+/-- **Reading a received message at a content** through today's specs (the getters): half of it in
+today's form (no capacity; the entries' slice at half the fraction), and what rebuilds it. -/
+theorem msgInC_half (sz : Bool) (l : Loc) (P : Prop) [Decidable P] (st : MsgSt) :
+    msgInC (GF := GF) sz l (if P then DFrac.own 1 else DFrac.discard) st ⊢
+      msgPtsC l dqh (if P then dqh else DFrac.discard) false st ∗
+        (msgPtsC l dqh (if P then dqh else DFrac.discard) false st -∗
+          msgInC sz l (if P then DFrac.own 1 else DFrac.discard) st) := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  obtain ⟨Hm, Hcs, Hz⟩ := H
+  subst Hm
+  have h := msgPtsCC_readE (GF := GF) l (needsCap c.model.msg) c Hcs
+    (if P then dqh else DFrac.discard) (if P then dqh else DFrac.discard)
+  rw [← ite_dfrac_halves P] at h
+  icases h $$ Hc with ⟨Hh, Hback⟩
+  iframe Hh
+  iintro Hh
+  iexists c
+  isplitl
+  · iapply Hback $$ Hh
+  · ipureintro; exact ⟨rfl, Hcs, Hz⟩
+
+/-- `m.To = new(r.lead)` (`stepFollower`'s forwards) on a message at a content. -/
+theorem msgPtsCC_store_To (l : Loc) (dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l (DFrac.own 1) dqe cap c ⊢
+      ∃ p : Loc, l.[raftpb.Message, go!"To"] ↦ p ∗
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Message, go!"To"] ↦ p' -∗ cellRO p' v -∗
+          ∃ o : Option w64, msgPtsCC l (DFrac.own 1) dqe cap (.mk { c.f with to := o } c.resps) ∗
+            ⌜o.getD (zero_val w64) = v⌝) := by
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs, %rs,
+    %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  iexists pto
+  iframe HTo
+  iintro %p' %v HTo #cTo'
+  icases cellRO_optCell' p' v $$ cTo' with ⟨%o, #cO, %Ho⟩
+  iexists o
+  isplitl
+  · iexists pty, p', pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs
+    simp only [MsgC.f, MsgC.resps]
+    isplitr
+    · ipureintro; exact Hnn
+    iframe
+    iframe cTy cO cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcx Hpb
+  · ipureintro; exact Ho
+
+/-- **A received message forwarded** (`stepFollower`: `m.To = new(r.lead)`, then `send`): at its
+content, frozen, with its size, as raft holds the messages it sends (`msgOwnZ`). -/
+theorem msgInC_store_To (sz : Bool) (l : Loc) (dqe : DFrac) (st : MsgSt)
+    (hty : st.msg.Type' ≠ MsgSnap) :
+    msgInC (GF := GF) sz l dqe st ⊢
+      ∃ p : Loc, l.[raftpb.Message, go!"To"] ↦ p ∗
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Message, go!"To"] ↦ p' -∗ cellRO p' v -∗
+          |==> msgOwnZ sz l (DFrac.own 1) { st with msg := { st.msg with To' := v } }) := by
+  unfold msgInC
+  iintro ⟨%c, Hc, %H⟩
+  icases msgPtsCC_store_To l dqe _ c $$ Hc with ⟨%p, Hp, Hback⟩
+  iexists p
+  iframe Hp
+  iintro %p' %v Hp #cv
+  icases Hback $$ %p' %v Hp cv with ⟨%o, Hc, %Ho⟩
+  imod msgPtsCC_freeze $$ Hc with Hc
+  imodintro
+  unfold msgOwnZ
+  iexists _
+  iframe Hc
+  ipureintro
+  obtain ⟨Hm, Hcs, Hsz⟩ := H
+  obtain ⟨f, rs⟩ := c
+  subst Hm
+  refine ⟨?_, ⟨Hcs, fun h => absurd h hty⟩, fun hs ht => ?_⟩
+  · simp only [MsgC.model, MsgC.f, MsgC.resps, MsgFC.msgM, Ho]
+  · obtain ⟨h1, h2, h3, h4⟩ := Hsz hs hty
+    exact ⟨h1, h2, h3, h4⟩
+
+/-- The `Entries` field out of a message at a content (`msgPtsC_acc_entries`'s content form): the
+slice, its entry objects at their contents, and what closes it back. -/
+theorem msgPtsCC_acc_entries (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe cap c ⊢
+      ∃ (es : GoSlice) (els : List Loc), ⌜l ≠ null⌝ ∗
+        l.[raftpb.Message, go!"Entries"] ↦{dq} es ∗ es ↦*{dqe} els ∗
+        ([∗list] p;e ∈ els;c.f.entries, entRoC p e) ∗
+        (if cap then ownSliceCap Loc es (DFrac.own 1) else emp) ∗
+        (∀ (els' : List Loc) (ents' : List EntryC) (cap' : Bool),
+          l.[raftpb.Message, go!"Entries"] ↦{dq} es -∗ es ↦*{dqe} els' -∗
+          ([∗list] p;e ∈ els';ents', entRoC p e) -∗
+          (if cap' then ownSliceCap Loc es (DFrac.own 1) else emp) -∗
+          msgPtsCC l dq dqe cap' (.mk { c.f with entries := ents' } c.resps)) := by
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs, %rs,
+    %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  iexists es, els
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HEs Hes Hents Hcap
+  iintro %els' %ents' %cap' HEs Hes #Hents' Hcap
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els', ps, cs, rs
+  simp only [MsgC.f, MsgC.resps]
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents' Hcx Hpb
+
+/-- A message `Step` received, off a proposal and of a type whose objects no step moves, as the
+`stepX` specs take it (at the flag `false`). (Over any capacity flag `cap`, `msgIn`'s `needsCap
+st.msg`, so that it applies to a `msgIn` unfolded by a generic `msgPtsC` lemma.) -/
+theorem msgIn_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} {cap b : Bool} (h : m.Type' ≠ MsgProp)
+    (hm : movesB m.Type' = false := by movesB_tac) (hcap : cap = needsCap st.msg := by rfl) :
+    msgPtsC (GF := GF) ml (DFrac.own 1) DFrac.discard cap st ⊢
+      msgInC (b && movesB m.Type') ml
+        (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+  subst hcap
+  simp only [h, ↓reduceIte, flag_nomoves hm]
+  exact msgIn_msgInC ml DFrac.discard st
+
+/-- `msgInC_half` at read-only entries. -/
+theorem msgInC_halfD (sz : Bool) (l : Loc) (st : MsgSt) :
+    msgInC (GF := GF) sz l DFrac.discard st ⊢
+      msgPtsC l dqh DFrac.discard false st ∗
+        (msgPtsC l dqh DFrac.discard false st -∗ msgInC sz l DFrac.discard st) := by
+  have h := msgInC_half (GF := GF) sz l False st
+  simp only [if_false] at h
+  exact h
+
+/-- `msgInC_half` at owned entries (a proposal). -/
+theorem msgInC_halfO (sz : Bool) (l : Loc) (st : MsgSt) :
+    msgInC (GF := GF) sz l (DFrac.own 1) st ⊢
+      msgPtsC l dqh dqh false st ∗ (msgPtsC l dqh dqh false st -∗ msgInC sz l (DFrac.own 1) st) := by
+  have h := msgInC_half (GF := GF) sz l True st
+  simp only [if_true] at h
+  exact h
+
+/-- A received message read through `msgInC_halfD`, rebuilt and handed to a `stepX` callee (a
+moving type off a proposal), at the callee's state's flag. -/
+theorem msgInC_pass {ml : Loc} {m : MessageM} {st : MsgSt} {sz sz' : Bool}
+    (h : m.Type' ≠ MsgProp) (hm : movesB m.Type' = true) (hs : sz' = true → sz = true) :
+    (msgPtsC (GF := GF) ml dqh DFrac.discard false st -∗ msgInC sz ml DFrac.discard st) ∗
+      msgPtsC ml dqh DFrac.discard false st ⊢
+      msgInC (sz' && movesB m.Type') ml
+        (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+  iintro ⟨Hb, Hm⟩
+  ihave Hm := Hb $$ Hm
+  simp only [h, ↓reduceIte, flag_moves hm]
+  iapply msgInC_flag sz sz' hs $$ Hm
+
+/-- The same for a proposal. -/
+theorem msgInC_passP {ml : Loc} {m : MessageM} {st : MsgSt} {sz sz' : Bool}
+    (h : m.Type' = MsgProp) (hs : sz' = true → sz = true) :
+    (msgPtsC (GF := GF) ml dqh dqh false st -∗ msgInC sz ml (DFrac.own 1) st) ∗
+      msgPtsC ml dqh dqh false st ⊢
+      msgInC (sz' && movesB m.Type') ml
+        (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+  iintro ⟨Hb, Hm⟩
+  ihave Hm := Hb $$ Hm
+  simp only [h, ↓reduceIte, flag_moves movesB_MsgProp]
+  iapply msgInC_flag sz sz' hs $$ Hm
+
+/-- (out_size C3) A received message at a content, off a proposal, of a type whose objects the step
+moves (`movesB`), as the `stepX` specs take it. -/
+theorem msgInC_nonprop {ml : Loc} {m : MessageM} {st : MsgSt} {sz : Bool} (h : m.Type' ≠ MsgProp)
+    (hm : movesB m.Type' = true) :
+    msgInC (GF := GF) sz ml DFrac.discard st ⊢
+      msgInC (sz && movesB m.Type') ml
+        (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+  simp only [h, ↓reduceIte, flag_moves hm]; exact .rfl
+
+/-- A proposal `Step` received, as the `stepX` specs take it. -/
+theorem msgIn_prop {ml : Loc} {m : MessageM} {st : MsgSt} {sz : Bool} (h : m.Type' = MsgProp) :
+    msgInC (GF := GF) sz ml (DFrac.own 1) st ⊢
+      msgInC (sz && movesB m.Type') ml
+        (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) st := by
+  simp only [h, ↓reduceIte, flag_moves movesB_MsgProp]; exact .rfl
+
+/-- A received message in today's form, of a type whose objects no step moves, at a content
+under any flag (`raft.Step`'s and the `stepX` specs' `s.gh.sn.sz && movesB m.Type'`). -/
+theorem msgIn_toC {t : w32} {b : Bool} (hm : movesB t = false) (l : Loc) (dqe : DFrac) (st : MsgSt) :
+    msgIn (GF := GF) l dqe st ⊢ msgInC (b && movesB t) l dqe st := by
+  rw [flag_nomoves hm]; exact msgIn_msgInC l dqe st
+
+/-- A message raft built, owned at a content (`msgOwnZ`), handed to `Step` as a received one (no
+capacity needed: not a `MsgApp`). -/
+theorem msgOwnZ_to_msgInC (sz : Bool) (l : Loc) (st : MsgSt) (hcap : needsCap st.msg = false) :
+    msgOwnZ (GF := GF) sz l (DFrac.own 1) st ⊢ msgInC sz l DFrac.discard st := by
+  unfold msgOwnZ msgInC
+  iintro ⟨%c, Hc, %H⟩
+  obtain ⟨Hm, Hok, Hz⟩ := H
+  iexists c
+  rw [hcap]
+  iframe Hc
+  ipureintro
+  refine ⟨Hm, Hok.1, fun hs ht => Hz hs (by rw [Hm]; exact ht)⟩
+
+end recv
 
 end EtcdGrove
 end Perennial

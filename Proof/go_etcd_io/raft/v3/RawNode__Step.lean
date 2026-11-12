@@ -90,8 +90,11 @@ theorem RawNode.Step.wp_proof
   wp_start as H
   iNamed H
   icases Hm with ⟨%cm, Hm, %Hcm⟩
-  obtain ⟨Hcmod, Hccs, -⟩ := Hcm
-  ihave Hm := msgPtsCC_msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap m) cm Hccs $$ Hm
+  obtain ⟨Hcmod, Hccs, Hcsz⟩ := Hcm
+  -- (out_size C3) half read through the getters, the whole kept at its content for `raft.Step`
+  have hrd := msgPtsCC_readE (GF := GF) ml (needsCap m) cm Hccs DFrac.discard DFrac.discard
+  rw [discard_op_discard] at hrd
+  icases hrd $$ Hm with ⟨Hm, Hmb⟩
   rw [Hcmod]
   iNamed Hrn
   ihave #HI := isInitialized_access $$ Hpkg
@@ -138,17 +141,30 @@ theorem RawNode.Step.wp_proof
       icases ownStepGhost_dlv_terms γ _ cf id s rs.delivered
         (by have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega) Hac0 $$ Hdeliv Hghost
         with ⟨%Hdag, Hghost⟩
+      icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+      iunfold certLink at Hlink
+      icases Hlink with ⟨-, -, %Hszl⟩
       wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
         (RNMode.pre_net Hpf (by not_net)) (fun _ => Hns0.1)
-        $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
+        $$ [$Hphys $Hghost $Hlc1 Hm Hmb Hcred]
       · simp only [HnP, ↓reduceIte, named]
         -- (raft-final phase 2) a stamped transfer request's witness
         isplitr
         · iexact Hxfer
-        isplitl [Hm]
-        · isplitl [Hm]
-          · iexact Hm
+        isplitl [Hm Hmb]
+        · isplitl [Hm Hmb]
+          · -- (out_size C3) at its content, with its size under the node's flag (`certLink`)
+            ihave Hm := Hmb $$ Hm
+            unfold msgInC
+            iexists cm
+            iframe Hm
+            ipureintro
+            refine ⟨Hcmod, Hccs, fun hs ht => ?_⟩
+            have hs' : s.gh.sn.sz = true := by simp only [Bool.and_eq_true] at hs; exact hs.1
+            rw [Hszl] at hs'
+            obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs'
+            exact Hcsz b hb ht
           isplitr
           · iempintro
           isplitr

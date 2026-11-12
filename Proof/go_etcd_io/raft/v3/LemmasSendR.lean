@@ -74,7 +74,7 @@ theorem msgOwn_lit0 (l : Loc) (v : raftpb.Message) (mm : MessageM) (E : CoPset) 
 no unknown fields, entries, snapshot or responses, so its size is its header's, bounded when its
 context is at most `entBytesMax` bytes. -/
 theorem msgOwnZ_lit (sz : Bool) (l : Loc) (v : raftpb.Message) (mm : MessageM) (ctx : List w8)
-    (E : CoPset) (Hctx : ctx.length ≤ entBytesMax) :
+    (E : CoPset) (Hctx : sz = true → ctx.length ≤ entBytesMax) :
     (⌜v.Entries' = slice.nil ∧ v.Snapshot' = null ∧ v.Responses' = slice.nil ∧
       v.unknownFields' = slice.nil⌝ ∗ l ↦ v ∗ v.Context' ↦*□ ctx ∗ cellRO v.Type' mm.Type' ∗ cellRO v.To' mm.To' ∗
       cellRO v.From' mm.From' ∗ cellRO v.Term' mm.Term' ∗
@@ -96,7 +96,7 @@ theorem msgOwnZ_lit (sz : Bool) (l : Loc) (v : raftpb.Message) (mm : MessageM) (
     iframe Hnil Hnilr
     iapply BigSepL2.bigSepL2_nil.2; itrivial
   imodintro
-  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun _ => ⟨rfl, rfl, Hctx⟩⟩
+  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun hs _ => ⟨rfl, rfl, Hctx hs⟩⟩
   iframe Hm Hp
 
 /-- `msgOwnZ_lit` with no `Context` either. -/
@@ -114,7 +114,7 @@ theorem msgOwnZ_lit0 (sz : Bool) (l : Loc) (v : raftpb.Message) (mm : MessageM) 
   ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   imod ownSlice_persist $$ Hnilb with #Hnilb
-  iapply msgOwnZ_lit sz l v mm [] E (by simp)
+  iapply msgOwnZ_lit sz l v mm [] E (fun _ => by simp)
   rw [Hcx]
   iframe Hl cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hnilb
   ipureintro; exact ⟨Hes, Hsn, Hrs, Hu⟩

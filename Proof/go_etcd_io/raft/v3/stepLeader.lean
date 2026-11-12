@@ -94,6 +94,7 @@ theorem stepLeader.wp_proof
     icases Hcc $$ %Hp with ⟨%cs, #Hcc⟩
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.own 1 from
       if_pos Hp]
+    rw [flag_moves (by rw [Hp]; exact movesB_MsgProp)]
     iapply wp_stepLeader_prop c wp_raft_bcastAppend wp_raft_appendEntry wp_raftLog_lastIndex
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
@@ -111,6 +112,8 @@ theorem stepLeader.wp_proof
     ipureintro
     simp only [LeaderStepResultC, Hp, ↓reduceIte]
     exact Hres
+  -- (out_size C3) every other type reads the message only (the read request's storing: today's form)
+  ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
   ihave HΦ' : iprop(▷ ∀ (err : GoInterface) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
       ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦ]

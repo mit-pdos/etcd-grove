@@ -124,13 +124,13 @@ local macro "cc_refuse_tail" : tactic => `(tactic| (
     try rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
-    imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
+    imod entRZ_normal_of_struct s.gh.sn.sz _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
     · iframe
     wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$(frameH `HEs)] as HEs
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]
     wp_apply wp_store_slice_index es0 (sint.Z n) els _ $$ [$(frameH `Hes)] as Hes
     · ipureintro; refine ⟨Hn.1, ?_⟩; rw [Hlen', Hcurlen]; word
-    icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ p e => entRO (GF := GF) p e) Hl0' Hcur_lookup') $$ Hents with ⟨-, Hset⟩
+    icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ p e => entRZ (GF := GF) s.gh.sn.sz p e) Hl0' Hcur_lookup') $$ Hents with ⟨-, Hset⟩
     ihave Hents' := Hset $$ %_ %(zero_val EntryM) Hnew
     obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
     wp_for_post
@@ -297,7 +297,7 @@ theorem wp_stepLeader_prop
     (Hty : m.Type' = MsgProp) (Hne : ents ≠ [])
     (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 }}
+        msgInC s.gh.sn.sz ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
@@ -315,11 +315,27 @@ theorem wp_stepLeader_prop
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
+  -- (out_size C3) the message at its content (`msgInC`): half of it read through the getter
+  unfold msgInC
+  icases Hm with ⟨%cm, Hm, %Hcm⟩
+  obtain ⟨Hcmod, Hcs, Hcsz⟩ := Hcm
+  have hrd := msgPtsCC_readE (GF := GF) ml (needsCap m) cm Hcs dqh dqh
+  rw [dqh_op] at hrd
+  icases hrd $$ Hm with ⟨Hm, Hmback⟩
+  rw [Hcmod]
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
+  ihave Hm := Hmback $$ Hm
   simp only [Hty, MsgProp]
   wp_auto
-  -- the `Entries` field held apart: every `m.GetEntries()` below is this slice
-  icases msgPtsC_acc_entries ml _ _ _ _ $$ Hm with ⟨%es0, %els0, %Hmnn, HEs, Hes, #Hents, -, -⟩
+  -- the `Entries` field held apart: every `m.GetEntries()` below is this slice; the entries at
+  -- their contents, with their sizes under the node's flag
+  icases msgPtsCC_acc_entries ml _ _ _ _ $$ Hm with ⟨%es0, %els0, %Hmnn, HEs, Hes, #HentsC, -, -⟩
+  ihave #Hents : [∗list] p;e ∈ els0;ents, entRZ s.gh.sn.sz p e $$ [HentsC]
+  · have Hm' : cm.f.entries.map EntryC.model = ents := by
+      have := congrArg MsgSt.ents Hcmod; simpa [MsgC.model] using this
+    rw [← Hm']
+    iapply entsBigC_entsBigZ _ _ _ (fun hs e he => (Hcsz hs (by rw [Hty]; simp [MsgProp, MsgSnap])).2.2.1 e he)
+    iexact HentsC
   ihave %Hl := ownSlice_len _ _ _ $$ Hes
   ihave %Hl2 := BigSepL2.bigSepL2_length $$ Hents
   wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
@@ -398,7 +414,8 @@ theorem wp_stepLeader_prop
       "Hj" ∷ i_ptr ↦ n ∗
       "Hgi" ∷ gi_ptr ↦ k ∗
       "Hes" ∷ es0 ↦* els ∗
-      "#Hents" ∷ ([∗list] p;e ∈ els;((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n)), entRO p e) ∗
+      "#Hents" ∷ ([∗list] p;e ∈ els;((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n)),
+        entRZ s.gh.sn.sz p e) ∗
       "HEs" ∷ ml.[raftpb.Message, go!"Entries"] ↦ es0 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with pci := (lpc (sint.nat n)).2 } ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi Hes HEs Hphys]
@@ -427,7 +444,8 @@ theorem wp_stepLeader_prop
         some e := by
       rw [List.getElem?_append_right (Nat.le_of_eq Hlpcn), Hlpcn, Nat.sub_self,
         List.getElem?_drop, Nat.add_zero, He_lookup]
-    icases entsBig_lookup _ _ (sint.nat n) e Hcur_lookup $$ Hents with ⟨%l0, %Hl0, #He⟩
+    icases entsBigZ_lookup _ _ _ (sint.nat n) e Hcur_lookup $$ Hents with ⟨%l0, %Hl0, #HeZ⟩
+    ihave #He := entRZ_entRO _ _ _ $$ HeZ
     have Hl0' : els[(sint.Z n).toNat]? = some l0 := by
       rw [show (sint.Z n).toNat = sint.nat n by word]; exact Hl0
     have Hes0len : sint.Z n < sint.Z es0.len := by
@@ -631,9 +649,8 @@ theorem wp_stepLeader_prop
     wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
         (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 Hlen' Hnz $$ [$Hphys Hes $Hrc]
       as %acc ⟨#Hrc1, -, -, Hphys⟩
-    · -- (out_size C3, temporary) the received proposal's sizes: `entsPtsZ_sized_TODO` (`msgInC`)
-      iapply entsPtsZ_sized_TODO
-      iunfold entsPts
+    · -- (out_size C3) the proposal's entries at their contents, with their sizes (`msgInC`)
+      iunfold entsPtsZ
       iexists els
       iframe Hes Hents
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]

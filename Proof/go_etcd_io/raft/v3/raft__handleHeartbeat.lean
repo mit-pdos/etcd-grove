@@ -39,7 +39,7 @@ theorem raft.handleHeartbeat.wp_proof
     (wp_GetContext : raftpb.Message.GetContext.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz
+  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz Hctx
   wp_start as H
   iNamed H
   wp_auto
@@ -61,13 +61,12 @@ theorem raft.handleHeartbeat.wp_proof
   wp_auto
   wp_apply wp_GetContext.1 $$ [$Hm] as %cs ⟨#Hcs, Hm⟩
   try wp_auto
-  imod msgOwn_lit «$a0_ptr» _ ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ cl ⊤ $$ [«$a0»] with Hr
+  imod msgOwnZ_lit s.gh.sn.sz «$a0_ptr» _ ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ cl ⊤ Hctx
+    $$ [«$a0»] with Hr
   · iframe «$a0» cTy cFr Hcs
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     msg_nulls
-  -- (out_size C3, temporary) the context's size: `msgOwnZ_sized_TODO`
-  ihave Hr := msgOwnZ_sized_TODO s.gh.sn.sz _ _ _ (by simp [MsgSnap]) $$ Hr
   have Hok : ∀ s' : NState, s'.term ≠ W64 0 → SendOk id s' ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ [] cl
       [{ Msg.plain .heartbeatResp id m.From' s'.term false with ctx := cl }] := fun s' hs' =>
     Or.inr (Or.inl ⟨.heartbeatResp, Or.inr (Or.inr (Or.inr rfl)), rfl, rfl, Hfrom, hs', rfl⟩)

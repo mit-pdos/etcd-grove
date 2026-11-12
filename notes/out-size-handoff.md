@@ -302,6 +302,45 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     the entries part of `msgPtsCC` (`msgPtsCC_splitE`/`_readE` in `MsgRead`). Also RawNode.Step's
     netStepTypes exclude MsgProp: network proposals come through `node.Step` → propc.
 
+- **C3 continued**, 2026-11-12 (agent 7; WIP commit after `bfb62f4d41`): **msgInC threaded (step 2),
+  most of it.**
+  - Vocabulary (`MsgOwnZ`): `movesB` (MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader),
+    `flag_moves`/`flag_nomoves`/`movesB_false_of`/`movesB_*`, macro `movesB_tac`; `msgInC_flag`,
+    `msgInC_moves`, `msgInC_ctx` (the context's bound), `msgInC_nn`, `msgInC_half`/`_halfD`/`_halfO`
+    (half read through the getters, the whole rebuilt), `msgInC_pass`/`_passP` (rebuild + hand to a
+    `stepX`), `msgPtsCC_store_To`, `msgInC_store_To` (a forward: frozen `msgOwnZ` with its size),
+    `msgPtsCC_acc_entries` (the `Entries` field of a content), `msgIn_toC` (non-moving types, any
+    flag), `msgOwnZ_to_msgInC` (a literal handed to `Step`); `msgIn_nonprop` (now giving `msgInC (b &&
+    movesB _)`, autoParam `movesB_tac`), `msgInC_nonprop`, `msgIn_prop` moved here from `ReplLemmas`.
+    `msgOwnZ_of_uf`/`msgOwnZ_lit`'s bound now under the flag (`sz = true → …`).
+  - Specs (internal; callers discharged): `raft.Step` and the `stepX` take `msgInC (s.gh.sn.sz &&
+    movesB m.Type')`; `handleAppendEntries` `msgInC s.gh.sn.sz`; `handleHeartbeat` a pure premise
+    `s.gh.sn.sz = true → cl.length ≤ entBytesMax`; `logSliceFromMsgApp` at the content (`msgPtsCC`, □
+    entries; reads `Entries` through the getter's body, the getter's spec cannot say the slice is the
+    field's) — its `GetEntries` hypothesis gone, raft `Link` regenerated.
+  - TODO sorries discharged: `handleAppendEntries` (`entsROz_sized_TODO`), `handleHeartbeat`,
+    `stepFollower` ×3 forwards, `stepLeader/MsgProp` (entries at `entRZ s.gh.sn.sz` through the loop;
+    refused slots via `entRZ_normal_of_struct`, `LemmasStepR`).
+  - Build state: `raft__Step` (all branches), `stepX`, handlers, `RawNode__{Step,Advance,Campaign,
+    ForgetLeader,TransferLeader,ReportSnapshot,ReportUnreachable}`, `raft__tick*`, `InvNodeRunHup`
+    build (`/shared/tmp/out-size/c3-msgin-b{5,8,9}.log`). **Still broken:** `RawNode__Propose`,
+    `RawNode__ReadIndex`, `RawNode__ProposeConfChange` (moving literals: need a sized literal, see the
+    blocker), `InvNodeRun` 713/1045 and `node__run` (the channels: `stepP`/`InvNodeChan` recvc/propc
+    must carry `msgInC γ.maxData.isSome`; RawNode.Step's content is there already).
+  - **Blocker (decision asked of etcd-grove-81):** a proposal's entry is sized only if `data.length ≤ b`
+    (the API premise) gives `≤ entBytesMax = 2^31`, but `b ≤ 2^31` is a premise of `cluster_alloc`
+    (`InvNodeRule`, also `InvApiBoot`, `InvApiDecAlloc`, `Protocol/Facts`' alloc: `have _ := Hmd`) that
+    nothing records. Recommended: record `⌜∀ b, γ.raft.maxData = some b → b ≤ 2^31⌝` in the sealed body
+    of `isCluster`/`clusterInv` (established by the alloc lemmas from their premise), and in `certLink`
+    (internal, `StepGhostMode`; `certLink_make` in `StartNode`/`RestartNode` reads it), so every node
+    reads it with `sz`. Same need for ReadIndex contexts, conf-change data, boot entries (P5).
+  - Remaining TODO uses: `raft__maybeSendAppend` (the MsgApp sum, step 4), `sendMsgReadIndexResponse`,
+    `stepLeader/Rest` (read requests at contents, step 3), `raft__sendHeartbeat` (readOnly ctx, step 3),
+    `RawNode__Bootstrap` (P5).
+  - Next, in order: the decision above; Propose/ReadIndex/ProposeConfChange literals (`msgPtsCC_of_struct`
+    with entries at `entRZ` + `msgInC` directly); channels (`stepP`, `InvNodeChan`, `node__run`,
+    `InvNodeRun`); then steps 3-7 of the plan.
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s

@@ -959,13 +959,9 @@ theorem raftpb.Message.wp_GetIndex :
     raftpb.Message.GetIndex.spec (GF := GF) (hG := hG) :=
   raftpb.Message.GetIndex.wp_proof
 
-theorem raftpb.Message.wp_GetEntries :
-    raftpb.Message.GetEntries.spec (GF := GF) (hG := hG) :=
-  raftpb.Message.GetEntries.wp_proof
-
 theorem wp_logSliceFromMsgApp [StorageModel GF] :
     logSliceFromMsgApp.spec (GF := GF) (hG := hG) :=
-  logSliceFromMsgApp.wp_proof raftpb.Message.wp_GetTerm raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetIndex raftpb.Message.wp_GetEntries
+  logSliceFromMsgApp.wp_proof raftpb.Message.wp_GetTerm raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetIndex
 
 theorem raftLog.wp_matchTerm [StorageModel GF] :
     raftLog.matchTerm.spec (GF := GF) (hG := hG) :=
@@ -1034,6 +1030,10 @@ theorem raft.wp_handleSnapshot [StorageModel GF] :
 theorem raftpb.Message.wp_GetReject :
     raftpb.Message.GetReject.spec (GF := GF) (hG := hG) :=
   raftpb.Message.GetReject.wp_proof
+
+theorem raftpb.Message.wp_GetEntries :
+    raftpb.Message.GetEntries.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetEntries.wp_proof
 
 theorem readOnly.wp_heartbeatCtx [StorageModel GF] :
     readOnly.heartbeatCtx.spec (GF := GF) (hG := hG) :=

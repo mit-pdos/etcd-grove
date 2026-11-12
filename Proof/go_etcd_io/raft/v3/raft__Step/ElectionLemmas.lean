@@ -117,7 +117,7 @@ theorem msgOwn_of_resp (sz : Bool) (l pty pto pte prj : Loc) (ty : raftpb.Messag
   iintro H
   imod msgOwn_of_resp_uf l pty pto pte prj ty to te rj E $$ H with ⟨Hm, #Hp⟩
   imodintro
-  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun _ => ⟨rfl, rfl, by simp⟩⟩
+  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun _ _ => ⟨rfl, rfl, by simp⟩⟩
   iframe Hm Hp
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
@@ -517,7 +517,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hsrc0; iapply msgIn_nonprop Hnp $$ Hm
       obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
@@ -544,7 +544,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hsrc0; iapply msgIn_nonprop Hnp $$ Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inl Hrole)
           (Hvoter (by rw [Hrole]; decide) (by rw [Hrole]; decide)) Hnw Hwf Hres
@@ -574,7 +574,7 @@ macro "prevote_resp_dispatch" : tactic =>
         $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
       · iframe Hphys Hrc00
         isplitl [Hm]
-        · rw [ite_eq_right Hnp]; iexact Hm
+        · iapply msgIn_nonprop Hnp $$ Hm
         · iintro %Hc; exfalso; exact Hnp Hc
       obtain ⟨rfl, rfl⟩ := leaderStepResult_prevoteresp c _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -601,7 +601,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hsrc0; iapply msgIn_nonprop Hnp $$ Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inr Hrole)
           (Hvoter (by rw [Hrole]; decide) (by rw [Hrole]; decide)) Hnw Hwf Hres

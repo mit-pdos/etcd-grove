@@ -148,6 +148,24 @@ theorem entRO_normal_of_struct (l pty : Loc) (v : raftpb.Entry) (E : CoPset)
   imodintro
   iexact Ho
 
+/-- (out_size C3) `entRO_normal_of_struct` at a content: the fresh entry has no data and no unknown
+fields, so it is of bounded size under any flag. -/
+theorem entRZ_normal_of_struct (sz : Bool) (l pty : Loc) (v : raftpb.Entry) (E : CoPset)
+    (HT : v.Term' = null) (HI : v.Index' = null) (HY : v.Type' = pty) (HD : v.Data' = slice.nil)
+    (Hu : v.unknownFields' = slice.nil) :
+    (l ↦ v ∗ pty ↦ (W32 0 : raftpb.EntryType) : IProp GF) ⊢ |={E}=> entRZ sz l (zero_val EntryM) := by
+  iintro ⟨Hl, Hty⟩
+  imod cellRO_alloc $$ Hty with #cY
+  ihave #cT : cellRO (GF := GF) v.Term' (zero_val EntryM).Term' $$ []
+  · rw [HT]; iapply cellRO_null
+  ihave #cI : cellRO (GF := GF) v.Index' (zero_val EntryM).Index' $$ []
+  · rw [HI]; iapply cellRO_null
+  ihave #Hd : (v.Data' ↦*□ (zero_val EntryM).Data' : IProp GF) $$ []
+  · rw [HD]; iapply ownSlice_nil
+  iapply entRZ_of_struct sz l v (zero_val EntryM) E Hu (fun _ => Nat.zero_le _)
+  iframe Hl cT cI Hd
+  rw [HY, show (zero_val EntryM).Type' = (W32 0 : raftpb.EntryType) from rfl]; iexact cY
+
 end proof
 
 end EtcdGrove

@@ -246,7 +246,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       iapply BigSepL2.bigSepL2_nil.2; itrivial
     -- (out_size C3) held at its content: a `MsgSnap`, whose size is not bounded
     ihave Hm := msgOwnZ_of_uf s.gh.sn.sz «$a0_ptr» (DFrac.own 1) ⟨mm, [], some sv, [], []⟩
-      ⟨rfl, fun h => absurd rfl h⟩ $$ [Hm Hpb]
+      ⟨rfl, fun _ h => absurd rfl h⟩ $$ [Hm Hpb]
     · iframe Hm Hpb
     have Hok : SendOk id { s with prvals := <[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals }
         mm [] [] [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] :=
