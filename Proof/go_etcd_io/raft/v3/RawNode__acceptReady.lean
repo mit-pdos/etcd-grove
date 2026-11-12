@@ -665,7 +665,8 @@ theorem RawNode.acceptReady.wp_proof
       els DFrac.discard le (by word) $$ [Hels] with -
     · iframe Hels; ipureintro; exact Hl.1
     wp_apply (wp_Entry_GetIndex.1 le DFrac.discard e) $$ [$Hle] as -
-    wp_apply wp_entsSize rd.CommittedEntries' ce DFrac.discard $$ [$Hce] as %sz' -
+    icases entsPts_entsPtsC _ _ _ $$ Hce with ⟨%cce, #Hcec, -⟩
+    wp_apply wp_entsSize _ rd.CommittedEntries' cce DFrac.discard $$ [$Hcec] as %sz' -
     wp_method_call
     wp_call
     wp_auto

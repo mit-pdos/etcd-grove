@@ -190,7 +190,8 @@ private theorem storDL_raftDL (γ : Cluster) (K : GName) (sn : StorNames) (sv : 
 
 /-- **The certificate link of fresh storage names** (`certLink`): their `SV` pin the API's
 `snapshotValid`, their snapshot pin raft's certificate. -/
-private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N) (sn : StorNames) :
+private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N) (sn : StorNames)
+    (hsz : sn.sz = γ.raft.maxData.isSome) :
     ⊢ clusterInv (GF := GF) γ N -∗
       savedPredOwn sn.gsv DFrac.discard (EtcdGrove.snapshotValid (GF := GF) γ) -∗
       savedPredOwn sn.gk DFrac.discard (raftSnapCertD (GF := GF) γ.raft) -∗
@@ -199,6 +200,9 @@ private theorem certLink_make (γ : Cluster) (N : Namespace) (HU : UniNames γ N
   have HcN : raftCertN γ.raft = N := HU.2.1
   unfold certLink
   iframe Hct
+  isplitr
+  rotate_left
+  · ipureintro; exact hsz
   unfold storCertOk
   isplitr
   · iintro !> %sv %E %HE Hc
@@ -528,7 +532,7 @@ private theorem wp_RestartNode_impl
   imod saved_pred_alloc (raftSnapCertD (GF := GF) γ.raft) DFrac.discard trivial with ⟨%gk, #Hgk⟩
   let sn : StorNames :=
     { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, a0 := max σ.b (uint.nat cv.Applied'),
-      c0 := σ.commit, ct := restartCt (fp ++ σ.ents) σ.commit }
+      c0 := σ.commit, ct := restartCt (fp ++ σ.ents) σ.commit, sz := γ.raft.maxData.isSome }
   let σv : StorState :=
     { prev := σ.base, ents := σ.ents, pend := [], fl := σ.base.index', fr := f,
       sg := σ.b, dt := ∅ }
@@ -541,7 +545,7 @@ private theorem wp_RestartNode_impl
     obtain ⟨h1, h2, h3⟩ := restartCt_mem HcF hm
     refine ⟨h1, ?_⟩
     rw [List.getElem?_take, ite_eq_left (by omega)]; exact h3
-  ihave #Hlink := certLink_make γ N HU sn $$ Hci Hsv Hgk Hct
+  ihave #Hlink := certLink_make γ N HU sn rfl $$ Hci Hsv Hgk Hct
   ihave HA : storAuths (GF := GF) sn.unrec σv $$ [Hga Hgg Hgd]
   · ihave #Hcu := storCaught_unrec (GF := GF) sn 1 _ $$ Hga
     unfold storAuths
@@ -626,8 +630,8 @@ private theorem wp_RestartNode_impl
     iframe Hhs Hcs
     -- the attach: a fresh key recording raft's storage names
     imod dghostVar_alloc (GF := GF)
-      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct) :
-        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64)) with ⟨%K, HK⟩
+      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz) :
+        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool) with ⟨%K, HK⟩
     imod dghostVar_persist K 1 _ $$ HK with #HK
     ihave #HKn : storKeyNames (GF := GF) K sn $$ []
     · unfold storKeyNames; iexact HK
@@ -671,7 +675,7 @@ private theorem wp_RestartNode_impl
         EtcdGrove.nodeCommitLb (GF := GF) γ K
       isplitl [Hst]
       · iunfold EtcdGrove.isStorage at Hst
-        iexact Hst
+        iExactEq Hst; rfl
       isplitr; · iexact Hsv
       isplitr
       · iintro !> %sv #H

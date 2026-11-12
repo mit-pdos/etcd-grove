@@ -133,10 +133,18 @@ theorem Storage.wp_Entries (wp : MemoryStorage.Entries.spec (GF := GF) (hG := hG
   iunfold kvrStorRec at Hrec
   icases Hrec with ⟨#Hf, -⟩
   try wp_auto
-  wp_apply wp ms γs k dq1 dq2 a b lo hi maxSize ec  $$ [HP] as %sl %es %err HQ
+  wp_apply wp ms γs k dq1 dq2 a b lo hi maxSize ec  $$ [HP] as %sl %es %err ⟨Ha, Hb, HQ⟩
   · iexact HP
-  iapply HΦ
-  iexact HQ
+  iapply HΦ $$ %sl %es %err
+  iframe Ha Hb
+  icases HQ with (Hcp | ⟨%He, Hcs, %Hr⟩)
+  · ileft; iexact Hcp
+  icases Hcs with ⟨%cs, #Hcs, %Hcm⟩
+  iright
+  isplitr; · ipureintro; exact He
+  isplitr
+  · iapply entsPtsC_entsPts _ _ _ cs es Hcm.1 $$ Hcs
+  ipureintro; exact Hr
 
 theorem Storage.wp_Append (wp : MemoryStorage.Append.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (k : Nat) (old es : List EntryM) (sl : GoSlice) (dq : DFrac)
@@ -152,12 +160,15 @@ theorem Storage.wp_Append (wp : MemoryStorage.Append.spec (GF := GF) (hG := hG))
       (if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) }} := by
   wp_start as ⟨#Hrec, HP⟩
   iunfold kvrStorRec at Hrec
-  icases Hrec with ⟨#Hf, -⟩
+  icases Hrec with ⟨#Hf, -, %Hsz⟩
+  icases HP with ⟨Hi, Hl, Hold, Hes⟩
+  ihave Hes : entsPtsZ γs.sz sl dq es $$ [Hes]
+  · rw [Hsz]; iapply entsPts_entsPtsZ $$ Hes
   try wp_auto
-  wp_apply wp ms γs k old es sl dq h1 h2 $$ [HP] as  HQ
-  · iexact HP
+  wp_apply wp ms γs k old es sl dq h1 h2 $$ [$Hi $Hl $Hold $Hes] as ⟨Hes, HQ⟩
   iapply HΦ
-  iexact HQ
+  iframe HQ
+  iapply entsPtsZ_entsPts $$ Hes
 
 theorem Storage.wp_ApplySnapshot (wp : MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (j : Nat) (old : List EntryM) (sp : Loc)
@@ -285,7 +296,7 @@ theorem kvrStorage_isStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) :
+    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (hmd : γ.maxData = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf -∗
       kvrStorRec s ms γs -∗ memStorInvP ms γs (kvrJ γ K) -∗
       isStorage γ K (kvrStorIface s) := by
@@ -295,6 +306,7 @@ theorem kvrStorage_isStorage
   ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iunfold memStorLock at Hl; icases Hl with ⟨#H, -⟩; iexact H
   unfold isStorage isStorageP
+  rw [hmd, Option.isSome_none]
   iexists (interface.mk (go.GoType.PointerType
     github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage.ty) #s)
   isplitr
@@ -344,7 +356,13 @@ theorem kvrStorage_isStorage
       isplitr
       · ipureintro; exact He
       iapply kvrStorCompacted_of s ms γs _ $$ Hrec Hc
-    · iright; iexact Hres
+    · iright
+      icases Hres with ⟨%He, #Hes, %Hr⟩
+      icases entsPts_entsPtsC _ _ _ $$ Hes with ⟨%cs, #Hcs, %Hcm⟩
+      isplitr; · ipureintro; exact He
+      isplitr
+      · iexists cs; iframe Hcs; ipureintro; exact ⟨Hcm, fun h => absurd h (by simp)⟩
+      ipureintro; exact Hr
   isplitr
   · iintro %c
     imodintro
@@ -399,7 +417,7 @@ theorem kvr_bootStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms bp : Loc) (γs : MemStorNames) (hs : HardStateM) (csm : ConfStateM)
-    (γ : Cluster) (F : GName → IProp GF) :
+    (γ : Cluster) (F : GName → IProp GF) (hmd : γ.maxData = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf -∗
       kvrStorRec s ms γs -∗ kvrStorBoot s bp csm -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗ memStorMeta ms γs hs -∗
@@ -460,7 +478,7 @@ theorem kvr_bootStorage
   imodintro
   isplitr
   · iapply kvrStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
-      s ms γs γ K $$ Hpkg Hrec Hinv
+      s ms γs γ K hmd $$ Hpkg Hrec Hinv
   iframe HFK
   iunfold storHolds
   have hb : (⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
@@ -489,14 +507,14 @@ theorem kvr_bootStorage
 allocated; the bootstrap conf state read-only): the registry's record (`kvr_register`) and the boot
 record, both persistent. -/
 theorem kvrStor_alloc (s ms bp : Loc) (γs : MemStorNames) (csm : ConfStateM) (E : CoPset)
-    (HE : ↑kvrStorN ⊆ E) :
+    (HE : ↑kvrStorN ⊆ E) (hsz : γs.sz = false) :
     ⊢ kvrStorInv (GF := GF) -∗
       s.[github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage, go!"MemoryStorage"] ↦ ms -∗
       s.[github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage, go!"boot"] ↦ bp -∗
       ownCSM bp DFrac.discard csm ={E}=∗
       kvrStorRec s ms γs ∗ kvrStorBoot s bp csm := by
   iintro #Hinv Hm Hb #Hcs
-  imod kvrStor_register s ms γs E HE $$ Hinv Hm with #Hrec
+  imod kvrStor_register s ms γs E HE hsz $$ Hinv Hm with #Hrec
   imod (typedPointsto_dfractional (GF := GF) _ bp).dfractional_persist _ $$ Hb with #Hb
   imodintro
   iframe Hrec

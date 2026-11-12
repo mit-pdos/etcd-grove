@@ -81,10 +81,11 @@ theorem kvrStorIface_inj (s1 s2 : Loc) : kvrStorIface s1 = kvrStorIface s2 → s
     true_and] at h
   exact go.intoVal_inj h
 
-/-- The wrapper `s` holds the `MemoryStorage` `ms`, whose names are `γs` (persistent). -/
+/-- The wrapper `s` holds the `MemoryStorage` `ms`, whose names are `γs` (persistent). (out_size
+C3) The storage is unsized (`γs.sz = false`): the cluster bounds no proposed data. -/
 def kvrStorRec (s ms : Loc) (γs : MemStorNames) : IProp GF :=
   iprop(s.[github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage, go!"MemoryStorage"] ↦□ ms ∗
-    s ↪[KvrStor.kvrStorName (GF := GF)]□ kvrStorRecOf ms γs)
+    s ↪[KvrStor.kvrStorName (GF := GF)]□ kvrStorRecOf ms γs ∗ ⌜γs.sz = false⌝)
 
 instance kvrStorRec_persistent (s ms : Loc) (γs : MemStorNames) :
     Persistent (kvrStorRec (GF := GF) s ms γs) := by
@@ -93,7 +94,7 @@ instance kvrStorRec_persistent (s ms : Loc) (γs : MemStorNames) :
 theorem kvrStorRec_agree (s ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
     ⊢ kvrStorRec (GF := GF) s ms1 γs1 -∗ kvrStorRec s ms2 γs2 -∗ ⌜ms1 = ms2 ∧ γs1 = γs2⌝ := by
   unfold kvrStorRec
-  iintro ⟨-, #H1⟩ ⟨-, #H2⟩
+  iintro ⟨-, #H1, -⟩ ⟨-, #H2, -⟩
   icases ghostMapElem_agree _ _ _ _ _ _ $$ H1 H2 with %H
   ipureintro; exact kvrStorRecOf_inj _ _ _ _ H
 
@@ -150,7 +151,8 @@ theorem kvrLoc_pointsto_excl (l : Loc) (v1 v2 : Loc) (q : Qp) :
 
 /-- **A new wrapper joins the registry**: its `MemoryStorage` field, still wholly owned (so the
 wrapper is not registered yet), becomes the persistent record. -/
-theorem kvrStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : ↑kvrStorN ⊆ E) :
+theorem kvrStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : ↑kvrStorN ⊆ E)
+    (hsz : γs.sz = false) :
     ⊢ kvrStorInv (GF := GF) -∗
       s.[github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage, go!"MemoryStorage"] ↦ ms ={E}=∗
       kvrStorRec s ms γs := by
@@ -187,6 +189,7 @@ theorem kvrStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : �
     imodintro
     unfold kvrStorRec
     iframe Hf2 Hfrag
+    ipureintro; exact hsz
 
 /-! ### The vocabulary of a registered wrapper -/
 
