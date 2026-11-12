@@ -263,7 +263,11 @@ theorem selfToks_of_readyToks (γ : RaftNames) :
       unfold readyTok selfTok
       cases γ.reTrace with
       | none => itrivial
-      | some γd => icases Hq with ⟨-, Hq⟩; iExactEq Hq; rw [he, hx]
+      | some γd =>
+        icases Hq with ⟨%Hs, Hq⟩
+        isplitr
+        · ipureintro; exact Hs
+        iExactEq Hq; rw [he, hx]
     · iapply ih (fun q' hq' => hl q' (List.mem_cons_of_mem _ hq')) $$ H
 
 /-- **The tokens of the queues, split** between the self-addressed messages `acceptReady` keeps for

@@ -185,7 +185,7 @@ theorem propConf_inv (joint : Bool) {applied li pci : w64} {ents : List EntryM} 
     ConfChangeIM)} (hcs : CCTypesOk ents cs) (hal : uint.Z applied ≤ uint.Z li) (hnw : uint.Z li +
     ↑ents.length < 2 ^ 64) : PCInv applied li pci (propConf applied li pci ents cs joint)
 
-theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') : ConfI1 l c'
+theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (H : ConfI1 l c) (h : c ≤ c') : ConfI1 l c'
 
 theorem propConf_foldl_leave (joint : Bool) {applied li : w64} (xs : List (EntryM × Option
     ConfChangeIM)) (hx : ∀ (x : EntryM × Option ConfChangeIM), x ∈ xs → x.snd.isSome = decide
