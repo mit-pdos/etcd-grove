@@ -269,6 +269,39 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     rafthttp and the server (not rebuilt since the MsgRead move and these spec changes: `RawNode.Ready`,
     `readyData`); `etc/pbschema-check.py`; C3 checks.
 
+- **C3 continued**, 2026-11-12 (agent 6; commit `170b7aaca4`):
+  - **Option (a) done** (decided by etcd-grove-81): `pbEntryM.decC`/`dec` at `entPtsCC l (own 1) c`
+    (`PbEntryType`; `entPtsCC_freeze`; `treeWp_entryTree` owned). Go evidence `TestC3DecodedFresh`
+    (`examples/pbschema/c3fresh_test.go`) in `etc/pbschema-check.py`'s `POST_TESTS` (10). Freeze
+    addendum: `/shared/tmp/out-size/freeze-c3-decc.md` (reviewed with the C3 checkpoint). rafthttp
+    `msgAppV2Decoder__decode` freezes the decoded entries (`iapply wp_fupd` before the call, then
+    `imod entPtsCC_freeze`, `imodintro`; checks). `appendEntry` on `proto.ClonePb` at `pbEntryC`
+    (proof at `HasLC.hasLC`; `entPtsCC_store_Term`/`_Index` in `LemmasSendRB`, `entRoC_entRZ_eq`/`_imp`
+    in `PbSized`), spec takes/gives `entsPtsZ s.gh.sn.sz es dq ents`; `becomeLeader` via
+    `entRZ_of_struct s1.gh.sn.sz`. `proto.CloneEntry` (spec and axiom) deleted; raft `Link`
+    regenerated (`etc/link-lean-first-raft.txt`: `proto_ClonePb`). Raft `Results` builds
+    (`/shared/tmp/out-size/c3-decc-b1.log`). NOT yet updated: tcb baseline/collections still list
+    `proto.CloneEntry.wp_proof` (C3's `--check --update`), `interface/` (regenerate at C3).
+  - `msgInC sz l dqe st` defined (`MsgOwnZ`, with `msgInC_msgIn`, `msgIn_msgInC`), not yet used.
+  - **Temporary sorries left** (`msgOwnZ_sized_TODO`, `entRZ_sized_TODO`): as agent 5's list, minus
+    `appendEntry`'s clones (gone), plus `stepLeader/MsgProp.lean`'s `entsPtsZ_sized_TODO` before
+    `appendEntry` (the proposal's entries: `msgInC`).
+  - **Step 2 plan (msgInC), found while reading:** `RawNode.Step`'s spec and `stepIn_intro_impl`
+    already carry the size fact (`∀ b, γ.maxData = some b → Type ≠ Snap → msgSizeOk c`, raft-entsize
+    §2); `RawNode__Step.lean:94` and `stepIn_intro_impl` (`InvApi.lean:3653`) drop it
+    (`msgPtsCC_msgPtsC`). So: `stepP` (behind `stepIn`, `InvApi`) and `InvNodeChan` recvc/propc carry
+    `msgInC γ.maxData.isSome`; `raft.Step`'s `"Hmsg_in"` becomes `msgInC s.gh.sn.sz ml dqe st` (flag
+    link `certLink`'s `sn.sz = γ.maxData.isSome`); its callers (24 files: `grep -rln "Hmsg_in\|raft.Step.spec\|wp_raft_Step"`):
+    the local ones (Propose, Campaign, tick*, ReadIndex, ...) build literals (`msgIn_msgInC` gives only
+    flag `false`: they need a sized literal lemma, from `msgSizeOk_of_lit` and the `Propose`/`ReadIndex`
+    data premises), `RawNode.Step` passes its content, `node.run` the channel's. In `raft__Step.lean`
+    each branch lemma takes `msgIn`; convert with `msgInC_msgIn` at the dispatch for all but MsgProp
+    (stepLeader MsgProp, stepFollower forwards), MsgApp (`handleAppendEntries`), MsgHeartbeat,
+    MsgReadIndex (+ follower forward), MsgTransferLeader (follower forward). MsgProp's entries reach
+    `appendEntry` as `entsPtsZ` from `msgInC`'s `msgSizeOk` (`entBytes ≤ entBytesMax` each) through
+    the entries part of `msgPtsCC` (`msgPtsCC_splitE`/`_readE` in `MsgRead`). Also RawNode.Step's
+    netStepTypes exclude MsgProp: network proposals come through `node.Step` → propc.
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
