@@ -628,14 +628,17 @@ theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState
   iunfold auth.authWHeld at Hwh
   icases Hwh with ⟨Hwt, Hbc⟩
   iunfold authBkLend at Hlend
-  imod Hlend $$ %hs %st %Hl Hwt Hhh with ⟨%r, Hp, %Hr, Hback⟩
+  imod Hlend $$ %hs %st %Hl Hwt Hhh with ⟨%RL, HRL, #Hlaw, Hback⟩
   imodintro
-  iexists r
-  iframe Hp
+  iexists RL
+  iframe HRL
   isplitr
-  · ipureintro; exact Hr
-  iintro Hp
-  imod Hback $$ Hp with ⟨Hwt, Hhh⟩
+  · iintro !> %r HRL Hr
+    icases Hlaw $$ %r HRL Hr with ⟨%Hr, HRL, Hr⟩
+    iframe HRL Hr
+    ipureintro; exact ⟨r, Hr, fun _ _ => rfl⟩
+  iintro HRL
+  imod Hback $$ HRL with ⟨Hwt, Hhh⟩
   imodintro
   iunfold srvAuthApplyResB
   iexists stl, d0, Pk
