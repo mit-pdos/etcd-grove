@@ -195,6 +195,24 @@ one or a few files per API). They are the completeness requirements: each captur
 callers rely on, much smaller than the callers' code (one simple example per usage pattern, not
 one per call site).
 
+**The closed form (the user, 2026-11-12; `backend` is the first package converted).** The snippets
+are requirements on the API in Go, independent of the specs, and they are adequacy targets: as the
+axioms below a package are eliminated, a closed theorem "this snippet does not panic" (as
+`examples/mvccfull`'s) tracks what is proved end to end. So, for a converted package:
+
+- A snippet is a closed program, `func ReqXxx()` with no parameters: it sets up its own state (a
+  backend on a fresh file of its own, ...), exercises the API, panics on a violation and cleans up.
+  What used to be an assumption on its inputs is established by the program itself. A
+  crash-recovery requirement is a pair (the program, and a recovery function run after any crash).
+- The header is in Go terms only: `REQ`, `Users:` (callers' file:line), and `Assumes:` only for
+  facts of the environment (no crash, no other process touches the file). No `Specs:` line and no
+  proof vocabulary (predicates, laws, ownership, reader slots, review rounds): which specs prove a
+  snippet is the provability review's sketch, not the snippet's.
+- One snippet per aspect the callers rely on, each with as little code as possible: the snippets
+  together are much smaller than the callers' code.
+
+The packages not yet converted keep the form below:
+
 - Each snippet is a function with a header comment:
 
   ```go
