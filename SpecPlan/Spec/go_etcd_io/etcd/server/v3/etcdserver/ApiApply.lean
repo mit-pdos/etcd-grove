@@ -1,0 +1,943 @@
+/-
+# etcd's server: the apply thread and the raft node driver (batch 2d): the vocabulary
+
+What the server's apply side (`server.go`: `run`, `applyAll`, `applySnapshot`, `applyEntries`,
+`apply`, `applyEntryNormal`, `applyConfChange`, the snapshots and the raft log's compaction, the
+merged snapshot) and its raft driver (`raft.go`: `raftNode`, its `Ready` loop) use and give.
+Namespace `EtcdServer` (shared with 2c's request path and 2e's bootstrap: a shared `Api.lean` of
+this directory, if 2c writes one, may take over the cluster-level part below at integration).
+
+## The shape, in words
+
+**The cluster (shared with 2c, 2e, 3a).** An etcd cluster's server-level names `γ : Names` tie the
+client-observable cluster `γ.etcd` (`EtcdModel.Cluster`, W0's `etcdState`/`etcdLb`) to the raft
+cluster `γ.raft` (R1's `committedOps`, `committedLb`, `confAt`, `snapsMade`, ...) and fix the
+environment's configuration `γ.cfg` (W0's `EnvCfg`, the members' auto-compaction and lease expiry).
+The cluster's invariant (under `EtcdModel.etcdN`) owns raft's client-side state (`committedOps`,
+`confDecisions`, `snapsMade`, `readCtxs`) and the cluster's half of `etcdState γ.etcd σ`, and keeps
+**the history of the committed log**: `histAt γ k σ` (persistent) says the model state after the
+committed log's first `k` entries is `σ`. Each committed entry moves it by one step, chosen at the
+entry's commit (inside the proposal's update that raft fires, R1's `node.Propose.spec`): a client
+request's `Step` (firing the client's update, 2c's), an environment step (`envUpd`, for the
+lessor's revocations, the compactor's compactions, the alarms, `publishV3`), or nothing (an empty
+entry, a lease checkpoint, a cluster version). The step is **3a's apply model** `Apply.applyStep mc σ e
+σ' res` at the **proposing** member's configuration `mc` (`srvCfg`; members may be configured
+differently: no premise). Every member's state machine is at a TTL-variant of the history
+(`Apply.ttlEq`: equal but for the leases' TTLs, 3a's `irrStep_ttl`), the proposer's included, and the
+answer the proposer's apply computes is the one fixed at the commit (`answered γ k id res`,
+persistent): it needs 3a's law that one configuration on TTL-variant states gives the same answer
+(requested, `req/go_etcd_io_etcd_server_v3_etcdserver_apply.md`, from 2d (round 1b)). `histPropose` is the law that builds raft's proposal update from
+a proposer's update over `etcdState` (2c's `processInternalRaftRequestOnce`, `configure`), and
+`isServer_names` ties 2e's handle `isServer s γ` (over W0's `Cluster`) to these names. So **the history is the committed log's** (K6): a
+snapshot, a restore and a restart continue the same `histAt`; the member's own position in it is
+its applied index.
+
+**A member.** `srvNode s γ id` (persistent): `s` is member `id`'s `*EtcdServer` as `NewServer` built
+it (its raft node driver, membership, consistent indexer, stores, atomics, and their invariants:
+`Process` may be called from then on); `srvStarted s γ id` (persistent): the fields `start` adds. `srvApplied s γ k` (persistent): the member has applied the committed
+log's first `k` entries, so its KV store (and lessor, auth store, membership) is at least at
+`histAt γ k` (2c's linearizable reads wait for it: `applyWait`). `srvRunTok s γ id` (exclusive):
+what `start` hands `run` (2e builds it at `NewServer`/`start`). `srvStopped s γ id` (exclusive):
+what a stopped member leaves (`run`'s `close(done)` announces it): with 2e's `srvClosed`, the disk's
+idle token (`memberDisk`, 2e's round 2: the files' content, `raftState` included, stays in the
+program's `diskState`; raft's `nodeVacant` comes back into it once the node's goroutine exits).
+
+**The apply thread.** `applyThread s γ ep p` (exclusive): the apply thread's state, with the
+`etcdProgress` record `ep` at `p : Progress` (applied index and term, the disk and memory snapshot
+indices): the state machine (the uber-applier over mvcc, the lessor, auth, membership, alarms, the
+consistent indexer) at a TTL-variant of `histAt γ ci` (`Apply.ttlEq`) for its consistent index `ci ≥ p.appliedi` (always: every
+applied entry past `ci` moves `ci` to it, a restart's backend is at or past the raft snapshot, an
+installed image at or past its index; entries up to `ci` are replayed for the in-memory membership
+only, `shouldApplyV3 = false`), and `ep.confState` listing the configuration at `ci` (raftpb's `confStateFull`, read-only). R1's `nodeConf`
+is the `Ready` loop's, lent to the apply thread with a batch that has conf changes and returned
+through `notifyc` (round 1, F3). Passed from one `applyAll` job to the
+next (`schedTail`, `pkg/schedule`).
+
+**The raft node driver.** `isRaftNode r γ id n` (persistent): the `raftNode` at `r` wraps raft node
+`n` of `γ.raft` (`isNode n γ.raft id`), its `MemoryStorage` attached (`nodeStorage n γ.raft (memStor
+ms)`), its WAL storage (2e's), its transport (2f's), its channels with their protocols. `rnLoop r`
+(exclusive): the `Ready` loop's token (R1's `nodeDriver`, the WAL's write half, the ready
+handler's writers). `rnStopper r` (exclusive): the right to `stop()` it (`run`'s deferred
+shutdown); `rnStopped r γ id`: what it leaves. `applyBatch r γ apv B ph` (exclusive): a batch `B` the
+loop handed the apply thread through `applyc` (the `toApply` value `apv`), at phase `ph` (`false`:
+its snapshot, if any, not installed yet). `nodeAdvanced r k`, `nodeSnapLb r k` (persistent): R1's
+`appliedLb`/`storSnapLb` of the driver's node, which the apply thread needs for the raft log's
+snapshot and compaction.
+
+**Durability (K5) is the loop's order of writes**: the leader sends before its write (R1's
+`readyCheck`), every member deposits the batch's `readyEnter` in its disk (2e's `diskAcc`, round 2:
+the durable state, `raftState γ.raft id D` with the WAL's records, is the program's `diskState`) and
+fires it at the WAL's `Save` (at the write's sync), and only then sends (followers)
+and `Advance`s; an entry is applied only after raft committed it, which needs a quorum's durable
+acknowledgements. A crash loses nothing raft's durable state has, and every answered step's entry is
+in it on a quorum.
+
+## Intended realization
+
+* `Names`: `etcd`, `raft`, `cfg`, `mc` and the names of the history. The cluster's invariant owns
+  raft's `committedOps γ.raft ops` only (raft fires nothing for its own fillers, and a proposal's
+  update learns no index), so the history is kept **per operation**: a `mono_list` of states, one
+  per element of `ops`, with the answers per operation (round 1, S3); `histAt γ k σ` and
+  `answered γ k id res` translate a log index `k` to its operation position through `committedLb`
+  (the fillers below `k`, which raft's `opsOf` drops, change nothing). The invariant also holds the
+  cluster's half of `etcdState γ.etcd (last hist)`, raft's `confDecisions`/`snapsMade`/`readCtxs`,
+  each made snapshot's point (`snapPoint`), and the read registry (`readTicket`).
+* `srvNode s γ id`: 2e's `srvFields s γ.etcd id` (the literal's fields: `memberID`, `lgMu`/`lg`,
+  `cluster`, `Cfg` but the two fields `start` defaults), the server's other read-only fields (`s.r`
+  but `r.transport`, `s.consistIndex`, `s.kv`, `s.lessor`, `s.authStore`, `s.alarmStore`,
+  `s.beHooks`, `s.snapshotter`, `s.uberApply`'s cell, the channels; `s.w`, `s.applyWait` are
+  `srvStarted`'s) as persistent points-to's, the invariants of the atomics (`appliedIndex`
+  with `srvApplied` of its value, `committedIndex` with a committed prefix at least that long,
+  `term`, `lead`: any value), the `bemu` lock's invariant (the current backend, whose state machine
+  is the apply thread's), `inflightSnapshots`, `envUpd γ.etcd γ.cfg` (persistent), and the cluster's
+  invariant.
+* `applyThread`: the `etcdProgress` points-to's, `Cindex.ciWriter` (with an agreement half of the
+  indexer's state, whose authority is in one invariant the pre-commit hook also opens), the
+  uber-applier's contract (3a's) at the server's state machine, `confAt γ.raft ci m` with
+  `ep.confState` a `RaftPb.confStateFull` listing `m`, the snapshot indices with `storSnapLb`.
+* `isRaftNode`/`rnLoop`/`rnStopper`/`applyBatch`: the loop's ghost driver state (R1's `nodeDriver`,
+  `readyStor`), the `applyc` protocol (each batch's committed entries with `committedLb`/
+  `deliveredLb`, its snapshot's `snapValid`, the `notifyc` handshake: the loop's `Save` before the
+  apply thread's snapshot (the WAL's synced write), the apply thread's conf changes before the loop's
+  `Advance`; `raftAdvancedC`'s close carrying R1's `appliedLb n` of the delivered log), `msgSnapC`'s
+  payload (a `MsgSnap` the node sent: `msgPts`, `msgSent`), `readStateC`'s (`readState`).
+
+## Laws
+
+Persistence, timelessness, exclusivity; the history: `histAt_agree`, `histAt_lb` (W0's `etcdLb`:
+K7's realization), `histAt_committed`, `histAt_of_committed`, `answered_agree`, `committed_types`,
+`snapImage_point`, `snapPoint_agree`, `histPropose` (over 3a's `Apply.applyStep`),
+`readCtx_register`, `readReg_register`, `readReg_get`; the member: `srvApplied_mono`,
+`srvApplied_zero`, `srvApplied_hist`, `srvApplied_read`, `srvReadAt_mono`, `srvNode_raftNode`,
+`srvNode_agree`, `srvNode_cfg`, `srvCfg_agree`, `srvNode_errorc`, `isServer_names`, `srvNode_raftNames`,
+`srvMember_node`, `srvNode_member`, `srvNode_fields`, `srvNode_kv` (re-review RR2), `srvStarted_isServer`, `isServer_member`, `applyLent_opts` (verify round), `srvRunTok_intro`, `srvNode_raftOk`, `srvStores_agree`, `srvWatchable_hist`, `srvReadAt_mvcc`,
+`srvReader_mvcc`, `srvReadAt_lessor`, `srvReader_lessor`, `srvReadAt_auth`,
+`applyInit_ep`, `srvStopped_disk`, `isRaftNode_node`, `isRaftNode_storage`, `nodeSnapLb_stor`,
+`nodeAdvanced_applied`, `rnInit_place`, `applyThread_at`, `applyThread_applied`, `applyBatch_terms`,
+`applyc_recv` (with the cursor `applycPos`), `readStateC_recv`, `msgSnapC_recv`,
+`procErr_forbidden`.
+
+## Requirement snippets
+
+`examples/specreq/etcdserverapply/`: `apply.go` (a write's waiter answered with the commit's answer;
+`applyWait` gives the applied state; a conf change's waiter after raft advanced; the replay below the
+consistent index), `snapshot.go` (snapshot and raft-log compaction at the applied index; the merged
+snapshot at the applied index and term; installing a received snapshot), `restart.go` (a member
+restarted from its durable state continues the history; a crash loses no answered write),
+`raftnode.go` (the driver's write-before-send order; `ReadIndex`/`ReadState`; the transport's
+inbound `Process`/`ReportUnreachable`/`ReportSnapshot`).
+-/
+module
+
+public import SpecPlan.Spec.go_etcd_io.etcd.api.v3.State
+public import SpecPlan.Spec.go_etcd_io.raft.v3.Api
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.pkg.v3.schedule.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.ApiBoot
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.pkg.v3.idutil.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiWatch
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.lease.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.auth.Api
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.storage.backend.StateImage
+public import SpecPlan.Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Api
+
+set_option autoImplicit false
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace EtcdServer
+
+open Iris Iris.BI
+
+/-! ## Ghost names -/
+
+/-- The server's own ghost names (the history's, the answers'): opaque. -/
+opaque HistNames : Type := Unit
+
+
+/-- **An etcd cluster's server-level names**: the client-observable cluster (W0's names), the raft
+cluster under it (R1's names), the environment's configuration (every member configured alike, the
+cluster contract), and the history's own names. -/
+structure Names where
+  etcd : EtcdModel.Cluster
+  raft : Raft.Cluster
+  cfg : EtcdModel.EnvCfg
+  hist : HistNames
+
+/-! ## Pure models -/
+
+/-- **The apply thread's progress** (`etcdProgress` without its `confState`): the applied index and
+term, and the indices of the last snapshot saved to disk and of the last one made in memory. -/
+structure Progress where
+  appliedi : w64
+  appliedt : w64
+  diskSnap : w64
+  memSnap : w64
+
+/-- **A batch the `Ready` loop hands the apply thread** (`toApply`): the delivered log's length
+before it (`prev`), its committed entries (from index `prev + 1`), its snapshot, and the term of the
+latest hard state handed out up to it (`raftTerm`, the merged snapshot's guard). -/
+structure ApplyBatch where
+  prev : Nat
+  ents : List Raft.LogEntry
+  snap : Option Raft.Snapshot
+  term : w64
+
+/-- The applied index once the batch's snapshot (if any) is installed. -/
+def ApplyBatch.base (B : ApplyBatch) : Nat :=
+  match B.snap with
+  | some s => uint.nat s.index
+  | none => B.prev
+
+/-- The delivered log's length after the batch (raft hands out no committed entries with a
+snapshot, R1's `BatchOk`). -/
+def ApplyBatch.last (B : ApplyBatch) : Nat := B.base + B.ents.length
+
+
+/-- The `ShouldApplyV3` of an entry at index `i` for a consistent index `ci`: whether its effects go
+to the backend (`apply`, `server.go:1934`). -/
+def applyV3 (ci i : Nat) : Bool := decide (ci < i)
+
+/-! ## Resources -/
+
+section vocab
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+  {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+  [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+  [raft_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-! ### The cluster (shared with 2c, 2e, 3a) -/
+
+/-- **The model state after the committed log's first `k` entries is `σ`.** Persistent. -/
+opaque histAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (k : Nat) (σ : EtcdModel.State) : IProp GF := iprop(True)
+
+/-- **The committed entry at index `k` is request `id`, answered `res` at its commit.**
+Persistent. -/
+opaque answered [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (k : Nat) (id : w64) (res : EtcdModel.Resp) : IProp GF := iprop(True)
+
+/-- **Snapshot `s` was made with its configuration at point `a`** (persistent; recorded at
+`snap_make` by its maker: `snapshot()` at `a = ci`, `createMergedSnapshotMessage` at the sender's
+consistent index): `s.index ≤ a`, the configuration at `a` is `s.conf`'s, and the image sent with
+it holds the state machine at `histAt γ a` (round 1, provability F3/F4: keyed by the snapshot, not by
+its index). -/
+opaque snapPoint [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (s : Raft.Snapshot) (a : Nat) : IProp GF := iprop(True)
+
+/-- **The database image installed with snapshot `s`**: the `.snap.db` of `s.index` holds the state
+machine at the snapshot's point (`snapPoint γ s a`, `histAt γ a`), its stored consistent index `a`.
+What the member's invariant over its snapshot directory gives a batch's snapshot (from 2f's
+`recvd`/`dbIn` at `Process`), and what `applySnapshot` opens. Persistent. **Scope** (round 1, F4;
+`nonissues/etcd-merged-snapshot-same-index-image.md`): the file is keyed by the index only, so this
+holds only if a member never saves two merged snapshots of one index with different points before
+installing one: an open question for the user. -/
+opaque snapImage [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (s : Raft.Snapshot) : IProp GF := iprop(True)
+
+/-- (2f's `Img`, the server's choice at `net_alloc`) **`img` is an image for index `i`**: the state
+machine at `histAt γ a` with stored index `a`, for a snapshot `s` of index `i` with `snapPoint γ s a`.
+Persistent. -/
+opaque imgAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (i : w64) (img : Snap.BeImage) : IProp GF := iprop(True)
+
+
+/-- (provisional, 2c's read registry, item 5) **A registered read** under ticket `t`: a persistent
+update over `etcdState` with relation `Rel` and result `Q`, registered when the committed log was
+`l0`; the cluster's invariant fires it at every later history point, for each answer `Rel` allows,
+and keeps the results for `readReg_get`. Exclusive (consumed by one `readReg_get`). -/
+opaque readTicket [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (γ : Names) (t : Nat) (Rel : EtcdModel.State → EtcdModel.Resp → Prop)
+    (Q : EtcdModel.State → EtcdModel.Resp → IProp GF) (l0 : List Raft.LogEntry) : IProp GF :=
+  iprop(True)
+
+/-- **The id space of member `s`'s request ids** (`s.reqIDGen`, 2c's `IdUtil`): its fresh ids are
+fresh cluster-wide (the member id in the prefix, one prefix per run). Persistent. -/
+opaque srvIdSpace [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γi : IdUtil.IdSpace) : IProp GF := iprop(True)
+
+/-- **The member's reads are at or past `k`** (the slot for the read path, round 1 completeness F1):
+a read of member `s`'s mvcc store (3e), lessor (3c) or auth store (3d), begun now, linearizes at a
+history point `k' ≥ k` (`histAt γ k' σ'`) and answers as one of `Step`'s answers at `σ'`. Persistent.
+**Provisional slot**: each subsystem's read spec is to be stated over it (requested in their `req/`
+files); `srvApplied_read` introduces it. -/
+opaque srvReadAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
+
+/-- **Member `s`'s stores' ghost names** (persistent; integration I4): its mvcc store's (3e),
+its lessor's (3c), its auth store's (3d), fixed by `NewServer`. The realization of `srvReadAt` over
+the owners' read vocabulary is the laws `srvReadAt_mvcc`, `srvReadAt_lessor`, `srvReadAt_auth`. -/
+opaque srvMvcc [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γm : Mvcc.MvccName) : IProp GF := iprop(True)
+opaque srvLessor [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γl : Lease.Names) : IProp GF := iprop(True)
+opaque srvAuth [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γa : Auth.AuthNames) : IProp GF := iprop(True)
+
+/-! ### A member -/
+
+/-- **`s` is member `id`'s server in cluster `γ`**, as `NewServer` builds it, from its server
+literal on (before `tr.Start()`: `Process` may be called from then on): its raft node driver, the
+membership, the consistent indexer, the stores' handles, the atomics and their invariants, `errorc`
+(2f's `errChanOk`). Persistent. Member ids are `Nat`, as 2e's. -/
+opaque srvNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
+
+/-- **`s` is started** (persistent): the fields `start` sets (`s.w` with the request path's
+registration predicate, 2c's; `s.applyWait` over `srvApplied s γ`; `s.stop`, `s.stopping`,
+`s.done`; `s.ctx`; `s.read`; `s.leaderChanged`; the wait group behind `GoAttach`; `s.Cfg`'s
+`SnapshotCount` and `SnapshotCatchUpEntries`, which `start` defaults: re-review RR1), read-only. -/
+opaque srvStarted [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) : IProp GF := iprop(True)
+
+/-- (provisional, 2e's `etcdhttp/types`) `err` is the `*httptypes.HTTPError` with status 403 that
+`Process` returns for a refused message. Persistent. -/
+opaque httpForbidden [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (err : GoInterface) : IProp GF := iprop(True)
+
+/-- **Member `s`'s apply configuration is `mc`** (3a's `MemberCfg`: its lessor's minimum TTL).
+Persistent. Members may differ (round 1, the coordinator's update: 3a's resolution, no premise):
+the history records the proposer's step; every member's state machine is at a TTL-variant of the
+history (`Apply.ttlEq`). -/
+opaque srvCfg [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (mc : Apply.MemberCfg) : IProp GF := iprop(True)
+
+/-- **Member `s` has applied the committed log's first `k` entries.** Persistent. -/
+opaque srvApplied [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (k : Nat) : IProp GF := iprop(True)
+
+/-- **What `start` hands `run`** for member `id` with directories `ds` (`srvRunTok_intro`).
+Exclusive. -/
+opaque srvRunTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
+
+/-- **What a stopped member's apply side and driver leave** (`run`'s deferred shutdown, before
+`Cleanup`): the release of the disk's access (no server writes `ds` any more: the node stopped, its
+vacancy back in the disk's state), the snapshot directory's deletion right. With 2e's `srvClosed ds`,
+the member's `memberDisk` (`srvStopped_disk`: 2e's idle token; integration I4, after 2e's round 2).
+Exclusive. -/
+opaque srvStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) : IProp GF := iprop(True)
+
+/-- **The apply thread's initial state, without its `etcdProgress`** (`run` allocates `ep`): progress
+`p` (all at the `MemoryStorage` snapshot's index), the state machine at the consistent index `c ≥
+p.appliedi`. Exclusive. -/
+opaque applyInit [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (p : Progress) (c : Nat) : IProp GF := iprop(True)
+
+/-- The writer's token of `s.appliedIndex` at value `a` (the apply thread's). Exclusive. -/
+opaque appliedW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (a : w64) : IProp GF := iprop(True)
+
+/-- The writer's token of `s.committedIndex` at value `c` (the `Ready` loop's, through the ready
+handler). Exclusive. -/
+opaque committedW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (c : w64) : IProp GF := iprop(True)
+
+/-- The writer's token of `s.term` and `s.lead` (the apply thread's and the loop's: either may store
+any value). Exclusive per field. -/
+opaque termW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
+opaque leadW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
+
+/-! ### The apply thread -/
+
+/-- **The apply thread's state**, with `ep` at progress `p`. Exclusive. -/
+opaque applyThread [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (ep : Loc) (p : Progress) : IProp GF := iprop(True)
+
+/-- (internal) **The apply thread inside `apply`'s loop**: the state machine applied through the
+committed log's first `a` entries (its position `max a c`), the consistent index `c`, the applying
+index `ai`; `ep`'s recorded progress still `p` (`applyEntries` stores the new applied index after
+`apply` returns). `applyThread s γ ep p` is `∃ c ai, applyAt s γ ep p p.appliedi c ai`. Exclusive. -/
+opaque applyAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) (ep : Loc) (p : Progress) (a c ai : Nat) : IProp GF :=
+  iprop(True)
+
+/-- `s.forceDiskSnapshot`'s owner (the apply thread's; lent to the uber-applier, which calls
+`ForceSnapshot` through its `SnapshotServer`). Exclusive. -/
+opaque forceSnapW [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) : IProp GF := iprop(True)
+
+/-- **What the apply thread lends the uber-applier** (3a's `R` in `optsOk`/`nextOk`; verify round,
+A7-completeness F6): the consistent indexer's writer with its applying index `i` (the index of the
+entry being applied, committed: `committedLb` with entry `i`), `forceSnapW s`. Exclusive. The
+apply thread holds it inside `applyAt`/`applyThread` between applies. -/
+opaque applyLent [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (γ : Names) : IProp GF := iprop(True)
+
+/-- The server as an interface value (`*EtcdServer`: the uber-applier's `RaftStatus` and
+`SnapshotServer`). -/
+def srvIface (s : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) #s
+
+/-- (internal) **The member's stores at their fields, at model state `σ`** (`s.kv`, `s.lessor`,
+`s.authStore`, `s.alarmStore`, `s.cluster`, `s.be` under `bemu`): 3a's `optsSt` of the options
+`NewUberApplier` builds from them. Exclusive; the apply thread's (inside `applyAt` between
+applies, given to the uber-applier's `smAt` while one applies; verify round, A7-provability F7:
+`EtcdServer.NewUberApplier.spec`). -/
+opaque srvStores [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (σ : EtcdModel.State) : IProp GF := iprop(True)
+
+/-- (internal) **`be` is the member's current backend** (`s.be`, which `bemu` guards): the apply
+thread's half of the field, `s.be ↦{1/2} be`, which it reads without `bemu` (`NewUberApplier`,
+`server.go:1193`; the other half in `bemu`'s invariant, for `Backend()`'s readers); a snapshot install moves
+both halves to the new backend under the write lock. Exclusive. Verify round (re-review N2). -/
+opaque srvCurBe [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (s : Loc) (be : GoInterface) : IProp GF := iprop(True)
+
+/-! ### The raft node driver -/
+
+/-- **`r` is member `id`'s raft node driver**, over raft node `n` (a `raftNode`). Persistent. -/
+opaque isRaftNode [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Names) (id : w64) (n : Loc) : IProp GF := iprop(True)
+
+/-- **The `applyc` cursor** (exclusive): the next batch the apply side receives starts at delivered
+length `k` (round 1, F2). -/
+opaque applycPos [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (k : Nat) : IProp GF := iprop(True)
+
+/-- **A `raftNode` value fresh from `newRaftNode`**, for member `id` over node `n`: its channels new,
+its node, storages and transport the configuration's, with their resources. Exclusive. -/
+opaque rnInit [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (γ : Names) (id : w64) (n : Loc) :
+    IProp GF := iprop(True)
+
+/-- **A driver configuration's resources** (`raftNodeConfig` value `cv`, the slot 2e's bootstrap
+fills, `ApiBoot`'s `raftNodeBootCfg` being its configuration part): its `Node` is raft node `n` of
+`γ.raft` with id `id` (R1's `isNode`, `nodeRunning`, `nodeDriver` at the start's driver state, the
+apply side's `nodeConf`), its `raftStorage` that node's attached `MemoryStorage` (`nodeStorage n
+γ.raft (memStor ms)`), its `storage` the member's WAL and snapshotter (2e's) with the disk's access
+`diskAcc γ.etcd ds` (whose `diskState` holds `raftState γ.raft id D` with `StorageHolds D` of the
+WAL's records: 2e's round 2), its
+`transport` the member's (2f's), its `isIDRemoved` the membership's query, its logger. Exclusive. -/
+opaque rnCfgOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (cv : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (γ : Names) (id : w64)
+    (n : Loc) : IProp GF := iprop(True)
+
+/-- **The `Ready` loop's token.** Exclusive. -/
+opaque rnLoop [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
+
+/-- **The right to stop the driver** (its `stopped`/`done` channels). Exclusive. -/
+opaque rnStopper [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) : IProp GF := iprop(True)
+
+/-- **What a stopped driver leaves**: the raft node stopped (R1's `nodeStopped`, the id vacant again
+once the node's run goroutine has exited), the ticker stopped, the transport stopped, the WAL closed
+(its records and `raftState` stay in the program's `diskState`, 2e's round 2). Exclusive. -/
+opaque rnStopped [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Names) (id : w64) : IProp GF := iprop(True)
+
+/-- **The ready handler `rh` of server `s`** (`raftReadyHandler`: `getLead`, `updateLead`,
+`updateLeadership`, `updateCommittedIndex` over `s`'s atomics). Persistent. -/
+opaque readyHandlerOk [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rh s : Loc) (γ : Names) : IProp GF := iprop(True)
+
+/-- The ready handler's writers (`s.committedIndex`'s, `s.lead`'s): the loop's. Exclusive. -/
+opaque readyHandlerTok [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (rh : Loc) : IProp GF := iprop(True)
+
+/-- **A batch handed to the apply thread** (the `toApply` value `apv`), its snapshot installed
+(`ph`) or not. Exclusive. -/
+opaque applyBatch [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (γ : Names) (apv : go_etcd_io.etcd.server.v3.etcdserver.toApply)
+    (B : ApplyBatch) (ph : Bool) : IProp GF := iprop(True)
+
+/-- **Raft has advanced past the delivered log's first `k` entries** at driver `r`'s node (R1's
+`appliedLb n k`; a batch's `raftAdvancedC` closes with it). Persistent. -/
+opaque nodeAdvanced [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (k : Nat) : IProp GF := iprop(True)
+
+/-- **Driver `r`'s `MemoryStorage` holds a snapshot at index `k` or later** (R1's `storSnapLb`).
+Persistent. -/
+opaque nodeSnapLb [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (k : Nat) : IProp GF := iprop(True)
+
+/-- `rac` is a batch's `raftAdvancedC`: closed once raft has advanced past the delivered log's first
+`k` entries; a receive gives `nodeAdvanced r k`. Persistent. -/
+opaque advancedAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r rac : Loc) (k : Nat) : IProp GF := iprop(True)
+
+/-- `ch` is driver `r`'s `applyc`. Persistent. -/
+opaque rnApplyc [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (ch : Loc) : IProp GF := iprop(True)
+
+/-- `ch` is driver `r`'s `readStateC`. Persistent. -/
+opaque rnReadStateC [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (r : Loc) (ch : Loc) : IProp GF := iprop(True)
+
+/-! ### Values exchanged with other packages (provisional: their batches' vocabulary) -/
+
+/-- (provisional, raftpb's, 3h) **`p` points to entry `e` at index `k`**, read-only for good (an
+element of R1's `entriesRO`). Persistent. -/
+opaque entryAt [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (p : Loc) (k : Nat) (e : Raft.LogEntry) : IProp GF := iprop(True)
+
+/-- **`bs` is a backend snapshot** (`backend.Snapshot`) of the state machine at a committed point
+`k`, with consistent index `k`. Exclusive (its `Close`). Integration X (Y's (8)): 4a's open
+snapshot of an image that is the state machine at the history point `k` (`Backend.smImage`), of its size `n` (verify round: 4a's `beSnapN`). -/
+def beSnap (bs : GoInterface) (γ : Names) (k : Nat) : IProp GF :=
+  iprop(∃ (γb : Backend.BeNames) (s : Loc) (I : Backend.Image) (n : Nat) (σ : EtcdModel.State),
+    ⌜bs = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #s⌝ ∗
+    Backend.beSnapN γb s I n ∗ histAt γ k σ ∗ ⌜Backend.smImage I σ k⌝)
+
+/-- **`rc` is an `io.ReadCloser` streaming the database image** of the state machine at committed
+point `k`. Exclusive. Integration X: 2e's `Snap.dbReader` of an image that is the state machine at
+`k`. -/
+def dbReader (rc : GoInterface) (γ : Names) (k : Nat) : IProp GF :=
+  iprop(∃ (I : Backend.Image) (σ : EtcdModel.State),
+    Snap.dbReader rc I ∗ histAt γ k σ ∗ ⌜Backend.smImage I σ k⌝)
+
+-- (integration I4) The provisional `expiredLeases sl ids` is 3c's `Lease.expiredSl γl sl ids` at the
+-- member's lessor (`srvLessor s γl`).
+
+/-- **`mg` is a merged snapshot message** (a `*snap.Message`): raft message `m` (a `MsgSnap` the
+member may send: `msgSent`, its snapshot with `snapImage`) with the database reader of that image.
+Exclusive (the transport consumes it). -/
+opaque mergedSnap [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] (mg : Loc) (γ : Names) (m : Raft.Msg) : IProp GF := iprop(True)
+
+/-- `sl` is a `[]*raftpb.Message` of messages `msgs` the member may send (`msgSent` and `msgCredit` of
+each, R1's), the slice and the messages owned (a response read-only: R1's `readyDq`). -/
+def sendable (γ : Names) (sl : GoSlice) (msgs : List Raft.Msg) : IProp GF :=
+  iprop(∃ ps : List Loc, ownSlice sl ps (DFrac.own 1) ∗ ⌜ps.length = msgs.length⌝ ∗
+    [∗list] pm ∈ ps.zip msgs, Raft.msgPts pm.1 (Raft.readyDq pm.2) pm.2 ∗
+      Raft.msgSent γ.raft pm.2 ∗ Raft.msgCredit γ.raft pm.2)
+
+end vocab
+
+/-! ## Laws -/
+
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+  {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+  [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+  [raft_sem : go_etcd_io.raft.v3.Assumptions]
+
+def persistent.spec : Prop :=
+  (∀ γ k σ, Persistent (histAt (GF := GF) γ k σ)) ∧
+  (∀ γ k id res, Persistent (answered (GF := GF) γ k id res)) ∧
+  (∀ γ s, Persistent (snapImage (GF := GF) γ s)) ∧
+  (∀ γ s a, Persistent (snapPoint (GF := GF) γ s a)) ∧
+  (∀ γ i img, Persistent (imgAt (GF := GF) γ i img)) ∧
+  (∀ s γi, Persistent (srvIdSpace (GF := GF) s γi)) ∧
+  (∀ s mc, Persistent (srvCfg (GF := GF) s mc)) ∧
+  (∀ s γ k, Persistent (srvReadAt (GF := GF) s γ k)) ∧
+  (∀ s γm, Persistent (srvMvcc (GF := GF) s γm)) ∧
+  (∀ s γl, Persistent (srvLessor (GF := GF) s γl)) ∧
+  (∀ s γa, Persistent (srvAuth (GF := GF) s γa)) ∧
+  (∀ s γ id, Persistent (srvNode (GF := GF) s γ id)) ∧
+  (∀ s γ id, Persistent (srvStarted (GF := GF) s γ id)) ∧
+  (∀ err, Persistent (httpForbidden (GF := GF) err)) ∧
+  (∀ s γ k, Persistent (srvApplied (GF := GF) s γ k)) ∧
+  (∀ r γ id n, Persistent (isRaftNode (GF := GF) r γ id n)) ∧
+  (∀ rh s γ, Persistent (readyHandlerOk (GF := GF) rh s γ)) ∧
+  (∀ r k, Persistent (nodeAdvanced (GF := GF) r k)) ∧
+  (∀ r k, Persistent (nodeSnapLb (GF := GF) r k)) ∧
+  (∀ r ch, Persistent (rnApplyc (GF := GF) r ch)) ∧
+  (∀ r ch, Persistent (rnReadStateC (GF := GF) r ch)) ∧
+  (∀ p k e, Persistent (entryAt (GF := GF) p k e)) ∧
+  (∀ r rac k, Persistent (advancedAt (GF := GF) r rac k))
+
+def timeless.spec : Prop :=
+  (∀ γ k σ, Timeless (histAt (GF := GF) γ k σ)) ∧
+  (∀ γ k id res, Timeless (answered (GF := GF) γ k id res)) ∧
+  (∀ s γ k, Timeless (srvApplied (GF := GF) s γ k))
+
+def exclusive.spec : Prop :=
+  (∀ s γ ep p p', applyThread (GF := GF) s γ ep p ∗ applyThread s γ ep p' ⊢ iprop(False)) ∧
+  (∀ r, rnLoop (GF := GF) r ∗ rnLoop r ⊢ iprop(False)) ∧
+  (∀ r, rnStopper (GF := GF) r ∗ rnStopper r ⊢ iprop(False)) ∧
+  (∀ s γ id ds, srvRunTok (GF := GF) s γ id ds ∗ srvRunTok s γ id ds ⊢ iprop(False)) ∧
+  (∀ r k k', applycPos (GF := GF) r k ∗ applycPos r k' ⊢ iprop(False))
+
+/-! ### The history (K6, K7: what the cluster's invariant keeps) -/
+
+def histAt_agree.spec : Prop :=
+  ∀ γ k (σ σ' : EtcdModel.State), histAt (GF := GF) γ k σ ∗ histAt γ k σ' ⊢ iprop(⌜σ = σ'⌝)
+
+/-- A state of the history is one the cluster has been in (W0's `etcdLb`). -/
+def histAt_lb.spec : Prop :=
+  ∀ γ k (σ : EtcdModel.State), histAt (GF := GF) γ k σ ⊢ EtcdModel.etcdLb γ.etcd σ
+
+/-- The history is the committed log's: only committed points have a state. -/
+def histAt_committed.spec : Prop :=
+  ∀ γ k (σ : EtcdModel.State), histAt (GF := GF) γ k σ ⊢
+    ∃ l, Raft.committedLb γ.raft l ∗ ⌜k ≤ l.length⌝
+
+/-- Every committed point has a state (the cluster's invariant, opened under `etcdN`). -/
+def histAt_of_committed.spec : Prop :=
+  ∀ (γ : Names) (l : List Raft.LogEntry) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
+    Raft.committedLb (GF := GF) γ.raft l ⊢ |={E}=> ∃ σ, histAt γ l.length σ
+
+/-- An answer is the answer of its entry (one per index). -/
+def answered_agree.spec : Prop :=
+  ∀ γ k (id id' : w64) (res res' : EtcdModel.Resp),
+    answered (GF := GF) γ k id res ∗ answered γ k id' res' ⊢ iprop(⌜id = id' ∧ res = res'⌝)
+
+/-- **Only etcd's own entries are committed**: normal entries and legacy conf changes (etcd proposes
+no `ConfChangeV2`, so raft never enters a joint configuration and appends no empty
+`EntryConfChangeV2`: R1's `committedLb_emptyV2`). The cluster's invariant: every proposal update it
+fires is one of etcd's (2c's `processInternalRaftRequestOnce`, `configure`). -/
+def committed_types.spec : Prop :=
+  ∀ (γ : Names) (l : List Raft.LogEntry) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
+    Raft.committedLb (GF := GF) γ.raft l ⊢
+      |={E}=> ⌜∀ e ∈ l, e.type = Raft.EntryNormal ∨ e.type = Raft.EntryConfChange⌝
+
+/-- **Proposing through the history** (2c's `processInternalRaftRequestOnce` and `configure`; the
+cluster's invariant): a proposer at a member configured `mc` (its `srvCfg`) turns its update over `etcdState`
+(fired with 3a's `Apply.applyStep mc` of the entry, the entry's bytes satisfying `D`) into raft's proposal
+update (R1's `node.Propose.spec`, `node.ProposeConfChange.spec` form): at the entry's commit at index
+`k`, the history's next point is `histAt γ k σ'` and the proposer's update fires there. Raft's
+namespace is the cluster's `etcdN .@ "raft"` (2e's allocation; round 1, S1), and a normal entry has
+data (an empty one is raft's own filler, S2). -/
+def histPropose.spec : Prop :=
+  ∀ (γ : Names) (mc : Apply.MemberCfg) (ty : w32) (D : List w8 → Prop) (E : CoPset),
+    ↑EtcdModel.etcdN ⊆ E → γ.raft.ns = EtcdModel.etcdN .@ "raft" →
+    (∀ bs, D bs → ty = Raft.EntryNormal → bs ≠ []) →
+    (AU <{ ∃∃ σ, EtcdModel.etcdState (GF := GF) γ.etcd σ }> @ ⊤ \ ↑EtcdModel.etcdN, ∅
+      <{ ∀∀ (t : w64) (bs : List w8) (σ' : EtcdModel.State) (res : EtcdModel.Resp),
+          ⌜D bs ∧ Apply.applyStep mc σ ⟨t, ty, bs⟩ σ' res⌝ ∗ EtcdModel.etcdState γ.etcd σ', COMM True }>)
+    ⊢ |={E}=> AU <{ ∃∃ (ops : List Raft.LogEntry), Raft.committedOps γ.raft ops }>
+        @ ⊤ \ ↑γ.raft.ns, ∅
+      <{ ∀∀ (t : w64) (bs : List w8), ⌜D bs⌝ ∗ Raft.committedOps γ.raft (ops ++ Raft.opsOf [⟨t, ty, bs⟩]),
+         COMM True }>
+
+/-- **Register a read context with raft** (2c's `readEnv` registration; round 1, completeness F2):
+the cluster's invariant holds raft's `readCtxs`; a fresh request id of a started member's id space
+gives a fresh context `be64 id`, registered with the update that certifies the committed log `l`. -/
+def readCtx_register.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (γi : IdUtil.IdSpace) (rid : w64) (l : List Raft.LogEntry)
+    (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
+    srvStarted (GF := GF) s γ id ∗ srvIdSpace s γi ∗ IdUtil.idFresh γi rid ∗ Raft.committedLb γ.raft l
+      ⊢ |={E}=> Raft.readCtx γ.raft (Read.be64 rid) (Read.readLbQ l)
+
+/-- **The read registry: register** (2c's `readReg_register`): a persistent update over `etcdState`
+by `Rel` is registered at the current committed log `l0`. -/
+def readReg_register.spec : Prop :=
+  ∀ (γ : Names) (Rel : EtcdModel.State → EtcdModel.Resp → Prop)
+    (Q : EtcdModel.State → EtcdModel.Resp → IProp GF) (E : CoPset), ↑EtcdModel.etcdN ⊆ E →
+    □ (AU <{ ∃∃ σ, EtcdModel.etcdState (GF := GF) γ.etcd σ }> @ ⊤ \ ↑EtcdModel.etcdN, ∅
+        <{ ∀∀ (res : EtcdModel.Resp), ⌜Rel σ res⌝ ∗ EtcdModel.etcdState γ.etcd σ, COMM Q σ res }>)
+      ⊢ |={E}=> ∃ t l0, readTicket γ t Rel Q l0 ∗ Raft.committedLb γ.raft l0
+
+/-- **The read registry: get** (2c's `readReg_get`): at a history point at or past the registration
+(its committed log extending `l0`'s operations), the update's result for an answer `Rel` allows. -/
+def readReg_get.spec : Prop :=
+  ∀ (γ : Names) t Rel (Q : EtcdModel.State → EtcdModel.Resp → IProp GF) (l0 l : List Raft.LogEntry)
+    (k : Nat) (σ : EtcdModel.State) (res : EtcdModel.Resp) (E : CoPset),
+    ↑EtcdModel.etcdN ⊆ E → Raft.opsOf l0 <+: Raft.opsOf l → l.length ≤ k → Rel σ res →
+    readTicket (GF := GF) γ t Rel Q l0 ∗ Raft.committedLb γ.raft l ∗ histAt γ k σ ⊢ |={E}=> Q σ res
+
+/-- **2e's handle names a member of the history** (2c's item 1): a started server of W0's cluster
+`γ` is a member of some server-level names over it. -/
+def isServer_names.spec : Prop :=
+  ∀ (s : Loc) (γ : EtcdModel.Cluster), isServer (GF := GF) s γ ⊢
+    ∃ (N : Names) (id : Nat), ⌜N.etcd = γ⌝ ∗ srvNode s N id ∗ srvStarted s N id ∗
+      (∃ γi, srvIdSpace s γi)
+
+/-- **The server-level names' raft part** (integration: one bridge between 2e's `Cluster`-indexed
+vocabulary and these names): raft's namespace is the cluster's `etcdN .@ "raft"` (`histPropose`'s
+premise), its proposals one-shot (`dup = false`: 2f's at-most-once delivery; 2c's one-shot
+updates), and 2e's network of the cluster (`srvNet`) is over `γ.raft` with the images 2d chose at
+its allocation (`imgAt`). -/
+def srvNode_raftNames.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ν : Rafthttp.Net GF),
+    srvNode (GF := GF) s γ id ⊢
+      ⌜γ.raft.ns = EtcdModel.etcdN .@ "raft" ∧ Raft.Cluster.dup γ.raft = false⌝ ∗
+      (srvNet γ.etcd ν -∗ ⌜ν.γ = γ.raft⌝ ∗ □ (∀ i img, ν.img i img ∗-∗ imgAt γ i img))
+
+/-- **2e's built member is a member of the history** (round 1, completeness F4): `NewServer`'s
+persistent `srvMember` gives `srvNode` at the names over its cluster. -/
+def srvMember_node.spec : Prop :=
+  ∀ (s : Loc) (γ : EtcdModel.Cluster) (id : Nat), srvMember (GF := GF) s γ id ⊢
+    ∃ N : Names, ⌜N.etcd = γ⌝ ∗ srvNode s N id
+
+/-- **The converse bridge, for a started member** (verify round, A7-provability F2; re-review R-A7
+N5: `srvNode` holds from the server literal on, before `r.transport` is set at `server.go:438`,
+which `srvMember` includes, so the bridge needs `srvStarted`): a started member of the history is
+2e's built member (`Logger`, the getters take `srvMember`). -/
+def srvNode_member.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ∗ srvStarted s γ id ⊢
+    srvMember s γ.etcd id
+
+/-- **A member's literal fields** (re-review RR2): `srvNode` includes 2e's `srvFields` (the getters
+`Logger`, `MemberID`, `FeatureEnabled`, `RequestTimeout`, `Cluster`, `ClusterVersion` take it), so
+`Process`, `NewServer`'s own calls and the apply thread call them without `srvMember`. -/
+def srvNode_fields.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢ srvFields s γ.etcd id
+
+/-- **A member's KV field** (re-review RR2): `s.kv` is read-only from `NewServer`'s
+`srv.kv = mvcc.New(...)` on (`KV.spec` takes the points-to: `NewUberApplier`, the snapshot path). -/
+def srvNode_kv.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢
+    ∃ kv : GoInterface, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"kv" s ↦□ kv
+
+/-- **A started member serves its cluster** (verify round, A7-provability F1, completeness F1):
+`start` makes `isServer` before `go s.run()` from the fields `srvStarted` names, so the server's own
+goroutines (`run`, the lessor's revocations, the `NOSPACE` alarm, the merged snapshot, the
+checkpointer, `publishV3`, the monitors) hold the request path's handle. -/
+def srvStarted_isServer.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat),
+    srvNode (GF := GF) s γ id ∗ srvStarted s γ id ⊢ isServer s γ.etcd
+
+/-- 2e's handle names a built member (`isServer_names` with `srvNode_member`). -/
+def isServer_member.spec : Prop :=
+  ∀ (s : Loc) (γ : EtcdModel.Cluster), isServer (GF := GF) s γ ⊢ ∃ id, srvMember s γ id
+
+/-- **The uber-applier's handles from the server** (3a's provisional `statusOk`, `snapSrvOk`,
+`ciOk`, `authnIdx`: their introductions, verify round, A7-completeness F6): the server is a raft
+status getter (`MemberID`, `Leader`, `Term`: atomics and a read-only field of `srvNode`) and,
+under the lent `applyLent s γ` (which holds `forceSnapW s`), a snapshot server (2d's
+`ForceSnapshot.spec`); the server's consistent indexer, under the lent resource (its writer at the
+applying index), answers `ConsistentIndex()`; and for the `Authenticate` entry being applied (the
+committed entry at the applying index `applyLent` records) the cluster issued its token: the
+history's step of that entry registers `tokenUser γ (tok ++ "." ++ idx) name` (W0's), `idx` above
+every earlier `Authenticate` index, `idx` a non-zero `uint64` (an applied entry's index, `≥ 1`) and
+`tok` free of `.` (3d's `GenTokenPrefix`: letters only; re-review S1: what 3d's `authnCtx` needs).
+(`authnIdx`'s meaning is read as conditional on the entry being applied asking
+`Authenticate(name, tok)`, and as carrying these two facts: requested of 3a.) -/
+def applyLent_opts.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat), srvNode (GF := GF) s γ id ⊢
+    Apply.statusOk (srvIface s) ∗ Apply.snapSrvOk (srvIface s) (applyLent s γ) ∗
+    (∃ ci : GoInterface,
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"consistIndex" s ↦□ ci ∗
+      Apply.ciOk ci (applyLent s γ)) ∗
+    □ (∀ name tok, Apply.authnIdx (applyLent s γ) γ.etcd name tok)
+
+/-- **The store's slots of 3a's options, together** (verify round, apply-txn's request, A9 F2/F6):
+the member's KV `s.kv` is 3a's `kvOk` under the lent `applyLent s γ` (realized at `NewServer` from
+`NewStore`'s post: `isMvcc`, `mvccLessorIs` at the member's lessor, `mvccBackend` with the
+post-lock hook's contract), its range deleter is set as the lessor's (`kvDelOk`: `NewStore`'s
+`mvccDeleter rd γ`, 4a's `leaseTxHeld_intro` relating the store's and the lessor's view of the
+backend `be`, which is `s.be`, after a snapshot `Recover`'s new backend), and the apply thread's
+stores at `σ` hold its `kvSt` at `σ.kv` (lent out and back). Re-review N2: the deleter's backend
+and function are the lessor's own (`ls.be`, `ls.rd`), at the member's current backend: the stores
+give 3a's whole `lessorSt` (which carries `kvDelOk kv γl ls.be ls.rd` with `ls.be = be`, `ls.rd ≠
+nil`, `leasesLive`) at `s.be`'s value `be` (`srvCurBe`), so `NewServer`/`applySnapshot` build
+`NewUberApplier`'s `optsSt` from it. The closing wand gives `srvStores` back at the same `be` and
+`σ` only (re-review RR-server-core, second tier): a move to another backend or state
+(`applySnapshot`'s install of `newbe` at the image's state) rebuilds `srvStores` from its
+realization inside the package's proof, not through this law. -/
+def srvStores_kv.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (σ : EtcdModel.State), srvNode (GF := GF) s γ id ∗ srvStores s σ ⊢
+    ∃ (kv le be : GoInterface),
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"kv" s ↦□ kv ∗
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"lessor" s ↦□ le ∗
+      srvCurBe s be ∗ Apply.kvOk kv (applyLent s γ) ∗
+      Apply.kvSt kv σ.kv ∗ Apply.lessorSt le kv be σ.leases σ.kv.store ∗
+      (srvCurBe s be -∗ Apply.kvSt kv σ.kv -∗ Apply.lessorSt le kv be σ.leases σ.kv.store -∗
+        srvStores s σ)
+
+/-- A member has one apply configuration, which `NewServer` fixed (2e's `srvNode`). -/
+def srvNode_cfg.spec : Prop :=
+  ∀ s γ id, srvNode (GF := GF) s γ id ⊢ ∃ mc, srvCfg s mc ∗ ⌜mc.ok⌝
+
+def srvCfg_agree.spec : Prop :=
+  ∀ s (mc mc' : Apply.MemberCfg), srvCfg (GF := GF) s mc ∗ srvCfg s mc' ⊢ iprop(⌜mc = mc'⌝)
+
+/-- One server, one member of one names. -/
+def srvNode_agree.spec : Prop :=
+  ∀ s (γ γ' : Names) (id id' : Nat), srvNode (GF := GF) s γ id ∗ srvNode s γ' id' ⊢
+    iprop(⌜γ = γ' ∧ id = id'⌝)
+
+/-- **`run`'s token from what `start` holds** (round 1, completeness F4): the driver placed at
+`s.r` with its loop, stopper and `applyc` cursor at the start's delivered length, the location-free
+initial apply state, 2e's closers for `ds` (`Cleanup`'s), the right to receive on `s.stop`, and the
+escrow of `s.done`'s close (2e's `srvRunning` reads it). -/
+def srvRunTok_intro.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ds : Config.Dirs) (n : Loc) (p : Progress) (c : Nat),
+    srvNode (GF := GF) s γ id ∗ srvStarted s γ id ∗
+    isRaftNode (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ (W64 id) n ∗
+    rnLoop (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) ∗
+    rnStopper (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) ∗
+    applycPos (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s)
+      (uint.nat p.appliedi) ∗
+    applyInit s γ p c ∗ ⌜uint.nat p.appliedi ≤ c⌝ ∗ srvClosers s ds ⊢ srvRunTok s γ id ds
+
+/-- **`run` allocates `ep`**: the initial state with its record is the apply thread's. -/
+def applyInit_ep.spec : Prop :=
+  ∀ s γ (p : Progress) (c : Nat) (ep : Loc) (cs : Loc),
+    applyInit (GF := GF) s γ p c ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"appliedi" ep ↦ p.appliedi ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"appliedt" ep ↦ p.appliedt ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"diskSnapshotIndex" ep ↦ p.diskSnap ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"memorySnapshotIndex" ep ↦ p.memSnap ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.etcdProgress go!"confState" ep ↦ cs
+      ⊢ |==> applyThread s γ ep p
+
+/-- **A stopped member's directories** (round 1, completeness F4): what `run`'s shutdown leaves and
+what 2e's `Cleanup` gives back make the member's durable state, which a restart takes. -/
+def srvStopped_disk.spec : Prop :=
+  ∀ s (γ : Names) (id : Nat) (ds : Config.Dirs),
+    srvStopped (GF := GF) s γ id ds ∗ srvClosed ds ⊢ memberDisk γ.etcd id ds
+
+/-- **The applied point bounds the member's reads** (round 1, completeness F1; the slot's
+introduction). -/
+def srvApplied_read.spec : Prop :=
+  ∀ s γ (id k : Nat), srvNode (GF := GF) s γ id ∗ srvApplied s γ k ⊢ srvReadAt s γ k
+
+/-- **The server is the transport's `Raft`** (2f's `raftOk`, needed from `tr.Start()` in
+`NewServer` on, which `srvNode` covers: it holds from the server literal; integration I4, 2f's
+round-1 F4): `Process` (`Process.spec`: `procErr`, via `procErr_forbidden` for its `403`),
+`IsIDRemoved` (`IsIDRemoved.spec`, with the caller's thread token), `ReportUnreachable`,
+`ReportSnapshot` (their specs) meet the receiver's contract at the member's id. -/
+def srvNode_raftOk.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (ν : Rafthttp.Net GF),
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    srvNode s γ id ∗ srvNet γ.etcd ν ⊢
+      Rafthttp.raftOk ν (W64 id)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) #s)
+
+/-- **The stores' names of a member** (one each; `NewServer` fixes them). -/
+def srvStores_agree.spec : Prop :=
+  (∀ s γm γm', srvMvcc (GF := GF) s γm ∗ srvMvcc s γm' ⊢ ⌜γm = γm'⌝) ∧
+  (∀ s γl γl', srvLessor (GF := GF) s γl ∗ srvLessor s γl' ⊢ ⌜γl = γl'⌝) ∧
+  (∀ s γa γa', srvAuth (GF := GF) s γa ∗ srvAuth s γa' ⊢ ⌜γa = γa'⌝) ∧
+  (∀ s γ id, srvNode (GF := GF) s γ id ⊢
+    (∃ γm, srvMvcc s γm) ∗ (∃ γl, srvLessor s γl) ∗ (∃ γa, srvAuth s γa))
+
+/-- **The member's mvcc reads at or past `k`** (realization of `srvReadAt`, 3e's vocabulary): a
+persistent atomic accessor of the store's state, at which the store's history is the cluster's at a
+point `k' ≥ k` (the KV part of `histAt`: equal, the apply thread keeping the store at its applied
+point between entries; a transaction's writes are one atomic step of `mvccState`). The read takes
+one of the store's reader tokens, lent from the server's pool for a thread token (the bounds plan:
+the pool of `mvccTokN` the server's invariant keeps; 3e's request, "from 3e", item 1). -/
+def srvReadAt_mvcc.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (k : Nat) (γm : Mvcc.MvccName),
+    srvReadAt (GF := GF) s γ k ∗ srvMvcc s γm ⊢
+      □ AU <{ ∃∃ (σm : Mvcc.MvccState), Mvcc.mvccState γm σm }> @ ⊤ \ ↑Mvcc.mvccN, ∅
+        <{ Mvcc.mvccState γm σm,
+           COMM ∃ (k' : Nat) (σ : EtcdModel.State), histAt γ k' σ ∗ ⌜k ≤ k' ∧ σm.kv = σ.kv⌝ }>
+
+def srvReader_mvcc.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (γm : Mvcc.MvccName),
+    srvNode (GF := GF) s γ id ∗ srvMvcc s γm ∗ threadTok ⊢
+      |={⊤}=> Mvcc.mvccReaders γm 1 ∗ (Mvcc.mvccReaders γm 1 ={⊤}=∗ threadTok)
+
+/-- **The member's lease reads at or past `k`** (3c's vocabulary; "from 3c", item 4): a lower bound
+of the lessor's history whose every later state has the lease ids of a lease table of a history
+point at or past `k` (the TTLs and the attached keys are W0's lease reads' tolerance: any TTL, keys
+of `r` or `r + 1`); and a reader token for a thread token (3c's `lessorReaders`, "from 3c (round
+1)", item 4). -/
+def srvReadAt_lessor.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (k : Nat) (γl : Lease.Names),
+    srvReadAt (GF := GF) s γ k ∗ srvLessor s γl ⊢
+      ∃ n σk, histAt γ k σk ∗ Lease.lessorLb γl n ∗
+        □ (∀ j ls, ⌜n ≤ j⌝ -∗ Lease.lessorAt γl j ls -∗
+            ∃ (k' : Nat) (σ : EtcdModel.State) (t : Nat) (tb : Int → Option EtcdModel.LeaseRec), histAt γ k' σ ∗
+              ⌜k ≤ k' ∧ σk.leaseTables.length ≤ t + 1 ∧ σ.leaseTables[t]? = some tb ∧
+                ∀ id, (ls.table id).isSome = (tb id).isSome⌝)
+
+def srvReader_lessor.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (id : Nat) (γl : Lease.Names),
+    srvNode (GF := GF) s γ id ∗ srvLessor s γl ∗ threadTok ⊢
+      |={⊤}=> Lease.lessorReaders γl 1 ∗ (Lease.lessorReaders γl 1 ={⊤}=∗ threadTok)
+
+/-- **The member's auth reads at or past `k`, linked to the cluster's auth tables** (3d's
+vocabulary; "from 3d, round 1", the store-index to cluster-index link): a lower bound `i` of the
+store's history every later state of which is a cluster auth table of index `t` at least the
+current one at `k` (so at least a call's `lo` when `k` is past the call's start: what `Range`'s
+permission check needs for W0's `permittedSince`/`deniedSince`). -/
+def srvReadAt_auth.spec : Prop :=
+  ∀ (s : Loc) (γ : Names) (k : Nat) (γa : Auth.AuthNames),
+    srvReadAt (GF := GF) s γ k ∗ srvAuth s γa ⊢
+      ∃ i σk, histAt γ k σk ∗ Auth.authLb γa i ∗
+        □ (∀ j a, ⌜i ≤ j⌝ -∗ Auth.authAt γa j a -∗
+            ∃ (k' : Nat) (σ : EtcdModel.State) (t : Nat), histAt γ k' σ ∗
+              ⌜k ≤ k' ∧ σk.authTables.length ≤ t + 1 ∧ σ.authTables[t]? = some a⌝)
+
+/-- `s.errorc` is 2f's error channel (any goroutine may send without blocking; `run` stops on it). -/
+def srvNode_errorc.spec : Prop :=
+  ∀ s γ id, srvNode (GF := GF) s γ id ⊢
+    ∃ ch : Loc, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"errorc" s ↦□ ch ∗
+      Rafthttp.errChanOk ch
+
+/-- **A snapshot's point** (round 1, F3/F4): its image's history point, at or past its index, with
+the snapshot's configuration; both the `Ready` loop (to name the node's configuration point at
+`Advance`, R1's wand) and the apply thread (whose state machine the image is) read it. -/
+def snapImage_point.spec : Prop :=
+  ∀ γ (s : Raft.Snapshot), snapImage (GF := GF) γ s ⊢
+    ∃ (a : Nat) (m : Raft.Membership) (σ : EtcdModel.State), snapPoint γ s a ∗ histAt γ a σ ∗
+      Raft.confAt γ.raft a m ∗ ⌜uint.nat s.index ≤ a ∧ s.conf.Is m⌝
+
+/-- A snapshot has one point. -/
+def snapPoint_agree.spec : Prop :=
+  ∀ γ (s : Raft.Snapshot) (a a' : Nat), snapPoint (GF := GF) γ s a ∗ snapPoint γ s a' ⊢ iprop(⌜a = a'⌝)
+
+/-! ### A member -/
+
+def srvApplied_mono.spec : Prop :=
+  ∀ s γ (k k' : Nat), k' ≤ k → srvApplied (GF := GF) s γ k ⊢ srvApplied s γ k'
+
+def srvReadAt_mono.spec : Prop :=
+  ∀ s γ (k k' : Nat), k' ≤ k → srvReadAt (GF := GF) s γ k ⊢ srvReadAt s γ k'
+
+def srvApplied_zero.spec : Prop := ∀ s γ, ⊢ srvApplied (GF := GF) s γ 0
+
+/-- An applied point is a committed one. -/
+def srvApplied_hist.spec : Prop :=
+  ∀ s γ (k : Nat), srvApplied (GF := GF) s γ k ⊢ ∃ σ, histAt γ k σ
+
+/-- The server's raft node driver is at `s.r`. -/
+def srvNode_raftNode.spec : Prop :=
+  ∀ s γ id, srvNode (GF := GF) s γ id ⊢
+    ∃ n, isRaftNode (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"r" s) γ
+      (W64 id) n
+
+/-- **`Process`'s refusals are `Process` errors** (2f's `procErr`: their `Error()` and `WriteTo`
+meet the transport's handlers' needs). -/
+def procErr_forbidden.spec : Prop :=
+  ∀ (err : GoInterface), httpForbidden (GF := GF) err ⊢ Rafthttp.procErr err
+
+/-- The driver's node is a node of the raft cluster. -/
+def isRaftNode_node.spec : Prop :=
+  ∀ r γ id n, isRaftNode (GF := GF) r γ id n ⊢ Raft.isNode n γ.raft id
+
+/-- **Placing a fresh driver** (`NewServer`'s `r: *newRaftNode(...)`, a copy of the value into the
+server's field): the driver at its new address, with its loop, its stopper. -/
+def rnInit_place.spec : Prop :=
+  ∀ (a : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) γ id n,
+    rnInit (GF := GF) v γ id n ∗ a ↦ v ⊢ |==> isRaftNode a γ id n ∗ rnLoop a ∗ rnStopper a
+
+/-- **The driver's storage** (round 1, F7): its `MemoryStorage` is the node's attached storage. -/
+def isRaftNode_storage.spec : Prop :=
+  ∀ r γ id n, isRaftNode (GF := GF) r γ id n ⊢
+    ∃ ms : Loc,
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"raftStorage"
+        (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"raftNodeConfig" r) ↦□ ms ∗
+      Raft.nodeStorage n γ.raft (Raft.memStor ms)
+
+/-- `nodeSnapLb` and `nodeAdvanced` are R1's facts of the driver's node. -/
+def nodeSnapLb_stor.spec : Prop :=
+  ∀ r γ id n k, isRaftNode (GF := GF) r γ id n ∗ nodeSnapLb r k ⊢ Raft.storSnapLb n k
+
+def nodeAdvanced_applied.spec : Prop :=
+  ∀ r γ id n k, isRaftNode (GF := GF) r γ id n ∗ nodeAdvanced r k ⊢ Raft.appliedLb n k
+
+/-- **The `msgSnapC` receive** (`applyAll`'s `select`; round 1, F7): a `MsgSnap` the node sent,
+with a non-zero term (R1's, requested). -/
+def msgSnapC_recv.spec : Prop :=
+  ∀ (r : Loc) γ id n (Φ : Loc → Bool → IProp GF),
+    isRaftNode (GF := GF) r γ id n ⊢
+      ∃ (ch : Loc) (γc : ChanNames), structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"msgSnapC" r ↦□ ch ∗ isChan ch γc Loc ∗
+        (£ 1 ∗ £ 1 -∗ (▷ ∀ mp, (∃ (m : Raft.Msg) (sn : Raft.Snapshot),
+            Raft.msgPts mp (DFrac.own 1) m ∗ Raft.msgSent γ.raft m ∗
+            ⌜m.type = Raft.MsgSnap ∧ m.src = id ∧ m.snapshot = some sn ∧ m.term ≠ W64 0⌝) -∗
+            Φ mp true) -∗
+          recvAu γc Loc Φ)
+
+/-- (R1's term bound, requested; round 1, F5) **A batch's terms**: every committed entry and the
+snapshot of a batch have terms at most its `raftTerm` when that is non-zero, and the apply thread's
+applied term is at most it then too. -/
+def applyBatch_terms.spec : Prop :=
+  ∀ r γ apv (B : ApplyBatch) ph s ep (p : Progress),
+    applyBatch (GF := GF) r γ apv B ph ∗ applyThread s γ ep p ⊢
+      applyBatch r γ apv B ph ∗ applyThread s γ ep p ∗
+      ⌜B.term ≠ W64 0 → uint.nat p.appliedt ≤ uint.nat B.term ∧
+        (∀ e ∈ B.ents, uint.nat e.term ≤ uint.nat B.term) ∧
+        (∀ sn, B.snap = some sn → uint.nat sn.term ≤ uint.nat B.term)⌝
+
+/-- The apply thread is `applyAt` at its recorded progress. -/
+def applyThread_at.spec : Prop :=
+  ∀ s γ ep (p : Progress),
+    applyThread (GF := GF) s γ ep p ⊣⊢ ∃ c ai, applyAt s γ ep p (uint.nat p.appliedi) c ai
+
+/-- **The applyc receive** (in `run`'s `select`): the next batch, in order (round 1, F2: the
+cursor `applycPos` moves from the batch's `prev` to its `last`). -/
+def applyc_recv.spec : Prop :=
+  ∀ (r ch : Loc) γ id n (k : Nat) (Φ : go_etcd_io.etcd.server.v3.etcdserver.toApply → Bool → IProp GF),
+    rnApplyc (GF := GF) r ch ∗ isRaftNode r γ id n ⊢
+      ∃ (_ : Pos.Countable go_etcd_io.etcd.server.v3.etcdserver.toApply) (γc : ChanNames),
+        isChan ch γc go_etcd_io.etcd.server.v3.etcdserver.toApply ∗
+        (£ 1 ∗ £ 1 -∗ applycPos r k -∗
+          (▷ ∀ apv, (∃ B, applyBatch r γ apv B false ∗ ⌜B.prev = k⌝ ∗ applycPos r B.last) -∗
+            Φ apv true) -∗
+          recvAu γc go_etcd_io.etcd.server.v3.etcdserver.toApply Φ)
+
+/-- **The readStateC receive** (the read loop's, 2c): a read state of the cluster (R1's `readState`)
+with its context. -/
+def readStateC_recv.spec : Prop :=
+  ∀ (r ch : Loc) γ id n (Φ : go_etcd_io.raft.v3.ReadState → Bool → IProp GF),
+    rnReadStateC (GF := GF) r ch ∗ isRaftNode r γ id n ⊢
+      ∃ (_ : Pos.Countable go_etcd_io.raft.v3.ReadState) (γc : ChanNames),
+        isChan ch γc go_etcd_io.raft.v3.ReadState ∗
+        (£ 1 ∗ £ 1 -∗ (▷ ∀ rs, (∃ c, rs.RequestCtx' ↦*□ c ∗
+            Raft.readState γ.raft c rs.Index') -∗ Φ rs true) -∗
+          recvAu γc go_etcd_io.raft.v3.ReadState Φ)
+
+/-- The apply thread's applied index is applied. -/
+def applyThread_applied.spec : Prop :=
+  ∀ s γ ep (p : Progress), applyThread (GF := GF) s γ ep p ⊢
+    applyThread s γ ep p ∗ srvApplied s γ (uint.nat p.appliedi)
+
+end laws
+
+end EtcdServer
+end EtcdGrove
+end Perennial
