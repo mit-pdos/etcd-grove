@@ -107,7 +107,9 @@ func visit(r backend.UnsafeReader, b backend.Bucket) map[byte]int {
 // hook), lease/lessor.go:343, :359-361 (the lease deleted inside mvcc's transaction),
 // storage/schema/alarm.go:52-93, auth_users.go:49-94, auth_roles.go:40-44, :91 (Lock, a whole
 // bucket's range on the batch), storage/mvcc/kvstore_compaction.go:28-95 (scheduleCompaction),
-// storage/mvcc/hash.go:33 (HashKV: a visit of Key on a ConcurrentReadTx),
+// storage/mvcc/hash.go:33 (HashKV: a visit of Key on a ConcurrentReadTx), auth/store.go:941
+// (lockedReadTx: every request's permission check reads the shared ReadTx), storage/quota.go:133
+// (every request's quota check reads Size),
 // storage/mvcc/kvstore.go:125-129, :160-161, :289, :327-358 (ForceCommit; Hash; restore's limited
 // ranges of Key), etcdserver/snapshot_merge.go:36-74, api/snap/db.go:40-76, storage/backend.go:63-71
 // (the merged snapshot streamed to a file, opened as a backend), etcdserver/server.go:976 (the
@@ -195,6 +197,10 @@ func ReqBackend() {
 				if get(be.ConcurrentReadTx(), schema.Key, pair(m, 1)) == nil {
 					panic("backend: a read begun after a session's Unlock missed its write")
 				}
+				if ci := get(be.ReadTx(), schema.Meta, []byte("ci")); ci == nil || ci[0] < m { // auth's lockedReadTx
+					panic("backend: the shared ReadTx missed an unlocked write")
+				}
+				_ = be.Size() // the quota's check of every request
 				rt := be.ConcurrentReadTx()
 				rt.RLock()
 				seen := visit(rt, schema.Key)
