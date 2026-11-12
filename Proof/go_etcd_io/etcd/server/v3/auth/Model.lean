@@ -375,6 +375,12 @@ structure AuthNames where
   authority the store's construction mints and discards (`authRdTotal`, `InvAuth.lean`), so that a
   holder of every ticket knows no reader is in `lockedReadTx`'s section (`curInv`) -/
   rdt : GName
+  /-- **the token provider's readiness** (auth-schema-fix S1 option A, decided by etcd-grove-81,
+  2026-11-12): a one-shot cell whose shot (`tpReady`, a lower bound `1` of a mono-nat) says the
+  server has started, so that the simple provider's index waiter (`srv.applyWait.Wait`, the field
+  `start` sets) may be called; the server allocates it before the provider and fires it in
+  `start` -/
+  rdy : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -521,6 +527,25 @@ instance authPubLb_persistent (γa : AuthNames) (i : Nat) :
     Persistent (authPubLb (GF := GF) γa i) := by
   unfold authPubLb; infer_instance
 
+/-- **The readiness cell `γ` shot** (persistent; auth-schema-fix S1 option A): a lower bound `1`
+of the mono-nat at `γ` (pending is an authority at `0`; the server's invariant, `srvTpInv`). -/
+def tpShot (γ : GName) : IProp GF := monoNatLbOwn γ 1
+
+instance tpShot_persistent (γ : GName) : Persistent (tpShot (GF := GF) γ) := by
+  unfold tpShot; infer_instance
+
+/-- **The token provider is ready** in the mode `M` (persistent; auth-schema-fix S1 option A,
+decided by etcd-grove-81, 2026-11-12): in `on γa`, the readiness cell `γa.rdy` shot (a lower bound
+`1`), which the server fires in `start` once `s.applyWait` is set (the simple provider's index
+waiter reads it: `notes/auth-validspec-false.md`); in the other modes `True`. The token contract's
+`info` premise (`tokenProviderOkA`). -/
+def tpReady : AuthMode → IProp GF
+  | .on γa => tpShot γa.rdy
+  | _ => iprop(True)
+
+instance tpReady_persistent (M : AuthMode) : Persistent (tpReady (GF := GF) M) := by
+  cases M <;> unfold tpReady <;> infer_instance
+
 /-- A lower bound is one of every smaller index. -/
 theorem authPubLb_le (γa : AuthNames) {i : Nat} (i' : Nat) (h : i' ≤ i) :
     authPubLb (GF := GF) γa i ⊢ authPubLb γa i' := by
@@ -589,9 +614,9 @@ theorem authHist_full (γa : AuthNames) (hs : List AuthState) :
 /-- A history and its latest state's ghost variable, both halves, with the token providers'
 issued tokens under `γt` (allocated with the provider, `tokAlloc`, `Tokens.lean`) and the fresh
 tokens under `γf` (`Tokens.lean`, S5b). -/
-theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState) (C : List AuthState)
+theorem authHist_alloc (γt γf γy : GName) (hs : List AuthState) (cur : AuthState) (C : List AuthState)
     (hk : ∀ st ∈ hs, permKeysOk st) :
-    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ authHist (GF := GF) γa hs ∗
+    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗ authHist (GF := GF) γa hs ∗
       authCurHalf γa cur ∗
       authCurHalf γa cur ∗ authPubAuth γa 0 ∗ ghostVar γa.fen 1 false ∗ ghostVar γa.fca 1 ((null : Loc), 0) ∗
       authHistRev γa hs ∗ capAuth γa C ∗ capLb γa C ∗
@@ -607,7 +632,7 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
   imod (ghostVar_alloc (GF := GF) ((γ, γ, γ) : GName × GName × GName)) with ⟨%γb, Hb⟩
   imod (token_alloc (GF := GF)) with ⟨%γs, Hs⟩
   imod (ownTokAuth_alloc (GF := GF)) with ⟨%γr, Hrt⟩
-  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
+  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γp, Hp, -⟩
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γe, He⟩
@@ -615,11 +640,11 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
   ihave Hb' : iprop(∃ γ0 : GName × GName × GName, ghostVar (GF := GF) γb 1 γ0) $$ [Hb]
   · iexists _; iexact Hb
   imodintro
-  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap, γb, γs, γr⟩
+  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap, γb, γs, γr, γy⟩
   unfold authHist authHistRev capAuth capLb
   iframe H Hp He Hk Hr Hcap Hcl Hs Hb' Hrt
   isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
   isplitr
   · ipureintro; exact hk
   · iapply (ghostVar_split_half γc 1 cur).1 $$ Hc

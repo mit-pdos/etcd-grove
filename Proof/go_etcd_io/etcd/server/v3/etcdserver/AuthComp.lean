@@ -140,7 +140,7 @@ side bound to the request context's token. -/
 @[no_expose] def acRead (C : AuthC) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   match C with
   | .off => srvAuthLb s E
-  | .on _ => iprop(srvAuthLb s E ∗ srvAuthBound s E)
+  | .on _ => iprop(srvAuthLb s E ∗ □ (auth.tpReady E.authMode -∗ srvAuthBound s E))
 
 /-- **The lessor premise** (persistent): nothing off; on, the lessor finds no lease. -/
 @[no_expose] def acLessor (C : AuthC) (s : Loc) : IProp GF :=
@@ -484,11 +484,11 @@ theorem acRead_lb (C : AuthC) (s : Loc) (E : apply.AEnv GF) :
   | on γa => dsimp only [acRead, AuthC.mode, AuthC.isOn]; iintro ⟨H, -⟩; iexact H
 
 theorem acRead_bound (C : AuthC) (γa : auth.AuthNames) (hM : C = .on γa) (s : Loc)
-    (E : apply.AEnv GF) : acRead C s E ⊢ srvAuthBound s E := by
+    (E : apply.AEnv GF) : acRead C s E ∗ auth.tpReady E.authMode ⊢ srvAuthBound s E := by
   subst hM
   dsimp only [acRead, AuthC.mode, AuthC.isOn]
-  iintro ⟨-, H⟩
-  iexact H
+  iintro ⟨⟨-, #H⟩, #Hrdy⟩
+  iapply H $$ Hrdy
 
 end laws
 

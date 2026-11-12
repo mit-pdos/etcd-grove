@@ -775,12 +775,30 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
+  -- (auth-schema-fix S1 option A) the token provider's readiness cell, pending (its other half to
+  -- `start`, `srvTpPend`, with the variable `srv` read-only once `NewServer` returns): the index
+  -- waiter's closure reads `srv.applyWait`, which `start` sets
+  imod (srvTpInv_alloc (GF := GF) s srv_ptr) with ⟨%γy, Htpp, #Htpinv⟩
   wp_func_lits
-  wp_apply hTP as %tp %terr ⟨%Htp, Hkit⟩
+  wp_apply (hTP _ _ _ _ γy) as %tp %terr ⟨%Htp, Hkit⟩
   · iframe Hzlg
-    ipureintro
-    exact fun hon => ⟨(Hauthcfg hon).1,
-      tokenTTL_pos _ (Hauthcfg hon).2.1 (Hauthcfg hon).2.2⟩
+    isplitr
+    · ipureintro
+      exact fun hon => ⟨(Hauthcfg hon).1,
+        tokenTTL_pos _ (Hauthcfg hon).2.1 (Hauthcfg hon).2.2⟩
+    -- the index waiter `func(index) { return srv.applyWait.Wait(index) }`, once the cell is shot
+    iintro !> %_hon %idx %Φw !> #Hshot HΦw
+    wp_auto_lc 1
+    imod (srvTpInv_read s srv_ptr γy) $$ [$Htpinv $Hshot $Hlc1] with ⟨#Hsrvp, %wt, %Pw, #Hwf, #Hwt⟩
+    (try wp_auto)
+    iunfold isWaitTime at Hwt
+    icases Hwt with ⟨%wi, %Hwi, #HWait, -⟩
+    subst Hwi
+    (try wp_auto)
+    wp_apply HWait as %ch ⟨%Qw, #Hb, -⟩
+    (try wp_auto)
+    iapply HΦw
+    iapply waitBcast_anyRecv $$ Hb
   clear Hauthcfg
   (try wp_auto)
   cases terr with
@@ -2040,6 +2058,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexact HstkP
   -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
   imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
+  -- (auth-schema-fix S1 option A) `srv` read-only from here on (it holds `s`): the readiness's
+  ipersist srv
   imodintro
   wp_auto
   iapply HΦ
@@ -2053,7 +2073,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   isplitr
-  · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
+  · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2.1⟩
   isplitl [HsvStk]
   · iexact HsvStk
   iframe Hgap Hserve HSV HMon Hrc Hnm HtokP HServe
@@ -2075,8 +2095,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · ipureintro; exact ⟨rfl, Hci0, HhP, rfl⟩
     iExactEq HB; rfl
+  -- (auth-schema-fix S1 option A) the right to fire the readiness, at the mode's auth names
+  ihave Htpp' : srvTpPend s M $$ [Htpp]
+  · icases HM with %HM0
+    iunfold srvTpPend; iexists γy, srv_ptr; iframe Htpp Htpinv srv
+    ipureintro; exact HM0.2.2
   unfold srvBuiltG
-  iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
+  iframe Htpp' HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',

@@ -19,8 +19,11 @@ mode (`authStoreKit M tp`): `NewAuthStore`'s axiom's triple with the apply contr
   backend over the server's backend meets the store's backend contracts (`authBackendOk`,
   `authWBackendOkR`, `CreateAuthBuckets`), taking the backend resources `NewAuthStore`'s axiom
   takes and giving back what it gives back (as `auth.authSchemaBoot`, E2e, at the server's
-  backend). The simple provider's contract rests on `isValidSimpleToken`'s spec for any context
-  (`auth.ValidSpec`, a premise: it is proved on contexts only, `tokenSimple_okCtx`).
+  backend). The simple provider's contract takes its index waiter's (auth-schema-fix S1 option A,
+  decided by etcd-grove-81, 2026-11-12: until then the false hypothesis `auth.ValidSpec`): the caller
+  passes a waiter returning a channel `auth.anyRecv` once the auth names' readiness cell is shot
+  (`auth.tpShot γy`, `γa.rdy = γy`), which `NewServer` proves of its closure over `s.applyWait`
+  (`srvTpInv`) and `start` fires; the request side holds once ready (`auth.tpReady`).
 -/
 module
 
@@ -206,10 +209,13 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         authKitOut M d r ∗
         ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
         authRdSupply RD ∗
-        isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
+        -- (auth-schema-fix S1 option A) the request side once the token provider is ready (`start`
+        -- fires `auth.tpReady`)
+        □ (auth.tpReady M -∗ isReqAuth st RD) ∗
+        authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
         authPublishM M stl ∗
         -- (E3zb) with auth on, the request side bound to the request context's token
-        □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
+        □ (⌜M.isOn = true⌝ → auth.tpReady M -∗ isReqAuthBound st RD M) ∗
         authApplyResPre M stl (auth.bump auth.bootState) d RD ∗ authCapM M stl ∗
         -- (R-D1, 2026-11-04) the store abandoned on `NewServer`'s error path
         authAbandonM M stl d RD ∗
@@ -229,19 +235,24 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
           authnStoreOk st RD) }})
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
-(`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
-`M.isOn = on` (with auth on, `.on γa` for some auth names: the auth plan's E3zb, 2026-10-28) and the
-auth store's construction in it. -/
+(`on = true`) its options `"simple"`, its TTL positive and the index waiter `iw` returning, once the
+readiness cell `γy` is shot (`auth.tpShot γy`: the server has started; auth-schema-fix S1 option A,
+decided by etcd-grove-81, 2026-11-12), a channel a receive completes on (`auth.anyRecv`); with no
+error, a mode `M` with `M.isOn = on` (with auth on, `.on γa` for some auth names: the auth plan's
+E3zb, 2026-10-28; their readiness cell `γy`) and the auth store's construction in it. -/
 abbrev authSrvTP (on : Bool) : Prop :=
-  ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration),
+  ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration) (γy : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
-      ⌜on = true → opts = go!"simple" ∧ 0 < sint.Z ttl⌝ }}
+      ⌜on = true → opts = go!"simple" ∧ 0 < sint.Z ttl⌝ ∗
+      □ (⌜on = true⌝ → ∀ idx : w64,
+        {{ auth.tpShot γy }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewTokenProvider)) (Val #lg))
       (Val #opts)) (Val #iw)) (Val #ttl))
   {{ (tp err : GoInterface), RET (PairV #tp #err);
       ⌜err = GoInterface.nil → tp ≠ GoInterface.nil⌝ ∗
       (⌜err = GoInterface.nil⌝ -∗ |==> ∃ M : auth.AuthMode,
-        ⌜M.isOn = on ∧ (on = true → ∃ γa, M = .on γa)⌝ ∗ authStoreKit M tp) }}
+        ⌜M.isOn = on ∧ (on = true → ∃ γa, M = .on γa) ∧
+          (∀ γa : auth.AuthNames, M = .on γa → γa.rdy = γy)⌝ ∗ authStoreKit M tp) }}
 
 
 /-- **The server's auth store's cost field** (persistent; authkv's Main, 2026-10-30): the server's
@@ -329,9 +340,11 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   ihave Hsl : authRdSupply RD $$ [Hsl]
   · unfold authRdSupply; iexact Hsl
   iexists RD, stl
-  iframe Hbe Hsl Hreq
+  iframe Hbe Hsl
   isplitr
   · ipureintro; exact Hst
+  isplitr
+  · iintro !> -; iexact Hreq
   isplitr
   · iExactEq Hok; rfl
   isplitr
@@ -366,8 +379,8 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
 theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) :
     authSrvTP (GF := GF) false := by
-  intro lg opts iw ttl
-  iintro %Φ ⟨#Hpkg, #Hlg, -⟩ HΦ
+  intro lg opts iw ttl γy
+  iintro %Φ ⟨#Hpkg, #Hlg, -, -⟩ HΦ
   iapply (h25 lg opts iw ttl) $$ [Hpkg]
   · iframe Hpkg; iapply zapLoggerOk_orNil; iexact Hlg
   iintro !> %tp %err ⟨%Htp, -⟩
@@ -378,7 +391,7 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   imodintro
   iexists .off
   isplitr
-  · ipureintro; exact ⟨rfl, fun h => absurd h (by decide)⟩
+  · ipureintro; exact ⟨rfl, fun h => absurd h (by decide), fun _ h => by cases h⟩
   iapply (authStoreKit_off h30 tp)
 
 set_option maxRecDepth 16384 in
@@ -618,7 +631,6 @@ theorem authStoreKit_on
 /-- **`authSrvTP true`** (see the file header): the simple provider, its names the auth names'
 token names, the auth names allocated over the boot state, the kit in the mode `on`. -/
 theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
-    (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_GTP : auth.tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG))
@@ -654,8 +666,8 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hGT : auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     authSrvTP (GF := GF) true := by
-  intro lg opts iw ttl
-  iintro %Φ ⟨#Hpkg, #Hlg, %Hon⟩ HΦ
+  intro lg opts iw ttl γy
+  iintro %Φ ⟨#Hpkg, #Hlg, %Hon, #Hiw⟩ HΦ
   obtain ⟨hopts, httl⟩ := Hon rfl
   iapply (h25 lg opts iw ttl) $$ [Hpkg]
   · iframe Hpkg; iapply zapLoggerOk_orNil; iexact Hlg
@@ -664,20 +676,32 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact Htp
   iintro %Herr
-  icases Hres with (%Hno | ⟨%p, %γt, %γf, %Hp, -, #Hok, HA, Hfr⟩)
+  icases Hres with (%Hno | ⟨%p, %γt, %γf, %Hp, #Hiwf, #Hok, HA, Hfr⟩)
   · exfalso; rcases Hno with h | h
     · exact h hopts
     · omega
   obtain ⟨-, rfl⟩ := Hp
-  imod (auth.authBoot_alloc (GF := GF) γt γf) with ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn, Hbk,
+  imod (auth.authBoot_alloc (GF := GF) γt γf γy) with ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn, Hbk,
     Hsucc, HpubQ⟩
-  obtain ⟨hγt, hγf⟩ := Hγ
-  subst hγt hγf
-  ihave #HtpA := auth.tokenSimple_okA_run hValid h_Debug h_String h_GTP p γa $$ [$Hpkg $Hok]
+  obtain ⟨hγt, hγf, hγy⟩ := Hγ
+  subst hγt hγf hγy
+  -- (auth-schema-fix S1 option A) the provider's index waiter: the caller's waiter, once ready
+  ihave #Hwok : auth.simpleWaitOk p (.on γa) $$ []
+  · iunfold auth.simpleWaitOk
+    iexists iw
+    iframe Hiwf
+    iintro !> %idx
+    ihave #Ht := Hiw $$ []
+    · ipureintro; rfl
+    ihave #Ht2 := Ht $$ %idx
+    simp only [auth.tpReady]
+    iexact Ht2
+  ihave #HtpA := auth.tokenSimple_okA_run h_Debug h_String h_GTP p γa $$ [$Hpkg $Hok $Hwok]
   imodintro
   iexists (.on γa)
   isplitr
-  · ipureintro; exact ⟨rfl, fun _ => ⟨γa, rfl⟩⟩
+  · ipureintro
+    exact ⟨rfl, fun _ => ⟨γa, rfl⟩, fun γa' h => by cases h; rfl⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
     hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hAuthnB hCP hGT hD22 _ γa (auth.simpleAdmin p))

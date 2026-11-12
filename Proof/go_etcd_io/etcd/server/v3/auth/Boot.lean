@@ -54,8 +54,8 @@ variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 `γf`: the admin side's authority, the other half of the latest state's ghost variable (the store's
 revision invariant takes it, `newAuthStore_on`) and the batch lock's half of the history at the
 boot state (the backend's, `authSchemaBoot`). -/
-theorem authBoot_alloc (γt γf : GName) :
-    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗
+theorem authBoot_alloc (γt γf γy : GName) :
+    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗
       authOwn (GF := GF) (.on γa) [bootState] ∗ authStoreInit γa [bootState] bootState ∗
       authLockI (.on γa) bootState ∗ capAuth γa [bootState, bump bootState] ∗
       capNext (.on γa) [bootState] (bump bootState) ∗
@@ -64,7 +64,7 @@ theorem authBoot_alloc (γt γf : GName) :
       (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗
       authPubQ γa (1 : Qp).half 0 := by
   iintro
-  imod (authHist_alloc (GF := GF) γt γf [bootState] bootState [bootState, bump bootState]
+  imod (authHist_alloc (GF := GF) γt γf γy [bootState] bootState [bootState, bump bootState]
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
     with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk, Hq, Hcap, #Hcl, Hbk, Hsucc, Hrt⟩
   imodintro
@@ -178,8 +178,10 @@ theorem newAuthStore_boot
   wp_start_folded as ⟨#Hlg, %Hab, HD, HT, Hw1, Hw2, Hw3, Hw4, Hcs, #Htp, HA⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
-  imod (authBoot_alloc (GF := GF) γt γf) with
-    ⟨%γa, %Hγ, Hown, Hcur, HI, Hcap, #Hcn, ⟨%γ0, Hbk⟩, -, -⟩
+  -- (auth-schema-fix S1) the readiness cell's name is unconstrained here: the token names only
+  imod (authBoot_alloc (GF := GF) γt γf γt) with
+    ⟨%γa, %Hγ3, Hown, Hcur, HI, Hcap, #Hcn, ⟨%γ0, Hbk⟩, -, -⟩
+  have Hγ : γa.tok = γt ∧ γa.fresh = γf := ⟨Hγ3.1, Hγ3.2.1⟩
   iunfold authSchemaBoot at HD
   ihave HD' := HD $$ %γa [] HI
   · ipureintro; exact Hγ

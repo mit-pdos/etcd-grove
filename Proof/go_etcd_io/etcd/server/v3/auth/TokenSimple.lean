@@ -230,12 +230,15 @@ theorem keeper_add (k : Loc) (token : GoString) :
   iunfold keeperMap; iexists km, _, ttl; iframe #; iexact Htm
 
 /-- **The provider's index waiter** (`indexWaiter`, a `func(uint64) <-chan struct{}` set by
-`newTokenProviderSimple`): read-only, and for every index it returns a channel `anyRecv`. -/
-def simpleWaitOk (p : Loc) : IProp GF :=
+`newTokenProviderSimple`) in the mode `M`: read-only, and for every index, once the provider is
+ready (`tpReady M`: the server's waiter reads `s.applyWait`, which `start` sets; auth-schema-fix S1
+option A, 2026-11-12), it returns a channel `anyRecv`. -/
+def simpleWaitOk (p : Loc) (M : AuthMode) : IProp GF :=
   iprop(∃ iw : GoFunc, tsF go!"indexWaiter" p ↦□ iw ∗
-    □ (∀ idx : w64, {{ True }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; anyRecv ch }}))
+    □ (∀ idx : w64, {{ tpReady M }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; anyRecv ch }}))
 
-instance simpleWaitOk_persistent (p : Loc) : Persistent (simpleWaitOk (GF := GF) p) := by
+instance simpleWaitOk_persistent (p : Loc) (M : AuthMode) :
+    Persistent (simpleWaitOk (GF := GF) p M) := by
   unfold simpleWaitOk; infer_instance
 
 /-- **`info`**: a token the map holds was issued to the user it maps to. -/
@@ -457,13 +460,13 @@ nil or a channel a receive may complete on (`auth.ctxDoneRecv`; auth-schema-fix 
 until then on Perennial's `context.isContext`) and with the provider's index waiter: it returns
 (`strings.Split`, `strconv.ParseUint`, then a `select` on the waiter's channel and the context's
 `Done`, a nil one never ready: `chan.wp_select_blocking_nil`). -/
-theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (token : GoString) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleWaitOk p ∗
-        auth.ctxDoneRecv ci }}
+theorem tokenSimple_isValid (p : Loc) (M : AuthMode) (ci : GoInterfaceOk) (token : GoString) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleWaitOk p M ∗
+        tpReady M ∗ auth.ctxDoneRecv ci }}
       (App (App (Val (p @!! go.GoType.PointerType tokenSimple.ty @!! go!"isValidSimpleToken"))
         (Val #(GoInterface.ok ci))) (Val #token))
     {{ (b : Bool), RET #b; True }} := by
-  wp_start as ⟨#Hw, #Hctx⟩
+  wp_start as ⟨#Hw, #Hrdy, #Hctx⟩
   (try wp_auto)
   ihave #Hstr : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
@@ -494,7 +497,8 @@ theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (token : GoString) :
     · icases Hres with %Hok
       obtain ⟨rfl, rfl⟩ := Hok
       (try wp_auto)
-      wp_apply Hiws as %ch0 #Hch0
+      wp_apply Hiws $$ [] as %ch0 #Hch0
+      · iexact Hrdy
       (try wp_auto)
       wp_apply +noauto Hctx as %ch1 #Hch1
       (try wp_auto)
@@ -548,16 +552,16 @@ theorem tokenSimple_info_ctx (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt
     (ci : GoInterfaceOk) (token : GoString) (rev : w64)
     (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf ∗
-      simpleWaitOk p ∗ auth.ctxDoneRecv ci ∗
+      simpleWaitOk p (.on γa) ∗ tpReady (.on γa) ∗ auth.ctxDoneRecv ci ∗
       ▷ (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
         (if ok then infoBound (.on γa) token a else iprop(True)) -∗ Φ (PairV #a #ok)) ⊢
       WP (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"info" #p))
         (Val #(GoInterface.ok ci))) (Val #token)) (Val #rev)) {{ Φ }} := by
-  iintro ⟨#Hpkg, #Hok, #Hw, #Hctx, HΦ⟩
-  iapply tokenSimple_info_of iprop(simpleWaitOk p ∗ auth.ctxDoneRecv ci) p γt γf γa hγt
-    (GoInterface.ok ci) token rev
-  · iintro %Ψ ⟨#Hpkg', #Hw', #Hctx'⟩ HΨ
-    iapply (tokenSimple_isValid p ci token) $$ [] HΨ
+  iintro ⟨#Hpkg, #Hok, #Hw, #Hrdy, #Hctx, HΦ⟩
+  iapply tokenSimple_info_of iprop(simpleWaitOk p (.on γa) ∗ tpReady (.on γa) ∗ auth.ctxDoneRecv ci)
+    p γt γf γa hγt (GoInterface.ok ci) token rev
+  · iintro %Ψ ⟨#Hpkg', #Hw', #Hrdy', #Hctx'⟩ HΨ
+    iapply (tokenSimple_isValid p (.on γa) ci token) $$ [] HΨ
     iframe #
   iframe #; iexact HΦ
 

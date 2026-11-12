@@ -571,7 +571,7 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       ⌜E.authMode = AuthC.off.mode⌝ ∗ isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   iintro H
   iunfold isServerBuilt at H
-  icases H with ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩
+  icases H with ⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, #HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩
   iunfold applyBuilt at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, HAR, Hrdat, Hao,
     #Hlog, Hkr, Hfs⟩
@@ -580,7 +580,7 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   isplitr
   · ipureintro; exact authMode_off_of E hoff
   iunfold isServerBuilt
-  iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hkvi Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb
+  iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hkvi Hti Hci' Hrn HEr Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap Hsnap Hloop Hsend Happly Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb
   iunfold applyBuilt
   iexists st₀, a, t, f
   iframe Hth Hbe Hca Halg Hbm Hrdk Hbo HRA HAR Hrdat Hao Hlog Hkr Hfs

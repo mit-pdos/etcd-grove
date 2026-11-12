@@ -164,7 +164,13 @@ theorem EtcdServer.start.wp_proof
     rw [show uint.nat (W64 0) = 0 by word]
     iexact H0
   icases Haw with ⟨%aw0, Haw⟩
-  wp_auto
+  wp_auto_lc 1
+  -- (auth-schema-fix S1 option A) `s.applyWait` set: the token provider's readiness fired
+  ipersist Haw
+  ihave #Hpwait : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait $$ []
+  · iPkgInit
+  ihave #Hwt := isWaitTime_of_timeList hTLW hTLT tl (appliedAtLeast γr) $$ [$Hpwait $Htl]
+  imod (srvTpPend_fire s E.authMode _ (appliedAtLeast γr)) $$ [$Htpp $Haw $Hwt $Hlc1] with #Hrdy
   -- (R2c-4) the stop's: the configuration's data directory (the slot's), the right's claim
   iunfold srvStop.slot at Hskeep
   icases Hskeep with ⟨%cfgk, %γk, Hkeep, %hSTk⟩
@@ -201,7 +207,6 @@ theorem EtcdServer.start.wp_proof
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩
   wp_auto
   ipersist Hw
-  ipersist Haw
   ipersist Hdone
   ipersist Hstop
   ipersist Hstopping
@@ -411,9 +416,6 @@ theorem EtcdServer.start.wp_proof
       iframe G1 G2
     iframe G3
     ipureintro; exact Hbound
-  ihave #Hpwait : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait $$ []
-  · iPkgInit
-  ihave #Hwt := isWaitTime_of_timeList hTLW hTLT tl (appliedAtLeast γr) $$ [$Hpwait $Htl]
   ihave #Hsa : isServerApplyAll s γr $$ []
   · iunfold isServerApplyAll
     iunfold srvApplyAllBuilt at Hsab
@@ -480,13 +482,15 @@ theorem EtcdServer.start.wp_proof
   iunfold srvReqBuiltM at Hvq
   icases Hvq with ⟨#Q1, #Q2, #Q3, #Q4, #Q5, #Q6, #Q7, #Q8, #Q9, #Q10, #Q11, #Q12, #Q13, #Q14,
     #Q15, #Q16, #Q17, #Q18, %Q19⟩
+  -- (auth-schema-fix S1 option A) the store's request side, the provider ready
+  ihave #Q11' := Q11 $$ Hrdy
   ihave #Hreq : isServerReqM C.isOn s E { ρ with wait := γw } $$ []
   · iapply (isServerReqM_split C.isOn s E _).2
     isplitl; rotate_left
-    · iapply srvAuthBoundM_of_read C s E hm $$ HaR
+    · iapply srvAuthBoundM_of_read C s E hm $$ [$HaR $Hrdy]
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAtM
-    iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw
+    iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11' Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw
     isplitr
     · iunfold waitInvM
       isplitr
@@ -534,7 +538,7 @@ theorem EtcdServer.start.wp_proof
     · iunfold stopChan
       iexists γsg
       iexact HsgU
-    iapply readBound_of_read C s E vd.auth hm $$ [$HaR $R6]
+    iapply readBound_of_read C s E vd.auth hm $$ [$HaR $R6 $Hrdy]
   -- `go s.run()`, with the write budget backed by time receipts (D19b; made by `NewServer` since
   -- M2's item 15, stage B3)
   iunfold srvWTBudget at HWB

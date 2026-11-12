@@ -235,7 +235,7 @@ def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
     apply.uberBaseAuth ua E au le ∗ authStoreLbM E.authMode au E.RD ∗
     ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authPublishM E.authMode stl ∗
       authStoreLatestM E.authMode au E.RD stl ∗
-      □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound au E.RD E.authMode))
+      □ (⌜E.authMode.isOn = true⌝ → auth.tpReady E.authMode -∗ isReqAuthBound au E.RD E.authMode))
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by

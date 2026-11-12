@@ -740,13 +740,15 @@ admin side's resource `A` (the auth plan's S5d, 2026-10-25):
 (`auth.ctxDoneRecv`, which a request context's `auth.ctxDoneAny` gives; auth-schema-fix S1,
 2026-11-12, decided by etcd-grove-81: until then on any context, which the simple provider
 falsifies, `isValidSimpleToken` selecting on a nil context's `Done()`,
-`notes/auth-validspec-false.md`). The simple provider meets it (`auth/TokenSimple.lean`, S5b-S5d;
+`notes/auth-validspec-false.md`), once the provider is ready (`tpReady M`: in `on γa`, the server
+has started, so the simple provider's index waiter, which reads `s.applyWait`, may be called;
+auth-schema-fix S1 option A, decided by etcd-grove-81, 2026-11-12). The simple provider meets it (`auth/TokenSimple.lean`, S5b-S5d;
 `tokenSimple_okA`, given its index waiter's contract `simpleWaitOk`); the JWT provider's binding is its signature's, and it does not meet `assign`'s error clause (its
 `ErrVerifyOnly` and its signing errors are not the package's variables): out of scope. -/
 def tokenProviderOkA (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
     □ (∀ (ci : GoInterfaceOk) (token : GoString) (rev : w64),
-      {{ auth.ctxDoneRecv ci }}
+      {{ tpReady M ∗ auth.ctxDoneRecv ci }}
         (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #(GoInterface.ok ci)))
           (Val #token)) (Val #rev))
       {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
@@ -775,7 +777,7 @@ resource `A` (`tokenProviderOkA`), whose holder is the store's admin side (`tpAd
 def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
   iprop(∃ (A : IProp GF) (ti : GoInterfaceOk), ⌜tp = GoInterface.ok ti⌝ ∗
     □ (∀ (ci : GoInterfaceOk) (token : GoString) (rev : w64),
-      {{ auth.ctxDoneRecv ci }}
+      {{ tpReady M ∗ auth.ctxDoneRecv ci }}
         (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #(GoInterface.ok ci)))
           (Val #token)) (Val #rev))
       {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
