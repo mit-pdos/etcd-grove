@@ -36,6 +36,17 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     `entsPtsZ us.sz`, `restore` keeps `sz`. raftLog's specs unchanged (`append` converts with
     `entsPts_entsPtsZ`; `slice`, `nextUnstableEnts` weaken with `entsROz_entsRO`).
 
+- **C2 (statements)**, 2026-11-12, commit `909347aa5e`, **waiting for etcd-grove-81's review** of
+  `/shared/tmp/out-size/freeze-c2.md` (the Freeze package: old → new, changes in meaning, the D4
+  axioms, the restart clause, Go evidence). Written: `outSetR` sized (and `out_size` proved from it),
+  `raftOutInv_insert`'s premise, `entsPtsC`/`entsCut` (PbSized), `StorNames.sz`, `isStorageP`/
+  `isStorageWith` with `sz` and the cut, `isStorage` at `γ.maxData.isSome`, `certLink`'s pin
+  `sn.sz = γ.maxData.isSome`, `MemStorNames.sz`, `NewMemoryStorage`/`Append`/`Entries` specs,
+  `memStorage_isStorage`'s `hsz`, `isRNMemStor` over `entsROz true`. Builds: the raft API closure
+  (`MemstorageApi InvNodeRule MsgOutIns InvApi` + the specs); `isRNMemStor` checked in a scratch
+  module (`/shared/tmp/out-size/c2/scratch/RNCheck.lean`). Branch-only `sorry`s: `entsPtsC_entsPtsZ`,
+  `entsPtsZ_entsPtsC`, `memStorage_isStorage`, the size fact at `entsOut_insert`/`msgOutR_intro`.
+
 ## Next, in order (Scope §4)
 
 C1 LANDED: lean `ec6fd114d2` (2026-11-12, gates all passed, with etcd-grove-81's `gates.sh` retry
@@ -71,7 +82,12 @@ commit `3a986545ae` cherry-picked; not pushed). The branch continues from there 
    - The restart clause (D5, option B): write its text in the Freeze package only (P7 is sequenced
      after the next restart landing, D7; `InvRestart.lean` is the restart owner's), with the
      `axiom`-skill review there.
-2. P2-P5 (raft), C3; P6, P7 (tell etcd-grove-81 before P7: D7), C4; C5.
+2. P2-P5 (raft), C3; P6, P7 (tell etcd-grove-81 before P7: D7), C4; C5. Known repairs from C2: the
+   proofs building `StorNames`/the `storKeyNames` tuple (`StartNode.lean:447`, `RestartNode.lean:629`,
+   and `certLink`'s new conjunct at `StartNode.lean:186`/`RestartNode.lean:200`), `NewMemoryStorage`'s
+   anonymous `MemStorNames` constructor, `memstorageFields`' `Hents` (`entsROz γs.sz`, needs a `sz`
+   argument), every `HEntries` reader (`raftLog__slice`, ...), kv's storage instances (`sz = false`),
+   `isRNMemStor_of_memstorage` (`entsPtsZ_true`).
 
 ## Pitfalls
 
