@@ -15,7 +15,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 section pure
 variable [GooseExts]

@@ -80,10 +80,10 @@ private abbrev wcF (b : Loc) (len : Nat) (s : Nat) : IProp GF :=
 /-- The per-slot body of `wBytes`. -/
 private abbrev wbG (p : GoString) (wb : Nat → List w8) (size : Nat) (s : Nat) : IProp GF :=
   if 4096 * (s + 1) ≤ size then
-    iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = wb s⌝)
   else if 4096 * s < size then
-    iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
   else iprop(emp)
 
@@ -363,8 +363,8 @@ theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DF
     (b : Loc) (len : Nat) (hb : m.maps !! b = some len) (hE : ↑osN ⊆ E) (wb : Nat → List w8)
     (Φ : val → IProp GF) :
     ∀ (S : List Nat), (∀ t ∈ S, 4096 * (t + 1) ≤ len ∧ (wb t).length = 4096) →
-    ⊢ osInv (GF := GF) -∗ osMeta p dqm (some m) -∗ wrSlots b p S wb -∗
-      (osMeta p dqm (some m) -∗ slotsOwn (some (b, len)) p S wb -∗ WP e @ s; E {{ Φ }}) -∗
+    ⊢ osInv (GF := GF) -∗ osMeta p.ino dqm m -∗ wrSlots b p S wb -∗
+      (osMeta p.ino dqm m -∗ slotsOwn (some (b, len)) p S wb -∗ WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
   | [], _ => by
     iintro #Hinv Hm _ HΦ
@@ -375,8 +375,8 @@ theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DF
     iintro #Hinv Hm Hs HΦ
     unfold wrSlots
     icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨⟨Hx, %vf, Hcx⟩, Hs⟩
-    icases (show osSlot (GF := GF) p t (wb t) ⊢ ∃ xs : List (w8 × Bool),
-        osBytes p (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb t⌝ by
+    icases (show osSlot (GF := GF) p t (wb t) ⊢ ∃ xs : List ByteG,
+        osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb t⌝ by
         unfold osSlot; exact .rfl) $$ Hx with ⟨%xs, Hx, %Hxs⟩
     obtain ⟨ht1, ht2⟩ := hS t (List.mem_cons_self ..)
     have hxl : xs.length = 4096 := by rw [← ht2, ← Hxs, List.length_map]
@@ -398,7 +398,7 @@ theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DF
     isplitl [Hx Hcx]
     · rw [Hxs]
       iframe Hcx
-      iapply (show (∃ xs : List (w8 × Bool), osBytes p (4096 * t) (DFrac.own 1) xs ∗
+      iapply (show (∃ xs : List ByteG, osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = wb t⌝) ⊢ osSlot (GF := GF) p t (wb t) by unfold osSlot; exact .rfl)
       iexists xs; iframe; ipureintro; exact Hxs
     · iexact Ho

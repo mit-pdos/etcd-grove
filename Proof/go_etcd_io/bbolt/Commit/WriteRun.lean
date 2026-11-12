@@ -133,7 +133,7 @@ def cAny (b : Loc) (lo n : Nat) : IProp GF := iprop(∃ vf, cellsR b lo n vf)
 
 /-- The page-cache bytes `[lo, lo + n)` of the file `p`, whole, holding anything. -/
 def oAny (p : GoString) (lo n : Nat) : IProp GF :=
-  iprop(∃ xs : List (w8 × Bool), osBytes p lo (DFrac.own 1) xs ∗ ⌜xs.length = n⌝)
+  iprop(∃ xs : List ByteG, osBytes p.ino lo (DFrac.own 1) xs ∗ ⌜xs.length = n⌝)
 
 /-- A slot of a write, holding anything: some 4096 bytes in the page cache, any cells. -/
 def slotAny (b : Loc) (p : GoString) (s : Nat) : IProp GF :=
@@ -278,9 +278,9 @@ theorem bytes_cut (l : Loc) (lo : Nat) (dq : DFrac) (P : List w8) (n : Nat) (h :
   exact a
 
 /-- **A written run is the page's slots**, each holding its chunk. -/
-theorem run_done (b : Loc) (p : GoString) : ∀ (c k : Nat) (P : List w8) (ys : List (w8 × Bool)),
+theorem run_done (b : Loc) (p : GoString) : ∀ (c k : Nat) (P : List w8) (ys : List ByteG),
     ys.map Prod.fst = P → P.length = 4096 * c →
-    osBytes (GF := GF) p (4096 * k) (DFrac.own 1) ys ∗
+    osBytes (GF := GF) p.ino (4096 * k) (DFrac.own 1) ys ∗
       bytesPointsto (b +ₗ ((4096 * k : Nat) : Int)) (DFrac.own (1 : Qp).half) P ⊢
     [∗list] s ∈ List.range' k c, slotDone b p s (pageChunk P (s - k))
   | 0, k, P, ys, _, _ => by

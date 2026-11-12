@@ -27,7 +27,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 namespace Write
 

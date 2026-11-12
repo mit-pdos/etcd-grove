@@ -565,7 +565,7 @@ theorem Open.wp_proof [sync.Assumptions]
   try wp_auto
   -- the file's size
   obtain ⟨hmaps, hxl, hsz, hbr⟩ := Hm
-  wp_apply hStat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) ⟨path, true, true⟩ m $$
+  wp_apply hStat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) ⟨path.ino, true, true⟩ m $$
     [Hf Hfdo Hfm] as %fi %serr ⟨Hf, Hfdo, Hfm, Hfi, #Hse, -⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   rw [← fileOwn_eq]
@@ -590,7 +590,7 @@ theorem Open.wp_proof [sync.Assumptions]
   try wp_auto
   rw [← hxl]
   wp_apply hMZ dbl f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨path, true, true⟩ xs rfl rfl (by omega) $$ [file pageSize Hf Hfdo Hxs]
+    ⟨path.ino, true, true⟩ xs rfl rfl (by omega) $$ [file pageSize Hf Hfdo Hxs]
     as %z %zerr ⟨file, pageSize, Hf, Hfdo, Hxs, Hz⟩
   · iframe; iframe #
   icases Hz with (%Hz | ⟨%Hzerr, #Hze⟩)
@@ -610,13 +610,13 @@ theorem Open.wp_proof [sync.Assumptions]
   try wp_auto
   -- a new file is initialized, an existing one's page size read
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗
-      ∃ (m' : OsMeta) (xs' : List (w8 × Bool)) (C : CommitSt),
-        osMeta path (DFrac.own 1) (some m') ∗ osBytes path 0 (DFrac.own 1) xs' ∗
+      ∃ (m' : OsMeta) (xs' : List ByteG) (C : CommitSt),
+        osMeta path.ino (DFrac.own 1) m' ∗ osBytes path.ino 0 (DFrac.own 1) xs' ∗
         ⌜m'.maps = ∅ ∧ xs'.length = m'.size ∧ m'.size < 2 ^ 62 ∧ openOK C D m' xs'⌝ ∗
         dbl.[DB, go!"file"] ↦ f ∗ (∃ dqp, dbl.[DB, go!"pageSize"] ↦{dqp} W64 4096) ∗
         (dbl.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
           methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-        fileOwn f fd path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨path, true, true⟩ ∗
+        fileOwn f fd path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨path.ino, true, true⟩ ∗
         dbl.[DB, go!"readOnly"] ↦ false ∗ dbl.[DB, go!"opened"] ↦ true ∗
         dbl.[DB, go!"freelist"] ↦ GoInterface.nil ∗ dbl.[DB, go!"path"] ↦ path ∗
         mapFields dbl (DFrac.own 1) none ∗ dbl.[DB, go!"datasz"] ↦ W64 0 ∗
@@ -683,7 +683,7 @@ theorem Open.wp_proof [sync.Assumptions]
       try wp_auto
       have h8 := openOK_size C D m xs hC
       wp_apply hGPS dbl f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-        (DFrac.own 1) ⟨path, true, true⟩ m xs C rfl rfl hxl (by omega) hsz hC.2.1 hC.1.1 hC.1.2.1
+        (DFrac.own 1) ⟨path.ino, true, true⟩ m xs C rfl rfl hxl (by omega) hsz hC.2.1 hC.1.1 hC.1.2.1
         $$ [file pageSize Hf Hfdo Hfm Hxs] as %gsz %gerr ⟨file, pageSize, Hf, Hfdo, Hfm, Hxs, Hg⟩
       · iframe; iframe #
       icases Hg with (%Hg | ⟨%Hge, #Hek⟩)

@@ -56,22 +56,22 @@ abbrev mmapF.spec : Prop :=
     (sz : w64) (x : GoSlice) (y : Loc) (z : w64),
   (mf = W64 0 ∨ mf = W64 0x8000) → 0 < sz.toInt →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd ⟨p, true, true⟩ ∗
-      db.[DB, go!"MmapFlags"] ↦□ mf ∗ osMeta p (DFrac.own 1) (some m) ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd ⟨p.ino, true, true⟩ ∗
+      db.[DB, go!"MmapFlags"] ↦□ mf ∗ osMeta p.ino (DFrac.own 1) m ∗
       db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z }}
     (App (App (Val #(functions mmap [])) (Val #db)) (Val #sz))
   {{ (err : GoInterface), RET #err;
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd ⟨p, true, true⟩ ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd ⟨p.ino, true, true⟩ ∗
       ((∃ base : Loc, ⌜err = interface.nil ∧ 0 < base.addr⌝ ∗
           db.[DB, go!"dataref"] ↦ (⟨base, sz, sz⟩ : GoSlice) ∗ db.[DB, go!"data"] ↦ base ∗
           db.[DB, go!"datasz"] ↦ sz ∗
-          osMeta p (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
+          osMeta p.ino (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
           mapCells base sz m) ∨
        (db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z ∗
          ⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
-         (osMeta p (DFrac.own 1) (some m) ∨
+         (osMeta p.ino (DFrac.own 1) m ∨
           (∃ base : Loc, ⌜0 < base.addr⌝ ∗
-            osMeta p (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
+            osMeta p.ino (DFrac.own 1) (some { m with maps := <[base := sz.toNat]> m.maps }) ∗
             mapCells base sz m)))) }}
 
 theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
@@ -90,7 +90,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     rcases hmf with rfl | rfl
     · left; rfl
     · right; rfl
-  wp_apply hMmap fd (W64 0) sz (W64 1) (W64 1 ||| mf) dqd ⟨p, true, true⟩ m rfl rfl hsz rfl hfl
+  wp_apply hMmap fd (W64 0) sz (W64 1) (W64 1 ||| mf) dqd ⟨p.ino, true, true⟩ m rfl rfl hsz rfl hfl
     $$ [Hfd Hm] as %sl %e ⟨Hfd, Hr⟩
   · iframe; iframe #
   icases Hr with (⟨%base, %Hbe, Hm, %bs, %Hbs, Hc⟩ | ⟨%Hbe, Hm⟩)

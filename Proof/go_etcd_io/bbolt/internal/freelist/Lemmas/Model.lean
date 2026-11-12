@@ -16,7 +16,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 /-- The pending entry of `t` (empty if none). -/
 def FLPg.pendingOf (fl : FLPg) (t : w64) : Pending :=

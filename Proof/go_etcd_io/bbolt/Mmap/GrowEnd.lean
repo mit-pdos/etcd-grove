@@ -88,7 +88,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
     (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63) (S : Nat) (hSz : m'.size = S) :
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
-    osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗ osMeta K.p (DFrac.own 1) (some m') -∗
+    osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
@@ -96,7 +96,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
       (min w.m.size L - 4096 * (min w.m.size L / 4096)) vf) -∗
     (∃ vf, cellsR (GF := GF) b (min w.m.size L) (L - min w.m.size L) vf) -∗
     wBytes K.p w.W w.wb w.m.size -∗
-    osBytes K.p w.m.size (DFrac.own 1) (List.replicate (S - w.m.size) ((0 : w8), false)) -∗
+    osBytes K.p.ino w.m.size (DFrac.own 1) (List.replicate (S - w.m.size) ((0 : w8), false)) -∗
     ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
   subst hSz
   unfold growCloser
@@ -138,7 +138,7 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
     (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = w.m.maps) :
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
-    osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗ osMeta K.p (DFrac.own 1) (some m') -∗
+    osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗

@@ -37,14 +37,14 @@ abbrev munmapM.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"dataref"] ↦ (⟨base, len, len⟩ : GoSlice) ∗ db.[DB, go!"data"] ↦ data ∗
       db.[DB, go!"datasz"] ↦ dsz ∗
-      osMeta p (DFrac.own 1) (some m) ∗ cellsR (GF := GF) base 0 len.toNat vf }}
+      osMeta p.ino (DFrac.own 1) m ∗ cellsR (GF := GF) base 0 len.toNat vf }}
     (App (Val #(functions munmap [])) (Val #db))
   {{ (e : w64), RET #(errnoErr e);
       db.[DB, go!"dataref"] ↦ slice.nil ∗ db.[DB, go!"data"] ↦ null ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-      ((⌜e = 0⌝ ∗ osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
+      ((⌜e = 0⌝ ∗ osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
       (⌜e ≠ 0⌝ ∗
-        (osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
-         (osMeta p (DFrac.own 1) (some m) ∗ cellsR base 0 len.toNat vf)))) }}
+        (osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
+         (osMeta p.ino (DFrac.own 1) m ∗ cellsR base 0 len.toNat vf)))) }}
 
 theorem munmapM.wp_proof (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)) :
     munmapM.spec (GF := GF) (hG := hG) := by

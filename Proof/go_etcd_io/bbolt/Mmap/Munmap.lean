@@ -41,15 +41,15 @@ abbrev DB.munmap.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
       mapFields db (DFrac.own 1) (some (base, l)) ∗ db.[DB, go!"datasz"] ↦ W64 (l : Int) ∗
-      osMeta p (DFrac.own 1) (some m) ∗ cellsR (GF := GF) base 0 l vf }}
+      osMeta p.ino (DFrac.own 1) m ∗ cellsR (GF := GF) base 0 l vf }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
   {{ (err : GoInterface), RET #err;
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
       ((⌜err = interface.nil⌝ ∗
-          osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
+          osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
        (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
-        (osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
-         (osMeta p (DFrac.own 1) (some m) ∗ cellsR base 0 l vf)))) }}
+        (osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
+         (osMeta p.ino (DFrac.own 1) m ∗ cellsR base 0 l vf)))) }}
 
 theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     (hLogger : DB.Logger.spec (GF := GF) (hG := hG))

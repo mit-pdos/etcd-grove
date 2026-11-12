@@ -17,7 +17,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 /-- A transaction's pending pages (`txPending`): the ids, the transaction that allocated each
 (`0` if unknown), and the start of the last `releaseRange` that looked at it. -/

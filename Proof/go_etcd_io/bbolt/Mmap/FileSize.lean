@@ -61,10 +61,10 @@ abbrev DB.fileSize.spec : Prop :=
   d.path = p → m.size < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd d ∗
-      osMeta p dqm (some m) ∗ db.[DB, go!"pageSize"] ↦□ W64 4096 }}
+      osMeta p.ino dqm m ∗ db.[DB, go!"pageSize"] ↦□ W64 4096 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"fileSize")) (Val #()))
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd d ∗ osMeta p dqm (some m) ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p dqo ∗ osFd fd dqd d ∗ osMeta p.ino dqm m ∗
       ((⌜err = interface.nil ∧ r = W64 (m.size : Int) ∧ 8192 ≤ m.size⌝) ∨
        (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err)) }}
 

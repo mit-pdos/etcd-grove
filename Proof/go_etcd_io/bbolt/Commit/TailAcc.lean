@@ -168,14 +168,14 @@ theorem cm_file_acc (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (t
       db.[DB, go!"file"] ↦ w.f ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
-      fileOwn w.f w.fd p (DFrac.own 1) ∗ osFd w.fd (DFrac.own 1) ⟨p, true, true⟩ ∗
-      osMeta p (DFrac.own 1) (some w.m) ∗ wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
+      fileOwn w.f w.fd p (DFrac.own 1) ∗ osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
+      osMeta p.ino (DFrac.own 1) w.m ∗ wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
       (∀ (m : OsMeta) (W : List Nat) (wb : Nat → List w8),
         db.[DB, go!"file"] ↦ w.f -∗
         (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
           methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-        fileOwn w.f w.fd p (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) ⟨p, true, true⟩ -∗
-        osMeta p (DFrac.own 1) (some m) -∗ wCells w.ms W -∗ wBytes p W wb m.size -∗
+        fileOwn w.f w.fd p (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ -∗
+        osMeta p.ino (DFrac.own 1) m -∗ wCells w.ms W -∗ wBytes p W wb m.size -∗
         wdbLive B db p sp t0 tx ws (w.reslot m W wb)) := by
   unfold wdbLive wdbCoreG
   iintro ⟨⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hopn, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf, Hom, Hfo, Hfd,

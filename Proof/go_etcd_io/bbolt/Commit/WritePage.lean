@@ -99,11 +99,11 @@ theorem rest_run (b : Loc) (p : GoString) (e : w64 × Loc × List w8) (h16 : 16 
   iapply (slotsAny_run b p _ _).1; iexact Hs
 
 /-- **A written page**: its header back, and its slots each holding its chunk. -/
-theorem run_pgDone (b : Loc) (p : GoString) (e : w64 × Loc × List w8) (ys : List (w8 × Bool))
+theorem run_pgDone (b : Loc) (p : GoString) (e : w64 × Loc × List w8) (ys : List ByteG)
     (hy : ys.map Prod.fst = e.2.2) (hl : e.2.2.length = 4096 * (1 + pageOverflow e.2.2))
     (hp : 0 < e.2.1.addr) :
     bytesPointsto (GF := GF) e.2.1 (DFrac.own 1) e.2.2 ∗
-      osBytes p (4096 * e.1.toNat) (DFrac.own 1) ys ∗
+      osBytes p.ino (4096 * e.1.toNat) (DFrac.own 1) ys ∗
       bytesPointsto (b +ₗ ((4096 * e.1.toNat : Nat) : Int)) (DFrac.own (1 : Qp).half) e.2.2 ⊢
       e.2.1 ↦ pageHdr e.2.2 ∗ pgDone b p e := by
   iintro ⟨Hb, Hy, Hc⟩

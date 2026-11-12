@@ -130,13 +130,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable {s : Stuckness} {E : CoPset}
 
-theorem osBytes_cons' (p : GoString) (off : Nat) (dq : DFrac) (x : w8 × Bool)
-    (xs : List (w8 × Bool)) :
-    osBytes (GF := GF) p off dq (x :: xs) ⊣⊢ osByte (GF := GF) p off dq x ∗ osBytes p (off + 1) dq xs := by
+theorem osBytes_cons' (p : GoString) (off : Nat) (dq : DFrac) (x : ByteG)
+    (xs : List ByteG) :
+    osBytes (GF := GF) p.ino off dq (x :: xs) ⊣⊢ osByte (GF := GF) p.ino off dq x ∗ osBytes p.ino (off + 1) dq xs := by
   unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
 
 theorem osBytes_nil' (p : GoString) (off : Nat) (dq : DFrac) :
-    osBytes (GF := GF) p off dq [] ⊣⊢ emp := by
+    osBytes (GF := GF) p.ino off dq [] ⊣⊢ emp := by
   unfold osBytes; exact bytesG_nil _ _ _ _
 
 omit hos in
@@ -153,10 +153,10 @@ fraction, given the file's `OsMeta` (around any step `e`). -/
 theorem cellsR_agree_bytes (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFrac)
     (m : OsMeta) (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ∀ (xs : List (w8 × Bool)) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
-    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm (some m) -∗ osBytes (GF := GF) p lo dqb xs -∗
+    ∀ (xs : List ByteG) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
+    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p.ino dqm m -∗ osBytes (GF := GF) p.ino lo dqb xs -∗
       cellsR (GF := GF) base lo xs.length vf -∗
-      (osMeta (GF := GF) p dqm (some m) -∗ osBytes (GF := GF) p lo dqb xs -∗
+      (osMeta (GF := GF) p.ino dqm m -∗ osBytes (GF := GF) p.ino lo dqb xs -∗
         cellsR (GF := GF) base lo xs.length (bytesVf lo (xs.map Prod.fst)) -∗
         WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}

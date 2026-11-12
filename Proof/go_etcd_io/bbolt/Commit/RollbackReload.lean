@@ -261,21 +261,21 @@ theorem wCells_ext (b : Loc) (l : Nat) (W ws : List Nat) (hn : ws.Nodup) (hsub :
 theorem wBytes_ext (p : GoString) (W ws : List Nat) (wb : Nat → List w8) (size : Nat)
     (hn : ws.Nodup) (hsub : ∀ s ∈ ws, s ∈ W) (hl : ∀ s ∈ ws, 4096 * (s + 1) ≤ size) :
     wBytes (GF := GF) p W wb size ⊢
-      ([∗list] s ∈ ws, ∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      ([∗list] s ∈ ws, ∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = wb s⌝) ∗
-      (([∗list] s ∈ ws, ∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      (([∗list] s ∈ ws, ∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = wb s⌝) -∗ wBytes (GF := GF) p W wb size) := by
   unfold wBytes
   iintro Hw
   icases bigSepL_extract _ ws W hn hsub $$ Hw with ⟨Hws, Hback⟩
   have hc : ∀ s ∈ ws, (if 4096 * (s + 1) ≤ size then
-    iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp)) ⊣⊢
-      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = wb s⌝) := by
     intro s hs; simp only [hl s hs, ↓reduceIte]; exact .rfl
   ihave Hws := bigSepL_mono_mem' (fun s hs => (hc s hs).1) $$ Hws
@@ -317,13 +317,13 @@ theorem ext_agree {st : Stuckness} {E : CoPset} (e : Expr) (htv : toVal e = none
     (dqm : DFrac) (m : OsMeta) (b : Loc) (len : Nat) (hb : m.maps !! b = some len)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) (wb : Nat → List w8) :
     ∀ (k f : Nat), (∀ s, f ≤ s → s < f + k → 4096 * (s + 1) ≤ len ∧ (wb s).length = 4096) →
-    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p dqm (some m) -∗
-      ([∗list] s ∈ List.range' f k, ∃ xs : List (w8 × Bool),
-        osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
+    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p.ino dqm m -∗
+      ([∗list] s ∈ List.range' f k, ∃ xs : List ByteG,
+        osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
       ([∗list] s ∈ List.range' f k, ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
-      (osMeta (GF := GF) p dqm (some m) -∗
-        ([∗list] s ∈ List.range' f k, ∃ xs : List (w8 × Bool),
-          osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
+      (osMeta (GF := GF) p.ino dqm m -∗
+        ([∗list] s ∈ List.range' f k, ∃ xs : List ByteG,
+          osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
         bytesPointsto (GF := GF) (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
           ((List.range' f k).flatMap wb) -∗
         WP e @ st; E {{ Φ }}) -∗

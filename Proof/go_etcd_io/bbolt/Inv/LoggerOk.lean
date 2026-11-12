@@ -16,7 +16,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 section
 variable [GooseExts] [go_gctx : GoGlobalContext]

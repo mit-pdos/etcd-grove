@@ -35,8 +35,7 @@ structure BC where
   B : BNs
   N : Namespace
   db : Loc
-  p : GoString
-  i : Ino
+  p : BFile
   sp : Loc
   t0 : Nat
 

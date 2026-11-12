@@ -62,7 +62,7 @@ theorem DB.munmap.wp_proof_none : DB.munmap.spec_none (GF := GF) (hG := hG) := b
 def closeMapRes (p : GoString) : MapSt → IProp GF
   | none => iprop(emp)
   | some (b, l) => iprop(∃ (m : OsMeta) (vf : Nat → val), ⌜0 < l ∧ m.maps !! b = some l⌝ ∗
-      osMeta p (DFrac.own 1) (some m) ∗ cellsR b 0 l vf)
+      osMeta p.ino (DFrac.own 1) m ∗ cellsR b 0 l vf)
 
 /-- `db.munmap()` of what `close` unmaps: the fields cleared, the error formattable. -/
 theorem DB.munmap.wp_closeRes (hMunmap : DB.munmap.spec (GF := GF) (hG := hG))

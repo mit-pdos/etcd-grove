@@ -63,18 +63,18 @@ abbrev DB.init.spec : Prop :=
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ osMeta p (DFrac.own 1) (some m) ∗
-      osBytes p 0 (DFrac.own 1) [] }}
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
+      osBytes p.ino 0 (DFrac.own 1) [] }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"init")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ (m' : OsMeta) (xs : List (w8 × Bool)),
-          osMeta p (DFrac.own 1) (some m') ∗ osBytes p 0 (DFrac.own 1) xs ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ (m' : OsMeta) (xs : List ByteG),
+          osMeta p.ino (DFrac.own 1) m' ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
           ⌜m'.maps = ∅ ∧ xs.length = m'.size ∧ xs.map Prod.fst = initImg⌝) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ m' : OsMeta, osMeta p (DFrac.own 1) (some m'))) }}
+       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
 
 end spec
 
@@ -252,9 +252,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 omit package_sem go_gctx sem in
 /-- A file's page-cache bytes, cut in two. -/
-theorem osBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
-    osBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
-      osBytes (GF := GF) p off dq xs ∗ osBytes (GF := GF) p (off + xs.length) dq ys := by
+theorem osBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
+    osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊣⊢
+      osBytes (GF := GF) p.ino off dq xs ∗ osBytes (GF := GF) p.ino (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
 theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
@@ -507,7 +507,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     -- the first write: the freelist and root pages, the meta slots zero
     have hm0 : min (W64 0).toNat m.size = 0 := by rw [hsz]; simp
     wp_apply hWriteAt f fd p (DFrac.own 1) pg initPages (DFrac.own 1) (W64 0) (DFrac.own 1)
-      ⟨p, true, true⟩ 1 m [] rfl (by decide) (by rw [initPages_length]; decide)
+      ⟨p.ino, true, true⟩ 1 m [] rfl (by decide) (by rw [initPages_length]; decide)
       (by rw [initPages_length]; decide) (by rw [hsz]; simp) (fun _ => rfl)
       $$ [Hfo Hpg Hfd Hm Hxs] as %n %err ⟨Hfo, Hpg, Hfd, %j, %ys, %h, %Hj, Hm, Hys, Hc, Herr⟩
     · iframe #
@@ -626,14 +626,14 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       icases (ownSlice_slice (W64 0) (W64 8192) sl (DFrac.own 1) _
         ⟨by decide, by decide, by rw [hsl]; decide⟩).1 $$ Hsl with ⟨HsA, HsB, HsC⟩
       rw [hfh.1, hfh.2]
-      ihave Hys : osBytes p 0 (DFrac.own 1) (ys.take 8192 ++ ys.drop 8192) $$ [Hys]
+      ihave Hys : osBytes p.ino 0 (DFrac.own 1) (ys.take 8192 ++ ys.drop 8192) $$ [Hys]
       · rw [List.take_append_drop]; iexact Hys
       icases (osBytes_app p 0 (DFrac.own 1) (ys.take 8192) (ys.drop 8192)).1 $$ Hys
         with ⟨Hy1, Hy2⟩
       have hy1 : (ys.take 8192).length = 8192 := by simp [hysl]
       have hm20 : min (W64 0).toNat m2.size = 0 := by simp
       wp_apply hWriteAt f fd p (DFrac.own 1) _ (metaBuf (initMv 0) ++ metaBuf (initMv 1))
-        (DFrac.own 1) (W64 0) (DFrac.own 1) ⟨p, true, true⟩ 1 m2 (ys.take 8192) rfl (by decide)
+        (DFrac.own 1) (W64 0) (DFrac.own 1) ⟨p.ino, true, true⟩ 1 m2 (ys.take 8192) rfl (by decide)
         (by rw [metaBufs_length]; decide) (by rw [metaBufs_length]; decide)
         (by rw [hy1, metaBufs_length, hm2s]; simp) (fun _ => rfl)
         $$ [Hfo HsB Hfd Hm Hy1] as %n2 %err2 ⟨Hfo, HsB, Hfd, %j2, %ys2, %h2, %Hj2, Hm, Hys2, Hc,

@@ -1,6 +1,6 @@
 /-
 `Open`'s reads of the file's meta pages (U11, `notes/bbolt-proof-plan.md`): `os.File.ReadAt` of
-bytes the reader holds whole (`osBytes p 0 dq xs`), without the file's `OsMeta`, from the racing
+bytes the reader holds whole (`osBytes p.ino 0 dq xs`), without the file's `OsMeta`, from the racing
 read's spec, strengthened (`os.File.ReadAt.specRacyLt`, `Spec/os/File__ReadAt.lean`, batch 36).
 
 **Why not `os.File.ReadAt.spec`/`specRacy` as they are** (reported to the maintainer): both allow an
@@ -37,7 +37,7 @@ omit osA in
 `0` (no `OsMeta`): all of them, exactly (`n = len(b)`), or a `*PathError` (`fmt` formats it). -/
 theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
-    (off : w64) (dq dqb : DFrac) (d : OsFd) (xs : List (w8 × Bool)) (eof : GoInterface)
+    (off : w64) (dq dqb : DFrac) (d : OsFd) (xs : List ByteG) (eof : GoInterface)
     (hrd : d.readable = true) (hoff : 0 ≤ off.toInt) (hn : vs.length ≤ 0x40000000)
     (hin : off.toNat + vs.length ≤ xs.length) (hx : xs.length < 2 ^ 63) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗

@@ -48,7 +48,7 @@ bytes (as bytes at a half), the rest any values. On an error (`fmt` formats it) 
 in the fields (OsFs may keep a leaked mapping). -/
 abbrev DB.mmapUnlocked.spec_own : Prop :=
   ∀ (db f : Loc) (fd : w64) (p : GoString) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
-    (m : OsMeta) (xs : List (w8 × Bool)) (minsz : w64),
+    (m : OsMeta) (xs : List ByteG) (minsz : w64),
   db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 →
   (mf = W64 0 ∨ mf = W64 0x8000) →
   (8192 ≤ m.size → metaValid (metaOf (bytesAt (xs.map Prod.fst) 0 4096)) ∨
@@ -56,23 +56,23 @@ abbrev DB.mmapUnlocked.spec_own : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       mmapOwnFix (GF := GF) db lg mf mx dq ∗
       db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ osMeta p (DFrac.own 1) (some m) ∗
-      osBytes p 0 (DFrac.own 1) xs ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
+      osBytes p.ino 0 (DFrac.own 1) xs ∗
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"mmapUnlocked")) (Val #minsz))
   {{ (err : GoInterface), RET #err; mmapOwnFix db lg mf mx dq ∗
       db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ osBytes p 0 (DFrac.own 1) xs ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (L : Nat),
           ⌜mmapSizeOf (max m.size (sint.nat minsz)) = some L ∧ m.size ≤ L ∧ sint.nat minsz ≤ L ∧
             8192 ≤ m.size⌝ ∗
           mapFields db (DFrac.own 1) (some (base, L)) ∗ db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
-          osMeta p (DFrac.own 1) (some { m with maps := GMap.singleton base L }) ∗
+          osMeta p.ino (DFrac.own 1) (some { m with maps := GMap.singleton base L }) ∗
           bytesPointsto base (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
           ∃ vf, cellsR base m.size (L - m.size) vf) ∨
        (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
           mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-          ∃ m' : OsMeta, osMeta p (DFrac.own 1) (some m'))) }}
+          ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
 
 theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hFileSize : DB.fileSize.spec (GF := GF) (hG := hG))
@@ -100,7 +100,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   · iframe #
   try wp_auto
   wp_apply hFileSize db f fd p dq (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨p, true, true⟩ m rfl hsz $$ [Hfile Hfo Hfd Hosm]
+    ⟨p.ino, true, true⟩ m rfl hsz $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   cases lg with

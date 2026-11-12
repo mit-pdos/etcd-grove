@@ -14,7 +14,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 theorem pwSize_inside (sz off j : Nat) (n : Nat) (hj : j ≤ n) (h : off + n ≤ sz) :
     pwSize sz off j = sz := by
@@ -22,7 +21,7 @@ theorem pwSize_inside (sz off j : Nat) (n : Nat) (hj : j ≤ n) (h : off + n ≤
 
 /-- **The range after an all-or-nothing `pwrite` inside the file**: the old bytes (`j = 0`) or the
 data (`j = data.length`). -/
-theorem pwBytes_inside_fst (sz off : Nat) (data : List w8) (j : Nat) (xs : List (w8 × Bool))
+theorem pwBytes_inside_fst (sz off : Nat) (data : List w8) (j : Nat) (xs : List ByteG)
     (h : off + data.length ≤ sz) (hx : xs.length = data.length) (hj : j = 0 ∨ j = data.length) :
     (pwBytes sz off data j xs).map Prod.fst = (if j = 0 then xs.map Prod.fst else data) := by
   have hs : pwSize sz off j = sz := pwSize_inside sz off j data.length (by omega) h

@@ -183,10 +183,10 @@ theorem wBytes_restrict (p : GoString) (W W' : List Nat) (wb : Nat → List w8) 
     wBytes (GF := GF) p W wb size ⊢ wBytes (GF := GF) p W' wb size := by
   unfold wBytes
   let F : Nat → IProp GF := fun s => iprop(if 4096 * (s + 1) ≤ size then
-      iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp))
   show ([∗list] s ∈ W, F s) ⊢ [∗list] s ∈ W', F s

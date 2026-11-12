@@ -164,27 +164,27 @@ theorem grow_cells_in (C : CommitSt) (fl : FLPg) (b : Loc) (L lo k : Nat) (hlo :
 
 omit go_gctx in
 /-- A file's page-cache bytes, cut in two. -/
-theorem growBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
-    osBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
-      osBytes (GF := GF) p off dq xs ∗ osBytes (GF := GF) p (off + xs.length) dq ys := by
+theorem growBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
+    osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊣⊢
+      osBytes (GF := GF) p.ino off dq xs ∗ osBytes (GF := GF) p.ino (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
 omit go_gctx in
 theorem growBytes_nil (p : GoString) (off : Nat) (dq : DFrac) :
-    ⊢ osBytes (GF := GF) p off dq [] := by
+    ⊢ osBytes (GF := GF) p.ino off dq [] := by
   unfold osBytes; exact (bytesG_nil _ _ _ _).2
 
 /-- The new zeros of slot `s` after the file grew from `size`: from `size` or the slot's start, to
 its end. -/
 def zSlot (p : GoString) (size s : Nat) : IProp GF :=
-  osBytes p (max size (4096 * s)) (DFrac.own 1)
+  osBytes p.ino (max size (4096 * s)) (DFrac.own 1)
     (List.replicate (4096 * (s + 1) - max size (4096 * s)) ((0 : w8), false))
 
 omit go_gctx in
 /-- New zeros from `size` (or slot `j`'s start) to the end of slot `j + k - 1`, by slot. -/
 theorem zeros_split (p : GoString) (size : Nat) :
     ∀ (k j : Nat), size / 4096 ≤ j →
-      osBytes (GF := GF) p (max size (4096 * j)) (DFrac.own 1)
+      osBytes (GF := GF) p.ino (max size (4096 * j)) (DFrac.own 1)
         (List.replicate (4096 * (j + k) - max size (4096 * j)) ((0 : w8), false)) ⊢
       [∗list] s ∈ List.range' j k, zSlot (GF := GF) p size s
   | 0, j, _ => by
@@ -213,7 +213,7 @@ theorem wBytes_grow (p : GoString) (W : List Nat) (wb : Nat → List w8) (size S
     (hn : W.Nodup) (hS : S % 4096 = 0) (hle : size ≤ S)
     (hp : ∀ s ∈ W, 4096 * s < size → size < 4096 * (s + 1) → size - 4096 * s ≤ (wb s).length) :
     wBytes (GF := GF) p W wb size ∗
-      osBytes (GF := GF) p size (DFrac.own 1) (List.replicate (S - size) ((0 : w8), false)) ⊢
+      osBytes (GF := GF) p.ino size (DFrac.own 1) (List.replicate (S - size) ((0 : w8), false)) ⊢
     wBytes (GF := GF) p W (growWb wb size) S := by
   have hz := zeros_split (GF := GF) p size (S / 4096 - size / 4096) (size / 4096) (Nat.le_refl _)
   rw [show max size (4096 * (size / 4096)) = size by omega,
@@ -230,10 +230,10 @@ theorem wBytes_grow (p : GoString) (W : List Nat) (wb : Nat → List w8) (size S
   refine (sep_mono .rfl (hz.trans (hsub.trans hite))).trans ?_
   unfold wBytes
   refine (BigSepL.bigSepL_sep_eqv_symm (Φ := fun _ s => iprop(if 4096 * (s + 1) ≤ size then
-      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List (w8 × Bool), osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp)))
     (Ψ := fun _ s => iprop(if q s then zSlot (GF := GF) p size s else iprop(emp)))).1.trans ?_

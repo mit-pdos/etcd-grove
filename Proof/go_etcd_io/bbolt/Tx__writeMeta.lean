@@ -57,12 +57,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 them (`j` bytes written, all or nothing) and a time receipt (of a step under `metalock`, for
 the writer side's receipts), `metalock`'s resource and `Ψ j`. -/
 def commitStep (K : BC) (s : Nat) (b : Loc) (buf : List w8) (Ψ : Nat → IProp GF) : IProp GF :=
-  iprop(metaR K.B K.db K.p ={⊤}=∗ ∃ (xs : List (w8 × Bool)) (old : List w8),
-    osBytes K.p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.length = 4096 ∧ old.length = 4096⌝ ∗
+  iprop(metaR K.B K.db K.p ={⊤}=∗ ∃ (xs : List ByteG) (old : List w8),
+    osBytes K.p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.length = 4096 ∧ old.length = 4096⌝ ∗
     bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) old ∗
-    ∀ (j : Nat) (ys : List (w8 × Bool)),
+    ∀ (j : Nat) (ys : List ByteG),
       ⌜(j = 0 ∨ j = 4096) ∧ ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else buf)⌝ -∗
-      osBytes K.p (4096 * s) (DFrac.own 1) ys -∗
+      osBytes K.p.ino (4096 * s) (DFrac.own 1) ys -∗
       bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (ys.map Prod.fst) -∗
       receipt 1 ={⊤}=∗ metaR K.B K.db K.p ∗ Ψ j)
 
@@ -83,8 +83,8 @@ abbrev Tx.writeMeta.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      osMeta K.p (DFrac.own 1) (some om) ∗
+      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      osMeta K.p.ino (DFrac.own 1) om ∗
       commitStep K (mv.txid'.toNat % 2) b (metaBuf mv) Ψ }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗
@@ -92,8 +92,8 @@ abbrev Tx.writeMeta.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      (∃ om' : OsMeta, osMeta K.p (DFrac.own 1) (some om') ∗
+      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗
+      (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
       ∃ j : Nat, Ψ j ∗ ⌜(j = 0 ∨ j = 4096) ∧ (err = interface.nil → j = 4096)⌝ ∗
         (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) }}
@@ -210,7 +210,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   have h0 : 0 ≤ ((mv.txid' % W64 2) * W64 4096).toInt := by
     rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
   wp_apply hWriteAt f fd K.p (DFrac.own 1) sl (metaBuf mv) (DFrac.own 1)
-    ((mv.txid' % W64 2) * W64 4096) (DFrac.own 1) ⟨K.p, true, true⟩ 1 om xs rfl h0
+    ((mv.txid' % W64 2) * W64 4096) (DFrac.own 1) ⟨K.p.ino, true, true⟩ 1 om xs rfl h0
     (by rw [metaBuf_length]; omega) (by rw [metaBuf_length, hoff]; omega)
     (by rw [metaBuf_length, hoff]; omega) (fun _ => rfl)
     $$ [Hfo Hsl Hfd Hm Hxs Hc] as %n %err ⟨Hfo, Hsl, Hfd, %j, %ys, %h, %Hj, Hm, Hys, Hc, Herr⟩

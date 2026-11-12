@@ -49,10 +49,10 @@ theorem wjoin (p : GoString) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List
   -- the bytes of `S`
   have hSb : ([∗list] s ∈ S, osSlot (GF := GF) p s (bs s)) ⊢
       [∗list] s ∈ S, (if 4096 * (s + 1) ≤ size then
-        iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = mergeWb S bs wb s⌝)
         else if 4096 * s < size then
-          iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+          iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
             ⌜xs.map Prod.fst = (mergeWb S bs wb s).take (size - 4096 * s)⌝)
         else iprop(emp)) := by
     refine BigSepL.bigSepL_mono fun {k x} hk => ?_

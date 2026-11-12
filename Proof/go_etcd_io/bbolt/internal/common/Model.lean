@@ -12,7 +12,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 /-- Sorted, unsigned (duplicates allowed: `Mergepgids` does not need them distinct). -/
 def PgidsSorted (l : List w64) : Prop :=

@@ -31,13 +31,13 @@ variable [sem : go.Semantics]
 /-- What `Open` holds of the file at `path` besides its `OsMeta` option `mo`. -/
 def openRest (path : GoString) (D : Data) : Option OsMeta → IProp GF
   | none => iprop(⌜D = ∅⌝)
-  | some m => iprop(∃ xs : List (w8 × Bool), osBytes path 0 (DFrac.own 1) xs ∗
+  | some m => iprop(∃ xs : List ByteG, osBytes path.ino 0 (DFrac.own 1) xs ∗
       ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧
         ((m.size = 0 ∧ D = ∅) ∨ ∃ C, openOK C D m xs)⌝)
 
 /-- **`fileHolds` as `Open` uses it** (its size bound, maintainer 12's item 5, included). -/
 theorem fileHolds_openRest (path : GoString) (D : Data) :
-    fileHoldsDef (GF := GF) path D ⊢ ∃ mo : Option OsMeta, osMeta path (DFrac.own 1) mo ∗
+    fileHoldsDef (GF := GF) path D ⊢ ∃ mo : Option OsMeta, osMeta path.ino (DFrac.own 1) mo ∗
       openRest path D mo := by
   iintro H
   icases fileHolds_decode path D $$ H with (⟨Hm, %hD⟩ | ⟨%m, %xs, Hm, Hb, %hml, Hr⟩)
@@ -52,9 +52,9 @@ theorem fileHolds_openRest (path : GoString) (D : Data) :
 
 /-- **The file opened** (`O_RDWR | O_CREATE`): an `OsMeta`, its bytes and its branch's facts. -/
 theorem openRest_opened (path : GoString) (D : Data) (mo : Option OsMeta) :
-    osMeta (GF := GF) path (DFrac.own 1) (openMeta mo true) ∗ openRest path D mo ⊢
-      ∃ (m : OsMeta) (xs : List (w8 × Bool)), osMeta path (DFrac.own 1) (some m) ∗
-        osBytes path 0 (DFrac.own 1) xs ∗
+    osMeta (GF := GF) path.ino (DFrac.own 1) (openMeta mo true) ∗ openRest path D mo ⊢
+      ∃ (m : OsMeta) (xs : List ByteG), osMeta path.ino (DFrac.own 1) m ∗
+        osBytes path.ino 0 (DFrac.own 1) xs ∗
         ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧
           ((m.size = 0 ∧ D = ∅) ∨ ∃ C, openOK C D m xs)⌝ := by
   cases mo with

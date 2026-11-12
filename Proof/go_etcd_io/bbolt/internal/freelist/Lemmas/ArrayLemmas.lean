@@ -16,7 +16,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 /-- Ids `j` and `j+1` of `f` are consecutive. -/
 def consec (f : List w64) (j : Nat) : Prop := uint.Z (f.getD (j + 1) 0) = uint.Z (f.getD j 0) + 1

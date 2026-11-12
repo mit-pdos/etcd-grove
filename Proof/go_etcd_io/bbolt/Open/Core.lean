@@ -119,8 +119,8 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p ∗
       db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
       mapFields db (DFrac.own 1) (some (b, L)) ∗
-      osMeta p (DFrac.own 1) (some m) ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ Ps sp 1 ∗
+      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ Ps sp 1 ∗
       metaOsBytes p (DFrac.own (1 : Qp).half) C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) C ∗
       ([∗list] s ∈ slotsOf C FLPg.empty, osSlot p s (wb s)) ∗
       wBytes p (wSlots (L / 4096) C FLPg.empty) wb m.size ∗
@@ -312,8 +312,8 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : 
       db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p ∗
       db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
       mapFields db (DFrac.own 1) (some (b, L)) ∗
-      osMeta p (DFrac.own 1) (some m) ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ Ps sp 1 ∗
+      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ Ps sp 1 ∗
       metaOsBytes p (DFrac.own (1 : Qp).half) C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) C ∗
       ([∗list] s ∈ slotsOf C FLPg.empty, osSlot p s (wb s)) ∗
       wBytes p (wSlots (L / 4096) C FLPg.empty) wb m.size ∗

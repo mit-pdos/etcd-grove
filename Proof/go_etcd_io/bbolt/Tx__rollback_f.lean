@@ -397,7 +397,7 @@ theorem Tx.rollback_f.wp_proof
         icases wBytes_ext K.p w'.W _ w'.wb w'.m.size hnd' (fun s hs => (hextW s hs).1)
           (fun s hs => (hextW s hs).2.1) $$ Hwb with ⟨Heb, Hwb⟩
         have hmaps : w.m.maps !! b = some l := by rw [hwok.1 b l hbl']; simp
-        ihave Hosm : osMeta K.p (DFrac.own 1) (some w'.m) $$ [Hosm]
+        ihave Hosm : osMeta K.p.ino (DFrac.own 1) w'.m $$ [Hosm]
         · rw [hm']; iexact Hosm
         rw [← hm'] at hmaps
         iapply ext_agree _ rfl K.p (DFrac.own 1) w'.m b l hmaps (by simp) _ w'.wb

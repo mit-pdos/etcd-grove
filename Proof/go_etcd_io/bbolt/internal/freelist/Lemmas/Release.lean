@@ -15,7 +15,6 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
-open Fs
 
 theorem lookup_filter' {V : Type} (m : GMap w64 V) (P : w64 → V → Bool) (k : w64) :
     (GMap.filter P m) !! k = (m !! k).filter (P k) := rfl

@@ -40,7 +40,7 @@ private theorem pagesInv_timeless_w (B : BNs) (p : GoString) : Timeless (pagesIn
     intro σ W; unfold bytesWit; split <;> infer_instance
   have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
     intro s bs
-    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p off dq xs) := fun _ _ _ => by
+    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p.ino off dq xs) := fun _ _ _ => by
       unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
     unfold osSlot; infer_instance
   unfold pagesInv

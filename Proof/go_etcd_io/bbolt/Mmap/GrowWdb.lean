@@ -67,7 +67,7 @@ variable [sem : go.Semantics]
 `W` slots' cells and page-cache bytes. -/
 def growRes (K : BC) (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8) : IProp GF :=
   iprop(K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
-    osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some m) ∗
+    osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ ∗ osMeta K.p.ino (DFrac.own 1) m ∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗ wCells w.ms W ∗ wBytes K.p W wb m.size)
 
 omit [GooseSemantics] hos in

@@ -243,7 +243,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   try wp_auto
   ihave IH : (∃ (j : w64) (pv : Loc) (om' : OsMeta),
       "i" ∷ i_ptr ↦ j ∗ "p" ∷ p_ptr ↦ pv ∗ "Hst" ∷ statsTok r sm q ∗
-      "Hm" ∷ osMeta K.p (DFrac.own 1) (some om') ∗
+      "Hm" ∷ osMeta K.p.ino (DFrac.own 1) om' ∗
       "Hdone" ∷ ([∗list] e ∈ L'.take (sint.nat j), pgDone b K.p e) ∗
       "Htodo" ∷ ([∗list] e ∈ L'.drop (sint.nat j), pgBufR e) ∗
       "Hpool" ∷ ([∗list] s ∈ (L'.drop (sint.nat j)).flatMap extE ++ tOut T om.size,
@@ -324,17 +324,17 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rw [← hclen]
     have hcne : c.2.2 ≠ [] := List.ne_nil_of_length_pos (by omega)
     icases Read.bytesPointsto_bounds _ _ _ hcne $$ Hpb with ⟨Hpb, %Hcb⟩
-    ihave Hd1 : osBytes (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) [] $$ []
+    ihave Hd1 : osBytes (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) [] $$ []
     · iapply (osBytes_nil' (GF := GF) K.p _ _).2; iempintro
     ihave Hd2 : bytesPointsto (GF := GF) (b +ₗ ((4096 * c.1.toNat : Nat) : Int))
         (DFrac.own (1 : Qp).half) (c.2.2.take 0) $$ []
     · rw [List.take_zero]; unfold bytesPointsto; iempintro
-    ihave IH2 : (∃ (w : Nat) (ysd : List (w8 × Bool)) (om2 : OsMeta),
+    ihave IH2 : (∃ (w : Nat) (ysd : List ByteG) (om2 : OsMeta),
         "rem" ∷ rem_ptr ↦ W64 ((c.2.2.length - w : Nat) : Int) ∗
         "offset" ∷ offset_ptr ↦ W64 ((4096 * c.1.toNat + w : Nat) : Int) ∗
         "written" ∷ written_ptr ↦ W64 ((w : Nat) : Int) ∗ "Hst" ∷ statsTok r sm q ∗
-        "Hm" ∷ osMeta K.p (DFrac.own 1) (some om2) ∗
-        "Hd1" ∷ osBytes K.p (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
+        "Hm" ∷ osMeta K.p.ino (DFrac.own 1) om2 ∗
+        "Hd1" ∷ osBytes K.p.ino (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
         "Hd2" ∷ bytesPointsto (b +ₗ ((4096 * c.1.toNat : Nat) : Int)) (DFrac.own (1 : Qp).half)
           (c.2.2.take w) ∗
         "Hro" ∷ oAnyZ K.p om2.size (4096 * c.1.toNat + w) (c.2.2.length - w) ∗
@@ -450,7 +450,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
       wp_apply hWriteAt f fd K.p (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
-        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p, true, true⟩ 1 om2 xs rfl h0
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ 1 om2 xs rfl h0
         (by rw [hcl]; omega) (by rw [hcl, htn]; omega) (by rw [hcl, htn]; omega) (fun _ => rfl)
         $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %ys, %hh, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #
@@ -607,7 +607,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           have := congrArg List.length Hysd; simp only [List.length_map, List.length_take] at this
           omega
         ihave Hpb := Hpbb $$ Hck
-        ihave Hd1 : osBytes (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys2) $$ [Hd1 Hys]
+        ihave Hd1 : osBytes (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys2) $$ [Hd1 Hys]
         · iapply (osBytes_take_drop (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys2)
             ysd.length (by simp)).2
           rw [List.take_left, List.drop_left, hyd]
@@ -756,13 +756,13 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iexact Hwr
       subst He
       try wp_auto
-      ihave Hm : (∃ om'' : OsMeta, osMeta K.p (DFrac.own 1) (some om'') ∗
+      ihave Hm : (∃ om'' : OsMeta, osMeta K.p.ino (DFrac.own 1) om'' ∗
           ⌜om''.size = om'.size ∧ om''.maps = om.maps⌝ : IProp GF) $$ [Hm]
       · iexists m'; iframe; ipureintro; exact ⟨Hm'.1, Hm'.2.trans Hom'm⟩
     rotate_left
     focus
       try wp_auto
-      ihave Hm : (∃ om'' : OsMeta, osMeta K.p (DFrac.own 1) (some om'') ∗
+      ihave Hm : (∃ om'' : OsMeta, osMeta K.p.ino (DFrac.own 1) om'' ∗
           ⌜om''.size = om'.size ∧ om''.maps = om.maps⌝ : IProp GF) $$ [Hm]
       · iexists om'; iframe; ipureintro; exact ⟨rfl, Hom'm⟩
     all_goals
