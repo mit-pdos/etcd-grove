@@ -49,14 +49,16 @@ the restart point, `run` at `⟨|P|, A₀⟩`.
   (`b01800d4f8`, each file `lean-check -a` clean; `InvRaftNode`'s docstring touched too, so the next
   full build rebuilds its importers).
 
+- `46aa886d61`: nonissue `etcd-fork-bootstrap-nil-snapshot-metadata` (the reviewer's Go observation).
+- `b11229dab5`: `lean` `d4cb3599d1` merged (ckptEffectsOk deleted, SpecPlan); SpecPlan's outputs copied
+  in by etcd-grove-81; full build under the lock and the cap: 17301 jobs, exit 0
+  (`/shared/tmp/restart-s4/full2.log`).
+
 ## Next, in order
 
-1. Wait for etcd-grove-81's confirmation that the ckptEffectsOk landing is on `lean` (at `b01800d4f8`
-   `lean` was `d312fbb78a`, without it).
-2. Merge `lean`; before the first build, `cp -a /shared/etcd-grove-ckpt/.lake/build/{lib/lean,ir}/SpecPlan`
-   into the same places of this worktree's `.lake/build` (only after the ckpt landing).
-3. One full build (lock, 64G cap), `etc/gates.sh`, `etc/gen-interface.py --check` x5; STOP before
-   `etc/land.sh` with the reviewer's verdict.
+1. `etc/gates.sh` only when etcd-grove-81 says (the gates' Go tests collide on ports with another
+   landing's), then `etc/gen-interface.py --check` x5.
+2. STOP before `etc/land.sh` with the reviewer's verdict (approve with fixes; fixed).
 
 ## Build
 
