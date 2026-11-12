@@ -770,7 +770,7 @@ theorem confchange.wp_Restore :
 
 theorem wp_traceConfChangeEvent [StorageModel GF] :
     traceConfChangeEvent.spec (GF := GF) (hG := hG) :=
-  traceConfChangeEvent.wp_proof
+  traceConfChangeEvent.wp_proof wp_traceEvent quorum.MajorityConfig.wp_Slice wp_formatConf
 
 theorem tracker.ProgressTracker.wp_ConfState :
     tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG) :=
@@ -1348,10 +1348,6 @@ theorem raftLog.wp_stableSnapTo [StorageModel GF] :
     raftLog.stableSnapTo.spec (GF := GF) (hG := hG) :=
   raftLog.stableSnapTo.wp_proof unstable.wp_stableSnapTo
 
-theorem raft.wp_switchToConfig [StorageModel GF] :
-    raft.switchToConfig.spec (GF := GF) (hG := hG) :=
-  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower
-
 theorem raft.wp_reduceUncommittedSize [StorageModel GF] :
     raft.reduceUncommittedSize.spec (GF := GF) (hG := hG) :=
   raft.reduceUncommittedSize.wp_proof
@@ -1375,10 +1371,6 @@ theorem raftpb.ConfChangeV2.wp_EnterJoint :
 theorem confchange.Changer.wp_LeaveJoint :
     confchange.Changer.LeaveJoint.spec (GF := GF) (hG := hG) :=
   confchange.Changer.LeaveJoint.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.wp_nilAwareAdd confchange.wp_outgoing confchange.wp_incoming confchange.wp_outgoingPtr confchange.wp_checkAndReturn
-
-theorem raft.wp_applyConfChange [StorageModel GF] :
-    raft.applyConfChange.spec (GF := GF) (hG := hG) :=
-  raft.applyConfChange.wp_proof raftLog.wp_lastIndex raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint confchange.Changer.wp_LeaveJoint confchange.Changer.wp_EnterJoint confchange.Changer.wp_Simple raft.wp_switchToConfig
 
 theorem wp_getBasicStatus [StorageModel GF] :
     getBasicStatus.spec (GF := GF) (hG := hG) :=
@@ -1555,6 +1547,10 @@ theorem raft.wp_appliedTo [StorageModel GF] :
     raft.appliedTo.spec (GF := GF) (hG := hG) :=
   raft.appliedTo.wp_proof raftLog.wp_appliedTo wp_confChangeToMsg wp_traceReceiveMessage wp_stepFollower wp_stepCandidate wp_stepLeader raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetIndex raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetCommit raftpb.Message.wp_GetReject raftpb.Message.wp_GetEntries raftpb.Message.wp_GetSnapshot raftpb.Message.wp_GetContext raftpb.Entry.wp_GetIndex raftpb.MessageType.wp_Enum
 
+theorem raft.wp_switchToConfig [StorageModel GF] :
+    raft.switchToConfig.spec (GF := GF) (hG := hG) :=
+  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower
+
 theorem raft.wp_appliedSnap [StorageModel GF] :
     raft.appliedSnap.spec (GF := GF) (hG := hG) :=
   raft.appliedSnap.wp_proof raftLog.wp_stableSnapTo raft.wp_appliedTo raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftLog.wp_lastIndex tracker.wp_MakeProgressTracker confchange.wp_Restore raft.wp_switchToConfig wp_assertConfStatesEquivalent raftpb.wp_EnsureConfState raftpb.SnapshotMetadata.wp_GetConfState
@@ -1566,6 +1562,10 @@ theorem raft.wp_Step [AllG GF] [StorageModel GF] :
 theorem RawNode.wp_Advance [AllG GF] [StorageModel GF] :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
   RawNode.Advance.wp_proof raft.wp_Step
+
+theorem raft.wp_applyConfChange [StorageModel GF] :
+    raft.applyConfChange.spec (GF := GF) (hG := hG) :=
+  raft.applyConfChange.wp_proof raftLog.wp_lastIndex raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint confchange.Changer.wp_LeaveJoint confchange.Changer.wp_EnterJoint confchange.Changer.wp_Simple raft.wp_switchToConfig
 
 theorem RawNode.wp_ApplyConfChange [StorageModel GF] :
     RawNode.ApplyConfChange.spec (GF := GF) (hG := hG) :=
