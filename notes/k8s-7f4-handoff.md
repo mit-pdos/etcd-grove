@@ -54,7 +54,15 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
 - Results (`etcd_watchMethodOk`, `etcd_watch_served(_chain/_etcd_chain)`, `srvStreamBundle_watchSlot`)
   over `ics ++ [icW]` and level 4 in the handler's share.
 
-Next: full build, gates, CHECKPOINT (mvcc interface diff + T-g review), then LeaseKeepAlive.
+Full build green (`etc/timed-build.py`, build 20261112-210835). Gates: axiom-tok ok (T-f' entries
+added) and its selftest ok; model-param ok; errdesc ok; gen-interface regenerated (mvcc's
+`WatchStream.Watch.contract`, etcdstart's `grpcUp*`/`Serve.spec`); tcb-report and 16 collections differ
+only by axioms now reached (B1's two `incomingOf` axioms everywhere, `errors.IsStatusErr` in v3rpc,
+`metadata.FromIncomingContext` in watch): baselines NOT updated, for 81. CHECKPOINT reported.
+Next (after 81): update baselines; LeaseKeepAlive (LeaseRenew over the weak context, the local
+`WithTimeout` lemma, drop `srvStreamIsStrong`); step 6 is a hard stop.
+Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G python3
+etc/timed-build.py --packages=/shared/tmp/manifest-ddc.json`; gates script `/shared/tmp/k8s7f4/gates/run.sh`.
 
 ## Fifth agent (2026-11-12): item 7 started; STOPPED for two trust-base questions (81)
 
